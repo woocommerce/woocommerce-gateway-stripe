@@ -227,7 +227,7 @@ class WC_Gateway_Stripe_Loader {
 		add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateways' ) );
 
 		if ( $this->subscription_support_enabled ) {
-			require_once( plugin_basename( 'includes/class-wc-addons-gateway-stripe-commerce.php' ) );
+			require_once( plugin_basename( 'includes/class-wc-gateway-stripe-addons.php' ) );
 		}
 	}
 
