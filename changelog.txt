@@ -1,0 +1,304 @@
+*** Stripe Changelog ***
+
+2016.04.13 - version 2.6.12
+* Fix - When saved cards option is enabled with no cards on file, CC field was hidden.
+
+2016.04.11 - version 2.6.11
+* Add - Option to set a default card in manage card section and detect previous card paid by subscription.
+* Fix - Admin notice link when key is not added and when addons are present.
+
+2016.03.16 - version 2.6.10
+* Tweak - Add logging mechanism. New 'Logging' option is added in Stripe gateway setting to enable logging.
+* Fix - Allow language files to be located outside of plugin directory
+
+2016.02.29 - version 2.6.9
+* Tweak - Allow mechanism to override Stripe JS error handler. See https://gist.github.com/gedex/240492f479c7443e4780
+  for an example to override error handler with simple alert.
+
+2016.02.11 - version 2.6.8
+* Tweak - Include card brand in saved cards radio label class
+* Tweak - Add action when deleting card
+* Tweak - Add actions for add_card and add_customer
+* Tweak - Add support for automatic localisation in Stripe Checkout modal
+* Fix - Check for Stripe error code emptiness before returning the WP_Error
+
+2015.12.17 - version 2.6.7
+* Fix is_available SSL check to also work properly on hosts that always serve HTTPS
+
+2015.12.03 - version 2.6.6
+* Fix a JavaScript bug introduced in 2.6.4 that caused checkout with a saved card to fail
+
+2015.12.02 - version 2.6.5
+* Do not require a card id when updating a subscription payment method
+
+2015.11.20 - version 2.6.4
+* Fix a JavaScript bug that caused the Stripe Checkout popup to be blocked on Chrome for iOS
+
+2015.11.12 - version 2.6.3
+* Add metadata to subscription payments in stripe dashboard to indicate whether it is the initial or a recurring payment
+
+2015.11.06 - version 2.6.2
+* Fix bug that would cause multiple subscriptions to not be supported under certain circumstances
+
+2015.09.15 - version 2.6.1
+* Unset source if not set during pre-order release payments.
+* Store customer ID if not logged in for pre-order payments.
+
+2015.09.02 - version 2.6.0
+* Subscriptions 2.0 support.
+
+2015.08.11 - version 2.5.4
+* Tweak - Terms and conditions error styling when required
+* Tweak - Account password error styling when required
+
+2015.7.28 - version 2.5.3
+* Added - Filter to prevent Stripe from sending its own receipts "wc_stripe_send_stripe_receipt"
+
+2015.07.19 - version 2.5.2
+* Fix - Removed deprecated add_error function
+* Tweak - Improve error message when Stripe checkout function is used
+
+2015.07.01 - version 2.5.1
+* Fix - Only send receipt_email when set.
+
+2015.05.11 - version 2.5.0
+* Update to API version 2015-04-07
+* Feature - Support authorize on subscriptions first payment.
+* Tweak - Option labels.
+* Tweak - Safe remote GET.
+* Tweak - SSLVerify true.
+* Tweak - Update card icons.
+* Tweak - Pass receipt email.
+
+2015.05.11 - version 2.4.3
+* Fix - fixed validation issue when account creation is not checked
+* Update - Stripe checkout JS API v2
+
+2015.03.23 - version 2.4.2
+* Fix - Create account password field was not being validated
+
+2015.03.20 - version 2.4.1
+* Fix - Undefined JS error due to deprecated ajax_loader_url
+* Fix - When using Stripe checkout JS, some form required fields were not validating
+
+2015.02.20 - version 2.4.0
+* Added support for bitcoin currency
+
+2015.01.31 - version 2.3.0
+* Added 'wc_stripe_description' filter to allow filtering of payment description.
+* Added order_review handling for stripe checkout.
+* Mark order as failed is Stripe API call fails
+* Allow valid HTML in Stripe Description
+* Fix settings link
+* use get_order_currency() when generating payment args, rather than always using store currency.
+* Fix fees where not logged correctly when using authorized first capture later
+* Retry payment if customer_id is invalid.
+
+2014.11.21 - version 2.2.8
+* Save card/customer id for regular orders.
+
+2014.11.20 - version 2.2.7
+* Fixed all instances where order IDs were used instead of user IDs.
+* Update orignal order card/customer ids for renewals.
+* Add reasons to refunds.
+
+2014.11.18 - version 2.2.6
+* Stripe card ID should be taken from the order, not the user.
+* Fix order_meta_query.
+
+2014.11.06 - version 2.2.5
+* Round totals to 2 decimals so when we multiply by 100 we're sure we've got an integer.
+
+2014.10.01 - version 2.2.4
+* Fix card display for subscriptions.
+
+2014.10.01 - version 2.2.3
+* Fixed textdomain name
+
+2014.09.23 - version 2.2.2
+* Set API version to 2014-09-08.
+* Fixed card display (type->brand).
+
+2014.09.15 - version 2.2.1
+* Fix strict standards warning.
+
+2014.09.01 - version 2.2.0
+* Replaced woocommerce_get_template (deprecated) with wc_get_template.
+* Tweak refund support.
+* Support for pre-orders.
+* Fixed typo.
+
+2014.08.06 - version 2.1.0
+* Associate stripe customers with wp users.
+* Refactored saved card code.
+* Use Stripe API to get and delete saved cards.
+* Updated subscriptions integration for saved cards.
+* WC 2.2 - Store transaction ID.
+* WC 2.2 - Refund support.
+
+2014.07.31 - version 2.0.4
+* Tweaked the stripe checkout submission method.
+
+2014.07.25 - version 2.0.3
+* wc_stripe_manage_saved_cards_url filter.
+* Zero decimal currency handling.
+* Only open stripe model when required fields are completed.
+
+2014.06.06 - version 2.0.2
+* Fix use of saved cards on subscriptions.
+
+2014.05.29 - version 2.0.1
+* Fix ajax loading gif.
+* Fix notices.
+* Fix stray comma in stripe.js.
+* Prompt user to accept terms before showing stripe checkout modal.
+
+2014.05.21 - version 2.0.0
+* Added the WC credit_card_form - this extension now requires WC 2.1+
+* Option to disable saved cards
+* Refactored code base
+* Fix jquery notices
+* Fix settings page links
+* woocommerce_stripe_request_body filter
+* Store fees for subscriptions
+
+2014.05.20 - version 1.8.6
+* correct SSl message
+* decode get_bloginfo( 'name' ) for plain text display
+
+2014.05.10 - version 1.8.5
+* Updated textdomains
+* date_i18n
+* Improve stripe checkout flow - pop up on the checkout button click
+
+2014.04.01 - version 1.8.4
+* Fix updating credit card used for future subscription payments when paying for a failed subscription renewal order with a new credit card.
+
+2014.02.13 - version 1.8.3
+* Fix fatal error for subscription payments of deleted products.
+
+2014.02.06 - version 1.8.2
+* Fix notice on card delete
+
+2014.01.28 - version 1.8.1
+* set default for $checked
+
+2014.01.08 - version 1.8.0
+* Checked compatibility with 2013-12-03 API
+* 2.1 compatibility
+* Pre-filled email address when using stripe checkout
+
+2013.12.02 - version 1.7.6
+* Fix card display
+
+2013.11.27 - version 1.7.5
+* Show payment method for subscriptions on account page
+
+2013.11.20 - version 1.7.4
+* Expand/close when using saved cards.
+* Use balance_transaction to get and store fees
+
+2013.11.01 - version 1.7.3
+* Default to saved card
+
+2013.11.01 - version 1.7.2
+* Added missing global in update_failing_payment_method
+
+2013.09.28 - version 1.7.1
+* Remove non-existant (yet) function
+
+2013.09.25 - version 1.7.0
+* Different credit card image for US than for other countries + a filter.
+* Support for upcoming version of subscriptions.
+* Add new woocommerce_stripe_month_display filter
+
+2013.09.02 - version 1.6.0
+* Option to define a Stripe Checkout Image
+* Removed currency check due to beta rollout
+
+2013.08.12 - version 1.5.14
+* New cards format for subscriptions class.
+
+2013.07.24 - version 1.5.13
+* Updated customer response object handler to work with new cards format.
+* Fixed delete card button
+
+2013.07.24 - version 1.5.12
+* EUR support for Stripe Beta
+
+2013.07.17 - version 1.5.11
+* Workaround for stripe error messages.
+
+2013.06.28 - version 1.5.10
+* Store charge ID, fee in meta
+
+2013.06.28 - version 1.5.9
+* Capture true default
+
+2013.06.18 - version 1.5.8
+* Add currency to stripe checkout js
+* Authorize-only mode. Captures payment when order is made processing.
+
+2013.06.15 - version 1.5.7
+* Added 'capture' option should you wish to authorize only. Authorized orders are on-hold. Processed orders capture the charge automatically.
+
+2013.06.03 - version 1.5.6
+* added data-currency to stripe-checkout
+
+2013.04.26 - version 1.5.5
+* Allow card re-entry in stripe checkout after errors.
+
+2013.04.19 - version 1.5.4
+* GBP fix
+
+2013.04.15 - version 1.5.3
+* Support GBP currency code (For UK Beta)
+
+2013.04.09 - version 1.5.2
+* Send billing city to stripe
+
+2013.01.24 - version 1.5.1
+* Add support for changing a subscription's recurring amount
+
+2013.01.18 - version 1.5.0
+* Supports Stripe Checkout https://stripe.com/docs/checkout
+
+2013.01.18 - version 1.4.0
+* WC 2.0 Compat
+
+2012.12.05 - version 1.3.5
+* Pass address fields to stripe.js on pay page.
+
+2012.12.05 - version 1.3.4
+* Updater
+
+2012.10.22 - version 1.3.3
+* Fix CAD check
+
+2012.10.15 - version 1.3.2
+* Fixed bug causing settings to not show when using CAD
+
+2012.10.11 - version 1.3.1
+* Add support for changing subscription next payment date
+* Remove order meta from subscription renewal orders
+
+2012.09.20 - version 1.3
+* Allowed canadian dollars - Stripe is beta testing support for Canada
+
+2012.09.11 - version 1.2.1
+* Fix text mode SSL logic
+
+2012.09.01 - version 1.2
+* SSL not required in TEST MODE
+* Saved cards - store customer tokens and let users pay again using the same card
+* Subscriptions use a single customer, rather than per-order
+* Only load JS on checkout
+
+2012.06.19 - version 1.1
+* Update woo updater
+* Class name update
+* Stripe JS for added security - you will need to re-enter keys and ensure you are using WooCommerce 1.5.8
+* Subscriptions support (requires WC Subscriptions addon)
+
+2011.12.08 - version 1.0
+* First Release

@@ -1,0 +1,370 @@
+# Copyright (C) 2015 WooCommerce Stripe Gateway
+# This file is distributed under the same license as the WooCommerce Stripe Gateway package.
+msgid ""
+msgstr ""
+"Project-Id-Version: WooCommerce Stripe Gateway 2.3.0\n"
+"Report-Msgid-Bugs-To: http://wordpress.org/tag/woocommerce-gateway-stripe\n"
+"POT-Creation-Date: 2015-01-31 21:01:18+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2015-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+
+#: includes/class-wc-gateway-stripe-addons.php:60
+#: includes/class-wc-gateway-stripe-addons.php:173
+#: includes/class-wc-gateway-stripe.php:399
+msgid ""
+"Please make sure your card details have been entered correctly and that your "
+"browser supports JavaScript."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe-addons.php:63
+#: includes/class-wc-gateway-stripe-addons.php:176
+#: includes/class-wc-gateway-stripe.php:402
+msgid ""
+"Developers: Please make sure that you are including jQuery and there are no "
+"JavaScript errors on the page."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe-addons.php:135
+msgid "Error:"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe-addons.php:162
+#: includes/class-wc-gateway-stripe-addons.php:294
+#: includes/class-wc-gateway-stripe.php:388
+msgid ""
+"Sorry, the minimum allowed order total is 0.50 to use this payment method."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe-addons.php:291
+msgid "Subscription for \"%s\""
+msgstr ""
+
+#: includes/class-wc-gateway-stripe-addons.php:291
+msgid "(Order %s)"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe-addons.php:308
+msgid "Customer not found"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe-addons.php:331
+msgid "Stripe subscription payment completed (Charge ID: %s)"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe-addons.php:405
+#: includes/class-wc-gateway-stripe-addons.php:410
+msgid "Via %s card ending in %s"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe-addons.php:430
+#: includes/class-wc-gateway-stripe.php:450
+msgid "%s - Order %s"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe-addons.php:462
+#: includes/class-wc-gateway-stripe.php:487 woocommerce-gateway-stripe.php:128
+msgid "Stripe charge complete (Charge ID: %s)"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe-addons.php:471
+#: includes/class-wc-gateway-stripe.php:496
+msgid ""
+"Stripe charge authorized (Charge ID: %s). Process order to take payment, or "
+"cancel to remove the pre-authorization."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe-addons.php:475
+msgid "Stripe Transaction Failed (%s)"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe-saved-cards.php:42
+msgid "Unable to verify deletion, please try again"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe-saved-cards.php:50
+msgid "Unable to delete card."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe-saved-cards.php:52
+msgid "Card deleted."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:18
+msgid "Stripe"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:19
+msgid ""
+"Stripe works by adding credit card fields on the checkout and then sending "
+"the details to Stripe for verification."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:59
+msgid "Continue to payment"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:63
+msgid ""
+"TEST MODE ENABLED. In test mode, you can use the card number "
+"4242424242424242 with any CVC and a valid expiration date."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:117
+msgid "Stripe error: Please enter your secret key <a href=\"%s\">here</a>"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:121
+msgid "Stripe error: Please enter your publishable key <a href=\"%s\">here</a>"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:127
+msgid ""
+"Stripe error: Your secret and publishable keys match. Please check and re-"
+"enter."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:133
+msgid ""
+"Stripe is enabled, but the <a href=\"%s\">force SSL option</a> is disabled; "
+"your checkout may not be secure! Please enable SSL and ensure your server "
+"has a valid SSL certificate - Stripe will only work in test mode."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:160
+msgid "Enable/Disable"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:161
+msgid "Enable Stripe"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:167
+msgid "Title"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:169
+msgid "This controls the title which the user sees during checkout."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:170
+msgid "Credit card (Stripe)"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:173
+msgid "Description"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:175
+msgid "This controls the description which the user sees during checkout."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:176
+msgid "Pay with your credit card via Stripe."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:179
+msgid "Test mode"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:180
+msgid "Enable Test Mode"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:182
+msgid "Place the payment gateway in test mode using test API keys."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:186
+msgid "Live Secret Key"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:188
+#: includes/class-wc-gateway-stripe.php:194
+#: includes/class-wc-gateway-stripe.php:200
+#: includes/class-wc-gateway-stripe.php:206
+msgid "Get your API keys from your stripe account."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:192
+msgid "Live Publishable Key"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:198
+msgid "Test Secret Key"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:204
+msgid "Test Publishable Key"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:210
+msgid "Capture"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:211
+msgid "Capture charge immediately"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:213
+msgid ""
+"Whether or not to immediately capture the charge. When unchecked, the charge "
+"issues an authorization and will need to be captured later. Uncaptured "
+"charges expire in 7 days."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:217
+msgid "Stripe Checkout"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:218
+msgid "Enable Stripe Checkout"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:220
+msgid ""
+"If enabled, this option shows a \"pay\" button and modal credit card form on "
+"the checkout, instead of credit card fields directly on the page."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:224
+msgid "Stripe Checkout Image"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:225
+msgid ""
+"Optionally enter the URL to a 128x128px image of your brand or product. e.g. "
+"<code>https://yoursite.com/wp-content/uploads/2013/09/yourimage.jpg</code>"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:230 templates/saved-cards.php:1
+msgid "Saved cards"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:231
+msgid "Enable saved cards"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:233
+msgid ""
+"If enabled, users will be able to pay with a saved card during checkout. "
+"Card details are saved on Stripe servers, not on your store."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:265
+msgid "Manage cards"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:270
+msgid "%s card ending in %s (Expires %s/%s)"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:276
+msgid "Use a new credit card"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:285
+msgid "%s"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:286
+msgid "Confirm and Pay"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:344
+msgid "Please accept the terms and conditions first"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:345
+msgid "Please fill in required checkout fields first"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:551
+msgid "Refunded %s - Refund ID: %s - Reason: %s"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:584
+msgid "Unable to add customer"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:608
+msgid "Unable to add card"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:635
+msgid "There was a problem connecting to the payment gateway."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:639
+msgid "Empty response."
+msgstr ""
+
+#: templates/saved-cards.php:5
+msgid "Card"
+msgstr ""
+
+#: templates/saved-cards.php:6
+msgid "Expires"
+msgstr ""
+
+#: templates/saved-cards.php:13
+msgid "%s card ending in %s"
+msgstr ""
+
+#: templates/saved-cards.php:14
+msgid "Expires %s/%s"
+msgstr ""
+
+#: templates/saved-cards.php:19
+msgid "Delete card"
+msgstr ""
+
+#: woocommerce-gateway-stripe.php:65
+msgid "Settings"
+msgstr ""
+
+#: woocommerce-gateway-stripe.php:66
+msgid "Support"
+msgstr ""
+
+#: woocommerce-gateway-stripe.php:67
+msgid "Docs"
+msgstr ""
+
+#: woocommerce-gateway-stripe.php:126
+msgid "Unable to capture charge!"
+msgstr ""
+
+#: woocommerce-gateway-stripe.php:162
+msgid "Unable to refund charge!"
+msgstr ""
+
+#: woocommerce-gateway-stripe.php:164
+msgid "Stripe charge refunded (Charge ID: %s)"
+msgstr ""
+
+#. Plugin Name of the plugin/theme
+msgid "WooCommerce Stripe Gateway"
+msgstr ""
+
+#. Plugin URI of the plugin/theme
+msgid "http://www.woothemes.com/products/stripe/"
+msgstr ""
+
+#. Description of the plugin/theme
+msgid ""
+"A payment gateway for Stripe (https://stripe.com/). A Stripe account and a "
+"server with Curl, SSL support, and a valid SSL certificate is required (for "
+"security reasons) for this gateway to function. Requires WC 2.1+"
+msgstr ""
+
+#. Author of the plugin/theme
+msgid "Mike Jolley"
+msgstr ""
+
+#. Author URI of the plugin/theme
+msgid "http://mikejolley.com"
+msgstr ""
