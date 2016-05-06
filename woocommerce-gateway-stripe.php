@@ -1,19 +1,26 @@
 <?php
 /*
-Plugin Name: WooCommerce Stripe Gateway
-Plugin URI: http://www.woothemes.com/products/stripe/
-Description: A payment gateway for Stripe (https://stripe.com/). A Stripe account and a server with Curl, SSL support, and a valid SSL certificate is required (for security reasons) for this gateway to function. Requires WC 2.1+
-Version: 2.6.12
-Author: WooThemes
-Author URI: http://woothemes.com
-Text Domain: woocommerce-gateway-stripe
-Domain Path: /languages
-
-	Copyright: © 2009-2014 WooThemes.
-	License: GNU General Public License v3.0
-	License URI: http://www.gnu.org/licenses/gpl-3.0.html
-
-	Stripe Docs: https://stripe.com/docs
+ * Plugin Name: WooCommerce Stripe Gateway
+ * Plugin URI: https://wordpress.org/plugins/woocommerce-gateway-stripe/
+ * Description: Take credit card payments on your store using Stripe.
+ * Author: Automattic
+ * Author URI: http://woothemes.com/
+ * Version: 3.0.0
+ *
+ * Copyright (c) 2016 Automattic
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
 if ( ! defined( 'ABSPATH' ) ) {
