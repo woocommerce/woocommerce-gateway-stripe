@@ -28,38 +28,74 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Required functions
+ * Required minimums and constants
  */
-if ( ! function_exists( 'woothemes_queue_update' ) ) {
-	require_once( 'woo-includes/woo-functions.php' );
-}
+define( 'WC_STRIPE_VERSION', '3.0.0' );
+define( 'WC_STRIPE_MIN_PHP_VER', '5.3.0' );
+define( 'WC_STRIPE_MIN_WC_VER', '2.6.0' );
+define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
+define( 'WC_STRIPE_TEMPLATE_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) . '/templates/' );
+define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
 
-/**
- * Plugin updates
- */
-woothemes_queue_update( plugin_basename( __FILE__ ), 'b022f53cd049144bfd02586bdc0928cd', '18627' );
-
-/**
- * Main Stripe class which sets the gateway up for us
- */
-class WC_Stripe {
+class WC_Gateway_Stripe_Loader {
 
 	/**
-	 * Constructor
+	 * @var Singleton The reference the *Singleton* instance of this class
 	 */
-	public function __construct() {
-		define( 'WC_STRIPE_VERSION', '2.6.12' );
-		define( 'WC_STRIPE_TEMPLATE_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) . '/templates/' );
-		define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
-		define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
+	private static $instance;
 
-		// required files
-		require_once( 'includes/class-wc-gateway-stripe-logger.php' );
+	/**
+	 * Returns the *Singleton* instance of this class.
+	 *
+	 * @return Singleton The *Singleton* instance.
+	 */
+	public static function get_instance() {
+		if ( null === self::$instance ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
 
-		// Actions
+	/**
+	 * Private clone method to prevent cloning of the instance of the
+	 * *Singleton* instance.
+	 *
+	 * @return void
+	 */
+	private function __clone() {}
+
+	/**
+	 * Private unserialize method to prevent unserializing of the *Singleton*
+	 * instance.
+	 *
+	 * @return void
+	 */
+	private function __wakeup() {}
+
+	/** @var whether or not we need to load code for / support subscriptions */
+	private $subscription_support_enabled = false;
+
+	/**
+	 * Notices (array)
+	 * @var array
+	 */
+	public $notices = array();
+
+	/**
+	 * Protected constructor to prevent creating a new instance of the
+	 * *Singleton* via the `new` operator from outside of this class.
+	 */
+	protected function __construct() {
+		add_action( 'admin_init', array( $this, 'check_environment' ) );
+		add_action( 'admin_notices', array( $this, 'admin_notices' ), 15 );
+
+		// Don't hook anything else in the plugin if we're in an incompatible environment
+		if ( self::get_environment_warning() ) {
+			return;
+		}
+
+		add_action( 'plugins_loaded', array( $this, 'init_gateways' ), 0 );
 		add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );
-		add_action( 'plugins_loaded', array( $this, 'init' ), 0 );
-		add_filter( 'woocommerce_payment_gateways', array( $this, 'register_gateway' ) );
 		add_action( 'woocommerce_order_status_on-hold_to_processing', array( $this, 'capture_payment' ) );
 		add_action( 'woocommerce_order_status_on-hold_to_completed', array( $this, 'capture_payment' ) );
 		add_action( 'woocommerce_order_status_on-hold_to_cancelled', array( $this, 'cancel_payment' ) );
@@ -67,78 +103,138 @@ class WC_Stripe {
 	}
 
 	/**
-	 * Add relevant links to plugins page
-	 * @param  array $links
-	 * @return array
+	 * Allow this class and other classes to add slug keyed notices (to avoid duplication)
+	 */
+	public function add_admin_notice( $slug, $class, $message ) {
+		$this->notices[ $slug ] = array(
+			'class'   => $class,
+			'message' => $message
+		);
+	}
+
+	/**
+	 * The primary sanity check, automatically disable the plugin on activation if it doesn't
+	 * meet minimum requirements.
+	 *
+	 * Based on http://wptavern.com/how-to-prevent-wordpress-plugins-from-activating-on-sites-with-incompatible-hosting-environments
+	 */
+	public static function activation_check() {
+		$environment_warning = self::get_environment_warning( true );
+		if ( $environment_warning ) {
+			deactivate_plugins( plugin_basename( __FILE__ ) );
+			wp_die( $environment_warning );
+		}
+	}
+
+	/**
+	 * The backup sanity check, in case the plugin is activated in a weird way,
+	 * or the environment changes after activation.
+	 */
+	public function check_environment() {
+		$environment_warning = self::get_environment_warning();
+		if ( $environment_warning && is_plugin_active( plugin_basename( __FILE__ ) ) ) {
+			deactivate_plugins( plugin_basename( __FILE__ ) );
+			$this->add_admin_notice( 'bad_environment', 'error', $environment_warning );
+			if ( isset( $_GET['activate'] ) ) {
+				unset( $_GET['activate'] );
+			}
+		}
+	}
+
+	/**
+	 * Checks the environment for compatibility problems.  Returns a string with the first incompatibility
+	 * found or false if the environment has no problems.
+	 */
+	static function get_environment_warning( $during_activation = false ) {
+
+		if ( version_compare( phpversion(), WC_STRIPE_MIN_PHP_VER, '<' ) ) {
+			if ( $during_activation ) {
+				$message = __( 'The plugin could not be activated. The minimum PHP version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe', 'woocommerce-gateway-stripe' );
+			} else {
+				$message = __( 'The WooCommerce Stripe plugin has been deactivated. The minimum PHP version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe' );
+			}
+			return sprintf( $message, WC_STRIPE_MIN_PHP_VER, phpversion() );
+		}
+
+		if ( version_compare( WC_VERSION, WC_STRIPE_MIN_WC_VER, '<' ) ) {
+			if ( $during_activation ) {
+				$message = __( 'The plugin could not be activated. The minimum WooCommerce version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe', 'woocommerce-gateway-stripe' );
+			} else {
+				$message = __( 'The WooCommerce Stripe plugin has been deactivated. The minimum WooCommerce version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe' );
+			}
+			return sprintf( $message, WC_STRIPE_MIN_WC_VER, WC_VERSION );
+		}
+
+		if ( ! function_exists( 'curl_init' ) ) {
+			if ( $during_activation ) {
+				return __( 'The plugin could not be activated. cURL is not installed.', 'woocommerce-gateway-stripe' );
+			}
+			return __( 'The WooCommerce Stripe plugin has been deactivated. cURL is not installed.', 'woocommerce-gateway-stripe' );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Adds plugin action links
+	 *
+	 * @since 1.0.0
 	 */
 	public function plugin_action_links( $links ) {
-		$addons = ( class_exists( 'WC_Subscriptions_Order' ) || class_exists( 'WC_Pre_Orders_Order' ) ) ? '_addons' : '';
 		$plugin_links = array(
-			'<a href="' . admin_url( 'admin.php?page=wc-settings&tab=checkout&section=wc_gateway_stripe' . $addons ) . '">' . __( 'Settings', 'woocommerce-gateway-stripe' ) . '</a>',
+			'<a href="' . admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) . '">' . __( 'Settings', 'woocommerce-gateway-stripe' ) . '</a>',
+			'<a href="https://docs.woothemes.com/document/stripe/">' . __( 'Docs', 'woocommerce-gateway-stripe' ) . '</a>',
 			'<a href="http://support.woothemes.com/">' . __( 'Support', 'woocommerce-gateway-stripe' ) . '</a>',
-			'<a href="http://docs.woothemes.com/document/stripe/">' . __( 'Docs', 'woocommerce-gateway-stripe' ) . '</a>',
 		);
 		return array_merge( $plugin_links, $links );
 	}
 
 	/**
-	 * Init localisations and files
+	 * Display any notices we've collected thus far (e.g. for connection, disconnection)
 	 */
-	public function init() {
+	public function admin_notices() {
+		foreach ( (array) $this->notices as $notice_key => $notice ) {
+			echo "<div class='" . esc_attr( sanitize_html_class( $notice['class'] ) ) . "'><p>";
+			echo wp_kses( $notice['message'], array( 'a' => array( 'href' => array() ) ) );
+			echo "</p></div>";
+		}
+	}
+
+	/**
+	 * Initialize the gateway. Called very early - in the context of the plugins_loaded action
+	 *
+	 * @since 1.0.0
+	 */
+	public function init_gateways() {
+		if ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) {
+			$this->subscription_support_enabled = true;
+		}
+
 		if ( ! class_exists( 'WC_Payment_Gateway' ) ) {
 			return;
 		}
 
-		// Includes
-		include_once( 'includes/class-wc-gateway-stripe.php' );
-		include_once( 'includes/class-wc-gateway-stripe-saved-cards.php' );
+		require_once( plugin_basename( 'includes/class-wc-gateway-stripe.php' ) );
 
-		if ( class_exists( 'WC_Subscriptions_Order' ) || class_exists( 'WC_Pre_Orders_Order' ) ) {
+		load_plugin_textdomain( 'woocommerce-gateway-stripe', false, trailingslashit( dirname( plugin_basename( __FILE__ ) ) ) );
+		add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateways' ) );
 
-			include_once( 'includes/class-wc-gateway-stripe-addons.php' );
-
-			// Support for WooCommerce Subscriptions 1.n
-			if ( ! function_exists( 'wcs_create_renewal_order' ) ) {
-				include_once( 'includes/deprecated/class-wc-gateway-stripe-addons-deprecated.php' );
-			}
+		if ( $this->subscription_support_enabled ) {
+			require_once( plugin_basename( 'includes/class-wc-addons-gateway-stripe-commerce.php' ) );
 		}
-
-		$this->load_plugin_textdomain();
 	}
 
 	/**
-	 * Load Localisation files.
+	 * Add the gateways to WooCommerce
 	 *
-	 * Note: the first-loaded translation file overrides any following ones if
-	 * the same translation is present.
-	 *
-	 * Locales found in:
-	 *      - WP_LANG_DIR/woocommerce-gateway-stripe/woocommerce-gateway-stripe-LOCALE.mo
-	 *      - WP_LANG_DIR/plugins/woocommerce-gateway-stripe-LOCALE.mo
+	 * @since 1.0.0
 	 */
-	public function load_plugin_textdomain() {
-		$locale = apply_filters( 'plugin_locale', get_locale(), 'woocommerce-gateway-stripe' );
-		$dir    = trailingslashit( WP_LANG_DIR );
-
-		load_textdomain( 'woocommerce-gateway-stripe', $dir . 'woocommerce-gateway-stripe/woocommerce-gateway-stripe-' . $locale . '.mo' );
-		load_plugin_textdomain( 'woocommerce-gateway-stripe', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
-	}
-
-	/**
-	 * Register the gateway for use
-	 */
-	public function register_gateway( $methods ) {
-		if ( class_exists( 'WC_Subscriptions_Order' ) || class_exists( 'WC_Pre_Orders_Order' ) ) {
-			// Support for WooCommerce Subscriptions 1.n
-			if ( class_exists( 'WC_Subscriptions_Order' ) && ! function_exists( 'wcs_create_renewal_order' ) ) {
-				$methods[] = 'WC_Gateway_Stripe_Addons_Deprecated';
-			} else {
-				$methods[] = 'WC_Gateway_Stripe_Addons';
-			}
+	public function add_gateways( $methods ) {
+		if ( $this->subscription_support_enabled ) {
+			$methods[] = 'WC_Addons_Gateway_Stripe';
 		} else {
 			$methods[] = 'WC_Gateway_Stripe';
 		}
-
 		return $methods;
 	}
 
@@ -150,15 +246,15 @@ class WC_Stripe {
 	public function capture_payment( $order_id ) {
 		$order = wc_get_order( $order_id );
 
-		if ( $order->payment_method == 'stripe' ) {
+		if ( 'stripe' === $order->payment_method ) {
 			$charge   = get_post_meta( $order_id, '_stripe_charge_id', true );
 			$captured = get_post_meta( $order_id, '_stripe_charge_captured', true );
 
-			if ( $charge && $captured == 'no' ) {
+			if ( $charge && 'no' === $captured ) {
 				$stripe = new WC_Gateway_Stripe();
 
 				$result = $stripe->stripe_request( array(
-					'amount' => $order->order_total * 100,
+					'amount'   => $order->get_total() * 100,
 					'expand[]' => 'balance_transaction'
 				), 'charges/' . $charge . '/capture' );
 
@@ -188,14 +284,14 @@ class WC_Stripe {
 	public function cancel_payment( $order_id ) {
 		$order = wc_get_order( $order_id );
 
-		if ( $order->payment_method == 'stripe' ) {
+		if ( 'stripe' === $order->payment_method ) {
 			$charge   = get_post_meta( $order_id, '_stripe_charge_id', true );
 
 			if ( $charge ) {
 				$stripe = new WC_Gateway_Stripe();
 
 				$result = $stripe->stripe_request( array(
-					'amount' => $order->order_total * 100
+					'amount' => $order->get_total() * 100,
 				), 'charges/' . $charge . '/refund' );
 
 				if ( is_wp_error( $result ) ) {
@@ -209,6 +305,28 @@ class WC_Stripe {
 		}
 	}
 
+	/**
+	 * What rolls down stairs
+	 * alone or in pairs,
+	 * and over your neighbor's dog?
+	 * What's great for a snack,
+	 * And fits on your back?
+	 * It's log, log, log
+	 *
+	 * @since 1.0.0
+	 */
+	public function log( $context, $message ) {
+		if ( empty( $this->log ) ) {
+			$this->log = new WC_Logger();
+		}
+
+		$this->log->add( 'woocommerce-gateway-stripe', $context . " - " . $message );
+
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( $context . " - " . $message );
+		}
+	}
 }
 
-new WC_Stripe();
+$GLOBALS['wc_gateway_stripe_loader'] = WC_Gateway_Stripe_Loader::get_instance();
+register_activation_hook( __FILE__, array( 'WC_Gateway_Stripe_Loader', 'activation_check' ) );
