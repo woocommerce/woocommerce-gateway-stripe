@@ -88,13 +88,21 @@ class WC_Gateway_Stripe_Loader {
 	protected function __construct() {
 		add_action( 'admin_init', array( $this, 'check_environment' ) );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ), 15 );
+		add_action( 'plugins_loaded', array( $this, 'init' ) );
+	}
 
+	/**
+	 * Init the plugin after plugins_loaded so environment variables are set.
+	 */
+	public function init() {
 		// Don't hook anything else in the plugin if we're in an incompatible environment
 		if ( self::get_environment_warning() ) {
 			return;
 		}
 
-		add_action( 'plugins_loaded', array( $this, 'init_gateways' ), 0 );
+		// Init the gateway itself
+		$this->init_gateways();
+
 		add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );
 		add_action( 'woocommerce_order_status_on-hold_to_processing', array( $this, 'capture_payment' ) );
 		add_action( 'woocommerce_order_status_on-hold_to_completed', array( $this, 'capture_payment' ) );
@@ -146,7 +154,6 @@ class WC_Gateway_Stripe_Loader {
 	 * found or false if the environment has no problems.
 	 */
 	static function get_environment_warning( $during_activation = false ) {
-
 		if ( version_compare( phpversion(), WC_STRIPE_MIN_PHP_VER, '<' ) ) {
 			if ( $during_activation ) {
 				$message = __( 'The plugin could not be activated. The minimum PHP version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe', 'woocommerce-gateway-stripe' );
