@@ -417,7 +417,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 				throw new Exception( __( 'Sorry, the minimum allowed order total is 0.50 to use this payment method.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$this->log( "Info: Beginning processing payment for order $order_id for the amount of {$order->get_total()}" );
+			WC_Stripe::log( "Info: Beginning processing payment for order $order_id for the amount of {$order->get_total()}" );
 
 			// Make the request
 			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source ) );
@@ -459,11 +459,11 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 			if ( $response->captured ) {
 				$order->payment_complete( $response->id );
-				$this->log( "Successful charge: $response->id" );
+				WC_Stripe::log( "Successful charge: $response->id" );
 			} else {
 				add_post_meta( $order->id, '_transaction_id', $response->id, true );
 				$order->update_status( 'on-hold', sprintf( __( 'Stripe charge authorized (Charge ID: %s). Process order to take payment, or cancel to remove the pre-authorization.', 'woocommerce-gateway-stripe' ), $response->id ) );
-				$this->log( "Successful auth: $response->id" );
+				WC_Stripe::log( "Successful auth: $response->id" );
 
 				// Reduce stock levels
 				$order->reduce_order_stock();
@@ -480,7 +480,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 		} catch ( Exception $e ) {
 			wc_add_notice( $e->getMessage(), 'error' );
-			$this->log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+			WC_Stripe::log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 			$order->update_status( 'failed', $e->getMessage() );
 			return;
 		}
@@ -535,28 +535,18 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			);
 		}
 
-		$this->log( "Info: Beginning refund for order $order_id for the amount of {$amount}" );
+		WC_Stripe::log( "Info: Beginning refund for order $order_id for the amount of {$amount}" );
 
 		$response = WC_Stripe_API::request( $body, 'charges/' . $order->get_transaction_id() . '/refunds' );
 
 		if ( is_wp_error( $response ) ) {
-			$this->log( "Error: " . $response->get_error_message() );
+			WC_Stripe::log( "Error: " . $response->get_error_message() );
 			return $response;
 		} elseif ( ! empty( $response->id ) ) {
 			$refund_message = sprintf( __( 'Refunded %s - Refund ID: %s - Reason: %s', 'woocommerce' ), wc_price( $response->amount / 100 ), $response->id, $reason );
 			$order->add_order_note( $refund_message );
-			$this->log( "Success: " . html_entity_decode( strip_tags( $refund_message ) ) );
+			WC_Stripe::log( "Success: " . html_entity_decode( strip_tags( $refund_message ) ) );
 			return true;
-		}
-	}
-
-	/**
-	 * Make new log entry.
-	 */
-	public function log( $message ) {
-		if ( $this->logging ) {
-			$loader = WC_Gateway_Stripe_Loader::get_instance();
-			$loader->log( $message );
 		}
 	}
 }

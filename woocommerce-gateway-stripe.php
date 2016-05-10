@@ -37,12 +37,19 @@ define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
 define( 'WC_STRIPE_TEMPLATE_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) . '/templates/' );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
 
-class WC_Gateway_Stripe_Loader {
+if ( ! class_exists( 'WC_Stripe' ) ) {
+
+class WC_Stripe {
 
 	/**
 	 * @var Singleton The reference the *Singleton* instance of this class
 	 */
 	private static $instance;
+
+	/**
+	 * @var Reference to logging class.
+	 */
+	private static $log;
 
 	/**
 	 * Returns the *Singleton* instance of this class.
@@ -382,15 +389,13 @@ class WC_Gateway_Stripe_Loader {
 	 * What's great for a snack,
 	 * And fits on your back?
 	 * It's log, log, log
-	 *
-	 * @since 1.0.0
 	 */
-	public function log( $context, $message ) {
-		if ( empty( $this->log ) ) {
-			$this->log = new WC_Logger();
+	public static function log( $message ) {
+		if ( empty( self::$log ) ) {
+			self::$log = new WC_Logger();
 		}
 
-		$this->log->add( 'woocommerce-gateway-stripe', $context . " - " . $message );
+		self::$log->add( 'woocommerce-gateway-stripe', $message );
 
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 			error_log( $context . " - " . $message );
@@ -398,5 +403,7 @@ class WC_Gateway_Stripe_Loader {
 	}
 }
 
-$GLOBALS['wc_gateway_stripe_loader'] = WC_Gateway_Stripe_Loader::get_instance();
-register_activation_hook( __FILE__, array( 'WC_Gateway_Stripe_Loader', 'activation_check' ) );
+$GLOBALS['wc_stripe'] = WC_Stripe::get_instance();
+register_activation_hook( __FILE__, array( 'WC_Stripe', 'activation_check' ) );
+
+}
