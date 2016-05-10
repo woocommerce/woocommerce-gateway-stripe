@@ -366,7 +366,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			$stripe_token = wc_clean( $_POST['stripe_token'] );
 
 			// This is true if the user wants to store the card to their account.
-			if ( is_user_logged_in() && ! empty( $_POST['wc-stripe-new-payment-method'] ) ) {
+			if ( is_user_logged_in() && $this->saved_cards && ! empty( $_POST['wc-stripe-new-payment-method'] ) ) {
 				$stripe_source = $stripe_customer->add_card( $stripe_token );
 
 				if ( is_wp_error( $stripe_source ) ) {
