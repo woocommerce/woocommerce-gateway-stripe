@@ -35,7 +35,7 @@ jQuery( function( $ ) {
 			return true;
 		}
 
-		if ( $( 'input[name=stripe_card_id]' ).length > 0 && $( 'input[name=stripe_card_id]:checked' ).val() !== 'new' ) {
+		if ( $( 'input[name=wc-stripe-payment-token]' ).length > 0 && $( 'input[name=wc-stripe-payment-token]:checked' ).val() !== 'new' ) {
 			return true;
 		}
 
@@ -78,9 +78,9 @@ jQuery( function( $ ) {
 		}
 
 		// Capture submittal and open stripecheckout
-		var $form            = $( 'form.checkout, form#order_review' ),
-			$stripe_new_card = $( '.stripe_new_card' ),
-			token            = $form.find( 'input.stripe_token' );
+		var $form = $( 'form.checkout, form#order_review' ),
+			$data = $( '#stripe-payment-data' ),
+			token = $form.find( 'input.stripe_token' );
 
 		token.val( '' );
 
@@ -94,13 +94,13 @@ jQuery( function( $ ) {
 		StripeCheckout.open({
 			key:                wc_stripe_params.key,
 			address:            false,
-			amount:             $stripe_new_card.data( 'amount' ),
-			name:               $stripe_new_card.data( 'name' ),
-			description:        $stripe_new_card.data( 'description' ),
-			currency:           $stripe_new_card.data( 'currency' ),
-			image:              $stripe_new_card.data( 'image' ),
-			bitcoin:            $stripe_new_card.data( 'bitcoin' ),
-			locale:             $stripe_new_card.data( 'locale' ),
+			amount:             $data.data( 'amount' ),
+			name:               $data.data( 'name' ),
+			description:        $data.data( 'description' ),
+			currency:           $data.data( 'currency' ),
+			image:              $data.data( 'image' ),
+			bitcoin:            $data.data( 'bitcoin' ),
+			locale:             $data.data( 'locale' ),
 			refund_mispayments: true, // for bitcoin payments let Stripe handle refunds if too little is paid
 			email:              $( '#billing_email' ).val(),
 			token:              token_action
