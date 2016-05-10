@@ -7,6 +7,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * WC_Gateway_Stripe_Addons class.
  *
  * @extends WC_Gateway_Stripe
+ *
+ * @todo
  */
 class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 

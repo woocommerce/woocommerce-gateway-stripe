@@ -171,11 +171,10 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 * Check if this gateway is enabled
 	 */
 	public function is_available() {
-		if ( $this->enabled == "yes" ) {
+		if ( 'yes' === $this->enabled ) {
 			if ( ! $this->testmode && is_checkout() && ! is_ssl() ) {
 				return false;
 			}
-			// Required fields check
 			if ( ! $this->secret_key || ! $this->publishable_key ) {
 				return false;
 			}
@@ -244,9 +243,9 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		}
 
 		$stripe_params = array(
-			'key'                    => $this->publishable_key,
-			'i18n_terms'             => __( 'Please accept the terms and conditions first', 'woocommerce-gateway-stripe' ),
-			'i18n_required_fields'   => __( 'Please fill in required checkout fields first', 'woocommerce-gateway-stripe' ),
+			'key'                  => $this->publishable_key,
+			'i18n_terms'           => __( 'Please accept the terms and conditions first', 'woocommerce-gateway-stripe' ),
+			'i18n_required_fields' => __( 'Please fill in required checkout fields first', 'woocommerce-gateway-stripe' ),
 		);
 
 		// If we're on the pay page we need to pass stripe.js the address of the order.
@@ -255,7 +254,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			$order_id  = absint( $_GET['order_id'] );
 			$order     = wc_get_order( $order_id );
 
-			if ( $order->id == $order_id && $order->order_key == $order_key ) {
+			if ( $order->id === $order_id && $order->order_key === $order_key ) {
 				$stripe_params['billing_first_name'] = $order->billing_first_name;
 				$stripe_params['billing_last_name']  = $order->billing_last_name;
 				$stripe_params['billing_address_1']  = $order->billing_address_1;
@@ -438,6 +437,8 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 * Add payment method via account screen.
 	 * We don't store the token locally, but to the Stripe API.
 	 * @since 3.0.0
+	 *
+	 * @todo stripe checkout compat
 	 */
 	public function add_payment_method() {
 		if ( empty( $_POST['stripe_token'] ) || ! is_user_logged_in() ) {

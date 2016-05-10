@@ -262,6 +262,7 @@ class WC_Stripe {
 	 * Capture payment when the order is changed from on-hold to complete or processing
 	 *
 	 * @param  int $order_id
+	 * @todo Use API Class
 	 */
 	public function capture_payment( $order_id ) {
 		$order = wc_get_order( $order_id );
@@ -300,6 +301,7 @@ class WC_Stripe {
 	 * Cancel pre-auth on refund/cancellation
 	 *
 	 * @param  int $order_id
+	 * @todo Use API Class
 	 */
 	public function cancel_payment( $order_id ) {
 		$order = wc_get_order( $order_id );
