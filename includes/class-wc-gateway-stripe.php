@@ -188,6 +188,18 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 */
 	public function init_form_fields() {
 		$this->form_fields = include( 'settings-stripe.php' );
+
+		wc_enqueue_js( "
+			jQuery( function( $ ) {
+				$( '#woocommerce_stripe_stripe_checkout' ).change(function(){
+					if ( $( this ).is( ':checked' ) ) {
+						$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image' ).closest( 'tr' ).show();
+					} else {
+						$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image' ).closest( 'tr' ).hide();
+					}
+				}).change();
+			});
+		" );
 	}
 
 	/**
