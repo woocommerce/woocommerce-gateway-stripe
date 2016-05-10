@@ -14,12 +14,13 @@ jQuery( function( $ ) {
 		init: function( form ) {
 			this.form = form;
 
-			$( document )
+			$( this.form )
 				.on(
 					'submit checkout_place_order_stripe',
-					this.form,
 					this.onSubmit
-				)
+				);
+
+			$( document )
 				.on(
 					'change',
 					'#wc-stripe-cc-form :input',
@@ -32,7 +33,7 @@ jQuery( function( $ ) {
 		},
 
 		isStripeChosen: function() {
-			return $('#payment_method_stripe').is(':checked') && ( ! $('input[name=stripe_card_id]:checked').length || $('input[name=stripe_card_id]:checked').val() == 'new' );
+			return $( '#payment_method_stripe' ).is( ':checked' ) && ( ! $( 'input[name=wc-stripe-payment-token]:checked' ).length || 'new' === $( 'input[name=wc-stripe-payment-token]:checked' ).val() );
 		},
 
 		hasToken: function() {
@@ -53,10 +54,10 @@ jQuery( function( $ ) {
 			wc_stripe_form.form.unblock();
 		},
 
-		onError: function( responseObject ) {
+		onError: function( e, responseObject ) {
 			$( '.woocommerce-error, .stripe_token' ).remove();
-			jQuery('#stripe-card-number').closest('p').before( '<ul class="woocommerce_error woocommerce-error"><li>' + responseObject.response.error.message + '</li></ul>' );
-			responseObject.form.unblock();
+			$( '#stripe-card-number' ).closest( 'p' ).before( '<ul class="woocommerce_error woocommerce-error"><li>' + responseObject.response.error.message + '</li></ul>' );
+			wc_stripe_form.unblock();
 		},
 
 		onSubmit: function( e ) {
@@ -65,10 +66,10 @@ jQuery( function( $ ) {
 				wc_stripe_form.block();
 
 				var card       = $( '#stripe-card-number' ).val(),
-					cvc        = $('#stripe-card-cvc').val(),
-					expires    = $('#stripe-card-expiry').payment( 'cardExpiryVal' ),
-					first_name = $( '#billing_first_name' ).length ? $('#billing_first_name').val() : wc_stripe_params.billing_first_name,
-					last_name  = $( '#billing_last_name' ).length ? $('#billing_last_name').val() : wc_stripe_params.billing_last_name,
+					cvc        = $( '#stripe-card-cvc' ).val(),
+					expires    = $( '#stripe-card-expiry' ).payment( 'cardExpiryVal' ),
+					first_name = $( '#billing_first_name' ).length ? $( '#billing_first_name' ).val() : wc_stripe_params.billing_first_name,
+					last_name  = $( '#billing_last_name' ).length ? $( '#billing_last_name' ).val() : wc_stripe_params.billing_last_name,
 					address    = {
 
 					},
@@ -82,12 +83,12 @@ jQuery( function( $ ) {
 					};
 
 				if ( jQuery('#billing_address_1').size() > 0 ) {
-					data.address_line1   = $('#billing_address_1').val();
-					data.address_line2   = $('#billing_address_2').val();
-					data.address_state   = $('#billing_state').val();
-					data.address_city    = $('#billing_city').val();
-					data.address_zip     = $('#billing_postcode').val();
-					data.address_country = $('#billing_country').val();
+					data.address_line1   = $( '#billing_address_1' ).val();
+					data.address_line2   = $( '#billing_address_2' ).val();
+					data.address_state   = $( '#billing_state' ).val();
+					data.address_city    = $( '#billing_city' ).val();
+					data.address_zip     = $( '#billing_postcode' ).val();
+					data.address_country = $( '#billing_country' ).val();
 				} else if ( data.address_line1 ) {
 					data.address_line1   = wc_stripe_params.billing_address_1;
 					data.address_line2   = wc_stripe_params.billing_address_2;

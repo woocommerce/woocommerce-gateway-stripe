@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 3.0.0 =
+
+
 = 2.6.12 - 2016.04.13 =
 * Fix - When saved cards option is enabled with no cards on file, CC field was hidden.
 

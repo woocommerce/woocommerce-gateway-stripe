@@ -100,6 +100,9 @@ class WC_Gateway_Stripe_Loader {
 			return;
 		}
 
+		include_once( plugin_basename( 'includes/class-wc-stripe-api.php' ) );
+		include_once( plugin_basename( 'includes/class-wc-stripe-customer.php' ) );
+
 		// Init the gateway itself
 		$this->init_gateways();
 
@@ -108,6 +111,9 @@ class WC_Gateway_Stripe_Loader {
 		add_action( 'woocommerce_order_status_on-hold_to_completed', array( $this, 'capture_payment' ) );
 		add_action( 'woocommerce_order_status_on-hold_to_cancelled', array( $this, 'cancel_payment' ) );
 		add_action( 'woocommerce_order_status_on-hold_to_refunded', array( $this, 'cancel_payment' ) );
+		add_action( 'woocommerce_get_customer_payment_tokens', array( $this, 'woocommerce_get_customer_payment_tokens' ) );
+		add_action( 'woocommerce_payment_token_deleted', array( $this, 'woocommerce_payment_token_deleted' ), 10, 2 );
+		add_action( 'woocommerce_payment_token_set_default', array( $this, 'woocommerce_payment_token_set_default' ) );
 	}
 
 	/**
@@ -221,7 +227,7 @@ class WC_Gateway_Stripe_Loader {
 			return;
 		}
 
-		require_once( plugin_basename( 'includes/class-wc-gateway-stripe.php' ) );
+		include_once( plugin_basename( 'includes/class-wc-gateway-stripe.php' ) );
 
 		load_plugin_textdomain( 'woocommerce-gateway-stripe', false, trailingslashit( dirname( plugin_basename( __FILE__ ) ) ) );
 		add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateways' ) );
@@ -309,6 +315,63 @@ class WC_Gateway_Stripe_Loader {
 					delete_post_meta( $order->id, '_stripe_charge_id' );
 				}
 			}
+		}
+	}
+
+	/**
+	 * Gets saved tokens from API if they don't already exist in WooCommerce.
+	 * @param array $tokens
+	 * @return array
+	 */
+	public function woocommerce_get_customer_payment_tokens( $tokens ) {
+		if ( is_user_logged_in() ) {
+			$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
+			$stripe_cards    = $stripe_customer->get_cards();
+			$stored_tokens   = array();
+
+			foreach ( $tokens as $token ) {
+				if ( 'stripe' === $token->get_gateway_id() ) {
+					$stored_tokens[] = $token->get_token();
+				}
+			}
+
+			foreach ( $stripe_cards as $card ) {
+				if ( ! in_array( $card->id, $stored_tokens ) ) {
+					$token = new WC_Payment_Token_CC();
+					$token->set_token( $card->id );
+					$token->set_gateway_id( 'stripe' );
+					$token->set_card_type( strtolower( $card->brand ) );
+					$token->set_last4( $card->last4 );
+					$expiry_month = ( 1 === strlen( $card->exp_month ) ? '0' . $card->exp_month : $card->exp_month );
+					$token->set_expiry_month( $expiry_month );
+					$token->set_expiry_year( $card->exp_year );
+					$token->set_user_id( get_current_user_id() );
+					$token->save();
+					$tokens[ $token->get_id() ] = $token;
+				}
+			}
+		}
+		return $tokens;
+	}
+
+	/**
+	 * Delete token from Stripe
+	 */
+	public function woocommerce_payment_token_deleted( $token_id, $token ) {
+		if ( 'stripe' === $token->get_gateway_id() ) {
+			$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
+			$stripe_customer->delete_card( $token->get_token() );
+		}
+	}
+
+	/**
+	 * Set as default in Stripe
+	 */
+	public function woocommerce_payment_token_set_default( $token_id ) {
+		$token = WC_Payment_Tokens::get( $token_id );
+		if ( 'stripe' === $token->get_gateway_id() ) {
+			$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
+			$stripe_customer->set_default_card( $token->get_token() );
 		}
 	}
 
