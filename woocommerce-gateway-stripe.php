@@ -251,7 +251,7 @@ class WC_Stripe {
 	 */
 	public function add_gateways( $methods ) {
 		if ( $this->subscription_support_enabled ) {
-			$methods[] = 'WC_Addons_Gateway_Stripe';
+			$methods[] = 'WC_Gateway_Stripe_Addons';
 		} else {
 			$methods[] = 'WC_Gateway_Stripe';
 		}
@@ -262,7 +262,6 @@ class WC_Stripe {
 	 * Capture payment when the order is changed from on-hold to complete or processing
 	 *
 	 * @param  int $order_id
-	 * @todo Use API Class
 	 */
 	public function capture_payment( $order_id ) {
 		$order = wc_get_order( $order_id );
@@ -272,9 +271,7 @@ class WC_Stripe {
 			$captured = get_post_meta( $order_id, '_stripe_charge_captured', true );
 
 			if ( $charge && 'no' === $captured ) {
-				$stripe = new WC_Gateway_Stripe();
-
-				$result = $stripe->stripe_request( array(
+				$result = WC_Stripe_API::request( array(
 					'amount'   => $order->get_total() * 100,
 					'expand[]' => 'balance_transaction'
 				), 'charges/' . $charge . '/capture' );
@@ -301,7 +298,6 @@ class WC_Stripe {
 	 * Cancel pre-auth on refund/cancellation
 	 *
 	 * @param  int $order_id
-	 * @todo Use API Class
 	 */
 	public function cancel_payment( $order_id ) {
 		$order = wc_get_order( $order_id );
@@ -310,9 +306,7 @@ class WC_Stripe {
 			$charge   = get_post_meta( $order_id, '_stripe_charge_id', true );
 
 			if ( $charge ) {
-				$stripe = new WC_Gateway_Stripe();
-
-				$result = $stripe->stripe_request( array(
+				$result = WC_Stripe_API::request( array(
 					'amount' => $order->get_total() * 100,
 				), 'charges/' . $charge . '/refund' );
 
