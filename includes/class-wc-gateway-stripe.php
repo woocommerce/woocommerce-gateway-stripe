@@ -207,10 +207,26 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 */
 	public function payment_fields() {
 		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
+		$user                 = wp_get_current_user();
+
+		if ( $user ) {
+			$user_email = get_user_meta( $user->ID, 'billing_email', true );
+			$user_email = $user_email ? $user_email : $user->user_email;
+		} else {
+			$user_email = '';
+		}
+
+		if ( is_add_payment_method_page() ) {
+			$pay_button_text = __( 'Add Card', 'woocommerce-gateway-stripe' );
+		} else {
+			$pay_button_text = '';
+		}
 
 		echo '<div
 			id="stripe-payment-data"
+			data-panel-label="' . esc_attr( $pay_button_text ) . '"
 			data-description=""
+			data-email="' . esc_attr( $user_email ) . '"
 			data-amount="' . esc_attr( $this->get_stripe_amount( WC()->cart->total ) ) . '"
 			data-name="' . esc_attr( sprintf( __( '%s', 'woocommerce-gateway-stripe' ), get_bloginfo( 'name', 'display' ) ) ) . '"
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '"
@@ -449,8 +465,6 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 * Add payment method via account screen.
 	 * We don't store the token locally, but to the Stripe API.
 	 * @since 3.0.0
-	 *
-	 * @todo stripe checkout compat
 	 */
 	public function add_payment_method() {
 		if ( empty( $_POST['stripe_token'] ) || ! is_user_logged_in() ) {
