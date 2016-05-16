@@ -49,7 +49,7 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	 * @param  int  $order_id
 	 * @return boolean
 	 */
-	protected function is_pre_order() {
+	protected function is_pre_order( $order_id ) {
 		return ( class_exists( 'WC_Pre_Orders_Order' ) && WC_Pre_Orders_Order::order_contains_pre_order( $order_id ) );
 	}
 
@@ -58,16 +58,16 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	 * @param  int $order_id
 	 * @return array
 	 */
-	public function process_payment( $order_id ) {
+	public function process_payment( $order_id, $retry = true, $force_customer = false ) {
 		if ( $this->is_subscription( $order_id ) ) {
 			// Regular payment with force customer enabled
-			return $this->process_payment( $order_id, true, true );
+			return parent::process_payment( $order_id, true, true );
 
 		} elseif ( $this->is_pre_order( $order_id ) ) {
-			return $this->process_pre_order( $order_id );
+			return $this->process_pre_order( $order_id, $retry, $force_customer );
 
 		} else {
-			return parent::process_payment( $order_id );
+			return parent::process_payment( $order_id, $retry, $force_customer );
 		}
 	}
 
@@ -141,7 +141,7 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	 * @param int $order_id
 	 * @return array
 	 */
-	public function process_pre_order( $order_id, $retry = true ) {
+	public function process_pre_order( $order_id, $retry, $force_customer ) {
 		if ( WC_Pre_Orders_Order::order_requires_payment_tokenization( $order_id ) ) {
 			try {
 				$order = wc_get_order( $order_id );
@@ -150,7 +150,7 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 					throw new Exception( __( 'Sorry, the minimum allowed order total is 0.50 to use this payment method.', 'woocommerce-gateway-stripe' ) );
 				}
 
-				$source = $this->get_source( get_current_user_id(), $force_customer );
+				$source = $this->get_source( get_current_user_id(), true );
 
 				// We need a source on file to continue.
 				if ( empty( $source->customer ) || empty( $source->source ) ) {
@@ -179,7 +179,7 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 				return;
 			}
 		} else {
-			return parent::process_payment( $order_id );
+			return parent::process_payment( $order_id, $retry, $force_customer );
 		}
 	}
 

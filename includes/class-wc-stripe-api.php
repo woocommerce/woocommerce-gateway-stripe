@@ -73,8 +73,6 @@ class WC_Stripe_API {
 			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the payment gateway.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		WC_Stripe::log( "Response: " . print_r( $response['body'], true ) );
-
 		$parsed_response = json_decode( $response['body'] );
 
 		// Handle response
