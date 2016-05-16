@@ -104,12 +104,12 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 			return new WP_Error( 'stripe_error', __( 'Sorry, the minimum allowed order total is 0.50 to use this payment method.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		// Get source from user account
-		$source = $this->get_source( $order->customer_user );
+		// Get source from order
+		$source = $this->get_order_source( $order );
 
-		// If customer does not exist fallback to order source
+		// If no order source was defined, use user source instead.
 		if ( ! $source->customer ) {
-			$source = $this->get_order_source( $order );
+			$source = $this->get_source( $order->customer_user );
 		}
 
 		// Or fail :(
@@ -190,22 +190,29 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	 */
 	public function process_pre_order_release_payment( $order ) {
 		try {
-			$source = $this->get_order_source( $order );
+			// Define some callbacks if the first attempt fails.
+			$retry_callbacks = array(
+				'remove_order_source_before_retry',
+				'remove_order_customer_before_retry',
+			);
 
-			// Make the request
-			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source ) );
+			while ( 1 ) {
+				$source   = $this->get_order_source( $order );
+				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source ) );
 
-			if ( is_wp_error( $response ) ) {
-				// Source param wrong? The card may have been deleted on stripe's end. Remove source, then retry using customer's default source.
-				if ( 'missing' === $response->get_error_code() && get_post_meta( $order->id, '_stripe_card_id', true ) ) {
-					delete_post_meta( $order->id, '_stripe_card_id' );
-					return $this->process_pre_order_release_payment( $order );
+				if ( is_wp_error( $response ) ) {
+					if ( 0 === sizeof( $retry_callbacks ) ) {
+						throw new Exception( $response->get_error_message() );
+					} else {
+						$retry_callback = array_shift( $retry_callbacks );
+						call_user_func( array( $this, $retry_callback ), $order );
+					}
+				} else {
+					// Successful
+					$this->process_response( $response, $order );
+					break;
 				}
-				throw new Exception( $response->get_error_message() );
 			}
-
-			// Process valid response
-			$this->process_response( $response, $order );
 
 		} catch ( Exception $e ) {
 			$order_note = sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $e->getMessage() );
@@ -246,15 +253,46 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	 *
 	 * @param $amount_to_charge float The amount to charge.
 	 * @param $renewal_order WC_Order A WC_Order object created to record the renewal payment.
-	 * @access public
-	 * @return void
 	 */
 	public function scheduled_subscription_payment( $amount_to_charge, $renewal_order ) {
-		$response = $this->process_subscription_payment( $renewal_order, $amount_to_charge );
+		// Define some callbacks if the first attempt fails.
+		$retry_callbacks = array(
+			'remove_order_source_before_retry',
+			'remove_order_customer_before_retry',
+		);
 
-		if ( is_wp_error( $response ) ) {
-			$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->get_error_message() ) );
+		while ( 1 ) {
+			$response = $this->process_subscription_payment( $renewal_order, $amount_to_charge );
+
+			if ( is_wp_error( $response ) ) {
+				if ( 0 === sizeof( $retry_callbacks ) ) {
+					$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->get_error_message() ) );
+					break;
+				} else {
+					$retry_callback = array_shift( $retry_callbacks );
+					call_user_func( array( $this, $retry_callback ), $renewal_order );
+				}
+			} else {
+				// Successful
+				break;
+			}
 		}
+	}
+
+	/**
+	 * Remove order meta
+	 * @param  object $order
+	 */
+	public function remove_order_source_before_retry( $order ) {
+		delete_post_meta( $order->id, '_stripe_card_id' );
+	}
+
+	/**
+	 * Remove order meta
+	 * @param  object $order
+	 */
+	public function remove_order_customer_before_retry( $order ) {
+		delete_post_meta( $order->id, '_stripe_customer_id' );
 	}
 
 	/**
@@ -319,21 +357,6 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 			}
 		}
 	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 	/**
 	 * Render the payment method used for a subscription in the "My Subscriptions" table
