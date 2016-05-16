@@ -138,78 +138,27 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 
 	/**
 	 * Process the pre-order
-	 *
 	 * @param int $order_id
 	 * @return array
 	 */
 	public function process_pre_order( $order_id, $retry = true ) {
 		if ( WC_Pre_Orders_Order::order_requires_payment_tokenization( $order_id ) ) {
-			$order        = wc_get_order( $order_id );
-			$stripe_token = isset( $_POST['stripe_token'] ) ? wc_clean( $_POST['stripe_token'] ) : '';
-			$card_id      = isset( $_POST['stripe_card_id'] ) ? wc_clean( $_POST['stripe_card_id'] ) : '';
-			$customer_id  = is_user_logged_in() ? get_user_meta( get_current_user_id(), '_stripe_customer_id', true ) : 0;
-
-			if ( ! $customer_id || ! is_string( $customer_id ) ) {
-				$customer_id = 0;
-			}
-
 			try {
-				$post_data = array();
+				$order = wc_get_order( $order_id );
 
-				// Check amount
-				if ( $order->order_total * 100 < 50 ) {
+				if ( $order->get_total() * 100 < 50 ) {
 					throw new Exception( __( 'Sorry, the minimum allowed order total is 0.50 to use this payment method.', 'woocommerce-gateway-stripe' ) );
 				}
 
-				// Pay using a saved card!
-				if ( $card_id !== 'new' && $card_id && $customer_id ) {
-					$post_data['customer'] = $customer_id;
-					$post_data['source']   = $card_id;
+				$source = $this->get_source( get_current_user_id(), $force_customer );
+
+				// We need a source on file to continue.
+				if ( empty( $source->customer ) || empty( $source->source ) ) {
+					throw new Exception( __( 'Unable to store payment details. Please try again.', 'woocommerce-gateway-stripe' ) );
 				}
 
-				// If not using a saved card, we need a token
-				elseif ( empty( $stripe_token ) ) {
-					$error_msg = __( 'Please make sure your card details have been entered correctly and that your browser supports JavaScript.', 'woocommerce-gateway-stripe' );
-
-					if ( $this->testmode ) {
-						$error_msg .= ' ' . __( 'Developers: Please make sure that you are including jQuery and there are no JavaScript errors on the page.', 'woocommerce-gateway-stripe' );
-					}
-
-					throw new Exception( $error_msg );
-				}
-
-				// Save token
-				if ( ! $customer_id ) {
-					$customer_id = $this->add_customer( $order, $stripe_token );
-
-					if ( is_wp_error( $customer_id ) ) {
-						throw new Exception( $customer_id->get_error_message() );
-					}
-
-					unset( $post_data['source'] );
-					$post_data['customer'] = $customer_id;
-
-				} elseif ( ! $card_id || $card_id === 'new' ) {
-					$card_id = $this->add_card( $customer_id, $stripe_token );
-
-					if ( is_wp_error( $card_id ) ) {
-						// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id and retry.
-						if ( 'customer' === $card_id->get_error_code() && $retry ) {
-							delete_user_meta( get_current_user_id(), '_stripe_customer_id' );
-							return $this->process_pre_order( $order_id, false ); // false to prevent retry again (endless loop)
-						}
-						throw new Exception( $card_id->get_error_message() );
-					}
-
-					$post_data['source']   = $card_id;
-					$post_data['customer'] = $customer_id;
-				}
-
-				// Store the ID in the order
-				update_post_meta( $order->id, '_stripe_customer_id', $customer_id );
-
-				// Store the ID in the order
-				update_post_meta( $order->id, '_stripe_card_id', $card_id );
+				// Store source to order meta
+				$this->save_source( $order, $source );
 
 				// Reduce stock levels
 				$order->reduce_order_stock();
@@ -225,15 +174,8 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 					'result'   => 'success',
 					'redirect' => $this->get_return_url( $order )
 				);
-
 			} catch ( Exception $e ) {
-				if ( defined( 'WC_VERSION' ) && version_compare( WC_VERSION, '2.3.0', '>=' ) ) {
-					wc_add_notice( $e->getMessage(), 'error' );
-
-				} else {
-					WC()->add_error( $e->getMessage() );
-				}
-
+				wc_add_notice( $e->getMessage(), 'error' );
 				return;
 			}
 		} else {
