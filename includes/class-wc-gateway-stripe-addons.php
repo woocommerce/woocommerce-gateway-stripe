@@ -372,34 +372,30 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 			return $payment_method_to_display;
 		}
 
-		$stripe_customer = get_user_meta( $subscription->id, '_stripe_customer_id', true );
+		$stripe_customer    = new WC_Stripe_Customer();
+		$stripe_customer_id = get_post_meta( $subscription->id, '_stripe_customer_id', true );
+		$stripe_card_id     = get_post_meta( $subscription->id, '_stripe_card_id', true );
 
 		// If we couldn't find a Stripe customer linked to the subscription, fallback to the user meta data.
-		if ( ! $stripe_customer || ! is_string( $stripe_customer ) ) {
-			$user_id         = $subscription->customer_user;
-			$stripe_customer = get_user_meta( $user_id, '_stripe_customer_id', true );
+		if ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) {
+			$user_id            = $subscription->customer_user;
+			$stripe_customer_id = get_user_meta( $user_id, '_stripe_customer_id', true );
+			$stripe_card_id     = get_user_meta( $user_id, '_stripe_card_id', true );
 		}
 
 		// If we couldn't find a Stripe customer linked to the account, fallback to the order meta data.
-		if ( ( ! $stripe_customer || ! is_string( $stripe_customer ) ) && false !== $subscription->order ) {
-			$stripe_customer = get_post_meta( $subscription->order->id, '_stripe_customer_id', true );
+		if ( ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) && false !== $subscription->order ) {
+			$stripe_customer_id = get_post_meta( $subscription->order->id, '_stripe_customer_id', true );
+			$stripe_card_id     = get_post_meta( $subscription->order->id, '_stripe_card_id', true );
 		}
 
-		// Card specified?
-		$stripe_card = get_post_meta( $subscription->id, '_stripe_card_id', true );
-
-		// If we couldn't find a Stripe customer linked to the account, fallback to the order meta data.
-		if ( ! $stripe_card && false !== $subscription->order ) {
-			$stripe_card = get_post_meta( $subscription->order->id, '_stripe_card_id', true );
-		}
-
-		// Get cards from API
-		$cards       = $this->get_saved_cards( $stripe_customer );
+		$stripe_customer->set_id( $stripe_customer_id );
+		$cards = $stripe_customer->get_cards();
 
 		if ( $cards ) {
 			$found_card = false;
 			foreach ( $cards as $card ) {
-				if ( $card->id === $stripe_card ) {
+				if ( $card->id === $stripe_card_id ) {
 					$found_card                = true;
 					$payment_method_to_display = sprintf( __( 'Via %s card ending in %s', 'woocommerce-gateway-stripe' ), ( isset( $card->type ) ? $card->type : $card->brand ), $card->last4 );
 					break;
