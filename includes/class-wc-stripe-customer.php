@@ -109,13 +109,13 @@ class WC_Stripe_Customer {
 	public function create_customer( $args ) {
 		if ( $user = $this->get_user() ) {
 			$defaults = array(
-				'email' => $user->user_email,
-				'name'  => $user->display_name,
+				'email'       => $user->user_email,
+				'description' => $user->display_name,
 			);
 		} else {
 			$defaults = array(
-				'email' => '',
-				'name'  => '',
+				'email'       => '',
+				'description' => '',
 			);
 		}
 
@@ -128,8 +128,8 @@ class WC_Stripe_Customer {
 			return new WP_Error( 'stripe_error', __( 'Could not create Stripe customer.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		$this->clear_cache();
 		$this->set_id( $response->id );
+		$this->clear_cache();
 		$this->set_customer_data( $response );
 
 		if ( $this->get_user_id() ) {

@@ -118,7 +118,7 @@ class WC_Stripe {
 		add_action( 'woocommerce_order_status_on-hold_to_completed', array( $this, 'capture_payment' ) );
 		add_action( 'woocommerce_order_status_on-hold_to_cancelled', array( $this, 'cancel_payment' ) );
 		add_action( 'woocommerce_order_status_on-hold_to_refunded', array( $this, 'cancel_payment' ) );
-		add_action( 'woocommerce_get_customer_payment_tokens', array( $this, 'woocommerce_get_customer_payment_tokens' ) );
+		add_filter( 'woocommerce_get_customer_payment_tokens', array( $this, 'woocommerce_get_customer_payment_tokens' ), 10, 2 );
 		add_action( 'woocommerce_payment_token_deleted', array( $this, 'woocommerce_payment_token_deleted' ), 10, 2 );
 		add_action( 'woocommerce_payment_token_set_default', array( $this, 'woocommerce_payment_token_set_default' ) );
 	}
@@ -326,9 +326,9 @@ class WC_Stripe {
 	 * @param array $tokens
 	 * @return array
 	 */
-	public function woocommerce_get_customer_payment_tokens( $tokens ) {
+	public function woocommerce_get_customer_payment_tokens( $tokens, $customer_id ) {
 		if ( is_user_logged_in() ) {
-			$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
+			$stripe_customer = new WC_Stripe_Customer( $customer_id );
 			$stripe_cards    = $stripe_customer->get_cards();
 			$stored_tokens   = array();
 
@@ -348,7 +348,7 @@ class WC_Stripe {
 					$expiry_month = ( 1 === strlen( $card->exp_month ) ? '0' . $card->exp_month : $card->exp_month );
 					$token->set_expiry_month( $expiry_month );
 					$token->set_expiry_year( $card->exp_year );
-					$token->set_user_id( get_current_user_id() );
+					$token->set_user_id( $customer_id );
 					$token->save();
 					$tokens[ $token->get_id() ] = $token;
 				}
@@ -394,7 +394,7 @@ class WC_Stripe {
 		self::$log->add( 'woocommerce-gateway-stripe', $message );
 
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			error_log( $context . " - " . $message );
+			error_log( $message );
 		}
 	}
 }
