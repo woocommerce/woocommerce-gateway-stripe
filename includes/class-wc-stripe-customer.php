@@ -33,11 +33,10 @@ class WC_Stripe_Customer {
 	 * @param integer $user_id
 	 */
 	public function __construct( $user_id = 0 ) {
-		if ( ! $user_id ) {
-			$user_id = get_current_user_id();
+		if ( $user_id ) {
+			$this->set_user_id( $user_id );
+			$this->set_id( get_user_meta( $user_id, '_stripe_customer_id', true ) );
 		}
-		$this->set_user_id( $user_id );
-		$this->set_id( get_user_meta( $user_id, '_stripe_customer_id', true ) );
 	}
 
 	/**
@@ -77,7 +76,7 @@ class WC_Stripe_Customer {
 	 * @return WP_User
 	 */
 	protected function get_user() {
-		return get_user_by( 'id', $this->get_user_id() );
+		return $this->get_user_id() ? get_user_by( 'id', $this->get_user_id() ) : false;
 	}
 
 	/**
@@ -108,12 +107,19 @@ class WC_Stripe_Customer {
 	 * @return WP_Error|int
 	 */
 	public function create_customer( $args ) {
-		$user = $this->get_user();
-		$args = wp_parse_args( $args, array(
-			'email'  => $user->user_email,
-			'name'   => $user->display_name,
-		) );
+		if ( $user = $this->get_user() ) {
+			$defaults = array(
+				'email' => $user->user_email,
+				'name'  => $user->display_name,
+			);
+		} else {
+			$defaults = array(
+				'email' => '',
+				'name'  => '',
+			);
+		}
 
+		$args     = wp_parse_args( $args, $defaults );
 		$response = WC_Stripe_API::request( $args, 'customers' );
 
 		if ( is_wp_error( $response ) ) {
@@ -125,7 +131,10 @@ class WC_Stripe_Customer {
 		$this->clear_cache();
 		$this->set_id( $response->id );
 		$this->set_customer_data( $response );
-		update_user_meta( $this->get_user_id(), '_stripe_customer_id', $response->id );
+
+		if ( $this->get_user_id() ) {
+			update_user_meta( $this->get_user_id(), '_stripe_customer_id', $response->id );
+		}
 
 		do_action( 'woocommerce_stripe_add_customer', $args, $response );
 
@@ -152,7 +161,7 @@ class WC_Stripe_Customer {
 		if ( is_wp_error( $response ) ) {
 			if ( 'customer' === $result->get_error_code() && $retry ) {
 				$this->create_customer();
-				$this->add_card( $token, false );
+				return $this->add_card( $token, false );
 			} else {
 				return $response;
 			}

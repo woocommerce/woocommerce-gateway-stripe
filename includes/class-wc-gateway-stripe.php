@@ -329,10 +329,11 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 	/**
 	 * Get payment source. This can be a new token or existing card.
+	 * @param  bool $force_customer Should we force customer creation?
 	 * @return object
 	 */
-	protected function get_source() {
-		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
+	protected function get_source( $user_id, $force_customer = false ) {
+		$stripe_customer = new WC_Stripe_Customer( $user_id );
 		$stripe_source   = false;
 		$token_id        = false;
 
@@ -341,12 +342,13 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			$stripe_token = wc_clean( $_POST['stripe_token'] );
 
 			// This is true if the user wants to store the card to their account.
-			if ( is_user_logged_in() && $this->saved_cards && ! empty( $_POST['wc-stripe-new-payment-method'] ) ) {
+			if ( ( $user_id && $this->saved_cards && ! empty( $_POST['wc-stripe-new-payment-method'] ) ) || $force_customer ) {
 				$stripe_source = $stripe_customer->add_card( $stripe_token );
 
 				if ( is_wp_error( $stripe_source ) ) {
 					throw new Exception( $stripe_source->get_error_message() );
 				}
+
 			} else {
 				// Not saving token, so don't define customer either.
 				$stripe_source   = $stripe_token;
@@ -375,12 +377,44 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Get payment source from an order. This could be used in the future for
+	 * a subscription as an example, therefore using the current user ID would
+	 * not work - the customer won't be logged in :)
+	 *
+	 * Not using 2.6 tokens for this part since we need a customer AND a card
+	 * token, and not just one.
+	 *
+	 * @param object $order
+	 * @return object
+	 */
+	protected function get_order_source( $order = null ) {
+		$stripe_customer = new WC_Stripe_Customer();
+		$stripe_source   = false;
+		$token_id        = false;
+
+		if ( $order ) {
+			if ( $meta_value = get_post_meta( $order->id, '_stripe_customer_id', true ) ) {
+				$stripe_customer->set_id( $meta_value );
+			}
+			if ( $meta_value = get_post_meta( $order->id, '_stripe_card_id', true ) ) {
+				$stripe_source = $meta_value;
+			}
+		}
+
+		return (object) array(
+			'token_id' => $token_id,
+			'customer' => $stripe_customer ? $stripe_customer->get_id() : false,
+			'source'   => $stripe_source,
+		);
+	}
+
+	/**
 	 * Process the payment
 	 */
-	public function process_payment( $order_id ) {
+	public function process_payment( $order_id, $retry = true, $force_customer = false ) {
 		try {
 			$order  = wc_get_order( $order_id );
-			$source = $this->get_source( $order );
+			$source = $this->get_source( get_current_user_id(), $force_customer );
 
 			if ( empty( $source->source ) && empty( $source->customer ) ) {
 				$error_msg = __( 'Please enter your card details to make a payment.', 'woocommerce-gateway-stripe' );
@@ -388,60 +422,39 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 				throw new Exception( $error_msg );
 			}
 
-			if ( $order->get_total() * 100 < 50 ) {
-				throw new Exception( __( 'Sorry, the minimum allowed order total is 0.50 to use this payment method.', 'woocommerce-gateway-stripe' ) );
-			}
+			// Store source to order meta
+			$this->save_source( $order, $source );
 
-			WC_Stripe::log( "Info: Beginning processing payment for order $order_id for the amount of {$order->get_total()}" );
+			// Handle payment
+			if ( $order->get_total() > 0 ) {
 
-			// Make the request
-			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source ) );
-
-			if ( is_wp_error( $response ) ) {
-				// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id and retry.
-				if ( 'customer' === $response->get_error_code() && $retry ) {
-					delete_user_meta( get_current_user_id(), '_stripe_customer_id' );
-					return $this->process_payment( $order_id, false ); // false to prevent retry again (endless loop)
+				if ( $order->get_total() * 100 < 50 ) {
+					throw new Exception( __( 'Sorry, the minimum allowed order total is 0.50 to use this payment method.', 'woocommerce-gateway-stripe' ) );
 				}
-				// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
-				if ( 'missing' === $response->get_error_code() && $source->token_id ) {
-					$token = WC_Payment_Tokens::get( $source->token_id );
-					$token->delete();
-					WC()->session->set( 'refresh_totals', true );
-					throw new Exception( __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' ) );
+
+				WC_Stripe::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
+
+				// Make the request
+				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source ) );
+
+				if ( is_wp_error( $response ) ) {
+					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
+					if ( 'customer' === $response->get_error_code() && $retry ) {
+						delete_user_meta( get_current_user_id(), '_stripe_customer_id' );
+						return $this->process_payment( $order_id, false, $force_customer );
+					// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
+					} elseif ( 'missing' === $response->get_error_code() && $source->token_id ) {
+						$token = WC_Payment_Tokens::get( $source->token_id );
+						$token->delete();
+						throw new Exception( __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' ) );
+					}
+					throw new Exception( $response->get_error_message() );
 				}
-				throw new Exception( $response->get_error_message() );
-			}
 
-			// Store source in the order
-			if ( $source->customer ) {
-				update_post_meta( $order_id, '_stripe_customer_id', $source->customer );
-			}
-			if ( $source->source ) {
-				update_post_meta( $order_id, '_stripe_card_id', $source->source );
-			}
-
-			// Store charge data
-			update_post_meta( $order_id, '_stripe_charge_id', $response->id );
-			update_post_meta( $order_id, '_stripe_charge_captured', $response->captured ? 'yes' : 'no' );
-
-			// Store other data such as fees
-			if ( isset( $response->balance_transaction ) && isset( $response->balance_transaction->fee ) ) {
-				$fee = number_format( $response->balance_transaction->fee / 100, 2, '.', '' );
-				update_post_meta( $order_id, 'Stripe Fee', $fee );
-				update_post_meta( $order_id, 'Net Revenue From Stripe', $order->get_total() - $fee );
-			}
-
-			if ( $response->captured ) {
-				$order->payment_complete( $response->id );
-				WC_Stripe::log( "Successful charge: $response->id" );
+				// Process valid response
+				$this->process_response( $response, $order );
 			} else {
-				add_post_meta( $order->id, '_transaction_id', $response->id, true );
-				$order->update_status( 'on-hold', sprintf( __( 'Stripe charge authorized (Charge ID: %s). Process order to take payment, or cancel to remove the pre-authorization.', 'woocommerce-gateway-stripe' ), $response->id ) );
-				WC_Stripe::log( "Successful auth: $response->id" );
-
-				// Reduce stock levels
-				$order->reduce_order_stock();
+				$order->payment_complete();
 			}
 
 			// Remove cart
@@ -455,10 +468,57 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 		} catch ( Exception $e ) {
 			wc_add_notice( $e->getMessage(), 'error' );
+			WC()->session->set( 'refresh_totals', true );
 			WC_Stripe::log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
-			$order->update_status( 'failed', $e->getMessage() );
 			return;
 		}
+	}
+
+	/**
+	 * Save source to order.
+	 */
+	protected function save_source( $order, $source ) {
+		// Store source in the order
+		if ( $source->customer ) {
+			update_post_meta( $order->id, '_stripe_customer_id', $source->customer );
+		}
+		if ( $source->source ) {
+			update_post_meta( $order->id, '_stripe_card_id', $source->source->id );
+		}
+	}
+
+	/**
+	 * Store extra meta data for an order from a Stripe Response.
+	 */
+	public function process_response( $response, $order ) {
+		WC_Stripe::log( "Processing response: " . print_r( $response, true ) );
+
+		// Store charge data
+		update_post_meta( $order->id, '_stripe_charge_id', $response->id );
+		update_post_meta( $order->id, '_stripe_charge_captured', $response->captured ? 'yes' : 'no' );
+
+		// Store other data such as fees
+		if ( isset( $response->balance_transaction ) && isset( $response->balance_transaction->fee ) ) {
+			$fee = number_format( $response->balance_transaction->fee / 100, 2, '.', '' );
+			update_post_meta( $order->id, 'Stripe Fee', $fee );
+			update_post_meta( $order->id, 'Net Revenue From Stripe', $order->get_total() - $fee );
+		}
+
+		if ( $response->captured ) {
+			$order->payment_complete( $response->id );
+			WC_Stripe::log( "Successful charge: $response->id" );
+		} else {
+			add_post_meta( $order->id, '_transaction_id', $response->id, true );
+
+			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
+				$order->reduce_order_stock();
+			}
+
+			$order->update_status( 'on-hold', sprintf( __( 'Stripe charge authorized (Charge ID: %s). Process order to take payment, or cancel to remove the pre-authorization.', 'woocommerce-gateway-stripe' ), $response->id ) );
+			WC_Stripe::log( "Successful auth: $response->id" );
+		}
+
+		return $response;
 	}
 
 	/**
