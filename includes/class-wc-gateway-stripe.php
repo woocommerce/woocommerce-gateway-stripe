@@ -444,12 +444,12 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 						delete_user_meta( get_current_user_id(), '_stripe_customer_id' );
 						return $this->process_payment( $order_id, false, $force_customer );
 					// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
-					} elseif ( 'missing' === $response->get_error_code() && $source->token_id ) {
+				} elseif ( 'source' === $response->get_error_code() && $source->token_id ) {
 						$token = WC_Payment_Tokens::get( $source->token_id );
 						$token->delete();
 						throw new Exception( __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' ) );
 					}
-					throw new Exception( $response->get_error_message() );
+					throw new Exception( $response->get_error_code() . ': ' . $response->get_error_message() );
 				}
 
 				// Process valid response

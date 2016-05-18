@@ -74,10 +74,16 @@ class WC_Stripe_API {
 		}
 
 		$parsed_response = json_decode( $response['body'] );
-
 		// Handle response
 		if ( ! empty( $parsed_response->error ) ) {
-			return new WP_Error( ! empty( $parsed_response->error->code ) ? $parsed_response->error->code : 'stripe_error', $parsed_response->error->message );
+			if ( ! empty( $parsed_response->error->param ) ) {
+				$code = $parsed_response->error->param;
+			} elseif ( ! empty( $parsed_response->error->code ) ) {
+				$code = $parsed_response->error->code;
+			} else {
+				$code = 'stripe_error';
+			}
+			return new WP_Error( $code, $parsed_response->error->message );
 		} else {
 			return $parsed_response;
 		}
