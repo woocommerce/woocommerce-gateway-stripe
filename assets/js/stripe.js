@@ -6,9 +6,9 @@ jQuery( function( $ ) {
 	/* Open and close for legacy class */
 	jQuery( "form.checkout, form#order_review" ).on('change', 'input[name=wc-stripe-payment-token]', function() {
 		if ( jQuery( 'input[name=wc-stripe-payment-token]:checked' ).val() == 'new' ) {
-			jQuery( 'div.stripe_new_card' ).slideDown( 200 );
+			jQuery( '#stripe-payment-data' ).slideDown( 200 );
 		} else {
-			jQuery( 'div.stripe_new_card' ).slideUp( 200 );
+			jQuery( '#stripe-payment-data' ).slideUp( 200 );
 		}
 	} );
 

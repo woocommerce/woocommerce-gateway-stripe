@@ -240,14 +240,22 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway {
 					<?php
 				}
 
+				$user = wp_get_current_user();
+
+				if ( $user ) {
+					$user_email = get_user_meta( $user->ID, 'billing_email', true );
+					$user_email = $user_email ? $user_email : $user->user_email;
+				} else {
+					$user_email = '';
+				}
+
 				$display = '';
 
 				if ( $this->stripe_checkout || $this->saved_cards && ! empty( $cards ) ) {
 					$display = 'style="display:none;"';
 				}
 
-				echo '<div ' . $display . '
-					id="stripe-payment-data"
+				echo '<div ' . $display . ' id="stripe-payment-data"
 					data-description=""
 					data-email="' . esc_attr( $user_email ) . '"
 					data-amount="' . esc_attr( $this->get_stripe_amount( WC()->cart->total ) ) . '"
