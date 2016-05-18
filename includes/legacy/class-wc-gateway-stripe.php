@@ -33,7 +33,6 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway {
 			'subscription_date_changes',
 			'multiple_subscriptions',
 			'pre-orders',
-			'tokenization',
 		);
 
 		// Load the form fields
@@ -246,20 +245,24 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway {
 				if ( $this->stripe_checkout || $this->saved_cards && ! empty( $cards ) ) {
 					$display = 'style="display:none;"';
 				}
+
+				echo '<div ' . $display . '
+					id="stripe-payment-data"
+					data-description=""
+					data-email="' . esc_attr( $user_email ) . '"
+					data-amount="' . esc_attr( $this->get_stripe_amount( WC()->cart->total ) ) . '"
+					data-name="' . esc_attr( sprintf( __( '%s', 'woocommerce-gateway-stripe' ), get_bloginfo( 'name', 'display' ) ) ) . '"
+					data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '"
+					data-image="' . esc_attr( $this->stripe_checkout_image ) . '"
+					data-bitcoin="' . esc_attr( $this->bitcoin ? 'true' : 'false' ) . '"
+					data-locale="' . esc_attr( $this->stripe_checkout_locale ? $this->stripe_checkout_locale : 'en' ) . '">';
+
+				if ( ! $this->stripe_checkout ) {
+					$this->credit_card_form( array( 'fields_have_names' => false ) );
+				}
+
+				echo '</div>';
 			?>
-			<div class="stripe_new_card" <?php echo $display; ?>
-				data-description=""
-				data-amount="<?php echo esc_attr( $this->get_stripe_amount( WC()->cart->total ) ); ?>"
-				data-name="<?php echo esc_attr( sprintf( __( '%s', 'woocommerce-gateway-stripe' ), get_bloginfo( 'name', 'display' ) ) ); ?>"
-				data-currency="<?php echo esc_attr( strtolower( get_woocommerce_currency() ) ); ?>"
-				data-image="<?php echo esc_attr( $this->stripe_checkout_image ); ?>"
-				data-bitcoin="<?php echo esc_attr( $this->bitcoin ? 'true' : 'false' ); ?>"
-				data-locale="<?php echo esc_attr( $this->stripe_checkout_locale ? $this->stripe_checkout_locale : 'en' ); ?>"
-				>
-				<?php if ( ! $this->stripe_checkout ) : ?>
-					<?php $this->credit_card_form( array( 'fields_have_names' => false ) ); ?>
-				<?php endif; ?>
-			</div>
 		</fieldset>
 		<?php
 	}
@@ -369,15 +372,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway {
 
 		// Use an existing token, and then process the payment
 		elseif ( isset( $_POST['wc-stripe-payment-token'] ) && 'new' !== $_POST['wc-stripe-payment-token'] ) {
-			$token_id = wc_clean( $_POST['wc-stripe-payment-token'] );
-			$token    = WC_Payment_Tokens::get( $token_id );
-
-			if ( ! $token || $token->get_user_id() !== get_current_user_id() ) {
-				WC()->session->set( 'refresh_totals', true );
-				throw new Exception( __( 'Invalid payment method. Please input a new card number.', 'woocommerce-gateway-stripe' ) );
-			}
-
-			$stripe_source = $token->get_token();
+			$stripe_source = wc_clean( $_POST['wc-stripe-payment-token'] );
 		}
 
 		return (object) array(
@@ -453,11 +448,6 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway {
 					if ( 'customer' === $response->get_error_code() && $retry ) {
 						delete_user_meta( get_current_user_id(), '_stripe_customer_id' );
 						return $this->process_payment( $order_id, false, $force_customer );
-					// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
-				} elseif ( 'source' === $response->get_error_code() && $source->token_id ) {
-						$token = WC_Payment_Tokens::get( $source->token_id );
-						$token->delete();
-						throw new Exception( __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' ) );
 					}
 					throw new Exception( $response->get_error_code() . ': ' . $response->get_error_message() );
 				}
