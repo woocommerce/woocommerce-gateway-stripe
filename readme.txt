@@ -32,7 +32,7 @@ Stripe is available in:
 
 Stripe is a simple way to accept payments online. With Stripe you can accept Visa, MasterCard, American Express, Discover, JCB, and Diners Club cards, even Bitcoin, directly on your store.
 
-=== Why choose Stripe? ===
+= Why choose Stripe? =
 
 Stripe has no setup fees, no monthly fees, no hidden costs: you only get charged when you earn money! Earnings are transferred to your bank account on a 7-day rolling basis.
 
