@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @extends WC_Payment_Gateway
  */
-class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
+class WC_Gateway_Stripe extends WC_Payment_Gateway {
 
 	/**
 	 * Constructor
@@ -187,7 +187,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 * Initialise Gateway Settings Form Fields
 	 */
 	public function init_form_fields() {
-		$this->form_fields = include( 'settings-stripe.php' );
+		$this->form_fields = include( untrailingslashit( plugin_dir_path( WC_STRIPE_MAIN_FILE ) ) . '/includes/settings-stripe.php' );
 
 		wc_enqueue_js( "
 			jQuery( function( $ ) {
@@ -206,52 +206,62 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 * Payment form on checkout page
 	 */
 	public function payment_fields() {
-		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
-		$user                 = wp_get_current_user();
+		?>
+		<fieldset class="stripe-legacy-payment-fields">
+			<?php
+				if ( $this->description ) {
+					echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $this->description ) ) );
+				}
+				if ( $this->saved_cards && is_user_logged_in() ) {
+					$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
+					?>
+					<p class="form-row form-row-wide">
+						<a class="<?php echo apply_filters( 'wc_stripe_manage_saved_cards_class', 'button' ); ?>" style="float:right;" href="<?php echo apply_filters( 'wc_stripe_manage_saved_cards_url', get_permalink( get_option( 'woocommerce_myaccount_page_id' ) ) ); ?>#saved-cards"><?php esc_html_e( 'Manage cards', 'woocommerce-gateway-stripe' ); ?></a>
+						<?php
+						if ( $cards = $stripe_customer->get_cards() ) {
+							$default_card = $cards[0]->id;
+							foreach ( (array) $cards as $card ) {
+								if ( 'card' !== $card->object ) {
+									continue;
+								}
+								?>
+								<label for="stripe_card_<?php echo $card->id; ?>" class="brand-<?php echo esc_attr( strtolower( $card->brand ) ); ?>">
+									<input type="radio" id="stripe_card_<?php echo $card->id; ?>" name="wc-stripe-payment-token" value="<?php echo $card->id; ?>" <?php checked( $default_card, $card->id ) ?> />
+									<?php printf( __( '%s card ending in %s (Expires %s/%s)', 'woocommerce-gateway-stripe' ), $card->brand, $card->last4, $card->exp_month, $card->exp_year ); ?>
+								</label>
+								<?php
+							}
+						}
+						?>
+						<label for="new">
+							<input type="radio" id="new" name="wc-stripe-payment-token" value="new" />
+							<?php _e( 'Use a new credit card', 'woocommerce-gateway-stripe' ); ?>
+						</label>
+					</p>
+					<?php
+				}
 
-		if ( $user ) {
-			$user_email = get_user_meta( $user->ID, 'billing_email', true );
-			$user_email = $user_email ? $user_email : $user->user_email;
-		} else {
-			$user_email = '';
-		}
+				$display = '';
 
-		if ( is_add_payment_method_page() ) {
-			$pay_button_text = __( 'Add Card', 'woocommerce-gateway-stripe' );
-		} else {
-			$pay_button_text = '';
-		}
-
-		echo '<div
-			id="stripe-payment-data"
-			data-panel-label="' . esc_attr( $pay_button_text ) . '"
-			data-description=""
-			data-email="' . esc_attr( $user_email ) . '"
-			data-amount="' . esc_attr( $this->get_stripe_amount( WC()->cart->total ) ) . '"
-			data-name="' . esc_attr( sprintf( __( '%s', 'woocommerce-gateway-stripe' ), get_bloginfo( 'name', 'display' ) ) ) . '"
-			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '"
-			data-image="' . esc_attr( $this->stripe_checkout_image ) . '"
-			data-bitcoin="' . esc_attr( $this->bitcoin ? 'true' : 'false' ) . '"
-			data-locale="' . esc_attr( $this->stripe_checkout_locale ? $this->stripe_checkout_locale : 'en' ) . '">';
-
-		if ( $this->description ) {
-			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $this->description ) ) );
-		}
-
-		if ( $display_tokenization ) {
-			$this->tokenization_script();
-			$this->saved_payment_methods();
-		}
-
-		if ( ! $this->stripe_checkout ) {
-			$this->form();
-
-			if ( $display_tokenization ) {
-				$this->save_payment_method_checkbox();
-			}
-		}
-
-		echo '</div>';
+				if ( $this->stripe_checkout || $this->saved_cards && ! empty( $cards ) ) {
+					$display = 'style="display:none;"';
+				}
+			?>
+			<div class="stripe_new_card" <?php echo $display; ?>
+				data-description=""
+				data-amount="<?php echo esc_attr( $this->get_stripe_amount( WC()->cart->total ) ); ?>"
+				data-name="<?php echo esc_attr( sprintf( __( '%s', 'woocommerce-gateway-stripe' ), get_bloginfo( 'name', 'display' ) ) ); ?>"
+				data-currency="<?php echo esc_attr( strtolower( get_woocommerce_currency() ) ); ?>"
+				data-image="<?php echo esc_attr( $this->stripe_checkout_image ); ?>"
+				data-bitcoin="<?php echo esc_attr( $this->bitcoin ? 'true' : 'false' ); ?>"
+				data-locale="<?php echo esc_attr( $this->stripe_checkout_locale ? $this->stripe_checkout_locale : 'en' ); ?>"
+				>
+				<?php if ( ! $this->stripe_checkout ) : ?>
+					<?php $this->credit_card_form( array( 'fields_have_names' => false ) ); ?>
+				<?php endif; ?>
+			</div>
+		</fieldset>
+		<?php
 	}
 
 	/**

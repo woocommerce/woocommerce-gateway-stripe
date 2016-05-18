@@ -102,6 +102,21 @@ class WC_Stripe_Customer {
 	}
 
 	/**
+	 * Get default card/source
+	 * @return string
+	 */
+	public function get_default_card() {
+		$data   = $this->get_customer_data();
+		$source = '';
+
+		if ( $data ) {
+			$source = $data->default_source;
+		}
+
+		return $source;
+	}
+
+	/**
 	 * Create a customer via API.
 	 * @param array $args
 	 * @return WP_Error|int
@@ -209,9 +224,17 @@ class WC_Stripe_Customer {
 	 * @param string $card_id
 	 */
 	public function delete_card( $card_id ) {
-		$result = WC_Stripe_API::request( array(), 'customers/' . $this->get_id() . '/sources/' . sanitize_text_field( $card_id ), 'DELETE' );
+		$response = WC_Stripe_API::request( array(), 'customers/' . $this->get_id() . '/sources/' . sanitize_text_field( $card_id ), 'DELETE' );
+
 		$this->clear_cache();
-		do_action( 'wc_stripe_delete_card', $this->get_id(), $result );
+
+		if ( ! is_wp_error( $response ) ) {
+			do_action( 'wc_stripe_delete_card', $this->get_id(), $response );
+
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -219,11 +242,19 @@ class WC_Stripe_Customer {
 	 * @param string $card_id
 	 */
 	public function set_default_card( $card_id ) {
-		$result = WC_Stripe_API::request( array(
+		$response = WC_Stripe_API::request( array(
 			'default_source' => sanitize_text_field( $card_id ),
 		), 'customers/' . $this->get_id(), 'POST' );
+
 		$this->clear_cache();
-		do_action( 'wc_stripe_set_default_card', $this->get_id(), $result );
+
+		if ( ! is_wp_error( $response ) ) {
+			do_action( 'wc_stripe_set_default_card', $this->get_id(), $response );
+
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -232,5 +263,6 @@ class WC_Stripe_Customer {
 	public function clear_cache() {
 		delete_transient( 'stripe_cards_' . $this->get_id() );
 		delete_transient( 'stripe_customer_' . $this->get_id() );
+		$this->customer_data = array();
 	}
 }

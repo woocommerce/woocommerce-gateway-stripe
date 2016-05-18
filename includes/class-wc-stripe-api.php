@@ -60,7 +60,7 @@ class WC_Stripe_API {
 				'method'        => $method,
 				'headers'       => array(
 					'Authorization'  => 'Basic ' . base64_encode( self::get_secret_key(). ':' ),
-					'Stripe-Version' => '2015-04-07'
+					'Stripe-Version' => '2016-03-07'
 				),
 				'body'       => apply_filters( 'woocommerce_stripe_request_body', $request, $api ),
 				'timeout'    => 70,

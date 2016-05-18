@@ -32,9 +32,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 define( 'WC_STRIPE_VERSION', '3.0.0' );
 define( 'WC_STRIPE_MIN_PHP_VER', '5.3.0' );
-define( 'WC_STRIPE_MIN_WC_VER', '2.6.0' );
+define( 'WC_STRIPE_MIN_WC_VER', '2.5.0' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
-define( 'WC_STRIPE_TEMPLATE_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) . '/templates/' );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
 
 if ( ! class_exists( 'WC_Stripe' ) ) {
@@ -234,7 +233,12 @@ class WC_Stripe {
 			return;
 		}
 
-		include_once( plugin_basename( 'includes/class-wc-gateway-stripe.php' ) );
+		if ( class_exists( 'WC_Payment_Gateway_CC' ) ) {
+			include_once( plugin_basename( 'includes/class-wc-gateway-stripe.php' ) );
+		} else {
+			include_once( plugin_basename( 'includes/legacy/class-wc-gateway-stripe.php' ) );
+			include_once( plugin_basename( 'includes/legacy/class-wc-gateway-stripe-saved-cards.php' ) );
+		}
 
 		load_plugin_textdomain( 'woocommerce-gateway-stripe', false, trailingslashit( dirname( plugin_basename( __FILE__ ) ) ) );
 		add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateways' ) );

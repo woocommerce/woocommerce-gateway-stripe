@@ -3,6 +3,15 @@ Stripe.setPublishableKey( wc_stripe_params.key );
 
 jQuery( function( $ ) {
 
+	/* Open and close for legacy class */
+	jQuery( "form.checkout, form#order_review" ).on('change', 'input[name=wc-stripe-payment-token]', function() {
+		if ( jQuery( 'input[name=wc-stripe-payment-token]:checked' ).val() == 'new' ) {
+			jQuery( 'div.stripe_new_card' ).slideDown( 200 );
+		} else {
+			jQuery( 'div.stripe_new_card' ).slideUp( 200 );
+		}
+	} );
+
 	/**
 	 * Object to handle Stripe payment forms.
 	 */
@@ -82,7 +91,7 @@ jQuery( function( $ ) {
 
 					};
 
-				if ( jQuery('#billing_address_1').size() > 0 ) {
+				if ( jQuery('#billing_address_1').length > 0 ) {
 					data.address_line1   = $( '#billing_address_1' ).val();
 					data.address_line2   = $( '#billing_address_2' ).val();
 					data.address_state   = $( '#billing_state' ).val();
