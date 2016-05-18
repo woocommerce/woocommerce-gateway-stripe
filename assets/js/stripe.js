@@ -5,10 +5,10 @@ jQuery( function( $ ) {
 
 	/* Open and close for legacy class */
 	jQuery( "form.checkout, form#order_review" ).on('change', 'input[name=wc-stripe-payment-token]', function() {
-		if ( jQuery( 'input[name=wc-stripe-payment-token]:checked' ).val() == 'new' ) {
-			jQuery( '#stripe-payment-data' ).slideDown( 200 );
+		if ( jQuery( '.stripe-legacy-payment-fields input[name=wc-stripe-payment-token]:checked' ).val() == 'new' ) {
+			jQuery( '.stripe-legacy-payment-fields #stripe-payment-data' ).slideDown( 200 );
 		} else {
-			jQuery( '#stripe-payment-data' ).slideUp( 200 );
+			jQuery( '.stripe-legacy-payment-fields #stripe-payment-data' ).slideUp( 200 );
 		}
 	} );
 
