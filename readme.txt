@@ -77,6 +77,14 @@ For help setting up and configuring, please refer to our [user guide](https://do
 
 If you get stuck, you can ask for help in the Plugin Forum.
 
+== Screenshots ==
+
+1. The settings panel used to configure the gateway.
+2. Normal checkout with Stripe.
+3. Option to save a card to your account.
+4. Checking out with a saved card.
+5. Using the Stripe checkout modal.
+
 == Changelog ==
 
 = 3.0.0 =
