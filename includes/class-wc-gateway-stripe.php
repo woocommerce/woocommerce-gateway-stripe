@@ -484,7 +484,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			update_post_meta( $order->id, '_stripe_customer_id', $source->customer );
 		}
 		if ( $source->source ) {
-			update_post_meta( $order->id, '_stripe_card_id', $source->source->id );
+			update_post_meta( $order->id, '_stripe_card_id', $source->source );
 		}
 	}
 
