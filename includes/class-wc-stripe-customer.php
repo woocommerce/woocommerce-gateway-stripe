@@ -174,7 +174,7 @@ class WC_Stripe_Customer {
 		), 'customers/' . $this->get_id() . '/sources' );
 
 		if ( is_wp_error( $response ) ) {
-			if ( 'customer' === $result->get_error_code() && $retry ) {
+			if ( 'customer' === $response->get_error_code() && $retry ) {
 				$this->create_customer();
 				return $this->add_card( $token, false );
 			} else {
