@@ -242,7 +242,7 @@ class WC_Stripe {
 	 */
 	public function admin_notices() {
 		foreach ( (array) $this->notices as $notice_key => $notice ) {
-			echo "<div class='" . esc_attr( sanitize_html_class( $notice['class'] ) ) . "'><p>";
+			echo "<div class='" . esc_attr( $notice['class'] ) . "'><p>";
 			echo wp_kses( $notice['message'], array( 'a' => array( 'href' => array() ) ) );
 			echo "</p></div>";
 		}
