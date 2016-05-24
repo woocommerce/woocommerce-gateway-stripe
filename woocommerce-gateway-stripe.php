@@ -169,7 +169,7 @@ class WC_Stripe {
 		$secret = WC_Stripe_API::get_secret_key();
 		if ( empty( $secret ) ) {
 			$setting_link = $this->get_setting_link();
-			$this->add_admin_notice( 'prompt_connect', 'notice notice-warning', __( 'Stripe is almost ready. To get started, <a href="' . $setting_link . '">set your Stripe account keys</a>.', 'wwoocommerce-gateway-stripe' ) );
+			$this->add_admin_notice( 'prompt_connect', 'notice notice-warning', sprintf( __( 'Stripe is almost ready. To get started, <a href="%s">set your Stripe account keys</a>.', 'wwoocommerce-gateway-stripe' ), $setting_link ) );
 		}
 	}
 
