@@ -159,6 +159,18 @@ class WC_Stripe {
 				unset( $_GET['activate'] );
 			}
 		}
+
+		// Check if secret key present. Otherwise prompt, via notice, to go to
+		// setting.
+		if ( ! class_exists( 'WC_Stripe_API' ) ) {
+			include_once( plugin_basename( 'includes/class-wc-stripe-api.php' ) );
+		}
+
+		$secret = WC_Stripe_API::get_secret_key();
+		if ( empty( $secret ) ) {
+			$setting_link = $this->get_setting_link();
+			$this->add_admin_notice( 'prompt_connect', 'notice notice-warning', __( 'Stripe is almost ready. To get started, <a href="' . $setting_link . '">set your Stripe account keys</a>.', 'wwoocommerce-gateway-stripe' ) );
+		}
 	}
 
 	/**
@@ -200,12 +212,29 @@ class WC_Stripe {
 	 * @since 1.0.0
 	 */
 	public function plugin_action_links( $links ) {
+		$setting_link = $this->get_setting_link();
+
 		$plugin_links = array(
-			'<a href="' . admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) . '">' . __( 'Settings', 'woocommerce-gateway-stripe' ) . '</a>',
+			'<a href="' . $setting_link . '">' . __( 'Settings', 'woocommerce-gateway-stripe' ) . '</a>',
 			'<a href="https://docs.woothemes.com/document/stripe/">' . __( 'Docs', 'woocommerce-gateway-stripe' ) . '</a>',
 			'<a href="http://support.woothemes.com/">' . __( 'Support', 'woocommerce-gateway-stripe' ) . '</a>',
 		);
 		return array_merge( $plugin_links, $links );
+	}
+
+	/**
+	 * Get setting link.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string Setting link
+	 */
+	public function get_setting_link() {
+		$use_id_as_section = version_compare( WC()->version, '2.6', '>=' );
+
+		$section_slug = $use_id_as_section ? 'stripe' : strtolower( 'WC_Gateway_Stripe' );
+
+		return admin_url( 'admin.php?page=wc-settings&tab=checkout&section=' . $section_slug );
 	}
 
 	/**
