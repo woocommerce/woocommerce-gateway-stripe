@@ -117,7 +117,7 @@ class WC_Stripe {
 		add_action( 'woocommerce_order_status_on-hold_to_completed', array( $this, 'capture_payment' ) );
 		add_action( 'woocommerce_order_status_on-hold_to_cancelled', array( $this, 'cancel_payment' ) );
 		add_action( 'woocommerce_order_status_on-hold_to_refunded', array( $this, 'cancel_payment' ) );
-		add_filter( 'woocommerce_get_customer_payment_tokens', array( $this, 'woocommerce_get_customer_payment_tokens' ), 10, 2 );
+		add_filter( 'woocommerce_get_customer_payment_tokens', array( $this, 'woocommerce_get_customer_payment_tokens' ), 10, 3 );
 		add_action( 'woocommerce_payment_token_deleted', array( $this, 'woocommerce_payment_token_deleted' ), 10, 2 );
 		add_action( 'woocommerce_payment_token_set_default', array( $this, 'woocommerce_payment_token_set_default' ) );
 	}
@@ -330,20 +330,19 @@ class WC_Stripe {
 	 * @param array $tokens
 	 * @return array
 	 */
-	public function woocommerce_get_customer_payment_tokens( $tokens, $customer_id ) {
-		if ( is_user_logged_in() ) {
+	public function woocommerce_get_customer_payment_tokens( $tokens, $customer_id, $gateway_id ) {
+		if ( is_user_logged_in() && 'stripe' === $gateway_id ) {
 			$stripe_customer = new WC_Stripe_Customer( $customer_id );
 			$stripe_cards    = $stripe_customer->get_cards();
 			$stored_tokens   = array();
 
 			foreach ( $tokens as $token ) {
-				if ( 'stripe' === $token->get_gateway_id() ) {
-					$stored_tokens[] = $token->get_token();
-				}
+				$stored_tokens[] = $token->get_token();
 			}
 
 			foreach ( $stripe_cards as $card ) {
 				if ( ! in_array( $card->id, $stored_tokens ) ) {
+					var_dump(1);
 					$token = new WC_Payment_Token_CC();
 					$token->set_token( $card->id );
 					$token->set_gateway_id( 'stripe' );
