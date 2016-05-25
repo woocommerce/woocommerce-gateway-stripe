@@ -2,8 +2,8 @@
 
 = 3.0.0 =
 * First public WordPress.org release.
-* Refactor for WC 2.6 and above. Requires 2.6 to function.
-* Improved saved cards handling using tokenization API in WooCommerce.
+* Refactor for WC 2.6 and above. Legacy support for 2.5.
+* Improved saved card handling using tokenization API in WooCommerce.
 
 = 2.6.12 - 2016.04.13 =
 * Fix - When saved cards option is enabled with no cards on file, CC field was hidden.

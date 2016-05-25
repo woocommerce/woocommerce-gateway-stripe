@@ -40,7 +40,7 @@ Stripe also supports the [Subscriptions extension](http://www.woothemes.com/exte
 
 == Installation ==
 
-Please note, v3 of this gateway requires WooCommerce 2.6 and above.
+Please note, v3 of this gateway requires WooCommerce 2.5 and above.
 
 You can download an [older version of this gateway for older versions of WooCommerce from here](https://wordpress.org/plugins/woocommerce-gateway-stripe/developers/).
 
@@ -53,7 +53,7 @@ In the search field type “WooCommerce Stripe Payment Gateway” and click Sear
 
 = Manual installation =
 
-The manual installation method involves downloading our plugin and uploading it to your webserver via your favorite FTP application. The WordPress codex contains [instructions on how to do this here](http://codex.wordpress.org/Managing_Plugins#Manual_Plugin_Installation).
+The manual installation method involves downloading our plugin and uploading it to your web server via your favorite FTP application. The WordPress codex contains [instructions on how to do this here](http://codex.wordpress.org/Managing_Plugins#Manual_Plugin_Installation).
 
 = Updating =
 
@@ -89,7 +89,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 3.0.0 =
 * First public WordPress.org release.
-* Refactor for WC 2.6 and above. Requires 2.6 to function.
-* Improved saved cards handling using tokenization API in WooCommerce.
+* Refactor for WC 2.6 and above. Legacy support for 2.5.
+* Improved saved card handling using tokenization API in WooCommerce.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/CHANGELOG.txt).
