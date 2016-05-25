@@ -139,25 +139,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 * Check if SSL is enabled and notify the user
 	 */
 	public function admin_notices() {
-		if ( $this->enabled == 'no' ) {
-			return;
-		}
-
-		$addons = ( class_exists( 'WC_Subscriptions_Order' ) || class_exists( 'WC_Pre_Orders_Order' ) ) ? '_addons' : '';
-
-		// Check required fields
-		if ( ! $this->secret_key ) {
-			echo '<div class="error"><p>' . sprintf( __( 'Stripe error: Please enter your secret key <a href="%s">here</a>', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=wc_gateway_stripe' . $addons ) ) . '</p></div>';
-			return;
-
-		} elseif ( ! $this->publishable_key ) {
-			echo '<div class="error"><p>' . sprintf( __( 'Stripe error: Please enter your publishable key <a href="%s">here</a>', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=wc_gateway_stripe' . $addons ) ) . '</p></div>';
-			return;
-		}
-
-		// Simple check for duplicate keys
-		if ( $this->secret_key == $this->publishable_key ) {
-			echo '<div class="error"><p>' . sprintf( __( 'Stripe error: Your secret and publishable keys match. Please check and re-enter.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=wc_gateway_stripe' . $addons ) ) . '</p></div>';
+		if ( 'no' === $this->enabled ) {
 			return;
 		}
 
