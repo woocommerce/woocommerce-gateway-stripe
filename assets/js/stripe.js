@@ -4,8 +4,8 @@ Stripe.setPublishableKey( wc_stripe_params.key );
 jQuery( function( $ ) {
 
 	/* Open and close for legacy class */
-	jQuery( "form.checkout, form#order_review" ).on('change', 'input[name=wc-stripe-payment-token]', function() {
-		if ( jQuery( '.stripe-legacy-payment-fields input[name=wc-stripe-payment-token]:checked' ).val() == 'new' ) {
+	jQuery( "form.checkout, form#order_review" ).on('change', 'input[name="wc-stripe-payment-token"]', function() {
+		if ( jQuery( '.stripe-legacy-payment-fields input[name="wc-stripe-payment-token"]:checked' ).val() == 'new' ) {
 			jQuery( '.stripe-legacy-payment-fields #stripe-payment-data' ).slideDown( 200 );
 		} else {
 			jQuery( '.stripe-legacy-payment-fields #stripe-payment-data' ).slideUp( 200 );
@@ -42,7 +42,7 @@ jQuery( function( $ ) {
 		},
 
 		isStripeChosen: function() {
-			return $( '#payment_method_stripe' ).is( ':checked' ) && ( ! $( 'input[name=wc-stripe-payment-token]:checked' ).length || 'new' === $( 'input[name=wc-stripe-payment-token]:checked' ).val() );
+			return $( '#payment_method_stripe' ).is( ':checked' ) && ( ! $( 'input[name="wc-stripe-payment-token"]:checked' ).length || 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() );
 		},
 
 		hasToken: function() {

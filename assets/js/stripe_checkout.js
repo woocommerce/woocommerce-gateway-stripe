@@ -22,7 +22,7 @@ jQuery( function( $ ) {
 		},
 
 		isStripeChosen: function() {
-			return $( '#payment_method_stripe' ).is( ':checked' ) && ( ! $( 'input[name=wc-stripe-payment-token]:checked' ).length || 'new' === $( 'input[name=wc-stripe-payment-token]:checked' ).val() );
+			return $( '#payment_method_stripe' ).is( ':checked' ) && ( ! $( 'input[name="wc-stripe-payment-token"]:checked' ).length || 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() );
 		},
 
 		isStripeModalNeeded: function( e ) {
