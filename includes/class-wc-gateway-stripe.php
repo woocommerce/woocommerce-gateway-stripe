@@ -188,10 +188,10 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 * Payment form on checkout page
 	 */
 	public function payment_fields() {
-		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
 		$user                 = wp_get_current_user();
+		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards && $user->ID;
 
-		if ( $user ) {
+		if ( $user->ID ) {
 			$user_email = get_user_meta( $user->ID, 'billing_email', true );
 			$user_email = $user_email ? $user_email : $user->user_email;
 		} else {
