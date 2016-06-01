@@ -516,10 +516,10 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		}
 
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
-		$result          = $stripe_customer->add_card( wc_clean( $_POST['stripe_token'] ) );
+		$card            = $stripe_customer->add_card( wc_clean( $_POST['stripe_token'] ) );
 
-		if ( is_wp_error( $result ) ) {
-			throw new Exception( $result->get_error_message() );
+		if ( is_wp_error( $card ) ) {
+			throw new Exception( $card->get_error_message() );
 		}
 
 		return array(

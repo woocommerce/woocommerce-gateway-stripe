@@ -372,14 +372,12 @@ class WC_Stripe {
 
 			foreach ( $stripe_cards as $card ) {
 				if ( ! in_array( $card->id, $stored_tokens ) ) {
-					var_dump(1);
 					$token = new WC_Payment_Token_CC();
 					$token->set_token( $card->id );
 					$token->set_gateway_id( 'stripe' );
 					$token->set_card_type( strtolower( $card->brand ) );
 					$token->set_last4( $card->last4 );
-					$expiry_month = ( 1 === strlen( $card->exp_month ) ? '0' . $card->exp_month : $card->exp_month );
-					$token->set_expiry_month( $expiry_month );
+					$token->set_expiry_month( $card->exp_month  );
 					$token->set_expiry_year( $card->exp_year );
 					$token->set_user_id( $customer_id );
 					$token->save();

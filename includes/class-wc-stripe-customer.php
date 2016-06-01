@@ -157,7 +157,7 @@ class WC_Stripe_Customer {
 	}
 
 	/**
-	 * Add a card for this customer.
+	 * Add a card for this stripe customer.
 	 * @param string $token
 	 * @param bool $retry
 	 * @return WP_Error|int
@@ -182,6 +182,19 @@ class WC_Stripe_Customer {
 			}
 		} elseif ( empty( $response->id ) ) {
 			return new WP_Error( 'error', __( 'Unable to add card', 'woocommerce-gateway-stripe' ) );
+		}
+
+		// Add token to WooCommerce
+		if ( $this->get_user_id() ) {
+			$token = new WC_Payment_Token_CC();
+			$token->set_token( $response->id );
+			$token->set_gateway_id( 'stripe' );
+			$token->set_card_type( strtolower( $response->brand ) );
+			$token->set_last4( $response->last4 );
+			$token->set_expiry_month( $response->exp_month  );
+			$token->set_expiry_year( $response->exp_year );
+			$token->set_user_id( $this->get_user_id() );
+			$token->save();
 		}
 
 		$this->clear_cache();
