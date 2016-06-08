@@ -2,9 +2,9 @@
 # This file is distributed under the same license as the WooCommerce Stripe Gateway package.
 msgid ""
 msgstr ""
-"Project-Id-Version: WooCommerce Stripe Gateway 3.0.0\n"
+"Project-Id-Version: WooCommerce Stripe Gateway 3.0.1\n"
 "Report-Msgid-Bugs-To: http://wordpress.org/tag/woocommerce-gateway-stripe\n"
-"POT-Creation-Date: 2016-06-07 10:40:14+00:00\n"
+"POT-Creation-Date: 2016-06-08 11:48:25+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -14,7 +14,7 @@ msgstr ""
 
 #: includes/class-wc-gateway-stripe-addons.php:104
 #: includes/class-wc-gateway-stripe-addons.php:150
-#: includes/class-wc-gateway-stripe.php:415
+#: includes/class-wc-gateway-stripe.php:437
 #: includes/legacy/class-wc-gateway-stripe.php:446
 msgid ""
 "Sorry, the minimum allowed order total is 0.50 to use this payment method."
@@ -71,68 +71,80 @@ msgid ""
 "has a valid SSL certificate - Stripe will only work in test mode."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:202
+#: includes/class-wc-gateway-stripe.php:188
+msgid ""
+"This is not a valid live key. Live keys start with \"sk_live_\" and "
+"\"pk_live_\"."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:199
+msgid ""
+"This is not a valid test key. Test keys start with \"sk_test_\" and "
+"\"pk_test_\"."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:224
 msgid "Add Card"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:213
+#: includes/class-wc-gateway-stripe.php:235
 #: includes/legacy/class-wc-gateway-stripe.php:262
 msgid "%s"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:257
+#: includes/class-wc-gateway-stripe.php:279
 #: includes/legacy/class-wc-gateway-stripe.php:296
 msgid "Please accept the terms and conditions first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:258
+#: includes/class-wc-gateway-stripe.php:280
 #: includes/legacy/class-wc-gateway-stripe.php:297
 msgid "Please fill in required checkout fields first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:292
+#: includes/class-wc-gateway-stripe.php:314
 #: includes/legacy/class-wc-gateway-stripe.php:331
 msgid "%s - Order %s"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:349
+#: includes/class-wc-gateway-stripe.php:371
 msgid "Invalid payment method. Please input a new card number."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:403
+#: includes/class-wc-gateway-stripe.php:425
 #: includes/legacy/class-wc-gateway-stripe.php:434
 msgid "Please enter your card details to make a payment."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:404
+#: includes/class-wc-gateway-stripe.php:426
 #: includes/legacy/class-wc-gateway-stripe.php:435
 msgid ""
 "Developers: Please make sure that you are including jQuery and there are no "
 "JavaScript errors on the page."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:432
+#: includes/class-wc-gateway-stripe.php:454
 msgid "This card is no longer available and has been removed."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:455
+#: includes/class-wc-gateway-stripe.php:477
 #: includes/legacy/class-wc-gateway-stripe.php:481
 msgid "Error: %s"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:500
+#: includes/class-wc-gateway-stripe.php:522
 #: includes/legacy/class-wc-gateway-stripe.php:526
 msgid ""
 "Stripe charge authorized (Charge ID: %s). Process order to take payment, or "
 "cancel to remove the pre-authorization."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:514
+#: includes/class-wc-gateway-stripe.php:536
 #: includes/legacy/class-wc-gateway-stripe.php:540
 msgid "There was a problem adding the card."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:564
+#: includes/class-wc-gateway-stripe.php:586
 #: includes/legacy/class-wc-gateway-stripe.php:590
 msgid "Refunded %s - Refund ID: %s - Reason: %s"
 msgstr ""
