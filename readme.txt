@@ -89,6 +89,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 3.0.1 =
 * Backwards compatibility update to prevent error finding WC_Payment_Token_CC.
+* Added inline validation of keys.
 
 = 3.0.0 =
 * First public WordPress.org release.
