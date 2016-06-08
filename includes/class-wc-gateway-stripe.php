@@ -180,6 +180,28 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 						$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image' ).closest( 'tr' ).hide();
 					}
 				}).change();
+
+				$( '#woocommerce_stripe_secret_key, #woocommerce_stripe_publishable_key' ).change(function(){
+					var value = $( this ).val();
+
+					if ( value.indexOf( '_test_' ) >= 0 ) {
+						$( this ).css( 'border-color', 'red' ).after( '<span class=\"description stripe-error-description\" style=\"color:red; display:block;\">" . __( 'This is not a valid live key. Live keys start with "sk_live_" and "pk_live_".', 'woocommerce-gateway-stripe' ) . "</span>' );
+					} else {
+						$( this ).css( 'border-color', '' );
+						$( '.stripe-error-description', $( this ).parent() ).remove();
+					}
+				}).change();
+
+				$( '#woocommerce_stripe_test_secret_key, #woocommerce_stripe_test_publishable_key' ).change(function(){
+					var value = $( this ).val();
+
+					if ( value.indexOf( '_live_' ) >= 0 ) {
+						$( this ).css( 'border-color', 'red' ).after( '<span class=\"description stripe-error-description\" style=\"color:red; display:block;\">" . __( 'This is not a valid test key. Test keys start with "sk_test_" and "pk_test_".', 'woocommerce-gateway-stripe' ) . "</span>' );
+					} else {
+						$( this ).css( 'border-color', '' );
+						$( '.stripe-error-description', $( this ).parent() ).remove();
+					}
+				}).change();
 			});
 		" );
 	}
