@@ -6,6 +6,8 @@
  * Author: Automattic
  * Author URI: http://woothemes.com/
  * Version: 3.0.1
+ * Text Domain: woocommerce-gateway-stripe
+ * Domain Path: /languages
  *
  * Copyright (c) 2016 Automattic
  *
