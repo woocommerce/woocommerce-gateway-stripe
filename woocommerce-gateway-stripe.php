@@ -270,7 +270,7 @@ class WC_Stripe {
 			include_once( plugin_basename( 'includes/legacy/class-wc-gateway-stripe-saved-cards.php' ) );
 		}
 
-		load_plugin_textdomain( 'woocommerce-gateway-stripe', false, trailingslashit( dirname( plugin_basename( __FILE__ ) ) ) );
+		load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
 		add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateways' ) );
 
 		if ( $this->subscription_support_enabled ) {
