@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 3.0.1 =
+* Backwards compatibility update to prevent error finding WC_Payment_Token_CC.
+
 = 3.0.0 =
 * First public WordPress.org release.
 * Refactor for WC 2.6 and above. Legacy support for 2.5.

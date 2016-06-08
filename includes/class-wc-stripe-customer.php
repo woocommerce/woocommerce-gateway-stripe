@@ -185,7 +185,7 @@ class WC_Stripe_Customer {
 		}
 
 		// Add token to WooCommerce
-		if ( $this->get_user_id() ) {
+		if ( $this->get_user_id() && class_exists( 'WC_Payment_Token_CC' ) ) {
 			$token = new WC_Payment_Token_CC();
 			$token->set_token( $response->id );
 			$token->set_gateway_id( 'stripe' );

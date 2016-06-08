@@ -361,7 +361,7 @@ class WC_Stripe {
 	 * @return array
 	 */
 	public function woocommerce_get_customer_payment_tokens( $tokens, $customer_id, $gateway_id ) {
-		if ( is_user_logged_in() && 'stripe' === $gateway_id ) {
+		if ( is_user_logged_in() && 'stripe' === $gateway_id && class_exists( 'WC_Payment_Token_CC' ) ) {
 			$stripe_customer = new WC_Stripe_Customer( $customer_id );
 			$stripe_cards    = $stripe_customer->get_cards();
 			$stored_tokens   = array();
