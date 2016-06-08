@@ -3,7 +3,7 @@ Contributors: automattic, woothemes, mikejolley, akeda, royho
 Tags: credit card, stripe, woocommerce
 Requires at least: 4.4
 Tested up to: 4.5
-Stable tag: 3.0.0
+Stable tag: 3.0.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -86,6 +86,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 5. Using the Stripe checkout modal.
 
 == Changelog ==
+
+= 3.0.1 =
+* Backwards compatibility update to prevent error finding WC_Payment_Token_CC.
 
 = 3.0.0 =
 * First public WordPress.org release.
