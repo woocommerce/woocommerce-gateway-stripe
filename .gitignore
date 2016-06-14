@@ -13,3 +13,6 @@ sftp-config.json
 # Ignore all log files except for .htaccess
 /logs/*
 !/logs/.htaccess
+
+# Ignore deploy script
+deploy-to-wp-org.sh
