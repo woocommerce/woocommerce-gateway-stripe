@@ -16,7 +16,7 @@ return apply_filters( 'wc_stripe_settings',
 			'title'       => __( 'Title', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
 			'description' => __( 'This controls the title which the user sees during checkout.', 'woocommerce-gateway-stripe' ),
-			'default'     => __( 'Credit card (Stripe)', 'woocommerce-gateway-stripe' ),
+			'default'     => __( 'Credit Card (Stripe)', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		),
 		'description' => array(
