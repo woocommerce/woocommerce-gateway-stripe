@@ -2,6 +2,10 @@
 
 = For newer changelog entries, see readme.txt =
 
+= 3.0.2 - 2016.06.14 =
+* Fix - Set empty array as default value for first argument in WC_Stripe_Customer::create_customer
+* Tweak - Update default title to make it consistent with existing titles
+
 = 2.6.12 - 2016.04.13 =
 * Fix - When saved cards option is enabled with no cards on file, CC field was hidden.
 
