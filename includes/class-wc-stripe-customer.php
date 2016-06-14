@@ -121,7 +121,7 @@ class WC_Stripe_Customer {
 	 * @param array $args
 	 * @return WP_Error|int
 	 */
-	public function create_customer( $args ) {
+	public function create_customer( $args = array() ) {
 		if ( $user = $this->get_user() ) {
 			$defaults = array(
 				'email'       => $user->user_email,
