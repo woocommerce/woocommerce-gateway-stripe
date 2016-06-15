@@ -100,4 +100,4 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Refactor for WC 2.6 and above. Legacy support for 2.5.
 * Improved saved card handling using tokenization API in WooCommerce.
 
-[See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/CHANGELOG.txt).
+[See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/changelog.txt).
