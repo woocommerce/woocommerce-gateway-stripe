@@ -78,9 +78,9 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 		parent::save_source( $order, $source );
 
 		// Also store it on the subscriptions being purchased or paid for in the order
-		if ( wcs_order_contains_subscription( $order->id ) ) {
+		if ( function_exists( 'wcs_order_contains_subscription' ) && wcs_order_contains_subscription( $order->id ) ) {
 			$subscriptions = wcs_get_subscriptions_for_order( $order->id );
-		} elseif ( wcs_order_contains_renewal( $order->id ) ) {
+		} elseif ( function_exists( 'wcs_order_contains_renewal' ) && wcs_order_contains_renewal( $order->id ) ) {
 			$subscriptions = wcs_get_subscriptions_for_renewal_order( $order->id );
 		} else {
 			$subscriptions = array();

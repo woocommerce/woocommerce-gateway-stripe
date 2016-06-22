@@ -309,7 +309,7 @@ class WC_Stripe {
 	 * @since 1.0.0
 	 */
 	public function add_gateways( $methods ) {
-		if ( $this->subscription_support_enabled ) {
+		if ( $this->subscription_support_enabled || $this->pre_order_enabled ) {
 			$methods[] = 'WC_Gateway_Stripe_Addons';
 		} else {
 			$methods[] = 'WC_Gateway_Stripe';
