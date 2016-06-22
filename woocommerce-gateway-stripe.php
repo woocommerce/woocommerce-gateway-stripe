@@ -80,8 +80,21 @@ class WC_Stripe {
 	 */
 	private function __wakeup() {}
 
-	/** @var whether or not we need to load code for / support subscriptions */
+	/**
+	 * Flag to indicate whether or not we need to load code for / support subscriptions.
+	 *
+	 * @var bool
+	 */
 	private $subscription_support_enabled = false;
+
+	/**
+	 * Flag to indicate whether or not we need to load support for pre-orders.
+	 *
+	 * @since 3.0.3
+	 *
+	 * @var bool
+	 */
+	private $pre_order_enabled = false;
 
 	/**
 	 * Notices (array)
@@ -261,6 +274,10 @@ class WC_Stripe {
 			$this->subscription_support_enabled = true;
 		}
 
+		if ( class_exists( 'WC_Pre_Orders_Order' ) ) {
+			$this->pre_order_enabled = true;
+		}
+
 		if ( ! class_exists( 'WC_Payment_Gateway' ) ) {
 			return;
 		}
@@ -275,7 +292,13 @@ class WC_Stripe {
 		load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
 		add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateways' ) );
 
-		if ( $this->subscription_support_enabled ) {
+		$load_addons = (
+			$this->subscription_support_enabled
+			||
+			$this->pre_order_enabled
+		);
+
+		if ( $load_addons ) {
 			require_once( plugin_basename( 'includes/class-wc-gateway-stripe-addons.php' ) );
 		}
 	}
