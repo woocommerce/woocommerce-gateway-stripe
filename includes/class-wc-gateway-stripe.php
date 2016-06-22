@@ -511,7 +511,11 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 		if ( $response->captured ) {
 			$order->payment_complete( $response->id );
-			WC_Stripe::log( "Successful charge: $response->id" );
+
+			$message = sprintf( __( 'Stripe charge complate (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $response->id );
+			$order->add_order_note( $message );
+			WC_Stripe::log( 'Success: ' . $message );
+
 		} else {
 			add_post_meta( $order->id, '_transaction_id', $response->id, true );
 
