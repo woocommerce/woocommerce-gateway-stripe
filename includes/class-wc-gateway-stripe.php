@@ -281,9 +281,11 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		);
 
 		// If we're on the pay page we need to pass stripe.js the address of the order.
-		if ( is_checkout_pay_page() && isset( $_GET['order'] ) && isset( $_GET['order_id'] ) ) {
-			$order_key = urldecode( $_GET['order'] );
-			$order_id  = absint( $_GET['order_id'] );
+		if ( is_checkout_pay_page() && isset( $_GET['key'] ) ) {
+			global $wp;
+
+			$order_key = urldecode( $_GET['key'] );
+			$order_id  = absint( $wp->query_vars['order-pay'] ); // Key existence already checked by is_checkout_pay_page().
 			$order     = wc_get_order( $order_id );
 
 			if ( $order->id === $order_id && $order->order_key === $order_key ) {

@@ -79,17 +79,16 @@ jQuery( function( $ ) {
 					expires    = $( '#stripe-card-expiry' ).payment( 'cardExpiryVal' ),
 					first_name = $( '#billing_first_name' ).length ? $( '#billing_first_name' ).val() : wc_stripe_params.billing_first_name,
 					last_name  = $( '#billing_last_name' ).length ? $( '#billing_last_name' ).val() : wc_stripe_params.billing_last_name,
-					address    = {
-
-					},
 					data       = {
 						number   : card,
 						cvc      : cvc,
 						exp_month: parseInt( expires['month'] ) || 0,
-						exp_year : parseInt( expires['year'] ) || 0,
-						name     : first_name + ' ' + last_name
-
+						exp_year : parseInt( expires['year'] ) || 0
 					};
+
+				if ( first_name && last_name ) {
+					data.name = first_name + ' ' + last_name
+				}
 
 				if ( jQuery('#billing_address_1').length > 0 ) {
 					data.address_line1   = $( '#billing_address_1' ).val();
@@ -98,7 +97,7 @@ jQuery( function( $ ) {
 					data.address_city    = $( '#billing_city' ).val();
 					data.address_zip     = $( '#billing_postcode' ).val();
 					data.address_country = $( '#billing_country' ).val();
-				} else if ( data.address_line1 ) {
+				} else if ( wc_stripe_params.billing_address_1 ) {
 					data.address_line1   = wc_stripe_params.billing_address_1;
 					data.address_line2   = wc_stripe_params.billing_address_2;
 					data.address_state   = wc_stripe_params.billing_state;
