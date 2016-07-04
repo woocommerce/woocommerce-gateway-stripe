@@ -4,7 +4,7 @@
  * Plugin URI: https://wordpress.org/plugins/woocommerce-gateway-stripe/
  * Description: Take credit card payments on your store using Stripe.
  * Author: Automattic
- * Author URI: http://woothemes.com/
+ * Author URI: https://woocommerce.com/
  * Version: 3.0.2
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
