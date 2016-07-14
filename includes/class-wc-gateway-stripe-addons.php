@@ -117,7 +117,7 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 			return new WP_Error( 'stripe_error', __( 'Customer not found', 'woocommerce-gateway-stripe' ) );
 		}
 
-		WC_Stripe::log( "Info: Begin processing subscriotion payment for order {$order->id} for the amount of {$amount}" );
+		WC_Stripe::log( "Info: Begin processing subscription payment for order {$order->id} for the amount of {$amount}" );
 
 		// Make the request
 		$request             = $this->generate_payment_request( $order, $source );
