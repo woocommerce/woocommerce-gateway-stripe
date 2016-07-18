@@ -185,7 +185,7 @@ class WC_Stripe {
 
 		if ( empty( $secret ) && ! ( isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 'stripe' === $_GET['section'] ) ) {
 			$setting_link = $this->get_setting_link();
-			$this->add_admin_notice( 'prompt_connect', 'notice notice-warning', sprintf( __( 'Stripe is almost ready. To get started, <a href="%s">set your Stripe account keys</a>.', 'wwoocommerce-gateway-stripe' ), $setting_link ) );
+			$this->add_admin_notice( 'prompt_connect', 'notice notice-warning', sprintf( __( 'Stripe is almost ready. To get started, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ) );
 		}
 	}
 
