@@ -255,27 +255,10 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	 * @param $renewal_order WC_Order A WC_Order object created to record the renewal payment.
 	 */
 	public function scheduled_subscription_payment( $amount_to_charge, $renewal_order ) {
-		// Define some callbacks if the first attempt fails.
-		$retry_callbacks = array(
-			'remove_order_source_before_retry',
-			'remove_order_customer_before_retry',
-		);
+		$response = $this->process_subscription_payment( $renewal_order, $amount_to_charge );
 
-		while ( 1 ) {
-			$response = $this->process_subscription_payment( $renewal_order, $amount_to_charge );
-
-			if ( is_wp_error( $response ) ) {
-				if ( 0 === sizeof( $retry_callbacks ) ) {
-					$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->get_error_message() ) );
-					break;
-				} else {
-					$retry_callback = array_shift( $retry_callbacks );
-					call_user_func( array( $this, $retry_callback ), $renewal_order );
-				}
-			} else {
-				// Successful
-				break;
-			}
+		if ( is_wp_error( $response ) ) {
+			$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->get_error_message() ) );
 		}
 	}
 
