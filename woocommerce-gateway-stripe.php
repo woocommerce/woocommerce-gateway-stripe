@@ -202,6 +202,10 @@ class WC_Stripe {
 			}
 			return sprintf( $message, WC_STRIPE_MIN_PHP_VER, phpversion() );
 		}
+		
+		if ( ! defined( 'WC_VERSION' ) ) {
+			return __( 'The plugin could not be activated. WooCommerce is not activated.', 'woocommerce-gateway-stripe' );
+		} 
 
 		if ( version_compare( WC_VERSION, WC_STRIPE_MIN_WC_VER, '<' ) ) {
 			if ( $during_activation ) {
