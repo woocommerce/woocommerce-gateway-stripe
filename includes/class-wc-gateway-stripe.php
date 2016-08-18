@@ -164,7 +164,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			$icon .= '<img src="' . WC_HTTPS::force_https_url( WC()->plugin_url() . '/assets/images/icons/credit-cards/diners' . $ext ) . '" alt="Diners" width="32" ' . $style . ' />';
 		}
 
-		if ( $this->bitcoin ) {
+		if ( 'yes' === $this->bitcoin && 'yes' === $this->stripe_checkout ) {
 			$icon .= '<img src="' . WC_HTTPS::force_https_url( plugins_url( '/assets/images/bitcoin' . $ext, WC_STRIPE_MAIN_FILE ) ) . '" alt="Bitcoin" width="32" ' . $style . ' />';
 		}
 
