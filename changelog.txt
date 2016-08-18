@@ -2,7 +2,7 @@
 
 = For newer changelog entries, see readme.txt =
 
-= 3.0.3 - 2016.xx.xx =
+= 3.1.0 - 2016.xx.xx =
 * Fix - Remove bitcoin icon when not using Stripe Checkout mode as it is not supported.
 
 = 3.0.2 - 2016.06.14 =
