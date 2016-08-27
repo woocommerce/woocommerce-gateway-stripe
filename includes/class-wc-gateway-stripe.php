@@ -402,7 +402,15 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			$post_data['source'] = $source->source;
 		}
 
-		return $post_data;
+		/**
+		 * Filter the return value of the WC_Payment_Gateway_CC::generate_payment_request.
+		 *
+		 * @since 3.1.0
+		 * @param array $post_data
+		 * @param WC_Order $order
+		 * @param object $source
+		 */
+		return apply_filters( 'wc_stripe_generate_payment_request', $post_data, $order, $source );
 	}
 
 	/**
