@@ -24,7 +24,7 @@ jQuery( function( $ ) {
 			this.form = form;
 
 			$( this.form )
-				.on(
+				.one(
 					'submit checkout_place_order_stripe',
 					this.onSubmit
 				);
