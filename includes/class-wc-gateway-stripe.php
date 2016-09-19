@@ -569,6 +569,11 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			wc_add_notice( $e->getMessage(), 'error' );
 			WC()->session->set( 'refresh_totals', true );
 			WC_Stripe::log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+
+			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
+				$this->send_failed_order_email( $order_id );
+			}
+			
 			return;
 		}
 	}
@@ -688,6 +693,22 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			$order->add_order_note( $refund_message );
 			WC_Stripe::log( "Success: " . html_entity_decode( strip_tags( $refund_message ) ) );
 			return true;
+		}
+	}
+
+	/**
+	 * Sends the failed order email to admin
+	 *
+	 * @version 3.1.0
+	 * @since 3.1.0
+	 * @param int $order_id
+	 * @return null
+	 */
+	public function send_failed_order_email( $order_id ) {
+		$emails = WC()->mailer()->get_emails();
+
+		if ( ! empty( $emails ) && ! empty( $order_id ) ) {
+			$emails['WC_Email_Failed_Order']->trigger( $order_id );
 		}
 	}
 }
