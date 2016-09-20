@@ -87,6 +87,12 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.1.0 - 2016.xx.xx =
+* Fix - Remove bitcoin icon when not using Stripe Checkout mode as it is not supported.
+* Fix - Credit card saving option is not honored.
+* Fix - Failed order payment email was not sending to admin.
+* New - Filter for WC_Payment_Gateway_CC::wc_stripe_generate_payment_request return value
+
 = 3.0.2 =
 * Fix - Set empty array as default value for first argument in WC_Stripe_Customer::create_customer
 * Tweak - Update default title to make it consistent with existing titles
