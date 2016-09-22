@@ -110,36 +110,6 @@ class WC_Stripe {
 		add_action( 'admin_init', array( $this, 'check_environment' ) );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ), 15 );
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
-		add_action( 'http_api_curl', array( $this, 'force_ssl_version' ) );
-	}
-
-	/**
-	 * Force SSL version to TLS1.2 when using cURL
-	 *
-	 * Thanks olivierbellone (Stripe Engineer)
-	 * @param resource $curl the handle
-	 * @return null
-	 */
-	public function force_ssl_version( $curl ) {
-		if ( ! $curl ) {
-			return;
-		}
-
-		if ( OPENSSL_VERSION_NUMBER >= 0x1000100f ) {
-			if ( ! defined( 'CURL_SSLVERSION_TLSv1_2' ) ) {
-				// Note the value 6 comes from its position in the enum that
-				// defines it in cURL's source code.
-				define( 'CURL_SSLVERSION_TLSv1_2', 6 ); // constant not defined in PHP < 5.5
-			}
-		
-			curl_setopt( $curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2 );
-		} else {
-			if ( ! defined( 'CURL_SSLVERSION_TLSv1' ) ) {
-				define( 'CURL_SSLVERSION_TLSv1', 1 ); // constant not defined in PHP < 5.5
-			}
-
-			curl_setopt( $curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1 );
-		}
 	}
 
 	/**
