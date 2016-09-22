@@ -5,6 +5,7 @@
 = 3.1.0 - 2016.xx.xx =
 * Fix - Remove bitcoin icon when not using Stripe Checkout mode as it is not supported.
 * Fix - Failed payment order was not sending email to admin.
+* Fix - Saved card option was not being honored.
 * New - Filter for WC_Payment_Gateway_CC::wc_stripe_generate_payment_request return value
 
 = 3.0.2 - 2016.06.14 =
