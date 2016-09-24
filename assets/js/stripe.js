@@ -4,11 +4,11 @@ Stripe.setPublishableKey( wc_stripe_params.key );
 jQuery( function( $ ) {
 
 	/* Open and close for legacy class */
-	jQuery( "form.checkout, form#order_review" ).on('change', 'input[name="wc-stripe-payment-token"]', function() {
-		if ( jQuery( '.stripe-legacy-payment-fields input[name="wc-stripe-payment-token"]:checked' ).val() == 'new' ) {
-			jQuery( '.stripe-legacy-payment-fields #stripe-payment-data' ).slideDown( 200 );
+	$( 'form.checkout, form#order_review' ).on( 'change', 'input[name="wc-stripe-payment-token"]', function() {
+		if ( 'new' === $( '.stripe-legacy-payment-fields input[name="wc-stripe-payment-token"]:checked' ).val() ) {
+			$( '.stripe-legacy-payment-fields #stripe-payment-data' ).slideDown( 200 );
 		} else {
-			jQuery( '.stripe-legacy-payment-fields #stripe-payment-data' ).slideUp( 200 );
+			$( '.stripe-legacy-payment-fields #stripe-payment-data' ).slideUp( 200 );
 		}
 	} );
 
@@ -20,12 +20,26 @@ jQuery( function( $ ) {
 		/**
 		 * Initialize event handlers and UI state.
 		 */
-		init: function( form ) {
-			this.form = form;
+		init: function() {
+			// checkout page
+			if ( $( 'form.woocommerce-checkout' ).length ) {
+				this.form = $( 'form.woocommerce-checkout' );
+			}
 
-			$( this.form )
+			$( 'form.woocommerce-checkout' )
 				.on(
-					'submit checkout_place_order_stripe',
+					'checkout_place_order_stripe',
+					this.onSubmit
+				);
+
+			// pay order page
+			if ( $( 'form#order_review' ).length ) {
+				this.form = $( 'form#order_review' );
+			}
+
+			$( 'form#order_review' )
+				.on(
+					'submit',
 					this.onSubmit
 				);
 
@@ -131,5 +145,5 @@ jQuery( function( $ ) {
 		}
 	};
 
-	wc_stripe_form.init( $( "form.checkout, form#order_review, form#add_payment_method" ) );
+	wc_stripe_form.init();
 } );
