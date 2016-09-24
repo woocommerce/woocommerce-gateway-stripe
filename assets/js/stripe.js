@@ -106,7 +106,7 @@ jQuery( function( $ ) {
 					data.address_country = wc_stripe_params.billing_country;
 				}
 
-				Stripe.createToken( data, wc_stripe_form.onStripeReponse );
+				Stripe.createToken( data, wc_stripe_form.onStripeResponse );
 
 				// Prevent form submitting
 				return false;
@@ -117,7 +117,7 @@ jQuery( function( $ ) {
 			$( '.woocommerce-error, .stripe_token' ).remove();
 		},
 
-		onStripeReponse: function( status, response ) {
+		onStripeResponse: function( status, response ) {
 			if ( response.error ) {
 				$( document ).trigger( 'stripeError', { response: response } );
 			} else {
