@@ -89,8 +89,14 @@ jQuery( function( $ ) {
 		},
 
 		onError: function( e, responseObject ) {
+			var message = responseObject.response.error.message;
+
+			if ( wc_stripe_params.hasOwnProperty( responseObject.response.error.code ) ) {
+				message = wc_stripe_params[ responseObject.response.error.code ];
+			}
+
 			$( '.woocommerce-error, .stripe_token' ).remove();
-			$( '#stripe-card-number' ).closest( 'p' ).before( '<ul class="woocommerce_error woocommerce-error"><li>' + responseObject.response.error.message + '</li></ul>' );
+			$( '#stripe-card-number' ).closest( 'p' ).before( '<ul class="woocommerce_error woocommerce-error"><li>' + message + '</li></ul>' );
 			wc_stripe_form.unblock();
 		},
 

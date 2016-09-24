@@ -375,6 +375,20 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$stripe_params['no_prepaid_card_msg'] = __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' );
 		$stripe_params['allow_prepaid_card']  = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
 
+		// localize error messages from Stripe
+		$stripe_params['invalid_number']        = __( 'The card number is not a valid credit card number.', 'woocommerce-gateway-stripe' );
+		$stripe_params['invalid_expiry_month']  = __( 'The card\'s expiration month is invalid.', 'woocommerce-gateway-stripe' );
+		$stripe_params['invalid_expiry_year']   = __( 'The card\'s expiration year is invalid.', 'woocommerce-gateway-stripe' );
+		$stripe_params['invalid_cvc']           = __( 'The card\'s security code is invalid.', 'woocommerce-gateway-stripe' );
+		$stripe_params['incorrect_number']      = __( 'The card number is incorrect.', 'woocommerce-gateway-stripe' );
+		$stripe_params['expired_card']          = __( 'The card has expired.', 'woocommerce-gateway-stripe' );
+		$stripe_params['incorrect_cvc']         = __( 'The card\'s security code is incorrect.', 'woocommerce-gateway-stripe' );
+		$stripe_params['incorrect_zip']         = __( 'The card\'s zip code failed validation.', 'woocommerce-gateway-stripe' );
+		$stripe_params['card_declined']         = __( 'The card was declined.', 'woocommerce-gateway-stripe' );
+		$stripe_params['missing']               = __( 'There is no card on a customer that is being charged.', 'woocommerce-gateway-stripe' );
+		$stripe_params['processing_error']      = __( 'An error occurred while processing the card.', 'woocommerce-gateway-stripe' );
+		$stripe_params['invalid_request_error'] = __( 'Could not find payment information.', 'woocommerce-gateway-stripe' );
+
 		wp_localize_script( 'woocommerce_stripe', 'wc_stripe_params', apply_filters( 'wc_stripe_params', $stripe_params ) );
 	}
 
