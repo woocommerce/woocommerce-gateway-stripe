@@ -92,6 +92,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Failed payment order was not sending email to admin.
 * Fix - Saved card option was not being honored.
 * New - Filter for WC_Payment_Gateway_CC::wc_stripe_generate_payment_request return value
+* New - Filter to disallow prepaid cards. "wc_stripe_allow_prepaid_card"
 
 = 3.0.2 =
 * Fix - Set empty array as default value for first argument in WC_Stripe_Customer::create_customer

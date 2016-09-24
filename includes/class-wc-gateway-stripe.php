@@ -323,7 +323,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 		if ( ! $this->stripe_checkout ) {
 			$this->form();
-
+			
 			if ( $display_tokenization ) {
 				$this->save_payment_method_checkbox();
 			}
@@ -371,6 +371,9 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 				$stripe_params['billing_country']    = $order->billing_country;
 			}
 		}
+
+		$stripe_params['no_prepaid_card_msg'] = __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' );
+		$stripe_params['allow_prepaid_card']  = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
 
 		wp_localize_script( 'woocommerce_stripe', 'wc_stripe_params', apply_filters( 'wc_stripe_params', $stripe_params ) );
 	}

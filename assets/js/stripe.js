@@ -146,6 +146,15 @@ jQuery( function( $ ) {
 			if ( response.error ) {
 				$( document ).trigger( 'stripeError', { response: response } );
 			} else {
+				// check if we allow prepaid cards
+				if ( 'no' === wc_stripe_params.allow_prepaid_card && 'prepaid' === response.card.funding ) {
+					response.error = { message: wc_stripe_params.no_prepaid_card_msg };
+
+					$( document ).trigger( 'stripeError', { response: response } );
+					
+					return false;
+				}
+
 				// token contains id, last4, and card type
 				var token = response['id'];
 
