@@ -1,5 +1,6 @@
 jQuery( function( $ ) {
-
+	'use strict';
+	
 	/**
 	 * Object to handle Stripe payment forms.
 	 */
