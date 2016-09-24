@@ -109,7 +109,7 @@ jQuery( function( $ ) {
 
 				StripeCheckout.open({
 					key               : wc_stripe_params.key,
-					address           : false,
+					billingAddress    : false,
 					amount            : $data.data( 'amount' ),
 					name              : $data.data( 'name' ),
 					description       : $data.data( 'description' ),
@@ -117,9 +117,8 @@ jQuery( function( $ ) {
 					image             : $data.data( 'image' ),
 					bitcoin           : $data.data( 'bitcoin' ),
 					locale            : $data.data( 'locale' ),
-					refund_mispayments: true, // for bitcoin payments let Stripe handle refunds if too little is paid
 					email             : $( '#billing_email' ).val() || $data.data( 'email' ),
-					"panel-label"     : $data.data( 'panel-label' ),
+					panelLabel        : $data.data( 'panel-label' ),
 					token             : token_action,
 					closed            : wc_stripe_form.onClose()
 				});
