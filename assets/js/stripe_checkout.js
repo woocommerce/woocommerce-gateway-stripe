@@ -109,7 +109,7 @@ jQuery( function( $ ) {
 
 				StripeCheckout.open({
 					key               : wc_stripe_params.key,
-					billingAddress    : false,
+					billingAddress    : 'yes' === wc_stripe_params.stripe_checkout_require_billing_address ? true : false,
 					amount            : $data.data( 'amount' ),
 					name              : $data.data( 'name' ),
 					description       : $data.data( 'description' ),

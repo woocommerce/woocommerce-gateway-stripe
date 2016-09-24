@@ -93,6 +93,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Saved card option was not being honored.
 * New - Filter for WC_Payment_Gateway_CC::wc_stripe_generate_payment_request return value.
 * New - Filter to disallow prepaid cards. "wc_stripe_allow_prepaid_card".
+* New - Filter to require billing address on Stripe Modal Checkout. "wc_stripe_checkout_require_billing_address".
 * New - Localized Stripe error messages.
 
 = 3.0.2 =

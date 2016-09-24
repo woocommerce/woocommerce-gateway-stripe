@@ -372,8 +372,9 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			}
 		}
 
-		$stripe_params['no_prepaid_card_msg'] = __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' );
-		$stripe_params['allow_prepaid_card']  = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
+		$stripe_params['no_prepaid_card_msg']                     = __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' );
+		$stripe_params['allow_prepaid_card']                      = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
+		$stripe_params['stripe_checkout_require_billing_address'] = apply_filters( 'wc_stripe_checkout_require_billing_address', false ) ? 'yes' : 'no';
 
 		// localize error messages from Stripe
 		$stripe_params['invalid_number']        = __( 'The card number is not a valid credit card number.', 'woocommerce-gateway-stripe' );
