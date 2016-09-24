@@ -43,6 +43,17 @@ jQuery( function( $ ) {
 					this.onSubmit
 				);
 
+			// add payment method page
+			if ( $( 'form#add_payment_method' ).length ) {
+				this.form = $( 'form#add_payment_method' );
+			}
+
+			$( 'form#add_payment_method' )
+				.on(
+					'submit',
+					this.onSubmit
+				);
+
 			$( document )
 				.on(
 					'change',
@@ -96,15 +107,15 @@ jQuery( function( $ ) {
 					data       = {
 						number   : card,
 						cvc      : cvc,
-						exp_month: parseInt( expires['month'] ) || 0,
-						exp_year : parseInt( expires['year'] ) || 0
+						exp_month: parseInt( expires['month'], 10 ) || 0,
+						exp_year : parseInt( expires['year'], 10 ) || 0
 					};
 
 				if ( first_name && last_name ) {
 					data.name = first_name + ' ' + last_name
 				}
 
-				if ( jQuery('#billing_address_1').length > 0 ) {
+				if ( $( '#billing_address_1' ).length > 0 ) {
 					data.address_line1   = $( '#billing_address_1' ).val();
 					data.address_line2   = $( '#billing_address_2' ).val();
 					data.address_state   = $( '#billing_state' ).val();
