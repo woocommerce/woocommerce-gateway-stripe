@@ -5,7 +5,7 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: Automattic
  * Author URI: https://woocommerce.com/
- * Version: 3.0.2
+ * Version: 3.0.3
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  *
@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '3.0.2' );
+define( 'WC_STRIPE_VERSION', '3.0.3' );
 define( 'WC_STRIPE_MIN_PHP_VER', '5.3.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '2.5.0' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
