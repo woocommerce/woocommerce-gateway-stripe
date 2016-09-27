@@ -148,31 +148,14 @@ class WC_Stripe {
 	}
 
 	/**
-	 * The primary sanity check, automatically disable the plugin on activation if it doesn't
-	 * meet minimum requirements.
-	 *
-	 * Based on http://wptavern.com/how-to-prevent-wordpress-plugins-from-activating-on-sites-with-incompatible-hosting-environments
-	 */
-	public static function activation_check() {
-		$environment_warning = self::get_environment_warning( true );
-		if ( $environment_warning ) {
-			deactivate_plugins( plugin_basename( __FILE__ ) );
-			wp_die( $environment_warning );
-		}
-	}
-
-	/**
 	 * The backup sanity check, in case the plugin is activated in a weird way,
 	 * or the environment changes after activation.
 	 */
 	public function check_environment() {
 		$environment_warning = self::get_environment_warning();
+
 		if ( $environment_warning && is_plugin_active( plugin_basename( __FILE__ ) ) ) {
-			deactivate_plugins( plugin_basename( __FILE__ ) );
 			$this->add_admin_notice( 'bad_environment', 'error', $environment_warning );
-			if ( isset( $_GET['activate'] ) ) {
-				unset( $_GET['activate'] );
-			}
 		}
 
 		// Check if secret key present. Otherwise prompt, via notice, to go to
@@ -193,34 +176,25 @@ class WC_Stripe {
 	 * Checks the environment for compatibility problems.  Returns a string with the first incompatibility
 	 * found or false if the environment has no problems.
 	 */
-	static function get_environment_warning( $during_activation = false ) {
+	static function get_environment_warning() {
 		if ( version_compare( phpversion(), WC_STRIPE_MIN_PHP_VER, '<' ) ) {
-			if ( $during_activation ) {
-				$message = __( 'The plugin could not be activated. The minimum PHP version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe', 'woocommerce-gateway-stripe' );
-			} else {
-				$message = __( 'The WooCommerce Stripe plugin has been deactivated. The minimum PHP version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe' );
-			}
+			$message = __( 'WooCommerce Stripe - The minimum PHP version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe', 'woocommerce-gateway-stripe' );
+
 			return sprintf( $message, WC_STRIPE_MIN_PHP_VER, phpversion() );
 		}
 		
 		if ( ! defined( 'WC_VERSION' ) ) {
-			return __( 'The plugin could not be activated. WooCommerce is not activated.', 'woocommerce-gateway-stripe' );
+			return __( 'WooCommerce Stripe requires WooCommerce to be activated to work.', 'woocommerce-gateway-stripe' );
 		} 
 
 		if ( version_compare( WC_VERSION, WC_STRIPE_MIN_WC_VER, '<' ) ) {
-			if ( $during_activation ) {
-				$message = __( 'The plugin could not be activated. The minimum WooCommerce version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe', 'woocommerce-gateway-stripe' );
-			} else {
-				$message = __( 'The WooCommerce Stripe plugin has been deactivated. The minimum WooCommerce version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe' );
-			}
+			$message = __( 'WooCommerce Stripe - The minimum WooCommerce version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe', 'woocommerce-gateway-stripe' );
+
 			return sprintf( $message, WC_STRIPE_MIN_WC_VER, WC_VERSION );
 		}
 
 		if ( ! function_exists( 'curl_init' ) ) {
-			if ( $during_activation ) {
-				return __( 'The plugin could not be activated. cURL is not installed.', 'woocommerce-gateway-stripe' );
-			}
-			return __( 'The WooCommerce Stripe plugin has been deactivated. cURL is not installed.', 'woocommerce-gateway-stripe' );
+			return __( 'WooCommerce Stripe - cURL is not installed.', 'woocommerce-gateway-stripe' );
 		}
 
 		return false;
@@ -460,6 +434,5 @@ class WC_Stripe {
 }
 
 $GLOBALS['wc_stripe'] = WC_Stripe::get_instance();
-register_activation_hook( __FILE__, array( 'WC_Stripe', 'activation_check' ) );
 
 }

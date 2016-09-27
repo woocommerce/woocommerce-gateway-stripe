@@ -123,9 +123,12 @@ class WC_Stripe_Customer {
 	 */
 	public function create_customer( $args = array() ) {
 		if ( $user = $this->get_user() ) {
+			$billing_first_name = get_user_meta( $user->ID, 'billing_first_name', true );
+			$billing_last_name  = get_user_meta( $user->ID, 'billing_last_name', true );
+
 			$defaults = array(
 				'email'       => $user->user_email,
-				'description' => $user->display_name,
+				'description' => $billing_first_name . ' ' . $billing_last_name,
 			);
 		} else {
 			$defaults = array(

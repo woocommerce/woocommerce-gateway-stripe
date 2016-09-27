@@ -323,7 +323,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 		if ( ! $this->stripe_checkout ) {
 			$this->form();
-
+			
 			if ( $display_tokenization ) {
 				$this->save_payment_method_checkbox();
 			}
@@ -340,12 +340,14 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 * @access public
 	 */
 	public function payment_scripts() {
+		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+		
 		if ( $this->stripe_checkout ) {
 			wp_enqueue_script( 'stripe', 'https://checkout.stripe.com/v2/checkout.js', '', '2.0', true );
-			wp_enqueue_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe_checkout.js', WC_STRIPE_MAIN_FILE ), array( 'stripe' ), WC_STRIPE_VERSION, true );
+			wp_enqueue_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe_checkout' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'stripe' ), WC_STRIPE_VERSION, true );
 		} else {
 			wp_enqueue_script( 'stripe', 'https://js.stripe.com/v2/', '', '1.0', true );
-			wp_enqueue_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe.js', WC_STRIPE_MAIN_FILE ), array( 'jquery-payment', 'stripe' ), WC_STRIPE_VERSION, true );
+			wp_enqueue_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery-payment', 'stripe' ), WC_STRIPE_VERSION, true );
 		}
 
 		$stripe_params = array(
@@ -371,6 +373,24 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 				$stripe_params['billing_country']    = $order->billing_country;
 			}
 		}
+
+		$stripe_params['no_prepaid_card_msg']                     = __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' );
+		$stripe_params['allow_prepaid_card']                      = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
+		$stripe_params['stripe_checkout_require_billing_address'] = apply_filters( 'wc_stripe_checkout_require_billing_address', false ) ? 'yes' : 'no';
+
+		// localize error messages from Stripe
+		$stripe_params['invalid_number']        = __( 'The card number is not a valid credit card number.', 'woocommerce-gateway-stripe' );
+		$stripe_params['invalid_expiry_month']  = __( 'The card\'s expiration month is invalid.', 'woocommerce-gateway-stripe' );
+		$stripe_params['invalid_expiry_year']   = __( 'The card\'s expiration year is invalid.', 'woocommerce-gateway-stripe' );
+		$stripe_params['invalid_cvc']           = __( 'The card\'s security code is invalid.', 'woocommerce-gateway-stripe' );
+		$stripe_params['incorrect_number']      = __( 'The card number is incorrect.', 'woocommerce-gateway-stripe' );
+		$stripe_params['expired_card']          = __( 'The card has expired.', 'woocommerce-gateway-stripe' );
+		$stripe_params['incorrect_cvc']         = __( 'The card\'s security code is incorrect.', 'woocommerce-gateway-stripe' );
+		$stripe_params['incorrect_zip']         = __( 'The card\'s zip code failed validation.', 'woocommerce-gateway-stripe' );
+		$stripe_params['card_declined']         = __( 'The card was declined.', 'woocommerce-gateway-stripe' );
+		$stripe_params['missing']               = __( 'There is no card on a customer that is being charged.', 'woocommerce-gateway-stripe' );
+		$stripe_params['processing_error']      = __( 'An error occurred while processing the card.', 'woocommerce-gateway-stripe' );
+		$stripe_params['invalid_request_error'] = __( 'Could not find payment information.', 'woocommerce-gateway-stripe' );
 
 		wp_localize_script( 'woocommerce_stripe', 'wc_stripe_params', apply_filters( 'wc_stripe_params', $stripe_params ) );
 	}
@@ -430,7 +450,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		// New CC info was entered and we have a new token to process
 		if ( isset( $_POST['stripe_token'] ) ) {
 			$stripe_token     = wc_clean( $_POST['stripe_token'] );
-			$maybe_saved_card = ! isset( $_POST['wc-stripe-new-payment-method'] ) || ! empty( $_POST['wc-stripe-new-payment-method'] );
+			$maybe_saved_card = isset( $_POST['wc-stripe-new-payment-method'] ) && ! empty( $_POST['wc-stripe-new-payment-method'] );
 
 			// This is true if the user wants to store the card to their account.
 			if ( ( $user_id && $this->saved_cards && $maybe_saved_card ) || $force_customer ) {
@@ -569,6 +589,11 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			wc_add_notice( $e->getMessage(), 'error' );
 			WC()->session->set( 'refresh_totals', true );
 			WC_Stripe::log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+
+			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
+				$this->send_failed_order_email( $order_id );
+			}
+
 			return;
 		}
 	}
@@ -688,6 +713,21 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			$order->add_order_note( $refund_message );
 			WC_Stripe::log( "Success: " . html_entity_decode( strip_tags( $refund_message ) ) );
 			return true;
+		}
+	}
+
+	/**
+	 * Sends the failed order email to admin
+	 *
+	 * @version 3.1.0
+	 * @since 3.1.0
+	 * @param int $order_id
+	 * @return null
+	 */
+	public function send_failed_order_email( $order_id ) {
+		$emails = WC()->mailer()->get_emails();
+		if ( ! empty( $emails ) && ! empty( $order_id ) ) {
+			$emails['WC_Email_Failed_Order']->trigger( $order_id );
 		}
 	}
 }

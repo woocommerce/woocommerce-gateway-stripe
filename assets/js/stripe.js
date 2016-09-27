@@ -2,13 +2,14 @@
 Stripe.setPublishableKey( wc_stripe_params.key );
 
 jQuery( function( $ ) {
-
+	'use strict';
+	
 	/* Open and close for legacy class */
-	jQuery( "form.checkout, form#order_review" ).on('change', 'input[name="wc-stripe-payment-token"]', function() {
-		if ( jQuery( '.stripe-legacy-payment-fields input[name="wc-stripe-payment-token"]:checked' ).val() == 'new' ) {
-			jQuery( '.stripe-legacy-payment-fields #stripe-payment-data' ).slideDown( 200 );
+	$( 'form.checkout, form#order_review' ).on( 'change', 'input[name="wc-stripe-payment-token"]', function() {
+		if ( 'new' === $( '.stripe-legacy-payment-fields input[name="wc-stripe-payment-token"]:checked' ).val() ) {
+			$( '.stripe-legacy-payment-fields #stripe-payment-data' ).slideDown( 200 );
 		} else {
-			jQuery( '.stripe-legacy-payment-fields #stripe-payment-data' ).slideUp( 200 );
+			$( '.stripe-legacy-payment-fields #stripe-payment-data' ).slideUp( 200 );
 		}
 	} );
 
@@ -20,12 +21,37 @@ jQuery( function( $ ) {
 		/**
 		 * Initialize event handlers and UI state.
 		 */
-		init: function( form ) {
-			this.form = form;
+		init: function() {
+			// checkout page
+			if ( $( 'form.woocommerce-checkout' ).length ) {
+				this.form = $( 'form.woocommerce-checkout' );
+			}
 
-			$( this.form )
+			$( 'form.woocommerce-checkout' )
 				.on(
-					'submit checkout_place_order_stripe',
+					'checkout_place_order_stripe',
+					this.onSubmit
+				);
+
+			// pay order page
+			if ( $( 'form#order_review' ).length ) {
+				this.form = $( 'form#order_review' );
+			}
+
+			$( 'form#order_review' )
+				.on(
+					'submit',
+					this.onSubmit
+				);
+
+			// add payment method page
+			if ( $( 'form#add_payment_method' ).length ) {
+				this.form = $( 'form#add_payment_method' );
+			}
+
+			$( 'form#add_payment_method' )
+				.on(
+					'submit',
 					this.onSubmit
 				);
 
@@ -64,8 +90,14 @@ jQuery( function( $ ) {
 		},
 
 		onError: function( e, responseObject ) {
+			var message = responseObject.response.error.message;
+
+			if ( wc_stripe_params.hasOwnProperty( responseObject.response.error.code ) ) {
+				message = wc_stripe_params[ responseObject.response.error.code ];
+			}
+
 			$( '.woocommerce-error, .stripe_token' ).remove();
-			$( '#stripe-card-number' ).closest( 'p' ).before( '<ul class="woocommerce_error woocommerce-error"><li>' + responseObject.response.error.message + '</li></ul>' );
+			$( '#stripe-card-number' ).closest( 'p' ).before( '<ul class="woocommerce_error woocommerce-error"><li>' + message + '</li></ul>' );
 			wc_stripe_form.unblock();
 		},
 
@@ -82,15 +114,15 @@ jQuery( function( $ ) {
 					data       = {
 						number   : card,
 						cvc      : cvc,
-						exp_month: parseInt( expires['month'] ) || 0,
-						exp_year : parseInt( expires['year'] ) || 0
+						exp_month: parseInt( expires['month'], 10 ) || 0,
+						exp_year : parseInt( expires['year'], 10 ) || 0
 					};
 
 				if ( first_name && last_name ) {
 					data.name = first_name + ' ' + last_name
 				}
 
-				if ( jQuery('#billing_address_1').length > 0 ) {
+				if ( $( '#billing_address_1' ).length > 0 ) {
 					data.address_line1   = $( '#billing_address_1' ).val();
 					data.address_line2   = $( '#billing_address_2' ).val();
 					data.address_state   = $( '#billing_state' ).val();
@@ -106,7 +138,7 @@ jQuery( function( $ ) {
 					data.address_country = wc_stripe_params.billing_country;
 				}
 
-				Stripe.createToken( data, wc_stripe_form.onStripeReponse );
+				Stripe.createToken( data, wc_stripe_form.onStripeResponse );
 
 				// Prevent form submitting
 				return false;
@@ -117,10 +149,19 @@ jQuery( function( $ ) {
 			$( '.woocommerce-error, .stripe_token' ).remove();
 		},
 
-		onStripeReponse: function( status, response ) {
+		onStripeResponse: function( status, response ) {
 			if ( response.error ) {
 				$( document ).trigger( 'stripeError', { response: response } );
 			} else {
+				// check if we allow prepaid cards
+				if ( 'no' === wc_stripe_params.allow_prepaid_card && 'prepaid' === response.card.funding ) {
+					response.error = { message: wc_stripe_params.no_prepaid_card_msg };
+
+					$( document ).trigger( 'stripeError', { response: response } );
+					
+					return false;
+				}
+
 				// token contains id, last4, and card type
 				var token = response['id'];
 
@@ -131,5 +172,5 @@ jQuery( function( $ ) {
 		}
 	};
 
-	wc_stripe_form.init( $( "form.checkout, form#order_review, form#add_payment_method" ) );
+	wc_stripe_form.init();
 } );

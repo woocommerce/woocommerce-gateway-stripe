@@ -2,10 +2,6 @@
 
 = For newer changelog entries, see readme.txt =
 
-= 3.1.0 - 2016.xx.xx =
-* Fix - Remove bitcoin icon when not using Stripe Checkout mode as it is not supported.
-* New - Filter for WC_Payment_Gateway_CC::wc_stripe_generate_payment_request return value
-
 = 3.0.2 - 2016.06.14 =
 * Fix - Set empty array as default value for first argument in WC_Stripe_Customer::create_customer
 * Tweak - Update default title to make it consistent with existing titles
