@@ -1,9 +1,9 @@
 === WooCommerce Stripe Payment Gateway ===
-Contributors: automattic, woothemes, mikejolley, akeda, royho
+Contributors: automattic, woothemes, mikejolley, akeda, royho, slash1andy, woosteve, spraveenitpro, mikedmoore, fernashes, shellbeezy, danieldudzic, mikaey
 Tags: credit card, stripe, woocommerce
 Requires at least: 4.4
 Tested up to: 4.5
-Stable tag: 3.0.3
+Stable tag: 3.0.4
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -87,6 +87,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.0.4 =
+* Fix - Missing min files.
+
 = 3.0.3 =
 * Fix - Remove bitcoin icon when not using Stripe Checkout mode as it is not supported.
 * Fix - Failed payment order was not sending email to admin.
@@ -113,11 +116,5 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Upgrade Notice ==
 
-= 3.0.3 =
-* Fix - Remove bitcoin icon when not using Stripe Checkout mode as it is not supported.
-* Fix - Failed payment order was not sending email to admin.
-* Fix - Saved card option was not being honored.
-* New - Filter for WC_Payment_Gateway_CC::wc_stripe_generate_payment_request return value.
-* New - Filter to disallow prepaid cards. "wc_stripe_allow_prepaid_card".
-* New - Filter to require billing address on Stripe Modal Checkout. "wc_stripe_checkout_require_billing_address".
-* New - Localized Stripe error messages.
+= 3.0.4 =
+* Fix - Missing min files.
