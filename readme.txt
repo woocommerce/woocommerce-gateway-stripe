@@ -3,7 +3,7 @@ Contributors: automattic, woothemes, mikejolley, akeda, royho, slash1andy, woost
 Tags: credit card, stripe, woocommerce
 Requires at least: 4.4
 Tested up to: 4.5
-Stable tag: 3.0.4
+Stable tag: 3.0.5
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -87,6 +87,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.0.5 =
+* Fix - Previous upload of files didn't take. Retry.
+
 = 3.0.4 =
 * Fix - Missing min files.
 
@@ -116,5 +119,5 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Upgrade Notice ==
 
-= 3.0.4 =
-* Fix - Missing min files.
+= 3.0.5 =
+* Fix - Previous upload of files didn't take. Retry.
