@@ -1,6 +1,4 @@
 jQuery( function( $ ) {
-	'use strict';
-	
 	/**
 	 * Object to handle Stripe payment forms.
 	 */
@@ -27,7 +25,8 @@ jQuery( function( $ ) {
 		},
 
 		isStripeModalNeeded: function( e ) {
-			var token = wc_stripe_form.form.find( 'input.stripe_token' );
+			var token = wc_stripe_form.form.find( 'input.stripe_token' ),
+				$required_inputs;
 
 			// If this is a stripe submission (after modal) and token exists, allow submit.
 			if ( wc_stripe_form.stripe_submit && token ) {

@@ -2,8 +2,6 @@
 Stripe.setPublishableKey( wc_stripe_params.key );
 
 jQuery( function( $ ) {
-	'use strict';
-	
 	/* Open and close for legacy class */
 	$( 'form.checkout, form#order_review' ).on( 'change', 'input[name="wc-stripe-payment-token"]', function() {
 		if ( 'new' === $( '.stripe-legacy-payment-fields input[name="wc-stripe-payment-token"]:checked' ).val() ) {
