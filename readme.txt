@@ -87,6 +87,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.0.6 =
+* Fix - When adding declined cards, fatal error is thrown.
+
 = 3.0.5 =
 * Fix - Previous upload of files didn't take. Retry.
 
