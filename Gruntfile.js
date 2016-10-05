@@ -46,6 +46,15 @@ module.exports = function( grunt ) {
 			}
 		},
 
+		// JavaScript linting with JSHint.
+		jshint: {
+			all: [
+				'Gruntfile.js',
+				'assets/js/*.js',
+				'!assets/js/*.min.js'
+			]
+		},
+
 		// Minify .js files.
 		uglify: {
 			options: {
@@ -155,6 +164,7 @@ module.exports = function( grunt ) {
 	grunt.loadNpmTasks( 'grunt-shell' );
 	grunt.loadNpmTasks( 'grunt-contrib-less' );
 	grunt.loadNpmTasks( 'grunt-contrib-cssmin' );
+	grunt.loadNpmTasks( 'grunt-contrib-jshint' );
 	grunt.loadNpmTasks( 'grunt-contrib-uglify' );
 	grunt.loadNpmTasks( 'grunt-contrib-watch' );
 	grunt.loadNpmTasks( 'grunt-wp-i18n' );
@@ -165,6 +175,7 @@ module.exports = function( grunt ) {
 	grunt.registerTask( 'default', [
 		'less',
 		'cssmin',
+		'jshint',
 		'uglify'
 	]);
 
