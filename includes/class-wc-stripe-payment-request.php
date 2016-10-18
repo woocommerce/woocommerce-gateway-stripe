@@ -15,6 +15,7 @@ class WC_Stripe_Payment_Request {
 		add_action( 'wp_enqueue_scripts', array( $this, 'scripts' ) );
 
 		add_action( 'wc_ajax_wc_stripe_get_cart_details', array( $this, 'ajax_get_cart_details' ) );
+		add_action( 'wc_ajax_wc_stripe_create_order', array( $this, 'ajax_create_order' ) );
 	}
 
 	/**
@@ -50,7 +51,8 @@ class WC_Stripe_Payment_Request {
 			'wc-stripe-payment-request',
 			'wcStripePaymentRequestParams',
 			array(
-				'wc_ajax_url' => WC_AJAX::get_endpoint( "%%endpoint%%" ),
+				'wc_ajax_url'   => WC_AJAX::get_endpoint( "%%endpoint%%" ),
+				'payment_nonce' => wp_create_nonce( 'wc-stripe-payment-request' ),
 			)
 		);
 	}
@@ -59,6 +61,9 @@ class WC_Stripe_Payment_Request {
 	 * Get cart details.
 	 */
 	public function ajax_get_cart_details() {
+		error_log( print_r( $_REQUEST, true ) );
+		check_ajax_referer( 'wc-stripe-payment-request', 'security' );
+
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
 			define( 'WOOCOMMERCE_CART', true );
 		}
@@ -97,6 +102,14 @@ class WC_Stripe_Payment_Request {
 		// $data['displayItems'] = $items;
 
 		wp_send_json( $data );
+	}
+
+	/**
+	 * Create order.
+	 */
+	public function ajax_create_order() {
+		check_ajax_referer( 'wc-stripe-payment-request', 'security' );
+
 	}
 }
 

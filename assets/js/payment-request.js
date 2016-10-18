@@ -50,6 +50,29 @@
 		},
 
 		/**
+		 * Initialize the PaymentRequest.
+		 *
+		 * @param {Object} evt DOM events.
+		 */
+		initPaymentRequest: function( evt ) {
+			evt.preventDefault();
+			var self = wcStripePaymentRequest;
+
+			var data = {
+				security: wcStripePaymentRequestParams.payment_nonce
+			};
+
+			$.ajax({
+				type:    'POST',
+				data:    data,
+				url:     self.getAjaxURL( 'get_cart_details' ),
+				success: function( response ) {
+					self.openPaymentRequest( response );
+				}
+			});
+		},
+
+		/**
 		 * Open Payment Request modal.
 		 *
 		 * @param {Object} details Payment request details.
@@ -61,12 +84,16 @@
 				supportedMethods: self.getSupportedMethods()
 			}];
 
-			new PaymentRequest( supportedInstruments, details )
+			var options = {
+				requestPayerPhone: true,
+				requestPayerEmail: true
+			};
+
+			new PaymentRequest( supportedInstruments, details, options )
 				.show()
-				.then( function( instrumentResponse ) {
-					// @TODO
-					// sendPaymentToServer( instrumentResponse );
-					console.log( instrumentResponse );
+				.then( function( response ) {
+					console.log( response );
+					self.sendPayment( response );
 				})
 				.catch( function( err ) {
 					// @TODO
@@ -75,19 +102,50 @@
 		},
 
 		/**
-		 * Initialize the PaymentRequest.
+		 * Send payment to Stripe.
 		 *
-		 * @param {Object} evt DOM events.
+		 * @param {PaymentResponse} payment Payment Response instance.
 		 */
-		initPaymentRequest: function( evt ) {
-			evt.preventDefault();
+		sendPayment: function( payment ) {
 			var self = wcStripePaymentRequest;
 
+			var data = {
+				security:       wcStripePaymentRequestParams.payment_nonce,
+				creditCard:     {
+					brand:      payment.methodName,
+					number:     payment.details.cardNumber,
+					cvc:        payment.details.cardSecurityCode,
+					holderName: payment.details.cardholderName,
+					expiry:     {
+						month: payment.details.expiryMonth,
+						year:  payment.details.expiryYear
+					}
+				},
+				contactInfo:    {
+					email: payment.payerEmail,
+					phone: payment.payerPhone
+				},
+				billingAddress: payment.details.billingAddress
+			};
+
 			$.ajax({
-				type: 'get',
-				url:  self.getAjaxURL( 'get_cart_details' ),
-				success: function( response ) {
-					self.openPaymentRequest( response );
+				type:    'POST',
+				data:    data,
+				url:     self.getAjaxURL( 'create_order' ),
+				success: function() {
+				// success: function( response ) {
+					// if ( ! response.success ) {
+					// 	console.log( 'ERRO!' );
+					// }
+
+					payment.complete( 'success' )
+						.then( function() {
+							// document.getElementById('result').innerHTML =
+							// instrumentToJsonString(instrumentResponse);
+						})
+						.catch( function( err ) {
+							console.log( err );
+						});
 				}
 			});
 		}
