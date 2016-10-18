@@ -103,6 +103,29 @@ class WC_Stripe {
 	public $notices = array();
 
 	/**
+	 * DB updates and callbacks that need to be run per version.
+	 *
+	 * @since 3.0.3
+	 *
+	 * @var array
+	 */
+	private $db_updates = array(
+		'3.0.3' => array(
+			'wc_stripe_303_copy_saved_cards_to_token_table',
+			'wc_stripe_303_db_version',
+		),
+	);
+
+	/**
+	 * Background updater instance.
+	 *
+	 * @since 3.0.3
+	 *
+	 * @var WC_Background_Updater
+	 */
+	private $db_updater;
+
+	/**
 	 * Protected constructor to prevent creating a new instance of the
 	 * *Singleton* via the `new` operator from outside of this class.
 	 */
@@ -121,11 +144,15 @@ class WC_Stripe {
 			return;
 		}
 
+
 		include_once( plugin_basename( 'includes/class-wc-stripe-api.php' ) );
 		include_once( plugin_basename( 'includes/class-wc-stripe-customer.php' ) );
 
 		// Init the gateway itself
 		$this->init_gateways();
+
+		add_action( 'init', array( $this, 'init_update' )  );
+		add_action( 'admin_init', array( $this, 'maybe_do_update' ) );
 
 		add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );
 		add_action( 'woocommerce_order_status_on-hold_to_processing', array( $this, 'capture_payment' ) );
@@ -135,6 +162,148 @@ class WC_Stripe {
 		add_filter( 'woocommerce_get_customer_payment_tokens', array( $this, 'woocommerce_get_customer_payment_tokens' ), 10, 3 );
 		add_action( 'woocommerce_payment_token_deleted', array( $this, 'woocommerce_payment_token_deleted' ), 10, 2 );
 		add_action( 'woocommerce_payment_token_set_default', array( $this, 'woocommerce_payment_token_set_default' ) );
+	}
+
+	/**
+	 * Init update.
+	 *
+	 * @since 3.0.3
+	 */
+	public function init_update() {
+		// Since this relies on WC_Background_Updater, skip the updater if WC
+		// version < 2.6. Also when in WC < 2.6, no update available as payment
+		// tokens introduced in 2.6.
+		if ( version_compare( WC()->version, '2.6', '<' ) ) {
+			return;
+		}
+
+		$current_version    = get_option( 'woocommerce_stripe_version', null );
+		$current_db_version = get_option( 'woocommerce_stripe_db_version', null );
+		$settings           = get_option( 'woocommerce_stripe_settings', null );
+
+		if (  ! class_exists( 'WC_Admin_Notices' ) ) {
+			include_once( WC()->plugin_path() . '/includes/admin/class-wc-admin-notices.php' );
+		}
+
+		if ( ! class_exists( 'WC_Background_Updater' ) ) {
+			include_once( WC()->plugin_path() . '/includes/class-wc-background-updater.php' );
+		}
+
+		include_once( 'includes/class-wc-stripe-background-updater.php' );
+		$this->db_updater = new WC_Stripe_Background_Updater();
+
+		$fresh_install = (
+			is_null( $current_version )
+			&&
+			is_null( $current_db_version )
+			&&
+			is_null( $settings )
+		);
+
+		if ( ! $fresh_install ) {
+			$this->add_update_notice();
+		} else {
+			$this->update_stripe_db_version();
+		}
+
+		if ( $current_version !== WC_STRIPE_VERSION ) {
+			$this->update_stripe_version();
+		}
+	}
+
+	/**
+	 * Add update notice.
+	 *
+	 * @since 3.0.3
+	 */
+	private function add_update_notice() {
+		if ( version_compare( get_option( 'woocommerce_stripe_db_version' ), WC_STRIPE_VERSION, '<' ) ) {
+			if ( $this->db_updater->is_updating() || ! empty( $_GET['do_update_wc_stripe'] ) ) {
+				$notice_template = $this->get_view_html( 'includes/views/html-notice-updating-saved-cards.php' );
+			} else {
+				$notice_template = $this->get_view_html( 'includes/views/html-notice-update-saved-cards.php' );
+			}
+		} else {
+			$notice_template = $this->get_view_html( 'includes/views/html-notice-saved-cards-updated.php' );
+		}
+		WC_Admin_Notices::add_custom_notice( 'wc_stripe_update_notice', $notice_template );
+	}
+
+	/**
+	 * Get HTML string from given path view.
+	 *
+	 * @since 3.0.3
+	 *
+	 * @return string HTML string of view
+	 */
+	private function get_view_html( $path ) {
+		ob_start();
+		$setting_link  = $this->get_setting_link();
+		$update_action = add_query_arg( 'do_update_wc_stripe', 'true', $setting_link );
+		include_once( $path );
+		return ob_get_clean();
+	}
+
+	/**
+	 * Maybe do update.
+	 *
+	 * Will be invoked when user clicked the run the updater button from update notice.
+	 *
+	 * @since 3.0.3
+	 */
+	public function maybe_do_update() {
+		if ( ! empty( $_GET['do_update_wc_stripe'] ) ) {
+			$this->update();
+			$this->add_update_notice();
+		}
+	}
+
+	/**
+	 * Perform DB updates.
+	 *
+	 * @since 3.0.3
+	 */
+	private function update() {
+		require_once( WC()->plugin_path() . '/includes/class-wc-background-updater.php' );
+
+		$update_queued      = false;
+		$current_db_version = get_option( 'woocommerce_stripe_db_version' );
+		foreach ( $this->db_updates as $version => $callbacks ) {
+			if ( version_compare( $current_db_version, $version, '<' ) ) {
+				foreach ( $callbacks as $callback ) {
+					self::log( sprintf( 'Queuing %s - %s', $version, $callback ) );
+
+					$this->db_updater->push_to_queue( $callback );
+					$update_queued = true;
+				}
+			}
+		}
+
+		if ( $update_queued ) {
+			$this->db_updater->save()->dispatch();
+		}
+	}
+
+	/**
+	 * Update Stripe version to current.
+	 *
+	 * @since 3.0.3
+	 */
+	private function update_stripe_version() {
+		delete_option( 'woocommerce_stripe_version' );
+		add_option( 'woocommerce_stripe_version', WC_STRIPE_VERSION );
+	}
+
+	/**
+	 * Update Stripe DB version to current.
+	 *
+	 * @since 3.0.3
+	 *
+	 * @param null|string Version. If not provided, use current version
+	 */
+	public function update_stripe_db_version( $version = null ) {
+		delete_option( 'woocommerce_stripe_db_version' );
+		add_option( 'woocommerce_stripe_db_version', is_null( $version ) ? WC_STRIPE_VERSION : $version );
 	}
 
 	/**
