@@ -135,6 +135,8 @@ class WC_Stripe {
 		add_filter( 'woocommerce_get_customer_payment_tokens', array( $this, 'woocommerce_get_customer_payment_tokens' ), 10, 3 );
 		add_action( 'woocommerce_payment_token_deleted', array( $this, 'woocommerce_payment_token_deleted' ), 10, 2 );
 		add_action( 'woocommerce_payment_token_set_default', array( $this, 'woocommerce_payment_token_set_default' ) );
+
+		include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-request.php' );
 	}
 
 	/**
@@ -182,10 +184,10 @@ class WC_Stripe {
 
 			return sprintf( $message, WC_STRIPE_MIN_PHP_VER, phpversion() );
 		}
-		
+
 		if ( ! defined( 'WC_VERSION' ) ) {
 			return __( 'WooCommerce Stripe requires WooCommerce to be activated to work.', 'woocommerce-gateway-stripe' );
-		} 
+		}
 
 		if ( version_compare( WC_VERSION, WC_STRIPE_MIN_WC_VER, '<' ) ) {
 			$message = __( 'WooCommerce Stripe - The minimum WooCommerce version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe', 'woocommerce-gateway-stripe' );
