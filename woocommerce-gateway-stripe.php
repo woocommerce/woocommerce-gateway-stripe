@@ -264,6 +264,7 @@ class WC_Stripe {
 
 		if ( class_exists( 'WC_Payment_Gateway_CC' ) ) {
 			include_once( dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php' );
+			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-apple-pay.php' );
 		} else {
 			include_once( dirname( __FILE__ ) . '/includes/legacy/class-wc-gateway-stripe.php' );
 			include_once( dirname( __FILE__ ) . '/includes/legacy/class-wc-gateway-stripe-saved-cards.php' );
