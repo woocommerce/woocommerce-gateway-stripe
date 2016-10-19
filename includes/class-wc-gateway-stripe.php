@@ -67,6 +67,13 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	public $bitcoin;
 
 	/**
+	 * Do we accept Apple Pay?
+	 *
+	 * @var bool
+	 */
+	public $apple_pay;
+
+	/**
 	 * Is test mode active?
 	 *
 	 * @var bool
@@ -104,7 +111,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			'multiple_subscriptions',
 			'pre-orders',
 			'tokenization',
-			'add_payment_method'
+			'add_payment_method',
 		);
 
 		// Load the form fields.
@@ -126,6 +133,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$this->secret_key             = $this->testmode ? $this->get_option( 'test_secret_key' ) : $this->get_option( 'secret_key' );
 		$this->publishable_key        = $this->testmode ? $this->get_option( 'test_publishable_key' ) : $this->get_option( 'publishable_key' );
 		$this->bitcoin                = 'USD' === strtoupper( get_woocommerce_currency() ) && 'yes' === $this->get_option( 'stripe_bitcoin' );
+		$this->apple_pay              = 'yes' === $this->get_option( 'apple_pay' );
 		$this->logging                = 'yes' === $this->get_option( 'logging' );
 
 		if ( $this->stripe_checkout ) {
@@ -365,10 +373,14 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 * @access public
 	 */
 	public function payment_scripts() {
+		if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) {
+			return;
+		}
+
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 		
 		if ( $this->stripe_checkout ) {
-			wp_enqueue_script( 'stripe', 'https://checkout.stripe.com/v2/checkout.js', '', '2.0', true );
+			wp_enqueue_script( 'stripe_checkout', 'https://checkout.stripe.com/v2/checkout.js', '', '2.0', true );
 			wp_enqueue_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe_checkout' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'stripe' ), WC_STRIPE_VERSION, true );
 		} else {
 			wp_enqueue_script( 'stripe', 'https://js.stripe.com/v2/', '', '1.0', true );

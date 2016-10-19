@@ -134,7 +134,7 @@ class WC_Stripe {
 		add_action( 'woocommerce_order_status_on-hold_to_refunded', array( $this, 'cancel_payment' ) );
 		add_filter( 'woocommerce_get_customer_payment_tokens', array( $this, 'woocommerce_get_customer_payment_tokens' ), 10, 3 );
 		add_action( 'woocommerce_payment_token_deleted', array( $this, 'woocommerce_payment_token_deleted' ), 10, 2 );
-		add_action( 'woocommerce_payment_token_set_default', array( $this, 'woocommerce_payment_token_set_default' ) );
+		add_action( 'woocommerce_payment_token_set_default', array( $this, 'woocommerce_payment_token_set_default' ) );	
 	}
 
 	/**
@@ -262,6 +262,7 @@ class WC_Stripe {
 
 		if ( class_exists( 'WC_Payment_Gateway_CC' ) ) {
 			include_once( dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php' );
+			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-apple-pay.php' );
 		} else {
 			include_once( dirname( __FILE__ ) . '/includes/legacy/class-wc-gateway-stripe.php' );
 			include_once( dirname( __FILE__ ) . '/includes/legacy/class-wc-gateway-stripe-saved-cards.php' );
