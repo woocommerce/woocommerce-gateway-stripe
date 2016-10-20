@@ -171,8 +171,6 @@
 				reject( 'Unknown shipping option \'' + shippingOption + '\'' );
 			}
 
-			details.displayItems.push( details.shippingOptions[ selected ] );
-
 			resolve( details );
 		},
 

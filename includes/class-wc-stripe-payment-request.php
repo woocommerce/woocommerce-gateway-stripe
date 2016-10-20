@@ -115,27 +115,6 @@ class WC_Stripe_Payment_Request {
 			),
 		);
 
-		/*
-		// Set items details.
-		// @TODO: optional and we don't need this right now or never.
-		$items = array();
-
-		$cart_contents = WC()->cart->cart_contents;
-		foreach ( $cart_contents as $key => $_product ) {
-			$product = $_product['data'];
-
-			$items[] = array(
-				'label'  => $product->get_title(),
-				'amount' => array(
-					'value'    => $product->price,
-					'currency' => $currency,
-				),
-			);
-		}
-		*/
-
-		$data['order_data']['displayItems'] = array();
-
 		wp_send_json( $data );
 	}
 
