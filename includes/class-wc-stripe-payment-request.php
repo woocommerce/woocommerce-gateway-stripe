@@ -1,4 +1,12 @@
 <?php
+/**
+ * Correios Payment Request API
+ *
+ * @package WooCommerce_Stripe/Classes/Payment_Request
+ * @since   3.1.0
+ * @version 3.1.0
+ */
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -58,7 +66,7 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		// $suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 		$suffix = '';
 
 		wp_enqueue_script( 'stripe', 'https://js.stripe.com/v2/', '', '1.0', true );
@@ -68,7 +76,7 @@ class WC_Stripe_Payment_Request {
 			'wc-stripe-payment-request',
 			'wcStripePaymentRequestParams',
 			array(
-				'wc_ajax_url'         => WC_AJAX::get_endpoint( "%%endpoint%%" ),
+				'wc_ajax_url'         => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 				'key'                 => $this->get_publishable_key(),
 				'allow_prepaid_card'  => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 				'no_prepaid_card_msg' => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
@@ -107,23 +115,24 @@ class WC_Stripe_Payment_Request {
 			),
 		);
 
+		/*
 		// Set items details.
 		// @TODO: optional and we don't need this right now or never.
-		//
-		// $items = array();
+		$items = array();
 
-		// $cart_contents = WC()->cart->cart_contents;
-		// foreach ( $cart_contents as $key => $_product ) {
-		// 	$product = $_product['data'];
+		$cart_contents = WC()->cart->cart_contents;
+		foreach ( $cart_contents as $key => $_product ) {
+			$product = $_product['data'];
 
-		// 	$items[] = array(
-		// 		'label'  => $product->get_title(),
-		// 		'amount' => array(
-		// 			'value'    => $product->price,
-		// 			'currency' => $currency,
-		// 		),
-		// 	);
-		// }
+			$items[] = array(
+				'label'  => $product->get_title(),
+				'amount' => array(
+					'value'    => $product->price,
+					'currency' => $currency,
+				),
+			);
+		}
+		*/
 
 		$data['order_data']['displayItems'] = array();
 
