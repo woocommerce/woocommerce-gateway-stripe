@@ -2,7 +2,24 @@
 /*jshint es3: false */
 /*jshint devel: true */
 (function( $ ) {
+
+	/**
+	 * WooCommerce Stripe PaymentRequest class.
+	 *
+	 * @type {Object}
+	 */
 	var wcStripePaymentRequest = {
+
+		/**
+		 * Cart total.
+		 *
+		 * @type {Float}
+		 */
+		total: 0,
+
+		/**
+		 * Initialize class events.
+		 */
 		init: function() {
 			var self = this;
 
@@ -93,17 +110,20 @@
 				options.requestShipping = true;
 			}
 
-			var request = new PaymentRequest( supportedInstruments, details.order_data, options );
+			var paymentDetails = details.order_data;
+			self.total = parseFloat( paymentDetails.total.amount.value );
+
+			var request = new PaymentRequest( supportedInstruments, paymentDetails, options );
 
 			request.addEventListener( 'shippingaddresschange', function( evt ) {
 				evt.updateWith( new Promise( function( resolve ) {
-					self.updateShippingOptions( details.order_data, request.shippingAddress, resolve );
+					self.updateShippingOptions( paymentDetails, request.shippingAddress, resolve );
 				}));
 			});
 
 			request.addEventListener( 'shippingoptionchange', function( evt ) {
 				evt.updateWith( new Promise( function( resolve, reject ) {
-					self.updateShippingDetails( details.order_data, request.shippingOption, resolve, reject );
+					self.updateShippingDetails( paymentDetails, request.shippingOption, resolve, reject );
 				}));
 			});
 
@@ -155,13 +175,14 @@
 		 * @param {Function} reject         The callback to invoke in case of failure.
 		 */
 		updateShippingDetails: function( details, shippingOption, resolve, reject ) {
+			var self     = wcStripePaymentRequest;
 			var selected = null;
 
 			details.shippingOptions.forEach( function( value, index ) {
 				if ( value.id === shippingOption ) {
 					selected = index;
 					value.selected = true;
-					details.total.amount.value = parseFloat( value.amount.value ) + parseFloat( details.total.amount.value );
+					details.total.amount.value = parseFloat( value.amount.value ) + self.total;
 				} else {
 					value.selected = false;
 				}
