@@ -76,13 +76,21 @@ class WC_Stripe_Payment_Request {
 			'wc-stripe-payment-request',
 			'wcStripePaymentRequestParams',
 			array(
-				'wc_ajax_url'         => WC_AJAX::get_endpoint( '%%endpoint%%' ),
-				'key'                 => $this->get_publishable_key(),
-				'allow_prepaid_card'  => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
-				'no_prepaid_card_msg' => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
-				'payment_nonce'       => wp_create_nonce( 'wc-stripe-payment-request' ),
-				'shipping_nonce'      => wp_create_nonce( 'wc-stripe-payment-request-shipping' ),
-				'checkout_nonce'      => wp_create_nonce( 'woocommerce-process_checkout' ),
+				'ajax_url' => WC_AJAX::get_endpoint( '%%endpoint%%' ),
+				'stripe'   => array(
+					'key'                => $this->get_publishable_key(),
+					'allow_prepaid_card' => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
+				),
+				'nonce'    => array(
+					'payment'  => wp_create_nonce( 'wc-stripe-payment-request' ),
+					'shipping' => wp_create_nonce( 'wc-stripe-payment-request-shipping' ),
+					'checkout' => wp_create_nonce( 'woocommerce-process_checkout' ),
+				),
+				'i18n'     => array(
+					'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
+					/* translators: Do not translate the [option] placeholder */
+					'unknown_shipping' => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' )
+				),
 			)
 		);
 	}

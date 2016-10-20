@@ -44,7 +44,7 @@
 		 * @return {String}
 		 */
 		getAjaxURL: function( endpoint ) {
-			return wcStripePaymentRequestParams.wc_ajax_url
+			return wcStripePaymentRequestParams.ajax_url
 				.toString()
 				.replace( '%%endpoint%%', 'wc_stripe_' + endpoint );
 		},
@@ -59,7 +59,7 @@
 			var self = wcStripePaymentRequest;
 
 			var data = {
-				security: wcStripePaymentRequestParams.payment_nonce
+				security: wcStripePaymentRequestParams.nonce.payment
 			};
 
 			$.ajax({
@@ -126,7 +126,7 @@
 		updateShippingOptions: function( details, address, callback ) {
 			var self = wcStripePaymentRequest;
 			var data = {
-				security:  wcStripePaymentRequestParams.shipping_nonce,
+				security:  wcStripePaymentRequestParams.nonce.shipping,
 				country:   address.country,
 				state:     address.region,
 				postcode:  address.postalCode,
@@ -168,7 +168,7 @@
 			});
 
 			if ( null === selected ) {
-				reject( 'Unknown shipping option \'' + shippingOption + '\'' );
+				reject( wcStripePaymentRequestParams.i18n.unknown_shipping.toString().replace( '[option]', shippingOption ) );
 			}
 
 			resolve( details );
@@ -185,7 +185,7 @@
 			var billing  = payment.details.billingAddress;
 			var shipping = payment.shippingAddress;
 			var data     = {
-				_wpnonce:                  wcStripePaymentRequestParams.checkout_nonce,
+				_wpnonce:                  wcStripePaymentRequestParams.nonce.checkout,
 				billing_first_name:        billing.recipient.split( ' ' ).slice( 0, 1 ).join( ' ' ),
 				billing_last_name:         billing.recipient.split( ' ' ).slice( 1 ).join( ' ' ),
 				billing_company:           billing.organization,
@@ -267,15 +267,15 @@
 			var orderData = self.getOrderData( payment );
 			var cardData  = self.getCardData( payment );
 
-			Stripe.setPublishableKey( wcStripePaymentRequestParams.key );
+			Stripe.setPublishableKey( wcStripePaymentRequestParams.stripe.key );
 			Stripe.createToken( cardData, function( status, response ) {
 				if ( response.error ) {
 					console.error( response );
 				} else {
 					// Check if we allow prepaid cards.
-					if ( 'no' === wcStripePaymentRequestParams.allow_prepaid_card && 'prepaid' === response.card.funding ) {
+					if ( 'no' === wcStripePaymentRequestParams.stripe.allow_prepaid_card && 'prepaid' === response.card.funding ) {
 						response.error = {
-							message: wcStripePaymentRequestParams.no_prepaid_card_msg
+							message: wcStripePaymentRequestParams.i18n.no_prepaid_card
 						};
 
 						console.error( response );
