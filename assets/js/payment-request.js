@@ -1,4 +1,4 @@
-/*global jQuery, wcStripePaymentRequestParams, PaymentRequest, Stripe */
+/*global jQuery, wcStripePaymentRequestParams, PaymentRequest, Stripe, Promise */
 /*jshint es3: false */
 /*jshint devel: true */
 (function( $ ) {
@@ -89,16 +89,91 @@
 				requestPayerEmail: true
 			};
 
-			new PaymentRequest( supportedInstruments, details, options )
-				.show()
-				.then( function( response ) {
-					console.log( response );
-					self.processPayment( response );
-				})
-				.catch( function( err ) {
-					// @TODO
-					console.log( err );
-				});
+			if ( details.shipping_required ) {
+				options.requestShipping = true;
+			}
+
+			var request = new PaymentRequest( supportedInstruments, details.order_data, options );
+
+			request.addEventListener( 'shippingaddresschange', function( evt ) {
+				evt.updateWith( new Promise( function( resolve ) {
+					self.updateShippingOptions( details.order_data, request.shippingAddress, resolve );
+				}));
+			});
+
+			request.addEventListener( 'shippingoptionchange', function( evt ) {
+				evt.updateWith( new Promise( function( resolve, reject ) {
+					self.updateShippingDetails( details.order_data, request.shippingOption, resolve, reject );
+				}));
+			});
+
+			request.show().then( function( response ) {
+				self.processPayment( response );
+			})
+			.catch( function( err ) {
+				// @TODO
+				console.error( err );
+			});
+		},
+
+		/**
+		 * Update shipping options.
+		 *
+		 * @param  {Object}         details  Payment details.
+		 * @param  {PaymentAddress} address  Shipping address.
+		 * @param  {Function}       callback Callback function to update the shipping options.
+		 */
+		updateShippingOptions: function( details, address, callback ) {
+			var self = wcStripePaymentRequest;
+			var data = {
+				security:  wcStripePaymentRequestParams.shipping_nonce,
+				country:   address.country,
+				state:     address.region,
+				postcode:  address.postalCode,
+				city:      address.city,
+				address:   typeof address.addressLine[0] === 'undefined' ? '' : address.addressLine[0],
+				address_2: typeof address.addressLine[1] === 'undefined' ? '' : address.addressLine[1]
+			};
+
+			$.ajax({
+				type:    'POST',
+				data:    data,
+				url:     self.getAjaxURL( 'get_shipping_options' ),
+				success: function( response ) {
+					details.shippingOptions = response;
+					callback( details );
+				}
+			});
+		},
+
+		/**
+		 * Updates the shipping price and the total based on the shipping option.
+		 *
+		 * @param {Object}   details        The line items and shipping options.
+		 * @param {String}   shippingOption User's preferred shipping option to use for shipping price calculations.
+		 * @param {Function} resolve        The callback to invoke with updated line items and shipping options.
+		 * @param {Function} reject         The callback to invoke in case of failure.
+		 */
+		updateShippingDetails: function( details, shippingOption, resolve, reject ) {
+			var selected = null;
+
+			details.shippingOptions.forEach( function( value, index ) {
+				if ( value.id === shippingOption ) {
+					selected = index;
+					value.selected = true;
+					details.total.amount.value = parseFloat( value.amount.value ) + parseFloat( details.total.amount.value );
+				} else {
+					value.selected = false;
+				}
+			});
+
+			if ( null === selected ) {
+				reject( 'Unknown shipping option \'' + shippingOption + '\'' );
+			}
+
+			details.displayItems.push( details.shippingOptions[ selected ] );
+
+			resolve( details );
 		},
 
 		/**
@@ -109,11 +184,10 @@
 		 * @return {Object}
 		 */
 		getOrderData: function( payment ) {
-			var billing = payment.details.billingAddress;
-			var data    = {
+			var billing  = payment.details.billingAddress;
+			var shipping = payment.shippingAddress;
+			var data     = {
 				_wpnonce:                  wcStripePaymentRequestParams.checkout_nonce,
-
-				// Billing data.
 				billing_first_name:        billing.recipient.split( ' ' ).slice( 0, 1 ).join( ' ' ),
 				billing_last_name:         billing.recipient.split( ' ' ).slice( 1 ).join( ' ' ),
 				billing_company:           billing.organization,
@@ -125,9 +199,6 @@
 				billing_city:              billing.city,
 				billing_state:             billing.region,
 				billing_postcode:          billing.postalCode,
-
-				// Shipping data.
-				// @TODO: include shipping data.
 				shipping_first_name:       '',
 				shipping_last_name:        '',
 				shipping_company:          '',
@@ -137,15 +208,24 @@
 				shipping_city:             '',
 				shipping_state:            '',
 				shipping_postcode:         '',
+				shipping_method:           [ payment.shippingOption ],
 				order_comments:            '',
-				// @TODO: Include shipping method.
-				// shipping_method:           [ 'flat_rate:19' ],
-
-				// Payment method data.
 				payment_method:            'stripe',
 				// 'wc-stripe-payment-token': 'new',
 				stripe_token:              '',
 			};
+
+			if ( shipping ) {
+				data.shipping_first_name = shipping.recipient.split( ' ' ).slice( 0, 1 ).join( ' ' );
+				data.shipping_last_name  = shipping.recipient.split( ' ' ).slice( 1 ).join( ' ' );
+				data.shipping_company    = shipping.organization;
+				data.shipping_country    = shipping.country;
+				data.shipping_address_1  = typeof shipping.addressLine[0] === 'undefined' ? '' : shipping.addressLine[0];
+				data.shipping_address_2  = typeof shipping.addressLine[1] === 'undefined' ? '' : shipping.addressLine[1];
+				data.shipping_city       = shipping.city;
+				data.shipping_state      = shipping.region;
+				data.shipping_postcode   = shipping.postalCode;
+			}
 
 			return data;
 		},
@@ -192,7 +272,7 @@
 			Stripe.setPublishableKey( wcStripePaymentRequestParams.key );
 			Stripe.createToken( cardData, function( status, response ) {
 				if ( response.error ) {
-					console.log( response );
+					console.error( response );
 				} else {
 					// Check if we allow prepaid cards.
 					if ( 'no' === wcStripePaymentRequestParams.allow_prepaid_card && 'prepaid' === response.card.funding ) {
@@ -200,7 +280,7 @@
 							message: wcStripePaymentRequestParams.no_prepaid_card_msg
 						};
 
-						console.log( response );
+						console.error( response );
 						return false;
 					} else {
 						// Token contains id, last4, and card type.
@@ -219,7 +299,7 @@
 											window.location = response.redirect;
 										})
 										.catch( function( err ) {
-											console.log( err );
+											console.error( err );
 										});
 								}
 							},

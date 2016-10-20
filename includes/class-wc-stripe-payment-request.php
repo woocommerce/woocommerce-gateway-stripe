@@ -15,6 +15,7 @@ class WC_Stripe_Payment_Request {
 		add_action( 'wp_enqueue_scripts', array( $this, 'scripts' ) );
 
 		add_action( 'wc_ajax_wc_stripe_get_cart_details', array( $this, 'ajax_get_cart_details' ) );
+		add_action( 'wc_ajax_wc_stripe_get_shipping_options', array( $this, 'ajax_get_shipping_options' ) );
 		add_action( 'wc_ajax_wc_stripe_create_order', array( $this, 'ajax_create_order' ) );
 	}
 
@@ -26,7 +27,7 @@ class WC_Stripe_Payment_Request {
 	protected function is_activated() {
 		$options = get_option( 'woocommerce_stripe_settings', array() );
 
-		return ! empty( $options['enabled'] ) && 'yes' === $options['enabled'];
+		return is_ssl() && ! empty( $options['enabled'] ) && 'yes' === $options['enabled'];
 	}
 
 	/**
@@ -72,6 +73,7 @@ class WC_Stripe_Payment_Request {
 				'allow_prepaid_card'  => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 				'no_prepaid_card_msg' => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
 				'payment_nonce'       => wp_create_nonce( 'wc-stripe-payment-request' ),
+				'shipping_nonce'      => wp_create_nonce( 'wc-stripe-payment-request-shipping' ),
 				'checkout_nonce'      => wp_create_nonce( 'woocommerce-process_checkout' ),
 			)
 		);
@@ -93,12 +95,15 @@ class WC_Stripe_Payment_Request {
 
 		// Set mandatory payment details.
 		$data = array(
-			'total' => array(
-				'label'    => __( 'Total', 'woocommerce-gateway-stripe' ),
-				'amount'   => array(
-					'value'    => WC()->cart->total,
-					'currency' => $currency,
-				)
+			'shipping_required' => WC()->cart->needs_shipping(),
+			'order_data'        => array(
+				'total' => array(
+					'label' => __( 'Total', 'woocommerce-gateway-stripe' ),
+					'amount' => array(
+						'value'    => WC()->cart->total - ( WC()->cart->shipping_total + WC()->cart->shipping_tax_total ),
+						'currency' => $currency,
+					),
+				),
 			),
 		);
 
@@ -120,7 +125,71 @@ class WC_Stripe_Payment_Request {
 		// 	);
 		// }
 
-		// $data['displayItems'] = $items;
+		$data['order_data']['displayItems'] = array();
+
+		wp_send_json( $data );
+	}
+
+	/**
+	 * Get shipping options.
+	 *
+	 * @see WC_Cart::get_shipping_packages().
+	 * @see WC_Shipping::calculate_shipping().
+	 * @see WC_Shipping::get_packages().
+	 */
+	public function ajax_get_shipping_options() {
+		check_ajax_referer( 'wc-stripe-payment-request-shipping', 'security' );
+
+		// Set the shipping package.
+		$posted   = filter_input_array( INPUT_POST, array(
+			'country'   => FILTER_SANITIZE_ENCODED,
+			'state'     => FILTER_SANITIZE_STRING,
+			'postcode'  => FILTER_SANITIZE_ENCODED,
+			'city'      => FILTER_SANITIZE_STRING,
+			'address'   => FILTER_SANITIZE_STRING,
+			'address_2' => FILTER_SANITIZE_STRING,
+		) );
+		$packages = array();
+
+		$packages[0]['contents']                 = WC()->cart->get_cart();
+		$packages[0]['contents_cost']            = 0;
+		$packages[0]['applied_coupons']          = WC()->cart->applied_coupons;
+		$packages[0]['user']['ID']               = get_current_user_id();
+		$packages[0]['destination']['country']   = $posted['country'];
+		$packages[0]['destination']['state']     = $posted['state'];
+		$packages[0]['destination']['postcode']  = $posted['postcode'];
+		$packages[0]['destination']['city']      = $posted['city'];
+		$packages[0]['destination']['address']   = $posted['address'];
+		$packages[0]['destination']['address_2'] = $posted['address_2'];
+
+		foreach ( WC()->cart->get_cart() as $item ) {
+			if ( $item['data']->needs_shipping() ) {
+				if ( isset( $item['line_total'] ) ) {
+					$packages[0]['contents_cost'] += $item['line_total'];
+				}
+			}
+		}
+
+		$packages = apply_filters( 'woocommerce_cart_shipping_packages', $packages );
+
+		WC()->shipping->calculate_shipping( $packages );
+
+		// Set the shipping options.
+		$currency = get_woocommerce_currency();
+		$data     = array();
+		foreach ( WC()->shipping->get_packages() as $package_key => $package ) {
+			foreach ( $package['rates'] as $key => $rate ) {
+				$data[] = array(
+					'id'       => $rate->id,
+					'label'    => $rate->label,
+					'amount'   => array(
+						'currency' => $currency,
+						'value'    => $rate->cost,
+					),
+					'selected' => false,
+				);
+			}
+		}
 
 		wp_send_json( $data );
 	}
