@@ -382,21 +382,18 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		);
 
 		// If we're on the pay page we need to pass stripe.js the address of the order.
-		if ( is_checkout_pay_page() && isset( $_GET['order'] ) && isset( $_GET['order_id'] ) ) {
-			$order_key = urldecode( $_GET['order'] );
-			$order_id  = absint( $_GET['order_id'] );
-			$order     = wc_get_order( $order_id );
+		if ( isset( $_GET['pay_for_order'] ) && 'true' === $_GET['pay_for_order'] ) {
+			$order_id = wc_get_order_id_by_order_key( urldecode( $_GET['key'] ) );
+			$order    = wc_get_order( $order_id );
 
-			if ( $order->id === $order_id && $order->order_key === $order_key ) {
-				$stripe_params['billing_first_name'] = $order->billing_first_name;
-				$stripe_params['billing_last_name']  = $order->billing_last_name;
-				$stripe_params['billing_address_1']  = $order->billing_address_1;
-				$stripe_params['billing_address_2']  = $order->billing_address_2;
-				$stripe_params['billing_state']      = $order->billing_state;
-				$stripe_params['billing_city']       = $order->billing_city;
-				$stripe_params['billing_postcode']   = $order->billing_postcode;
-				$stripe_params['billing_country']    = $order->billing_country;
-			}
+			$stripe_params['billing_first_name'] = $order->billing_first_name;
+			$stripe_params['billing_last_name']  = $order->billing_last_name;
+			$stripe_params['billing_address_1']  = $order->billing_address_1;
+			$stripe_params['billing_address_2']  = $order->billing_address_2;
+			$stripe_params['billing_state']      = $order->billing_state;
+			$stripe_params['billing_city']       = $order->billing_city;
+			$stripe_params['billing_postcode']   = $order->billing_postcode;
+			$stripe_params['billing_country']    = $order->billing_country;
 		}
 
 		$stripe_params['no_prepaid_card_msg']                     = __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' );
