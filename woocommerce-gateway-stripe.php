@@ -121,8 +121,8 @@ class WC_Stripe {
 			return;
 		}
 
-		include_once( plugin_basename( 'includes/class-wc-stripe-api.php' ) );
-		include_once( plugin_basename( 'includes/class-wc-stripe-customer.php' ) );
+		include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php' );
+		include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php' );
 
 		// Init the gateway itself
 		$this->init_gateways();
@@ -161,7 +161,7 @@ class WC_Stripe {
 		// Check if secret key present. Otherwise prompt, via notice, to go to
 		// setting.
 		if ( ! class_exists( 'WC_Stripe_API' ) ) {
-			include_once( plugin_basename( 'includes/class-wc-stripe-api.php' ) );
+			include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php' );
 		}
 
 		$secret = WC_Stripe_API::get_secret_key();
@@ -261,10 +261,10 @@ class WC_Stripe {
 		}
 
 		if ( class_exists( 'WC_Payment_Gateway_CC' ) ) {
-			include_once( plugin_basename( 'includes/class-wc-gateway-stripe.php' ) );
+			include_once( dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php' );
 		} else {
-			include_once( plugin_basename( 'includes/legacy/class-wc-gateway-stripe.php' ) );
-			include_once( plugin_basename( 'includes/legacy/class-wc-gateway-stripe-saved-cards.php' ) );
+			include_once( dirname( __FILE__ ) . '/includes/legacy/class-wc-gateway-stripe.php' );
+			include_once( dirname( __FILE__ ) . '/includes/legacy/class-wc-gateway-stripe-saved-cards.php' );
 		}
 
 		load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
@@ -277,7 +277,7 @@ class WC_Stripe {
 		);
 
 		if ( $load_addons ) {
-			require_once( plugin_basename( 'includes/class-wc-gateway-stripe-addons.php' ) );
+			require_once( dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe-addons.php' );
 		}
 	}
 
