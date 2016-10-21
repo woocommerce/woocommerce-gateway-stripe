@@ -92,7 +92,19 @@ jQuery( function( $ ) {
 		onError: function( e, responseObject ) {
 			var message = responseObject.response.error.message;
 
-			if ( wc_stripe_params.hasOwnProperty( responseObject.response.error.code ) ) {
+			// Customers do not need to know the specifics of the below type of errors
+			// therefore return a generic localizable error message.
+			if ( 
+				'invalid_request_error' === responseObject.response.error.type ||
+				'api_connection_error'  === responseObject.response.error.type ||
+				'api_error'             === responseObject.response.error.type ||
+				'authentication_error'  === responseObject.response.error.type ||
+				'rate_limit_error'      === responseObject.response.error.type
+			) {
+				message = wc_stripe_params.invalid_request_error;
+			}
+
+			if ( 'card_error' === responseObject.response.error.type && wc_stripe_params.hasOwnProperty( responseObject.response.error.code ) ) {
 				message = wc_stripe_params[ responseObject.response.error.code ];
 			}
 
