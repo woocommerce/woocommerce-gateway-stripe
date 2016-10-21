@@ -87,6 +87,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.1.0 =
+* Fix - When paying via pay order page/link, billing info is not sent.
+* Fix - Account for all types of errors for proper localization.
+
 = 3.0.6 =
 * Fix - When adding declined cards, fatal error is thrown.
 
