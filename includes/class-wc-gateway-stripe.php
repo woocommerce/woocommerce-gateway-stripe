@@ -307,7 +307,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			data-description=""
 			data-email="' . esc_attr( $user_email ) . '"
 			data-amount="' . esc_attr( $this->get_stripe_amount( WC()->cart->total ) ) . '"
-			data-name="' . esc_attr( sprintf( __( '%s', 'woocommerce-gateway-stripe' ), get_bloginfo( 'name', 'display' ) ) ) . '"
+			data-name="' . esc_attr( get_bloginfo( 'name', 'display' ) ) . '"
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '"
 			data-image="' . esc_attr( $this->stripe_checkout_image ) . '"
 			data-bitcoin="' . esc_attr( $this->bitcoin ? 'true' : 'false' ) . '"
