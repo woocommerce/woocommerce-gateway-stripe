@@ -203,9 +203,10 @@ class WC_Stripe_Payment_Request {
 		}
 
 		$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods' );
+		$shipping_method         = filter_input( INPUT_POST, 'shipping_method', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY );
 
-		if ( isset( $_POST['shipping_method'] ) && is_array( $_POST['shipping_method'] ) ) {
-			foreach ( $_POST['shipping_method'] as $i => $value ) {
+		if ( is_array( $shipping_method ) ) {
+			foreach ( $shipping_method as $i => $value ) {
 				$chosen_shipping_methods[ $i ] = wc_clean( $value );
 			}
 		}
@@ -240,7 +241,6 @@ class WC_Stripe_Payment_Request {
 				),
 			);
 		}
-
 
 		wp_send_json( $data );
 	}
