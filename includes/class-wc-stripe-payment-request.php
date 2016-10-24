@@ -24,6 +24,7 @@ class WC_Stripe_Payment_Request {
 
 		add_action( 'wc_ajax_wc_stripe_get_cart_details', array( $this, 'ajax_get_cart_details' ) );
 		add_action( 'wc_ajax_wc_stripe_get_shipping_options', array( $this, 'ajax_get_shipping_options' ) );
+		add_action( 'wc_ajax_wc_stripe_update_shipping_method', array( $this, 'ajax_update_shipping_method' ) );
 		add_action( 'wc_ajax_wc_stripe_create_order', array( $this, 'ajax_create_order' ) );
 	}
 
@@ -82,9 +83,10 @@ class WC_Stripe_Payment_Request {
 					'allow_prepaid_card' => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 				),
 				'nonce'    => array(
-					'payment'  => wp_create_nonce( 'wc-stripe-payment-request' ),
-					'shipping' => wp_create_nonce( 'wc-stripe-payment-request-shipping' ),
-					'checkout' => wp_create_nonce( 'woocommerce-process_checkout' ),
+					'payment'         => wp_create_nonce( 'wc-stripe-payment-request' ),
+					'shipping'        => wp_create_nonce( 'wc-stripe-payment-request-shipping' ),
+					'update_shipping' => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
+					'checkout'        => wp_create_nonce( 'woocommerce-process_checkout' ),
 				),
 				'i18n'     => array(
 					'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
@@ -114,9 +116,9 @@ class WC_Stripe_Payment_Request {
 			'shipping_required' => WC()->cart->needs_shipping(),
 			'order_data'        => array(
 				'total' => array(
-					'label' => __( 'Total', 'woocommerce-gateway-stripe' ),
+					'label'  => __( 'Total', 'woocommerce-gateway-stripe' ),
 					'amount' => array(
-						'value'    => WC()->cart->total - ( WC()->cart->shipping_total + WC()->cart->shipping_tax_total ),
+						'value'    => max( 0, apply_filters( 'woocommerce_calculated_total', round( WC()->cart->cart_contents_total + WC()->cart->fee_total, WC()->cart->dp ), WC()->cart ) ),
 						'currency' => $currency,
 					),
 				),
@@ -186,6 +188,59 @@ class WC_Stripe_Payment_Request {
 				);
 			}
 		}
+
+		wp_send_json( $data );
+	}
+
+	/**
+	 * Update shipping method.
+	 */
+	public function ajax_update_shipping_method() {
+		check_ajax_referer( 'wc-stripe-update-shipping-method', 'security' );
+
+		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
+			define( 'WOOCOMMERCE_CART', true );
+		}
+
+		$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods' );
+
+		if ( isset( $_POST['shipping_method'] ) && is_array( $_POST['shipping_method'] ) ) {
+			foreach ( $_POST['shipping_method'] as $i => $value ) {
+				$chosen_shipping_methods[ $i ] = wc_clean( $value );
+			}
+		}
+
+		WC()->session->set( 'chosen_shipping_methods', $chosen_shipping_methods );
+
+		WC()->cart->calculate_totals();
+
+		// Send back the new cart total.
+		$currency  = get_woocommerce_currency();
+		$tax_total = max( 0, round( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp ) );
+		$data      = array(
+			'total' => WC()->cart->total,
+		);
+
+		// Include fees and taxes as displayItems.
+		foreach ( WC()->cart->fees as $key => $fee ) {
+			$data['items'][] = array(
+				'label'  => $fee->name,
+				'amount' => array(
+					'currency' => $currency,
+					'value'    => $fee->amount,
+				),
+			);
+		}
+		if ( 0 < $tax_total ) {
+			$data['items'][] = array(
+				'label'  => __( 'Tax', 'woocommerce-gateway-stripe' ),
+				'amount' => array(
+					'currency' => $currency,
+					'value'    => $tax_total,
+				),
+			);
+		}
+
 
 		wp_send_json( $data );
 	}

@@ -11,13 +11,6 @@
 	var wcStripePaymentRequest = {
 
 		/**
-		 * Cart total.
-		 *
-		 * @type {Float}
-		 */
-		total: 0,
-
-		/**
 		 * Initialize class events.
 		 */
 		init: function() {
@@ -108,7 +101,6 @@
 				options.requestShipping = true;
 			}
 			var paymentDetails = details.order_data;
-			self.total = parseFloat( paymentDetails.total.amount.value );
 
 			// Init PaymentRequest.
 			var request = new PaymentRequest( supportedInstruments, paymentDetails, options );
@@ -175,22 +167,39 @@
 		updateShippingDetails: function( details, shippingOption, resolve, reject ) {
 			var self     = this;
 			var selected = null;
+			var data     = {
+				security:  wcStripePaymentRequestParams.nonce.update_shipping,
+				shipping_method: [
+					shippingOption
+				]
+			};
 
-			details.shippingOptions.forEach( function( value, index ) {
-				if ( value.id === shippingOption ) {
-					selected = index;
-					value.selected = true;
-					details.total.amount.value = parseFloat( value.amount.value ) + self.total;
-				} else {
-					value.selected = false;
+			$.ajax({
+				type:    'POST',
+				data:    data,
+				url:     self.getAjaxURL( 'update_shipping_method' ),
+				success: function( response ) {
+					details.shippingOptions.forEach( function( value, index ) {
+						if ( value.id === shippingOption ) {
+							selected = index;
+							value.selected = true;
+							details.total.amount.value = parseFloat( response.total );
+
+							if ( response.items ) {
+								details.displayItems = response.items;
+							}
+						} else {
+							value.selected = false;
+						}
+					});
+
+					if ( null === selected ) {
+						reject( wcStripePaymentRequestParams.i18n.unknown_shipping.toString().replace( '[option]', shippingOption ) );
+					}
+
+					resolve( details );
 				}
 			});
-
-			if ( null === selected ) {
-				reject( wcStripePaymentRequestParams.i18n.unknown_shipping.toString().replace( '[option]', shippingOption ) );
-			}
-
-			resolve( details );
 		},
 
 		/**
