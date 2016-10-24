@@ -74,7 +74,6 @@
 		initPaymentRequest: function( evt ) {
 			evt.preventDefault();
 			var self = wcStripePaymentRequest;
-
 			var data = {
 				security: wcStripePaymentRequestParams.nonce.payment
 			};
@@ -95,43 +94,42 @@
 		 * @param {Object} details Payment request details.
 		 */
 		openPaymentRequest: function( details ) {
-			var self = wcStripePaymentRequest;
+			var self = this;
 
+			// PaymentRequest options.
 			var supportedInstruments = [{
 				supportedMethods: self.getSupportedMethods()
 			}];
-
 			var options = {
 				requestPayerPhone: true,
 				requestPayerEmail: true
 			};
-
 			if ( details.shipping_required ) {
 				options.requestShipping = true;
 			}
-
 			var paymentDetails = details.order_data;
 			self.total = parseFloat( paymentDetails.total.amount.value );
 
+			// Init PaymentRequest.
 			var request = new PaymentRequest( supportedInstruments, paymentDetails, options );
 
+			// Set up shipping.
 			request.addEventListener( 'shippingaddresschange', function( evt ) {
 				evt.updateWith( new Promise( function( resolve ) {
 					self.updateShippingOptions( paymentDetails, request.shippingAddress, resolve );
 				}));
 			});
-
 			request.addEventListener( 'shippingoptionchange', function( evt ) {
 				evt.updateWith( new Promise( function( resolve, reject ) {
 					self.updateShippingDetails( paymentDetails, request.shippingOption, resolve, reject );
 				}));
 			});
 
-			request.show().then( function( response ) {
-				self.processPayment( response );
+			// Open RequestPayment.
+			request.show().then( function( payment ) {
+				self.processPayment( payment );
 			})
 			.catch( function( err ) {
-				// @TODO
 				console.error( err );
 			});
 		},
@@ -139,12 +137,12 @@
 		/**
 		 * Update shipping options.
 		 *
-		 * @param  {Object}         details  Payment details.
-		 * @param  {PaymentAddress} address  Shipping address.
-		 * @param  {Function}       callback Callback function to update the shipping options.
+		 * @param {Object}         details Payment details.
+		 * @param {PaymentAddress} address Shipping address.
+		 * @param {Function}       resolve The callback to invoke with updated line items and shipping options.
 		 */
-		updateShippingOptions: function( details, address, callback ) {
-			var self = wcStripePaymentRequest;
+		updateShippingOptions: function( details, address, resolve ) {
+			var self = this;
 			var data = {
 				security:  wcStripePaymentRequestParams.nonce.shipping,
 				country:   address.country,
@@ -161,7 +159,7 @@
 				url:     self.getAjaxURL( 'get_shipping_options' ),
 				success: function( response ) {
 					details.shippingOptions = response;
-					callback( details );
+					resolve( details );
 				}
 			});
 		},
@@ -175,7 +173,7 @@
 		 * @param {Function} reject         The callback to invoke in case of failure.
 		 */
 		updateShippingDetails: function( details, shippingOption, resolve, reject ) {
-			var self     = wcStripePaymentRequest;
+			var self     = this;
 			var selected = null;
 
 			details.shippingOptions.forEach( function( value, index ) {
@@ -276,31 +274,69 @@
 		},
 
 		/**
+		 * Generate error message HTML.
+		 *
+		 * @param  {String} message Error message.
+		 * @return {Object}
+		 */
+		getErrorMessageHTML: function( message ) {
+			return $( '<div class="woocommerce-error" />' ).text( message );
+		},
+
+		/**
+		 * Abort payment and display error messages.
+		 *
+		 * @param {PaymentResponse} payment Payment response instance.
+		 * @param {String}          message Error message to display.
+		 */
+		abortPayment: function( payment, message ) {
+			payment.complete( '' ).then( function() {
+				var $form = $( '.shop_table.cart' ).closest( 'form' );
+				$( '.woocommerce-error' ).remove();
+				$form.before( message );
+				$( 'html, body' ).animate({
+					scrollTop: $form.prev( '.woocommerce-error' ).offset().top
+				}, 600 );
+			})
+			.catch( function( err ) {
+				console.error( err );
+			});
+		},
+
+		/**
+		 * Complete payment.
+		 *
+		 * @param {PaymentResponse} payment Payment response instance.
+		 * @param {String}          url     Order thank you page URL.
+		 */
+		completePayment: function( payment, url ) {
+			payment.complete( 'success' ).then( function() {
+				// Success, then redirect to the Thank You page.
+				window.location = url;
+			})
+			.catch( function( err ) {
+				console.error( err );
+			});
+		},
+
+		/**
 		 * Process payment.
 		 *
-		 * @TODO: Create a error handler.
-		 * @TODO: Split this method in several other ones.
-		 *
-		 * @param {PaymentResponse} payment Payment Response instance.
+		 * @param {PaymentResponse} payment Payment response instance.
 		 */
 		processPayment: function( payment ) {
-			var self      = wcStripePaymentRequest;
+			var self      = this;
 			var orderData = self.getOrderData( payment );
 			var cardData  = self.getCardData( payment );
 
 			Stripe.setPublishableKey( wcStripePaymentRequestParams.stripe.key );
 			Stripe.createToken( cardData, function( status, response ) {
 				if ( response.error ) {
-					console.error( response );
+					self.abortPayment( payment, self.getErrorMessageHTML( response.error.message ) );
 				} else {
 					// Check if we allow prepaid cards.
 					if ( 'no' === wcStripePaymentRequestParams.stripe.allow_prepaid_card && 'prepaid' === response.card.funding ) {
-						response.error = {
-							message: wcStripePaymentRequestParams.i18n.no_prepaid_card
-						};
-
-						console.error( response );
-						return false;
+						self.abortPayment( payment, self.getErrorMessageHTML( wcStripePaymentRequestParams.i18n.no_prepaid_card ) );
 					} else {
 						// Token contains id, last4, and card type.
 						orderData.stripe_token = response.id;
@@ -312,19 +348,15 @@
 							url:      self.getAjaxURL( 'create_order' ),
 							success: function( response ) {
 								if ( 'success' === response.result ) {
-									payment.complete( 'success' )
-										.then( function() {
-											// Success, then redirect to the Thank You page.
-											window.location = response.redirect;
-										})
-										.catch( function( err ) {
-											console.error( err );
-										});
+									self.completePayment( payment, response.redirect );
+								} else {
+									self.abortPayment( payment, response.messages );
 								}
 							},
 							complete: function( jqXHR, textStatus ) {
-								console.log( jqXHR );
-								console.log( textStatus );
+								if ( 'success' !== textStatus ) {
+									console.error( jqXHR );
+								}
 							}
 						});
 					}
