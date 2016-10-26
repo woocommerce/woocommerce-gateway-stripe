@@ -34,9 +34,12 @@ class WC_Stripe_Payment_Request {
 	 * @return bool
 	 */
 	protected function is_activated() {
-		$options = get_option( 'woocommerce_stripe_settings', array() );
+		$options             = get_option( 'woocommerce_stripe_settings', array() );
+		$enabled             = isset( $options['enabled'] ) && 'yes' === $options['enabled'];
+		$stripe_checkout     = isset( $options['stripe_checkout'] ) && 'yes' !== $options['stripe_checkout'];
+		$request_payment_api = isset( $options['request_payment_api'] ) && 'yes' === $options['request_payment_api'];
 
-		return is_ssl() && ! empty( $options['enabled'] ) && 'yes' === $options['enabled'];
+		return $enabled && $stripe_checkout && $request_payment_api && is_ssl();
 	}
 
 	/**
