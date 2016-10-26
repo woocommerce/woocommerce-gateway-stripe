@@ -71,7 +71,6 @@ class WC_Stripe_Payment_Request {
 		}
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
-		$suffix = '';
 
 		wp_enqueue_script( 'stripe', 'https://js.stripe.com/v2/', '', '1.0', true );
 		wp_enqueue_script( 'wc-stripe-payment-request', plugins_url( 'assets/js/payment-request' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery', 'stripe' ), WC_STRIPE_VERSION, true );
