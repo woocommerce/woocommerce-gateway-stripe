@@ -64,6 +64,10 @@ jQuery( function( $ ) {
 				.on(
 					'stripeError',
 					this.onError
+				)
+				.on(
+					'checkout_error',
+					this.clearToken
 				);
 		},
 
@@ -181,6 +185,10 @@ jQuery( function( $ ) {
 				wc_stripe_form.form.append( "<input type='hidden' class='stripe_token' name='stripe_token' value='" + token + "'/>" );
 				wc_stripe_form.form.submit();
 			}
+		},
+
+		clearToken: function() {
+			$( '.stripe_token' ).remove();
 		}
 	};
 

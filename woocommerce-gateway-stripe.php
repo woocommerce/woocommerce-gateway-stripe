@@ -323,8 +323,12 @@ class WC_Stripe {
 					update_post_meta( $order->id, 'Stripe Payment ID', $result->id );
 
 					if ( isset( $result->balance_transaction ) && isset( $result->balance_transaction->fee ) ) {
-						update_post_meta( $order->id, 'Stripe Fee', number_format( $result->balance_transaction->fee / 100, 2, '.', '' ) );
-						update_post_meta( $order->id, 'Net Revenue From Stripe', ( $order->order_total - number_format( $result->balance_transaction->fee / 100, 2, '.', '' ) ) );
+						// Fees and Net needs to both come from Stripe to be accurate as the returned
+						// values are in the local currency of the Stripe account, not from WC.
+						$fee = ! empty( $result->balance_transaction->fee ) ? number_format( $result->balance_transaction->fee / 100, 2, '.', '' ) : 0;
+						$net = ! empty( $result->balance_transaction->net ) ? number_format( $result->balance_transaction->net / 100, 2, '.', '' ) : 0;
+						update_post_meta( $order->id, 'Stripe Fee', $fee );
+						update_post_meta( $order->id, 'Net Revenue From Stripe', $net );
 					}
 				}
 			}
