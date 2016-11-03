@@ -600,7 +600,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 				'redirect' => $this->get_return_url( $order )
 			);
 
-		} catch ( Exception $e ) {error_log( 'order:  ' . print_r($order,true));
+		} catch ( Exception $e ) {
 			wc_add_notice( $e->getMessage(), 'error' );
 			WC_Stripe::log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
