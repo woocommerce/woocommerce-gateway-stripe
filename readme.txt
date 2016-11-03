@@ -92,6 +92,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - After a failed/declined process, valid cards are not accepted.
 * Fix - When paying via pay order page/link, billing info is not sent.
 * Fix - Account for all types of errors for proper localization.
+* Fix - Correctly reference Stripe fees/net based on Stripe account locale.
 
 = 3.0.5 =
 * Fix - Previous upload of files didn't take. Retry.

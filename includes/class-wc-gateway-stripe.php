@@ -592,6 +592,8 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			// Remove cart.
 			WC()->cart->empty_cart();
 
+			do_action( 'wc_gateway_stripe_process_payment', $response, $order );
+			
 			// Return thank you page redirect.
 			return array(
 				'result'   => 'success',
@@ -641,9 +643,12 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 		// Store other data such as fees
 		if ( isset( $response->balance_transaction ) && isset( $response->balance_transaction->fee ) ) {
-			$fee = number_format( $response->balance_transaction->fee / 100, 2, '.', '' );
+			// Fees and Net needs to both come from Stripe to be accurate as the returned
+			// values are in the local currency of the Stripe account, not from WC.
+			$fee = ! empty( $response->balance_transaction->fee ) ? number_format( $response->balance_transaction->fee / 100, 2, '.', '' ) : 0;
+			$net = ! empty( $response->balance_transaction->net ) ? number_format( $response->balance_transaction->net / 100, 2, '.', '' ) : 0;
 			update_post_meta( $order->id, 'Stripe Fee', $fee );
-			update_post_meta( $order->id, 'Net Revenue From Stripe', $order->get_total() - $fee );
+			update_post_meta( $order->id, 'Net Revenue From Stripe', $net );
 		}
 
 		if ( $response->captured ) {
