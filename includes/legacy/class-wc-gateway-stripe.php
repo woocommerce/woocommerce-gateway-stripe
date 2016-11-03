@@ -345,7 +345,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway {
 			$post_data['source'] = $source->source;
 		}
 
-		return $post_data;
+		return apply_filters( 'wc_stripe_generate_payment_request', $post_data, $order, $source );
 	}
 
 	/**
