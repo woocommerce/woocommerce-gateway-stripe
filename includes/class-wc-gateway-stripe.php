@@ -593,20 +593,22 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			WC()->cart->empty_cart();
 
 			do_action( 'wc_gateway_stripe_process_payment', $response, $order );
-			
+
 			// Return thank you page redirect.
 			return array(
 				'result'   => 'success',
 				'redirect' => $this->get_return_url( $order )
 			);
 
-		} catch ( Exception $e ) {
+		} catch ( Exception $e ) {error_log( 'order:  ' . print_r($order,true));
 			wc_add_notice( $e->getMessage(), 'error' );
 			WC_Stripe::log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );
 			}
+
+			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
 			return array(
 				'result'   => 'fail',
