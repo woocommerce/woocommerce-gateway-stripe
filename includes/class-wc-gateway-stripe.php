@@ -600,14 +600,16 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 		} catch ( Exception $e ) {
 			wc_add_notice( $e->getMessage(), 'error' );
-			WC()->session->set( 'refresh_totals', true );
 			WC_Stripe::log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );
 			}
 
-			return;
+			return array(
+				'result'   => 'fail',
+				'redirect' => ''
+			);
 		}
 	}
 

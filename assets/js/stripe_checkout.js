@@ -20,6 +20,8 @@ jQuery( function( $ ) {
 
 				// WooCommerce lets us return a false on checkout_place_order_{gateway} to keep the form from submitting
 				.on( 'submit checkout_place_order_stripe' );
+
+			$( document.body ).on( 'checkout_error', this.resetModal );
 		},
 
 		isStripeChosen: function() {
@@ -129,6 +131,11 @@ jQuery( function( $ ) {
 			}
 
 			return true;
+		},
+
+		resetModal: function() {
+			wc_stripe_form.form.find( 'input.stripe_token' ).remove();
+			wc_stripe_form.stripe_submit = false;
 		}
 	};
 
