@@ -191,6 +191,11 @@ class WC_Stripe_Payment_Request {
 			}
 		}
 
+		// Auto select when have only one shipping method available.
+		if ( 1 === count( $data ) ) {
+			$data[0]['selected'] = true;
+		}
+
 		wp_send_json( $data );
 	}
 
