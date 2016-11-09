@@ -3,7 +3,7 @@ Contributors: automattic, woothemes, mikejolley, akeda, royho, slash1andy, woost
 Tags: credit card, stripe, woocommerce
 Requires at least: 4.4
 Tested up to: 4.5
-Stable tag: 3.0.5
+Stable tag: 3.0.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -135,5 +135,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - When paying via pay order page/link, billing info is not sent.
 * Fix - Account for all types of errors for proper localization.
 * Fix - Correctly reference Stripe fees/net based on Stripe account locale.
+* Fix - Bitcoin image not showing.
 * New - Introduce "wc_gateway_stripe_process_payment_error" action hook.
 * New - Introduce "wc_gateway_stripe_process_payment" action hook.
