@@ -1,6 +1,6 @@
 <?php
 /**
- * Correios Payment Request API
+ * Stripe Payment Request API
  *
  * @package WooCommerce_Stripe/Classes/Payment_Request
  * @since   3.1.0
