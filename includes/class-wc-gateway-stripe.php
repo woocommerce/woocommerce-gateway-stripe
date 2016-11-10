@@ -248,15 +248,17 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 		wc_enqueue_js( "
 			jQuery( function( $ ) {
-				$( '#woocommerce_stripe_stripe_checkout' ).change(function(){
+				$( '#woocommerce_stripe_stripe_checkout' ).change( function() {
 					if ( $( this ).is( ':checked' ) ) {
 						$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image' ).closest( 'tr' ).show();
+						$( '#woocommerce_stripe_request_payment_api' ).closest( 'tr' ).hide();
 					} else {
 						$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image' ).closest( 'tr' ).hide();
+						$( '#woocommerce_stripe_request_payment_api' ).closest( 'tr' ).show();
 					}
 				}).change();
 
-				$( '#woocommerce_stripe_secret_key, #woocommerce_stripe_publishable_key' ).change(function(){
+				$( '#woocommerce_stripe_secret_key, #woocommerce_stripe_publishable_key' ).change( function() {
 					var value = $( this ).val();
 
 					if ( value.indexOf( '_test_' ) >= 0 ) {
@@ -267,7 +269,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 					}
 				}).change();
 
-				$( '#woocommerce_stripe_test_secret_key, #woocommerce_stripe_test_publishable_key' ).change(function(){
+				$( '#woocommerce_stripe_test_secret_key, #woocommerce_stripe_test_publishable_key' ).change( function() {
 					var value = $( this ).val();
 
 					if ( value.indexOf( '_live_' ) >= 0 ) {
@@ -324,7 +326,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 		if ( ! $this->stripe_checkout ) {
 			$this->form();
-			
+
 			if ( $display_tokenization ) {
 				$this->save_payment_method_checkbox();
 			}
@@ -366,7 +368,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 */
 	public function payment_scripts() {
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
-		
+
 		if ( $this->stripe_checkout ) {
 			wp_enqueue_script( 'stripe', 'https://checkout.stripe.com/v2/checkout.js', '', '2.0', true );
 			wp_enqueue_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe_checkout' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'stripe' ), WC_STRIPE_VERSION, true );
