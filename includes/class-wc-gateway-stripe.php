@@ -39,6 +39,13 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	public $stripe_checkout_image;
 
 	/**
+	 * Checkout Disable Remember Me Option
+	 *
+	 * @var bool
+	 */
+	public $stripe_disable_remember_me;
+
+	/**
 	 * Should we store the users credit cards?
 	 *
 	 * @var bool
@@ -114,19 +121,20 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$this->init_settings();
 
 		// Get setting values.
-		$this->title                  = $this->get_option( 'title' );
-		$this->description            = $this->get_option( 'description' );
-		$this->enabled                = $this->get_option( 'enabled' );
-		$this->testmode               = 'yes' === $this->get_option( 'testmode' );
-		$this->capture                = 'yes' === $this->get_option( 'capture', 'yes' );
-		$this->stripe_checkout        = 'yes' === $this->get_option( 'stripe_checkout' );
-		$this->stripe_checkout_locale = $this->get_option( 'stripe_checkout_locale' );
-		$this->stripe_checkout_image  = $this->get_option( 'stripe_checkout_image', '' );
-		$this->saved_cards            = 'yes' === $this->get_option( 'saved_cards' );
-		$this->secret_key             = $this->testmode ? $this->get_option( 'test_secret_key' ) : $this->get_option( 'secret_key' );
-		$this->publishable_key        = $this->testmode ? $this->get_option( 'test_publishable_key' ) : $this->get_option( 'publishable_key' );
-		$this->bitcoin                = 'USD' === strtoupper( get_woocommerce_currency() ) && 'yes' === $this->get_option( 'stripe_bitcoin' );
-		$this->logging                = 'yes' === $this->get_option( 'logging' );
+		$this->title                      = $this->get_option( 'title' );
+		$this->description                = $this->get_option( 'description' );
+		$this->enabled                    = $this->get_option( 'enabled' );
+		$this->testmode                   = 'yes' === $this->get_option( 'testmode' );
+		$this->capture                    = 'yes' === $this->get_option( 'capture', 'yes' );
+		$this->stripe_checkout            = 'yes' === $this->get_option( 'stripe_checkout' );
+		$this->stripe_checkout_locale     = $this->get_option( 'stripe_checkout_locale' );
+		$this->stripe_checkout_image      = $this->get_option( 'stripe_checkout_image', '' );
+		$this->stripe_disable_remember_me = 'yes' === $this->get_option( 'stripe_disable_remember_me' );
+		$this->saved_cards                = 'yes' === $this->get_option( 'saved_cards' );
+		$this->secret_key                 = $this->testmode ? $this->get_option( 'test_secret_key' ) : $this->get_option( 'secret_key' );
+		$this->publishable_key            = $this->testmode ? $this->get_option( 'test_publishable_key' ) : $this->get_option( 'publishable_key' );
+		$this->bitcoin                    = 'USD' === strtoupper( get_woocommerce_currency() ) && 'yes' === $this->get_option( 'stripe_bitcoin' );
+		$this->logging                    = 'yes' === $this->get_option( 'logging' );
 
 		if ( $this->stripe_checkout ) {
 			$this->order_button_text = __( 'Continue to payment', 'woocommerce-gateway-stripe' );
@@ -154,6 +162,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	public function get_icon() {
 		$ext   = version_compare( WC()->version, '2.6', '>=' ) ? '.svg' : '.png';
 		$style = version_compare( WC()->version, '2.6', '>=' ) ? 'style="margin-left: 0.3em"' : '';
+		$style = apply_filters( 'woocommerce_gateway_icon_style', $style, $this->id );
 
 		$icon  = '<img src="' . WC_HTTPS::force_https_url( WC()->plugin_url() . '/assets/images/icons/credit-cards/visa' . $ext ) . '" alt="Visa" width="32" ' . $style . ' />';
 		$icon .= '<img src="' . WC_HTTPS::force_https_url( WC()->plugin_url() . '/assets/images/icons/credit-cards/mastercard' . $ext ) . '" alt="Mastercard" width="32" ' . $style . ' />';
@@ -250,10 +259,10 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			jQuery( function( $ ) {
 				$( '#woocommerce_stripe_stripe_checkout' ).change( function() {
 					if ( $( this ).is( ':checked' ) ) {
-						$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image' ).closest( 'tr' ).show();
+						$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image, #woocommerce_stripe_stripe_disable_remember_me' ).closest( 'tr' ).show();
 						$( '#woocommerce_stripe_request_payment_api' ).closest( 'tr' ).hide();
 					} else {
-						$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image' ).closest( 'tr' ).hide();
+						$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image, #woocommerce_stripe_stripe_disable_remember_me' ).closest( 'tr' ).hide();
 						$( '#woocommerce_stripe_request_payment_api' ).closest( 'tr' ).show();
 					}
 				}).change();
@@ -313,7 +322,8 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '"
 			data-image="' . esc_attr( $this->stripe_checkout_image ) . '"
 			data-bitcoin="' . esc_attr( $this->bitcoin ? 'true' : 'false' ) . '"
-			data-locale="' . esc_attr( $this->stripe_checkout_locale ? $this->stripe_checkout_locale : 'en' ) . '">';
+			data-locale="' . esc_attr( $this->stripe_checkout_locale ? $this->stripe_checkout_locale : 'en' ) . '"
+			data-allow-remember-me="' . esc_attr( $this->stripe_disable_remember_me ? 'false' : 'true' ) . '">';
 
 		if ( $this->description ) {
 			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $this->description ) ) );
@@ -586,8 +596,10 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 				}
 
 				// Process valid response.
+				do_action( 'wc_gateway_stripe_process_payment_before_order_email', $response, $order );
 				$this->process_response( $response, $order );
 			} else {
+				do_action( 'wc_gateway_stripe_process_payment_before_order_email', $response, $order );
 				$order->payment_complete();
 			}
 
@@ -606,6 +618,8 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			wc_add_notice( $e->getMessage(), 'error' );
 			WC_Stripe::log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
+			do_action( 'wc_gateway_stripe_process_payment_before_order_email', $response, $order );
+			
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );
 			}

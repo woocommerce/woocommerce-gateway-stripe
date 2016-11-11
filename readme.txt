@@ -1,5 +1,5 @@
-=== WooCommerce Stripe Payment Gateway ===
-Contributors: automattic, woothemes, mikejolley, akeda, royho, slash1andy, woosteve, spraveenitpro, mikedmoore, fernashes, shellbeezy, danieldudzic, mikaey, dsmithweb, fullysupportedphil, corsonr
+﻿=== WooCommerce Stripe Payment Gateway ===
+Contributors: automattic, woothemes, mikejolley, akeda, royho, slash1andy, woosteve, spraveenitpro, mikedmoore, fernashes, shellbeezy, danieldudzic, mikaey, dsmithweb, fullysupportedphil, corsonr, clariontools
 Tags: credit card, stripe, woocommerce
 Requires at least: 4.4
 Tested up to: 4.5
@@ -86,6 +86,13 @@ If you get stuck, you can ask for help in the Plugin Forum.
 5. Using the Stripe checkout modal.
 
 == Changelog ==
+
+= 3.0.7 =
+* Fix - stripe_checkout.min.js for 3.0.6 was actually old version from 3.0.5.
+* Fix - Remove extra unary logic on wc_stripe_checkout_require_billing_address in stripe_checkout.js.
+* New - Plugin option to disable the Stripe Checkout mode "Remember Me" option.
+* New - Filter on gateway icon images style tag. "woocommerce_gateway_icon_style".
+* New - Introduce "wc_gateway_stripe_process_payment_before_order_email" action hook.
 
 = 3.0.6 =
 * Fix - When adding declined cards, fatal error is thrown.
