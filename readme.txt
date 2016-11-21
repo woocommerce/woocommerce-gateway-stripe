@@ -87,7 +87,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 3.1.0 =
+= 3.0.7 =
 * New - Option to allow/disallow remember me on Stripe checkout modal.
 * Fix - Paying for order incorrectly uses cart amount.
 * Fix - Using WC function before checking exists causes fatal error.

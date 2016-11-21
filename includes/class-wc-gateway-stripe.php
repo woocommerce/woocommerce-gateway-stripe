@@ -67,6 +67,13 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	public $bitcoin;
 
 	/**
+	 * Alow Remember me setting for Stripe Checkout
+	 *
+	 * @var bool
+	 */
+	public $allow_remember_me;
+
+	/**
 	 * Is test mode active?
 	 *
 	 * @var bool
@@ -127,6 +134,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$this->publishable_key        = $this->testmode ? $this->get_option( 'test_publishable_key' ) : $this->get_option( 'publishable_key' );
 		$this->bitcoin                = 'USD' === strtoupper( get_woocommerce_currency() ) && 'yes' === $this->get_option( 'stripe_bitcoin' );
 		$this->logging                = 'yes' === $this->get_option( 'logging' );
+		$this->allow_remember_me      = 'yes' === $this->get_option( 'allow_remember_me', 'no' );
 
 		if ( $this->stripe_checkout ) {
 			$this->order_button_text = __( 'Continue to payment', 'woocommerce-gateway-stripe' );
@@ -248,11 +256,32 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 		wc_enqueue_js( "
 			jQuery( function( $ ) {
-				$( '#woocommerce_stripe_stripe_checkout' ).change(function(){
+				$( document.body ).on( 'change', '#woocommerce_stripe_testmode', function() {
+					var test_secret_key = $( '#woocommerce_stripe_test_secret_key' ).parents( 'tr' ).eq( 0 ),
+						test_publishable_key = $( '#woocommerce_stripe_test_publishable_key' ).parents( 'tr' ).eq( 0 ),
+						live_secret_key = $( '#woocommerce_stripe_secret_key' ).parents( 'tr' ).eq( 0 ),
+						live_publishable_key = $( '#woocommerce_stripe_publishable_key' ).parents( 'tr' ).eq( 0 );
+
 					if ( $( this ).is( ':checked' ) ) {
-						$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image' ).closest( 'tr' ).show();
+						test_secret_key.show();
+						test_publishable_key.show();
+						live_secret_key.hide();
+						live_publishable_key.hide();
 					} else {
-						$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image' ).closest( 'tr' ).hide();
+						test_secret_key.hide();
+						test_publishable_key.hide();
+						live_secret_key.show();
+						live_publishable_key.show();
+					}
+				} );
+
+				$( '#woocommerce_stripe_testmode' ).change();
+
+				$( '#woocommerce_stripe_stripe_checkout' ).change( function() {
+					if ( $( this ).is( ':checked' ) ) {
+						$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image, #woocommerce_stripe_allow_remember_me' ).closest( 'tr' ).show();
+					} else {
+						$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image, #woocommerce_stripe_allow_remember_me' ).closest( 'tr' ).hide();
 					}
 				}).change();
 
@@ -318,7 +347,8 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '"
 			data-image="' . esc_attr( $this->stripe_checkout_image ) . '"
 			data-bitcoin="' . esc_attr( $this->bitcoin ? 'true' : 'false' ) . '"
-			data-locale="' . esc_attr( $this->stripe_checkout_locale ? $this->stripe_checkout_locale : 'en' ) . '">';
+			data-locale="' . esc_attr( $this->stripe_checkout_locale ? $this->stripe_checkout_locale : 'en' ) . '"
+			data-allow-remember-me="' . esc_attr( $this->allow_remember_me ? 'true' : 'false' ) . '">';
 
 		if ( $this->description ) {
 			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $this->description ) ) );
