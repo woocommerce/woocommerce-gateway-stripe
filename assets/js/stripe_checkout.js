@@ -113,7 +113,7 @@ jQuery( function( $ ) {
 
 				StripeCheckout.open({
 					key               : wc_stripe_params.key,
-					billingAddress    : 'yes' === wc_stripe_params.stripe_checkout_require_billing_address ? true : false,
+					billingAddress    : 'yes' === wc_stripe_params.stripe_checkout_require_billing_address,
 					amount            : $data.data( 'amount' ),
 					name              : $data.data( 'name' ),
 					description       : $data.data( 'description' ),
@@ -123,6 +123,7 @@ jQuery( function( $ ) {
 					locale            : $data.data( 'locale' ),
 					email             : $( '#billing_email' ).val() || $data.data( 'email' ),
 					panelLabel        : $data.data( 'panel-label' ),
+					allowRememberMe   : $data.data( 'allow-remember-me' ),
 					token             : token_action,
 					closed            : wc_stripe_form.onClose()
 				});

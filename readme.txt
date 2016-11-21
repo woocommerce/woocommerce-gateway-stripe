@@ -87,6 +87,11 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.1.0 =
+* New - Apply Pay Support.
+* New - Option to allow/disallow remember me on Stripe checkout modal.
+* New - Add Google Payment Request API.
+
 = 3.0.6 =
 * Fix - When adding declined cards, fatal error is thrown.
 * Fix - After a failed/declined process, valid cards are not accepted.
