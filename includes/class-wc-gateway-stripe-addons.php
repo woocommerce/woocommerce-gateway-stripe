@@ -100,8 +100,9 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	 * @param  bool initial_payment
 	 */
 	public function process_subscription_payment( $order = '', $amount = 0 ) {
-		if ( $amount * 100 < 50 ) {
-			return new WP_Error( 'stripe_error', __( 'Sorry, the minimum allowed order total is 0.50 to use this payment method.', 'woocommerce-gateway-stripe' ) );
+		
+		if ( $amount * 100 < WC_Stripe::get_minimum_amount() ) {
+			return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe::get_minimum_amount() / 100 ) ) );
 		}
 
 		// Get source from order
@@ -146,8 +147,8 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 			try {
 				$order = wc_get_order( $order_id );
 
-				if ( $order->get_total() * 100 < 50 ) {
-					throw new Exception( __( 'Sorry, the minimum allowed order total is 0.50 to use this payment method.', 'woocommerce-gateway-stripe' ) );
+				if ( $order->get_total() * 100 < WC_Stripe::get_minimum_amount() ) {
+					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe::get_minimum_amount() / 100 ) ) );
 				}
 
 				$source = $this->get_source( get_current_user_id(), true );

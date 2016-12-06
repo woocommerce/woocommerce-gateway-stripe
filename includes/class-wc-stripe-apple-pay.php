@@ -194,8 +194,8 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			// Handle payment.
 			if ( $order->get_total() > 0 ) {
 
-				if ( $order->get_total() * 100 < 50 ) {
-					throw new Exception( __( 'Sorry, the minimum allowed order total is 0.50 to use this payment method.', 'woocommerce-gateway-stripe' ) );
+				if ( $order->get_total() * 100 < WC_Stripe::get_minimum_amount() ) {
+					return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe::get_minimum_amount() / 100 ) ) );
 				}
 
 				WC_Stripe::log( "Info: Begin processing payment for order $order->id for the amount of {$order->get_total()}" );
