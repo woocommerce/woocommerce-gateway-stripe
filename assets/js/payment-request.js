@@ -117,7 +117,7 @@
 				}));
 			});
 
-			// Open RequestPayment.
+			// Open Payment Request UI.
 			request.show().then( function( payment ) {
 				self.processPayment( payment );
 			})
