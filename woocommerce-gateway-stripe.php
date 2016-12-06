@@ -419,7 +419,7 @@ class WC_Stripe {
 	/**
 	 * Checks Stripe minimum order value authorized per currency
 	 */
-	public function get_minimum_amount() {
+	public static function get_minimum_amount() {
 	
 		// Check order amount
 		switch ( get_woocommerce_currency() ) {
