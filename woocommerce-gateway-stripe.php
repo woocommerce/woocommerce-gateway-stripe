@@ -415,6 +415,49 @@ class WC_Stripe {
 			$stripe_customer->set_default_card( $token->get_token() );
 		}
 	}
+	
+	/**
+	 * Checks Stripe minimum order value authorized per currency
+	 */
+	public function get_minimum_amount() {
+	
+		// Check order amount
+		switch ( get_woocommerce_currency() ) {
+			case 'USD':
+			case 'CAD':
+			case 'EUR':
+			case 'CHF':
+			case 'AUD':
+			case 'SGD':
+				$minimum_amount = 50;
+				break;
+			case 'GBP':
+				$minimum_amount = 30;
+				break;
+			case 'DKK':
+				$minimum_amount = 250;
+				break;
+			case 'NOK':
+			case 'SEK':
+				$minimum_amount = 300;
+				break;
+			case 'JPY':
+				$minimum_amount = 5000;
+				break;
+			case 'MXN':
+				$minimum_amount = 1000;
+				break;
+			case 'HKD':
+				$minimum_amount = 400;
+				break;
+			default:
+				$minimum_amount = 50;
+				break;
+		}
+		
+		return $minimum_amount;
+		
+	}
 
 	/**
 	 * What rolls down stairs
