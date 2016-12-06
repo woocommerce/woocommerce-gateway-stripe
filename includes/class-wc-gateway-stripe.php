@@ -602,41 +602,8 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			// Handle payment.
 			if ( $order->get_total() > 0 ) {
 
-				// Check order amount
-				switch ( get_woocommerce_currency() ) {
-					case 'USD':
-					case 'CAD':
-					case 'EUR':
-					case 'CHF':
-					case 'AUD':
-					case 'SGD':
-						$minimum_amount = 50;
-						break;
-					case 'GBP':
-						$minimum_amount = 30;
-						break;
-					case 'DKK':
-						$minimum_amount = 250;
-						break;
-					case 'NOK':
-					case 'SEK':
-						$minimum_amount = 300;
-						break;
-					case 'JPY':
-						$minimum_amount = 5000;
-						break;
-					case 'MXN':
-						$minimum_amount = 1000;
-						break;
-					case 'HKD':
-						$minimum_amount = 400;
-						break;
-					default:
-						$minimum_amount = 50;
-						break;
-				}
-				if ( $order->get_total() * 100 < $minimum_amount ) {
-					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( $minimum_amount / 100 ) ) );
+				if ( $order->get_total() * 100 < WC_Stripe::get_minimum_amount() ) {
+					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe::get_minimum_amount() / 100 ) ) );
 				}
 
 				WC_Stripe::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
