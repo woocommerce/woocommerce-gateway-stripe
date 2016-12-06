@@ -3,7 +3,7 @@ Stripe.setPublishableKey( wc_stripe_params.key );
 
 jQuery( function( $ ) {
 	'use strict';
-	
+
 	/* Open and close for legacy class */
 	$( 'form.checkout, form#order_review' ).on( 'change', 'input[name="wc-stripe-payment-token"]', function() {
 		if ( 'new' === $( '.stripe-legacy-payment-fields input[name="wc-stripe-payment-token"]:checked' ).val() ) {
@@ -64,6 +64,10 @@ jQuery( function( $ ) {
 				.on(
 					'stripeError',
 					this.onError
+				)
+				.on(
+					'checkout_error',
+					this.clearToken
 				);
 		},
 
@@ -92,7 +96,19 @@ jQuery( function( $ ) {
 		onError: function( e, responseObject ) {
 			var message = responseObject.response.error.message;
 
-			if ( wc_stripe_params.hasOwnProperty( responseObject.response.error.code ) ) {
+			// Customers do not need to know the specifics of the below type of errors
+			// therefore return a generic localizable error message.
+			if ( 
+				'invalid_request_error' === responseObject.response.error.type ||
+				'api_connection_error'  === responseObject.response.error.type ||
+				'api_error'             === responseObject.response.error.type ||
+				'authentication_error'  === responseObject.response.error.type ||
+				'rate_limit_error'      === responseObject.response.error.type
+			) {
+				message = wc_stripe_params.invalid_request_error;
+			}
+
+			if ( 'card_error' === responseObject.response.error.type && wc_stripe_params.hasOwnProperty( responseObject.response.error.code ) ) {
 				message = wc_stripe_params[ responseObject.response.error.code ];
 			}
 
@@ -169,6 +185,10 @@ jQuery( function( $ ) {
 				wc_stripe_form.form.append( "<input type='hidden' class='stripe_token' name='stripe_token' value='" + token + "'/>" );
 				wc_stripe_form.form.submit();
 			}
+		},
+
+		clearToken: function() {
+			$( '.stripe_token' ).remove();
 		}
 	};
 

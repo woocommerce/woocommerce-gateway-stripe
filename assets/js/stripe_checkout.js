@@ -20,6 +20,8 @@ jQuery( function( $ ) {
 
 				// WooCommerce lets us return a false on checkout_place_order_{gateway} to keep the form from submitting
 				.on( 'submit checkout_place_order_stripe' );
+
+			$( document.body ).on( 'checkout_error', this.resetModal );
 		},
 
 		isStripeChosen: function() {
@@ -111,7 +113,7 @@ jQuery( function( $ ) {
 
 				StripeCheckout.open({
 					key               : wc_stripe_params.key,
-					billingAddress    : 'yes' === wc_stripe_params.stripe_checkout_require_billing_address ? true : false,
+					billingAddress    : 'yes' === wc_stripe_params.stripe_checkout_require_billing_address,
 					amount            : $data.data( 'amount' ),
 					name              : $data.data( 'name' ),
 					description       : $data.data( 'description' ),
@@ -121,6 +123,7 @@ jQuery( function( $ ) {
 					locale            : $data.data( 'locale' ),
 					email             : $( '#billing_email' ).val() || $data.data( 'email' ),
 					panelLabel        : $data.data( 'panel-label' ),
+					allowRememberMe   : $data.data( 'allow-remember-me' ),
 					token             : token_action,
 					closed            : wc_stripe_form.onClose()
 				});
@@ -129,6 +132,11 @@ jQuery( function( $ ) {
 			}
 
 			return true;
+		},
+
+		resetModal: function() {
+			wc_stripe_form.form.find( 'input.stripe_token' ).remove();
+			wc_stripe_form.stripe_submit = false;
 		}
 	};
 

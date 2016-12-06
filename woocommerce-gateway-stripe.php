@@ -5,7 +5,7 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: Automattic
  * Author URI: https://woocommerce.com/
- * Version: 3.0.5
+ * Version: 3.0.6
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  *
@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '3.0.5' );
+define( 'WC_STRIPE_VERSION', '3.0.6' );
 define( 'WC_STRIPE_MIN_PHP_VER', '5.3.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '2.5.0' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
@@ -121,8 +121,8 @@ class WC_Stripe {
 			return;
 		}
 
-		include_once( plugin_basename( 'includes/class-wc-stripe-api.php' ) );
-		include_once( plugin_basename( 'includes/class-wc-stripe-customer.php' ) );
+		include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php' );
+		include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php' );
 
 		// Init the gateway itself
 		$this->init_gateways();
@@ -135,6 +135,8 @@ class WC_Stripe {
 		add_filter( 'woocommerce_get_customer_payment_tokens', array( $this, 'woocommerce_get_customer_payment_tokens' ), 10, 3 );
 		add_action( 'woocommerce_payment_token_deleted', array( $this, 'woocommerce_payment_token_deleted' ), 10, 2 );
 		add_action( 'woocommerce_payment_token_set_default', array( $this, 'woocommerce_payment_token_set_default' ) );
+
+		include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-request.php' );
 	}
 
 	/**
@@ -161,7 +163,7 @@ class WC_Stripe {
 		// Check if secret key present. Otherwise prompt, via notice, to go to
 		// setting.
 		if ( ! class_exists( 'WC_Stripe_API' ) ) {
-			include_once( plugin_basename( 'includes/class-wc-stripe-api.php' ) );
+			include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php' );
 		}
 
 		$secret = WC_Stripe_API::get_secret_key();
@@ -182,10 +184,10 @@ class WC_Stripe {
 
 			return sprintf( $message, WC_STRIPE_MIN_PHP_VER, phpversion() );
 		}
-		
+
 		if ( ! defined( 'WC_VERSION' ) ) {
 			return __( 'WooCommerce Stripe requires WooCommerce to be activated to work.', 'woocommerce-gateway-stripe' );
-		} 
+		}
 
 		if ( version_compare( WC_VERSION, WC_STRIPE_MIN_WC_VER, '<' ) ) {
 			$message = __( 'WooCommerce Stripe - The minimum WooCommerce version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe', 'woocommerce-gateway-stripe' );
@@ -261,10 +263,11 @@ class WC_Stripe {
 		}
 
 		if ( class_exists( 'WC_Payment_Gateway_CC' ) ) {
-			include_once( plugin_basename( 'includes/class-wc-gateway-stripe.php' ) );
+			include_once( dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php' );
+			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-apple-pay.php' );
 		} else {
-			include_once( plugin_basename( 'includes/legacy/class-wc-gateway-stripe.php' ) );
-			include_once( plugin_basename( 'includes/legacy/class-wc-gateway-stripe-saved-cards.php' ) );
+			include_once( dirname( __FILE__ ) . '/includes/legacy/class-wc-gateway-stripe.php' );
+			include_once( dirname( __FILE__ ) . '/includes/legacy/class-wc-gateway-stripe-saved-cards.php' );
 		}
 
 		load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
@@ -277,7 +280,7 @@ class WC_Stripe {
 		);
 
 		if ( $load_addons ) {
-			require_once( plugin_basename( 'includes/class-wc-gateway-stripe-addons.php' ) );
+			require_once( dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe-addons.php' );
 		}
 	}
 
@@ -323,8 +326,12 @@ class WC_Stripe {
 					update_post_meta( $order->id, 'Stripe Payment ID', $result->id );
 
 					if ( isset( $result->balance_transaction ) && isset( $result->balance_transaction->fee ) ) {
-						update_post_meta( $order->id, 'Stripe Fee', number_format( $result->balance_transaction->fee / 100, 2, '.', '' ) );
-						update_post_meta( $order->id, 'Net Revenue From Stripe', ( $order->order_total - number_format( $result->balance_transaction->fee / 100, 2, '.', '' ) ) );
+						// Fees and Net needs to both come from Stripe to be accurate as the returned
+						// values are in the local currency of the Stripe account, not from WC.
+						$fee = ! empty( $result->balance_transaction->fee ) ? number_format( $result->balance_transaction->fee / 100, 2, '.', '' ) : 0;
+						$net = ! empty( $result->balance_transaction->net ) ? number_format( $result->balance_transaction->net / 100, 2, '.', '' ) : 0;
+						update_post_meta( $order->id, 'Stripe Fee', $fee );
+						update_post_meta( $order->id, 'Net Revenue From Stripe', $net );
 					}
 				}
 			}
