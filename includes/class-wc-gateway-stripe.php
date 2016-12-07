@@ -326,6 +326,13 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	public function payment_fields() {
 		$user                 = wp_get_current_user();
 		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
+		$total                = WC()->cart->total;
+
+		// If paying from order, we need to get total from order not cart.
+		if ( isset( $_GET['pay_for_order'] ) && isset( $_GET['key'] ) ) {
+			$order = wc_get_order( wc_get_order_id_by_order_key( wc_clean( $_GET['key'] ) ) );
+			$total = $order->get_total();
+		}
 
 		if ( $user->ID ) {
 			$user_email = get_user_meta( $user->ID, 'billing_email', true );
@@ -345,7 +352,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			data-panel-label="' . esc_attr( $pay_button_text ) . '"
 			data-description=""
 			data-email="' . esc_attr( $user_email ) . '"
-			data-amount="' . esc_attr( $this->get_stripe_amount( WC()->cart->total ) ) . '"
+			data-amount="' . esc_attr( $this->get_stripe_amount( $total ) ) . '"
 			data-name="' . esc_attr( get_bloginfo( 'name', 'display' ) ) . '"
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '"
 			data-image="' . esc_attr( $this->stripe_checkout_image ) . '"
