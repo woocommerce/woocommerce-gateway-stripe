@@ -81,6 +81,13 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	public $apple_pay;
 
 	/**
+	 * Apple Pay button style.
+	 *
+	 * @var bool
+	 */
+	public $apple_pay_button;
+
+	/**
 	 * Is test mode active?
 	 *
 	 * @var bool
@@ -141,6 +148,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$this->publishable_key        = $this->testmode ? $this->get_option( 'test_publishable_key' ) : $this->get_option( 'publishable_key' );
 		$this->bitcoin                = 'USD' === strtoupper( get_woocommerce_currency() ) && 'yes' === $this->get_option( 'stripe_bitcoin' );
 		$this->apple_pay              = 'yes' === $this->get_option( 'apple_pay' );
+		$this->apple_pay_button       = $this->get_option( 'apple_pay_button', 'black' );
 		$this->logging                = 'yes' === $this->get_option( 'logging' );
 		$this->allow_remember_me      = 'yes' === $this->get_option( 'allow_remember_me', 'no' );
 
@@ -292,6 +300,14 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 					} else {
 						$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image, #woocommerce_stripe_allow_remember_me' ).closest( 'tr' ).hide();
 						$( '#woocommerce_stripe_request_payment_api' ).closest( 'tr' ).show();
+					}
+				}).change();
+
+				$( '#woocommerce_stripe_apple_pay' ).change( function() {
+					if ( $( this ).is( ':checked' ) ) {
+						$( '#woocommerce_stripe_apple_pay_button' ).closest( 'tr' ).show();
+					} else {
+						$( '#woocommerce_stripe_apple_pay_button' ).closest( 'tr' ).hide();
 					}
 				}).change();
 

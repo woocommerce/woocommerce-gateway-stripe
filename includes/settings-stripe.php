@@ -140,6 +140,18 @@ return apply_filters( 'wc_stripe_settings',
 			'default'     => 'no',
 			'desc_tip'    => true,
 		),
+		'apple_pay_button' => array(
+			'title'       => __( 'Apple Pay Button Style', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Button Style', 'woocommerce-gateway-stripe' ),
+			'type'        => 'select',
+			'description' => __( 'Select the button style you would like to show.', 'woocommerce-gateway-stripe' ),
+			'default'     => 'black',
+			'desc_tip'    => true,
+			'options'     => array(
+				'black' => __( 'Black', 'woocommerce-gateway-stripe' ),
+				'white' => __( 'White', 'woocommerce-gateway-stripe' ),
+			),
+		),
 		'saved_cards' => array(
 			'title'       => __( 'Saved Cards', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Enable Payment via Saved Cards', 'woocommerce-gateway-stripe' ),

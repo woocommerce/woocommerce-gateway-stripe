@@ -14,13 +14,13 @@ jQuery( function( $ ) {
 		init: function() {
 			Stripe.applePay.checkAvailability( function( available ) {
 				if ( available ) {
-					$( '#apple-pay-button' ).show();
+					$( '.apple-pay-button' ).show();
 
 					wc_stripe_apple_pay.generate_cart();
 				}
 			});
 
-			$( document.body ).on( 'click', '#apple-pay-button', function( e ) {
+			$( document.body ).on( 'click', '.apple-pay-button', function( e ) {
 				e.preventDefault();
 
 				// Clear any errors first.
@@ -32,7 +32,7 @@ jQuery( function( $ ) {
 					 ( $( '#shipping_method input[type="radio"]' ).length && ( ! $( '#shipping_method input[type="radio"]' ).is( ':checked' ) ) ||
 					 0 === $( wc_stripe_apple_pay_params.chosen_shipping ).length )
 				) {
-					$( '#apple-pay-button' ).before( '<p class="woocommerce-error wc-stripe-apple-pay-error">' + wc_stripe_apple_pay_params.needs_shipping_msg + '</p>' );
+					$( '.apple-pay-button' ).before( '<p class="woocommerce-error wc-stripe-apple-pay-error">' + wc_stripe_apple_pay_params.needs_shipping_msg + '</p>' );
 
 					// Scroll to error so user can see it.
 					$( document.body ).animate({ scrollTop: $( '.wc-stripe-apple-pay-error' ).offset().top }, 500 );
@@ -67,7 +67,7 @@ jQuery( function( $ ) {
 						if ( 'false' === response.success ) {
 							completion( ApplePaySession.STATUS_FAILURE );
 
-							$( '#apple-pay-button' ).before( '<p class="woocommerce-error wc-stripe-apple-pay-error">' + response.msg + '</p>' );
+							$( '.apple-pay-button' ).before( '<p class="woocommerce-error wc-stripe-apple-pay-error">' + response.msg + '</p>' );
 
 							// Scroll to error so user can see it.
 							$( document.body ).animate({ scrollTop: $( '.wc-stripe-apple-pay-error' ).offset().top }, 500 );

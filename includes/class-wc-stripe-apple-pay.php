@@ -147,8 +147,11 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		if ( ! $this->is_supported_product_type() ) {
 			return;
 		}
+
+		$apple_pay_button = ! empty( $this->_gateway_settings['apple_pay_button'] ) ? $this->_gateway_settings['apple_pay_button'] : 'black';
+		$country = strtolower( substr( get_option( 'woocommerce_default_country' ), 0, 2 ) );
 		?>
-		<button id="apple-pay-button"></button>
+		<button class="apple-pay-button" lang="<?php echo esc_attr( $country ); ?>" style="-webkit-appearance: -apple-pay-button; -apple-pay-button-type: buy; -apple-pay-button-style: <?php echo esc_attr( $apple_pay_button ); ?>;"></button>
 		<?php
 	}
 
