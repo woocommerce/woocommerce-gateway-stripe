@@ -29,8 +29,8 @@ jQuery( function( $ ) {
 				// If shipping is needed, we need to force customer to calculate shipping on cart page.
 				if ( 'yes' === wc_stripe_apple_pay_params.is_cart_page && 
 					 'yes' === wc_stripe_apple_pay_params.needs_shipping && 
-					 ( $( '#shipping_method input[type="radio"]' ).length && ! $( '#shipping_method input[type="radio"]' ).is( ':checked' ) ) ||
-					 0 === $( wc_stripe_apple_pay_params.chosen_shipping ).length
+					 ( $( '#shipping_method input[type="radio"]' ).length && ( ! $( '#shipping_method input[type="radio"]' ).is( ':checked' ) ) ||
+					 0 === $( wc_stripe_apple_pay_params.chosen_shipping ).length )
 				) {
 					$( '#apple-pay-button' ).before( '<p class="woocommerce-error wc-stripe-apple-pay-error">' + wc_stripe_apple_pay_params.needs_shipping_msg + '</p>' );
 
