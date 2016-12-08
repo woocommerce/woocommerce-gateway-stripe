@@ -429,6 +429,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			$shipping_address['phone']      = $data['shippingContact']['phoneNumber'];
 			$shipping_address['country']    = $data['shippingContact']['countryCode'];
 			$shipping_address['address_1']  = $data['shippingContact']['addressLines'][0];
+			$shipping_address['address_2']  = $data['shippingContact']['addressLines'][1];
 			$shipping_address['city']       = $data['shippingContact']['locality'];
 			$shipping_address['state']      = $data['shippingContact']['administrativeArea'];
 			$shipping_address['postcode']   = $data['shippingContact']['postalCode'];
