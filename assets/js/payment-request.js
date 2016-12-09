@@ -28,7 +28,7 @@
 		 * @return {Bool}
 		 */
 		hasPaymentRequestSupport: function() {
-			return 'PaymentRequest' in window && 'https:' === window.location.protocol;
+			return window.PaymentRequest && 'https:' === window.location.protocol;
 		},
 
 		/**
