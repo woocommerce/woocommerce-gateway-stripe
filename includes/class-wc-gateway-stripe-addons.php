@@ -160,9 +160,6 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 				// Store source to order meta
 				$this->save_source( $order, $source );
 
-				// Reduce stock levels
-				$order->reduce_order_stock();
-
 				// Remove cart
 				WC()->cart->empty_cart();
 
