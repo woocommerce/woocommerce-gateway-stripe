@@ -59,14 +59,11 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	public function init() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
 		add_action( 'woocommerce_proceed_to_checkout', array( $this, 'display_apple_pay_button' ), 20 );
-		add_action( 'woocommerce_review_order_before_payment', array( $this, 'display_apple_pay_button' ) );
-		
-		if ( is_admin() ) {
-			add_action( 'wp_ajax_wc_stripe_apple_pay', array( $this, 'process_apple_pay' ) );
-			add_action( 'wp_ajax_nopriv_wc_stripe_apple_pay', array( $this, 'process_apple_pay' ) );
-			add_action( 'wp_ajax_wc_stripe_generate_apple_pay_cart', array( $this, 'generate_apple_pay_cart' ) );
-			add_action( 'wp_ajax_nopriv_wc_stripe_generate_apple_pay_cart', array( $this, 'generate_apple_pay_cart' ) );
-		}
+		add_action( 'woocommerce_checkout_before_customer_details', array( $this, 'display_apple_pay_button' ) );
+		add_action( 'wc_ajax_wc_stripe_apple_pay', array( $this, 'process_apple_pay' ) );
+		add_action( 'wc_ajax_wc_stripe_generate_apple_pay_cart', array( $this, 'generate_apple_pay_cart' ) );
+		add_action( 'wc_ajax_wc_stripe_apple_pay_get_shipping_methods', array( $this, 'get_shipping_methods' ) );
+		add_action( 'wc_ajax_wc_stripe_apple_pay_update_shipping_method', array( $this, 'update_shipping_method' ) );
 	}
 
 	/**
@@ -94,17 +91,17 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		$publishable_key = 'yes' === $this->_gateway_settings['testmode'] ? $this->_gateway_settings['test_publishable_key'] : $this->_gateway_settings['publishable_key'];
 
 		$stripe_params = array(
-			'key'                         => $publishable_key,
-			'currency_code'               => get_woocommerce_currency(),
-			'country_code'                => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
-			'label'                       => get_bloginfo( 'name', 'display' ),
-			'ajaxurl'                     => admin_url( 'admin-ajax.php' ),
-			'stripe_apple_pay_nonce'      => wp_create_nonce( '_wc_stripe_apple_pay_nonce' ),
-			'stripe_apple_pay_cart_nonce' => wp_create_nonce( '_wc_stripe_apple_pay_cart_nonce' ),
-			'needs_shipping'              => WC()->cart->needs_shipping() ? 'yes' : 'no',
-			'needs_shipping_msg'          => __( 'Please first calculate your shipping.', 'woocommerce-gateway-stripe' ),
-			'is_cart_page'                => is_cart() ? 'yes' : 'no',
-			'chosen_shipping'             => wc_get_chosen_shipping_method_ids(),
+			'key'                                           => $publishable_key,
+			'currency_code'                                 => get_woocommerce_currency(),
+			'country_code'                                  => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
+			'label'                                         => get_bloginfo( 'name', 'display' ),
+			'ajaxurl'                                       => WC_AJAX::get_endpoint( '%%endpoint%%' ),
+			'stripe_apple_pay_nonce'                        => wp_create_nonce( '_wc_stripe_apple_pay_nonce' ),
+			'stripe_apple_pay_cart_nonce'                   => wp_create_nonce( '_wc_stripe_apple_pay_cart_nonce' ),
+			'stripe_apple_pay_get_shipping_methods_nonce'   => wp_create_nonce( '_wc_stripe_apple_pay_get_shipping_methods_nonce' ),
+			'stripe_apple_pay_update_shipping_method_nonce' => wp_create_nonce( '_wc_stripe_apple_pay_update_shipping_method_nonce' ),
+			'needs_shipping'                                => WC()->cart->needs_shipping() ? 'yes' : 'no',
+			'is_cart_page'                                  => is_cart() ? 'yes' : 'no',
 		);
 
 		wp_localize_script( 'woocommerce_stripe_apple_pay', 'wc_stripe_apple_pay_params', apply_filters( 'wc_stripe_apple_pay_params', $stripe_params ) );
@@ -162,15 +159,183 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	 * @version 3.1.0
 	 */
 	public function generate_apple_pay_cart() {
-		if ( ! defined( 'DOING_AJAX' ) ) {
-			define( 'DOING_AJAX', true );
-		}
-
 		if ( ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_apple_pay_cart_nonce' ) ) {
 			wp_die( __( 'Cheatin&#8217; huh?', 'woocommerce-gateway-stripe' ) );
 		}
 
-		wp_send_json( array( 'line_items' => $this->build_line_items(), 'total' => WC()->cart->total, 'chosen_shipping' => wc_get_chosen_shipping_method_ids() ) );
+		wp_send_json( array( 'line_items' => $this->build_line_items(), 'total' => WC()->cart->total ) );
+	}
+
+	/**
+	 * Calculate and set shipping method.
+	 *
+	 * @since 3.1.0
+	 * @version 3.1.0
+	 * @param array $address
+	 */
+	public function calculate_shipping( $address = array() ) {
+		$country  = strtoupper( $address['countryCode'] );
+		$state    = strtoupper( $address['administrativeArea'] );
+		$postcode = $address['postalCode'];
+		$city     = $address['locality'];
+
+		WC()->shipping->reset_shipping();
+
+		if ( $postcode && ! WC_Validation::is_postcode( $postcode, $country ) ) {
+			throw new Exception( __( 'Please enter a valid postcode/ZIP.', 'woocommerce-gateway-stripe' ) );
+		} elseif ( $postcode ) {
+			$postcode = wc_format_postcode( $postcode, $country );
+		}
+
+		if ( $country ) {
+			WC()->customer->set_location( $country, $state, $postcode, $city );
+			WC()->customer->set_shipping_location( $country, $state, $postcode, $city );
+		} else {
+			WC()->customer->set_to_base();
+			WC()->customer->set_shipping_to_base();
+		}
+
+		WC()->customer->calculated_shipping( true );
+
+		/** 
+		 * Set the shipping package.
+		 *
+		 * Note that address lines are not provided at this point
+		 * because Apple Pay does not supply that until after
+		 * authentication via passcode or Touch ID. We will need to
+		 * capture this information when we process the payment.
+		 */
+
+		$packages = array();
+
+		$packages[0]['contents']                 = WC()->cart->get_cart();
+		$packages[0]['contents_cost']            = 0;
+		$packages[0]['applied_coupons']          = WC()->cart->applied_coupons;
+		$packages[0]['user']['ID']               = get_current_user_id();
+		$packages[0]['destination']['country']   = $country;
+		$packages[0]['destination']['state']     = $state;
+		$packages[0]['destination']['postcode']  = $postcode;
+		$packages[0]['destination']['city']      = $city;
+
+		foreach ( WC()->cart->get_cart() as $item ) {
+			if ( $item['data']->needs_shipping() ) {
+				if ( isset( $item['line_total'] ) ) {
+					$packages[0]['contents_cost'] += $item['line_total'];
+				}
+			}
+		}
+
+		$packages = apply_filters( 'woocommerce_cart_shipping_packages', $packages );
+
+		WC()->shipping->calculate_shipping( $packages );
+	}
+
+	/**
+	 * Gets shipping for Apple Pay Payment sheet.
+	 *
+	 * @since 3.1.0
+	 * @version 3.1.0
+	 */
+	public function get_shipping_methods() {
+		if ( ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_apple_pay_get_shipping_methods_nonce' ) ) {
+			wp_die( __( 'Cheatin&#8217; huh?', 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
+			define( 'WOOCOMMERCE_CART', true );
+		}
+
+		try {
+			$address = array_map( 'wc_clean', $_POST['address'] );
+
+			$this->calculate_shipping( $address );
+
+			// Set the shipping options.
+			$currency = get_woocommerce_currency();
+			$data     = array();
+
+			if ( ! empty( WC()->shipping->get_packages() ) && WC()->customer->has_calculated_shipping() ) {
+				foreach ( WC()->shipping->get_packages() as $package_key => $package ) {
+					if ( empty( $package['rates'] ) ) {
+						throw new Exception( __( 'Unable to find shipping method for address.', 'woocommerce-gateway-stripe' ) );
+					}
+
+					foreach ( $package['rates'] as $key => $rate ) {
+						$data[] = array(
+							'id'       => $rate->id,
+							'label'    => $rate->label,
+							'amount'   => array(
+								'currency' => $currency,
+								'value'    => $rate->cost,
+							),
+							'selected' => false,
+						);
+					}
+				}
+
+				// Auto select the first shipping method.
+				WC()->session->set( 'chosen_shipping_methods', array( $data[0]['id'] ) );
+
+				WC()->cart->calculate_totals();
+				
+				wp_send_json( array( 'success' => 'true', 'shipping_methods' => $this->build_shipping_methods( $data ), 'line_items' => $this->build_line_items(), 'total' => WC()->cart->total ) );
+			} else {
+				throw new Exception( __( 'Unable to find shipping method for address.', 'woocommerce-gateway-stripe' ) ); 
+			}
+		} catch( Exception $e ) {
+			wp_send_json( array( 'success' => 'false', 'shipping_methods' => array(), 'line_items' => $this->build_line_items(), 'total' => WC()->cart->total ) );			
+		}
+	}
+
+	/**
+	 * Updates shipping method on cart session.
+	 *
+	 * @since 3.1.0
+	 * @version 3.1.0
+	 */
+	public function update_shipping_method() {
+		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
+			define( 'WOOCOMMERCE_CART', true );
+		}
+
+		if ( ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_apple_pay_update_shipping_method_nonce' ) ) {
+			wp_die( __( 'Cheatin&#8217; huh?', 'woocommerce-gateway-stripe' ) );
+		}
+
+		$selected_shipping_method = array_map( 'wc_clean', $_POST['selected_shipping_method'] );
+
+		WC()->session->set( 'chosen_shipping_methods', array( $selected_shipping_method['identifier'] ) );
+
+		WC()->cart->calculate_totals();
+
+		// Send back the new cart total.
+		$currency  = get_woocommerce_currency();
+		$tax_total = max( 0, round( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp ) );
+		$data      = array(
+			'total' => WC()->cart->total,
+		);
+
+		// Include fees and taxes as displayItems.
+		foreach ( WC()->cart->fees as $key => $fee ) {
+			$data['items'][] = array(
+				'label'  => $fee->name,
+				'amount' => array(
+					'currency' => $currency,
+					'value'    => $fee->amount,
+				),
+			);
+		}
+		if ( 0 < $tax_total ) {
+			$data['items'][] = array(
+				'label'  => __( 'Tax', 'woocommerce-gateway-stripe' ),
+				'amount' => array(
+					'currency' => $currency,
+					'value'    => $tax_total,
+				),
+			);
+		}
+
+		wp_send_json( array( 'success' => 'true', 'line_items' => $this->build_line_items(), 'total' => WC()->cart->total ) );
 	}
 
 	/**
@@ -181,10 +346,6 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	 * @version 3.1.0
 	 */
 	public function process_apple_pay() {
-		if ( ! defined( 'DOING_AJAX' ) ) {
-			define( 'DOING_AJAX', true );
-		}
-
 		if ( ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_apple_pay_nonce' ) ) {
 			wp_die( __( 'Cheatin&#8217; huh?', 'woocommerce-gateway-stripe' ) );
 		}
@@ -273,12 +434,41 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Builds the line items to pass to Apple Pay
+	 * Builds the shippings methods to pass to Apple Pay.
+	 *
+	 * @since 3.1.0
+	 * @version 3.1.0
+	 */	
+	public function build_shipping_methods( $shipping_methods ) {
+		if ( empty( $shipping_methods ) ) {
+			return array();
+		}
+
+		$shipping = array();
+
+		foreach( $shipping_methods as $method ) {
+			$shipping[] = array(
+				'label'      => $method['label'],
+				'detail'     => '',
+				'amount'     => $method['amount']['value'],
+				'identifier' => $method['id'],
+			);
+		}
+
+		return $shipping;
+	}
+
+	/**
+	 * Builds the line items to pass to Apple Pay.
 	 *
 	 * @since 3.1.0
 	 * @version 3.1.0
 	 */	
 	public function build_line_items() {
+		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
+			define( 'WOOCOMMERCE_CART', true );
+		}
+
 		$decimals = apply_filters( 'wc_stripe_apple_pay_decimals', 2 );
 
 		$items = array();
