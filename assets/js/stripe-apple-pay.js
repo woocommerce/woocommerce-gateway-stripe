@@ -9,9 +9,23 @@ jQuery( function( $ ) {
 	 */
 	var wc_stripe_apple_pay = {
 		/**
+		 * Get WC AJAX endpoint URL.
+		 *
+		 * @param  {String} endpoint Endpoint.
+		 * @return {String}
+		 */
+		getAjaxURL: function( endpoint ) {
+			return wc_stripe_apple_pay_params.ajaxurl
+				.toString()
+				.replace( '%%endpoint%%', 'wc_stripe_' + endpoint );
+		},
+
+		/**
 		 * Initialize event handlers and UI state.
 		 */
 		init: function() {
+			var self = this;
+
 			Stripe.applePay.checkAvailability( function( available ) {
 				if ( available ) {
 					$( '.apple-pay-button' ).show();
@@ -22,22 +36,6 @@ jQuery( function( $ ) {
 
 			$( document.body ).on( 'click', '.apple-pay-button', function( e ) {
 				e.preventDefault();
-
-				// Clear any errors first.
-				$( '.wc-stripe-apple-pay-error' ).remove();
-
-				// If shipping is needed, we need to force customer to calculate shipping on cart page.
-				if ( 'yes' === wc_stripe_apple_pay_params.is_cart_page && 
-					 'yes' === wc_stripe_apple_pay_params.needs_shipping && 
-					 ( $( '#shipping_method input[type="radio"]' ).length && ( ! $( '#shipping_method input[type="radio"]' ).is( ':checked' ) ) ||
-					 0 === $( wc_stripe_apple_pay_params.chosen_shipping ).length )
-				) {
-					$( '.apple-pay-button' ).before( '<p class="woocommerce-error wc-stripe-apple-pay-error">' + wc_stripe_apple_pay_params.needs_shipping_msg + '</p>' );
-
-					// Scroll to error so user can see it.
-					$( document.body ).animate({ scrollTop: $( '.wc-stripe-apple-pay-error' ).offset().top }, 500 );
-					return;
-				}
 
 				var paymentRequest = {
 						countryCode: wc_stripe_apple_pay_params.country_code,
@@ -53,48 +51,109 @@ jQuery( function( $ ) {
 
 				var applePaySession = Stripe.applePay.buildSession( paymentRequest, function( result, completion ) {
 					var data = {
-						'action': 'wc_stripe_apple_pay',
 						'nonce': wc_stripe_apple_pay_params.stripe_apple_pay_nonce,
 						'result': result
 					};
 
-					$.post( wc_stripe_apple_pay_params.ajaxurl, data ).done( function( response ) {
-						if ( 'true' === response.success ) {
-							completion( ApplePaySession.STATUS_SUCCESS );
-							window.location.href = response.redirect;
+					$.ajax({
+						type:    'POST',
+						data:    data,
+						url:     wc_stripe_apple_pay.getAjaxURL( 'apple_pay' ),
+						success: function( response ) {
+							if ( 'true' === response.success ) {
+								completion( ApplePaySession.STATUS_SUCCESS );
+								window.location.href = response.redirect;
+							}
+
+							if ( 'false' === response.success ) {
+								completion( ApplePaySession.STATUS_FAILURE );
+
+								$( '.apple-pay-button' ).before( '<p class="woocommerce-error wc-stripe-apple-pay-error">' + response.msg + '</p>' );
+
+								// Scroll to error so user can see it.
+								$( document.body ).animate({ scrollTop: $( '.wc-stripe-apple-pay-error' ).offset().top }, 500 );
+							}
 						}
-
-						if ( 'false' === response.success ) {
-							completion( ApplePaySession.STATUS_FAILURE );
-
-							$( '.apple-pay-button' ).before( '<p class="woocommerce-error wc-stripe-apple-pay-error">' + response.msg + '</p>' );
-
-							// Scroll to error so user can see it.
-							$( document.body ).animate({ scrollTop: $( '.wc-stripe-apple-pay-error' ).offset().top }, 500 );
-						}
-
-					}).fail( function( response ) {
-						completion( ApplePaySession.STATUS_FAILURE );
 					});
+				});
 
-					}, function(error) {
-						console.log(error.message);
-					});
+				// If shipping is needed -- get shipping methods.
+				if ( 'yes' === wc_stripe_apple_pay_params.needs_shipping ) {
+					// After the shipping contact/address has been selected
+					applePaySession.onshippingcontactselected = function( shipping ) {
+						var data = {
+							'nonce': wc_stripe_apple_pay_params.stripe_apple_pay_get_shipping_methods_nonce,
+							'address': shipping.shippingContact
+						};
+
+						$.ajax({
+							type:    'POST',
+							data:    data,
+							url:     wc_stripe_apple_pay.getAjaxURL( 'apple_pay_get_shipping_methods' ),
+							success: function( response ) {
+								var total = { 
+									'label': wc_stripe_apple_pay_params.label,
+									'amount': response.total
+								};
+
+								if ( 'true' === response.success ) {
+									applePaySession.completeShippingContactSelection( ApplePaySession.STATUS_SUCCESS, response.shipping_methods, total, response.line_items );
+								}
+
+								if ( 'false' === response.success ) {
+									applePaySession.completeShippingContactSelection( ApplePaySession.STATUS_INVALID_SHIPPING_POSTAL_ADDRESS, response.shipping_methods, total, response.line_items );
+								}
+							}
+						});
+					};
+
+					// After the shipping method has been selected
+					applePaySession.onshippingmethodselected = function( event ) {
+						var data = {
+							'nonce': wc_stripe_apple_pay_params.stripe_apple_pay_update_shipping_method_nonce,
+							'selected_shipping_method': event.shippingMethod
+						};
+
+						$.ajax({
+							type:    'POST',
+							data:    data,
+							url:     wc_stripe_apple_pay.getAjaxURL( 'apple_pay_update_shipping_method' ),
+							success: function( response ) {
+								var newTotal = {
+									'label': wc_stripe_apple_pay_params.label,
+									'amount': parseFloat( response.total ).toFixed(2)
+								};
+
+								if ( 'true' === response.success ) {
+									applePaySession.completeShippingMethodSelection( ApplePaySession.STATUS_SUCCESS, newTotal, response.line_items );
+								}
+
+								if ( 'false' === response.success ) {
+									applePaySession.completeShippingMethodSelection( ApplePaySession.STATUS_INVALID_SHIPPING_POSTAL_ADDRESS, newTotal, response.line_items );
+								}
+							}
+						});
+					};
+				}
 
 				applePaySession.begin();
 			});
 		},
 
 		generate_cart: function() {
-			var data = {
-				'action': 'wc_stripe_generate_apple_pay_cart',
-				'nonce': wc_stripe_apple_pay_params.stripe_apple_pay_cart_nonce
-			};
+			var self = this,
+				data = {
+					'nonce': wc_stripe_apple_pay_params.stripe_apple_pay_cart_nonce
+				};
 
-			$.post( wc_stripe_apple_pay_params.ajaxurl, data, function( response ) {
-				wc_stripe_apple_pay_params.total = response.total;
-				wc_stripe_apple_pay_params.line_items = response.line_items;
-				wc_stripe_apple_pay_params.chosen_shipping = response.chosen_shipping;
+			$.ajax({
+				type:    'POST',
+				data:    data,
+				url:     wc_stripe_apple_pay.getAjaxURL( 'generate_apple_pay_cart' ),
+				success: function( response ) {
+					wc_stripe_apple_pay_params.total      = response.total;
+					wc_stripe_apple_pay_params.line_items = response.line_items;
+				}
 			});
 		}
 	};
