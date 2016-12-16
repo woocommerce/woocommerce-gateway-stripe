@@ -311,6 +311,10 @@ class WC_Stripe {
 			$captured = get_post_meta( $order_id, '_stripe_charge_captured', true );
 
 			if ( $charge && 'no' === $captured ) {
+				if ( ! defined( 'WOOCOMMERCE_STRIPE_DOING_CAPTURE' ) ) {
+					// Allow other extensions hooking the process to know that we're capturing.
+					define( 'WOOCOMMERCE_STRIPE_DOING_CAPTURE', true );
+				}
 				$result = WC_Stripe_API::request( array(
 					'amount'   => $order->get_total() * 100,
 					'expand[]' => 'balance_transaction'

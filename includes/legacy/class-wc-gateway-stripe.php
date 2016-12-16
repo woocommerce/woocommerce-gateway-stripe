@@ -326,10 +326,18 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway {
 	 */
 	protected function generate_payment_request( $order, $source ) {
 		$post_data                = array();
+
+		$post_data['capture']     = $this->capture ? 'true' : 'false';
+		if ( 'true' == $post_data['capture'] ) {
+			if ( ! defined( 'WOOCOMMERCE_STRIPE_DOING_CAPTURE' ) ) {
+				// Allow other extensions hooking the process to know that we're capturing.
+				define( 'WOOCOMMERCE_STRIPE_DOING_CAPTURE', true );
+			}
+		}
+
+		$post_data['description'] = sprintf( __( '%s - Order %s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() );
 		$post_data['currency']    = strtolower( $order->get_order_currency() ? $order->get_order_currency() : get_woocommerce_currency() );
 		$post_data['amount']      = $this->get_stripe_amount( $order->get_total(), $post_data['currency'] );
-		$post_data['description'] = sprintf( __( '%s - Order %s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() );
-		$post_data['capture']     = $this->capture ? 'true' : 'false';
 
 		if ( ! empty( $order->billing_email ) && apply_filters( 'wc_stripe_send_stripe_receipt', false ) ) {
 			$post_data['receipt_email'] = $order->billing_email;
