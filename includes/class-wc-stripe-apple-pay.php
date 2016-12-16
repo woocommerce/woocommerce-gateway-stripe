@@ -64,6 +64,23 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		add_action( 'wc_ajax_wc_stripe_generate_apple_pay_cart', array( $this, 'generate_apple_pay_cart' ) );
 		add_action( 'wc_ajax_wc_stripe_apple_pay_get_shipping_methods', array( $this, 'get_shipping_methods' ) );
 		add_action( 'wc_ajax_wc_stripe_apple_pay_update_shipping_method', array( $this, 'update_shipping_method' ) );
+		add_filter( 'woocommerce_gateway_title', array( $this, 'filter_gateway_title' ), 10, 2 );
+	}
+
+	/**
+	 * Filters the gateway title to reflect Apple Pay.
+	 *
+	 */
+	public function filter_gateway_title( $title, $id ) {
+		global $post;
+
+		$method_title = get_post_meta( $post->ID, '_payment_method_title', true );
+
+		if ( 'stripe' === $id && ! empty( $method_title ) ) {
+			return $method_title;
+		}
+
+		return $title;
 	}
 
 	/**
@@ -383,6 +400,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			WC()->cart->empty_cart();
 
 			update_post_meta( $order->id, '_customer_user', get_current_user_id() );
+			update_post_meta( $order->id, '_payment_method_title', __( 'Apple Pay (Stripe)', 'woocommerce-gateway-stripe' ) );
 
 			// Return thank you page redirect.
 			wp_send_json( array(
