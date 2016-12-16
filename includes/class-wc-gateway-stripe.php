@@ -18,6 +18,13 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	public $capture;
 
 	/**
+	 * Alternate credit card statement name
+	 *
+	 * @var bool
+	 */
+	public $statement_descriptor;
+
+	/**
 	 * Checkout enabled
 	 *
 	 * @var bool
@@ -140,6 +147,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$this->enabled                = $this->get_option( 'enabled' );
 		$this->testmode               = 'yes' === $this->get_option( 'testmode' );
 		$this->capture                = 'yes' === $this->get_option( 'capture', 'yes' );
+		$this->statement_descriptor   = $this->get_option( 'statement_descriptor', wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) );
 		$this->stripe_checkout        = 'yes' === $this->get_option( 'stripe_checkout' );
 		$this->stripe_checkout_locale = $this->get_option( 'stripe_checkout_locale' );
 		$this->stripe_checkout_image  = $this->get_option( 'stripe_checkout_image', '' );
@@ -369,7 +377,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			data-description=""
 			data-email="' . esc_attr( $user_email ) . '"
 			data-amount="' . esc_attr( $this->get_stripe_amount( $total ) ) . '"
-			data-name="' . esc_attr( get_bloginfo( 'name', 'display' ) ) . '"
+			data-name="' . esc_attr( $this->statement_descriptor ) . '"
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '"
 			data-image="' . esc_attr( $this->stripe_checkout_image ) . '"
 			data-bitcoin="' . esc_attr( $this->bitcoin ? 'true' : 'false' ) . '"
@@ -483,7 +491,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$post_data                = array();
 		$post_data['currency']    = strtolower( $order->get_order_currency() ? $order->get_order_currency() : get_woocommerce_currency() );
 		$post_data['amount']      = $this->get_stripe_amount( $order->get_total(), $post_data['currency'] );
-		$post_data['description'] = sprintf( __( '%s - Order %s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() );
+		$post_data['description'] = sprintf( __( '%s - Order %s', 'woocommerce-gateway-stripe' ), $this->statement_descriptor, $order->get_order_number() );
 		$post_data['capture']     = $this->capture ? 'true' : 'false';
 
 		if ( ! empty( $order->billing_email ) && apply_filters( 'wc_stripe_send_stripe_receipt', false ) ) {
