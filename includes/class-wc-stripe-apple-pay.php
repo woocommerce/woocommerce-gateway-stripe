@@ -83,6 +83,10 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	public function filter_gateway_title( $title, $id ) {
 		global $post;
 
+		if ( ! is_object( $post ) ) {
+			return $title;
+		}
+		
 		$method_title = get_post_meta( $post->ID, '_payment_method_title', true );
 
 		if ( 'stripe' === $id && ! empty( $method_title ) ) {
