@@ -284,8 +284,10 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			$currency = get_woocommerce_currency();
 			$data     = array();
 
-			if ( ! empty( WC()->shipping->get_packages() ) && WC()->customer->has_calculated_shipping() ) {
-				foreach ( WC()->shipping->get_packages() as $package_key => $package ) {
+			$packages = WC()->shipping->get_packages();
+
+			if ( ! empty( $packages ) && WC()->customer->has_calculated_shipping() ) {
+				foreach ( $packages as $package_key => $package ) {
 					if ( empty( $package['rates'] ) ) {
 						throw new Exception( __( 'Unable to find shipping method for address.', 'woocommerce-gateway-stripe' ) );
 					}
