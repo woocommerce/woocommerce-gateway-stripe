@@ -52,24 +52,24 @@ class WC_Stripe_API {
 	 * @return array|WP_Error
 	 */
 	public static function request( $request, $api = 'charges', $method = 'POST' ) {
-		WC_Stripe::log( "{$api} request: " . print_r( $request, true ) );
+		self::log( "{$api} request: " . print_r( $request, true ) );
 
 		$response = wp_safe_remote_post(
 			self::ENDPOINT . $api,
 			array(
 				'method'        => $method,
 				'headers'       => array(
-					'Authorization'  => 'Basic ' . base64_encode( self::get_secret_key(). ':' ),
-					'Stripe-Version' => '2016-03-07'
+					'Authorization'  => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
+					'Stripe-Version' => '2016-03-07',
 				),
 				'body'       => apply_filters( 'woocommerce_stripe_request_body', $request, $api ),
 				'timeout'    => 70,
-				'user-agent' => 'WooCommerce ' . WC()->version
+				'user-agent' => 'WooCommerce ' . WC()->version,
 			)
 		);
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
-			WC_Stripe::log( "Error Response: " . print_r( $response, true ) );
+			self::log( 'Error Response: ' . print_r( $response, true ) );
 			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the payment gateway.', 'woocommerce-gateway-stripe' ) );
 		}
 
@@ -86,6 +86,22 @@ class WC_Stripe_API {
 			return new WP_Error( $code, $parsed_response->error->message );
 		} else {
 			return $parsed_response;
+		}
+	}
+
+	/**
+	 * Logs
+	 *
+	 * @since 3.1.0
+	 * @version 3.1.0
+	 *
+	 * @param string $message
+	 */
+	public static function log( $message ) {
+		$options = get_option( 'woocommerce_stripe_settings' );
+
+		if ( 'yes' === $options['logging'] ) {
+			WC_Stripe::log( $message );
 		}
 	}
 }

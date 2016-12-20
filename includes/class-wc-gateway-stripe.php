@@ -425,7 +425,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			'missing'               => __( 'There is no card on a customer that is being charged.', 'woocommerce-gateway-stripe' ),
 			'processing_error'      => __( 'An error occurred while processing the card.', 'woocommerce-gateway-stripe' ),
 			'invalid_request_error' => __( 'Could not find payment information.', 'woocommerce-gateway-stripe' ),
-			) );
+		) );
 	}
 
 	/**
@@ -491,7 +491,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$post_data                = array();
 		$post_data['currency']    = strtolower( $order->get_order_currency() ? $order->get_order_currency() : get_woocommerce_currency() );
 		$post_data['amount']      = $this->get_stripe_amount( $order->get_total(), $post_data['currency'] );
-		$post_data['description'] = sprintf( __( '%s - Order %s', 'woocommerce-gateway-stripe' ), $this->statement_descriptor, $order->get_order_number() );
+		$post_data['description'] = sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), $this->statement_descriptor, $order->get_order_number() );
 		$post_data['capture']     = $this->capture ? 'true' : 'false';
 
 		if ( ! empty( $order->billing_email ) && apply_filters( 'wc_stripe_send_stripe_receipt', false ) ) {
@@ -507,7 +507,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		if ( $source->source ) {
 			$post_data['source'] = $source->source;
 		}
-		
+
 		/**
 		 * Filter the return value of the WC_Payment_Gateway_CC::generate_payment_request.
 		 *
@@ -545,16 +545,14 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 				if ( is_wp_error( $stripe_source ) ) {
 					throw new Exception( $stripe_source->get_error_message() );
 				}
-
 			} else {
 				// Not saving token, so don't define customer either.
 				$stripe_source   = $stripe_token;
 				$stripe_customer = false;
 			}
-		}
+		} elseif ( isset( $_POST['wc-stripe-payment-token'] ) && 'new' !== $_POST['wc-stripe-payment-token'] ) {
+			// Use an existing token, and then process the payment
 
-		// Use an existing token, and then process the payment
-		elseif ( isset( $_POST['wc-stripe-payment-token'] ) && 'new' !== $_POST['wc-stripe-payment-token'] ) {
 			$token_id = wc_clean( $_POST['wc-stripe-payment-token'] );
 			$token    = WC_Payment_Tokens::get( $token_id );
 
@@ -637,7 +635,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe::get_minimum_amount() / 100 ) ) );
 				}
 
-				WC_Stripe::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
+				$this->log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
 				// Make the request.
 				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source ) );
@@ -672,12 +670,12 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			// Return thank you page redirect.
 			return array(
 				'result'   => 'success',
-				'redirect' => $this->get_return_url( $order )
+				'redirect' => $this->get_return_url( $order ),
 			);
 
 		} catch ( Exception $e ) {
 			wc_add_notice( $e->getMessage(), 'error' );
-			WC_Stripe::log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+			$this->log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );
@@ -687,7 +685,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 			return array(
 				'result'   => 'fail',
-				'redirect' => ''
+				'redirect' => '',
 			);
 		}
 	}
@@ -712,7 +710,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 * Store extra meta data for an order from a Stripe Response.
 	 */
 	public function process_response( $response, $order ) {
-		WC_Stripe::log( "Processing response: " . print_r( $response, true ) );
+		$this->log( 'Processing response: ' . print_r( $response, true ) );
 
 		// Store charge data
 		update_post_meta( $order->id, '_stripe_charge_id', $response->id );
@@ -733,7 +731,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 			$message = sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $response->id );
 			$order->add_order_note( $message );
-			WC_Stripe::log( 'Success: ' . $message );
+			$this->log( 'Success: ' . $message );
 
 		} else {
 			add_post_meta( $order->id, '_transaction_id', $response->id, true );
@@ -743,7 +741,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			}
 
 			$order->update_status( 'on-hold', sprintf( __( 'Stripe charge authorized (Charge ID: %s). Process order to take payment, or cancel to remove the pre-authorization.', 'woocommerce-gateway-stripe' ), $response->id ) );
-			WC_Stripe::log( "Successful auth: $response->id" );
+			$this->log( "Successful auth: $response->id" );
 		}
 
 		return $response;
@@ -809,17 +807,17 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			);
 		}
 
-		WC_Stripe::log( "Info: Beginning refund for order $order_id for the amount of {$amount}" );
+		$this->log( "Info: Beginning refund for order $order_id for the amount of {$amount}" );
 
 		$response = WC_Stripe_API::request( $body, 'charges/' . $order->get_transaction_id() . '/refunds' );
 
 		if ( is_wp_error( $response ) ) {
-			WC_Stripe::log( "Error: " . $response->get_error_message() );
+			$this->log( 'Error: ' . $response->get_error_message() );
 			return $response;
 		} elseif ( ! empty( $response->id ) ) {
-			$refund_message = sprintf( __( 'Refunded %s - Refund ID: %s - Reason: %s', 'woocommerce-gateway-stripe' ), wc_price( $response->amount / 100 ), $response->id, $reason );
+			$refund_message = sprintf( __( 'Refunded %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), wc_price( $response->amount / 100 ), $response->id, $reason );
 			$order->add_order_note( $refund_message );
-			WC_Stripe::log( "Success: " . html_entity_decode( strip_tags( $refund_message ) ) );
+			$this->log( 'Success: ' . html_entity_decode( strip_tags( $refund_message ) ) );
 			return true;
 		}
 	}
@@ -836,6 +834,20 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$emails = WC()->mailer()->get_emails();
 		if ( ! empty( $emails ) && ! empty( $order_id ) ) {
 			$emails['WC_Email_Failed_Order']->trigger( $order_id );
+		}
+	}
+
+	/**
+	 * Logs
+	 *
+	 * @since 3.1.0
+	 * @version 3.1.0
+	 *
+	 * @param string $message
+	 */
+	public function log( $message ) {
+		if ( $this->logging ) {
+			WC_Stripe::log( $message );
 		}
 	}
 }
