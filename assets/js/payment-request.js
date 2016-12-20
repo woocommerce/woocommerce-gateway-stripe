@@ -107,8 +107,8 @@
 
 			// Set up shipping.
 			request.addEventListener( 'shippingaddresschange', function( evt ) {
-				evt.updateWith( new Promise( function( resolve ) {
-					self.updateShippingOptions( paymentDetails, request.shippingAddress, resolve );
+				evt.updateWith( new Promise( function( resolve, reject ) {
+					self.updateShippingOptions( paymentDetails, request.shippingAddress, resolve, reject );
 				}));
 			});
 			request.addEventListener( 'shippingoptionchange', function( evt ) {
@@ -132,8 +132,9 @@
 		 * @param {Object}         details Payment details.
 		 * @param {PaymentAddress} address Shipping address.
 		 * @param {Function}       resolve The callback to invoke with updated line items and shipping options.
+		 * @param {Function}	   reject  The callback to invoke in case of failure.
 		 */
-		updateShippingOptions: function( details, address, resolve ) {
+		updateShippingOptions: function( details, address, resolve, reject ) {
 			var self = this;
 			var data = {
 				security:  wcStripePaymentRequestParams.nonce.shipping,
@@ -151,7 +152,14 @@
 				url:     self.getAjaxURL( 'get_shipping_options' ),
 				success: function( response ) {
 					details.shippingOptions = response;
-					resolve( details );
+					if ( details.shippingOptions.length == 1 ) {
+						// The sole shipping option was auto-selected. Update the details
+						// (including the total).
+						self.updateShippingDetails(
+								details, details.shippingOptions[0].id, resolve, reject );
+					} else {
+						resolve( details );
+					}
 				}
 			});
 		},
