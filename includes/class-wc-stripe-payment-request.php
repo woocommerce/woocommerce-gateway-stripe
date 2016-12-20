@@ -132,6 +132,63 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
+	 * Calculate and set shipping method.
+	 *
+	 * @since 3.1.0
+	 * @version 3.1.0
+	 * @param array $address
+	 */
+	public function calculate_shipping( $address = array() ) {
+		$country   = $address['country'];
+		$state     = $address['state'];
+		$postcode  = $address['postcode'];
+		$city      = $address['city'];
+		$address_1 = $address['address'];
+		$address_2 = $address['address_2'];
+
+		WC()->shipping->reset_shipping();
+
+		if ( $postcode && WC_Validation::is_postcode( $postcode, $country ) ) {
+			$postcode = wc_format_postcode( $postcode, $country );
+		}
+
+		if ( $country ) {
+			WC()->customer->set_location( $country, $state, $postcode, $city );
+			WC()->customer->set_shipping_location( $country, $state, $postcode, $city );
+		} else {
+			WC()->customer->set_to_base();
+			WC()->customer->set_shipping_to_base();
+		}
+
+		WC()->customer->calculated_shipping( true );
+
+		$packages = array();
+
+		$packages[0]['contents']                 = WC()->cart->get_cart();
+		$packages[0]['contents_cost']            = 0;
+		$packages[0]['applied_coupons']          = WC()->cart->applied_coupons;
+		$packages[0]['user']['ID']               = get_current_user_id();
+		$packages[0]['destination']['country']   = $country;
+		$packages[0]['destination']['state']     = $state;
+		$packages[0]['destination']['postcode']  = $postcode;
+		$packages[0]['destination']['city']      = $city;
+		$packages[0]['destination']['address']   = $address_1;
+		$packages[0]['destination']['address_2'] = $address_2;
+
+		foreach ( WC()->cart->get_cart() as $item ) {
+			if ( $item['data']->needs_shipping() ) {
+				if ( isset( $item['line_total'] ) ) {
+					$packages[0]['contents_cost'] += $item['line_total'];
+				}
+			}
+		}
+
+		$packages = apply_filters( 'woocommerce_cart_shipping_packages', $packages );
+
+		WC()->shipping->calculate_shipping( $packages );
+	}
+
+	/**
 	 * Get shipping options.
 	 *
 	 * @see WC_Cart::get_shipping_packages().
@@ -150,45 +207,32 @@ class WC_Stripe_Payment_Request {
 			'address'   => FILTER_SANITIZE_STRING,
 			'address_2' => FILTER_SANITIZE_STRING,
 		) );
-		$packages = array();
 
-		$packages[0]['contents']                 = WC()->cart->get_cart();
-		$packages[0]['contents_cost']            = 0;
-		$packages[0]['applied_coupons']          = WC()->cart->applied_coupons;
-		$packages[0]['user']['ID']               = get_current_user_id();
-		$packages[0]['destination']['country']   = $posted['country'];
-		$packages[0]['destination']['state']     = $posted['state'];
-		$packages[0]['destination']['postcode']  = $posted['postcode'];
-		$packages[0]['destination']['city']      = $posted['city'];
-		$packages[0]['destination']['address']   = $posted['address'];
-		$packages[0]['destination']['address_2'] = $posted['address_2'];
-
-		foreach ( WC()->cart->get_cart() as $item ) {
-			if ( $item['data']->needs_shipping() ) {
-				if ( isset( $item['line_total'] ) ) {
-					$packages[0]['contents_cost'] += $item['line_total'];
-				}
-			}
-		}
-
-		$packages = apply_filters( 'woocommerce_cart_shipping_packages', $packages );
-
-		WC()->shipping->calculate_shipping( $packages );
+		$this->calculate_shipping( $posted );
 
 		// Set the shipping options.
 		$currency = get_woocommerce_currency();
 		$data     = array();
-		foreach ( WC()->shipping->get_packages() as $package_key => $package ) {
-			foreach ( $package['rates'] as $key => $rate ) {
-				$data[] = array(
-					'id'       => $rate->id,
-					'label'    => $rate->label,
-					'amount'   => array(
-						'currency' => $currency,
-						'value'    => $rate->cost,
-					),
-					'selected' => false,
-				);
+
+		$packages = WC()->shipping->get_packages();
+
+		if ( ! empty( $packages ) && WC()->customer->has_calculated_shipping() ) {
+			foreach ( $packages as $package_key => $package ) {
+				if ( empty( $package['rates'] ) ) {
+					break;
+				}
+
+				foreach ( $package['rates'] as $key => $rate ) {
+					$data[] = array(
+						'id'       => $rate->id,
+						'label'    => $rate->label,
+						'amount'   => array(
+							'currency' => $currency,
+							'value'    => $rate->cost,
+						),
+						'selected' => false,
+					);
+				}
 			}
 		}
 
