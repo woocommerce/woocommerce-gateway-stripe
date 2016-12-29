@@ -649,11 +649,18 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 					} elseif ( 'source' === $response->get_error_code() && $source->token_id ) {
 						$token = WC_Payment_Tokens::get( $source->token_id );
 						$token->delete();
-						throw new Exception( __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' ) );
+						$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
+						$order->add_order_note( $message );
+						throw new Exception( $message );
 					}
+
 					$localized_messages = $this->get_localized_messages();
 
-					throw new Exception( ( isset( $localized_messages[ $response->get_error_code() ] ) ? $localized_messages[ $response->get_error_code() ] : $response->get_error_message() ) );
+					$message = isset( $localized_messages[ $response->get_error_code() ] ) ? $localized_messages[ $response->get_error_code() ] : $response->get_error_message();
+
+					$order->add_order_note( $message );
+
+					throw new Exception( $message );
 				}
 
 				// Process valid response.
