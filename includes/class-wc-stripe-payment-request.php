@@ -200,9 +200,9 @@ class WC_Stripe_Payment_Request {
 
 		// Set the shipping package.
 		$posted   = filter_input_array( INPUT_POST, array(
-			'country'   => FILTER_SANITIZE_ENCODED,
+			'country'   => FILTER_SANITIZE_STRING,
 			'state'     => FILTER_SANITIZE_STRING,
-			'postcode'  => FILTER_SANITIZE_ENCODED,
+			'postcode'  => FILTER_SANITIZE_STRING,
 			'city'      => FILTER_SANITIZE_STRING,
 			'address'   => FILTER_SANITIZE_STRING,
 			'address_2' => FILTER_SANITIZE_STRING,
