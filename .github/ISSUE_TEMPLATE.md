@@ -1,5 +1,9 @@
 <!-- Thanks for contributing to this extension! Pick a clear title ("Order: Unable to refund") and proceed. -->
 
+#### Affected ticket(s)
+
+<!-- The ZenDesk tickets that are affected by this issue -->
+
 #### What I expected
 
 <!-- What you expected when performing the steps -->
