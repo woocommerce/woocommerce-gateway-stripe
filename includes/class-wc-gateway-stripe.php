@@ -500,6 +500,13 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 		$post_data['expand[]']    = 'balance_transaction';
 
+		$metadata = array(
+			__( 'Customer Name', 'woocommerce-gateway-stripe' ) => sanitize_text_field( $order->billing_first_name ) . ' ' . sanitize_text_field( $order->billing_last_name ),
+			__( 'Customer Email', 'woocommerce-gateway-stripe' ) => sanitize_email( $order->billing_email ),
+		);
+
+		$post_data['metadata'] = apply_filters( 'wc_stripe_payment_metadata', $metadata, $order, $source );
+
 		if ( $source->customer ) {
 			$post_data['customer'] = $source->customer;
 		}

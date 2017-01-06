@@ -137,6 +137,10 @@ class WC_Stripe_Customer {
 			);
 		}
 
+		$metadata = array();
+
+		$defaults['metadata'] = apply_filters( 'wc_stripe_customer_metadata', $metadata, $user );
+
 		$args     = wp_parse_args( $args, $defaults );
 		$response = WC_Stripe_API::request( $args, 'customers' );
 
@@ -173,7 +177,7 @@ class WC_Stripe_Customer {
 		}
 
 		$response = WC_Stripe_API::request( array(
-			'source' => $token
+			'source' => $token,
 		), 'customers/' . $this->get_id() . '/sources' );
 
 		if ( is_wp_error( $response ) ) {
@@ -194,7 +198,7 @@ class WC_Stripe_Customer {
 			$token->set_gateway_id( 'stripe' );
 			$token->set_card_type( strtolower( $response->brand ) );
 			$token->set_last4( $response->last4 );
-			$token->set_expiry_month( $response->exp_month  );
+			$token->set_expiry_month( $response->exp_month );
 			$token->set_expiry_year( $response->exp_year );
 			$token->set_user_id( $this->get_user_id() );
 			$token->save();
@@ -218,7 +222,7 @@ class WC_Stripe_Customer {
 
 		if ( $this->get_id() && false === ( $cards = get_transient( 'stripe_cards_' . $this->get_id() ) ) ) {
 			$response = WC_Stripe_API::request( array(
-				'limit'       => 100
+				'limit'       => 100,
 			), 'customers/' . $this->get_id() . '/sources', 'GET' );
 
 			if ( is_wp_error( $response ) ) {
