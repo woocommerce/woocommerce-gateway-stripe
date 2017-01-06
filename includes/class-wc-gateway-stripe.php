@@ -313,9 +313,9 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 				$( '#woocommerce_stripe_apple_pay' ).change( function() {
 					if ( $( this ).is( ':checked' ) ) {
-						$( '#woocommerce_stripe_apple_pay_button' ).closest( 'tr' ).show();
+						$( '#woocommerce_stripe_apple_pay_button, #woocommerce_stripe_apple_pay_button_lang' ).closest( 'tr' ).show();
 					} else {
-						$( '#woocommerce_stripe_apple_pay_button' ).closest( 'tr' ).hide();
+						$( '#woocommerce_stripe_apple_pay_button, #woocommerce_stripe_apple_pay_button_lang' ).closest( 'tr' ).hide();
 					}
 				}).change();
 

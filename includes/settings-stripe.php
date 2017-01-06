@@ -159,6 +159,13 @@ return apply_filters( 'wc_stripe_settings',
 				'white' => __( 'White', 'woocommerce-gateway-stripe' ),
 			),
 		),
+		'apple_pay_button_lang' => array(
+			'title'       => __( 'Apple Pay Button Language', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'Enter the 2 letter ISO code for the language you would like your Apple Pay Button to display in. Reference available ISO codes here <code>http://www.w3schools.com/tags/ref_language_codes.asp</code>', 'woocommerce-gateway-stripe' ),
+			'type'        => 'text',
+			'default'     => 'en',
+			'desc_tip'    => false,
+		),
 		'saved_cards' => array(
 			'title'       => __( 'Saved Cards', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Enable Payment via Saved Cards', 'woocommerce-gateway-stripe' ),
