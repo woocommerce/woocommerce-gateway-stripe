@@ -91,8 +91,11 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * New - Apply Pay Support.
 * New - Option to allow/disallow remember me on Stripe checkout modal.
 * New - Add Google Payment Request API.
+* New - Introduce "wc_stripe_customer_metadata" filter.
+* New - Introduce "wc_stripe_payment_metadata" filter.
 * Fix - Paying for order incorrectly uses cart amount.
 * Add - Transaction failed reasons to order note.
+* Add - Customer name and email to metadata.
 
 = 3.0.6 =
 * Fix - When adding declined cards, fatal error is thrown.
