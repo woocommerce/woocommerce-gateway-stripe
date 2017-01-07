@@ -121,10 +121,12 @@ class WC_Stripe_Payment_Request {
 				'total' => array(
 					'label'  => __( 'Total', 'woocommerce-gateway-stripe' ),
 					'amount' => array(
-						'value'    => max( 0, apply_filters( 'woocommerce_calculated_total', round( WC()->cart->cart_contents_total + WC()->cart->fee_total, WC()->cart->dp ), WC()->cart ) ),
+						'value'    => max( 0, apply_filters( 'woocommerce_calculated_total', round( WC()->cart->cart_contents_total + WC()->cart->fee_total + WC()->cart->tax_total, WC()->cart->dp ), WC()->cart ) ),
 						'currency' => $currency,
 					),
 				),
+				// Include line items such as subtotal, fees and taxes. No shipping option is provided here because it is not chosen yet.
+				'displayItems' => $this->compute_display_items( null ),
 			),
 		);
 
@@ -267,32 +269,11 @@ class WC_Stripe_Payment_Request {
 
 		WC()->cart->calculate_totals();
 
-		// Send back the new cart total.
-		$currency  = get_woocommerce_currency();
-		$tax_total = max( 0, round( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp ) );
+		// Send back the new cart total and line items to be displayed, such as subtotal, shipping rate(s), fees and taxes.
 		$data      = array(
 			'total' => WC()->cart->total,
+			'items' => $this->compute_display_items( $shipping_method[0] ),
 		);
-
-		// Include fees and taxes as displayItems.
-		foreach ( WC()->cart->fees as $key => $fee ) {
-			$data['items'][] = array(
-				'label'  => $fee->name,
-				'amount' => array(
-					'currency' => $currency,
-					'value'    => $fee->amount,
-				),
-			);
-		}
-		if ( 0 < $tax_total ) {
-			$data['items'][] = array(
-				'label'  => __( 'Tax', 'woocommerce-gateway-stripe' ),
-				'amount' => array(
-					'currency' => $currency,
-					'value'    => $tax_total,
-				),
-			);
-		}
 
 		wp_send_json( $data );
 	}
@@ -312,6 +293,66 @@ class WC_Stripe_Payment_Request {
 		WC()->checkout()->process_checkout();
 
 		die( 0 );
+	}
+
+	/**
+	 * Compute display items to be included in the 'displayItems' key of the PaymentDetails.
+	 *
+	 * @param string shipping_method_id If shipping method ID is provided, will include display items about shipping.
+	 */
+	protected function compute_display_items( $shipping_method_id ) {
+		$currency = get_woocommerce_currency();
+		$items = array(
+			// Subtotal excluding tax, because taxes is a separate item, below.
+			array(
+				'label' => __( 'Subtotal', 'woocommerce-gateway-stripe' ),
+				'amount' => array(
+					'value'    => max( 0, round( WC()->cart->subtotal_ex_tax, WC()->cart->dp ) ),
+					'currency' => $currency,
+				),
+			),
+		);
+		// If a chosen shipping option was provided, add line item(s) for it and include the shipping tax.
+		$tax_total = max( 0, round( WC()->cart->tax_total, WC()->cart->dp ) );
+		if ( $shipping_method_id ) {
+			$tax_total = max( 0, round( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp ) );
+			// Look through the package rates for $shipping_method_id, and when found, add a line item.
+			foreach ( WC()->shipping->get_packages() as $package_key => $package ) {
+				foreach ( $package['rates'] as $key => $rate ) {
+					if ( $rate->id  == $shipping_method_id ) {
+						$items[] = array(
+							'label' => $rate->label,
+							'amount' => array(
+								'value' => $rate->cost,
+								'currency' => $currency,
+							),
+						);
+						break;
+					}
+				}
+			}
+		}
+		// Include fees and taxes as display items.
+		foreach ( WC()->cart->fees as $key => $fee ) {
+			$items[] = array(
+				'label'  => $fee->name,
+				'amount' => array(
+					'currency' => $currency,
+					'value'    => $fee->amount,
+				),
+			);
+		}
+		// The tax total may include the shipping taxes if a shipping option is provided.
+		if ( 0 < $tax_total ) {
+			$items[] = array(
+				'label'  => __( 'Tax', 'woocommerce-gateway-stripe' ),
+				'amount' => array(
+					'currency' => $currency,
+					'value'    => $tax_total,
+				),
+			);
+		}
+		return $items;
 	}
 }
 
