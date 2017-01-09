@@ -276,6 +276,14 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 * Initialise Gateway Settings Form Fields
 	 */
 	public function init_form_fields() {
+		if ( ! isset( $_GET['page'] ) || ! isset( $_GET['tab'] ) || ! isset( $_GET['section'] ) ) {
+			return;
+		}
+		
+		if ( 'wc-settings' !== $_GET['page'] || 'checkout' !== $_GET['tab'] || 'stripe' !== $_GET['section'] ) {
+			return;
+		}
+
 		$this->form_fields = include( 'settings-stripe.php' );
 
 		wc_enqueue_js( "
@@ -444,7 +452,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 		if ( $this->stripe_checkout ) {
 			wp_enqueue_script( 'stripe_checkout', 'https://checkout.stripe.com/v2/checkout.js', '', '2.0', true );
-			wp_enqueue_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe_checkout' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'stripe' ), WC_STRIPE_VERSION, true );
+			wp_enqueue_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe-checkout' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'stripe' ), WC_STRIPE_VERSION, true );
 		} else {
 			wp_enqueue_script( 'stripe', 'https://js.stripe.com/v2/', '', '1.0', true );
 			wp_enqueue_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery-payment', 'stripe' ), WC_STRIPE_VERSION, true );
