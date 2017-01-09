@@ -307,7 +307,7 @@
 		 * @param {String}          message Error message to display.
 		 */
 		abortPayment: function( payment, message ) {
-			payment.complete( '' ).then( function() {
+			payment.complete( 'fail' ).then( function() {
 				var $form = $( '.shop_table.cart' ).closest( 'form' );
 				$( '.woocommerce-error' ).remove();
 				$form.before( message );
