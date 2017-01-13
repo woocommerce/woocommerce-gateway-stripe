@@ -2,8 +2,8 @@
 Contributors: automattic, woothemes, mikejolley, akeda, royho, slash1andy, woosteve, spraveenitpro, mikedmoore, fernashes, shellbeezy, danieldudzic, mikaey, dsmithweb, fullysupportedphil, corsonr
 Tags: credit card, stripe, woocommerce
 Requires at least: 4.4
-Tested up to: 4.5
-Stable tag: 3.0.6
+Tested up to: 4.7.1
+Stable tag: 3.0.7
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -134,12 +134,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Upgrade Notice ==
 
-= 3.0.6 =
-* Fix - When adding declined cards, fatal error is thrown.
-* Fix - After a failed/declined process, valid cards are not accepted.
-* Fix - When paying via pay order page/link, billing info is not sent.
-* Fix - Account for all types of errors for proper localization.
-* Fix - Correctly reference Stripe fees/net based on Stripe account locale.
-* Fix - Bitcoin image not showing.
-* New - Introduce "wc_gateway_stripe_process_payment_error" action hook.
-* New - Introduce "wc_gateway_stripe_process_payment" action hook.
+= 3.0.7 =
+* New - Option to allow/disallow remember me on Stripe checkout modal.
+* Fix - Paying for order incorrectly uses cart amount.
+* Fix - Using WC function before checking exists causes fatal error.
