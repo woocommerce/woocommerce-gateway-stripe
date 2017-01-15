@@ -226,7 +226,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * @return string Setting link
 		 */
 		public function get_setting_link() {
-			$use_id_as_section = class_exists( 'WC' ) ? version_compare( WC()->version, '2.6', '>=' ) : false;
+			$use_id_as_section = function_exists( 'WC' ) ? version_compare( WC()->version, '2.6', '>=' ) : false;
 
 			$section_slug = $use_id_as_section ? 'stripe' : strtolower( 'WC_Gateway_Stripe' );
 
