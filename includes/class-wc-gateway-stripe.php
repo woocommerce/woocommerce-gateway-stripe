@@ -88,6 +88,13 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	public $apple_pay;
 
 	/**
+	 * Apple Pay Domain Set.
+	 *
+	 * @var bool
+	 */
+	public $apple_pay_domain_set;
+
+	/**
 	 * Apple Pay button style.
 	 *
 	 * @var bool
@@ -156,6 +163,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$this->publishable_key        = $this->testmode ? $this->get_option( 'test_publishable_key' ) : $this->get_option( 'publishable_key' );
 		$this->bitcoin                = 'USD' === strtoupper( get_woocommerce_currency() ) && 'yes' === $this->get_option( 'stripe_bitcoin' );
 		$this->apple_pay              = 'yes' === $this->get_option( 'apple_pay' );
+		$this->apple_pay_domain_set   = 'yes' === $this->get_option( 'apple_pay_domain_set', 'no' );
 		$this->apple_pay_button       = $this->get_option( 'apple_pay_button', 'black' );
 		$this->logging                = 'yes' === $this->get_option( 'logging' );
 		$this->allow_remember_me      = 'yes' === $this->get_option( 'allow_remember_me', 'no' );
@@ -173,8 +181,50 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 		// Hooks.
 		add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'admin_scripts' ) );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
+	}
+
+	/**
+	 * Renders the apple pay domain settings field (custom).
+	 *
+	 * @since 3.1.0
+	 * @version 3.1.0
+	 */
+	public function generate_apple_pay_domain_html() {
+		ob_start();
+		?>
+		<tr valign="top">
+			<th scope="row" class="titledesc">
+				<label for="wc-to-square"><?php esc_html_e( 'Apple Pay Domain Verification', 'woocommerce-gateway-stripe' ); ?></label>
+				<?php echo wc_help_tip( __( 'Click button to verify your domain with Apple Pay. This is required.', 'woocommerce-gateway-stripe' ) ); ?>
+			</th>
+			<td class="forminp">
+				<?php if ( ! empty( $this->secret_key ) && ! $this->apple_pay_domain_set ) { ?>
+					<a href="#" id="wc-gateway-stripe-apple-pay-domain" class="button button-secondary"><?php esc_html_e( 'Verify Domain', 'woocommerce-gateway-stripe' ); ?></a>
+				<?php } else { ?>
+					<a href="#" id="wc-gateway-stripe-apple-pay-domain" class="button button-secondary"><?php esc_html_e( 'Re-verify Domain', 'woocommerce-gateway-stripe' ); ?></a>
+					<p class="wc-stripe-apple-pay-domain-message" style="color:green;"><?php esc_html_e( 'Your domain has been verified with Apple Pay!', 'woocommerce-gateway-stripe' ); ?></p>
+				<?php } ?>
+				<input type="hidden" name="woocommerce_stripe_apple_pay_domain_set" class="wc-gateway-stripe-apple-pay-domain-set" />
+			</td>
+		</tr>
+		<?php
+		return ob_get_clean();
+	}
+
+	/**
+	 * Validate apple pay domain set setting.
+	 *
+	 * @since 3.1.0
+	 * @version 3.1.0
+	 * @param string $key
+	 */
+	public function validate_apple_pay_domain_field( $key ) {
+		$value = isset( $_POST['woocommerce_stripe_apple_pay_domain_set'] ) ? 'yes' : 'no';
+
+		return $value;
 	}
 
 	/**
@@ -276,80 +326,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 * Initialise Gateway Settings Form Fields
 	 */
 	public function init_form_fields() {
-		if ( ! isset( $_GET['page'] ) || ! isset( $_GET['tab'] ) || ! isset( $_GET['section'] ) ) {
-			return;
-		}
-		
-		if ( 'wc-settings' !== $_GET['page'] || 'checkout' !== $_GET['tab'] || 'stripe' !== $_GET['section'] ) {
-			return;
-		}
-
 		$this->form_fields = include( 'settings-stripe.php' );
-
-		wc_enqueue_js( "
-			jQuery( function( $ ) {
-				$( document.body ).on( 'change', '#woocommerce_stripe_testmode', function() {
-					var test_secret_key = $( '#woocommerce_stripe_test_secret_key' ).parents( 'tr' ).eq( 0 ),
-						test_publishable_key = $( '#woocommerce_stripe_test_publishable_key' ).parents( 'tr' ).eq( 0 ),
-						live_secret_key = $( '#woocommerce_stripe_secret_key' ).parents( 'tr' ).eq( 0 ),
-						live_publishable_key = $( '#woocommerce_stripe_publishable_key' ).parents( 'tr' ).eq( 0 );
-
-					if ( $( this ).is( ':checked' ) ) {
-						test_secret_key.show();
-						test_publishable_key.show();
-						live_secret_key.hide();
-						live_publishable_key.hide();
-					} else {
-						test_secret_key.hide();
-						test_publishable_key.hide();
-						live_secret_key.show();
-						live_publishable_key.show();
-					}
-				} );
-
-				$( '#woocommerce_stripe_testmode' ).change();
-
-				$( '#woocommerce_stripe_stripe_checkout' ).change( function() {
-					if ( $( this ).is( ':checked' ) ) {
-						$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image, #woocommerce_stripe_allow_remember_me' ).closest( 'tr' ).show();
-						$( '#woocommerce_stripe_request_payment_api' ).closest( 'tr' ).hide();
-					} else {
-						$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image, #woocommerce_stripe_allow_remember_me' ).closest( 'tr' ).hide();
-						$( '#woocommerce_stripe_request_payment_api' ).closest( 'tr' ).show();
-					}
-				}).change();
-
-				$( '#woocommerce_stripe_apple_pay' ).change( function() {
-					if ( $( this ).is( ':checked' ) ) {
-						$( '#woocommerce_stripe_apple_pay_button, #woocommerce_stripe_apple_pay_button_lang' ).closest( 'tr' ).show();
-					} else {
-						$( '#woocommerce_stripe_apple_pay_button, #woocommerce_stripe_apple_pay_button_lang' ).closest( 'tr' ).hide();
-					}
-				}).change();
-
-				$( '#woocommerce_stripe_secret_key, #woocommerce_stripe_publishable_key' ).change( function() {
-					var value = $( this ).val();
-
-					if ( value.indexOf( '_test_' ) >= 0 ) {
-						$( this ).css( 'border-color', 'red' ).after( '<span class=\"description stripe-error-description\" style=\"color:red; display:block;\">" . __( 'This is not a valid live key. Live keys start with "sk_live_" and "pk_live_".', 'woocommerce-gateway-stripe' ) . "</span>' );
-					} else {
-						$( this ).css( 'border-color', '' );
-						$( '.stripe-error-description', $( this ).parent() ).remove();
-					}
-				}).change();
-
-				$( '#woocommerce_stripe_test_secret_key, #woocommerce_stripe_test_publishable_key' ).change( function() {
-					var value = $( this ).val();
-
-					if ( value.indexOf( '_live_' ) >= 0 ) {
-						$( this ).css( 'border-color', 'red' ).after( '<span class=\"description stripe-error-description\" style=\"color:red; display:block;\">" . __( 'This is not a valid test key. Test keys start with "sk_test_" and "pk_test_".', 'woocommerce-gateway-stripe' ) . "</span>' );
-					} else {
-						$( this ).css( 'border-color', '' );
-						$( '.stripe-error-description', $( this ).parent() ).remove();
-					}
-				}).change();
-			});
-		" );
 	}
 
 	/**
@@ -434,6 +411,36 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			'processing_error'      => __( 'An error occurred while processing the card.', 'woocommerce-gateway-stripe' ),
 			'invalid_request_error' => __( 'Could not find payment information.', 'woocommerce-gateway-stripe' ),
 		) );
+	}
+
+	/**
+	 * Load admin scripts.
+	 *
+	 * @since 3.1.0
+	 * @version 3.1.0
+	 */
+	public function admin_scripts() {
+		if ( 'woocommerce_page_wc-settings' !== get_current_screen()->id ) {
+			return;
+		}
+
+		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+
+		wp_enqueue_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION, true );
+
+		$stripe_admin_params = array(
+			'localized_messages' => array(
+				'not_valid_live_key_msg' => __( 'This is not a valid live key. Live keys start with "sk_live_" and "pk_live_".', 'woocommerce-gateway-stripe' ),
+				'not_valid_test_key_msg' => __( 'This is not a valid test key. Test keys start with "sk_test_" and "pk_test_".', 'woocommerce-gateway-stripe' ),
+				're_verify_button_text'  => __( 'Re-verify Domain', 'woocommerce-gateway-stripe' ),
+			),
+			'ajaxurl'            => admin_url( 'admin-ajax.php' ),
+			'nonce'              => array( 
+				'apple_pay_domain_nonce' => wp_create_nonce( '_wc_stripe_apple_pay_domain_nonce' ),
+			),
+		);
+
+		wp_localize_script( 'woocommerce_stripe_admin', 'wc_stripe_admin_params', apply_filters( 'wc_stripe_admin_params', $stripe_admin_params ) );
 	}
 
 	/**
