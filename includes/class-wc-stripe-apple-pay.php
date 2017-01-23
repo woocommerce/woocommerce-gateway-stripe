@@ -88,6 +88,8 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			wp_die( __( 'Cheatin&#8217; huh?', 'woocommerce-gateway-stripe' ) );
 		}
 
+		$secret_key = wc_clean( $_POST['secret_key'] );
+
 		try {
 			$path     = untrailingslashit( preg_replace( "!${_SERVER['SCRIPT_NAME']}$!", '', $_SERVER['SCRIPT_FILENAME'] ) );
 			$dir      = '.well-known';
@@ -109,7 +111,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 			// At this point then the domain association folder and file should be available.
 			// Proceed to verify/and or verify again.
-			WC_Stripe_Apple_Pay::_register_apple_pay_domain( $gateway_settings );
+			WC_Stripe_Apple_Pay::_register_apple_pay_domain( $secret_key );
 
 			// No errors to this point, verification success!
 			$gateway_settings['apple_pay_domain_set'] = 'yes';
@@ -131,14 +133,12 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	 *
 	 * @since 3.1.0
 	 * @version 3.1.0
-	 * @param array $gateway_settings
+	 * @param string $secret_key
 	 */
-	private static function _register_apple_pay_domain( $gateway_settings = array() ) {
-		if ( empty( $gateway_settings ) ) {
+	private static function _register_apple_pay_domain( $secret_key = '' ) {
+		if ( empty( $secret_key ) ) {
 			throw new Exception( __( 'Unable to verify domain - missing secret key.', 'woocommerce-gateway-stripe' ) );
 		}
-
-		$secret_key = 'yes' === $gateway_settings['testmode'] ? $gateway_settings['test_secret_key'] : $gateway_settings['secret_key'];
 
 		$endpoint = 'https://api.stripe.com/v1/apple_pay/domains';
 

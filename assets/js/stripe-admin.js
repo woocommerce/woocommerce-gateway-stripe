@@ -5,6 +5,18 @@ jQuery( function( $ ) {
 	 * Object to handle Stripe admin functions.
 	 */
 	var wc_stripe_admin = {
+		isTestMode: function() {
+			return $( '#woocommerce_stripe_testmode' ).is( ':checked' );
+		},
+
+		getSecretKey: function() {
+			if ( wc_stripe_admin.isTestMode() ) {
+				return $( '#woocommerce_stripe_test_secret_key' ).val();
+			} else {
+				return $( '#woocommerce_stripe_secret_key' ).val();
+			}
+		},
+
 		/**
 		 * Initialize.
 		 */
@@ -30,6 +42,7 @@ jQuery( function( $ ) {
 
 			$( '#woocommerce_stripe_testmode' ).change();
 
+			// Toggle Stripe Checkout settings.
 			$( '#woocommerce_stripe_stripe_checkout' ).change( function() {
 				if ( $( this ).is( ':checked' ) ) {
 					$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image, #woocommerce_stripe_allow_remember_me' ).closest( 'tr' ).show();
@@ -40,6 +53,7 @@ jQuery( function( $ ) {
 				}
 			}).change();
 
+			// Toggle Apple Pay settings.
 			$( '#woocommerce_stripe_apple_pay' ).change( function() {
 				if ( $( this ).is( ':checked' ) ) {
 					$( '#woocommerce_stripe_apple_pay_button, #woocommerce_stripe_apple_pay_button_lang, #wc-gateway-stripe-apple-pay-domain' ).closest( 'tr' ).show();
@@ -48,7 +62,8 @@ jQuery( function( $ ) {
 				}
 			}).change();
 
-			$( '#woocommerce_stripe_secret_key, #woocommerce_stripe_publishable_key' ).change( function() {
+			// Validate the keys to make sure it is matching test with test field.
+			$( '#woocommerce_stripe_secret_key, #woocommerce_stripe_publishable_key' ).on( 'input', function() {
 				var value = $( this ).val();
 
 				if ( value.indexOf( '_test_' ) >= 0 ) {
@@ -57,9 +72,10 @@ jQuery( function( $ ) {
 					$( this ).css( 'border-color', '' );
 					$( '.stripe-error-description', $( this ).parent() ).remove();
 				}
-			}).change();
+			}).trigger( 'input' );
 
-			$( '#woocommerce_stripe_test_secret_key, #woocommerce_stripe_test_publishable_key' ).change( function() {
+			// Validate the keys to make sure it is matching live with live field.
+			$( '#woocommerce_stripe_test_secret_key, #woocommerce_stripe_test_publishable_key' ).on( 'input', function() {
 				var value = $( this ).val();
 
 				if ( value.indexOf( '_live_' ) >= 0 ) {
@@ -68,17 +84,25 @@ jQuery( function( $ ) {
 					$( this ).css( 'border-color', '' );
 					$( '.stripe-error-description', $( this ).parent() ).remove();
 				}
-			}).change();
+			}).trigger( 'input' );
 
+			// Domain verification is based on the secret key value in real time.
 			$( '#wc-gateway-stripe-apple-pay-domain' ).click( function( e ) {
 				e.preventDefault();
 
 				// Remove any previous messages.
 				$( '.wc-stripe-apple-pay-domain-message' ).remove();
 
+				if ( ! wc_stripe_admin.getSecretKey() ) {
+					$( '#wc-gateway-stripe-apple-pay-domain' ).after( '<p class="wc-stripe-apple-pay-domain-message" style="color:red;">' + wc_stripe_admin_params.localized_messages.missing_secret_key + '</p>' );
+
+					return;
+				}
+
 				var data = {
 					'nonce': wc_stripe_admin_params.nonce.apple_pay_domain_nonce,
-					'action': 'wc_stripe_apple_pay_domain'
+					'action': 'wc_stripe_apple_pay_domain',
+					'secret_key': wc_stripe_admin.getSecretKey()
 				};
 
 				$.ajax({
