@@ -99,6 +99,9 @@ jQuery( function( $ ) {
 					return;
 				}
 
+				// Let the merchant know we're working on verifying the domain.
+				$( '#wc-gateway-stripe-apple-pay-domain' ).html( wc_stripe_admin_params.localized_messages.verifying_button_text );
+
 				var data = {
 					'nonce': wc_stripe_admin_params.nonce.apple_pay_domain_nonce,
 					'action': 'wc_stripe_apple_pay_domain',
