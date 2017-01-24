@@ -203,6 +203,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			<td class="forminp">
 				<?php if ( ! empty( $this->secret_key ) && ! $this->apple_pay_domain_set ) { ?>
 					<a href="#" id="wc-gateway-stripe-apple-pay-domain" class="button button-secondary"><?php esc_html_e( 'Verify Domain', 'woocommerce-gateway-stripe' ); ?></a>
+					<p class="wc-stripe-apple-pay-domain-message" style="color:green;"></p>
 				<?php } else { ?>
 					<a href="#" id="wc-gateway-stripe-apple-pay-domain" class="button button-secondary"><?php esc_html_e( 'Re-verify Domain', 'woocommerce-gateway-stripe' ); ?></a>
 					<p class="wc-stripe-apple-pay-domain-message" style="color:green;"><?php esc_html_e( 'Your domain has been verified with Apple Pay!', 'woocommerce-gateway-stripe' ); ?></p>
