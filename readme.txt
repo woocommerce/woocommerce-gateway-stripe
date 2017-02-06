@@ -88,7 +88,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 3.1.0 =
-* New - Apply Pay Support.
+* New - Apple Pay Support.
 * New - Option to allow/disallow remember me on Stripe checkout modal.
 * New - Add Google Payment Request API.
 * New - Introduce "wc_stripe_customer_metadata" filter.
