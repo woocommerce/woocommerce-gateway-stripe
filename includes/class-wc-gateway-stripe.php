@@ -203,6 +203,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			<td class="forminp">
 				<?php if ( ! empty( $this->secret_key ) && ! $this->apple_pay_domain_set ) { ?>
 					<a href="#" id="wc-gateway-stripe-apple-pay-domain" class="button button-secondary"><?php esc_html_e( 'Verify Domain', 'woocommerce-gateway-stripe' ); ?></a>
+					<p class="wc-stripe-apple-pay-domain-message" style="color:green;"></p>
 				<?php } else { ?>
 					<a href="#" id="wc-gateway-stripe-apple-pay-domain" class="button button-secondary"><?php esc_html_e( 'Re-verify Domain', 'woocommerce-gateway-stripe' ); ?></a>
 					<p class="wc-stripe-apple-pay-domain-message" style="color:green;"><?php esc_html_e( 'Your domain has been verified with Apple Pay!', 'woocommerce-gateway-stripe' ); ?></p>
@@ -434,9 +435,10 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 				'not_valid_test_key_msg' => __( 'This is not a valid test key. Test keys start with "sk_test_" and "pk_test_".', 'woocommerce-gateway-stripe' ),
 				're_verify_button_text'  => __( 'Re-verify Domain', 'woocommerce-gateway-stripe' ),
 				'missing_secret_key'     => __( 'Missing Secret Key. Please set the secret key field above and re-try.', 'woocommerce-gateway-stripe' ),
+				'verifying_button_text'  => __( 'Verifying Domain...', 'woocommerce-gateway-stripe' ),
 			),
 			'ajaxurl'            => admin_url( 'admin-ajax.php' ),
-			'nonce'              => array( 
+			'nonce'              => array(
 				'apple_pay_domain_nonce' => wp_create_nonce( '_wc_stripe_apple_pay_domain_nonce' ),
 			),
 		);

@@ -91,13 +91,16 @@ jQuery( function( $ ) {
 				e.preventDefault();
 
 				// Remove any previous messages.
-				$( '.wc-stripe-apple-pay-domain-message' ).remove();
+				$( '.wc-stripe-apple-pay-domain-message' ).text( '' );
 
 				if ( ! wc_stripe_admin.getSecretKey() ) {
-					$( '#wc-gateway-stripe-apple-pay-domain' ).after( '<p class="wc-stripe-apple-pay-domain-message" style="color:red;">' + wc_stripe_admin_params.localized_messages.missing_secret_key + '</p>' );
+					$( '.wc-stripe-apple-pay-domain-message' ).attr( 'style', 'color: red;' ).text( wc_stripe_admin_params.localized_messages.missing_secret_key );
 
 					return;
 				}
+
+				// Let the merchant know we're working on verifying the domain.
+				$( '#wc-gateway-stripe-apple-pay-domain' ).html( wc_stripe_admin_params.localized_messages.verifying_button_text );
 
 				var data = {
 					'nonce': wc_stripe_admin_params.nonce.apple_pay_domain_nonce,
@@ -111,14 +114,15 @@ jQuery( function( $ ) {
 					url:     wc_stripe_admin_params.ajaxurl,
 					success: function( response ) {
 						if ( true === response.success ) {
-							$( '#wc-gateway-stripe-apple-pay-domain' ).html( wc_stripe_admin_params.localized_messages.re_verify_button_text ).after( '<p class="wc-stripe-apple-pay-domain-message" style="color:green;">' + response.message + '</p>' );
+							$( '#wc-gateway-stripe-apple-pay-domain' ).html( wc_stripe_admin_params.localized_messages.re_verify_button_text );
+							$( '.wc-stripe-apple-pay-domain-message' ).attr( 'style', 'color: green;' ).text( response.message );
 
 							$( '.wc-gateway-stripe-apple-pay-domain-set' ).val( 1 );
 
 						}
 
 						if ( false === response.success ) {
-							$( '#wc-gateway-stripe-apple-pay-domain' ).after( '<p class="wc-stripe-apple-pay-domain-message" style="color:red;">' + response.message + '</p>' );
+							$( '.wc-stripe-apple-pay-domain-message' ).attr( 'style', 'color: red;' ).text( response.message );
 
 							$( '.wc-gateway-stripe-apple-pay-domain-set' ).val( 0 );
 						}
