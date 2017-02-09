@@ -56,9 +56,9 @@ jQuery( function( $ ) {
 			// Toggle Apple Pay settings.
 			$( '#woocommerce_stripe_apple_pay' ).change( function() {
 				if ( $( this ).is( ':checked' ) ) {
-					$( '#woocommerce_stripe_apple_pay_button, #woocommerce_stripe_apple_pay_button_lang, #wc-gateway-stripe-apple-pay-domain' ).closest( 'tr' ).show();
+					$( '#woocommerce_stripe_apple_pay_button, #woocommerce_stripe_apple_pay_button_lang' ).closest( 'tr' ).show();
 				} else {
-					$( '#woocommerce_stripe_apple_pay_button, #woocommerce_stripe_apple_pay_button_lang, #wc-gateway-stripe-apple-pay-domain' ).closest( 'tr' ).hide();
+					$( '#woocommerce_stripe_apple_pay_button, #woocommerce_stripe_apple_pay_button_lang' ).closest( 'tr' ).hide();
 				}
 			}).change();
 
@@ -85,46 +85,6 @@ jQuery( function( $ ) {
 					$( '.stripe-error-description', $( this ).parent() ).remove();
 				}
 			}).trigger( 'input' );
-
-			// Domain verification is based on the secret key value in real time.
-			$( '#wc-gateway-stripe-apple-pay-domain' ).click( function( e ) {
-				e.preventDefault();
-
-				// Remove any previous messages.
-				$( '.wc-stripe-apple-pay-domain-message' ).remove();
-
-				if ( ! wc_stripe_admin.getSecretKey() ) {
-					$( '#wc-gateway-stripe-apple-pay-domain' ).after( '<p class="wc-stripe-apple-pay-domain-message" style="color:red;">' + wc_stripe_admin_params.localized_messages.missing_secret_key + '</p>' );
-
-					return;
-				}
-
-				var data = {
-					'nonce': wc_stripe_admin_params.nonce.apple_pay_domain_nonce,
-					'action': 'wc_stripe_apple_pay_domain',
-					'secret_key': wc_stripe_admin.getSecretKey()
-				};
-
-				$.ajax({
-					type:    'POST',
-					data:    data,
-					url:     wc_stripe_admin_params.ajaxurl,
-					success: function( response ) {
-						if ( true === response.success ) {
-							$( '#wc-gateway-stripe-apple-pay-domain' ).html( wc_stripe_admin_params.localized_messages.re_verify_button_text ).after( '<p class="wc-stripe-apple-pay-domain-message" style="color:green;">' + response.message + '</p>' );
-
-							$( '.wc-gateway-stripe-apple-pay-domain-set' ).val( 1 );
-
-						}
-
-						if ( false === response.success ) {
-							$( '#wc-gateway-stripe-apple-pay-domain' ).after( '<p class="wc-stripe-apple-pay-domain-message" style="color:red;">' + response.message + '</p>' );
-
-							$( '.wc-gateway-stripe-apple-pay-domain-set' ).val( 0 );
-						}
-					}
-				});
-			});
 		}
 	};
 

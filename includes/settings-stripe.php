@@ -147,9 +147,6 @@ return apply_filters( 'wc_stripe_settings',
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		),
-		'apple_pay_domain_set' => array(
-			'type'        => 'apple_pay_domain',
-		),
 		'apple_pay_button' => array(
 			'title'       => __( 'Apple Pay Button Style', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Button Style', 'woocommerce-gateway-stripe' ),

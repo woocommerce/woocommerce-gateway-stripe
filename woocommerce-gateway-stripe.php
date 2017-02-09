@@ -273,10 +273,6 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 
 			load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
 			add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateways' ) );
-
-			if ( is_admin() ) {
-				add_action( 'wp_ajax_wc_stripe_apple_pay_domain', 'WC_Stripe_Apple_Pay::process_apple_pay_domain' );
-			}
 			
 			$load_addons = (
 				$this->subscription_support_enabled
