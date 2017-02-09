@@ -292,7 +292,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			return;
 		}
 		?>
-		<p class="apple-pay-button-checkout-separator">- <?php _e( 'Or', 'woocommerce-gateway-stripe' ); ?> -</p>
+		<p class="apple-pay-button-checkout-separator">- <?php esc_html_e( 'Or', 'woocommerce-gateway-stripe' ); ?> -</p>
 		<?php
 	}
 
