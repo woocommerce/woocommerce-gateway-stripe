@@ -68,7 +68,8 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	public function init() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
 		add_action( 'woocommerce_proceed_to_checkout', array( $this, 'display_apple_pay_button' ), 1 );
-		add_action( 'woocommerce_checkout_before_customer_details', array( $this, 'display_apple_pay_button' ) );
+		add_action( 'woocommerce_checkout_before_customer_details', array( $this, 'display_apple_pay_button' ), 1 );
+		add_action( 'woocommerce_checkout_before_customer_details', array( $this, 'display_apple_pay_separator_html' ), 2 );
 		add_action( 'wc_ajax_wc_stripe_apple_pay', array( $this, 'process_apple_pay' ) );
 		add_action( 'wc_ajax_wc_stripe_generate_apple_pay_cart', array( $this, 'generate_apple_pay_cart' ) );
 		add_action( 'wc_ajax_wc_stripe_apple_pay_get_shipping_methods', array( $this, 'get_shipping_methods' ) );
@@ -264,6 +265,34 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		$button_lang      = ! empty( $this->_gateway_settings['apple_pay_button_lang'] ) ? strtolower( $this->_gateway_settings['apple_pay_button_lang'] ) : 'en';
 		?>
 		<button class="apple-pay-button" lang="<?php echo esc_attr( $button_lang ); ?>" style="-webkit-appearance: -apple-pay-button; -apple-pay-button-type: buy; -apple-pay-button-style: <?php echo esc_attr( $apple_pay_button ); ?>;"></button>
+		<?php
+	}
+
+	/**
+	 * Display Apple Pay button on the cart page
+	 *
+	 * @since 3.1.0
+	 * @version 3.1.0
+	 */
+	public function display_apple_pay_separator_html() {
+		$gateways = WC()->payment_gateways->get_available_payment_gateways();
+
+		/**
+		 * In order for the Apple Pay button to show on cart page,
+		 * Apple Pay must be enabled and Stripe gateway must be enabled.
+		 */
+		if (
+			'yes' !== $this->_gateway_settings['apple_pay']
+			|| ! isset( $gateways['stripe'] )
+		) {
+			return;
+		}
+
+		if ( ! $this->is_supported_product_type() ) {
+			return;
+		}
+		?>
+		<p class="apple-pay-button-checkout-separator">- <?php _e( 'Or', 'woocommerce-gateway-stripe' ); ?> -</p>
 		<?php
 	}
 
