@@ -67,7 +67,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	 */
 	public function init() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
-		add_action( 'woocommerce_proceed_to_checkout', array( $this, 'display_apple_pay_button' ), 20 );
+		add_action( 'woocommerce_proceed_to_checkout', array( $this, 'display_apple_pay_button' ), 1 );
 		add_action( 'woocommerce_checkout_before_customer_details', array( $this, 'display_apple_pay_button' ) );
 		add_action( 'wc_ajax_wc_stripe_apple_pay', array( $this, 'process_apple_pay' ) );
 		add_action( 'wc_ajax_wc_stripe_generate_apple_pay_cart', array( $this, 'generate_apple_pay_cart' ) );
