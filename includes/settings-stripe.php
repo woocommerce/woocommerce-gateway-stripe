@@ -144,7 +144,7 @@ return apply_filters( 'wc_stripe_settings',
 			'label'       => sprintf( __( 'Enable Apple Pay. %1$sBy using Apple Pay, you agree to %2$s and %3$s\'s terms of service.', 'woocommerce-gateway-stripe' ), '<br />', '<a href="https://stripe.com/apple-pay/legal" target="_blank">Stripe</a>', '<a href="https://developer.apple.com/apple-pay/acceptable-use-guidelines-for-websites/" target="_blank">Apple</a>' ),
 			'type'        => 'checkbox',
 			'description' => __( 'If enabled, users will be able to pay with Apple Pay.', 'woocommerce-gateway-stripe' ),
-			'default'     => 'no',
+			'default'     => 'yes',
 			'desc_tip'    => true,
 		),
 		'apple_pay_domain_set' => array(
