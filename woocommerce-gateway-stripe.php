@@ -136,6 +136,8 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			add_filter( 'woocommerce_get_customer_payment_tokens', array( $this, 'woocommerce_get_customer_payment_tokens' ), 10, 3 );
 			add_action( 'woocommerce_payment_token_deleted', array( $this, 'woocommerce_payment_token_deleted' ), 10, 2 );
 			add_action( 'woocommerce_payment_token_set_default', array( $this, 'woocommerce_payment_token_set_default' ) );
+			add_action( 'wp_ajax_stripe_dismiss_request_api_notice', array( $this, 'dismiss_request_api_notice' ) );
+			add_action( 'wp_ajax_stripe_dismiss_apple_pay_notice', array( $this, 'dismiss_apple_pay_notice' ) );
 
 			include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-request.php' );
 		}
@@ -152,9 +154,58 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 
 		/**
 		 * The backup sanity check, in case the plugin is activated in a weird way,
-		 * or the environment changes after activation.
+		 * or the environment changes after activation. Also handles upgrade routines.
 		 */
 		public function check_environment() {
+			$show_request_api_notice = get_option( 'wc_stripe_show_request_api_notice' );
+			$show_apple_pay_notice   = get_option( 'wc_stripe_show_apple_pay_notice' );
+
+			if ( empty( $show_apple_pay_notice ) || 'yes' === $show_apple_pay_notice ) {
+				// @TODO remove this notice in the future.
+				?>
+				<div class="notice notice-warning wc-stripe-apple-pay-notice is-dismissible"><p><?php esc_html_e( 'New Feature! Stripe now supports Apple Pay. Your customers can now purchase your products even faster. Apple Pay has been enabled by default.', 'woocommerce-gateway-stripe' ); ?></p></div>
+
+				<script type="application/javascript">
+					window.onload = function() {
+						jQuery( '.wc-stripe-apple-pay-notice' ).on( 'click', '.notice-dismiss', function () {
+							var data = {
+								action: 'stripe_dismiss_apple_pay_notice'
+							};
+
+							jQuery.post( '<?php echo admin_url( 'admin-ajax.php' ); ?>', data );
+						});
+					}
+				</script>
+
+				<?php
+			}
+
+			if ( empty( $show_request_api_notice ) || 'yes' === $show_request_api_notice ) {
+				// @TODO remove this notice in the future.
+				?>
+				<div class="notice notice-warning wc-stripe-request-api-notice is-dismissible"><p><?php esc_html_e( 'New Feature! Stripe now supports Google Payment Request. Your customers can now use mobile phones with supported browsers such as Chrome to make purchases easier and faster.', 'woocommerce-gateway-stripe' ); ?></p></div>
+				
+				<script type="application/javascript">
+					window.onload = function() {
+						jQuery( '.wc-stripe-request-api-notice' ).on( 'click', '.notice-dismiss', function () {
+							var data = {
+								action: 'stripe_dismiss_request_api_notice'
+							};
+
+							jQuery.post( '<?php echo admin_url( 'admin-ajax.php' ); ?>', data );
+						});
+					}
+				</script>
+
+				<?php
+			}
+
+			if ( ! defined( 'IFRAME_REQUEST' ) && ( WC_STRIPE_VERSION !== get_option( 'woocommerce_stripe_version' ) ) ) {
+				$this->install();
+
+				do_action( 'woocommerce_stripe_updated' );
+			}
+
 			$environment_warning = self::get_environment_warning();
 
 			if ( $environment_warning && is_plugin_active( plugin_basename( __FILE__ ) ) ) {
@@ -173,6 +224,57 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				$setting_link = $this->get_setting_link();
 				$this->add_admin_notice( 'prompt_connect', 'notice notice-warning', sprintf( __( 'Stripe is almost ready. To get started, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ) );
 			}
+		}
+
+		/**
+		 * Updates the plugin version in db
+		 *
+		 * @since 3.1.0
+		 * @version 3.1.0
+		 * @return bool
+		 */
+		private static function _update_plugin_version() {
+			delete_option( 'wc_stripe_version' );
+			add_option( 'wc_stripe_version', WC_STRIPE_VERSION );
+
+			return true;
+		}
+
+		/**
+		 * Dismiss the Google Payment Request API Feature notice.
+		 *
+		 * @since 3.1.0
+		 * @version 3.1.0
+		 */
+		public function dismiss_request_api_notice() {
+			update_option( 'wc_stripe_show_request_api_notice', 'no' );
+		}
+
+		/**
+		 * Dismiss the Apple Pay Feature notice.
+		 *
+		 * @since 3.1.0
+		 * @version 3.1.0
+		 */
+		public function dismiss_apple_pay_notice() {
+			update_option( 'wc_stripe_show_apple_pay_notice', 'no' );
+		}
+
+		/**
+		 * Handles upgrade routines.
+		 *
+		 * @since 3.1.0
+		 * @version 3.1.0
+		 */
+		public function install() {
+			if ( ! defined( 'WC_STRIPE_INSTALLING' ) ) {
+				define( 'WC_STRIPE_INSTALLING', true );
+			}
+
+			// @TODO remove this in the future.
+			update_option( 'wc_stripe_show_features_notice', 'yes' );
+
+			$this->_update_plugin_version();
 		}
 
 		/**
