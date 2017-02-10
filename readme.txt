@@ -2,7 +2,7 @@
 Contributors: automattic, woothemes, mikejolley, akeda, royho, slash1andy, woosteve, spraveenitpro, mikedmoore, fernashes, shellbeezy, danieldudzic, mikaey, dsmithweb, fullysupportedphil, corsonr, deskroid, luminus
 Tags: credit card, stripe, woocommerce
 Requires at least: 4.4
-Tested up to: 4.6.1
+Tested up to: 4.7.2
 Stable tag: 3.0.6
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
@@ -89,13 +89,12 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 3.1.0 =
 * New - Apple Pay Support.
-* New - Option to allow/disallow remember me on Stripe checkout modal.
 * New - Add Google Payment Request API.
-* New - Introduce "wc_stripe_customer_metadata" filter.
-* New - Introduce "wc_stripe_payment_metadata" filter.
+
+= 3.0.7 =
+* New - Option to allow/disallow remember me on Stripe checkout modal.
 * Fix - Paying for order incorrectly uses cart amount.
-* Add - Transaction failed reasons to order note.
-* Add - Customer name and email to metadata.
+* Fix - Using WC function before checking exists causes fatal error.
 
 = 3.0.6 =
 * Fix - When adding declined cards, fatal error is thrown.

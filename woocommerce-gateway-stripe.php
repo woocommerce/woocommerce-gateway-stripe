@@ -3,13 +3,13 @@
  * Plugin Name: WooCommerce Stripe Gateway
  * Plugin URI: https://wordpress.org/plugins/woocommerce-gateway-stripe/
  * Description: Take credit card payments on your store using Stripe.
- * Author: Automattic
+ * Author: WooCommerce
  * Author URI: https://woocommerce.com/
  * Version: 3.0.6
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  *
- * Copyright (c) 2016 Automattic
+ * Copyright (c) 2017 WooCommerce
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
