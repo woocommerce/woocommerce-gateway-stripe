@@ -157,49 +157,6 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * or the environment changes after activation. Also handles upgrade routines.
 		 */
 		public function check_environment() {
-			$show_request_api_notice = get_option( 'wc_stripe_show_request_api_notice' );
-			$show_apple_pay_notice   = get_option( 'wc_stripe_show_apple_pay_notice' );
-
-			if ( empty( $show_apple_pay_notice ) || 'yes' === $show_apple_pay_notice ) {
-				// @TODO remove this notice in the future.
-				?>
-				<div class="notice notice-warning wc-stripe-apple-pay-notice is-dismissible"><p><?php esc_html_e( 'New Feature! Stripe now supports Apple Pay. Your customers can now purchase your products even faster. Apple Pay has been enabled by default.', 'woocommerce-gateway-stripe' ); ?></p></div>
-
-				<script type="application/javascript">
-					window.onload = function() {
-						jQuery( '.wc-stripe-apple-pay-notice' ).on( 'click', '.notice-dismiss', function () {
-							var data = {
-								action: 'stripe_dismiss_apple_pay_notice'
-							};
-
-							jQuery.post( '<?php echo admin_url( 'admin-ajax.php' ); ?>', data );
-						});
-					}
-				</script>
-
-				<?php
-			}
-
-			if ( empty( $show_request_api_notice ) || 'yes' === $show_request_api_notice ) {
-				// @TODO remove this notice in the future.
-				?>
-				<div class="notice notice-warning wc-stripe-request-api-notice is-dismissible"><p><?php esc_html_e( 'New Feature! Stripe now supports Google Payment Request. Your customers can now use mobile phones with supported browsers such as Chrome to make purchases easier and faster.', 'woocommerce-gateway-stripe' ); ?></p></div>
-				
-				<script type="application/javascript">
-					window.onload = function() {
-						jQuery( '.wc-stripe-request-api-notice' ).on( 'click', '.notice-dismiss', function () {
-							var data = {
-								action: 'stripe_dismiss_request_api_notice'
-							};
-
-							jQuery.post( '<?php echo admin_url( 'admin-ajax.php' ); ?>', data );
-						});
-					}
-				</script>
-
-				<?php
-			}
-
 			if ( ! defined( 'IFRAME_REQUEST' ) && ( WC_STRIPE_VERSION !== get_option( 'woocommerce_stripe_version' ) ) ) {
 				$this->install();
 
@@ -340,6 +297,49 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * Display any notices we've collected thus far (e.g. for connection, disconnection)
 		 */
 		public function admin_notices() {
+			$show_request_api_notice = get_option( 'wc_stripe_show_request_api_notice' );
+			$show_apple_pay_notice   = get_option( 'wc_stripe_show_apple_pay_notice' );
+
+			if ( empty( $show_apple_pay_notice ) || 'yes' === $show_apple_pay_notice ) {
+				// @TODO remove this notice in the future.
+				?>
+				<div class="notice notice-warning wc-stripe-apple-pay-notice is-dismissible"><p><?php esc_html_e( 'New Feature! Stripe now supports Apple Pay. Your customers can now purchase your products even faster. Apple Pay has been enabled by default.', 'woocommerce-gateway-stripe' ); ?></p></div>
+
+				<script type="application/javascript">
+					window.onload = function() {
+						jQuery( '.wc-stripe-apple-pay-notice' ).on( 'click', '.notice-dismiss', function () {
+							var data = {
+								action: 'stripe_dismiss_apple_pay_notice'
+							};
+
+							jQuery.post( '<?php echo admin_url( 'admin-ajax.php' ); ?>', data );
+						});
+					}
+				</script>
+
+				<?php
+			}
+
+			if ( empty( $show_request_api_notice ) || 'yes' === $show_request_api_notice ) {
+				// @TODO remove this notice in the future.
+				?>
+				<div class="notice notice-warning wc-stripe-request-api-notice is-dismissible"><p><?php esc_html_e( 'New Feature! Stripe now supports Google Payment Request. Your customers can now use mobile phones with supported browsers such as Chrome to make purchases easier and faster.', 'woocommerce-gateway-stripe' ); ?></p></div>
+				
+				<script type="application/javascript">
+					window.onload = function() {
+						jQuery( '.wc-stripe-request-api-notice' ).on( 'click', '.notice-dismiss', function () {
+							var data = {
+								action: 'stripe_dismiss_request_api_notice'
+							};
+
+							jQuery.post( '<?php echo admin_url( 'admin-ajax.php' ); ?>', data );
+						});
+					}
+				</script>
+
+				<?php
+			}
+			
 			foreach ( (array) $this->notices as $notice_key => $notice ) {
 				echo "<div class='" . esc_attr( $notice['class'] ) . "'><p>";
 				echo wp_kses( $notice['message'], array( 'a' => array( 'href' => array() ) ) );
