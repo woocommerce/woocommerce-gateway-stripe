@@ -204,7 +204,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * @version 3.1.0
 		 */
 		public function dismiss_request_api_notice() {
-			update_option( 'wc_stripe_show_request_api_notice', 'no' );
+			add_option( 'wc_stripe_show_request_api_notice', 'no' );
 		}
 
 		/**
@@ -214,7 +214,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * @version 3.1.0
 		 */
 		public function dismiss_apple_pay_notice() {
-			update_option( 'wc_stripe_show_apple_pay_notice', 'no' );
+			add_option( 'wc_stripe_show_apple_pay_notice', 'no' );
 		}
 
 		/**
@@ -227,9 +227,6 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			if ( ! defined( 'WC_STRIPE_INSTALLING' ) ) {
 				define( 'WC_STRIPE_INSTALLING', true );
 			}
-
-			// @TODO remove this in the future.
-			update_option( 'wc_stripe_show_features_notice', 'yes' );
 
 			$this->_update_plugin_version();
 		}
@@ -300,41 +297,37 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			$show_request_api_notice = get_option( 'wc_stripe_show_request_api_notice' );
 			$show_apple_pay_notice   = get_option( 'wc_stripe_show_apple_pay_notice' );
 
-			if ( empty( $show_apple_pay_notice ) || 'yes' === $show_apple_pay_notice ) {
+			if ( empty( $show_apple_pay_notice ) ) {
 				// @TODO remove this notice in the future.
 				?>
 				<div class="notice notice-warning wc-stripe-apple-pay-notice is-dismissible"><p><?php esc_html_e( 'New Feature! Stripe now supports Apple Pay. Your customers can now purchase your products even faster. Apple Pay has been enabled by default.', 'woocommerce-gateway-stripe' ); ?></p></div>
 
 				<script type="application/javascript">
-					window.onload = function() {
-						jQuery( '.wc-stripe-apple-pay-notice' ).on( 'click', '.notice-dismiss', function () {
-							var data = {
-								action: 'stripe_dismiss_apple_pay_notice'
-							};
+					jQuery( '.wc-stripe-apple-pay-notice' ).on( 'click', '.notice-dismiss', function() {
+						var data = {
+							action: 'stripe_dismiss_apple_pay_notice'
+						};
 
-							jQuery.post( '<?php echo admin_url( 'admin-ajax.php' ); ?>', data );
-						});
-					}
+						jQuery.post( '<?php echo admin_url( 'admin-ajax.php' ); ?>', data );
+					});
 				</script>
 
 				<?php
 			}
 
-			if ( empty( $show_request_api_notice ) || 'yes' === $show_request_api_notice ) {
+			if ( empty( $show_request_api_notice ) ) {
 				// @TODO remove this notice in the future.
 				?>
 				<div class="notice notice-warning wc-stripe-request-api-notice is-dismissible"><p><?php esc_html_e( 'New Feature! Stripe now supports Google Payment Request. Your customers can now use mobile phones with supported browsers such as Chrome to make purchases easier and faster.', 'woocommerce-gateway-stripe' ); ?></p></div>
 				
 				<script type="application/javascript">
-					window.onload = function() {
-						jQuery( '.wc-stripe-request-api-notice' ).on( 'click', '.notice-dismiss', function () {
-							var data = {
-								action: 'stripe_dismiss_request_api_notice'
-							};
+					jQuery( '.wc-stripe-request-api-notice' ).on( 'click', '.notice-dismiss', function() {
+						var data = {
+							action: 'stripe_dismiss_request_api_notice'
+						};
 
-							jQuery.post( '<?php echo admin_url( 'admin-ajax.php' ); ?>', data );
-						});
-					}
+						jQuery.post( '<?php echo admin_url( 'admin-ajax.php' ); ?>', data );
+					});
 				</script>
 
 				<?php
