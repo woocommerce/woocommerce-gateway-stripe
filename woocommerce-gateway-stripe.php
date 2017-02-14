@@ -395,6 +395,58 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		}
 
 		/**
+		 * List of currencies supported by Stripe that has no decimals.
+		 *
+		 * @return array $currencies
+		 */
+		public static function no_decimal_currencies() {
+			return array(
+				'bif', // Burundian Franc
+				'djf', // Djiboutian Franc
+				'jpy', // Japanese Yen
+				'krw', // South Korean Won
+				'pyg', // Paraguayan Guaraní
+				'vnd', // Vietnamese Đồng
+				'xaf', // Central African Cfa Franc
+				'xpf', // Cfp Franc
+				'clp', // Chilean Peso
+				'gnf', // Guinean Franc
+				'kmf', // Comorian Franc
+				'mga', // Malagasy Ariary
+				'rwf', // Rwandan Franc
+				'vuv', // Vanuatu Vatu
+				'xof', // West African Cfa Franc
+			);
+		}
+
+		/**
+		 * Stripe uses smallest denomination in currencies such as cents.
+		 * We need to format the returned currency from Stripe into human readable form.
+		 *
+		 * @param object $balance_transaction
+		 * @param string $type Type of number to format
+		 */
+		public static function format_number( $balance_transaction, $type = 'fee' ) {
+			if ( ! is_object( $balance_transaction ) ) {
+				return;
+			}
+
+			if ( in_array( strtolower( $balance_transaction->currency ), self::no_decimal_currencies() ) ) {
+				if ( 'fee' === $type ) {
+					return $balance_transaction->fee;
+				}
+
+				return $balance_transaction->net;
+			}
+
+			if ( 'fee' === $type ) {
+				return number_format( $balance_transaction->fee / 100, 2, '.', '' );
+			}
+
+			return number_format( $balance_transaction->net / 100, 2, '.', '' ); 
+		}
+
+		/**
 		 * Capture payment when the order is changed from on-hold to complete or processing
 		 *
 		 * @param  int $order_id
@@ -424,8 +476,8 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 						if ( isset( $result->balance_transaction ) && isset( $result->balance_transaction->fee ) ) {
 							// Fees and Net needs to both come from Stripe to be accurate as the returned
 							// values are in the local currency of the Stripe account, not from WC.
-							$fee = ! empty( $result->balance_transaction->fee ) ? number_format( $result->balance_transaction->fee / 100, 2, '.', '' ) : 0;
-							$net = ! empty( $result->balance_transaction->net ) ? number_format( $result->balance_transaction->net / 100, 2, '.', '' ) : 0;
+							$fee = ! empty( $result->balance_transaction->fee ) ? self::format_number( $result->balance_transaction, 'fee' ) : 0;
+							$net = ! empty( $result->balance_transaction->net ) ? self::format_number( $result->balance_transaction, 'net' ) : 0;
 							update_post_meta( $order->id, 'Stripe Fee', $fee );
 							update_post_meta( $order->id, 'Net Revenue From Stripe', $net );
 						}
