@@ -66,13 +66,16 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	 * @version 3.1.0
 	 */
 	public function init() {
-		add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'cart_scripts' ) );
+		add_action( 'wp_enqueue_scripts', array( $this, 'single_scripts' ) );
+		add_action( 'woocommerce_after_add_to_cart_button', array( $this, 'display_apple_pay_button' ), 1 );
 		add_action( 'woocommerce_proceed_to_checkout', array( $this, 'display_apple_pay_button' ), 1 );
 		add_action( 'woocommerce_proceed_to_checkout', array( $this, 'display_apple_pay_separator_html' ), 2 );
 		add_action( 'woocommerce_checkout_before_customer_details', array( $this, 'display_apple_pay_button' ), 1 );
 		add_action( 'woocommerce_checkout_before_customer_details', array( $this, 'display_apple_pay_separator_html' ), 2 );
 		add_action( 'wc_ajax_wc_stripe_apple_pay', array( $this, 'process_apple_pay' ) );
 		add_action( 'wc_ajax_wc_stripe_generate_apple_pay_cart', array( $this, 'generate_apple_pay_cart' ) );
+		add_action( 'wc_ajax_wc_stripe_generate_apple_pay_single', array( $this, 'generate_apple_pay_single' ) );
 		add_action( 'wc_ajax_wc_stripe_apple_pay_get_shipping_methods', array( $this, 'get_shipping_methods' ) );
 		add_action( 'wc_ajax_wc_stripe_apple_pay_update_shipping_method', array( $this, 'update_shipping_method' ) );
 		add_filter( 'woocommerce_gateway_title', array( $this, 'filter_gateway_title' ), 10, 2 );
@@ -99,17 +102,57 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Enqueue JS scripts and styles.
+	 * Enqueue JS scripts and styles for single product page.
 	 *
 	 * @since 3.1.0
 	 * @version 3.1.0
 	 */
-	public function payment_scripts() {
-		if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) {
+	public function single_scripts() {
+		if ( ! is_single() ) {
 			return;
 		}
 
-		if ( ! $this->is_supported_product_type() ) {
+		global $post;
+
+		$product = wc_get_product( $post->ID );
+
+		if ( ! in_array( $product->product_type, $this->supported_product_types() ) ) {
+			return;
+		}
+
+		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+
+		wp_enqueue_style( 'stripe_apple_pay', plugins_url( 'assets/css/stripe-apple-pay.css', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION );
+
+		wp_enqueue_script( 'stripe', 'https://js.stripe.com/v2/', '', '1.0', true );
+		wp_enqueue_script( 'woocommerce_stripe_apple_pay_single', plugins_url( 'assets/js/stripe-apple-pay-single' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'stripe' ), WC_STRIPE_VERSION, true );
+
+		$publishable_key = 'yes' === $this->_gateway_settings['testmode'] ? $this->_gateway_settings['test_publishable_key'] : $this->_gateway_settings['publishable_key'];
+
+		$stripe_params = array(
+			'key'                                           => $publishable_key,
+			'currency_code'                                 => get_woocommerce_currency(),
+			'country_code'                                  => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
+			'label'                                         => $this->statement_descriptor,
+			'ajaxurl'                                       => WC_AJAX::get_endpoint( '%%endpoint%%' ),
+			'stripe_apple_pay_nonce'                        => wp_create_nonce( '_wc_stripe_apple_pay_nonce' ),
+			'stripe_apple_pay_cart_nonce'                   => wp_create_nonce( '_wc_stripe_apple_pay_cart_nonce' ),
+			'stripe_apple_pay_get_shipping_methods_nonce'   => wp_create_nonce( '_wc_stripe_apple_pay_get_shipping_methods_nonce' ),
+			'stripe_apple_pay_update_shipping_method_nonce' => wp_create_nonce( '_wc_stripe_apple_pay_update_shipping_method_nonce' ),
+			'needs_shipping'                                => WC()->cart->needs_shipping() ? 'yes' : 'no',
+		);
+
+		wp_localize_script( 'woocommerce_stripe_apple_pay_single', 'wc_stripe_apple_pay_single_params', apply_filters( 'wc_stripe_apple_pay_single_params', $stripe_params ) );
+	}
+
+	/**
+	 * Enqueue JS scripts and styles for the cart/checkout.
+	 *
+	 * @since 3.1.0
+	 * @version 3.1.0
+	 */
+	public function cart_scripts() {
+		if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) {
 			return;
 		}
 
@@ -143,14 +186,11 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	 * Checks to make sure product type is supported by Apple Pay.
 	 *
 	 */
-	public function is_supported_product_type() {
-		foreach ( WC()->cart->get_cart() as $cart_item_key => $values ) {
-			if ( 'subscription' === $values['data']->product_type ) {
-				return false;
-			}
-		}
-
-		return true;
+	public function supported_product_types() {
+		return array(
+			'simple',
+			'variable',
+		);
 	}
 
 	/**
@@ -173,8 +213,14 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			return;
 		}
 
-		if ( ! $this->is_supported_product_type() ) {
-			return;
+		if ( is_single() ) {
+			global $post;
+
+			$product = wc_get_product( $post->ID );
+
+			if ( ! in_array( $product->product_type, $this->supported_product_types() ) ) {
+				return;
+			}
 		}
 
 		$apple_pay_button = ! empty( $this->_gateway_settings['apple_pay_button'] ) ? $this->_gateway_settings['apple_pay_button'] : 'black';
@@ -204,12 +250,65 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			return;
 		}
 
-		if ( ! $this->is_supported_product_type() ) {
-			return;
+		if ( is_single() ) {
+			global $post;
+
+			$product = wc_get_product( $post->ID );
+
+			if ( ! in_array( $product->product_type, $this->supported_product_types() ) ) {
+				return;
+			}
 		}
 		?>
 		<p class="apple-pay-button-checkout-separator">- <?php esc_html_e( 'Or', 'woocommerce-gateway-stripe' ); ?> -</p>
 		<?php
+	}
+
+	/**
+	 * Generates the Apple Pay single cart.
+	 *
+	 * @since 3.1.0
+	 * @version 3.1.0
+	 */
+	public function generate_apple_pay_single() {
+		if ( ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_apple_pay_cart_nonce' ) ) {
+			wp_die( __( 'Cheatin&#8217; huh?', 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
+			define( 'WOOCOMMERCE_CART', true );
+		}
+
+		global $post;
+
+		$product = wc_get_product( $post->ID );
+		$qty     = absint( $_POST['qty'] );
+
+		/**
+		 * If this page is single product page, we need to simulate
+		 * adding the product to the cart taken account if it is a
+		 * simple or variable product.
+		 */
+		if ( is_single() ) {
+			// First empty the cart to prevent wrong calculation.
+			WC()->cart->empty_cart();
+
+			if ( 'variable' === $product->product_type && isset( $_POST['attributes'] ) ) {
+				$attributes = array_map( 'wc_clean', $_POST['attributes'] );
+
+				$variation_id = $product->get_matching_variation( $attributes );
+
+				WC()->cart->add_to_cart( $product->id, $qty, $variation_id, $attributes );
+			}
+
+			if ( 'simple' === $product->product_type ) {
+				WC()->cart->add_to_cart( $product->id, $qty );
+			}
+		}
+
+		WC()->cart->calculate_totals();
+
+		wp_send_json( array( 'line_items' => $this->build_line_items(), 'total' => WC()->cart->total ) );
 	}
 
 	/**
