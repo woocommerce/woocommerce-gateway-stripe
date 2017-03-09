@@ -27,10 +27,9 @@ jQuery( function( $ ) {
 			Stripe.applePay.checkAvailability( function( available ) {
 				if ( available ) {
 					$( '.apple-pay-button' ).show();
+					$( '.apple-pay-button-checkout-separator' ).show();
 
 					wc_stripe_apple_pay.generate_cart();
-				} else {
-					$( '.apple-pay-button-checkout-separator' ).hide();
 				}
 			});
 
