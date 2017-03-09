@@ -29,6 +29,8 @@ jQuery( function( $ ) {
 					$( '.apple-pay-button' ).show();
 
 					wc_stripe_apple_pay.generate_cart();
+				} else {
+					$( '.apple-pay-button-checkout-separator' ).hide();
 				}
 			});
 
