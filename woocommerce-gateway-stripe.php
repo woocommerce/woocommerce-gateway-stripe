@@ -454,7 +454,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		public function capture_payment( $order_id ) {
 			$order = wc_get_order( $order_id );
 
-			if ( 'stripe' === $order->payment_method ) {
+			if ( 'stripe' === ( version_compare( WC_VERSION, '2.7.0', '<' ) ? $order->payment_method : $order->get_payment_method() ) ) {
 				$charge   = get_post_meta( $order_id, '_stripe_charge_id', true );
 				$captured = get_post_meta( $order_id, '_stripe_charge_captured', true );
 
@@ -468,18 +468,18 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 						$order->add_order_note( __( 'Unable to capture charge!', 'woocommerce-gateway-stripe' ) . ' ' . $result->get_error_message() );
 					} else {
 						$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $result->id ) );
-						update_post_meta( $order->id, '_stripe_charge_captured', 'yes' );
+						update_post_meta( $order_id, '_stripe_charge_captured', 'yes' );
 
 						// Store other data such as fees
-						update_post_meta( $order->id, 'Stripe Payment ID', $result->id );
+						update_post_meta( $order_id, 'Stripe Payment ID', $result->id );
 
 						if ( isset( $result->balance_transaction ) && isset( $result->balance_transaction->fee ) ) {
 							// Fees and Net needs to both come from Stripe to be accurate as the returned
 							// values are in the local currency of the Stripe account, not from WC.
 							$fee = ! empty( $result->balance_transaction->fee ) ? self::format_number( $result->balance_transaction, 'fee' ) : 0;
 							$net = ! empty( $result->balance_transaction->net ) ? self::format_number( $result->balance_transaction, 'net' ) : 0;
-							update_post_meta( $order->id, 'Stripe Fee', $fee );
-							update_post_meta( $order->id, 'Net Revenue From Stripe', $net );
+							update_post_meta( $order_id, 'Stripe Fee', $fee );
+							update_post_meta( $order_id, 'Net Revenue From Stripe', $net );
 						}
 					}
 				}
@@ -494,7 +494,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		public function cancel_payment( $order_id ) {
 			$order = wc_get_order( $order_id );
 
-			if ( 'stripe' === $order->payment_method ) {
+			if ( 'stripe' === ( version_compare( WC_VERSION, '2.7.0', '<' ) ? $order->payment_method : $order->get_payment_method() ) ) {
 				$charge   = get_post_meta( $order_id, '_stripe_charge_id', true );
 
 				if ( $charge ) {
@@ -506,8 +506,8 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 						$order->add_order_note( __( 'Unable to refund charge!', 'woocommerce-gateway-stripe' ) . ' ' . $result->get_error_message() );
 					} else {
 						$order->add_order_note( sprintf( __( 'Stripe charge refunded (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $result->id ) );
-						delete_post_meta( $order->id, '_stripe_charge_captured' );
-						delete_post_meta( $order->id, '_stripe_charge_id' );
+						delete_post_meta( $order_id, '_stripe_charge_captured' );
+						delete_post_meta( $order_id, '_stripe_charge_id' );
 					}
 				}
 			}

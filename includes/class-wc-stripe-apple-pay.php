@@ -116,7 +116,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 		$product = wc_get_product( $post->ID );
 
-		if ( ! in_array( $product->product_type, $this->supported_product_types() ) ) {
+		if ( ! in_array( ( version_compare( WC_VERSION, '2.7.0', '<' ) ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
 			return;
 		}
 
@@ -218,7 +218,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 			$product = wc_get_product( $post->ID );
 
-			if ( ! in_array( $product->product_type, $this->supported_product_types() ) ) {
+			if ( ! in_array( ( version_compare( WC_VERSION, '2.7.0', '<' ) ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
 				return;
 			}
 		}
@@ -255,7 +255,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 			$product = wc_get_product( $post->ID );
 
-			if ( ! in_array( $product->product_type, $this->supported_product_types() ) ) {
+			if ( ! in_array( ( version_compare( WC_VERSION, '2.7.0', '<' ) ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
 				return;
 			}
 		}
@@ -293,16 +293,16 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			// First empty the cart to prevent wrong calculation.
 			WC()->cart->empty_cart();
 
-			if ( 'variable' === $product->product_type && isset( $_POST['attributes'] ) ) {
+			if ( 'variable' === ( version_compare( WC_VERSION, '2.7.0', '<' ) ? $product->product_type : $product->get_type() ) && isset( $_POST['attributes'] ) ) {
 				$attributes = array_map( 'wc_clean', $_POST['attributes'] );
 
 				$variation_id = $product->get_matching_variation( $attributes );
 
-				WC()->cart->add_to_cart( $product->id, $qty, $variation_id, $attributes );
+				WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
 			}
 
-			if ( 'simple' === $product->product_type ) {
-				WC()->cart->add_to_cart( $product->id, $qty );
+			if ( 'simple' === ( version_compare( WC_VERSION, '2.7.0', '<' ) ? $product->product_type : $product->get_type() ) ) {
+				WC()->cart->add_to_cart( $product->get_id(), $qty );
 			}
 		}
 
@@ -516,6 +516,8 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 			$order = $this->create_order( $result );
 
+			$order_id = version_compare( WC_VERSION, '2.7.0', '<' ) ? $order->id : $order->get_id();
+
 			// Handle payment.
 			if ( $order->get_total() > 0 ) {
 
@@ -523,7 +525,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 					return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe::get_minimum_amount() / 100 ) ) );
 				}
 
-				WC_Stripe::log( "Info: Begin processing payment for order $order->id for the amount of {$order->get_total()}" );
+				WC_Stripe::log( "Info: Begin processing payment for order {$order_id} for the amount of {$order->get_total()}" );
 
 				// Make the request.
 				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $result['token']['id'] ) );
@@ -543,8 +545,8 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			// Remove cart.
 			WC()->cart->empty_cart();
 
-			update_post_meta( $order->id, '_customer_user', get_current_user_id() );
-			update_post_meta( $order->id, '_payment_method_title', __( 'Apple Pay (Stripe)', 'woocommerce-gateway-stripe' ) );
+			update_post_meta( $order_id, '_customer_user', get_current_user_id() );
+			update_post_meta( $order_id, '_payment_method_title', __( 'Apple Pay (Stripe)', 'woocommerce-gateway-stripe' ) );
 
 			// Return thank you page redirect.
 			wp_send_json( array(
@@ -557,7 +559,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			WC_Stripe::log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
-				$this->send_failed_order_email( $order->id );
+				$this->send_failed_order_email( $order_id );
 			}
 
 			wp_send_json( array( 'success' => 'false', 'msg' => $e->getMessage() ) );
@@ -572,13 +574,15 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	 */
 	protected function generate_payment_request( $order, $source ) {
 		$post_data                = array();
-		$post_data['currency']    = strtolower( $order->get_order_currency() ? $order->get_order_currency() : get_woocommerce_currency() );
+		$post_data['currency']    = strtolower( version_compare( WC_VERSION, '2.7.0', '<' ) ? $order->get_order_currency() : $order->get_currency() );
 		$post_data['amount']      = $this->get_stripe_amount( $order->get_total(), $post_data['currency'] );
 		$post_data['description'] = sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), $this->statement_descriptor, $order->get_order_number() );
 		$post_data['capture']     = 'yes' === $this->_gateway_settings['capture'] ? 'true' : 'false';
 
-		if ( ! empty( $order->billing_email ) && apply_filters( 'wc_stripe_send_stripe_receipt', false ) ) {
-			$post_data['receipt_email'] = $order->billing_email;
+		$billing_email      = version_compare( WC_VERSION, '2.7.0', '<' ) ? $order->billing_email : $order->get_billing_email();
+
+		if ( ! empty( $billing_email ) && apply_filters( 'wc_stripe_send_stripe_receipt', false ) ) {
+			$post_data['receipt_email'] = $billing_email;
 		}
 
 		$post_data['expand[]']    = 'balance_transaction';
@@ -695,13 +699,13 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		}
 
 		$order = wc_create_order();
+		$order_id = version_compare( WC_VERSION, '2.7.0', '<' ) ? $order->id : $order->get_id();
 
 		if ( is_wp_error( $order ) ) {
 			throw new Exception( sprintf( __( 'Error %d: Unable to create order. Please try again.', 'woocommerce-gateway-stripe' ), 520 ) );
 		} elseif ( false === $order ) {
 			throw new Exception( sprintf( __( 'Error %d: Unable to create order. Please try again.', 'woocommerce-gateway-stripe' ), 521 ) );
 		} else {
-			$order_id = $order->id;
 			do_action( 'woocommerce_new_order', $order_id );
 		}
 

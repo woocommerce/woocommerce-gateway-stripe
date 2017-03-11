@@ -77,11 +77,13 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	protected function save_source( $order, $source ) {
 		parent::save_source( $order, $source );
 
+		$order_id = version_compare( WC_VERSION, '2.7.0', '<' ) ? $order->id : $order->get_id();
+
 		// Also store it on the subscriptions being purchased or paid for in the order
-		if ( function_exists( 'wcs_order_contains_subscription' ) && wcs_order_contains_subscription( $order->id ) ) {
-			$subscriptions = wcs_get_subscriptions_for_order( $order->id );
-		} elseif ( function_exists( 'wcs_order_contains_renewal' ) && wcs_order_contains_renewal( $order->id ) ) {
-			$subscriptions = wcs_get_subscriptions_for_renewal_order( $order->id );
+		if ( function_exists( 'wcs_order_contains_subscription' ) && wcs_order_contains_subscription( $order_id ) ) {
+			$subscriptions = wcs_get_subscriptions_for_order( $order_id );
+		} elseif ( function_exists( 'wcs_order_contains_renewal' ) && wcs_order_contains_renewal( $order_id ) ) {
+			$subscriptions = wcs_get_subscriptions_for_renewal_order( $order_id );
 		} else {
 			$subscriptions = array();
 		}
@@ -117,7 +119,8 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 			return new WP_Error( 'stripe_error', __( 'Customer not found', 'woocommerce-gateway-stripe' ) );
 		}
 
-		$this->log( "Info: Begin processing subscription payment for order {$order->id} for the amount of {$amount}" );
+		$order_id = version_compare( WC_VERSION, '2.7.0', '<' ) ? $order->id : $order->get_id();
+		$this->log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
 
 		// Make the request
 		$request             = $this->generate_payment_request( $order, $source );
@@ -263,7 +266,8 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	 * @param  object $order
 	 */
 	public function remove_order_source_before_retry( $order ) {
-		delete_post_meta( $order->id, '_stripe_card_id' );
+		$order_id = version_compare( WC_VERSION, '2.7.0', '<' ) ? $order->id : $order->get_id();
+		delete_post_meta( $order_id, '_stripe_card_id' );
 	}
 
 	/**
@@ -271,7 +275,8 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	 * @param  object $order
 	 */
 	public function remove_order_customer_before_retry( $order ) {
-		delete_post_meta( $order->id, '_stripe_customer_id' );
+		$order_id = version_compare( WC_VERSION, '2.7.0', '<' ) ? $order->id : $order->get_id();
+		delete_post_meta( $order_id, '_stripe_customer_id' );
 	}
 
 	/**
