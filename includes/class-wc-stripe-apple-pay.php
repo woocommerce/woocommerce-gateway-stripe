@@ -558,7 +558,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			WC()->session->set( 'refresh_totals', true );
 			WC_Stripe::log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
-			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
+			if ( is_object( $order ) && isset( $order_id ) && $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );
 			}
 
