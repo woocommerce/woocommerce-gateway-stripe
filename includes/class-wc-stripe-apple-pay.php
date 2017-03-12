@@ -636,11 +636,13 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		}
 
 		$decimals = apply_filters( 'wc_stripe_apple_pay_decimals', 2 );
-
-		$items = array();
+		
+		$items    = array();
+		$subtotal = 0;
 
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $values ) {
 			$amount         = wc_format_decimal( $values['line_subtotal'], $decimals );
+			$subtotal       += $values['line_subtotal']; 
 			$quantity_label = 1 < $values['quantity'] ? ' (x' . $values['quantity'] . ')' : '';
 
 			$item = array(
@@ -650,6 +652,16 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			);
 
 			$items[] = $item;
+		}
+
+		// Default show only subtotal instead of itemization.
+		if ( apply_filters( 'wc_stripe_apple_pay_disable_itemization', true ) ) {
+			$items = array();
+			$items[] = array(
+				'type'   => 'final',
+				'label'  => __( 'Sub-Total', 'woocommerce-gateway-stripe' ),
+				'amount' => wc_format_decimal( $subtotal, $decimals ),
+			);
 		}
 
 		$discounts   = wc_format_decimal( WC()->cart->get_cart_discount_total(), $decimals );
@@ -678,7 +690,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			$items[] = array(
 				'type'   => 'final',
 				'label'  => __( 'Discount', 'woocommerce-gateway-stripe' ),
-				'amount' => $discounts,
+				'amount' => '-' . $discounts,
 			);
 		}
 
