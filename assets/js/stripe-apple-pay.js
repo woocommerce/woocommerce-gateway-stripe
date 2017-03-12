@@ -27,6 +27,8 @@ jQuery( function( $ ) {
 			Stripe.applePay.checkAvailability( function( available ) {
 				if ( available ) {
 					$( '.apple-pay-button' ).show();
+					// This is so it is centered on the checkout page.
+					$( '.woocommerce-checkout .apple-pay-button' ).css( 'visibility', 'visible' );
 					$( '.apple-pay-button-checkout-separator' ).show();
 
 					wc_stripe_apple_pay.generate_cart();
