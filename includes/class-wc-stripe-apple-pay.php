@@ -279,6 +279,8 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
+		WC()->shipping->reset_shipping();
+
 		global $post;
 
 		$product = wc_get_product( $post->ID );
