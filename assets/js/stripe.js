@@ -112,8 +112,8 @@ jQuery( function( $ ) {
 				message = wc_stripe_params[ responseObject.response.error.code ];
 			}
 
-			$( '.woocommerce-error, .stripe_token' ).remove();
-			$( '#stripe-card-number' ).closest( 'p' ).before( '<ul class="woocommerce_error woocommerce-error"><li>' + message + '</li></ul>' );
+			$( '.wc-stripe-error, .stripe_token' ).remove();
+			$( '#stripe-card-number' ).closest( 'p' ).before( '<ul class="woocommerce_error woocommerce-error wc-stripe-error"><li>' + message + '</li></ul>' );
 			wc_stripe_form.unblock();
 		},
 
@@ -162,7 +162,7 @@ jQuery( function( $ ) {
 		},
 
 		onCCFormChange: function() {
-			$( '.woocommerce-error, .stripe_token' ).remove();
+			$( '.wc-stripe-error, .stripe_token' ).remove();
 		},
 
 		onStripeResponse: function( status, response ) {
