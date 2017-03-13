@@ -454,7 +454,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		public function capture_payment( $order_id ) {
 			$order = wc_get_order( $order_id );
 
-			if ( 'stripe' === ( version_compare( WC_VERSION, '2.7.0', '<' ) ? $order->payment_method : $order->get_payment_method() ) ) {
+			if ( 'stripe' === ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->payment_method : $order->get_payment_method() ) ) {
 				$charge   = get_post_meta( $order_id, '_stripe_charge_id', true );
 				$captured = get_post_meta( $order_id, '_stripe_charge_captured', true );
 
@@ -494,7 +494,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		public function cancel_payment( $order_id ) {
 			$order = wc_get_order( $order_id );
 
-			if ( 'stripe' === ( version_compare( WC_VERSION, '2.7.0', '<' ) ? $order->payment_method : $order->get_payment_method() ) ) {
+			if ( 'stripe' === ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->payment_method : $order->get_payment_method() ) ) {
 				$charge   = get_post_meta( $order_id, '_stripe_charge_id', true );
 
 				if ( $charge ) {

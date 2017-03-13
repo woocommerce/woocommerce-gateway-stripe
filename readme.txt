@@ -1,5 +1,5 @@
 === WooCommerce Stripe Payment Gateway ===
-Contributors: automattic, woothemes, mikejolley, akeda, royho, slash1andy, woosteve, spraveenitpro, mikedmoore, fernashes, shellbeezy, danieldudzic, mikaey, dsmithweb, fullysupportedphil, corsonr, deskroid, luminus
+Contributors: automattic, woothemes, mikejolley, akeda, royho, slash1andy, woosteve, spraveenitpro, mikedmoore, fernashes, shellbeezy, danieldudzic, mikaey, dsmithweb, fullysupportedphil, corsonr, deskroid, luminus, tiagonoronha
 Tags: credit card, stripe, woocommerce
 Requires at least: 4.4
 Tested up to: 4.7.2

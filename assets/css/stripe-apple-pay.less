@@ -1,38 +1,83 @@
-.apple-pay-button {
-    display: none;
-    background-size: 100% 100%;
-    background-origin: content-box;
-    background-repeat: no-repeat;
-    width: 100%;
-    height: 44px;
-    padding: 10px 0;
-    border-radius: 10px;
-    margin-bottom: 20px;
+.apple-pay-button-wrapper,
+.apple-pay-button,
+.apple-pay-button-checkout-separator {
+	display: none;
 }
 
-.woocommerce-checkout {
-	.apple-pay-button {
-		width: 20%;
-		height: 50px;
-		margin: 0 auto;
+@supports (-webkit-appearance: -apple-pay-button) {
+	.apple-pay-button-wrapper {
+		display: block;
 		margin-bottom: 20px;
-		display: block !important;
-		visibility: hidden;
+	}
+
+	.apple-pay-button {
+		background-size: 100% 100%;
+		background-origin: content-box;
+		background-repeat: no-repeat;
+		width: 100%;
+		height: 44px;
+		padding: 10px 0;
+		border-radius: 10px;
+	}
+
+	.apple-pay-button-checkout-separator {
+		text-transform: uppercase;
+		text-align: center;
+		font-size: 1.2rem;
+	}
+
+	.woocommerce-checkout {
+		.apple-pay-button-wrapper {
+			text-align: center;
+		}
+
+		.apple-pay-button {
+			width: 30%;
+			height: 50px;
+			margin: 0 auto;
+		}
+
+		.apple-pay-button-checkout-separator {
+			border-bottom: 1px solid #EBEBEB;
+			padding-bottom: 20px;
+		}
+	}
+
+	.single-product {
+		div.product {
+			.apple-pay-button-wrapper {
+				display: inline;
+				margin-bottom: 0;
+				margin-right: 10px;
+			}
+
+			.apple-pay-button {
+				float: left;
+				max-width: 20%;
+				margin-left: 20px;
+			}
+		}
+
+		&.wc-stripe-legacy {
+			div.product {
+				form.cart {
+					display: flex;
+					align-items: flex-start;
+					align-content: flex-start;
+				}
+
+				.quantity {
+					order: 1;
+				}
+
+				.apple-pay-button-wrapper {
+					order: 2;
+				}
+
+				.single_add_to_cart_button {
+					order: 3;
+				}
+			}
+		}
 	}
 }
-
-.apple-pay-button-checkout-separator {
-	text-transform: uppercase;
-	text-align: center;
-	font-size: 1.2rem;
-	padding-bottom: 20px;
-	border-bottom: 1px solid #EBEBEB;
-	display:none;
-}
-
-.single-product .apple-pay-button {
-	max-width: 20%;
-	float: right;
-	margin-right: 10px;
-}
-	
