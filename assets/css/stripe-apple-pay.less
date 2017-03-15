@@ -32,7 +32,6 @@
 		}
 
 		.apple-pay-button {
-			width: 30%;
 			height: 50px;
 			margin: 0 auto;
 		}
@@ -45,37 +44,69 @@
 
 	.single-product {
 		div.product {
-			.apple-pay-button-wrapper {
-				display: inline;
-				margin-bottom: 0;
-				margin-right: 10px;
-			}
-
-			.apple-pay-button {
-				float: left;
-				max-width: 20%;
-				margin-left: 20px;
-			}
-		}
-
-		&.wc-stripe-legacy {
-			div.product {
-				form.cart {
-					display: flex;
-					align-items: flex-start;
-					align-content: flex-start;
+			form.cart {
+				.quantity,
+				.quantity ~ .button,
+				.apple-pay-button {
+					margin-bottom: 10px;
 				}
 
 				.quantity {
-					order: 1;
+					width: 100%;
+					margin-right: 0;
+
+					input {
+						width: 100%;
+					}
+				}
+
+				.quantity ~ .button {
+					width: 100%;
 				}
 
 				.apple-pay-button-wrapper {
-					order: 2;
+					display: inline;
+					margin-bottom: 0;
 				}
+			}
+		}
+	}
 
-				.single_add_to_cart_button {
-					order: 3;
+	@media ( min-width: 768px ) {
+		.woocommerce-checkout {
+			.apple-pay-button {
+				width: 30%;
+			}
+		}
+
+		.single-product {
+			div.product {
+				form.cart {
+					.quantity,
+					.quantity ~ .button,
+					.apple-pay-button {
+						margin-bottom: 0;
+					}
+
+					.quantity {
+						width: auto;
+						margin-right: 10px;
+
+						input {
+							width: 70px;
+						}
+					}
+
+					.quantity ~ .button {
+						float: none;
+						width: auto;
+					}
+
+					.apple-pay-button {
+						float: left;
+						max-width: 20%;
+						margin-right: 10px;
+					}
 				}
 			}
 		}
