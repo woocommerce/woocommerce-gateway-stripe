@@ -12,3 +12,4 @@ phpunit.xml.dist export-ignore
 .eslintignore export-ignore
 .tx export-ignore
 .editorconfig export-ignore
+.jshintrc export-ignore
