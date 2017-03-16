@@ -95,6 +95,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.1.1 =
+* Fix - Apple Pay error notice log link is incorrect.
+* Fix - Apple Pay domain verification paths check.
+
 = 3.1.0 =
 * New - Apple Pay Support.
 * New - Add Google Payment Request API.
@@ -146,6 +150,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Upgrade Notice ==
 
-= 3.1.0 =
-* New - Apple Pay Support.
-* New - Add Google Payment Request API.
+= 3.1.1 =
+* Fix - Apple Pay error notice log link is incorrect.
+* Fix - Apple Pay domain verification paths check.

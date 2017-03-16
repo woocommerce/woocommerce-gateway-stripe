@@ -323,13 +323,13 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			}
 
 			if ( ! file_exists( $path . '/' . $dir ) ) {
-				if ( ! mkdir( $path . '/' . $dir, 0755 ) ) {
+				if ( ! @mkdir( $path . '/' . $dir, 0755 ) ) {
 					throw new Exception( __( 'Unable to create domain association folder to domain root.', 'woocommerce-gateway-stripe' ) );
 				}
 			}
 
 			if ( ! file_exists( $fullpath ) ) {
-				if ( ! copy( WC_STRIPE_PLUGIN_PATH . '/' . $file, $fullpath ) ) {
+				if ( ! @copy( WC_STRIPE_PLUGIN_PATH . '/' . $file, $fullpath ) ) {
 					throw new Exception( __( 'Unable to copy domain association file to domain root.', 'woocommerce-gateway-stripe' ) );
 				}
 			}
