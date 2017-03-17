@@ -170,6 +170,17 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 		if ( $this->stripe_checkout ) {
 			$this->order_button_text = __( 'Continue to payment', 'woocommerce-gateway-stripe' );
+
+			// Stripe checkout does not support add payment method.
+			if ( is_add_payment_method_page() ) {
+				if ( false !== ( $key = array_search( 'add_payment_method', $this->supports ) ) ) {
+					unset( $this->supports[ $key ] );
+				}
+
+				if ( false !== ( $key = array_search( 'tokenization', $this->supports ) ) ) {
+					unset( $this->supports[ $key ] );
+				}
+			}
 		}
 
 		if ( $this->testmode ) {
@@ -524,7 +535,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 * @access public
 	 */
 	public function payment_scripts() {
-		if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) {
+		if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() ) {
 			return;
 		}
 
