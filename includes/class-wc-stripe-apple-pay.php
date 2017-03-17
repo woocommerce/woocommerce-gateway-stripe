@@ -76,7 +76,6 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		 */
 		if ( version_compare( WC_VERSION, '3.0.0', '<' ) ) {
 			add_action( 'woocommerce_after_add_to_cart_button', array( $this, 'display_apple_pay_button' ), 1 );
-			add_filter( 'body_class', array( $this, 'body_class' ) );
 		} else {
 			add_action( 'woocommerce_after_add_to_cart_quantity', array( $this, 'display_apple_pay_button' ), 1 );
 		}
@@ -276,21 +275,6 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		?>
 		<p class="apple-pay-button-checkout-separator">- <?php esc_html_e( 'Or', 'woocommerce-gateway-stripe' ); ?> -</p>
 		<?php
-	}
-
-	/**
-	 * Add legacy WooCommerce body class.
-	 *
-	 * @since 3.1.0
-	 * @version 3.1.0
-	 * @param array $classes
-	 * @return array $classes
-	 */
-	public function body_class( $classes ) {
-		if ( 'yes' === $this->_gateway_settings['apple_pay'] && isset( $gateways['stripe'] ) ) {
-			$classes[] = 'wc-stripe-legacy';
-		}
-		return $classes;
 	}
 
 	/**
@@ -673,7 +657,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $values ) {
 			$amount         = wc_format_decimal( $values['line_subtotal'], $decimals );
-			$subtotal       += $values['line_subtotal']; 
+			$subtotal       += $values['line_subtotal'];
 			$quantity_label = 1 < $values['quantity'] ? ' (x' . $values['quantity'] . ')' : '';
 
 			$item = array(
