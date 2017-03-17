@@ -40,6 +40,7 @@ return apply_filters( 'wc_stripe_settings',
 			'description' => __( 'Get your API keys from your stripe account.', 'woocommerce-gateway-stripe' ),
 			'default'     => '',
 			'desc_tip'    => true,
+			'secure'			=> true,
 		),
 		'test_publishable_key' => array(
 			'title'       => __( 'Test Publishable Key', 'woocommerce-gateway-stripe' ),

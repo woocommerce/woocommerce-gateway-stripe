@@ -38,7 +38,7 @@ class WC_Stripe_API {
 			$options = get_option( 'woocommerce_stripe_settings' );
 
 			if ( isset( $options['testmode'], $options['secret_key'], $options['test_secret_key'] ) ) {
-				self::set_secret_key( 'yes' === $options['testmode'] ? $options['test_secret_key'] : $options['secret_key'] );
+				self::set_secret_key( 'yes' === $options['testmode'] ? $options['test_secret_key'] : apply_filters( 'woocommerce_settings_api_secure_field_get', $options['secret_key'], 'stripe', 'secret_key' ) );
 			}
 		}
 		return self::$secret_key;

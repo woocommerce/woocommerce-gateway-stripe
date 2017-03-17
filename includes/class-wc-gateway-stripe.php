@@ -159,7 +159,8 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$this->stripe_checkout_locale = $this->get_option( 'stripe_checkout_locale' );
 		$this->stripe_checkout_image  = $this->get_option( 'stripe_checkout_image', '' );
 		$this->saved_cards            = 'yes' === $this->get_option( 'saved_cards' );
-		$this->secret_key             = $this->testmode ? $this->get_option( 'test_secret_key' ) : $this->get_option( 'secret_key' );
+		$this->secret_key             = $this->get_option( 'secret_key' );
+		$this->test_secret_key        = $this->get_option( 'test_secret_key' );
 		$this->publishable_key        = $this->testmode ? $this->get_option( 'test_publishable_key' ) : $this->get_option( 'publishable_key' );
 		$this->bitcoin                = 'USD' === strtoupper( get_woocommerce_currency() ) && 'yes' === $this->get_option( 'stripe_bitcoin' );
 		$this->apple_pay              = 'yes' === $this->get_option( 'apple_pay', 'yes' );
@@ -183,7 +184,16 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			}
 		}
 
+		foreach ( $this->form_fields as $field_key => $values ) {
+			if( isset( $values['secure'] ) && $values['secure'] ) {
+				$secure_value = apply_filters( 'woocommerce_settings_api_secure_field_get', $this->$field_key, $this->id, $field_key );
+				$this->settings[$field_key] = $secure_value;
+				$this->$field_key = $secure_value;
+			}
+		}
+
 		if ( $this->testmode ) {
+			$this->secret_key = $this->test_secret_key;
 			$this->description .= ' ' . sprintf( __( 'TEST MODE ENABLED. In test mode, you can use the card number 4242424242424242 with any CVC and a valid expiration date or check the documentation "<a href="%s">Testing Stripe</a>" for more card numbers.', 'woocommerce-gateway-stripe' ), 'https://stripe.com/docs/testing' );
 			$this->description  = trim( $this->description );
 		}
