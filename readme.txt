@@ -3,7 +3,7 @@ Contributors: automattic, woothemes, mikejolley, akeda, royho, mattyza, slash1an
 Tags: credit card, stripe, woocommerce
 Requires at least: 4.4
 Tested up to: 4.7.2
-Stable tag: 3.1.2
+Stable tag: 3.1.3
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -95,6 +95,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.1.3 =
+* Fix - When using Stripe Checkout, add payment method was disabled.
+* Fix - Possible non object type when using preview pages.
+
 = 3.1.2 =
 * Fix - Add payment method on My Account page error.
 
@@ -153,5 +157,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Upgrade Notice ==
 
-= 3.1.2 =
-* Fix - Add payment method on My Account page error.
+= 3.1.3 =
+* Fix - When using Stripe Checkout, add payment method was disabled.
+* Fix - Possible non object type when using preview pages.

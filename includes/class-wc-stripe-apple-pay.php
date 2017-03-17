@@ -127,7 +127,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 		$product = wc_get_product( $post->ID );
 
-		if ( ! in_array( ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
+		if ( ! is_object( $product ) || ! in_array( ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
 			return;
 		}
 
