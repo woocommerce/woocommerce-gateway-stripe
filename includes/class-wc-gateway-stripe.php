@@ -410,7 +410,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$total                = WC()->cart->total;
 
 		// If paying from order, we need to get total from order not cart.
-		if ( isset( $_GET['pay_for_order'] ) && isset( $_GET['key'] ) ) {
+		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) {
 			$order = wc_get_order( wc_get_order_id_by_order_key( wc_clean( $_GET['key'] ) ) );
 			$total = $order->get_total();
 		}
