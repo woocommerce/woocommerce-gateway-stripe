@@ -66,6 +66,11 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	 * @version 3.1.0
 	 */
 	public function init() {
+		// If Apple Pay is not enabled no need to proceed further.
+		if ( 'yes' !== $this->_gateway_settings['apple_pay'] ) {
+			return;
+		}
+
 		add_action( 'wp_enqueue_scripts', array( $this, 'cart_scripts' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'single_scripts' ) );
 
@@ -214,7 +219,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		$gateways = WC()->payment_gateways->get_available_payment_gateways();
 
 		/**
-		 * In order for the Apple Pay button to show on cart page,
+		 * In order for the Apple Pay button to show on product detail page,
 		 * Apple Pay must be enabled and Stripe gateway must be enabled.
 		 */
 		if (
@@ -297,7 +302,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		global $post;
 
 		$product = wc_get_product( $post->ID );
-		$qty     = absint( $_POST['qty'] );
+		$qty     = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
 
 		/**
 		 * If this page is single product page, we need to simulate

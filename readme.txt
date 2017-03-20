@@ -95,6 +95,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.1.4 =
+* Tweak - If Apple Pay is not enabled, prevent Apple Pay Init.
+
 = 3.1.3 =
 * Fix - When using Stripe Checkout, add payment method was disabled.
 * Fix - Possible non object type when using preview pages.
