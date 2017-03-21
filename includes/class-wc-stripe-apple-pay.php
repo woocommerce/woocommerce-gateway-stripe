@@ -76,7 +76,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 		/**
 		 * In order to display the Apple Pay button in the correct position,
-		 * a new hook was added to WooCommerce 2.7. In older versions of WooCommerce,
+		 * a new hook was added to WooCommerce 3.0. In older versions of WooCommerce,
 		 * CSS is used to position the button.
 		 */
 		if ( version_compare( WC_VERSION, '3.0.0', '<' ) ) {
@@ -316,7 +316,12 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			if ( 'variable' === ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $product->product_type : $product->get_type() ) && isset( $_POST['attributes'] ) ) {
 				$attributes = array_map( 'wc_clean', $_POST['attributes'] );
 
-				$variation_id = $product->get_matching_variation( $attributes );
+				if ( version_compare( WC_VERSION, '3.0.0', '<' ) ) {
+					$variation_id = $product->get_matching_variation( $attributes );
+				} else {
+					$data_store = WC_Data_Store::load( 'product' );
+					$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
+				}
 
 				WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
 			}
@@ -763,31 +768,90 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			}
 
 			// Allow plugins to add order item meta
-			do_action( 'woocommerce_add_order_item_meta', $item_id, $values, $cart_item_key );
+			if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
+				do_action( 'woocommerce_add_order_item_meta', $item_id, $values, $cart_item_key );
+			} else {
+				do_action( 'woocommerce_new_order_item', $item_id, wc_get_product( $item_id ), $order->get_id() );
+			}
 		}
 
 		// Store fees
 		foreach ( WC()->cart->get_fees() as $fee_key => $fee ) {
-			$item_id = $order->add_fee( $fee );
+			if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
+				$item_id = $order->add_fee( $fee );
+			} else {
+				$item = new WC_Order_Item_Fee();
+				$item->set_props( array(
+					'name'      => $fee->name,
+					'tax_class' => $fee->taxable ? $fee->tax_class : 0,
+					'total'     => $fee->amount,
+					'total_tax' => $fee->tax,
+					'taxes'     => array(
+						'total' => $fee->tax_data,
+					),
+					'order_id'  => $order->get_id(),
+				) );
+				$item_id = $item->save();
+				$order->add_item( $item );
+			}
 
 			if ( ! $item_id ) {
 				throw new Exception( sprintf( __( 'Error %d: Unable to create order. Please try again.', 'woocommerce-gateway-stripe' ), 526 ) );
 			}
 
 			// Allow plugins to add order item meta to fees
-			do_action( 'woocommerce_add_order_fee_meta', $order_id, $item_id, $fee, $fee_key );
+			if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
+				do_action( 'woocommerce_add_order_fee_meta', $order_id, $item_id, $fee, $fee_key );
+			} else {
+				do_action( 'woocommerce_new_order_item', $item_id, $fee, $order->get_id() );
+			}
 		}
 
 		// Store tax rows
 		foreach ( array_keys( WC()->cart->taxes + WC()->cart->shipping_taxes ) as $tax_rate_id ) {
-			if ( $tax_rate_id && ! $order->add_tax( $tax_rate_id, WC()->cart->get_tax_amount( $tax_rate_id ), WC()->cart->get_shipping_tax_amount( $tax_rate_id ) ) && apply_filters( 'woocommerce_cart_remove_taxes_zero_rate_id', 'zero-rated' ) !== $tax_rate_id ) {
+			$tax_amount = WC()->cart->get_tax_amount( $tax_rate_id );
+			$shipping_tax_amount = WC()->cart->get_shipping_tax_amount( $tax_rate_id );
+
+			if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
+				$item_id = $order->add_tax( $tax_rate_id, $tax_amount, $shipping_tax_amount );
+			} else {
+				$item = new WC_Order_Item_Tax();
+				$item->set_props( array(
+					'rate_id'            => $tax_rate_id,
+					'tax_total'          => $tax_amount,
+					'shipping_tax_total' => $shipping_tax_amount,
+				) );
+				$item->set_rate( $tax_rate_id );
+				$item->set_order_id( $order->get_id() );
+				$item_id = $item->save();
+				$order->add_item( $item );
+			}
+
+			if ( $tax_rate_id && ! $item_id && apply_filters( 'woocommerce_cart_remove_taxes_zero_rate_id', 'zero-rated' ) !== $tax_rate_id ) {
 				throw new Exception( sprintf( __( 'Error %d: Unable to create order. Please try again.', 'woocommerce-gateway-stripe' ), 528 ) );
 			}
 		}
 
 		// Store coupons
+		$discount = WC()->cart->get_coupon_discount_amount( $code );
+		$discount_tax = WC()->cart->get_coupon_discount_tax_amount( $code );
+
 		foreach ( WC()->cart->get_coupons() as $code => $coupon ) {
-			if ( ! $order->add_coupon( $code, WC()->cart->get_coupon_discount_amount( $code ), WC()->cart->get_coupon_discount_tax_amount( $code ) ) ) {
+			if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
+				$coupon_id = $order->add_coupon( $code, $discount, $discount_tax );
+			} else {
+				$item = new WC_Order_Item_Coupon();
+				$item->set_props( array(
+					'code'         => $code,
+					'discount'     => $discount,
+					'discount_tax' => $discount_tax,
+					'order_id'     => $order->get_id(),
+				) );
+				$coupon_id = $item->save();
+				$order->add_item( $item );
+			}
+
+			if ( ! $coupon_id ) {
 				throw new Exception( sprintf( __( 'Error %d: Unable to create order. Please try again.', 'woocommerce-gateway-stripe' ), 529 ) );
 			}
 		}
@@ -848,7 +912,23 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 				// Loop through user chosen shipping methods.
 				foreach ( WC()->session->get( 'chosen_shipping_methods' ) as $method ) {
 					if ( $method === $key ) {
-						$order->add_shipping( $rate );
+						if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
+							$order->add_shipping( $rate );
+						} else {
+							$item = new WC_Order_Item_Shipping();
+							$item->set_props( array(
+								'method_title' => $rate->label,
+								'method_id'    => $rate->id,
+								'total'        => wc_format_decimal( $rate->cost ),
+								'taxes'        => $rate->taxes,
+								'order_id'     => $order->get_id(),
+							) );
+							foreach ( $rate->get_meta_data() as $key => $value ) {
+								$item->add_meta_data( $key, $value, true );
+							}
+							$item->save();
+							$order->add_item( $item );
+						}
 					}
 				}
 			}
