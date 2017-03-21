@@ -26,16 +26,6 @@ jQuery( function( $ ) {
 		init: function() {
 			Stripe.applePay.checkAvailability( function( available ) {
 				if ( available ) {
-					$( document.body ).on( 'woocommerce_variation_has_changed', function() {
-						wc_stripe_apple_pay_single.generate_cart();
-					})
-
-					.on( 'change', '.quantity .qty', function() {
-						wc_stripe_apple_pay_single.generate_cart();
-					});
-
-					wc_stripe_apple_pay_single.generate_cart();
-
 					$( '.apple-pay-button' ).show();
 				}
 			});
@@ -61,9 +51,14 @@ jQuery( function( $ ) {
 						currencyCode: wc_stripe_apple_pay_single_params.currency_code,
 						total: {
 							label: wc_stripe_apple_pay_single_params.label,
-							amount: wc_stripe_apple_pay_single_params.total
+							amount: 1,
+							type: 'pending'
 						},
-						lineItems: wc_stripe_apple_pay_single_params.line_items,
+						lineItems: {
+							label: wc_stripe_apple_pay_single_params.i18n.sub_total,
+							amount: 1,
+							type: 'pending'
+						},
 						requiredBillingContactFields: ['postalAddress'],
 						requiredShippingContactFields: 'yes' === wc_stripe_apple_pay_single_params.needs_shipping ? ['postalAddress', 'phone', 'email', 'name'] : ['phone', 'email', 'name']
 					};
@@ -100,33 +95,40 @@ jQuery( function( $ ) {
 				if ( 'yes' === wc_stripe_apple_pay_single_params.needs_shipping ) {
 					// After the shipping contact/address has been selected
 					applePaySession.onshippingcontactselected = function( shipping ) {
-						var data = {
-							'nonce': wc_stripe_apple_pay_single_params.stripe_apple_pay_get_shipping_methods_nonce,
-							'address': shipping.shippingContact
-						};
+						$.when( wc_stripe_apple_pay_single.generate_cart() ).then( function() {
+							var data = {
+								'nonce': wc_stripe_apple_pay_single_params.stripe_apple_pay_get_shipping_methods_nonce,
+								'address': shipping.shippingContact
+							};
 
-						$.ajax({
-							type:    'POST',
-							data:    data,
-							url:     wc_stripe_apple_pay_single.getAjaxURL( 'apple_pay_get_shipping_methods' ),
-							success: function( response ) {
-								var total = { 
-									'label': wc_stripe_apple_pay_single_params.label,
-									'amount': response.total
-								};
+							$.ajax({
+								type:    'POST',
+								data:    data,
+								url:     wc_stripe_apple_pay_single.getAjaxURL( 'apple_pay_get_shipping_methods' ),
+								success: function( response ) {
+									var total = { 
+										'label': wc_stripe_apple_pay_single_params.label,
+										'amount': response.total
+									};
 
-								if ( 'true' === response.success ) {
-									applePaySession.completeShippingContactSelection( ApplePaySession.STATUS_SUCCESS, response.shipping_methods, total, response.line_items );
+									if ( response.total <= 0 ) {
+										total.amount = 1;
+										total.type = 'pending';
+									}
+
+									if ( 'true' === response.success ) {
+										applePaySession.completeShippingContactSelection( ApplePaySession.STATUS_SUCCESS, response.shipping_methods, total, response.line_items );
+									}
+
+									if ( 'false' === response.success ) {
+										applePaySession.completeShippingContactSelection( ApplePaySession.STATUS_INVALID_SHIPPING_POSTAL_ADDRESS, response.shipping_methods, total, response.line_items );
+									}
 								}
-
-								if ( 'false' === response.success ) {
-									applePaySession.completeShippingContactSelection( ApplePaySession.STATUS_INVALID_SHIPPING_POSTAL_ADDRESS, response.shipping_methods, total, response.line_items );
-								}
-							}
+							});
 						});
 					};
 
-					// After the shipping method has been selected
+					// After the shipping method has been selected.
 					applePaySession.onshippingmethodselected = function( event ) {
 						var data = {
 							'nonce': wc_stripe_apple_pay_single_params.stripe_apple_pay_update_shipping_method_nonce,
@@ -154,6 +156,24 @@ jQuery( function( $ ) {
 						});
 					};
 				}
+
+				// When payment is selected, we need to fetch cart.
+				applePaySession.onpaymentmethodselected = function( event ) {
+					$.when( wc_stripe_apple_pay_single.generate_cart() ).then( function() {
+
+						var total = {
+								label: wc_stripe_apple_pay_single_params.label,
+								amount: wc_stripe_apple_pay_single_params.total
+							},
+							lineItems = wc_stripe_apple_pay_single_params.line_items;
+
+						applePaySession.completePaymentMethodSelection( total, lineItems );
+					});
+				};
+
+				applePaySession.oncancel = function( event ) {
+					wc_stripe_apple_pay_single.clear_cart();
+				};
 
 				applePaySession.begin();
 			});
@@ -199,6 +219,19 @@ jQuery( function( $ ) {
 					wc_stripe_apple_pay_single_params.total      = response.total;
 					wc_stripe_apple_pay_single_params.line_items = response.line_items;
 				}
+			});
+		},
+
+		clear_cart: function() {
+			var data = {
+					'nonce': wc_stripe_apple_pay_single_params.stripe_apple_pay_cart_nonce
+				};
+
+			return $.ajax({
+				type:    'POST',
+				data:    data,
+				url:     wc_stripe_apple_pay_single.getAjaxURL( 'apple_pay_clear_cart' ),
+				success: function( response ) {}
 			});
 		}
 	};

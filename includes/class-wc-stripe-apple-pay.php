@@ -63,7 +63,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	 *
 	 * @access public
 	 * @since 3.1.0
-	 * @version 3.1.0
+	 * @version 3.1.4
 	 */
 	public function init() {
 		// If Apple Pay is not enabled no need to proceed further.
@@ -91,6 +91,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		add_action( 'woocommerce_checkout_before_customer_details', array( $this, 'display_apple_pay_separator_html' ), 2 );
 		add_action( 'wc_ajax_wc_stripe_apple_pay', array( $this, 'process_apple_pay' ) );
 		add_action( 'wc_ajax_wc_stripe_generate_apple_pay_cart', array( $this, 'generate_apple_pay_cart' ) );
+		add_action( 'wc_ajax_wc_stripe_apple_pay_clear_cart', array( $this, 'clear_cart' ) );
 		add_action( 'wc_ajax_wc_stripe_generate_apple_pay_single', array( $this, 'generate_apple_pay_single' ) );
 		add_action( 'wc_ajax_wc_stripe_apple_pay_get_shipping_methods', array( $this, 'get_shipping_methods' ) );
 		add_action( 'wc_ajax_wc_stripe_apple_pay_update_shipping_method', array( $this, 'update_shipping_method' ) );
@@ -121,7 +122,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	 * Enqueue JS scripts and styles for single product page.
 	 *
 	 * @since 3.1.0
-	 * @version 3.1.0
+	 * @version 3.1.4
 	 */
 	public function single_scripts() {
 		if ( ! is_single() ) {
@@ -155,7 +156,10 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			'stripe_apple_pay_cart_nonce'                   => wp_create_nonce( '_wc_stripe_apple_pay_cart_nonce' ),
 			'stripe_apple_pay_get_shipping_methods_nonce'   => wp_create_nonce( '_wc_stripe_apple_pay_get_shipping_methods_nonce' ),
 			'stripe_apple_pay_update_shipping_method_nonce' => wp_create_nonce( '_wc_stripe_apple_pay_update_shipping_method_nonce' ),
-			'needs_shipping'                                => WC()->cart->needs_shipping() ? 'yes' : 'no',
+			'needs_shipping'                                => $product->needs_shipping() ? 'yes' : 'no',
+			'i18n'                                          => array(
+				'sub_total' => __( 'Sub-Total', 'woocommerce-gateway-stripe' ),
+			),
 		);
 
 		wp_localize_script( 'woocommerce_stripe_apple_pay_single', 'wc_stripe_apple_pay_single_params', apply_filters( 'wc_stripe_apple_pay_single_params', $stripe_params ) );
@@ -234,7 +238,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 			$product = wc_get_product( $post->ID );
 
-			if ( ! in_array( ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
+			if ( ! is_object( $product ) || ! in_array( ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
 				return;
 			}
 		}
@@ -348,6 +352,17 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		}
 
 		wp_send_json( array( 'line_items' => $this->build_line_items(), 'total' => WC()->cart->total ) );
+	}
+
+	/**
+	 * Clears Apple Pay cart.
+	 *
+	 * @since 3.1.4
+	 * @version 3.1.4
+	 */
+	public function clear_cart() {
+		WC()->cart->empty_cart();
+		exit;
 	}
 
 	/**
