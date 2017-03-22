@@ -99,6 +99,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - If Apple Pay is not enabled, prevent Apple Pay Init.
 * Fix - Update for WooCommerce 3.0 compatibility.
 * Fix - Apple Pay on product detail page causes qty issue when using normal add to cart.
+* Fix - A partial workaround for UK/CA postal codes issue for shipping methods that support partial postal code estimates.
 
 = 3.1.3 =
 * Fix - When using Stripe Checkout, add payment method was disabled.
