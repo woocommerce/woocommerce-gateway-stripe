@@ -51,6 +51,11 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 		$this->statement_descriptor = ! empty( $this->_gateway_settings['statement_descriptor'] ) ? $this->_gateway_settings['statement_descriptor'] : wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 
+		// If both site title and statement descriptor is not set. Fallback.
+		if ( empty( $this->statement_descriptor ) ) {
+			$this->statement_descriptor = $_SERVER['SERVER_NAME'];
+		}
+
 		$this->init();
 	}
 
