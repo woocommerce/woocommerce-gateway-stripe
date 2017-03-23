@@ -74,13 +74,6 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	public $bitcoin;
 
 	/**
-	 * Alow Remember me setting for Stripe Checkout
-	 *
-	 * @var bool
-	 */
-	public $allow_remember_me;
-
-	/**
 	 * Do we accept Apple Pay?
 	 *
 	 * @var bool
@@ -166,7 +159,6 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$this->apple_pay_domain_set   = 'yes' === $this->get_option( 'apple_pay_domain_set', 'no' );
 		$this->apple_pay_button       = $this->get_option( 'apple_pay_button', 'black' );
 		$this->logging                = 'yes' === $this->get_option( 'logging' );
-		$this->allow_remember_me      = 'yes' === $this->get_option( 'allow_remember_me', 'no' );
 
 		if ( $this->stripe_checkout ) {
 			$this->order_button_text = __( 'Continue to payment', 'woocommerce-gateway-stripe' );
@@ -439,7 +431,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			data-image="' . esc_attr( $this->stripe_checkout_image ) . '"
 			data-bitcoin="' . esc_attr( $this->bitcoin ? 'true' : 'false' ) . '"
 			data-locale="' . esc_attr( $this->stripe_checkout_locale ? $this->stripe_checkout_locale : 'en' ) . '"
-			data-allow-remember-me="' . esc_attr( $this->allow_remember_me ? 'true' : 'false' ) . '">';
+			data-allow-remember-me="' . esc_attr( $this->saved_cards ? 'true' : 'false' ) . '">';
 
 		if ( $this->description ) {
 			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $this->description ) ) );

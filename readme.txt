@@ -101,6 +101,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Apple Pay on product detail page causes qty issue when using normal add to cart.
 * Fix - A partial workaround for UK/CA postal codes issue for shipping methods that support partial postal code estimates.
 * Fix - Stripe checkout did not validate properly formatted email address.
+* Remove - Stripe Checkout allow remember me setting as it is redundant to saved card setting.
 
 = 3.1.3 =
 * Fix - When using Stripe Checkout, add payment method was disabled.
