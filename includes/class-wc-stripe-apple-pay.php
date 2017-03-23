@@ -72,7 +72,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	 */
 	public function init() {
 		// If Apple Pay is not enabled no need to proceed further.
-		if ( 'yes' !== $this->_gateway_settings['apple_pay'] ) {
+		if ( empty( $this->_gateway_settings['apple_pay'] ) || 'yes' !== $this->_gateway_settings['apple_pay'] ) {
 			return;
 		}
 
@@ -134,8 +134,9 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		$gateways = WC()->payment_gateways->get_available_payment_gateways();
 
 		if (
-			'yes' !== $this->_gateway_settings['apple_pay']
-			|| ! isset( $gateways['stripe'] )
+			empty( $this->_gateway_settings['apple_pay'] ) ||
+			'yes' !== $this->_gateway_settings['apple_pay'] ||
+			! isset( $gateways['stripe'] )
 		) {
 			return $valid;
 		}
@@ -261,8 +262,9 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		 * Apple Pay must be enabled and Stripe gateway must be enabled.
 		 */
 		if (
-			'yes' !== $this->_gateway_settings['apple_pay']
-			|| ! isset( $gateways['stripe'] )
+			empty( $this->_gateway_settings['apple_pay'] ) ||
+			'yes' !== $this->_gateway_settings['apple_pay'] ||
+			! isset( $gateways['stripe'] )
 		) {
 			return;
 		}
@@ -300,8 +302,9 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		 * Apple Pay must be enabled and Stripe gateway must be enabled.
 		 */
 		if (
-			'yes' !== $this->_gateway_settings['apple_pay']
-			|| ! isset( $gateways['stripe'] )
+			empty( $this->_gateway_settings['apple_pay'] ) ||
+			'yes' !== $this->_gateway_settings['apple_pay'] ||
+			! isset( $gateways['stripe'] )
 		) {
 			return;
 		}
