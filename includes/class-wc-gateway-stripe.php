@@ -361,7 +361,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		 * something went wrong so lets notify user.
 		 */
 		if ( ! empty( $this->secret_key ) && $this->apple_pay && ! $this->apple_pay_domain_set ) {
-			echo '<div class="error stripe-apple-pay-message"><p>' . sprintf( __( 'Apple Pay domain verification failed. Please check the %1$slog%2$s to see the issue.', 'woocommerce-gateway-stripe' ), '<a href="' . admin_url( 'admin.php?page=wc-status&tab=logs' ) . '">', '</a>' ) . '</p></div>';
+			echo '<div class="error stripe-apple-pay-message"><p>' . sprintf( __( 'Apple Pay domain verification failed. Please check the %1$slog%2$s to see the issue. (Logging must be enabled to see recorded logs)', 'woocommerce-gateway-stripe' ), '<a href="' . admin_url( 'admin.php?page=wc-status&tab=logs' ) . '">', '</a>' ) . '</p></div>';
 		}
 
 		// Show message if enabled and FORCE SSL is disabled and WordpressHTTPS plugin is not detected.
