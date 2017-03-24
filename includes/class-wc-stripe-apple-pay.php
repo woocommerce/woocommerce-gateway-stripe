@@ -77,7 +77,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	 *
 	 * @var bool
 	 */
-	public $this->publishable_key;
+	public $publishable_key;
 
 	/**
 	 * Constructor.
@@ -194,7 +194,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 		$errors = wc_clean( stripslashes( $_POST['errors'] ) );
 
-		$this->log( 'Apple Pay: ' . $errors );
+		$this->log( $errors );
 
 		exit;
 	}
@@ -1068,7 +1068,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	 */
 	public function log( $message ) {
 		if ( $this->logging ) {
-			WC_Stripe::log( $message );
+			WC_Stripe::log( 'Apple Pay: ' . $message );
 		}
 	}
 }
