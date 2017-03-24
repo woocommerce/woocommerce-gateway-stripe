@@ -269,8 +269,8 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 
 			$plugin_links = array(
 				'<a href="' . $setting_link . '">' . __( 'Settings', 'woocommerce-gateway-stripe' ) . '</a>',
-				'<a href="https://docs.woothemes.com/document/stripe/">' . __( 'Docs', 'woocommerce-gateway-stripe' ) . '</a>',
-				'<a href="http://support.woothemes.com/">' . __( 'Support', 'woocommerce-gateway-stripe' ) . '</a>',
+				'<a href="https://docs.woocommerce.com/document/stripe/">' . __( 'Docs', 'woocommerce-gateway-stripe' ) . '</a>',
+				'<a href="https://woocommerce.com/contact-us/">' . __( 'Support', 'woocommerce-gateway-stripe' ) . '</a>',
 			);
 			return array_merge( $plugin_links, $links );
 		}
