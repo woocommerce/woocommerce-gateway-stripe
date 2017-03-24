@@ -307,12 +307,35 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	/**
 	 * Checks to make sure product type is supported by Apple Pay.
 	 *
+	 * @since 3.1.0
+	 * @version 3.1.0
+	 * @return array
 	 */
 	public function supported_product_types() {
 		return array(
 			'simple',
 			'variable',
 		);
+	}
+
+	/**
+	 * Checks the cart to see if all items are allowed to use
+	 * Apple Pay.
+	 *
+	 * @since 3.1.4
+	 * @version 3.1.4
+	 * @return bool
+	 */
+	public function allowed_items_in_cart() {
+		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+			$_product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
+
+			if ( ! in_array( ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $_product->product_type : $_product->get_type() ), $this->supported_product_types ) ) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**
@@ -329,6 +352,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		 * Apple Pay must be enabled and Stripe gateway must be enabled.
 		 */
 		if ( ! $this->apple_pay || ! isset( $gateways['stripe'] ) ) {
+			$this->log( 'Apple Pay not enabled or Stripe is not an available gateway ( Apple Pay button disabled )' );
 			return;
 		}
 
@@ -338,6 +362,11 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			$product = wc_get_product( $post->ID );
 
 			if ( ! is_object( $product ) || ! in_array( ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
+				return;
+			}
+		} else {
+			if ( ! $this->allowed_items_in_cart() ) {
+				$this->log( 'Items in the cart has unsupported product type ( Apple Pay button disabled )' );
 				return;
 			}
 		}
@@ -363,17 +392,13 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		 * Apple Pay must be enabled and Stripe gateway must be enabled.
 		 */
 		if ( ! $this->apple_pay || ! isset( $gateways['stripe'] ) ) {
+			$this->log( 'Apple Pay not enabled or Stripe is not an available gateway ( Apple Pay button disabled )' );
 			return;
 		}
 
-		if ( is_single() ) {
-			global $post;
-
-			$product = wc_get_product( $post->ID );
-
-			if ( ! is_object( $product ) || ! in_array( ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
-				return;
-			}
+		if ( ! $this->allowed_items_in_cart() ) {
+			$this->log( 'Items in the cart has unsupported product type ( Apple Pay button disabled )' );
+			return;
 		}
 		?>
 		<p class="apple-pay-button-checkout-separator">- <?php esc_html_e( 'Or', 'woocommerce-gateway-stripe' ); ?> -</p>
@@ -774,14 +799,14 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		$items    = array();
 		$subtotal = 0;
 
-		foreach ( WC()->cart->get_cart() as $cart_item_key => $values ) {
-			$amount         = wc_format_decimal( $values['line_subtotal'], $decimals );
-			$subtotal       += $values['line_subtotal'];
-			$quantity_label = 1 < $values['quantity'] ? ' (x' . $values['quantity'] . ')' : '';
+		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+			$amount         = wc_format_decimal( $cart_item['line_subtotal'], $decimals );
+			$subtotal       += $cart_item['line_subtotal'];
+			$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
 
 			$item = array(
 				'type'   => 'final',
-				'label'  => $values['data']->post->post_title . $quantity_label,
+				'label'  => $cart_item['data']->post->post_title . $quantity_label,
 				'amount' => wc_format_decimal( $amount, $decimals ),
 			);
 
