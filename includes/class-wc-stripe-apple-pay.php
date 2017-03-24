@@ -17,13 +17,6 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	private static $_this;
 
 	/**
-	 * Gateway.
-	 *
-	 * @var
-	 */
-	private $_gateway;
-
-	/**
 	 * Statement Description
 	 *
 	 * @var
@@ -31,11 +24,60 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	public $statement_descriptor;
 
 	/**
-	 * Gateway settings.
+	 * Check if we capture the transaction immediately.
 	 *
-	 * @var
+	 * @var bool
 	 */
-	private $_gateway_settings;
+	public $capture;
+
+	/**
+	 * Do we accept Apple Pay?
+	 *
+	 * @var bool
+	 */
+	public $apple_pay;
+
+	/**
+	 * Apple Pay button style.
+	 *
+	 * @var bool
+	 */
+	public $apple_pay_button;
+
+	/**
+	 * Apple Pay button language.
+	 *
+	 * @var bool
+	 */
+	public $apple_pay_button_lang;
+
+	/**
+	 * Is test mode active?
+	 *
+	 * @var bool
+	 */
+	public $testmode;
+
+	/**
+	 * Logging enabled?
+	 *
+	 * @var bool
+	 */
+	public $logging;
+
+	/**
+	 * Should we store the users credit cards?
+	 *
+	 * @var bool
+	 */
+	public $saved_cards;
+
+	/**
+	 * Publishable key credentials.
+	 *
+	 * @var bool
+	 */
+	public $this->publishable_key;
 
 	/**
 	 * Constructor.
@@ -47,13 +89,27 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	public function __construct() {
 		self::$_this = $this;
 
-		$this->_gateway_settings = get_option( 'woocommerce_stripe_settings', '' );
+		$gateway_settings = get_option( 'woocommerce_stripe_settings', '' );
 
-		$this->statement_descriptor = ! empty( $this->_gateway_settings['statement_descriptor'] ) ? $this->_gateway_settings['statement_descriptor'] : wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+		$this->statement_descriptor = ! empty( $gateway_settings['statement_descriptor'] ) ? $gateway_settings['statement_descriptor'] : wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 
 		// If both site title and statement descriptor is not set. Fallback.
 		if ( empty( $this->statement_descriptor ) ) {
 			$this->statement_descriptor = $_SERVER['SERVER_NAME'];
+		}
+
+		$this->enabled               = ( ! empty( $gateway_settings['enabled'] ) && 'yes' === $gateway_settings['enabled'] ) ? true : false;
+		$this->testmode              = ( ! empty( $gateway_settings['testmode'] ) && 'yes' === $gateway_settings['testmode'] ) ? true : false;
+		$this->capture               = ( ! empty( $gateway_settings['capture'] ) && 'yes' === $gateway_settings['capture'] ) ? true : false;
+		$this->saved_cards           = ( ! empty( $gateway_settings['saved_cards'] ) && 'yes' === $gateway_settings['saved_cards'] ) ? true : false;
+		$this->apple_pay             = ( ! empty( $gateway_settings['apple_pay'] ) && 'yes' === $gateway_settings['apple_pay'] ) ? true : false;
+		$this->apple_pay_button      = ! empty( $gateway_settings['apple_pay_button'] ) ? $gateway_settings['apple_pay_button'] : 'black';
+		$this->apple_pay_button_lang = ! empty( $gateway_settings['apple_pay_button_lang'] ) ? $gateway_settings['apple_pay_button_lang'] : 'en';
+		$this->logging               = ( ! empty( $gateway_settings['logging'] ) && 'yes' === $gateway_settings['logging'] ) ? true : false;
+		$this->publishable_key       = ! empty( $gateway_settings['publishable_key'] ) ? $gateway_settings['publishable_key'] : '';
+
+		if ( $this->testmode ) {
+			$this->publishable_key = ! empty( $gateway_settings['test_publishable_key'] ) ? $gateway_settings['test_publishable_key'] : '';
 		}
 
 		$this->init();
@@ -72,7 +128,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	 */
 	public function init() {
 		// If Apple Pay is not enabled no need to proceed further.
-		if ( empty( $this->_gateway_settings['apple_pay'] ) || 'yes' !== $this->_gateway_settings['apple_pay'] ) {
+		if ( ! $this->apple_pay ) {
 			return;
 		}
 
@@ -138,7 +194,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 		$errors = wc_clean( stripslashes( $_POST['errors'] ) );
 
-		WC_Stripe::log( 'Apple Pay: ' . $errors );
+		$this->log( 'Apple Pay: ' . $errors );
 
 		exit;
 	}
@@ -152,11 +208,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	public function postal_code_validation( $valid, $postcode, $country ) {
 		$gateways = WC()->payment_gateways->get_available_payment_gateways();
 
-		if (
-			empty( $this->_gateway_settings['apple_pay'] ) ||
-			'yes' !== $this->_gateway_settings['apple_pay'] ||
-			! isset( $gateways['stripe'] )
-		) {
+		if ( ! $this->apple_pay || ! isset( $gateways['stripe'] ) ) {
 			return $valid;
 		}
 
@@ -198,10 +250,8 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		wp_enqueue_script( 'stripe', 'https://js.stripe.com/v2/', '', '1.0', true );
 		wp_enqueue_script( 'woocommerce_stripe_apple_pay_single', plugins_url( 'assets/js/stripe-apple-pay-single' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'stripe' ), WC_STRIPE_VERSION, true );
 
-		$publishable_key = 'yes' === $this->_gateway_settings['testmode'] ? $this->_gateway_settings['test_publishable_key'] : $this->_gateway_settings['publishable_key'];
-
 		$stripe_params = array(
-			'key'                                           => $publishable_key,
+			'key'                                           => $this->publishable_key,
 			'currency_code'                                 => get_woocommerce_currency(),
 			'country_code'                                  => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
 			'label'                                         => $this->statement_descriptor,
@@ -237,10 +287,8 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		wp_enqueue_script( 'stripe', 'https://js.stripe.com/v2/', '', '1.0', true );
 		wp_enqueue_script( 'woocommerce_stripe_apple_pay', plugins_url( 'assets/js/stripe-apple-pay' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'stripe' ), WC_STRIPE_VERSION, true );
 
-		$publishable_key = 'yes' === $this->_gateway_settings['testmode'] ? $this->_gateway_settings['test_publishable_key'] : $this->_gateway_settings['publishable_key'];
-
 		$stripe_params = array(
-			'key'                                           => $publishable_key,
+			'key'                                           => $this->publishable_key,
 			'currency_code'                                 => get_woocommerce_currency(),
 			'country_code'                                  => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
 			'label'                                         => $this->statement_descriptor,
@@ -280,11 +328,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		 * In order for the Apple Pay button to show on product detail page,
 		 * Apple Pay must be enabled and Stripe gateway must be enabled.
 		 */
-		if (
-			empty( $this->_gateway_settings['apple_pay'] ) ||
-			'yes' !== $this->_gateway_settings['apple_pay'] ||
-			! isset( $gateways['stripe'] )
-		) {
+		if ( ! $this->apple_pay || ! isset( $gateways['stripe'] ) ) {
 			return;
 		}
 
@@ -298,11 +342,9 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			}
 		}
 
-		$apple_pay_button = ! empty( $this->_gateway_settings['apple_pay_button'] ) ? $this->_gateway_settings['apple_pay_button'] : 'black';
-		$button_lang      = ! empty( $this->_gateway_settings['apple_pay_button_lang'] ) ? strtolower( $this->_gateway_settings['apple_pay_button_lang'] ) : 'en';
 		?>
 		<div class="apple-pay-button-wrapper">
-			<button class="apple-pay-button" lang="<?php echo esc_attr( $button_lang ); ?>" style="-webkit-appearance: -apple-pay-button; -apple-pay-button-type: buy; -apple-pay-button-style: <?php echo esc_attr( $apple_pay_button ); ?>;"></button>
+			<button class="apple-pay-button" lang="<?php echo esc_attr( $this->apple_pay_button_lang ); ?>" style="-webkit-appearance: -apple-pay-button; -apple-pay-button-type: buy; -apple-pay-button-style: <?php echo esc_attr( $this->apple_pay_button ); ?>;"></button>
 		</div>
 		<?php
 	}
@@ -320,11 +362,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		 * In order for the Apple Pay button to show on cart page,
 		 * Apple Pay must be enabled and Stripe gateway must be enabled.
 		 */
-		if (
-			empty( $this->_gateway_settings['apple_pay'] ) ||
-			'yes' !== $this->_gateway_settings['apple_pay'] ||
-			! isset( $gateways['stripe'] )
-		) {
+		if ( ! $this->apple_pay || ! isset( $gateways['stripe'] ) ) {
 			return;
 		}
 
@@ -621,7 +659,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 					return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe::get_minimum_amount() / 100 ) ) );
 				}
 
-				WC_Stripe::log( "Info: Begin processing payment for order {$order_id} for the amount of {$order->get_total()}" );
+				$this->log( "Info: Begin processing payment for order {$order_id} for the amount of {$order->get_total()}" );
 
 				// Make the request.
 				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $result['token']['id'] ) );
@@ -652,7 +690,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 		} catch ( Exception $e ) {
 			WC()->session->set( 'refresh_totals', true );
-			WC_Stripe::log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+			$this->log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
 			if ( is_object( $order ) && isset( $order_id ) && $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );
@@ -673,7 +711,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		$post_data['currency']    = strtolower( version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->get_order_currency() : $order->get_currency() );
 		$post_data['amount']      = $this->get_stripe_amount( $order->get_total(), $post_data['currency'] );
 		$post_data['description'] = sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), $this->statement_descriptor, $order->get_order_number() );
-		$post_data['capture']     = 'yes' === $this->_gateway_settings['capture'] ? 'true' : 'false';
+		$post_data['capture']     = $this->capture ? 'true' : 'false';
 
 		$billing_email      = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->billing_email : $order->get_billing_email();
 
@@ -755,7 +793,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			$items = array();
 			$items[] = array(
 				'type'   => 'final',
-				'label'  => __( 'Sub-Total', 'woocommerce-gateway-stripe' ),
+				'label'  => esc_html( __( 'Sub-Total', 'woocommerce-gateway-stripe' ) ),
 				'amount' => wc_format_decimal( $subtotal, $decimals ),
 			);
 		}
@@ -769,7 +807,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		if ( wc_tax_enabled() ) {
 			$items[] = array(
 				'type'   => 'final',
-				'label'  => __( 'Tax', 'woocommerce-gateway-stripe' ),
+				'label'  => esc_html( __( 'Tax', 'woocommerce-gateway-stripe' ) ),
 				'amount' => $tax,
 			);
 		}
@@ -777,7 +815,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		if ( WC()->cart->needs_shipping() ) {
 			$items[] = array(
 				'type'   => 'final',
-				'label'  => __( 'Shipping', 'woocommerce-gateway-stripe' ),
+				'label'  => esc_html( __( 'Shipping', 'woocommerce-gateway-stripe' ) ),
 				'amount' => $shipping,
 			);
 		}
@@ -785,7 +823,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		if ( WC()->cart->has_discount() ) {
 			$items[] = array(
 				'type'   => 'final',
-				'label'  => __( 'Discount', 'woocommerce-gateway-stripe' ),
+				'label'  => esc_html( __( 'Discount', 'woocommerce-gateway-stripe' ) ),
 				'amount' => '-' . $discounts,
 			);
 		}
@@ -1018,6 +1056,20 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		wc_transaction_query( 'commit' );
 
 		return $order;
+	}
+
+	/**
+	 * Logs
+	 *
+	 * @since 3.1.0
+	 * @version 3.1.0
+	 *
+	 * @param string $message
+	 */
+	public function log( $message ) {
+		if ( $this->logging ) {
+			WC_Stripe::log( $message );
+		}
 	}
 }
 

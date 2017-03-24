@@ -310,7 +310,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			$file     = 'apple-developer-merchantid-domain-association';
 			$fullpath = $path . '/' . $dir . '/' . $file;
 
-			if ( 'yes' === $gateway_settings['apple_pay_domain_set'] && file_exists( $fullpath ) ) {
+			if ( ! empty( $gateway_settings['apple_pay_domain_set'] ) && 'yes' === $gateway_settings['apple_pay_domain_set'] && file_exists( $fullpath ) ) {
 				return;
 			}
 
