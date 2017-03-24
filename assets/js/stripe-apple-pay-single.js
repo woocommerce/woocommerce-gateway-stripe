@@ -89,6 +89,17 @@ jQuery( function( $ ) {
 							}
 						}
 					});
+				}, function( error ) {
+					var data = {
+						'nonce': wc_stripe_apple_pay_single_params.stripe_apple_pay_nonce,
+						'errors': error.message
+					};
+
+					$.ajax({
+						type:    'POST',
+						data:    data,
+						url:     wc_stripe_apple_pay_single.getAjaxURL( 'log_apple_pay_errors' )
+					});
 				});
 
 				// If shipping is needed -- get shipping methods.

@@ -94,6 +94,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		add_action( 'woocommerce_proceed_to_checkout', array( $this, 'display_apple_pay_separator_html' ), 2 );
 		add_action( 'woocommerce_checkout_before_customer_details', array( $this, 'display_apple_pay_button' ), 1 );
 		add_action( 'woocommerce_checkout_before_customer_details', array( $this, 'display_apple_pay_separator_html' ), 2 );
+		add_action( 'wc_ajax_wc_stripe_log_apple_pay_errors', array( $this, 'log_apple_pay_errors' ) );
 		add_action( 'wc_ajax_wc_stripe_apple_pay', array( $this, 'process_apple_pay' ) );
 		add_action( 'wc_ajax_wc_stripe_generate_apple_pay_cart', array( $this, 'generate_apple_pay_cart' ) );
 		add_action( 'wc_ajax_wc_stripe_apple_pay_clear_cart', array( $this, 'clear_cart' ) );
@@ -122,6 +123,24 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		}
 
 		return $title;
+	}
+
+	/**
+	 * Log errors coming from Apple Pay.
+	 *
+	 * @since 3.1.4
+	 * @version 3.1.4
+	 */
+	public function log_apple_pay_errors() {
+		if ( ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_apple_pay_nonce' ) && ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_apple_pay_cart_nonce' ) ) {
+			wp_die( __( 'Cheatin&#8217; huh?', 'woocommerce-gateway-stripe' ) );
+		}
+
+		$errors = wc_clean( stripslashes( $_POST['errors'] ) );
+
+		WC_Stripe::log( 'Apple Pay: ' . $errors );
+
+		exit;
 	}
 
 	/**
