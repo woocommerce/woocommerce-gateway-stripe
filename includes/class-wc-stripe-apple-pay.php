@@ -330,7 +330,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 			$_product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
 
-			if ( ! in_array( ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $_product->product_type : $_product->get_type() ), $this->supported_product_types ) ) {
+			if ( ! in_array( ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $_product->product_type : $_product->get_type() ), $this->supported_product_types() ) ) {
 				return false;
 			}
 		}
