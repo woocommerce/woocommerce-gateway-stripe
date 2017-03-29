@@ -174,7 +174,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 		$method_title = get_post_meta( $post->ID, '_payment_method_title', true );
 
-		if ( 'stripe' === $id && ! empty( $method_title ) ) {
+		if ( 'stripe' === $id && ! empty( $method_title ) && 'Apple Pay (Stripe)' === $method_title ) {
 			return $method_title;
 		}
 
@@ -705,7 +705,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			WC()->cart->empty_cart();
 
 			update_post_meta( $order_id, '_customer_user', get_current_user_id() );
-			update_post_meta( $order_id, '_payment_method_title', __( 'Apple Pay (Stripe)', 'woocommerce-gateway-stripe' ) );
+			update_post_meta( $order_id, '_payment_method_title', 'Apple Pay (Stripe)' );
 
 			// Return thank you page redirect.
 			wp_send_json( array(
