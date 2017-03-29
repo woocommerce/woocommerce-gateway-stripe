@@ -109,6 +109,13 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	public $logging;
 
 	/**
+	 * Stores Apple Pay domain verification issues.
+	 *
+	 * @var string
+	 */
+	public $apple_pay_verify_notice;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -142,23 +149,24 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$this->init_settings();
 
 		// Get setting values.
-		$this->title                  = $this->get_option( 'title' );
-		$this->description            = $this->get_option( 'description' );
-		$this->enabled                = $this->get_option( 'enabled' );
-		$this->testmode               = 'yes' === $this->get_option( 'testmode' );
-		$this->capture                = 'yes' === $this->get_option( 'capture', 'yes' );
-		$this->statement_descriptor   = $this->get_option( 'statement_descriptor', wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) );
-		$this->stripe_checkout        = 'yes' === $this->get_option( 'stripe_checkout' );
-		$this->stripe_checkout_locale = $this->get_option( 'stripe_checkout_locale' );
-		$this->stripe_checkout_image  = $this->get_option( 'stripe_checkout_image', '' );
-		$this->saved_cards            = 'yes' === $this->get_option( 'saved_cards' );
-		$this->secret_key             = $this->testmode ? $this->get_option( 'test_secret_key' ) : $this->get_option( 'secret_key' );
-		$this->publishable_key        = $this->testmode ? $this->get_option( 'test_publishable_key' ) : $this->get_option( 'publishable_key' );
-		$this->bitcoin                = 'USD' === strtoupper( get_woocommerce_currency() ) && 'yes' === $this->get_option( 'stripe_bitcoin' );
-		$this->apple_pay              = 'yes' === $this->get_option( 'apple_pay', 'yes' );
-		$this->apple_pay_domain_set   = 'yes' === $this->get_option( 'apple_pay_domain_set', 'no' );
-		$this->apple_pay_button       = $this->get_option( 'apple_pay_button', 'black' );
-		$this->logging                = 'yes' === $this->get_option( 'logging' );
+		$this->title                   = $this->get_option( 'title' );
+		$this->description             = $this->get_option( 'description' );
+		$this->enabled                 = $this->get_option( 'enabled' );
+		$this->testmode                = 'yes' === $this->get_option( 'testmode' );
+		$this->capture                 = 'yes' === $this->get_option( 'capture', 'yes' );
+		$this->statement_descriptor    = $this->get_option( 'statement_descriptor', wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) );
+		$this->stripe_checkout         = 'yes' === $this->get_option( 'stripe_checkout' );
+		$this->stripe_checkout_locale  = $this->get_option( 'stripe_checkout_locale' );
+		$this->stripe_checkout_image   = $this->get_option( 'stripe_checkout_image', '' );
+		$this->saved_cards             = 'yes' === $this->get_option( 'saved_cards' );
+		$this->secret_key              = $this->testmode ? $this->get_option( 'test_secret_key' ) : $this->get_option( 'secret_key' );
+		$this->publishable_key         = $this->testmode ? $this->get_option( 'test_publishable_key' ) : $this->get_option( 'publishable_key' );
+		$this->bitcoin                 = 'USD' === strtoupper( get_woocommerce_currency() ) && 'yes' === $this->get_option( 'stripe_bitcoin' );
+		$this->apple_pay               = 'yes' === $this->get_option( 'apple_pay', 'yes' );
+		$this->apple_pay_domain_set    = 'yes' === $this->get_option( 'apple_pay_domain_set', 'no' );
+		$this->apple_pay_button        = $this->get_option( 'apple_pay_button', 'black' );
+		$this->logging                 = 'yes' === $this->get_option( 'logging' );
+		$this->apple_pay_verify_notice = '';
 
 		if ( $this->stripe_checkout ) {
 			$this->order_button_text = __( 'Continue to payment', 'woocommerce-gateway-stripe' );
@@ -269,7 +277,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 * @version 3.1.0
 	 * @param string $secret_key
 	 */
-	private function _register_apple_pay_domain( $secret_key = '' ) {
+	private function register_apple_pay_domain( $secret_key = '' ) {
 		if ( empty( $secret_key ) ) {
 			throw new Exception( __( 'Unable to verify domain - missing secret key.', 'woocommerce-gateway-stripe' ) );
 		}
@@ -291,7 +299,11 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		) );
 
 		if ( 200 !== $response['response']['code'] ) {
-			throw new Exception( sprintf( __( 'Unable to verify domain - %s', 'woocommerce-gateway-stripe' ), $response['response']['message'] ) );
+			$parsed_response = json_decode( $response['body'] );
+
+			$this->apple_pay_verify_notice = $parsed_response->error->message;
+
+			throw new Exception( sprintf( __( 'Unable to verify domain - %s', 'woocommerce-gateway-stripe' ), $parsed_response->error->message ) );
 		}
 	}
 
@@ -328,7 +340,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 			// At this point then the domain association folder and file should be available.
 			// Proceed to verify/and or verify again.
-			$this->_register_apple_pay_domain( $this->secret_key );
+			$this->register_apple_pay_domain( $this->secret_key );
 
 			// No errors to this point, verification success!
 			$gateway_settings['apple_pay_domain_set'] = 'yes';
@@ -353,6 +365,10 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	public function admin_notices() {
 		if ( 'no' === $this->enabled ) {
 			return;
+		}
+
+		if ( $this->apple_pay && ! empty( $this->apple_pay_verify_notice ) ) {
+			echo '<div class="error stripe-apple-pay-message"><p>' . wp_kses( make_clickable( $this->apple_pay_verify_notice ) ) . '</p></div>';
 		}
 
 		/**
