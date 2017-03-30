@@ -3,7 +3,7 @@ Contributors: automattic, woothemes, mikejolley, akeda, royho, mattyza, slash1an
 Tags: credit card, stripe, woocommerce
 Requires at least: 4.4
 Tested up to: 4.7.2
-Stable tag: 3.1.4
+Stable tag: 3.1.5
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -95,6 +95,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.1.5 =
+* Add - Check for WP error object in domain verification.
+
 = 3.1.4 =
 * Tweak - If Apple Pay is not enabled, prevent Apple Pay Init.
 * Fix - Update for WooCommerce 3.0 compatibility.
@@ -167,12 +170,5 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Upgrade Notice ==
 
-= 3.1.4 =
-* Tweak - If Apple Pay is not enabled, prevent Apple Pay Init.
-* Fix - Update for WooCommerce 3.0 compatibility.
-* Fix - Apple Pay on product detail page causes qty issue when using normal add to cart.
-* Fix - A partial workaround for UK/CA postal codes issue for shipping methods that support partial postal code estimates.
-* Fix - Stripe checkout did not validate properly formatted email address.
-* Fix - Error messages were not able to translate when validating checkout form.
-* Fix - Prevent payment gateway title logic ( Apple Pay ) from hijacking other payment methods.
-* Remove - Stripe Checkout allow remember me setting as it is redundant to saved card setting.
+= 3.1.5 =
+* Add - Check for WP error object in domain verification.
