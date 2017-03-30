@@ -298,6 +298,10 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			'body'    => http_build_query( $data ),
 		) );
 
+		if ( is_wp_error( $response ) ) {
+			throw new Exception( sprintf( __( 'Unable to verify domain - %s', 'woocommerce-gateway-stripe' ), $response->get_error_message() ) ); 
+		}
+
 		if ( 200 !== $response['response']['code'] ) {
 			$parsed_response = json_decode( $response['body'] );
 
@@ -368,7 +372,14 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		}
 
 		if ( $this->apple_pay && ! empty( $this->apple_pay_verify_notice ) ) {
-			echo '<div class="error stripe-apple-pay-message"><p>' . wp_kses( make_clickable( $this->apple_pay_verify_notice ) ) . '</p></div>';
+			$allowed_html = array(
+				'a' => array(
+					'href' => array(),
+					'title' => array(),
+				),
+			);
+
+			echo '<div class="error stripe-apple-pay-message"><p>' . wp_kses( make_clickable( $this->apple_pay_verify_notice ), $allowed_html ) . '</p></div>';
 		}
 
 		/**
