@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway\n"
-"POT-Creation-Date: 2017-03-24 15:47-0800\n"
-"PO-Revision-Date: 2017-03-24 15:47-0800\n"
+"POT-Creation-Date: 2017-03-30 12:28-0800\n"
+"PO-Revision-Date: 2017-03-30 12:28-0800\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: en_US\n"
@@ -21,7 +21,7 @@ msgstr ""
 
 #: includes/class-wc-gateway-stripe-addons.php:106
 #: includes/class-wc-gateway-stripe-addons.php:153
-#: includes/class-wc-gateway-stripe.php:729
+#: includes/class-wc-gateway-stripe.php:745
 #: includes/class-wc-stripe-apple-pay.php:684
 #: includes/legacy/class-wc-gateway-stripe.php:446
 #, php-format
@@ -49,24 +49,24 @@ msgstr ""
 msgid "Via %1$s card ending in %2$s"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:116
+#: includes/class-wc-gateway-stripe.php:123
 #: includes/legacy/class-wc-gateway-stripe.php:18
 msgid "Stripe"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:117
+#: includes/class-wc-gateway-stripe.php:124
 #: includes/legacy/class-wc-gateway-stripe.php:19
 msgid ""
 "Stripe works by adding credit card fields on the checkout and then sending "
 "the details to Stripe for verification."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:164
+#: includes/class-wc-gateway-stripe.php:172
 #: includes/legacy/class-wc-gateway-stripe.php:60
 msgid "Continue to payment"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:168
+#: includes/class-wc-gateway-stripe.php:176
 #: includes/legacy/class-wc-gateway-stripe.php:64
 #, php-format
 msgid ""
@@ -75,43 +75,43 @@ msgid ""
 "documentation \"<a href=\"%s\">Testing Stripe</a>\" for more card numbers."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:274
+#: includes/class-wc-gateway-stripe.php:282
 msgid "Unable to verify domain - missing secret key."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:294
+#: includes/class-wc-gateway-stripe.php:306
 #, php-format
 msgid "Unable to verify domain - %s"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:319
+#: includes/class-wc-gateway-stripe.php:331
 msgid "Unable to create domain association folder to domain root."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:325
+#: includes/class-wc-gateway-stripe.php:337
 msgid "Unable to copy domain association file to domain root."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:339
+#: includes/class-wc-gateway-stripe.php:351
 msgid "Your domain has been verified with Apple Pay!"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:346
-#: includes/class-wc-gateway-stripe.php:779
+#: includes/class-wc-gateway-stripe.php:358
+#: includes/class-wc-gateway-stripe.php:795
 #: includes/class-wc-stripe-apple-pay.php:718
 #: includes/legacy/class-wc-gateway-stripe.php:481
 #, php-format
 msgid "Error: %s"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:364
+#: includes/class-wc-gateway-stripe.php:380
 #, php-format
 msgid ""
 "Apple Pay domain verification failed. Please check the %1$slog%2$s to see "
 "the issue. (Logging must be enabled to see recorded logs)"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:369
+#: includes/class-wc-gateway-stripe.php:385
 #: includes/legacy/class-wc-gateway-stripe.php:165
 #, php-format
 msgid ""
@@ -120,133 +120,133 @@ msgid ""
 "has a valid SSL certificate - Stripe will only work in test mode."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:418
+#: includes/class-wc-gateway-stripe.php:434
 msgid "Add Card"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:465
+#: includes/class-wc-gateway-stripe.php:481
 msgid "The card number is not a valid credit card number."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:466
+#: includes/class-wc-gateway-stripe.php:482
 msgid "The card's expiration month is invalid."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:467
+#: includes/class-wc-gateway-stripe.php:483
 msgid "The card's expiration year is invalid."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:468
+#: includes/class-wc-gateway-stripe.php:484
 msgid "The card's security code is invalid."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:469
+#: includes/class-wc-gateway-stripe.php:485
 msgid "The card number is incorrect."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:470
+#: includes/class-wc-gateway-stripe.php:486
 msgid "The card has expired."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:471
+#: includes/class-wc-gateway-stripe.php:487
 msgid "The card's security code is incorrect."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:472
+#: includes/class-wc-gateway-stripe.php:488
 msgid "The card's zip code failed validation."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:473
+#: includes/class-wc-gateway-stripe.php:489
 msgid "The card was declined."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:474
+#: includes/class-wc-gateway-stripe.php:490
 msgid "There is no card on a customer that is being charged."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:475
+#: includes/class-wc-gateway-stripe.php:491
 msgid "An error occurred while processing the card."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:476
+#: includes/class-wc-gateway-stripe.php:492
 msgid "Could not find payment information."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:497
+#: includes/class-wc-gateway-stripe.php:513
 msgid ""
 "This is not a valid live key. Live keys start with \"sk_live_\" and "
 "\"pk_live_\"."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:498
+#: includes/class-wc-gateway-stripe.php:514
 msgid ""
 "This is not a valid test key. Test keys start with \"sk_test_\" and "
 "\"pk_test_\"."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:499
+#: includes/class-wc-gateway-stripe.php:515
 msgid "Re-verify Domain"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:500
+#: includes/class-wc-gateway-stripe.php:516
 msgid "Missing Secret Key. Please set the secret key field above and re-try."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:535
+#: includes/class-wc-gateway-stripe.php:551
 #: includes/legacy/class-wc-gateway-stripe.php:296
 msgid "Please accept the terms and conditions first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:536
+#: includes/class-wc-gateway-stripe.php:552
 #: includes/legacy/class-wc-gateway-stripe.php:297
 msgid "Please fill in required checkout fields first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:554
+#: includes/class-wc-gateway-stripe.php:570
 #: includes/class-wc-stripe-payment-request.php:95
 msgid "Sorry, we're not accepting prepaid cards at this time."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:574
+#: includes/class-wc-gateway-stripe.php:590
 #: includes/class-wc-stripe-apple-pay.php:738
 #, php-format
 msgid "%1$s - Order %2$s"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:588
+#: includes/class-wc-gateway-stripe.php:604
 msgid "Customer Name"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:589
+#: includes/class-wc-gateway-stripe.php:605
 msgid "Customer Email"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:652
+#: includes/class-wc-gateway-stripe.php:668
 msgid "Invalid payment method. Please input a new card number."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:717
+#: includes/class-wc-gateway-stripe.php:733
 #: includes/legacy/class-wc-gateway-stripe.php:434
 msgid "Please enter your card details to make a payment."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:718
+#: includes/class-wc-gateway-stripe.php:734
 #: includes/legacy/class-wc-gateway-stripe.php:435
 msgid ""
 "Developers: Please make sure that you are including jQuery and there are no "
 "JavaScript errors on the page."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:746
+#: includes/class-wc-gateway-stripe.php:762
 msgid "This card is no longer available and has been removed."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:837 woocommerce-gateway-stripe.php:470
+#: includes/class-wc-gateway-stripe.php:853 woocommerce-gateway-stripe.php:470
 #, php-format
 msgid "Stripe charge complete (Charge ID: %s)"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:848
+#: includes/class-wc-gateway-stripe.php:864
 #: includes/legacy/class-wc-gateway-stripe.php:526
 #, php-format
 msgid ""
@@ -254,13 +254,13 @@ msgid ""
 "cancel to remove the pre-authorization."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:862
-#: includes/class-wc-gateway-stripe.php:871
+#: includes/class-wc-gateway-stripe.php:878
+#: includes/class-wc-gateway-stripe.php:887
 #: includes/legacy/class-wc-gateway-stripe.php:540
 msgid "There was a problem adding the card."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:923
+#: includes/class-wc-gateway-stripe.php:939
 #, php-format
 msgid "Refunded %1$s - Refund ID: %2$s - Reason: %3$s"
 msgstr ""
@@ -300,10 +300,6 @@ msgstr ""
 #: includes/class-wc-stripe-apple-pay.php:835
 #: includes/class-wc-stripe-payment-request.php:348
 msgid "Tax"
-msgstr ""
-
-#: includes/class-wc-stripe-apple-pay.php:708
-msgid "Apple Pay (Stripe)"
 msgstr ""
 
 #: includes/class-wc-stripe-apple-pay.php:843
