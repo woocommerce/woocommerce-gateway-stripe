@@ -315,6 +315,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		return array(
 			'simple',
 			'variable',
+			'variation',
 		);
 	}
 
