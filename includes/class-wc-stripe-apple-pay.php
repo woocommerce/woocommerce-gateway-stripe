@@ -80,6 +80,13 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	public $publishable_key;
 
 	/**
+	 * Is shipping enabled?
+	 *
+	 * @var bool
+	 */
+	public $is_shipping_enabled;
+
+	/**
 	 * Constructor.
 	 *
 	 * @access public
@@ -107,6 +114,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		$this->apple_pay_button_lang = ! empty( $gateway_settings['apple_pay_button_lang'] ) ? $gateway_settings['apple_pay_button_lang'] : 'en';
 		$this->logging               = ( ! empty( $gateway_settings['logging'] ) && 'yes' === $gateway_settings['logging'] ) ? true : false;
 		$this->publishable_key       = ! empty( $gateway_settings['publishable_key'] ) ? $gateway_settings['publishable_key'] : '';
+		$this->is_shipping_enabled   = $this->is_shipping_enabled();
 
 		if ( $this->testmode ) {
 			$this->publishable_key = ! empty( $gateway_settings['test_publishable_key'] ) ? $gateway_settings['test_publishable_key'] : '';
@@ -225,6 +233,23 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	}
 
 	/**
+	 * Checks if shipping is enabled for the store.
+	 *
+	 * @since 3.1.6
+	 * @version 3.1.6
+	 * @return bool
+	 */
+	public function is_shipping_enabled() {
+		$shipping_enabled = get_option( 'woocommerce_ship_to_countries', '' );
+
+		if ( 'disabled' === $shipping_enabled ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
 	 * Enqueue JS scripts and styles for single product page.
 	 *
 	 * @since 3.1.0
@@ -250,14 +275,6 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		wp_enqueue_script( 'stripe', 'https://js.stripe.com/v2/', '', '1.0', true );
 		wp_enqueue_script( 'woocommerce_stripe_apple_pay_single', plugins_url( 'assets/js/stripe-apple-pay-single' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'stripe' ), WC_STRIPE_VERSION, true );
 
-		$shipping_enabled = get_option( 'woocommerce_ship_to_countries', '' );
-
-		if ( '' === $shipping_enabled || 'disabled' === $shipping_enabled ) {
-			$shipping_enabled = false;
-		} else {
-			$shipping_enabled = true;
-		}
-
 		$stripe_params = array(
 			'key'                                           => $this->publishable_key,
 			'currency_code'                                 => get_woocommerce_currency(),
@@ -268,7 +285,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			'stripe_apple_pay_cart_nonce'                   => wp_create_nonce( '_wc_stripe_apple_pay_cart_nonce' ),
 			'stripe_apple_pay_get_shipping_methods_nonce'   => wp_create_nonce( '_wc_stripe_apple_pay_get_shipping_methods_nonce' ),
 			'stripe_apple_pay_update_shipping_method_nonce' => wp_create_nonce( '_wc_stripe_apple_pay_update_shipping_method_nonce' ),
-			'needs_shipping'                                => ( $product->needs_shipping() && $shipping_enabled ) ? 'yes' : 'no',
+			'needs_shipping'                                => ( $product->needs_shipping() && $this->is_shipping_enabled ) ? 'yes' : 'no',
 			'i18n'                                          => array(
 				'sub_total' => __( 'Sub-Total', 'woocommerce-gateway-stripe' ),
 			),
@@ -305,7 +322,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			'stripe_apple_pay_cart_nonce'                   => wp_create_nonce( '_wc_stripe_apple_pay_cart_nonce' ),
 			'stripe_apple_pay_get_shipping_methods_nonce'   => wp_create_nonce( '_wc_stripe_apple_pay_get_shipping_methods_nonce' ),
 			'stripe_apple_pay_update_shipping_method_nonce' => wp_create_nonce( '_wc_stripe_apple_pay_update_shipping_method_nonce' ),
-			'needs_shipping'                                => WC()->cart->needs_shipping() ? 'yes' : 'no',
+			'needs_shipping'                                => ( WC()->cart->needs_shipping() && $this->is_shipping_enabled ) ? 'yes' : 'no',
 			'is_cart_page'                                  => is_cart() ? 'yes' : 'no',
 		);
 
@@ -846,7 +863,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			);
 		}
 
-		if ( WC()->cart->needs_shipping() ) {
+		if ( WC()->cart->needs_shipping() && $this->is_shipping_enabled ) {
 			$items[] = array(
 				'type'   => 'final',
 				'label'  => esc_html( __( 'Shipping', 'woocommerce-gateway-stripe' ) ),
@@ -1020,7 +1037,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 		// Shipping address.
 		$shipping_address = array();
-		if ( WC()->cart->needs_shipping() && ! empty( $data['shippingContact'] ) ) {
+		if ( WC()->cart->needs_shipping() && $this->is_shipping_enabled && ! empty( $data['shippingContact'] ) ) {
 			$shipping_address['first_name'] = $data['shippingContact']['givenName'];
 			$shipping_address['last_name']  = $data['shippingContact']['familyName'];
 			$shipping_address['email']      = $data['shippingContact']['emailAddress'];
