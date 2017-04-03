@@ -1103,6 +1103,10 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		$order->set_total( WC()->cart->shipping_tax_total, 'shipping_tax' );
 		$order->set_total( WC()->cart->total );
 
+		if ( version_compare( WC_VERSION, '3.0', '>=' ) ) {
+			$order->save();
+		}
+
 		// If we got here, the order was created without problems!
 		wc_transaction_query( 'commit' );
 
