@@ -95,6 +95,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.1.6 =
+* Fix - TypeError issues on single product page when using Apple Pay on Desktop.
+
 = 3.1.5 =
 * Add - Check for WP error object in domain verification.
 
