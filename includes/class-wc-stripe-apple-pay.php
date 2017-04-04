@@ -123,7 +123,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		$this->init();
 	}
 
-	public function instance() {
+	public static function instance() {
 		return self::$_this;
 	}
 
