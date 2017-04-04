@@ -99,6 +99,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - TypeError issues on single product page when using Apple Pay on Desktop.
 * Fix - In certain case, Apple Pay on single product page does not show shipping info.
 * Fix - Use store's base location to show/hide accepted credit cards instead of currency.
+* Fix - Unsupported product type when a variable product is added with Apple Pay.
 
 = 3.1.5 =
 * Add - Check for WP error object in domain verification.
