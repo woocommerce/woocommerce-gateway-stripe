@@ -337,11 +337,11 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	 * @return array
 	 */
 	public function supported_product_types() {
-		return array(
+		return apply_filters( 'wc_stripe_apple_pay_supported_types', array(
 			'simple',
 			'variable',
 			'variation',
-		);
+		) );
 	}
 
 	/**
