@@ -162,7 +162,9 @@ class WC_Stripe_Payment_Request {
 			WC()->customer->set_shipping_to_base();
 		}
 
-		WC()->customer->calculated_shipping( true );
+		version_compare( WC_VERSION, '3.0', '<' ) ? WC()->customer->calculated_shipping( true ) : WC()->customer->set_calculated_shipping( true );
+
+		WC()->customer->save();
 
 		$packages = array();
 
