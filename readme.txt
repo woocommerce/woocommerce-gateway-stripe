@@ -128,6 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 3.1.0 =
 * New - Apple Pay Support.
 * New - Add Google Payment Request API.
+* New - Minimum PHP 5.6.
 
 = 3.0.7 =
 * New - Option to allow/disallow remember me on Stripe checkout modal.
