@@ -39,7 +39,7 @@ define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
 define( 'WC_STRIPE_PLUGIN_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
 
-if ( ! class_exists( 'WC_Stripe' ) ) :
+if ( ! class_exists( 'WC_Stripe' ) && function_exists( 'WC' ) ) :
 
 	class WC_Stripe {
 
