@@ -95,6 +95,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.1.7 =
+* Fix - Additional WC 3.0 compatibility with subscriptions addons.
+* Add - Site URL to metadata when charging subscription orders for reference.
+
 = 3.1.6 =
 * Fix - TypeError issues on single product page when using Apple Pay on Desktop.
 * Fix - In certain case, Apple Pay on single product page does not show shipping info.
