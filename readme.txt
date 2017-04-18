@@ -97,6 +97,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 3.1.7 =
 * Fix - Additional WC 3.0 compatibility with subscriptions addons.
+* Fix - Retry failed subscription payments with customer ID.
 * Add - Site URL to metadata when charging subscription orders for reference.
 
 = 3.1.6 =

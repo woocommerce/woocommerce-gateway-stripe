@@ -135,9 +135,21 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 		$response            = WC_Stripe_API::request( $request );
 
 		// Process valid response
-		if ( ! is_wp_error( $response ) ) {
-			$this->process_response( $response, $order );
+		if ( is_wp_error( $response ) ) {
+			if ( 'missing' === $response->get_error_code() ) {
+				// If we can't link customer to a card, we try to charge by customer ID.
+				$request             = $this->generate_payment_request( $order, $this->get_source( $order->customer_user ) );
+				$request['capture']  = 'true';
+				$request['amount']   = $this->get_stripe_amount( $amount, $request['currency'] );
+				$request['metadata'] = array(
+					'payment_type'   => 'recurring',
+					'site_url'       => esc_url( get_site_url() ),
+				);
+				$response          = WC_Stripe_API::request( $request );
+			}
 		}
+
+		$this->process_response( $response, $order );
 
 		return $response;
 	}
