@@ -130,6 +130,7 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 		$request['amount']   = $this->get_stripe_amount( $amount, $request['currency'] );
 		$request['metadata'] = array(
 			'payment_type'   => 'recurring',
+			'site_url'       => esc_url( get_site_url() ),
 		);
 		$response            = WC_Stripe_API::request( $request );
 
