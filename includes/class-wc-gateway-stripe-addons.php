@@ -366,26 +366,30 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	 * @return string the subscription payment method
 	 */
 	public function maybe_render_subscription_payment_method( $payment_method_to_display, $subscription ) {
+		$wc_pre_30 = version_compare( WC_VERSION, '3.0', '<' );
+
+		$customer_user = $wc_pre_30 ? $subscription->customer_user : $subscription->get_customer_id();
+
 		// bail for other payment methods
-		if ( $this->id !== $subscription->payment_method || ! $subscription->customer_user ) {
+		if ( $this->id !== ( $wc_pre_30 ? $subscription->payment_method : $subscription->get_payment_method() ) || ! $customer_user ) {
 			return $payment_method_to_display;
 		}
 
 		$stripe_customer    = new WC_Stripe_Customer();
-		$stripe_customer_id = get_post_meta( $subscription->id, '_stripe_customer_id', true );
-		$stripe_card_id     = get_post_meta( $subscription->id, '_stripe_card_id', true );
+		$stripe_customer_id = get_post_meta( ( $wc_pre_30 ? $subscription->id : $subscription->get_id() ), '_stripe_customer_id', true );
+		$stripe_card_id     = get_post_meta( ( $wc_pre_30 ? $subscription->id : $subscription->get_id() ), '_stripe_card_id', true );
 
 		// If we couldn't find a Stripe customer linked to the subscription, fallback to the user meta data.
 		if ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) {
-			$user_id            = $subscription->customer_user;
+			$user_id            = $customer_user;
 			$stripe_customer_id = get_user_meta( $user_id, '_stripe_customer_id', true );
 			$stripe_card_id     = get_user_meta( $user_id, '_stripe_card_id', true );
 		}
 
 		// If we couldn't find a Stripe customer linked to the account, fallback to the order meta data.
 		if ( ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) && false !== $subscription->order ) {
-			$stripe_customer_id = get_post_meta( $subscription->order->id, '_stripe_customer_id', true );
-			$stripe_card_id     = get_post_meta( $subscription->order->id, '_stripe_card_id', true );
+			$stripe_customer_id = get_post_meta( ( $wc_pre_30 ? $subscription->order->id : $subscription->get_parent_id() ), '_stripe_customer_id', true );
+			$stripe_card_id     = get_post_meta( ( $wc_pre_30 ? $subscription->order->id : $subscription->get_parent_id() ), '_stripe_card_id', true );
 		}
 
 		$stripe_customer->set_id( $stripe_customer_id );
