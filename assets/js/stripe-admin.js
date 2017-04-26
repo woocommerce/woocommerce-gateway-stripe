@@ -62,6 +62,15 @@ jQuery( function( $ ) {
 				}
 			}).change();
 
+			// Toggle Saved Cards settings
+			$( '#woocommerce_stripe_saved_cards' ).change( function() {
+				if ( $( this ).is( ':checked' ) ) {
+					$( '#woocommerce_stripe_always_save_cards' ).closest( 'tr' ).show();
+				} else {
+					$( '#woocommerce_stripe_always_save_cards' ).closest( 'tr' ).hide();
+				}
+			}).change();
+
 			// Validate the keys to make sure it is matching test with test field.
 			$( '#woocommerce_stripe_secret_key, #woocommerce_stripe_publishable_key' ).on( 'input', function() {
 				var value = $( this ).val();

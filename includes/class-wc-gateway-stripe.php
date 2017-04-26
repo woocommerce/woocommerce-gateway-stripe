@@ -53,6 +53,13 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	public $saved_cards;
 
 	/**
+	 * Should we store the users credit cards without asking?
+	 *
+	 * @var bool
+	 */
+	public $always_save_cards;
+
+	/**
 	 * API access secret key
 	 *
 	 * @var string
@@ -159,6 +166,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$this->stripe_checkout_locale  = $this->get_option( 'stripe_checkout_locale' );
 		$this->stripe_checkout_image   = $this->get_option( 'stripe_checkout_image', '' );
 		$this->saved_cards             = 'yes' === $this->get_option( 'saved_cards' );
+		$this->always_save_cards       = 'yes' === $this->get_option( 'always_save_cards' );
 		$this->secret_key              = $this->testmode ? $this->get_option( 'test_secret_key' ) : $this->get_option( 'secret_key' );
 		$this->publishable_key         = $this->testmode ? $this->get_option( 'test_publishable_key' ) : $this->get_option( 'publishable_key' );
 		$this->bitcoin                 = 'USD' === strtoupper( get_woocommerce_currency() ) && 'yes' === $this->get_option( 'stripe_bitcoin' );
@@ -474,7 +482,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		if ( ! $this->stripe_checkout ) {
 			$this->form();
 
-			if ( $display_tokenization ) {
+			if ( $display_tokenization && ! $this->always_save_cards ) {
 				$this->save_payment_method_checkbox();
 			}
 		}
@@ -656,9 +664,9 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		// New CC info was entered and we have a new token to process
 		if ( isset( $_POST['stripe_token'] ) ) {
 			$stripe_token     = wc_clean( $_POST['stripe_token'] );
-			$maybe_saved_card = isset( $_POST['wc-stripe-new-payment-method'] ) && ! empty( $_POST['wc-stripe-new-payment-method'] );
+			$maybe_saved_card = $this->always_save_cards || ( isset( $_POST['wc-stripe-new-payment-method'] ) && ! empty( $_POST['wc-stripe-new-payment-method'] ) );
 
-			// This is true if the user wants to store the card to their account.
+			// This is true if the user wants to store the card to their account or if the option to always save cards is enabled.
 			if ( ( $user_id && $this->saved_cards && $maybe_saved_card ) || $force_customer ) {
 				$stripe_source = $stripe_customer->add_card( $stripe_token );
 
