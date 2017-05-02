@@ -1031,11 +1031,11 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			$billing_address['last_name']  = $lastname;
 			$billing_address['email']      = $data['shippingContact']['emailAddress'];
 			$billing_address['phone']      = $data['shippingContact']['phoneNumber'];
-			$billing_address['country']    = $data['token']['card']['country'];
+			$billing_address['country']    = strtoupper($data['token']['card']['country']);
 			$billing_address['address_1']  = $data['token']['card']['address_line1'];
 			$billing_address['address_2']  = $data['token']['card']['address_line2'];
 			$billing_address['city']       = $data['token']['card']['address_city'];
-			$billing_address['state']      = $data['token']['card']['address_state'];
+			$billing_address['state']      = strtoupper($data['token']['card']['address_state']);
 			$billing_address['postcode']   = $data['token']['card']['address_zip'];
 		}
 
@@ -1046,7 +1046,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			$shipping_address['last_name']  = $data['shippingContact']['familyName'];
 			$shipping_address['email']      = $data['shippingContact']['emailAddress'];
 			$shipping_address['phone']      = $data['shippingContact']['phoneNumber'];
-			$shipping_address['country']    = $data['shippingContact']['countryCode'];
+			$shipping_address['country']    = strtoupper($data['shippingContact']['countryCode']);
 			$shipping_address['address_1']  = $data['shippingContact']['addressLines'][0];
 			$shipping_address['address_2']  = $data['shippingContact']['addressLines'][1];
 			$shipping_address['city']       = $data['shippingContact']['locality'];
@@ -1057,7 +1057,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			$shipping_address['last_name']  = $lastname;
 			$shipping_address['email']      = $data['shippingContact']['emailAddress'];
 			$shipping_address['phone']      = $data['shippingContact']['phoneNumber'];
-			$shipping_address['country']    = $data['token']['card']['country'];
+			$shipping_address['country']    = strtoupper($data['token']['card']['country']);
 			$shipping_address['address_1']  = $data['token']['card']['address_line1'];
 			$shipping_address['address_2']  = $data['token']['card']['address_line2'];
 			$shipping_address['city']       = $data['token']['card']['address_city'];
