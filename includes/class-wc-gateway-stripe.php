@@ -266,7 +266,8 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			is_admin() &&
 			isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] &&
 			isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] &&
-			isset( $_GET['section'] ) && 'stripe' === $_GET['section']
+			isset( $_GET['section'] ) && 'stripe' === $_GET['section'] &&
+			$this->apple_pay
 		) {
 			$this->process_apple_pay_verification();
 		}
