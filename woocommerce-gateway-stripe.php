@@ -192,7 +192,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 */
 		private static function _update_plugin_version() {
 			delete_option( 'wc_stripe_version' );
-			add_option( 'wc_stripe_version', WC_STRIPE_VERSION );
+			update_option( 'wc_stripe_version', WC_STRIPE_VERSION );
 
 			return true;
 		}
@@ -204,7 +204,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * @version 3.1.0
 		 */
 		public function dismiss_request_api_notice() {
-			add_option( 'wc_stripe_show_request_api_notice', 'no' );
+			update_option( 'wc_stripe_show_request_api_notice', 'no' );
 		}
 
 		/**
@@ -214,7 +214,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * @version 3.1.0
 		 */
 		public function dismiss_apple_pay_notice() {
-			add_option( 'wc_stripe_show_apple_pay_notice', 'no' );
+			update_option( 'wc_stripe_show_apple_pay_notice', 'no' );
 		}
 
 		/**
