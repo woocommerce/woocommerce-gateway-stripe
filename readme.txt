@@ -3,7 +3,7 @@ Contributors: automattic, woothemes, mikejolley, akeda, royho, mattyza, slash1an
 Tags: credit card, stripe, woocommerce
 Requires at least: 4.4
 Tested up to: 4.7.2
-Stable tag: 3.1.7
+Stable tag: 3.1.8
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -95,6 +95,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.1.8 =
+* Fix - Legacy < WC 3.0 stripe checkout file reference link name causing file not found.
+
 = 3.1.7 =
 * Fix - Additional WC 3.0 compatibility with subscriptions addons.
 * Fix - Retry failed subscription payments with customer ID.
@@ -182,7 +185,5 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Upgrade Notice ==
 
-= 3.1.7 =
-* Fix - Additional WC 3.0 compatibility with subscriptions addons.
-* Fix - Retry failed subscription payments with customer ID.
-* Add - Site URL to metadata when charging subscription orders for reference.
+= 3.1.8 =
+* Fix - Legacy < WC 3.0 stripe checkout file reference link name causing file not found.
