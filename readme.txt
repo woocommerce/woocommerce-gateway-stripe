@@ -95,6 +95,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.1.9 =
+* Add - Action hook to manipulate process response from API "wc_gateway_stripe_process_response".
+
 = 3.1.8 =
 * Fix - Legacy < WC 3.0 stripe checkout file reference link name causing file not found.
 
