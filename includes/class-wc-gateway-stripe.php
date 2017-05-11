@@ -883,6 +883,8 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			$this->log( "Successful auth: $response->id" );
 		}
 
+		do_action( 'wc_gateway_stripe_process_response', $response, $order );
+
 		return $response;
 	}
 
