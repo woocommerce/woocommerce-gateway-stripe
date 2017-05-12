@@ -95,6 +95,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.1.10 =
+* Fix - Auto accept terms for Payment Request API to prevent blocker for the checkout.
+
 = 3.1.9 =
 * Add - Action hook to manipulate process response from API "wc_gateway_stripe_process_response".
 
