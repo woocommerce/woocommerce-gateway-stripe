@@ -446,6 +446,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 		if ( is_add_payment_method_page() ) {
 			$pay_button_text = __( 'Add Card', 'woocommerce-gateway-stripe' );
+			$total        = '';
 		} else {
 			$pay_button_text = '';
 		}
