@@ -95,6 +95,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.1.11 =
+* Fix - Handle a subscription renewal failed payment order correctly to prevent orders going into onhold status.
+
 = 3.1.10 =
 * Fix - Auto accept terms for Payment Request API to prevent blocker for the checkout.
 * Fix - Add payment method via Stripe checkout button showed pricing.
