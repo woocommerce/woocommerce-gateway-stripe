@@ -149,6 +149,8 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 					'site_url'       => esc_url( get_site_url() ),
 				);
 				$response          = WC_Stripe_API::request( $request );
+			} else {
+				return $response; // Default catch all errors.
 			}
 		}
 
