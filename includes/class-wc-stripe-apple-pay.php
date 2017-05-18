@@ -1121,6 +1121,8 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		// If we got here, the order was created without problems!
 		wc_transaction_query( 'commit' );
 
+		do_action( 'woocommerce_checkout_update_order_meta', $order_id, array() );
+
 		return $order;
 	}
 
