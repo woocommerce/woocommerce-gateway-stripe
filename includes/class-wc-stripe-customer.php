@@ -181,7 +181,14 @@ class WC_Stripe_Customer {
 		), 'customers/' . $this->get_id() . '/sources' );
 
 		if ( is_wp_error( $response ) ) {
-			if ( 'customer' === $response->get_error_code() && $retry ) {
+			// It is possible the WC user once was linked to a customer on Stripe
+			// but no longer exists. Instead of failing, lets try to create a
+			// new customer.
+			if ( preg_match( '/No such customer:/', $response->get_error_message() ) ) {
+				delete_user_meta( $this->get_user_id(), '_stripe_customer_id' );
+				$this->create_customer();
+				return $this->add_card( $token, false );
+			} elseif ( 'customer' === $response->get_error_code() && $retry ) {
 				$this->create_customer();
 				return $this->add_card( $token, false );
 			} else {
