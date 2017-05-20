@@ -157,7 +157,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * or the environment changes after activation. Also handles upgrade routines.
 		 */
 		public function check_environment() {
-			if ( ! defined( 'IFRAME_REQUEST' ) && ( WC_STRIPE_VERSION !== get_option( 'woocommerce_stripe_version' ) ) ) {
+			if ( ! defined( 'IFRAME_REQUEST' ) && ( WC_STRIPE_VERSION !== get_option( 'wc_stripe_version' ) ) ) {
 				$this->install();
 
 				do_action( 'woocommerce_stripe_updated' );
