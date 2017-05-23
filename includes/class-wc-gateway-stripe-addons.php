@@ -309,8 +309,13 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	 * @return void
 	 */
 	public function update_failing_payment_method( $subscription, $renewal_order ) {
-		update_post_meta( ( $this->wc_pre_30 ? $subscription->id : $subscription->get_id() ), '_stripe_customer_id', $renewal_order->stripe_customer_id );
-		update_post_meta( ( $this->wc_pre_30 ? $subscription->id : $subscription->get_id() ), '_stripe_card_id', $renewal_order->stripe_card_id );
+		if ( $this->wc_pre_30 ) {
+			update_post_meta( $subscription->id, '_stripe_customer_id', $renewal_order->stripe_customer_id );
+			update_post_meta( $subscription->id, '_stripe_card_id', $renewal_order->stripe_card_id );
+		} else {
+			update_post_meta( $subscription->get_id(), '_stripe_customer_id', $renewal_order->get_meta( 'stripe_customer_id', true ) );
+			update_post_meta( $subscription->get_id(), '_stripe_card_id', $renewal_order->get_meta( 'stripe_card_id', true ) );
+		}
 	}
 
 	/**
