@@ -874,7 +874,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			$this->log( 'Success: ' . $message );
 
 		} else {
-			add_post_meta( $order_id, '_transaction_id', $response->id, true );
+			update_post_meta( $order_id, '_transaction_id', $response->id, true );
 
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
 				version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->reduce_order_stock() : wc_reduce_stock_levels( $order_id );

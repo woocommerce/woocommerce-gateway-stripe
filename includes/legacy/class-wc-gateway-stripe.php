@@ -519,7 +519,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway {
 			$order->payment_complete( $response->id );
 			WC_Stripe::log( "Successful charge: $response->id" );
 		} else {
-			add_post_meta( $order->id, '_transaction_id', $response->id, true );
+			update_post_meta( $order->id, '_transaction_id', $response->id, true );
 
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$order->reduce_order_stock();
