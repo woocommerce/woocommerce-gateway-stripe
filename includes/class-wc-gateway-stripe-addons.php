@@ -313,8 +313,8 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 			update_post_meta( $subscription->id, '_stripe_customer_id', $renewal_order->stripe_customer_id );
 			update_post_meta( $subscription->id, '_stripe_card_id', $renewal_order->stripe_card_id );
 		} else {
-			update_post_meta( $subscription->get_id(), '_stripe_customer_id', $renewal_order->get_meta( '_stripe_customer_id', true ) );
-			update_post_meta( $subscription->get_id(), '_stripe_card_id', $renewal_order->get_meta( '_stripe_card_id', true ) );
+			$subscription->update_meta_data( '_stripe_customer_id', $renewal_order->get_meta( '_stripe_customer_id', true ) );
+			$subscription->update_meta_data( '_stripe_card_id', $renewal_order->get_meta( '_stripe_card_id', true ) );
 		}
 	}
 

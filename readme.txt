@@ -100,6 +100,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Auto accept terms for Payment Request API to prevent blocker for the checkout.
 * Fix - Add payment method via Stripe checkout button showed pricing.
 * Fix - When Stripe customer id is no longer linked to Stripe account, customer not found can happen.
+* Fix - On Subscription failed payment, new payment info not updating causing failed payments for recurring charges.
 * Add - Action hook to manipulate process response from API "wc_gateway_stripe_process_response".
 * Add - Apple Pay compatibility with WooCommerce Sequential Numbers Pro.
 
