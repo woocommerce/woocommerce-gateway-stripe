@@ -3,7 +3,7 @@ Contributors: automattic, woothemes, mikejolley, akeda, royho, mattyza, slash1an
 Tags: credit card, stripe, woocommerce
 Requires at least: 4.4
 Tested up to: 4.7.2
-Stable tag: 3.1.8
+Stable tag: 3.1.9
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -194,5 +194,11 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Upgrade Notice ==
 
-= 3.1.8 =
-* Fix - Legacy < WC 3.0 stripe checkout file reference link name causing file not found.
+= 3.1.9 =
+* Fix - Handle a subscription renewal failed payment order correctly to prevent orders going into onhold status.
+* Fix - Auto accept terms for Payment Request API to prevent blocker for the checkout.
+* Fix - Add payment method via Stripe checkout button showed pricing.
+* Fix - When Stripe customer id is no longer linked to Stripe account, customer not found can happen.
+* Fix - On Subscription failed payment, new payment info not updating causing failed payments for recurring charges.
+* Add - Action hook to manipulate process response from API "wc_gateway_stripe_process_response".
+* Add - Apple Pay compatibility with WooCommerce Sequential Numbers Pro.
