@@ -472,6 +472,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 
 						// Store other data such as fees
 						update_post_meta( $order_id, 'Stripe Payment ID', $result->id );
+						update_post_meta( $order_id, '_transaction_id', $result->id );
 
 						if ( isset( $result->balance_transaction ) && isset( $result->balance_transaction->fee ) ) {
 							// Fees and Net needs to both come from Stripe to be accurate as the returned
