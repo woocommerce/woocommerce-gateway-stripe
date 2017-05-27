@@ -87,6 +87,13 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	public $is_shipping_enabled;
 
 	/**
+	 * Decimal places from WC core.
+	 *
+	 * @var int
+	 */
+	public $dp;
+
+	/**
 	 * Constructor.
 	 *
 	 * @access public
@@ -105,6 +112,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			$this->statement_descriptor = $_SERVER['SERVER_NAME'];
 		}
 
+		$this->dp                    = wc_get_price_decimals();
 		$this->enabled               = ( ! empty( $gateway_settings['enabled'] ) && 'yes' === $gateway_settings['enabled'] ) ? true : false;
 		$this->testmode              = ( ! empty( $gateway_settings['testmode'] ) && 'yes' === $gateway_settings['testmode'] ) ? true : false;
 		$this->capture               = ( ! empty( $gateway_settings['capture'] ) && 'yes' === $gateway_settings['capture'] ) ? true : false;
@@ -482,7 +490,9 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 		WC()->cart->calculate_totals();
 
-		wp_send_json( array( 'line_items' => $this->build_line_items(), 'total' => WC()->cart->total ) );
+		$build_items = $this->build_line_items();
+
+		wp_send_json( array( 'line_items' => $build_items['line_items'], 'total' => $build_items['total'] ) );
 	}
 
 	/**
@@ -496,7 +506,9 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			wp_die( __( 'Cheatin&#8217; huh?', 'woocommerce-gateway-stripe' ) );
 		}
 
-		wp_send_json( array( 'line_items' => $this->build_line_items(), 'total' => WC()->cart->total ) );
+		$build_items = $this->build_line_items();
+
+		wp_send_json( array( 'line_items' => $build_items['line_items'], 'total' => $build_items['total'] ) );
 	}
 
 	/**
@@ -626,12 +638,15 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 				WC()->cart->calculate_totals();
 
-				wp_send_json( array( 'success' => 'true', 'shipping_methods' => $this->build_shipping_methods( $data ), 'line_items' => $this->build_line_items(), 'total' => WC()->cart->total ) );
+				$build_items = $this->build_line_items();
+
+				wp_send_json( array( 'success' => 'true', 'shipping_methods' => $this->build_shipping_methods( $data ), 'line_items' => $build_items['line_items'], 'total' => $build_items['total'] ) );
 			} else {
 				throw new Exception( __( 'Unable to find shipping method for address.', 'woocommerce-gateway-stripe' ) );
 			}
 		} catch ( Exception $e ) {
-			wp_send_json( array( 'success' => 'false', 'shipping_methods' => array(), 'line_items' => $this->build_line_items(), 'total' => WC()->cart->total ) );
+			$build_items = $this->build_line_items();
+			wp_send_json( array( 'success' => 'false', 'shipping_methods' => array(), 'line_items' => $build_items['line_items'], 'total' => $build_items['total'] ) );
 		}
 	}
 
@@ -656,34 +671,8 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 		WC()->cart->calculate_totals();
 
-		// Send back the new cart total.
-		$currency  = get_woocommerce_currency();
-		$tax_total = max( 0, round( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp ) );
-		$data      = array(
-			'total' => WC()->cart->total,
-		);
-
-		// Include fees and taxes as displayItems.
-		foreach ( WC()->cart->fees as $key => $fee ) {
-			$data['items'][] = array(
-				'label'  => $fee->name,
-				'amount' => array(
-					'currency' => $currency,
-					'value'    => $fee->amount,
-				),
-			);
-		}
-		if ( 0 < $tax_total ) {
-			$data['items'][] = array(
-				'label'  => __( 'Tax', 'woocommerce-gateway-stripe' ),
-				'amount' => array(
-					'currency' => $currency,
-					'value'    => $tax_total,
-				),
-			);
-		}
-
-		wp_send_json( array( 'success' => 'true', 'line_items' => $this->build_line_items(), 'total' => WC()->cart->total ) );
+		$build_items = $this->build_line_items();
+		wp_send_json( array( 'success' => 'true', 'line_items' => $build_items['line_items'], 'total' => $build_items['total'] ) );
 	}
 
 	/**
@@ -815,20 +804,18 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	 * Builds the line items to pass to Apple Pay.
 	 *
 	 * @since 3.1.0
-	 * @version 3.1.0
+	 * @version 3.2.0
 	 */
 	public function build_line_items() {
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
 			define( 'WOOCOMMERCE_CART', true );
 		}
-
-		$decimals = apply_filters( 'wc_stripe_apple_pay_decimals', 2 );
 		
 		$items    = array();
 		$subtotal = 0;
 
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
-			$amount         = wc_format_decimal( $cart_item['line_subtotal'], $decimals );
+			$amount         = wc_format_decimal( $cart_item['line_subtotal'], $this->dp );
 			$subtotal       += $cart_item['line_subtotal'];
 			$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
 
@@ -837,7 +824,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			$item = array(
 				'type'   => 'final',
 				'label'  => $product_name . $quantity_label,
-				'amount' => wc_format_decimal( $amount, $decimals ),
+				'amount' => wc_format_decimal( $amount, $this->dp ),
 			);
 
 			$items[] = $item;
@@ -849,15 +836,15 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			$items[] = array(
 				'type'   => 'final',
 				'label'  => esc_html( __( 'Sub-Total', 'woocommerce-gateway-stripe' ) ),
-				'amount' => wc_format_decimal( $subtotal, $decimals ),
+				'amount' => wc_format_decimal( $subtotal, $this->dp ),
 			);
 		}
 
-		$discounts   = wc_format_decimal( WC()->cart->get_cart_discount_total(), $decimals );
-		$tax         = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, $decimals );
-		$shipping    = wc_format_decimal( WC()->cart->shipping_total, $decimals );
-		$item_total  = wc_format_decimal( WC()->cart->cart_contents_total, $decimals ) + $discounts;
-		$order_total = wc_format_decimal( $item_total + $tax + $shipping, $decimals );
+		$discounts   = wc_format_decimal( WC()->cart->get_cart_discount_total(), $this->dp );
+		$tax         = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, $this->dp );
+		$shipping    = wc_format_decimal( WC()->cart->shipping_total, $this->dp );
+		$item_total  = wc_format_decimal( WC()->cart->cart_contents_total, $this->dp ) + $discounts;
+		$order_total = wc_format_decimal( $item_total + $tax + $shipping, $this->dp );
 
 		if ( wc_tax_enabled() ) {
 			$items[] = array(
@@ -883,7 +870,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			);
 		}
 
-		return $items;
+		return array( 'line_items' => $items, 'total' => $order_total );
 	}
 
 	/**
@@ -897,6 +884,10 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	public function create_order( $data = array() ) {
 		if ( empty( $data ) ) {
 			throw new Exception( sprintf( __( 'Error %d: Unable to create order. Please try again.', 'woocommerce-gateway-stripe' ), 520 ) );
+		}
+
+		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
+			define( 'WOOCOMMERCE_CART', true );
 		}
 
 		$order = wc_create_order();
@@ -1100,7 +1091,8 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
 		$order->set_payment_method( $available_gateways['stripe'] );
-		
+		WC()->cart->calculate_totals();
+
 		if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
 			$order->set_total( WC()->cart->shipping_total, 'shipping' );
 			$order->set_total( WC()->cart->get_cart_discount_total(), 'cart_discount' );
@@ -1114,7 +1106,14 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			$order->set_discount_tax( WC()->cart->get_cart_discount_tax_total() );
 			$order->set_cart_tax( WC()->cart->tax_total );
 			$order->set_shipping_tax( WC()->cart->shipping_tax_total );
-			$order->set_total( WC()->cart->total );
+
+			$discounts   = wc_format_decimal( WC()->cart->get_cart_discount_total(), $this->dp );
+			$tax         = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, $this->dp );
+			$shipping    = wc_format_decimal( WC()->cart->shipping_total, $this->dp );
+			$item_total  = wc_format_decimal( WC()->cart->cart_contents_total, $this->dp ) + $discounts;
+			$order_total = wc_format_decimal( $item_total + $tax + $shipping, $this->dp );
+
+			$order->set_total( $order_total );
 			$order->save();
 		}
 

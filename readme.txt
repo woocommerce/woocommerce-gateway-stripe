@@ -97,6 +97,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 3.2.0 =
 * Fix - Authorized first orders were not able to be refund.
+* Add - Support for Dynamic Pricing.
 
 = 3.1.9 =
 * Fix - Handle a subscription renewal failed payment order correctly to prevent orders going into onhold status.
