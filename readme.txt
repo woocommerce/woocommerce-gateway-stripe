@@ -97,6 +97,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 3.2.0 =
 * Fix - Authorized first orders were not able to be refund.
+* Fix - Payment Request not honoring different shipping address in certain cases.
 * Add - Support for Dynamic Pricing.
 
 = 3.1.9 =
