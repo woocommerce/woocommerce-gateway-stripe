@@ -296,6 +296,7 @@ class WC_Stripe_Payment_Request {
 		}
 		
 		$_POST['terms'] = 1;
+		$_POST['ship_to_different_address'] = 1;
 
 		WC()->checkout()->process_checkout();
 

@@ -551,9 +551,12 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			WC()->customer->set_shipping_to_base();
 		}
 
-		version_compare( WC_VERSION, '3.0', '<' ) ? WC()->customer->calculated_shipping( true ) : WC()->customer->set_calculated_shipping( true );
-
-		WC()->customer->save();
+		if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
+			WC()->customer->calculated_shipping( true );
+		} else { 
+			WC()->customer->set_calculated_shipping( true );
+			WC()->customer->save();
+		}
 
 		/**
 		 * Set the shipping package.
