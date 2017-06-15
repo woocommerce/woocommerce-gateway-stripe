@@ -137,16 +137,29 @@ class WC_Stripe_Payment_Request {
 	 * Calculate and set shipping method.
 	 *
 	 * @since 3.1.0
-	 * @version 3.1.0
+	 * @version 3.2.0
 	 * @param array $address
 	 */
 	public function calculate_shipping( $address = array() ) {
+		global $states;
+
 		$country   = $address['country'];
 		$state     = $address['state'];
 		$postcode  = $address['postcode'];
 		$city      = $address['city'];
 		$address_1 = $address['address'];
 		$address_2 = $address['address_2'];
+
+		$country_class = new WC_Countries();
+		$country_class->load_country_states();
+
+		/**
+		 * In some versions of Chrome, state can be a full name. So we need
+		 * to convert that to abbreviation as WC is expecting that.
+		 */
+		if ( 2 < strlen( $state ) ) {
+			$state = array_search( ucfirst( $state ), $states[ $country ] );
+		}
 
 		WC()->shipping->reset_shipping();
 

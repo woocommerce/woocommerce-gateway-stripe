@@ -98,6 +98,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 3.2.0 =
 * Fix - Authorized first orders were not able to be refund.
 * Fix - Payment Request not honoring different shipping address in certain cases.
+* Fix - In certain Chrome versions, states are not abbreviated causing shipping validation issues with Payment Request API.
 * Add - Support for Dynamic Pricing.
 
 = 3.1.9 =
