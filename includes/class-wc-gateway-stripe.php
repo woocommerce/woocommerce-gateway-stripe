@@ -842,6 +842,10 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		if ( $source->source ) {
 			version_compare( WC_VERSION, '3.0.0', '<' ) ? update_post_meta( $order_id, '_stripe_card_id', $source->source ) : $order->update_meta_data( '_stripe_card_id', $source->source );
 		}
+
+		if ( is_callable( array( $order, 'save' ) ) ) {
+			$order->save();
+		}
 	}
 
 	/**
