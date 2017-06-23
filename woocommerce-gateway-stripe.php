@@ -300,7 +300,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			if ( empty( $show_apple_pay_notice ) ) {
 				// @TODO remove this notice in the future.
 				?>
-				<div class="notice notice-warning wc-stripe-apple-pay-notice is-dismissible"><p><?php esc_html_e( 'New Feature! Stripe now supports Apple Pay. Your customers can now purchase your products even faster. Apple Pay has been enabled by default.', 'woocommerce-gateway-stripe' ); ?></p></div>
+				<div class="notice notice-warning wc-stripe-apple-pay-notice is-dismissible"><p><?php echo sprintf( __( 'New Feature! Stripe now supports <a href="%s">Apple Pay</a>. Your customers can now purchase your products even faster. Apple Pay has been enabled by default.', 'woocommerce-gateway-stripe' ), 'https://woocommerce.com/apple-pay/'); ?></p></div>
 
 				<script type="application/javascript">
 					jQuery( '.wc-stripe-apple-pay-notice' ).on( 'click', '.notice-dismiss', function() {
@@ -319,7 +319,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				// @TODO remove this notice in the future.
 				?>
 				<div class="notice notice-warning wc-stripe-request-api-notice is-dismissible"><p><?php esc_html_e( 'New Feature! Stripe now supports Google Payment Request. Your customers can now use mobile phones with supported browsers such as Chrome to make purchases easier and faster.', 'woocommerce-gateway-stripe' ); ?></p></div>
-				
+
 				<script type="application/javascript">
 					jQuery( '.wc-stripe-request-api-notice' ).on( 'click', '.notice-dismiss', function() {
 						var data = {
@@ -332,7 +332,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 
 				<?php
 			}
-			
+
 			foreach ( (array) $this->notices as $notice_key => $notice ) {
 				echo "<div class='" . esc_attr( $notice['class'] ) . "'><p>";
 				echo wp_kses( $notice['message'], array( 'a' => array( 'href' => array() ) ) );
@@ -368,7 +368,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 
 			load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
 			add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateways' ) );
-			
+
 			$load_addons = (
 				$this->subscription_support_enabled
 				||
@@ -443,7 +443,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				return number_format( $balance_transaction->fee / 100, 2, '.', '' );
 			}
 
-			return number_format( $balance_transaction->net / 100, 2, '.', '' ); 
+			return number_format( $balance_transaction->net / 100, 2, '.', '' );
 		}
 
 		/**
