@@ -300,7 +300,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			if ( empty( $show_apple_pay_notice ) ) {
 				// @TODO remove this notice in the future.
 				?>
-				<div class="notice notice-warning wc-stripe-apple-pay-notice is-dismissible"><p><?php echo sprintf( __( 'New Feature! Stripe now supports <a href="%s">Apple Pay</a>. Your customers can now purchase your products even faster. Apple Pay has been enabled by default.', 'woocommerce-gateway-stripe' ), 'https://woocommerce.com/apple-pay/'); ?></p></div>
+				<div class="notice notice-warning wc-stripe-apple-pay-notice is-dismissible"><p><?php echo sprintf( esc_html__( 'New Feature! Stripe now supports %s. Your customers can now purchase your products even faster. Apple Pay has been enabled by default.', 'woocommerce-gateway-stripe' ), '<a href="https://woocommerce.com/apple-pay/">Apple Pay</a>'); ?></p></div>
 
 				<script type="application/javascript">
 					jQuery( '.wc-stripe-apple-pay-notice' ).on( 'click', '.notice-dismiss', function() {
