@@ -121,7 +121,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	public function __construct() {
 		$this->id                   = 'stripe';
 		$this->method_title         = __( 'Stripe', 'woocommerce-gateway-stripe' );
-		$this->method_description   = __( 'Stripe works by adding credit card fields on the checkout and then sending the details to Stripe for verification.', 'woocommerce-gateway-stripe' );
+		$this->method_description   = sprintf( __( 'Stripe works by adding credit card fields on the checkout and then sending the details to Stripe for verification. <a href="%1$s" target="_blank">Sign up</a> for a Stripe account, and <a href="%2$s" target="_blank">get your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), 'https://dashboard.stripe.com/register', 'https://dashboard.stripe.com/account/apikeys' );
 		$this->has_fields           = true;
 		$this->view_transaction_url = 'https://dashboard.stripe.com/payments/%s';
 		$this->supports             = array(
@@ -396,7 +396,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 		// Show message if enabled and FORCE SSL is disabled and WordpressHTTPS plugin is not detected.
 		if ( ( function_exists( 'wc_site_is_https' ) && ! wc_site_is_https() ) && ( 'no' === get_option( 'woocommerce_force_ssl_checkout' ) && ! class_exists( 'WordPressHTTPS' ) ) ) {
-			echo '<div class="error stripe-ssl-message"><p>' . sprintf( __( 'Stripe is enabled, but the <a href="%s">force SSL option</a> is disabled; your checkout may not be secure! Please enable SSL and ensure your server has a valid SSL certificate - Stripe will only work in test mode.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ) ) . '</p></div>';
+			echo '<div class="error stripe-ssl-message"><p>' . sprintf( __( 'Stripe is enabled, but the <a href="%1$s">force SSL option</a> is disabled; your checkout may not be secure! Please enable SSL and ensure your server has a valid <a href="%2$s" target="_blank">SSL certificate</a> - Stripe will only work in test mode.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ), 'https://en.wikipedia.org/wiki/Transport_Layer_Security' ) . '</p></div>';
 		}
 	}
 

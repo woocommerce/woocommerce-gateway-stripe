@@ -153,7 +153,7 @@ return apply_filters( 'wc_stripe_settings',
 		),
 		'apple_pay_button_lang' => array(
 			'title'       => __( 'Apple Pay Button Language', 'woocommerce-gateway-stripe' ),
-			'description' => __( 'Enter the 2 letter ISO code for the language you would like your Apple Pay Button to display in. Reference available ISO codes here <code>http://www.w3schools.com/tags/ref_language_codes.asp</code>', 'woocommerce-gateway-stripe' ),
+			'description' => sprintf( __( 'Enter the 2 letter ISO code for the language you would like your Apple Pay Button to display in. Reference available ISO codes <a href="%s" target="_blank">here</a>.', 'woocommerce-gateway-stripe' ), 'http://www.w3schools.com/tags/ref_language_codes.asp' ),
 			'type'        => 'text',
 			'default'     => 'en',
 			'desc_tip'    => false,
