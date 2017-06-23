@@ -121,7 +121,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	public function __construct() {
 		$this->id                   = 'stripe';
 		$this->method_title         = __( 'Stripe', 'woocommerce-gateway-stripe' );
-		$this->method_description   = __( 'Stripe works by adding credit card fields on the checkout and then sending the details to Stripe for verification.', 'woocommerce-gateway-stripe' ) . ' ' . sprintf( __( '<a href="%s" target="_blank">Sign up</a> for a Stripe account, and <a href="%s" target="_blank">get your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), 'https://dashboard.stripe.com/register', 'https://dashboard.stripe.com/account/apikeys' );
+		$this->method_description   = sprintf( __( 'Stripe works by adding credit card fields on the checkout and then sending the details to Stripe for verification. <a href="%1$s" target="_blank">Sign up</a> for a Stripe account, and <a href="%2$s" target="_blank">get your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), 'https://dashboard.stripe.com/register', 'https://dashboard.stripe.com/account/apikeys' );
 		$this->has_fields           = true;
 		$this->view_transaction_url = 'https://dashboard.stripe.com/payments/%s';
 		$this->supports             = array(
