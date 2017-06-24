@@ -95,6 +95,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.2.1 =
+* Fix - Discounts were not applying to total with Apple Pay.
+
 = 3.2.0 =
 * Fix - Authorized first orders were not able to be refund.
 * Fix - Payment Request not honoring different shipping address in certain cases.
