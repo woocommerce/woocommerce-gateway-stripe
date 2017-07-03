@@ -523,6 +523,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 		$stripe_admin_params = array(
 			'localized_messages' => array(
+				'not_valid_key_format' => __( 'This is not a valid key format. The key may only contain letters, numbers, -, and _. Max length is 32 characters.', 'woocommerce-gateway-stripe' ),
 				'not_valid_live_key_msg' => __( 'This is not a valid live key. Live keys start with "sk_live_" and "pk_live_".', 'woocommerce-gateway-stripe' ),
 				'not_valid_test_key_msg' => __( 'This is not a valid test key. Test keys start with "sk_test_" and "pk_test_".', 'woocommerce-gateway-stripe' ),
 				're_verify_button_text'  => __( 'Re-verify Domain', 'woocommerce-gateway-stripe' ),

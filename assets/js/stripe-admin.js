@@ -17,6 +17,21 @@ jQuery( function( $ ) {
 			}
 		},
 
+		// Check if a key format is valid.
+		isStripeKeyFormatValid: function( obj ) {
+			var value = obj.val();
+			var regex;
+			regex = new RegExp( '([^a-zA-Z0-9_-])+|(.){33,}' );
+
+			var newvalue = value.replace( regex, '' );
+
+			if ( value !== newvalue ) {
+				return false;
+			} else {
+				return true;
+			}
+		},
+
 		/**
 		 * Initialize.
 		 */
@@ -68,6 +83,8 @@ jQuery( function( $ ) {
 
 				if ( value.indexOf( '_test_' ) >= 0 ) {
 					$( this ).css( 'border-color', 'red' ).after( '<span class="description stripe-error-description" style="color:red; display:block;">' + wc_stripe_admin_params.localized_messages.not_valid_live_key_msg + '</span>' );
+				} else if ( wc_stripe_admin.isStripeKeyFormatValid( $( this ) ) === false ) {
+					$( this ).css( 'border-color', 'red' ).after( '<span class="description stripe-error-description" style="color:red; display:block;">' + wc_stripe_admin_params.localized_messages.not_valid_key_format + '</span>' );
 				} else {
 					$( this ).css( 'border-color', '' );
 					$( '.stripe-error-description', $( this ).parent() ).remove();
@@ -80,11 +97,14 @@ jQuery( function( $ ) {
 
 				if ( value.indexOf( '_live_' ) >= 0 ) {
 					$( this ).css( 'border-color', 'red' ).after( '<span class="description stripe-error-description" style="color:red; display:block;">' + wc_stripe_admin_params.localized_messages.not_valid_test_key_msg + '</span>' );
+				} else if ( wc_stripe_admin.isStripeKeyFormatValid( $( this ) ) === false ) {
+					$( this ).css( 'border-color', 'red' ).after( '<span class="description stripe-error-description" style="color:red; display:block;">' + wc_stripe_admin_params.localized_messages.not_valid_key_format + '</span>' );
 				} else {
 					$( this ).css( 'border-color', '' );
 					$( '.stripe-error-description', $( this ).parent() ).remove();
 				}
 			}).trigger( 'input' );
+
 		}
 	};
 
