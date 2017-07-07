@@ -95,6 +95,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.2.2 =
+* Fix - Apple Pay button displaying in non Safari browser.
+
 = 3.2.1 =
 * Fix - Discounts were not applying to total with Apple Pay.
 

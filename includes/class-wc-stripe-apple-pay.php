@@ -407,7 +407,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 		?>
 		<div class="apple-pay-button-wrapper">
-			<button class="apple-pay-button" lang="<?php echo esc_attr( $this->apple_pay_button_lang ); ?>" style="-webkit-appearance: -apple-pay-button; -apple-pay-button-type: buy; -apple-pay-button-style: <?php echo esc_attr( $this->apple_pay_button ); ?>;" alt="<?php esc_attr_e( 'Buy with Apple Pay', 'woocommerce-gateway-stripe' ); ?>"></button>
+			<button class="apple-pay-button" lang="<?php echo esc_attr( $this->apple_pay_button_lang ); ?>" style="-webkit-appearance: -apple-pay-button; -apple-pay-button-type: buy; -apple-pay-button-style: <?php echo esc_attr( $this->apple_pay_button ); ?>;display:none;" alt="<?php esc_attr_e( 'Buy with Apple Pay', 'woocommerce-gateway-stripe' ); ?>"></button>
 		</div>
 		<?php
 	}
