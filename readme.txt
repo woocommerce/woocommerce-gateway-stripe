@@ -95,6 +95,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.2.3 | 2017-07-10
+* Fix - Apple Pay with coupon not applying to total.
+
 = 3.2.2 =
 * Fix - Apple Pay button displaying in non Safari browser.
 
