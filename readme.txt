@@ -2,8 +2,8 @@
 Contributors: automattic, woothemes, mikejolley, akeda, royho, mattyza, slash1andy, woosteve, spraveenitpro, mikedmoore, fernashes, shellbeezy, danieldudzic, mikaey, dsmithweb, fullysupportedphil, corsonr, deskroid, luminus, tiagonoronha, zandyring, bor0
 Tags: credit card, stripe, woocommerce
 Requires at least: 4.4
-Tested up to: 4.7.2
-Stable tag: 3.2.1
+Tested up to: 4.8
+Stable tag: 3.2.2
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -95,11 +95,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 3.2.3 | 2017-07-10
-* Fix - Apple Pay with coupon not applying to total.
-
-= 3.2.2 =
+= 3.2.2 - 2017-07-11 =
 * Fix - Apple Pay button displaying in non Safari browser.
+* Fix - Apple Pay with coupon not applying to total.
 
 = 3.2.1 =
 * Fix - Discounts were not applying to total with Apple Pay.
