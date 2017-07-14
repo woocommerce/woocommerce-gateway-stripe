@@ -186,7 +186,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway {
 	 * Initialise Gateway Settings Form Fields
 	 */
 	public function init_form_fields() {
-		$this->form_fields = include( untrailingslashit( plugin_dir_path( WC_STRIPE_MAIN_FILE ) ) . '/includes/settings-stripe.php' );
+		$this->form_fields = require_once( dirname( __FILE__ ) . '/stripe-settings.php' );
 
 		wc_enqueue_js( "
 			jQuery( function( $ ) {
