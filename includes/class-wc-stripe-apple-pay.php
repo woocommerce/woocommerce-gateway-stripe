@@ -120,7 +120,6 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		$this->apple_pay             = ( ! empty( $gateway_settings['apple_pay'] ) && 'yes' === $gateway_settings['apple_pay'] ) ? true : false;
 		$this->apple_pay_button      = ! empty( $gateway_settings['apple_pay_button'] ) ? $gateway_settings['apple_pay_button'] : 'black';
 		$this->apple_pay_button_lang = ! empty( $gateway_settings['apple_pay_button_lang'] ) ? $gateway_settings['apple_pay_button_lang'] : 'en';
-		$this->logging               = ( ! empty( $gateway_settings['logging'] ) && 'yes' === $gateway_settings['logging'] ) ? true : false;
 		$this->publishable_key       = ! empty( $gateway_settings['publishable_key'] ) ? $gateway_settings['publishable_key'] : '';
 		$this->is_shipping_enabled   = $this->is_shipping_enabled();
 
@@ -210,7 +209,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 		$errors = wc_clean( stripslashes( $_POST['errors'] ) );
 
-		$this->log( $errors );
+		WC_Stripe_Logger::log( $errors );
 
 		exit;
 	}
@@ -386,7 +385,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		 * Apple Pay must be enabled and Stripe gateway must be enabled.
 		 */
 		if ( ! $this->apple_pay || ! isset( $gateways['stripe'] ) ) {
-			$this->log( 'Apple Pay not enabled or Stripe is not an available gateway ( Apple Pay button disabled )' );
+			WC_Stripe_Logger::log( 'Apple Pay not enabled or Stripe is not an available gateway ( Apple Pay button disabled )' );
 			return;
 		}
 
@@ -400,7 +399,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			}
 		} else {
 			if ( ! $this->allowed_items_in_cart() ) {
-				$this->log( 'Items in the cart has unsupported product type ( Apple Pay button disabled )' );
+				WC_Stripe_Logger::log( 'Items in the cart has unsupported product type ( Apple Pay button disabled )' );
 				return;
 			}
 		}
@@ -426,12 +425,12 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		 * Apple Pay must be enabled and Stripe gateway must be enabled.
 		 */
 		if ( ! $this->apple_pay || ! isset( $gateways['stripe'] ) ) {
-			$this->log( 'Apple Pay not enabled or Stripe is not an available gateway ( Apple Pay button disabled )' );
+			WC_Stripe_Logger::log( 'Apple Pay not enabled or Stripe is not an available gateway ( Apple Pay button disabled )' );
 			return;
 		}
 
 		if ( ! $this->allowed_items_in_cart() ) {
-			$this->log( 'Items in the cart has unsupported product type ( Apple Pay button disabled )' );
+			WC_Stripe_Logger::log( 'Items in the cart has unsupported product type ( Apple Pay button disabled )' );
 			return;
 		}
 		?>
@@ -704,7 +703,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 					return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe::get_minimum_amount() / 100 ) ) );
 				}
 
-				$this->log( "Info: Begin processing payment for order {$order_id} for the amount of {$order->get_total()}" );
+				WC_Stripe_Logger::log( "Info: Begin processing payment for order {$order_id} for the amount of {$order->get_total()}" );
 
 				// Make the request.
 				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $result['token']['id'] ) );
@@ -735,7 +734,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 
 		} catch ( Exception $e ) {
 			WC()->session->set( 'refresh_totals', true );
-			$this->log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+			WC_Stripe_Logger::log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
 			if ( is_object( $order ) && isset( $order_id ) && $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );
@@ -1126,20 +1125,6 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		do_action( 'woocommerce_checkout_update_order_meta', $order_id, array() );
 
 		return $order;
-	}
-
-	/**
-	 * Logs
-	 *
-	 * @since 3.1.0
-	 * @version 3.1.0
-	 *
-	 * @param string $message
-	 */
-	public function log( $message ) {
-		if ( $this->logging ) {
-			WC_Stripe::log( 'Apple Pay: ' . $message );
-		}
 	}
 }
 

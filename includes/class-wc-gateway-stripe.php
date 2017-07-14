@@ -165,7 +165,6 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$this->apple_pay               = 'yes' === $this->get_option( 'apple_pay', 'yes' );
 		$this->apple_pay_domain_set    = 'yes' === $this->get_option( 'apple_pay_domain_set', 'no' );
 		$this->apple_pay_button        = $this->get_option( 'apple_pay_button', 'black' );
-		$this->logging                 = 'yes' === $this->get_option( 'logging' );
 		$this->apple_pay_verify_notice = '';
 
 		if ( $this->stripe_checkout ) {
@@ -353,14 +352,14 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 			update_option( 'woocommerce_stripe_settings', $gateway_settings );
 
-			$this->log( __( 'Your domain has been verified with Apple Pay!', 'woocommerce-gateway-stripe' ) );
+			WC_Stripe_Logger::log( 'Your domain has been verified with Apple Pay!' );
 
 		} catch ( Exception $e ) {
 			$gateway_settings['apple_pay_domain_set'] = 'no';
 
 			update_option( 'woocommerce_stripe_settings', $gateway_settings );
 
-			$this->log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 		}
 	}
 
@@ -418,7 +417,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 * Initialise Gateway Settings Form Fields
 	 */
 	public function init_form_fields() {
-		$this->form_fields = require_once( dirname( __FILE__ ) . '/stripe-settings.php' );
+		$this->form_fields = require( dirname( __FILE__ ) . '/stripe-settings.php' );
 	}
 
 	/**
@@ -799,7 +798,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe::get_minimum_amount() / 100 ) ) );
 				}
 
-				$this->log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
+				WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
 				// Make the request.
 				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source ) );
@@ -846,7 +845,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 		} catch ( Exception $e ) {
 			wc_add_notice( $e->getMessage(), 'error' );
-			$this->log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );
@@ -887,7 +886,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 * Store extra meta data for an order from a Stripe Response.
 	 */
 	public function process_response( $response, $order ) {
-		$this->log( 'Processing response: ' . print_r( $response, true ) );
+		WC_Stripe_Logger::log( 'Processing response: ' . print_r( $response, true ) );
 
 		$order_id = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
 
@@ -910,7 +909,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 
 			$message = sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $response->id );
 			$order->add_order_note( $message );
-			$this->log( 'Success: ' . $message );
+			WC_Stripe_Logger::log( 'Success: ' . $message );
 
 		} else {
 			update_post_meta( $order_id, '_transaction_id', $response->id, true );
@@ -920,7 +919,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			}
 
 			$order->update_status( 'on-hold', sprintf( __( 'Stripe charge authorized (Charge ID: %s). Process order to take payment, or cancel to remove the pre-authorization.', 'woocommerce-gateway-stripe' ), $response->id ) );
-			$this->log( "Successful auth: $response->id" );
+			WC_Stripe_Logger::log( "Successful auth: $response->id" );
 		}
 
 		do_action( 'wc_gateway_stripe_process_response', $response, $order );
@@ -988,17 +987,17 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			);
 		}
 
-		$this->log( "Info: Beginning refund for order $order_id for the amount of {$amount}" );
+		WC_Stripe_Logger::log( "Info: Beginning refund for order $order_id for the amount of {$amount}" );
 
 		$response = WC_Stripe_API::request( $body, 'charges/' . $order->get_transaction_id() . '/refunds' );
 
 		if ( is_wp_error( $response ) ) {
-			$this->log( 'Error: ' . $response->get_error_message() );
+			WC_Stripe_Logger::log( 'Error: ' . $response->get_error_message() );
 			return $response;
 		} elseif ( ! empty( $response->id ) ) {
 			$refund_message = sprintf( __( 'Refunded %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), wc_price( $response->amount / 100 ), $response->id, $reason );
 			$order->add_order_note( $refund_message );
-			$this->log( 'Success: ' . html_entity_decode( strip_tags( $refund_message ) ) );
+			WC_Stripe_Logger::log( 'Success: ' . html_entity_decode( strip_tags( $refund_message ) ) );
 			return true;
 		}
 	}
@@ -1015,20 +1014,6 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$emails = WC()->mailer()->get_emails();
 		if ( ! empty( $emails ) && ! empty( $order_id ) ) {
 			$emails['WC_Email_Failed_Order']->trigger( $order_id );
-		}
-	}
-
-	/**
-	 * Logs
-	 *
-	 * @since 3.1.0
-	 * @version 3.1.0
-	 *
-	 * @param string $message
-	 */
-	public function log( $message ) {
-		if ( $this->logging ) {
-			WC_Stripe::log( $message );
 		}
 	}
 }

@@ -125,6 +125,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				return;
 			}
 
+			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-logger.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php' );
 

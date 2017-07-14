@@ -125,7 +125,7 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 		}
 
 		$order_id = $this->wc_pre_30 ? $order->id : $order->get_id();
-		$this->log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
+		WC_Stripe_Logger::log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
 
 		// Make the request
 		$request             = $this->generate_payment_request( $order, $source );
@@ -418,21 +418,5 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 		}
 
 		return $payment_method_to_display;
-	}
-
-	/**
-	 * Logs
-	 *
-	 * @since 3.1.0
-	 * @version 3.1.0
-	 *
-	 * @param string $message
-	 */
-	public function log( $message ) {
-		$options = get_option( 'woocommerce_stripe_settings' );
-
-		if ( 'yes' === $options['logging'] ) {
-			WC_Stripe::log( $message );
-		}
 	}
 }
