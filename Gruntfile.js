@@ -15,20 +15,16 @@ module.exports = function( grunt ) {
 			js: 'assets/js'
 		},
 
-		// Compile all .less files.
-		less: {
+		// Compile all .scss files.
+		sass: {
 			compile: {
 				options: {
-					// These paths are searched for @imports
-					paths: ['<%= dirs.css %>/']
+					sourceMap: 'none'
 				},
 				files: [{
 					expand: true,
 					cwd: '<%= dirs.css %>/',
-					src: [
-						'*.less',
-						'!mixins.less'
-					],
+					src: ['*.scss'],
 					dest: '<%= dirs.css %>/',
 					ext: '.css'
 				}]
@@ -162,7 +158,7 @@ module.exports = function( grunt ) {
 
 	// Load NPM tasks to be used here
 	grunt.loadNpmTasks( 'grunt-shell' );
-	grunt.loadNpmTasks( 'grunt-contrib-less' );
+	grunt.loadNpmTasks( 'grunt-sass' );
 	grunt.loadNpmTasks( 'grunt-contrib-cssmin' );
 	grunt.loadNpmTasks( 'grunt-contrib-jshint' );
 	grunt.loadNpmTasks( 'grunt-contrib-uglify' );
@@ -173,7 +169,7 @@ module.exports = function( grunt ) {
 
 	// Register tasks
 	grunt.registerTask( 'default', [
-		'less',
+		'sass',
 		'cssmin',
 		'jshint',
 		'uglify'

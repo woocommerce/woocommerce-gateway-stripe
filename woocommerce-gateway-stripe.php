@@ -5,7 +5,7 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 3.2.1
+ * Version: 3.2.2
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  *
@@ -32,7 +32,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '3.2.1' );
+define( 'WC_STRIPE_VERSION', '3.2.2' );
 define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '2.5.0' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
@@ -115,6 +115,9 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 
 		/**
 		 * Init the plugin after plugins_loaded so environment variables are set.
+		 *
+		 * @since 1.0.0
+		 * @version 4.0.0
 		 */
 		public function init() {
 			// Don't hook anything else in the plugin if we're in an incompatible environment
@@ -122,8 +125,8 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				return;
 			}
 
-			include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php' );
-			include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php' );
+			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php' );
+			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php' );
 
 			// Init the gateway itself
 			$this->init_gateways();
@@ -139,7 +142,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			add_action( 'wp_ajax_stripe_dismiss_request_api_notice', array( $this, 'dismiss_request_api_notice' ) );
 			add_action( 'wp_ajax_stripe_dismiss_apple_pay_notice', array( $this, 'dismiss_apple_pay_notice' ) );
 
-			include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-request.php' );
+			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-request.php' );
 		}
 
 		/**
@@ -155,6 +158,9 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		/**
 		 * The backup sanity check, in case the plugin is activated in a weird way,
 		 * or the environment changes after activation. Also handles upgrade routines.
+		 *
+		 * @since 1.0.0
+		 * @version 4.0.0
 		 */
 		public function check_environment() {
 			if ( ! defined( 'IFRAME_REQUEST' ) && ( WC_STRIPE_VERSION !== get_option( 'wc_stripe_version' ) ) ) {
@@ -172,7 +178,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			// Check if secret key present. Otherwise prompt, via notice, to go to
 			// setting.
 			if ( ! class_exists( 'WC_Stripe_API' ) ) {
-				include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php' );
+				require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php' );
 			}
 
 			$secret = WC_Stripe_API::get_secret_key();
@@ -235,7 +241,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * Checks the environment for compatibility problems.  Returns a string with the first incompatibility
 		 * found or false if the environment has no problems.
 		 */
-		static function get_environment_warning() {
+		public static function get_environment_warning() {
 			if ( version_compare( phpversion(), WC_STRIPE_MIN_PHP_VER, '<' ) ) {
 				$message = __( 'WooCommerce Stripe - The minimum PHP version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe' );
 
@@ -344,6 +350,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * Initialize the gateway. Called very early - in the context of the plugins_loaded action
 		 *
 		 * @since 1.0.0
+		 * @version 4.0.0
 		 */
 		public function init_gateways() {
 			if ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) {
@@ -359,11 +366,11 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			}
 
 			if ( class_exists( 'WC_Payment_Gateway_CC' ) ) {
-				include_once( dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php' );
-				include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-apple-pay.php' );
+				require_once( dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php' );
+				require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-apple-pay.php' );
 			} else {
-				include_once( dirname( __FILE__ ) . '/includes/legacy/class-wc-gateway-stripe.php' );
-				include_once( dirname( __FILE__ ) . '/includes/legacy/class-wc-gateway-stripe-saved-cards.php' );
+				require_once( dirname( __FILE__ ) . '/includes/legacy/class-wc-gateway-stripe.php' );
+				require_once( dirname( __FILE__ ) . '/includes/legacy/class-wc-gateway-stripe-saved-cards.php' );
 			}
 
 			load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
