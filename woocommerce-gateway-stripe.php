@@ -384,7 +384,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			);
 
 			if ( $load_addons ) {
-				require_once( dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe-addons.php' );
+				require_once( dirname( __FILE__ ) . '/includes/compat/class-wc-gateway-stripe-addons.php' );
 			}
 		}
 
