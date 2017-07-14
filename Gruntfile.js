@@ -19,7 +19,7 @@ module.exports = function( grunt ) {
 		sass: {
 			compile: {
 				options: {
-					sourceMap: 'none'
+					sourceMap: false
 				},
 				files: [{
 					expand: true,
@@ -104,23 +104,32 @@ module.exports = function( grunt ) {
 			}
 		},
 
-		// Create .pot files
+		// Generate POT files.
 		makepot: {
+			options: {
+				type: 'wp-plugin',
+				domainPath: 'languages',
+				potHeaders: {
+					'report-msgid-bugs-to': 'https://github.com/woocommerce/woocommerce/issues',
+					'language-team': 'LANGUAGE <EMAIL@ADDRESS>'
+				}
+			},
 			dist: {
 				options: {
-					type: 'wp-plugin',
-					potHeaders: {
-						'report-msgid-bugs-to': 'https://support.woothemes.com/hc/',
-						'language-team': 'LANGUAGE <EMAIL@ADDRESS>'
-					}
+					potFilename: 'woocommerce-gateway-stripe.pot',
+					exclude: [
+						'apigen/.*',
+						'tests/.*',
+						'tmp/.*'
+					]
 				}
 			}
 		},
 
-		// Check the textdomain
+		// Check textdomain errors.
 		checktextdomain: {
 			options:{
-				text_domain: '<%= pkg.name %>',
+				text_domain: 'woocommerce-gateway-stripe',
 				keywords: [
 					'__:1,2d',
 					'_e:1,2d',
@@ -140,17 +149,13 @@ module.exports = function( grunt ) {
 			},
 			files: {
 				src:  [
-					'**/*.php', // Include all files
-					'!node_modules/**' // Exclude node_modules/
+					'**/*.php',         // Include all files
+					'!apigen/**',       // Exclude apigen/
+					'!node_modules/**', // Exclude node_modules/
+					'!tests/**',        // Exclude tests/
+					'!vendor/**',       // Exclude vendor/
+					'!tmp/**'           // Exclude tmp/
 				],
-				expand: true
-			}
-		},
-
-		// Convert .po to .mo
-		po2mo: {
-			files: {
-				src: 'languages/*.po',
 				expand: true
 			}
 		},
@@ -165,7 +170,6 @@ module.exports = function( grunt ) {
 	grunt.loadNpmTasks( 'grunt-contrib-watch' );
 	grunt.loadNpmTasks( 'grunt-wp-i18n' );
 	grunt.loadNpmTasks( 'grunt-checktextdomain' );
-	grunt.loadNpmTasks( 'grunt-po2mo' );
 
 	// Register tasks
 	grunt.registerTask( 'default', [
@@ -184,7 +188,7 @@ module.exports = function( grunt ) {
 	grunt.registerTask( 'dev', [
 		'default',
 		'shell:txpull',
-		'po2mo'
+		'makepot'
 	]);
 
 };
