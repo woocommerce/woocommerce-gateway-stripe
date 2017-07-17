@@ -203,10 +203,15 @@ class WC_Stripe_Customer {
 			$token = new WC_Payment_Token_CC();
 			$token->set_token( $response->id );
 			$token->set_gateway_id( 'stripe' );
-			$token->set_card_type( strtolower( $response->brand ) );
-			$token->set_last4( $response->last4 );
-			$token->set_expiry_month( $response->exp_month );
-			$token->set_expiry_year( $response->exp_year );
+
+			if ( 'source' === $response->object ) {
+				$card = $response->card;
+			}
+
+			$token->set_card_type( strtolower( $card->brand ) );
+			$token->set_last4( $card->last4 );
+			$token->set_expiry_month( $card->exp_month );
+			$token->set_expiry_year( $card->exp_year );
 			$token->set_user_id( $this->get_user_id() );
 			$token->save();
 		}

@@ -542,6 +542,11 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 						$token = new WC_Payment_Token_CC();
 						$token->set_token( $card->id );
 						$token->set_gateway_id( 'stripe' );
+
+						if ( 'source' === $card->object ) {
+							$card = $card->card;
+						}
+
 						$token->set_card_type( strtolower( $card->brand ) );
 						$token->set_last4( $card->last4 );
 						$token->set_expiry_month( $card->exp_month );
@@ -552,6 +557,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 					}
 				}
 			}
+
 			return $tokens;
 		}
 
@@ -615,22 +621,6 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			}
 
 			return $minimum_amount;
-		}
-
-		/**
-		 * What rolls down stairs
-		 * alone or in pairs,
-		 * and over your neighbor's dog?
-		 * What's great for a snack,
-		 * And fits on your back?
-		 * It's log, log, log
-		 */
-		public static function log( $message ) {
-			if ( empty( self::$log ) ) {
-				self::$log = new WC_Logger();
-			}
-
-			self::$log->add( 'woocommerce-gateway-stripe', $message );
 		}
 	}
 

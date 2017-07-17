@@ -32,6 +32,13 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	public $stripe_checkout;
 
 	/**
+	 * Require 3D Secure enabled
+	 *
+	 * @var bool
+	 */
+	public $three_d_secure;
+
+	/**
 	 * Checkout Locale
 	 *
 	 * @var string
@@ -155,6 +162,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$this->testmode                = 'yes' === $this->get_option( 'testmode' );
 		$this->capture                 = 'yes' === $this->get_option( 'capture', 'yes' );
 		$this->statement_descriptor    = $this->get_option( 'statement_descriptor', wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) );
+		$this->three_d_secure          = 'yes' === $this->get_option( 'three_d_secure' );
 		$this->stripe_checkout         = 'yes' === $this->get_option( 'stripe_checkout' );
 		$this->stripe_checkout_locale  = $this->get_option( 'stripe_checkout_locale' );
 		$this->stripe_checkout_image   = $this->get_option( 'stripe_checkout_image', '' );
@@ -488,6 +496,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			data-image="' . esc_attr( $this->stripe_checkout_image ) . '"
 			data-bitcoin="' . esc_attr( $this->bitcoin ? 'true' : 'false' ) . '"
 			data-locale="' . esc_attr( $this->stripe_checkout_locale ? $this->stripe_checkout_locale : 'en' ) . '"
+			data-three-d-secure="' . esc_attr( $this->three_d_secure ? 'true' : 'false' ) . '"
 			data-allow-remember-me="' . esc_attr( $this->saved_cards ? 'true' : 'false' ) . '">';
 
 		if ( $this->description ) {
@@ -650,6 +659,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$stripe_params['no_prepaid_card_msg']                     = __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' );
 		$stripe_params['allow_prepaid_card']                      = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
 		$stripe_params['stripe_checkout_require_billing_address'] = apply_filters( 'wc_stripe_checkout_require_billing_address', false ) ? 'yes' : 'no';
+		$stripe_params['is_checkout']                             = ( is_checkout() && empty( $_GET['pay_for_order'] ) );
 
 		// merge localized messages to be use in JS
 		$stripe_params = array_merge( $stripe_params, $this->get_localized_messages() );
@@ -664,11 +674,12 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 	 * @return array()
 	 */
 	protected function generate_payment_request( $order, $source ) {
-		$post_data                = array();
-		$post_data['currency']    = strtolower( version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->get_order_currency() : $order->get_currency() );
-		$post_data['amount']      = $this->get_stripe_amount( $order->get_total(), $post_data['currency'] );
-		$post_data['description'] = sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), $this->statement_descriptor, $order->get_order_number() );
-		$post_data['capture']     = $this->capture ? 'true' : 'false';
+		$post_data                         = array();
+		$post_data['currency']             = strtolower( version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->get_order_currency() : $order->get_currency() );
+		$post_data['amount']               = $this->get_stripe_amount( $order->get_total(), $post_data['currency'] );
+		$post_data['statement_descriptor'] = substr( str_replace( "'", '', $this->statement_descriptor ), 0, 22 );
+		$post_data['description']          = sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), $this->statement_descriptor, $order->get_order_number() );
+		$post_data['capture']              = $this->capture ? 'true' : 'false';
 
 		$billing_email      = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->billing_email : $order->get_billing_email();
 		$billing_first_name = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->billing_first_name : $order->get_billing_first_name();
@@ -722,20 +733,20 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$token_id        = false;
 
 		// New CC info was entered and we have a new token to process
-		if ( isset( $_POST['stripe_token'] ) ) {
-			$stripe_token     = wc_clean( $_POST['stripe_token'] );
+		if ( isset( $_POST['stripe_source'] ) ) {
+			$stripe_source     = wc_clean( $_POST['stripe_source'] );
 			$maybe_saved_card = isset( $_POST['wc-stripe-new-payment-method'] ) && ! empty( $_POST['wc-stripe-new-payment-method'] );
 
 			// This is true if the user wants to store the card to their account.
 			if ( ( $user_id && $this->saved_cards && $maybe_saved_card ) || $force_customer ) {
-				$stripe_source = $stripe_customer->add_card( $stripe_token );
+				$stripe_source = $stripe_customer->add_card( $stripe_source );
 
 				if ( is_wp_error( $stripe_source ) ) {
 					throw new Exception( $stripe_source->get_error_message() );
 				}
 			} else {
 				// Not saving token, so don't define customer either.
-				$stripe_source   = $stripe_token;
+				$stripe_source   = $stripe_source;
 				$stripe_customer = false;
 			}
 		} elseif ( isset( $_POST['wc-stripe-payment-token'] ) && 'new' !== $_POST['wc-stripe-payment-token'] ) {
