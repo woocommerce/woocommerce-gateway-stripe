@@ -59,8 +59,9 @@ class WC_Stripe_API {
 			array(
 				'method'        => $method,
 				'headers'       => array(
-					'Authorization'  => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
-					'Stripe-Version' => '2017-06-05',
+					'Authorization'   => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
+					'Stripe-Version'  => '2017-06-05',
+					'Idempotency-Key' => uniqid(),
 				),
 				'body'       => apply_filters( 'woocommerce_stripe_request_body', $request, $api ),
 				'timeout'    => 70,

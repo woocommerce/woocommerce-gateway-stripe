@@ -660,6 +660,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$stripe_params['allow_prepaid_card']                      = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
 		$stripe_params['stripe_checkout_require_billing_address'] = apply_filters( 'wc_stripe_checkout_require_billing_address', false ) ? 'yes' : 'no';
 		$stripe_params['is_checkout']                             = ( is_checkout() && empty( $_GET['pay_for_order'] ) );
+		$stripe_params['return_url']                              = esc_url_raw( add_query_arg( 'utm_nooverride', '1', $this->get_return_url() ) );
 
 		// merge localized messages to be use in JS
 		$stripe_params = array_merge( $stripe_params, $this->get_localized_messages() );
