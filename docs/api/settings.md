@@ -63,7 +63,7 @@ Status: 200 OK
 	},
 	{
 		"id": "woocommerce_stripe_title",
-		"label": "Description":
+		"label": "Description",
 		"description": "This controls the title which the user sees during checkout.",
 		"default": "Credit Card (Stripe)",
 		"tip": "This controls the title which the user sees during checkout.",
@@ -83,7 +83,7 @@ Status: 200 OK
 	},
 	{
 		"id": "woocommerce_stripe_description",
-		"label": "Description":
+		"label": "Description",
 		"description": "This controls the description which the user sees during checkout.",
 		"default": "Pay with your credit card via Stripe.",
 		"tip": "This controls the description which the user sees during checkout.",
@@ -261,7 +261,7 @@ Status: 200 OK
 	},
 	{
 		"id": "woocommerce_stripe_title",
-		"label": "Description":
+		"label": "Description",
 		"description": "This controls the title which the user sees during checkout.",
 		"default": "Credit Card (Stripe)",
 		"tip": "This controls the title which the user sees during checkout.",
