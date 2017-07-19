@@ -1,7 +1,7 @@
 REST API: Settings
 ==================
 
-The settings REST API allows you to view and update WooCommerce Stripe settinngs.
+The settings REST API allows you to view and update WooCommerce Stripe settings.
 The endpoints, requests, and responses have similar structure with [WooCommerce core setting options REST API](https://woocommerce.github.io/woocommerce-rest-api-docs/?shell#setting-options).
 
 ## Setting option properties
