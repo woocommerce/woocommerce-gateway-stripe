@@ -214,7 +214,7 @@ POST /wp-json/wc/v2/stripe/settings/batch
 Example request:
 
 ```
-curl -X PUT https://example.com/wp-json/wc/v2/stripe/settings/woocommerce_stripe_enabled \
+curl -X POST https://example.com/wp-json/wc/v2/stripe/settings/woocommerce_stripe_enabled \
 	-u consumer_key:consumer_secret \
 	-H "Content-Type: application/json" \
 	-d '{
