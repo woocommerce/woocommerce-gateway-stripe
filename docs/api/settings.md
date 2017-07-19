@@ -6,7 +6,7 @@ The endpoints, requests, and responses share similar structure with [WooCommerce
 
 ## Setting option properties
 
-| Attribute     | Type   | Description                           |             |
+| Name          | Type   | Description                           | Access Type |
 | ------------- | ------ | ------------------------------------- | ----------- |
 | `id`          | string | A unique identifier for the setting.  | `READ-ONLY` |
 | `label`       | string | A human readable label for the setting used in interfaces. | `READ-ONLY` |
