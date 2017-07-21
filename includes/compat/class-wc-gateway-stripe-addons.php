@@ -107,8 +107,8 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	 * @param  bool initial_payment
 	 */
 	public function process_subscription_payment( $order = '', $amount = 0 ) {
-		if ( $amount * 100 < WC_Stripe::get_minimum_amount() ) {
-			return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe::get_minimum_amount() / 100 ) ) );
+		if ( $amount * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
+			return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 		}
 
 		// Get source from order
@@ -130,7 +130,7 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 		// Make the request
 		$request             = $this->generate_payment_request( $order, $source );
 		$request['capture']  = 'true';
-		$request['amount']   = $this->get_stripe_amount( $amount, $request['currency'] );
+		$request['amount']   = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
 		$request['metadata'] = array(
 			'payment_type'   => 'recurring',
 			'site_url'       => esc_url( get_site_url() ),
@@ -143,7 +143,7 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 				// If we can't link customer to a card, we try to charge by customer ID.
 				$request             = $this->generate_payment_request( $order, $this->get_source( ( $this->wc_pre_30 ? $order->customer_user : $order->get_customer_id() ) ) );
 				$request['capture']  = 'true';
-				$request['amount']   = $this->get_stripe_amount( $amount, $request['currency'] );
+				$request['amount']   = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
 				$request['metadata'] = array(
 					'payment_type'   => 'recurring',
 					'site_url'       => esc_url( get_site_url() ),
@@ -169,8 +169,8 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 			try {
 				$order = wc_get_order( $order_id );
 
-				if ( $order->get_total() * 100 < WC_Stripe::get_minimum_amount() ) {
-					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe::get_minimum_amount() / 100 ) ) );
+				if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
+					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 				}
 
 				$source = $this->get_source( get_current_user_id(), true );
@@ -401,7 +401,7 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 		}
 
 		$stripe_customer->set_id( $stripe_customer_id );
-		$cards = $stripe_customer->get_cards();
+		$cards = $stripe_customer->get_sources();
 
 		if ( $cards ) {
 			$found_card = false;

@@ -54,6 +54,12 @@ class WC_Stripe_API {
 	public static function request( $request, $api = 'charges', $method = 'POST' ) {
 		WC_Stripe_Logger::log( "{$api} request: " . print_r( $request, true ) );
 
+		$ua = array(
+			'name' => 'WooCommerce ' . WC()->version,
+			'version' => WC_STRIPE_VERSION,
+			'url' => 'https://woocommerce.com',
+		);
+
 		$response = wp_safe_remote_post(
 			self::ENDPOINT . $api,
 			array(
@@ -62,6 +68,7 @@ class WC_Stripe_API {
 					'Authorization'   => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
 					'Stripe-Version'  => '2017-06-05',
 					'Idempotency-Key' => uniqid(),
+					'X-Stripe-Client-User-Agent' => json_encode( $ua ),
 				),
 				'body'       => apply_filters( 'woocommerce_stripe_request_body', $request, $api ),
 				'timeout'    => 70,

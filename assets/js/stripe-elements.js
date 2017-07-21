@@ -18,6 +18,17 @@ jQuery( function( $ ) {
 	 * Object to handle Stripe elements payment form.
 	 */
 	var wc_stripe_elements_form = {
+		/**
+		 * Get WC AJAX endpoint URL.
+		 *
+		 * @param  {String} endpoint Endpoint.
+		 * @return {String}
+		 */
+		getAjaxURL: function( endpoint ) {
+			return wc_stripe_params.ajaxurl
+				.toString()
+				.replace( '%%endpoint%%', 'wc_stripe_' + endpoint );
+		},
 
 		/**
 		 * Initialize event handlers and UI state.
@@ -30,7 +41,7 @@ jQuery( function( $ ) {
 
 			$( 'form.woocommerce-checkout' )
 				.on(
-					'checkout_place_order_stripe',
+					'checkout_place_order_stripe checkout_place_order_stripe_bancontact',
 					this.onSubmit
 				);
 
@@ -63,7 +74,7 @@ jQuery( function( $ ) {
 				)
 				.on(
 					'checkout_error',
-					this.clearSource
+					this.reset
 				);
 
 			var style = {
@@ -101,39 +112,74 @@ jQuery( function( $ ) {
 
 					stripe_card.mount( '#stripe-card-element' );
 				});
-			} else {
+			} else if ( $( 'form#add_payment_method' ).length || $( 'form#order_review' ).length ) {
 				stripe_card.mount( '#stripe-card-element' );
 			}
 		},
 
 		isStripeChosen: function() {
-			return $( '#payment_method_stripe' ).is( ':checked' ) && ( ! $( 'input[name="wc-stripe-payment-token"]:checked' ).length || 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() );
+			return $( '#payment_method_stripe, #payment_method_stripe_bancontact' ).is( ':checked' ) || 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val();
+		},
+		// Currently only support saved cards via credit cards. No other payment method.
+		isStripeSaveCardChosen: function() {
+			return $( '#payment_method_stripe' ).is( ':checked' ) && 'new' !== $( 'input[name="wc-stripe-payment-token"]:checked' ).val();
 		},
 
 		isStripeCardChosen: function() {
 			return $( '#payment_method_stripe' ).is( ':checked' );
 		},
 
+		isBancontactChosen: function() {
+			return $( '#payment_method_stripe_bancontact' ).is( ':checked' );
+		},
+
 		hasSource: function() {
 			return 0 < $( 'input.stripe-source' ).length;
 		},
 
+		isMobile: function() {
+			if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
+				return true;
+			}
+
+			return false;
+		},
+
 		block: function() {
-			wc_stripe_elements_form.form.block({
-				message: null,
-				overlayCSS: {
-					background: '#fff',
-					opacity: 0.6
-				}
-			});
+			if ( wc_stripe_elements_form.isMobile() ) {
+				$.blockUI({
+					message: null,
+					overlayCSS: {
+						background: '#fff',
+						opacity: 0.6
+					}
+				});
+			} else {
+				wc_stripe_elements_form.form.block({
+					message: null,
+					overlayCSS: {
+						background: '#fff',
+						opacity: 0.6
+					}
+				});
+			}
 		},
 
 		unblock: function() {
-			wc_stripe_elements_form.form.unblock();
+			if ( wc_stripe_elements_form.isMobile() ) {
+				$.unblockUI();
+			} else {
+				wc_stripe_elements_form.form.unblock();
+			}
+		},
+
+		getSelectedPaymentElement: function() {
+			return $( '.wc_payment_methods input[name="payment_method"]:checked' );
 		},
 
 		onError: function( e, result ) {
-			var message = result.error.message;
+			var message = result.error.message,
+				errorContainer = wc_stripe_elements_form.getSelectedPaymentElement().parent( '.wc_payment_method' ).find( '.stripe-source-errors' );
 
 			// Customers do not need to know the specifics of the below type of errors
 			// therefore return a generic localizable error message.
@@ -151,8 +197,9 @@ jQuery( function( $ ) {
 				message = wc_stripe_params[ result.error.code ];
 			}
 
-			$( '.wc-stripe-error, .stripe-source' ).remove();
-			$( '#stripe-card-errors' ).html( '<ul class="woocommerce_error woocommerce-error wc-stripe-error"><li>' + message + '</li></ul>' );
+			wc_stripe_elements_form.reset();
+			console.log( result.error.message ); // Leave for troubleshooting.
+			$( errorContainer ).html( '<ul class="woocommerce_error woocommerce-error wc-stripe-error"><li>' + message + '</li></ul>' );
 			wc_stripe_elements_form.unblock();
 		},
 
@@ -189,111 +236,154 @@ jQuery( function( $ ) {
 			return extra_details;
 		},
 
-		createSource: function( stripe_card, extra_details ) {
-			stripe.createSource( stripe_card, extra_details ).then( function( result ) {
-				if ( result.error ) {
-					$( document.body ).trigger( 'stripeError', result );
-				} else if ( 'no' === wc_stripe_params.allow_prepaid_card && 'prepaid' === result.source.card.funding ) {
-					result.error = { message: wc_stripe_params.no_prepaid_card_msg };
+		createSource: function() {
+			var extra_details = wc_stripe_elements_form.getOwnerDetails(),
+				source_type   = 'card';
 
-					$( document.body ).trigger( 'stripeError', result );	
-				} else {
-					if ( wc_stripe_elements_form.isThreeDSecure( result.source ) ) {
-						var three_d_secure = {
-							type: 'three_d_secure',
-							amount: $( '#stripe-payment-data' ).data( 'amount' ),
-							currency: $( '#stripe-payment-data' ).data( 'currency' ),
-							three_d_secure: {
-								card: result.source.id
-							},
-							redirect: {
-								return_url: wc_stripe_params.return_url
-							}
-						};
+			if ( wc_stripe_elements_form.isBancontactChosen() ) {
+				source_type = 'bancontact';
+			}
 
-						// Create 3D secure source from card source.
-						wc_stripe_elements_form.createThreeDSecureSource( three_d_secure );
-					} else {
-						wc_stripe_elements_form.processStripeResponse( result.source );
-					}
+			if ( 'card' === source_type ) {
+				stripe.createSource( stripe_card, extra_details ).then( wc_stripe_elements_form.sourceResponse );
+			} else {
+				switch ( source_type ) {
+					case 'bancontact':
+					case 'giropay':
+					case 'ideal':
+					case 'sofort':
+					case 'alipay':
+						// These redirect flow payment methods need this information to be set at source creation.
+						extra_details.amount   = $( '#stripe-' + source_type + '-payment-data' ).data( 'amount' );
+						extra_details.currency = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
+						extra_details.redirect = { return_url: wc_stripe_params.return_url };
+
+						if ( 'bancontact' === source_type ) {
+							extra_details.bancontact = { statement_descriptor: wc_stripe_params.statement_descriptor };
+						}
+
+						if ( 'giropay' === source_type ) {
+							extra_details.giropay = { statement_descriptor: wc_stripe_params.statement_descriptor };
+						}
+
+						if ( 'ideal' === source_type ) {
+							extra_details.ideal = { statement_descriptor: wc_stripe_params.statement_descriptor };
+						}
+
+						if ( 'sofort' === source_type ) {
+							extra_details.sofort = { statement_descriptor: wc_stripe_params.statement_descriptor };
+						}
+
+						break;
 				}
-			} );
+
+				// Handle special inputs that are unique to a payment method.
+				switch ( source_type ) {
+					case 'sepa_debit':
+						extra_details.currency = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
+						extra_details.sepa_debit = { iban: $( '#stripe-iban' ).val() };
+						break;
+					case 'ideal':
+						extra_details.ideal = { bank: $( '#stripe-ideal-bank' ).val() };
+						break;
+					case 'sofort':
+						extra_details.sofort = { country: $( '#stripe-sofort-country' ).val() };
+						break;
+					case 'bitcoin':
+					case 'alipay':
+						extra_details.currency = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
+						extra_details.amount = $( '#stripe-' + source_type + '-payment-data' ).data( 'amount' );
+						break;
+				}
+
+				extra_details.type = source_type;
+
+				stripe.createSource( extra_details ).then( wc_stripe_elements_form.sourceResponse );
+			}
 		},
 
-		createThreeDSecureSource: function( three_d_secure ) {
-			// Create 3D secure source from card source.
-			stripe.createSource( three_d_secure ).then( function( result ) {
-				if ( result.error ) {
-					$( document.body ).trigger( 'stripeError', result );
-				} else if ( 'no' === wc_stripe_params.allow_prepaid_card && 'prepaid' === result.source.card.funding ) {
-					result.error = { message: wc_stripe_params.no_prepaid_card_msg };
+		sourceResponse: function( response ) {
+			if ( response.error ) {
+				$( document.body ).trigger( 'stripeError', response );
+			} else if ( 'no' === wc_stripe_params.allow_prepaid_card && 'card' === response.source.type && 'prepaid' === response.source.card.funding ) {
+				response.error = { message: wc_stripe_params.no_prepaid_card_msg };
 
-					$( document.body ).trigger( 'stripeError', result );	
-				} else {
-					window.location.href = result.source.redirect.url;
-				}
-			} );
+				$( document.body ).trigger( 'stripeError', response );	
+			} else {
+				wc_stripe_elements_form.processStripeResponse( response.source );
+			}
 		},
 
 		onSubmit: function( e ) {
-			if ( wc_stripe_elements_form.isStripeChosen() && ! wc_stripe_elements_form.hasSource() ) {
+			if ( wc_stripe_elements_form.isStripeChosen() && ! wc_stripe_elements_form.isStripeSaveCardChosen() && ! wc_stripe_elements_form.hasSource() ) {
 				e.preventDefault();
 				wc_stripe_elements_form.block();
 
-				var extra_details = wc_stripe_elements_form.getOwnerDetails();
-
-				if ( 0 < $( '#stripe-payment-data' ).data( 'amount' ) ) {
-					extra_details.amount = $( '#stripe-payment-data' ).data( 'amount' );
+				if ( wc_stripe_elements_form.isBancontactChosen() ) {
+					return true;
 				}
 
-				if ( $( '#stripe-payment-data' ).data( 'currency' ).length ) {
-					extra_details.currency = $( '#stripe-payment-data' ).data( 'currency' );
-				}
-
-				if ( wc_stripe_elements_form.isStripeCardChosen ) {
-					extra_details.type = 'card';
-				}
-
-				wc_stripe_elements_form.createSource( stripe_card, extra_details );
+				wc_stripe_elements_form.validateCheckout();
 
 				// Prevent form submitting
 				return false;
 			}
 		},
 
-		isThreeDSecure: function( source ) {
-			// Check if we need to handle 3D Secure.
-			switch ( source.card.three_d_secure ) {
-				case 'required':
-					return true;
-
-				case 'optional':
-					// Check if merchant wants to use 3D secure.
-					if ( $( '#stripe-payment-data' ).data( 'three-d-secure' ) ) {
-						return true;
-					}
-
-				case 'not_supported':
-					break;
-			}
-
-			return false;
-		},
-
 		onCCFormChange: function() {
-			$( '.wc-stripe-error, .stripe-source' ).remove();
+			wc_stripe_elements_form.reset();
 		},
 
 		processStripeResponse: function( source ) {
-			wc_stripe_elements_form.clearSource();
+			wc_stripe_elements_form.reset();
 
-			// insert the Source into the form so it gets submitted to the server
+			// Insert the Source into the form so it gets submitted to the server.
 			wc_stripe_elements_form.form.append( "<input type='hidden' class='stripe-source' name='stripe_source' value='" + source.id + "'/>" );
+			wc_stripe_elements_form.form.append( "<input type='hidden' class='stripe-source' name='stripe_source_object' value='" + JSON.stringify( source ) + "'/>" );
+
 			wc_stripe_elements_form.form.submit();
 		},
 
-		clearSource: function() {
-			$( '.stripe-source' ).remove();
+		reset: function() {
+			$( '.wc-stripe-error, .stripe-source ' ).remove();
+		},
+
+		getRequiredFields: function() {
+			return wc_stripe_elements_form.form.find( '.form-row.validate-required > input, .form-row.validate-required > select' );
+		},
+
+		validateCheckout: function() {
+			var data = {
+				'nonce': wc_stripe_params.stripe_nonce,
+				'required_fields': wc_stripe_elements_form.getRequiredFields().serialize(),
+				'all_fields': wc_stripe_elements_form.form.serialize()
+			};
+
+			$.ajax({
+				type:		'POST',
+				url:		wc_stripe_elements_form.getAjaxURL( 'validate_checkout' ),
+				data:		data,
+				dataType:   'json',
+				success:	function( result ) {
+					if ( 'success' === result ) {
+						wc_stripe_elements_form.createSource();
+					} else if ( result.messages ) {
+						wc_stripe_elements_form.reset();
+						wc_stripe_elements_form.submitError( result.messages );
+					}
+				}
+			});	
+		},
+
+		submitError: function( error_message ) {
+			$( '.woocommerce-NoticeGroup-checkout, .woocommerce-error, .woocommerce-message' ).remove();
+			wc_stripe_elements_form.form.prepend( '<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout">' + error_message + '</div>' );
+			wc_stripe_elements_form.form.removeClass( 'processing' ).unblock();
+			wc_stripe_elements_form.form.find( '.input-text, select, input:checkbox' ).blur();
+			$( 'html, body' ).animate({
+				scrollTop: ( $( 'form.checkout' ).offset().top - 100 )
+			}, 1000 );
+			$( document.body ).trigger( 'checkout_error' );
 		}
 	};
 

@@ -5,7 +5,7 @@ Requires at least: 4.4
 Tested up to: 4.7.2
 Stable tag: 3.2.2
 License: GPLv3
-License URI: http://www.gnu.org/licenses/gpl-3.0.html
+License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
 Take credit card payments on your store using Stripe.
 
@@ -79,7 +79,7 @@ Yes it does - production and sandbox mode is driven by the API keys you use.
 
 = Where can I find documentation? =
 
-For help setting up and configuring, please refer to our [user guide](https://docs.woothemes.com/document/stripe/)
+For help setting up and configuring, please refer to our [user guide](https://docs.woocommerce.com/document/stripe/)
 
 = Where can I get support or talk to other users? =
 

@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @extends WC_Gateway_Stripe
  */
-class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
+class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 	/**
 	 * This Instance.
 	 *
@@ -231,6 +231,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 		 * Currently Apple Pay truncates postal codes from UK and Canada to first 3 characters
 		 * when passing it back from the shippingcontactselected object. This causes WC to invalidate
 		 * the order and not let it go through. The remedy for now is just to remove this validation.
+		 * Note that this only works with shipping providers that don't validate full postal codes.
 		 */
 		if ( 'GB' === $country || 'CA' === $country ) {
 			return true;
@@ -699,8 +700,8 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			// Handle payment.
 			if ( $order->get_total() > 0 ) {
 
-				if ( $order->get_total() * 100 < WC_Stripe::get_minimum_amount() ) {
-					return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe::get_minimum_amount() / 100 ) ) );
+				if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
+					return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 				}
 
 				WC_Stripe_Logger::log( "Info: Begin processing payment for order {$order_id} for the amount of {$order->get_total()}" );
@@ -709,7 +710,7 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $result['token']['id'] ) );
 
 				if ( is_wp_error( $response ) ) {
-					$localized_messages = $this->get_localized_messages();
+					$localized_messages = WC_Stripe_Helper::get_localized_messages();
 
 					throw new Exception( ( isset( $localized_messages[ $response->get_error_code() ] ) ? $localized_messages[ $response->get_error_code() ] : $response->get_error_message() ) );
 				}
@@ -750,10 +751,10 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 	 * @param string $source token
 	 * @return array()
 	 */
-	protected function generate_payment_request( $order, $source ) {
+	public function generate_payment_request( $order, $source, $type = 'card' ) {
 		$post_data                = array();
 		$post_data['currency']    = strtolower( version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->get_order_currency() : $order->get_currency() );
-		$post_data['amount']      = $this->get_stripe_amount( $order->get_total(), $post_data['currency'] );
+		$post_data['amount']      = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $post_data['currency'] );
 		$post_data['description'] = sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), $this->statement_descriptor, $order->get_order_number() );
 		$post_data['capture']     = $this->capture ? 'true' : 'false';
 

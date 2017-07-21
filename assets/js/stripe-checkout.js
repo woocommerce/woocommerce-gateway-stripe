@@ -5,6 +5,17 @@ jQuery( function( $ ) {
 	 * Object to handle Stripe payment forms.
 	 */
 	var wc_stripe_form = {
+		/**
+		 * Get WC AJAX endpoint URL.
+		 *
+		 * @param  {String} endpoint Endpoint.
+		 * @return {String}
+		 */
+		getAjaxURL: function( endpoint ) {
+			return wc_stripe_params.ajaxurl
+				.toString()
+				.replace( '%%endpoint%%', 'wc_stripe_' + endpoint );
+		},
 
 		/**
 		 * Initialize e handlers and UI state.
@@ -42,61 +53,43 @@ jQuery( function( $ ) {
 				return false;
 			}
 
-			// Don't open modal if required fields are not complete
-			if ( $( 'input#terms' ).length === 1 && $( 'input#terms:checked' ).length === 0 ) {
-				return false;
-			}
-
-			if ( $( '#createaccount' ).is( ':checked' ) && $( '#account_password' ).length && $( '#account_password' ).val() === '' ) {
-				return false;
-			}
-
-			// check to see if we need to validate shipping address
-			if ( $( '#ship-to-different-address-checkbox' ).is( ':checked' ) ) {
-				$required_inputs = $( '.woocommerce-billing-fields .validate-required, .woocommerce-shipping-fields .validate-required' );
-			} else {
-				$required_inputs = $( '.woocommerce-billing-fields .validate-required' );
-			}
-
-			if ( $required_inputs.length ) {
-				var required_error = false;
-
-				$required_inputs.each( function() {
-					if ( $( this ).find( 'input.input-text, select' ).not( $( '#account_password, #account_username' ) ).val() === '' ) {
-						required_error = true;
-					}
-
-					var emailField = $( this ).find( '#billing_email' );
-
-					if ( emailField.length ) {
-						var re = /^([a-zA-Z0-9_\.\-\+])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/;
-
-						if ( ! re.test( emailField.val() ) ) {
-							required_error = true;
-						}
-					}
-				});
-
-				if ( required_error ) {
-					return false;
-				}
-			}
-
 			return true;
 		},
 
+		isMobile: function() {
+			if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
+				return true;
+			}
+
+			return false;
+		},
+
 		block: function() {
-			wc_stripe_form.form.block({
-				message: null,
-				overlayCSS: {
-					background: '#fff',
-					opacity: 0.6
-				}
-			});
+			if ( wc_stripe_form.isMobile() ) {
+				$.blockUI({
+					message: null,
+					overlayCSS: {
+						background: '#fff',
+						opacity: 0.6
+					}
+				});
+			} else {
+				wc_stripe_form.form.block({
+					message: null,
+					overlayCSS: {
+						background: '#fff',
+						opacity: 0.6
+					}
+				});
+			}
 		},
 
 		unblock: function() {
-			wc_stripe_form.form.unblock();
+			if ( wc_stripe_form.isMobile() ) {
+				$.unblockUI();
+			} else {
+				wc_stripe_form.form.unblock();
+			}
 		},
 
 		onClose: function() {
@@ -107,36 +100,12 @@ jQuery( function( $ ) {
 			if ( wc_stripe_form.isStripeModalNeeded() ) {
 				e.preventDefault();
 
-				// Capture submittal and open stripecheckout
-				var $form = wc_stripe_form.form,
-					$data = $( '#stripe-payment-data' ),
-					token = $form.find( 'input.stripe_token' );
-
-				token.val( '' );
-
-				var token_action = function( res ) {
-					$form.find( 'input.stripe_token' ).remove();
-					$form.append( '<input type="hidden" class="stripe_token" name="stripe_token" value="' + res.id + '"/>' );
-					wc_stripe_form.stripe_submit = true;
-					$form.submit();
-				};
-
-				StripeCheckout.open({
-					key               : wc_stripe_params.key,
-					billingAddress    : 'yes' === wc_stripe_params.stripe_checkout_require_billing_address,
-					amount            : $data.data( 'amount' ),
-					name              : $data.data( 'name' ),
-					description       : $data.data( 'description' ),
-					currency          : $data.data( 'currency' ),
-					image             : $data.data( 'image' ),
-					bitcoin           : $data.data( 'bitcoin' ),
-					locale            : $data.data( 'locale' ),
-					email             : $( '#billing_email' ).val() || $data.data( 'email' ),
-					panelLabel        : $data.data( 'panel-label' ),
-					allowRememberMe   : $data.data( 'allow-remember-me' ),
-					token             : token_action,
-					closed            : wc_stripe_form.onClose()
-				});
+				// Since in mobile actions cannot be deferred, no dynamic validation applied.
+				if ( wc_stripe_form.isMobile() ) {
+					wc_stripe_form.openModal();
+				} else {
+					wc_stripe_form.validateCheckout();
+				}
 
 				return false;
 			}
@@ -144,9 +113,80 @@ jQuery( function( $ ) {
 			return true;
 		},
 
+		openModal: function() {
+			// Capture submittal and open stripecheckout
+			var $form = wc_stripe_form.form,
+				$data = $( '#stripe-payment-data' ),
+				token = $form.find( 'input.stripe_token' );
+
+			token.val( '' );
+
+			var token_action = function( res ) {
+				$form.find( 'input.stripe_token' ).remove();
+				$form.append( '<input type="hidden" class="stripe_token" name="stripe_token" value="' + res.id + '"/>' );
+				wc_stripe_form.stripe_submit = true;
+				$form.submit();
+			};
+
+			StripeCheckout.open({
+				key               : wc_stripe_params.key,
+				billingAddress    : 'yes' === wc_stripe_params.stripe_checkout_require_billing_address,
+				amount            : $data.data( 'amount' ),
+				name              : $data.data( 'name' ),
+				description       : $data.data( 'description' ),
+				currency          : $data.data( 'currency' ),
+				image             : $data.data( 'image' ),
+				bitcoin           : $data.data( 'bitcoin' ),
+				locale            : $data.data( 'locale' ),
+				email             : $( '#billing_email' ).val() || $data.data( 'email' ),
+				panelLabel        : $data.data( 'panel-label' ),
+				allowRememberMe   : $data.data( 'allow-remember-me' ),
+				token             : token_action,
+				closed            : wc_stripe_form.onClose()
+			});
+		},
+
 		resetModal: function() {
 			wc_stripe_form.form.find( 'input.stripe_token' ).remove();
 			wc_stripe_form.stripe_submit = false;
+		},
+
+		getRequiredFields: function() {
+			return wc_stripe_form.form.find( '.form-row.validate-required > input, .form-row.validate-required > select' );
+		},
+
+		validateCheckout: function() {
+			var data = {
+				'nonce': wc_stripe_params.stripe_nonce,
+				'required_fields': wc_stripe_form.getRequiredFields().serialize(),
+				'all_fields': wc_stripe_form.form.serialize()
+			};
+
+			$.ajax({
+				type:		'POST',
+				url:		wc_stripe_form.getAjaxURL( 'validate_checkout' ),
+				data:		data,
+				dataType:   'json',
+				success:	function( result ) {
+					if ( 'success' === result ) {
+						wc_stripe_form.openModal();
+					} else if ( result.messages ) {
+						wc_stripe_form.resetModal();
+						wc_stripe_form.submitError( result.messages );
+					}
+				}
+			});	
+		},
+
+		submitError: function( error_message ) {
+			$( '.woocommerce-NoticeGroup-checkout, .woocommerce-error, .woocommerce-message' ).remove();
+			wc_stripe_form.form.prepend( '<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout">' + error_message + '</div>' );
+			//wc_stripe_form.form.removeClass( 'processing' ).unblock();
+			wc_stripe_form.form.find( '.input-text, select, input:checkbox' ).blur();
+			$( 'html, body' ).animate({
+				scrollTop: ( $( 'form.checkout' ).offset().top - 100 )
+			}, 1000 );
+			$( document.body ).trigger( 'checkout_error' );
 		}
 	};
 
