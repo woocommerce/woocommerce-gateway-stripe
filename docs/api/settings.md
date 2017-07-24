@@ -12,7 +12,7 @@ The endpoints, requests, and responses share similar structure with [WooCommerce
 | `payment_method_id` | string | Payment method ID.                    | `READ-ONLY` |
 | `label`             | string | A human readable label for the setting used in interfaces. | `READ-ONLY` |
 | `description`       | string | A human readable description for the setting used in interfaces. | `READ-ONLY` |
-| `value`             | mixed  | Setting value. | |
+| `value`             | mixed  | Setting value. | `READ-WRITE` |
 | `default`           | mixed  | Default value for the setting. | `READ-ONLY` |
 | `tip`               | string | Additional help text shown to the user about the setting. | `READ-ONLY` |
 | `placeholder`       | string | Placeholder text to be displayed in text inputs. | `READ-ONLY` |
