@@ -122,6 +122,9 @@ class WC_Stripe_Customer {
 	 * @return WP_Error|int
 	 */
 	public function create_customer( $args = array() ) {
+		// allow for overridability of args
+		$args = apply_filters( 'wc_stripe_customer_args', $args );
+
 		if ( $user = $this->get_user() ) {
 			$billing_first_name = get_user_meta( $user->ID, 'billing_first_name', true );
 			$billing_last_name  = get_user_meta( $user->ID, 'billing_last_name', true );
