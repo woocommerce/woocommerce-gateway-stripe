@@ -6,17 +6,18 @@ The endpoints, requests, and responses share similar structure with [WooCommerce
 
 ## Setting option properties
 
-| Name          | Type   | Description                           | Access Type |
-| ------------- | ------ | ------------------------------------- | ----------- |
-| `id`          | string | A unique identifier for the setting.  | `READ-ONLY` |
-| `label`       | string | A human readable label for the setting used in interfaces. | `READ-ONLY` |
-| `description` | string | A human readable description for the setting used in interfaces. | `READ-ONLY` |
-| `value`       | mixed  | Setting value. | |
-| `default`     | mixed  | Default value for the setting. | `READ-ONLY` |
-| `tip`         | string | Additional help text shown to the user about the setting. | `READ-ONLY` |
-| `placeholder` | string | Placeholder text to be displayed in text inputs. | `READ-ONLY` |
-| `type`        | string | Type of setting. Options: `text`, `email`, `number`, `color`, `password`, `textarea`, `select`, `multiselect`, `radio`, `image_width `and `checkbox`. | `READ-ONLY` |
-| `options`     | object | Array of options (key value pairs) for inputs such as select, multiselect, and radio buttons. | `READ-ONLY` |
+| Name                | Type   | Description                           | Access Type |
+| ------------------- | ------ | ------------------------------------- | ----------- |
+| `id`                | string | A unique identifier for the setting.  | `READ-ONLY` |
+| `payment_method_id` | string | Payment method ID.                    | `READ-ONLY` |
+| `label`             | string | A human readable label for the setting used in interfaces. | `READ-ONLY` |
+| `description`       | string | A human readable description for the setting used in interfaces. | `READ-ONLY` |
+| `value`             | mixed  | Setting value. | |
+| `default`           | mixed  | Default value for the setting. | `READ-ONLY` |
+| `tip`               | string | Additional help text shown to the user about the setting. | `READ-ONLY` |
+| `placeholder`       | string | Placeholder text to be displayed in text inputs. | `READ-ONLY` |
+| `type`              | string | Type of setting. Options: `text`, `email`, `number`, `color`, `password`, `textarea`, `select`, `multiselect`, `radio`, `image_width `and `checkbox`. | `READ-ONLY` |
+| `options`           | object | Array of options (key value pairs) for inputs such as select, multiselect, and radio buttons. | `READ-ONLY` |
 
 
 ## List all setting options
@@ -43,6 +44,7 @@ Status: 200 OK
 [
 	{
 		"id": "woocommerce_stripe_enabled",
+		"payment_method_id": "stripe",
 		"label": "Enable/Disable",
 		"description": "",
 		"default": "no",
@@ -63,6 +65,7 @@ Status: 200 OK
 	},
 	{
 		"id": "woocommerce_stripe_title",
+		"payment_method_id": "stripe",
 		"label": "Description",
 		"description": "This controls the title which the user sees during checkout.",
 		"default": "Credit Card (Stripe)",
@@ -83,6 +86,7 @@ Status: 200 OK
 	},
 	{
 		"id": "woocommerce_stripe_description",
+		"payment_method_id": "stripe",
 		"label": "Description",
 		"description": "This controls the description which the user sees during checkout.",
 		"default": "Pay with your credit card via Stripe.",
@@ -127,6 +131,7 @@ Status: 200 OK
 ```json
 {
 	"id": "woocommerce_stripe_enabled",
+	"payment_method_id": "stripe",
 	"label": "Enable/Disable",
 	"description": "",
 	"default": "no",
@@ -178,6 +183,7 @@ Status: 200 OK
 ```
 {
 	"id": "woocommerce_stripe_enabled",
+	"payment_method_id": "stripe",
 	"label": "Enable/Disable",
 	"description": "",
 	"default": "no",
@@ -241,6 +247,7 @@ Status: 200 OK
 [
 	{
 		"id": "woocommerce_stripe_enabled",
+		"payment_method_id": "stripe",
 		"label": "Enable/Disable",
 		"description": "",
 		"default": "no",
@@ -261,6 +268,7 @@ Status: 200 OK
 	},
 	{
 		"id": "woocommerce_stripe_title",
+		"payment_method_id": "stripe",
 		"label": "Description",
 		"description": "This controls the title which the user sees during checkout.",
 		"default": "Credit Card (Stripe)",
