@@ -122,6 +122,8 @@ class WC_Stripe_Customer {
 	 * @return WP_Error|int
 	 */
 	public function create_customer( $args = array() ) {
+		$billing_email = filter_var( $_POST['billing_email'], FILTER_SANITIZE_EMAIL );
+
 		if ( $user = $this->get_user() ) {
 			$billing_first_name = get_user_meta( $user->ID, 'billing_first_name', true );
 			$billing_last_name  = get_user_meta( $user->ID, 'billing_last_name', true );
@@ -132,7 +134,7 @@ class WC_Stripe_Customer {
 			);
 		} else {
 			$defaults = array(
-				'email'       => '',
+				'email'       => ! empty( $billing_email ) ? $billing_email : '',
 				'description' => '',
 			);
 		}
@@ -142,7 +144,7 @@ class WC_Stripe_Customer {
 		$defaults['metadata'] = apply_filters( 'wc_stripe_customer_metadata', $metadata, $user );
 
 		$args     = wp_parse_args( $args, $defaults );
-		$response = WC_Stripe_API::request( $args, 'customers' );
+		$response = WC_Stripe_API::request( apply_filters( 'wc_stripe_create_customer_args', $args ), 'customers' );
 
 		if ( is_wp_error( $response ) ) {
 			return $response;

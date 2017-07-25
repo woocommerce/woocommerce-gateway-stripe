@@ -59,13 +59,6 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 	public $testmode;
 
 	/**
-	 * Logging enabled?
-	 *
-	 * @var bool
-	 */
-	public $logging;
-
-	/**
 	 * Should we store the users credit cards?
 	 *
 	 * @var bool
@@ -143,7 +136,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 	 */
 	public function init() {
 		// If Apple Pay is not enabled no need to proceed further.
-		if ( ! $this->apple_pay ) {
+		if ( ! $this->apple_pay || ! $this->enabled ) {
 			return;
 		}
 
@@ -751,7 +744,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 	 * @param string $source token
 	 * @return array()
 	 */
-	public function generate_payment_request( $order, $source, $type = 'card' ) {
+	public function generate_payment_request( $order, $source ) {
 		$post_data                = array();
 		$post_data['currency']    = strtolower( version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->get_order_currency() : $order->get_currency() );
 		$post_data['amount']      = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $post_data['currency'] );

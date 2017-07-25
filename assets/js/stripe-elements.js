@@ -41,7 +41,7 @@ jQuery( function( $ ) {
 
 			$( 'form.woocommerce-checkout' )
 				.on(
-					'checkout_place_order_stripe checkout_place_order_stripe_bancontact',
+					'checkout_place_order_stripe checkout_place_order_stripe_bancontact checkout_place_order_stripe_sofort',
 					this.onSubmit
 				);
 
@@ -65,6 +65,13 @@ jQuery( function( $ ) {
 				.on(
 					'submit',
 					this.onSubmit
+				);
+
+			$( 'form.woocommerce-checkout' )
+				.on(
+					'change',
+					'#stripe-bank-country',
+					this.reset
 				);
 
 			$( document )
@@ -118,7 +125,7 @@ jQuery( function( $ ) {
 		},
 
 		isStripeChosen: function() {
-			return $( '#payment_method_stripe, #payment_method_stripe_bancontact' ).is( ':checked' ) || 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val();
+			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort' ).is( ':checked' ) || 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val();
 		},
 		// Currently only support saved cards via credit cards. No other payment method.
 		isStripeSaveCardChosen: function() {
@@ -131,6 +138,10 @@ jQuery( function( $ ) {
 
 		isBancontactChosen: function() {
 			return $( '#payment_method_stripe_bancontact' ).is( ':checked' );
+		},
+
+		isSofortChosen: function() {
+			return $( '#payment_method_stripe_sofort' ).is( ':checked' );
 		},
 
 		hasSource: function() {
@@ -320,6 +331,17 @@ jQuery( function( $ ) {
 				wc_stripe_elements_form.block();
 
 				if ( wc_stripe_elements_form.isBancontactChosen() ) {
+					return true;
+				}
+
+				if ( wc_stripe_elements_form.isSofortChosen() ) {
+					// Check if Sofort bank country is chosen before proceed.
+					if ( '-1' === $( '#stripe-bank-country' ).val() ) {
+						var error = { error: { message: wc_stripe_params.no_bank_country_msg } };
+						$( document.body ).trigger( 'stripeError', error );
+						return false;
+					}
+
 					return true;
 				}
 

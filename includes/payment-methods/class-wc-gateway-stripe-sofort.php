@@ -4,13 +4,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class that handles Bancontact payment method.
+ * Class that handles Sofort payment method.
  *
  * @extends WC_Gateway_Stripe
  *
  * @since 4.0.0
  */
-class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
+class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Notices (array)
 	 * @var array
@@ -56,8 +56,8 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->id                   = 'stripe_bancontact';
-		$this->method_title         = __( 'Stripe Bancontact', 'woocommerce-gateway-stripe' );
+		$this->id                   = 'stripe_sofort';
+		$this->method_title         = __( 'Stripe Sofort', 'woocommerce-gateway-stripe' );
 		$this->method_description   = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 
 		// Load the form fields.
@@ -115,7 +115,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_environment_warning() {
 		if ( 'yes' === $this->enabled && 'EUR' !== get_woocommerce_currency() ) {
-			$message = __( 'Bancontact is enabled - it requires store currency to be set to Euros.', 'woocommerce-gateway-stripe' );
+			$message = __( 'Sofort is enabled - it requires store currency to be set to Euros.', 'woocommerce-gateway-stripe' );
 
 			return $message;
 		}
@@ -132,7 +132,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 */
 	public function payment_icons() {
 		return apply_filters( 'wc_stripe_payment_icons', array(
-			'bancontact' => '<i class="stripe-pf stripe-pf-bancontact-mister-cash stripe-pf-right" alt="Bancontact" aria-hidden="true"></i>',
+			'sofort' => '<i class="stripe-pf stripe-pf-sofort stripe-pf-right" alt="Sofort" aria-hidden="true"></i>',
 		) );
 	}
 
@@ -148,7 +148,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 
 		$icons_str = '';
 
-		$icons_str .= $icons['bancontact'];
+		$icons_str .= $icons['sofort'];
 
 		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
 	}
@@ -181,7 +181,37 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 * Initialize Gateway Settings Form Fields.
 	 */
 	public function init_form_fields() {
-		$this->form_fields = require( WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-bancontact-settings.php' );
+		$this->form_fields = require( WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-sofort-settings.php' );
+	}
+
+	/**
+	 * Renders the Stripe elements form.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 */
+	public function form() {
+		$all_countries = WC()->countries->get_countries();
+		?>
+		<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-form" class="wc-payment-form">
+			<?php do_action( 'woocommerce_credit_card_form_start', $this->id ); ?>
+			<label for="stripe-bank-country">
+				<?php _e( 'Country origin of your bank.', 'woocommerce-gateway-stripe' ); ?>
+			</label>
+			<br />
+			<select id="stripe-bank-country" class="wc-enhanced-select" name="stripe_sofort_bank_country">
+				<option value="-1"><?php esc_html_e( 'Choose Bank Country', 'woocommerce-gateway-stripe' ); ?></option>
+				<?php foreach ( $all_countries as $code => $country ) { ?>
+				<option value="<?php echo esc_attr( $code ); ?>"><?php echo esc_html( $country ); ?></option>
+				<?php } ?>
+			</select>
+
+			<!-- Used to display form errors -->
+			<div class="stripe-source-errors" role="alert"></div>
+			<?php do_action( 'woocommerce_credit_card_form_end', $this->id ); ?>
+			<div class="clear"></div>
+		</fieldset>
+		<?php
 	}
 
 	/**
@@ -210,6 +240,8 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $this->description ) ) );
 		}
 
+		$this->form();
+
 		echo '</div>';
 	}
 
@@ -224,6 +256,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	public function create_source( $order ) {
 		$currency              = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->get_order_currency() : $order->get_currency();
 		$order_id              = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
+		$bank_country          = wc_clean( $_POST['stripe_sofort_bank_country'] );
 		$stripe_session_id     = uniqid();
 		
 		// Set the stripe session id in order meta to later match it for security purposes.
@@ -233,13 +266,13 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 		$post_data                   = array();
 		$post_data['amount']         = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		$post_data['currency']       = strtolower( $currency );
-		$post_data['type']           = 'bancontact';
+		$post_data['type']           = 'sofort';
 		$post_data['metadata']       = array( 'order_id' => $order_id );
 		$post_data['owner']          = $this->get_owner_details( $order );
 		$post_data['redirect']       = array( 'return_url' => $return_url );
-		$post_data['bancontact']     = array( 'statement_descriptor' => $this->statement_descriptor );
+		$post_data['sofort']         = array( 'statement_descriptor' => $this->statement_descriptor, 'country' => $bank_country );
 
-		WC_Stripe_Logger::log( 'Info: Begin creating Bancontact source' );
+		WC_Stripe_Logger::log( 'Info: Begin creating Sofort source' );
 
 		return WC_Stripe_API::request( $post_data, 'sources' );
 	}
@@ -268,7 +301,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 
 				$response = $this->create_source( $order );
 
-				WC_Stripe_Logger::log( 'Info: Redirecting to Bancontact...' );
+				WC_Stripe_Logger::log( 'Info: Redirecting to Sofort...' );
 
 				return array(
 					'result'   => 'success',

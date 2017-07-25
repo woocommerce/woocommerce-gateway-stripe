@@ -51,7 +51,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Processes payments.
 	 * Note at this time the original source has already been
-	 * saved to a customer card (if applicable).
+	 * saved to a customer card (if applicable) from process_payment.
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
@@ -77,21 +77,23 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				WC_Stripe_Logger::log( "Info: (Redirect) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
 				// Prep source object.
-				$source_object = new stdClass();
+				$source_object           = new stdClass();
 				$source_object->token_id = '';
 				$source_object->customer = $this->get_stripe_customer_id( $order );
-				$source_object->source = $source;
-
-				$type = wc_clean( $_GET['type'] );
+				$source_object->source   = $source;
 
 				// Make the request.
-				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source_object, $type ) );
+				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source_object ) );
 
 				if ( is_wp_error( $response ) ) {
 					$this->delete_stripe_session_id( $order_id );
 
 					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 					if ( 'customer' === $response->get_error_code() && $retry ) {
+						delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
+
+						return $this->process_redirect_payment( $order_id, false, $source );
+					} elseif ( preg_match( '/No such customer/i', $response->get_error_message() ) && $retry ) {
 						delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
 
 						return $this->process_redirect_payment( $order_id, false, $source );
@@ -115,14 +117,13 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					exit;
 				}
 
-				// Process valid response.
 				$this->process_response( $response, $order );
-				$this->delete_stripe_session_id( $order_id );
+				
 			} else {
-				$this->delete_stripe_session_id( $order_id );
 				$order->payment_complete();
 			}
 
+			$this->delete_stripe_session_id( $order_id );
 			do_action( 'wc_gateway_stripe_process_redirect_payment', $response, $order );
 
 		} catch ( Exception $e ) {

@@ -182,4 +182,15 @@ class WC_Stripe_Helper {
 
 		return isset( $all_settings[ $setting ] ) ? $all_settings[ $setting ] : '';
 	}
+
+	/**
+	 * Check if WC version is pre 3.0.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @return bool
+	 */
+	public static function is_pre_30() {
+		return version_compare( WC_VERSION, '3.0.0', '<' );
+	}
 }

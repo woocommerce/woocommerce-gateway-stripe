@@ -47,9 +47,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.0
 	 * @param object $order
 	 * @param int $id Stripe session id.
-	 * @param string $type Type of the payment method.
 	 */
-	public function get_stripe_return_url( $order = null, $id = null, $type = 'card' ) {
+	public function get_stripe_return_url( $order = null, $id = null ) {
 		if ( is_object( $order ) ) {
 			if ( empty( $id ) ) {
 				$id = uniqid();
@@ -57,7 +56,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			$order_id = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
 
-			return esc_url_raw( add_query_arg( array( 'utm_nooverride' => '1', 'stripe_session_id' => $id, 'order_id' => $order_id, 'type' => $type ), $this->get_return_url( $order ) ) );
+			return esc_url_raw( add_query_arg( array( 'utm_nooverride' => '1', 'stripe_session_id' => $id, 'order_id' => $order_id ), $this->get_return_url( $order ) ) );
 		}
 
 		return esc_url_raw( add_query_arg( array( 'utm_nooverride' => '1' ), $this->get_return_url() ) );
@@ -70,10 +69,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.0
 	 * @param  WC_Order $order
 	 * @param  object $source
-	 * @param string $type Type of payment method.
 	 * @return array()
 	 */
-	public function generate_payment_request( $order, $source, $type = 'card' ) {
+	public function generate_payment_request( $order, $source ) {
 		$settings                          = get_option( 'woocommerce_stripe_settings', array() );
 		$statement_descriptor              = ! empty( $settings['statement_descriptor'] ) ? $settings['statement_descriptor'] : '';
 		$capture                           = ! empty( $settings['capture'] ) && 'yes' === $settings['capture'] ? true : false; 
@@ -91,8 +89,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$post_data['receipt_email'] = $billing_email;
 		}
 
-		switch ( $type ) {
-			case 'card':
+		switch ( $order->get_payment_method() ) {
+			case 'stripe':
 				$post_data['statement_descriptor'] = substr( str_replace( "'", '', $statement_descriptor ), 0, 22 );
 				break;
 		}

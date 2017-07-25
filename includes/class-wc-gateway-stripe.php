@@ -108,13 +108,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public $testmode;
 
 	/**
-	 * Logging enabled?
-	 *
-	 * @var bool
-	 */
-	public $logging;
-
-	/**
 	 * Stores Apple Pay domain verification issues.
 	 *
 	 * @var string
@@ -479,7 +472,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-cc-form" class="wc-credit-card-form wc-payment-form">
 			<?php do_action( 'woocommerce_credit_card_form_start', $this->id ); ?>
 			<label for="card-element">
-				<?php _e( 'Credit or debit card', 'woocommerce_stripe' ); ?>
+				<?php _e( 'Credit or debit card', 'woocommerce-gateway-stripe' ); ?>
 			</label>
 			
 			<div id="stripe-card-element" style="background:#fff;padding:0 1em;border-radius:3px;border-width:1px;border-color:#bbb3b9 #c7c1c6 #c7c1c6;border-style:solid;">
@@ -570,6 +563,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		$stripe_params['no_prepaid_card_msg']                     = __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' );
+		$stripe_params['no_bank_country_msg']                     = __( 'Please select a country for your bank.', 'woocommerce-gateway-stripe' );
 		$stripe_params['allow_prepaid_card']                      = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
 		$stripe_params['stripe_checkout_require_billing_address'] = apply_filters( 'wc_stripe_checkout_require_billing_address', false ) ? 'yes' : 'no';
 		$stripe_params['is_checkout']                             = ( is_checkout() && empty( $_GET['pay_for_order'] ) );
@@ -690,6 +684,38 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Creates the 3DS source for charge.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param object $order
+	 * @param object $source_object
+	 * @return mixed
+	 */
+	public function create_3ds_source( $order, $source_object ) {
+		$currency              = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->get_order_currency() : $order->get_currency();
+		$order_id              = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
+		$stripe_session_id     = uniqid();
+		
+		// Set the stripe session id in order meta to later match it for security purposes.
+		update_post_meta( $order_id, '_stripe_session_id', $stripe_session_id );
+		$return_url            = $this->get_stripe_return_url( $order, $stripe_session_id );
+
+		$post_data                   = array();
+		$post_data['amount']         = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
+		$post_data['currency']       = strtolower( $currency );
+		$post_data['type']           = 'three_d_secure';
+		$post_data['metadata']       = array( 'order_id' => $order_id );
+		$post_data['owner']          = $this->get_owner_details( $order );
+		$post_data['three_d_secure'] = array( 'card' => $source_object->id );
+		$post_data['redirect']       = array( 'return_url' => $return_url );
+
+		WC_Stripe_Logger::log( 'Info: Begin creating 3DS source' );
+
+		return WC_Stripe_API::request( $post_data, 'sources' );
+	}
+
+	/**
 	 * Process the payment
 	 *
 	 * @param int  $order_id Reference.
@@ -734,25 +760,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				 * attached to a customer in Stripe before it can be charged.
 				 */
 				if ( $source_object && ( 'card' === $source_object->type && 'required' === $source_object->card->three_d_secure || ( $this->three_d_secure && 'optional' === $source_object->card->three_d_secure ) ) ) {
-					$stripe_session_id = uniqid();
 
-					// Set the stripe session id in order meta to later match it for security purposes.
-					update_post_meta( $order_id, '_stripe_session_id', $stripe_session_id );
-
-					$return_url = $this->get_stripe_return_url( $order, $stripe_session_id );
-
-					if ( empty( $source_object->redirect ) ) {
-						$source_object->redirect = new stdClass();
-						$source_object->redirect->return_url = $return_url;
-					} else {
-						$source_object->redirect->return_url = $return_url;
-					}
-
-					$source_object->owner = $this->get_owner_details( $order );
-
-					WC_Stripe_Logger::log( 'Info: Begin creating 3DS source' );
-
-					$response = WC_Gateway_Stripe_Source::create_source( $source_object, $order );
+					$response = $this->create_3ds_source( $order, $source_object );
 
 					WC_Stripe_Logger::log( 'Info: Redirecting to 3DS...' );
 
@@ -772,6 +781,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					if ( 'customer' === $response->get_error_code() && $retry ) {
 						delete_user_meta( get_current_user_id(), '_stripe_customer_id' );
 						return $this->process_payment( $order_id, false, $force_customer );
+					} elseif ( preg_match( '/No such customer/i', $response->get_error_message() ) && $retry ) {
+						delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
+
+						return $this->process_redirect_payment( $order_id, false, $source );
 						// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
 					} elseif ( 'source' === $response->get_error_code() && $source->token_id ) {
 						$token = WC_Payment_Tokens::get( $source->token_id );
