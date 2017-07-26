@@ -204,7 +204,10 @@ class WC_Gateway_Stripe_Giropay extends WC_Stripe_Payment_Gateway {
 			$pay_button_text = '';
 		}
 
-		echo '<div>';
+		echo '<div
+			id="stripe-giropay-payment-data"
+			data-amount="' . esc_attr( WC_Stripe_Helper::get_stripe_amount( $total ) ) . '"
+			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '">';
 
 		if ( $this->description ) {
 			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $this->description ) ) );
@@ -266,6 +269,14 @@ class WC_Gateway_Stripe_Giropay extends WC_Stripe_Payment_Gateway {
 				}
 
 				$response = $this->create_source( $order );
+
+				if ( is_wp_error( $response ) ) {
+					$message = $response->get_error_message();
+
+					$order->add_order_note( $message );
+
+					throw new Exception( $message );
+				}
 
 				WC_Stripe_Logger::log( 'Info: Redirecting to Giropay...' );
 

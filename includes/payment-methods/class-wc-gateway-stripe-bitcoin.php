@@ -4,13 +4,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class that handles iDeal payment method.
+ * Class that handles Bitcoin payment method.
  *
  * @extends WC_Gateway_Stripe
  *
  * @since 4.0.0
  */
-class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
+class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Notices (array)
 	 * @var array
@@ -53,11 +53,18 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 	public $saved_cards;
 
 	/**
+	 * Instructions for Bitcoin payment.
+	 *
+	 * @var string
+	 */
+	public $instructions;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->id                   = 'stripe_ideal';
-		$this->method_title         = __( 'Stripe iDeal', 'woocommerce-gateway-stripe' );
+		$this->id                   = 'stripe_bitcoin';
+		$this->method_title         = __( 'Stripe Bitcoin', 'woocommerce-gateway-stripe' );
 		$this->method_description   = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 
 		// Load the form fields.
@@ -84,6 +91,10 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
 		add_action( 'admin_notices', array( $this, 'check_environment' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
+		add_action( 'woocommerce_thankyou_stripe_bitcoin', array( $this, 'thankyou_page' ) );
+
+		// Customer Emails
+		add_action( 'woocommerce_email_before_order_table', array( $this, 'email_instructions' ), 10, 3 );
 	}
 
 	/**
@@ -115,7 +126,7 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_environment_warning() {
 		if ( 'yes' === $this->enabled && 'EUR' !== get_woocommerce_currency() ) {
-			$message = __( 'iDeal is enabled - it requires store currency to be set to Euros.', 'woocommerce-gateway-stripe' );
+			$message = __( 'Bitcoin is enabled - it requires store currency to be set to Euros.', 'woocommerce-gateway-stripe' );
 
 			return $message;
 		}
@@ -132,7 +143,7 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 	 */
 	public function payment_icons() {
 		return apply_filters( 'wc_stripe_payment_icons', array(
-			'ideal' => '<i class="stripe-pf stripe-pf-ideal stripe-pf-right" alt="iDeal" aria-hidden="true"></i>',
+			'bitcoin' => '<i class="stripe-pf stripe-pf-bitcoin stripe-pf-right" alt="Bitcoin" aria-hidden="true"></i>',
 		) );
 	}
 
@@ -148,7 +159,7 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 
 		$icons_str = '';
 
-		$icons_str .= $icons['ideal'];
+		$icons_str .= $icons['bitcoin'];
 
 		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
 	}
@@ -181,7 +192,7 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 	 * Initialize Gateway Settings Form Fields.
 	 */
 	public function init_form_fields() {
-		$this->form_fields = require( WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-ideal-settings.php' );
+		$this->form_fields = require( WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-bitcoin-settings.php' );
 	}
 
 	/**
@@ -205,7 +216,7 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 		}
 
 		echo '<div
-			id="stripe-ideal-payment-data"
+			id="stripe-bitcoin-payment-data"
 			data-amount="' . esc_attr( WC_Stripe_Helper::get_stripe_amount( $total ) ) . '"
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '">';
 
@@ -217,33 +228,91 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Creates the source for charge.
+	 * Output for the order received page.
+	 *
+	 * @param int $order_id
+	 */
+	public function thankyou_page( $order_id ) {
+		$this->get_instructions( $order_id );
+	}
+
+	/**
+	 * Add content to the WC emails.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param WC_Order $order
+	 * @param bool $sent_to_admin
+	 * @param bool $plain_text
+	 */
+	public function email_instructions( $order, $sent_to_admin, $plain_text = false ) {
+		$order_id = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
+
+		if ( ! $sent_to_admin && 'stripe_bitcoin' === $order->get_payment_method() && $order->has_status( 'on-hold' ) ) {
+			$this->get_instructions( $order_id, $plain_text );
+		}
+	}
+
+	/**
+	 * Gets the Bitcoin instructions for customer to pay.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param int $order_id
+	 */
+	public function get_instructions( $order_id, $plain_text = false ) {
+		$data = get_post_meta( $order_id, '_stripe_bitcoin', true );
+
+		if ( $plain_text ) {
+			esc_html_e( 'Please pay the following:', 'woocommerce-gateway-stripe' ) . "\n\n";
+			echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n";
+			esc_html_e( 'Bitcoin Amount:', 'woocommerce-gateway-stripe' ) . "\n\n";
+			echo $data['amount'] . "\n\n";
+			echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n";
+			esc_html_e( 'Receiver:', 'woocommerce-gateway-stripe' ) . "\n\n";
+			echo $data['address'] . "\n\n";
+			echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n";
+			esc_html_e( 'URI:', 'woocommerce-gateway-stripe' ) . "\n\n";
+			echo $data['uri'] . "\n\n";
+		} else {
+			?>
+			<h3><?php esc_html_e( 'Please pay the following:', 'woocommerce-gateway-stripe' ); ?></h3>
+			<ul class="woocommerce-order-overview woocommerce-thankyou-order-details order_details">
+			<li class="woocommerce-order-overview__order order">
+				<?php esc_html_e( 'Bitcoin Amount:', 'woocommerce-gateway-stripe' ); ?>
+				<strong><?php echo $data['amount']; ?></strong>
+			</li>
+			<li class="woocommerce-order-overview__order order">
+				<?php esc_html_e( 'Receiver:', 'woocommerce-gateway-stripe' ); ?>
+				<strong><?php echo $data['address']; ?></strong>
+			</li>
+			<li class="woocommerce-order-overview__order order">
+				<?php esc_html_e( 'URI:', 'woocommerce-gateway-stripe' ); ?>
+				<strong><?php printf( __( '<a href="%s">Pay Bitcoin</a>', 'woocommerce-gateway-stripe' ), $data['uri'] ); ?></strong>
+			</li>
+			</ul>
+			<?php
+		}
+	}
+
+	/**
+	 * Saves Bitcoin information to the order meta for later use.
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
 	 * @param object $order
-	 * @return mixed
+	 * @param object $source_object
 	 */
-	public function create_source( $order ) {
-		$currency              = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->get_order_currency() : $order->get_currency();
-		$order_id              = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
-		$stripe_session_id     = uniqid();
-		
-		// Set the stripe session id in order meta to later match it for security purposes.
-		update_post_meta( $order_id, '_stripe_session_id', $stripe_session_id );
-		$return_url            = $this->get_stripe_return_url( $order, $stripe_session_id );
+	public function save_instructions( $order, $source_object ) {
+		$data = array(
+			'amount'  => $source_object->bitcoin->amount,
+			'address' => $source_object->bitcoin->address,
+			'uri'     => $source_object->bitcoin->uri,
+		);
 
-		$post_data                   = array();
-		$post_data['amount']         = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
-		$post_data['currency']       = strtolower( $currency );
-		$post_data['type']           = 'ideal';
-		$post_data['owner']          = $this->get_owner_details( $order );
-		$post_data['redirect']       = array( 'return_url' => $return_url );
-		$post_data['ideal']          = array( 'statement_descriptor' => $this->statement_descriptor );
+		$order_id = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
 
-		WC_Stripe_Logger::log( 'Info: Begin creating iDeal source' );
-
-		return WC_Stripe_API::request( $post_data, 'sources' );
+		update_post_meta( $order_id, '_stripe_bitcoin', $data );
 	}
 
 	/**
@@ -260,6 +329,21 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 	public function process_payment( $order_id, $retry = true, $force_customer = false ) {
 		try {
 			$order = wc_get_order( $order_id );
+			$source_object = ! empty( $_POST['stripe_source_object'] ) ? json_decode( stripslashes( $_POST['stripe_source_object'] ) ) : false;
+
+			$source = $this->get_source( get_current_user_id(), $force_customer );
+
+			if ( empty( $source->source ) && empty( $source->customer ) ) {
+				$error_msg = __( 'Please enter your card details to make a payment.', 'woocommerce-gateway-stripe' );
+				$error_msg .= ' ' . __( 'Developers: Please make sure that you are including jQuery and there are no JavaScript errors on the page.', 'woocommerce-gateway-stripe' );
+				throw new Exception( $error_msg );
+			}
+
+			// Store source to order meta.
+			$this->save_source( $order, $source );
+
+			// Result from Stripe API request.
+			$response = null;
 
 			// Handle payment.
 			if ( $order->get_total() > 0 ) {
@@ -268,25 +352,26 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 				}
 
-				$response = $this->create_source( $order );
+				$this->save_instructions( $order, $source_object );
 
-				if ( is_wp_error( $response ) ) {
-					$message = $response->get_error_message();
+				// Mark as on-hold (we're awaiting the payment)
+				$order->update_status( 'on-hold', __( 'Awaiting Bitcoin payment', 'woocommerce-gateway-stripe' ) );
 
-					$order->add_order_note( $message );
+				// Reduce stock levels
+				wc_reduce_stock_levels( $order_id );
 
-					throw new Exception( $message );
-				}
+				// Remove cart
+				WC()->cart->empty_cart();
 
-				WC_Stripe_Logger::log( 'Info: Redirecting to iDeal...' );
-
+				// Return thankyou redirect
 				return array(
-					'result'   => 'success',
-					'redirect' => esc_url_raw( $response->redirect->url ),
+					'result'    => 'success',
+					'redirect'  => $this->get_return_url( $order ),
 				);
 			} else {
 				$order->payment_complete();
 			}
+
 		} catch ( Exception $e ) {
 			wc_add_notice( $e->getMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );

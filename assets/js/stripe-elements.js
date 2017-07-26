@@ -41,7 +41,7 @@ jQuery( function( $ ) {
 
 			$( 'form.woocommerce-checkout' )
 				.on(
-					'checkout_place_order_stripe checkout_place_order_stripe_bancontact checkout_place_order_stripe_sofort checkout_place_order_stripe_giropay checkout_place_order_stripe_ideal checkout_place_order_stripe_alipay checkout_place_order_stripe_sepa',
+					'checkout_place_order_stripe checkout_place_order_stripe_bancontact checkout_place_order_stripe_sofort checkout_place_order_stripe_giropay checkout_place_order_stripe_ideal checkout_place_order_stripe_alipay checkout_place_order_stripe_sepa checkout_place_order_stripe_bitcoin',
 					this.onSubmit
 				);
 
@@ -125,7 +125,7 @@ jQuery( function( $ ) {
 		},
 
 		isStripeChosen: function() {
-			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_giropay, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa' ).is( ':checked' ) || 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val();
+			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_giropay, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa, #payment_method_stripe_bitcoin' ).is( ':checked' ) || 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val();
 		},
 		// Currently only support saved cards via credit cards. No other payment method.
 		isStripeSaveCardChosen: function() {
@@ -158,6 +158,10 @@ jQuery( function( $ ) {
 
 		isSepaChosen: function() {
 			return $( '#payment_method_stripe_sepa' ).is( ':checked' );
+		},
+
+		isBitcoinChosen: function() {
+			return $( '#payment_method_stripe_bitcoin' ).is( ':checked' );
 		},
 
 		hasSource: function() {
@@ -267,8 +271,32 @@ jQuery( function( $ ) {
 			var extra_details = wc_stripe_elements_form.getOwnerDetails(),
 				source_type   = 'card';
 
+			if ( wc_stripe_elements_form.isBancontactChosen() ) {
+				source_type = 'bancontact';
+			}
+
 			if ( wc_stripe_elements_form.isSepaChosen() ) {
 				source_type = 'sepa_debit';
+			}
+
+			if ( wc_stripe_elements_form.isIdealChosen() ) {
+				source_type = 'ideal';
+			}
+
+			if ( wc_stripe_elements_form.isSofortChosen() ) {
+				source_type = 'sofort';
+			}
+
+			if ( wc_stripe_elements_form.isBitcoinChosen() ) {
+				source_type = 'bitcoin';
+			}
+
+			if ( wc_stripe_elements_form.isGiropayChosen() ) {
+				source_type = 'giropay';
+			}
+
+			if ( wc_stripe_elements_form.isAlipayChosen() ) {
+				source_type = 'alipay';
 			}
 
 			if ( 'card' === source_type ) {

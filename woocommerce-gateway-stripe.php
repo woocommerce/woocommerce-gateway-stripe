@@ -123,6 +123,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-ideal.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-alipay.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sepa.php' );
+			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-bitcoin.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-order-handler.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-tokens.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php' );
@@ -391,6 +392,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				$methods[] = 'WC_Gateway_Stripe_Ideal';
 				$methods[] = 'WC_Gateway_Stripe_Alipay';
 				$methods[] = 'WC_Gateway_Stripe_Sepa';
+				$methods[] = 'WC_Gateway_Stripe_Bitcoin';
 			}
 			return $methods;
 		}
@@ -409,6 +411,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			unset( $sections['stripe_ideal'] );
 			unset( $sections['stripe_alipay'] );
 			unset( $sections['stripe_sepa'] );
+			unset( $sections['stripe_bitcoin'] );
 
 			$sections['stripe']            = 'Stripe';
 			$sections['stripe_bancontact'] = 'Stripe Bancontact';
@@ -417,6 +420,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			$sections['stripe_ideal']      = 'Stripe iDeal';
 			$sections['stripe_alipay']     = 'Stripe Alipay';
 			$sections['stripe_sepa']       = 'Stripe SEPA';
+			$sections['stripe_bitcoin']    = 'Stripe Bitcoin';
 			
 			return $sections;
 		}

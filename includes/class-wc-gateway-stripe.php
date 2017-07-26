@@ -674,6 +674,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 					$response = $this->create_3ds_source( $order, $source_object );
 
+					if ( is_wp_error( $response ) ) {
+						$message = $response->get_error_message();
+
+						$order->add_order_note( $message );
+
+						throw new Exception( $message );
+					}
+
 					WC_Stripe_Logger::log( 'Info: Redirecting to 3DS...' );
 
 					return array(
