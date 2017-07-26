@@ -109,4 +109,4 @@ class WC_Stripe_Webhook_Handler {
 	}
 }
 
-new WC_Product_Vendors_Webhook_Handler();
+new WC_Stripe_Webhook_Handler();

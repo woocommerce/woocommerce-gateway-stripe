@@ -156,7 +156,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function maybe_process_redirect_order() {
-		if ( empty( $_GET['client_secret'] ) || empty( $_GET['source'] ) || empty( $_GET['stripe_session_id'] ) ) {
+		if ( ! is_order_received_page() || empty( $_GET['client_secret'] ) || empty( $_GET['source'] ) || empty( $_GET['stripe_session_id'] ) ) {
 			return;
 		}
 
