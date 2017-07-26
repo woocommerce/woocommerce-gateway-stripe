@@ -68,9 +68,8 @@ class WC_Stripe_API {
 	 */
 	public static function get_headers() {
 		return array(
-			'Authorization'   => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
-			'Stripe-Version'  => self::STRIPE_API_VERSION,
-			'Idempotency-Key' => uniqid(),
+			'Authorization'              => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
+			'Stripe-Version'             => self::STRIPE_API_VERSION,
 			'X-Stripe-Client-User-Agent' => json_encode( self::get_user_agent() ),
 		);
 	}
@@ -78,12 +77,20 @@ class WC_Stripe_API {
 	/**
 	 * Send the request to Stripe's API
 	 *
+	 * @since 3.1.0
+	 * @version 4.0.0
 	 * @param array $request
 	 * @param string $api
 	 * @return array|WP_Error
 	 */
 	public static function request( $request, $api = 'charges', $method = 'POST' ) {
 		WC_Stripe_Logger::log( "{$api} request: " . print_r( $request, true ) );
+
+		$headers = self::get_headers();
+
+		if ( 'charges' === $api && 'POST' === $method ) {
+			$headers['Idempotency-Key'] = $request['metadata']['order_id'] . '-' . $request['source'];
+		}
 
 		$response = wp_safe_remote_post(
 			self::ENDPOINT . $api,
