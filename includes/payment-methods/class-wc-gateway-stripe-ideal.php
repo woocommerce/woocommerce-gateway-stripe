@@ -4,13 +4,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class that handles Bancontact payment method.
+ * Class that handles iDeal payment method.
  *
  * @extends WC_Gateway_Stripe
  *
  * @since 4.0.0
  */
-class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
+class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Notices (array)
 	 * @var array
@@ -56,8 +56,8 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->id                   = 'stripe_bancontact';
-		$this->method_title         = __( 'Stripe Bancontact', 'woocommerce-gateway-stripe' );
+		$this->id                   = 'stripe_ideal';
+		$this->method_title         = __( 'Stripe iDeal', 'woocommerce-gateway-stripe' );
 		$this->method_description   = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 
 		// Load the form fields.
@@ -115,7 +115,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_environment_warning() {
 		if ( 'yes' === $this->enabled && 'EUR' !== get_woocommerce_currency() ) {
-			$message = __( 'Bancontact is enabled - it requires store currency to be set to Euros.', 'woocommerce-gateway-stripe' );
+			$message = __( 'iDeal is enabled - it requires store currency to be set to Euros.', 'woocommerce-gateway-stripe' );
 
 			return $message;
 		}
@@ -132,7 +132,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 */
 	public function payment_icons() {
 		return apply_filters( 'wc_stripe_payment_icons', array(
-			'bancontact' => '<i class="stripe-pf stripe-pf-bancontact-mister-cash stripe-pf-right" alt="Bancontact" aria-hidden="true"></i>',
+			'ideal' => '<i class="stripe-pf stripe-pf-ideal stripe-pf-right" alt="iDeal" aria-hidden="true"></i>',
 		) );
 	}
 
@@ -148,7 +148,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 
 		$icons_str = '';
 
-		$icons_str .= $icons['bancontact'];
+		$icons_str .= $icons['ideal'];
 
 		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
 	}
@@ -181,7 +181,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 * Initialize Gateway Settings Form Fields.
 	 */
 	public function init_form_fields() {
-		$this->form_fields = require( WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-bancontact-settings.php' );
+		$this->form_fields = require( WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-ideal-settings.php' );
 	}
 
 	/**
@@ -233,12 +233,12 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 		$post_data                   = array();
 		$post_data['amount']         = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		$post_data['currency']       = strtolower( $currency );
-		$post_data['type']           = 'bancontact';
+		$post_data['type']           = 'ideal';
 		$post_data['owner']          = $this->get_owner_details( $order );
 		$post_data['redirect']       = array( 'return_url' => $return_url );
-		$post_data['bancontact']     = array( 'statement_descriptor' => $this->statement_descriptor );
+		$post_data['ideal']          = array( 'statement_descriptor' => $this->statement_descriptor );
 
-		WC_Stripe_Logger::log( 'Info: Begin creating Bancontact source' );
+		WC_Stripe_Logger::log( 'Info: Begin creating iDeal source' );
 
 		return WC_Stripe_API::request( $post_data, 'sources' );
 	}
@@ -267,7 +267,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 
 				$response = $this->create_source( $order );
 
-				WC_Stripe_Logger::log( 'Info: Redirecting to Bancontact...' );
+				WC_Stripe_Logger::log( 'Info: Redirecting to iDeal...' );
 
 				return array(
 					'result'   => 'success',

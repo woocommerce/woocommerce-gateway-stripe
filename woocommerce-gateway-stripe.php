@@ -114,10 +114,15 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-logger.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-helper.php' );
+			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-handler.php' );
 			require_once( dirname( __FILE__ ) . '/includes/abstracts/abstract-wc-stripe-payment-gateway.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-bancontact.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sofort.php' );
+			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-giropay.php' );
+			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-ideal.php' );
+			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-alipay.php' );
+			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sepa.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-order-handler.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-tokens.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php' );
@@ -382,6 +387,10 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				$methods[] = 'WC_Gateway_Stripe';
 				$methods[] = 'WC_Gateway_Stripe_Bancontact';
 				$methods[] = 'WC_Gateway_Stripe_Sofort';
+				$methods[] = 'WC_Gateway_Stripe_Giropay';
+				$methods[] = 'WC_Gateway_Stripe_Ideal';
+				$methods[] = 'WC_Gateway_Stripe_Alipay';
+				$methods[] = 'WC_Gateway_Stripe_Sepa';
 			}
 			return $methods;
 		}
@@ -396,10 +405,18 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			unset( $sections['stripe'] );
 			unset( $sections['stripe_bancontact'] );
 			unset( $sections['stripe_sofort'] );
+			unset( $sections['stripe_giropay'] );
+			unset( $sections['stripe_ideal'] );
+			unset( $sections['stripe_alipay'] );
+			unset( $sections['stripe_sepa'] );
 
 			$sections['stripe']            = 'Stripe';
 			$sections['stripe_bancontact'] = 'Stripe Bancontact';
 			$sections['stripe_sofort']     = 'Stripe Sofort';
+			$sections['stripe_giropay']    = 'Stripe Giropay';
+			$sections['stripe_ideal']      = 'Stripe iDeal';
+			$sections['stripe_alipay']     = 'Stripe Alipay';
+			$sections['stripe_sepa']       = 'Stripe SEPA';
 			
 			return $sections;
 		}

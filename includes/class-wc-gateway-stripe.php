@@ -122,7 +122,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$this->method_title         = __( 'Stripe', 'woocommerce-gateway-stripe' );
 		$this->method_description   = sprintf( __( 'Stripe works by adding credit card fields on the checkout and then sending the details to Stripe for verification. <a href="%1$s" target="_blank">Sign up</a> for a Stripe account, and <a href="%2$s" target="_blank">get your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), 'https://dashboard.stripe.com/register', 'https://dashboard.stripe.com/account/apikeys' );
 		$this->has_fields           = true;
-		$this->view_transaction_url = 'https://dashboard.stripe.com/payments/%s';
 		$this->supports             = array(
 			'subscriptions',
 			'products',
@@ -564,6 +563,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$stripe_params['no_prepaid_card_msg']                     = __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' );
 		$stripe_params['no_bank_country_msg']                     = __( 'Please select a country for your bank.', 'woocommerce-gateway-stripe' );
+		$stripe_params['no_iban_msg']                             = __( 'Please enter your IBAN account.', 'woocommerce-gateway-stripe' );
 		$stripe_params['allow_prepaid_card']                      = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
 		$stripe_params['stripe_checkout_require_billing_address'] = apply_filters( 'wc_stripe_checkout_require_billing_address', false ) ? 'yes' : 'no';
 		$stripe_params['is_checkout']                             = ( is_checkout() && empty( $_GET['pay_for_order'] ) );
@@ -596,94 +596,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Get payment source. This can be a new token or existing card.
-	 *
-	 * @param string $user_id
-	 * @param bool  $force_customer Should we force customer creation.
-	 *
-	 * @throws Exception When card was not added or for and invalid card.
-	 * @return object
-	 */
-	protected function get_source( $user_id, $force_customer = false ) {
-		$stripe_customer = new WC_Stripe_Customer( $user_id );
-		$force_customer  = apply_filters( 'wc_stripe_force_customer_creation', $force_customer, $stripe_customer );
-		$stripe_source   = false;
-		$token_id        = false;
-
-		// New CC info was entered and we have a new token to process
-		if ( isset( $_POST['stripe_source'] ) ) {
-			$stripe_source     = wc_clean( $_POST['stripe_source'] );
-			$maybe_saved_card = isset( $_POST['wc-stripe-new-payment-method'] ) && ! empty( $_POST['wc-stripe-new-payment-method'] );
-
-			// This is true if the user wants to store the card to their account.
-			if ( ( $user_id && $this->saved_cards && $maybe_saved_card ) || $force_customer ) {
-				$stripe_source = $stripe_customer->add_source( $stripe_source );
-
-				if ( is_wp_error( $stripe_source ) ) {
-					throw new Exception( $stripe_source->get_error_message() );
-				}
-			} else {
-				// Not saving token, so don't define customer either.
-				$stripe_source   = $stripe_source;
-				$stripe_customer = false;
-			}
-		} elseif ( isset( $_POST['wc-stripe-payment-token'] ) && 'new' !== $_POST['wc-stripe-payment-token'] ) {
-			// Use an existing token, and then process the payment
-
-			$token_id = wc_clean( $_POST['wc-stripe-payment-token'] );
-			$token    = WC_Payment_Tokens::get( $token_id );
-
-			if ( ! $token || $token->get_user_id() !== get_current_user_id() ) {
-				WC()->session->set( 'refresh_totals', true );
-				throw new Exception( __( 'Invalid payment method. Please input a new card number.', 'woocommerce-gateway-stripe' ) );
-			}
-
-			$stripe_source = $token->get_token();
-		}
-
-		return (object) array(
-			'token_id' => $token_id,
-			'customer' => $stripe_customer ? $stripe_customer->get_id() : false,
-			'source'   => $stripe_source,
-		);
-	}
-
-	/**
-	 * Get payment source from an order. This could be used in the future for
-	 * a subscription as an example, therefore using the current user ID would
-	 * not work - the customer won't be logged in :)
-	 *
-	 * Not using 2.6 tokens for this part since we need a customer AND a card
-	 * token, and not just one.
-	 *
-	 * @param object $order
-	 * @return object
-	 */
-	protected function get_order_source( $order = null ) {
-		$stripe_customer = new WC_Stripe_Customer();
-		$stripe_source   = false;
-		$token_id        = false;
-
-		if ( $order ) {
-			$order_id = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
-
-			if ( $meta_value = get_post_meta( $order_id, '_stripe_customer_id', true ) ) {
-				$stripe_customer->set_id( $meta_value );
-			}
-
-			if ( $meta_value = get_post_meta( $order_id, '_stripe_card_id', true ) ) {
-				$stripe_source = $meta_value;
-			}
-		}
-
-		return (object) array(
-			'token_id' => $token_id,
-			'customer' => $stripe_customer ? $stripe_customer->get_id() : false,
-			'source'   => $stripe_source,
-		);
-	}
-
-	/**
 	 * Creates the 3DS source for charge.
 	 *
 	 * @since 4.0.0
@@ -705,7 +617,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$post_data['amount']         = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		$post_data['currency']       = strtolower( $currency );
 		$post_data['type']           = 'three_d_secure';
-		$post_data['metadata']       = array( 'order_id' => $order_id );
 		$post_data['owner']          = $this->get_owner_details( $order );
 		$post_data['three_d_secure'] = array( 'card' => $source_object->id );
 		$post_data['redirect']       = array( 'return_url' => $return_url );
@@ -834,103 +745,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				'result'   => 'fail',
 				'redirect' => '',
 			);
-		}
-	}
-
-	/**
-	 * Save source to order.
-	 *
-	 * @param WC_Order $order For to which the source applies.
-	 * @param stdClass $source Source information.
-	 */
-	protected function save_source( $order, $source ) {
-		$order_id = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
-
-		// Store source in the order.
-		if ( $source->customer ) {
-			version_compare( WC_VERSION, '3.0.0', '<' ) ? update_post_meta( $order_id, '_stripe_customer_id', $source->customer ) : $order->update_meta_data( '_stripe_customer_id', $source->customer );
-		}
-		if ( $source->source ) {
-			version_compare( WC_VERSION, '3.0.0', '<' ) ? update_post_meta( $order_id, '_stripe_card_id', $source->source ) : $order->update_meta_data( '_stripe_card_id', $source->source );
-		}
-
-		if ( is_callable( array( $order, 'save' ) ) ) {
-			$order->save();
-		}
-	}
-
-	/**
-	 * Add payment method via account screen.
-	 * We don't store the token locally, but to the Stripe API.
-	 * @since 3.0.0
-	 */
-	public function add_payment_method() {
-		if ( empty( $_POST['stripe_token'] ) || ! is_user_logged_in() ) {
-			wc_add_notice( __( 'There was a problem adding the card.', 'woocommerce-gateway-stripe' ), 'error' );
-			return;
-		}
-
-		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
-		$card            = $stripe_customer->add_source( wc_clean( $_POST['stripe_token'] ) );
-
-		if ( is_wp_error( $card ) ) {
-			$localized_messages = WC_Stripe_Helper::get_localized_messages();
-			$error_msg = __( 'There was a problem adding the card.', 'woocommerce-gateway-stripe' );
-
-			// loop through the errors to find matching localized message
-			foreach ( $card->errors as $error => $msg ) {
-				if ( isset( $localized_messages[ $error ] ) ) {
-					$error_msg = $localized_messages[ $error ];
-				}
-			}
-
-			wc_add_notice( $error_msg, 'error' );
-			return;
-		}
-
-		return array(
-			'result'   => 'success',
-			'redirect' => wc_get_endpoint_url( 'payment-methods' ),
-		);
-	}
-
-	/**
-	 * Refund a charge
-	 * @param  int $order_id
-	 * @param  float $amount
-	 * @return bool
-	 */
-	public function process_refund( $order_id, $amount = null, $reason = '' ) {
-		$order = wc_get_order( $order_id );
-
-		if ( ! $order || ! $order->get_transaction_id() ) {
-			return false;
-		}
-
-		$body = array();
-
-		if ( ! is_null( $amount ) ) {
-			$body['amount']	= WC_Stripe_Helper::get_stripe_amount( $amount );
-		}
-
-		if ( $reason ) {
-			$body['metadata'] = array(
-				'reason'	=> $reason,
-			);
-		}
-
-		WC_Stripe_Logger::log( "Info: Beginning refund for order $order_id for the amount of {$amount}" );
-
-		$response = WC_Stripe_API::request( $body, 'charges/' . $order->get_transaction_id() . '/refunds' );
-
-		if ( is_wp_error( $response ) ) {
-			WC_Stripe_Logger::log( 'Error: ' . $response->get_error_message() );
-			return $response;
-		} elseif ( ! empty( $response->id ) ) {
-			$refund_message = sprintf( __( 'Refunded %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), wc_price( $response->amount / 100 ), $response->id, $reason );
-			$order->add_order_note( $refund_message );
-			WC_Stripe_Logger::log( 'Success: ' . html_entity_decode( strip_tags( $refund_message ) ) );
-			return true;
 		}
 	}
 }

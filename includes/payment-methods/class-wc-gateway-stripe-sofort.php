@@ -191,7 +191,7 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function form() {
-		$all_countries = WC()->countries->get_countries();
+		$supported_countries = array( 'AT' => 'Austria', 'BE' => 'Belgium', 'DE' => 'Germany', 'NL' => 'Netherlands', 'ES' => 'Spain', 'IT' => 'Italy' );
 		?>
 		<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-form" class="wc-payment-form">
 			<?php do_action( 'woocommerce_credit_card_form_start', $this->id ); ?>
@@ -199,9 +199,9 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 				<?php _e( 'Country origin of your bank.', 'woocommerce-gateway-stripe' ); ?>
 			</label>
 			<br />
-			<select id="stripe-bank-country" class="wc-enhanced-select" name="stripe_sofort_bank_country">
+			<select id="stripe-bank-country" class="wc-enhanced-select validate-required" name="stripe_sofort_bank_country">
 				<option value="-1"><?php esc_html_e( 'Choose Bank Country', 'woocommerce-gateway-stripe' ); ?></option>
-				<?php foreach ( $all_countries as $code => $country ) { ?>
+				<?php foreach ( $supported_countries as $code => $country ) { ?>
 				<option value="<?php echo esc_attr( $code ); ?>"><?php echo esc_html( $country ); ?></option>
 				<?php } ?>
 			</select>
@@ -267,7 +267,6 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 		$post_data['amount']         = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		$post_data['currency']       = strtolower( $currency );
 		$post_data['type']           = 'sofort';
-		$post_data['metadata']       = array( 'order_id' => $order_id );
 		$post_data['owner']          = $this->get_owner_details( $order );
 		$post_data['redirect']       = array( 'return_url' => $return_url );
 		$post_data['sofort']         = array( 'statement_descriptor' => $this->statement_descriptor, 'country' => $bank_country );

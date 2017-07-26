@@ -193,4 +193,30 @@ class WC_Stripe_Helper {
 	public static function is_pre_30() {
 		return version_compare( WC_VERSION, '3.0.0', '<' );
 	}
+
+	/**
+	 * Gets the webhook URL for Stripe triggers. Used mainly for
+	 * asyncronous redirect payment methods in which statuses are
+	 * not immediately chargeable.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @return string
+	 */
+	public static function get_webhook_url() {
+		return add_query_arg( 'wc-api', 'wc_stripe', trailingslashit( get_home_url() ) );
+	}
+
+	/**
+	 * Gets the order by Stripe source ID.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param string $source_id
+	 */
+	public static function get_order_by_source_id( $source_id ) {
+		global $wpdb;
+
+		return $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s", $source_id ) );
+	}
 }

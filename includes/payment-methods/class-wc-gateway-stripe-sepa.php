@@ -4,13 +4,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class that handles Bancontact payment method.
+ * Class that handles SEPA payment method.
  *
  * @extends WC_Gateway_Stripe
  *
  * @since 4.0.0
  */
-class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
+class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Notices (array)
 	 * @var array
@@ -56,8 +56,8 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->id                   = 'stripe_bancontact';
-		$this->method_title         = __( 'Stripe Bancontact', 'woocommerce-gateway-stripe' );
+		$this->id                   = 'stripe_sepa';
+		$this->method_title         = __( 'Stripe SEPA Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->method_description   = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 
 		// Load the form fields.
@@ -79,6 +79,9 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 		if ( $this->testmode ) {
 			$this->publishable_key = ! empty( $main_settings['test_publishable_key'] ) ? $main_settings['test_publishable_key'] : '';
 			$this->secret_key      = ! empty( $main_settings['test_secret_key'] ) ? $main_settings['test_secret_key'] : '';
+
+			$this->description .= ' ' . __( 'TEST MODE ENABLED. In test mode, you can use IBAN number DE89370400440532013000.', 'woocommerce-gateway-stripe' );
+			$this->description  = trim( $this->description );
 		}
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
@@ -115,7 +118,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_environment_warning() {
 		if ( 'yes' === $this->enabled && 'EUR' !== get_woocommerce_currency() ) {
-			$message = __( 'Bancontact is enabled - it requires store currency to be set to Euros.', 'woocommerce-gateway-stripe' );
+			$message = __( 'SEPA is enabled - it requires store currency to be set to Euros.', 'woocommerce-gateway-stripe' );
 
 			return $message;
 		}
@@ -132,7 +135,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 */
 	public function payment_icons() {
 		return apply_filters( 'wc_stripe_payment_icons', array(
-			'bancontact' => '<i class="stripe-pf stripe-pf-bancontact-mister-cash stripe-pf-right" alt="Bancontact" aria-hidden="true"></i>',
+			'sepa' => '<i class="stripe-pf stripe-pf-sepa stripe-pf-right" alt="SEPA" aria-hidden="true"></i>',
 		) );
 	}
 
@@ -148,7 +151,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 
 		$icons_str = '';
 
-		$icons_str .= $icons['bancontact'];
+		$icons_str .= $icons['sepa'];
 
 		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
 	}
@@ -181,7 +184,43 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 * Initialize Gateway Settings Form Fields.
 	 */
 	public function init_form_fields() {
-		$this->form_fields = require( WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-bancontact-settings.php' );
+		$this->form_fields = require( WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-sepa-settings.php' );
+	}
+
+	/**
+	 * Displays the mandate acceptance notice to customer.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @return string
+	 */
+	public function mandate_display() {
+		printf( __( 'By providing your IBAN and confirming this payment, you are authorizing %s and Stripe, our payment service provider, to send instructions to your bank to debit your account and your bank to debit your account in accordance with those instructions. You are entitled to a refund from your bank under the terms and conditions of your agreement with your bank. A refund must be claimed within 8 weeks starting from the date on which your account was debited.', 'woocommerce-gateway-stripe' ), $this->statement_descriptor );
+	}
+
+	/**
+	 * Renders the Stripe elements form.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 */
+	public function form() {
+		?>
+		<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-form" class="wc-payment-form">
+			<?php do_action( 'woocommerce_credit_card_form_start', $this->id ); ?>
+			<?php $this->mandate_display(); ?>
+			<p class="form-row form-row-wide validate-required">
+				<label for="stripe-sepa-iban">
+					<?php esc_html_e( 'IBAN.', 'woocommerce-gateway-stripe' ); ?>
+				</label>
+				<input id="stripe-sepa-iban" name="stripe_sepa_iban" value="" />
+			</p>
+			<!-- Used to display form errors -->
+			<div class="stripe-source-errors" role="alert"></div>
+			<?php do_action( 'woocommerce_credit_card_form_end', $this->id ); ?>
+			<div class="clear"></div>
+		</fieldset>
+		<?php
 	}
 
 	/**
@@ -204,43 +243,18 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 			$pay_button_text = '';
 		}
 
-		echo '<div>';
+		echo '<div
+			id="stripe-sepa_debit-payment-data"
+			data-amount="' . esc_attr( WC_Stripe_Helper::get_stripe_amount( $total ) ) . '"
+			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '">';
 
 		if ( $this->description ) {
 			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $this->description ) ) );
 		}
 
+		$this->form();
+
 		echo '</div>';
-	}
-
-	/**
-	 * Creates the source for charge.
-	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
-	 * @param object $order
-	 * @return mixed
-	 */
-	public function create_source( $order ) {
-		$currency              = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->get_order_currency() : $order->get_currency();
-		$order_id              = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
-		$stripe_session_id     = uniqid();
-		
-		// Set the stripe session id in order meta to later match it for security purposes.
-		update_post_meta( $order_id, '_stripe_session_id', $stripe_session_id );
-		$return_url            = $this->get_stripe_return_url( $order, $stripe_session_id );
-
-		$post_data                   = array();
-		$post_data['amount']         = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
-		$post_data['currency']       = strtolower( $currency );
-		$post_data['type']           = 'bancontact';
-		$post_data['owner']          = $this->get_owner_details( $order );
-		$post_data['redirect']       = array( 'return_url' => $return_url );
-		$post_data['bancontact']     = array( 'statement_descriptor' => $this->statement_descriptor );
-
-		WC_Stripe_Logger::log( 'Info: Begin creating Bancontact source' );
-
-		return WC_Stripe_API::request( $post_data, 'sources' );
 	}
 
 	/**
@@ -257,6 +271,21 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	public function process_payment( $order_id, $retry = true, $force_customer = false ) {
 		try {
 			$order = wc_get_order( $order_id );
+			$source_object = ! empty( $_POST['stripe_source_object'] ) ? json_decode( stripslashes( $_POST['stripe_source_object'] ) ) : false;
+
+			$source = $this->get_source( get_current_user_id(), $force_customer );
+
+			if ( empty( $source->source ) && empty( $source->customer ) ) {
+				$error_msg = __( 'Please enter your card details to make a payment.', 'woocommerce-gateway-stripe' );
+				$error_msg .= ' ' . __( 'Developers: Please make sure that you are including jQuery and there are no JavaScript errors on the page.', 'woocommerce-gateway-stripe' );
+				throw new Exception( $error_msg );
+			}
+
+			// Store source to order meta.
+			$this->save_source( $order, $source );
+
+			// Result from Stripe API request.
+			$response = null;
 
 			// Handle payment.
 			if ( $order->get_total() > 0 ) {
@@ -265,17 +294,55 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 				}
 
-				$response = $this->create_source( $order );
+				WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
-				WC_Stripe_Logger::log( 'Info: Redirecting to Bancontact...' );
+				// Make the request.
+				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source ) );
 
-				return array(
-					'result'   => 'success',
-					'redirect' => esc_url_raw( $response->redirect->url ),
-				);
+				if ( is_wp_error( $response ) ) {
+					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
+					if ( 'customer' === $response->get_error_code() && $retry ) {
+						delete_user_meta( get_current_user_id(), '_stripe_customer_id' );
+						return $this->process_payment( $order_id, false, $force_customer );
+					} elseif ( preg_match( '/No such customer/i', $response->get_error_message() ) && $retry ) {
+						delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
+
+						return $this->process_redirect_payment( $order_id, false, $source );
+						// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
+					} elseif ( 'source' === $response->get_error_code() && $source->token_id ) {
+						$token = WC_Payment_Tokens::get( $source->token_id );
+						$token->delete();
+						$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
+						$order->add_order_note( $message );
+						throw new Exception( $message );
+					}
+
+					$localized_messages = WC_Stripe_Helper::get_localized_messages();
+
+					$message = isset( $localized_messages[ $response->get_error_code() ] ) ? $localized_messages[ $response->get_error_code() ] : $response->get_error_message();
+
+					$order->add_order_note( $message );
+
+					throw new Exception( $message );
+				}
+
+				// Process valid response.
+				$this->process_response( $response, $order );
 			} else {
 				$order->payment_complete();
 			}
+
+			// Remove cart.
+			WC()->cart->empty_cart();
+
+			do_action( 'wc_gateway_stripe_process_payment', $response, $order );
+
+			// Return thank you page redirect.
+			return array(
+				'result'   => 'success',
+				'redirect' => $this->get_return_url( $order ),
+			);
+
 		} catch ( Exception $e ) {
 			wc_add_notice( $e->getMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );

@@ -257,6 +257,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$errors = new WP_Error();
 		parse_str( $_POST['required_fields'], $required_fields );
 		parse_str( $_POST['all_fields'], $all_fields );
+		$source_type = wc_clean( $_POST['source_type'] );
 		$validate_shipping_fields = false;
 		$create_account = false;
 
@@ -288,6 +289,16 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			// Check create account password.
 			if ( 'account_password' === $field && ! $create_account ) {
 				continue;
+			}
+
+			// Check if is SEPA.
+			if ( empty( $field_value ) && 'stripe_sepa' !== $source_type ) {
+				continue;
+			}
+
+			// Check if is Sofort.
+			if ( '-1' === $field_value && 'stripe_sofort' === $source_type ) {
+				$errors->add( 'validation', sprintf( __( '%s cannot be empty', 'woocommerce-gateway-stripe' ), ucfirst( str_replace( '_', ' ', $field ) ) ) );
 			}
 
 			if ( empty( $field_value ) ) {

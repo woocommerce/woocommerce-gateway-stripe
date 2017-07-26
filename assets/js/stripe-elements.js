@@ -41,7 +41,7 @@ jQuery( function( $ ) {
 
 			$( 'form.woocommerce-checkout' )
 				.on(
-					'checkout_place_order_stripe checkout_place_order_stripe_bancontact checkout_place_order_stripe_sofort',
+					'checkout_place_order_stripe checkout_place_order_stripe_bancontact checkout_place_order_stripe_sofort checkout_place_order_stripe_giropay checkout_place_order_stripe_ideal checkout_place_order_stripe_alipay checkout_place_order_stripe_sepa',
 					this.onSubmit
 				);
 
@@ -125,7 +125,7 @@ jQuery( function( $ ) {
 		},
 
 		isStripeChosen: function() {
-			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort' ).is( ':checked' ) || 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val();
+			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_giropay, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa' ).is( ':checked' ) || 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val();
 		},
 		// Currently only support saved cards via credit cards. No other payment method.
 		isStripeSaveCardChosen: function() {
@@ -140,8 +140,24 @@ jQuery( function( $ ) {
 			return $( '#payment_method_stripe_bancontact' ).is( ':checked' );
 		},
 
+		isGiropayChosen: function() {
+			return $( '#payment_method_stripe_giropay' ).is( ':checked' );
+		},
+
+		isIdealChosen: function() {
+			return $( '#payment_method_stripe_ideal' ).is( ':checked' );
+		},
+
 		isSofortChosen: function() {
 			return $( '#payment_method_stripe_sofort' ).is( ':checked' );
+		},
+
+		isAlipayChosen: function() {
+			return $( '#payment_method_stripe_alipay' ).is( ':checked' );
+		},
+
+		isSepaChosen: function() {
+			return $( '#payment_method_stripe_sepa' ).is( ':checked' );
 		},
 
 		hasSource: function() {
@@ -251,8 +267,8 @@ jQuery( function( $ ) {
 			var extra_details = wc_stripe_elements_form.getOwnerDetails(),
 				source_type   = 'card';
 
-			if ( wc_stripe_elements_form.isBancontactChosen() ) {
-				source_type = 'bancontact';
+			if ( wc_stripe_elements_form.isSepaChosen() ) {
+				source_type = 'sepa_debit';
 			}
 
 			if ( 'card' === source_type ) {
@@ -292,7 +308,7 @@ jQuery( function( $ ) {
 				switch ( source_type ) {
 					case 'sepa_debit':
 						extra_details.currency = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
-						extra_details.sepa_debit = { iban: $( '#stripe-iban' ).val() };
+						extra_details.sepa_debit = { iban: $( '#stripe-sepa-iban' ).val() };
 						break;
 					case 'ideal':
 						extra_details.ideal = { bank: $( '#stripe-ideal-bank' ).val() };
@@ -334,6 +350,18 @@ jQuery( function( $ ) {
 					return true;
 				}
 
+				if ( wc_stripe_elements_form.isGiropayChosen() ) {
+					return true;
+				}
+
+				if ( wc_stripe_elements_form.isIdealChosen() ) {
+					return true;
+				}
+
+				if ( wc_stripe_elements_form.isAlipayChosen() ) {
+					return true;
+				}
+
 				if ( wc_stripe_elements_form.isSofortChosen() ) {
 					// Check if Sofort bank country is chosen before proceed.
 					if ( '-1' === $( '#stripe-bank-country' ).val() ) {
@@ -343,6 +371,17 @@ jQuery( function( $ ) {
 					}
 
 					return true;
+				}
+
+				if ( wc_stripe_elements_form.isSepaChosen() ) {
+					// Check if SEPA IBAN is filled before proceed.
+					if ( '' === $( '#stripe-sepa-iban' ).val() ) {
+						var errors = { error: { message: wc_stripe_params.no_iban_msg } };
+						$( document.body ).trigger( 'stripeError', errors );
+						return false;
+					}
+
+					wc_stripe_elements_form.validateCheckout();
 				}
 
 				wc_stripe_elements_form.validateCheckout();
@@ -378,7 +417,8 @@ jQuery( function( $ ) {
 			var data = {
 				'nonce': wc_stripe_params.stripe_nonce,
 				'required_fields': wc_stripe_elements_form.getRequiredFields().serialize(),
-				'all_fields': wc_stripe_elements_form.form.serialize()
+				'all_fields': wc_stripe_elements_form.form.serialize(),
+				'source_type': wc_stripe_elements_form.getSelectedPaymentElement().val()
 			};
 
 			$.ajax({
