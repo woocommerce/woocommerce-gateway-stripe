@@ -131,7 +131,7 @@ class WC_Stripe_API {
 	 * @param string $api
 	 */
 	public static function retrieve( $api ) {
-		WC_Stripe_Logger::log( "{$api} request: " . print_r( $request, true ) );
+		WC_Stripe_Logger::log( "{$api}" );
 
 		$ua = self::get_user_agent();
 

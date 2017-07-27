@@ -72,7 +72,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			$order_id = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
 
-			return esc_url_raw( add_query_arg( array( 'utm_nooverride' => '1', 'stripe_session_id' => $id, 'order_id' => $order_id ), $this->get_return_url( $order ) ) );
+			return esc_url_raw( add_query_arg( array( 'utm_nooverride' => '1', 'order_id' => $order_id ), $this->get_return_url( $order ) ) );
 		}
 
 		return esc_url_raw( add_query_arg( array( 'utm_nooverride' => '1' ), $this->get_return_url() ) );
@@ -295,8 +295,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( $source->customer ) {
 			version_compare( WC_VERSION, '3.0.0', '<' ) ? update_post_meta( $order_id, '_stripe_customer_id', $source->customer ) : $order->update_meta_data( '_stripe_customer_id', $source->customer );
 		}
+
 		if ( $source->source ) {
-			version_compare( WC_VERSION, '3.0.0', '<' ) ? update_post_meta( $order_id, '_stripe_card_id', $source->source ) : $order->update_meta_data( '_stripe_card_id', $source->source );
+			version_compare( WC_VERSION, '3.0.0', '<' ) ? update_post_meta( $order_id, '_stripe_source_id', $source->source ) : $order->update_meta_data( '_stripe_source_id', $source->source );
 		}
 
 		if ( is_callable( array( $order, 'save' ) ) ) {
@@ -329,7 +330,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$stripe_customer->set_id( $meta_value );
 			}
 
-			if ( $meta_value = get_post_meta( $order_id, '_stripe_card_id', true ) ) {
+			$source_id = get_post_meta( $order_id, '_stripe_source_id', true );
+
+			// Since 4.0.0, we changed card to source so we need to account for that.
+			if ( empty( $source_id ) ) {
+				$source_id = get_post_meta( $order_id, '_stripe_card_id', true );
+			}
+
+			if ( $source_id ) {
 				$stripe_source = $meta_value;
 			}
 		}

@@ -95,6 +95,8 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 		foreach ( $subscriptions as $subscription ) {
 			$subscription_id = $this->wc_pre_30 ? $subscription->id : $subscription->get_id();
 			update_post_meta( $subscription_id, '_stripe_customer_id', $source->customer );
+			update_post_meta( $subscription_id, '_stripe_source_id', $source->source );
+			// For BW compat will remove in the future.
 			update_post_meta( $subscription_id, '_stripe_card_id', $source->source );
 		}
 	}
@@ -252,6 +254,8 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	 */
 	public function delete_resubscribe_meta( $resubscribe_order ) {
 		delete_post_meta( ( $this->wc_pre_30 ? $resubscribe_order->id : $resubscribe_order->get_id() ), '_stripe_customer_id' );
+		delete_post_meta( ( $this->wc_pre_30 ? $resubscribe_order->id : $resubscribe_order->get_id() ), '_stripe_source_id' );
+		// For BW compat will remove in future
 		delete_post_meta( ( $this->wc_pre_30 ? $resubscribe_order->id : $resubscribe_order->get_id() ), '_stripe_card_id' );
 		$this->delete_renewal_meta( $resubscribe_order );
 	}
@@ -287,6 +291,8 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	 */
 	public function remove_order_source_before_retry( $order ) {
 		$order_id = $this->wc_pre_30 ? $order->id : $order->get_id();
+		delete_post_meta( $order_id, '_stripe_source_id' );
+		// For BW compat will remove in the future.
 		delete_post_meta( $order_id, '_stripe_card_id' );
 	}
 
@@ -311,9 +317,13 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	public function update_failing_payment_method( $subscription, $renewal_order ) {
 		if ( $this->wc_pre_30 ) {
 			update_post_meta( $subscription->id, '_stripe_customer_id', $renewal_order->stripe_customer_id );
+			update_post_meta( $subscription->id, '_stripe_source_id', $renewal_order->stripe_card_id );
+			// For BW compat will remove in the future.
 			update_post_meta( $subscription->id, '_stripe_card_id', $renewal_order->stripe_card_id );
 		} else {
 			$subscription->update_meta_data( '_stripe_customer_id', $renewal_order->get_meta( '_stripe_customer_id', true ) );
+			$subscription->update_meta_data( '_stripe_source_id', $renewal_order->get_meta( '_stripe_source_id', true ) );
+			// For BW compat will remove in the future.
 			$subscription->update_meta_data( '_stripe_card_id', $renewal_order->get_meta( '_stripe_card_id', true ) );
 		}
 	}
@@ -328,15 +338,22 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	 * @return array
 	 */
 	public function add_subscription_payment_meta( $payment_meta, $subscription ) {
+		$source_id = get_post_meta( ( $this->wc_pre_30 ? $subscription->id : $subscription->get_id() ), '_stripe_source_id', true );
+
+		// For BW compat will remove in future.
+		if ( empty( $source_id ) ) {
+			$source_id = get_post_meta( ( $this->wc_pre_30 ? $subscription->id : $subscription->get_id() ), '_stripe_card_id', true );
+		}
+
 		$payment_meta[ $this->id ] = array(
 			'post_meta' => array(
 				'_stripe_customer_id' => array(
 					'value' => get_post_meta( ( $this->wc_pre_30 ? $subscription->id : $subscription->get_id() ), '_stripe_customer_id', true ),
 					'label' => 'Stripe Customer ID',
 				),
-				'_stripe_card_id' => array(
-					'value' => get_post_meta( ( $this->wc_pre_30 ? $subscription->id : $subscription->get_id() ), '_stripe_card_id', true ),
-					'label' => 'Stripe Card ID',
+				'_stripe_source_id' => array(
+					'value' => $source_id,
+					'label' => 'Stripe Source ID',
 				),
 			),
 		);
@@ -361,8 +378,8 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 				throw new Exception( 'Invalid customer ID. A valid "_stripe_customer_id" must begin with "cus_".' );
 			}
 
-			if ( ! empty( $payment_meta['post_meta']['_stripe_card_id']['value'] ) && 0 !== strpos( $payment_meta['post_meta']['_stripe_card_id']['value'], 'card_' ) ) {
-				throw new Exception( 'Invalid card ID. A valid "_stripe_card_id" must begin with "card_".' );
+			if ( ! empty( $payment_meta['post_meta']['_stripe_source_id']['value'] ) && 0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'src_' ) ) {
+				throw new Exception( 'Invalid source ID. A valid "_stripe_source_id" must begin with "src_".' );
 			}
 		}
 	}
@@ -383,21 +400,37 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 			return $payment_method_to_display;
 		}
 
+		$stripe_source_id = get_post_meta( ( $this->wc_pre_30 ? $subscription->id : $subscription->get_id() ), '_stripe_source_id', true );
+
+		// For BW compat will remove in future.
+		if ( empty( $stripe_source_id ) ) {
+			$stripe_source_id = get_post_meta( ( $this->wc_pre_30 ? $subscription->id : $subscription->get_id() ), '_stripe_card_id', true );
+		}
+
 		$stripe_customer    = new WC_Stripe_Customer();
 		$stripe_customer_id = get_post_meta( ( $this->wc_pre_30 ? $subscription->id : $subscription->get_id() ), '_stripe_customer_id', true );
-		$stripe_card_id     = get_post_meta( ( $this->wc_pre_30 ? $subscription->id : $subscription->get_id() ), '_stripe_card_id', true );
 
 		// If we couldn't find a Stripe customer linked to the subscription, fallback to the user meta data.
 		if ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) {
 			$user_id            = $customer_user;
 			$stripe_customer_id = get_user_meta( $user_id, '_stripe_customer_id', true );
-			$stripe_card_id     = get_user_meta( $user_id, '_stripe_card_id', true );
+			$stripe_source_id   = get_user_meta( $user_id, '_stripe_source_id', true );
+
+			// For BW compat will remove in future.
+			if ( empty( $stripe_source_id ) ) {
+				$stripe_source_id   = get_user_meta( $user_id, '_stripe_card_id', true );
+			}
 		}
 
 		// If we couldn't find a Stripe customer linked to the account, fallback to the order meta data.
 		if ( ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) && false !== $subscription->order ) {
 			$stripe_customer_id = get_post_meta( ( $this->wc_pre_30 ? $subscription->order->id : $subscription->get_parent_id() ), '_stripe_customer_id', true );
-			$stripe_card_id     = get_post_meta( ( $this->wc_pre_30 ? $subscription->order->id : $subscription->get_parent_id() ), '_stripe_card_id', true );
+			$stripe_source_id   = get_post_meta( ( $this->wc_pre_30 ? $subscription->order->id : $subscription->get_parent_id() ), '_stripe_source_id', true );
+
+			// For BW compat will remove in future.
+			if ( empty( $stripe_source_id ) ) {
+				$stripe_source_id   = get_post_meta( ( $this->wc_pre_30 ? $subscription->order->id : $subscription->get_parent_id() ), '_stripe_card_id', true );
+			}
 		}
 
 		$stripe_customer->set_id( $stripe_customer_id );
@@ -406,7 +439,7 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 		if ( $cards ) {
 			$found_card = false;
 			foreach ( $cards as $card ) {
-				if ( $card->id === $stripe_card_id ) {
+				if ( $card->id === $stripe_source_id ) {
 					$found_card                = true;
 					$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->type ) ? $card->type : $card->brand ), $card->last4 );
 					break;

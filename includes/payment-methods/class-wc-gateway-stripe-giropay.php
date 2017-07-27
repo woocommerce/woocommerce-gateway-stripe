@@ -227,19 +227,14 @@ class WC_Gateway_Stripe_Giropay extends WC_Stripe_Payment_Gateway {
 	public function create_source( $order ) {
 		$currency              = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->get_order_currency() : $order->get_currency();
 		$order_id              = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
-		$stripe_session_id     = uniqid();
-		
-		// Set the stripe session id in order meta to later match it for security purposes.
-		update_post_meta( $order_id, '_stripe_session_id', $stripe_session_id );
-		$return_url            = $this->get_stripe_return_url( $order, $stripe_session_id );
-
-		$post_data                   = array();
-		$post_data['amount']         = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
-		$post_data['currency']       = strtolower( $currency );
-		$post_data['type']           = 'giropay';
-		$post_data['owner']          = $this->get_owner_details( $order );
-		$post_data['redirect']       = array( 'return_url' => $return_url );
-		$post_data['giropay']        = array( 'statement_descriptor' => $this->statement_descriptor );
+		$return_url            = $this->get_stripe_return_url( $order );
+		$post_data             = array();
+		$post_data['amount']   = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
+		$post_data['currency'] = strtolower( $currency );
+		$post_data['type']     = 'giropay';
+		$post_data['owner']    = $this->get_owner_details( $order );
+		$post_data['redirect'] = array( 'return_url' => $return_url );
+		$post_data['giropay']  = array( 'statement_descriptor' => $this->statement_descriptor );
 
 		WC_Stripe_Logger::log( 'Info: Begin creating Giropay source' );
 

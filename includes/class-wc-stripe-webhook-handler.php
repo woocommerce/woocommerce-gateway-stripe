@@ -1,15 +1,15 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // Exit if accessed directly
+	exit;
 }
 
 /**
  * Class WC_Stripe_Webhook_Handler.
  * 
- * Handles webhooks that some payment method needs.
+ * Handles webhooks from Stripe on sources that are not immediately chargeable.
  * @since 4.0.0
  */
-class WC_Stripe_Webhook_Handler {
+class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Constructor.
 	 *
@@ -40,7 +40,10 @@ class WC_Stripe_Webhook_Handler {
 		// Validate it to make sure it is legit.
 		if ( $this->is_valid_request( $request_headers, $request_body ) ) {
 			$this->process_webhook( $request_body );
+			status_header( 200 );
+			exit;
 		} else {
+			WC_Stripe_Logger::log( 'Incoming webhook failed validation: ' . print_r( $request_body, true ) );
 			status_header( 400 );
 			exit;
 		}
@@ -51,6 +54,7 @@ class WC_Stripe_Webhook_Handler {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
+	 * @todo Implement proper webhook signature validation. Ref https://stripe.com/docs/webhooks#signatures
 	 * @param string $request_headers The request headers from Stripe.
 	 * @param string $request_body The request body from Stripe.
 	 * @return bool
@@ -60,13 +64,15 @@ class WC_Stripe_Webhook_Handler {
 			return false;
 		}
 
-		try {
-
-			return false;
-		} catch ( Exception $e ) {
-			WC_Stripe_Logger::log( $e->getMessage() );
+		if ( empty( $request_headers['STRIPE-SIGNATURE'] ) ) {
 			return false;
 		}
+
+		if ( ! empty( $request_headers['USER-AGENT'] ) && ! preg_match( '/Stripe/', $request_headers['USER-AGENT'] ) ) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -93,19 +99,47 @@ class WC_Stripe_Webhook_Handler {
 	}
 
 	/**
+	 * Process webhook payments.
+	 * This is where we charge the source.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 */
+	public function process_webhook_payment( $source ) {
+
+	}
+
+	/**
 	 * Processes the incoming webhook.
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
 	 * @param string $request_body
 	 */
-	public function process_webhook( $request_body = null ) {
-		if ( null === $request_body ) {
-			status_header( 400 );
-			exit;
-		}
-
+	public function process_webhook( $request_body ) {
 		$notification = json_decode( $request_body );
+error_log( 'notification: ' . print_r( $notification,true));
+		switch ( $notification->type ) {
+			case 'source.chargeable':
+				$this->process_webhook_payment( $notification );
+				break;
+
+			case 'source.canceled':
+				break;
+
+			case 'source.failed':
+				break;
+
+			case 'charge.captured':
+				break;
+
+			case 'charge.dispute.created':
+				break;
+
+			case 'charge.refunded':
+				break;
+
+		}
 	}
 }
 

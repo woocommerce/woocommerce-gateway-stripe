@@ -82,12 +82,20 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				$source_object->customer = $this->get_stripe_customer_id( $order );
 				$source_object->source   = $source;
 
+				/**
+				 * First check if the source is chargeable at this time. If not,
+				 * webhook will take care of it later.
+				 */
+				$source_info = WC_Stripe_API::retrieve( 'sources/' . $source );
+				
+				if ( 'chargeable' !== $source_info->status ) {
+					return;
+				}
+
 				// Make the request.
 				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source_object ) );
 
 				if ( is_wp_error( $response ) ) {
-					$this->delete_stripe_session_id( $order_id );
-
 					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 					if ( 'customer' === $response->get_error_code() && $retry ) {
 						delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
@@ -123,7 +131,6 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				$order->payment_complete();
 			}
 
-			$this->delete_stripe_session_id( $order_id );
 			do_action( 'wc_gateway_stripe_process_redirect_payment', $response, $order );
 
 		} catch ( Exception $e ) {
@@ -133,20 +140,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				$this->send_failed_order_email( $order_id );
 			}
 
-			$this->delete_stripe_session_id( $order_id );
 			do_action( 'wc_gateway_stripe_process_redirect_payment_error', $e, $order );
 		}
-	}
-
-	/**
-	 * Deletes the temporary stripe session id from order.
-	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
-	 * @param int $order_id
-	 */
-	public function delete_stripe_session_id( $order_id ) {
-		delete_post_meta( $order_id, '_stripe_session_id' );
 	}
 
 	/**
@@ -156,17 +151,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function maybe_process_redirect_order() {
-		if ( ! is_order_received_page() || empty( $_GET['client_secret'] ) || empty( $_GET['source'] ) || empty( $_GET['stripe_session_id'] ) ) {
+		if ( ! is_order_received_page() || empty( $_GET['client_secret'] ) || empty( $_GET['source'] ) ) {
 			return;
 		}
 
-		$source            = wc_clean( $_GET['source'] );
-		$stripe_session_id = wc_clean( $_GET['stripe_session_id'] );
-		$order_id          = wc_clean( $_GET['order_id'] );
-
-		if ( $stripe_session_id !== get_post_meta( $order_id, '_stripe_session_id', true ) ) {
-			return;
-		}
+		$source   = wc_clean( $_GET['source'] );
+		$order_id = wc_clean( $_GET['order_id'] );
 
 		$this->process_redirect_payment( $order_id, true, $source );
 	}

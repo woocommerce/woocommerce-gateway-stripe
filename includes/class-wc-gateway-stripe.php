@@ -605,14 +605,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return mixed
 	 */
 	public function create_3ds_source( $order, $source_object ) {
-		$currency              = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->get_order_currency() : $order->get_currency();
-		$order_id              = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
-		$stripe_session_id     = uniqid();
+		$currency                    = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->get_order_currency() : $order->get_currency();
+		$order_id                    = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
+		$return_url                  = $this->get_stripe_return_url( $order );
 		
-		// Set the stripe session id in order meta to later match it for security purposes.
-		update_post_meta( $order_id, '_stripe_session_id', $stripe_session_id );
-		$return_url            = $this->get_stripe_return_url( $order, $stripe_session_id );
-
 		$post_data                   = array();
 		$post_data['amount']         = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		$post_data['currency']       = strtolower( $currency );
