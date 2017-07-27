@@ -104,8 +104,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
+	 * @param object $source
 	 */
 	public function process_webhook_payment( $source ) {
+		$order = WC_Stripe_Helper::get_order_by_source_id( $source->data->object->id );
+
 
 	}
 
@@ -118,7 +121,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_webhook( $request_body ) {
 		$notification = json_decode( $request_body );
-error_log( 'notification: ' . print_r( $notification,true));
+
 		switch ( $notification->type ) {
 			case 'source.chargeable':
 				$this->process_webhook_payment( $notification );

@@ -678,6 +678,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 						throw new Exception( $message );
 					}
 
+					// Update order meta with 3DS source.
+					if ( version_compare( WC_VERSION, '3.0.0', '<' ) ) {
+						update_post_meta( $order_id, '_stripe_source_id', $response->id );
+					} else {
+						$order->update_meta_data( '_stripe_source_id', $response->id );
+						$order->save();
+					}
+
 					WC_Stripe_Logger::log( 'Info: Redirecting to 3DS...' );
 
 					return array(

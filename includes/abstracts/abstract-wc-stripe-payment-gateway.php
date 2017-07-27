@@ -293,11 +293,21 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		// Store source in the order.
 		if ( $source->customer ) {
-			version_compare( WC_VERSION, '3.0.0', '<' ) ? update_post_meta( $order_id, '_stripe_customer_id', $source->customer ) : $order->update_meta_data( '_stripe_customer_id', $source->customer );
+			if ( version_compare( WC_VERSION, '3.0.0', '<' ) ) {
+				update_post_meta( $order_id, '_stripe_customer_id', $source->customer );
+			} else {
+				$order->update_meta_data( '_stripe_customer_id', $source->customer );
+				$order->save();
+			}
 		}
 
 		if ( $source->source ) {
-			version_compare( WC_VERSION, '3.0.0', '<' ) ? update_post_meta( $order_id, '_stripe_source_id', $source->source ) : $order->update_meta_data( '_stripe_source_id', $source->source );
+			if ( version_compare( WC_VERSION, '3.0.0', '<' ) ) {
+				update_post_meta( $order_id, '_stripe_source_id', $source->source );
+			} else {
+				$order->update_meta_data( '_stripe_source_id', $source->source );
+				$order->save();
+			}
 		}
 
 		if ( is_callable( array( $order, 'save' ) ) ) {
