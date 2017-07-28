@@ -94,8 +94,6 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 			$subscription_id = WC_Stripe_Helper::is_pre_30() ? $subscription->id : $subscription->get_id();
 			update_post_meta( $subscription_id, '_stripe_customer_id', $source->customer );
 			update_post_meta( $subscription_id, '_stripe_source_id', $source->source );
-			// For BW compat will remove in the future.
-			update_post_meta( $subscription_id, '_stripe_card_id', $source->source );
 		}
 	}
 
@@ -315,14 +313,11 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	public function update_failing_payment_method( $subscription, $renewal_order ) {
 		if ( WC_Stripe_Helper::is_pre_30() ) {
 			update_post_meta( $subscription->id, '_stripe_customer_id', $renewal_order->stripe_customer_id );
-			update_post_meta( $subscription->id, '_stripe_source_id', $renewal_order->stripe_card_id );
-			// For BW compat will remove in the future.
-			update_post_meta( $subscription->id, '_stripe_card_id', $renewal_order->stripe_card_id );
+			update_post_meta( $subscription->id, '_stripe_source_id', $renewal_order->stripe_source_id );
+
 		} else {
-			$subscription->update_meta_data( '_stripe_customer_id', $renewal_order->get_meta( '_stripe_customer_id', true ) );
-			$subscription->update_meta_data( '_stripe_source_id', $renewal_order->get_meta( '_stripe_source_id', true ) );
-			// For BW compat will remove in the future.
-			$subscription->update_meta_data( '_stripe_card_id', $renewal_order->get_meta( '_stripe_card_id', true ) );
+			update_post_meta( $subscription->get_id(), '_stripe_customer_id', $renewal_order->get_meta( '_stripe_customer_id', true ) );
+			update_post_meta( $subscription->get_id(), '_stripe_source_id', $renewal_order->get_meta( '_stripe_source_id', true ) );
 		}
 	}
 
@@ -341,6 +336,9 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 		// For BW compat will remove in future.
 		if ( empty( $source_id ) ) {
 			$source_id = get_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $subscription->id : $subscription->get_id() ), '_stripe_card_id', true );
+
+			// Take this opportunity to update the key name.
+			WC_Stripe_Helper::is_pre_30() ? update_post_meta( $subscription->id, '_stripe_source_id', $source_id ) : update_post_meta( $subscription->get_id(), '_stripe_source_id', $source_id );
 		}
 
 		$payment_meta[ $this->id ] = array(
@@ -403,6 +401,9 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 		// For BW compat will remove in future.
 		if ( empty( $stripe_source_id ) ) {
 			$stripe_source_id = get_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $subscription->id : $subscription->get_id() ), '_stripe_card_id', true );
+
+			// Take this opportunity to update the key name.
+			WC_Stripe_Helper::is_pre_30() ? update_post_meta( $subscription->id, '_stripe_source_id', $stripe_source_id ) : update_post_meta( $subscription->get_id(), '_stripe_source_id', $stripe_source_id );
 		}
 
 		$stripe_customer    = new WC_Stripe_Customer();
@@ -416,7 +417,10 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 
 			// For BW compat will remove in future.
 			if ( empty( $stripe_source_id ) ) {
-				$stripe_source_id   = get_user_meta( $user_id, '_stripe_card_id', true );
+				$stripe_source_id = get_user_meta( $user_id, '_stripe_card_id', true );
+
+				// Take this opportunity to update the key name.
+				update_user_meta( $user_id, '_stripe_source_id', $stripe_source_id );
 			}
 		}
 
@@ -427,7 +431,10 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 
 			// For BW compat will remove in future.
 			if ( empty( $stripe_source_id ) ) {
-				$stripe_source_id   = get_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $subscription->order->id : $subscription->get_parent_id() ), '_stripe_card_id', true );
+				$stripe_source_id = get_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $subscription->order->id : $subscription->get_parent_id() ), '_stripe_card_id', true );
+
+				// Take this opportunity to update the key name.
+				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $subscription->order->id, '_stripe_source_id', $stripe_source_id ) : update_post_meta( $subscription->get_parent_id(), '_stripe_source_id', $stripe_source_id );
 			}
 		}
 

@@ -70,7 +70,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			if ( WC_Stripe_Helper::is_pre_30() ) {
 				return get_post_meta( $order->id, '_stripe_customer_id', true );
 			} else {
-				return $order->get_meta_data( '_stripe_customer_id' );
+				return $order->get_meta( '_stripe_customer_id', true );
 			}
 		}
 
@@ -368,11 +368,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$stripe_customer->set_id( $meta_value );
 			}
 
-			$source_id = get_post_meta( $order_id, '_stripe_source_id', true );
+			$source_id = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_source_id', true ) : $order->get_meta( '_stripe_source_id', true );
 
 			// Since 4.0.0, we changed card to source so we need to account for that.
 			if ( empty( $source_id ) ) {
-				$source_id = get_post_meta( $order_id, '_stripe_card_id', true );
+				$source_id = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_card_id', true ) : $order->get_meta( '_stripe_card_id', true );
+
+				// Take this opportunity to update the key name.
+				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_stripe_source_id', $source_id ) : $order->update_meta_data( '_stripe_source_id', $source_id );
+
+				if ( is_callable( array( $order, 'save' ) ) ) {
+					$order->save();
+				}
 			}
 
 			if ( $source_id ) {
