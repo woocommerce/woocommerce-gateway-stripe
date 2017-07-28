@@ -21,30 +21,12 @@ class WC_Stripe_Helper {
 		if ( ! $currency ) {
 			$currency = get_woocommerce_currency();
 		}
-		switch ( strtoupper( $currency ) ) {
-			// Zero decimal currencies.
-			case 'BIF' :
-			case 'CLP' :
-			case 'DJF' :
-			case 'GNF' :
-			case 'JPY' :
-			case 'KMF' :
-			case 'KRW' :
-			case 'MGA' :
-			case 'PYG' :
-			case 'RWF' :
-			case 'VND' :
-			case 'VUV' :
-			case 'XAF' :
-			case 'XOF' :
-			case 'XPF' :
-				$total = absint( $total );
-				break;
-			default :
-				$total = round( $total, 2 ) * 100; // In cents.
-				break;
+
+		if ( in_array( strtolower( $currency ), self::no_decimal_currencies() ) ) {
+			return absint( $total );
+		} else {
+			return round( $total, 2 ) * 100; // In cents.
 		}
-		return $total;
 	}
 
 	/**
@@ -103,7 +85,7 @@ class WC_Stripe_Helper {
 	 * @param object $balance_transaction
 	 * @param string $type Type of number to format
 	 */
-	public static function format_number( $balance_transaction, $type = 'fee' ) {
+	public static function format_balance_fee( $balance_transaction, $type = 'fee' ) {
 		if ( ! is_object( $balance_transaction ) ) {
 			return;
 		}

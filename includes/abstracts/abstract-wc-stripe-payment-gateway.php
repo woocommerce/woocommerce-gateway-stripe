@@ -177,8 +177,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( isset( $response->balance_transaction ) && isset( $response->balance_transaction->fee ) ) {
 			// Fees and Net needs to both come from Stripe to be accurate as the returned
 			// values are in the local currency of the Stripe account, not from WC.
-			$fee = ! empty( $response->balance_transaction->fee ) ? WC_Stripe_Helper::format_number( $response->balance_transaction, 'fee' ) : 0;
-			$net = ! empty( $response->balance_transaction->net ) ? WC_Stripe_Helper::format_number( $response->balance_transaction, 'net' ) : 0;
+			$fee = ! empty( $response->balance_transaction->fee ) ? WC_Stripe_Helper::format_balance_fee( $response->balance_transaction, 'fee' ) : 0;
+			$net = ! empty( $response->balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $response->balance_transaction, 'net' ) : 0;
 			update_post_meta( $order_id, 'Stripe Fee', $fee );
 			update_post_meta( $order_id, 'Net Revenue From Stripe', $net );
 		}
@@ -430,7 +430,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			WC_Stripe_Logger::log( 'Error: ' . $response->get_error_message() );
 			return $response;
 		} elseif ( ! empty( $response->id ) ) {
-			$refund_message = sprintf( __( 'Refunded %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), wc_price( $response->amount / 100 ), $response->id, $reason );
+			$amount = wc_price( $response->amount / 100 );
+
+			if ( in_array( strtolower( get_woocommerce_currency() ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
+				$amount = wc_price( $response->amount );
+			}
+
+			$refund_message = sprintf( __( 'Refunded %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $amount, $response->id, $reason );
 			$order->add_order_note( $refund_message );
 			WC_Stripe_Logger::log( 'Success: ' . html_entity_decode( strip_tags( $refund_message ) ) );
 			return true;
@@ -451,14 +457,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
-		$card            = $stripe_customer->add_source( wc_clean( $_POST['stripe_token'] ) );
+		$source          = $stripe_customer->add_source( wc_clean( $_POST['stripe_token'] ) );
 
-		if ( is_wp_error( $card ) ) {
+		if ( is_wp_error( $source ) ) {
 			$localized_messages = WC_Stripe_Helper::get_localized_messages();
 			$error_msg = __( 'There was a problem adding the card.', 'woocommerce-gateway-stripe' );
 
 			// loop through the errors to find matching localized message
-			foreach ( $card->errors as $error => $msg ) {
+			foreach ( $source->errors as $error => $msg ) {
 				if ( isset( $localized_messages[ $error ] ) ) {
 					$error_msg = $localized_messages[ $error ];
 				}

@@ -47,31 +47,51 @@ class WC_Stripe_Payment_Tokens {
 	public function woocommerce_get_customer_payment_tokens( $tokens, $customer_id, $gateway_id ) {
 		if ( is_user_logged_in() && 'stripe' === $gateway_id && class_exists( 'WC_Payment_Token_CC' ) ) {
 			$stripe_customer = new WC_Stripe_Customer( $customer_id );
-			$stripe_cards    = $stripe_customer->get_sources();
+			$stripe_sources  = $stripe_customer->get_sources();
 			$stored_tokens   = array();
 
 			foreach ( $tokens as $token ) {
 				$stored_tokens[] = $token->get_token();
 			}
 
-			foreach ( $stripe_cards as $card ) {
-				if ( ! in_array( $card->id, $stored_tokens ) ) {
+			foreach ( $stripe_sources as $source ) {
+				if ( ! in_array( $source->id, $stored_tokens ) ) {
 					$token = new WC_Payment_Token_CC();
-					$token->set_token( $card->id );
-					$token->set_gateway_id( 'stripe' );
+					$token->set_token( $source->id );
 
-					if ( 'three_d_secure' === $card->type ) {
-						continue;
+					switch ( $source->type ) {
+						case 'bancontact':
+							$type = 'stripe_bancontact';
+							break;
+						case 'ideal':
+							$type = 'stripe_ideal';
+							break;
+						case 'giropay':
+							$type = 'stripe_giropay';
+							break;
+						case 'sofort':
+							$type = 'stripe_giropay';
+							break;
+						case 'alipay':
+							$type = 'stripe_alipay';
+							break;
+						case 'sepa_debit':
+							$type = 'stripe_sepa';
+							break;
+						default:
+							$type = 'stripe';
+							break;
 					}
 
-					if ( 'source' === $card->object ) {
-						$card = $card->card;
+					$token->set_gateway_id( $type );
+
+					if ( 'source' === $source->object && 'card' === $source->type ) {
+						$token->set_card_type( strtolower( $source->card->brand ) );
+						$token->set_last4( $source->card->last4 );
+						$token->set_expiry_month( $source->card->exp_month );
+						$token->set_expiry_year( $source->card->exp_year );
 					}
 
-					$token->set_card_type( strtolower( $card->brand ) );
-					$token->set_last4( $card->last4 );
-					$token->set_expiry_month( $card->exp_month );
-					$token->set_expiry_year( $card->exp_year );
 					$token->set_user_id( $customer_id );
 					$token->save();
 					$tokens[ $token->get_id() ] = $token;

@@ -204,21 +204,40 @@ class WC_Stripe_Customer {
 		if ( $this->get_user_id() && class_exists( 'WC_Payment_Token_CC' ) ) {
 			$wc_token = new WC_Payment_Token_CC();
 			$wc_token->set_token( $response->id );
-			$wc_token->set_gateway_id( 'stripe' );
 
-			if ( 'source' === $response->object ) {
-				// Check if it is a 3d secure source.
-				if ( 'three_d_secure' === $response->type ) {
-					$card = $response->three_d_secure->card;
-				} else {
-					$card = $response->card;
-				}
+			switch ( $response->type ) {
+				case 'bancontact':
+					$type = 'stripe_bancontact';
+					break;
+				case 'ideal':
+					$type = 'stripe_ideal';
+					break;
+				case 'giropay':
+					$type = 'stripe_giropay';
+					break;
+				case 'sofort':
+					$type = 'stripe_giropay';
+					break;
+				case 'alipay':
+					$type = 'stripe_alipay';
+					break;
+				case 'sepa_debit':
+					$type = 'stripe_sepa';
+					break;
+				default:
+					$type = 'stripe';
+					break;
 			}
 
-			$wc_token->set_card_type( strtolower( $card->brand ) );
-			$wc_token->set_last4( $card->last4 );
-			$wc_token->set_expiry_month( $card->exp_month );
-			$wc_token->set_expiry_year( $card->exp_year );
+			$wc_token->set_gateway_id( $type );
+
+			if ( 'source' === $response->object && 'card' === $response->type ) {
+				$wc_token->set_card_type( strtolower( $response->card->brand ) );
+				$wc_token->set_last4( $response->card->last4 );
+				$wc_token->set_expiry_month( $response->card->exp_month );
+				$wc_token->set_expiry_year( $response->card->exp_year );
+			}
+
 			$wc_token->set_user_id( $this->get_user_id() );
 			$wc_token->save();
 		}

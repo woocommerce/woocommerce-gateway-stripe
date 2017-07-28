@@ -164,7 +164,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 			if ( $charge && 'no' === $captured ) {
 				$result = WC_Stripe_API::request( array(
-					'amount'   => $order->get_total() * 100,
+					'amount'   => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
 					'expand[]' => 'balance_transaction',
 				), 'charges/' . $charge . '/capture' );
 
@@ -181,8 +181,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					if ( isset( $result->balance_transaction ) && isset( $result->balance_transaction->fee ) ) {
 						// Fees and Net needs to both come from Stripe to be accurate as the returned
 						// values are in the local currency of the Stripe account, not from WC.
-						$fee = ! empty( $result->balance_transaction->fee ) ? WC_Stripe_Helper::format_number( $result->balance_transaction, 'fee' ) : 0;
-						$net = ! empty( $result->balance_transaction->net ) ? WC_Stripe_Helper::format_number( $result->balance_transaction, 'net' ) : 0;
+						$fee = ! empty( $result->balance_transaction->fee ) ? WC_Stripe_Helper::format_balance_fee( $result->balance_transaction, 'fee' ) : 0;
+						$net = ! empty( $result->balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $result->balance_transaction, 'net' ) : 0;
 						update_post_meta( $order_id, 'Stripe Fee', $fee );
 						update_post_meta( $order_id, 'Net Revenue From Stripe', $net );
 					}
@@ -206,7 +206,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 			if ( $charge ) {
 				$result = WC_Stripe_API::request( array(
-					'amount' => $order->get_total() * 100,
+					'amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
 				), 'charges/' . $charge . '/refund' );
 
 				if ( is_wp_error( $result ) ) {
