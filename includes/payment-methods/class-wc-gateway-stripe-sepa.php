@@ -271,18 +271,17 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	public function process_payment( $order_id, $retry = true, $force_customer = false ) {
 		try {
 			$order = wc_get_order( $order_id );
-			$source_object = ! empty( $_POST['stripe_source_object'] ) ? json_decode( stripslashes( $_POST['stripe_source_object'] ) ) : false;
+			$source_object = ! empty( $_POST['stripe_source'] ) ? json_decode( wc_clean( stripslashes( $_POST['stripe_source'] ) ) ) : false;
 
-			$source = $this->get_source( get_current_user_id(), $force_customer );
+			$prepared_source = $this->prepare_source( get_current_user_id(), $force_customer );
 
-			if ( empty( $source->source ) && empty( $source->customer ) ) {
-				$error_msg = __( 'Please enter your card details to make a payment.', 'woocommerce-gateway-stripe' );
-				$error_msg .= ' ' . __( 'Developers: Please make sure that you are including jQuery and there are no JavaScript errors on the page.', 'woocommerce-gateway-stripe' );
+			if ( empty( $prepared_source->source ) ) {
+				$error_msg = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
 				throw new Exception( $error_msg );
 			}
 
 			// Store source to order meta.
-			$this->save_source( $order, $source );
+			$this->save_source( $order, $prepared_source );
 
 			// Result from Stripe API request.
 			$response = null;
@@ -297,7 +296,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 				WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
 				// Make the request.
-				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source ) );
+				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $prepared_source ) );
 
 				if ( is_wp_error( $response ) ) {
 					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
@@ -307,11 +306,11 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 					} elseif ( preg_match( '/No such customer/i', $response->get_error_message() ) && $retry ) {
 						delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
 
-						return $this->process_redirect_payment( $order_id, false, $source );
+						return $this->process_payment( $order_id, false, $force_customer );
 						// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
-					} elseif ( 'source' === $response->get_error_code() && $source->token_id ) {
-						$token = WC_Payment_Tokens::get( $source->token_id );
-						$token->delete();
+					} elseif ( 'source' === $response->get_error_code() && $prepared_source->token_id ) {
+						$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
+						$wc_token->delete();
 						$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
 						$order->add_order_note( $message );
 						throw new Exception( $message );
@@ -347,11 +346,11 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 			wc_add_notice( $e->getMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
+			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
+
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );
 			}
-
-			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
 			return array(
 				'result'   => 'fail',

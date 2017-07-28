@@ -246,7 +246,7 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 	 * @param bool $plain_text
 	 */
 	public function email_instructions( $order, $sent_to_admin, $plain_text = false ) {
-		$order_id = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
+		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 
 		if ( ! $sent_to_admin && 'stripe_bitcoin' === $order->get_payment_method() && $order->has_status( 'on-hold' ) ) {
 			$this->get_instructions( $order_id, $plain_text );
@@ -310,7 +310,7 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 			'uri'     => $source_object->bitcoin->uri,
 		);
 
-		$order_id = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
+		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 
 		update_post_meta( $order_id, '_stripe_bitcoin', $data );
 	}
@@ -329,25 +329,23 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 	public function process_payment( $order_id, $retry = true, $force_customer = false ) {
 		try {
 			$order = wc_get_order( $order_id );
-			$source_object = ! empty( $_POST['stripe_source_object'] ) ? json_decode( stripslashes( $_POST['stripe_source_object'] ) ) : false;
+			$source_object = ! empty( $_POST['stripe_source'] ) ? json_decode( stripslashes( $_POST['stripe_source'] ) ) : false;
 
-			$source = $this->get_source( get_current_user_id(), $force_customer );
+			$prepared_source = $this->prepare_source( get_current_user_id(), $force_customer );
 
-			if ( empty( $source->source ) && empty( $source->customer ) ) {
-				$error_msg = __( 'Please enter your card details to make a payment.', 'woocommerce-gateway-stripe' );
-				$error_msg .= ' ' . __( 'Developers: Please make sure that you are including jQuery and there are no JavaScript errors on the page.', 'woocommerce-gateway-stripe' );
+			if ( empty( $prepared_source->source ) ) {
+				$error_msg = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
 				throw new Exception( $error_msg );
 			}
 
 			// Store source to order meta.
-			$this->save_source( $order, $source );
+			$this->save_source( $order, $prepared_source );
 
 			// Result from Stripe API request.
 			$response = null;
 
 			// Handle payment.
 			if ( $order->get_total() > 0 ) {
-
 				if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
 					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 				}
@@ -376,11 +374,11 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 			wc_add_notice( $e->getMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
+			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
+
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );
 			}
-
-			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
 			return array(
 				'result'   => 'fail',

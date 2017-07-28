@@ -188,8 +188,8 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 * Payment form on checkout page
 	 */
 	public function payment_fields() {
-		$user                 = wp_get_current_user();
-		$total                = WC()->cart->total;
+		$user  = wp_get_current_user();
+		$total = WC()->cart->total;
 
 		// If paying from order, we need to get total from order not cart.
 		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) {
@@ -225,8 +225,8 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 * @return mixed
 	 */
 	public function create_source( $order ) {
-		$currency                = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->get_order_currency() : $order->get_currency();
-		$order_id                = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
+		$currency                = WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency();
+		$order_id                = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 		$return_url              = $this->get_stripe_return_url( $order );
 		$post_data               = array();
 		$post_data['amount']     = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
@@ -273,7 +273,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 					throw new Exception( $message );
 				}
 
-				if ( version_compare( WC_VERSION, '3.0.0', '<' ) ) {
+				if ( WC_Stripe_Helper::is_pre_30() ) {
 					update_post_meta( $order_id, '_stripe_source_id', $response->id );
 				} else {
 					$order->update_meta_data( '_stripe_source_id', $response->id );
@@ -293,11 +293,11 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 			wc_add_notice( $e->getMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
+			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
+
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );
 			}
-
-			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
 			return array(
 				'result'   => 'fail',

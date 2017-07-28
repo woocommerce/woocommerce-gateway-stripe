@@ -551,14 +551,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$order_id = wc_get_order_id_by_order_key( urldecode( $_GET['key'] ) );
 			$order    = wc_get_order( $order_id );
 
-			$stripe_params['billing_first_name'] = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->billing_first_name : $order->get_billing_first_name();
-			$stripe_params['billing_last_name']  = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->billing_last_name : $order->get_billing_last_name();
-			$stripe_params['billing_address_1']  = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->billing_address_1 : $order->get_billing_address_1();
-			$stripe_params['billing_address_2']  = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->billing_address_2 : $order->get_billing_address_2();
-			$stripe_params['billing_state']      = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->billing_state : $order->get_billing_state();
-			$stripe_params['billing_city']       = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->billing_city : $order->get_billing_city();
-			$stripe_params['billing_postcode']   = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->billing_postcode : $order->get_billing_postcode();
-			$stripe_params['billing_country']    = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->billing_country : $order->get_billing_country();
+			$stripe_params['billing_first_name'] = WC_Stripe_Helper::is_pre_30() ? $order->billing_first_name : $order->get_billing_first_name();
+			$stripe_params['billing_last_name']  = WC_Stripe_Helper::is_pre_30() ? $order->billing_last_name : $order->get_billing_last_name();
+			$stripe_params['billing_address_1']  = WC_Stripe_Helper::is_pre_30() ? $order->billing_address_1 : $order->get_billing_address_1();
+			$stripe_params['billing_address_2']  = WC_Stripe_Helper::is_pre_30() ? $order->billing_address_2 : $order->get_billing_address_2();
+			$stripe_params['billing_state']      = WC_Stripe_Helper::is_pre_30() ? $order->billing_state : $order->get_billing_state();
+			$stripe_params['billing_city']       = WC_Stripe_Helper::is_pre_30() ? $order->billing_city : $order->get_billing_city();
+			$stripe_params['billing_postcode']   = WC_Stripe_Helper::is_pre_30() ? $order->billing_postcode : $order->get_billing_postcode();
+			$stripe_params['billing_country']    = WC_Stripe_Helper::is_pre_30() ? $order->billing_country : $order->get_billing_country();
 		}
 
 		$stripe_params['no_prepaid_card_msg']                     = __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' );
@@ -605,8 +605,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return mixed
 	 */
 	public function create_3ds_source( $order, $source_object ) {
-		$currency                    = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->get_order_currency() : $order->get_currency();
-		$order_id                    = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
+		$currency                    = WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency();
+		$order_id                    = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 		$return_url                  = $this->get_stripe_return_url( $order );
 		
 		$post_data                   = array();
@@ -636,18 +636,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public function process_payment( $order_id, $retry = true, $force_customer = false ) {
 		try {
 			$order = wc_get_order( $order_id );
-			$source_object = ! empty( $_POST['stripe_source_object'] ) ? json_decode( stripslashes( $_POST['stripe_source_object'] ) ) : false;
+			$source_object = ! empty( $_POST['stripe_source'] ) ? json_decode( wc_clean( stripslashes( $_POST['stripe_source'] ) ) ) : false;
 
-			$source = $this->get_source( get_current_user_id(), $force_customer );
+			$prepared_source = $this->prepare_source( get_current_user_id(), $force_customer );
 
-			if ( empty( $source->source ) && empty( $source->customer ) ) {
-				$error_msg = __( 'Please enter your card details to make a payment.', 'woocommerce-gateway-stripe' );
-				$error_msg .= ' ' . __( 'Developers: Please make sure that you are including jQuery and there are no JavaScript errors on the page.', 'woocommerce-gateway-stripe' );
+			if ( empty( $prepared_source->source ) ) {
+				$error_msg = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
 				throw new Exception( $error_msg );
 			}
 
 			// Store source to order meta.
-			$this->save_source( $order, $source );
+			$this->save_source( $order, $prepared_source );
 
 			// Result from Stripe API request.
 			$response = null;
@@ -679,7 +678,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					}
 
 					// Update order meta with 3DS source.
-					if ( version_compare( WC_VERSION, '3.0.0', '<' ) ) {
+					if ( WC_Stripe_Helper::is_pre_30() ) {
 						update_post_meta( $order_id, '_stripe_source_id', $response->id );
 					} else {
 						$order->update_meta_data( '_stripe_source_id', $response->id );
@@ -697,7 +696,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
 				// Make the request.
-				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source ) );
+				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $prepared_source ) );
 
 				if ( is_wp_error( $response ) ) {
 					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
@@ -707,11 +706,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					} elseif ( preg_match( '/No such customer/i', $response->get_error_message() ) && $retry ) {
 						delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
 
-						return $this->process_redirect_payment( $order_id, false, $source );
+						return $this->process_payment( $order_id, false, $force_customer );
 						// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
-					} elseif ( 'source' === $response->get_error_code() && $source->token_id ) {
-						$token = WC_Payment_Tokens::get( $source->token_id );
-						$token->delete();
+					} elseif ( 'source' === $response->get_error_code() && $prepared_source->token_id ) {
+						$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
+						$wc_token->delete();
 						$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
 						$order->add_order_note( $message );
 						throw new Exception( $message );
@@ -747,11 +746,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			wc_add_notice( $e->getMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
+			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
+
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );
 			}
-
-			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
 			return array(
 				'result'   => 'fail',

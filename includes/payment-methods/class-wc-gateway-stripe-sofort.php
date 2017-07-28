@@ -257,8 +257,8 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 	 * @return mixed
 	 */
 	public function create_source( $order ) {
-		$currency              = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->get_order_currency() : $order->get_currency();
-		$order_id              = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
+		$currency              = WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency();
+		$order_id              = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 		$bank_country          = wc_clean( $_POST['stripe_sofort_bank_country'] );
 		$return_url            = $this->get_stripe_return_url( $order );
 		$post_data             = array();
@@ -306,6 +306,13 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 					throw new Exception( $message );
 				}
 
+				if ( WC_Stripe_Helper::is_pre_30() ) {
+					update_post_meta( $order_id, '_stripe_source_id', $response->id );
+				} else {
+					$order->update_meta_data( '_stripe_source_id', $response->id );
+					$order->save();
+				}
+
 				WC_Stripe_Logger::log( 'Info: Redirecting to Sofort...' );
 
 				return array(
@@ -319,11 +326,11 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 			wc_add_notice( $e->getMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
+			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
+
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );
 			}
-
-			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
 			return array(
 				'result'   => 'fail',

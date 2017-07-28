@@ -39,16 +39,6 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Gets the saved customer id if exists.
-	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
-	 */
-	public function get_stripe_customer_id( $order ) {
-		return get_user_meta( $order->get_customer_id(), '_stripe_customer_id', true );
-	}
-
-	/**
 	 * Processes payments.
 	 * Note at this time the original source has already been
 	 * saved to a customer card (if applicable) from process_payment.
@@ -60,7 +50,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		try {
 			$order = wc_get_order( $order_id );
 
-			if ( 'processing' === $order->get_status() || 'completed' === $order->get_status() || 'on-hold' === $order->get_status() ) {
+			if ( 'processing' === $order->get_status() || 'completed' === $order->get_status() ) {
 				return;
 			}
 
@@ -119,10 +109,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 					$order->add_order_note( $message );
 
-					wc_add_notice( __( 'Payment failed, please try another payment method.', 'woocommerce-gateway-stripe' ), 'error' );
-					// Everything failed so send customer back to checkout page to pay via another source.
-					wp_safe_redirect( wc_get_checkout_url() );
-					exit;
+					throw new Exception( $message );
 				}
 
 				$this->process_response( $response, $order );
@@ -171,7 +158,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	public function capture_payment( $order_id ) {
 		$order = wc_get_order( $order_id );
 
-		if ( 'stripe' === ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->payment_method : $order->get_payment_method() ) ) {
+		if ( 'stripe' === ( WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method() ) ) {
 			$charge   = get_post_meta( $order_id, '_stripe_charge_id', true );
 			$captured = get_post_meta( $order_id, '_stripe_charge_captured', true );
 
@@ -214,7 +201,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	public function cancel_payment( $order_id ) {
 		$order = wc_get_order( $order_id );
 
-		if ( 'stripe' === ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->payment_method : $order->get_payment_method() ) ) {
+		if ( 'stripe' === ( WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method() ) ) {
 			$charge   = get_post_meta( $order_id, '_stripe_charge_id', true );
 
 			if ( $charge ) {

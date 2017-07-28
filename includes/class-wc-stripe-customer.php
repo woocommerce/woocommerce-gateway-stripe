@@ -167,11 +167,11 @@ class WC_Stripe_Customer {
 
 	/**
 	 * Add a source for this stripe customer.
-	 * @param string $token
+	 * @param string $source_id
 	 * @param bool $retry
 	 * @return WP_Error|int
 	 */
-	public function add_source( $token, $retry = true ) {
+	public function add_source( $source_id, $retry = true ) {
 		if ( ! $this->get_id() ) {
 			if ( ( $response = $this->create_customer() ) && is_wp_error( $response ) ) {
 				return $response;
@@ -179,7 +179,7 @@ class WC_Stripe_Customer {
 		}
 
 		$response = WC_Stripe_API::request( array(
-			'source' => $token,
+			'source' => $source_id,
 		), 'customers/' . $this->get_id() . '/sources' );
 
 		if ( is_wp_error( $response ) ) {
@@ -189,22 +189,22 @@ class WC_Stripe_Customer {
 			if ( preg_match( '/No such customer:/', $response->get_error_message() ) ) {
 				delete_user_meta( $this->get_user_id(), '_stripe_customer_id' );
 				$this->create_customer();
-				return $this->add_source( $token, false );
+				return $this->add_source( $source_id, false );
 			} elseif ( 'customer' === $response->get_error_code() && $retry ) {
 				$this->create_customer();
-				return $this->add_source( $token, false );
+				return $this->add_source( $source_id, false );
 			} else {
 				return $response;
 			}
 		} elseif ( empty( $response->id ) ) {
-			return new WP_Error( 'error', __( 'Unable to add card', 'woocommerce-gateway-stripe' ) );
+			return new WP_Error( 'error', __( 'Unable to add payment source.', 'woocommerce-gateway-stripe' ) );
 		}
 
 		// Add token to WooCommerce
 		if ( $this->get_user_id() && class_exists( 'WC_Payment_Token_CC' ) ) {
-			$token = new WC_Payment_Token_CC();
-			$token->set_token( $response->id );
-			$token->set_gateway_id( 'stripe' );
+			$wc_token = new WC_Payment_Token_CC();
+			$wc_token->set_token( $response->id );
+			$wc_token->set_gateway_id( 'stripe' );
 
 			if ( 'source' === $response->object ) {
 				// Check if it is a 3d secure source.
@@ -215,17 +215,17 @@ class WC_Stripe_Customer {
 				}
 			}
 
-			$token->set_card_type( strtolower( $card->brand ) );
-			$token->set_last4( $card->last4 );
-			$token->set_expiry_month( $card->exp_month );
-			$token->set_expiry_year( $card->exp_year );
-			$token->set_user_id( $this->get_user_id() );
-			$token->save();
+			$wc_token->set_card_type( strtolower( $card->brand ) );
+			$wc_token->set_last4( $card->last4 );
+			$wc_token->set_expiry_month( $card->exp_month );
+			$wc_token->set_expiry_year( $card->exp_year );
+			$wc_token->set_user_id( $this->get_user_id() );
+			$wc_token->save();
 		}
 
 		$this->clear_cache();
 
-		do_action( 'woocommerce_stripe_add_source', $this->get_id(), $token, $response );
+		do_action( 'woocommerce_stripe_add_source', $this->get_id(), $wc_token, $response, $source_id );
 
 		return $response->id;
 	}

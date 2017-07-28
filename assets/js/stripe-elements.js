@@ -427,8 +427,7 @@ jQuery( function( $ ) {
 			wc_stripe_elements_form.reset();
 
 			// Insert the Source into the form so it gets submitted to the server.
-			wc_stripe_elements_form.form.append( "<input type='hidden' class='stripe-source' name='stripe_source' value='" + source.id + "'/>" );
-			wc_stripe_elements_form.form.append( "<input type='hidden' class='stripe-source' name='stripe_source_object' value='" + JSON.stringify( source ) + "'/>" );
+			wc_stripe_elements_form.form.append( "<input type='hidden' class='stripe-source' name='stripe_source' value='" + JSON.stringify( source ) + "'/>" );
 
 			wc_stripe_elements_form.form.submit();
 		},

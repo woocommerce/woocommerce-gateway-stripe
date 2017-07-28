@@ -148,7 +148,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 		 * a new hook was added to WooCommerce 3.0. In older versions of WooCommerce,
 		 * CSS is used to position the button.
 		 */
-		if ( version_compare( WC_VERSION, '3.0.0', '<' ) ) {
+		if ( WC_Stripe_Helper::is_pre_30() ) {
 			add_action( 'woocommerce_after_add_to_cart_button', array( $this, 'display_apple_pay_button' ), 1 );
 		} else {
 			add_action( 'woocommerce_after_add_to_cart_quantity', array( $this, 'display_apple_pay_button' ), 1 );
@@ -265,7 +265,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 
 		$product = wc_get_product( $post->ID );
 
-		if ( ! is_object( $product ) || ! in_array( ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
+		if ( ! is_object( $product ) || ! in_array( ( WC_Stripe_Helper::is_pre_30() ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
 			return;
 		}
 
@@ -357,7 +357,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 			$_product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
 
-			if ( ! in_array( ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $_product->product_type : $_product->get_type() ), $this->supported_product_types() ) ) {
+			if ( ! in_array( ( WC_Stripe_Helper::is_pre_30() ? $_product->product_type : $_product->get_type() ), $this->supported_product_types() ) ) {
 				return false;
 			}
 		}
@@ -388,7 +388,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 
 			$product = wc_get_product( $post->ID );
 
-			if ( ! is_object( $product ) || ! in_array( ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
+			if ( ! is_object( $product ) || ! in_array( ( WC_Stripe_Helper::is_pre_30() ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
 				return;
 			}
 		} else {
@@ -463,10 +463,10 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			// First empty the cart to prevent wrong calculation.
 			WC()->cart->empty_cart();
 
-			if ( 'variable' === ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $product->product_type : $product->get_type() ) && isset( $_POST['attributes'] ) ) {
+			if ( 'variable' === ( WC_Stripe_Helper::is_pre_30() ? $product->product_type : $product->get_type() ) && isset( $_POST['attributes'] ) ) {
 				$attributes = array_map( 'wc_clean', $_POST['attributes'] );
 
-				if ( version_compare( WC_VERSION, '3.0.0', '<' ) ) {
+				if ( WC_Stripe_Helper::is_pre_30() ) {
 					$variation_id = $product->get_matching_variation( $attributes );
 				} else {
 					$data_store = WC_Data_Store::load( 'product' );
@@ -476,7 +476,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 				WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
 			}
 
-			if ( 'simple' === ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $product->product_type : $product->get_type() ) ) {
+			if ( 'simple' === ( WC_Stripe_Helper::is_pre_30() ? $product->product_type : $product->get_type() ) ) {
 				WC()->cart->add_to_cart( $product->get_id(), $qty );
 			}
 		}
@@ -544,7 +544,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			WC()->customer->set_shipping_to_base();
 		}
 
-		if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
+		if ( WC_Stripe_Helper::is_pre_30() ) {
 			WC()->customer->calculated_shipping( true );
 		} else { 
 			WC()->customer->set_calculated_shipping( true );
@@ -688,7 +688,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 
 			$order = $this->create_order( $result );
 
-			$order_id = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
+			$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 
 			// Handle payment.
 			if ( $order->get_total() > 0 ) {
@@ -746,12 +746,12 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 	 */
 	public function generate_payment_request( $order, $source ) {
 		$post_data                = array();
-		$post_data['currency']    = strtolower( version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->get_order_currency() : $order->get_currency() );
+		$post_data['currency']    = strtolower( WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency() );
 		$post_data['amount']      = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $post_data['currency'] );
 		$post_data['description'] = sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), $this->statement_descriptor, $order->get_order_number() );
 		$post_data['capture']     = $this->capture ? 'true' : 'false';
 
-		$billing_email      = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->billing_email : $order->get_billing_email();
+		$billing_email      = WC_Stripe_Helper::is_pre_30() ? $order->billing_email : $order->get_billing_email();
 
 		if ( ! empty( $billing_email ) && apply_filters( 'wc_stripe_send_stripe_receipt', false ) ) {
 			$post_data['receipt_email'] = $billing_email;
@@ -815,7 +815,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			$subtotal       += $cart_item['line_subtotal'];
 			$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
 
-			$product_name = version_compare( WC_VERSION, '3.0', '<' ) ? $cart_item['data']->post->post_title : $cart_item['data']->get_name();
+			$product_name = WC_Stripe_Helper::is_pre_30() ? $cart_item['data']->post->post_title : $cart_item['data']->get_name();
 
 			$item = array(
 				'type'   => 'final',
@@ -887,7 +887,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 		}
 
 		$order = wc_create_order();
-		$order_id = version_compare( WC_VERSION, '3.0.0', '<' ) ? $order->id : $order->get_id();
+		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 
 		if ( is_wp_error( $order ) ) {
 			throw new Exception( sprintf( __( 'Error %d: Unable to create order. Please try again.', 'woocommerce-gateway-stripe' ), 520 ) );
@@ -919,7 +919,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			}
 
 			// Allow plugins to add order item meta
-			if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
+			if ( WC_Stripe_Helper::is_pre_30() ) {
 				do_action( 'woocommerce_add_order_item_meta', $item_id, $values, $cart_item_key );
 			} else {
 				do_action( 'woocommerce_new_order_item', $item_id, wc_get_product( $item_id ), $order->get_id() );
@@ -928,7 +928,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 
 		// Store fees
 		foreach ( WC()->cart->get_fees() as $fee_key => $fee ) {
-			if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
+			if ( WC_Stripe_Helper::is_pre_30() ) {
 				$item_id = $order->add_fee( $fee );
 			} else {
 				$item = new WC_Order_Item_Fee();
@@ -951,7 +951,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			}
 
 			// Allow plugins to add order item meta to fees
-			if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
+			if ( WC_Stripe_Helper::is_pre_30() ) {
 				do_action( 'woocommerce_add_order_fee_meta', $order_id, $item_id, $fee, $fee_key );
 			} else {
 				do_action( 'woocommerce_new_order_item', $item_id, $fee, $order->get_id() );
@@ -963,7 +963,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			$tax_amount = WC()->cart->get_tax_amount( $tax_rate_id );
 			$shipping_tax_amount = WC()->cart->get_shipping_tax_amount( $tax_rate_id );
 
-			if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
+			if ( WC_Stripe_Helper::is_pre_30() ) {
 				$item_id = $order->add_tax( $tax_rate_id, $tax_amount, $shipping_tax_amount );
 			} else {
 				$item = new WC_Order_Item_Tax();
@@ -988,7 +988,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 		$discount_tax = WC()->cart->get_coupon_discount_tax_amount( $code );
 
 		foreach ( WC()->cart->get_coupons() as $code => $coupon ) {
-			if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
+			if ( WC_Stripe_Helper::is_pre_30() ) {
 				$coupon_id = $order->add_coupon( $code, $discount, $discount_tax );
 			} else {
 				$item = new WC_Order_Item_Coupon();
@@ -1063,7 +1063,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 				// Loop through user chosen shipping methods.
 				foreach ( WC()->session->get( 'chosen_shipping_methods' ) as $method ) {
 					if ( $method === $key ) {
-						if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
+						if ( WC_Stripe_Helper::is_pre_30() ) {
 							$order->add_shipping( $rate );
 						} else {
 							$item = new WC_Order_Item_Shipping();
@@ -1089,7 +1089,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 		$order->set_payment_method( $available_gateways['stripe'] );
 		WC()->cart->calculate_totals();
 
-		if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
+		if ( WC_Stripe_Helper::is_pre_30() ) {
 			$order->set_total( WC()->cart->shipping_total, 'shipping' );
 			$order->set_total( WC()->cart->get_cart_discount_total(), 'cart_discount' );
 			$order->set_total( WC()->cart->get_cart_discount_tax_total(), 'cart_discount_tax' );

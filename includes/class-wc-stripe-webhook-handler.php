@@ -105,11 +105,89 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @since 4.0.0
 	 * @version 4.0.0
 	 * @param object $source
+	 * @param bool $retry
 	 */
-	public function process_webhook_payment( $source ) {
+	public function process_webhook_payment( $source, $retry = true ) {
 		$order = WC_Stripe_Helper::get_order_by_source_id( $source->data->object->id );
 
+		if ( ! $order ) {
+			WC_Stripe_Logger::log( 'Could not find order via source ID: ' . $source->data->object->id );
+			return;
+		}
 
+		$order_id  = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$source_id = $source->data->object->id;
+
+		try {
+			if ( 'processing' === $order->get_status() || 'completed' === $order->get_status() ) {
+				return;
+			}
+
+			// Result from Stripe API request.
+			$response = null;
+
+			// Handle payment.
+			if ( $order->get_total() > 0 ) {
+
+				if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
+					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
+				}
+
+				WC_Stripe_Logger::log( "Info: (Webhook) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
+
+				// Prep source object.
+				$source_object           = new stdClass();
+				$source_object->token_id = '';
+				$source_object->customer = $this->get_stripe_customer_id( $order );
+				$source_object->source   = $source_id;
+
+				// Make the request.
+				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source_object ) );
+
+				if ( is_wp_error( $response ) ) {
+					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
+					if ( 'customer' === $response->get_error_code() && $retry ) {
+						delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
+
+						return $this->process_redirect_payment( $order_id, false, $source );
+					} elseif ( preg_match( '/No such customer/i', $response->get_error_message() ) && $retry ) {
+						delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
+
+						return $this->process_redirect_payment( $order_id, false, $source );
+					// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
+					} elseif ( 'source' === $response->get_error_code() && $source->token_id ) {
+						$token = WC_Payment_Tokens::get( $source->token_id );
+						$token->delete();
+						$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
+						$order->add_order_note( $message );
+					}
+
+					$localized_messages = WC_Stripe_Helper::get_localized_messages();
+
+					$message = isset( $localized_messages[ $response->get_error_code() ] ) ? $localized_messages[ $response->get_error_code() ] : $response->get_error_message();
+
+					$order->add_order_note( $message );
+
+					throw new Exception( $message );
+				}
+
+				$this->process_response( $response, $order );
+				
+			} else {
+				$order->payment_complete();
+			}
+
+			do_action( 'wc_gateway_stripe_process_webhook_payment', $response, $order );
+
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
+				$this->send_failed_order_email( $order_id );
+			}
+
+			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $e, $order );
+		}
 	}
 
 	/**

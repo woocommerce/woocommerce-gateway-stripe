@@ -175,7 +175,7 @@ class WC_Stripe_Payment_Request {
 			WC()->customer->set_shipping_to_base();
 		}
 
-		if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
+		if ( WC_Stripe_Helper::is_pre_30() ) {
 			WC()->customer->calculated_shipping( true );
 		} else {
 			WC()->customer->set_calculated_shipping( true );
