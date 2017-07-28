@@ -9,9 +9,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @extends WC_Gateway_Stripe
  */
 class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
-
-	public $wc_pre_30;
-
 	/**
 	 * Constructor
 	 */
@@ -75,8 +72,11 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 
 	/**
 	 * Updates other subscription sources.
+	 *
+	 * @since 3.1.0
+	 * @version 4.0.0
 	 */
-	protected function save_source( $order, $source ) {
+	public function save_source( $order, $source ) {
 		parent::save_source( $order, $source );
 
 		$order_id  = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
