@@ -386,14 +386,16 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				$methods[] = 'WC_Gateway_Stripe_Addons';
 			} else {
 				$methods[] = 'WC_Gateway_Stripe';
-				$methods[] = 'WC_Gateway_Stripe_Bancontact';
-				$methods[] = 'WC_Gateway_Stripe_Sofort';
-				$methods[] = 'WC_Gateway_Stripe_Giropay';
-				$methods[] = 'WC_Gateway_Stripe_Ideal';
-				$methods[] = 'WC_Gateway_Stripe_Alipay';
-				$methods[] = 'WC_Gateway_Stripe_Sepa';
-				$methods[] = 'WC_Gateway_Stripe_Bitcoin';
 			}
+
+			$methods[] = 'WC_Gateway_Stripe_Bancontact';
+			$methods[] = 'WC_Gateway_Stripe_Sofort';
+			$methods[] = 'WC_Gateway_Stripe_Giropay';
+			$methods[] = 'WC_Gateway_Stripe_Ideal';
+			$methods[] = 'WC_Gateway_Stripe_Alipay';
+			$methods[] = 'WC_Gateway_Stripe_Sepa';
+			$methods[] = 'WC_Gateway_Stripe_Bitcoin';
+
 			return $methods;
 		}
 
