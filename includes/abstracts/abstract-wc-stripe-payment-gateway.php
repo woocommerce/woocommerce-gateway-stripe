@@ -116,8 +116,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$post_data['currency']             = strtolower( WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency() );
 		$post_data['amount']               = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $post_data['currency'] );
 		$post_data['description']          = sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), $statement_descriptor, $order->get_order_number() );
-		$post_data['capture']              = $capture ? 'true' : 'false';
-
 		$billing_email      = WC_Stripe_Helper::is_pre_30() ? $order->billing_email : $order->get_billing_email();
 		$billing_first_name = WC_Stripe_Helper::is_pre_30() ? $order->billing_first_name : $order->get_billing_first_name();
 		$billing_last_name  = WC_Stripe_Helper::is_pre_30() ? $order->billing_last_name : $order->get_billing_last_name();
@@ -126,9 +124,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$post_data['receipt_email'] = $billing_email;
 		}
 
-		switch ( $order->get_payment_method() ) {
+		switch ( WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method() ) {
 			case 'stripe':
 				$post_data['statement_descriptor'] = substr( str_replace( "'", '', $statement_descriptor ), 0, 22 );
+				$post_data['capture']              = $capture ? 'true' : 'false';
 				break;
 		}
 
@@ -170,8 +169,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 
 		// Store charge data
-		update_post_meta( $order_id, '_stripe_charge_id', $response->id );
-		update_post_meta( $order_id, '_stripe_charge_captured', $response->captured ? 'yes' : 'no' );
+		WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_stripe_charge_captured', $response->captured ? 'yes' : 'no' ) : $order->update_meta_data( '_stripe_charge_captured', $response->captured ? 'yes' : 'no' );
 
 		// Store other data such as fees
 		if ( isset( $response->balance_transaction ) && isset( $response->balance_transaction->fee ) ) {
@@ -179,8 +177,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			// values are in the local currency of the Stripe account, not from WC.
 			$fee = ! empty( $response->balance_transaction->fee ) ? WC_Stripe_Helper::format_balance_fee( $response->balance_transaction, 'fee' ) : 0;
 			$net = ! empty( $response->balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $response->balance_transaction, 'net' ) : 0;
-			update_post_meta( $order_id, 'Stripe Fee', $fee );
-			update_post_meta( $order_id, 'Net Revenue From Stripe', $net );
+			WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, 'Stripe Fee', $fee ) : $order->update_meta_data( 'Stripe Fee', $fee );
+			WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, 'Net Revenue From Stripe', $net ) : $order->update_meta_data( 'Net Revenue From Stripe', $net );
 		}
 
 		if ( $response->captured ) {
@@ -191,7 +189,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			WC_Stripe_Logger::log( 'Success: ' . $message );
 
 		} else {
-			update_post_meta( $order_id, '_transaction_id', $response->id, true );
+			WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_transaction_id', $response->id, true ) : $order->set_transaction_id( $response->id );
 
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
 				WC_Stripe_Helper::is_pre_30() ? $order->reduce_order_stock() : wc_reduce_stock_levels( $order_id );
@@ -199,6 +197,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			$order->update_status( 'on-hold', sprintf( __( 'Stripe charge authorized (Charge ID: %s). Process order to take payment, or cancel to remove the pre-authorization.', 'woocommerce-gateway-stripe' ), $response->id ) );
 			WC_Stripe_Logger::log( "Successful auth: $response->id" );
+		}
+
+		if ( is_callable( array( $order, 'save' ) ) ) {
+			$order->save();
 		}
 
 		do_action( 'wc_gateway_stripe_process_response', $response, $order );
