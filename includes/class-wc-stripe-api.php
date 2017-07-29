@@ -159,7 +159,7 @@ class WC_Stripe_API {
 			} else {
 				$code = 'stripe_error';
 			}
-			return new WP_Error( $code, $parsed_response->error->message );
+			return new WP_Error( $code, $parsed_response->error->message, $parsed_response->error );
 		} else {
 			return $parsed_response;
 		}
