@@ -171,7 +171,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( $this->testmode ) {
-			$this->description .= ' ' . sprintf( __( 'TEST MODE ENABLED. In test mode, you can use the card number 4242424242424242 with any CVC and a valid expiration date or check the documentation "<a href="%s">Testing Stripe</a>" for more card numbers.', 'woocommerce-gateway-stripe' ), 'https://stripe.com/docs/testing' );
+			$this->description .= ' ' . sprintf( __( 'TEST MODE ENABLED. In test mode, you can use the card number 4242424242424242 with any CVC and a valid expiration date or check the documentation "<a href="%s" target="_blank">Testing Stripe</a>" for more card numbers.', 'woocommerce-gateway-stripe' ), 'https://stripe.com/docs/testing' );
 			$this->description  = trim( $this->description );
 		}
 
@@ -468,13 +468,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function elements_form() {
 		?>
-		<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-cc-form" class="wc-credit-card-form wc-payment-form">
+		<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-cc-form" class="wc-credit-card-form wc-payment-form" style="background:transparent;">
 			<?php do_action( 'woocommerce_credit_card_form_start', $this->id ); ?>
 			<label for="card-element">
-				<?php _e( 'Credit or debit card', 'woocommerce-gateway-stripe' ); ?>
+				<?php esc_html_e( 'Credit or debit card', 'woocommerce-gateway-stripe' ); ?>
 			</label>
 			
-			<div id="stripe-card-element" style="background:#fff;padding:0 1em;border-radius:3px;border-width:1px;border-color:#bbb3b9 #c7c1c6 #c7c1c6;border-style:solid;">
+			<div id="stripe-card-element" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;">
 			<!-- a Stripe Element will be inserted here. -->
 			</div>
 

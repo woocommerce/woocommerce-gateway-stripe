@@ -88,7 +88,7 @@ jQuery( function( $ ) {
 				base: {
 					iconColor: '#666EE8',
 					color: '#31325F',
-					lineHeight: '50px',
+					lineHeight: '45px',
 					fontSize: '15px',
 					'::placeholder': {
 				  		color: '#CFD7E0',
