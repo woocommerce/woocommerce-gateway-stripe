@@ -89,7 +89,7 @@ class WC_Stripe_API {
 		$headers = self::get_headers();
 
 		if ( 'charges' === $api && 'POST' === $method ) {
-			$headers['Idempotency-Key'] = $request['metadata']['order_id'] . '-' . $request['source'];
+			$headers['Idempotency-Key'] = $request['metadata']['Order ID'] . '-' . $request['source'];
 		}
 
 		$response = wp_safe_remote_post(
