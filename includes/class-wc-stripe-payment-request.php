@@ -72,9 +72,8 @@ class WC_Stripe_Payment_Request {
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
-		wp_enqueue_script( 'stripe', 'https://js.stripe.com/v2/', '', '1.0', true );
-		wp_enqueue_script( 'google-payment-request-shim', 'https://storage.googleapis.com/prshim/v1/payment-shim.js', '', '1.0', false );
-		wp_enqueue_script( 'wc-stripe-payment-request', plugins_url( 'assets/js/payment-request' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery', 'stripe' ), WC_STRIPE_VERSION, true );
+		wp_register_script( 'google-payment-request-shim', 'https://storage.googleapis.com/prshim/v1/payment-shim.js', '', '1.0', false );
+		wp_register_script( 'wc-stripe-payment-request', plugins_url( 'assets/js/payment-request' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery', 'stripe', 'google-payment-request-shim' ), WC_STRIPE_VERSION, true );
 
 		wp_localize_script(
 			'wc-stripe-payment-request',
@@ -98,6 +97,8 @@ class WC_Stripe_Payment_Request {
 				),
 			)
 		);
+
+		wp_enqueue_script( 'wc-stripe-payment-request' );
 	}
 
 	/**

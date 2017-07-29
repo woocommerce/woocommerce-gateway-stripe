@@ -271,10 +271,9 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
-		wp_enqueue_style( 'stripe_apple_pay', plugins_url( 'assets/css/stripe-apple-pay.css', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION );
-
-		wp_enqueue_script( 'stripe', 'https://js.stripe.com/v2/', '', '1.0', true );
-		wp_enqueue_script( 'woocommerce_stripe_apple_pay_single', plugins_url( 'assets/js/stripe-apple-pay-single' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'stripe' ), WC_STRIPE_VERSION, true );
+		wp_register_style( 'stripe_apple_pay', plugins_url( 'assets/css/stripe-apple-pay.css', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION );
+		wp_register_script( 'stripe', 'https://js.stripe.com/v2/', '', '2.0', true );
+		wp_register_script( 'woocommerce_stripe_apple_pay_single', plugins_url( 'assets/js/stripe-apple-pay-single' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery', 'stripe' ), WC_STRIPE_VERSION, true );
 
 		$stripe_params = array(
 			'key'                                           => $this->publishable_key,
@@ -293,6 +292,9 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 		);
 
 		wp_localize_script( 'woocommerce_stripe_apple_pay_single', 'wc_stripe_apple_pay_single_params', apply_filters( 'wc_stripe_apple_pay_single_params', $stripe_params ) );
+
+		wp_enqueue_style( 'stripe_apple_pay' );
+		wp_enqueue_script( 'woocommerce_stripe_apple_pay_single' );
 	}
 
 	/**
@@ -308,10 +310,9 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
-		wp_enqueue_style( 'stripe_apple_pay', plugins_url( 'assets/css/stripe-apple-pay.css', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION );
-
-		wp_enqueue_script( 'stripe', 'https://js.stripe.com/v2/', '', '1.0', true );
-		wp_enqueue_script( 'woocommerce_stripe_apple_pay', plugins_url( 'assets/js/stripe-apple-pay' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'stripe' ), WC_STRIPE_VERSION, true );
+		wp_register_style( 'stripe_apple_pay', plugins_url( 'assets/css/stripe-apple-pay.css', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION );
+		wp_register_script( 'stripe', 'https://js.stripe.com/v2/', '', '2.0', true );
+		wp_register_script( 'woocommerce_stripe_apple_pay', plugins_url( 'assets/js/stripe-apple-pay' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery', 'stripe' ), WC_STRIPE_VERSION, true );
 
 		$stripe_params = array(
 			'key'                                           => $this->publishable_key,
@@ -328,6 +329,9 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 		);
 
 		wp_localize_script( 'woocommerce_stripe_apple_pay', 'wc_stripe_apple_pay_params', apply_filters( 'wc_stripe_apple_pay_params', $stripe_params ) );
+
+		wp_enqueue_style( 'stripe_apple_pay' );
+		wp_enqueue_script( 'woocommerce_stripe_apple_pay' );
 	}
 
 	/**
