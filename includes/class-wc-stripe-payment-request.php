@@ -308,7 +308,7 @@ class WC_Stripe_Payment_Request {
 		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
 		}
-		
+
 		$_POST['terms'] = 1;
 		$_POST['ship_to_different_address'] = 1;
 
