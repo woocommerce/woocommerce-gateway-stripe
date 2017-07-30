@@ -159,7 +159,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$order = wc_get_order( $order_id );
 
 		if ( 'stripe' === ( WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method() ) ) {
-			$charge   =  WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_transaction_id', true ) : $order->get_transaction_id();
+			$charge   =  WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_transaction_id', true ) : $order->get_transaction_id();
 			$captured = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_charge_captured', true ) : $order->get_meta( '_stripe_charge_captured', true );
 
 			if ( $charge && 'no' === $captured ) {
@@ -175,7 +175,6 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_stripe_charge_captured', 'yes' ) : $order->update_meta_data( '_stripe_charge_captured', 'yes' );
 
 					// Store other data such as fees
-					WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, 'Stripe Payment ID', $result->id ) : $order->update_meta_data( 'Stripe Payment ID', $result->id );
 					WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_transaction_id', $result->id ) : $order->set_transaction_id( $result->id );
 
 					if ( isset( $result->balance_transaction ) && isset( $result->balance_transaction->fee ) ) {
@@ -206,7 +205,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$order = wc_get_order( $order_id );
 
 		if ( 'stripe' === ( WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method() ) ) {
-			$charge_id = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_transaction_id', true ) : $order->get_transaction_id();
+			$charge_id = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_transaction_id', true ) : $order->get_transaction_id();
 
 			if ( $charge_id ) {
 				$result = WC_Stripe_API::request( array(
@@ -218,7 +217,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				} else {
 					$order->add_order_note( sprintf( __( 'Stripe charge refunded (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $result->id ) );
 					WC_Stripe_Helper::is_pre_30() ? delete_post_meta( $order_id, '_stripe_charge_captured' ) : $order->delete_meta_data( '_stripe_charge_captured' );
-					WC_Stripe_Helper::is_pre_30() ? delete_post_meta( $order_id, '_stripe_transaction_id' ) : $order->delete_meta_data( '_stripe_transaction_id' );
+					WC_Stripe_Helper::is_pre_30() ? delete_post_meta( $order_id, '_transaction_id' ) : $order->delete_meta_data( '_stripe_transaction_id' );
 
 					if ( is_callable( array( $order, 'save' ) ) ) {
 						$order->save();

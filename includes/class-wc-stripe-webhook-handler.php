@@ -211,6 +211,96 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Process webhook capture. This is used for an authorized only
+	 * transaction that is later captured via Stripe not WC.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param object $notification
+	 */
+	public function process_webhook_capture( $notification ) {
+		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->id );
+			return;
+		}
+
+		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+
+		if ( 'stripe' === ( WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method() ) ) {
+			$charge   =  WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_transaction_id', true ) : $order->get_transaction_id();
+			$captured = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_charge_captured', true ) : $order->get_meta( '_stripe_charge_captured', true );
+
+			if ( $charge && 'no' === $captured ) {
+				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_stripe_charge_captured', 'yes' ) : $order->update_meta_data( '_stripe_charge_captured', 'yes' );
+
+				// Store other data such as fees
+				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_transaction_id', $notification->data->object->id ) : $order->set_transaction_id( $notification->data->object->id );
+
+				$balance_transaction = WC_Stripe_API::retrieve( 'balance/history/' . $notification->data->object->balance_transaction );
+
+				if ( ! is_wp_error( $balance_transaction ) ) {
+					if ( isset( $balance_transaction ) && isset( $balance_transaction->fee ) ) {
+						// Fees and Net needs to both come from Stripe to be accurate as the returned
+						// values are in the local currency of the Stripe account, not from WC.
+						$fee = ! empty( $balance_transaction->fee ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'fee' ) : 0;
+						$net = ! empty( $balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'net' ) : 0;
+
+						WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, 'Stripe Fee', $fee ) : $order->update_meta_data( 'Stripe Fee', $fee );
+						WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, 'Net Revenue From Stripe', $net ) : $order->update_meta_data( 'Net Revenue From Stripe', $net );
+					}
+				}
+
+				if ( is_callable( array( $order, 'save' ) ) ) {
+					$order->save();
+				}
+
+				$order->update_status( $order->needs_processing() ? 'processing' : 'completed', sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
+
+				// Check and see if capture is partial.
+				if ( $this->is_partial_capture( $notification ) ) {
+					$order->set_total( $this->get_partial_amount_to_charge( $notification ) );
+					$order->add_note( __( 'This charge was partially captured via Stripe Dashboard', 'woocommerce-gateway-stripe' ) );
+					$order->save();			
+				}
+			}
+		}
+	}
+
+	/**
+	 * Checks if capture is partial.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param object $notification
+	 */
+	public function is_partial_capture( $notification ) {
+		return 0 < $notification->data->object->amount_refunded;
+	}
+
+	/**
+	 * Gets the amount we actually charge.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param object $notification
+	 */
+	public function get_partial_amount_to_charge( $notification ) {
+		if ( $this->is_partial_capture( $notification ) ) {
+			$amount = ( $notification->data->object->amount - $notification->data->object->amount_refunded ) / 100;
+
+			if ( in_array( strtolower( $notification->data->object->currency ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
+				$amount = ( $notification->data->object->amount - $notification->data->object->amount_refunded );
+			}
+
+			return $amount;
+		}
+
+		return false;
+	}
+
+	/**
 	 * Processes the incoming webhook.
 	 *
 	 * @since 4.0.0
@@ -226,6 +316,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				break;
 
 			case 'charge.captured':
+				$this->process_webhook_capture( $notification );
 				break;
 
 			case 'charge.dispute.created':

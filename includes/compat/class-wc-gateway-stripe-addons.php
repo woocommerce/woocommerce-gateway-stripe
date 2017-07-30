@@ -263,7 +263,6 @@ class WC_Gateway_Stripe_Addons extends WC_Gateway_Stripe {
 	public function delete_renewal_meta( $renewal_order ) {
 		delete_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $renewal_order->id : $renewal_order->get_id() ), 'Stripe Fee' );
 		delete_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $renewal_order->id : $renewal_order->get_id() ), 'Net Revenue From Stripe' );
-		delete_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $renewal_order->id : $renewal_order->get_id() ), 'Stripe Payment ID' );
 		return $renewal_order;
 	}
 
