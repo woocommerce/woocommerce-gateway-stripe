@@ -726,16 +726,19 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					throw new Exception( $message );
 				}
 
+				do_action( 'wc_gateway_stripe_process_payment', $response, $order );
+
 				// Process valid response.
 				$this->process_response( $response, $order );
 			} else {
+
+				do_action( 'wc_gateway_stripe_process_payment', $response, $order );
+
 				$order->payment_complete();
 			}
 
 			// Remove cart.
 			WC()->cart->empty_cart();
-
-			do_action( 'wc_gateway_stripe_process_payment', $response, $order );
 
 			// Return thank you page redirect.
 			return array(
