@@ -104,19 +104,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param object $source
+	 * @param object $notification
 	 * @param bool $retry
 	 */
-	public function process_webhook_payment( $source, $retry = true ) {
-		$order = WC_Stripe_Helper::get_order_by_source_id( $source->data->object->id );
+	public function process_webhook_payment( $notification, $retry = true ) {
+		$order = WC_Stripe_Helper::get_order_by_source_id( $notification->data->object->id );
 
 		if ( ! $order ) {
-			WC_Stripe_Logger::log( 'Could not find order via source ID: ' . $source->data->object->id );
+			WC_Stripe_Logger::log( 'Could not find order via source ID: ' . $notification->data->object->id );
 			return;
 		}
 
 		$order_id  = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
-		$source_id = $source->data->object->id;
+		$source_id = $notification->data->object->id;
 
 		try {
 			if ( 'processing' === $order->get_status() || 'completed' === $order->get_status() ) {
