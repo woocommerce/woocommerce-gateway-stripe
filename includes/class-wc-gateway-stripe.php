@@ -705,7 +705,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 						delete_user_meta( get_current_user_id(), '_stripe_customer_id' );
 						return $this->process_payment( $order_id, false, $force_customer );
 					} elseif ( preg_match( '/No such customer/i', $response->get_error_message() ) && $retry ) {
-						delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
+						delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
 
 						return $this->process_payment( $order_id, false, $force_customer );
 						// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.

@@ -248,7 +248,9 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 	public function email_instructions( $order, $sent_to_admin, $plain_text = false ) {
 		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 
-		if ( ! $sent_to_admin && 'stripe_bitcoin' === $order->get_payment_method() && $order->has_status( 'on-hold' ) ) {
+		$payment_method = WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method();
+
+		if ( ! $sent_to_admin && 'stripe_bitcoin' === $payment_method && $order->has_status( 'on-hold' ) ) {
 			$this->get_instructions( $order_id, $plain_text );
 		}
 	}
