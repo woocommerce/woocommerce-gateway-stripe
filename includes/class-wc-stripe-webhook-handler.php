@@ -269,6 +269,44 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Process webhook refund.
+	 * Note currently only support 1 time refund.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param object $notification
+	 */
+	public function process_webhook_refund( $notification ) {
+		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->id );
+			return;
+		}
+
+		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+
+		if ( 'stripe' === ( WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method() ) ) {
+			$charge   =  WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_transaction_id', true ) : $order->get_transaction_id();
+			$captured = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_charge_captured', true ) : $order->get_meta( '_stripe_charge_captured', true );
+
+			// Only refund captured charge.
+			if ( $charge && 'yes' === $captured ) {
+				// Create the refund.
+				$refund = wc_create_refund( array(
+					'order_id'       => $order_id,
+					'amount'         => $this->get_refund_amount( $notification ),
+					'reason'         => __( 'Refunded via Stripe Dashboard', 'woocommerce-gateway-stripe' ),
+				) );
+
+				if ( is_wp_error( $refund ) ) {
+					WC_Stripe_Logger::log( $refund->get_error_message() );
+				}
+			}
+		}
+	}
+
+	/**
 	 * Checks if capture is partial.
 	 *
 	 * @since 4.0.0
@@ -277,6 +315,27 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function is_partial_capture( $notification ) {
 		return 0 < $notification->data->object->amount_refunded;
+	}
+
+	/**
+	 * Gets the amount refunded.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param object $notification
+	 */
+	public function get_refund_amount( $notification ) {
+		if ( $this->is_partial_capture( $notification ) ) {
+			$amount = $notification->data->object->amount_refunded / 100;
+
+			if ( in_array( strtolower( $notification->data->object->currency ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
+				$amount = $notification->data->object->amount_refunded;
+			}
+
+			return $amount;
+		}
+
+		return false;
 	}
 
 	/**
@@ -324,6 +383,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				break;
 
 			case 'charge.refunded':
+				$this->process_webhook_refund( $notification );
 				break;
 
 		}
