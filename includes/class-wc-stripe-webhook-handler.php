@@ -191,6 +191,26 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Process webhook disputes that is created.
+	 * This is trigger when a fraud is detected or customer processes chargeback.
+	 * We want to put the order into on-hold and add an order note.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param object $notification
+	 */
+	public function process_webhook_dispute( $notification ) {
+		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->id );
+			return;
+		}
+
+		$order->update_status( 'on-hold', __( 'A dispute was created for this order. Response is needed. Please go to your Stripe Dashboard to review this dispute.', 'woocommerce-gateway-stripe' ) );
+	}
+
+	/**
 	 * Processes the incoming webhook.
 	 *
 	 * @since 4.0.0
@@ -205,16 +225,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$this->process_webhook_payment( $notification );
 				break;
 
-			case 'source.canceled':
-				break;
-
-			case 'source.failed':
-				break;
-
 			case 'charge.captured':
 				break;
 
 			case 'charge.dispute.created':
+				$this->process_webhook_dispute( $notification );
 				break;
 
 			case 'charge.refunded':

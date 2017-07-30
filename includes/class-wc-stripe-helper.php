@@ -207,4 +207,23 @@ class WC_Stripe_Helper {
 
 		return false;
 	}
+
+	/**
+	 * Gets the order by Stripe charge ID.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param string $charge_id
+	 */
+	public static function get_order_by_charge_id( $charge_id ) {
+		global $wpdb;
+
+		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s", $charge_id ) );
+
+		if ( ! empty( $order_id ) ) {
+			return wc_get_order( $order_id );
+		}
+
+		return false;
+	}
 }
