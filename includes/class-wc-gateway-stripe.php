@@ -308,7 +308,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @version 3.1.0
 	 */
 	public function process_apple_pay_verification() {
-		$gateway_settings = get_option( 'woocommerce_stripe_settings', '' );
+		$gateway_settings = get_option( 'woocommerce_stripe_settings', array() );
 
 		try {
 			$path     = untrailingslashit( preg_replace( "!${_SERVER['SCRIPT_NAME']}$!", '', $_SERVER['SCRIPT_FILENAME'] ) );
