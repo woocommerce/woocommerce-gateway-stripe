@@ -287,6 +287,8 @@ class WC_Gateway_Stripe_Giropay extends WC_Stripe_Payment_Gateway {
 					'redirect' => esc_url_raw( $response->redirect->url ),
 				);
 			} else {
+				do_action( 'wc_gateway_stripe_process_payment', $response, $order );
+
 				$order->payment_complete();
 			}
 		} catch ( Exception $e ) {

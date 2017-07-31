@@ -281,12 +281,14 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 				}
 
 				WC_Stripe_Logger::log( 'Info: Redirecting to Bancontact...' );
-
+				
 				return array(
 					'result'   => 'success',
 					'redirect' => esc_url_raw( $response->redirect->url ),
 				);
 			} else {
+				do_action( 'wc_gateway_stripe_process_payment', $response, $order );
+
 				$order->payment_complete();
 			}
 		} catch ( Exception $e ) {
