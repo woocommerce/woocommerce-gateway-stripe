@@ -5,7 +5,7 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 3.2.2
+ * Version: 4.0.0
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  *
@@ -19,7 +19,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 	/**
 	 * Required minimums and constants
 	 */
-	define( 'WC_STRIPE_VERSION', '3.2.2' );
+	define( 'WC_STRIPE_VERSION', '4.0.0' );
 	define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
 	define( 'WC_STRIPE_MIN_WC_VER', '2.5.0' );
 	define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
@@ -428,7 +428,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				$sections['stripe_sepa']       = 'Stripe SEPA';
 				$sections['stripe_bitcoin']    = 'Stripe Bitcoin';
 			}
-			
+
 			return $sections;
 		}
 	}
