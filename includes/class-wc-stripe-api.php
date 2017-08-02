@@ -53,21 +53,19 @@ class WC_Stripe_API {
 	 * @version 4.0.0
 	 */
 	public static function get_user_agent() {
-    $php_version = phpversion();
-    $uname = php_uname();
-    $app_info = array(
-			'name' => 'WooCommerce Stripe Gateway',
+		$app_info = array(
+			'name'    => 'WooCommerce Stripe Gateway',
 			'version' => WC_STRIPE_VERSION,
-			'url' => 'https://woocommerce.com/products/stripe/',
+			'url'     => 'https://woocommerce.com/products/stripe/',
 		);
-    $user_agent = array(
-			'lang' => 'php',
-			'lang_version' => $php_version,
-			'publisher' => 'woocommerce',
-			'uname' => $uname,
-			'application' => $app_info,
-    );
-		return $user_agent;
+    
+		return array(
+			'lang'         => 'php',
+			'lang_version' => phpversion(),
+			'publisher'    => 'woocommerce',
+			'uname'        => php_uname(),
+			'application'  => $app_info,
+		);
 	}
 
 	/**
@@ -78,12 +76,12 @@ class WC_Stripe_API {
 	 */
 	public static function get_headers() {
 		$user_agent = self::get_user_agent();
-		$app_info = $user_agent['application'];
-		$user_agent_string = $app_info['name'] . '/' . $app_info['version'] . ' (' . $app_info['url'] . ')';
+		$app_info   = $user_agent['application'];
+
 		return array(
 			'Authorization'              => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
 			'Stripe-Version'             => self::STRIPE_API_VERSION,
-			'User-Agent'                 => $user_agent_string,
+			'User-Agent'                 => $app_info['name'] . '/' . $app_info['version'] . ' (' . $app_info['url'] . ')',
 			'X-Stripe-Client-User-Agent' => json_encode( $user_agent ),
 		);
 	}
