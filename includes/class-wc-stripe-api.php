@@ -56,7 +56,7 @@ class WC_Stripe_API {
     $php_version = phpversion();
     $uname = php_uname();
     $app_info = array(
-			'name' => 'WooCommerce Gateway Stripe',
+			'name' => 'WooCommerce Stripe Gateway',
 			'version' => WC_STRIPE_VERSION,
 			'url' => 'https://woocommerce.com/products/stripe/',
 		);
