@@ -7,6 +7,18 @@ $webhook_url = WC_Stripe_Helper::get_webhook_url();
 
 return apply_filters( 'wc_stripe_bancontact_settings',
 	array(
+		'geo_target' => array(
+			'description' => __( 'Relevant Payer Geography: Belgium', 'woocommerce-gateway-stripe' ),
+			'type'        => 'title',
+		),
+		'guide' => array(
+			'description' => __( '<a href="https://stripe.com/payments/payment-methods-guide#bancontact" target="_blank">Payment Method Guide</a>', 'woocommerce-gateway-stripe' ),
+			'type'        => 'title',
+		),
+		'activation' => array(
+			'description' => __( 'Must be activated from your Stripe Dashboard Settings <a href="https://dashboard.stripe.com/account/payments/settings" target="_blank">here</a>', 'woocommerce-gateway-stripe' ),
+			'type'   => 'title',
+		),
 		'enabled' => array(
 			'title'       => __( 'Enable/Disable', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Enable Stripe Bancontact', 'woocommerce-gateway-stripe' ),

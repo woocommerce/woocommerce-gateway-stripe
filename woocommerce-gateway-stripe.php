@@ -67,22 +67,6 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		private function __wakeup() {}
 
 		/**
-		 * Flag to indicate whether or not we need to load code for / support subscriptions.
-		 *
-		 * @var bool
-		 */
-		private $subscription_support_enabled = false;
-
-		/**
-		 * Flag to indicate whether or not we need to load support for pre-orders.
-		 *
-		 * @since 3.0.3
-		 *
-		 * @var bool
-		 */
-		private $pre_order_enabled = false;
-
-		/**
 		 * Notices (array)
 		 * @var array
 		 */
@@ -112,6 +96,8 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				return;
 			}
 
+			load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
+
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-logger.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-helper.php' );
 			require_once( dirname( __FILE__ ) . '/includes/abstracts/abstract-wc-stripe-payment-gateway.php' );
@@ -124,19 +110,19 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-alipay.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sepa.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-bitcoin.php' );
+			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-request.php' );
+			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-apple-pay.php' );
+			require_once( dirname( __FILE__ ) . '/includes/compat/woocommerce-subscriptions/class-wc-stripe-subscriptions-compat.php' );
+			require_once( dirname( __FILE__ ) . '/includes/compat/woocommerce-pre-orders/class-wc-stripe-pre-orders-compat.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-order-handler.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-tokens.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php' );
 
-			// Init the gateway itself
-			$this->init_gateways();
-
+			add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateways' ) );
 			add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );
 			add_action( 'wp_ajax_stripe_dismiss_request_api_notice', array( $this, 'dismiss_request_api_notice' ) );
 			add_action( 'wp_ajax_stripe_dismiss_apple_pay_notice', array( $this, 'dismiss_apple_pay_notice' ) );
 			add_filter( 'woocommerce_get_sections_checkout', array( $this, 'filter_gateway_order_admin' ) );
-
-			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-request.php' );
 		}
 
 		/**
@@ -341,49 +327,20 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		}
 
 		/**
-		 * Initialize the gateway. Called very early - in the context of the plugins_loaded action
-		 *
-		 * @since 1.0.0
-		 * @version 4.0.0
-		 */
-		public function init_gateways() {
-			if ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) {
-				$this->subscription_support_enabled = true;
-			}
-
-			if ( class_exists( 'WC_Pre_Orders_Order' ) ) {
-				$this->pre_order_enabled = true;
-			}
-
-			if ( ! class_exists( 'WC_Payment_Gateway' ) ) {
-				return;
-			}
-
-			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-apple-pay.php' );
-
-			load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
-			add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateways' ) );
-
-			$load_addons = (
-				$this->subscription_support_enabled
-				||
-				$this->pre_order_enabled
-			);
-
-			if ( $load_addons ) {
-				require_once( dirname( __FILE__ ) . '/includes/compat/class-wc-gateway-stripe-addons.php' );
-			}
-		}
-
-		/**
 		 * Add the gateways to WooCommerce
 		 *
 		 * @since 1.0.0
 		 * @version 4.0.0
 		 */
 		public function add_gateways( $methods ) {
-			if ( $this->subscription_support_enabled || $this->pre_order_enabled ) {
-				$methods[] = 'WC_Gateway_Stripe_Addons';
+			if ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) {
+				$methods[] = 'WC_Stripe_Subscriptions_Compat';
+			} else {
+				$methods[] = 'WC_Gateway_Stripe';
+			}
+
+			if ( class_exists( 'WC_Pre_Orders_Order' ) ) {
+				$methods[] = 'WC_Stripe_Pre_Orders_Compat';
 			} else {
 				$methods[] = 'WC_Gateway_Stripe';
 			}
@@ -399,7 +356,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				$methods[] = 'WC_Gateway_Stripe_Bitcoin';
 			}
 
-			return $methods;
+			return array_unique( $methods );
 		}
 
 		/**
@@ -420,13 +377,13 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				unset( $sections['stripe_bitcoin'] );
 
 				$sections['stripe']            = 'Stripe';
-				$sections['stripe_bancontact'] = 'Stripe Bancontact';
-				$sections['stripe_sofort']     = 'Stripe Sofort';
-				$sections['stripe_giropay']    = 'Stripe Giropay';
-				$sections['stripe_ideal']      = 'Stripe iDeal';
-				$sections['stripe_alipay']     = 'Stripe Alipay';
-				$sections['stripe_sepa']       = 'Stripe SEPA';
-				$sections['stripe_bitcoin']    = 'Stripe Bitcoin';
+				$sections['stripe_bancontact'] = __( 'Stripe Bancontact', 'woocommerce-gateway-stripe' );
+				$sections['stripe_sofort']     = __( 'Stripe SOFORT', 'woocommerce-gateway-stripe' );
+				$sections['stripe_giropay']    = __( 'Stripe Giropay', 'woocommerce-gateway-stripe' );
+				$sections['stripe_ideal']      = __( 'Stripe iDeal', 'woocommerce-gateway-stripe' );
+				$sections['stripe_alipay']     = __( 'Stripe Alipay', 'woocommerce-gateway-stripe' );
+				$sections['stripe_sepa']       = __( 'Stripe SEPA Direct Debit', 'woocommerce-gateway-stripe' );
+				$sections['stripe_bitcoin']    = __( 'Stripe Bitcoin', 'woocommerce-gateway-stripe' );
 			}
 
 			return $sections;

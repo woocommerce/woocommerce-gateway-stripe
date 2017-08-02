@@ -57,7 +57,7 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 	 */
 	public function __construct() {
 		$this->id                   = 'stripe_sofort';
-		$this->method_title         = __( 'Stripe Sofort', 'woocommerce-gateway-stripe' );
+		$this->method_title         = __( 'Stripe SOFORT', 'woocommerce-gateway-stripe' );
 		$this->method_description   = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 
 		// Load the form fields.
@@ -115,7 +115,7 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_environment_warning() {
 		if ( 'yes' === $this->enabled && 'EUR' !== get_woocommerce_currency() ) {
-			$message = __( 'Sofort is enabled - it requires store currency to be set to Euros.', 'woocommerce-gateway-stripe' );
+			$message = __( 'SOFORT is enabled - it requires store currency to be set to Euros.', 'woocommerce-gateway-stripe' );
 
 			return $message;
 		}
@@ -269,7 +269,7 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 		$post_data['redirect'] = array( 'return_url' => $return_url );
 		$post_data['sofort']   = array( 'statement_descriptor' => $this->statement_descriptor, 'country' => $bank_country );
 
-		WC_Stripe_Logger::log( 'Info: Begin creating Sofort source' );
+		WC_Stripe_Logger::log( 'Info: Begin creating SOFORT source' );
 
 		return WC_Stripe_API::request( $post_data, 'sources' );
 	}
@@ -313,7 +313,7 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 					$order->save();
 				}
 
-				WC_Stripe_Logger::log( 'Info: Redirecting to Sofort...' );
+				WC_Stripe_Logger::log( 'Info: Redirecting to SOFORT...' );
 
 				return array(
 					'result'   => 'success',
