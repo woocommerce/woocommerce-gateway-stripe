@@ -56,7 +56,7 @@ class WC_Stripe_API {
     $php_version = phpversion();
     $uname = php_uname();
     $app_info = array(
-			'name' => 'woocommerce-gateway-stripe',
+			'name' => 'WooCommerce Gateway Stripe',
 			'version' => WC_STRIPE_VERSION,
 			'url' => 'https://woocommerce.com/products/stripe/',
 		);
@@ -77,11 +77,14 @@ class WC_Stripe_API {
 	 * @version 4.0.0
 	 */
 	public static function get_headers() {
+		$user_agent = self::get_user_agent();
+		$app_info = $user_agent['application'];
+		$user_agent_string = $app_info['name'] . '/' . $app_info['version'] . ' (' . $app_info['url'] . ')';
 		return array(
 			'Authorization'              => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
 			'Stripe-Version'             => self::STRIPE_API_VERSION,
-			'User-Agent'                 => 'woocommerce-gateway-stripe/' . WC_STRIPE_VERSION,
-			'X-Stripe-Client-User-Agent' => json_encode( self::get_user_agent() ),
+			'User-Agent'                 => $user_agent_string,
+			'X-Stripe-Client-User-Agent' => json_encode( $user_agent ),
 		);
 	}
 
