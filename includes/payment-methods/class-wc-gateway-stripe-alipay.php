@@ -115,23 +115,50 @@ class WC_Gateway_Stripe_Alipay extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_environment_warning() {
 		if (
-			'yes' === $this->enabled && 
-			'EUR' !== get_woocommerce_currency() &&
-			'AUD' !== get_woocommerce_currency() &&
-			'CAD' !== get_woocommerce_currency() &&
-			'GBP' !== get_woocommerce_currency() &&
-			'HKD' !== get_woocommerce_currency() &&
-			'JPY' !== get_woocommerce_currency() &&
-			'NZD' !== get_woocommerce_currency() &&
-			'SGD' !== get_woocommerce_currency() &&
-			'USD' !== get_woocommerce_currency()
+			'yes' === $this->enabled && ! in_array( get_woocommerce_currency(), $this->get_supported_currency() )
 		) {
-			$message = __( 'Alipay is enabled - it requires store currency to be set to USD, EUR, AUD, CAD, GBP, HKD, JPY, NZD or SGD.', 'woocommerce-gateway-stripe' );
+			$message = __( 'Alipay is enabled - it requires store currency to be set to ' . implode( ', ', $this->get_supported_currency() ), 'woocommerce-gateway-stripe' );
 
 			return $message;
 		}
 
 		return false;
+	}
+
+	/**
+	 * Returns all supported currencies for this payment method.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @return array
+	 */
+	public function get_supported_currency() {
+		return apply_filters( 'wc_stripe_alipay_supported_currencies', array(
+			'EUR',
+			'AUD',
+			'CAD',
+			'GBP',
+			'HKD',
+			'JPY',
+			'NZD',
+			'SGD',
+			'USD',
+		) );
+	}
+
+	/**
+	 * Checks to see if all criteria is met before showing payment method.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @return bool
+	 */
+	public function is_available() {
+		if ( 'yes' !== $this->enabled || ! in_array( get_woocommerce_currency(), $this->get_supported_currency() ) ) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**

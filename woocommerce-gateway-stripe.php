@@ -345,6 +345,12 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				$methods[] = 'WC_Gateway_Stripe';
 			}
 
+			if ( class_exists( 'WC_Pre_Orders_Order' ) || class_exists( 'WC_Subscriptions_Order' ) ) {
+				if ( false !== ( $key = array_search( 'WC_Gateway_Stripe', $methods ) ) ) {
+					unset( $methods[ $key ] );
+				}
+			}
+
 			// Currently only elements will support sources.
 			if ( apply_filters( 'wc_stripe_use_elements_checkout_form', true ) ) {
 				$methods[] = 'WC_Gateway_Stripe_Bancontact';

@@ -125,13 +125,41 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function get_environment_warning() {
-		if ( 'yes' === $this->enabled && 'EUR' !== get_woocommerce_currency() ) {
-			$message = __( 'Bitcoin is enabled - it requires store currency to be set to Euros.', 'woocommerce-gateway-stripe' );
+		if ( 'yes' === $this->enabled && ! in_array( get_woocommerce_currency(), $this->get_supported_currency() ) ) {
+			$message = __( 'Bitcoin is enabled - it requires store currency to be set to USD.', 'woocommerce-gateway-stripe' );
 
 			return $message;
 		}
 
 		return false;
+	}
+
+	/**
+	 * Returns all supported currencies for this payment method.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @return array
+	 */
+	public function get_supported_currency() {
+		return apply_filters( 'wc_stripe_bitcoin_supported_currencies', array(
+			'USD',
+		) );
+	}
+
+	/**
+	 * Checks to see if all criteria is met before showing payment method.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @return bool
+	 */
+	public function is_available() {
+		if ( 'yes' !== $this->enabled || ! in_array( get_woocommerce_currency(), $this->get_supported_currency() ) ) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
