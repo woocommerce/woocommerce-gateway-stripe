@@ -118,12 +118,16 @@
 			});
 
 			// Open Payment Request UI.
-			request.show().then( function( payment ) {
-				self.processPayment( payment );
-			})
-			.catch( function( err ) {
-				console.error( err );
-			});
+			if ( request.canMakePayment ) {
+				request.show().then( function( payment ) {
+					self.processPayment( payment );
+				})
+				.catch( function( err ) {
+					console.error( err );
+				});
+			} else {
+				window.location.href = wcStripePaymentRequestParams.checkout_url;
+			}
 		},
 
 		/**

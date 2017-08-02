@@ -95,6 +95,7 @@ class WC_Stripe_Payment_Request {
 					/* translators: Do not translate the [option] placeholder */
 					'unknown_shipping' => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' ),
 				),
+				'checkout_url' => wc_get_checkout_url(),
 			)
 		);
 
