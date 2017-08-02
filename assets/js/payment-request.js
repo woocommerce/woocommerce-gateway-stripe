@@ -32,11 +32,11 @@
 		},
 
 		/**
-		 * Get Stripe supported methods.
+		 * Get Stripe supported Networks.
 		 *
 		 * @return {Array}
 		 */
-		getSupportedMethods: function() {
+		getSupportedNetworks: function() {
 			return [
 				'amex',
 				'diners',
@@ -91,15 +91,21 @@
 
 			// PaymentRequest options.
 			var supportedInstruments = [{
-				supportedMethods: self.getSupportedMethods()
+				supportedMethods: ['basic-card'],
+				data: {
+					supportedNetworks: self.getSupportedNetworks()
+				}
 			}];
+
 			var options = {
 				requestPayerPhone: true,
 				requestPayerEmail: true
 			};
+
 			if ( details.shipping_required ) {
 				options.requestShipping = true;
 			}
+
 			var paymentDetails = details.order_data;
 
 			// Init PaymentRequest.
