@@ -53,21 +53,21 @@ class WC_Stripe_API {
 	 * @version 4.0.0
 	 */
 	public static function get_user_agent() {
-    $langVersion = phpversion();
+    $php_version = phpversion();
     $uname = php_uname();
-    $appInfo = array(
+    $app_info = array(
 			'name' => 'woocommerce-gateway-stripe',
 			'version' => WC_STRIPE_VERSION,
 			'url' => 'https://woocommerce.com/products/stripe/',
 		);
-    $ua = array(
+    $user_agent = array(
 			'lang' => 'php',
-			'lang_version' => $langVersion,
+			'lang_version' => $php_version,
 			'publisher' => 'woocommerce',
 			'uname' => $uname,
-			'application' => $appInfo,
+			'application' => $app_info,
     );
-		return $ua;
+		return $user_agent;
 	}
 
 	/**
@@ -151,7 +151,6 @@ class WC_Stripe_API {
 				'method'        => 'GET',
 				'headers'       => self::get_headers(),
 				'timeout'    => 70,
-				'user-agent' => 'WooCommerce ' . WC()->version,
 			)
 		);
 
