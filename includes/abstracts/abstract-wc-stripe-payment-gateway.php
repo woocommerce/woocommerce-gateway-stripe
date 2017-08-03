@@ -24,7 +24,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 			return true;
 		}
-		return false;
+
+		return parent::is_available();
 	}
 
 	/**

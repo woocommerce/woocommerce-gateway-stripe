@@ -144,11 +144,11 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_available() {
-		if ( 'yes' !== $this->enabled || ! in_array( get_woocommerce_currency(), $this->get_supported_currency() ) ) {
+		if ( ! in_array( get_woocommerce_currency(), $this->get_supported_currency() ) ) {
 			return false;
 		}
 
-		return true;
+		return parent::is_available();
 	}
 
 	/**
@@ -284,39 +284,31 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 		try {
 			$order = wc_get_order( $order_id );
 
-			// Handle payment.
-			if ( $order->get_total() > 0 ) {
-
-				if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
-					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
-				}
-
-				$response = $this->create_source( $order );
-
-				if ( ! empty( $response->error ) ) {
-					$order->add_order_note( $response->error->message );
-
-					throw new Exception( $response->error->message );
-				}
-
-				if ( WC_Stripe_Helper::is_pre_30() ) {
-					update_post_meta( $order_id, '_stripe_source_id', $response->id );
-				} else {
-					$order->update_meta_data( '_stripe_source_id', $response->id );
-					$order->save();
-				}
-
-				WC_Stripe_Logger::log( 'Info: Redirecting to iDeal...' );
-
-				return array(
-					'result'   => 'success',
-					'redirect' => esc_url_raw( $response->redirect->url ),
-				);
-			} else {
-				do_action( 'wc_gateway_stripe_process_payment', $response, $order );
-
-				$order->payment_complete();
+			if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
+				throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 			}
+
+			$response = $this->create_source( $order );
+
+			if ( ! empty( $response->error ) ) {
+				$order->add_order_note( $response->error->message );
+
+				throw new Exception( $response->error->message );
+			}
+
+			if ( WC_Stripe_Helper::is_pre_30() ) {
+				update_post_meta( $order_id, '_stripe_source_id', $response->id );
+			} else {
+				$order->update_meta_data( '_stripe_source_id', $response->id );
+				$order->save();
+			}
+
+			WC_Stripe_Logger::log( 'Info: Redirecting to iDeal...' );
+
+			return array(
+				'result'   => 'success',
+				'redirect' => esc_url_raw( $response->redirect->url ),
+			);
 		} catch ( Exception $e ) {
 			wc_add_notice( $e->getMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );

@@ -155,11 +155,11 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_available() {
-		if ( 'yes' !== $this->enabled || ! in_array( get_woocommerce_currency(), $this->get_supported_currency() ) ) {
+		if ( ! in_array( get_woocommerce_currency(), $this->get_supported_currency() ) ) {
 			return false;
 		}
 
-		return true;
+		return parent::is_available();
 	}
 
 	/**
@@ -374,34 +374,26 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 			// Result from Stripe API request.
 			$response = null;
 
-			// Handle payment.
-			if ( $order->get_total() > 0 ) {
-				if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
-					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
-				}
-
-				$this->save_instructions( $order, $source_object );
-
-				// Mark as on-hold (we're awaiting the payment)
-				$order->update_status( 'on-hold', __( 'Awaiting Bitcoin payment', 'woocommerce-gateway-stripe' ) );
-
-				// Reduce stock levels
-				wc_reduce_stock_levels( $order_id );
-
-				// Remove cart
-				WC()->cart->empty_cart();
-
-				// Return thankyou redirect
-				return array(
-					'result'    => 'success',
-					'redirect'  => $this->get_return_url( $order ),
-				);
-			} else {
-				do_action( 'wc_gateway_stripe_process_payment', $response, $order );
-
-				$order->payment_complete();
+			if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
+				throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 			}
 
+			$this->save_instructions( $order, $source_object );
+
+			// Mark as on-hold (we're awaiting the payment)
+			$order->update_status( 'on-hold', __( 'Awaiting Bitcoin payment', 'woocommerce-gateway-stripe' ) );
+
+			// Reduce stock levels
+			wc_reduce_stock_levels( $order_id );
+
+			// Remove cart
+			WC()->cart->empty_cart();
+
+			// Return thankyou redirect
+			return array(
+				'result'    => 'success',
+				'redirect'  => $this->get_return_url( $order ),
+			);
 		} catch ( Exception $e ) {
 			wc_add_notice( $e->getMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
