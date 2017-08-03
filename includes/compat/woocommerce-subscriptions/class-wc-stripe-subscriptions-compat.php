@@ -49,7 +49,7 @@ class WC_Stripe_Subscriptions_Compat extends WC_Gateway_Stripe {
 	 * @param  int  $order_id
 	 * @return boolean
 	 */
-	protected function is_subscription( $order_id ) {
+	public function has_subscription( $order_id ) {
 		return ( function_exists( 'wcs_order_contains_subscription' ) && ( wcs_order_contains_subscription( $order_id ) || wcs_is_subscription( $order_id ) || wcs_order_contains_renewal( $order_id ) ) );
 	}
 
@@ -59,7 +59,7 @@ class WC_Stripe_Subscriptions_Compat extends WC_Gateway_Stripe {
 	 * @return array
 	 */
 	public function process_payment( $order_id, $retry = true, $force_customer = false ) {
-		if ( $this->is_subscription( $order_id ) ) {
+		if ( $this->has_subscription( $order_id ) ) {
 			// Regular payment with force customer enabled
 			return parent::process_payment( $order_id, true, true );
 
