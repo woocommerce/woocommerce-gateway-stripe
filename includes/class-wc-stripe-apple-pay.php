@@ -706,10 +706,10 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 				// Make the request.
 				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $result['token']['id'] ) );
 
-				if ( is_wp_error( $response ) ) {
+				if ( ! empty( $response->error ) ) {
 					$localized_messages = WC_Stripe_Helper::get_localized_messages();
 
-					throw new Exception( ( isset( $localized_messages[ $response->get_error_code() ] ) ? $localized_messages[ $response->get_error_code() ] : $response->get_error_message() ) );
+					throw new Exception( ( isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message ) );
 				}
 
 				// Process valid response.

@@ -303,12 +303,10 @@ class WC_Gateway_Stripe_Alipay extends WC_Stripe_Payment_Gateway {
 
 				$response = $this->create_source( $order );
 
-				if ( is_wp_error( $response ) ) {
-					$message = $response->get_error_message();
+				if ( ! empty( $response->error ) ) {
+					$order->add_order_note( $response->error->message );
 
-					$order->add_order_note( $message );
-
-					throw new Exception( $message );
+					throw new Exception( $response->error->message );
 				}
 
 				if ( WC_Stripe_Helper::is_pre_30() ) {

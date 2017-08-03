@@ -172,8 +172,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					'expand[]' => 'balance_transaction',
 				), 'charges/' . $charge . '/capture' );
 
-				if ( is_wp_error( $result ) ) {
-					$order->add_order_note( __( 'Unable to capture charge!', 'woocommerce-gateway-stripe' ) . ' ' . $result->get_error_message() );
+				if ( ! empty( $result->error ) ) {
+					$order->add_order_note( __( 'Unable to capture charge!', 'woocommerce-gateway-stripe' ) . ' ' . $result->error->message );
 				} else {
 					$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $result->id ) );
 					WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_stripe_charge_captured', 'yes' ) : $order->update_meta_data( '_stripe_charge_captured', 'yes' );
@@ -216,8 +216,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					'amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
 				), 'charges/' . $charge_id . '/refund' );
 
-				if ( is_wp_error( $result ) ) {
-					$order->add_order_note( __( 'Unable to refund charge!', 'woocommerce-gateway-stripe' ) . ' ' . $result->get_error_message() );
+				if ( ! empty( $result->error ) ) {
+					$order->add_order_note( __( 'Unable to refund charge!', 'woocommerce-gateway-stripe' ) . ' ' . $result->error->message );
 				} else {
 					$order->add_order_note( sprintf( __( 'Stripe charge refunded (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $result->id ) );
 					WC_Stripe_Helper::is_pre_30() ? delete_post_meta( $order_id, '_stripe_charge_captured' ) : $order->delete_meta_data( '_stripe_charge_captured' );

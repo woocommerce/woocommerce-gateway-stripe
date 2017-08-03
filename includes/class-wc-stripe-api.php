@@ -151,18 +151,6 @@ class WC_Stripe_API {
 			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		$parsed_response = json_decode( $response['body'] );
-
-		// Handle response
-		if ( ! empty( $parsed_response->error ) ) {
-			if ( ! empty( $parsed_response->error->code ) ) {
-				$code = $parsed_response->error->code;
-			} else {
-				$code = 'stripe_error';
-			}
-			return new WP_Error( $code, $parsed_response->error->message, $parsed_response->error );
-		} else {
-			return $parsed_response;
-		}
+		return json_decode( $response['body'] );
 	}
 }

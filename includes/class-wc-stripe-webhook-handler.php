@@ -240,7 +240,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				$balance_transaction = WC_Stripe_API::retrieve( 'balance/history/' . $notification->data->object->balance_transaction );
 
-				if ( ! is_wp_error( $balance_transaction ) ) {
+				if ( empty( $balance_transaction->error ) ) {
 					if ( isset( $balance_transaction ) && isset( $balance_transaction->fee ) ) {
 						// Fees and Net needs to both come from Stripe to be accurate as the returned
 						// values are in the local currency of the Stripe account, not from WC.

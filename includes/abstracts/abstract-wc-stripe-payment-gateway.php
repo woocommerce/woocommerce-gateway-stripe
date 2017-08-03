@@ -283,8 +283,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && 'reusable' === $source->usage ) || $force_save_customer ) {
 				$source = $customer->add_source( $source->id );
 
-				if ( is_wp_error( $source ) ) {
-					throw new Exception( $source->get_error_message() );
+				if ( ! empty( $source->error ) ) {
+					throw new Exception( $source->error->message );
 				}
 			} else {
 				// Not saving token, so don't define customer either.
@@ -309,9 +309,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			// This is true if the user wants to store the card to their account.
 			if ( ( $user_id && $this->saved_cards && $maybe_saved_card ) || $force_customer ) {
-				$stripe_source = $stripe_customer->add_card( $stripe_token );
-				if ( is_wp_error( $stripe_source ) ) {
-					throw new Exception( $stripe_source->get_error_message() );
+				$stripe_source = $stripe_customer->add_source( $stripe_token );
+				if ( ! empty( $stripe_source->error ) ) {
+					throw new Exception( $stripe_source->error->message );
 				}
 			} else {
 				// Not saving token, so don't define customer either.
@@ -443,8 +443,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$response = WC_Stripe_API::request( $body, 'charges/' . $order->get_transaction_id() . '/refunds' );
 
-		if ( is_wp_error( $response ) ) {
-			WC_Stripe_Logger::log( 'Error: ' . $response->get_error_message() );
+		if ( ! empty( $response->error ) ) {
+			WC_Stripe_Logger::log( 'Error: ' . $response->error->message );
 			return $response;
 		} elseif ( ! empty( $response->id ) ) {
 			$amount = wc_price( $response->amount / 100 );
@@ -476,16 +476,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
 		$source          = $stripe_customer->add_source( wc_clean( $_POST['stripe_token'] ) );
 
-		if ( is_wp_error( $source ) ) {
+		if ( ! empty( $source->error ) ) {
 			$localized_messages = WC_Stripe_Helper::get_localized_messages();
 			$error_msg = __( 'There was a problem adding the card.', 'woocommerce-gateway-stripe' );
 
-			// loop through the errors to find matching localized message
-			foreach ( $source->errors as $error => $msg ) {
-				if ( isset( $localized_messages[ $error ] ) ) {
-					$error_msg = $localized_messages[ $error ];
-				}
-			}
+			$error_msg = $localized_messages[ $source->error->type ];
 
 			wc_add_notice( $error_msg, 'error' );
 			return;

@@ -93,7 +93,7 @@ class WC_Stripe_Customer {
 		if ( empty( $this->customer_data ) && $this->get_id() && false === ( $this->customer_data = get_transient( 'stripe_customer_' . $this->get_id() ) ) ) {
 			$response = WC_Stripe_API::request( array(), 'customers/' . $this->get_id() );
 
-			if ( ! is_wp_error( $response ) ) {
+			if ( empty( $response->error ) ) {
 				$this->set_customer_data( $response );
 				set_transient( 'stripe_customer_' . $this->get_id(), $response, HOUR_IN_SECONDS * 48 );
 			}
@@ -146,10 +146,8 @@ class WC_Stripe_Customer {
 		$args     = wp_parse_args( $args, $defaults );
 		$response = WC_Stripe_API::request( apply_filters( 'wc_stripe_create_customer_args', $args ), 'customers' );
 
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		} elseif ( empty( $response->id ) ) {
-			return new WP_Error( 'stripe_error', __( 'Could not create Stripe customer.', 'woocommerce-gateway-stripe' ) );
+		if ( ! empty( $response->error ) ) {
+			throw new Exception( $response->error->message );
 		}
 
 		$this->set_id( $response->id );
@@ -173,24 +171,22 @@ class WC_Stripe_Customer {
 	 */
 	public function add_source( $source_id, $retry = true ) {
 		if ( ! $this->get_id() ) {
-			if ( ( $response = $this->create_customer() ) && is_wp_error( $response ) ) {
-				return $response;
-			}
+			$this->create_customer();
 		}
 
 		$response = WC_Stripe_API::request( array(
 			'source' => $source_id,
 		), 'customers/' . $this->get_id() . '/sources' );
 
-		if ( is_wp_error( $response ) ) {
+		if ( ! empty( $response->error ) ) {
 			// It is possible the WC user once was linked to a customer on Stripe
 			// but no longer exists. Instead of failing, lets try to create a
 			// new customer.
-			if ( preg_match( '/No such customer:/', $response->get_error_message() ) ) {
+			if ( preg_match( '/No such customer:/', $response->error->message ) ) {
 				delete_user_meta( $this->get_user_id(), '_stripe_customer_id' );
 				$this->create_customer();
 				return $this->add_source( $source_id, false );
-			} elseif ( 'customer' === $response->get_error_code() && $retry ) {
+			} elseif ( 'customer' === $response->error->type && $retry ) {
 				$this->create_customer();
 				return $this->add_source( $source_id, false );
 			} else {
@@ -263,7 +259,7 @@ class WC_Stripe_Customer {
 				'limit'       => 100,
 			), 'customers/' . $this->get_id() . '/sources', 'GET' );
 
-			if ( is_wp_error( $response ) ) {
+			if ( ! empty( $response->error ) ) {
 				return array();
 			}
 
@@ -286,7 +282,7 @@ class WC_Stripe_Customer {
 
 		$this->clear_cache();
 
-		if ( ! is_wp_error( $response ) ) {
+		if ( empty( $response->error ) ) {
 			do_action( 'wc_stripe_delete_source', $this->get_id(), $response );
 
 			return true;
@@ -306,7 +302,7 @@ class WC_Stripe_Customer {
 
 		$this->clear_cache();
 
-		if ( ! is_wp_error( $response ) ) {
+		if ( empty( $response->error ) ) {
 			do_action( 'wc_stripe_set_default_source', $this->get_id(), $response );
 
 			return true;

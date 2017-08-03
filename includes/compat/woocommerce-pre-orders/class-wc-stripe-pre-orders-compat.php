@@ -104,9 +104,9 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Gateway_Stripe {
 				$source   = $this->prepare_order_source( $order );
 				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source ) );
 
-				if ( is_wp_error( $response ) ) {
+				if ( ! empty( $response->error ) ) {
 					if ( 0 === sizeof( $retry_callbacks ) ) {
-						throw new Exception( $response->get_error_message() );
+						throw new Exception( $response->error->message );
 					} else {
 						$retry_callback = array_shift( $retry_callbacks );
 						call_user_func( array( $this, $retry_callback ), $order );
