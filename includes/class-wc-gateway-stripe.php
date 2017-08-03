@@ -123,21 +123,18 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$this->method_description   = sprintf( __( 'Stripe works by adding payment fields on the checkout and then sending the details to Stripe for verification. <a href="%1$s" target="_blank">Sign up</a> for a Stripe account, and <a href="%2$s" target="_blank">get your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), 'https://dashboard.stripe.com/register', 'https://dashboard.stripe.com/account/apikeys' );
 		$this->has_fields           = true;
 		$this->supports             = array(
-			'subscriptions',
 			'products',
 			'refunds',
-			'subscription_cancellation',
-			'subscription_reactivation',
-			'subscription_suspension',
-			'subscription_amount_changes',
-			'subscription_payment_method_change', // Subs 1.n compatibility.
-			'subscription_payment_method_change_customer',
-			'subscription_payment_method_change_admin',
-			'subscription_date_changes',
-			'multiple_subscriptions',
-			'pre-orders',
 			'tokenization',
 			'add_payment_method',
+			'subscriptions',
+			'subscription_cancellation',
+			'subscription_suspension',
+			'subscription_reactivation',
+			'subscription_amount_changes',
+			'subscription_date_changes',
+			'subscription_payment_method_change',
+			'pre-orders',
 		);
 
 		// Load the form fields.
