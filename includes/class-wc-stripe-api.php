@@ -100,7 +100,8 @@ class WC_Stripe_API {
 
 		$headers = self::get_headers();
 
-		$source = ! empty( $request['source'] ) ? $request['source'] : ( ! empty( $request['customer'] ) ) ? $request['customer'] : '';
+		$customer = ! empty( $request['customer'] ) ? $request['customer'] : '';
+		$source   = ! empty( $request['source'] ) ? $request['source'] : $customer;
 
 		if ( 'charges' === $api && 'POST' === $method ) {
 			$headers['Idempotency-Key'] = $request['metadata']['order_id'] . '-' . $request['source'];
@@ -118,22 +119,10 @@ class WC_Stripe_API {
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
 			WC_Stripe_Logger::log( 'Error Response: ' . print_r( $response, true ) );
-			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
+			throw new Exception( __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		$parsed_response = json_decode( $response['body'] );
-
-		// Handle response
-		if ( ! empty( $parsed_response->error ) ) {
-			if ( ! empty( $parsed_response->error->code ) ) {
-				$code = $parsed_response->error->code;
-			} else {
-				$code = 'stripe_error';
-			}
-			return new WP_Error( $code, $parsed_response->error->message, $parsed_response->error );
-		} else {
-			return $parsed_response;
-		}
+		return json_decode( $response['body'] );
 	}
 
 	/**

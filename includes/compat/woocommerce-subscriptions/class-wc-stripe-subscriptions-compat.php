@@ -131,7 +131,7 @@ class WC_Stripe_Subscriptions_Compat extends WC_Gateway_Stripe {
 		$response            = WC_Stripe_API::request( $request );
 
 		// Process valid response
-		if ( is_wp_error( $response ) ) {
+		if ( ! empty( $response->error ) ) {
 			return $response; // Default catch all errors.
 		}
 

@@ -208,7 +208,7 @@ jQuery( function( $ ) {
 			return $( '.wc_payment_methods input[name="payment_method"]:checked' );
 		},
 
-		onError: function( e, result ) {
+		onError: function( e, result ) {console.log( result );
 			var message = result.error.message,
 				errorContainer = wc_stripe_elements_form.getSelectedPaymentElement().parent( '.wc_payment_method' ).find( '.stripe-source-errors' );
 

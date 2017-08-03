@@ -49,7 +49,7 @@ class WC_Stripe_Helper {
 			'card_declined'         => __( 'The card was declined.', 'woocommerce-gateway-stripe' ),
 			'missing'               => __( 'There is no card on a customer that is being charged.', 'woocommerce-gateway-stripe' ),
 			'processing_error'      => __( 'An error occurred while processing the card.', 'woocommerce-gateway-stripe' ),
-			'invalid_request_error' => __( 'Could not find payment information.', 'woocommerce-gateway-stripe' ),
+			'invalid_request_error' => __( 'Could not find payment information. Please try with another payment method.', 'woocommerce-gateway-stripe' ),
 		) );
 	}
 

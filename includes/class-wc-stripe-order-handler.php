@@ -85,27 +85,27 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				// Make the request.
 				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source_object ) );
 
-				if ( is_wp_error( $response ) ) {
+				if ( ! empty( $response->error ) ) {
 					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
-					if ( 'customer' === $response->get_error_code() && $retry ) {
+					if ( 'customer' === $response->error->type && $retry ) {
+						delete_user_meta( get_current_user_id(), '_stripe_customer_id' );
+						return $this->process_payment( $order_id, false, $force_customer );
+					} elseif ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
 						delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
 
-						return $this->process_redirect_payment( $order_id, false, $source );
-					} elseif ( preg_match( '/No such customer/i', $response->get_error_message() ) && $retry ) {
-						delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
-
-						return $this->process_redirect_payment( $order_id, false, $source );
-					// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
-					} elseif ( 'source' === $response->get_error_code() && $source->token_id ) {
-						$token = WC_Payment_Tokens::get( $source->token_id );
-						$token->delete();
+						return $this->process_payment( $order_id, false, $force_customer );
+						// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
+					} elseif ( 'source' === $response->error->type && $prepared_source->token_id ) {
+						$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
+						$wc_token->delete();
 						$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
 						$order->add_order_note( $message );
+						throw new Exception( $message );
 					}
 
 					$localized_messages = WC_Stripe_Helper::get_localized_messages();
 
-					$message = isset( $localized_messages[ $response->get_error_code() ] ) ? $localized_messages[ $response->get_error_code() ] : $response->get_error_message();
+					$message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
 
 					$order->add_order_note( $message );
 
@@ -123,11 +123,15 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
+			do_action( 'wc_gateway_stripe_process_redirect_payment_error', $e, $order );
+
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );
 			}
 
-			do_action( 'wc_gateway_stripe_process_redirect_payment_error', $e, $order );
+			wc_add_notice( $e->getMessage(), 'error' );
+			wp_safe_redirect( wc_get_checkout_url() );
+			exit;
 		}
 	}
 
