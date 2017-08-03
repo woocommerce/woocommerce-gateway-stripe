@@ -101,7 +101,7 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Gateway_Stripe {
 			);
 
 			while ( 1 ) {
-				$source   = $this->get_order_source( $order );
+				$source   = $this->prepare_order_source( $order );
 				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source ) );
 
 				if ( is_wp_error( $response ) ) {

@@ -134,9 +134,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$post_data['expand[]'] = 'balance_transaction';
 
 		$metadata = array(
-			__( 'Customer Name', 'woocommerce-gateway-stripe' ) => sanitize_text_field( $billing_first_name ) . ' ' . sanitize_text_field( $billing_last_name ),
-			__( 'Customer Email', 'woocommerce-gateway-stripe' ) => sanitize_email( $billing_email ),
-			'Order ID' => WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id(),
+			__( 'customer_name', 'woocommerce-gateway-stripe' ) => sanitize_text_field( $billing_first_name ) . ' ' . sanitize_text_field( $billing_last_name ),
+			__( 'customer_email', 'woocommerce-gateway-stripe' ) => sanitize_email( $billing_email ),
+			'order_id' => WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id(),
 		);
 
 		$post_data['metadata'] = apply_filters( 'wc_stripe_payment_metadata', $metadata, $order, $source );
@@ -373,7 +373,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param object $order
 	 * @return object
 	 */
-	public function get_order_source( $order = null ) {
+	public function prepare_order_source( $order = null ) {
 		$stripe_customer = new WC_Stripe_Customer();
 		$stripe_source   = false;
 		$token_id        = false;
@@ -381,8 +381,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( $order ) {
 			$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 
-			if ( $meta_value = get_post_meta( $order_id, '_stripe_customer_id', true ) ) {
-				$stripe_customer->set_id( $meta_value );
+			if ( $stripe_customer_id = get_post_meta( $order_id, '_stripe_customer_id', true ) ) {
+				$stripe_customer->set_id( $stripe_customer_id );
 			}
 
 			$source_id = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_source_id', true ) : $order->get_meta( '_stripe_source_id', true );
@@ -400,7 +400,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 
 			if ( $source_id ) {
-				$stripe_source = $meta_value;
+				$stripe_source = $source_id;
 			}
 		}
 

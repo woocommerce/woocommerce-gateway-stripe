@@ -107,27 +107,24 @@ class WC_Stripe_Subscriptions_Compat extends WC_Gateway_Stripe {
 			return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 		}
 
-		// Get source from order
-		$source = $this->get_order_source( $order );
+		$customer_id = WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id();
+		$order_id    = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 
-		// If no order source was defined, use user source instead.
-		if ( ! $source->customer ) {
-			$source = $this->get_source( ( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id() ) );
-		}
+		// Get source from order
+		$prepared_source = $this->prepare_order_source( $order );
 
 		// Or fail :(
-		if ( ! $source->customer ) {
+		if ( ! $prepared_source->customer ) {
 			return new WP_Error( 'stripe_error', __( 'Customer not found', 'woocommerce-gateway-stripe' ) );
 		}
-
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		
 		WC_Stripe_Logger::log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
 
 		// Make the request
-		$request             = $this->generate_payment_request( $order, $source );
+		$request             = $this->generate_payment_request( $order, $prepared_source );
 		$request['capture']  = 'true';
 		$request['amount']   = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
-		$request['metadata'] = array(
+		$request['metadata'] += array(
 			'payment_type'   => 'recurring',
 			'site_url'       => esc_url( get_site_url() ),
 		);
@@ -135,19 +132,7 @@ class WC_Stripe_Subscriptions_Compat extends WC_Gateway_Stripe {
 
 		// Process valid response
 		if ( is_wp_error( $response ) ) {
-			if ( 'missing' === $response->get_error_code() ) {
-				// If we can't link customer to a card, we try to charge by customer ID.
-				$request             = $this->generate_payment_request( $order, $this->get_source( ( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id() ) ) );
-				$request['capture']  = 'true';
-				$request['amount']   = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
-				$request['metadata'] = array(
-					'payment_type'   => 'recurring',
-					'site_url'       => esc_url( get_site_url() ),
-				);
-				$response          = WC_Stripe_API::request( $request );
-			} else {
-				return $response; // Default catch all errors.
-			}
+			return $response; // Default catch all errors.
 		}
 
 		$this->process_response( $response, $order );
