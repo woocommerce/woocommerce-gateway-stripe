@@ -453,7 +453,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$this->form();
 			}
 
-			if ( apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) && ! is_add_payment_method_page() ) {
+			if ( apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) ) {
 				$this->save_payment_method_checkbox();
 			}
 		}
@@ -527,7 +527,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function payment_scripts() {
-		if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() ) {
+		if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) ) {
 			return;
 		}
 
