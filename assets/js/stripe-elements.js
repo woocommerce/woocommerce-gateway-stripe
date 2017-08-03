@@ -205,12 +205,12 @@ jQuery( function( $ ) {
 		},
 
 		getSelectedPaymentElement: function() {
-			return $( '.wc_payment_methods input[name="payment_method"]:checked' );
+			return $( '.payment_methods input[name="payment_method"]:checked' );
 		},
 
 		onError: function( e, result ) {
 			var message = result.error.message,
-				errorContainer = wc_stripe_elements_form.getSelectedPaymentElement().parent( '.wc_payment_method' ).find( '.stripe-source-errors' );
+				errorContainer = wc_stripe_elements_form.getSelectedPaymentElement().parent( '.wc_payment_method, .woocommerce-PaymentMethod' ).find( '.stripe-source-errors' );
 
 			// Customers do not need to know the specifics of the below type of errors
 			// therefore return a generic localizable error message.
