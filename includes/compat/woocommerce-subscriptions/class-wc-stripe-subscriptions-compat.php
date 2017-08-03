@@ -334,19 +334,28 @@ class WC_Stripe_Subscriptions_Compat extends WC_Gateway_Stripe {
 		}
 
 		$stripe_customer->set_id( $stripe_customer_id );
-		$cards = $stripe_customer->get_sources();
+		$sources = $stripe_customer->get_sources();
 
-		if ( $cards ) {
-			$found_card = false;
-			foreach ( $cards as $card ) {
-				if ( $card->id === $stripe_source_id ) {
-					$found_card                = true;
-					$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->type ) ? $card->type : $card->brand ), $card->last4 );
+		if ( $sources ) {
+			$found_source = false;
+			foreach ( $sources as $source ) {
+				if ( 'card' === $source->type ) {
+					$card = $source->card;
+				}
+
+				if ( $source->id === $stripe_source_id ) {
+					$found_source = true;
+					$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
 					break;
 				}
 			}
-			if ( ! $found_card ) {
-				$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $cards[0]->type ) ? $cards[0]->type : $cards[0]->brand ), $cards[0]->last4 );
+
+			if ( ! $found_source ) {
+				if ( 'card' === $sources[0]->type ) {
+					$card = $sources[0]->card;
+				}
+
+				$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
 			}
 		}
 
