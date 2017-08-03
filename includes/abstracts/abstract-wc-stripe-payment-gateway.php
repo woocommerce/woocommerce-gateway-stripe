@@ -468,23 +468,23 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.0
 	 */
 	public function add_payment_method() {
-		if ( empty( $_POST['stripe_token'] ) || ! is_user_logged_in() ) {
+		if ( empty( $_POST['stripe_source'] ) || ! is_user_logged_in() ) {
 			wc_add_notice( __( 'There was a problem adding the card.', 'woocommerce-gateway-stripe' ), 'error' );
 			return;
 		}
 
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
-		$source          = $stripe_customer->add_source( wc_clean( $_POST['stripe_token'] ) );
+		$source          = json_decode( wc_clean( stripslashes( $_POST['stripe_source'] ) ) );
 
 		if ( ! empty( $source->error ) ) {
 			$localized_messages = WC_Stripe_Helper::get_localized_messages();
 			$error_msg = __( 'There was a problem adding the card.', 'woocommerce-gateway-stripe' );
 
-			$error_msg = $localized_messages[ $source->error->type ];
-
 			wc_add_notice( $error_msg, 'error' );
 			return;
 		}
+
+		$stripe_customer->add_source( $source->id );
 
 		return array(
 			'result'   => 'success',

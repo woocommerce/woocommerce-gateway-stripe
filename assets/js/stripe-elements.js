@@ -208,7 +208,7 @@ jQuery( function( $ ) {
 			return $( '.wc_payment_methods input[name="payment_method"]:checked' );
 		},
 
-		onError: function( e, result ) {console.log( result );
+		onError: function( e, result ) {
 			var message = result.error.message,
 				errorContainer = wc_stripe_elements_form.getSelectedPaymentElement().parent( '.wc_payment_method' ).find( '.stripe-source-errors' );
 
@@ -416,6 +416,12 @@ jQuery( function( $ ) {
 
 				// Prevent form submitting
 				return false;
+			} else if ( $( 'form#add_payment_method' ).length ) {
+				e.preventDefault();
+				wc_stripe_elements_form.block();
+
+				wc_stripe_elements_form.createSource();
+				return false;
 			}
 		},
 
@@ -428,6 +434,10 @@ jQuery( function( $ ) {
 
 			// Insert the Source into the form so it gets submitted to the server.
 			wc_stripe_elements_form.form.append( "<input type='hidden' class='stripe-source' name='stripe_source' value='" + JSON.stringify( source ) + "'/>" );
+
+			if ( $( 'form#add_payment_method' ).length ) {
+				$( wc_stripe_elements_form.form ).off( 'submit', wc_stripe_elements_form.form.onSubmit );
+			}
 
 			wc_stripe_elements_form.form.submit();
 		},

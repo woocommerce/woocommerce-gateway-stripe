@@ -453,7 +453,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$this->form();
 			}
 
-			if ( apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) {
+			if ( apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) && ! is_add_payment_method_page() ) {
 				$this->save_payment_method_checkbox();
 			}
 		}
