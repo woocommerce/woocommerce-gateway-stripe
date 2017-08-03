@@ -110,12 +110,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function generate_payment_request( $order, $source ) {
 		$settings                          = get_option( 'woocommerce_stripe_settings', array() );
-		$statement_descriptor              = ! empty( $settings['statement_descriptor'] ) ? $settings['statement_descriptor'] : '';
+		$statement_descriptor              = ! empty( $settings['statement_descriptor'] ) ? str_replace( "'", '', $settings['statement_descriptor'] ) : wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 		$capture                           = ! empty( $settings['capture'] ) && 'yes' === $settings['capture'] ? true : false; 
 		$post_data                         = array();
 		$post_data['currency']             = strtolower( WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency() );
 		$post_data['amount']               = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $post_data['currency'] );
-		$post_data['description']          = sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), $statement_descriptor, $order->get_order_number() );
+		$post_data['description']          = sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() );
 		$billing_email      = WC_Stripe_Helper::is_pre_30() ? $order->billing_email : $order->get_billing_email();
 		$billing_first_name = WC_Stripe_Helper::is_pre_30() ? $order->billing_first_name : $order->get_billing_first_name();
 		$billing_last_name  = WC_Stripe_Helper::is_pre_30() ? $order->billing_last_name : $order->get_billing_last_name();
@@ -126,7 +126,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		switch ( WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method() ) {
 			case 'stripe':
-				$post_data['statement_descriptor'] = substr( str_replace( "'", '', $statement_descriptor ), 0, 22 );
+				$post_data['statement_descriptor'] = substr( $statement_descriptor, 0, 22 );
 				$post_data['capture']              = $capture ? 'true' : 'false';
 				break;
 		}

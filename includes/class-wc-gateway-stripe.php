@@ -153,6 +153,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$this->testmode                = 'yes' === $this->get_option( 'testmode' );
 		$this->capture                 = 'yes' === $this->get_option( 'capture', 'yes' );
 		$this->statement_descriptor    = $this->get_option( 'statement_descriptor', wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) );
+		$this->statement_descriptor    = str_replace( "'", '', $this->statement_descriptor );
 		$this->three_d_secure          = 'yes' === $this->get_option( 'three_d_secure' );
 		$this->stripe_checkout         = 'yes' === $this->get_option( 'stripe_checkout' );
 		$this->stripe_checkout_locale  = $this->get_option( 'stripe_checkout_locale' );
@@ -571,7 +572,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$stripe_params['return_url']                              = $this->get_stripe_return_url();
 		$stripe_params['ajaxurl']                                 = WC_AJAX::get_endpoint( '%%endpoint%%' );
 		$stripe_params['stripe_nonce']                            = wp_create_nonce( '_wc_stripe_nonce' );
-		$stripe_params['statement_descriptor']                    = str_replace( "'", '', $this->statement_descriptor );
+		$stripe_params['statement_descriptor']                    = $this->statement_descriptor;
 
 		// merge localized messages to be use in JS
 		$stripe_params = array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
