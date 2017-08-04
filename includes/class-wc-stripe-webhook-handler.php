@@ -64,10 +64,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
-		if ( empty( $request_headers['STRIPE-SIGNATURE'] ) ) {
-			return false;
-		}
-
 		if ( ! empty( $request_headers['USER-AGENT'] ) && ! preg_match( '/Stripe/', $request_headers['USER-AGENT'] ) ) {
 			return false;
 		}
