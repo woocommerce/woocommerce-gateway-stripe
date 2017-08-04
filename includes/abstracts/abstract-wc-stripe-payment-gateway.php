@@ -265,10 +265,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return object
 	 */
 	public function prepare_source( $user_id, $force_save_source = false ) {
-		$customer            = new WC_Stripe_Customer( $user_id );
-		$force_save_source = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
-		$source              = '';
-		$wc_token_id         = false;
+		$customer           = new WC_Stripe_Customer( $user_id );
+		$force_save_source  = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
+		$source             = '';
+		$wc_token_id        = false;
 
 		// New CC info was entered and we have a new source to process.
 		if ( ! empty( $_POST['stripe_source'] ) ) {
@@ -290,9 +290,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 					throw new Exception( $source->error->message );
 				}
 			} else {
-				// Not saving token, so don't define customer either.
 				$source   = $source->id;
-				$customer = false;
 			}
 		} elseif ( isset( $_POST['wc-stripe-payment-token'] ) && 'new' !== $_POST['wc-stripe-payment-token'] ) {
 			// Use an existing token, and then process the payment
@@ -317,15 +315,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 					throw new Exception( $stripe_source->error->message );
 				}
 			} else {
-				// Not saving token, so don't define customer either.
-				$source   = $stripe_token;
-				$customer = false;
+				$source = $stripe_token;
 			}
 		}
 
 		return (object) array(
 			'token_id' => $wc_token_id,
-			'customer' => $customer ? $customer->get_id() : false,
+			'customer' => $customer->get_id() ? $customer->get_id() : false,
 			'source'   => $source,
 		);
 	}
