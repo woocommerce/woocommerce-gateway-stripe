@@ -361,6 +361,15 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 			$order = wc_get_order( $order_id );
 			$source_object = ! empty( $_POST['stripe_source'] ) ? json_decode( stripslashes( $_POST['stripe_source'] ) ) : false;
 
+			// This comes from the create account checkbox in the checkout page.
+			$create_account = ! empty( $_POST['createaccount'] ) ? true : false;
+
+			if ( $create_account ) {
+				$new_customer_id     = WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id();
+				$new_stripe_customer = new WC_Stripe_Customer( $new_customer_id );
+				$new_stripe_customer->create_customer();
+			}
+
 			$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source );
 
 			if ( empty( $prepared_source->source ) ) {

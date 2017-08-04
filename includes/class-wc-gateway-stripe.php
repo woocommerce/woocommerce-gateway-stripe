@@ -636,8 +636,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
 		try {
-			$order = wc_get_order( $order_id );
-			$source_object = ! empty( $_POST['stripe_source'] ) ? json_decode( wc_clean( stripslashes( $_POST['stripe_source'] ) ) ) : false;
+			$order          = wc_get_order( $order_id );
+			$source_object  = ! empty( $_POST['stripe_source'] ) ? json_decode( wc_clean( stripslashes( $_POST['stripe_source'] ) ) ) : false;
+
+			// This comes from the create account checkbox in the checkout page.
+			$create_account = ! empty( $_POST['createaccount'] ) ? true : false;
+
+			if ( $create_account ) {
+				$new_customer_id     = WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id();
+				$new_stripe_customer = new WC_Stripe_Customer( $new_customer_id );
+				$new_stripe_customer->create_customer();
+			}
 
 			$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source );
 
@@ -705,7 +714,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
 
 					return $this->process_payment( $order_id, false, $force_save_source );
-					// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
+				// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
 				} elseif ( 'source' === $response->error->type && $prepared_source->token_id ) {
 					$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
 					$wc_token->delete();

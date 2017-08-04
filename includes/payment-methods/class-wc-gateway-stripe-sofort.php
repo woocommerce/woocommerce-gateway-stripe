@@ -321,6 +321,15 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 				throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 			}
 
+			// This comes from the create account checkbox in the checkout page.
+			$create_account = ! empty( $_POST['createaccount'] ) ? true : false;
+
+			if ( $create_account ) {
+				$new_customer_id     = WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id();
+				$new_stripe_customer = new WC_Stripe_Customer( $new_customer_id );
+				$new_stripe_customer->create_customer();
+			}
+
 			$response = $this->create_source( $order );
 
 			if ( ! empty( $response->error ) ) {
