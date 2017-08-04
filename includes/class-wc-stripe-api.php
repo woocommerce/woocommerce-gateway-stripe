@@ -58,7 +58,7 @@ class WC_Stripe_API {
 			'version' => WC_STRIPE_VERSION,
 			'url'     => 'https://woocommerce.com/products/stripe/',
 		);
-    
+
 		return array(
 			'lang'         => 'php',
 			'lang_version' => phpversion(),
@@ -111,7 +111,7 @@ class WC_Stripe_API {
 			self::ENDPOINT . $api,
 			array(
 				'method'        => $method,
-				'headers'       => self::get_headers(),
+				'headers'       => $headers,
 				'body'       => apply_filters( 'woocommerce_stripe_request_body', $request, $api ),
 				'timeout'    => 70,
 			)
