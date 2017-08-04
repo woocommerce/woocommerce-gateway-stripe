@@ -624,20 +624,22 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Process the payment
 	 *
+	 * @since 1.0.0
+	 * @version 4.0.0
 	 * @param int  $order_id Reference.
 	 * @param bool $retry Should we retry on fail.
-	 * @param bool $force_customer Force user creation.
+	 * @param bool $force_save_source Force save the payment source.
 	 *
 	 * @throws Exception If payment will not be accepted.
 	 *
 	 * @return array|void
 	 */
-	public function process_payment( $order_id, $retry = true, $force_customer = false ) {
+	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
 		try {
 			$order = wc_get_order( $order_id );
 			$source_object = ! empty( $_POST['stripe_source'] ) ? json_decode( wc_clean( stripslashes( $_POST['stripe_source'] ) ) ) : false;
 
-			$prepared_source = $this->prepare_source( get_current_user_id(), $force_customer );
+			$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source );
 
 			if ( empty( $prepared_source->source ) ) {
 				$error_msg = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
@@ -698,11 +700,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 				if ( 'customer' === $response->error->type && $retry ) {
 					delete_user_meta( get_current_user_id(), '_stripe_customer_id' );
-					return $this->process_payment( $order_id, false, $force_customer );
+					return $this->process_payment( $order_id, false, $force_save_source );
 				} elseif ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
 					delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
 
-					return $this->process_payment( $order_id, false, $force_customer );
+					return $this->process_payment( $order_id, false, $force_save_source );
 					// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
 				} elseif ( 'source' === $response->error->type && $prepared_source->token_id ) {
 					$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );

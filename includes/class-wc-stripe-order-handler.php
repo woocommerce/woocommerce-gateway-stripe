@@ -46,9 +46,23 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @since 4.0.0
 	 * @version 4.0.0
 	 */
-	public function process_redirect_payment( $order_id, $retry = true, $source ) {
+	public function process_redirect_payment( $order_id, $retry = true ) {
 		try {
+			$source = wc_clean( $_GET['source'] );
+
+			if ( empty( $source ) ) {
+				return;
+			}
+
+			if ( empty( $order_id ) ) {
+				return;
+			}
+
 			$order = wc_get_order( $order_id );
+
+			if ( ! is_object( $order ) ) {
+				return;
+			}
 
 			if ( 'processing' === $order->get_status() || 'completed' === $order->get_status() ) {
 				return;
@@ -77,9 +91,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				 * webhook will take care of it later.
 				 */
 				$source_info = WC_Stripe_API::retrieve( 'sources/' . $source );
-				
-				if ( 'chargeable' !== $source_info->status ) {
-					return;
+
+				if ( 'chargeable' !== $source_info->status && 'pending' !== $source_info->status ) {
+					throw new Exception( __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ) );
 				}
 
 				// Make the request.
@@ -89,11 +103,11 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 					if ( 'customer' === $response->error->type && $retry ) {
 						delete_user_meta( get_current_user_id(), '_stripe_customer_id' );
-						return $this->process_redirect_payment( $order_id, false, $force_customer );
+						return $this->process_redirect_payment( $order_id, false, $force_save_source );
 					} elseif ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
 						delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
 
-						return $this->process_redirect_payment( $order_id, false, $force_customer );
+						return $this->process_redirect_payment( $order_id, false, $force_save_source );
 						// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
 					} elseif ( 'source' === $response->error->type && $prepared_source->token_id ) {
 						$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
@@ -146,10 +160,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$source   = wc_clean( $_GET['source'] );
 		$order_id = wc_clean( $_GET['order_id'] );
 
-		$this->process_redirect_payment( $order_id, true, $source );
+		$this->process_redirect_payment( $order_id );
 	}
 
 	/**

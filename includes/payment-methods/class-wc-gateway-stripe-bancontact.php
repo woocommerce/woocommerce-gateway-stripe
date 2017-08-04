@@ -274,13 +274,13 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @param int  $order_id Reference.
 	 * @param bool $retry Should we retry on fail.
-	 * @param bool $force_customer Force user creation.
+	 * @param bool $force_save_source Force payment source to be saved.
 	 *
 	 * @throws Exception If payment will not be accepted.
 	 *
 	 * @return array|void
 	 */
-	public function process_payment( $order_id, $retry = true, $force_customer = false ) {
+	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
 		try {
 			$order = wc_get_order( $order_id );
 

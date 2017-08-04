@@ -148,11 +148,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 					if ( 'customer' === $response->error->type && $retry ) {
 						delete_user_meta( get_current_user_id(), '_stripe_customer_id' );
-						return $this->process_payment( $order_id, false, $force_customer );
+						return $this->process_payment( $order_id, false, $force_save_source );
 					} elseif ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
 						delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
 
-						return $this->process_payment( $order_id, false, $force_customer );
+						return $this->process_payment( $order_id, false, $force_save_source );
 						// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
 					} elseif ( 'source' === $response->error->type && $prepared_source->token_id ) {
 						$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );

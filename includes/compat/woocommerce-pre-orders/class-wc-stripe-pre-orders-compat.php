@@ -34,12 +34,12 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Gateway_Stripe {
 	 * @param  int $order_id
 	 * @return array
 	 */
-	public function process_payment( $order_id, $retry = true, $force_customer = false ) {
+	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
 		if ( $this->is_pre_order( $order_id ) ) {
-			return $this->process_pre_order( $order_id, $retry, $force_customer );
+			return $this->process_pre_order( $order_id, $retry, $force_save_source );
 
 		} else {
-			return parent::process_payment( $order_id, $retry, $force_customer );
+			return parent::process_payment( $order_id, $retry, $force_save_source );
 		}
 	}
 
@@ -48,7 +48,7 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Gateway_Stripe {
 	 * @param int $order_id
 	 * @return array
 	 */
-	public function process_pre_order( $order_id, $retry, $force_customer ) {
+	public function process_pre_order( $order_id, $retry, $force_save_source ) {
 		if ( WC_Pre_Orders_Order::order_requires_payment_tokenization( $order_id ) ) {
 			try {
 				$order = wc_get_order( $order_id );
@@ -83,7 +83,7 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Gateway_Stripe {
 				return;
 			}
 		} else {
-			return parent::process_payment( $order_id, $retry, $force_customer );
+			return parent::process_payment( $order_id, $retry, $force_save_source );
 		}
 	}
 

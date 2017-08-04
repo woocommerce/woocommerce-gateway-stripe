@@ -30,7 +30,7 @@ class WC_Stripe_Customer {
 
 	/**
 	 * Constructor
-	 * @param integer $user_id
+	 * @param int $user_id The WP user ID
 	 */
 	public function __construct( $user_id = 0 ) {
 		if ( $user_id ) {

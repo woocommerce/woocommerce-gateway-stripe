@@ -252,19 +252,21 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Get payment source. This can be a new token or existing token.
+	 * Get payment source. This can be a new token/source or existing WC token.
+	 * If user is logged in and/or has WC account, create an account on Stripe.
+	 * This way we can attribute the payment to the user to better fight fraud.
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
 	 * @param string $user_id
-	 * @param bool  $force_customer Should we force customer creation.
+	 * @param bool $force_save_source Should we force save payment source.
 	 *
 	 * @throws Exception When card was not added or for and invalid card.
 	 * @return object
 	 */
-	public function prepare_source( $user_id, $force_save_customer = false ) {
+	public function prepare_source( $user_id, $force_save_source = false ) {
 		$customer            = new WC_Stripe_Customer( $user_id );
-		$force_save_customer = apply_filters( 'wc_stripe_force_customer_creation', $force_save_customer, $customer );
+		$force_save_source = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
 		$source              = '';
 		$wc_token_id         = false;
 
@@ -279,9 +281,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			/**
 			 * This is true if the user wants to store the card to their account.
 			 * Criteria to save to file is they are logged in, they opted to save or product requirements and the source is
-			 * actually reusable. Either that or force_save_customer is true.
+			 * actually reusable. Either that or force_save_source is true.
 			 */
-			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && 'reusable' === $source->usage ) || $force_save_customer ) {
+			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && 'reusable' === $source->usage ) || $force_save_source ) {
 				$source = $customer->add_source( $source->id );
 
 				if ( ! empty( $source->error ) ) {
@@ -309,7 +311,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$maybe_saved_card = isset( $_POST['wc-stripe-new-payment-method'] ) && ! empty( $_POST['wc-stripe-new-payment-method'] );
 
 			// This is true if the user wants to store the card to their account.
-			if ( ( $user_id && $this->saved_cards && $maybe_saved_card ) || $force_customer ) {
+			if ( ( $user_id && $this->saved_cards && $maybe_saved_card ) || $force_save_source ) {
 				$stripe_source = $stripe_customer->add_source( $stripe_token );
 				if ( ! empty( $stripe_source->error ) ) {
 					throw new Exception( $stripe_source->error->message );
