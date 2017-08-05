@@ -312,10 +312,8 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 
 			$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source );
 
-			if ( empty( $prepared_source->source ) ) {
-				$error_msg = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
-				throw new Exception( $error_msg );
-			}
+			// This will throw exception if not valid.
+			$this->validate_minimum_order_amount( $order );
 
 			// Store source to order meta.
 			$this->save_source( $order, $prepared_source );

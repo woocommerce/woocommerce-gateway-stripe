@@ -125,9 +125,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// Handle payment.
 			if ( $order->get_total() > 0 ) {
 
-				if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
-					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
-				}
+				// This will throw exception if not valid.
+				$this->validate_minimum_order_amount( $order );
 
 				WC_Stripe_Logger::log( "Info: (Webhook) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 

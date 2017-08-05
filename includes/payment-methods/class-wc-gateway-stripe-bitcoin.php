@@ -383,9 +383,8 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 			// Result from Stripe API request.
 			$response = null;
 
-			if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
-				throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
-			}
+			// This will throw exception if not valid.
+			$this->validate_minimum_order_amount( $order );
 
 			$this->save_instructions( $order, $source_object );
 

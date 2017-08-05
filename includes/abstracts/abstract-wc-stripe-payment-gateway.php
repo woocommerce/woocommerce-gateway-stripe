@@ -42,6 +42,20 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Validates that the order meets the minimum order amount
+	 * set by Stripe.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param object $order
+	 */
+	public function validate_minimum_order_amount( $order ) {
+		if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
+			throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
+		}
+	}
+
+	/**
 	 * Gets the transaction URL linked to Stripe dashboard.
 	 *
 	 * @since 4.0.0
