@@ -73,6 +73,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			} else {
 				return $order->get_meta( '_stripe_customer_id', true );
 			}
+		} else {
+			return $customer;
 		}
 
 		return false;

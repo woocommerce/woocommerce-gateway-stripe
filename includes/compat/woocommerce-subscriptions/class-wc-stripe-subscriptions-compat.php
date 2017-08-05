@@ -60,7 +60,7 @@ class WC_Stripe_Subscriptions_Compat extends WC_Gateway_Stripe {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
 		if ( $this->has_subscription( $order_id ) ) {
-			// Regular payment with force customer enabled
+			// Regular payment with force save source enabled
 			return parent::process_payment( $order_id, true, true );
 
 		} else {
