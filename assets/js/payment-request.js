@@ -125,11 +125,20 @@
 
 			// Open Payment Request UI.
 			if ( request.canMakePayment ) {
-				request.show().then( function( payment ) {
+				request.show()
+				.then( function( payment ) {
 					self.processPayment( payment );
 				})
 				.catch( function( err ) {
 					console.error( err );
+					$.blockUI({
+						message: null,
+						overlayCSS: {
+							background: '#fff',
+							opacity: 0.6
+						}
+					});
+					window.location.href = wcStripePaymentRequestParams.checkout_url;
 				});
 			} else {
 				window.location.href = wcStripePaymentRequestParams.checkout_url;
