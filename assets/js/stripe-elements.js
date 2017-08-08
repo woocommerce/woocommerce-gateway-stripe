@@ -374,19 +374,22 @@ jQuery( function( $ ) {
 				e.preventDefault();
 				wc_stripe_elements_form.block();
 
-				if ( wc_stripe_elements_form.isBancontactChosen() ) {
-					return true;
-				}
+				if (
+					wc_stripe_elements_form.isBancontactChosen() ||
+					wc_stripe_elements_form.isGiropayChosen() ||
+					wc_stripe_elements_form.isIdealChosen() ||
+					wc_stripe_elements_form.isAlipayChosen() 
+				) {
+					if ( $( 'form#order_review' ).length ) {
+						$( 'form#order_review' )
+							.off(
+								'submit',
+								this.onSubmit
+							);
 
-				if ( wc_stripe_elements_form.isGiropayChosen() ) {
-					return true;
-				}
+						wc_stripe_elements_form.form.submit();
+					}
 
-				if ( wc_stripe_elements_form.isIdealChosen() ) {
-					return true;
-				}
-
-				if ( wc_stripe_elements_form.isAlipayChosen() ) {
 					return true;
 				}
 
@@ -396,6 +399,16 @@ jQuery( function( $ ) {
 						var error = { error: { message: wc_stripe_params.no_bank_country_msg } };
 						$( document.body ).trigger( 'stripeError', error );
 						return false;
+					}
+
+					if ( $( 'form#order_review' ).length ) {
+						$( 'form#order_review' )
+							.off(
+								'submit',
+								this.onSubmit
+							);
+
+						wc_stripe_elements_form.form.submit();
 					}
 
 					return true;
