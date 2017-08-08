@@ -59,6 +59,10 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 		$this->id                   = 'stripe_sepa';
 		$this->method_title         = __( 'Stripe SEPA Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->method_description   = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
+		$this->supports             = array(
+			'products',
+			'refunds',
+		);
 
 		// Load the form fields.
 		$this->init_form_fields();
@@ -331,16 +335,25 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $prepared_source ) );
 
 			if ( ! empty( $response->error ) ) {
+				// If it is an API error such connection or server, let's retry.
+				if ( 'api_connection_error' === $response->error->type || 'api_error' === $response->error->type ) {
+					if ( $retry ) {
+						sleep( 5 );
+						return $this->process_payment( $order_id, false, $force_save_source );
+					} else {
+						$message = 'API connection error and retries exhausted.';
+						$order->add_order_note( $message );
+						throw new Exception( $message );
+					}
+				}
+
 				// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
-				if ( 'customer' === $response->error->type && $retry ) {
-					delete_user_meta( get_current_user_id(), '_stripe_customer_id' );
-					return $this->process_payment( $order_id, false, $force_save_source );
-				} elseif ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
+				if ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
 					delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
 
 					return $this->process_payment( $order_id, false, $force_save_source );
-					// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
-				} elseif ( 'source' === $response->error->type && $prepared_source->token_id ) {
+				// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
+				} elseif ( preg_match( '/No such token/i', $response->error->message ) && $prepared_source->token_id ) {
 					$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
 					$wc_token->delete();
 					$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );

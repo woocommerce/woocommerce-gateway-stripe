@@ -186,9 +186,6 @@ class WC_Stripe_Customer {
 				delete_user_meta( $this->get_user_id(), '_stripe_customer_id' );
 				$this->create_customer();
 				return $this->add_source( $source_id, false );
-			} elseif ( 'customer' === $response->error->type && $retry ) {
-				$this->create_customer();
-				return $this->add_source( $source_id, false );
 			} else {
 				return $response;
 			}

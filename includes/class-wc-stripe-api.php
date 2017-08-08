@@ -110,10 +110,10 @@ class WC_Stripe_API {
 		$response = wp_safe_remote_post(
 			self::ENDPOINT . $api,
 			array(
-				'method'        => $method,
-				'headers'       => $headers,
-				'body'       => apply_filters( 'woocommerce_stripe_request_body', $request, $api ),
-				'timeout'    => 70,
+				'method'  => $method,
+				'headers' => $headers,
+				'body'    => apply_filters( 'woocommerce_stripe_request_body', $request, $api ),
+				'timeout' => 70,
 			)
 		);
 
@@ -140,9 +140,9 @@ class WC_Stripe_API {
 		$response = wp_safe_remote_get(
 			self::ENDPOINT . $api,
 			array(
-				'method'        => 'GET',
-				'headers'       => self::get_headers(),
-				'timeout'    => 70,
+				'method'  => 'GET',
+				'headers' => self::get_headers(),
+				'timeout' => 70,
 			)
 		);
 
