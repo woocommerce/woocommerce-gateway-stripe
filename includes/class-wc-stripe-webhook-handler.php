@@ -122,66 +122,59 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// Result from Stripe API request.
 			$response = null;
 
-			// Handle payment.
-			if ( $order->get_total() > 0 ) {
+			// This will throw exception if not valid.
+			$this->validate_minimum_order_amount( $order );
 
-				// This will throw exception if not valid.
-				$this->validate_minimum_order_amount( $order );
+			WC_Stripe_Logger::log( "Info: (Webhook) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
-				WC_Stripe_Logger::log( "Info: (Webhook) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
+			// Prep source object.
+			$source_object           = new stdClass();
+			$source_object->token_id = '';
+			$source_object->customer = $this->get_stripe_customer_id( $order );
+			$source_object->source   = $source_id;
 
-				// Prep source object.
-				$source_object           = new stdClass();
-				$source_object->token_id = '';
-				$source_object->customer = $this->get_stripe_customer_id( $order );
-				$source_object->source   = $source_id;
+			// Make the request.
+			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source_object ) );
 
-				// Make the request.
-				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source_object ) );
-
-				if ( ! empty( $response->error ) ) {
-				// If it is an API error such connection or server, let's retry.
-				if ( 'api_connection_error' === $response->error->type || 'api_error' === $response->error->type ) {
-					if ( $retry ) {
-						sleep( 5 );
-						return $this->process_payment( $order_id, false );
-					} else {
-						$message = 'API connection error and retries exhausted.';
-						$order->add_order_note( $message );
-						throw new Exception( $message );
-					}
-				}
-
-				// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
-				if ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
-					delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
-
+			if ( ! empty( $response->error ) ) {
+			// If it is an API error such connection or server, let's retry.
+			if ( 'api_connection_error' === $response->error->type || 'api_error' === $response->error->type ) {
+				if ( $retry ) {
+					sleep( 5 );
 					return $this->process_payment( $order_id, false );
-				// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
-				} elseif ( preg_match( '/No such token/i', $response->error->message ) && $prepared_source->token_id ) {
-					$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
-					$wc_token->delete();
-					$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
+				} else {
+					$message = 'API connection error and retries exhausted.';
 					$order->add_order_note( $message );
 					throw new Exception( $message );
 				}
+			}
 
-					$localized_messages = WC_Stripe_Helper::get_localized_messages();
+			// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
+			if ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
+				delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
 
-					$message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
+				return $this->process_payment( $order_id, false );
+			// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
+			} elseif ( preg_match( '/No such token/i', $response->error->message ) && $prepared_source->token_id ) {
+				$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
+				$wc_token->delete();
+				$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
+				$order->add_order_note( $message );
+				throw new Exception( $message );
+			}
 
-					$order->add_order_note( $message );
+				$localized_messages = WC_Stripe_Helper::get_localized_messages();
 
-					throw new Exception( $message );
-				}
+				$message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
 
-				$this->process_response( $response, $order );
-				
-			} else {
-				$order->payment_complete();
+				$order->add_order_note( $message );
+
+				throw new Exception( $message );
 			}
 
 			do_action( 'wc_gateway_stripe_process_webhook_payment', $response, $order );
+
+			$this->process_response( $response, $order );
 
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
