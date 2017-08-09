@@ -80,6 +80,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			add_action( 'admin_init', array( $this, 'check_environment' ) );
 			add_action( 'admin_notices', array( $this, 'admin_notices' ), 15 );
 			add_action( 'plugins_loaded', array( $this, 'init' ) );
+			add_action( 'wp_loaded', array( $this, 'hide_notices' ) );
 		}
 
 		/**
@@ -126,92 +127,78 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		}
 
 		/**
-		 * Allow this class and other classes to add slug keyed notices (to avoid duplication).
+		 * Hides any admin notices.
 		 *
-		 * @since 1.0.0
-		 * @version 1.0.0
+		 * @since 4.0.0
+		 * @version 4.0.0
 		 */
-		public function add_admin_notice( $slug, $class, $message ) {
-			$this->notices[ $slug ] = array(
-				'class'   => $class,
-				'message' => $message,
-			);
+		public function hide_notices() {
+			if ( isset( $_GET['wc-stripe-hide-notice'] ) && isset( $_GET['_wc_stripe_notice_nonce'] ) ) {
+				if ( ! wp_verify_nonce( $_GET['_wc_stripe_notice_nonce'], 'wc_stripe_hide_notices_nonce' ) ) {
+					wp_die( __( 'Action failed. Please refresh the page and retry.', 'woocommerce-gateway-stripe' ) );
+				}
+
+				if ( ! current_user_can( 'manage_woocommerce' ) ) {
+					wp_die( __( 'Cheatin&#8217; huh?', 'woocommerce-gateway-stripe' ) );
+				}
+
+				$notice = wc_clean( $_GET['wc-stripe-hide-notice'] );
+
+				switch ( $notice ) {
+					case 'apple':
+						update_option( 'wc_stripe_show_apple_pay_notice', 'no' );
+						break;
+					case 'payment-request-api':
+						update_option( 'wc_stripe_show_request_api_notice', 'no' );
+						break;
+					case 'ssl':
+						update_option( 'wc_stripe_show_ssl_notice', 'no' );
+						break;
+					case 'keys':
+						update_option( 'wc_stripe_show_keys_notice', 'no' );
+						break;
+				}
+			}
 		}
 
 		/**
-		 * The backup sanity check, in case the plugin is activated in a weird way,
-		 * or the environment changes after activation. Also handles upgrade routines.
+		 * Allow this class and other classes to add slug keyed notices (to avoid duplication).
 		 *
 		 * @since 1.0.0
 		 * @version 4.0.0
 		 */
-		public function check_environment() {
-			if ( ! defined( 'IFRAME_REQUEST' ) && ( WC_STRIPE_VERSION !== get_option( 'wc_stripe_version' ) ) ) {
-				$this->install();
-
-				do_action( 'woocommerce_stripe_updated' );
-			}
-
-			$environment_warning = self::get_environment_warning();
-
-			if ( $environment_warning && is_plugin_active( plugin_basename( __FILE__ ) ) ) {
-				$this->add_admin_notice( 'bad_environment', 'error', $environment_warning );
-			}
-
-			$secret = WC_Stripe_API::get_secret_key();
-
-			if ( empty( $secret ) && ! ( isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 'stripe' === $_GET['section'] ) ) {
-				$setting_link = $this->get_setting_link();
-				$this->add_admin_notice( 'prompt_connect', 'notice notice-warning', sprintf( __( 'Stripe is almost ready. To get started, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ) );
-			}
+		public function add_admin_notice( $slug, $class, $message, $dismissible = false ) {
+			$this->notices[ $slug ] = array(
+				'class'       => $class,
+				'message'     => $message,
+				'dismissible' => $dismissible,
+			);
 		}
 
 		/**
-		 * Updates the plugin version in db
+		 * Display any notices we've collected thus far (e.g. for connection, disconnection).
 		 *
-		 * @since 3.1.0
-		 * @version 3.1.0
-		 * @return bool
+		 * @since 1.0.0
+		 * @version 4.0.0
 		 */
-		private static function _update_plugin_version() {
-			delete_option( 'wc_stripe_version' );
-			update_option( 'wc_stripe_version', WC_STRIPE_VERSION );
-
-			return true;
-		}
-
-		/**
-		 * Dismiss the Google Payment Request API Feature notice.
-		 *
-		 * @since 3.1.0
-		 * @version 3.1.0
-		 */
-		public function dismiss_request_api_notice() {
-			update_option( 'wc_stripe_show_request_api_notice', 'no' );
-		}
-
-		/**
-		 * Dismiss the Apple Pay Feature notice.
-		 *
-		 * @since 3.1.0
-		 * @version 3.1.0
-		 */
-		public function dismiss_apple_pay_notice() {
-			update_option( 'wc_stripe_show_apple_pay_notice', 'no' );
-		}
-
-		/**
-		 * Handles upgrade routines.
-		 *
-		 * @since 3.1.0
-		 * @version 3.1.0
-		 */
-		public function install() {
-			if ( ! defined( 'WC_STRIPE_INSTALLING' ) ) {
-				define( 'WC_STRIPE_INSTALLING', true );
+		public function admin_notices() {
+			if ( ! current_user_can( 'manage_woocommerce' ) ) {
+				return;
 			}
 
-			$this->_update_plugin_version();
+			foreach ( (array) $this->notices as $notice_key => $notice ) {
+				echo '<div class="' . esc_attr( $notice['class'] ) . '" style="position:relative;">';
+
+				if ( $notice['dismissible'] ) {
+				?>
+					<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'wc-stripe-hide-notice', $notice_key ), 'wc_stripe_hide_notices_nonce', '_wc_stripe_notice_nonce' ) ); ?>" class="woocommerce-message-close notice-dismiss" style="position:absolute;right:1px;padding:9px;text-decoration:none;"></a>
+				<?php
+				}
+
+				echo '<p>';
+				echo wp_kses( $notice['message'], array( 'a' => array( 'href' => array() ) ) );
+				echo '</p></div>';
+			}
 		}
 
 		/**
@@ -246,6 +233,87 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		}
 
 		/**
+		 * The backup sanity check, in case the plugin is activated in a weird way,
+		 * or the environment changes after activation. Also handles upgrade routines.
+		 *
+		 * @since 1.0.0
+		 * @version 4.0.0
+		 */
+		public function check_environment() {
+			if ( ! defined( 'IFRAME_REQUEST' ) && ( WC_STRIPE_VERSION !== get_option( 'wc_stripe_version' ) ) ) {
+				$this->install();
+
+				do_action( 'woocommerce_stripe_updated' );
+			}
+
+			$environment_warning = self::get_environment_warning();
+
+			if ( $environment_warning && is_plugin_active( plugin_basename( __FILE__ ) ) ) {
+				$this->add_admin_notice( 'bad_environment', 'error', $environment_warning );
+			}
+
+			$show_request_api_notice = get_option( 'wc_stripe_show_request_api_notice' );
+			$show_apple_pay_notice   = get_option( 'wc_stripe_show_apple_pay_notice' );
+			$show_ssl_notice         = get_option( 'wc_stripe_show_ssl_notice' );
+			$show_keys_notice        = get_option( 'wc_stripe_show_keys_notice' );
+			$options                 = get_option( 'woocommerce_stripe_settings' );
+
+			if ( 'yes' === $options['enabled'] && empty( $show_keys_notice ) ) {
+				$secret  = WC_Stripe_API::get_secret_key();
+
+				if ( empty( $secret ) && ! ( isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 'stripe' === $_GET['section'] ) ) {
+					$setting_link = $this->get_setting_link();
+					$this->add_admin_notice( 'keys', 'notice notice-warning', sprintf( __( 'Stripe is almost ready. To get started, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ), true );
+				}
+			}
+
+			if ( empty( $show_ssl_notice ) ) {
+				// Show message if enabled and FORCE SSL is disabled and WordpressHTTPS plugin is not detected.
+				if ( ( function_exists( 'wc_site_is_https' ) && ! wc_site_is_https() ) && ( 'no' === get_option( 'woocommerce_force_ssl_checkout' ) && ! class_exists( 'WordPressHTTPS' ) ) ) {
+					$this->add_admin_notice( 'ssl', 'notice notice-warning', sprintf( __( 'Stripe is enabled, but the <a href="%1$s">force SSL option</a> is disabled; your checkout may not be secure! Please enable SSL and ensure your server has a valid <a href="%2$s" target="_blank">SSL certificate</a> - Stripe will only work in test mode.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ), 'https://en.wikipedia.org/wiki/Transport_Layer_Security' ), true );
+				}
+			}
+
+			if ( empty( $show_apple_pay_notice ) ) {
+				// @TODO remove this notice in the future.
+				$this->add_admin_notice( 'apple', 'notice notice-warning', sprintf( esc_html__( 'New Feature! Stripe now supports %s. Your customers can now purchase your products even faster. Apple Pay has been enabled by default.', 'woocommerce-gateway-stripe' ), '<a href="https://woocommerce.com/apple-pay/">Apple Pay</a>' ), true );
+			}
+
+			if ( empty( $show_request_api_notice ) ) {
+				// @TODO remove this notice in the future.
+				$this->add_admin_notice( 'payment-request-api', 'notice notice-warning', __( 'New Feature! Stripe now supports Google Payment Request. Your customers can now use mobile phones with supported browsers such as Chrome to make purchases easier and faster.', 'woocommerce-gateway-stripe' ), true );
+			}
+		}
+
+		/**
+		 * Updates the plugin version in db
+		 *
+		 * @since 3.1.0
+		 * @version 3.1.0
+		 * @return bool
+		 */
+		private static function _update_plugin_version() {
+			delete_option( 'wc_stripe_version' );
+			update_option( 'wc_stripe_version', WC_STRIPE_VERSION );
+
+			return true;
+		}
+
+		/**
+		 * Handles upgrade routines.
+		 *
+		 * @since 3.1.0
+		 * @version 3.1.0
+		 */
+		public function install() {
+			if ( ! defined( 'WC_STRIPE_INSTALLING' ) ) {
+				define( 'WC_STRIPE_INSTALLING', true );
+			}
+
+			$this->_update_plugin_version();
+		}
+
+		/**
 		 * Adds plugin action links
 		 *
 		 * @since 1.0.0
@@ -254,9 +322,9 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			$setting_link = $this->get_setting_link();
 
 			$plugin_links = array(
-				'<a href="' . $setting_link . '">' . __( 'Settings', 'woocommerce-gateway-stripe' ) . '</a>',
-				'<a href="https://docs.woocommerce.com/document/stripe/">' . __( 'Docs', 'woocommerce-gateway-stripe' ) . '</a>',
-				'<a href="https://woocommerce.com/contact-us/">' . __( 'Support', 'woocommerce-gateway-stripe' ) . '</a>',
+				'<a href="' . $setting_link . '">' . esc_html__( 'Settings', 'woocommerce-gateway-stripe' ) . '</a>',
+				'<a href="https://docs.woocommerce.com/document/stripe/">' . esc_html__( 'Docs', 'woocommerce-gateway-stripe' ) . '</a>',
+				'<a href="https://woocommerce.com/contact-us/">' . esc_html__( 'Support', 'woocommerce-gateway-stripe' ) . '</a>',
 			);
 			return array_merge( $plugin_links, $links );
 		}
@@ -274,56 +342,6 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			$section_slug = $use_id_as_section ? 'stripe' : strtolower( 'WC_Gateway_Stripe' );
 
 			return admin_url( 'admin.php?page=wc-settings&tab=checkout&section=' . $section_slug );
-		}
-
-		/**
-		 * Display any notices we've collected thus far (e.g. for connection, disconnection)
-		 */
-		public function admin_notices() {
-			$show_request_api_notice = get_option( 'wc_stripe_show_request_api_notice' );
-			$show_apple_pay_notice   = get_option( 'wc_stripe_show_apple_pay_notice' );
-
-			if ( empty( $show_apple_pay_notice ) ) {
-				// @TODO remove this notice in the future.
-				?>
-				<div class="notice notice-warning wc-stripe-apple-pay-notice is-dismissible"><p><?php echo sprintf( esc_html__( 'New Feature! Stripe now supports %s. Your customers can now purchase your products even faster. Apple Pay has been enabled by default.', 'woocommerce-gateway-stripe' ), '<a href="https://woocommerce.com/apple-pay/">Apple Pay</a>'); ?></p></div>
-
-				<script type="application/javascript">
-					jQuery( '.wc-stripe-apple-pay-notice' ).on( 'click', '.notice-dismiss', function() {
-						var data = {
-							action: 'stripe_dismiss_apple_pay_notice'
-						};
-
-						jQuery.post( '<?php echo admin_url( 'admin-ajax.php' ); ?>', data );
-					});
-				</script>
-
-				<?php
-			}
-
-			if ( empty( $show_request_api_notice ) ) {
-				// @TODO remove this notice in the future.
-				?>
-				<div class="notice notice-warning wc-stripe-request-api-notice is-dismissible"><p><?php esc_html_e( 'New Feature! Stripe now supports Google Payment Request. Your customers can now use mobile phones with supported browsers such as Chrome to make purchases easier and faster.', 'woocommerce-gateway-stripe' ); ?></p></div>
-
-				<script type="application/javascript">
-					jQuery( '.wc-stripe-request-api-notice' ).on( 'click', '.notice-dismiss', function() {
-						var data = {
-							action: 'stripe_dismiss_request_api_notice'
-						};
-
-						jQuery.post( '<?php echo admin_url( 'admin-ajax.php' ); ?>', data );
-					});
-				</script>
-
-				<?php
-			}
-
-			foreach ( (array) $this->notices as $notice_key => $notice ) {
-				echo "<div class='" . esc_attr( $notice['class'] ) . "'><p>";
-				echo wp_kses( $notice['message'], array( 'a' => array( 'href' => array() ) ) );
-				echo '</p></div>';
-			}
 		}
 
 		/**
