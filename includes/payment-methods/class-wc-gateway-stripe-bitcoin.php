@@ -108,6 +108,10 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function check_environment() {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+
 		$environment_warning = $this->get_environment_warning();
 
 		if ( $environment_warning ) {
