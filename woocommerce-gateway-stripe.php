@@ -206,9 +206,9 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * found or false if the environment has no problems.
 		 *
 		 * @since 1.0.0
-		 * @version 3.1.0
+		 * @version 4.0.0
 		 */
-		public static function get_environment_warning() {
+		public function get_environment_warning() {
 			if ( version_compare( phpversion(), WC_STRIPE_MIN_PHP_VER, '<' ) ) {
 				$message = __( 'WooCommerce Stripe - The minimum PHP version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe' );
 
@@ -246,7 +246,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				do_action( 'woocommerce_stripe_updated' );
 			}
 
-			$environment_warning = self::get_environment_warning();
+			$environment_warning = $this->get_environment_warning();
 
 			if ( $environment_warning && is_plugin_active( plugin_basename( __FILE__ ) ) ) {
 				$this->add_admin_notice( 'bad_environment', 'error', $environment_warning );
@@ -258,7 +258,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			$show_keys_notice        = get_option( 'wc_stripe_show_keys_notice' );
 			$options                 = get_option( 'woocommerce_stripe_settings' );
 
-			if ( 'yes' === $options['enabled'] && empty( $show_keys_notice ) ) {
+			if ( isset( $options['enabled'] ) && 'yes' === $options['enabled'] && empty( $show_keys_notice ) ) {
 				$secret  = WC_Stripe_API::get_secret_key();
 
 				if ( empty( $secret ) && ! ( isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 'stripe' === $_GET['section'] ) ) {
@@ -289,14 +289,11 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * Updates the plugin version in db
 		 *
 		 * @since 3.1.0
-		 * @version 3.1.0
-		 * @return bool
+		 * @version 4.0.0
 		 */
-		private static function _update_plugin_version() {
+		public function update_plugin_version() {
 			delete_option( 'wc_stripe_version' );
 			update_option( 'wc_stripe_version', WC_STRIPE_VERSION );
-
-			return true;
 		}
 
 		/**
@@ -310,7 +307,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				define( 'WC_STRIPE_INSTALLING', true );
 			}
 
-			$this->_update_plugin_version();
+			$this->update_plugin_version();
 		}
 
 		/**
@@ -345,7 +342,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		}
 
 		/**
-		 * Add the gateways to WooCommerce
+		 * Add the gateways to WooCommerce.
 		 *
 		 * @since 1.0.0
 		 * @version 4.0.0
