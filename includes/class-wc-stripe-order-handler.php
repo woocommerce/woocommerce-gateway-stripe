@@ -187,7 +187,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				), 'charges/' . $charge . '/capture' );
 
 				if ( ! empty( $result->error ) ) {
-					$order->add_order_note( __( 'Unable to capture charge!', 'woocommerce-gateway-stripe' ) . ' ' . $result->error->message );
+					$order->update_status( 'failed', sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
 				} else {
 					$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $result->id ) );
 					WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_stripe_charge_captured', 'yes' ) : $order->update_meta_data( '_stripe_charge_captured', 'yes' );
