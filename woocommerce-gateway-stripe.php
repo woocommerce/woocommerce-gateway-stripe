@@ -34,7 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '3.3.0' );
+define( 'WC_STRIPE_VERSION', '3.2.3' );
 define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '2.5.0' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
