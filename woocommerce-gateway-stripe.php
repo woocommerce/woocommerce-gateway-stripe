@@ -468,6 +468,9 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 
 					if ( is_wp_error( $result ) ) {
 						$order->add_order_note( __( 'Unable to capture charge!', 'woocommerce-gateway-stripe' ) . ' ' . $result->get_error_message() );
+						
+						// Allow other plugins to take it from here
+						do_action( 'woocommerce_stripe_capture_failed', $order_id );
 					} else {
 						$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $result->id ) );
 						update_post_meta( $order_id, '_stripe_charge_captured', 'yes' );
@@ -484,6 +487,9 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 							update_post_meta( $order_id, 'Stripe Fee', $fee );
 							update_post_meta( $order_id, 'Net Revenue From Stripe', $net );
 						}
+						
+						// Allow other plugins to take it from here
+						do_action( 'woocommerce_stripe_capture_successed', $order_id );
 					}
 				}
 			}
@@ -507,10 +513,16 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 
 					if ( is_wp_error( $result ) ) {
 						$order->add_order_note( __( 'Unable to refund charge!', 'woocommerce-gateway-stripe' ) . ' ' . $result->get_error_message() );
+						
+						// Allow other plugins to take it from here
+						do_action( 'woocommerce_stripe_refund_failed', $order_id );
 					} else {
 						$order->add_order_note( sprintf( __( 'Stripe charge refunded (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $result->id ) );
 						delete_post_meta( $order_id, '_stripe_charge_captured' );
 						delete_post_meta( $order_id, '_stripe_charge_id' );
+						
+						// Allow other plugins to take it from here
+						do_action( 'woocommerce_stripe_refund_successed', $order_id );
 					}
 				}
 			}
