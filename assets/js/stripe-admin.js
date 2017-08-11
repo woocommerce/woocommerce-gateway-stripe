@@ -85,6 +85,10 @@ jQuery( function( $ ) {
 					$( '.stripe-error-description', $( this ).parent() ).remove();
 				}
 			}).trigger( 'input' );
+
+			// Always hide the WordPress.com Stripe Connect User Account ID for now
+			// We just want to make this field accessible to API clients at the moment
+			$( '#woocommerce_stripe_sc_user_acct_id' ).closest( 'tr' ).hide();
 		}
 	};
 
