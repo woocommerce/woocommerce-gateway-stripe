@@ -95,8 +95,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 3.3.0 - 2017-08-10 =
-* Add - Allow the user to save their WordPress.com Stripe Connect User ID in settings
+= 3.2.3 - 2017-08-10 =
+* Add - Hidden Stripe Connect field to settings in preparation for future API client work.
 
 = 3.2.2 - 2017-07-11 =
 * Fix - Apple Pay button displaying in non Safari browser.
