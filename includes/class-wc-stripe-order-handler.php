@@ -64,7 +64,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
-			if ( 'processing' === $order->get_status() || 'completed' === $order->get_status() ) {
+			if ( 'processing' === $order->get_status() || 'completed' === $order->get_status() || 'on-hold' === $order->get_status() ) {
 				return;
 			}
 
@@ -96,31 +96,31 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source_object ) );
 
 			if ( ! empty( $response->error ) ) {
-			// If it is an API error such connection or server, let's retry.
-			if ( 'api_connection_error' === $response->error->type || 'api_error' === $response->error->type ) {
-				if ( $retry ) {
-					sleep( 5 );
-					return $this->process_payment( $order_id, false );
-				} else {
-					$message = 'API connection error and retries exhausted.';
+				// If it is an API error such connection or server, let's retry.
+				if ( 'api_connection_error' === $response->error->type || 'api_error' === $response->error->type ) {
+					if ( $retry ) {
+						sleep( 5 );
+						return $this->process_redirect_payment( $order_id, false );
+					} else {
+						$message = 'API connection error and retries exhausted.';
+						$order->add_order_note( $message );
+						throw new Exception( $message );
+					}
+				}
+
+				// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
+				if ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
+					delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
+
+					return $this->process_redirect_payment( $order_id, false );
+				// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
+				} elseif ( preg_match( '/No such token/i', $response->error->message ) && $source_object->token_id ) {
+					$wc_token = WC_Payment_Tokens::get( $source_object->token_id );
+					$wc_token->delete();
+					$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
 					$order->add_order_note( $message );
 					throw new Exception( $message );
 				}
-			}
-
-			// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
-			if ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
-				delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
-
-				return $this->process_payment( $order_id, false );
-			// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
-			} elseif ( preg_match( '/No such token/i', $response->error->message ) && $prepared_source->token_id ) {
-				$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
-				$wc_token->delete();
-				$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
-				$order->add_order_note( $message );
-				throw new Exception( $message );
-			}
 
 				$localized_messages = WC_Stripe_Helper::get_localized_messages();
 

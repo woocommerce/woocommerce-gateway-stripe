@@ -348,22 +348,15 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * @version 4.0.0
 		 */
 		public function add_gateways( $methods ) {
-			if ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) {
+			if ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) && class_exists( 'WC_Pre_Orders_Order' ) ) {
 				$methods[] = 'WC_Stripe_Subscriptions_Compat';
-			} else {
-				$methods[] = 'WC_Gateway_Stripe';
-			}
-
-			if ( class_exists( 'WC_Pre_Orders_Order' ) ) {
+				$methods[] = 'WC_Stripe_Pre_Orders_Compat';
+			} elseif ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) {
+				$methods[] = 'WC_Stripe_Subscriptions_Compat';
+			} elseif ( class_exists( 'WC_Pre_Orders_Order' ) ) {
 				$methods[] = 'WC_Stripe_Pre_Orders_Compat';
 			} else {
 				$methods[] = 'WC_Gateway_Stripe';
-			}
-
-			if ( class_exists( 'WC_Pre_Orders_Order' ) || class_exists( 'WC_Subscriptions_Order' ) ) {
-				if ( false !== ( $key = array_search( 'WC_Gateway_Stripe', $methods ) ) ) {
-					unset( $methods[ $key ] );
-				}
 			}
 
 			// Currently only elements will support sources.
@@ -377,7 +370,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				$methods[] = 'WC_Gateway_Stripe_Bitcoin';
 			}
 
-			return array_unique( $methods );
+			return $methods;
 		}
 
 		/**
