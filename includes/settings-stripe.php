@@ -62,6 +62,13 @@ return apply_filters( 'wc_stripe_settings',
 			'default'     => '',
 			'desc_tip'    => true,
 		),
+		'sc_user_acct_id' => array(
+			'title'       => __( 'Stripe Connect User Account ID', 'woocommerce-gateway-stripe' ),
+			'type'        => 'text',
+			'description' => __( 'If you have one, enter your WordPress.com Stripe Connect User Account ID here. Optional.', 'woocommerce-gateway-stripe' ),
+			'default'     => '',
+			'desc_tip'    => true,
+		),
 		'statement_descriptor' => array(
 			'title'       => __( 'Statement Descriptor', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
