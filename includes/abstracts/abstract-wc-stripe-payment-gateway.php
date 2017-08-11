@@ -199,12 +199,27 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		if ( $response->captured ) {
-			$order->payment_complete( $response->id );
+			/**
+			 * Charge can be captured but in a pending state. Payment methods
+			 * that are asynchronous may take couple days to clear. Webhook will
+			 * take care of the status changes.
+			 */
+			if ( 'pending' === $response->status ) {
+				$order->update_status( 'on-hold', sprintf( __(  'Stripe charge awaiting payment: %s.', 'woocommerce-gateway-stripe' ), $response->id ) );
+			}
 
-			$message = sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $response->id );
-			$order->add_order_note( $message );
-			WC_Stripe_Logger::log( 'Success: ' . $message );
+			if ( 'succeeded' === $response->status ) {
+				$order->payment_complete( $response->id );
 
+				$message = sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $response->id );
+				$order->add_order_note( $message );
+			}
+
+			if ( 'failed' === $response->status ) {
+				$error_msg = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
+				$order->add_order_note( $error_msg );
+				throw new Exception( $error_msg );
+			}
 		} else {
 			WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_transaction_id', $response->id, true ) : $order->set_transaction_id( $response->id );
 
@@ -213,7 +228,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 
 			$order->update_status( 'on-hold', sprintf( __( 'Stripe charge authorized (Charge ID: %s). Process order to take payment, or cancel to remove the pre-authorization.', 'woocommerce-gateway-stripe' ), $response->id ) );
-			WC_Stripe_Logger::log( "Successful auth: $response->id" );
 		}
 
 		if ( is_callable( array( $order, 'save' ) ) ) {
