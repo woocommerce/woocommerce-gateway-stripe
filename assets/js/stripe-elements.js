@@ -96,31 +96,33 @@ jQuery( function( $ ) {
 				}
 			};
 
-			stripe_card = elements.create( 'card', { style: style, hidePostalCode: true } );
+			if ( $( '#stripe-card-element' ).length ) {
+				stripe_card = elements.create( 'card', { style: style, hidePostalCode: true } );
 
-			stripe_card.addEventListener( 'change', function( event ) {
-				wc_stripe_elements_form.onCCFormChange();
+				stripe_card.addEventListener( 'change', function( event ) {
+					wc_stripe_elements_form.onCCFormChange();
 
-				if ( event.error ) {
-					$( document.body ).trigger( 'stripeError', event );
-				}
-			});
-
-			/**
-			 * Only in checkout page we need to delay the mounting of the
-			 * card as some AJAX process needs to happen before we do.
-			 */
-			if ( wc_stripe_params.is_checkout ) {
-				$( document.body ).on( 'updated_checkout', function() {
-					// Don't mount elements a second time.
-					if ( stripe_card ) {
-						stripe_card.unmount( '#stripe-card-element' );
+					if ( event.error ) {
+						$( document.body ).trigger( 'stripeError', event );
 					}
-
-					stripe_card.mount( '#stripe-card-element' );
 				});
-			} else if ( $( 'form#add_payment_method' ).length || $( 'form#order_review' ).length ) {
-				stripe_card.mount( '#stripe-card-element' );
+
+				/**
+				 * Only in checkout page we need to delay the mounting of the
+				 * card as some AJAX process needs to happen before we do.
+				 */
+				if ( wc_stripe_params.is_checkout ) {
+					$( document.body ).on( 'updated_checkout', function() {
+						// Don't mount elements a second time.
+						if ( stripe_card ) {
+							stripe_card.unmount( '#stripe-card-element' );
+						}
+
+						stripe_card.mount( '#stripe-card-element' );
+					});
+				} else if ( $( 'form#add_payment_method' ).length || $( 'form#order_review' ).length ) {
+					stripe_card.mount( '#stripe-card-element' );
+				}
 			}
 		},
 
