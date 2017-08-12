@@ -205,6 +205,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$order->update_status( 'on-hold', __( 'A dispute was created for this order. Response is needed. Please go to your Stripe Dashboard to review this dispute.', 'woocommerce-gateway-stripe' ) );
+
+		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
+		$this->send_failed_order_email( $order_id );
 	}
 
 	/**
@@ -309,6 +312,33 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$order->update_status( $order->needs_processing() ? 'processing' : 'completed', sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
+	}
+
+	/**
+	 * Process webhook charge failed. This is used for payment methods 
+	 * that takes time to clear which is asynchronous. e.g. SEPA, SOFORT.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param object $notification
+	 */
+	public function process_webhook_charge_failed( $notification ) {
+		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->id );
+			return;
+		}
+
+		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+
+		if ( 'on-hold' !== $order->get_status() ) {
+			return;
+		}
+
+		$order->update_status( 'failed', __( 'This payment failed to clear.', 'woocommerce-gateway-stripe' ) );
+
+		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
 	}
 
 	/**
@@ -419,6 +449,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			case 'charge.succeeded':
 				$this->process_webhook_charge_succeeded( $notification );
+				break;
+
+			case 'charge.failed':
+				$this->process_webhook_charge_failed( $notification );
 				break;
 
 			case 'charge.captured':
