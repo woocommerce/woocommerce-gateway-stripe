@@ -88,8 +88,13 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			 */
 			$source_info = WC_Stripe_API::retrieve( 'sources/' . $source );
 
-			if ( 'chargeable' !== $source_info->status && 'pending' !== $source_info->status ) {
+			if ( 'failed' === $source_info->status || 'canceled' === $source_info->status ) {
 				throw new Exception( __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			// If already consumed, then ignore request.
+			if ( 'consumed' === $source_info->status ) {
+				return;
 			}
 
 			// Make the request.
