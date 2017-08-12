@@ -115,7 +115,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$source_id = $notification->data->object->id;
 
 		try {
-			if ( 'processing' === $order->get_status() || 'completed' === $order->get_status() ) {
+			if ( 'processing' === $order->get_status() || 'completed' === $order->get_status() || 'on-hold' === $order->get_status() ) {
 				return;
 			}
 
@@ -155,8 +155,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				return $this->process_payment( $order_id, false );
 			// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
-			} elseif ( preg_match( '/No such token/i', $response->error->message ) && $prepared_source->token_id ) {
-				$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
+			} elseif ( preg_match( '/No such token/i', $response->error->message ) && $source_object->token_id ) {
+				$wc_token = WC_Payment_Tokens::get( $source_object->token_id );
 				$wc_token->delete();
 				$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
 				$order->add_order_note( $message );
@@ -266,6 +266,52 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Process webhook charge succeeded. This is used for payment methods 
+	 * that takes time to clear which is asynchronous. e.g. SEPA, SOFORT.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param object $notification
+	 */
+	public function process_webhook_charge_succeeded( $notification ) {
+		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->id );
+			return;
+		}
+
+		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+
+		if ( 'on-hold' !== $order->get_status() ) {
+			return;
+		}
+
+		// Store other data such as fees
+		WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_transaction_id', $notification->data->object->id ) : $order->set_transaction_id( $notification->data->object->id );
+
+		$balance_transaction = WC_Stripe_API::retrieve( 'balance/history/' . $notification->data->object->balance_transaction );
+
+		if ( empty( $balance_transaction->error ) ) {
+			if ( isset( $balance_transaction ) && isset( $balance_transaction->fee ) ) {
+				// Fees and Net needs to both come from Stripe to be accurate as the returned
+				// values are in the local currency of the Stripe account, not from WC.
+				$fee = ! empty( $balance_transaction->fee ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'fee' ) : 0;
+				$net = ! empty( $balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'net' ) : 0;
+
+				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, 'Stripe Fee', $fee ) : $order->update_meta_data( 'Stripe Fee', $fee );
+				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, 'Net Revenue From Stripe', $net ) : $order->update_meta_data( 'Net Revenue From Stripe', $net );
+			}
+		}
+
+		if ( is_callable( array( $order, 'save' ) ) ) {
+			$order->save();
+		}
+
+		$order->update_status( $order->needs_processing() ? 'processing' : 'completed', sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
+	}
+
+	/**
 	 * Process webhook refund.
 	 * Note currently only support 1 time refund.
 	 *
@@ -369,6 +415,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		switch ( $notification->type ) {
 			case 'source.chargeable':
 				$this->process_webhook_payment( $notification );
+				break;
+
+			case 'charge.succeeded':
+				$this->process_webhook_charge_succeeded( $notification );
 				break;
 
 			case 'charge.captured':
