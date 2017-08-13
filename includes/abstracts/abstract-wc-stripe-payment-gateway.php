@@ -298,6 +298,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function prepare_source( $user_id, $force_save_source = false ) {
 		$customer           = new WC_Stripe_Customer( $user_id );
+		$set_customer       = true;
 		$force_save_source  = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
 		$source             = '';
 		$wc_token_id        = false;
@@ -342,18 +343,26 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			// This is true if the user wants to store the card to their account.
 			if ( ( $user_id && $this->saved_cards && $maybe_saved_card ) || $force_save_source ) {
-				$stripe_source = $stripe_customer->add_source( $stripe_token );
-				if ( ! empty( $stripe_source->error ) ) {
-					throw new Exception( $stripe_source->error->message );
+				$source = $customer->add_source( $stripe_token );
+
+				if ( ! empty( $source->error ) ) {
+					throw new Exception( $source->error->message );
 				}
 			} else {
-				$source = $stripe_token;
+				$set_customer = false;
+				$source       = $stripe_token;
 			}
+		}
+
+		if ( ! $set_customer ) {
+			$customer_id = false;
+		} else {
+			$customer_id = $customer->get_id() ? $customer->get_id() : false;
 		}
 
 		return (object) array(
 			'token_id' => $wc_token_id,
-			'customer' => $customer->get_id() ? $customer->get_id() : false,
+			'customer' => $customer_id,
 			'source'   => $source,
 		);
 	}

@@ -182,7 +182,7 @@ class WC_Stripe_Customer {
 			// It is possible the WC user once was linked to a customer on Stripe
 			// but no longer exists. Instead of failing, lets try to create a
 			// new customer.
-			if ( preg_match( '/No such customer:/', $response->error->message ) ) {
+			if ( preg_match( '/No such customer/i', $response->error->message ) ) {
 				delete_user_meta( $this->get_user_id(), '_stripe_customer_id' );
 				$this->create_customer();
 				return $this->add_source( $source_id, false );
@@ -197,38 +197,46 @@ class WC_Stripe_Customer {
 		if ( $this->get_user_id() && class_exists( 'WC_Payment_Token_CC' ) ) {
 			$wc_token = new WC_Payment_Token_CC();
 			$wc_token->set_token( $response->id );
+			
+			if ( ! empty( $response->type ) ) {
+				switch ( $response->type ) {
+					case 'bancontact':
+						$type = 'stripe_bancontact';
+						break;
+					case 'ideal':
+						$type = 'stripe_ideal';
+						break;
+					case 'giropay':
+						$type = 'stripe_giropay';
+						break;
+					case 'sofort':
+						$type = 'stripe_giropay';
+						break;
+					case 'alipay':
+						$type = 'stripe_alipay';
+						break;
+					case 'sepa_debit':
+						$type = 'stripe_sepa';
+						break;
+					default:
+						$type = 'stripe';
+						break;
+				}
 
-			switch ( $response->type ) {
-				case 'bancontact':
-					$type = 'stripe_bancontact';
-					break;
-				case 'ideal':
-					$type = 'stripe_ideal';
-					break;
-				case 'giropay':
-					$type = 'stripe_giropay';
-					break;
-				case 'sofort':
-					$type = 'stripe_giropay';
-					break;
-				case 'alipay':
-					$type = 'stripe_alipay';
-					break;
-				case 'sepa_debit':
-					$type = 'stripe_sepa';
-					break;
-				default:
-					$type = 'stripe';
-					break;
-			}
+				$wc_token->set_gateway_id( $type );
 
-			$wc_token->set_gateway_id( $type );
-
-			if ( 'source' === $response->object && 'card' === $response->type ) {
-				$wc_token->set_card_type( strtolower( $response->card->brand ) );
-				$wc_token->set_last4( $response->card->last4 );
-				$wc_token->set_expiry_month( $response->card->exp_month );
-				$wc_token->set_expiry_year( $response->card->exp_year );
+				if ( 'source' === $response->object && 'card' === $response->type ) {
+					$wc_token->set_card_type( strtolower( $response->card->brand ) );
+					$wc_token->set_last4( $response->card->last4 );
+					$wc_token->set_expiry_month( $response->card->exp_month );
+					$wc_token->set_expiry_year( $response->card->exp_year );
+				}
+			} else {
+				$wc_token->set_gateway_id( 'stripe' );
+				$wc_token->set_card_type( strtolower( $response->brand ) );
+				$wc_token->set_last4( $response->last4 );
+				$wc_token->set_expiry_month( $response->exp_month );
+				$wc_token->set_expiry_year( $response->exp_year );				
 			}
 
 			$wc_token->set_user_id( $this->get_user_id() );

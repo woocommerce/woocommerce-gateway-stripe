@@ -359,16 +359,13 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				$methods[] = 'WC_Gateway_Stripe';
 			}
 
-			// Currently only elements will support sources.
-			if ( apply_filters( 'wc_stripe_use_elements_checkout_form', true ) ) {
-				$methods[] = 'WC_Gateway_Stripe_Bancontact';
-				$methods[] = 'WC_Gateway_Stripe_Sofort';
-				$methods[] = 'WC_Gateway_Stripe_Giropay';
-				$methods[] = 'WC_Gateway_Stripe_Ideal';
-				$methods[] = 'WC_Gateway_Stripe_Alipay';
-				$methods[] = 'WC_Gateway_Stripe_Sepa';
-				$methods[] = 'WC_Gateway_Stripe_Bitcoin';
-			}
+			$methods[] = 'WC_Gateway_Stripe_Bancontact';
+			$methods[] = 'WC_Gateway_Stripe_Sofort';
+			$methods[] = 'WC_Gateway_Stripe_Giropay';
+			$methods[] = 'WC_Gateway_Stripe_Ideal';
+			$methods[] = 'WC_Gateway_Stripe_Alipay';
+			$methods[] = 'WC_Gateway_Stripe_Sepa';
+			$methods[] = 'WC_Gateway_Stripe_Bitcoin';
 
 			return $methods;
 		}
@@ -380,25 +377,23 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * @version 4.0.0
 		 */
 		public function filter_gateway_order_admin( $sections ) {
-			if ( apply_filters( 'wc_stripe_use_elements_checkout_form', true ) ) {
-				unset( $sections['stripe'] );
-				unset( $sections['stripe_bancontact'] );
-				unset( $sections['stripe_sofort'] );
-				unset( $sections['stripe_giropay'] );
-				unset( $sections['stripe_ideal'] );
-				unset( $sections['stripe_alipay'] );
-				unset( $sections['stripe_sepa'] );
-				unset( $sections['stripe_bitcoin'] );
+			unset( $sections['stripe'] );
+			unset( $sections['stripe_bancontact'] );
+			unset( $sections['stripe_sofort'] );
+			unset( $sections['stripe_giropay'] );
+			unset( $sections['stripe_ideal'] );
+			unset( $sections['stripe_alipay'] );
+			unset( $sections['stripe_sepa'] );
+			unset( $sections['stripe_bitcoin'] );
 
-				$sections['stripe']            = 'Stripe';
-				$sections['stripe_bancontact'] = __( 'Stripe Bancontact', 'woocommerce-gateway-stripe' );
-				$sections['stripe_sofort']     = __( 'Stripe SOFORT', 'woocommerce-gateway-stripe' );
-				$sections['stripe_giropay']    = __( 'Stripe Giropay', 'woocommerce-gateway-stripe' );
-				$sections['stripe_ideal']      = __( 'Stripe iDeal', 'woocommerce-gateway-stripe' );
-				$sections['stripe_alipay']     = __( 'Stripe Alipay', 'woocommerce-gateway-stripe' );
-				$sections['stripe_sepa']       = __( 'Stripe SEPA Direct Debit', 'woocommerce-gateway-stripe' );
-				$sections['stripe_bitcoin']    = __( 'Stripe Bitcoin', 'woocommerce-gateway-stripe' );
-			}
+			$sections['stripe']            = 'Stripe';
+			$sections['stripe_bancontact'] = __( 'Stripe Bancontact', 'woocommerce-gateway-stripe' );
+			$sections['stripe_sofort']     = __( 'Stripe SOFORT', 'woocommerce-gateway-stripe' );
+			$sections['stripe_giropay']    = __( 'Stripe Giropay', 'woocommerce-gateway-stripe' );
+			$sections['stripe_ideal']      = __( 'Stripe iDeal', 'woocommerce-gateway-stripe' );
+			$sections['stripe_alipay']     = __( 'Stripe Alipay', 'woocommerce-gateway-stripe' );
+			$sections['stripe_sepa']       = __( 'Stripe SEPA Direct Debit', 'woocommerce-gateway-stripe' );
+			$sections['stripe_bitcoin']    = __( 'Stripe Bitcoin', 'woocommerce-gateway-stripe' );
 
 			return $sections;
 		}

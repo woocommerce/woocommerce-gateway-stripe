@@ -529,10 +529,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		wp_enqueue_style( 'stripe_paymentfonts' );
 		wp_register_script( 'stripe_checkout', 'https://checkout.stripe.com/checkout.js', '', WC_STRIPE_VERSION, true );
 		wp_register_script( 'woocommerce_stripe_checkout', plugins_url( 'assets/js/stripe-checkout' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'stripe_checkout' ), WC_STRIPE_VERSION, true );
-		wp_register_script( 'stripev3', 'https://js.stripe.com/v3/', '', '3.0', true );
-		wp_register_script( 'woocommerce_stripe_elements', plugins_url( 'assets/js/stripe-elements' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery-payment', 'stripe' ), WC_STRIPE_VERSION, true );
-		wp_register_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery-payment', 'stripe' ), WC_STRIPE_VERSION, true );
 		wp_register_script( 'stripe', 'https://js.stripe.com/v2/', '', '2.0', true );
+		wp_register_script( 'stripev3', 'https://js.stripe.com/v3/', '', '3.0', true );
+		wp_register_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery-payment', 'stripe', 'stripev3' ), WC_STRIPE_VERSION, true );
+		
 
 		$stripe_params = array(
 			'key'                  => $this->publishable_key,
@@ -565,27 +565,19 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$stripe_params['ajaxurl']                                 = WC_AJAX::get_endpoint( '%%endpoint%%' );
 		$stripe_params['stripe_nonce']                            = wp_create_nonce( '_wc_stripe_nonce' );
 		$stripe_params['statement_descriptor']                    = $this->statement_descriptor;
+		$stripe_params['use_elements']                            = apply_filters( 'wc_stripe_use_elements_checkout_form', true ) ? 'yes' : 'no';
 
 		// merge localized messages to be use in JS
 		$stripe_params = array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
 
 		wp_localize_script( 'woocommerce_stripe', 'wc_stripe_params', apply_filters( 'wc_stripe_params', $stripe_params ) );
-		wp_localize_script( 'woocommerce_stripe_elements', 'wc_stripe_params', apply_filters( 'wc_stripe_params', $stripe_params ) );
 		wp_localize_script( 'woocommerce_stripe_checkout', 'wc_stripe_params', apply_filters( 'wc_stripe_params', $stripe_params ) );
 
 		if ( $this->stripe_checkout ) {
 			wp_enqueue_script( 'stripe_checkout' );
 			wp_enqueue_script( 'woocommerce_stripe_checkout' );
 		} else {
-			// Loading both versions for now as v3 does not support Apple Pay.
-			wp_enqueue_script( 'stripe' );
-
-			if ( apply_filters( 'wc_stripe_use_elements_checkout_form', true ) ) {
-				wp_enqueue_script( 'stripev3' );
-				wp_enqueue_script( 'woocommerce_stripe_elements' );
-			} else {
-				wp_enqueue_script( 'woocommerce_stripe' );
-			}
+			wp_enqueue_script( 'woocommerce_stripe' );
 		}
 	}
 
