@@ -172,7 +172,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Capture payment when the order is changed from on-hold to complete or processing
+	 * Capture payment when the order is changed from on-hold to complete or processing.
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
@@ -213,12 +213,15 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						$order->save();
 					}
 				}
+
+				// This hook fires when admin manually changes order status to processing or completed.
+				do_action( 'woocommerce_stripe_process_manual_capture', $order, $result );
 			}
 		}
 	}
 
 	/**
-	 * Cancel pre-auth on refund/cancellation
+	 * Cancel pre-auth on refund/cancellation.
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
@@ -246,6 +249,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						$order->save();
 					}
 				}
+
+				// This hook fires when admin manually changes order status to cancel.
+				do_action( 'woocommerce_stripe_process_manual_cancel', $order, $result );
 			}
 		}
 	}
