@@ -212,16 +212,8 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
-
 		wp_enqueue_style( 'stripe_paymentfonts' );
-
-		if ( apply_filters( 'wc_stripe_use_elements_checkout_form', true ) ) {
-			wp_enqueue_script( 'stripev3' );
-			wp_enqueue_script( 'woocommerce_stripe_elements' );
-		} else {
-			wp_enqueue_script( 'woocommerce_stripe' );
-		}
+		wp_enqueue_script( 'woocommerce_stripe' );
 	}
 
 	/**
