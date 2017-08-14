@@ -104,6 +104,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param bool $retry
 	 */
 	public function process_webhook_payment( $notification, $retry = true ) {
+		// The following 2 payment methods are syncronous so does not need to be handle via webhook.
+		if ( 'card' === $notification->data->object->type || 'three_d_secure' === $notification->data->object->type || 'sepa_debit' === $notification->data->object->type ) {
+			return;
+		}
+
 		$order = WC_Stripe_Helper::get_order_by_source_id( $notification->data->object->id );
 
 		if ( ! $order ) {
@@ -277,6 +282,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_charge_succeeded( $notification ) {
+		// The following payment methods are syncronous so does not need to be handle via webhook.
+		if ( 'card' === $notification->data->object->source->type || 'three_d_secure' === $notification->data->object->source->type ) {
+			return;
+		}
+
 		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
 
 		if ( ! $order ) {
