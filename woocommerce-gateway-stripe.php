@@ -311,34 +311,18 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		}
 
 		/**
-		 * Adds plugin action links
+		 * Adds plugin action links.
 		 *
 		 * @since 1.0.0
+		 * @version 4.0.0
 		 */
 		public function plugin_action_links( $links ) {
-			$setting_link = $this->get_setting_link();
-
 			$plugin_links = array(
-				'<a href="' . $setting_link . '">' . esc_html__( 'Settings', 'woocommerce-gateway-stripe' ) . '</a>',
+				'<a href="admin.php?page=wc-settings&tab=checkout&section=stripe">' . esc_html__( 'Settings', 'woocommerce-gateway-stripe' ) . '</a>',
 				'<a href="https://docs.woocommerce.com/document/stripe/">' . esc_html__( 'Docs', 'woocommerce-gateway-stripe' ) . '</a>',
 				'<a href="https://woocommerce.com/contact-us/">' . esc_html__( 'Support', 'woocommerce-gateway-stripe' ) . '</a>',
 			);
 			return array_merge( $plugin_links, $links );
-		}
-
-		/**
-		 * Get setting link.
-		 *
-		 * @since 1.0.0
-		 *
-		 * @return string Setting link
-		 */
-		public function get_setting_link() {
-			$use_id_as_section = function_exists( 'WC' ) ? version_compare( WC()->version, '2.6', '>=' ) : false;
-
-			$section_slug = $use_id_as_section ? 'stripe' : strtolower( 'WC_Gateway_Stripe' );
-
-			return admin_url( 'admin.php?page=wc-settings&tab=checkout&section=' . $section_slug );
 		}
 
 		/**
