@@ -121,8 +121,6 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 
 			add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateways' ) );
 			add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );
-			add_action( 'wp_ajax_stripe_dismiss_request_api_notice', array( $this, 'dismiss_request_api_notice' ) );
-			add_action( 'wp_ajax_stripe_dismiss_apple_pay_notice', array( $this, 'dismiss_apple_pay_notice' ) );
 			add_filter( 'woocommerce_get_sections_checkout', array( $this, 'filter_gateway_order_admin' ) );
 		}
 
@@ -145,12 +143,6 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				$notice = wc_clean( $_GET['wc-stripe-hide-notice'] );
 
 				switch ( $notice ) {
-					case 'apple':
-						update_option( 'wc_stripe_show_apple_pay_notice', 'no' );
-						break;
-					case 'payment-request-api':
-						update_option( 'wc_stripe_show_request_api_notice', 'no' );
-						break;
 					case 'ssl':
 						update_option( 'wc_stripe_show_ssl_notice', 'no' );
 						break;
@@ -252,11 +244,9 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				$this->add_admin_notice( 'bad_environment', 'error', $environment_warning );
 			}
 
-			$show_request_api_notice = get_option( 'wc_stripe_show_request_api_notice' );
-			$show_apple_pay_notice   = get_option( 'wc_stripe_show_apple_pay_notice' );
-			$show_ssl_notice         = get_option( 'wc_stripe_show_ssl_notice' );
-			$show_keys_notice        = get_option( 'wc_stripe_show_keys_notice' );
-			$options                 = get_option( 'woocommerce_stripe_settings' );
+			$show_ssl_notice  = get_option( 'wc_stripe_show_ssl_notice' );
+			$show_keys_notice = get_option( 'wc_stripe_show_keys_notice' );
+			$options          = get_option( 'woocommerce_stripe_settings' );
 
 			if ( isset( $options['enabled'] ) && 'yes' === $options['enabled'] && empty( $show_keys_notice ) ) {
 				$secret  = WC_Stripe_API::get_secret_key();
@@ -272,16 +262,6 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				if ( ( function_exists( 'wc_site_is_https' ) && ! wc_site_is_https() ) && ( 'no' === get_option( 'woocommerce_force_ssl_checkout' ) && ! class_exists( 'WordPressHTTPS' ) ) ) {
 					$this->add_admin_notice( 'ssl', 'notice notice-warning', sprintf( __( 'Stripe is enabled, but the <a href="%1$s">force SSL option</a> is disabled; your checkout may not be secure! Please enable SSL and ensure your server has a valid <a href="%2$s" target="_blank">SSL certificate</a> - Stripe will only work in test mode.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ), 'https://en.wikipedia.org/wiki/Transport_Layer_Security' ), true );
 				}
-			}
-
-			if ( empty( $show_apple_pay_notice ) ) {
-				// @TODO remove this notice in the future.
-				$this->add_admin_notice( 'apple', 'notice notice-warning', sprintf( esc_html__( 'New Feature! Stripe now supports %s. Your customers can now purchase your products even faster. Apple Pay has been enabled by default.', 'woocommerce-gateway-stripe' ), '<a href="https://woocommerce.com/apple-pay/">Apple Pay</a>' ), true );
-			}
-
-			if ( empty( $show_request_api_notice ) ) {
-				// @TODO remove this notice in the future.
-				$this->add_admin_notice( 'payment-request-api', 'notice notice-warning', __( 'New Feature! Stripe now supports Google Payment Request. Your customers can now use mobile phones with supported browsers such as Chrome to make purchases easier and faster.', 'woocommerce-gateway-stripe' ), true );
 			}
 		}
 
