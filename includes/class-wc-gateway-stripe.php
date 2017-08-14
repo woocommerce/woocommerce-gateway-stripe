@@ -444,10 +444,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			} else {
 				$this->form();
 			}
+		}
 
-			if ( apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) ) {
-				$this->save_payment_method_checkbox();
-			}
+		if ( apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) ) {
+			$this->save_payment_method_checkbox();
 		}
 
 		echo '</div>';
@@ -528,7 +528,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		wp_register_style( 'stripe_paymentfonts', plugins_url( 'assets/css/stripe-paymentfonts.css', WC_STRIPE_MAIN_FILE ), array(), '1.2.5' );
 		wp_enqueue_style( 'stripe_paymentfonts' );
 		wp_register_script( 'stripe_checkout', 'https://checkout.stripe.com/checkout.js', '', WC_STRIPE_VERSION, true );
-		wp_register_script( 'woocommerce_stripe_checkout', plugins_url( 'assets/js/stripe-checkout' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'stripe_checkout' ), WC_STRIPE_VERSION, true );
 		wp_register_script( 'stripe', 'https://js.stripe.com/v2/', '', '2.0', true );
 		wp_register_script( 'stripev3', 'https://js.stripe.com/v3/', '', '3.0', true );
 		wp_register_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery-payment', 'stripe', 'stripev3' ), WC_STRIPE_VERSION, true );
@@ -566,6 +565,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$stripe_params['stripe_nonce']                            = wp_create_nonce( '_wc_stripe_nonce' );
 		$stripe_params['statement_descriptor']                    = $this->statement_descriptor;
 		$stripe_params['use_elements']                            = apply_filters( 'wc_stripe_use_elements_checkout_form', true ) ? 'yes' : 'no';
+		$stripe_params['is_stripe_checkout']                      = $this->stripe_checkout ? 'yes' : 'no';
 
 		// merge localized messages to be use in JS
 		$stripe_params = array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
@@ -575,10 +575,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		if ( $this->stripe_checkout ) {
 			wp_enqueue_script( 'stripe_checkout' );
-			wp_enqueue_script( 'woocommerce_stripe_checkout' );
-		} else {
-			wp_enqueue_script( 'woocommerce_stripe' );
 		}
+
+		wp_enqueue_script( 'woocommerce_stripe' );
 	}
 
 	/**

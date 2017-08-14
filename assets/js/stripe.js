@@ -30,6 +30,9 @@ jQuery( function( $ ) {
 		 * Initialize event handlers and UI state.
 		 */
 		init: function() {
+			// Stripe Checkout.
+			this.stripe_checkout_submit = false;
+
 			// checkout page
 			if ( $( 'form.woocommerce-checkout' ).length ) {
 				this.form = $( 'form.woocommerce-checkout' );
@@ -180,6 +183,23 @@ jQuery( function( $ ) {
 			return false;
 		},
 
+		isStripeModalNeeded: function( e ) {
+			var token = wc_stripe_form.form.find( 'input.stripe_token' ),
+				$required_inputs;
+
+			// If this is a stripe submission (after modal) and token exists, allow submit.
+			if ( wc_stripe_form.stripe_submit && token ) {
+				return false;
+			}
+
+			// Don't affect submission if modal is not needed.
+			if ( ! wc_stripe_form.isStripeChosen() ) {
+				return false;
+			}
+
+			return true;
+		},
+
 		block: function() {
 			if ( wc_stripe_form.isMobile() ) {
 				$.blockUI({
@@ -210,6 +230,51 @@ jQuery( function( $ ) {
 
 		getSelectedPaymentElement: function() {
 			return $( '.payment_methods input[name="payment_method"]:checked' );
+		},
+
+		// Stripe Checkout.
+		openModal: function() {
+			// Capture submittal and open stripecheckout
+			var $form = wc_stripe_form.form,
+				$data = $( '#stripe-payment-data' ),
+				token = $form.find( 'input.stripe_token' );
+
+			token.val( '' );
+
+			var token_action = function( res ) {
+				$form.find( 'input.stripe_token' ).remove();
+				$form.append( '<input type="hidden" class="stripe_token" name="stripe_token" value="' + res.id + '"/>' );
+				wc_stripe_form.stripe_submit = true;
+				$form.submit();
+			};
+
+			StripeCheckout.open({
+				key               : wc_stripe_params.key,
+				billingAddress    : 'yes' === wc_stripe_params.stripe_checkout_require_billing_address,
+				amount            : $data.data( 'amount' ),
+				name              : $data.data( 'name' ),
+				description       : $data.data( 'description' ),
+				currency          : $data.data( 'currency' ),
+				image             : $data.data( 'image' ),
+				bitcoin           : $data.data( 'bitcoin' ),
+				locale            : $data.data( 'locale' ),
+				email             : $( '#billing_email' ).val() || $data.data( 'email' ),
+				panelLabel        : $data.data( 'panel-label' ),
+				allowRememberMe   : $data.data( 'allow-remember-me' ),
+				token             : token_action,
+				closed            : wc_stripe_form.onClose()
+			});
+		},
+
+		// Stripe Checkout.
+		resetModal: function() {
+			wc_stripe_form.reset();
+			wc_stripe_form.stripe_checkout_submit = false;
+		},
+
+		// Stripe Checkout.
+		onClose: function() {
+			wc_stripe_form.unblock();
 		},
 
 		onError: function( e, result ) {
@@ -436,6 +501,19 @@ jQuery( function( $ ) {
 		onSubmit: function( e ) {
 			if ( wc_stripe_form.isStripeChosen() && ! wc_stripe_form.isStripeSaveCardChosen() && ! wc_stripe_form.hasSource() && ! wc_stripe_form.hasToken() ) {
 				e.preventDefault();
+
+				// Stripe Checkout.
+				if ( 'yes' === wc_stripe_params.is_stripe_checkout && wc_stripe_form.isStripeModalNeeded() && wc_stripe_form.isStripeCardChosen() ) {
+					// Since in mobile actions cannot be deferred, no dynamic validation applied.
+					if ( wc_stripe_form.isMobile() ) {
+						wc_stripe_form.openModal();
+					} else {
+						wc_stripe_form.validateCheckout( 'modal' );
+					}
+
+					return false;
+				}
+
 				wc_stripe_form.block();
 
 				// Process legacy card token.
@@ -533,7 +611,11 @@ jQuery( function( $ ) {
 			return wc_stripe_form.form.find( '.form-row.validate-required > input, .form-row.validate-required > select' );
 		},
 
-		validateCheckout: function() {
+		validateCheckout: function( type ) {
+			if ( typeof type === 'undefined' ) {
+				type = '';
+			}
+
 			var data = {
 				'nonce': wc_stripe_params.stripe_nonce,
 				'required_fields': wc_stripe_form.getRequiredFields().serialize(),
@@ -548,8 +630,14 @@ jQuery( function( $ ) {
 				dataType:   'json',
 				success:	function( result ) {
 					if ( 'success' === result ) {
-						wc_stripe_form.createSource();
+						// Stripe Checkout.
+						if ( 'modal' === type ) {
+							wc_stripe_form.openModal();
+						} else {
+							wc_stripe_form.createSource();
+						}
 					} else if ( result.messages ) {
+						wc_stripe_form.resetModal();
 						wc_stripe_form.reset();
 						wc_stripe_form.submitError( result.messages );
 					}
