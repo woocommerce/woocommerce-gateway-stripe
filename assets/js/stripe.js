@@ -129,9 +129,10 @@ jQuery( function( $ ) {
 			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_giropay, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa, #payment_method_stripe_bitcoin' ).is( ':checked' ) || 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val();
 		},
 
-		// Currently only support saved cards via credit cards. No other payment method.
+		// Currently only support saved cards via credit cards and SEPA. No other payment method.
 		isStripeSaveCardChosen: function() {
-			return $( '#payment_method_stripe' ).is( ':checked' ) && 'new' !== $( 'input[name="wc-stripe-payment-token"]:checked' ).val();
+			return ( $( '#payment_method_stripe' ).is( ':checked' ) && 'new' !== $( 'input[name="wc-stripe-payment-token"]:checked' ).val() ) ||
+				( $( '#payment_method_stripe_sepa' ).is( ':checked' ) && 'new' !== $( 'input[name="wc-stripe_sepa-payment-token"]:checked' ).val() );
 		},
 
 		isStripeCardChosen: function() {

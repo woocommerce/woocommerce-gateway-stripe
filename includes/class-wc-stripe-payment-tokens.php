@@ -22,6 +22,8 @@ class WC_Stripe_Payment_Tokens {
 		self::$_this = $this;
 
 		add_filter( 'woocommerce_get_customer_payment_tokens', array( $this, 'woocommerce_get_customer_payment_tokens' ), 10, 3 );
+		add_filter( 'woocommerce_payment_methods_list_item', array( $this, 'get_account_saved_payment_methods_list_item_sepa' ), 10, 2 );
+		add_filter( 'woocommerce_get_credit_card_type_label', array( $this, 'normalize_sepa_label' ) );
 		add_action( 'woocommerce_payment_token_deleted', array( $this, 'woocommerce_payment_token_deleted' ), 10, 2 );
 		add_action( 'woocommerce_payment_token_set_default', array( $this, 'woocommerce_payment_token_set_default' ) );
 	}
@@ -37,6 +39,22 @@ class WC_Stripe_Payment_Tokens {
 	}
 
 	/**
+	 * Normalizes the SEPA IBAN label on My Account page.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param string $label
+	 * @return string $label
+	 */
+	public function normalize_sepa_label( $label ) {
+		if ( 'sepa iban' === strtolower( $label ) ) {
+			return 'SEPA IBAN';
+		}
+
+		return $label;
+	}
+
+	/**
 	 * Gets saved tokens from API if they don't already exist in WooCommerce.
 	 *
 	 * @since 3.1.0
@@ -45,61 +63,89 @@ class WC_Stripe_Payment_Tokens {
 	 * @return array
 	 */
 	public function woocommerce_get_customer_payment_tokens( $tokens, $customer_id, $gateway_id ) {
-		if ( is_user_logged_in() && 'stripe' === $gateway_id && class_exists( 'WC_Payment_Token_CC' ) ) {
-			$stripe_customer = new WC_Stripe_Customer( $customer_id );
-			$stripe_sources  = $stripe_customer->get_sources();
-			$stored_tokens   = array();
+		if ( is_user_logged_in() && class_exists( 'WC_Payment_Token_CC' ) ) {
+			if ( 'stripe' === $gateway_id ) {
+				$stripe_customer = new WC_Stripe_Customer( $customer_id );
+				$stripe_sources  = $stripe_customer->get_sources();
+				$stored_tokens   = array();
 
-			foreach ( $tokens as $token ) {
-				$stored_tokens[] = $token->get_token();
+				foreach ( $tokens as $token ) {
+					$stored_tokens[] = $token->get_token();
+				}
+
+				foreach ( $stripe_sources as $source ) {
+					if ( 'card' === $source->type ) {
+						if ( ! in_array( $source->id, $stored_tokens ) ) {
+							$token = new WC_Payment_Token_CC();
+							$token->set_token( $source->id );
+							$token->set_gateway_id( 'stripe' );
+
+							if ( 'source' === $source->object && 'card' === $source->type ) {
+								$token->set_card_type( strtolower( $source->card->brand ) );
+								$token->set_last4( $source->card->last4 );
+								$token->set_expiry_month( $source->card->exp_month );
+								$token->set_expiry_year( $source->card->exp_year );
+							} else {
+								$token->set_card_type( strtolower( $source->brand ) );
+								$token->set_last4( $source->last4 );
+								$token->set_expiry_month( $source->exp_month );
+								$token->set_expiry_year( $source->exp_year );
+							}
+
+							$token->set_user_id( $customer_id );
+							$token->save();
+							$tokens[ $token->get_id() ] = $token;
+						}
+					}
+				}
 			}
 
-			foreach ( $stripe_sources as $source ) {
-				if ( ! in_array( $source->id, $stored_tokens ) ) {
-					$token = new WC_Payment_Token_CC();
-					$token->set_token( $source->id );
+			if ( 'stripe_sepa' === $gateway_id ) {
+				$stripe_customer = new WC_Stripe_Customer( $customer_id );
+				$stripe_sources  = $stripe_customer->get_sources();
+				$stored_tokens   = array();
 
-					switch ( $source->type ) {
-						case 'bancontact':
-							$type = 'stripe_bancontact';
-							break;
-						case 'ideal':
-							$type = 'stripe_ideal';
-							break;
-						case 'giropay':
-							$type = 'stripe_giropay';
-							break;
-						case 'sofort':
-							$type = 'stripe_giropay';
-							break;
-						case 'alipay':
-							$type = 'stripe_alipay';
-							break;
-						case 'sepa_debit':
-							$type = 'stripe_sepa';
-							break;
-						default:
-							$type = 'stripe';
-							break;
+				foreach ( $tokens as $token ) {
+					$stored_tokens[] = $token->get_token();
+				}
+
+				foreach ( $stripe_sources as $source ) {
+					if ( 'sepa_debit' === $source->type ) {
+						if ( ! in_array( $source->id, $stored_tokens ) ) {
+							$token = new WC_Payment_Token_SEPA();
+							$token->set_token( $source->id );
+							$token->set_gateway_id( 'stripe_sepa' );
+							$token->set_last4( $source->sepa_debit->last4 );
+							$token->set_user_id( $customer_id );
+							$token->save();
+							$tokens[ $token->get_id() ] = $token;
+						}
 					}
-
-					$token->set_gateway_id( $type );
-
-					if ( 'source' === $source->object && 'card' === $source->type ) {
-						$token->set_card_type( strtolower( $source->card->brand ) );
-						$token->set_last4( $source->card->last4 );
-						$token->set_expiry_month( $source->card->exp_month );
-						$token->set_expiry_year( $source->card->exp_year );
-					}
-
-					$token->set_user_id( $customer_id );
-					$token->save();
-					$tokens[ $token->get_id() ] = $token;
 				}
 			}
 		}
 
 		return $tokens;
+	}
+
+	/**
+	 * Controls the output for SEPA on the my account page.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param  array             $item         Individual list item from woocommerce_saved_payment_methods_list
+	 * @param  WC_Payment_Token $payment_token The payment token associated with this method entry
+	 * @return array                           Filtered item
+	 */
+	public function get_account_saved_payment_methods_list_item_sepa( $item, $payment_token ) {
+		if ( 'sepa' !== strtolower( $payment_token->get_type() ) ) {
+			return $item;
+		}
+
+		$item['method']['last4'] = $payment_token->get_last4();
+		$item['method']['brand'] = esc_html__( 'SEPA IBAN', 'woocommerce-gateway-stripe' );
+
+		return $item;
 	}
 
 	/**
@@ -109,7 +155,7 @@ class WC_Stripe_Payment_Tokens {
 	 * @version 4.0.0
 	 */
 	public function woocommerce_payment_token_deleted( $token_id, $token ) {
-		if ( 'stripe' === $token->get_gateway_id() ) {
+		if ( 'stripe' === $token->get_gateway_id() || 'stripe_sepa' === $token->get_gateway_id() ) {
 			$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
 			$stripe_customer->delete_source( $token->get_token() );
 		}
@@ -123,7 +169,8 @@ class WC_Stripe_Payment_Tokens {
 	 */
 	public function woocommerce_payment_token_set_default( $token_id ) {
 		$token = WC_Payment_Tokens::get( $token_id );
-		if ( 'stripe' === $token->get_gateway_id() ) {
+
+		if ( 'stripe' === $token->get_gateway_id() || 'stripe_sepa' === $token->get_gateway_id() ) {
 			$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
 			$stripe_customer->set_default_source( $token->get_token() );
 		}

@@ -308,8 +308,23 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			// This gets the source object from Stripe.
 			$source = json_decode( wc_clean( stripslashes( $_POST['stripe_source'] ) ) );
 
+			switch ( $source->type ) {
+				case 'card':
+				case 'three_d_secure':
+					$payment_method = 'stripe';
+					break;
+
+				case 'sepa_debit':
+					$payment_method = 'stripe_sepa';
+					break;
+
+				default:
+					'stripe'; // Card.
+					break;
+			}
+
 			// This checks to see if customer opted to save the payment method to file.
-			$maybe_saved_card = isset( $_POST['wc-stripe-new-payment-method'] ) && ! empty( $_POST['wc-stripe-new-payment-method'] );
+			$maybe_saved_card = isset( $_POST['wc-' . $payment_method . '-new-payment-method'] ) && ! empty( $_POST['wc-' . $payment_method . '-new-payment-method'] );
 
 			/**
 			 * This is true if the user wants to store the card to their account.

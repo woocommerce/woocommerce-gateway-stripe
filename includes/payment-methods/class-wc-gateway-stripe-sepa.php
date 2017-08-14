@@ -62,6 +62,16 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 		$this->supports             = array(
 			'products',
 			'refunds',
+			'tokenization',
+			'add_payment_method',
+			'subscriptions',
+			'subscription_cancellation',
+			'subscription_suspension',
+			'subscription_reactivation',
+			'subscription_amount_changes',
+			'subscription_date_changes',
+			'subscription_payment_method_change',
+			'pre-orders',
 		);
 
 		// Load the form fields.
@@ -257,6 +267,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	public function payment_fields() {
 		$user                 = wp_get_current_user();
 		$total                = WC()->cart->total;
+		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
 
 		// If paying from order, we need to get total from order not cart.
 		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) {
@@ -280,7 +291,16 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $this->description ) ) );
 		}
 
+		if ( $display_tokenization ) {
+			$this->tokenization_script();
+			$this->saved_payment_methods();
+		}
+
 		$this->form();
+
+		if ( apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) ) {
+			$this->save_payment_method_checkbox();
+		}
 
 		echo '</div>';
 	}

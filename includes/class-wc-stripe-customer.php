@@ -193,45 +193,35 @@ class WC_Stripe_Customer {
 			return new WP_Error( 'error', __( 'Unable to add payment source.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		// Add token to WooCommerce
+		// Add token to WooCommerce.
 		if ( $this->get_user_id() && class_exists( 'WC_Payment_Token_CC' ) ) {
-			$wc_token = new WC_Payment_Token_CC();
-			$wc_token->set_token( $response->id );
-			
 			if ( ! empty( $response->type ) ) {
 				switch ( $response->type ) {
-					case 'bancontact':
-						$type = 'stripe_bancontact';
-						break;
-					case 'ideal':
-						$type = 'stripe_ideal';
-						break;
-					case 'giropay':
-						$type = 'stripe_giropay';
-						break;
-					case 'sofort':
-						$type = 'stripe_giropay';
-						break;
 					case 'alipay':
-						$type = 'stripe_alipay';
 						break;
 					case 'sepa_debit':
-						$type = 'stripe_sepa';
+						$wc_token = new WC_Payment_Token_SEPA();
+						$wc_token->set_token( $response->id );
+						$wc_token->set_gateway_id( 'stripe_sepa' );
+						$wc_token->set_last4( $response->sepa_debit->last4 );
 						break;
 					default:
-						$type = 'stripe';
+						if ( 'source' === $response->object && 'card' === $response->type ) {
+							$wc_token = new WC_Payment_Token_CC();
+							$wc_token->set_token( $response->id );
+							$wc_token->set_gateway_id( 'stripe' );
+							$wc_token->set_card_type( strtolower( $response->card->brand ) );
+							$wc_token->set_last4( $response->card->last4 );
+							$wc_token->set_expiry_month( $response->card->exp_month );
+							$wc_token->set_expiry_year( $response->card->exp_year );
+						}
 						break;
 				}
 
-				$wc_token->set_gateway_id( $type );
-
-				if ( 'source' === $response->object && 'card' === $response->type ) {
-					$wc_token->set_card_type( strtolower( $response->card->brand ) );
-					$wc_token->set_last4( $response->card->last4 );
-					$wc_token->set_expiry_month( $response->card->exp_month );
-					$wc_token->set_expiry_year( $response->card->exp_year );
-				}
+			// Legacy.
 			} else {
+				$wc_token = new WC_Payment_Token_CC();
+				$wc_token->set_token( $response->id );
 				$wc_token->set_gateway_id( 'stripe' );
 				$wc_token->set_card_type( strtolower( $response->brand ) );
 				$wc_token->set_last4( $response->last4 );
@@ -259,7 +249,7 @@ class WC_Stripe_Customer {
 	public function get_sources() {
 		$sources = array();
 
-		if ( $this->get_id() && false === ( $sources = get_transient( 'stripe_sources_' . $this->get_id() ) ) ) {
+		//if ( $this->get_id() && false === ( $sources = get_transient( 'stripe_sources_' . $this->get_id() ) ) ) {
 			$response = WC_Stripe_API::request( array(
 				'limit'       => 100,
 			), 'customers/' . $this->get_id() . '/sources', 'GET' );
@@ -272,8 +262,8 @@ class WC_Stripe_Customer {
 				$sources = $response->data;
 			}
 
-			set_transient( 'stripe_sources_' . $this->get_id(), $sources, HOUR_IN_SECONDS * 48 );
-		}
+			//set_transient( 'stripe_sources_' . $this->get_id(), $sources, HOUR_IN_SECONDS * 24 );
+		//}
 
 		return $sources;
 	}

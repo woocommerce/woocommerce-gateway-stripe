@@ -103,6 +103,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-helper.php' );
 			require_once( dirname( __FILE__ ) . '/includes/abstracts/abstract-wc-stripe-payment-gateway.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-handler.php' );
+			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-sepa-payment-token.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-bancontact.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sofort.php' );
