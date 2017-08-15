@@ -269,8 +269,8 @@ class WC_Stripe_Sepa_Subscriptions_Compat extends WC_Gateway_Stripe_Sepa {
 				throw new Exception( 'Invalid customer ID. A valid "_stripe_customer_id" must begin with "cus_".' );
 			}
 
-			if ( ! empty( $payment_meta['post_meta']['_stripe_source_id']['value'] ) && 0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'src_' ) ) {
-				throw new Exception( 'Invalid source ID. A valid "_stripe_source_id" must begin with "src_".' );
+			if ( ! isset( $payment_meta['post_meta']['_stripe_source_id']['value'] ) || empty( $payment_meta['post_meta']['_stripe_source_id']['value'] ) ) {
+				throw new Exception( 'A "_stripe_source_id" value is required.' );
 			}
 		}
 	}
