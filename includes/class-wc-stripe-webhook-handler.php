@@ -282,8 +282,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_charge_succeeded( $notification ) {
-		// The following payment methods are syncronous so does not need to be handle via webhook.
-		if ( 'card' === $notification->data->object->source->type || 'three_d_secure' === $notification->data->object->source->type ) {
+		// The following payment methods are synchronous so does not need to be handle via webhook.
+		if ( ( isset( $notification->data->object->source->type ) && 'card' === $notification->data->object->source->type ) || ( isset( $notification->data->object->source->type ) && 'three_d_secure' === $notification->data->object->source->type ) ) {
 			return;
 		}
 

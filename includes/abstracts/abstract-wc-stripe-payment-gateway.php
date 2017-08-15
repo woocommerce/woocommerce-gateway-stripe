@@ -205,7 +205,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			 * take care of the status changes.
 			 */
 			if ( 'pending' === $response->status ) {
-				WC_Stripe_Helper::is_pre_30() ? $order->reduce_order_stock() : wc_reduce_stock_levels( $order_id );
+				if ( ! wc_string_to_bool( get_post_meta( $order_id, '_order_stock_reduced', true ) ) ) {
+					WC_Stripe_Helper::is_pre_30() ? $order->reduce_order_stock() : wc_reduce_stock_levels( $order_id );
+				}
+
 				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_transaction_id', $response->id, true ) : $order->set_transaction_id( $response->id );
 				$order->update_status( 'on-hold', sprintf( __(  'Stripe charge awaiting payment: %s.', 'woocommerce-gateway-stripe' ), $response->id ) );
 			}
@@ -302,26 +305,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$force_save_source  = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
 		$source             = '';
 		$wc_token_id        = false;
+		$payment_method     = isset( $_POST['payment_method'] ) ? wc_clean( $_POST['payment_method'] ) : 'stripe';
 
 		// New CC info was entered and we have a new source to process.
 		if ( ! empty( $_POST['stripe_source'] ) ) {
 			// This gets the source object from Stripe.
 			$source = json_decode( wc_clean( stripslashes( $_POST['stripe_source'] ) ) );
-
-			switch ( $source->type ) {
-				case 'card':
-				case 'three_d_secure':
-					$payment_method = 'stripe';
-					break;
-
-				case 'sepa_debit':
-					$payment_method = 'stripe_sepa';
-					break;
-
-				default:
-					'stripe'; // Card.
-					break;
-			}
 
 			// This checks to see if customer opted to save the payment method to file.
 			$maybe_saved_card = isset( $_POST['wc-' . $payment_method . '-new-payment-method'] ) && ! empty( $_POST['wc-' . $payment_method . '-new-payment-method'] );
@@ -340,10 +329,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			} else {
 				$source   = $source->id;
 			}
-		} elseif ( isset( $_POST['wc-stripe-payment-token'] ) && 'new' !== $_POST['wc-stripe-payment-token'] ) {
+		} elseif ( isset( $_POST['wc-' . $payment_method . '-payment-token'] ) && 'new' !== $_POST['wc-' . $payment_method . '-payment-token'] ) {
 			// Use an existing token, and then process the payment
 
-			$wc_token_id = wc_clean( $_POST['wc-stripe-payment-token'] );
+			$wc_token_id = wc_clean( $_POST['wc-' . $payment_method . '-payment-token'] );
 			$wc_token    = WC_Payment_Tokens::get( $wc_token_id );
 
 			if ( ! $wc_token || $wc_token->get_user_id() !== get_current_user_id() ) {
@@ -354,7 +343,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$source = $wc_token->get_token();
 		} elseif ( isset( $_POST['stripe_token'] ) && 'new' !== $_POST['stripe_token'] ) {
 			$stripe_token     = wc_clean( $_POST['stripe_token'] );
-			$maybe_saved_card = isset( $_POST['wc-stripe-new-payment-method'] ) && ! empty( $_POST['wc-stripe-new-payment-method'] );
+			$maybe_saved_card = isset( $_POST['wc-' . $payment_method . '-new-payment-method'] ) && ! empty( $_POST['wc-' . $payment_method . '-new-payment-method'] );
 
 			// This is true if the user wants to store the card to their account.
 			if ( ( $user_id && $this->saved_cards && $maybe_saved_card ) || $force_save_source ) {

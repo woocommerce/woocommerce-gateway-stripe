@@ -117,6 +117,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			require_once( dirname( __FILE__ ) . '/includes/compat/woocommerce-subscriptions/class-wc-stripe-subscriptions-compat.php' );
 			require_once( dirname( __FILE__ ) . '/includes/compat/woocommerce-subscriptions/class-wc-stripe-sepa-subscriptions-compat.php' );
 			require_once( dirname( __FILE__ ) . '/includes/compat/woocommerce-pre-orders/class-wc-stripe-pre-orders-compat.php' );
+			require_once( dirname( __FILE__ ) . '/includes/compat/woocommerce-pre-orders/class-wc-stripe-sepa-pre-orders-compat.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-order-handler.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-tokens.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php' );
@@ -318,11 +319,13 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				$methods[] = 'WC_Stripe_Subscriptions_Compat';
 				$methods[] = 'WC_Stripe_Sepa_Subscriptions_Compat';
 				$methods[] = 'WC_Stripe_Pre_Orders_Compat';
+				$methods[] = 'WC_Stripe_Sepa_Pre_Orders_Compat';
 			} elseif ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) {
 				$methods[] = 'WC_Stripe_Subscriptions_Compat';
 				$methods[] = 'WC_Stripe_Sepa_Subscriptions_Compat';
 			} elseif ( class_exists( 'WC_Pre_Orders_Order' ) ) {
 				$methods[] = 'WC_Stripe_Pre_Orders_Compat';
+				$methods[] = 'WC_Stripe_Sepa_Pre_Orders_Compat';
 			} else {
 				$methods[] = 'WC_Gateway_Stripe';
 				$methods[] = 'WC_Gateway_Stripe_Sepa';
