@@ -676,11 +676,10 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Handles the Apple Pay processing via AJAX
+	 * Handles the Apple Pay processing via AJAX.
 	 *
-	 * @access public
 	 * @since 3.1.0
-	 * @version 3.1.0
+	 * @version 4.0.0
 	 */
 	public function process_apple_pay() {
 		if ( ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_apple_pay_nonce' ) ) {
@@ -712,9 +711,12 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 					throw new Exception( ( isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message ) );
 				}
 
+				do_action( 'wc_gateway_stripe_process_payment', $response, $order );
+
 				// Process valid response.
 				$this->process_response( $response, $order );
 			} else {
+				do_action( 'wc_gateway_stripe_process_payment', $response, $order );
 				$order->payment_complete();
 			}
 
@@ -733,6 +735,8 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 		} catch ( Exception $e ) {
 			WC()->session->set( 'refresh_totals', true );
 			WC_Stripe_Logger::log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+
+			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
 			if ( is_object( $order ) && isset( $order_id ) && $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );

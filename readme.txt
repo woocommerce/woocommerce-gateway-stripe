@@ -2,7 +2,7 @@
 Contributors: automattic, woothemes, mikejolley, akeda, royho, mattyza, slash1andy, woosteve, spraveenitpro, mikedmoore, fernashes, shellbeezy, danieldudzic, mikaey, dsmithweb, fullysupportedphil, corsonr, deskroid, luminus, tiagonoronha, zandyring, bor0
 Tags: credit card, stripe, woocommerce
 Requires at least: 4.4
-Tested up to: 4.7.2
+Tested up to: 4.8.1
 Stable tag: 3.2.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
