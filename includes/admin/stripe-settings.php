@@ -143,7 +143,7 @@ return apply_filters( 'wc_stripe_settings',
 			'label'       => __( 'Enable Payment Request API', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
 			'description' => __( 'If enabled, users will be able to pay using the Payment Request API if supported by the browser.', 'woocommerce-gateway-stripe' ),
-			'default'     => 'no',
+			'default'     => 'yes',
 			'desc_tip'    => true,
 		),
 		'apple_pay' => array(
