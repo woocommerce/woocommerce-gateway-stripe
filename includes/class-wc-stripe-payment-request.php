@@ -15,13 +15,42 @@ if ( ! defined( 'ABSPATH' ) ) {
  * WC_Stripe_Payment_Request class.
  */
 class WC_Stripe_Payment_Request {
+	/**
+	 * Enabled.
+	 *
+	 * @var
+	 */
+	public $enabled;
+
+	/**
+	 * Stripe enabled.
+	 *
+	 * @var
+	 */
+	public $stripe_enabled;
+
+	/**
+	 * Stripe Checkout enabled.
+	 *
+	 * @var
+	 */
+	public $stripe_checkout_enabled;
 
 	/**
 	 * Initialize class actions.
+	 *
+	 * @since 3.0.0
+	 * @version 4.0.0
 	 */
 	public function __construct() {
-		add_action( 'wp_enqueue_scripts', array( $this, 'scripts' ) );
+		$gateway_settings              = get_option( 'woocommerce_stripe_settings', '' );
+		$this->enabled                 = isset( $gateway_settings['request_payment_api'] ) && 'yes' === $gateway_settings['request_payment_api'];
+		$this->stripe_enabled          = isset( $gateway_settings['enabled'] ) && 'yes' === $gateway_settings['enabled'];
+		$this->stripe_checkout_enabled = isset( $gateway_settings['stripe_checkout'] ) && 'yes' === $gateway_settings['stripe_checkout'];
 
+		add_action( 'wp_enqueue_scripts', array( $this, 'scripts' ) );
+		add_action( 'woocommerce_proceed_to_checkout', array( $this, 'display_request_pay_button' ), 1 );
+		add_action( 'woocommerce_proceed_to_checkout', array( $this, 'display_request_pay_separator_html' ), 2 );
 		add_action( 'wc_ajax_wc_stripe_get_cart_details', array( $this, 'ajax_get_cart_details' ) );
 		add_action( 'wc_ajax_wc_stripe_get_shipping_options', array( $this, 'ajax_get_shipping_options' ) );
 		add_action( 'wc_ajax_wc_stripe_update_shipping_method', array( $this, 'ajax_update_shipping_method' ) );
@@ -31,15 +60,12 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Check if Stripe gateway is enabled.
 	 *
+	 * @since 3.0.0
+	 * @version 4.0.0
 	 * @return bool
 	 */
 	protected function is_activated() {
-		$options             = get_option( 'woocommerce_stripe_settings', array() );
-		$enabled             = isset( $options['enabled'] ) && 'yes' === $options['enabled'];
-		$stripe_checkout     = isset( $options['stripe_checkout'] ) && 'yes' !== $options['stripe_checkout'];
-		$request_payment_api = isset( $options['request_payment_api'] ) && 'yes' === $options['request_payment_api'];
-
-		return $enabled && $stripe_checkout && $request_payment_api && is_ssl();
+		return $this->enabled && $this->stripe_enabled && ! $this->stripe_checkout_enabled && is_ssl();
 	}
 
 	/**
@@ -100,6 +126,41 @@ class WC_Stripe_Payment_Request {
 		);
 
 		wp_enqueue_script( 'wc-stripe-payment-request' );
+	}
+
+	/**
+	 * Display Request Pay button on the cart page.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 */
+	public function display_request_pay_button() {
+		$gateways = WC()->payment_gateways->get_available_payment_gateways();
+
+		if ( ! $this->enabled || ! isset( $gateways['stripe'] ) || ! is_cart() ) {
+			return;
+		}
+
+		?>
+		<a href="#" class="wc-stripe-request-pay-button button checkout-button" alt="<?php esc_attr_e( 'Pay with Chrome', 'woocommerce-gateway-stripe' ); ?>" style="display:none;"><?php esc_html_e( 'Pay with Chrome', 'woocommerce-gateway-stripe' ); ?></a>
+		<?php
+	}
+
+	/**
+	 * Display Request Pay button separator on the cart page.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 */
+	public function display_request_pay_separator_html() {
+		$gateways = WC()->payment_gateways->get_available_payment_gateways();
+
+		if ( ! $this->enabled || ! isset( $gateways['stripe'] ) || ! is_cart() ) {
+			return;
+		}
+		?>
+		<p class="wc-stripe-request-pay-button-separator" style="text-align:center;display:none;">- <?php esc_html_e( 'Or', 'woocommerce-gateway-stripe' ); ?> -</p>
+		<?php
 	}
 
 	/**

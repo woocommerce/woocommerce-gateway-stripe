@@ -17,8 +17,11 @@
 			var self = this;
 
 			if ( self.hasPaymentRequestSupport() ) {
+				$( '.wc-stripe-request-pay-button' ).show();
+				$( '.wc-stripe-request-pay-button-separator' ).show();
+
 				$( document.body )
-					.on( 'click', '.cart_totals a.checkout-button', self.initPaymentRequest );
+					.on( 'click', '.cart_totals a.wc-stripe-request-pay-button', self.initPaymentRequest );
 			}
 		},
 
