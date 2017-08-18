@@ -443,6 +443,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$this->elements_form();
 			} else {
 				$this->form();
+				echo '<div class="stripe-source-errors" role="alert"></div>';
 			}
 		}
 

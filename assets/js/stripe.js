@@ -479,7 +479,7 @@ jQuery( function( $ ) {
 		// Legacy
 		onStripeTokenResponse: function( status, response ) {
 			if ( response.error ) {
-				$( document ).trigger( 'stripeError', { response: response } );
+				$( document ).trigger( 'stripeError', response );
 			} else {
 				// check if we allow prepaid cards
 				if ( 'no' === wc_stripe_params.allow_prepaid_card && 'prepaid' === response.card.funding ) {
