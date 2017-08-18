@@ -76,8 +76,18 @@ class WC_Stripe_Account_Email {
 		$last_name    = WC_Stripe_Helper::is_pre_30() ? $this->order->billing_last_name : $this->order->get_billing_last_name();
 		$display_name = WC_Stripe_Helper::is_pre_30() ? $this->order->billing_first_name : $this->order->get_billing_first_name();
 
+		$username = sanitize_user( current( explode( '@', $user_email ) ), true );
+
+		// Ensure username is unique.
+		$append     = 1;
+		$o_username = $username;
+		while ( username_exists( $username ) ) {
+			$username = $o_username . $append;
+			$append++;
+		}
+
 		$args = apply_filters( 'wc_stripe_create_account_args', array(
-			'user_login'      => $user_email,
+			'user_login'      => $username,
 			'user_email'      => $user_email,
 			'first_name'      => $first_name,
 			'last_name'       => $last_name,
