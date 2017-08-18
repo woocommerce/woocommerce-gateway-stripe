@@ -246,6 +246,11 @@ jQuery( function( $ ) {
 				$form.find( 'input.stripe_token' ).remove();
 				$form.append( '<input type="hidden" class="stripe_token" name="stripe_token" value="' + res.id + '"/>' );
 				wc_stripe_form.stripe_submit = true;
+
+				if ( $( 'form#add_payment_method' ).length ) {
+					$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
+				}
+
 				$form.submit();
 			};
 
@@ -406,6 +411,7 @@ jQuery( function( $ ) {
 				switch ( source_type ) {
 					case 'sepa_debit':
 						extra_details.currency = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
+						extra_details.owner.name = $( '#stripe-sepa-owner' ).val();
 						extra_details.sepa_debit = { iban: $( '#stripe-sepa-iban' ).val() };
 						break;
 					case 'ideal':
@@ -472,7 +478,7 @@ jQuery( function( $ ) {
 				data.address_zip     = wc_stripe_params.billing_postcode;
 				data.address_country = wc_stripe_params.billing_country;
 			}
-
+			Stripe.setPublishableKey( wc_stripe_params.key );
 			Stripe.createToken( data, wc_stripe_form.onStripeTokenResponse );
 		},
 
@@ -495,6 +501,11 @@ jQuery( function( $ ) {
 
 				// insert the token into the form so it gets submitted to the server
 				wc_stripe_form.form.append( "<input type='hidden' class='stripe_token' name='stripe_token' value='" + token + "'/>" );
+
+				if ( $( 'form#add_payment_method' ).length ) {
+					$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
+				}
+
 				wc_stripe_form.form.submit();
 			}
 		},
@@ -564,10 +575,15 @@ jQuery( function( $ ) {
 				}
 
 				if ( wc_stripe_form.isSepaChosen() ) {
+					// Check if SEPA owner is filled before proceed.
+					if ( '' === $( '#stripe-sepa-owner' ).val() ) {
+						$( document.body ).trigger( 'stripeError', { error: { message: wc_stripe_params.no_sepa_owner_msg } } );
+						return false;
+					}
+
 					// Check if SEPA IBAN is filled before proceed.
 					if ( '' === $( '#stripe-sepa-iban' ).val() ) {
-						var errors = { error: { message: wc_stripe_params.no_iban_msg } };
-						$( document.body ).trigger( 'stripeError', errors );
+						$( document.body ).trigger( 'stripeError', { error: { message: wc_stripe_params.no_sepa_iban_msg } } );
 						return false;
 					}
 
@@ -580,7 +596,35 @@ jQuery( function( $ ) {
 				return false;
 			} else if ( $( 'form#add_payment_method' ).length ) {
 				e.preventDefault();
+
+				// Stripe Checkout.
+				if ( 'yes' === wc_stripe_params.is_stripe_checkout && wc_stripe_form.isStripeModalNeeded() && wc_stripe_form.isStripeCardChosen() ) {
+					wc_stripe_form.openModal();
+
+					return false;
+				}
+
+				if ( wc_stripe_form.isSepaChosen() ) {
+					// Check if SEPA owner is filled before proceed.
+					if ( '' === $( '#stripe-sepa-owner' ).val() ) {
+						$( document.body ).trigger( 'stripeError', { error: { message: wc_stripe_params.no_sepa_owner_msg } } );
+						return false;
+					}
+
+					// Check if SEPA IBAN is filled before proceed.
+					if ( '' === $( '#stripe-sepa-iban' ).val() ) {
+						$( document.body ).trigger( 'stripeError', { error: { message: wc_stripe_params.no_sepa_iban_msg } } );
+						return false;
+					}
+				}
+
 				wc_stripe_form.block();
+
+				// Process legacy card token.
+				if ( wc_stripe_form.isStripeCardChosen() && 'no' === wc_stripe_params.use_elements ) {
+					wc_stripe_form.createToken();
+					return false;	
+				}
 
 				wc_stripe_form.createSource();
 				return false;

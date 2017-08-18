@@ -512,23 +512,37 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.0
 	 */
 	public function add_payment_method() {
-		if ( empty( $_POST['stripe_source'] ) || ! is_user_logged_in() ) {
-			wc_add_notice( __( 'There was a problem adding the card.', 'woocommerce-gateway-stripe' ), 'error' );
-			return;
+		$error     = false;
+		$error_msg = __( 'There was a problem adding the card.', 'woocommerce-gateway-stripe' );
+
+		if ( empty( $_POST['stripe_source'] ) && empty( $_POST['stripe_token'] ) || ! is_user_logged_in() ) {
+			$error = true;
 		}
 
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
-		$source          = json_decode( wc_clean( stripslashes( $_POST['stripe_source'] ) ) );
 
-		if ( ! empty( $source->error ) ) {
-			$localized_messages = WC_Stripe_Helper::get_localized_messages();
-			$error_msg = __( 'There was a problem adding the card.', 'woocommerce-gateway-stripe' );
+		if ( isset( $_POST['stripe_source'] ) ) {
+			$source = json_decode( wc_clean( stripslashes( $_POST['stripe_source'] ) ) );
 
+			if ( ! empty( $source->error ) ) {
+				$error = true;
+			}
+
+			$source_id = $source->id;
+		} elseif ( isset( $_POST['stripe_token'] ) ) {
+			$source_id = wc_clean( $_POST['stripe_token'] );
+		}
+
+		$response = $stripe_customer->add_source( $source_id );
+
+		if ( ! $response || is_wp_error( $response ) || ! empty( $response->error ) ) {
+			$error = true;
+		}
+
+		if ( $error ) {
 			wc_add_notice( $error_msg, 'error' );
 			return;
 		}
-
-		$stripe_customer->add_source( $source->id );
 
 		return array(
 			'result'   => 'success',
