@@ -92,7 +92,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * @version 4.0.0
 		 */
 		public function init() {
-			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php' );
+			include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php' );
 
 			// Don't hook anything else in the plugin if we're in an incompatible environment
 			if ( self::get_environment_warning() ) {
@@ -114,6 +114,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-alipay.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sepa.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-bitcoin.php' );
+			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-account-email.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-request.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-apple-pay.php' );
 			require_once( dirname( __FILE__ ) . '/includes/compat/woocommerce-subscriptions/class-wc-stripe-subscriptions-compat.php' );

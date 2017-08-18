@@ -726,6 +726,8 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			update_post_meta( $order_id, '_customer_user', get_current_user_id() );
 			update_post_meta( $order_id, '_payment_method_title', 'Apple Pay (Stripe)' );
 
+			$this->maybe_create_account( $order );
+
 			// Return thank you page redirect.
 			wp_send_json( array(
 				'success'  => 'true',
@@ -1127,6 +1129,36 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 		do_action( 'woocommerce_checkout_update_order_meta', $order_id, array() );
 
 		return $order;
+	}
+
+	/**
+	 * Maybe create an account for the customer.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param object $order
+	 */
+	public function maybe_create_account( $order ) {
+		$email    = WC_Stripe_Helper::is_pre_30() ? $order->billing_email : $order->get_billing_email();
+		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+
+		/**
+		 * This is used when an account is required to purchase and
+		 * Apple Pay bypasses this.
+		 */
+		if (
+			! is_user_logged_in() &&
+			! email_exists( $email ) &&
+			'yes' !== get_option( 'woocommerce_enable_guest_checkout' )
+		) {
+			try {
+				$account = new WC_Stripe_Account_Email( $order );
+				$user_id = $account->create_account();
+				update_post_meta( $order_id, '_customer_user', $user_id );
+			} catch ( Exception $e ) {
+				WC_Stripe_Logger::log( $e->getMessage() );
+			}
+		}
 	}
 }
 
