@@ -77,7 +77,7 @@ class WC_Stripe_Account_Email {
 		$display_name = WC_Stripe_Helper::is_pre_30() ? $this->order->billing_first_name : $this->order->get_billing_first_name();
 
 		$args = apply_filters( 'wc_stripe_create_account_args', array(
-			'user_login'      => $user_login,
+			'user_login'      => $user_email,
 			'user_email'      => $user_email,
 			'first_name'      => $first_name,
 			'last_name'       => $last_name,
