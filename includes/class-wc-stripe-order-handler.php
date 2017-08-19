@@ -257,6 +257,35 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Normalize the error field name.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param string $field
+	 * @return string $error_field
+	 */
+	public function normalize_field( $field ) {
+		$error_field = ucfirst( str_replace( '_', ' ', $field ) );
+
+		$org_str     = array();
+		$replace_str = array();
+
+		$org_str[]     = 'Stripe';
+		$replace_str[] = '';
+
+		$org_str[]     = 'sepa';
+		$replace_str[] = 'SEPA';
+
+		$org_str[]     = 'iban';
+		$replace_str[] = 'IBAN';
+
+		$org_str[]     = 'sofort';
+		$replace_str[] = 'SoFort';
+
+		return str_replace( $org_str, $replace_str, $error_field );
+	}
+
+	/**
 	 * Validates the checkout before submitting checkout form.
 	 *
 	 * @since 4.0.0
@@ -273,6 +302,16 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$source_type = wc_clean( $_POST['source_type'] );
 		$validate_shipping_fields = false;
 		$create_account = false;
+
+		// Remove unneeded required fields depending on source type.
+		if ( 'stripe_sepa' !== $source_type ) {
+			unset( $required_fields['stripe_sepa_owner'] );
+			unset( $required_fields['stripe_sepa_iban'] );
+		}
+
+		if ( 'stripe_sofort' !== $source_type ) {
+			unset( $required_fields['stripe_sofort_bank_country'] );
+		}
 
 		/** 
 		 * If ship to different address checkbox is checked then we need
@@ -305,17 +344,17 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			// Check if is SEPA.
-			if ( empty( $field_value ) && 'stripe_sepa' !== $source_type ) {
+			if ( 'stripe_sepa' !== $source_type && 'stripe_sepa_owner' === $field ) {
 				continue;
 			}
 
-			// Check if is Sofort.
-			if ( '-1' === $field_value && 'stripe_sofort' === $source_type ) {
-				$errors->add( 'validation', sprintf( __( '%s cannot be empty', 'woocommerce-gateway-stripe' ), ucfirst( str_replace( '_', ' ', $field ) ) ) );
+			if ( 'stripe_sepa' !== $source_type && 'stripe_sepa_iban' === $field ) {
+				$continue;
 			}
 
-			if ( empty( $field_value ) ) {
-				$errors->add( 'validation', sprintf( __( '%s cannot be empty', 'woocommerce-gateway-stripe' ), ucfirst( str_replace( '_', ' ', $field ) ) ) );
+			if ( empty( $field_value ) || '-1' === $field_value ) {
+				$error_field = $this->normalize_field( $field );
+				$errors->add( 'validation', sprintf( __( '%s cannot be empty', 'woocommerce-gateway-stripe' ), $error_field ) );
 			}
 		}
 

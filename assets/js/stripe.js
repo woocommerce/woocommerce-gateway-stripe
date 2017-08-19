@@ -573,23 +573,7 @@ jQuery( function( $ ) {
 
 					return true;
 				}
-
-				if ( wc_stripe_form.isSepaChosen() ) {
-					// Check if SEPA owner is filled before proceed.
-					if ( '' === $( '#stripe-sepa-owner' ).val() ) {
-						$( document.body ).trigger( 'stripeError', { error: { message: wc_stripe_params.no_sepa_owner_msg } } );
-						return false;
-					}
-
-					// Check if SEPA IBAN is filled before proceed.
-					if ( '' === $( '#stripe-sepa-iban' ).val() ) {
-						$( document.body ).trigger( 'stripeError', { error: { message: wc_stripe_params.no_sepa_iban_msg } } );
-						return false;
-					}
-
-					wc_stripe_form.validateCheckout();
-				}
-
+							
 				wc_stripe_form.validateCheckout();
 
 				// Prevent form submitting
@@ -679,6 +663,20 @@ jQuery( function( $ ) {
 						if ( 'modal' === type ) {
 							wc_stripe_form.openModal();
 						} else {
+							if ( wc_stripe_form.isSepaChosen() ) {
+								// Check if SEPA owner is filled before proceed.
+								if ( '' === $( '#stripe-sepa-owner' ).val() ) {
+									$( document.body ).trigger( 'stripeError', { error: { message: wc_stripe_params.no_sepa_owner_msg } } );
+									return false;
+								}
+
+								// Check if SEPA IBAN is filled before proceed.
+								if ( '' === $( '#stripe-sepa-iban' ).val() ) {
+									$( document.body ).trigger( 'stripeError', { error: { message: wc_stripe_params.no_sepa_iban_msg } } );
+									return false;
+								}
+							}
+
 							wc_stripe_form.createSource();
 						}
 					} else if ( result.messages ) {

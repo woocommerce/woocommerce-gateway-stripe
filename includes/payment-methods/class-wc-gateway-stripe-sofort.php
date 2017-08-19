@@ -227,12 +227,14 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 				<?php _e( 'Country origin of your bank.', 'woocommerce-gateway-stripe' ); ?>
 			</label>
 			<br />
-			<select id="stripe-bank-country" class="wc-enhanced-select validate-required" name="stripe_sofort_bank_country">
+			<p class="form-row form-row-wide validate-required">
+			<select id="stripe-bank-country" class="wc-enhanced-select" name="stripe_sofort_bank_country">
 				<option value="-1"><?php esc_html_e( 'Choose Bank Country', 'woocommerce-gateway-stripe' ); ?></option>
 				<?php foreach ( $supported_countries as $code => $country ) { ?>
 				<option value="<?php echo esc_attr( $code ); ?>"><?php echo esc_html( $country ); ?></option>
 				<?php } ?>
 			</select>
+			</p>
 
 			<!-- Used to display form errors -->
 			<div class="stripe-source-errors" role="alert"></div>
