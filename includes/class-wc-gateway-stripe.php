@@ -168,11 +168,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$this->order_button_text = __( 'Continue to payment', 'woocommerce-gateway-stripe' );
 		}
 
-		if ( $this->testmode ) {
-			$this->description .= ' ' . sprintf( __( 'TEST MODE ENABLED. In test mode, you can use the card number 4242424242424242 with any CVC and a valid expiration date or check the documentation "<a href="%s" target="_blank">Testing Stripe</a>" for more card numbers.', 'woocommerce-gateway-stripe' ), 'https://stripe.com/docs/testing' );
-			$this->description  = trim( $this->description );
-		}
-
 		WC_Stripe_API::set_secret_key( $this->secret_key );
 
 		$this->init_apple_pay();
@@ -430,6 +425,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			data-allow-remember-me="' . esc_attr( $this->saved_cards ? 'true' : 'false' ) . '">';
 
 		if ( $this->description ) {
+			if ( $this->testmode ) {
+				$this->description .= ' ' . sprintf( __( 'TEST MODE ENABLED. In test mode, you can use the card number 4242424242424242 with any CVC and a valid expiration date or check the documentation "<a href="%s" target="_blank">Testing Stripe</a>" for more card numbers.', 'woocommerce-gateway-stripe' ), 'https://stripe.com/docs/testing' );
+				$this->description  = trim( $this->description );
+			}
 			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $this->description ) ) );
 		}
 
