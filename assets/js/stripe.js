@@ -289,7 +289,7 @@ jQuery( function( $ ) {
 
 			// Customers do not need to know the specifics of the below type of errors
 			// therefore return a generic localizable error message.
-			if ( 
+			if (
 				'invalid_request_error' === result.error.type ||
 				'api_connection_error'  === result.error.type ||
 				'api_error'             === result.error.type ||
@@ -384,26 +384,10 @@ jQuery( function( $ ) {
 					case 'sofort':
 					case 'alipay':
 						// These redirect flow payment methods need this information to be set at source creation.
-						extra_details.amount   = $( '#stripe-' + source_type + '-payment-data' ).data( 'amount' );
-						extra_details.currency = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
-						extra_details.redirect = { return_url: wc_stripe_params.return_url };
-
-						if ( 'bancontact' === source_type ) {
-							extra_details.bancontact = { statement_descriptor: wc_stripe_params.statement_descriptor };
-						}
-
-						if ( 'giropay' === source_type ) {
-							extra_details.giropay = { statement_descriptor: wc_stripe_params.statement_descriptor };
-						}
-
-						if ( 'ideal' === source_type ) {
-							extra_details.ideal = { statement_descriptor: wc_stripe_params.statement_descriptor };
-						}
-
-						if ( 'sofort' === source_type ) {
-							extra_details.sofort = { statement_descriptor: wc_stripe_params.statement_descriptor };
-						}
-
+						extra_details.amount               = $( '#stripe-' + source_type + '-payment-data' ).data( 'amount' );
+						extra_details.currency             = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
+						extra_details.redirect             = { return_url: wc_stripe_params.return_url };
+						extra_details.statement_descriptor = wc_stripe_params.statement_descriptor;
 						break;
 				}
 
@@ -439,7 +423,7 @@ jQuery( function( $ ) {
 			} else if ( 'no' === wc_stripe_params.allow_prepaid_card && 'card' === response.source.type && 'prepaid' === response.source.card.funding ) {
 				response.error = { message: wc_stripe_params.no_prepaid_card_msg };
 
-				$( document.body ).trigger( 'stripeError', response );	
+				$( document.body ).trigger( 'stripeError', response );
 			} else {
 				wc_stripe_form.processStripeResponse( response.source );
 			}
@@ -492,7 +476,7 @@ jQuery( function( $ ) {
 					response.error = { message: wc_stripe_params.no_prepaid_card_msg };
 
 					$( document ).trigger( 'stripeError', { response: response } );
-					
+
 					return false;
 				}
 
@@ -531,14 +515,14 @@ jQuery( function( $ ) {
 				// Process legacy card token.
 				if ( wc_stripe_form.isStripeCardChosen() && 'no' === wc_stripe_params.use_elements ) {
 					wc_stripe_form.createToken();
-					return false;	
+					return false;
 				}
 
 				if (
 					wc_stripe_form.isBancontactChosen() ||
 					wc_stripe_form.isGiropayChosen() ||
 					wc_stripe_form.isIdealChosen() ||
-					wc_stripe_form.isAlipayChosen() 
+					wc_stripe_form.isAlipayChosen()
 				) {
 					if ( $( 'form#order_review' ).length ) {
 						$( 'form#order_review' )
@@ -573,7 +557,7 @@ jQuery( function( $ ) {
 
 					return true;
 				}
-							
+
 				wc_stripe_form.validateCheckout();
 
 				// Prevent form submitting
@@ -607,7 +591,7 @@ jQuery( function( $ ) {
 				// Process legacy card token.
 				if ( wc_stripe_form.isStripeCardChosen() && 'no' === wc_stripe_params.use_elements ) {
 					wc_stripe_form.createToken();
-					return false;	
+					return false;
 				}
 
 				wc_stripe_form.createSource();
@@ -685,7 +669,7 @@ jQuery( function( $ ) {
 						wc_stripe_form.submitError( result.messages );
 					}
 				}
-			});	
+			});
 		},
 
 		submitError: function( error_message ) {
