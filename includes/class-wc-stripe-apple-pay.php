@@ -708,7 +708,11 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 				if ( ! empty( $response->error ) ) {
 					$localized_messages = WC_Stripe_Helper::get_localized_messages();
 
-					throw new Exception( ( isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message ) );
+					$message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
+
+					$order->add_order_note( $message );
+
+					throw new Exception( $message );
 				}
 
 				do_action( 'wc_gateway_stripe_process_payment', $response, $order );
@@ -739,6 +743,10 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
+
+			if ( is_object( $order ) ) {
+				$order->update_status( 'failed', sprintf( __( 'Stripe payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+			}
 
 			if ( is_object( $order ) && isset( $order_id ) && $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );
@@ -932,7 +940,9 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			if ( WC_Stripe_Helper::is_pre_30() ) {
 				do_action( 'woocommerce_add_order_item_meta', $item_id, $values, $cart_item_key );
 			} else {
-				do_action( 'woocommerce_new_order_item', $item_id, wc_get_product( $item_id ), $order->get_id() );
+				$item = WC_Order_Factory::get_order_item( $item_id );
+
+				do_action( 'woocommerce_new_order_item', $item_id, $item, $order->get_id() );
 			}
 		}
 
