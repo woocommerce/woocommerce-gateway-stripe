@@ -710,8 +710,6 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 
 					$message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
 
-					$order->add_order_note( $message );
-
 					throw new Exception( $message );
 				}
 

@@ -131,8 +131,6 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 				$message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
 
-				$order->add_order_note( $message );
-
 				throw new Exception( $message );
 			}
 
@@ -144,6 +142,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
 			do_action( 'wc_gateway_stripe_process_redirect_payment_error', $e, $order );
+
+			$order->update_status( 'failed', sprintf( __( 'Stripe payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );
