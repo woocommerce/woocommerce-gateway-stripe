@@ -111,6 +111,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sofort.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-giropay.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-ideal.php' );
+			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-p24.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-alipay.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sepa.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-bitcoin.php' );
@@ -338,6 +339,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			$methods[] = 'WC_Gateway_Stripe_Sofort';
 			$methods[] = 'WC_Gateway_Stripe_Giropay';
 			$methods[] = 'WC_Gateway_Stripe_Ideal';
+			$methods[] = 'WC_Gateway_Stripe_P24';
 			$methods[] = 'WC_Gateway_Stripe_Alipay';
 			$methods[] = 'WC_Gateway_Stripe_Bitcoin';
 

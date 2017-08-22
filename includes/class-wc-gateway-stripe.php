@@ -199,6 +199,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			'bitcoin'    => '<i class="stripe-pf stripe-pf-bitcoin stripe-pf-right" alt="Bitcoin" aria-hidden="true"></i>',
 			'bancontact' => '<i class="stripe-pf stripe-pf-bancontact-mister-cash stripe-pf-right" alt="Bancontact" aria-hidden="true"></i>',
 			'ideal'      => '<i class="stripe-pf stripe-pf-ideal stripe-pf-right" alt="iDeal" aria-hidden="true"></i>',
+			'p24'   	   => '<i class="stripe-pf stripe-pf-p24 stripe-pf-right" alt="P24" aria-hidden="true"></i>',
 			'giropay'    => '<i class="stripe-pf stripe-pf-giropay stripe-pf-right" alt="Giropay" aria-hidden="true"></i>',
 			'eps'        => '<i class="stripe-pf stripe-pf-eps stripe-pf-right" alt="EPS" aria-hidden="true"></i>',
 			'sofort'     => '<i class="stripe-pf stripe-pf-sofort stripe-pf-right" alt="Sofort" aria-hidden="true"></i>',
@@ -466,7 +467,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			<label for="card-element">
 				<?php esc_html_e( 'Credit or debit card', 'woocommerce-gateway-stripe' ); ?>
 			</label>
-			
+
 			<div id="stripe-card-element" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;">
 			<!-- a Stripe Element will be inserted here. -->
 			</div>
@@ -594,7 +595,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$currency                    = WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency();
 		$order_id                    = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 		$return_url                  = $this->get_stripe_return_url( $order );
-		
+
 		$post_data                   = array();
 		$post_data['amount']         = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		$post_data['currency']       = strtolower( $currency );
@@ -652,7 +653,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$this->validate_minimum_order_amount( $order );
 
 			/**
-			 * Check if card 3DS is required or optional with 3DS setting. 
+			 * Check if card 3DS is required or optional with 3DS setting.
 			 * Will need to first create 3DS source and require redirection
 			 * for customer to login to their credit card company.
 			 * Note that if we need to save source, the original source must be first
