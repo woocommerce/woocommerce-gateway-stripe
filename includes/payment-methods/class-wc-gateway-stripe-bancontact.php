@@ -262,7 +262,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 		$post_data['type']       = 'bancontact';
 		$post_data['owner']      = $this->get_owner_details( $order );
 		$post_data['redirect']   = array( 'return_url' => $return_url );
-		$post_data['bancontact'] = array( 'statement_descriptor' => $this->statement_descriptor );
+		$post_data['statement_descriptor'] = $this->statement_descriptor;
 
 		WC_Stripe_Logger::log( 'Info: Begin creating Bancontact source' );
 
@@ -312,7 +312,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 			}
 
 			WC_Stripe_Logger::log( 'Info: Redirecting to Bancontact...' );
-			
+
 			return array(
 				'result'   => 'success',
 				'redirect' => esc_url_raw( $response->redirect->url ),
