@@ -36,7 +36,7 @@ Stripe is a simple way to accept payments online. With Stripe you can accept Vis
 
 Stripe has no setup fees, no monthly fees, no hidden costs: you only get charged when you earn money! Earnings are transferred to your bank account on a 7-day rolling basis.
 
-Stripe also supports the [Subscriptions extension](http://www.woothemes.com/extension/subscriptions/) and re-using cards. When a customer pays, they are set up in Stripe as a customer. If they create another order, they can check out using the same card. A massive timesaver for returning customers.
+Stripe also supports the [Subscriptions extension](https://woocommerce.com/products/woocommerce-subscriptions/) and re-using cards. When a customer pays, they are set up in Stripe as a customer. If they create another order, they can check out using the same card. A massive timesaver for returning customers.
 
 = Apple Pay Support =
 
@@ -94,6 +94,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 5. Using the Stripe checkout modal.
 
 == Changelog ==
+
+= 3.2.3 - 2017-08-23 =
+* Fix - Apple Pay action hook with wrong parameter causing errors.
 
 = 3.2.2 - 2017-07-10 =
 * Fix - Apple Pay button displaying in non Safari browser.
