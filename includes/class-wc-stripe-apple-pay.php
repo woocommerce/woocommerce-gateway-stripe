@@ -929,7 +929,9 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			if ( version_compare( WC_VERSION, '3.0', '<' ) ) {
 				do_action( 'woocommerce_add_order_item_meta', $item_id, $values, $cart_item_key );
 			} else {
-				do_action( 'woocommerce_new_order_item', $item_id, wc_get_product( $item_id ), $order->get_id() );
+				$item = WC_Order_Factory::get_order_item( $item_id );
+
+				do_action( 'woocommerce_new_order_item', $item_id, $item, $order->get_id() );
 			}
 		}
 
