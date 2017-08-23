@@ -75,6 +75,10 @@ as the payment method.
 
 [stripe-ideal.md](stripe-ideal.md)
 
+## Stripe P24
+
+[stripe-p24.md](stripe-p24.md)
+
 ## Stripe Alipay
 
 [stripe-alipay.md](stripe-alipay.md)

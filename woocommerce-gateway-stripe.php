@@ -368,7 +368,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			$sections['stripe_sofort']     = __( 'Stripe SOFORT', 'woocommerce-gateway-stripe' );
 			$sections['stripe_giropay']    = __( 'Stripe Giropay', 'woocommerce-gateway-stripe' );
 			$sections['stripe_ideal']      = __( 'Stripe iDeal', 'woocommerce-gateway-stripe' );
-			$sections['stripe_p24']      = __( 'Stripe P24', 'woocommerce-gateway-stripe' );
+			$sections['stripe_p24']        = __( 'Stripe P24', 'woocommerce-gateway-stripe' );
 			$sections['stripe_alipay']     = __( 'Stripe Alipay', 'woocommerce-gateway-stripe' );
 			$sections['stripe_sepa']       = __( 'Stripe SEPA Direct Debit', 'woocommerce-gateway-stripe' );
 			$sections['stripe_bitcoin']    = __( 'Stripe Bitcoin', 'woocommerce-gateway-stripe' );
