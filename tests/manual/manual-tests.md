@@ -25,8 +25,7 @@ settings.
 
 ### Go to WooCommerce > Settings > Checkout
 
-I see Stripe, Stripe Bancontact, Stripe Sofort, Stripe Giropay, Stripe iDeal,
-Stripe Alipay, Stripe SEPA, and Stripe Bitcoin submenus.
+I see Stripe, Stripe Bancontact, Stripe Sofort, Stripe Giropay, Stripe iDeal, Stripe P24, Stripe Alipay, Stripe SEPA, and Stripe Bitcoin submenus.
 
 ### Click Stripe submenu
 
