@@ -59,6 +59,10 @@ class WC_Gateway_Stripe_P24 extends WC_Stripe_Payment_Gateway {
 		$this->id                   = 'stripe_p24';
 		$this->method_title         = __( 'Stripe P24', 'woocommerce-gateway-stripe' );
 		$this->method_description   = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
+		$this->supports             = array(
+			'products',
+			'refunds',
+		);
 
 		// Load the form fields.
 		$this->init_form_fields();
@@ -93,6 +97,10 @@ class WC_Gateway_Stripe_P24 extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function check_environment() {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+
 		$environment_warning = $this->get_environment_warning();
 
 		if ( $environment_warning ) {
@@ -194,16 +202,8 @@ class WC_Gateway_Stripe_P24 extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
-
 		wp_enqueue_style( 'stripe_paymentfonts' );
-
-		if ( apply_filters( 'wc_stripe_use_elements_checkout_form', true ) ) {
-			wp_enqueue_script( 'stripev3' );
-			wp_enqueue_script( 'woocommerce_stripe_elements' );
-		} else {
-			wp_enqueue_script( 'woocommerce_stripe' );
-		}
+		wp_enqueue_script( 'woocommerce_stripe' );
 	}
 
 	/**
@@ -284,9 +284,8 @@ class WC_Gateway_Stripe_P24 extends WC_Stripe_Payment_Gateway {
 		try {
 			$order = wc_get_order( $order_id );
 
-			if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
-				throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
-			}
+			// This will throw exception if not valid.
+			$this->validate_minimum_order_amount( $order );
 
 			// This comes from the create account checkbox in the checkout page.
 			$create_account = ! empty( $_POST['createaccount'] ) ? true : false;
