@@ -95,6 +95,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 3.2.3 - xxxx-xx-xx =
+* Fix - Apple Pay action hook with wrong parameter causing errors.
+
 = 3.2.2 - 2017-07-11 =
 * Fix - Apple Pay button displaying in non Safari browser.
 * Fix - Apple Pay with coupon not applying to total.
