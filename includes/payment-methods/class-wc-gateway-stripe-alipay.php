@@ -262,16 +262,16 @@ class WC_Gateway_Stripe_Alipay extends WC_Stripe_Payment_Gateway {
 	 * @return mixed
 	 */
 	public function create_source( $order ) {
-		$currency              = WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency();
-		$order_id              = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
-		$return_url            = $this->get_stripe_return_url( $order );
-		$post_data             = array();
-		$post_data['amount']   = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
-		$post_data['currency'] = strtolower( $currency );
-		$post_data['type']     = 'alipay';
-		$post_data['owner']    = $this->get_owner_details( $order );
-		$post_data['redirect'] = array( 'return_url' => $return_url );
-		$post_data['alipay']   = array( 'statement_descriptor' => $this->statement_descriptor );
+		$currency                          = WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency();
+		$order_id                          = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$return_url                        = $this->get_stripe_return_url( $order );
+		$post_data                         = array();
+		$post_data['amount']               = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
+		$post_data['currency']             = strtolower( $currency );
+		$post_data['type']                 = 'alipay';
+		$post_data['owner']                = $this->get_owner_details( $order );
+		$post_data['redirect']             = array( 'return_url' => $return_url );
+		$post_data['statement_descriptor'] = $this->statement_descriptor;
 
 		WC_Stripe_Logger::log( 'Info: Begin creating Alipay source' );
 
