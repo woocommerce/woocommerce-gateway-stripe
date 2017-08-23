@@ -2,7 +2,6 @@
 /*jshint es3: false */
 /*jshint devel: true */
 (function( $ ) {
-
 	/**
 	 * WooCommerce Stripe PaymentRequest class.
 	 *
@@ -120,6 +119,7 @@
 					self.updateShippingOptions( paymentDetails, request.shippingAddress, resolve, reject );
 				}));
 			});
+
 			request.addEventListener( 'shippingoptionchange', function( evt ) {
 				evt.updateWith( new Promise( function( resolve, reject ) {
 					self.updateShippingDetails( paymentDetails, request.shippingOption, resolve, reject );
@@ -128,13 +128,25 @@
 
 			// Open Payment Request UI.
 			if ( request.canMakePayment ) {
-				request.show().then( function( payment ) {
-					self.processPayment( payment );
-				})
-				.catch( function( err ) {
-					console.error( err );
+				request.canMakePayment().then( function( result ) {
+					if ( result ) {
+						// User has a supported payment method available, show the Payment Request UI.
+						request.show().then( function( payment ) {
+							self.processPayment( payment );
+						})
+						.catch( function( err ) {
+							console.error( err );
+						}); 
+					} else {
+						// User does not have a supported payment method available. Go through traditional checkout.
+						window.location.href = wcStripePaymentRequestParams.checkout_url;
+					}
+				}).catch( function( error ) {
+					console.error( error );
+					window.location.href = wcStripePaymentRequestParams.checkout_url;
 				});
 			} else {
+				// canMakePayment is not supported. Default to traditional checkout.
 				window.location.href = wcStripePaymentRequestParams.checkout_url;
 			}
 		},
