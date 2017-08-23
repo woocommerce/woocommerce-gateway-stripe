@@ -3,7 +3,7 @@ Contributors: automattic, woothemes, mikejolley, akeda, royho, mattyza, slash1an
 Tags: credit card, stripe, woocommerce
 Requires at least: 4.4
 Tested up to: 4.8
-Stable tag: 3.2.2
+Stable tag: 3.2.3
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -95,7 +95,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 3.2.3 - xxxx-xx-xx =
+= 3.2.3 - 2017-08-23 =
 * Fix - Apple Pay action hook with wrong parameter causing errors.
 
 = 3.2.2 - 2017-07-11 =
