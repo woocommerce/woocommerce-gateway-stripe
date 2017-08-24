@@ -1,6 +1,6 @@
-## Stripe SoFort
+## Stripe SOFORT
 
-### Go to WooCommerce > Settings > Checkout > Stripe SoFort
+### Go to WooCommerce > Settings > Checkout > Stripe SOFORT
 
 ### Click on Enable and save
 
@@ -22,13 +22,13 @@ I see **Your settings have been saved** notice.
 
 ### Go to the checkout page
 
-I see Stripe SoFort is available as a payment method.
+I see Stripe SOFORT is available as a payment method.
 
 ### Fill in all required details
 
-### Select Stripe SoFort as payment method if not selected already
+### Select Stripe SOFORT as payment method if not selected already
 
-### Select a SoFort ***Country origin of your bank.***
+### Select a SOFORT ***Country origin of your bank.***
 
 ### Click on **Place order** button
 

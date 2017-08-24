@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class that handles Sofort payment method.
+ * Class that handles SOFORT payment method.
  *
  * @extends WC_Gateway_Stripe
  *
@@ -168,7 +168,7 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 	 */
 	public function payment_icons() {
 		return apply_filters( 'wc_stripe_payment_icons', array(
-			'sofort' => '<i class="stripe-pf stripe-pf-sofort stripe-pf-right" alt="Sofort" aria-hidden="true"></i>',
+			'sofort' => '<i class="stripe-pf stripe-pf-sofort stripe-pf-right" alt="SOFORT" aria-hidden="true"></i>',
 		) );
 	}
 

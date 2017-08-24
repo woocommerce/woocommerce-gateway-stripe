@@ -280,7 +280,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$replace_str[] = 'IBAN';
 
 		$org_str[]     = 'sofort';
-		$replace_str[] = 'SoFort';
+		$replace_str[] = 'SOFORT';
 
 		return str_replace( $org_str, $replace_str, $error_field );
 	}

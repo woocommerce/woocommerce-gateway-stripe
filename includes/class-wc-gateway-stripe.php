@@ -202,7 +202,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			'p24'   	   => '<i class="stripe-pf stripe-pf-p24 stripe-pf-right" alt="P24" aria-hidden="true"></i>',
 			'giropay'    => '<i class="stripe-pf stripe-pf-giropay stripe-pf-right" alt="Giropay" aria-hidden="true"></i>',
 			'eps'        => '<i class="stripe-pf stripe-pf-eps stripe-pf-right" alt="EPS" aria-hidden="true"></i>',
-			'sofort'     => '<i class="stripe-pf stripe-pf-sofort stripe-pf-right" alt="Sofort" aria-hidden="true"></i>',
+			'sofort'     => '<i class="stripe-pf stripe-pf-sofort stripe-pf-right" alt="SOFORT" aria-hidden="true"></i>',
 			'sepa'       => '<i class="stripe-pf stripe-pf-sepa stripe-pf-right" alt="SEPA" aria-hidden="true"></i>',
 		) );
 	}
