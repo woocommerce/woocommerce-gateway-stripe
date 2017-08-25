@@ -120,6 +120,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public function __construct() {
 		$this->id                   = 'stripe';
 		$this->method_title         = __( 'Stripe', 'woocommerce-gateway-stripe' );
+		/* translators: 1) link to Stripe register page 2) link to Stripe api keys page */
 		$this->method_description   = sprintf( __( 'Stripe works by adding payment fields on the checkout and then sending the details to Stripe for verification. <a href="%1$s" target="_blank">Sign up</a> for a Stripe account, and <a href="%2$s" target="_blank">get your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), 'https://dashboard.stripe.com/register', 'https://dashboard.stripe.com/account/apikeys' );
 		$this->has_fields           = true;
 		$this->supports             = array(
@@ -199,7 +200,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			'bitcoin'    => '<i class="stripe-pf stripe-pf-bitcoin stripe-pf-right" alt="Bitcoin" aria-hidden="true"></i>',
 			'bancontact' => '<i class="stripe-pf stripe-pf-bancontact-mister-cash stripe-pf-right" alt="Bancontact" aria-hidden="true"></i>',
 			'ideal'      => '<i class="stripe-pf stripe-pf-ideal stripe-pf-right" alt="iDeal" aria-hidden="true"></i>',
-			'p24'   	   => '<i class="stripe-pf stripe-pf-p24 stripe-pf-right" alt="P24" aria-hidden="true"></i>',
+			'p24'        => '<i class="stripe-pf stripe-pf-p24 stripe-pf-right" alt="P24" aria-hidden="true"></i>',
 			'giropay'    => '<i class="stripe-pf stripe-pf-giropay stripe-pf-right" alt="Giropay" aria-hidden="true"></i>',
 			'eps'        => '<i class="stripe-pf stripe-pf-eps stripe-pf-right" alt="EPS" aria-hidden="true"></i>',
 			'sofort'     => '<i class="stripe-pf stripe-pf-sofort stripe-pf-right" alt="SOFORT" aria-hidden="true"></i>',
@@ -283,6 +284,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		) );
 
 		if ( is_wp_error( $response ) ) {
+			/* translators: error message */
 			throw new Exception( sprintf( __( 'Unable to verify domain - %s', 'woocommerce-gateway-stripe' ), $response->get_error_message() ) );
 		}
 
@@ -291,6 +293,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			$this->apple_pay_verify_notice = $parsed_response->error->message;
 
+			/* translators: error message */
 			throw new Exception( sprintf( __( 'Unable to verify domain - %s', 'woocommerce-gateway-stripe' ), $parsed_response->error->message ) );
 		}
 	}
@@ -372,6 +375,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		 * something went wrong so lets notify user.
 		 */
 		if ( ! empty( $this->secret_key ) && $this->apple_pay && ! $this->apple_pay_domain_set ) {
+			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
 			echo '<div class="error stripe-apple-pay-message"><p>' . sprintf( __( 'Apple Pay domain verification failed. Please check the %1$slog%2$s to see the issue. (Logging must be enabled to see recorded logs)', 'woocommerce-gateway-stripe' ), '<a href="' . admin_url( 'admin.php?page=wc-status&tab=logs' ) . '">', '</a>' ) . '</p></div>';
 		}
 	}
@@ -427,6 +431,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		if ( $this->description ) {
 			if ( $this->testmode ) {
+				/* translators: link to Stripe testing page */
 				$this->description .= ' ' . sprintf( __( 'TEST MODE ENABLED. In test mode, you can use the card number 4242424242424242 with any CVC and a valid expiration date or check the documentation "<a href="%s" target="_blank">Testing Stripe</a>" for more card numbers.', 'woocommerce-gateway-stripe' ), 'https://stripe.com/docs/testing' );
 				$this->description  = trim( $this->description );
 			}
@@ -532,7 +537,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		wp_register_script( 'stripe', 'https://js.stripe.com/v2/', '', '2.0', true );
 		wp_register_script( 'stripev3', 'https://js.stripe.com/v3/', '', '3.0', true );
 		wp_register_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery-payment', 'stripe', 'stripev3' ), WC_STRIPE_VERSION, true );
-		
 
 		$stripe_params = array(
 			'key'                  => $this->publishable_key,

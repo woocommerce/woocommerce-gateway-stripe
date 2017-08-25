@@ -489,7 +489,12 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 
 		$build_items = $this->build_line_items();
 
-		wp_send_json( array( 'line_items' => $build_items['line_items'], 'total' => $build_items['total'] ) );
+		$args = array(
+			'line_items' => $build_items['line_items'],
+			'total'      => $build_items['total'],
+		);
+
+		wp_send_json( $args );
 	}
 
 	/**
@@ -505,7 +510,12 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 
 		$build_items = $this->build_line_items();
 
-		wp_send_json( array( 'line_items' => $build_items['line_items'], 'total' => $build_items['total'] ) );
+		$args = array(
+			'line_items' => $build_items['line_items'],
+			'total'      => $build_items['total'],
+		);
+
+		wp_send_json( $args );
 	}
 
 	/**
@@ -550,7 +560,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 
 		if ( WC_Stripe_Helper::is_pre_30() ) {
 			WC()->customer->calculated_shipping( true );
-		} else { 
+		} else {
 			WC()->customer->set_calculated_shipping( true );
 			WC()->customer->save();
 		}
@@ -640,13 +650,28 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 
 				$build_items = $this->build_line_items();
 
-				wp_send_json( array( 'success' => 'true', 'shipping_methods' => $this->build_shipping_methods( $data ), 'line_items' => $build_items['line_items'], 'total' => $build_items['total'] ) );
+				$args = array(
+					'success'          => 'true',
+					'shipping_methods' => $this->build_shipping_methods( $data ),
+					'line_items'       => $build_items['line_items'],
+					'total'            => $build_items['total'],
+				);
+
+				wp_send_json( $args );
 			} else {
 				throw new Exception( __( 'Unable to find shipping method for address.', 'woocommerce-gateway-stripe' ) );
 			}
 		} catch ( Exception $e ) {
 			$build_items = $this->build_line_items();
-			wp_send_json( array( 'success' => 'false', 'shipping_methods' => array(), 'line_items' => $build_items['line_items'], 'total' => $build_items['total'] ) );
+
+			$args = array(
+				'success'          => 'false',
+				'shipping_methods' => array(),
+				'line_items'       => $build_items['line_items'],
+				'total'            => $build_items['total'],
+			);
+
+			wp_send_json( $args );
 		}
 	}
 
@@ -672,7 +697,14 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 		WC()->cart->calculate_totals();
 
 		$build_items = $this->build_line_items();
-		wp_send_json( array( 'success' => 'true', 'line_items' => $build_items['line_items'], 'total' => $build_items['total'] ) );
+
+		$args = array(
+			'success'    => 'true',
+			'line_items' => $build_items['line_items'],
+			'total'      => $build_items['total'],
+		);
+
+		wp_send_json( $args );
 	}
 
 	/**
@@ -697,6 +729,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			if ( $order->get_total() > 0 ) {
 
 				if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
+					/* translators: minimum amount */
 					return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 				}
 
@@ -738,11 +771,13 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 
 		} catch ( Exception $e ) {
 			WC()->session->set( 'refresh_totals', true );
+			/* translators: error message */
 			WC_Stripe_Logger::log( sprintf( __( 'Error: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
 			if ( is_object( $order ) ) {
+				/* translators: error message */
 				$order->update_status( 'failed', sprintf( __( 'Stripe payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 			}
 
@@ -750,7 +785,12 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 				$this->send_failed_order_email( $order_id );
 			}
 
-			wp_send_json( array( 'success' => 'false', 'msg' => $e->getMessage() ) );
+			$args = array(
+				'success' => 'false',
+				'msg'     => $e->getMessage(),
+			);
+
+			wp_send_json( $args );
 		}
 	}
 
@@ -764,6 +804,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 		$post_data                = array();
 		$post_data['currency']    = strtolower( WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency() );
 		$post_data['amount']      = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $post_data['currency'] );
+		/* translators: 1) statement descriptor 2) order number */
 		$post_data['description'] = sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), $this->statement_descriptor, $order->get_order_number() );
 		$post_data['capture']     = $this->capture ? 'true' : 'false';
 
@@ -822,7 +863,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
 			define( 'WOOCOMMERCE_CART', true );
 		}
-		
+
 		$items    = array();
 		$subtotal = 0;
 
@@ -882,7 +923,10 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			);
 		}
 
-		return array( 'line_items' => $items, 'total' => $order_total );
+		return array(
+			'line_items' => $items,
+			'total'      => $order_total,
+		);
 	}
 
 	/**
@@ -895,6 +939,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 	 */
 	public function create_order( $data = array() ) {
 		if ( empty( $data ) ) {
+			/* translators: error 520 */
 			throw new Exception( sprintf( __( 'Error %d: Unable to create order. Please try again.', 'woocommerce-gateway-stripe' ), 520 ) );
 		}
 
@@ -906,8 +951,10 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 
 		if ( is_wp_error( $order ) ) {
+			/* translators: error 520 */
 			throw new Exception( sprintf( __( 'Error %d: Unable to create order. Please try again.', 'woocommerce-gateway-stripe' ), 520 ) );
 		} elseif ( false === $order ) {
+			/* translators: error 521 */
 			throw new Exception( sprintf( __( 'Error %d: Unable to create order. Please try again.', 'woocommerce-gateway-stripe' ), 521 ) );
 		} else {
 			do_action( 'woocommerce_new_order', $order_id );
@@ -931,6 +978,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			);
 
 			if ( ! $item_id ) {
+				/* translators: error 525 */
 				throw new Exception( sprintf( __( 'Error %d: Unable to create order. Please try again.', 'woocommerce-gateway-stripe' ), 525 ) );
 			}
 
@@ -965,6 +1013,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			}
 
 			if ( ! $item_id ) {
+				/* translators: error 526 */
 				throw new Exception( sprintf( __( 'Error %d: Unable to create order. Please try again.', 'woocommerce-gateway-stripe' ), 526 ) );
 			}
 
@@ -997,6 +1046,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			}
 
 			if ( $tax_rate_id && ! $item_id && apply_filters( 'woocommerce_cart_remove_taxes_zero_rate_id', 'zero-rated' ) !== $tax_rate_id ) {
+				/* translators: error 528 */
 				throw new Exception( sprintf( __( 'Error %d: Unable to create order. Please try again.', 'woocommerce-gateway-stripe' ), 528 ) );
 			}
 		}
@@ -1021,6 +1071,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			}
 
 			if ( ! $coupon_id ) {
+				/* translators: error 529 */
 				throw new Exception( sprintf( __( 'Error %d: Unable to create order. Please try again.', 'woocommerce-gateway-stripe' ), 529 ) );
 			}
 		}
