@@ -72,6 +72,8 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 			'subscription_amount_changes',
 			'subscription_date_changes',
 			'subscription_payment_method_change',
+			'subscription_payment_method_change_customer',
+			'subscription_payment_method_change_admin',
 			'pre-orders',
 		);
 
