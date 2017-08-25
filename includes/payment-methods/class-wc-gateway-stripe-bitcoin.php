@@ -65,6 +65,7 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 	public function __construct() {
 		$this->id                   = 'stripe_bitcoin';
 		$this->method_title         = __( 'Stripe Bitcoin', 'woocommerce-gateway-stripe' );
+		/* translators: link */
 		$this->method_description   = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 		$this->supports             = array(
 			'products',
@@ -318,7 +319,12 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 			</li>
 			<li class="woocommerce-order-overview__order order">
 				<?php esc_html_e( 'URI:', 'woocommerce-gateway-stripe' ); ?>
-				<strong><?php printf( __( '<a href="%s">Pay Bitcoin</a>', 'woocommerce-gateway-stripe' ), $data['uri'] ); ?></strong>
+				<strong>
+				<?php
+				/* translators: link */
+				printf( __( '<a href="%s">Pay Bitcoin</a>', 'woocommerce-gateway-stripe' ), $data['uri'] );
+				?>
+				</strong>
 			</li>
 			</ul>
 			<?php

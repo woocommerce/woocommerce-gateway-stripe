@@ -104,6 +104,7 @@ class WC_Stripe_Sepa_Subscriptions_Compat extends WC_Gateway_Stripe_Sepa {
 	 */
 	public function process_subscription_payment( $order = '', $amount = 0 ) {
 		if ( $amount * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
+			/* translators: minimum amount */
 			return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 		}
 
@@ -117,7 +118,7 @@ class WC_Stripe_Sepa_Subscriptions_Compat extends WC_Gateway_Stripe_Sepa {
 		if ( ! $prepared_source->customer ) {
 			return new WP_Error( 'stripe_error', __( 'Customer not found', 'woocommerce-gateway-stripe' ) );
 		}
-		
+
 		WC_Stripe_Logger::log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
 
 		// Make the request
@@ -172,6 +173,7 @@ class WC_Stripe_Sepa_Subscriptions_Compat extends WC_Gateway_Stripe_Sepa {
 		$response = $this->process_subscription_payment( $renewal_order, $amount_to_charge );
 
 		if ( is_wp_error( $response ) ) {
+			/* translators: error message */
 			$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->get_error_message() ) );
 		}
 	}
@@ -287,7 +289,7 @@ class WC_Stripe_Sepa_Subscriptions_Compat extends WC_Gateway_Stripe_Sepa {
 		$customer_user = WC_Stripe_Helper::is_pre_30() ? $subscription->customer_user : $subscription->get_customer_id();
 
 		// bail for other payment methods
-		if ( $this->id !== ( WC_Stripe_Helper::is_pre_30() ? $subscription->payment_method : $subscription->get_payment_method() ) || ! $customer_user ) {
+		if ( ( WC_Stripe_Helper::is_pre_30() ? $subscription->payment_method : $subscription->get_payment_method() ) !== $this->id || ! $customer_user ) {
 			return $payment_method_to_display;
 		}
 
@@ -345,6 +347,7 @@ class WC_Stripe_Sepa_Subscriptions_Compat extends WC_Gateway_Stripe_Sepa {
 
 				if ( $source->id === $stripe_source_id ) {
 					$found_source = true;
+					/* translators: 1) card brand 2) last 4 digits */
 					$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
 					break;
 				}
@@ -355,6 +358,7 @@ class WC_Stripe_Sepa_Subscriptions_Compat extends WC_Gateway_Stripe_Sepa {
 					$card = $sources[0]->card;
 				}
 
+				/* translators: 1) card brand 2) last 4 digits */
 				$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
 			}
 		}

@@ -54,6 +54,7 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Gateway_Stripe {
 				$order = wc_get_order( $order_id );
 
 				if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
+					/* translators: minimum amount */
 					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 				}
 
@@ -118,6 +119,7 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Gateway_Stripe {
 				}
 			}
 		} catch ( Exception $e ) {
+			/* translators: error message */
 			$order_note = sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $e->getMessage() );
 
 			// Mark order as failed if not already set,

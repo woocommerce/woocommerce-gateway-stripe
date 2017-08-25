@@ -90,7 +90,9 @@ class WC_Stripe_Customer {
 	 * Get data from the Stripe API about this customer
 	 */
 	public function get_customer_data() {
-		if ( empty( $this->customer_data ) && $this->get_id() && false === ( $this->customer_data = get_transient( 'stripe_customer_' . $this->get_id() ) ) ) {
+		$this->customer_data = get_transient( 'stripe_customer_' . $this->get_id() );
+
+		if ( empty( $this->customer_data ) && $this->get_id() && false === $this->customer_data ) {
 			$response = WC_Stripe_API::request( array(), 'customers/' . $this->get_id() );
 
 			if ( empty( $response->error ) ) {
@@ -98,6 +100,7 @@ class WC_Stripe_Customer {
 				set_transient( 'stripe_customer_' . $this->get_id(), $response, HOUR_IN_SECONDS * 48 );
 			}
 		}
+
 		return $this->customer_data;
 	}
 
@@ -123,8 +126,9 @@ class WC_Stripe_Customer {
 	 */
 	public function create_customer( $args = array() ) {
 		$billing_email = filter_var( $_POST['billing_email'], FILTER_SANITIZE_EMAIL );
+		$user = $this->get_user();
 
-		if ( $user = $this->get_user() ) {
+		if ( $user ) {
 			$billing_first_name = get_user_meta( $user->ID, 'billing_first_name', true );
 			$billing_last_name  = get_user_meta( $user->ID, 'billing_last_name', true );
 
@@ -217,16 +221,15 @@ class WC_Stripe_Customer {
 						}
 						break;
 				}
-
-			// Legacy.
 			} else {
+				// Legacy.
 				$wc_token = new WC_Payment_Token_CC();
 				$wc_token->set_token( $response->id );
 				$wc_token->set_gateway_id( 'stripe' );
 				$wc_token->set_card_type( strtolower( $response->brand ) );
 				$wc_token->set_last4( $response->last4 );
 				$wc_token->set_expiry_month( $response->exp_month );
-				$wc_token->set_expiry_year( $response->exp_year );				
+				$wc_token->set_expiry_year( $response->exp_year );
 			}
 
 			$wc_token->set_user_id( $this->get_user_id() );
@@ -247,9 +250,9 @@ class WC_Stripe_Customer {
 	 * @return array
 	 */
 	public function get_sources() {
-		$sources = array();
+		$sources = get_transient( 'stripe_sources_' . $this->get_id() );
 
-		if ( $this->get_id() && false === ( $sources = get_transient( 'stripe_sources_' . $this->get_id() ) ) ) {
+		if ( $this->get_id() && false === $sources ) {
 			$response = WC_Stripe_API::request( array(
 				'limit'       => 100,
 			), 'customers/' . $this->get_id() . '/sources', 'GET' );
@@ -263,6 +266,8 @@ class WC_Stripe_Customer {
 			}
 
 			set_transient( 'stripe_sources_' . $this->get_id(), $sources, HOUR_IN_SECONDS * 24 );
+		} else {
+			$sources = array();
 		}
 
 		return $sources;

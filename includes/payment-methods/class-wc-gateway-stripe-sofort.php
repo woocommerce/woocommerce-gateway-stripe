@@ -58,6 +58,7 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 	public function __construct() {
 		$this->id                   = 'stripe_sofort';
 		$this->method_title         = __( 'Stripe SOFORT', 'woocommerce-gateway-stripe' );
+		/* translators: link */
 		$this->method_description   = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 		$this->supports             = array(
 			'products',
@@ -219,7 +220,14 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function form() {
-		$supported_countries = array( 'AT' => 'Austria', 'BE' => 'Belgium', 'DE' => 'Germany', 'NL' => 'Netherlands', 'ES' => 'Spain', 'IT' => 'Italy' );
+		$supported_countries = array(
+			'AT' => 'Austria',
+			'BE' => 'Belgium',
+			'DE' => 'Germany',
+			'NL' => 'Netherlands',
+			'ES' => 'Spain',
+			'IT' => 'Italy',
+		);
 		?>
 		<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-form" class="wc-payment-form">
 			<?php do_action( 'woocommerce_credit_card_form_start', $this->id ); ?>

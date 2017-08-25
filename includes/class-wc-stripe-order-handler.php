@@ -118,8 +118,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
 
 					return $this->process_redirect_payment( $order_id, false );
-				// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
+
 				} elseif ( preg_match( '/No such token/i', $response->error->message ) && $source_object->token_id ) {
+					// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
+
 					$wc_token = WC_Payment_Tokens::get( $source_object->token_id );
 					$wc_token->delete();
 					$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
@@ -143,6 +145,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 			do_action( 'wc_gateway_stripe_process_redirect_payment_error', $e, $order );
 
+			/* translators: error message */
 			$order->update_status( 'failed', sprintf( __( 'Stripe payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
 
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
@@ -182,7 +185,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$order = wc_get_order( $order_id );
 
 		if ( 'stripe' === ( WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method() ) ) {
-			$charge   =  WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_transaction_id', true ) : $order->get_transaction_id();
+			$charge   = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_transaction_id', true ) : $order->get_transaction_id();
 			$captured = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_charge_captured', true ) : $order->get_meta( '_stripe_charge_captured', true );
 
 			if ( $charge && 'no' === $captured ) {
@@ -192,8 +195,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				), 'charges/' . $charge . '/capture' );
 
 				if ( ! empty( $result->error ) ) {
+					/* translators: error message */
 					$order->update_status( 'failed', sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
 				} else {
+					/* translators: transaction id */
 					$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $result->id ) );
 					WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_stripe_charge_captured', 'yes' ) : $order->update_meta_data( '_stripe_charge_captured', 'yes' );
 
@@ -241,6 +246,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				if ( ! empty( $result->error ) ) {
 					$order->add_order_note( __( 'Unable to refund charge!', 'woocommerce-gateway-stripe' ) . ' ' . $result->error->message );
 				} else {
+					/* translators: transaction id */
 					$order->add_order_note( sprintf( __( 'Stripe charge refunded (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $result->id ) );
 					WC_Stripe_Helper::is_pre_30() ? delete_post_meta( $order_id, '_stripe_charge_captured' ) : $order->delete_meta_data( '_stripe_charge_captured' );
 					WC_Stripe_Helper::is_pre_30() ? delete_post_meta( $order_id, '_transaction_id' ) : $order->delete_meta_data( '_stripe_transaction_id' );
@@ -313,7 +319,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			unset( $required_fields['stripe_sofort_bank_country'] );
 		}
 
-		/** 
+		/**
 		 * If ship to different address checkbox is checked then we need
 		 * to validate shipping fields too.
 		 */
@@ -354,6 +360,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 			if ( empty( $field_value ) || '-1' === $field_value ) {
 				$error_field = $this->normalize_field( $field );
+				/* translators: error field name */
 				$errors->add( 'validation', sprintf( __( '%s cannot be empty', 'woocommerce-gateway-stripe' ), $error_field ) );
 			}
 		}
@@ -373,6 +380,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			if ( empty( $shipping_country ) ) {
 				$errors->add( 'shipping', __( 'Please enter an address to continue.', 'woocommerce-gateway-stripe' ) );
 			} elseif ( ! in_array( WC()->customer->get_shipping_country(), array_keys( WC()->countries->get_shipping_countries() ) ) ) {
+				/* translators: country name */
 				$errors->add( 'shipping', sprintf( __( 'Unfortunately <strong>we do not ship %s</strong>. Please enter an alternative shipping address.', 'woocommerce-gateway-stripe' ), WC()->countries->shipping_to_prefix() . ' ' . WC()->customer->get_shipping_country() ) );
 			} else {
 				$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods' );

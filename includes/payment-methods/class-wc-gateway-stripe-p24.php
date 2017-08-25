@@ -58,6 +58,7 @@ class WC_Gateway_Stripe_P24 extends WC_Stripe_Payment_Gateway {
 	public function __construct() {
 		$this->id                   = 'stripe_p24';
 		$this->method_title         = __( 'Stripe P24', 'woocommerce-gateway-stripe' );
+		/* translators: link */
 		$this->method_description   = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 		$this->supports             = array(
 			'products',

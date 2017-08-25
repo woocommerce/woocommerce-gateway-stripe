@@ -58,6 +58,7 @@ class WC_Gateway_Stripe_Alipay extends WC_Stripe_Payment_Gateway {
 	public function __construct() {
 		$this->id                   = 'stripe_alipay';
 		$this->method_title         = __( 'Stripe Alipay', 'woocommerce-gateway-stripe' );
+		/* translators: link */
 		$this->method_description   = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 		$this->supports             = array(
 			'products',
@@ -125,7 +126,8 @@ class WC_Gateway_Stripe_Alipay extends WC_Stripe_Payment_Gateway {
 		if (
 			'yes' === $this->enabled && ! in_array( get_woocommerce_currency(), $this->get_supported_currency() )
 		) {
-			$message = __( 'Alipay is enabled - it requires store currency to be set to ' . implode( ', ', $this->get_supported_currency() ), 'woocommerce-gateway-stripe' );
+			/* translators: supported currency list */
+			$message = sprintf( __( 'Alipay is enabled - it requires store currency to be set to %s', 'woocommerce-gateway-stripe' ), implode( ', ', $this->get_supported_currency() ) );
 
 			return $message;
 		}
@@ -332,7 +334,9 @@ class WC_Gateway_Stripe_Alipay extends WC_Stripe_Payment_Gateway {
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
-			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
+			$statuses = array( 'pending', 'failed' );
+
+			if ( $order->has_status( $statuses ) ) {
 				$this->send_failed_order_email( $order_id );
 			}
 

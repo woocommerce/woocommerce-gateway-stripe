@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Class WC_Stripe_Webhook_Handler.
- * 
+ *
  * Handles webhooks from Stripe on sources that are not immediately chargeable.
  * @since 4.0.0
  */
@@ -142,31 +142,32 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source_object ) );
 
 			if ( ! empty( $response->error ) ) {
-			// If it is an API error such connection or server, let's retry.
-			if ( 'api_connection_error' === $response->error->type || 'api_error' === $response->error->type ) {
-				if ( $retry ) {
-					sleep( 5 );
+				// If it is an API error such connection or server, let's retry.
+				if ( 'api_connection_error' === $response->error->type || 'api_error' === $response->error->type ) {
+					if ( $retry ) {
+						sleep( 5 );
+						return $this->process_payment( $order_id, false );
+					} else {
+						$message = 'API connection error and retries exhausted.';
+						$order->add_order_note( $message );
+						throw new Exception( $message );
+					}
+				}
+
+				// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
+				if ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
+					delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
+
 					return $this->process_payment( $order_id, false );
-				} else {
-					$message = 'API connection error and retries exhausted.';
+
+				} elseif ( preg_match( '/No such token/i', $response->error->message ) && $source_object->token_id ) {
+					// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
+					$wc_token = WC_Payment_Tokens::get( $source_object->token_id );
+					$wc_token->delete();
+					$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
 					$order->add_order_note( $message );
 					throw new Exception( $message );
 				}
-			}
-
-			// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
-			if ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
-				delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
-
-				return $this->process_payment( $order_id, false );
-			// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
-			} elseif ( preg_match( '/No such token/i', $response->error->message ) && $source_object->token_id ) {
-				$wc_token = WC_Payment_Tokens::get( $source_object->token_id );
-				$wc_token->delete();
-				$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
-				$order->add_order_note( $message );
-				throw new Exception( $message );
-			}
 
 				$localized_messages = WC_Stripe_Helper::get_localized_messages();
 
@@ -186,9 +187,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $e, $order );
 
-			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
+			$statuses = array( 'pending', 'failed' );
+
+			if ( $order->has_status( $statuses ) ) {
 				$this->send_failed_order_email( $order_id );
-			}			
+			}
 		}
 	}
 
@@ -234,7 +237,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 
 		if ( 'stripe' === ( WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method() ) ) {
-			$charge   =  WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_transaction_id', true ) : $order->get_transaction_id();
+			$charge   = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_transaction_id', true ) : $order->get_transaction_id();
 			$captured = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_charge_captured', true ) : $order->get_meta( '_stripe_charge_captured', true );
 
 			if ( $charge && 'no' === $captured ) {
@@ -261,20 +264,21 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$order->save();
 				}
 
+				/* translators: transaction id */
 				$order->update_status( $order->needs_processing() ? 'processing' : 'completed', sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
 
 				// Check and see if capture is partial.
 				if ( $this->is_partial_capture( $notification ) ) {
 					$order->set_total( $this->get_partial_amount_to_charge( $notification ) );
 					$order->add_note( __( 'This charge was partially captured via Stripe Dashboard', 'woocommerce-gateway-stripe' ) );
-					$order->save();			
+					$order->save();
 				}
 			}
 		}
 	}
 
 	/**
-	 * Process webhook charge succeeded. This is used for payment methods 
+	 * Process webhook charge succeeded. This is used for payment methods
 	 * that takes time to clear which is asynchronous. e.g. SEPA, SOFORT.
 	 *
 	 * @since 4.0.0
@@ -321,11 +325,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order->save();
 		}
 
+		/* translators: transaction id */
 		$order->update_status( $order->needs_processing() ? 'processing' : 'completed', sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
 	}
 
 	/**
-	 * Process webhook charge failed. This is used for payment methods 
+	 * Process webhook charge failed. This is used for payment methods
 	 * that takes time to clear which is asynchronous. e.g. SEPA, SOFORT.
 	 *
 	 * @since 4.0.0
@@ -370,7 +375,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 
 		if ( 'stripe' === ( WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method() ) ) {
-			$charge   =  WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_transaction_id', true ) : $order->get_transaction_id();
+			$charge   = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_transaction_id', true ) : $order->get_transaction_id();
 			$captured = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_charge_captured', true ) : $order->get_meta( '_stripe_charge_captured', true );
 
 			// Only refund captured charge.

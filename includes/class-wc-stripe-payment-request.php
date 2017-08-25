@@ -403,7 +403,7 @@ class WC_Stripe_Payment_Request {
 			// Look through the package rates for $shipping_method_id, and when found, add a line item.
 			foreach ( WC()->shipping->get_packages() as $package_key => $package ) {
 				foreach ( $package['rates'] as $key => $rate ) {
-					if ( $rate->id  == $shipping_method_id ) {
+					if ( $rate->id == $shipping_method_id ) {
 						$items[] = array(
 							'label' => $rate->label,
 							'amount' => array(
