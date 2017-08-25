@@ -30,6 +30,11 @@ jQuery( function( $ ) {
 		 * Initialize event handlers and UI state.
 		 */
 		init: function() {
+			// Initialize tokenization script if on change payment method page.
+			if ( 'yes' === wc_stripe_params.is_change_payment_page ) {
+				$( document.body ).trigger( 'wc-credit-card-form-init' );
+			}
+
 			// Stripe Checkout.
 			this.stripe_checkout_submit = false;
 

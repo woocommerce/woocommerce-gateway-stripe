@@ -1,22 +1,27 @@
 {
   "name": "woocommerce-gateway-stripe",
   "title": "WooCommerce Gateway Stripe",
-  "version": "3.1.0",
+  "version": "4.0.0",
+  "license": "GPL-2.0",
   "homepage": "http://wordpress.org/plugins/woocommerce-gateway-stripe/",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/woocommerce/woocommerce-gateway-stripe.git"
+  },  
   "main": "Gruntfile.js",
   "devDependencies": {
-    "grunt": "~1.0.1",
+    "grunt": "~0.4.2",
+    "eslint": "^3.4.0",
     "grunt-checktextdomain": "~1.0.0",
     "grunt-contrib-cssmin": "~2.2.0",
     "grunt-contrib-jshint": "^1.1.0",
     "grunt-sass": "~2.0.0",
     "grunt-contrib-uglify": "~3.0.0",
-    "grunt-contrib-watch": "~0.5.3",
     "grunt-shell": "~2.1.0",
     "grunt-wp-i18n": "~1.0.0"
   },
   "engines": {
     "node": ">=6.9.4",
-    "npm": ">=1.1.0"
+    "npm": ">=4.0.5"
   }
 }
