@@ -656,89 +656,93 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			// Result from Stripe API request.
 			$response = null;
 
-			// This will throw exception if not valid.
-			$this->validate_minimum_order_amount( $order );
+			if ( $order->get_total() > 0 ) {
+				// This will throw exception if not valid.
+				$this->validate_minimum_order_amount( $order );
 
-			/**
-			 * Check if card 3DS is required or optional with 3DS setting.
-			 * Will need to first create 3DS source and require redirection
-			 * for customer to login to their credit card company.
-			 * Note that if we need to save source, the original source must be first
-			 * attached to a customer in Stripe before it can be charged.
-			 */
-			if ( $source_object && ( 'card' === $source_object->type && 'required' === $source_object->card->three_d_secure || ( $this->three_d_secure && 'optional' === $source_object->card->three_d_secure ) ) ) {
+				/**
+				 * Check if card 3DS is required or optional with 3DS setting.
+				 * Will need to first create 3DS source and require redirection
+				 * for customer to login to their credit card company.
+				 * Note that if we need to save source, the original source must be first
+				 * attached to a customer in Stripe before it can be charged.
+				 */
+				if ( $source_object && ( 'card' === $source_object->type && 'required' === $source_object->card->three_d_secure || ( $this->three_d_secure && 'optional' === $source_object->card->three_d_secure ) ) ) {
 
-				$response = $this->create_3ds_source( $order, $source_object );
+					$response = $this->create_3ds_source( $order, $source_object );
+
+					if ( ! empty( $response->error ) ) {
+						$message = $response->error->message;
+
+						$order->add_order_note( $message );
+
+						throw new Exception( $message );
+					}
+
+					// Update order meta with 3DS source.
+					if ( WC_Stripe_Helper::is_pre_30() ) {
+						update_post_meta( $order_id, '_stripe_source_id', $response->id );
+					} else {
+						$order->update_meta_data( '_stripe_source_id', $response->id );
+						$order->save();
+					}
+
+					WC_Stripe_Logger::log( 'Info: Redirecting to 3DS...' );
+
+					return array(
+						'result'   => 'success',
+						'redirect' => esc_url_raw( $response->redirect->url ),
+					);
+				}
+
+				WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
+
+				// Make the request.
+				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $prepared_source ) );
 
 				if ( ! empty( $response->error ) ) {
-					$message = $response->error->message;
+					// If it is an API error such connection or server, let's retry.
+					if ( 'api_connection_error' === $response->error->type || 'api_error' === $response->error->type ) {
+						if ( $retry ) {
+							sleep( 5 );
+							return $this->process_payment( $order_id, false, $force_save_source );
+						} else {
+							$message = 'API connection error and retries exhausted.';
+							$order->add_order_note( $message );
+							throw new Exception( $message );
+						}
+					}
 
-					$order->add_order_note( $message );
+					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
+					if ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
+						delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
 
-					throw new Exception( $message );
-				}
-
-				// Update order meta with 3DS source.
-				if ( WC_Stripe_Helper::is_pre_30() ) {
-					update_post_meta( $order_id, '_stripe_source_id', $response->id );
-				} else {
-					$order->update_meta_data( '_stripe_source_id', $response->id );
-					$order->save();
-				}
-
-				WC_Stripe_Logger::log( 'Info: Redirecting to 3DS...' );
-
-				return array(
-					'result'   => 'success',
-					'redirect' => esc_url_raw( $response->redirect->url ),
-				);
-			}
-
-			WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
-
-			// Make the request.
-			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $prepared_source ) );
-
-			if ( ! empty( $response->error ) ) {
-				// If it is an API error such connection or server, let's retry.
-				if ( 'api_connection_error' === $response->error->type || 'api_error' === $response->error->type ) {
-					if ( $retry ) {
-						sleep( 5 );
 						return $this->process_payment( $order_id, false, $force_save_source );
-					} else {
-						$message = 'API connection error and retries exhausted.';
+					} elseif ( preg_match( '/No such token/i', $response->error->message ) && $prepared_source->token_id ) {
+						// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
+						$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
+						$wc_token->delete();
+						$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
 						$order->add_order_note( $message );
 						throw new Exception( $message );
 					}
-				}
 
-				// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
-				if ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
-					delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
+					$localized_messages = WC_Stripe_Helper::get_localized_messages();
 
-					return $this->process_payment( $order_id, false, $force_save_source );
-				// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
-				} elseif ( preg_match( '/No such token/i', $response->error->message ) && $prepared_source->token_id ) {
-					$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
-					$wc_token->delete();
-					$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
+					$message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
+
 					$order->add_order_note( $message );
+
 					throw new Exception( $message );
 				}
 
-				$localized_messages = WC_Stripe_Helper::get_localized_messages();
+				do_action( 'wc_gateway_stripe_process_payment', $response, $order );
 
-				$message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
-
-				$order->add_order_note( $message );
-
-				throw new Exception( $message );
+				// Process valid response.
+				$this->process_response( $response, $order );
+			} else {
+				$order->payment_complete();
 			}
-
-			do_action( 'wc_gateway_stripe_process_payment', $response, $order );
-
-			// Process valid response.
-			$this->process_response( $response, $order );
 
 			// Remove cart.
 			WC()->cart->empty_cart();
