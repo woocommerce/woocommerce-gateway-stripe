@@ -1087,7 +1087,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			$billing_address['last_name']  = $lastname;
 			$billing_address['email']      = $data['shippingContact']['emailAddress'];
 			$billing_address['phone']      = $data['shippingContact']['phoneNumber'];
-			$billing_address['country']    = $data['token']['card']['country'];
+			$billing_address['country']    = strtoupper( $data['token']['card']['address_country'] );
 			$billing_address['address_1']  = $data['token']['card']['address_line1'];
 			$billing_address['address_2']  = $data['token']['card']['address_line2'];
 			$billing_address['city']       = $data['token']['card']['address_city'];
@@ -1102,7 +1102,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			$shipping_address['last_name']  = $data['shippingContact']['familyName'];
 			$shipping_address['email']      = $data['shippingContact']['emailAddress'];
 			$shipping_address['phone']      = $data['shippingContact']['phoneNumber'];
-			$shipping_address['country']    = $data['shippingContact']['countryCode'];
+			$shipping_address['country']    = strtoupper( data['shippingContact']['countryCode'] );
 			$shipping_address['address_1']  = $data['shippingContact']['addressLines'][0];
 			$shipping_address['address_2']  = $data['shippingContact']['addressLines'][1];
 			$shipping_address['city']       = $data['shippingContact']['locality'];
@@ -1113,7 +1113,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			$shipping_address['last_name']  = $lastname;
 			$shipping_address['email']      = $data['shippingContact']['emailAddress'];
 			$shipping_address['phone']      = $data['shippingContact']['phoneNumber'];
-			$shipping_address['country']    = $data['token']['card']['country'];
+			$shipping_address['country']    = strtoupper( $data['token']['card']['address_country'] );
 			$shipping_address['address_1']  = $data['token']['card']['address_line1'];
 			$shipping_address['address_2']  = $data['token']['card']['address_line2'];
 			$shipping_address['city']       = $data['token']['card']['address_city'];
