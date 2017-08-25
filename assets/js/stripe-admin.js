@@ -61,30 +61,6 @@ jQuery( function( $ ) {
 					$( '#woocommerce_stripe_apple_pay_button, #woocommerce_stripe_apple_pay_button_lang' ).closest( 'tr' ).hide();
 				}
 			}).change();
-
-			// Validate the keys to make sure it is matching test with test field.
-			$( '#woocommerce_stripe_secret_key, #woocommerce_stripe_publishable_key' ).on( 'input', function() {
-				var value = $( this ).val();
-
-				if ( value.indexOf( '_test_' ) >= 0 ) {
-					$( this ).css( 'border-color', 'red' ).after( '<span class="description stripe-error-description" style="color:red; display:block;">' + wc_stripe_admin_params.localized_messages.not_valid_live_key_msg + '</span>' );
-				} else {
-					$( this ).css( 'border-color', '' );
-					$( '.stripe-error-description', $( this ).parent() ).remove();
-				}
-			}).trigger( 'input' );
-
-			// Validate the keys to make sure it is matching live with live field.
-			$( '#woocommerce_stripe_test_secret_key, #woocommerce_stripe_test_publishable_key' ).on( 'input', function() {
-				var value = $( this ).val();
-
-				if ( value.indexOf( '_live_' ) >= 0 ) {
-					$( this ).css( 'border-color', 'red' ).after( '<span class="description stripe-error-description" style="color:red; display:block;">' + wc_stripe_admin_params.localized_messages.not_valid_test_key_msg + '</span>' );
-				} else {
-					$( this ).css( 'border-color', '' );
-					$( '.stripe-error-description', $( this ).parent() ).remove();
-				}
-			}).trigger( 'input' );
 		}
 	};
 

@@ -502,21 +502,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
 		wp_enqueue_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION, true );
-
-		$stripe_admin_params = array(
-			'localized_messages' => array(
-				'not_valid_live_key_msg' => __( 'This is not a valid live key. Live keys start with "sk_live_" and "pk_live_".', 'woocommerce-gateway-stripe' ),
-				'not_valid_test_key_msg' => __( 'This is not a valid test key. Test keys start with "sk_test_" and "pk_test_".', 'woocommerce-gateway-stripe' ),
-				're_verify_button_text'  => __( 'Re-verify Domain', 'woocommerce-gateway-stripe' ),
-				'missing_secret_key'     => __( 'Missing Secret Key. Please set the secret key field above and re-try.', 'woocommerce-gateway-stripe' ),
-			),
-			'ajaxurl'            => admin_url( 'admin-ajax.php' ),
-			'nonce'              => array(
-				'apple_pay_domain_nonce' => wp_create_nonce( '_wc_stripe_apple_pay_domain_nonce' ),
-			),
-		);
-
-		wp_localize_script( 'woocommerce_stripe_admin', 'wc_stripe_admin_params', apply_filters( 'wc_stripe_admin_params', $stripe_admin_params ) );
 	}
 
 	/**
