@@ -266,6 +266,7 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 				),
 			),
 		);
+
 		return $payment_meta;
 	}
 
