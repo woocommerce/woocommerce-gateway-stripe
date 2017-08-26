@@ -92,6 +92,8 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * @version 4.0.0
 		 */
 		public function init() {
+			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-logger.php' );
+			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-helper.php' );
 			include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php' );
 
 			// Don't hook anything else in the plugin if we're in an incompatible environment
@@ -101,8 +103,6 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 
 			load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
 
-			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-logger.php' );
-			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-helper.php' );
 			require_once( dirname( __FILE__ ) . '/includes/abstracts/abstract-wc-stripe-payment-gateway.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-handler.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-sepa-payment-token.php' );
