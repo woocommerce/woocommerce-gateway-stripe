@@ -758,6 +758,8 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			// Remove cart.
 			WC()->cart->empty_cart();
 
+			do_action( 'woocommerce_checkout_order_processed', $order_id, $result, $order );
+
 			update_post_meta( $order_id, '_customer_user', get_current_user_id() );
 			update_post_meta( $order_id, '_payment_method_title', 'Apple Pay (Stripe)' );
 
