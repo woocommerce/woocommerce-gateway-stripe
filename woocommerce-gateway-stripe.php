@@ -547,8 +547,8 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 						$tokens[ $token->get_id() ] = $token;
 					}
 				}
+				return $tokens;
 			}
-			return $tokens;
 		}
 
 		/**
