@@ -524,7 +524,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		wp_register_script( 'stripe_checkout', 'https://checkout.stripe.com/checkout.js', '', WC_STRIPE_VERSION, true );
 		wp_register_script( 'stripe', 'https://js.stripe.com/v2/', '', '2.0', true );
 		wp_register_script( 'stripev3', 'https://js.stripe.com/v3/', '', '3.0', true );
-		wp_register_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery-payment', 'stripe', 'stripev3', 'woocommerce-tokenization-form' ), WC_STRIPE_VERSION, true );
+		wp_register_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery-payment', 'stripe', 'stripev3' ), WC_STRIPE_VERSION, true );
 
 		$stripe_params = array(
 			'key'                  => $this->publishable_key,
@@ -560,7 +560,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$stripe_params['statement_descriptor']                    = $this->statement_descriptor;
 		$stripe_params['use_elements']                            = apply_filters( 'wc_stripe_use_elements_checkout_form', true ) ? 'yes' : 'no';
 		$stripe_params['is_stripe_checkout']                      = $this->stripe_checkout ? 'yes' : 'no';
-		$stripe_params['is_change_payment_page']                  = ( isset( $_GET['pay_for_order'] ) && isset( $_GET['change_payment_method'] ) ) ? 'yes' : 'no';
+		$stripe_params['is_change_payment_page']                  = ( isset( $_GET['pay_for_order'] ) || isset( $_GET['change_payment_method'] ) ) ? 'yes' : 'no';
 
 		// merge localized messages to be use in JS
 		$stripe_params = array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
@@ -572,6 +572,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			wp_enqueue_script( 'stripe_checkout' );
 		}
 
+		$this->tokenization_script();
 		wp_enqueue_script( 'woocommerce_stripe' );
 	}
 

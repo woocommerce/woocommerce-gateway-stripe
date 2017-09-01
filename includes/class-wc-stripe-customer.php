@@ -252,7 +252,7 @@ class WC_Stripe_Customer {
 	public function get_sources() {
 		$sources = get_transient( 'stripe_sources_' . $this->get_id() );
 
-		if ( $this->get_id() && false === $sources ) {
+		if ( false === $sources ) {
 			$response = WC_Stripe_API::request( array(
 				'limit'       => 100,
 			), 'customers/' . $this->get_id() . '/sources', 'GET' );
@@ -266,11 +266,9 @@ class WC_Stripe_Customer {
 			}
 
 			set_transient( 'stripe_sources_' . $this->get_id(), $sources, HOUR_IN_SECONDS * 24 );
-		} else {
-			$sources = array();
 		}
 
-		return $sources;
+		return empty( $sources ) ? array() : $sources;
 	}
 
 	/**

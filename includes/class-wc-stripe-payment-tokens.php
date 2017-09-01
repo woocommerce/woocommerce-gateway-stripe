@@ -62,16 +62,17 @@ class WC_Stripe_Payment_Tokens {
 	 * @param array $tokens
 	 * @return array
 	 */
-	public function woocommerce_get_customer_payment_tokens( $tokens, $customer_id, $gateway_id ) {
+	public function woocommerce_get_customer_payment_tokens( $tokens = array(), $customer_id, $gateway_id ) {
 		if ( is_user_logged_in() && class_exists( 'WC_Payment_Token_CC' ) ) {
+			$stored_tokens = array();
+
+			foreach ( $tokens as $token ) {
+				$stored_tokens[] = $token->get_token();
+			}
+
 			if ( 'stripe' === $gateway_id ) {
 				$stripe_customer = new WC_Stripe_Customer( $customer_id );
 				$stripe_sources  = $stripe_customer->get_sources();
-				$stored_tokens   = array();
-
-				foreach ( $tokens as $token ) {
-					$stored_tokens[] = $token->get_token();
-				}
 
 				foreach ( $stripe_sources as $source ) {
 					if ( isset( $source->type ) && 'card' === $source->type ) {
@@ -111,11 +112,6 @@ class WC_Stripe_Payment_Tokens {
 			if ( 'stripe_sepa' === $gateway_id ) {
 				$stripe_customer = new WC_Stripe_Customer( $customer_id );
 				$stripe_sources  = $stripe_customer->get_sources();
-				$stored_tokens   = array();
-
-				foreach ( $tokens as $token ) {
-					$stored_tokens[] = $token->get_token();
-				}
 
 				foreach ( $stripe_sources as $source ) {
 					if ( isset( $source->type ) && 'sepa_debit' === $source->type ) {

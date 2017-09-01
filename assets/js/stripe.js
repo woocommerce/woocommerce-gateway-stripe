@@ -30,7 +30,7 @@ jQuery( function( $ ) {
 		 * Initialize event handlers and UI state.
 		 */
 		init: function() {
-			// Initialize tokenization script if on change payment method page.
+			// Initialize tokenization script if on change payment method page and pay for order page.
 			if ( 'yes' === wc_stripe_params.is_change_payment_page ) {
 				$( document.body ).trigger( 'wc-credit-card-form-init' );
 			}
