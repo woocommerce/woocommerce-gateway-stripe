@@ -236,8 +236,10 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		}
 
 		/**
-		 * Checks the environment for compatibility problems.  Returns a string with the first incompatibility
+         * Checks the environment for compatibility problems.  Returns a string with the first incompatibility
 		 * found or false if the environment has no problems.
+         *
+		 * @return bool|string
 		 */
 		static function get_environment_warning() {
 			if ( version_compare( phpversion(), WC_STRIPE_MIN_PHP_VER, '<' ) ) {
@@ -264,9 +266,13 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		}
 
 		/**
-		 * Adds plugin action links
+         * Adds plugin action links
+         *
+		 * @param $links
 		 *
-		 * @since 1.0.0
+         * @since 1.0.0
+         *
+		 * @return array
 		 */
 		public function plugin_action_links( $links ) {
 			$setting_link = $this->get_setting_link();
@@ -385,9 +391,13 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		}
 
 		/**
-		 * Add the gateways to WooCommerce
+         * Add the gateways to WooCommerce
+         *
+		 * @param $methods
 		 *
-		 * @since 1.0.0
+         * @since 1.0.0
+         *
+		 * @return array
 		 */
 		public function add_gateways( $methods ) {
 			if ( $this->subscription_support_enabled || $this->pre_order_enabled ) {
@@ -429,6 +439,8 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 *
 		 * @param object $balance_transaction
 		 * @param string $type Type of number to format
+         *
+         * @return string|void
 		 */
 		public static function format_number( $balance_transaction, $type = 'fee' ) {
 			if ( ! is_object( $balance_transaction ) ) {
@@ -547,12 +559,14 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 						$tokens[ $token->get_id() ] = $token;
 					}
 				}
+				return $tokens;
 			}
-			return $tokens;
 		}
-
 		/**
-		 * Delete token from Stripe
+         * Delete token from Stripe
+         *
+		 * @param $token_id
+		 * @param $token
 		 */
 		public function woocommerce_payment_token_deleted( $token_id, $token ) {
 			if ( 'stripe' === $token->get_gateway_id() ) {
@@ -563,6 +577,8 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 
 		/**
 		 * Set as default in Stripe
+         *
+         * @param $token_id
 		 */
 		public function woocommerce_payment_token_set_default( $token_id ) {
 			$token = WC_Payment_Tokens::get( $token_id );
@@ -620,6 +636,8 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * What's great for a snack,
 		 * And fits on your back?
 		 * It's log, log, log
+         *
+         * @param $message
 		 */
 		public static function log( $message ) {
 			if ( empty( self::$log ) ) {
