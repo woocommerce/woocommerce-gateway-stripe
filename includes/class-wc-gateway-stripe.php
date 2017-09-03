@@ -547,7 +547,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$stripe_params['billing_country']    = WC_Stripe_Helper::is_pre_30() ? $order->billing_country : $order->get_billing_country();
 		}
 
-		$stripe_params['no_prepaid_card_msg']                     = __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' );
+		$stripe_params['no_prepaid_card_msg']                     = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charge. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
 		$stripe_params['no_bank_country_msg']                     = __( 'Please select a country for your bank.', 'woocommerce-gateway-stripe' );
 		$stripe_params['no_sepa_owner_msg']                       = __( 'Please enter your IBAN account name.', 'woocommerce-gateway-stripe' );
 		$stripe_params['no_sepa_iban_msg']                        = __( 'Please enter your IBAN account number.', 'woocommerce-gateway-stripe' );
@@ -631,6 +631,16 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			}
 
 			$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source );
+
+			// Check if we don't allow prepaid credit cards.
+			if ( ! apply_filters( 'wc_stripe_allow_prepaid_card', true ) ) {
+				$stripe_checkout_object = ! empty( $_POST['stripe_checkout_object'] ) ? json_decode( wc_clean( stripslashes( $_POST['stripe_checkout_object'] ) ) ) : false;
+
+				if ( $stripe_checkout_object && 'token' === $stripe_checkout_object->object && 'prepaid' === $stripe_checkout_object->card->funding ) {
+					$error_msg = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charge. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
+					throw new Exception( $error_msg );
+				}
+			}
 
 			if ( empty( $prepared_source->source ) ) {
 				$error_msg = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );

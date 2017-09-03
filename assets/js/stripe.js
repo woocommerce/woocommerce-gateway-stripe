@@ -250,6 +250,7 @@ jQuery( function( $ ) {
 			var token_action = function( res ) {
 				$form.find( 'input.stripe_token' ).remove();
 				$form.append( '<input type="hidden" class="stripe_token" name="stripe_token" value="' + res.id + '"/>' );
+				$form.append( "<input type='hidden' class='stripe-checkout-object' name='stripe_checkout_object' value='" + JSON.stringify( res ) + "'/>" );
 				wc_stripe_form.stripe_submit = true;
 
 				if ( $( 'form#add_payment_method' ).length ) {
@@ -622,7 +623,12 @@ jQuery( function( $ ) {
 		},
 
 		reset: function() {
-			$( '.wc-stripe-error, .stripe-source, .stripe_token' ).remove();
+			$( '.wc-stripe-error, .stripe-source, .stripe_token, .stripe-checkout-object' ).remove();
+
+			// Stripe Checkout.
+			if ( 'yes' === wc_stripe_params.is_stripe_checkout ) {
+				wc_stripe_form.stripe_submit = false;
+			}
 		},
 
 		getRequiredFields: function() {
