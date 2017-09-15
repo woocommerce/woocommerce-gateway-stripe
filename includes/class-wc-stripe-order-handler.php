@@ -189,8 +189,14 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$captured = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_charge_captured', true ) : $order->get_meta( '_stripe_charge_captured', true );
 
 			if ( $charge && 'no' === $captured ) {
+				$order_total = $order->get_total();
+
+				if ( 0 < $order->get_total_refunded() ) {
+					$order_total = $order_total - $order->get_total_refunded();
+				}
+
 				$result = WC_Stripe_API::request( array(
-					'amount'   => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
+					'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
 					'expand[]' => 'balance_transaction',
 				), 'charges/' . $charge . '/capture' );
 
