@@ -311,7 +311,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$gateway_settings = get_option( 'woocommerce_stripe_settings', array() );
 
 		try {
-			$path     = untrailingslashit( preg_replace( "!${_SERVER['SCRIPT_NAME']}$!", '', $_SERVER['SCRIPT_FILENAME'] ) );
+			$path     = untrailingslashit( $_SERVER['DOCUMENT_ROOT'] );
 			$dir      = '.well-known';
 			$file     = 'apple-developer-merchantid-domain-association';
 			$fullpath = $path . '/' . $dir . '/' . $file;
