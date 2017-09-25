@@ -322,7 +322,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$gateway_settings = get_option( 'woocommerce_stripe_settings', '' );
 
 		try {
-			$path     = untrailingslashit( preg_replace( "!${_SERVER['SCRIPT_NAME']}$!", '', $_SERVER['SCRIPT_FILENAME'] ) );
+			$path     = $_SERVER["DOCUMENT_ROOT"];
 			$dir      = '.well-known';
 			$file     = 'apple-developer-merchantid-domain-association';
 			$fullpath = $path . '/' . $dir . '/' . $file;
