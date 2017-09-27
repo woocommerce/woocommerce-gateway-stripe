@@ -123,7 +123,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$this->method_title         = __( 'Stripe', 'woocommerce-gateway-stripe' );
 		$this->method_description   = sprintf( __( 'Stripe works by adding credit card fields on the checkout and then sending the details to Stripe for verification. <a href="%1$s" target="_blank">Sign up</a> for a Stripe account, and <a href="%2$s" target="_blank">get your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), 'https://dashboard.stripe.com/register', 'https://dashboard.stripe.com/account/apikeys' );
 		$this->has_fields           = true;
-		$this->view_transaction_url = 'https://dashboard.stripe.com/payments/%s';
+		$this->view_transaction_url = $this->get_view_transaction_url();
 		$this->supports             = array(
 			'subscriptions',
 			'products',
@@ -186,6 +186,19 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_scripts' ) );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
+	}
+
+	/**
+	 * Have the transaction url according to the mode
+	 * @return string
+	 */
+	protected function get_view_transaction_url() {
+
+		if ( 'yes' !== $this->get_option( 'testmode' ) ) {
+			return 'https://dashboard.stripe.com/payments/%s';
+		} else {
+			return 'https://dashboard.stripe.com/test/payments/%s';
+		}
 	}
 
 	/**
