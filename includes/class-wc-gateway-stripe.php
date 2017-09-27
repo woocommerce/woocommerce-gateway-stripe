@@ -973,6 +973,8 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			);
 		}
 
+		$body['expand[]']    = 'balance_transaction';
+
 		$this->log( "Info: Beginning refund for order $order_id for the amount of {$amount}" );
 
 		$response = WC_Stripe_API::request( $body, 'charges/' . $order->get_transaction_id() . '/refunds' );
@@ -983,6 +985,35 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		} elseif ( ! empty( $response->id ) ) {
 			$refund_message = sprintf( __( 'Refunded %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), wc_price( $response->amount / 100 ), $response->id, $reason );
 			$order->add_order_note( $refund_message );
+
+			/*Updated Fee after refund*/
+			if ( isset( $response->balance_transaction ) && isset( $response->balance_transaction->fee ) ) {
+
+				/*get fee refunded*/
+				$fee_refund = ! empty( $response->balance_transaction->fee ) ? WC_Stripe::format_number( $response->balance_transaction, 'fee' ) : 0;
+				$net_refund = ! empty( $response->balance_transaction->net ) ? WC_Stripe::format_number( $response->balance_transaction, 'net' ) : 0;
+
+				/*current data fee*/
+				$fee_current = get_post_meta( $order_id, self::META_NAME_FEE, true );
+				$net_current = get_post_meta( $order_id, self::META_NAME_NET, true );
+
+				/*calculation*/
+				$fee_new = $fee_current + $fee_refund;
+				$net_new = $net_current + $net_refund;
+
+				/*full refunded*/
+				if ( empty( $fee_new ) && empty( $net_new ) ) {
+					delete_post_meta( $order_id, self::META_NAME_FEE );
+					delete_post_meta( $order_id, self::META_NAME_NET );
+				} /*partial refunded*/
+				else {
+					$fee = wc_format_decimal( $fee_new, wc_get_price_decimals() );
+					$net = wc_format_decimal( $net_new, wc_get_price_decimals() );
+					update_post_meta( $order_id, self::META_NAME_FEE, $fee, false );
+					update_post_meta( $order_id, self::META_NAME_NET, $net, false );
+				}
+			}
+
 			$this->log( 'Success: ' . html_entity_decode( strip_tags( $refund_message ) ) );
 			return true;
 		}
