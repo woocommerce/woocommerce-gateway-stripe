@@ -128,6 +128,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 
 			include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php' );
 			include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php' );
+			include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-reports.php' );
 
 			// Init the gateway itself
 			$this->init_gateways();
@@ -144,6 +145,9 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			add_action( 'wp_ajax_stripe_dismiss_apple_pay_notice', array( $this, 'dismiss_apple_pay_notice' ) );
 
 			include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-request.php' );
+
+			/*Reports*/
+			new WC_Stripe_Reports();
 		}
 
 		/**

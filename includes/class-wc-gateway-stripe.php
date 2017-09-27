@@ -9,6 +9,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @extends WC_Payment_Gateway
  */
 class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
+	
+	/**
+	 * post_meta name for Stripe fee
+	 */
+	const META_NAME_FEE = 'Stripe Fee';
+	/**
+	 * post_meta name for Stripe total net
+	 */
+	const META_NAME_NET = 'Net Revenue From Stripe';
 
 	/**
 	 * Should we capture Credit cards
@@ -123,7 +132,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$this->method_title         = __( 'Stripe', 'woocommerce-gateway-stripe' );
 		$this->method_description   = sprintf( __( 'Stripe works by adding credit card fields on the checkout and then sending the details to Stripe for verification. <a href="%1$s" target="_blank">Sign up</a> for a Stripe account, and <a href="%2$s" target="_blank">get your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), 'https://dashboard.stripe.com/register', 'https://dashboard.stripe.com/account/apikeys' );
 		$this->has_fields           = true;
-		$this->view_transaction_url = 'https://dashboard.stripe.com/payments/%s';
+		$this->view_transaction_url = $this->get_view_transaction_url();
 		$this->supports             = array(
 			'subscriptions',
 			'products',
@@ -186,6 +195,23 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_scripts' ) );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
+
+		add_action( 'woocommerce_admin_order_totals_after_total', array( $this, 'display_order_fee' ), 10, 1);
+		add_action( 'woocommerce_admin_order_totals_after_total', array( $this, 'display_order_payout' ), 20, 1);
+
+	}
+
+	/**
+	 * Have the transaction url according to the mode
+	 * @return string
+	 */
+	protected function get_view_transaction_url() {
+
+		if ( 'yes' !== $this->get_option( 'testmode' ) ) {
+			return 'https://dashboard.stripe.com/payments/%s';
+		} else {
+			return 'https://dashboard.stripe.com/test/payments/%s';
+		}
 	}
 
 	/**
@@ -864,8 +890,8 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			// values are in the local currency of the Stripe account, not from WC.
 			$fee = ! empty( $response->balance_transaction->fee ) ? WC_Stripe::format_number( $response->balance_transaction, 'fee' ) : 0;
 			$net = ! empty( $response->balance_transaction->net ) ? WC_Stripe::format_number( $response->balance_transaction, 'net' ) : 0;
-			update_post_meta( $order_id, 'Stripe Fee', $fee );
-			update_post_meta( $order_id, 'Net Revenue From Stripe', $net );
+			update_post_meta( $order_id, self::META_NAME_FEE, $fee );
+			update_post_meta( $order_id, self::META_NAME_NET, $net );
 		}
 
 		if ( $response->captured ) {
@@ -951,6 +977,8 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			);
 		}
 
+		$body['expand[]']    = 'balance_transaction';
+
 		$this->log( "Info: Beginning refund for order $order_id for the amount of {$amount}" );
 
 		$response = WC_Stripe_API::request( $body, 'charges/' . $order->get_transaction_id() . '/refunds' );
@@ -961,6 +989,35 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		} elseif ( ! empty( $response->id ) ) {
 			$refund_message = sprintf( __( 'Refunded %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), wc_price( $response->amount / 100 ), $response->id, $reason );
 			$order->add_order_note( $refund_message );
+
+			/*Updated Fee after refund*/
+			if ( isset( $response->balance_transaction ) && isset( $response->balance_transaction->fee ) ) {
+
+				/*get fee refunded*/
+				$fee_refund = ! empty( $response->balance_transaction->fee ) ? WC_Stripe::format_number( $response->balance_transaction, 'fee' ) : 0;
+				$net_refund = ! empty( $response->balance_transaction->net ) ? WC_Stripe::format_number( $response->balance_transaction, 'net' ) : 0;
+
+				/*current data fee*/
+				$fee_current = get_post_meta( $order_id, self::META_NAME_FEE, true );
+				$net_current = get_post_meta( $order_id, self::META_NAME_NET, true );
+
+				/*calculation*/
+				$fee_new = $fee_current + $fee_refund;
+				$net_new = $net_current + $net_refund;
+
+				/*full refunded*/
+				if ( empty( $fee_new ) && empty( $net_new ) ) {
+					delete_post_meta( $order_id, self::META_NAME_FEE );
+					delete_post_meta( $order_id, self::META_NAME_NET );
+				} /*partial refunded*/
+				else {
+					$fee = wc_format_decimal( $fee_new, wc_get_price_decimals() );
+					$net = wc_format_decimal( $net_new, wc_get_price_decimals() );
+					update_post_meta( $order_id, self::META_NAME_FEE, $fee, false );
+					update_post_meta( $order_id, self::META_NAME_NET, $net, false );
+				}
+			}
+
 			$this->log( 'Success: ' . html_entity_decode( strip_tags( $refund_message ) ) );
 			return true;
 		}
@@ -994,4 +1051,41 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			WC_Stripe::log( $message );
 		}
 	}
+
+	/**
+	 * Displays the Stripe fee
+	 * @param $order_id
+	 */
+	public function display_order_fee( $order_id ) {
+		$fee = get_post_meta( $order_id, self::META_NAME_FEE, true );
+		if ( !$fee ) { return; }
+		?>
+		<tr>
+			<td class="label stripe-fee"><?php echo wc_help_tip( __( 'This represents the commission fee on the Stripe transaction.',
+					'woocommerce-gateway-stripe' ) ); ?><?php _e( 'Stripe Fee:', 'woocommerce-gateway-stripe' ); ?></td>
+			<td width="1%"></td>
+			<td class="total">
+				-<?php echo wc_price( $fee, array( 'currency' => get_post_meta( $order_id, '_order_currency', true ) ) ); ?>
+			</td>
+		</tr>
+	<?php }
+
+	/**
+	 * Displays the net total of the transaction without the charges of Stripe.
+	 * @param $order_id
+	 */
+	public function display_order_payout( $order_id ) {
+		$net = get_post_meta( $order_id, self::META_NAME_NET, true );
+		if ( !$net ) { return; }
+		?>
+		<tr>
+			<td class="label stripe-payout"><?php echo wc_help_tip( __( 'This represents the actual total that will be credited to your Stripe bank account.',
+					'woocommerce-gateway-stripe' ) ); ?><?php _e( 'Stripe Payout:',
+					'woocommerce-gateway-stripe' ); ?></td>
+			<td width="1%"></td>
+			<td class="total">
+				&nbsp;<?php echo wc_price( $net, array( 'currency' => get_post_meta( $order_id, '_order_currency', true ) ) ); ?>
+			</td>
+		</tr>
+	<?php }
 }
