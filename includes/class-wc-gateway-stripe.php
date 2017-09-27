@@ -195,6 +195,10 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_scripts' ) );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
+
+		add_action( 'woocommerce_admin_order_totals_after_total', array( $this, 'display_order_fee' ), 10, 1);
+		add_action( 'woocommerce_admin_order_totals_after_total', array( $this, 'display_order_payout' ), 20, 1);
+
 	}
 
 	/**
@@ -1047,4 +1051,41 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			WC_Stripe::log( $message );
 		}
 	}
+
+	/**
+	 * Displays the Stripe fee
+	 * @param $order_id
+	 */
+	public function display_order_fee( $order_id ) {
+		$fee = get_post_meta( $order_id, self::META_NAME_FEE, true );
+		if ( !$fee ) { return; }
+		?>
+		<tr>
+			<td class="label stripe-fee"><?php echo wc_help_tip( __( 'This represents the commission fee on the Stripe transaction.',
+					'woocommerce-gateway-stripe' ) ); ?><?php _e( 'Stripe Fee:', 'woocommerce-gateway-stripe' ); ?></td>
+			<td width="1%"></td>
+			<td class="total">
+				-<?php echo wc_price( $fee, array( 'currency' => get_post_meta( $order_id, '_order_currency', true ) ) ); ?>
+			</td>
+		</tr>
+	<?php }
+
+	/**
+	 * Displays the net total of the transaction without the charges of Stripe.
+	 * @param $order_id
+	 */
+	public function display_order_payout( $order_id ) {
+		$net = get_post_meta( $order_id, self::META_NAME_NET, true );
+		if ( !$net ) { return; }
+		?>
+		<tr>
+			<td class="label stripe-payout"><?php echo wc_help_tip( __( 'This represents the actual total that will be credited to your Stripe bank account.',
+					'woocommerce-gateway-stripe' ) ); ?><?php _e( 'Stripe Payout:',
+					'woocommerce-gateway-stripe' ); ?></td>
+			<td width="1%"></td>
+			<td class="total">
+				&nbsp;<?php echo wc_price( $net, array( 'currency' => get_post_meta( $order_id, '_order_currency', true ) ) ); ?>
+			</td>
+		</tr>
+	<?php }
 }
