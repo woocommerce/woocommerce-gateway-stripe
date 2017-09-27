@@ -9,6 +9,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @extends WC_Payment_Gateway
  */
 class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
+	
+	/**
+	 * post_meta name for Stripe fee
+	 */
+	const META_NAME_FEE = 'Stripe Fee';
+	/**
+	 * post_meta name for Stripe total net
+	 */
+	const META_NAME_NET = 'Net Revenue From Stripe';
 
 	/**
 	 * Should we capture Credit cards
@@ -877,8 +886,8 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 			// values are in the local currency of the Stripe account, not from WC.
 			$fee = ! empty( $response->balance_transaction->fee ) ? WC_Stripe::format_number( $response->balance_transaction, 'fee' ) : 0;
 			$net = ! empty( $response->balance_transaction->net ) ? WC_Stripe::format_number( $response->balance_transaction, 'net' ) : 0;
-			update_post_meta( $order_id, 'Stripe Fee', $fee );
-			update_post_meta( $order_id, 'Net Revenue From Stripe', $net );
+			update_post_meta( $order_id, self::META_NAME_FEE, $fee );
+			update_post_meta( $order_id, self::META_NAME_NET, $net );
 		}
 
 		if ( $response->captured ) {
