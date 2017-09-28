@@ -1104,7 +1104,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			$shipping_address['last_name']  = $data['shippingContact']['familyName'];
 			$shipping_address['email']      = $data['shippingContact']['emailAddress'];
 			$shipping_address['phone']      = $data['shippingContact']['phoneNumber'];
-			$shipping_address['country']    = strtoupper( data['shippingContact']['countryCode'] );
+			$shipping_address['country']    = strtoupper( $data['shippingContact']['countryCode'] );
 			$shipping_address['address_1']  = $data['shippingContact']['addressLines'][0];
 			$shipping_address['address_2']  = $data['shippingContact']['addressLines'][1];
 			$shipping_address['city']       = $data['shippingContact']['locality'];
