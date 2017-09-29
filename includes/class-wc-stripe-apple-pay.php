@@ -196,7 +196,7 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 	 * @version 3.1.4
 	 */
 	public function log_apple_pay_errors() {
-		if ( ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_apple_pay_nonce' ) && ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_apple_pay_cart_nonce' ) ) {
+		if ( ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_apple_pay_nonce' ) || ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_apple_pay_cart_nonce' ) ) {
 			wp_die( __( 'Cheatin&#8217; huh?', 'woocommerce-gateway-stripe' ) );
 		}
 
