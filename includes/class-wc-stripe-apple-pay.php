@@ -167,6 +167,24 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 		add_action( 'wc_ajax_wc_stripe_apple_pay_update_shipping_method', array( $this, 'update_shipping_method' ) );
 		add_filter( 'woocommerce_gateway_title', array( $this, 'filter_gateway_title' ), 10, 2 );
 		add_filter( 'woocommerce_validate_postcode', array( $this, 'postal_code_validation' ), 10, 3 );
+		add_action( 'wp', array( $this, 'set_session' ) );
+	}
+
+	/**
+	 * Sets the WC customer session if one is not set.
+	 * This is needed so nonces can be verified.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 */
+	public function set_session() {
+		if ( ! is_user_logged_in() ) {
+			$wc_session = new WC_Session_Handler();
+
+			if ( ! $wc_session->has_session() ) {
+				$wc_session->set_customer_session_cookie( true );
+			}
+		}
 	}
 
 	/**
