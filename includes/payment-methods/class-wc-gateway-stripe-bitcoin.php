@@ -395,10 +395,7 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 			$this->save_instructions( $order, $source_object );
 
 			// Mark as on-hold (we're awaiting the payment)
-			$order->update_status( 'on-hold', __( 'Awaiting Bitcoin payment', 'woocommerce-gateway-stripe' ) );
-
-			// Reduce stock levels
-			wc_reduce_stock_levels( $order_id );
+			$order->add_order_note( __( 'Awaiting Bitcoin payment', 'woocommerce-gateway-stripe' ) );
 
 			// Remove cart
 			WC()->cart->empty_cart();
