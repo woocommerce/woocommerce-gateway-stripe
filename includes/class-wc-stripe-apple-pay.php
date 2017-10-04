@@ -382,6 +382,11 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			if ( ! in_array( ( WC_Stripe_Helper::is_pre_30() ? $_product->product_type : $_product->get_type() ), $this->supported_product_types() ) ) {
 				return false;
 			}
+
+			// Pre Orders compatbility where we don't support charge upon release.
+			if ( class_exists( 'WC_Pre_Orders_Order' ) && WC_Pre_Orders_Cart::cart_contains_pre_order() && WC_Pre_Orders_Product::product_is_charged_upon_release( WC_Pre_Orders_Cart::get_pre_order_product() ) ) {
+				return false;
+			}
 		}
 
 		return true;
@@ -411,6 +416,12 @@ class WC_Stripe_Apple_Pay extends WC_Stripe_Payment_Gateway {
 			$product = wc_get_product( $post->ID );
 
 			if ( ! is_object( $product ) || ! in_array( ( WC_Stripe_Helper::is_pre_30() ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
+				return;
+			}
+
+			// Pre Orders charge upon release not supported.
+			if ( class_exists( 'WC_Pre_Orders_Order' ) && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
+				WC_Stripe_Logger::log( 'Pre Order charge upon release is not supported. ( Apple Pay button disabled )' );
 				return;
 			}
 		} else {
