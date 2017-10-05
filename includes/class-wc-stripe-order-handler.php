@@ -216,8 +216,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						// values are in the local currency of the Stripe account, not from WC.
 						$fee = ! empty( $result->balance_transaction->fee ) ? WC_Stripe_Helper::format_balance_fee( $result->balance_transaction, 'fee' ) : 0;
 						$net = ! empty( $result->balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $result->balance_transaction, 'net' ) : 0;
-						WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, 'Stripe Fee', $fee ) : $order->update_meta_data( 'Stripe Fee', $fee );
-						WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, 'Net Revenue From Stripe', $net ) : $order->update_meta_data( 'Net Revenue From Stripe', $net );
+						WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, parent::META_NAME_FEE, $fee ) : $order->update_meta_data( parent::META_NAME_FEE, $fee );
+						WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, parent::META_NAME_NET, $net ) : $order->update_meta_data( parent::META_NAME_NET, $net );
 					}
 
 					if ( is_callable( array( $order, 'save' ) ) ) {
