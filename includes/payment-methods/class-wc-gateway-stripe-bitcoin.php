@@ -386,8 +386,6 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 			// Store source to order meta.
 			$this->save_source( $order, $prepared_source );
 
-			// Result from Stripe API request.
-			$response = null;
 
 			// This will throw exception if not valid.
 			$this->validate_minimum_order_amount( $order );
@@ -395,7 +393,9 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 			$this->save_instructions( $order, $source_object );
 
 			// Mark as on-hold (we're awaiting the payment)
-			$order->add_order_note( __( 'Awaiting Bitcoin payment', 'woocommerce-gateway-stripe' ) );
+			$order->update_status( 'on-hold', __( 'Awaiting Bitcoin payment', 'woocommerce-gateway-stripe' ) );
+
+			wc_reduce_stock_levels( $order_id );
 
 			// Remove cart
 			WC()->cart->empty_cart();

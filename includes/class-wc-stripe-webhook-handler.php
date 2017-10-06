@@ -119,8 +119,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_id  = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 		$source_id = $notification->data->object->id;
 
+		$is_pending_receiver = ( 'receiver' === $notification->data->object->flow );
+
 		try {
-			if ( 'processing' === $order->get_status() || 'completed' === $order->get_status() || 'on-hold' === $order->get_status() ) {
+			if ( 'processing' === $order->get_status() || 'completed' === $order->get_status() ) {
+				return;
+			}
+
+			if ( 'on-hold' === $order->get_status() && ! $is_pending_receiver ) {
 				return;
 			}
 
