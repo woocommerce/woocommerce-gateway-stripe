@@ -616,6 +616,7 @@ class WC_Gateway_Stripe extends WC_Payment_Gateway_CC {
 		$metadata = array(
 			__( 'Customer Name', 'woocommerce-gateway-stripe' ) => sanitize_text_field( $billing_first_name ) . ' ' . sanitize_text_field( $billing_last_name ),
 			__( 'Customer Email', 'woocommerce-gateway-stripe' ) => sanitize_email( $billing_email ),
+			__( 'Woocommerce Order', 'woocommerce-gateway-stripe' ) => sanitize_text_field( $order->id ),
 		);
 
 		$post_data['metadata'] = apply_filters( 'wc_stripe_payment_metadata', $metadata, $order, $source );
