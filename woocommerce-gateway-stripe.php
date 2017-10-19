@@ -232,6 +232,21 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		}
 
 		/**
+		 * Get setting link.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @return string Setting link
+		 */
+		public function get_setting_link() {
+			$use_id_as_section = function_exists( 'WC' ) ? version_compare( WC()->version, '2.6', '>=' ) : false;
+
+			$section_slug = $use_id_as_section ? 'stripe' : strtolower( 'WC_Gateway_Stripe' );
+
+			return admin_url( 'admin.php?page=wc-settings&tab=checkout&section=' . $section_slug );
+		}
+
+		/**
 		 * The backup sanity check, in case the plugin is activated in a weird way,
 		 * or the environment changes after activation. Also handles upgrade routines.
 		 *
@@ -265,7 +280,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				}
 			}
 
-			if ( empty( $show_ssl_notice ) ) {
+			if ( empty( $show_ssl_notice ) && 'yes' === $options['enabled'] ) {
 				// Show message if enabled and FORCE SSL is disabled and WordpressHTTPS plugin is not detected.
 				if ( ( function_exists( 'wc_site_is_https' ) && ! wc_site_is_https() ) && ( 'no' === get_option( 'woocommerce_force_ssl_checkout' ) && ! class_exists( 'WordPressHTTPS' ) ) ) {
 					/* translators: 1) link 2) link */
