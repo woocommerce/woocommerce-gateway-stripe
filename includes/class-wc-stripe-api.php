@@ -64,7 +64,7 @@ class WC_Stripe_API {
 				),
 				'body'       => apply_filters( 'woocommerce_stripe_request_body', $request, $api ),
 				'timeout'    => 70,
-				'user-agent' => 'WooCommerce ' . WC()->version,
+				'user-agent' => apply_filters( 'woocommerce_stripe_request_user_agent', 'WooCommerce ' . WC()->version ),
 			)
 		);
 
