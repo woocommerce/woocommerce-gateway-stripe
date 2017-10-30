@@ -522,9 +522,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		wp_register_style( 'stripe_paymentfonts', plugins_url( 'assets/css/stripe-paymentfonts.css', WC_STRIPE_MAIN_FILE ), array(), '1.2.5' );
 		wp_enqueue_style( 'stripe_paymentfonts' );
 		wp_register_script( 'stripe_checkout', 'https://checkout.stripe.com/checkout.js', '', WC_STRIPE_VERSION, true );
-		wp_register_script( 'stripe', 'https://js.stripe.com/v2/', '', '2.0', true );
-		wp_register_script( 'stripev3', 'https://js.stripe.com/v3/', '', '3.0', true );
-		wp_register_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery-payment', 'stripe', 'stripev3' ), WC_STRIPE_VERSION, true );
+		wp_register_script( 'stripev2', 'https://js.stripe.com/v2/', '', '2.0', true );
+		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
+		wp_register_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery-payment', 'stripev2', 'stripe' ), WC_STRIPE_VERSION, true );
 
 		$stripe_params = array(
 			'key'                  => $this->publishable_key,

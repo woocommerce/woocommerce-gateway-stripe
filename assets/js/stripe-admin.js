@@ -53,12 +53,12 @@ jQuery( function( $ ) {
 				}
 			}).change();
 
-			// Toggle Apple Pay settings.
-			$( '#woocommerce_stripe_apple_pay' ).change( function() {
+			// Toggle Payment Request buttons settings.
+			$( '#woocommerce_stripe_payment_request' ).change( function() {
 				if ( $( this ).is( ':checked' ) ) {
-					$( '#woocommerce_stripe_apple_pay_button, #woocommerce_stripe_apple_pay_button_lang' ).closest( 'tr' ).show();
+					$( '#woocommerce_stripe_payment_request_button_theme, #woocommerce_stripe_payment_request_button_type, #woocommerce_stripe_payment_request_button_height' ).closest( 'tr' ).show();
 				} else {
-					$( '#woocommerce_stripe_apple_pay_button, #woocommerce_stripe_apple_pay_button_lang' ).closest( 'tr' ).hide();
+					$( '#woocommerce_stripe_payment_request_button_theme, #woocommerce_stripe_payment_request_button_type, #woocommerce_stripe_payment_request_button_height' ).closest( 'tr' ).hide();
 				}
 			}).change();
 		}

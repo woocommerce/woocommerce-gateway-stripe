@@ -340,7 +340,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 					throw new Exception( $source->error->message );
 				}
 			} else {
-				$source   = $source->id;
+				$source = $source->id;
 			}
 		} elseif ( isset( $_POST[ 'wc-' . $payment_method . '-payment-token' ] ) && 'new' !== $_POST[ 'wc-' . $payment_method . '-payment-token' ] ) {
 			// Use an existing token, and then process the payment
