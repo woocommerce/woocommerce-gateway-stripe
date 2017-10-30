@@ -78,12 +78,12 @@ class WC_Stripe_API {
 		$user_agent = self::get_user_agent();
 		$app_info   = $user_agent['application'];
 
-		return array(
+		return apply_filters( 'woocommerce_stripe_request_headers', array(
 			'Authorization'              => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
 			'Stripe-Version'             => self::STRIPE_API_VERSION,
 			'User-Agent'                 => $app_info['name'] . '/' . $app_info['version'] . ' (' . $app_info['url'] . ')',
 			'X-Stripe-Client-User-Agent' => json_encode( $user_agent ),
-		);
+		) );
 	}
 
 	/**
