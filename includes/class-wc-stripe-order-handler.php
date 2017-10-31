@@ -311,9 +311,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$errors = new WP_Error();
 		parse_str( $_POST['required_fields'], $required_fields );
 		parse_str( $_POST['all_fields'], $all_fields );
-		$source_type = wc_clean( $_POST['source_type'] );
+		$source_type = isset( $_POST['source_type'] ) ? wc_clean( $_POST['source_type'] ) : '';
 		$validate_shipping_fields = false;
 		$create_account = false;
+
+		array_walk_recursive( $required_fields, 'wc_clean' );
+		array_walk_recursive( $all_fields, 'wc_clean' );
 
 		// Remove unneeded required fields depending on source type.
 		if ( 'stripe_sepa' !== $source_type ) {
@@ -376,8 +379,40 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$errors->add( 'validation', __( 'Email is not valid', 'woocommerce-gateway-stripe' ) );
 		}
 
+		// Check if phone number is valid format.
+		if ( ! empty( $required_fields['billing_phone'] ) ) {
+			$phone = wc_format_phone_number( $required_fields['billing_phone'] );
+
+			if ( '' !== $phone && ! WC_Validation::is_phone( $phone ) ) {
+				/* translators: %s: phone number */
+				$errors->add( 'validation', __( 'Please enter a valid phone number.', 'woocommerce-gateway-stripe' ) );
+			}
+		}
+
+		// Check if postal code is valid format.
+		if ( ! empty( $required_fields['billing_postcode'] ) ) {
+			$country = isset( $required_fields['billing_country'] ) ? $required_fields['billing_country'] : WC()->customer->get_billing_country();
+			$postcode = wc_format_postcode( $required_fields['billing_postcode'], $country );
+
+			if ( '' !== $required_fields['billing_postcode'] && ! WC_Validation::is_postcode( $postcode, $country ) ) {
+				$errors->add( 'validation', __( 'Please enter a valid billing postcode / ZIP.', 'woocommerce-gateway-stripe' ) );
+			}
+		}
+
 		if ( empty( $all_fields['woocommerce_checkout_update_totals'] ) && empty( $all_fields['terms'] ) && apply_filters( 'woocommerce_checkout_show_terms', wc_get_page_id( 'terms' ) > 0 ) ) {
 			$errors->add( 'terms', __( 'You must accept our Terms &amp; Conditions.', 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( WC()->cart->needs_shipping() && $validate_shipping_fields ) {
+			// Check if postal code is valid format.
+			if ( ! empty( $required_fields['shipping_postcode'] ) ) {
+				$country = isset( $required_fields['shipping_country'] ) ? $required_fields['shipping_country'] : WC()->customer->get_shipping_country();
+				$postcode = wc_format_postcode( $required_fields['shipping_postcode'], $country );
+
+				if ( '' !== $required_fields['shipping_postcode'] && ! WC_Validation::is_postcode( $postcode, $country ) ) {
+					$errors->add( 'validation', __( 'Please enter a valid shipping postcode / ZIP.', 'woocommerce-gateway-stripe' ) );
+				}
+			}
 		}
 
 		if ( WC()->cart->needs_shipping() ) {
