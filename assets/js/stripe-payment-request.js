@@ -241,9 +241,16 @@ jQuery( function( $ ) {
 		 *
 		 */
 		addToCart: function() {
+			var product_id = $( '.single_add_to_cart_button' ).val();
+
+			// Check if product is a variable product.
+			if ( $( '.single_variation_wrap' ).length ) {
+				product_id = $( '.single_variation_wrap' ).find( 'input[name="product_id"]' ).val();
+			}
+
 			var data = {
 				security: wc_stripe_payment_request_params.nonce.add_to_cart,
-				product_id: $( '.single_add_to_cart_button' ).val(),
+				product_id: product_id,
 				qty: $( '.quantity .qty' ).val(),
 				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : []
 			};
@@ -268,6 +275,19 @@ jQuery( function( $ ) {
 			});
 		},
 
+		getRequestOptionsFromLocal: function() {
+			return {
+				total: wc_stripe_payment_request_params.product.total,
+				currency: wc_stripe_payment_request_params.checkout.currency_code,
+				country: wc_stripe_payment_request_params.checkout.country_code,
+				requestPayerName: true,
+				requestPayerEmail: true,
+				requestPayerPhone: true,
+				requestShipping: wc_stripe_payment_request_params.product.requestShipping,
+				displayItems: wc_stripe_payment_request_params.product.displayItems
+			};
+		},
+
 		/**
 		 * Starts the payment request
 		 *
@@ -286,9 +306,18 @@ jQuery( function( $ ) {
 				displayItems: cart.order_data.displayItems
 			};
 
+			var paymentDetails = cart.order_data;
+
+			if ( wc_stripe_payment_request_params.is_product_page ) {
+				options = wc_stripe_payment_request.getRequestOptionsFromLocal();
+
+				paymentDetails.total        = wc_stripe_payment_request_params.product.total;
+				paymentDetails.displayItems = wc_stripe_payment_request_params.product.displayItems;
+			}
+
 			var paymentRequest     = stripe.paymentRequest( options );
 			var paymentRequestType = '';
-			var paymentDetails     = cart.order_data;
+			
 
 			var elements = stripe.elements({ locale: wc_stripe_payment_request_params.button.locale });
 			var prButton = elements.create( 'paymentRequestButton', {
@@ -303,24 +332,46 @@ jQuery( function( $ ) {
 			});
 
 			// If on product detail page.
-			if ( wc_stripe_payment_request_params.is_product_page ) {
-				prButton.on( 'click', function( e ) {
-					e.preventDefault();
-					$.when( wc_stripe_payment_request.addToCart() ).then( function( response ) {
-						$.when( paymentRequest.update({ total: response.total, displayItems: response.displayItems }) ).then( function() {
-							paymentRequest.show();
-						});
-					});
-				});
-			}
+			// if ( wc_stripe_payment_request_params.is_product_page ) {
+			// 	prButton.on( 'click', function( e ) {
+			// 		e.preventDefault();
+			// 		$.when( wc_stripe_payment_request.addToCart() ).then( function( response ) {
+			// 			$.when( paymentRequest.update({ total: response.total, displayItems: response.displayItems }) ).then( function() {
+			// 				paymentRequest.show();
+			// 			});
+			// 		});
+			// 	});
+			// }
 
 			// Check the availability of the Payment Request API first.
 			paymentRequest.canMakePayment().then( function( result ) {
 				if ( result ) {
 					paymentRequestType = result.applePay ? 'apple_pay' : 'payment_request_api';
 
-					prButton.mount( '#wc-stripe-payment-request-button' );
-					$( '#wc-stripe-payment-request-button-separator' ).show();
+					if ( wc_stripe_payment_request_params.is_product_page ) {
+						var addToCartButton = $( '.single_add_to_cart_button' );
+
+						prButton.on( 'click', function( e ) {
+							e.preventDefault();
+
+							// First check if product can be added to cart.
+							if ( addToCartButton.is( '.disabled' ) ) {
+								if ( addToCartButton.is( '.wc-variation-is-unavailable' ) ) {
+									window.alert( wc_add_to_cart_variation_params.i18n_unavailable_text );
+								} else if ( addToCartButton.is( '.wc-variation-selection-needed' ) ) {
+									window.alert( wc_add_to_cart_variation_params.i18n_make_a_selection_text );
+								}
+							} else {
+								wc_stripe_payment_request.addToCart();
+								paymentRequest.show();
+							}
+						});
+					}
+
+					if ( $( '#wc-stripe-payment-request-button' ).length ) {
+						prButton.mount( '#wc-stripe-payment-request-button' );
+						$( '#wc-stripe-payment-request-button-separator' ).show();
+					}
 				} else {
 					$( '#wc-stripe-payment-request-button' ).hide();
 					$( '#wc-stripe-payment-request-button-separator' ).hide();
@@ -359,6 +410,46 @@ jQuery( function( $ ) {
 						}
 					});
 				}
+			});
+
+			$( document.body ).on( 'woocommerce_variation_has_changed', function() {
+				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function( response ) {
+					paymentRequest.update({
+						total: response.total,
+						displayItems: response.displayItems
+					});
+				});
+			});
+
+			$( '.quantity' ).on( 'change', '.qty', function() {
+				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function( response ) {
+					paymentRequest.update({
+						total: response.total,
+						displayItems: response.displayItems
+					});
+				});
+			});
+		},
+
+		getSelectedProductData: function() {
+			var product_id = $( '.single_add_to_cart_button' ).val();
+
+			// Check if product is a variable product.
+			if ( $( '.single_variation_wrap' ).length ) {
+				product_id = $( '.single_variation_wrap' ).find( 'input[name="product_id"]' ).val();
+			}
+
+			var data = {
+				security: wc_stripe_payment_request_params.nonce.get_selected_product_data,
+				product_id: product_id,
+				qty: $( '.quantity .qty' ).val(),
+				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : []
+			};
+
+			return $.ajax({
+				type: 'POST',
+				data: data,
+				url:  wc_stripe_payment_request.getAjaxURL( 'get_selected_product_data' )
 			});
 		},
 
