@@ -80,11 +80,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public $bitcoin;
 
 	/**
-	 * Do we accept Apple Pay?
+	 * Do we accept Payment Request?
 	 *
 	 * @var bool
 	 */
-	public $apple_pay;
+	public $payment_request;
 
 	/**
 	 * Apple Pay Domain Set.
@@ -92,13 +92,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @var bool
 	 */
 	public $apple_pay_domain_set;
-
-	/**
-	 * Apple Pay button style.
-	 *
-	 * @var bool
-	 */
-	public $apple_pay_button;
 
 	/**
 	 * Is test mode active?
@@ -163,9 +156,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$this->secret_key              = $this->testmode ? $this->get_option( 'test_secret_key' ) : $this->get_option( 'secret_key' );
 		$this->publishable_key         = $this->testmode ? $this->get_option( 'test_publishable_key' ) : $this->get_option( 'publishable_key' );
 		$this->bitcoin                 = 'USD' === strtoupper( get_woocommerce_currency() ) && 'yes' === $this->get_option( 'stripe_bitcoin' );
-		$this->apple_pay               = 'yes' === $this->get_option( 'apple_pay', 'yes' );
+		$this->payment_request         = 'yes' === $this->get_option( 'payment_request', 'yes' );
 		$this->apple_pay_domain_set    = 'yes' === $this->get_option( 'apple_pay_domain_set', 'no' );
-		$this->apple_pay_button        = $this->get_option( 'apple_pay_button', 'black' );
 		$this->apple_pay_verify_notice = '';
 
 		if ( $this->stripe_checkout ) {
@@ -252,7 +244,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] &&
 			isset( $_GET['tab'] ) && 'checkout' === $_GET['tab'] &&
 			isset( $_GET['section'] ) && 'stripe' === $_GET['section'] &&
-			$this->apple_pay
+			$this->payment_request
 		) {
 			$this->process_apple_pay_verification();
 		}
@@ -361,7 +353,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( $this->apple_pay && ! empty( $this->apple_pay_verify_notice ) ) {
+		if ( $this->apayment_request && ! empty( $this->apple_pay_verify_notice ) ) {
 			$allowed_html = array(
 				'a' => array(
 					'href' => array(),
@@ -377,7 +369,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		 * when setting screen is displayed. So if domain verification is not set,
 		 * something went wrong so lets notify user.
 		 */
-		if ( ! empty( $this->secret_key ) && $this->apple_pay && ! $this->apple_pay_domain_set ) {
+		if ( ! empty( $this->secret_key ) && $this->payment_request && ! $this->apple_pay_domain_set ) {
 			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
 			echo '<div class="error stripe-apple-pay-message"><p>' . sprintf( __( 'Apple Pay domain verification failed. Please check the %1$slog%2$s to see the issue. (Logging must be enabled to see recorded logs)', 'woocommerce-gateway-stripe' ), '<a href="' . admin_url( 'admin.php?page=wc-status&tab=logs' ) . '">', '</a>' ) . '</p></div>';
 		}
