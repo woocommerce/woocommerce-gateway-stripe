@@ -273,6 +273,10 @@ class WC_Stripe_Payment_Request {
 	 * @param object $order
 	 */
 	public function add_order_meta( $order_id, $posted_data, $order ) {
+		if ( empty( $posted_data['payment_request_type'] ) ) {
+			return;
+		}
+
 		if ( 'apple_pay' === $posted_data['payment_request_type'] ) {
 			if ( WC_Stripe_Helper::is_pre_30() ) {
 				update_post_meta( $order_id, '_payment_method_title', 'Apple Pay (Stripe)' );
