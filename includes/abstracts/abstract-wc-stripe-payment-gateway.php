@@ -521,8 +521,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$body = array();
 
+		if ( WC_Stripe_Helper::is_pre_30() ) {
+			$order_currency = get_post_meta( $order_id, '_order_currency', true );
+		} else {
+			$order_currency = $order->get_currency();
+		}
+
 		if ( ! is_null( $amount ) ) {
-			$body['amount'] = WC_Stripe_Helper::get_stripe_amount( $amount );
+			$body['amount'] = WC_Stripe_Helper::get_stripe_amount( $amount, $order_currency );
 		}
 
 		if ( $reason ) {
@@ -531,7 +537,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			);
 		}
 
-		WC_Stripe_Logger::log( "Info: Beginning refund for order $order_id for the amount of {$amount}" );
+		WC_Stripe_Logger::log( "Info: Beginning refund for order {$order->get_transaction_id()} for the amount of {$amount}" );
 
 		$response = WC_Stripe_API::request( $body, 'charges/' . $order->get_transaction_id() . '/refunds' );
 
