@@ -115,7 +115,6 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-alipay.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sepa.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-bitcoin.php' );
-			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-account-email.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-payment-request.php' );
 			require_once( dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-compat.php' );
 			require_once( dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-sepa-compat.php' );
