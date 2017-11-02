@@ -224,7 +224,12 @@ class WC_Stripe_Payment_Request {
 			return $title;
 		}
 
-		$method_title = get_post_meta( $post->ID, '_payment_method_title', true );
+		if ( WC_Stripe_Helper::is_pre_30() ) {
+			$method_title = get_post_meta( $post->ID, '_payment_method_title', true );
+		} else {
+			$order        = wc_get_order( $post->ID );
+			$method_title = $order->get_payment_method_title();
+		}
 
 		if ( 'stripe' === $id && ! empty( $method_title ) && 'Apple Pay (Stripe)' === $method_title ) {
 			return $method_title;
