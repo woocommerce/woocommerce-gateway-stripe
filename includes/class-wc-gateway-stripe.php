@@ -353,7 +353,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( $this->apayment_request && ! empty( $this->apple_pay_verify_notice ) ) {
+		if ( $this->payment_request && ! empty( $this->apple_pay_verify_notice ) ) {
 			$allowed_html = array(
 				'a' => array(
 					'href' => array(),
