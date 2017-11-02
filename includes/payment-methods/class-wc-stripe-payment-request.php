@@ -228,7 +228,7 @@ class WC_Stripe_Payment_Request {
 			$method_title = get_post_meta( $post->ID, '_payment_method_title', true );
 		} else {
 			$order        = wc_get_order( $post->ID );
-			$method_title = $order->get_payment_method_title();
+			$method_title = is_object( $order ) ? $order->get_payment_method_title() : '';
 		}
 
 		if ( 'stripe' === $id && ! empty( $method_title ) && 'Apple Pay (Stripe)' === $method_title ) {
@@ -278,24 +278,26 @@ class WC_Stripe_Payment_Request {
 	 * @param object $order
 	 */
 	public function add_order_meta( $order_id, $posted_data, $order ) {
-		if ( empty( $posted_data['payment_request_type'] ) ) {
+		if ( empty( $_POST['payment_request_type'] ) ) {
 			return;
 		}
 
-		if ( 'apple_pay' === $posted_data['payment_request_type'] ) {
+		$payment_request_type = wc_clean( $_POST['payment_request_type'] );
+
+		if ( 'apple_pay' === $payment_request_type ) {
 			if ( WC_Stripe_Helper::is_pre_30() ) {
 				update_post_meta( $order_id, '_payment_method_title', 'Apple Pay (Stripe)' );
 			} else {
-				$order->update_meta_data( '_payment_method_title', 'Apple Pay (Stripe)' );
+				$order->set_payment_method_title( 'Apple Pay (Stripe)' );
 				$order->save();
 			}
 		}
 
-		if ( 'payment_request_api' === $posted_data['payment_request_type'] ) {
+		if ( 'payment_request_api' === $payment_request_type ) {
 			if ( WC_Stripe_Helper::is_pre_30() ) {
 				update_post_meta( $order_id, '_payment_method_title', 'Chrome Payment Request (Stripe)' );
 			} else {
-				$order->update_meta_data( '_payment_method_title', 'Chrome Payment Request (Stripe)' );
+				$order->set_payment_method_title( 'Chrome Payment Request (Stripe)' );
 				$order->save();
 			}
 		}
