@@ -167,7 +167,7 @@ class WC_Stripe_Payment_Request {
 		global $post;
 
 		$product = wc_get_product( $post->ID );
-		
+
 		$data  = array();
 		$items = array();
 
@@ -354,6 +354,10 @@ class WC_Stripe_Payment_Request {
 			if ( ! is_object( $product ) || ! in_array( ( WC_Stripe_Helper::is_pre_30() ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
 				return;
 			}
+
+			if ( apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false ) ) {
+				return;
+			}
 		}
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
@@ -422,6 +426,10 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
+		if ( is_product() && apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false ) ) {
+			return;
+		}
+
 		if ( is_product() ) {
 			global $post;
 
@@ -465,6 +473,10 @@ class WC_Stripe_Payment_Request {
 		}
 
 		if ( ! is_cart() && ! is_checkout() && ! is_product() && ! isset( $_GET['pay_for_order'] ) ) {
+			return;
+		}
+
+		if ( is_product() && apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false ) ) {
 			return;
 		}
 
