@@ -486,6 +486,9 @@ class WC_Stripe_Apple_Pay extends WC_Gateway_Stripe {
 			if ( 'simple' === ( version_compare( WC_VERSION, '3.0.0', '<' ) ? $product->product_type : $product->get_type() ) ) {
 				WC()->cart->add_to_cart( $product->get_id(), $qty );
 			}
+
+			// Allow other product types to add to cart.
+			do_action( 'woocommerce_add_to_apple_cart', $product, $qty );
 		}
 
 		WC()->cart->calculate_totals();
