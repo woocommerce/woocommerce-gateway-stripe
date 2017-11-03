@@ -331,18 +331,6 @@ jQuery( function( $ ) {
 				}
 			});
 
-			// If on product detail page.
-			// if ( wc_stripe_payment_request_params.is_product_page ) {
-			// 	prButton.on( 'click', function( e ) {
-			// 		e.preventDefault();
-			// 		$.when( wc_stripe_payment_request.addToCart() ).then( function( response ) {
-			// 			$.when( paymentRequest.update({ total: response.total, displayItems: response.displayItems }) ).then( function() {
-			// 				paymentRequest.show();
-			// 			});
-			// 		});
-			// 	});
-			// }
-
 			// Check the availability of the Payment Request API first.
 			paymentRequest.canMakePayment().then( function( result ) {
 				if ( result ) {
