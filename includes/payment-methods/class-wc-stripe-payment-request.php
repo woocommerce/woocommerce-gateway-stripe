@@ -409,7 +409,7 @@ class WC_Stripe_Payment_Request {
 					'locale' => substr( get_locale(), 0, 2 ), // Default format is en_US.
 				),
 				'is_product_page' => is_product(),
-				'product' => $this->get_product_data(),
+				'product'         => $this->get_product_data(),
 			)
 		);
 

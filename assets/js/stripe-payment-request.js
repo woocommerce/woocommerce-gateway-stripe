@@ -157,15 +157,25 @@ jQuery( function( $ ) {
 		abortPayment: function( payment, message ) {
 			payment.complete( 'fail' );
 
-			var $form = $( '.shop_table.cart' ).closest( 'form' );
-			
 			$( '.woocommerce-error' ).remove();
-			
-			$form.before( message );
-			
-			$( 'html, body' ).animate({
-				scrollTop: $form.prev( '.woocommerce-error' ).offset().top
-			}, 600 );
+
+			if ( wc_stripe_payment_request_params.is_product_page ) {
+				var element = $( '.product' );
+
+				element.before( message );
+
+				$( 'html, body' ).animate({
+					scrollTop: element.prev( '.woocommerce-error' ).offset().top
+				}, 600 );
+			} else {
+				var $form = $( '.shop_table.cart' ).closest( 'form' );
+
+				$form.before( message );
+
+				$( 'html, body' ).animate({
+					scrollTop: $form.prev( '.woocommerce-error' ).offset().top
+				}, 600 );
+			}
 		},
 
 		/**
