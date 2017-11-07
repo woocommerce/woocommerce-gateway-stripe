@@ -796,7 +796,52 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
+	 * Normalizes the state/county field because in some
+	 * cases, the state/county field is formatted differently from
+	 * what WC is expecting and throws an error. An example
+	 * for Ireland the county dropdown in Chrome shows "Co. Clare" format
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 */
+	public function normalize_state() {
+		$billing_country  = ! empty( $_POST['billing_country'] ) ? wc_clean( $_POST['billing_country'] ) : '';
+		$shipping_country = ! empty( $_POST['shipping_country'] ) ? wc_clean( $_POST['shipping_country'] ) : '';
+		$billing_state    = ! empty( $_POST['billing_state'] ) ? wc_clean( $_POST['billing_state'] ) : '';
+		$shipping_state   = ! empty( $_POST['shipping_state'] ) ? wc_clean( $_POST['shipping_state'] ) : '';
+
+		if ( $billing_state && $billing_country ) {
+			$valid_states = WC()->countries->get_states( $billing_country );
+
+			// Valid states found for country.
+			if ( ! empty( $valid_states ) && is_array( $valid_states ) && sizeof( $valid_states ) > 0 ) {
+				foreach ( $valid_states as $state_abbr => $state ) {
+					if ( preg_match( '/' . preg_quote( $state ) . '/i', $billing_state ) ) {
+						$_POST['billing_state'] = $state_abbr;
+					}
+				}
+			}
+		}
+
+		if ( $shipping_state && $shipping_country ) {
+			$valid_states = WC()->countries->get_states( $shipping_country );
+
+			// Valid states found for country.
+			if ( ! empty( $valid_states ) && is_array( $valid_states ) && sizeof( $valid_states ) > 0 ) {
+				foreach ( $valid_states as $state_abbr => $state ) {
+					if ( preg_match( '/' . preg_quote( $state ) . '/i', $shipping_state ) ) {
+						$_POST['shipping_state'] = $state_abbr;
+					}
+				}
+			}
+		}
+	}
+
+	/**
 	 * Create order. Security is handled by WC.
+	 *
+	 * @since 3.1.0
+	 * @version 4.0.0
 	 */
 	public function ajax_create_order() {
 		if ( WC()->cart->is_empty() ) {
@@ -806,6 +851,8 @@ class WC_Stripe_Payment_Request {
 		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
 		}
+
+		$this->normalize_state();
 
 		WC()->checkout()->process_checkout();
 
