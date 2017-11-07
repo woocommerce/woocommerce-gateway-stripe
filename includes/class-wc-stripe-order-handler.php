@@ -88,6 +88,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			 */
 			$source_info = WC_Stripe_API::retrieve( 'sources/' . $source );
 
+			if ( ! empty( $source_info->error ) ) {
+				throw new Exception( $source_info->error->message );
+			}
+
 			if ( 'failed' === $source_info->status || 'canceled' === $source_info->status ) {
 				throw new Exception( __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ) );
 			}
