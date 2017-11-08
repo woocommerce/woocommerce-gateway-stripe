@@ -46,10 +46,8 @@ jQuery( function( $ ) {
 			$( '#woocommerce_stripe_stripe_checkout' ).change( function() {
 				if ( $( this ).is( ':checked' ) ) {
 					$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image' ).closest( 'tr' ).show();
-					$( '#woocommerce_stripe_request_payment_api' ).closest( 'tr' ).hide();
 				} else {
 					$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image' ).closest( 'tr' ).hide();
-					$( '#woocommerce_stripe_request_payment_api' ).closest( 'tr' ).show();
 				}
 			}).change();
 
