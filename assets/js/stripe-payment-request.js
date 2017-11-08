@@ -87,20 +87,21 @@ jQuery( function( $ ) {
 			var email    = source.owner.email;
 			var phone    = source.owner.phone;
 			var billing  = source.owner.address;
+			var name     = source.owner.name;
 			var shipping = evt.shippingAddress;
 			var data     = {
 				_wpnonce:                  wc_stripe_payment_request_params.nonce.checkout,
-				billing_first_name:        source.owner.name.split( ' ' ).slice( 0, 1 ).join( ' ' ),
-				billing_last_name:         source.owner.name.split( ' ' ).slice( 1 ).join( ' ' ),
+				billing_first_name:        null !== name ? name.split( ' ' ).slice( 0, 1 ).join( ' ' ) : '',
+				billing_last_name:         null !== name ? name.split( ' ' ).slice( 1 ).join( ' ' ) : '',
 				billing_company:           '',
-				billing_email:             null !== email ? source.owner.email : evt.payerEmail,
-				billing_phone:             null !== phone ? source.owner.phone : evt.payerPhone.replace( '/[() -]/g', '' ),
-				billing_country:           billing.country,
-				billing_address_1:         billing.line1,
-				billing_address_2:         billing.line2,
-				billing_city:              billing.city,
-				billing_state:             billing.state,
-				billing_postcode:          billing.postal_code,
+				billing_email:             null !== email   ? email : evt.payerEmail,
+				billing_phone:             null !== phone   ? phone : evt.payerPhone.replace( '/[() -]/g', '' ),
+				billing_country:           null !== billing ? billing.country : '',
+				billing_address_1:         null !== billing ? billing.line1 : '',
+				billing_address_2:         null !== billing ? billing.line2 : '',
+				billing_city:              null !== billing ? billing.city : '',
+				billing_state:             null !== billing ? billing.state : '',
+				billing_postcode:          null !== billing ? billing.postal_code : '',
 				shipping_first_name:       '',
 				shipping_last_name:        '',
 				shipping_company:          '',
