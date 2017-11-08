@@ -101,6 +101,8 @@ jQuery( function( $ ) {
 			};
 
 			if ( 'yes' === wc_stripe_params.use_elements && $( '#stripe-card-element' ).length ) {
+				style = wc_stripe_params.elements_styling ? wc_stripe_params.elements_styling : style;
+
 				stripe_card = elements.create( 'card', { style: style, hidePostalCode: true } );
 
 				stripe_card.addEventListener( 'change', function( event ) {
