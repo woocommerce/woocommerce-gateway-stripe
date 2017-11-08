@@ -353,10 +353,9 @@ jQuery( function( $ ) {
 						var addToCartButton = $( '.single_add_to_cart_button' );
 
 						prButton.on( 'click', function( e ) {
-							e.preventDefault();
-
 							// First check if product can be added to cart.
 							if ( addToCartButton.is( '.disabled' ) ) {
+								e.preventDefault();
 								if ( addToCartButton.is( '.wc-variation-is-unavailable' ) ) {
 									window.alert( wc_add_to_cart_variation_params.i18n_unavailable_text );
 								} else if ( addToCartButton.is( '.wc-variation-selection-needed' ) ) {
@@ -364,7 +363,6 @@ jQuery( function( $ ) {
 								}
 							} else {
 								wc_stripe_payment_request.addToCart();
-								paymentRequest.show();
 							}
 						});
 					}
