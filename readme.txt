@@ -4,7 +4,7 @@ Tags: credit card, stripe, woocommerce
 Requires at least: 4.4
 Tested up to: 4.8
 Requires PHP: 5.6
-Stable tag: 4.0.0-beta-1
+Stable tag: 4.0.0-rc-1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -12,7 +12,7 @@ Take credit card payments on your store using Stripe.
 
 == Description ==
 
-Accept Visa, MasterCard, American Express, Discover, JCB, Diners Club, and more cards directly on your store with the Stripe payment gateway for WooCommerce, including Apple Pay for mobile and desktop.
+Accept Visa, MasterCard, American Express, Discover, JCB, Diners Club, SEPA, Sofort, iDeal, Giropay, Alipay and more directly on your store with the Stripe payment gateway for WooCommerce, including Apple Pay for mobile and desktop.
 
 = Take Credit card payments easily and directly on your store =
 
@@ -41,15 +41,15 @@ Stripe also supports the [Subscriptions extension](https://woocommerce.com/produ
 
 = Apple Pay Support =
 
-WooCommerce Stripe now includes [Apple Pay](https://stripe.com/apple-pay) support, which means customers can pay using payment details associated to their Apple ID. Checkout is now just a thumbprint away. on both mobile and desktop.
+WooCommerce Stripe now includes [Apple Pay](https://stripe.com/apple-pay) support, which means customers can pay using payment details associated to their Apple ID. Checkout is now just a thumbprint away. on both mobile and desktop. Only supports simple and variable products for now. More support to come.
 
 = Web Payments API Support =
 
-WooCommerce Stripe now includes [Web Payments API](https://www.w3.org/TR/payment-request/) support, which means customers can pay using payment details associated to their mobile devices, in browsers supporting the Web Payments API (Chrome for Android, amongst others). Checkout is now just a few taps away. on mobile.
+WooCommerce Stripe now includes [Web Payments API](https://www.w3.org/TR/payment-request/) support, which means customers can pay using payment details associated to their mobile devices, in browsers supporting the Web Payments API (Chrome for Android, amongst others). Checkout is now just a few taps away. on mobile. Only supports simple and variable products for now. More support to come.
 
 == Installation ==
 
-Please note, v3 of this gateway requires WooCommerce 2.5 and above.
+Please note, v4 of this gateway requires WooCommerce 2.6 and above.
 
 You can download an [older version of this gateway for older versions of WooCommerce from here](https://wordpress.org/plugins/woocommerce-gateway-stripe/developers/).
 
