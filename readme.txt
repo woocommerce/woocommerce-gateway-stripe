@@ -7,6 +7,7 @@ Requires PHP: 5.6
 Stable tag: 4.0.0-rc-1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
+Attributions: thorsten-stripe
 
 Take credit card payments on your store using Stripe.
 
