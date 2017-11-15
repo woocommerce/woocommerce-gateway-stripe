@@ -278,7 +278,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				}
 			}
 
-			if ( empty( $show_ssl_notice ) && 'yes' === $options['enabled'] ) {
+			if ( empty( $show_ssl_notice ) && isset( $options['enabled'] ) && 'yes' === $options['enabled'] ) {
 				// Show message if enabled and FORCE SSL is disabled and WordpressHTTPS plugin is not detected.
 				if ( ( function_exists( 'wc_site_is_https' ) && ! wc_site_is_https() ) && ( 'no' === get_option( 'woocommerce_force_ssl_checkout' ) && ! class_exists( 'WordPressHTTPS' ) ) ) {
 					/* translators: 1) link 2) link */
