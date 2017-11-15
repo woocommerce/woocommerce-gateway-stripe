@@ -625,8 +625,10 @@ class WC_Stripe_Payment_Request {
 				throw new Exception( __( 'Unable to find shipping method for address.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			// Auto select the first shipping method.
-			WC()->session->set( 'chosen_shipping_methods', array( $data[0]['id'] ) );
+			if ( isset( $data[0] ) ) {
+				// Auto select the first shipping method.
+				WC()->session->set( 'chosen_shipping_methods', array( $data[0]['id'] ) );
+			}
 
 			WC()->cart->calculate_totals();
 
