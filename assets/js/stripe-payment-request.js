@@ -365,6 +365,32 @@ jQuery( function( $ ) {
 								wc_stripe_payment_request.addToCart();
 							}
 						});
+
+						$( document.body ).on( 'woocommerce_variation_has_changed', function() {
+							$( '#wc-stripe-payment-request-button' ).block({ message: null });
+
+							$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function( response ) {
+								$.when( paymentRequest.update({
+									total: response.total,
+									displayItems: response.displayItems
+								}) ).then( function() {
+									$( '#wc-stripe-payment-request-button' ).unblock();
+								});
+							});
+						});
+
+						$( '.quantity' ).on( 'change', '.qty', function() {
+							$( '#wc-stripe-payment-request-button' ).block({ message: null });
+
+							$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function( response ) {
+								$.when( paymentRequest.update({
+									total: response.total,
+									displayItems: response.displayItems
+								}) ).then( function() {
+									$( '#wc-stripe-payment-request-button' ).unblock();
+								});
+							});
+						});
 					}
 
 					if ( $( '#wc-stripe-payment-request-button' ).length ) {
@@ -409,32 +435,6 @@ jQuery( function( $ ) {
 						}
 					});
 				}
-			});
-
-			$( document.body ).on( 'woocommerce_variation_has_changed', function() {
-				$( '#wc-stripe-payment-request-button' ).block({ message: null });
-
-				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function( response ) {
-					$.when( paymentRequest.update({
-						total: response.total,
-						displayItems: response.displayItems
-					}) ).then( function() {
-						$( '#wc-stripe-payment-request-button' ).unblock();
-					});
-				});
-			});
-
-			$( '.quantity' ).on( 'change', '.qty', function() {
-				$( '#wc-stripe-payment-request-button' ).block({ message: null });
-
-				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function( response ) {
-					$.when( paymentRequest.update({
-						total: response.total,
-						displayItems: response.displayItems
-					}) ).then( function() {
-						$( '#wc-stripe-payment-request-button' ).unblock();
-					});
-				});
 			});
 		},
 
