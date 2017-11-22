@@ -1068,7 +1068,7 @@ class WC_Stripe_Payment_Request {
 			'displayItems' => $items,
 			'total'      => array(
 				'label'   => $this->total_label,
-				'amount'  => max( 0, apply_filters( 'woocommerce_calculated_total', WC_Stripe_Helper::get_stripe_amount( $order_total ) ) ),
+				'amount'  => max( 0, apply_filters( 'woocommerce_calculated_total', WC_Stripe_Helper::get_stripe_amount( $order_total ), $order_total, WC()->cart ) ),
 				'pending' => false,
 			),
 		);
