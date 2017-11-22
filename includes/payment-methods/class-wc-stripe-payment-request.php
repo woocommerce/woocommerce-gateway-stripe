@@ -64,6 +64,11 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
+		// Don't load for change payment method page.
+		if ( isset( $_GET['change_payment_method'] ) ) {
+			return;
+		}
+
 		$this->init();
 	}
 
