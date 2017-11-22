@@ -308,24 +308,26 @@ jQuery( function( $ ) {
 		 * @version 4.0.0
 		 */
 		startPaymentRequest: function( cart ) {
-			var options = {
-				total: cart.order_data.total,
-				currency: cart.order_data.currency,
-				country: cart.order_data.country_code,
-				requestPayerName: true,
-				requestPayerEmail: true,
-				requestPayerPhone: true,
-				requestShipping: cart.shipping_required ? true : false,
-				displayItems: cart.order_data.displayItems
-			};
-
-			var paymentDetails = cart.order_data;
+			var paymentDetails,
+				options;
 
 			if ( wc_stripe_payment_request_params.is_product_page ) {
 				options = wc_stripe_payment_request.getRequestOptionsFromLocal();
 
-				paymentDetails.total        = wc_stripe_payment_request_params.product.total;
-				paymentDetails.displayItems = wc_stripe_payment_request_params.product.displayItems;
+				paymentDetails = options;
+			} else {
+				options = {
+					total: cart.order_data.total,
+					currency: cart.order_data.currency,
+					country: cart.order_data.country_code,
+					requestPayerName: true,
+					requestPayerEmail: true,
+					requestPayerPhone: true,
+					requestShipping: cart.shipping_required ? true : false,
+					displayItems: cart.order_data.displayItems
+				};
+
+				paymentDetails = cart.order_data;
 			}
 
 			var paymentRequest     = stripe.paymentRequest( options );
