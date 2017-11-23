@@ -73,7 +73,7 @@ return apply_filters( 'wc_stripe_settings',
 		'statement_descriptor' => array(
 			'title'       => __( 'Statement Descriptor', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
-			'description' => __( 'Extra information about a charge. This will appear on your customer’s credit card statement.', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'This may be up to 22 characters. The statement description must contain at least one letter, may not include ><"\' characters, and will appear on your customer\'s statement in capital letters.' ),
 			'default'     => '',
 			'desc_tip'    => true,
 		),
