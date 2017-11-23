@@ -153,7 +153,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		switch ( WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method() ) {
 			case 'stripe':
-				$post_data['statement_descriptor'] = substr( $statement_descriptor, 0, 22 );
+				$post_data['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor );
 				$post_data['capture']              = $capture ? 'true' : 'false';
 				break;
 		}

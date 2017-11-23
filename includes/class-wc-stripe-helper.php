@@ -226,4 +226,25 @@ class WC_Stripe_Helper {
 
 		return false;
 	}
+
+	/**
+	 * Sanitize statement descriptor text.
+	 *
+	 * Stripe requires max of 22 characters and no
+	 * special characters with ><"'.
+	 *
+	 * @since 4.0.0
+	 * @param string $statement_descriptor
+	 * @return string $statement_descriptor Sanitized statement descriptor
+	 */
+	public static function clean_statement_descriptor( $statement_descriptor = '' ) {
+		$disallowed_characters = array( '<', '>', '"', "'" );
+
+		// Remove special characters.
+		$statement_descriptor = str_replace( $disallowed_characters, '', $statement_descriptor );
+
+		$statement_descriptor = substr( $statement_descriptor, 0, 22 );
+
+		return $statement_descriptor;
+	}
 }

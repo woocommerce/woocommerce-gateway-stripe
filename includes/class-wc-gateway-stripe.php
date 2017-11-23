@@ -146,8 +146,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$this->enabled                 = $this->get_option( 'enabled' );
 		$this->testmode                = 'yes' === $this->get_option( 'testmode' );
 		$this->capture                 = 'yes' === $this->get_option( 'capture', 'yes' );
-		$this->statement_descriptor    = $this->get_option( 'statement_descriptor', wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) );
-		$this->statement_descriptor    = str_replace( "'", '', $this->statement_descriptor );
+		$this->statement_descriptor    = WC_Stripe_Helper::clean_statement_descriptor( $this->get_option( 'statement_descriptor' ) );
 		$this->three_d_secure          = 'yes' === $this->get_option( 'three_d_secure' );
 		$this->stripe_checkout         = 'yes' === $this->get_option( 'stripe_checkout' );
 		$this->stripe_checkout_locale  = $this->get_option( 'stripe_checkout_locale' );

@@ -45,7 +45,7 @@ class WC_Stripe_Payment_Request {
 		$this->stripe_settings         = get_option( 'woocommerce_stripe_settings', array() );
 		$this->publishable_key         = $this->get_publishable_key();
 		$this->stripe_checkout_enabled = isset( $this->stripe_settings['stripe_checkout'] ) && 'yes' === $this->stripe_settings['stripe_checkout'];
-		$this->total_label             = ! empty( $this->stripe_settings['statement_descriptor'] ) ? $this->stripe_settings['statement_descriptor'] : wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
+		$this->total_label             = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
 
 		// If both site title and statement descriptor is not set. Fallback.
 		if ( empty( $this->total_label ) ) {
