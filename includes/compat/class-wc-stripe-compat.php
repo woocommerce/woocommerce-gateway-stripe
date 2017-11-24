@@ -192,6 +192,11 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 			/* translators: error message */
 			$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->get_error_message() ) );
 		}
+
+		if ( ! empty( $response->error ) ) {
+			/* translators: error message */
+			$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->error->message ) );
+		}
 	}
 
 	/**

@@ -192,6 +192,11 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 			/* translators: error message */
 			$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->get_error_message() ) );
 		}
+
+		if ( ! empty( $response->error ) ) {
+			/* translators: error message */
+			$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->error->message ) );
+		}
 	}
 
 	/**
