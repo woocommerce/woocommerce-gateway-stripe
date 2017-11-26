@@ -47,7 +47,7 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 			return false;
 		}
 
-		return true;
+		return $display_tokenization;
 	}
 
 	/**

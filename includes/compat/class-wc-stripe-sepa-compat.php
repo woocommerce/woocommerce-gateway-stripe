@@ -47,7 +47,7 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 			return false;
 		}
 
-		return true;
+		return $display_tokenization;
 	}
 
 	/**
