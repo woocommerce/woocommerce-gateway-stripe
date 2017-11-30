@@ -300,7 +300,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$details['name']                   = $billing_first_name . ' ' . $billing_last_name;
 		$details['email']                  = WC_Stripe_Helper::is_pre_30() ? $order->billing_email : $order->get_billing_email();
-		$details['phone']                  = WC_Stripe_Helper::is_pre_30() ? $order->billing_phone : $order->get_billing_phone();
+
+		$phone                             = WC_Stripe_Helper::is_pre_30() ? $order->billing_phone : $order->get_billing_phone();
+
+		if ( ! empty( $phone ) ) {
+			$details['phone']              = $phone;
+		}
+
 		$details['address']['line1']       = WC_Stripe_Helper::is_pre_30() ? $order->billing_address_1 : $order->get_billing_address_1();
 		$details['address']['line2']       = WC_Stripe_Helper::is_pre_30() ? $order->billing_address_2 : $order->get_billing_address_2();
 		$details['address']['state']       = WC_Stripe_Helper::is_pre_30() ? $order->billing_state : $order->get_billing_state();
@@ -491,7 +497,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param object $order The order object
 	 * @param int $balance_transaction_id
 	 */
-	public function update_fees( $order, $balance_transaction_id  ) {
+	public function update_fees( $order, $balance_transaction_id ) {
 		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 
 		$balance_transaction = WC_Stripe_API::retrieve( 'balance/history/' . $balance_transaction_id );
