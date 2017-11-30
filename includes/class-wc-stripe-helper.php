@@ -25,7 +25,7 @@ class WC_Stripe_Helper {
 		if ( in_array( strtolower( $currency ), self::no_decimal_currencies() ) ) {
 			return absint( $total );
 		} else {
-			return absint( wc_format_decimal( ( $total * 100 ), wc_get_price_decimals() ) ); // In cents.
+			return absint( wc_format_decimal( ( (float) $total * 100 ), wc_get_price_decimals() ) ); // In cents.
 		}
 	}
 
