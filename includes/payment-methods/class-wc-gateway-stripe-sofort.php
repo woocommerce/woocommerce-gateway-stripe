@@ -306,8 +306,11 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 		$post_data['type']                 = 'sofort';
 		$post_data['owner']                = $this->get_owner_details( $order );
 		$post_data['redirect']             = array( 'return_url' => $return_url );
-		$post_data['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $this->statement_descriptor );
 		$post_data['sofort']               = array( 'country' => $bank_country );
+
+		if ( ! empty( $this->statement_descriptor ) ) {
+			$post_data['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $this->statement_descriptor );
+		}
 
 		WC_Stripe_Logger::log( 'Info: Begin creating SOFORT source' );
 
