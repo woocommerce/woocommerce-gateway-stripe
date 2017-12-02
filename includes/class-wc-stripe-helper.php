@@ -81,9 +81,11 @@ class WC_Stripe_Helper {
 	/**
 	 * Stripe uses smallest denomination in currencies such as cents.
 	 * We need to format the returned currency from Stripe into human readable form.
+	 * The amount is not used in any calculations so returning string is sufficient.
 	 *
 	 * @param object $balance_transaction
 	 * @param string $type Type of number to format
+	 * @return string
 	 */
 	public static function format_balance_fee( $balance_transaction, $type = 'fee' ) {
 		if ( ! is_object( $balance_transaction ) ) {
