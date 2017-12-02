@@ -243,7 +243,7 @@ class WC_Stripe_Helper {
 		// Remove special characters.
 		$statement_descriptor = str_replace( $disallowed_characters, '', $statement_descriptor );
 
-		$statement_descriptor = substr( $statement_descriptor, 0, 22 );
+		$statement_descriptor = substr( trim( $statement_descriptor ), 0, 22 );
 
 		return $statement_descriptor;
 	}
