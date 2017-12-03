@@ -28,7 +28,7 @@ install:
 
 before_script:
   - phpenv config-rm xdebug.ini
-  - bash tests/bin/install.sh wc_bookings_test root '' localhost $WP_VERSION
+  - bash tests/bin/install.sh wc_stripe_test root '' localhost $WP_VERSION
   - bash tests/bin/travis.sh before
 
 #save node_modules to speed up build
