@@ -6,7 +6,7 @@ import { StoreOwnerFlow as Base } from 'wc-e2e-page-objects';
 /**
  * Internal dependencies
  */
-
+import WPAdminWCSettingsCheckoutStripe from './wp-admin-wc-settings-checkout-stripe.js';
 
 export default class StoreOwnerFlow extends Base {
 	constructor( driver, args = {} ) {
@@ -24,7 +24,6 @@ export default class StoreOwnerFlow extends Base {
 		args = Object.assign(
 			{
 				enable: true,
-				useSandbox: true
 			},
 			args
 		);
@@ -39,12 +38,6 @@ export default class StoreOwnerFlow extends Base {
 		}
 		if ( args.testPublishableSecret ) {
 			settings.setTestPublishableSecret( args.testPublishableSecret );
-		}
-		if ( args.useSandbox ) {
-			settings.checkUseSandbox();
-		}
-		if ( args.paymentCapture ) {
-			settings.selectPaymentCapture( args.paymentCapture );
 		}
 
 		return settings.saveChanges();

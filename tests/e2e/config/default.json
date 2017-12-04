@@ -12,12 +12,15 @@
     },
     "startBrowserTimeoutMs": 30000,
     "mochaTimeoutMs": 120000,
+    "products": {
+        "onePayment": "/product/hoodie-with-logo"
+    },
     "stripe": [
             {
                 "country": "United States",
                 "currency": "United States Dollars ($)",
                 "testPublishableKey": "",
-                "testPublishableSecret": "",
+                "testPublishableSecretKey": "",
                 "useSandbox": true
             }
     ]

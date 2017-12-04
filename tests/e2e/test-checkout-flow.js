@@ -24,7 +24,20 @@ test.describe( 'Checkout flow', function() {
 	test.before( t.startBrowser );
 
 	test.describe( 'One-time payment', function() {
+		config.get( 'stripe' ).forEach( stripeSetting => {
+			test.before( () => {
+				t.setStripeSettings( stripeSetting );
+			} );
 
+			test.beforeEach( t.asGuestCustomer );
+
+			test.it( 'Credit card', function() {
+				t.openOnePaymentProduct().addToCart();
+				t.payWithStripe();
+
+				assert.eventually.ok( t.redirectedTo( '/checkout/order-received/' ) );
+			} );
+		} );
 	} );
 
 	test.after( t.quitBrowser );
