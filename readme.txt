@@ -77,6 +77,10 @@ Yes!
 
 Yes it does - production and sandbox mode is driven by the API keys you use.
 
+= Does this require an SSL certificate? =
+
+Yes! In live mode, an SSL certificate must be installed on your site to use Stripe. In addition to SSL encryption, Stripe provides an extra JavaScript method to secure card data.
+
 = Where can I find documentation? =
 
 For help setting up and configuring, please refer to our [user guide](https://docs.woothemes.com/document/stripe/)
