@@ -75,6 +75,10 @@ Automatic updates should work like a charm; as always though, ensure you backup 
 
 Yes!
 
+= Does this require an SSL certificate? =
+
+Yes! In live mode, an SSL certificate must be installed on your site to use Stripe. In addition to SSL encryption, Stripe provides an extra JavaScript method to secure card data.
+
 = Does this support both production mode and sandbox mode for testing? =
 
 Yes it does - production and sandbox mode is driven by the API keys you use.
