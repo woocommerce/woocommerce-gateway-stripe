@@ -254,7 +254,7 @@ jQuery( function( $ ) {
 			var token_action = function( res ) {
 				$form.find( 'input.stripe_token' ).remove();
 				$form.append( '<input type="hidden" class="stripe_token" name="stripe_token" value="' + res.id + '"/>' );
-				$form.append( "<input type='hidden' class='stripe-checkout-object' name='stripe_checkout_object' value='" + JSON.stringify( res ) + "'/>" );
+				$form.append( "<input type='hidden' class='stripe-checkout-object' name='stripe_checkout_object' value='" + wc_stripe_form.prepareSourceToServer( res ) + "'/>" );
 				wc_stripe_form.stripe_submit = true;
 
 				if ( $( 'form#add_payment_method' ).length ) {
@@ -617,11 +617,26 @@ jQuery( function( $ ) {
 			wc_stripe_form.reset();
 		},
 
+		prepareSourceToServer: function( source ) {
+			var preparedSource = {
+				id:      source.id,
+				card:    source.card ? source.card : '',
+				bitcoin: source.bitcoin ? source.bitcoin : '',
+				flow:    source.flow,
+				object:  source.object,
+				status:  source.status,
+				type:    source.type,
+				usage:   source.usage
+			};
+
+			return preparedSource;
+		},
+
 		processStripeResponse: function( source ) {
 			wc_stripe_form.reset();
 
 			// Insert the Source into the form so it gets submitted to the server.
-			wc_stripe_form.form.append( "<input type='hidden' class='stripe-source' name='stripe_source' value='" + JSON.stringify( source ) + "'/>" );
+			wc_stripe_form.form.append( "<input type='hidden' class='stripe-source' name='stripe_source' value='" + JSON.stringify( wc_stripe_form.prepareSourceToServer( source ) ) + "'/>" );
 
 			if ( $( 'form#add_payment_method' ).length ) {
 				$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );

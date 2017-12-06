@@ -162,33 +162,10 @@ module.exports = function( grunt ) {
 	});
 
 	// Load NPM tasks to be used here
-	grunt.loadNpmTasks( 'grunt-shell' );
-	grunt.loadNpmTasks( 'grunt-sass' );
-	grunt.loadNpmTasks( 'grunt-contrib-cssmin' );
-	grunt.loadNpmTasks( 'grunt-contrib-jshint' );
 	grunt.loadNpmTasks( 'grunt-contrib-uglify' );
-	grunt.loadNpmTasks( 'grunt-contrib-watch' );
-	grunt.loadNpmTasks( 'grunt-wp-i18n' );
-	grunt.loadNpmTasks( 'grunt-checktextdomain' );
 
 	// Register tasks
 	grunt.registerTask( 'default', [
-		'sass',
-		'cssmin',
-		'jshint',
 		'uglify'
 	]);
-
-	// Just an alias for pot file generation
-	grunt.registerTask( 'pot', [
-		'makepot',
-		'shell:txpush'
-	]);
-
-	grunt.registerTask( 'dev', [
-		'default',
-		'shell:txpull',
-		'makepot'
-	]);
-
 };
