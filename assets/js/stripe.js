@@ -7,7 +7,9 @@ jQuery( function( $ ) {
 
 	if ( 'yes' === wc_stripe_params.use_elements ) {
 		var elements = stripe.elements(),
-			stripe_card;
+			stripe_card,
+			stripe_exp,
+			stripe_cvc;
 	}
 
 	/**
@@ -103,15 +105,45 @@ jQuery( function( $ ) {
 			if ( 'yes' === wc_stripe_params.use_elements && $( '#stripe-card-element' ).length ) {
 				style = wc_stripe_params.elements_styling ? wc_stripe_params.elements_styling : style;
 
-				stripe_card = elements.create( 'card', { style: style, hidePostalCode: true } );
+				if ( 'yes' === wc_stripe_params.inline_cc_form ) {
+					stripe_card = elements.create( 'card', { style: style, hidePostalCode: true } );
 
-				stripe_card.addEventListener( 'change', function( event ) {
-					wc_stripe_form.onCCFormChange();
+					stripe_card.addEventListener( 'change', function( event ) {
+						wc_stripe_form.onCCFormChange();
 
-					if ( event.error ) {
-						$( document.body ).trigger( 'stripeError', event );
-					}
-				});
+						if ( event.error ) {
+							$( document.body ).trigger( 'stripeError', event );
+						}
+					} );
+				} else {
+					stripe_card = elements.create( 'cardNumber', { style: style } );
+					stripe_exp  = elements.create( 'cardExpiry', { style: style } );
+					stripe_cvc  = elements.create( 'cardCvc', { style: style } );
+
+					stripe_card.addEventListener( 'change', function( event ) {
+						wc_stripe_form.onCCFormChange();
+
+						if ( event.error ) {
+							$( document.body ).trigger( 'stripeError', event );
+						}
+					} );
+
+					stripe_exp.addEventListener( 'change', function( event ) {
+						wc_stripe_form.onCCFormChange();
+
+						if ( event.error ) {
+							$( document.body ).trigger( 'stripeError', event );
+						}
+					} );
+
+					stripe_cvc.addEventListener( 'change', function( event ) {
+						wc_stripe_form.onCCFormChange();
+
+						if ( event.error ) {
+							$( document.body ).trigger( 'stripeError', event );
+						}
+					} );
+				}
 
 				/**
 				 * Only in checkout page we need to delay the mounting of the
@@ -121,13 +153,31 @@ jQuery( function( $ ) {
 					$( document.body ).on( 'updated_checkout', function() {
 						// Don't mount elements a second time.
 						if ( stripe_card ) {
-							stripe_card.unmount( '#stripe-card-element' );
+							if ( 'yes' === wc_stripe_params.inline_cc_form ) {
+								stripe_card.unmount( '#stripe-card-element' );
+							} else {
+								stripe_card.unmount( '#stripe-card-element' );
+								stripe_exp.unmount( '#stripe-exp-element' );
+								stripe_cvc.unmount( '#stripe-cvc-element' );
+							}
 						}
 
-						stripe_card.mount( '#stripe-card-element' );
+						if ( 'yes' === wc_stripe_params.inline_cc_form ) {
+							stripe_card.mount( '#stripe-card-element' );
+						} else {
+							stripe_card.mount( '#stripe-card-element' );
+							stripe_exp.mount( '#stripe-exp-element' );
+							stripe_cvc.mount( '#stripe-cvc-element' );
+						}
 					});
 				} else if ( $( 'form#add_payment_method' ).length || $( 'form#order_review' ).length ) {
-					stripe_card.mount( '#stripe-card-element' );
+					if ( 'yes' === wc_stripe_params.inline_cc_form ) {
+						stripe_card.mount( '#stripe-card-element' );
+					} else {
+						stripe_card.mount( '#stripe-card-element' );
+						stripe_exp.mount( '#stripe-exp-element' );
+						stripe_cvc.mount( '#stripe-cvc-element' );
+					}
 				}
 			}
 		},

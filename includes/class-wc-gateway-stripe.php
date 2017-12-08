@@ -108,6 +108,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public $apple_pay_verify_notice;
 
 	/**
+	 * Inline CC form styling
+	 *
+	 * @var string
+	 */
+	public $inline_cc_form;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -145,6 +152,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$this->description             = $this->get_option( 'description' );
 		$this->enabled                 = $this->get_option( 'enabled' );
 		$this->testmode                = 'yes' === $this->get_option( 'testmode' );
+		$this->inline_cc_form          = 'yes' === $this->get_option( 'inline_cc_form' );
 		$this->capture                 = 'yes' === $this->get_option( 'capture', 'yes' );
 		$this->statement_descriptor    = WC_Stripe_Helper::clean_statement_descriptor( $this->get_option( 'statement_descriptor' ) );
 		$this->three_d_secure          = 'yes' === $this->get_option( 'three_d_secure' );
@@ -467,9 +475,22 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				<?php esc_html_e( 'Credit or debit card', 'woocommerce-gateway-stripe' ); ?>
 			</label>
 
-			<div id="stripe-card-element" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;">
-			<!-- a Stripe Element will be inserted here. -->
-			</div>
+			<?php if ( $this->inline_cc_form ) { ?>
+				<div id="stripe-card-element" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;">
+				<!-- a Stripe Element will be inserted here. -->
+				</div>
+			<?php } else { ?>
+				<div id="stripe-card-element" class="form-row form-row-wide" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;">
+				<!-- a Stripe Element will be inserted here. -->
+				</div>
+				<div id="stripe-exp-element" class="form-row form-row-first" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;">
+				<!-- a Stripe Element will be inserted here. -->
+				</div>
+				<div id="stripe-cvc-element" class="form-row form-row-last" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;">
+				<!-- a Stripe Element will be inserted here. -->
+				</div>
+				<div class="clear"></div>
+			<?php } ?>
 
 			<!-- Used to display form errors -->
 			<div class="stripe-source-errors" role="alert"></div>
@@ -543,6 +564,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$stripe_params['no_sepa_owner_msg']                       = __( 'Please enter your IBAN account name.', 'woocommerce-gateway-stripe' );
 		$stripe_params['no_sepa_iban_msg']                        = __( 'Please enter your IBAN account number.', 'woocommerce-gateway-stripe' );
 		$stripe_params['allow_prepaid_card']                      = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
+		$stripe_params['inline_cc_form']                          = $this->inline_cc_form ? 'yes' : 'no';
 		$stripe_params['stripe_checkout_require_billing_address'] = apply_filters( 'wc_stripe_checkout_require_billing_address', false ) ? 'yes' : 'no';
 		$stripe_params['is_checkout']                             = ( is_checkout() && empty( $_GET['pay_for_order'] ) );
 		$stripe_params['return_url']                              = $this->get_stripe_return_url();

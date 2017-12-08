@@ -70,6 +70,13 @@ return apply_filters( 'wc_stripe_settings',
 			'default'     => '',
 			'desc_tip'    => true,
 		),
+		'inline_cc_form' => array(
+			'title'       => __( 'Inline Credit Card Form', 'woocommerce-gateway-stripe' ),
+			'type'        => 'checkbox',
+			'description' => __( 'Choose the style you want to show for your credit card form. When unchecked, the credit card form will display separate credit card number field, expiry date field and cvc field.', 'woocommerce-gateway-stripe' ),
+			'default'     => 'no',
+			'desc_tip'    => true,
+		),
 		'statement_descriptor' => array(
 			'title'       => __( 'Statement Descriptor', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
