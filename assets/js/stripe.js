@@ -90,11 +90,10 @@ jQuery( function( $ ) {
 					this.reset
 				);
 
-			var style = {
+			var elementStyles = {
 				base: {
 					iconColor: '#666EE8',
 					color: '#31325F',
-					lineHeight: '45px',
 					fontSize: '15px',
 					'::placeholder': {
 				  		color: '#CFD7E0',
@@ -102,11 +101,18 @@ jQuery( function( $ ) {
 				}
 			};
 
+			var elementClasses = {
+				focus: 'focused',
+				empty: 'empty',
+				invalid: 'invalid',
+			};
+
 			if ( 'yes' === wc_stripe_params.use_elements && $( '#stripe-card-element' ).length ) {
-				style = wc_stripe_params.elements_styling ? wc_stripe_params.elements_styling : style;
+				elementStyles  = wc_stripe_params.elements_styling ? wc_stripe_params.elements_styling : elementStyles;
+				elementClasses = wc_stripe_params.elements_classes ? wc_stripe_params.elements_classes : elementClasses;
 
 				if ( 'yes' === wc_stripe_params.inline_cc_form ) {
-					stripe_card = elements.create( 'card', { style: style, hidePostalCode: true } );
+					stripe_card = elements.create( 'card', { style: elementStyles, hidePostalCode: true } );
 
 					stripe_card.addEventListener( 'change', function( event ) {
 						wc_stripe_form.onCCFormChange();
@@ -116,9 +122,9 @@ jQuery( function( $ ) {
 						}
 					} );
 				} else {
-					stripe_card = elements.create( 'cardNumber', { style: style } );
-					stripe_exp  = elements.create( 'cardExpiry', { style: style } );
-					stripe_cvc  = elements.create( 'cardCvc', { style: style } );
+					stripe_card = elements.create( 'cardNumber', { style: elementStyles, classes: elementClasses } );
+					stripe_exp  = elements.create( 'cardExpiry', { style: elementStyles, classes: elementClasses } );
+					stripe_cvc  = elements.create( 'cardCvc', { style: elementStyles, classes: elementClasses } );
 
 					stripe_card.addEventListener( 'change', function( event ) {
 						wc_stripe_form.onCCFormChange();

@@ -476,17 +476,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			</label>
 
 			<?php if ( $this->inline_cc_form ) { ?>
-				<div id="stripe-card-element" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;">
+				<div id="stripe-card-element" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;padding:10px 5px;">
 				<!-- a Stripe Element will be inserted here. -->
 				</div>
 			<?php } else { ?>
-				<div id="stripe-card-element" class="form-row form-row-wide" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;">
+				<div id="stripe-card-element" class="form-row form-row-wide" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;padding:10px 5px;">
 				<!-- a Stripe Element will be inserted here. -->
 				</div>
-				<div id="stripe-exp-element" class="form-row form-row-first" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;">
+				<div id="stripe-exp-element" class="form-row form-row-first" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;padding:10px 5px;">
 				<!-- a Stripe Element will be inserted here. -->
 				</div>
-				<div id="stripe-cvc-element" class="form-row form-row-last" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;">
+				<div id="stripe-cvc-element" class="form-row form-row-last" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;padding:10px 5px;">
 				<!-- a Stripe Element will be inserted here. -->
 				</div>
 				<div class="clear"></div>
@@ -575,6 +575,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$stripe_params['is_stripe_checkout']                      = $this->stripe_checkout ? 'yes' : 'no';
 		$stripe_params['is_change_payment_page']                  = ( isset( $_GET['pay_for_order'] ) || isset( $_GET['change_payment_method'] ) ) ? 'yes' : 'no';
 		$stripe_params['elements_styling']                        = apply_filters( 'wc_stripe_elements_styling', false );
+		$stripe_params['elements_classes']                        = apply_filters( 'wc_stripe_elements_classes', false );
 
 		// merge localized messages to be use in JS
 		$stripe_params = array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
