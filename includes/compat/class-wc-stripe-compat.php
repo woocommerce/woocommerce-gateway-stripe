@@ -28,6 +28,7 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 			add_filter( 'woocommerce_subscription_payment_meta', array( $this, 'add_subscription_payment_meta' ), 10, 2 );
 			add_filter( 'woocommerce_subscription_validate_payment_meta', array( $this, 'validate_subscription_payment_meta' ), 10, 2 );
 			add_filter( 'wc_stripe_display_save_payment_method_checkbox', array( $this, 'maybe_hide_save_checkbox' ) );
+			add_filter( 'wc_stripe_payment_metadata', array( $this, 'add_subscription_meta_data' ), 10, 2 );
 		}
 
 		if ( class_exists( 'WC_Pre_Orders_Order' ) ) {
@@ -82,6 +83,24 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 		} else {
 			return parent::process_payment( $order_id, $retry, $force_save_source );
 		}
+	}
+
+	/**
+	 * Adds subscription related meta data on charge request.
+	 *
+	 * @since 4.0.0
+	 * @param array $metadata
+	 * @param object $order
+	 */
+	public function add_subscription_meta_data( $metadata, $order ) {
+		if ( ! $this->has_subscription( $order->get_id() ) ) {
+			return $metadata;
+		}
+
+		return $metadata += array(
+			'payment_type'   => 'recurring',
+			'site_url'       => esc_url( get_site_url() ),
+		);
 	}
 
 	/**
@@ -141,10 +160,6 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 		$request             = $this->generate_payment_request( $order, $prepared_source );
 		$request['capture']  = 'true';
 		$request['amount']   = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
-		$request['metadata'] += array(
-			'payment_type'   => 'recurring',
-			'site_url'       => esc_url( get_site_url() ),
-		);
 		$response            = WC_Stripe_API::request( $request );
 
 		// Process valid response
