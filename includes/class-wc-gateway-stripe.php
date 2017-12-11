@@ -396,18 +396,18 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$user                 = wp_get_current_user();
 		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
 		$total                = WC()->cart->total;
+		$user_email           = '';
 
 		// If paying from order, we need to get total from order not cart.
 		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) {
-			$order = wc_get_order( wc_get_order_id_by_order_key( wc_clean( $_GET['key'] ) ) );
-			$total = $order->get_total();
-		}
-
-		if ( $user->ID ) {
-			$user_email = get_user_meta( $user->ID, 'billing_email', true );
-			$user_email = $user_email ? $user_email : $user->user_email;
+			$order      = wc_get_order( wc_get_order_id_by_order_key( wc_clean( $_GET['key'] ) ) );
+			$total      = $order->get_total();
+			$user_email = WC_Stripe_Helper::is_pre_30() ? $order->billing_email : $order->get_billing_email();
 		} else {
-			$user_email = '';
+			if ( $user->ID ) {
+				$user_email = get_user_meta( $user->ID, 'billing_email', true );
+				$user_email = $user_email ? $user_email : $user->user_email;
+			}
 		}
 
 		if ( is_add_payment_method_page() ) {
