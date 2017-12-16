@@ -343,6 +343,33 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Process webhook source canceled. This is used for payment methods
+	 * that redirects and awaits payments from customer.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param object $notification
+	 */
+	public function process_webhook_source_canceled( $notification ) {
+		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->id );
+			return;
+		}
+
+		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+
+		if ( 'on-hold' !== $order->get_status() || 'cancelled' !== $order->get_status() ) {
+			return;
+		}
+
+		$order->update_status( 'cancelled', __( 'This payment has cancelled.', 'woocommerce-gateway-stripe' ) );
+
+		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
+	}
+
+	/**
 	 * Process webhook refund.
 	 * Note currently only support 1 time refund.
 	 *
@@ -446,6 +473,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		switch ( $notification->type ) {
 			case 'source.chargeable':
 				$this->process_webhook_payment( $notification );
+				break;
+
+			case 'source.canceled':
+				$this->process_webhook_source_canceled( $notification );
 				break;
 
 			case 'charge.succeeded':
