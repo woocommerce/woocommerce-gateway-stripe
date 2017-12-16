@@ -101,6 +101,11 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
+			// If not chargeable, then ignore request.
+			if ( 'chargeable' !== $source_info->status ) {
+				return;
+			}
+
 			// Make the request.
 			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source_object ) );
 
