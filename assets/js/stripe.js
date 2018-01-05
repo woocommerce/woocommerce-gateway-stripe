@@ -771,6 +771,7 @@ jQuery( function( $ ) {
 				scrollTop: ( $( 'form.checkout' ).offset().top - 100 )
 			}, 1000 );
 			$( document.body ).trigger( 'checkout_error' );
+			wc_stripe_form.unblock();
 		}
 	};
 
