@@ -1,0 +1,9 @@
+{
+    "name": "woocommerce-gateway-stripe",
+    "description": "Take credit card payments on your store using Stripe.",
+    "homepage": "https://woocommerce.com/products/woocommerce-gateway-stripe/",
+    "license": "GPL-2.0",
+    "require-dev": {
+        "phpunit/phpunit": "^4.8 || ^5.0"
+    }
+}

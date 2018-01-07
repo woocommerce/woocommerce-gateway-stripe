@@ -14,6 +14,7 @@ class WC_Stripe_API {
 	 * Stripe API Endpoint
 	 */
 	const ENDPOINT = 'https://api.stripe.com/v1/';
+	const STRIPE_API_VERSION = '2017-12-14';
 
 	/**
 	 * Secret API Key.
@@ -45,62 +46,111 @@ class WC_Stripe_API {
 	}
 
 	/**
+	 * Generates the user agent we use to pass to API request so
+	 * Stripe can identify our application.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 */
+	public static function get_user_agent() {
+		$app_info = array(
+			'name'    => 'WooCommerce Stripe Gateway',
+			'version' => WC_STRIPE_VERSION,
+			'url'     => 'https://woocommerce.com/products/stripe/',
+		);
+
+		return array(
+			'lang'         => 'php',
+			'lang_version' => phpversion(),
+			'publisher'    => 'woocommerce',
+			'uname'        => php_uname(),
+			'application'  => $app_info,
+		);
+	}
+
+	/**
+	 * Generates the headers to pass to API request.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 */
+	public static function get_headers() {
+		$user_agent = self::get_user_agent();
+		$app_info   = $user_agent['application'];
+
+		return apply_filters( 'woocommerce_stripe_request_headers', array(
+			'Authorization'              => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
+			'Stripe-Version'             => self::STRIPE_API_VERSION,
+			'User-Agent'                 => $app_info['name'] . '/' . $app_info['version'] . ' (' . $app_info['url'] . ')',
+			'X-Stripe-Client-User-Agent' => json_encode( $user_agent ),
+		) );
+	}
+
+	/**
 	 * Send the request to Stripe's API
 	 *
+	 * @since 3.1.0
+	 * @version 4.0.0
 	 * @param array $request
 	 * @param string $api
 	 * @return array|WP_Error
 	 */
 	public static function request( $request, $api = 'charges', $method = 'POST' ) {
-		self::log( "{$api} request: " . print_r( $request, true ) );
+		WC_Stripe_Logger::log( "{$api} request: " . print_r( $request, true ) );
+
+		$headers = self::get_headers();
+
+		$customer = ! empty( $request['customer'] ) ? $request['customer'] : '';
+		$source   = ! empty( $request['source'] ) ? $request['source'] : $customer;
+
+		if ( 'charges' === $api && 'POST' === $method ) {
+			$headers['Idempotency-Key'] = $request['metadata']['order_id'] . '-' . $source;
+		}
 
 		$response = wp_safe_remote_post(
 			self::ENDPOINT . $api,
 			array(
-				'method'        => $method,
-				'headers'       => array(
-					'Authorization'  => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
-					'Stripe-Version' => '2016-03-07',
-				),
-				'body'       => apply_filters( 'woocommerce_stripe_request_body', $request, $api ),
-				'timeout'    => 70,
-				'user-agent' => 'WooCommerce ' . WC()->version,
+				'method'  => $method,
+				'headers' => $headers,
+				'body'    => apply_filters( 'woocommerce_stripe_request_body', $request, $api ),
+				'timeout' => 70,
 			)
 		);
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
-			self::log( 'Error Response: ' . print_r( $response, true ) );
-			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the payment gateway.', 'woocommerce-gateway-stripe' ) );
+			WC_Stripe_Logger::log( 'Error Response: ' . print_r( $response, true ) );
+			throw new Exception( __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		$parsed_response = json_decode( $response['body'] );
-
-		// Handle response
-		if ( ! empty( $parsed_response->error ) ) {
-			if ( ! empty( $parsed_response->error->code ) ) {
-				$code = $parsed_response->error->code;
-			} else {
-				$code = 'stripe_error';
-			}
-			return new WP_Error( $code, $parsed_response->error->message );
-		} else {
-			return $parsed_response;
-		}
+		return json_decode( $response['body'] );
 	}
 
 	/**
-	 * Logs
+	 * Retrieve API endpoint.
 	 *
-	 * @since 3.1.0
-	 * @version 3.1.0
-	 *
-	 * @param string $message
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param string $api
 	 */
-	public static function log( $message ) {
-		$options = get_option( 'woocommerce_stripe_settings' );
+	public static function retrieve( $api ) {
+		WC_Stripe_Logger::log( "{$api}" );
 
-		if ( 'yes' === $options['logging'] ) {
-			WC_Stripe::log( $message );
+		$ua = self::get_user_agent();
+
+		$response = wp_safe_remote_get(
+			self::ENDPOINT . $api,
+			array(
+				'method'  => 'GET',
+				'headers' => self::get_headers(),
+				'timeout' => 70,
+			)
+		);
+
+		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
+			WC_Stripe_Logger::log( 'Error Response: ' . print_r( $response, true ) );
+			return new WP_Error( 'stripe_error', __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
+
+		return json_decode( $response['body'] );
 	}
 }

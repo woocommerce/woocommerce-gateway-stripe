@@ -15,20 +15,16 @@ module.exports = function( grunt ) {
 			js: 'assets/js'
 		},
 
-		// Compile all .less files.
-		less: {
+		// Compile all .scss files.
+		sass: {
 			compile: {
 				options: {
-					// These paths are searched for @imports
-					paths: ['<%= dirs.css %>/']
+					sourceMap: false
 				},
 				files: [{
 					expand: true,
 					cwd: '<%= dirs.css %>/',
-					src: [
-						'*.less',
-						'!mixins.less'
-					],
+					src: ['*.scss'],
 					dest: '<%= dirs.css %>/',
 					ext: '.css'
 				}]
@@ -108,23 +104,32 @@ module.exports = function( grunt ) {
 			}
 		},
 
-		// Create .pot files
+		// Generate POT files.
 		makepot: {
+			options: {
+				type: 'wp-plugin',
+				domainPath: 'languages',
+				potHeaders: {
+					'report-msgid-bugs-to': 'https://github.com/woocommerce/woocommerce-gateway-stripe/issues',
+					'language-team': 'LANGUAGE <EMAIL@ADDRESS>'
+				}
+			},
 			dist: {
 				options: {
-					type: 'wp-plugin',
-					potHeaders: {
-						'report-msgid-bugs-to': 'https://support.woothemes.com/hc/',
-						'language-team': 'LANGUAGE <EMAIL@ADDRESS>'
-					}
+					potFilename: 'woocommerce-gateway-stripe.pot',
+					exclude: [
+						'apigen/.*',
+						'tests/.*',
+						'tmp/.*'
+					]
 				}
 			}
 		},
 
-		// Check the textdomain
+		// Check textdomain errors.
 		checktextdomain: {
 			options:{
-				text_domain: '<%= pkg.name %>',
+				text_domain: 'woocommerce-gateway-stripe',
 				keywords: [
 					'__:1,2d',
 					'_e:1,2d',
@@ -144,51 +149,23 @@ module.exports = function( grunt ) {
 			},
 			files: {
 				src:  [
-					'**/*.php', // Include all files
-					'!node_modules/**' // Exclude node_modules/
+					'**/*.php',         // Include all files
+					'!apigen/**',       // Exclude apigen/
+					'!node_modules/**', // Exclude node_modules/
+					'!tests/**',        // Exclude tests/
+					'!vendor/**',       // Exclude vendor/
+					'!tmp/**'           // Exclude tmp/
 				],
-				expand: true
-			}
-		},
-
-		// Convert .po to .mo
-		po2mo: {
-			files: {
-				src: 'languages/*.po',
 				expand: true
 			}
 		},
 	});
 
 	// Load NPM tasks to be used here
-	grunt.loadNpmTasks( 'grunt-shell' );
-	grunt.loadNpmTasks( 'grunt-contrib-less' );
-	grunt.loadNpmTasks( 'grunt-contrib-cssmin' );
-	grunt.loadNpmTasks( 'grunt-contrib-jshint' );
 	grunt.loadNpmTasks( 'grunt-contrib-uglify' );
-	grunt.loadNpmTasks( 'grunt-contrib-watch' );
-	grunt.loadNpmTasks( 'grunt-wp-i18n' );
-	grunt.loadNpmTasks( 'grunt-checktextdomain' );
-	grunt.loadNpmTasks( 'grunt-po2mo' );
 
 	// Register tasks
 	grunt.registerTask( 'default', [
-		'less',
-		'cssmin',
-		'jshint',
 		'uglify'
 	]);
-
-	// Just an alias for pot file generation
-	grunt.registerTask( 'pot', [
-		'makepot',
-		'shell:txpush'
-	]);
-
-	grunt.registerTask( 'dev', [
-		'default',
-		'shell:txpull',
-		'po2mo'
-	]);
-
 };

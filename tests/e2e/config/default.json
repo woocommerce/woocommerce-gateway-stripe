@@ -1,0 +1,27 @@
+{
+    "url": "https://YOURSITE.test",
+    "users": {
+        "shopmanager": {
+            "username": "shopmanager",
+            "password": "password"
+        },
+        "customer": {
+            "username": "customer",
+            "password": "password"
+        }
+    },
+    "startBrowserTimeoutMs": 30000,
+    "mochaTimeoutMs": 120000,
+    "products": {
+        "onePayment": "/product/hoodie-with-logo"
+    },
+    "stripe": [
+            {
+                "country": "United States",
+                "currency": "United States Dollars ($)",
+                "testPublishableKey": "",
+                "testPublishableSecretKey": "",
+                "useSandbox": true
+            }
+    ]
+}

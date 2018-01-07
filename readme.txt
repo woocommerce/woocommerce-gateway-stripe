@@ -1,17 +1,19 @@
 === WooCommerce Stripe Payment Gateway ===
-Contributors: automattic, woothemes, mikejolley, akeda, royho, mattyza, slash1andy, woosteve, spraveenitpro, mikedmoore, fernashes, shellbeezy, danieldudzic, mikaey, dsmithweb, fullysupportedphil, corsonr, deskroid, luminus, tiagonoronha, zandyring, bor0, jobthomas
+Contributors: automattic, royho, mikejolley, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, woocommerce
 Requires at least: 4.4
-Tested up to: 4.8
-Stable tag: 3.2.3
+Tested up to: 4.9
+Requires PHP: 5.6
+Stable tag: 4.0.0
 License: GPLv3
-License URI: http://www.gnu.org/licenses/gpl-3.0.html
+License URI: https://www.gnu.org/licenses/gpl-3.0.html
+Attributions: thorsten-stripe
 
 Take credit card payments on your store using Stripe.
 
 == Description ==
 
-Accept Visa, MasterCard, American Express, Discover, JCB, Diners Club, and more cards directly on your store with the Stripe payment gateway for WooCommerce, including Apple Pay for mobile and desktop.
+Accept Visa, MasterCard, American Express, Discover, JCB, Diners Club, SEPA, Sofort, iDeal, Giropay, Alipay and more directly on your store with the Stripe payment gateway for WooCommerce, including Apple Pay for mobile and desktop.
 
 = Take Credit card payments easily and directly on your store =
 
@@ -36,19 +38,19 @@ Stripe is a simple way to accept payments online. With Stripe you can accept Vis
 
 Stripe has no setup fees, no monthly fees, no hidden costs: you only get charged when you earn money! Earnings are transferred to your bank account on a 7-day rolling basis.
 
-Stripe also supports the [Subscriptions extension](http://www.woothemes.com/extension/subscriptions/) and re-using cards. When a customer pays, they are set up in Stripe as a customer. If they create another order, they can check out using the same card. A massive timesaver for returning customers.
+Stripe also supports the [Subscriptions extension](https://woocommerce.com/products/woocommerce-subscriptions/) and re-using cards. When a customer pays, they are set up in Stripe as a customer. If they create another order, they can check out using the same card. A massive timesaver for returning customers.
 
 = Apple Pay Support =
 
-WooCommerce Stripe now includes [Apple Pay](https://stripe.com/apple-pay) support, which means customers can pay using payment details associated to their Apple ID. Checkout is now just a thumbprint away. on both mobile and desktop.
+WooCommerce Stripe now includes [Apple Pay](https://stripe.com/apple-pay) support, which means customers can pay using payment details associated to their Apple ID. Checkout is now just a thumbprint away. on both mobile and desktop. Only supports simple and variable products for now. More support to come.
 
 = Web Payments API Support =
 
-WooCommerce Stripe now includes [Web Payments API](https://www.w3.org/TR/payment-request/) support, which means customers can pay using payment details associated to their mobile devices, in browsers supporting the Web Payments API (Chrome for Android, amongst others). Checkout is now just a few taps away. on mobile.
+WooCommerce Stripe now includes [Web Payments API](https://www.w3.org/TR/payment-request/) support, which means customers can pay using payment details associated to their mobile devices, in browsers supporting the Web Payments API (Chrome for Android, amongst others). Checkout is now just a few taps away. on mobile. Only supports simple and variable products for now. More support to come.
 
 == Installation ==
 
-Please note, v3 of this gateway requires WooCommerce 2.5 and above.
+Please note, v4 of this gateway requires WooCommerce 2.6 and above.
 
 You can download an [older version of this gateway for older versions of WooCommerce from here](https://wordpress.org/plugins/woocommerce-gateway-stripe/developers/).
 
@@ -73,13 +75,17 @@ Automatic updates should work like a charm; as always though, ensure you backup 
 
 Yes!
 
+= Does this require an SSL certificate? =
+
+Yes! In live mode, an SSL certificate must be installed on your site to use Stripe. In addition to SSL encryption, Stripe provides an extra JavaScript method to secure card data.
+
 = Does this support both production mode and sandbox mode for testing? =
 
 Yes it does - production and sandbox mode is driven by the API keys you use.
 
 = Where can I find documentation? =
 
-For help setting up and configuring, please refer to our [user guide](https://docs.woothemes.com/document/stripe/)
+For help setting up and configuring, please refer to our [user guide](https://docs.woocommerce.com/document/stripe/)
 
 = Where can I get support or talk to other users? =
 
@@ -95,10 +101,22 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 4.0.0 - 2017-01-08 =
+* Add - Stripe Elements Credit Card form for PCI compliance.
+* Add - Stripe Sources.
+* Add - SEPA Direct Debit.
+* Add - Bancontact.
+* Add - Giropay.
+* Add - Sofort.
+* Add - iDeal.
+* Add - Bitcoin.
+* Add - P24.
+* Add - Alipay.
+
 = 3.2.3 - 2017-08-23 =
 * Fix - Apple Pay action hook with wrong parameter causing errors.
 
-= 3.2.2 - 2017-07-11 =
+= 3.2.2 - 2017-07-10 =
 * Fix - Apple Pay button displaying in non Safari browser.
 * Fix - Apple Pay with coupon not applying to total.
 
@@ -210,8 +228,14 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Upgrade Notice ==
 
-= 3.2.0 =
-* Fix - Authorized first orders were not able to be refund.
-* Fix - Payment Request not honoring different shipping address in certain cases.
-* Fix - In certain Chrome versions, states are not abbreviated causing shipping validation issues with Payment Request API.
-* Add - Support for Dynamic Pricing.
+= 4.0.0 =
+* Add - Stripe Elements Credit Card form for PCI compliance.
+* Add - Stripe Sources.
+* Add - SEPA Direct Debit.
+* Add - Bancontact.
+* Add - Giropay.
+* Add - Sofort.
+* Add - iDeal.
+* Add - Bitcoin.
+* Add - P24.
+* Add - Alipay.
