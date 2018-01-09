@@ -1,6 +1,16 @@
 *** Changelog ***
 
-= For newer changelog entries, see readme.txt =
+= 4.0.0 - 2017-01-08 =
+* Add - Stripe Elements Credit Card form for PCI compliance.
+* Add - Stripe Sources.
+* Add - SEPA Direct Debit.
+* Add - Bancontact.
+* Add - Giropay.
+* Add - Sofort.
+* Add - iDeal.
+* Add - Bitcoin.
+* Add - P24.
+* Add - Alipay.
 
 = 3.0.2 - 2016.06.14 =
 * Fix - Set empty array as default value for first argument in WC_Stripe_Customer::create_customer
