@@ -723,7 +723,8 @@ jQuery( function( $ ) {
 				'nonce': wc_stripe_params.stripe_nonce,
 				'required_fields': wc_stripe_form.getRequiredFields().serialize(),
 				'all_fields': wc_stripe_form.form.serialize(),
-				'source_type': wc_stripe_form.getSelectedPaymentElement().val()
+				'source_type': wc_stripe_form.getSelectedPaymentElement().val(),
+				'is_add_payment_page': wc_stripe_params.is_add_payment_method_page
 			};
 
 			$.ajax({

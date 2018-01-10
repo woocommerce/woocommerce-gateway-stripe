@@ -574,6 +574,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$stripe_params['use_elements']                            = apply_filters( 'wc_stripe_use_elements_checkout_form', true ) ? 'yes' : 'no';
 		$stripe_params['is_stripe_checkout']                      = $this->stripe_checkout ? 'yes' : 'no';
 		$stripe_params['is_change_payment_page']                  = ( isset( $_GET['pay_for_order'] ) || isset( $_GET['change_payment_method'] ) ) ? 'yes' : 'no';
+		$stripe_params['is_add_payment_method_page']              = is_add_payment_method_page();
 		$stripe_params['elements_styling']                        = apply_filters( 'wc_stripe_elements_styling', false );
 		$stripe_params['elements_classes']                        = apply_filters( 'wc_stripe_elements_classes', false );
 
