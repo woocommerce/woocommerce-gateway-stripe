@@ -421,7 +421,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Don't check this on add payment method page.
-		if ( ! $_POST['is_add_payment_page'] ) {
+		if ( ( isset( $_POST['is_add_payment_page'] ) && 'no' === $_POST['is_add_payment_page'] ) ) {
 			if ( empty( $all_fields['woocommerce_checkout_update_totals'] ) && empty( $all_fields['terms'] ) && apply_filters( 'woocommerce_checkout_show_terms', wc_get_page_id( 'terms' ) > 0 ) ) {
 				$errors->add( 'terms', __( 'You must accept our Terms &amp; Conditions.', 'woocommerce-gateway-stripe' ) );
 			}
