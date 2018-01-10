@@ -1,5 +1,22 @@
 *** Changelog ***
 
+= 4.0.1 - 2018-xx-xx =
+* Fix - Add payment method conflict with terms and agreement page.
+* Fix - Checkout validation checkout field names/labels were not translated.
+* Fix - Card error translations.
+
+= 4.0.0 - 2018-01-08 =
+* Add - Stripe Elements Credit Card form for PCI compliance.
+* Add - Stripe Sources.
+* Add - SEPA Direct Debit.
+* Add - Bancontact.
+* Add - Giropay.
+* Add - Sofort.
+* Add - iDeal.
+* Add - Bitcoin.
+* Add - P24.
+* Add - Alipay.
+
 = 3.0.2 - 2016.06.14 =
 * Fix - Set empty array as default value for first argument in WC_Stripe_Customer::create_customer
 * Tweak - Update default title to make it consistent with existing titles
