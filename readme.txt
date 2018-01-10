@@ -104,6 +104,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 4.0.1 - 2018-xx-xx =
 * Fix - Add payment method conflict with terms and agreement page.
 * Fix - Checkout validation checkout field names/labels were not translated.
+* Fix - Card error translations.
 
 = 4.0.0 - 2018-01-08 =
 * Add - Stripe Elements Credit Card form for PCI compliance.
