@@ -278,32 +278,44 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Normalize the error field name.
+	 * Normalize the error field name with appropriate locale.
 	 *
 	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @since 4.0.1 Map localized checkout fields.
 	 * @param string $field
 	 * @return string $error_field
 	 */
 	public function normalize_field( $field ) {
-		$error_field = ucfirst( str_replace( '_', ' ', $field ) );
+		$checkout_fields = WC()->checkout->get_checkout_fields();
+		$org_str         = array();
+		$replace_str     = array();
 
-		$org_str     = array();
-		$replace_str = array();
+		if ( array_key_exists( $field, $checkout_fields['billing'] ) ) {
+			$error_field = $checkout_fields['billing'][ $field ]['label'];
+		} elseif ( array_key_exists( $field, $checkout_fields['shipping'] ) ) {
+			$error_field = $checkout_fields['shipping'][ $field ]['label'];
+		} else {
+			$error_field = str_replace( '_', ' ', $field );
 
-		$org_str[]     = 'Stripe';
-		$replace_str[] = '';
+			$org_str[]     = 'stripe';
+			$replace_str[] = '';
 
-		$org_str[]     = 'sepa';
-		$replace_str[] = 'SEPA';
+			$org_str[]     = 'sepa';
+			$replace_str[] = 'SEPA';
 
-		$org_str[]     = 'iban';
-		$replace_str[] = 'IBAN';
+			$org_str[]     = 'iban';
+			$replace_str[] = 'IBAN';
 
-		$org_str[]     = 'sofort';
-		$replace_str[] = 'SOFORT';
+			$org_str[]     = 'sofort';
+			$replace_str[] = 'SOFORT';
 
-		return str_replace( $org_str, $replace_str, $error_field );
+			$org_str[]     = 'owner';
+			$replace_str[] = __( 'Owner', 'woocommerce-gateway-stripe' );
+
+			$error_field   = str_replace( $org_str, $replace_str, $error_field );
+		}
+
+		return $error_field;
 	}
 
 	/**
