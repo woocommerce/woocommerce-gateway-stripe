@@ -369,6 +369,10 @@ jQuery( function( $ ) {
 				message = wc_stripe_params[ result.error.code ];
 			}
 
+			if ( 'validation_error' === result.error.type && wc_stripe_params.hasOwnProperty( result.error.code ) ) {
+				message = wc_stripe_params[ result.error.code ];
+			}
+
 			wc_stripe_form.reset();
 			console.log( result.error.message ); // Leave for troubleshooting.
 			$( errorContainer ).html( '<ul class="woocommerce_error woocommerce-error wc-stripe-error"><li>' + message + '</li></ul>' );
