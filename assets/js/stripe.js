@@ -397,11 +397,11 @@ jQuery( function( $ ) {
 			 * we need to remove the parameter if we're not
 			 * passing any value.
 			 */
-			if ( 0 >= extra_details.owner.phone.length ) {
+			if ( typeof extra_details.owner.phone !== 'undefined' && 0 >= extra_details.owner.phone.length ) {
 				delete extra_details.owner.phone;
 			}
 
-			if ( 0 >= extra_details.owner.email.length ) {
+			if ( typeof extra_details.owner.email !== 'undefined' && 0 >= extra_details.owner.email.length ) {
 				delete extra_details.owner.email;
 			}
 
