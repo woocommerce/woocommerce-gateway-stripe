@@ -393,6 +393,18 @@ jQuery( function( $ ) {
 			extra_details.owner.email = $( '#billing_email' ).val();
 			extra_details.owner.phone = $( '#billing_phone' ).val();
 
+			/* Stripe does not like empty string values so
+			 * we need to remove the parameter if we're not
+			 * passing any value.
+			 */
+			if ( 0 >= extra_details.owner.phone.length ) {
+				delete extra_details.owner.phone;
+			}
+
+			if ( 0 >= extra_details.owner.email.length ) {
+				delete extra_details.owner.email;
+			}
+
 			if ( $( '#billing_address_1' ).length > 0 ) {
 				extra_details.owner.address.line1       = $( '#billing_address_1' ).val();
 				extra_details.owner.address.line2       = $( '#billing_address_2' ).val();
