@@ -234,14 +234,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Upgrade Notice ==
 
-= 4.0.0 =
-* Add - Stripe Elements Credit Card form for PCI compliance.
-* Add - Stripe Sources.
-* Add - SEPA Direct Debit.
-* Add - Bancontact.
-* Add - Giropay.
-* Add - Sofort.
-* Add - iDeal.
-* Add - Bitcoin.
-* Add - P24.
-* Add - Alipay.
+= 4.0.1 =
+* Fix - Add payment method conflict with terms and agreement page.
+* Fix - Checkout validation checkout field names/labels were not translated.
+* Fix - Card error translations.
+* Add - Deprecated Apple Pay Class to prevent errors.
