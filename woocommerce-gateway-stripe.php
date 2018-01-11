@@ -5,7 +5,7 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 4.0.0
+ * Version: 4.0.1
  * Requires at least: 4.4
  * Tested up to: 4.9
  * WC requires at least: 2.6
@@ -22,7 +22,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 	/**
 	 * Required minimums and constants
 	 */
-	define( 'WC_STRIPE_VERSION', '4.0.0' );
+	define( 'WC_STRIPE_VERSION', '4.0.1' );
 	define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
 	define( 'WC_STRIPE_MIN_WC_VER', '2.6.0' );
 	define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
@@ -122,6 +122,9 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-order-handler.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-tokens.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php' );
+
+			// REMOVE IN THE FUTURE.
+			require_once( dirname( __FILE__ ) . '/includes/deprecated/class-wc-stripe-apple-pay.php' );
 
 			add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateways' ) );
 			add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );
