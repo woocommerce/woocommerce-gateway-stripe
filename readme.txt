@@ -101,6 +101,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 4.0.2 - 2018-01-xx =
+* Add - 3DS support on Stripe Checkout ( Modal Popup ).
+
 = 4.0.1 - 2018-01-11 =
 * Fix - Add payment method conflict with terms and agreement page.
 * Fix - Checkout validation checkout field names/labels were not translated.

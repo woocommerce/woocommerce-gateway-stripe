@@ -302,22 +302,22 @@ jQuery( function( $ ) {
 		openModal: function() {
 			// Capture submittal and open stripecheckout
 			var $form = wc_stripe_form.form,
-				$data = $( '#stripe-payment-data' ),
-				token = $form.find( 'input.stripe_token' );
+				$data = $( '#stripe-payment-data' );
 
-			token.val( '' );
+			wc_stripe_form.reset();
 
 			var token_action = function( res ) {
-				$form.find( 'input.stripe_token' ).remove();
-				$form.append( '<input type="hidden" class="stripe_token" name="stripe_token" value="' + res.id + '"/>' );
-				$form.append( "<input type='hidden' class='stripe-checkout-object' name='stripe_checkout_object' value='" + wc_stripe_form.prepareSourceToServer( res ) + "'/>" );
-				wc_stripe_form.stripe_submit = true;
+				$form.find( 'input.stripe_source' ).remove();
 
-				if ( $( 'form#add_payment_method' ).length ) {
-					$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
+				/* Since source was introduced in 4.0. We need to
+				 * convert the token into a source.
+				 */
+				if ( 'token' === res.object ) {
+					stripe.createSource( {
+						type: 'card',
+						token: res.id,
+					} ).then( wc_stripe_form.sourceResponse );
 				}
-
-				$form.submit();
 			};
 
 			StripeCheckout.open({
