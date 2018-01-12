@@ -644,7 +644,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$new_customer_id     = WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id();
 				$new_stripe_customer = new WC_Stripe_Customer( $new_customer_id );
 				$new_stripe_customer->create_customer();
-			}
+      }
+      
+      $force_save_source = apply_filters('wc_stripe_force_save_source' );
 
 			$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source );
 
