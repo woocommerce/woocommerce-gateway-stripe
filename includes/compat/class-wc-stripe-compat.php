@@ -384,8 +384,13 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 
 				if ( $source->id === $stripe_source_id ) {
 					$found_source = true;
-					/* translators: 1) card brand 2) last 4 digits */
-					$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
+
+					if ( $card ) {
+						/* translators: 1) card brand 2) last 4 digits */
+						$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
+					} else {
+						$payment_method_to_display = __( 'N/A', 'woocommerce-gateway-stripe' );
+					}
 					break;
 				}
 			}
@@ -395,8 +400,12 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 					$card = $sources[0]->card;
 				}
 
-				/* translators: 1) card brand 2) last 4 digits */
-				$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
+				if ( $card ) {
+					/* translators: 1) card brand 2) last 4 digits */
+					$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
+				} else {
+					$payment_method_to_display = __( 'N/A', 'woocommerce-gateway-stripe' );
+				}
 			}
 		}
 

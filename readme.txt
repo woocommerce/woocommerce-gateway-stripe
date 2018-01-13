@@ -104,6 +104,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 4.0.2 - 2018-01-xx =
 * Add - 3DS support on Stripe Checkout ( Modal Popup ).
 * Fix - Possible conflicts with payment request totals when subscriptions is active.
+* Fix - Undefined notice on save card via subscriptions if card is deleted.
 
 = 4.0.1 - 2018-01-11 =
 * Fix - Add payment method conflict with terms and agreement page.
