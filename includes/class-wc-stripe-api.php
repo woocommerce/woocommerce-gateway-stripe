@@ -104,7 +104,7 @@ class WC_Stripe_API {
 		$source   = ! empty( $request['source'] ) ? $request['source'] : $customer;
 
 		if ( 'charges' === $api && 'POST' === $method ) {
-			$headers['Idempotency-Key'] = $request['metadata']['order_id'] . '-' . $source;
+			$headers['Idempotency-Key'] = uniqid( 'stripe_' );
 		}
 
 		$response = wp_safe_remote_post(
