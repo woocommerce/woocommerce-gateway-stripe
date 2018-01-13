@@ -100,9 +100,6 @@ class WC_Stripe_API {
 
 		$headers = self::get_headers();
 
-		$customer = ! empty( $request['customer'] ) ? $request['customer'] : '';
-		$source   = ! empty( $request['source'] ) ? $request['source'] : $customer;
-
 		if ( 'charges' === $api && 'POST' === $method ) {
 			$headers['Idempotency-Key'] = uniqid( 'stripe_' );
 		}
