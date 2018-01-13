@@ -125,7 +125,7 @@ class WC_Stripe_Customer {
 	 * @return WP_Error|int
 	 */
 	public function create_customer( $args = array() ) {
-		$billing_email = filter_var( $_POST['billing_email'], FILTER_SANITIZE_EMAIL );
+		$billing_email = isset( $_POST['billing_email'] ) ? filter_var( $_POST['billing_email'], FILTER_SANITIZE_EMAIL ) : '';
 		$user = $this->get_user();
 
 		if ( $user ) {
@@ -138,7 +138,7 @@ class WC_Stripe_Customer {
 			);
 		} else {
 			$defaults = array(
-				'email'       => ! empty( $billing_email ) ? $billing_email : '',
+				'email'       => $billing_email,
 				'description' => '',
 			);
 		}
