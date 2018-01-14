@@ -162,19 +162,6 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * All payment icons that work with Stripe.
-	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
-	 * @return array
-	 */
-	public function payment_icons() {
-		return apply_filters( 'wc_stripe_payment_icons', array(
-			'sofort' => '<i class="stripe-pf stripe-pf-sofort stripe-pf-right" alt="SOFORT" aria-hidden="true"></i>',
-		) );
-	}
-
-	/**
 	 * Get_icon function.
 	 *
 	 * @since 1.0.0
