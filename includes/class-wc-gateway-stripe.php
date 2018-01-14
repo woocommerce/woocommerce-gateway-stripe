@@ -476,17 +476,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			</label>
 
 			<?php if ( $this->inline_cc_form ) { ?>
-				<div id="stripe-card-element" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;padding:10px 5px;">
+				<div id="stripe-card-element" style="background:#fff;padding:0 1em;border:1px solid #ddd;margin:5px 0;padding:10px 5px;">
 				<!-- a Stripe Element will be inserted here. -->
 				</div>
 			<?php } else { ?>
-				<div id="stripe-card-element" class="form-row form-row-wide" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;padding:10px 5px;">
+				<div id="stripe-card-element" class="form-row form-row-wide" style="background:#fff;padding:0 1em;border:1px solid #ddd;margin:5px 0;padding:10px 5px;">
 				<!-- a Stripe Element will be inserted here. -->
 				</div>
-				<div id="stripe-exp-element" class="form-row form-row-first" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;padding:10px 5px;">
+				<div id="stripe-exp-element" class="form-row form-row-first" style="background:#fff;padding:0 1em;border:1px solid #ddd;margin:5px 0;padding:10px 5px;">
 				<!-- a Stripe Element will be inserted here. -->
 				</div>
-				<div id="stripe-cvc-element" class="form-row form-row-last" style="background:#f2f2f2;padding:0 1em;box-shadow:inset 0 1px 1px rgba(0,0,0,.125);margin:5px 0;padding:10px 5px;">
+				<div id="stripe-cvc-element" class="form-row form-row-last" style="background:#fff;padding:0 1em;border:1px solid #ddd;margin:5px 0;padding:10px 5px;">
 				<!-- a Stripe Element will be inserted here. -->
 				</div>
 				<div class="clear"></div>

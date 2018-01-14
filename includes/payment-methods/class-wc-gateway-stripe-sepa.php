@@ -249,18 +249,18 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 		?>
 		<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-form" class="wc-payment-form">
 			<?php do_action( 'woocommerce_credit_card_form_start', $this->id ); ?>
-			<p class="wc-stripe-sepa-mandate"><?php $this->mandate_display(); ?></p>
+			<p class="wc-stripe-sepa-mandate" style="margin-bottom:40px;"><?php $this->mandate_display(); ?></p>
 			<p class="form-row form-row-wide validate-required">
 				<label for="stripe-sepa-owner">
 					<?php esc_html_e( 'IBAN Account Name.', 'woocommerce-gateway-stripe' ); ?>
 				</label>
-				<input id="stripe-sepa-owner" name="stripe_sepa_owner" value="" />
+				<input id="stripe-sepa-owner" name="stripe_sepa_owner" value="" style="border:1px solid #ddd;margin:5px 0;padding:10px 5px;background-color:#fff;outline:0;" />
 			</p>
 			<p class="form-row form-row-wide validate-required">
 				<label for="stripe-sepa-iban">
 					<?php esc_html_e( 'IBAN Account Number.', 'woocommerce-gateway-stripe' ); ?>
 				</label>
-				<input id="stripe-sepa-iban" name="stripe_sepa_iban" value="" />
+				<input id="stripe-sepa-iban" name="stripe_sepa_iban" value="" style="border:1px solid #ddd;margin:5px 0;padding:10px 5px;background-color:#fff;outline:0;" />
 			</p>
 			<!-- Used to display form errors -->
 			<div class="stripe-source-errors" role="alert"></div>
