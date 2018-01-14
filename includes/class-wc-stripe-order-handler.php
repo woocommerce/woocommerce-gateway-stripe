@@ -298,6 +298,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$error_field = $checkout_fields['billing'][ $field ]['label'];
 		} elseif ( array_key_exists( $field, $checkout_fields['shipping'] ) ) {
 			$error_field = $checkout_fields['shipping'][ $field ]['label'];
+		} elseif ( array_key_exists( $field, $checkout_fields['order'] ) ) {
+			$error_field = $checkout_fields['order'][ $field ]['label'];
+		} elseif ( array_key_exists( $field, $checkout_fields['account'] ) ) {
+			$error_field = $checkout_fields['account'][ $field ]['label'];
 		} else {
 			$error_field = str_replace( '_', ' ', $field );
 

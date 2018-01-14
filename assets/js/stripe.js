@@ -374,8 +374,12 @@ jQuery( function( $ ) {
 			}
 
 			wc_stripe_form.reset();
+			$( '.woocommerce-NoticeGroup-checkout' ).remove();
 			console.log( result.error.message ); // Leave for troubleshooting.
 			$( errorContainer ).html( '<ul class="woocommerce_error woocommerce-error wc-stripe-error"><li>' + message + '</li></ul>' );
+			$( 'html, body' ).animate({
+				scrollTop: ( $( '.wc-stripe-error' ).offset().top - 200 )
+			}, 1000 );
 			wc_stripe_form.unblock();
 		},
 
@@ -727,7 +731,7 @@ jQuery( function( $ ) {
 		},
 
 		getRequiredFields: function() {
-			return wc_stripe_form.form.find( '.form-row.validate-required > input, .form-row.validate-required > select' );
+			return wc_stripe_form.form.find( '.form-row.validate-required > input, .form-row.validate-required > select, .form-row.validate-required > textarea' );
 		},
 
 		validateCheckout: function( type ) {
