@@ -202,50 +202,11 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Renders the Stripe elements form.
-	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
-	 */
-	public function form() {
-		$supported_countries = array(
-			'AT' => 'Austria',
-			'BE' => 'Belgium',
-			'DE' => 'Germany',
-			'NL' => 'Netherlands',
-			'ES' => 'Spain',
-			'IT' => 'Italy',
-		);
-		?>
-		<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-form" class="wc-payment-form">
-			<?php do_action( 'woocommerce_credit_card_form_start', $this->id ); ?>
-			<label for="stripe-bank-country">
-				<?php _e( 'Country origin of your bank.', 'woocommerce-gateway-stripe' ); ?>
-			</label>
-			<br />
-			<p class="form-row form-row-wide validate-required">
-			<select id="stripe-bank-country" class="wc-enhanced-select" name="stripe_sofort_bank_country">
-				<option value="-1"><?php esc_html_e( 'Choose Bank Country', 'woocommerce-gateway-stripe' ); ?></option>
-				<?php foreach ( $supported_countries as $code => $country ) { ?>
-				<option value="<?php echo esc_attr( $code ); ?>"><?php echo esc_html( $country ); ?></option>
-				<?php } ?>
-			</select>
-			</p>
-
-			<!-- Used to display form errors -->
-			<div class="stripe-source-errors" role="alert"></div>
-			<?php do_action( 'woocommerce_credit_card_form_end', $this->id ); ?>
-			<div class="clear"></div>
-		</fieldset>
-		<?php
-	}
-
-	/**
 	 * Payment form on checkout page
 	 */
 	public function payment_fields() {
-		$user                 = wp_get_current_user();
-		$total                = WC()->cart->total;
+		$user  = wp_get_current_user();
+		$total = WC()->cart->total;
 
 		// If paying from order, we need to get total from order not cart.
 		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) {
@@ -269,8 +230,6 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $this->description ) ) );
 		}
 
-		$this->form();
-
 		echo '</div>';
 	}
 
@@ -285,7 +244,7 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 	public function create_source( $order ) {
 		$currency                          = WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency();
 		$order_id                          = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
-		$bank_country                      = wc_clean( $_POST['stripe_sofort_bank_country'] );
+		$bank_country                      = WC_Stripe_Helper::is_pre_30() ? $order->billing_country : $order->get_billing_country();
 		$return_url                        = $this->get_stripe_return_url( $order );
 		$post_data                         = array();
 		$post_data['amount']               = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );

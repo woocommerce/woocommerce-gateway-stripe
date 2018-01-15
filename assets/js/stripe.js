@@ -491,9 +491,6 @@ jQuery( function( $ ) {
 					case 'ideal':
 						extra_details.ideal = { bank: $( '#stripe-ideal-bank' ).val() };
 						break;
-					case 'sofort':
-						extra_details.sofort = { country: $( '#stripe-sofort-country' ).val() };
-						break;
 					case 'bitcoin':
 					case 'alipay':
 						extra_details.currency = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
