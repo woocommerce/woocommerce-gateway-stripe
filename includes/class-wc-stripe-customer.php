@@ -175,7 +175,7 @@ class WC_Stripe_Customer {
 	 */
 	public function add_source( $source_id, $retry = true ) {
 		if ( ! $this->get_id() ) {
-			$this->create_customer();
+			$this->set_id( $this->create_customer() );
 		}
 
 		$response = WC_Stripe_API::request( array(
@@ -250,6 +250,10 @@ class WC_Stripe_Customer {
 	 * @return array
 	 */
 	public function get_sources() {
+		if ( ! $this->get_id() ) {
+			return array();
+		}
+
 		$sources = get_transient( 'stripe_sources_' . $this->get_id() );
 
 		if ( false === $sources ) {
@@ -276,6 +280,10 @@ class WC_Stripe_Customer {
 	 * @param string $source_id
 	 */
 	public function delete_source( $source_id ) {
+		if ( ! $this->get_id() ) {
+			return false;
+		}
+
 		$response = WC_Stripe_API::request( array(), 'customers/' . $this->get_id() . '/sources/' . sanitize_text_field( $source_id ), 'DELETE' );
 
 		$this->clear_cache();

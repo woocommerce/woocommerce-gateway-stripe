@@ -107,6 +107,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Possible conflicts with payment request totals when subscriptions is active.
 * Fix - Undefined notice on save card via subscriptions if card is deleted.
 * Fix - Error translation issue when 3DS is required.
+* Fix - Possible 404 if getting customer source if no id was found.
 * Tweak - Add payment page CSS styling.
 
 = 4.0.1 - 2018-01-11 =
