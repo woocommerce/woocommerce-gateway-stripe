@@ -470,9 +470,9 @@ jQuery( function( $ ) {
 					case 'sofort':
 					case 'alipay':
 						// These redirect flow payment methods need this information to be set at source creation.
-						extra_details.amount               = $( '#stripe-' + source_type + '-payment-data' ).data( 'amount' );
-						extra_details.currency             = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
-						extra_details.redirect             = { return_url: wc_stripe_params.return_url };
+						extra_details.amount   = $( '#stripe-' + source_type + '-payment-data' ).data( 'amount' );
+						extra_details.currency = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
+						extra_details.redirect = { return_url: wc_stripe_params.return_url };
 
 						if ( wc_stripe_params.statement_descriptor ) {
 							extra_details.statement_descriptor = wc_stripe_params.statement_descriptor;
