@@ -105,6 +105,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - 3DS support on Stripe Checkout ( Modal Popup ).
 * Add - Filter to enable Payment Request Button on Checkout 'wc_stripe_show_payment_request_on_checkout'.
 * Add - Custom error exceptions class.
+* Add - Credit card field names for clarity.
 * Fix - Possible conflicts with payment request totals when subscriptions is active.
 * Fix - Undefined notice on save card via subscriptions if card is deleted.
 * Fix - Error translation issue when 3DS is required.

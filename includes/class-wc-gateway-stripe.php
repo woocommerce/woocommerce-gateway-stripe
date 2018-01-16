@@ -456,23 +456,37 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		?>
 		<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-cc-form" class="wc-credit-card-form wc-payment-form" style="background:transparent;">
 			<?php do_action( 'woocommerce_credit_card_form_start', $this->id ); ?>
-			<label for="card-element">
-				<?php esc_html_e( 'Credit or debit card', 'woocommerce-gateway-stripe' ); ?>
-			</label>
 
 			<?php if ( $this->inline_cc_form ) { ?>
+				<label for="card-element">
+					<?php esc_html_e( 'Credit or debit card', 'woocommerce-gateway-stripe' ); ?>
+				</label>
+
 				<div id="stripe-card-element" style="background:#fff;padding:0 1em;border:1px solid #ddd;margin:5px 0;padding:10px 5px;">
 				<!-- a Stripe Element will be inserted here. -->
 				</div>
 			<?php } else { ?>
-				<div id="stripe-card-element" class="form-row form-row-wide" style="background:#fff;padding:0 1em;border:1px solid #ddd;margin:5px 0;padding:10px 5px;">
+				<div class="form-row form-row-wide">
+					<label><?php _e( 'Card Number', 'woocommerce-gateway-stripe' ); ?><span class="required">*</span></label>
+
+					<div id="stripe-card-element" style="background:#fff;padding:0 1em;border:1px solid #ddd;margin:5px 0;padding:10px 5px;">
+					<!-- a Stripe Element will be inserted here. -->
+					</div>
+				</div>
+
+				<div class="form-row form-row-first">
+					<label><?php _e( 'Expiry Date', 'woocommerce-gateway-stripe' ); ?><span class="required">*</span></label>
+
+					<div id="stripe-exp-element" style="background:#fff;padding:0 1em;border:1px solid #ddd;margin:5px 0;padding:10px 5px;">
+					<!-- a Stripe Element will be inserted here. -->
+					</div>
+				</div>
+
+				<div class="form-row form-row-last">
+					<label><?php _e( 'Card Code (CVC)', 'woocommerce-gateway-stripe' ); ?><span class="required">*</span></label>
+				<div id="stripe-cvc-element" style="background:#fff;padding:0 1em;border:1px solid #ddd;margin:5px 0;padding:10px 5px;">
 				<!-- a Stripe Element will be inserted here. -->
 				</div>
-				<div id="stripe-exp-element" class="form-row form-row-first" style="background:#fff;padding:0 1em;border:1px solid #ddd;margin:5px 0;padding:10px 5px;">
-				<!-- a Stripe Element will be inserted here. -->
-				</div>
-				<div id="stripe-cvc-element" class="form-row form-row-last" style="background:#fff;padding:0 1em;border:1px solid #ddd;margin:5px 0;padding:10px 5px;">
-				<!-- a Stripe Element will be inserted here. -->
 				</div>
 				<div class="clear"></div>
 			<?php } ?>
