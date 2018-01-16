@@ -171,6 +171,10 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
+		if ( is_add_payment_method_page() && ! $this->saved_cards ) {
+			return false;
+		}
+
 		return parent::is_available();
 	}
 

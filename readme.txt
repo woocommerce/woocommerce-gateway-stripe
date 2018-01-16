@@ -109,6 +109,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Undefined notice on save card via subscriptions if card is deleted.
 * Fix - Error translation issue when 3DS is required.
 * Fix - Possible 404 if getting customer source if no id was found.
+* Fix - Add payment method was still available when save cards setting is disabled.
 * Tweak - Remove Sofort country selection in favor of using the billing country.
 * Tweak - Add payment page CSS styling.
 * Tweak - Error log to show full response object.

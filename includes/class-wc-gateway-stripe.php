@@ -183,6 +183,19 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Checks if gateway should be available to use.
+	 *
+	 * @since 4.0.2
+	 */
+	public function is_available() {
+		if ( is_add_payment_method_page() && ! $this->saved_cards ) {
+			return false;
+		}
+
+		return parent::is_available();
+	}
+
+	/**
 	 * Get_icon function.
 	 *
 	 * @since 1.0.0
