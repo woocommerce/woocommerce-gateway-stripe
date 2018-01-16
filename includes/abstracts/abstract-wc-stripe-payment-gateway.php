@@ -95,7 +95,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function validate_minimum_order_amount( $order ) {
 		if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
 			/* translators: 1) dollar amount */
-			throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
+			throw new WC_Stripe_Exception( 'Did not meet minimum amount', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 		}
 	}
 
@@ -278,9 +278,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 
 			if ( 'failed' === $response->status ) {
-				$error_msg = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
-				$order->add_order_note( $error_msg );
-				throw new Exception( $error_msg );
+				$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
+				$order->add_order_note( $localized_message );
+				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
 		} else {
 			WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_transaction_id', $response->id, true ) : $order->set_transaction_id( $response->id );
@@ -388,7 +388,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$source = $customer->add_source( $source->id );
 
 				if ( ! empty( $source->error ) ) {
-					throw new Exception( $source->error->message );
+					throw new WC_Stripe_Exception( print_r( $source, true ), $source->error->message );
 				}
 			} else {
 				$source = $source->id;
@@ -401,7 +401,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			if ( ! $wc_token || $wc_token->get_user_id() !== get_current_user_id() ) {
 				WC()->session->set( 'refresh_totals', true );
-				throw new Exception( __( 'Invalid payment method. Please input a new card number.', 'woocommerce-gateway-stripe' ) );
+				throw new WC_Stripe_Exception( 'Invalid payment method', __( 'Invalid payment method. Please input a new card number.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			$source = $wc_token->get_token();
@@ -414,7 +414,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$source = $customer->add_source( $stripe_token );
 
 				if ( ! empty( $source->error ) ) {
-					throw new Exception( $source->error->message );
+					throw new WC_Stripe_Exception( print_r( $source, true ), $source->error->message );
 				}
 			} else {
 				$set_customer = false;

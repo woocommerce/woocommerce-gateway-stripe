@@ -353,9 +353,9 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 							sleep( 5 );
 							return $this->process_payment( $order_id, false, $force_save_source );
 						} else {
-							$message = 'API connection error and retries exhausted.';
-							$order->add_order_note( $message );
-							throw new Exception( $message );
+							$localized_message = 'API connection error and retries exhausted.';
+							$order->add_order_note( $localized_message );
+							throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 						}
 					}
 
@@ -368,22 +368,22 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 						// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
 						$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
 						$wc_token->delete();
-						$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
-						$order->add_order_note( $message );
-						throw new Exception( $message );
+						$localized_message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
+						$order->add_order_note( $localized_message );
+						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 					}
 
 					$localized_messages = WC_Stripe_Helper::get_localized_messages();
 
 					if ( 'card_error' === $response->error->type ) {
-						$message = isset( $localized_messages[ $response->error->code ] ) ? $localized_messages[ $response->error->code ] : $response->error->message;
+						$localized_message = isset( $localized_messages[ $response->error->code ] ) ? $localized_messages[ $response->error->code ] : $response->error->message;
 					} else {
-						$message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
+						$localized_message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
 					}
 
-					$order->add_order_note( $message );
+					$order->add_order_note( $localized_message );
 
-					throw new Exception( $message );
+					throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 				}
 
 				do_action( 'wc_gateway_stripe_process_payment', $response, $order );
@@ -403,8 +403,8 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 				'redirect' => $this->get_return_url( $order ),
 			);
 
-		} catch ( Exception $e ) {
-			wc_add_notice( $e->getMessage(), 'error' );
+		} catch ( WC_Stripe_Exception $e ) {
+			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );

@@ -89,11 +89,11 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$source_info = WC_Stripe_API::retrieve( 'sources/' . $source );
 
 			if ( ! empty( $source_info->error ) ) {
-				throw new Exception( $source_info->error->message );
+				throw new WC_Stripe_Exception( print_r( $source_info, true ), $source_info->error->message );
 			}
 
 			if ( 'failed' === $source_info->status || 'canceled' === $source_info->status ) {
-				throw new Exception( __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ) );
+				throw new WC_Stripe_Exception( print_r( $source_info, true ), __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			// If already consumed, then ignore request.
@@ -118,7 +118,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					} else {
 						$message = 'API connection error and retries exhausted.';
 						$order->add_order_note( $message );
-						throw new Exception( $message );
+						throw new WC_Stripe_Exception( print_r( $response, true ), $message );
 					}
 				}
 
@@ -135,7 +135,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					$wc_token->delete();
 					$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
 					$order->add_order_note( $message );
-					throw new Exception( $message );
+					throw new WC_Stripe_Exception( print_r( $response, true ), $message );
 				}
 
 				$localized_messages = WC_Stripe_Helper::get_localized_messages();
@@ -146,26 +146,26 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					$message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
 				}
 
-				throw new Exception( $message );
+				throw new WC_Stripe_Exception( print_r( $response, true ), $message );
 			}
 
 			do_action( 'wc_gateway_stripe_process_redirect_payment', $response, $order );
 
 			$this->process_response( $response, $order );
 
-		} catch ( Exception $e ) {
+		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
 			do_action( 'wc_gateway_stripe_process_redirect_payment_error', $e, $order );
 
 			/* translators: error message */
-			$order->update_status( 'failed', sprintf( __( 'Stripe payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+			$order->update_status( 'failed', sprintf( __( 'Stripe payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() ) );
 
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );
 			}
 
-			wc_add_notice( $e->getMessage(), 'error' );
+			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			wp_safe_redirect( wc_get_checkout_url() );
 			exit;
 		}

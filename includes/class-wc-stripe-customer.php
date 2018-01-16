@@ -151,7 +151,7 @@ class WC_Stripe_Customer {
 		$response = WC_Stripe_API::request( apply_filters( 'wc_stripe_create_customer_args', $args ), 'customers' );
 
 		if ( ! empty( $response->error ) ) {
-			throw new Exception( $response->error->message );
+			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
 		}
 
 		$this->set_id( $response->id );

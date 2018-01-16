@@ -93,6 +93,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * @version 4.0.0
 		 */
 		public function init() {
+			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-exception.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-logger.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-helper.php' );
 			include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php' );
