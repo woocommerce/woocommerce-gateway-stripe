@@ -295,9 +295,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$replace_str     = array();
 
 		if ( array_key_exists( $field, $checkout_fields['billing'] ) ) {
-			$error_field = $checkout_fields['billing'][ $field ]['label'];
+			$error_field = __( 'Billing', 'woocommerce-gateway-stripe' ) . ' ' . $checkout_fields['billing'][ $field ]['label'];
 		} elseif ( array_key_exists( $field, $checkout_fields['shipping'] ) ) {
-			$error_field = $checkout_fields['shipping'][ $field ]['label'];
+			$error_field = __( 'Shipping', 'woocommerce-gateway-stripe' ) . ' ' . $checkout_fields['shipping'][ $field ]['label'];
 		} elseif ( array_key_exists( $field, $checkout_fields['order'] ) ) {
 			$error_field = $checkout_fields['order'][ $field ]['label'];
 		} elseif ( array_key_exists( $field, $checkout_fields['account'] ) ) {
@@ -399,7 +399,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			if ( empty( $field_value ) || '-1' === $field_value ) {
 				$error_field = $this->normalize_field( $field );
 				/* translators: error field name */
-				$errors->add( 'validation', sprintf( __( '%s cannot be empty', 'woocommerce-gateway-stripe' ), $error_field ) );
+				$errors->add( 'validation', sprintf( __( '<strong>%s</strong> cannot be empty', 'woocommerce-gateway-stripe' ), $error_field ) );
 			}
 		}
 
