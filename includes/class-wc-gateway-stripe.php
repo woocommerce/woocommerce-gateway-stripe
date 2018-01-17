@@ -411,7 +411,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			data-name="' . esc_attr( $this->statement_descriptor ) . '"
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '"
 			data-image="' . esc_attr( $this->stripe_checkout_image ) . '"
-			data-bitcoin="' . esc_attr( $this->bitcoin ? 'true' : 'false' ) . '"
+			data-bitcoin="' . esc_attr( ( $this->bitcoin && $this->capture ) ? 'true' : 'false' ) . '"
 			data-locale="' . esc_attr( $this->stripe_checkout_locale ? $this->stripe_checkout_locale : 'en' ) . '"
 			data-three-d-secure="' . esc_attr( $this->three_d_secure ? 'true' : 'false' ) . '"
 			data-allow-remember-me="' . esc_attr( $this->saved_cards ? 'true' : 'false' ) . '">';
@@ -679,7 +679,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				 * Note that if we need to save source, the original source must be first
 				 * attached to a customer in Stripe before it can be charged.
 				 */
-				if ( $source_object && ( 'card' === $source_object->type && 'required' === $source_object->card->three_d_secure || ( $this->three_d_secure && 'optional' === $source_object->card->three_d_secure ) ) ) {
+				if ( ( $source_object && ! empty( $source_object->card ) ) && ( 'card' === $source_object->type && 'required' === $source_object->card->three_d_secure || ( $this->three_d_secure && 'optional' === $source_object->card->three_d_secure ) ) ) {
 
 					$response = $this->create_3ds_source( $order, $source_object );
 

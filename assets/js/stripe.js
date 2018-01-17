@@ -317,6 +317,9 @@ jQuery( function( $ ) {
 						type: 'card',
 						token: res.id,
 					} ).then( wc_stripe_form.sourceResponse );
+				} else if ( 'source' === res.object ) {
+					var response = { source: res };
+					wc_stripe_form.sourceResponse( response );
 				}
 			};
 

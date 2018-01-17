@@ -197,7 +197,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 					$post_data['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor );
 				}
 
-				$post_data['capture']              = $capture ? 'true' : 'false';
+				$post_data['capture'] = $capture ? 'true' : 'false';
 				break;
 		}
 
