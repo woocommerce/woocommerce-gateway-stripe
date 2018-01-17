@@ -382,7 +382,7 @@ jQuery( function( $ ) {
 			$( errorContainer ).html( '<ul class="woocommerce_error woocommerce-error wc-stripe-error"><li>' + message + '</li></ul>' );
 			$( 'html, body' ).animate({
 				scrollTop: ( $( '.wc-stripe-error' ).offset().top - 200 )
-			}, 1000 );
+			}, 200 );
 			wc_stripe_form.unblock();
 		},
 
@@ -790,7 +790,7 @@ jQuery( function( $ ) {
 			wc_stripe_form.form.find( '.input-text, select, input:checkbox' ).blur();
 			$( 'html, body' ).animate({
 				scrollTop: ( $( 'form.checkout' ).offset().top - 100 )
-			}, 1000 );
+			}, 500 );
 			$( document.body ).trigger( 'checkout_error' );
 			wc_stripe_form.unblock();
 		}
