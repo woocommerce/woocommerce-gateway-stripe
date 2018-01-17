@@ -104,6 +104,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 4.0.2 - 2018-01-xx =
 * Add - 3DS support on Stripe Checkout ( Modal Popup ).
 * Add - Filter to enable Payment Request Button on Checkout 'wc_stripe_show_payment_request_on_checkout'.
+* Add - Filter to remove all fields from checkout validation. 'wc_stripe_validate_checkout_all_fields'.
+* Add - Filter to remove required fields from checkout validation. 'wc_stripe_validate_checkout_required_fields'.
 * Add - Custom error exceptions class.
 * Add - Credit card field names for clarity.
 * Fix - Possible conflicts with payment request totals when subscriptions is active.

@@ -344,6 +344,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$validate_shipping_fields = false;
 		$create_account = false;
 
+		$all_fields      = apply_filters( 'wc_stripe_validate_checkout_all_fields', $all_fields );
+		$required_fields = apply_filters( 'wc_stripe_validate_checkout_required_fields', $required_fields );
+
 		array_walk_recursive( $required_fields, 'wc_clean' );
 		array_walk_recursive( $all_fields, 'wc_clean' );
 
