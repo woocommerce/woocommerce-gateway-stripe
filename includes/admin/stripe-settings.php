@@ -173,7 +173,7 @@ return apply_filters( 'wc_stripe_settings',
 			'label'       => __( 'Button Theme', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
 			'description' => __( 'Select the button theme you would like to show.', 'woocommerce-gateway-stripe' ),
-			'default'     => 'default',
+			'default'     => 'dark',
 			'desc_tip'    => true,
 			'options'     => array(
 				'dark'          => __( 'Dark', 'woocommerce-gateway-stripe' ),
