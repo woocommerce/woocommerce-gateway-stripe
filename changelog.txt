@@ -1,5 +1,23 @@
 *** Changelog ***
 
+= 4.0.2 - 2018-01-17 =
+* Add - 3DS support on Stripe Checkout ( Modal Popup ).
+* Add - Filter to enable Payment Request Button on Checkout 'wc_stripe_show_payment_request_on_checkout'.
+* Add - Filter to remove all fields from checkout validation. 'wc_stripe_validate_checkout_all_fields'.
+* Add - Filter to remove required fields from checkout validation. 'wc_stripe_validate_checkout_required_fields'.
+* Add - Custom error exceptions class.
+* Add - Credit card field names for clarity.
+* Fix - Possible conflicts with payment request totals when subscriptions is active.
+* Fix - Undefined notice on save card via subscriptions if card is deleted.
+* Fix - Error translation issue when 3DS is required.
+* Fix - Possible 404 if getting customer source if no id was found.
+* Fix - Add payment method was still available when save cards setting is disabled.
+* Fix - In certain cases when webhook is used, refunds can show as doubled when it is not.
+* Fix - Stripe checkout with bitcoin returns error on processing.
+* Tweak - Remove Sofort country selection in favor of using the billing country.
+* Tweak - Add payment page CSS styling.
+* Tweak - Error log to show full response object.
+
 = 4.0.1 - 2018-01-11 =
 * Fix - Add payment method conflict with terms and agreement page.
 * Fix - Checkout validation checkout field names/labels were not translated.
