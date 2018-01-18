@@ -427,7 +427,7 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 				}
 
-				$source = $this->prepare_source( get_current_user_id(), true );
+				$source = $this->prepare_source( $this->create_source_object(), get_current_user_id(), true );
 
 				// We need a source on file to continue.
 				if ( empty( $source->customer ) || empty( $source->source ) ) {

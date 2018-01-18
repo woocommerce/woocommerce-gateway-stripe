@@ -513,7 +513,11 @@ jQuery( function( $ ) {
 			} else if ( 'no' === wc_stripe_params.allow_prepaid_card && 'card' === response.source.type && 'prepaid' === response.source.card.funding ) {
 				response.error = { message: wc_stripe_params.no_prepaid_card_msg };
 
-				$( document.body ).trigger( 'stripeError', response );
+				if ( wc_stripe_params.is_stripe_checkout ) {
+					wc_stripe_form.submitError( '<ul class="woocommerce-error"><li>' + wc_stripe_params.no_prepaid_card_msg + '</li></ul>' );
+				} else {
+					$( document.body ).trigger( 'stripeError', response );
+				}
 			} else {
 				wc_stripe_form.processStripeResponse( response.source );
 			}
@@ -712,7 +716,7 @@ jQuery( function( $ ) {
 			wc_stripe_form.reset();
 
 			// Insert the Source into the form so it gets submitted to the server.
-			wc_stripe_form.form.append( "<input type='hidden' class='stripe-source' name='stripe_source' value='" + JSON.stringify( wc_stripe_form.prepareSourceToServer( source ) ) + "'/>" );
+			wc_stripe_form.form.append( "<input type='hidden' class='stripe-source' name='stripe_source' value='" + source.id + "'/>" );
 
 			if ( $( 'form#add_payment_method' ).length ) {
 				$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
@@ -788,9 +792,17 @@ jQuery( function( $ ) {
 			wc_stripe_form.form.prepend( '<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout">' + error_message + '</div>' );
 			wc_stripe_form.form.removeClass( 'processing' ).unblock();
 			wc_stripe_form.form.find( '.input-text, select, input:checkbox' ).blur();
+			
+			var selector = $( 'form.checkout' );
+
+			if ( $( '#add_payment_method' ).length ) {
+				selector = $( '#add_payment_method' );
+			}
+
 			$( 'html, body' ).animate({
-				scrollTop: ( $( 'form.checkout' ).offset().top - 100 )
+				scrollTop: ( selector.offset().top - 100 )
 			}, 500 );
+
 			$( document.body ).trigger( 'checkout_error' );
 			wc_stripe_form.unblock();
 		}

@@ -333,7 +333,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 				$new_stripe_customer->create_customer();
 			}
 
-			$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source );
+			$prepared_source = $this->prepare_source( $this->create_source_object(), get_current_user_id(), $force_save_source );
 
 			// Store source to order meta.
 			$this->save_source( $order, $prepared_source );

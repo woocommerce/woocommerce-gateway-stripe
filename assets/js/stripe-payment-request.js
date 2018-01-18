@@ -116,7 +116,7 @@ jQuery( function( $ ) {
 				payment_method:            'stripe',
 				ship_to_different_address: 1,
 				terms:                     1,
-				stripe_source:             JSON.stringify( source ),
+				stripe_source:             source.id,
 				payment_request_type:      paymentRequestType
 			};
 

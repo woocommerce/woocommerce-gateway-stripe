@@ -101,6 +101,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 4.0.3 - 2018.01-xx =
+* Fix - Pass Stripe source as id instead of object as some sites may conflict with objects being passed.
+
 = 4.0.2 - 2018-01-17 =
 * Add - 3DS support on Stripe Checkout ( Modal Popup ).
 * Add - Filter to enable Payment Request Button on Checkout 'wc_stripe_show_payment_request_on_checkout'.

@@ -351,19 +351,41 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Create source object by source id.
+	 *
+	 * @since 4.0.3
+	 */
+	public function create_source_object() {
+		$source = ! empty( $_POST['stripe_source'] ) ? wc_clean( $_POST['stripe_source'] ) : '';
+		
+		if ( empty( $source ) ) {
+			return '';
+		}
+
+		$source_object = WC_Stripe_API::retrieve( 'sources/' . $source );
+
+		if ( ! empty( $source_object->error ) ) {
+			throw new WC_Stripe_Exception( print_r( $source_object, true ), $source_object->error->message );
+		}
+
+		return $source_object;
+	}
+
+	/**
 	 * Get payment source. This can be a new token/source or existing WC token.
 	 * If user is logged in and/or has WC account, create an account on Stripe.
 	 * This way we can attribute the payment to the user to better fight fraud.
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
+	 * @param object $source_object
 	 * @param string $user_id
 	 * @param bool $force_save_source Should we force save payment source.
 	 *
 	 * @throws Exception When card was not added or for and invalid card.
 	 * @return object
 	 */
-	public function prepare_source( $user_id, $force_save_source = false ) {
+	public function prepare_source( $source_object = '', $user_id, $force_save_source = false ) {
 		$customer           = new WC_Stripe_Customer( $user_id );
 		$set_customer       = true;
 		$force_save_source  = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
@@ -372,9 +394,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$payment_method     = isset( $_POST['payment_method'] ) ? wc_clean( $_POST['payment_method'] ) : 'stripe';
 
 		// New CC info was entered and we have a new source to process.
-		if ( ! empty( $_POST['stripe_source'] ) ) {
+		if ( ! empty( $source_object ) ) {
 			// This gets the source object from Stripe.
-			$source = json_decode( wc_clean( stripslashes( $_POST['stripe_source'] ) ) );
+			$source = $source_object;
 
 			// This checks to see if customer opted to save the payment method to file.
 			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
@@ -637,14 +659,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
 
-		if ( isset( $_POST['stripe_source'] ) ) {
-			$source = json_decode( wc_clean( stripslashes( $_POST['stripe_source'] ) ) );
+		$source = ! empty( $_POST['stripe_source'] ) ? wc_clean( $_POST['stripe_source'] ) : '';
 
-			if ( ! empty( $source->error ) ) {
+		$source_object = WC_Stripe_API::retrieve( 'sources/' . $source );
+
+		if ( isset( $source_object ) ) {
+			if ( ! empty( $source_object->error ) ) {
 				$error = true;
 			}
 
-			$source_id = $source->id;
+			$source_id = $source_object->id;
 		} elseif ( isset( $_POST['stripe_token'] ) ) {
 			$source_id = wc_clean( $_POST['stripe_token'] );
 		}
@@ -657,6 +681,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( $error ) {
 			wc_add_notice( $error_msg, 'error' );
+			WC_Stripe_Logger::log( 'Add payment method Error: ' . $error_msg );
 			return;
 		}
 
