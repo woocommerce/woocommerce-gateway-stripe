@@ -151,11 +151,11 @@ class WC_Stripe_Payment_Request {
 			return '';
 		}
 
-		if ( empty( $this->stripe_settings['test_publishable_key'] ) ) {
+		if ( 'yes' === $this->stripe_settings['testmode'] && empty( $this->stripe_settings['test_publishable_key'] ) ) {
 			return '';
 		}
 
-		return ( empty( $this->stripe_settings['testmode'] ) || 'yes' === $this->stripe_settings['testmode'] ) ? $this->stripe_settings['test_publishable_key'] : $this->stripe_settings['publishable_key'];
+		return ( 'yes' === $this->stripe_settings['testmode'] ) ? $this->stripe_settings['test_publishable_key'] : $this->stripe_settings['publishable_key'];
 	}
 
 	/**
