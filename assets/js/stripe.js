@@ -190,7 +190,7 @@ jQuery( function( $ ) {
 
 		// Check to see if Stripe in general is being used for checkout.
 		isStripeChosen: function() {
-			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_giropay, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa, #payment_method_stripe_bitcoin' ).is( ':checked' ) || 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val();
+			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_giropay, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa, #payment_method_stripe_bitcoin' ).is( ':checked' ) || ( $( '#payment_method_stripe' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() ) || ( $( '#payment_method_stripe_sepa' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() );
 		},
 
 		// Currently only support saved cards via credit cards and SEPA. No other payment method.
@@ -793,15 +793,25 @@ jQuery( function( $ ) {
 			wc_stripe_form.form.removeClass( 'processing' ).unblock();
 			wc_stripe_form.form.find( '.input-text, select, input:checkbox' ).blur();
 			
-			var selector = $( 'form.checkout' );
+			var selector = '';
 
 			if ( $( '#add_payment_method' ).length ) {
 				selector = $( '#add_payment_method' );
 			}
 
-			$( 'html, body' ).animate({
-				scrollTop: ( selector.offset().top - 100 )
-			}, 500 );
+			if ( $( '#order_review' ).length ) {
+				selector = $( '#order_review' );
+			}
+
+			if ( $( 'form.checkout' ).length ) {
+				selector = $( 'form.checkout' );
+			}
+
+			if ( selector.length ) {
+				$( 'html, body' ).animate({
+					scrollTop: ( selector.offset().top - 100 )
+				}, 500 );
+			}
 
 			$( document.body ).trigger( 'checkout_error' );
 			wc_stripe_form.unblock();
