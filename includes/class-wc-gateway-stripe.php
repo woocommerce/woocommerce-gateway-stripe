@@ -592,6 +592,41 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Check if source_object is card
+	 *
+	 * @since 4.0.2
+	 * @version 4.0.2
+	 * @param object  $source_object.
+	 *
+	 * @return boolean
+	 */
+	private function source_is_card($source_object) {
+		return $source_object &&
+		       ! empty( $source_object->card) &&
+		       'card' === $source_object->type;
+	}
+
+	/**
+	 * Check if card should use 3d secure
+	 *
+	 * @since 4.0.2
+	 * @version 4.0.2
+	 * @param object  $card.
+	 *
+	 * @return boolean
+	 */
+	private function card_use_3d_secure($card) {
+		return (
+			       $card &&
+			       'required' === $card->three_d_secure
+		       ) ||
+		       (
+			       $this->three_d_secure &&
+			       'optional' === $card->three_d_secure
+		       );
+	}
+
+	/**
 	 * Creates the 3DS source for charge.
 	 *
 	 * @since 4.0.0
@@ -678,7 +713,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				 * Note that if we need to save source, the original source must be first
 				 * attached to a customer in Stripe before it can be charged.
 				 */
-				if ( ( $source_object && ! empty( $source_object->card ) ) && ( 'card' === $source_object->type && 'required' === $source_object->card->three_d_secure || ( $this->three_d_secure && 'optional' === $source_object->card->three_d_secure ) ) ) {
+				if ( $this->source_is_card($source_object) && $this->card_use_3d_secure($source_object->card)) {
 
 					$response = $this->create_3ds_source( $order, $source_object );
 
