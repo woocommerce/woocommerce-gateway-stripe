@@ -43,6 +43,13 @@ class WC_Stripe_Payment_Request {
 	public $publishable_key;
 
 	/**
+	 * Is test mode active?
+	 *
+	 * @var bool
+	 */
+	public $testmode;
+
+	/**
 	 * Initialize class actions.
 	 *
 	 * @since 3.0.0
@@ -50,9 +57,14 @@ class WC_Stripe_Payment_Request {
 	 */
 	public function __construct() {
 		$this->stripe_settings         = get_option( 'woocommerce_stripe_settings', array() );
-		$this->publishable_key         = $this->get_publishable_key();
+		$this->testmode                = ( ! empty( $this->stripe_settings['testmode'] ) && 'yes' === $this->stripe_settings['testmode'] ) ? true : false;
+		$this->publishable_key         = ! empty( $this->stripe_settings['publishable_key'] ) ? $this->stripe_settings['publishable_key'] : '';
 		$this->stripe_checkout_enabled = isset( $this->stripe_settings['stripe_checkout'] ) && 'yes' === $this->stripe_settings['stripe_checkout'];
 		$this->total_label             = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
+
+		if ( $this->testmode ) {
+			$this->publishable_key = ! empty( $this->stripe_settings['test_publishable_key'] ) ? $this->stripe_settings['test_publishable_key'] : '';
+		}
 
 		// If both site title and statement descriptor is not set. Fallback.
 		if ( empty( $this->total_label ) ) {
@@ -139,23 +151,6 @@ class WC_Stripe_Payment_Request {
 				$wc_session->set_customer_session_cookie( true );
 			}
 		}
-	}
-
-	/**
-	 * Get publishable key.
-	 *
-	 * @return string
-	 */
-	protected function get_publishable_key() {
-		if ( empty( $this->stripe_settings ) ) {
-			return '';
-		}
-
-		if ( empty( $this->stripe_settings['test_publishable_key'] ) ) {
-			return '';
-		}
-
-		return ( empty( $this->stripe_settings['testmode'] ) || 'yes' === $this->stripe_settings['testmode'] ) ? $this->stripe_settings['test_publishable_key'] : $this->stripe_settings['publishable_key'];
 	}
 
 	/**
@@ -416,7 +411,7 @@ class WC_Stripe_Payment_Request {
 			array(
 				'ajax_url' => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 				'stripe'   => array(
-					'key'                => $this->get_publishable_key(),
+					'key'                => $this->publishable_key,
 					'allow_prepaid_card' => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 				),
 				'nonce'    => array(
