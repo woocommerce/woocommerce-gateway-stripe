@@ -103,6 +103,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 4.0.3 - 2018.01-xx =
 * Fix - Pass Stripe source as id instead of object as some sites may conflict with objects being passed.
+* Fix - For Payment Request Button, if test keys are not filled, it can cause live mode not to function.
 
 = 4.0.2 - 2018-01-17 =
 * Add - 3DS support on Stripe Checkout ( Modal Popup ).
