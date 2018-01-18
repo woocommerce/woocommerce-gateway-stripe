@@ -36,6 +36,13 @@ class WC_Stripe_Payment_Request {
 	public $total_label;
 
 	/**
+	 * Key
+	 *
+	 * @var
+	 */
+	public $publishable_key;
+
+	/**
 	 * Initialize class actions.
 	 *
 	 * @since 3.0.0
@@ -144,15 +151,11 @@ class WC_Stripe_Payment_Request {
 			return '';
 		}
 
-		if ( empty( $this->stripe_settings['testmode'] ) ) {
-			return '';
-		}
-
 		if ( empty( $this->stripe_settings['test_publishable_key'] ) ) {
 			return '';
 		}
 
-		return 'yes' === $this->stripe_settings['testmode'] ? $this->stripe_settings['test_publishable_key'] : $this->stripe_settings['publishable_key'];
+		return ( empty( $this->stripe_settings['testmode'] ) || 'yes' === $this->stripe_settings['testmode'] ) ? $this->stripe_settings['test_publishable_key'] : $this->stripe_settings['publishable_key'];
 	}
 
 	/**
