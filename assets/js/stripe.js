@@ -354,7 +354,7 @@ jQuery( function( $ ) {
 
 		onError: function( e, result ) {
 			var message = result.error.message,
-				errorContainer = wc_stripe_form.getSelectedPaymentElement().parent( '.wc_payment_method, .woocommerce-PaymentMethod' ).find( '.stripe-source-errors' );
+				errorContainer = wc_stripe_form.getSelectedPaymentElement().parents( '.wc_payment_method, .woocommerce-PaymentMethod' ).find( '.stripe-source-errors' );
 
 			// Customers do not need to know the specifics of the below type of errors
 			// therefore return a generic localizable error message.
