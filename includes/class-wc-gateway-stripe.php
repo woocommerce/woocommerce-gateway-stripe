@@ -402,6 +402,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$pay_button_text = '';
 		}
 
+		// Buffer the output until entire div is rendered before transmitting over the network.
+		// Prevents browser rendering unclosed div which is visible to user for a second.
+		ob_start();
+
 		echo '<div
 			id="stripe-payment-data"
 			data-panel-label="' . esc_attr( $pay_button_text ) . '"
@@ -444,6 +448,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		echo '</div>';
+
+		ob_end_flush();
 	}
 
 	/**
