@@ -132,7 +132,6 @@ class WC_Stripe_Payment_Request {
 		add_action( 'wc_ajax_wc_stripe_log_errors', array( $this, 'ajax_log_errors' ) );
 
 		add_filter( 'woocommerce_gateway_title', array( $this, 'filter_gateway_title' ), 10, 2 );
-		add_filter( 'woocommerce_validate_postcode', array( $this, 'postal_code_validation' ), 10, 3 );
 
 		add_action( 'woocommerce_checkout_order_processed', array( $this, 'add_order_meta' ), 10, 3 );
 	}
@@ -273,32 +272,6 @@ class WC_Stripe_Payment_Request {
 		}
 
 		return $title;
-	}
-
-	/**
-	 * Removes postal code validation from WC.
-	 *
-	 * @since 3.1.4
-	 * @version 4.0.0
-	 */
-	public function postal_code_validation( $valid, $postcode, $country ) {
-		$gateways = WC()->payment_gateways->get_available_payment_gateways();
-
-		if ( ! isset( $gateways['stripe'] ) ) {
-			return $valid;
-		}
-
-		/**
-		 * Currently Apple Pay truncates postal codes from UK and Canada to first 3 characters
-		 * when passing it back from the shippingcontactselected object. This causes WC to invalidate
-		 * the order and not let it go through. The remedy for now is just to remove this validation.
-		 * Note that this only works with shipping providers that don't validate full postal codes.
-		 */
-		if ( 'GB' === $country || 'CA' === $country ) {
-			return true;
-		}
-
-		return $valid;
 	}
 
 	/**
