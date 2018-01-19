@@ -101,6 +101,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 4.0.4 - 2018-xx-xx =
+* Add - SEPA mandate notification email.
+* Add - Hook to change SEPA mandate notification to none "wc_stripe_sepa_mandate_notification".
+
 = 4.0.3 - 2018-01-18 =
 * Fix - Pass Stripe source as id instead of object as some sites may conflict with objects being passed.
 * Fix - For Payment Request Button, if test keys are not filled, it can cause live mode not to function.

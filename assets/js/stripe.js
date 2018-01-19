@@ -493,6 +493,7 @@ jQuery( function( $ ) {
 						extra_details.currency = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
 						extra_details.owner.name = $( '#stripe-sepa-owner' ).val();
 						extra_details.sepa_debit = { iban: $( '#stripe-sepa-iban' ).val() };
+						extra_details.mandate = { notification_method: wc_stripe_params.sepa_mandate_notification };
 						break;
 					case 'ideal':
 						extra_details.ideal = { bank: $( '#stripe-ideal-bank' ).val() };
