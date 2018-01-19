@@ -380,9 +380,12 @@ jQuery( function( $ ) {
 			$( '.woocommerce-NoticeGroup-checkout' ).remove();
 			console.log( result.error.message ); // Leave for troubleshooting.
 			$( errorContainer ).html( '<ul class="woocommerce_error woocommerce-error wc-stripe-error"><li>' + message + '</li></ul>' );
-			$( 'html, body' ).animate({
-				scrollTop: ( $( '.wc-stripe-error' ).offset().top - 200 )
-			}, 200 );
+
+			if ( $( '.wc-stripe-error' ).length ) {
+				$( 'html, body' ).animate({
+					scrollTop: ( $( '.wc-stripe-error' ).offset().top - 200 )
+				}, 200 );
+			}
 			wc_stripe_form.unblock();
 		},
 
