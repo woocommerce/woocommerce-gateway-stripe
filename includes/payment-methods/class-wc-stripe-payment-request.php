@@ -288,6 +288,12 @@ class WC_Stripe_Payment_Request {
 			return $valid;
 		}
 
+		$payment_request_type = wc_clean( $_POST['payment_request_type'] );
+
+		if ( 'apple_pay' !== $payment_request_type ) {
+			return $valid;
+		}
+
 		/**
 		 * Currently Apple Pay truncates postal codes from UK and Canada to first 3 characters
 		 * when passing it back from the shippingcontactselected object. This causes WC to invalidate

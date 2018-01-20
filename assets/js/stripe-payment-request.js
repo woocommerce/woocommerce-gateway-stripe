@@ -2,7 +2,8 @@
 jQuery( function( $ ) {
 	'use strict';
 
-	var stripe = Stripe( wc_stripe_payment_request_params.stripe.key );
+	var stripe = Stripe( wc_stripe_payment_request_params.stripe.key ),
+		paymentRequestType;
 
 	/**
 	 * Object to handle Stripe payment forms.
@@ -220,7 +221,8 @@ jQuery( function( $ ) {
 				postcode:  address.postalCode,
 				city:      address.city,
 				address:   typeof address.addressLine[0] === 'undefined' ? '' : address.addressLine[0],
-				address_2: typeof address.addressLine[1] === 'undefined' ? '' : address.addressLine[1]
+				address_2: typeof address.addressLine[1] === 'undefined' ? '' : address.addressLine[1],
+				payment_request_type: paymentRequestType
 			};
 
 			return $.ajax({
@@ -239,7 +241,8 @@ jQuery( function( $ ) {
 		updateShippingDetails: function( details, shippingOption ) {
 			var data = {
 				security: wc_stripe_payment_request_params.nonce.update_shipping,
-				shipping_method: [ shippingOption.id ]
+				shipping_method: [ shippingOption.id ],
+				payment_request_type: paymentRequestType
 			};
 
 			return $.ajax({
@@ -330,9 +333,7 @@ jQuery( function( $ ) {
 				paymentDetails = cart.order_data;
 			}
 
-			var paymentRequest     = stripe.paymentRequest( options );
-			var paymentRequestType = '';
-			
+			var paymentRequest = stripe.paymentRequest( options );
 
 			var elements = stripe.elements({ locale: wc_stripe_payment_request_params.button.locale });
 			var prButton = elements.create( 'paymentRequestButton', {
