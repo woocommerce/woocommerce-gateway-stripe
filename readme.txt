@@ -104,7 +104,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 4.0.4 - 2018-xx-xx =
 * Add - SEPA mandate notification email.
 * Add - Hook to change SEPA mandate notification to none "wc_stripe_sepa_mandate_notification".
-* Remove - Postal code validation for a work around the Apple Pay Canada/UK postal code issue.
 
 = 4.0.3 - 2018-01-18 =
 * Fix - Pass Stripe source as id instead of object as some sites may conflict with objects being passed.
