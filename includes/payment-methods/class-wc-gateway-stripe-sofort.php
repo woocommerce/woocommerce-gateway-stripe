@@ -294,7 +294,15 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 			if ( ! empty( $response->error ) ) {
 				$order->add_order_note( $response->error->message );
 
-				throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
+				$localized_messages = WC_Stripe_Helper::get_localized_messages();
+
+				if ( 'invalid_sofort_country' === $response->error->code ) {
+					$localized_message = isset( $localized_messages[ $response->error->code ] ) ? $localized_messages[ $response->error->code ] : $response->error->message;
+				} else {
+					$localized_message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
+				}
+
+				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
 
 			if ( WC_Stripe_Helper::is_pre_30() ) {

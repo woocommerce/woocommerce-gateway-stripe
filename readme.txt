@@ -104,6 +104,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 4.0.4 - 2018-xx-xx =
 * Add - SEPA mandate notification email.
 * Add - Hook to change SEPA mandate notification to none "wc_stripe_sepa_mandate_notification".
+* Fix - When checkout form produces an error on mobile, sometimes the blocking mask is not release blocking new input.
 
 = 4.0.3 - 2018-01-18 =
 * Fix - Pass Stripe source as id instead of object as some sites may conflict with objects being passed.

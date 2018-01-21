@@ -350,16 +350,6 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		array_walk_recursive( $required_fields, 'wc_clean' );
 		array_walk_recursive( $all_fields, 'wc_clean' );
 
-		// Remove unneeded required fields depending on source type.
-		if ( 'stripe_sepa' !== $source_type ) {
-			unset( $required_fields['stripe_sepa_owner'] );
-			unset( $required_fields['stripe_sepa_iban'] );
-		}
-
-		if ( 'stripe_sofort' !== $source_type ) {
-			unset( $required_fields['stripe_sofort_bank_country'] );
-		}
-
 		/**
 		 * If ship to different address checkbox is checked then we need
 		 * to validate shipping fields too.
@@ -388,15 +378,6 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			// Check create account password.
 			if ( 'account_password' === $field && ! $create_account ) {
 				continue;
-			}
-
-			// Check if is SEPA.
-			if ( 'stripe_sepa' !== $source_type && 'stripe_sepa_owner' === $field ) {
-				continue;
-			}
-
-			if ( 'stripe_sepa' !== $source_type && 'stripe_sepa_iban' === $field ) {
-				$continue;
 			}
 
 			if ( empty( $field_value ) || '-1' === $field_value ) {
