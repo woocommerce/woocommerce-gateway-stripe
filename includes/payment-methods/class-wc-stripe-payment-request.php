@@ -243,7 +243,7 @@ class WC_Stripe_Payment_Request {
 		$data['currency']        = strtolower( get_woocommerce_currency() );
 		$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
 
-		return $data;
+		return apply_filters( 'wc_stripe_payment_request_product_data', $data, $product );
 	}
 
 	/**
