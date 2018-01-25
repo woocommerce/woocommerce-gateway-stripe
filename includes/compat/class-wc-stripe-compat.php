@@ -380,6 +380,8 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 			foreach ( $sources as $source ) {
 				if ( isset( $source->type ) && 'card' === $source->type ) {
 					$card = $source->card;
+				} elseif ( isset( $source->object ) && 'card' === $source->object ) {
+					$card = $source;
 				}
 
 				if ( $source->id === $stripe_source_id ) {

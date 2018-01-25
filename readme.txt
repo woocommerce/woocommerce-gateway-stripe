@@ -106,6 +106,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - Hook to change SEPA mandate notification to none "wc_stripe_sepa_mandate_notification".
 * Add - Hook to change data for product when using Payment Request Button "wc_stripe_payment_request_product_data".
 * Fix - When checkout form produces an error on mobile, sometimes the blocking mask is not release blocking new input.
+* Fix - On older subscription payments, the ending card number is not shown on the subscriptions table in my account.
 
 = 4.0.3 - 2018-01-18 =
 * Fix - Pass Stripe source as id instead of object as some sites may conflict with objects being passed.

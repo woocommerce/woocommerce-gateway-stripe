@@ -256,20 +256,16 @@ class WC_Stripe_Customer {
 
 		$sources = get_transient( 'stripe_sources_' . $this->get_id() );
 
-		if ( false === $sources ) {
-			$response = WC_Stripe_API::request( array(
-				'limit'       => 100,
-			), 'customers/' . $this->get_id() . '/sources', 'GET' );
+		$response = WC_Stripe_API::request( array(
+			'limit'       => 100,
+		), 'customers/' . $this->get_id() . '/sources', 'GET' );
 
-			if ( ! empty( $response->error ) ) {
-				return array();
-			}
+		if ( ! empty( $response->error ) ) {
+			return array();
+		}
 
-			if ( is_array( $response->data ) ) {
-				$sources = $response->data;
-			}
-
-			set_transient( 'stripe_sources_' . $this->get_id(), $sources, HOUR_IN_SECONDS * 24 );
+		if ( is_array( $response->data ) ) {
+			$sources = $response->data;
 		}
 
 		return empty( $sources ) ? array() : $sources;
