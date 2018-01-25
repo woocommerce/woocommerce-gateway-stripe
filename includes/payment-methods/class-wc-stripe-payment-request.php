@@ -117,10 +117,8 @@ class WC_Stripe_Payment_Request {
 		add_action( 'woocommerce_proceed_to_checkout', array( $this, 'display_payment_request_button_html' ), 1 );
 		add_action( 'woocommerce_proceed_to_checkout', array( $this, 'display_payment_request_button_separator_html' ), 2 );
 
-		if ( apply_filters( 'wc_stripe_show_payment_request_on_checkout', false ) ) {
-			add_action( 'woocommerce_checkout_before_customer_details', array( $this, 'display_payment_request_button_html' ), 1 );
-			add_action( 'woocommerce_checkout_before_customer_details', array( $this, 'display_payment_request_button_separator_html' ), 2 );
-		}
+		add_action( 'woocommerce_checkout_before_customer_details', array( $this, 'display_payment_request_button_html' ), 1 );
+		add_action( 'woocommerce_checkout_before_customer_details', array( $this, 'display_payment_request_button_separator_html' ), 2 );
 
 		add_action( 'wc_ajax_wc_stripe_get_cart_details', array( $this, 'ajax_get_cart_details' ) );
 		add_action( 'wc_ajax_wc_stripe_get_shipping_options', array( $this, 'ajax_get_shipping_options' ) );
@@ -476,6 +474,10 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
+		if ( is_checkout() && ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', false ) ) {
+			return;
+		}
+
 		if ( is_product() ) {
 			global $post;
 
@@ -523,6 +525,10 @@ class WC_Stripe_Payment_Request {
 		}
 
 		if ( is_product() && apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false ) ) {
+			return;
+		}
+
+		if ( is_checkout() && ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', false ) ) {
 			return;
 		}
 
