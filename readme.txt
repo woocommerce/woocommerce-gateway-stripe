@@ -105,10 +105,13 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - SEPA mandate notification email.
 * Add - Hook to change SEPA mandate notification to none "wc_stripe_sepa_mandate_notification".
 * Add - Hook to change data for product when using Payment Request Button "wc_stripe_payment_request_product_data".
+* Add - Hook to change the behavior of allowing subscriptions to charge a customer's default source "'wc_stripe_use_default_customer_source'".
 * Add - Preferred language to SOFORT and Bancontact so it can be localized.
 * Fix - When checkout form produces an error on mobile, sometimes the blocking mask is not release blocking new input.
 * Fix - On older subscription payments, the ending card number is not shown on the subscriptions table in my account.
 * Fix - Filter to show payment request button on checkout page not working.
+* Tweak - In a subscription billing, Stripe source ID is no longer a required field.
+* Tweak - On a subscription order renewal-- if source is empty, will now try to charge the default source.
 
 = 4.0.3 - 2018-01-18 =
 * Fix - Pass Stripe source as id instead of object as some sites may conflict with objects being passed.

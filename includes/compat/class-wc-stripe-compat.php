@@ -173,6 +173,52 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 	}
 
 	/**
+	 * Process a retry for subscriptions with default source.
+	 * This is used when renewal failed.
+	 *
+	 * @todo refactor to avoid DRY.
+	 * @param mixed $order
+	 * @param int $amount (default: 0)
+	 * @param string $stripe_token (default: '')
+	 * @param  bool initial_payment
+	 */
+	public function retry_subscription_payment( $order = '', $amount = 0 ) {
+		if ( $amount * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
+			/* translators: minimum amount */
+			return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
+		}
+
+		$customer_id = WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id();
+		$order_id    = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+
+		// Get source from order
+		$prepared_source = $this->prepare_order_source( $order );
+
+		// Or fail :(
+		if ( ! $prepared_source->customer ) {
+			return new WP_Error( 'stripe_error', __( 'Customer not found', 'woocommerce-gateway-stripe' ) );
+		}
+
+		// Passing empty source with charge customer default.
+		$prepared_source->source = '';
+
+		WC_Stripe_Logger::log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
+
+		// Make the request
+		$request             = $this->generate_payment_request( $order, $prepared_source );
+		$request['capture']  = 'true';
+		$request['amount']   = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
+		$response            = WC_Stripe_API::request( $request );
+
+		if ( ! empty( $response->error ) || is_wp_error( $response )  ) {
+			/* translators: error message */
+			$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->error->message ) );
+		}
+
+		$this->process_response( $response, $order );
+	}
+
+	/**
 	 * Don't transfer Stripe customer/token meta to resubscribe orders.
 	 * @param int $resubscribe_order The order created for the customer to resubscribe to the old expired/cancelled subscription
 	 */
@@ -209,8 +255,13 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 		}
 
 		if ( ! empty( $response->error ) ) {
-			/* translators: error message */
-			$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->error->message ) );
+			// This is a very generic error to listen for but worth a retry before total fail.
+			if ( isset( $response->error->type ) && 'invalid_request_error' === $response->error->type && apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
+				$this->retry_subscription_payment( $renewal_order, $amount_to_charge );
+			} else {
+				/* translators: error message */
+				$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->error->message ) );
+			}
 		}
 	}
 
@@ -295,6 +346,7 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 	 * manually set up automatic recurring payments for a customer via the Edit Subscriptions screen in 2.0+.
 	 *
 	 * @since 2.5
+	 * @since 4.0.4 Stripe sourd id field no longer needs to be required.
 	 * @param string $payment_method_id The ID of the payment method to validate
 	 * @param array $payment_meta associative array of meta data required for automatic payments
 	 * @return array
@@ -303,13 +355,18 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 		if ( $this->id === $payment_method_id ) {
 
 			if ( ! isset( $payment_meta['post_meta']['_stripe_customer_id']['value'] ) || empty( $payment_meta['post_meta']['_stripe_customer_id']['value'] ) ) {
-				throw new Exception( 'A "_stripe_customer_id" value is required.' );
+				throw new Exception( __( 'A "Stripe Customer ID" value is required.', 'woocommerce-gateway-stripe' ) );
 			} elseif ( 0 !== strpos( $payment_meta['post_meta']['_stripe_customer_id']['value'], 'cus_' ) ) {
-				throw new Exception( 'Invalid customer ID. A valid "_stripe_customer_id" must begin with "cus_".' );
+				throw new Exception( __( 'Invalid customer ID. A valid "Stripe Customer ID" must begin with "cus_".', 'woocommerce-gateway-stripe' ) );
 			}
 
-			if ( ! isset( $payment_meta['post_meta']['_stripe_source_id']['value'] ) || empty( $payment_meta['post_meta']['_stripe_source_id']['value'] ) ) {
-				throw new Exception( 'A "_stripe_source_id" value is required.' );
+			if (
+				( ! empty( $payment_meta['post_meta']['_stripe_source_id']['value'] )
+				&& 0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'card_' ) )
+				&& ( ! empty( $payment_meta['post_meta']['_stripe_source_id']['value'] )
+				&& 0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'src_' ) ) ) {
+
+				throw new Exception( __( 'Invalid source ID. A valid source "Stripe Source ID" must begin with "src_" or "card_".', 'woocommerce-gateway-stripe' ) );
 			}
 		}
 	}
