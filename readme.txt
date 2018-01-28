@@ -108,6 +108,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - Hook to change data for product when using Payment Request Button "wc_stripe_payment_request_product_data".
 * Add - Hook to change the behavior of allowing subscriptions to charge a customer's default source "'wc_stripe_use_default_customer_source'".
 * Add - Hook to source object "wc_stripe_sofort_source", "wc_stripe_p24_source", "wc_stripe_ideal_source", "wc_stripe_giropay_source", "wc_stripe_bancontact_source", "wc_stripe_alipay_source".
+* Add - Hook to change payment request button total label "wc_stripe_payment_request_total_label".
 * Add - Hook to change locale of Stripe Checkout "wc_stripe_checkout_locale".
 * Fix - When checkout form produces an error on mobile, sometimes the blocking mask is not release blocking new input.
 * Fix - On older subscription payments, the ending card number is not shown on the subscriptions table in my account.
