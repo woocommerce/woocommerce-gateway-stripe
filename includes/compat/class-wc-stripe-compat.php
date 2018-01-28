@@ -112,7 +112,7 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 	public function save_source( $order, $source ) {
 		parent::save_source( $order, $source );
 
-		$order_id  = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 
 		// Also store it on the subscriptions being purchased or paid for in the order
 		if ( function_exists( 'wcs_order_contains_subscription' ) && wcs_order_contains_subscription( $order_id ) ) {
@@ -157,10 +157,10 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 		WC_Stripe_Logger::log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
 
 		// Make the request
-		$request             = $this->generate_payment_request( $order, $prepared_source );
-		$request['capture']  = 'true';
-		$request['amount']   = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
-		$response            = WC_Stripe_API::request( $request );
+		$request            = $this->generate_payment_request( $order, $prepared_source );
+		$request['capture'] = 'true';
+		$request['amount']  = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
+		$response           = WC_Stripe_API::request( $request );
 
 		// Process valid response
 		if ( ! empty( $response->error ) ) {
@@ -210,7 +210,7 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 		$request['amount']   = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
 		$response            = WC_Stripe_API::request( $request );
 
-		if ( ! empty( $response->error ) || is_wp_error( $response )  ) {
+		if ( ! empty( $response->error ) || is_wp_error( $response ) ) {
 			/* translators: error message */
 			$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->error->message ) );
 		}
