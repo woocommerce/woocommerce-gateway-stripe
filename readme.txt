@@ -113,6 +113,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Filter to show payment request button on checkout page not working.
 * Tweak - In a subscription billing, Stripe source ID is no longer a required field.
 * Tweak - On a subscription order renewal-- if source is empty, will now try to charge the default source.
+* Notice - Bitcoin has been soft deprecated and Stripe will no longer support it on April 23, 2018. Please plan accordingly.
 
 = 4.0.3 - 2018-01-18 =
 * Fix - Pass Stripe source as id instead of object as some sites may conflict with objects being passed.

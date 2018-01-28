@@ -135,6 +135,11 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function get_environment_warning() {
+		// Add deprecated notice to logs.
+		if ( 'yes' === $this->enabled ) {
+			WC_Stripe_Logger::log( 'DEPRECATED! Stripe will no longer support Bitcoin and will cease to function on April 23, 2018. Please plan accordingly.' );
+		}
+
 		if ( 'yes' === $this->enabled && ! in_array( get_woocommerce_currency(), $this->get_supported_currency() ) ) {
 			$message = __( 'Bitcoin is enabled - it requires store currency to be set to USD.', 'woocommerce-gateway-stripe' );
 
@@ -372,7 +377,6 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 
 			// Store source to order meta.
 			$this->save_source( $order, $prepared_source );
-
 
 			// This will throw exception if not valid.
 			$this->validate_minimum_order_amount( $order );
