@@ -45,9 +45,9 @@ jQuery( function( $ ) {
 			// Toggle Stripe Checkout settings.
 			$( '#woocommerce_stripe_stripe_checkout' ).change( function() {
 				if ( $( this ).is( ':checked' ) ) {
-					$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image' ).closest( 'tr' ).show();
+					$( '#woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image' ).closest( 'tr' ).show();
 				} else {
-					$( '#woocommerce_stripe_stripe_checkout_locale, #woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image' ).closest( 'tr' ).hide();
+					$( '#woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image' ).closest( 'tr' ).hide();
 				}
 			}).change();
 

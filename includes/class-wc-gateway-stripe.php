@@ -38,13 +38,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public $three_d_secure;
 
 	/**
-	 * Checkout Locale
-	 *
-	 * @var string
-	 */
-	public $stripe_checkout_locale;
-
-	/**
 	 * Credit card image
 	 *
 	 * @var string
@@ -157,7 +150,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$this->statement_descriptor    = WC_Stripe_Helper::clean_statement_descriptor( $this->get_option( 'statement_descriptor' ) );
 		$this->three_d_secure          = 'yes' === $this->get_option( 'three_d_secure' );
 		$this->stripe_checkout         = 'yes' === $this->get_option( 'stripe_checkout' );
-		$this->stripe_checkout_locale  = $this->get_option( 'stripe_checkout_locale' );
 		$this->stripe_checkout_image   = $this->get_option( 'stripe_checkout_image', '' );
 		$this->saved_cards             = 'yes' === $this->get_option( 'saved_cards' );
 		$this->secret_key              = $this->testmode ? $this->get_option( 'test_secret_key' ) : $this->get_option( 'secret_key' );
@@ -412,7 +404,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '"
 			data-image="' . esc_attr( $this->stripe_checkout_image ) . '"
 			data-bitcoin="' . esc_attr( ( $this->bitcoin && $this->capture ) ? 'true' : 'false' ) . '"
-			data-locale="' . esc_attr( $this->stripe_checkout_locale ? $this->stripe_checkout_locale : 'en' ) . '"
+			data-locale="' . esc_attr( apply_filters( 'wc_stripe_checkout_locale', substr( get_locale(), 0, 2 ) ) ) . '"
 			data-three-d-secure="' . esc_attr( $this->three_d_secure ? 'true' : 'false' ) . '"
 			data-allow-remember-me="' . esc_attr( $this->saved_cards ? 'true' : 'false' ) . '">';
 
