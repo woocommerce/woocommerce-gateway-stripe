@@ -132,8 +132,6 @@ class WC_Stripe_API {
 	public static function retrieve( $api ) {
 		WC_Stripe_Logger::log( "{$api}" );
 
-		$ua = self::get_user_agent();
-
 		$response = wp_safe_remote_get(
 			self::ENDPOINT . $api,
 			array(
