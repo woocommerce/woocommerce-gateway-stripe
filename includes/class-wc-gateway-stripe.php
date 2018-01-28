@@ -584,48 +584,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Creates the 3DS source for charge.
-	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
-	 * @param object $order
-	 * @param object $source_object
-	 * @return mixed
-	 */
-	public function create_3ds_source( $order, $source_object ) {
-		$currency                    = WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency();
-		$order_id                    = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
-		$return_url                  = $this->get_stripe_return_url( $order );
-
-		$post_data                   = array();
-		$post_data['amount']         = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
-		$post_data['currency']       = strtolower( $currency );
-		$post_data['type']           = 'three_d_secure';
-		$post_data['owner']          = $this->get_owner_details( $order );
-		$post_data['three_d_secure'] = array( 'card' => $source_object->id );
-		$post_data['redirect']       = array( 'return_url' => $return_url );
-
-		WC_Stripe_Logger::log( 'Info: Begin creating 3DS source' );
-
-		return WC_Stripe_API::request( apply_filters( 'wc_stripe_3ds_source', $post_data, $order ), 'sources' );
-	}
-
-	/**
-	 * Checks if 3DS is required.
-	 *
-	 * @since 4.0.4
-	 * @param object $source_object
-	 * @return bool
-	 */
-	public function is_3ds_required( $source_object ) {
-		return (
-			$source_object && ! empty( $source_object->card ) ) &&
-			( 'card' === $source_object->type && 'required' === $source_object->card->three_d_secure ||
-			( $this->three_d_secure && 'optional' === $source_object->card->three_d_secure )
-		);
-	}
-
-	/**
 	 * Process the payment
 	 *
 	 * @since 1.0.0
@@ -651,8 +609,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$new_stripe_customer->create_customer();
 			}
 
-			$source_object = $this->create_source_object();
-
+			$source_object   = $this->get_source_object();
 			$prepared_source = $this->prepare_source( $source_object, get_current_user_id(), $force_save_source );
 
 			// Check if we don't allow prepaid credit cards.
@@ -732,7 +689,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 					if ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
-						delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
+						if ( WC_Stripe_Helper::is_pre_30() ) {
+							delete_user_meta( $order->customer_user, '_stripe_customer_id' );
+							delete_post_meta( $order_id, '_stripe_customer_id' );
+						} else {
+							delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
+							$order->delete_meta_data( '_stripe_customer_id' );
+							$order->save();
+						}
 
 						return $this->process_payment( $order_id, false, $force_save_source );
 					} elseif ( preg_match( '/No such token/i', $response->error->message ) && $prepared_source->token_id ) {

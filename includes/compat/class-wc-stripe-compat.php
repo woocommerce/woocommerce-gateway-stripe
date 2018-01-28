@@ -61,12 +61,96 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 	}
 
 	/**
+	 * Checks if page is pay for order and change subs payment page.
+	 *
+	 * @since 4.0.4
+	 * @param object $source_object
+	 * @return bool
+	 */
+	public function is_subs_change_payment() {
+		return ( isset( $_GET['pay_for_order'] ) && isset( $_GET['change_payment_method'] ) );
+	}
+
+	/**
 	 * Is $order_id a pre-order?
 	 * @param  int  $order_id
 	 * @return boolean
 	 */
-	protected function is_pre_order( $order_id ) {
+	public function is_pre_order( $order_id ) {
 		return ( class_exists( 'WC_Pre_Orders_Order' ) && WC_Pre_Orders_Order::order_contains_pre_order( $order_id ) );
+	}
+
+	/**
+	 * Process the payment method change for subscriptions.
+	 *
+	 * @since 4.0.4
+	 * @param int $order_id
+	 */
+	public function change_subs_payment_method( $order_id ) {
+		try {
+			$subscription    = wc_get_order( $order_id );
+			$source_object   = $this->get_source_object();
+			$prepared_source = $this->prepare_source( $source_object, get_current_user_id(), true );
+
+			// Check if we don't allow prepaid credit cards.
+			if ( ! apply_filters( 'wc_stripe_allow_prepaid_card', true ) ) {
+				if ( $source_object && 'token' === $source_object->object && 'prepaid' === $source_object->card->funding ) {
+					$localized_message = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charge. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
+					throw new WC_Stripe_Exception( print_r( $source_object, true ), $localized_message );
+				}
+			}
+
+			if ( empty( $prepared_source->source ) ) {
+				$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
+				throw new WC_Stripe_Exception( print_r( $prepared_source, true ), $localized_message );
+			}
+
+			// Store source to order meta.
+			$this->save_source( $subscription, $prepared_source );
+
+			/*
+			 * Check if card 3DS is required or optional with 3DS setting.
+			 * Will need to first create 3DS source and require redirection
+			 * for customer to login to their credit card company.
+			 * Note that if we need to save source, the original source must be first
+			 * attached to a customer in Stripe before it can be charged.
+			 */
+			if ( $this->is_3ds_required( $source_object ) ) {
+				$order    = $subscription->get_parent();
+				$response = $this->create_3ds_source( $order, $source_object, $subscription->get_view_order_url() );
+
+				if ( ! empty( $response->error ) ) {
+					$localized_message = $response->error->message;
+
+					$order->add_order_note( $localized_message );
+
+					throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+				}
+
+				// Update order meta with 3DS source.
+				if ( WC_Stripe_Helper::is_pre_30() ) {
+					update_post_meta( $order_id, '_stripe_source_id', $response->id );
+				} else {
+					$subscription->update_meta_data( '_stripe_source_id', $response->id );
+					$subscription->save();
+				}
+
+				WC_Stripe_Logger::log( 'Info: Redirecting to 3DS...' );
+
+				return array(
+					'result'   => 'success',
+					'redirect' => esc_url_raw( $response->redirect->url ),
+				);
+			}
+
+			return array(
+				'result'   => 'success',
+				'redirect' => $this->get_return_url( $order ),
+			);
+		} catch ( WC_Stripe_Exception $e ) {
+			wc_add_notice( $e->getLocalizedMessage(), 'error' );
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+		}
 	}
 
 	/**
@@ -76,6 +160,10 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
 		if ( $this->has_subscription( $order_id ) ) {
+			if ( $this->is_subs_change_payment() ) {
+				return $this->change_subs_payment_method( $order_id );
+			}
+
 			// Regular payment with force customer enabled
 			return parent::process_payment( $order_id, true, true );
 		} elseif ( $this->is_pre_order( $order_id ) ) {
@@ -486,7 +574,7 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 				}
 
-				$source = $this->prepare_source( $this->create_source_object(), get_current_user_id(), true );
+				$source = $this->prepare_source( $this->get_source_object(), get_current_user_id(), true );
 
 				// We need a source on file to continue.
 				if ( empty( $source->customer ) || empty( $source->source ) ) {
