@@ -611,6 +611,21 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Checks if 3DS is required.
+	 *
+	 * @since 4.0.4
+	 * @param object $source_object
+	 * @return bool
+	 */
+	public function is_3ds_required( $source_object ) {
+		return (
+			$source_object && ! empty( $source_object->card ) ) &&
+			( 'card' === $source_object->type && 'required' === $source_object->card->three_d_secure ||
+			( $this->three_d_secure && 'optional' === $source_object->card->three_d_secure )
+		);
+	}
+
+	/**
 	 * Process the payment
 	 *
 	 * @since 1.0.0
@@ -625,7 +640,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
 		try {
-			$order   = wc_get_order( $order_id );
+			$order = wc_get_order( $order_id );
 
 			// This comes from the create account checkbox in the checkout page.
 			$create_account = ! empty( $_POST['createaccount'] ) ? true : false;
@@ -663,15 +678,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				// This will throw exception if not valid.
 				$this->validate_minimum_order_amount( $order );
 
-				/**
+				/*
 				 * Check if card 3DS is required or optional with 3DS setting.
 				 * Will need to first create 3DS source and require redirection
 				 * for customer to login to their credit card company.
 				 * Note that if we need to save source, the original source must be first
 				 * attached to a customer in Stripe before it can be charged.
 				 */
-				if ( ( $source_object && ! empty( $source_object->card ) ) && ( 'card' === $source_object->type && 'required' === $source_object->card->three_d_secure || ( $this->three_d_secure && 'optional' === $source_object->card->three_d_secure ) ) ) {
-
+				if ( $this->is_3ds_required( $source_object ) ) {
 					$response = $this->create_3ds_source( $order, $source_object );
 
 					if ( ! empty( $response->error ) ) {
