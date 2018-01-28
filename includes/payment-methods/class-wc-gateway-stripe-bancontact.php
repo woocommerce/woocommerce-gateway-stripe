@@ -259,7 +259,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 
 		WC_Stripe_Logger::log( 'Info: Begin creating Bancontact source' );
 
-		return WC_Stripe_API::request( $post_data, 'sources' );
+		return WC_Stripe_API::request( apply_filters( 'wc_stripe_bancontact_source', $post_data, $order ), 'sources' );
 	}
 
 	/**
