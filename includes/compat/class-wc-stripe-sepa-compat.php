@@ -177,22 +177,20 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 	 * This is used when renewal failed.
 	 *
 	 * @todo refactor to avoid DRY.
-	 * @param mixed $order
 	 * @param int $amount (default: 0)
-	 * @param string $stripe_token (default: '')
-	 * @param  bool initial_payment
+	 * @param mixed $order
+	 * @param bool initial_payment
 	 */
-	public function retry_subscription_payment( $order = '', $amount = 0 ) {
+	public function retry_subscription_payment( $amount = 0, $renewal_order = '' ) {
 		if ( $amount * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
 			/* translators: minimum amount */
 			return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 		}
 
-		$customer_id = WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id();
-		$order_id    = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$order_id = WC_Stripe_Helper::is_pre_30() ? $renewal_order->id : $renewal_order->get_id();
 
 		// Get source from order
-		$prepared_source = $this->prepare_order_source( $order );
+		$prepared_source = $this->prepare_order_source( $renewal_order );
 
 		// Or fail :(
 		if ( ! $prepared_source->customer ) {
@@ -205,7 +203,7 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 		WC_Stripe_Logger::log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
 
 		// Make the request
-		$request             = $this->generate_payment_request( $order, $prepared_source );
+		$request             = $this->generate_payment_request( $renewal_order, $prepared_source );
 		$request['capture']  = 'true';
 		$request['amount']   = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
 		$response            = WC_Stripe_API::request( $request );
@@ -215,7 +213,7 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 			$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->error->message ) );
 		}
 
-		$this->process_response( $response, $order );
+		$this->process_response( $response, $renewal_order );
 	}
 
 	/**
@@ -257,7 +255,7 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 		if ( ! empty( $response->error ) ) {
 			// This is a very generic error to listen for but worth a retry before total fail.
 			if ( isset( $response->error->type ) && 'invalid_request_error' === $response->error->type && apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
-				$this->retry_subscription_payment( $renewal_order, $amount_to_charge );
+				$this->retry_subscription_payment( $amount_to_charge, $renewal_order );
 			} else {
 				/* translators: error message */
 				$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->error->message ) );
