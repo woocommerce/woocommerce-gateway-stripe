@@ -290,7 +290,7 @@ class WC_Stripe_Payment_Request {
 			return $valid;
 		}
 
-		$payment_request_type = wc_clean( $_POST['payment_request_type'] );
+		$payment_request_type = isset( $_POST['payment_request_type'] ) ? wc_clean( $_POST['payment_request_type'] ) : '';
 
 		if ( 'apple_pay' !== $payment_request_type ) {
 			return $valid;
