@@ -115,6 +115,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - On older subscription payments, the ending card number is not shown on the subscriptions table in my account.
 * Fix - Filter to show payment request button on checkout page not working.
 * Fix - If a customer change their payment method on a subscription order with a 3DS required card, it would fail renewals.
+* Fix - Remove set session and utilize WC session handling on init that fixes issues with WC 3.3.
 * Tweak - In a subscription billing, Stripe source ID is no longer a required field.
 * Tweak - On a subscription order renewal-- if source is empty, will now try to charge the default source.
 * Notice - Bitcoin has been soft deprecated and Stripe will no longer support it on April 23, 2018. Please plan accordingly.

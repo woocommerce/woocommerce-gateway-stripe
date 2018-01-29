@@ -88,7 +88,7 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		$this->init();
+		add_action( 'woocommerce_init', array( $this, 'init' ), 100 );
 	}
 
 	/**
@@ -97,9 +97,8 @@ class WC_Stripe_Payment_Request {
 	 * @since 4.0.0
 	 * @version 4.0.0
 	 */
-	protected function init() {
+	public function init() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'scripts' ) );
-		add_action( 'wp', array( $this, 'set_session' ) );
 
 		/*
 		 * In order to display the Payment Request button in the correct position,
@@ -133,22 +132,6 @@ class WC_Stripe_Payment_Request {
 		add_filter( 'woocommerce_validate_postcode', array( $this, 'postal_code_validation' ), 10, 3 );
 
 		add_action( 'woocommerce_checkout_order_processed', array( $this, 'add_order_meta' ), 10, 3 );
-	}
-
-	/**
-	 * Sets the WC customer session if one is not set.
-	 * This is needed so nonces can be verified.
-	 *
-	 * @since 4.0.0
-	 */
-	public function set_session() {
-		if ( ! is_user_logged_in() ) {
-			$wc_session = new WC_Session_Handler();
-
-			if ( ! $wc_session->has_session() ) {
-				$wc_session->set_customer_session_cookie( true );
-			}
-		}
 	}
 
 	/**
