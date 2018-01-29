@@ -132,11 +132,11 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 
 	/**
 	 * process_subscription_payment function.
-	 * @param int $amount (default: 0)
+	 * @param float $amount
 	 * @param mixed $renewal_order
 	 * @param  bool initial_payment
 	 */
-	public function process_subscription_payment( $amount = 0, $renewal_order ) {
+	public function process_subscription_payment( $amount = 0.0, $renewal_order ) {
 		if ( $amount * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
 			/* translators: minimum amount */
 			return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
@@ -174,11 +174,11 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 	 * This is used when renewal failed.
 	 *
 	 * @todo refactor to avoid DRY.
-	 * @param int $amount (default: 0)
+	 * @param float $amount
 	 * @param mixed $renewal_order
 	 * @param bool initial_payment
 	 */
-	public function retry_subscription_payment( $amount = 0, $renewal_order ) {
+	public function retry_subscription_payment( $amount = 0.0, $renewal_order ) {
 		if ( $amount * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
 			/* translators: minimum amount */
 			return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
