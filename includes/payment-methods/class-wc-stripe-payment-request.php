@@ -88,7 +88,28 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		add_action( 'woocommerce_init', array( $this, 'init' ), 100 );
+		add_action( 'woocommerce_init', array( $this, 'set_session' ) );
+		$this->init();
+	}
+
+	/**
+	 * Sets the WC customer session if one is not set.
+	 * This is needed so nonces can be verified by AJAX Request.
+	 *
+	 * @since 4.0.0
+	 */
+	public function set_session() {
+		if ( ! is_user_logged_in() ) {
+			$wc_session = new WC_Session_Handler();
+
+			if ( version_compare( WC_VERSION, '3.3', '>=' ) ) {
+				$wc_session->init();
+			}
+
+			if ( ! $wc_session->has_session() ) {
+				$wc_session->set_customer_session_cookie( true );
+			}
+		}
 	}
 
 	/**
@@ -131,7 +152,7 @@ class WC_Stripe_Payment_Request {
 		add_filter( 'woocommerce_gateway_title', array( $this, 'filter_gateway_title' ), 10, 2 );
 		add_filter( 'woocommerce_validate_postcode', array( $this, 'postal_code_validation' ), 10, 3 );
 
-		add_action( 'woocommerce_checkout_order_processed', array( $this, 'add_order_meta' ), 10, 3 );
+		add_action( 'woocommerce_checkout_order_processed', array( $this, 'add_order_meta' ), 10, 2 );
 	}
 
 	/**
@@ -295,12 +316,13 @@ class WC_Stripe_Payment_Request {
 	 * @version 4.0.0
 	 * @param int $order_id
 	 * @param array $posted_data The posted data from checkout form.
-	 * @param object $order
 	 */
-	public function add_order_meta( $order_id, $posted_data, $order ) {
+	public function add_order_meta( $order_id, $posted_data ) {
 		if ( empty( $_POST['payment_request_type'] ) ) {
 			return;
 		}
+
+		$order = wc_get_order( $order_id );
 
 		$payment_request_type = wc_clean( $_POST['payment_request_type'] );
 
