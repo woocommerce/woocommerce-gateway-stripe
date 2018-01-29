@@ -104,8 +104,7 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 				throw new WC_Stripe_Exception( print_r( $prepared_source, true ), $localized_message );
 			}
 
-			// Store source to order meta.
-			$this->save_source( $subscription, $prepared_source );
+			$this->save_source_to_order( $subscription, $prepared_source );
 
 			/*
 			 * Check if card 3DS is required or optional with 3DS setting.
@@ -196,8 +195,8 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 	 * @since 3.1.0
 	 * @version 4.0.0
 	 */
-	public function save_source( $order, $source ) {
-		parent::save_source( $order, $source );
+	public function save_source_to_order( $order, $source ) {
+		parent::save_source_to_order( $order, $source );
 
 		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 
@@ -574,8 +573,7 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 					throw new Exception( __( 'Unable to store payment details. Please try again.', 'woocommerce-gateway-stripe' ) );
 				}
 
-				// Store source to order meta
-				$this->save_source( $order, $source );
+				$this->save_source_to_order( $order, $source );
 
 				// Remove cart
 				WC()->cart->empty_cart();

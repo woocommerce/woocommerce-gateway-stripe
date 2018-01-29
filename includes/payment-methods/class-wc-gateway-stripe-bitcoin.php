@@ -375,8 +375,7 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 				throw new WC_Stripe_Exception( print_r( $prepared_source, true ), $localized_message );
 			}
 
-			// Store source to order meta.
-			$this->save_source( $order, $prepared_source );
+			$this->save_source_to_order( $order, $prepared_source );
 
 			// This will throw exception if not valid.
 			$this->validate_minimum_order_amount( $order );

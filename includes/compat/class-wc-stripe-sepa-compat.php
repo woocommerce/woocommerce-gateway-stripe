@@ -109,8 +109,8 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 	 * @since 3.1.0
 	 * @version 4.0.0
 	 */
-	public function save_source( $order, $source ) {
-		parent::save_source( $order, $source );
+	public function save_source_to_order( $order, $source ) {
+		parent::save_source_to_order( $order, $source );
 
 		$order_id  = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 
@@ -478,8 +478,7 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 					throw new Exception( __( 'Unable to store payment details. Please try again.', 'woocommerce-gateway-stripe' ) );
 				}
 
-				// Store source to order meta
-				$this->save_source( $order, $source );
+				$this->save_source_to_order( $order, $source );
 
 				// Remove cart
 				WC()->cart->empty_cart();

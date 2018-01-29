@@ -574,7 +574,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param WC_Order $order For to which the source applies.
 	 * @param stdClass $source Source information.
 	 */
-	public function save_source( $order, $source ) {
+	public function save_source_to_order( $order, $source ) {
 		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 
 		// Store source in the order.
