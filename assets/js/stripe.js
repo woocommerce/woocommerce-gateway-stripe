@@ -6,7 +6,8 @@ jQuery( function( $ ) {
 	var stripe = Stripe( wc_stripe_params.key );
 
 	if ( 'yes' === wc_stripe_params.use_elements ) {
-		var elements = stripe.elements(),
+		var stripe_elements_options = wc_stripe_params.elements_options.length ? wc_stripe_params.elements_options : {};
+		var elements = stripe.elements( stripe_elements_options ),
 			stripe_card,
 			stripe_exp,
 			stripe_cvc;

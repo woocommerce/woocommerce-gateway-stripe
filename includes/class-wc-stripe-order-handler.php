@@ -76,12 +76,6 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 			WC_Stripe_Logger::log( "Info: (Redirect) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
-			// Prep source object.
-			$source_object           = new stdClass();
-			$source_object->token_id = '';
-			$source_object->customer = $this->get_stripe_customer_id( $order );
-			$source_object->source   = $source;
-
 			/**
 			 * First check if the source is chargeable at this time. If not,
 			 * webhook will take care of it later.
@@ -106,6 +100,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
+			// Prep source object.
+			$source_object           = new stdClass();
+			$source_object->token_id = '';
+			$source_object->customer = $this->get_stripe_customer_id( $order );
+			$source_object->source   = $source_info->id;
+
 			// Make the request.
 			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source_object ) );
 
@@ -124,7 +124,14 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 				// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 				if ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
-					delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
+					if ( WC_Stripe_Helper::is_pre_30() ) {
+						delete_user_meta( $order->customer_user, '_stripe_customer_id' );
+						delete_post_meta( $order_id, '_stripe_customer_id' );
+					} else {
+						delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
+						$order->delete_meta_data( '_stripe_customer_id' );
+						$order->save();
+					}
 
 					return $this->process_redirect_payment( $order_id, false );
 

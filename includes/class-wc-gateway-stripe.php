@@ -38,13 +38,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public $three_d_secure;
 
 	/**
-	 * Checkout Locale
-	 *
-	 * @var string
-	 */
-	public $stripe_checkout_locale;
-
-	/**
 	 * Credit card image
 	 *
 	 * @var string
@@ -157,7 +150,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$this->statement_descriptor    = WC_Stripe_Helper::clean_statement_descriptor( $this->get_option( 'statement_descriptor' ) );
 		$this->three_d_secure          = 'yes' === $this->get_option( 'three_d_secure' );
 		$this->stripe_checkout         = 'yes' === $this->get_option( 'stripe_checkout' );
-		$this->stripe_checkout_locale  = $this->get_option( 'stripe_checkout_locale' );
 		$this->stripe_checkout_image   = $this->get_option( 'stripe_checkout_image', '' );
 		$this->saved_cards             = 'yes' === $this->get_option( 'saved_cards' );
 		$this->secret_key              = $this->testmode ? $this->get_option( 'test_secret_key' ) : $this->get_option( 'secret_key' );
@@ -412,7 +404,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '"
 			data-image="' . esc_attr( $this->stripe_checkout_image ) . '"
 			data-bitcoin="' . esc_attr( ( $this->bitcoin && $this->capture ) ? 'true' : 'false' ) . '"
-			data-locale="' . esc_attr( $this->stripe_checkout_locale ? $this->stripe_checkout_locale : 'en' ) . '"
+			data-locale="' . esc_attr( apply_filters( 'wc_stripe_checkout_locale', substr( get_locale(), 0, 2 ) ) ) . '"
 			data-three-d-secure="' . esc_attr( $this->three_d_secure ? 'true' : 'false' ) . '"
 			data-allow-remember-me="' . esc_attr( $this->saved_cards ? 'true' : 'false' ) . '">';
 
@@ -571,6 +563,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$stripe_params['stripe_nonce']                            = wp_create_nonce( '_wc_stripe_nonce' );
 		$stripe_params['statement_descriptor']                    = $this->statement_descriptor;
 		$stripe_params['use_elements']                            = apply_filters( 'wc_stripe_use_elements_checkout_form', true ) ? 'yes' : 'no';
+		$stripe_params['elements_options']                        = apply_filters( 'wc_stripe_elements_options', array() );
 		$stripe_params['is_stripe_checkout']                      = $this->stripe_checkout ? 'yes' : 'no';
 		$stripe_params['is_change_payment_page']                  = ( isset( $_GET['pay_for_order'] ) || isset( $_GET['change_payment_method'] ) ) ? 'yes' : 'no';
 		$stripe_params['is_add_payment_method_page']              = is_add_payment_method_page() ? 'yes' : 'no';
@@ -592,33 +585,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Creates the 3DS source for charge.
-	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
-	 * @param object $order
-	 * @param object $source_object
-	 * @return mixed
-	 */
-	public function create_3ds_source( $order, $source_object ) {
-		$currency                    = WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency();
-		$order_id                    = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
-		$return_url                  = $this->get_stripe_return_url( $order );
-
-		$post_data                   = array();
-		$post_data['amount']         = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
-		$post_data['currency']       = strtolower( $currency );
-		$post_data['type']           = 'three_d_secure';
-		$post_data['owner']          = $this->get_owner_details( $order );
-		$post_data['three_d_secure'] = array( 'card' => $source_object->id );
-		$post_data['redirect']       = array( 'return_url' => $return_url );
-
-		WC_Stripe_Logger::log( 'Info: Begin creating 3DS source' );
-
-		return WC_Stripe_API::request( $post_data, 'sources' );
-	}
-
-	/**
 	 * Process the payment
 	 *
 	 * @since 1.0.0
@@ -633,7 +599,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
 		try {
-			$order   = wc_get_order( $order_id );
+			$order = wc_get_order( $order_id );
 
 			// This comes from the create account checkbox in the checkout page.
 			$create_account = ! empty( $_POST['createaccount'] ) ? true : false;
@@ -644,8 +610,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$new_stripe_customer->create_customer();
 			}
 
-			$source_object = $this->create_source_object();
-
+			$source_object   = $this->get_source_object();
 			$prepared_source = $this->prepare_source( $source_object, get_current_user_id(), $force_save_source );
 
 			// Check if we don't allow prepaid credit cards.
@@ -671,15 +636,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				// This will throw exception if not valid.
 				$this->validate_minimum_order_amount( $order );
 
-				/**
+				/*
 				 * Check if card 3DS is required or optional with 3DS setting.
 				 * Will need to first create 3DS source and require redirection
 				 * for customer to login to their credit card company.
 				 * Note that if we need to save source, the original source must be first
 				 * attached to a customer in Stripe before it can be charged.
 				 */
-				if ( ( $source_object && ! empty( $source_object->card ) ) && ( 'card' === $source_object->type && 'required' === $source_object->card->three_d_secure || ( $this->three_d_secure && 'optional' === $source_object->card->three_d_secure ) ) ) {
-
+				if ( $this->is_3ds_required( $source_object ) ) {
 					$response = $this->create_3ds_source( $order, $source_object );
 
 					if ( ! empty( $response->error ) ) {
@@ -726,7 +690,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 					if ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
-						delete_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id' );
+						if ( WC_Stripe_Helper::is_pre_30() ) {
+							delete_user_meta( $order->customer_user, '_stripe_customer_id' );
+							delete_post_meta( $order_id, '_stripe_customer_id' );
+						} else {
+							delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
+							$order->delete_meta_data( '_stripe_customer_id' );
+							$order->save();
+						}
 
 						return $this->process_payment( $order_id, false, $force_save_source );
 					} elseif ( preg_match( '/No such token/i', $response->error->message ) && $prepared_source->token_id ) {

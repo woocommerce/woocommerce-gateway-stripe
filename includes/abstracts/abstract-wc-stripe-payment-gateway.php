@@ -355,7 +355,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.0.3
 	 */
-	public function create_source_object() {
+	public function get_source_object() {
 		$source = ! empty( $_POST['stripe_source'] ) ? wc_clean( $_POST['stripe_source'] ) : '';
 		
 		if ( empty( $source ) ) {
@@ -369,6 +369,60 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		return $source_object;
+	}
+
+	/**
+	 * Checks if 3DS is required.
+	 *
+	 * @since 4.0.4
+	 * @param object $source_object
+	 * @return bool
+	 */
+	public function is_3ds_required( $source_object ) {
+		return (
+			$source_object && ! empty( $source_object->card ) ) &&
+			( 'card' === $source_object->type && 'required' === $source_object->card->three_d_secure ||
+			( $this->three_d_secure && 'optional' === $source_object->card->three_d_secure )
+		);
+	}
+
+	/**
+	 * Checks if card is 3DS.
+	 *
+	 * @since 4.0.4
+	 * @param object $source_object
+	 * @return bool
+	 */
+	public function is_3ds_card( $source_object ) {
+		return ( $source_object && 'three_d_secure' === $source_object->type );
+	}
+
+	/**
+	 * Creates the 3DS source for charge.
+	 *
+	 * @since 4.0.0
+	 * @since 4.0.4 Add $return_url
+	 * @param object $order
+	 * @param object $source_object
+	 * @param string $return_url
+	 * @return mixed
+	 */
+	public function create_3ds_source( $order, $source_object, $return_url = '' ) {
+		$currency                    = WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency();
+		$order_id                    = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$return_url                  = empty( $return_url ) ? $this->get_stripe_return_url( $order ) : $return_url;
+
+		$post_data                   = array();
+		$post_data['amount']         = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
+		$post_data['currency']       = strtolower( $currency );
+		$post_data['type']           = 'three_d_secure';
+		$post_data['owner']          = $this->get_owner_details( $order );
+		$post_data['three_d_secure'] = array( 'card' => $source_object->id );
+		$post_data['redirect']       = array( 'return_url' => $return_url );
+
+		WC_Stripe_Logger::log( 'Info: Begin creating 3DS source...' );
+
+		return WC_Stripe_API::request( apply_filters( 'wc_stripe_3ds_source', $post_data, $order ), 'sources' );
 	}
 
 	/**
@@ -389,14 +443,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$customer           = new WC_Stripe_Customer( $user_id );
 		$set_customer       = true;
 		$force_save_source  = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
-		$source             = '';
+		$source_id          = '';
 		$wc_token_id        = false;
 		$payment_method     = isset( $_POST['payment_method'] ) ? wc_clean( $_POST['payment_method'] ) : 'stripe';
 
 		// New CC info was entered and we have a new source to process.
 		if ( ! empty( $source_object ) ) {
-			// This gets the source object from Stripe.
-			$source = $source_object;
+			$source_id = $source_object->id;
 
 			// This checks to see if customer opted to save the payment method to file.
 			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
@@ -406,18 +459,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			 * Criteria to save to file is they are logged in, they opted to save or product requirements and the source is
 			 * actually reusable. Either that or force_save_source is true.
 			 */
-			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && 'reusable' === $source->usage ) || $force_save_source ) {
-				$source = $customer->add_source( $source->id );
+			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && 'reusable' === $source_object->usage ) || $force_save_source ) {
+				$response = $customer->add_source( $source_object->id );
 
-				if ( ! empty( $source->error ) ) {
-					throw new WC_Stripe_Exception( print_r( $source, true ), $source->error->message );
+				if ( ! empty( $response->error ) ) {
+					throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
 				}
-			} else {
-				$source = $source->id;
 			}
 		} elseif ( isset( $_POST[ 'wc-' . $payment_method . '-payment-token' ] ) && 'new' !== $_POST[ 'wc-' . $payment_method . '-payment-token' ] ) {
 			// Use an existing token, and then process the payment
-
 			$wc_token_id = wc_clean( $_POST[ 'wc-' . $payment_method . '-payment-token' ] );
 			$wc_token    = WC_Payment_Tokens::get( $wc_token_id );
 
@@ -426,21 +476,21 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				throw new WC_Stripe_Exception( 'Invalid payment method', __( 'Invalid payment method. Please input a new card number.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$source = $wc_token->get_token();
+			$source_id = $wc_token->get_token();
 		} elseif ( isset( $_POST['stripe_token'] ) && 'new' !== $_POST['stripe_token'] ) {
 			$stripe_token     = wc_clean( $_POST['stripe_token'] );
 			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
 
 			// This is true if the user wants to store the card to their account.
 			if ( ( $user_id && $this->saved_cards && $maybe_saved_card ) || $force_save_source ) {
-				$source = $customer->add_source( $stripe_token );
+				$response = $customer->add_source( $stripe_token );
 
-				if ( ! empty( $source->error ) ) {
-					throw new WC_Stripe_Exception( print_r( $source, true ), $source->error->message );
+				if ( ! empty( $response->error ) ) {
+					throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
 				}
 			} else {
 				$set_customer = false;
-				$source       = $stripe_token;
+				$source_id    = $stripe_token;
 			}
 		}
 
@@ -453,41 +503,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		return (object) array(
 			'token_id' => $wc_token_id,
 			'customer' => $customer_id,
-			'source'   => $source,
+			'source'   => $source_id,
 		);
-	}
-
-	/**
-	 * Save source to order.
-	 *
-	 * @since 3.1.0
-	 * @version 4.0.0
-	 * @param WC_Order $order For to which the source applies.
-	 * @param stdClass $source Source information.
-	 */
-	public function save_source( $order, $source ) {
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
-
-		// Store source in the order.
-		if ( $source->customer ) {
-			if ( WC_Stripe_Helper::is_pre_30() ) {
-				update_post_meta( $order_id, '_stripe_customer_id', $source->customer );
-			} else {
-				$order->update_meta_data( '_stripe_customer_id', $source->customer );
-			}
-		}
-
-		if ( $source->source ) {
-			if ( WC_Stripe_Helper::is_pre_30() ) {
-				update_post_meta( $order_id, '_stripe_source_id', $source->source );
-			} else {
-				$order->update_meta_data( '_stripe_source_id', $source->source );
-			}
-		}
-
-		if ( is_callable( array( $order, 'save' ) ) ) {
-			$order->save();
-		}
 	}
 
 	/**
@@ -547,6 +564,39 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'customer' => $stripe_customer ? $stripe_customer->get_id() : false,
 			'source'   => $stripe_source,
 		);
+	}
+
+	/**
+	 * Save source to order.
+	 *
+	 * @since 3.1.0
+	 * @version 4.0.0
+	 * @param WC_Order $order For to which the source applies.
+	 * @param stdClass $source Source information.
+	 */
+	public function save_source( $order, $source ) {
+		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+
+		// Store source in the order.
+		if ( $source->customer ) {
+			if ( WC_Stripe_Helper::is_pre_30() ) {
+				update_post_meta( $order_id, '_stripe_customer_id', $source->customer );
+			} else {
+				$order->update_meta_data( '_stripe_customer_id', $source->customer );
+			}
+		}
+
+		if ( $source->source ) {
+			if ( WC_Stripe_Helper::is_pre_30() ) {
+				update_post_meta( $order_id, '_stripe_source_id', $source->source );
+			} else {
+				$order->update_meta_data( '_stripe_source_id', $source->source );
+			}
+		}
+
+		if ( is_callable( array( $order, 'save' ) ) ) {
+			$order->save();
+		}
 	}
 
 	/**

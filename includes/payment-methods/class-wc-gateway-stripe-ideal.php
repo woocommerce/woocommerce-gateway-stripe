@@ -258,7 +258,7 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 
 		WC_Stripe_Logger::log( 'Info: Begin creating iDeal source' );
 
-		return WC_Stripe_API::request( $post_data, 'sources' );
+		return WC_Stripe_API::request( apply_filters( 'wc_stripe_ideal_source', $post_data, $order ), 'sources' );
 	}
 
 	/**
