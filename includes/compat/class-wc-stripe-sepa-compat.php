@@ -189,7 +189,6 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 		// Get source from order
 		$prepared_source = $this->prepare_order_source( $renewal_order );
 
-		// Or fail :(
 		if ( ! $prepared_source->customer ) {
 			return new WP_Error( 'stripe_error', __( 'Customer not found', 'woocommerce-gateway-stripe' ) );
 		}
