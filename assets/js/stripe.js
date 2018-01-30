@@ -678,7 +678,7 @@ jQuery( function( $ ) {
 							wc_stripe_form.unblock();
 						}
 
-						return true;
+						wc_stripe_form.form.submit();
 					}
 
 					if ( $( 'form.woocommerce-checkout' ).length ) {
@@ -706,7 +706,7 @@ jQuery( function( $ ) {
 							wc_stripe_form.unblock();
 						}
 
-						return true;
+						wc_stripe_form.form.submit();
 					}
 				}
 
