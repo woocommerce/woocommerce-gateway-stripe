@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 4.9
 Requires PHP: 5.6
-Stable tag: 4.0.3
+Stable tag: 4.0.4
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -101,7 +101,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.0.4 - 2018-xx-xx =
+= 4.0.4 - 2018-01-30 =
 * Add - SEPA mandate notification email.
 * Add - Preferred language to SOFORT and Bancontact so it can be localized.
 * Add - Hook to change SEPA mandate notification to none "wc_stripe_sepa_mandate_notification".
@@ -122,10 +122,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Notice - Bitcoin has been soft deprecated and Stripe will no longer support it on April 23, 2018. Please plan accordingly.
 * Remove - Stripe Checkout Locale setting in favor of using store set locale.
 * Update - Stripe API version to 2018-01-23.
-
-= 4.0.3 - 2018-01-18 =
-* Fix - Pass Stripe source as id instead of object as some sites may conflict with objects being passed.
-* Fix - For Payment Request Button, if test keys are not filled, it can cause live mode not to function.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/changelog.txt).
 
