@@ -114,7 +114,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - When checkout form produces an error on mobile, sometimes the blocking mask is not release blocking new input.
 * Fix - On older subscription payments, the ending card number is not shown on the subscriptions table in my account.
 * Fix - Filter to show payment request button on checkout page not working.
-* Fix - If a customer change their payment method on a subscription order with a 3DS required card, it would fail renewals.
 * Fix - WC session handling compatibility with WC 3.3.
 * Fix - BW compatibility with WC 2.6.x on add_order_meta to prevent errors.
 * Fix - Possible fix for duplicate charges due to webhook and redirect handler firing at the same time by adding delay to the webhook process.
