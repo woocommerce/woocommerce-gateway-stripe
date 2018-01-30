@@ -217,12 +217,15 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * process_subscription_payment function.
+	 * Process_subscription_payment function.
+	 *
+	 * @since 3.0
+	 * @since 4.0.4 Add third parameter flag to retry.
 	 * @param float $amount
 	 * @param mixed $renewal_order
-	 * @param  bool initial_payment
+	 * @param bool $is_retry Is this a retry process.
 	 */
-	public function process_subscription_payment( $amount = 0.0, $renewal_order ) {
+	public function process_subscription_payment( $amount = 0.0, $renewal_order, $is_retry = false ) {
 		if ( $amount * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
 			/* translators: minimum amount */
 			return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
@@ -239,63 +242,30 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 
 		WC_Stripe_Logger::log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
 
-		// Make the request
+		if ( $is_retry ) {
+			// Passing empty source with charge customer default.
+			$prepared_source->source = '';
+		}
+
 		$request            = $this->generate_payment_request( $renewal_order, $prepared_source );
 		$request['capture'] = 'true';
 		$request['amount']  = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
 		$response           = WC_Stripe_API::request( $request );
 
-		// Process valid response
-		if ( ! empty( $response->error ) ) {
+		if ( ! empty( $response->error ) || is_wp_error( $response ) ) {
+			if ( $is_retry ) {
+				/* translators: error message */
+				$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->error->message ) );
+			}
+
 			return $response; // Default catch all errors.
 		}
 
 		$this->process_response( $response, $renewal_order );
 
-		return $response;
-	}
-
-	/**
-	 * Process a retry for subscriptions with default source.
-	 * This is used when renewal failed.
-	 *
-	 * @todo refactor to avoid DRY.
-	 * @param float $amount
-	 * @param mixed $renewal_order
-	 * @param  bool initial_payment
-	 */
-	public function retry_subscription_payment( $amount = 0.0, $renewal_order ) {
-		if ( $amount * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
-			/* translators: minimum amount */
-			return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
+		if ( ! $is_retry ) {
+			return $response;
 		}
-
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $renewal_order->id : $renewal_order->get_id();
-
-		// Get source from order
-		$prepared_source = $this->prepare_order_source( $renewal_order );
-
-		if ( ! $prepared_source->customer ) {
-			return new WP_Error( 'stripe_error', __( 'Customer not found', 'woocommerce-gateway-stripe' ) );
-		}
-
-		// Passing empty source with charge customer default.
-		$prepared_source->source = '';
-
-		WC_Stripe_Logger::log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
-
-		// Make the request
-		$request             = $this->generate_payment_request( $renewal_order, $prepared_source );
-		$request['capture']  = 'true';
-		$request['amount']   = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
-		$response            = WC_Stripe_API::request( $request );
-
-		if ( ! empty( $response->error ) || is_wp_error( $response ) ) {
-			/* translators: error message */
-			$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->error->message ) );
-		}
-
-		$this->process_response( $response, $renewal_order );
 	}
 
 	/**
@@ -321,7 +291,7 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * scheduled_subscription_payment function.
+	 * Scheduled_subscription_payment function.
 	 *
 	 * @param $amount_to_charge float The amount to charge.
 	 * @param $renewal_order WC_Order A WC_Order object created to record the renewal payment.
@@ -337,7 +307,7 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 		if ( ! empty( $response->error ) ) {
 			// This is a very generic error to listen for but worth a retry before total fail.
 			if ( isset( $response->error->type ) && 'invalid_request_error' === $response->error->type && apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
-				$this->retry_subscription_payment( $amount_to_charge, $renewal_order );
+				$this->process_subscription_payment( $amount_to_charge, $renewal_order, true );
 			} else {
 				/* translators: error message */
 				$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->error->message ) );
