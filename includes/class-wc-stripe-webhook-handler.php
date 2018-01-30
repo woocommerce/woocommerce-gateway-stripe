@@ -136,6 +136,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// This will throw exception if not valid.
 			$this->validate_minimum_order_amount( $order );
 
+			/*
+			 * Hacky way to possibly prevent duplicate charges due to
+			 * redirect handler and webhook payment firing at the same
+			 * time.
+			 */
+			sleep( 10 );
+
 			WC_Stripe_Logger::log( "Info: (Webhook) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
 			// Prep source object.

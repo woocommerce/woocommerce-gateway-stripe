@@ -117,6 +117,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - If a customer change their payment method on a subscription order with a 3DS required card, it would fail renewals.
 * Fix - WC session handling compatibility with WC 3.3.
 * Fix - BW compatibility with WC 2.6.x on add_order_meta to prevent errors.
+* Fix - Possible fix for duplicate charges due to webhook and redirect handler firing at the same time by adding delay to the webhook process.
 * Tweak - In a subscription billing, Stripe source ID is no longer a required field.
 * Tweak - On a subscription order renewal-- if source is empty, will now try to charge the default source.
 * Notice - Bitcoin has been soft deprecated and Stripe will no longer support it on April 23, 2018. Please plan accordingly.
