@@ -272,11 +272,11 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			$show_ssl_notice  = get_option( 'wc_stripe_show_ssl_notice' );
 			$show_keys_notice = get_option( 'wc_stripe_show_keys_notice' );
 			$options          = get_option( 'woocommerce_stripe_settings' );
-			$testmode         = 'yes' === $options['testmode'] ? true : false;
-			$test_pub_key     = $options['test_publishable_key'];
-			$test_secret_key  = $options['test_secret_key'];
-			$live_pub_key     = $options['publishable_key'];
-			$live_secret_key  = $options['secret_key'];
+			$testmode         = ( isset( $options['testmode'] ) && 'yes' === $options['testmode'] ) ? true : false;
+			$test_pub_key     = isset( $options['test_publishable_key'] ) ? $options['test_publishable_key'] : '';
+			$test_secret_key  = isset( $options['test_secret_key'] ) ? $options['test_secret_key'] : '';
+			$live_pub_key     = isset( $options['publishable_key'] ) ? $options['publishable_key'] : '';
+			$live_secret_key  = isset( $options['secret_key'] ) ? $options['secret_key'] : '';
 
 			if ( isset( $options['enabled'] ) && 'yes' === $options['enabled'] && empty( $show_keys_notice ) ) {
 				$secret  = WC_Stripe_API::get_secret_key();

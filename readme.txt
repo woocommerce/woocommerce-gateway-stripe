@@ -101,6 +101,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 4.0.5 - 2018-xx-xx =
+* Fix - Illegal offset error on settings when non is defined or saved.
+
 = 4.0.4 - 2018-01-30 =
 * Add - SEPA mandate notification email.
 * Add - Preferred language to SOFORT and Bancontact so it can be localized.
