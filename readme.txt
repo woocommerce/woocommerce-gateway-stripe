@@ -104,6 +104,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 4.0.5 - 2018-xx-xx =
 * Fix - Illegal offset error on settings when non is defined or saved.
 * Fix - Wrong ID used for dispute webhook handler.
+* Add - Allow restricted secret keys to be used.
 
 = 4.0.4 - 2018-01-30 =
 * Add - SEPA mandate notification email.
