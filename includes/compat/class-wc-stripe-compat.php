@@ -179,7 +179,7 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 	 * @param object $order
 	 */
 	public function add_subscription_meta_data( $metadata, $order ) {
-		if ( ! $this->has_subscription( $order->get_id() ) ) {
+		if ( ! $this->has_subscription( WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id() ) ) {
 			return $metadata;
 		}
 
