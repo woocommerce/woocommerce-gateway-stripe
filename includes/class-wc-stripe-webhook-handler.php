@@ -218,20 +218,21 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * We want to put the order into on-hold and add an order note.
 	 *
 	 * @since 4.0.0
-	 * @version 4.0.0
 	 * @param object $notification
 	 */
 	public function process_webhook_dispute( $notification ) {
-		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
 
 		if ( ! $order ) {
-			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->id );
+			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->charge );
 			return;
 		}
 
 		$order->update_status( 'on-hold', __( 'A dispute was created for this order. Response is needed. Please go to your Stripe Dashboard to review this dispute.', 'woocommerce-gateway-stripe' ) );
 
 		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
+
+		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 		$this->send_failed_order_email( $order_id );
 	}
 
