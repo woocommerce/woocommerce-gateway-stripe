@@ -648,27 +648,36 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return false;
 		}
 
-		$body = array();
+		$request = array();
 
 		if ( WC_Stripe_Helper::is_pre_30() ) {
 			$order_currency = get_post_meta( $order_id, '_order_currency', true );
+			$captured       = get_post_meta( $order_id, '_stripe_charge_captured', true );
 		} else {
 			$order_currency = $order->get_currency();
+			$captured       = $order->get_meta( '_stripe_charge_captured', true );
 		}
 
 		if ( ! is_null( $amount ) ) {
-			$body['amount'] = WC_Stripe_Helper::get_stripe_amount( $amount, $order_currency );
+			$request['amount'] = WC_Stripe_Helper::get_stripe_amount( $amount, $order_currency );
+		}
+
+		// If order is only authorized, don't pass amount.
+		if ( 'yes' !== $captured ) {
+			unset( $request['amount'] );
 		}
 
 		if ( $reason ) {
-			$body['metadata'] = array(
+			$request['metadata'] = array(
 				'reason' => $reason,
 			);
 		}
 
+		$request['charge'] = $order->get_transaction_id();
+
 		WC_Stripe_Logger::log( "Info: Beginning refund for order {$order->get_transaction_id()} for the amount of {$amount}" );
 
-		$response = WC_Stripe_API::request( $body, 'charges/' . $order->get_transaction_id() . '/refunds' );
+		$response = WC_Stripe_API::request( $request, 'refunds' );
 
 		if ( ! empty( $response->error ) ) {
 			WC_Stripe_Logger::log( 'Error: ' . $response->error->message );
@@ -689,7 +698,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 
 			/* translators: 1) dollar amount 2) transaction id 3) refund message */
-			$refund_message = sprintf( __( 'Refunded %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $amount, $response->id, $reason );
+			$refund_message = ( isset( $captured ) && 'yes' === $captured ) ? sprintf( __( 'Refunded %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $amount, $response->id, $reason ) : __( 'Pre-Authorization Released', 'woocommerce-gateway-stripe' );
+
 			$order->add_order_note( $refund_message );
 			WC_Stripe_Logger::log( 'Success: ' . html_entity_decode( strip_tags( $refund_message ) ) );
 

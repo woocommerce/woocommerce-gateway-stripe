@@ -262,29 +262,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$order = wc_get_order( $order_id );
 
 		if ( 'stripe' === ( WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method() ) ) {
-			$charge_id = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_transaction_id', true ) : $order->get_transaction_id();
+			$this->process_refund( $order_id );
 
-			if ( $charge_id ) {
-				$result = WC_Stripe_API::request( array(
-					'amount' => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
-				), 'charges/' . $charge_id . '/refund' );
-
-				if ( ! empty( $result->error ) ) {
-					$order->add_order_note( __( 'Unable to refund charge!', 'woocommerce-gateway-stripe' ) . ' ' . $result->error->message );
-				} else {
-					/* translators: transaction id */
-					$order->add_order_note( sprintf( __( 'Stripe charge refunded (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $result->id ) );
-					WC_Stripe_Helper::is_pre_30() ? delete_post_meta( $order_id, '_stripe_charge_captured' ) : $order->delete_meta_data( '_stripe_charge_captured' );
-					WC_Stripe_Helper::is_pre_30() ? delete_post_meta( $order_id, '_transaction_id' ) : $order->delete_meta_data( '_stripe_transaction_id' );
-
-					if ( is_callable( array( $order, 'save' ) ) ) {
-						$order->save();
-					}
-				}
-
-				// This hook fires when admin manually changes order status to cancel.
-				do_action( 'woocommerce_stripe_process_manual_cancel', $order, $result );
-			}
+			// This hook fires when admin manually changes order status to cancel.
+			do_action( 'woocommerce_stripe_process_manual_cancel', $order );
 		}
 	}
 

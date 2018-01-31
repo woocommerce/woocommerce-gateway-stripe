@@ -410,17 +410,21 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			// Only refund captured charge.
-			if ( $charge && 'yes' === $captured ) {
+			if ( $charge ) {
+				$reason = ( isset( $captured ) && 'yes' === $captured ) ? __( 'Refunded via Stripe Dashboard', 'woocommerce-gateway-stripe' ) : __( 'Pre-Authorization Released via Stripe Dashboard', 'woocommerce-gateway-stripe' );
+
 				// Create the refund.
 				$refund = wc_create_refund( array(
 					'order_id'       => $order_id,
 					'amount'         => $this->get_refund_amount( $notification ),
-					'reason'         => __( 'Refunded via Stripe Dashboard', 'woocommerce-gateway-stripe' ),
+					'reason'         => $reason,
 				) );
 
 				if ( is_wp_error( $refund ) ) {
 					WC_Stripe_Logger::log( $refund->get_error_message() );
 				}
+
+				$order->add_order_note( $reason );
 			}
 		}
 	}
