@@ -10,6 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
+	public $retry_interval;
+
 	/**
 	 * Constructor.
 	 *
@@ -17,6 +19,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function __construct() {
+		$this->retry_interval = 2;
 		add_action( 'woocommerce_api_wc_stripe', array( $this, 'check_for_webhook' ) );
 	}
 
@@ -152,9 +155,29 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				if ( 'api_connection_error' === $response->error->type || 'api_error' === $response->error->type ) {
 					if ( $retry ) {
 						sleep( 5 );
-						return $this->process_payment( $order_id, false );
+						return $this->process_webhook_payment( $notification, false );
 					} else {
 						$localized_message = 'API connection error and retries exhausted.';
+						$order->add_order_note( $localized_message );
+						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+					}
+				}
+
+				// We want to retry.
+				if ( $this->is_idempotency_error( $response->error ) ) {
+					if ( $retry ) {
+						// Don't do anymore retries after this.
+						if ( 5 <= $this->retry_interval ) {
+
+							return $this->process_webhook_payment( $notification, false );
+						}
+
+						sleep( $this->retry_interval );
+
+						$this->retry_interval++;
+						return $this->process_webhook_payment( $notification, true );
+					} else {
+						$localized_message = __( 'On going requests error and retries exhausted.', 'woocommerce-gateway-stripe' );
 						$order->add_order_note( $localized_message );
 						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 					}
@@ -171,7 +194,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						$order->save();
 					}
 
-					return $this->process_payment( $order_id, false );
+					return $this->process_webhook_payment( $notification, false );
 
 				} elseif ( preg_match( '/No such token/i', $response->error->message ) && $source_object->token_id ) {
 					// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
@@ -491,13 +514,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_webhook( $request_body ) {
 		$notification = json_decode( $request_body );
-
-		/*
-		 * Hacky way to possibly prevent duplicate requests due to
-		 * frontend request and webhook payment firing at the same
-		 * time.
-		 */
-		sleep( 10 );
 
 		switch ( $notification->type ) {
 			case 'source.chargeable':
