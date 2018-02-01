@@ -497,10 +497,12 @@ jQuery( function( $ ) {
 				// Handle special inputs that are unique to a payment method.
 				switch ( source_type ) {
 					case 'sepa_debit':
-						var owner = $( '#stripe-payment-data' );
+						var owner = $( '#stripe-payment-data' ),
+							email = $( '#billing_email' ).length ? $( '#billing_email' ).val() : owner.email;
+
 						extra_details.currency    = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
 						extra_details.owner.name  = $( '#stripe-sepa-owner' ).val();
-						extra_details.owner.email = owner.data( 'email' );
+						extra_details.owner.email = email;
 						extra_details.sepa_debit  = { iban: $( '#stripe-sepa-iban' ).val() };
 						extra_details.mandate     = { notification_method: wc_stripe_params.sepa_mandate_notification };
 						break;

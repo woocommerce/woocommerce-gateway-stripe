@@ -105,6 +105,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Illegal offset error on settings when non is defined or saved.
 * Fix - Wrong ID used for dispute webhook handler.
 * Fix - A WC 2.6 backwards compat issue while trying to get order id in subscriptions.
+* Fix - Processing SEPA can't find email when not logged in.
 * Add - Allow restricted secret keys to be used.
 * Add - Statement Descriptor to SEPA Direct Debit.
 
