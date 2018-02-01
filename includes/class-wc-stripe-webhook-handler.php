@@ -18,6 +18,28 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function __construct() {
 		add_action( 'woocommerce_api_wc_stripe', array( $this, 'check_for_webhook' ) );
+		add_action( 'wc_stripe_webhook_event', array( $this, 'process_cron_job' ), 10, 2 );
+	}
+
+	/**
+	 * Processes webhook cron jobs
+	 *
+	 * @since 4.0.5
+	 * @param JSON $notification
+	 * @param string $idempotency_key
+	 */
+	public function process_cron_job( $notification, $idempotency_key ) {
+		$this->process_webhook( $notification );
+	}
+
+	/**
+	 * Schedules the cron job itself.
+	 *
+	 * @since 4.0.5
+	 * @param array $notification
+	 */
+	public function schedule_cron( $notification ) {
+		wp_schedule_single_event( time() + 10, 'wc_stripe_webhook_event', array( $notification, uniqid() ) );
 	}
 
 	/**
@@ -39,7 +61,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Validate it to make sure it is legit.
 		if ( $this->is_valid_request( $request_headers, $request_body ) ) {
-			$this->process_webhook( $request_body );
+			$notification = json_decode( $request_body );
+			$this->schedule_cron( $notification );
 			status_header( 200 );
 			exit;
 		} else {
@@ -415,9 +438,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				// Create the refund.
 				$refund = wc_create_refund( array(
-					'order_id'       => $order_id,
-					'amount'         => $this->get_refund_amount( $notification ),
-					'reason'         => $reason,
+					'order_id' => $order_id,
+					'amount'   => $this->get_refund_amount( $notification ),
+					'reason'   => $reason,
 				) );
 
 				if ( is_wp_error( $refund ) ) {
@@ -487,18 +510,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param string $request_body
+	 * @param string $notification
 	 */
-	public function process_webhook( $request_body ) {
-		$notification = json_decode( $request_body );
-
-		/*
-		 * Hacky way to possibly prevent duplicate requests due to
-		 * frontend request and webhook payment firing at the same
-		 * time.
-		 */
-		sleep( 10 );
-
+	public function process_webhook( $notification ) {
 		switch ( $notification->type ) {
 			case 'source.chargeable':
 				$this->process_webhook_payment( $notification );
