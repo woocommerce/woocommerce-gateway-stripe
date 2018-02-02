@@ -687,6 +687,26 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 						}
 					}
 
+					// We want to retry.
+					if ( $this->is_retryable_error( $response->error ) ) {
+						if ( $retry ) {
+							// Don't do anymore retries after this.
+							if ( 5 <= $this->retry_interval ) {
+
+								return $this->process_payment( $notification, false );
+							}
+
+							sleep( $this->retry_interval );
+
+							$this->retry_interval++;
+							return $this->process_payment( $notification, true );
+						} else {
+							$localized_message = __( 'On going requests error and retries exhausted.', 'woocommerce-gateway-stripe' );
+							$order->add_order_note( $localized_message );
+							throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+						}
+					}
+
 					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 					if ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
 						if ( WC_Stripe_Helper::is_pre_30() ) {
