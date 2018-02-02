@@ -162,10 +162,34 @@ module.exports = function( grunt ) {
 	});
 
 	// Load NPM tasks to be used here
+	grunt.loadNpmTasks( 'grunt-sass' );
+	grunt.loadNpmTasks( 'grunt-shell' );
+	grunt.loadNpmTasks( 'grunt-phpcs' );
+	grunt.loadNpmTasks( 'grunt-rtlcss' );
+	grunt.loadNpmTasks( 'grunt-postcss' );
+	grunt.loadNpmTasks( 'grunt-stylelint' );
+	grunt.loadNpmTasks( 'grunt-wp-i18n' );
+	grunt.loadNpmTasks( 'grunt-checktextdomain' );
+	grunt.loadNpmTasks( 'grunt-contrib-jshint' );
 	grunt.loadNpmTasks( 'grunt-contrib-uglify' );
+	grunt.loadNpmTasks( 'grunt-contrib-cssmin' );
+	grunt.loadNpmTasks( 'grunt-contrib-concat' );
+	grunt.loadNpmTasks( 'grunt-contrib-watch' );
+	grunt.loadNpmTasks( 'grunt-contrib-clean' );
 
 	// Register tasks
 	grunt.registerTask( 'default', [
-		'uglify'
+		'js',
+		'i18n'
+	]);
+
+	grunt.registerTask( 'js', [
+		'jshint',
+		'uglify',
+	]);
+
+	grunt.registerTask( 'i18n', [
+		'checktextdomain',
+		'makepot'
 	]);
 };

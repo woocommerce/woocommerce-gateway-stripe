@@ -109,6 +109,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - Allow restricted secret keys to be used.
 * Add - Statement Descriptor to SEPA Direct Debit.
 * Add - Idempotency failure retry with easing to prevent multirequest issue.
+* Add - POT file.
 * Tweak - Make billing name optional on pay for order page.
 
 = 4.0.4 - 2018-01-30 =

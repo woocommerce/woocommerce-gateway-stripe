@@ -11,6 +11,7 @@
  * WC requires at least: 2.6
  * WC tested up to: 3.3
  * Text Domain: woocommerce-gateway-stripe
+ * Domain Path: /languages/
  *
  */
 
