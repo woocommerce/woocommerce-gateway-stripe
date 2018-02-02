@@ -693,13 +693,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 							// Don't do anymore retries after this.
 							if ( 5 <= $this->retry_interval ) {
 
-								return $this->process_payment( $notification, false );
+								return $this->process_payment( $order_id, false, $force_save_source );
 							}
 
 							sleep( $this->retry_interval );
 
 							$this->retry_interval++;
-							return $this->process_payment( $notification, true );
+							return $this->process_payment( $order_id, true, $force_save_source );
 						} else {
 							$localized_message = __( 'On going requests error and retries exhausted.', 'woocommerce-gateway-stripe' );
 							$order->add_order_note( $localized_message );
