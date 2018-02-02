@@ -126,7 +126,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				}
 
 				// We want to retry.
-				if ( $this->is_idempotency_error( $response->error ) ) {
+				if ( $this->is_retryable_error( $response->error ) ) {
 					if ( $retry ) {
 						// Don't do anymore retries after this.
 						if ( 5 <= $this->retry_interval ) {

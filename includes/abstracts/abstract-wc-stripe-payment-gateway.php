@@ -15,14 +15,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	const META_NAME_NET = 'Net Revenue From Stripe';
 
 	/**
-	 * Checks to see if request is invalid due to
-	 * multiple requests causing error.
+	 * Checks to see if request is invalid and that
+	 * they are worth retrying.
 	 *
 	 * @since 4.0.5
 	 * @param array $error
 	 */
-	public function is_idempotency_error( $error ) {
-		return ( 'invalid_request_error' === $error->type && preg_match( '/There is currently another in-progress request using this Idempotent Key/', $error->message ) );
+	public function is_retryable_error( $error ) {
+		return (
+			'invalid_request_error' === $error->type ||
+			'idempotency_error' === $error->type ||
+			'rate_limit_error' === $error->type
+		);
 	}
 
 	/**
