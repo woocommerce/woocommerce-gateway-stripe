@@ -422,6 +422,10 @@ jQuery( function( $ ) {
 				delete extra_details.owner.email;
 			}
 
+			if ( typeof extra_details.owner.name !== 'undefined' && 0 >= extra_details.owner.name.length ) {
+				delete extra_details.owner.name;
+			}
+
 			if ( $( '#billing_address_1' ).length > 0 ) {
 				extra_details.owner.address.line1       = $( '#billing_address_1' ).val();
 				extra_details.owner.address.line2       = $( '#billing_address_2' ).val();
