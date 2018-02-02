@@ -87,39 +87,6 @@ class WC_Stripe_Customer {
 	}
 
 	/**
-	 * Get data from the Stripe API about this customer
-	 */
-	public function get_customer_data() {
-		$this->customer_data = get_transient( 'stripe_customer_' . $this->get_id() );
-
-		if ( empty( $this->customer_data ) && $this->get_id() && false === $this->customer_data ) {
-			$response = WC_Stripe_API::request( array(), 'customers/' . $this->get_id() );
-
-			if ( empty( $response->error ) ) {
-				$this->set_customer_data( $response );
-				set_transient( 'stripe_customer_' . $this->get_id(), $response, HOUR_IN_SECONDS * 48 );
-			}
-		}
-
-		return $this->customer_data;
-	}
-
-	/**
-	 * Get default card/source
-	 * @return string
-	 */
-	public function get_default_source() {
-		$data   = $this->get_customer_data();
-		$source = '';
-
-		if ( $data ) {
-			$source = $data->default_source;
-		}
-
-		return $source;
-	}
-
-	/**
 	 * Create a customer via API.
 	 * @param array $args
 	 * @return WP_Error|int
@@ -244,7 +211,7 @@ class WC_Stripe_Customer {
 	}
 
 	/**
-	 * Get a customers saved sources using their Stripe ID. Cached.
+	 * Get a customers saved sources using their Stripe ID.
 	 *
 	 * @param  string $customer_id
 	 * @return array
