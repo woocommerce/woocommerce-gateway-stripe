@@ -502,7 +502,7 @@ jQuery( function( $ ) {
 				switch ( source_type ) {
 					case 'sepa_debit':
 						var owner = $( '#stripe-payment-data' ),
-							email = $( '#billing_email' ).length ? $( '#billing_email' ).val() : owner.email;
+							email = $( '#billing_email' ).length ? $( '#billing_email' ).val() : owner.data( 'email' );
 
 						extra_details.currency    = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
 						extra_details.owner.name  = $( '#stripe-sepa-owner' ).val();
