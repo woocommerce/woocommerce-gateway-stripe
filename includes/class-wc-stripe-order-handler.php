@@ -10,6 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	private static $_this;
+	public $retry_interval;
 
 	/**
 	 * Constructor.
@@ -19,6 +20,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function __construct() {
 		self::$_this = $this;
+
+		$this->retry_interval = 2;
 
 		add_action( 'wp', array( $this, 'maybe_process_redirect_order' ) );
 		add_action( 'woocommerce_order_status_on-hold_to_processing', array( $this, 'capture_payment' ) );
@@ -116,9 +119,28 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						sleep( 5 );
 						return $this->process_redirect_payment( $order_id, false );
 					} else {
-						$message = 'API connection error and retries exhausted.';
-						$order->add_order_note( $message );
-						throw new WC_Stripe_Exception( print_r( $response, true ), $message );
+						$localized_message = __( 'API connection error and retries exhausted.', 'woocommerce-gateway-stripe' );
+						$order->add_order_note( $localized_message );
+						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+					}
+				}
+
+				// We want to retry.
+				if ( $this->is_retryable_error( $response->error ) ) {
+					if ( $retry ) {
+						// Don't do anymore retries after this.
+						if ( 5 <= $this->retry_interval ) {
+							return $this->process_redirect_payment( $order_id, false );
+						}
+
+						sleep( $this->retry_interval );
+
+						$this->retry_interval++;
+						return $this->process_redirect_payment( $order_id, true );
+					} else {
+						$localized_message = __( 'On going requests error and retries exhausted.', 'woocommerce-gateway-stripe' );
+						$order->add_order_note( $localized_message );
+						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 					}
 				}
 

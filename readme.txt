@@ -108,6 +108,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Processing SEPA can't find email when not logged in.
 * Add - Allow restricted secret keys to be used.
 * Add - Statement Descriptor to SEPA Direct Debit.
+* Add - Idempotency failure retry with easing to prevent multirequest issue.
 
 = 4.0.4 - 2018-01-30 =
 * Add - SEPA mandate notification email.

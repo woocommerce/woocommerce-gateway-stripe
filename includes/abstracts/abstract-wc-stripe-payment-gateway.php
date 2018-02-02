@@ -15,6 +15,21 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	const META_NAME_NET = 'Net Revenue From Stripe';
 
 	/**
+	 * Checks to see if request is invalid and that
+	 * they are worth retrying.
+	 *
+	 * @since 4.0.5
+	 * @param array $error
+	 */
+	public function is_retryable_error( $error ) {
+		return (
+			'invalid_request_error' === $error->type ||
+			'idempotency_error' === $error->type ||
+			'rate_limit_error' === $error->type
+		);
+	}
+
+	/**
 	 * Check if this gateway is enabled
 	 */
 	public function is_available() {

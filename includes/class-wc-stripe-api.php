@@ -101,7 +101,10 @@ class WC_Stripe_API {
 		$headers = self::get_headers();
 
 		if ( 'charges' === $api && 'POST' === $method ) {
-			$headers['Idempotency-Key'] = uniqid( 'stripe_' );
+			$customer = ! empty( $request['customer'] ) ? $request['customer'] : '';
+			$source   = ! empty( $request['source'] ) ? $request['source'] : $customer;
+
+			$headers['Idempotency-Key'] = $request['metadata']['order_id'] . '-' . $source;
 		}
 
 		$response = wp_safe_remote_post(
