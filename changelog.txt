@@ -1,5 +1,16 @@
 *** Changelog ***
 
+= 4.0.5 - 2018-02-02 =
+* Fix - Illegal offset error on settings when non is defined or saved.
+* Fix - Wrong ID used for dispute webhook handler.
+* Fix - A WC 2.6 backwards compat issue while trying to get order id in subscriptions.
+* Fix - Processing SEPA can't find email when not logged in.
+* Add - Allow restricted secret keys to be used.
+* Add - Statement Descriptor to SEPA Direct Debit.
+* Add - Idempotency failure retry with easing to prevent multirequest issue.
+* Add - POT file.
+* Tweak - Make billing name optional on pay for order page.
+
 = 4.0.4 - 2018-01-30 =
 * Add - SEPA mandate notification email.
 * Add - Preferred language to SOFORT and Bancontact so it can be localized.

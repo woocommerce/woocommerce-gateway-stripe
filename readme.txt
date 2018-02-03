@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 4.9
 Requires PHP: 5.6
-Stable tag: 4.0.4
+Stable tag: 4.0.5
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -101,7 +101,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.0.5 - 2018-xx-xx =
+= 4.0.5 - 2018-02-02 =
 * Fix - Illegal offset error on settings when non is defined or saved.
 * Fix - Wrong ID used for dispute webhook handler.
 * Fix - A WC 2.6 backwards compat issue while trying to get order id in subscriptions.
@@ -111,28 +111,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - Idempotency failure retry with easing to prevent multirequest issue.
 * Add - POT file.
 * Tweak - Make billing name optional on pay for order page.
-
-= 4.0.4 - 2018-01-30 =
-* Add - SEPA mandate notification email.
-* Add - Preferred language to SOFORT and Bancontact so it can be localized.
-* Add - Hook to change SEPA mandate notification to none "wc_stripe_sepa_mandate_notification".
-* Add - Hook to change data for product when using Payment Request Button "wc_stripe_payment_request_product_data".
-* Add - Hook to change the behavior of allowing subscriptions to charge a customer's default source "'wc_stripe_use_default_customer_source'".
-* Add - Hook to source object "wc_stripe_sofort_source", "wc_stripe_p24_source", "wc_stripe_ideal_source", "wc_stripe_giropay_source", "wc_stripe_bancontact_source", "wc_stripe_alipay_source", "wc_stripe_3ds_source".
-* Add - Hook to change payment request button total label "wc_stripe_payment_request_total_label".
-* Add - Hook to change locale of Stripe Checkout "wc_stripe_checkout_locale".
-* Add - Hook to change elements options "wc_stripe_elements_options".
-* Fix - When checkout form produces an error on mobile, sometimes the blocking mask is not release blocking new input.
-* Fix - On older subscription payments, the ending card number is not shown on the subscriptions table in my account.
-* Fix - Filter to show payment request button on checkout page not working.
-* Fix - WC session handling compatibility with WC 3.3.
-* Fix - BW compatibility with WC 2.6.x on add_order_meta to prevent errors.
-* Fix - Possible fix for duplicate charges due to webhook and redirect handler firing at the same time by adding delay to the webhook process.
-* Tweak - In a subscription billing, Stripe source ID is no longer a required field.
-* Tweak - On a subscription order renewal-- if source is empty, will now try to charge the default source.
-* Notice - Bitcoin has been soft deprecated and Stripe will no longer support it on April 23, 2018. Please plan accordingly.
-* Remove - Stripe Checkout Locale setting in favor of using store set locale.
-* Update - Stripe API version to 2018-01-23.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/changelog.txt).
 
