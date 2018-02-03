@@ -317,13 +317,18 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 		if ( $this->id === $payment_method_id ) {
 
 			if ( ! isset( $payment_meta['post_meta']['_stripe_customer_id']['value'] ) || empty( $payment_meta['post_meta']['_stripe_customer_id']['value'] ) ) {
-				throw new Exception( 'A "_stripe_customer_id" value is required.' );
+				throw new Exception( __( 'A "Stripe Customer ID" value is required.', 'woocommerce-gateway-stripe' ) );
 			} elseif ( 0 !== strpos( $payment_meta['post_meta']['_stripe_customer_id']['value'], 'cus_' ) ) {
-				throw new Exception( 'Invalid customer ID. A valid "_stripe_customer_id" must begin with "cus_".' );
+				throw new Exception( __( 'Invalid customer ID. A valid "Stripe Customer ID" must begin with "cus_".', 'woocommerce-gateway-stripe' ) );
 			}
 
-			if ( ! isset( $payment_meta['post_meta']['_stripe_source_id']['value'] ) || empty( $payment_meta['post_meta']['_stripe_source_id']['value'] ) ) {
-				throw new Exception( 'A "_stripe_source_id" value is required.' );
+			if (
+				( ! empty( $payment_meta['post_meta']['_stripe_source_id']['value'] )
+				&& 0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'card_' ) )
+				&& ( ! empty( $payment_meta['post_meta']['_stripe_source_id']['value'] )
+				&& 0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'src_' ) ) ) {
+
+				throw new Exception( __( 'Invalid source ID. A valid source "Stripe Source ID" must begin with "src_" or "card_".', 'woocommerce-gateway-stripe' ) );
 			}
 		}
 	}
