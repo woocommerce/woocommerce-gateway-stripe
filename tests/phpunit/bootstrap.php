@@ -13,14 +13,6 @@ function _manually_load_plugin() {
 	require $plugin_dir . 'woocommerce/woocommerce.php';
 }
 
-function is_woocommerce_active() {
-	return true;
-}
-
-function woothemes_queue_update( $file, $file_id, $product_id ) {
-	return true;
-}
-
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 
 require $_tests_dir . '/includes/bootstrap.php';
