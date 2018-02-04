@@ -23,7 +23,7 @@ test.describe( 'Checkout flow', function() {
 
 	test.before( t.startBrowser );
 
-	test.describe( 'One-time payment', function() {
+	test.describe( 'Pay with Stripe Non 3DS Required', function() {
 		config.get( 'stripeCC' ).forEach( stripeSetting => {
 			test.before( () => {
 				t.setStripeSettings( stripeSetting );
@@ -33,11 +33,29 @@ test.describe( 'Checkout flow', function() {
 
 			test.it( 'Credit card', function() {
 				t.openOnePaymentProduct().addToCart();
-				t.payWithStripe();
+				t.payWithStripe( true );
 
 				assert.eventually.ok( t.redirectedTo( '/checkout/order-received/' ) );
 			} );
 		} );
 	} );
+
+	test.describe( 'Pay with Stripe Non 3DS Required Non Inline', function() {
+		config.get( 'stripeCCNoInline' ).forEach( stripeSetting => {
+			test.before( () => {
+				t.setStripeSettings( stripeSetting );
+			} );
+
+			test.beforeEach( t.asGuestCustomer );
+
+			test.it( 'Credit card', function() {
+				t.openOnePaymentProduct().addToCart();
+				t.payWithStripe( false );
+
+				assert.eventually.ok( t.redirectedTo( '/checkout/order-received/' ) );
+			} );
+		} );
+	} );
+
 	test.after( t.quitBrowser );
 } );

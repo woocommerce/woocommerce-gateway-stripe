@@ -69,7 +69,7 @@ export const openOnePaymentProduct = () => {
 	} );
 };
 
-export const payWithStripe = () => {
+export const payWithStripe = ( inline ) => {
 	const checkout = new CheckoutPage( driver, {
 		url: manager.getPageUrl( '/checkout' )
 	} );
@@ -89,13 +89,34 @@ export const payWithStripe = () => {
 
 	wcHelper.waitTillUIBlockNotPresent( driver, 20000 );
 
-	var iframeElement = driver.findElement( By.name( '__privateStripeFrame4' ) );
-	driver.switchTo().frame( iframeElement );
-	driver.findElement( By.name( 'cardnumber' ) ).sendKeys( '4242424242424242' );
-	driver.findElement( By.name( 'exp-date' ) ).sendKeys( '1220' );
-	driver.findElement( By.name( 'cvc' ) ).sendKeys( '222' );
+	if ( inline ) {
+		var iframeElement = driver.findElement( By.name( '__privateStripeFrame4' ) );
+		driver.switchTo().frame( iframeElement );
+		driver.findElement( By.name( 'cardnumber' ) ).sendKeys( '4242424242424242' );
+		driver.findElement( By.name( 'exp-date' ) ).sendKeys( '1220' );
+		driver.findElement( By.name( 'cvc' ) ).sendKeys( '222' );
 
-	driver.switchTo().defaultContent();
+		driver.switchTo().defaultContent();
+	} else {
+		var iframeElement4 = driver.findElement( By.name( '__privateStripeFrame4' ) ),
+			iframeElement5 = driver.findElement( By.name( '__privateStripeFrame5' ) ),
+			iframeElement6 = driver.findElement( By.name( '__privateStripeFrame6' ) );
+
+		driver.switchTo().frame( iframeElement4 );
+		driver.findElement( By.name( 'cardnumber' ) ).sendKeys( '4242424242424242' );
+
+		driver.switchTo().defaultContent();
+
+		driver.switchTo().frame( iframeElement5 );
+		driver.findElement( By.name( 'exp-date' ) ).sendKeys( '1220' );
+
+		driver.switchTo().defaultContent();
+
+		driver.switchTo().frame( iframeElement6 );
+		driver.findElement( By.name( 'cvc' ) ).sendKeys( '222' );
+
+		driver.switchTo().defaultContent();
+	}
 
 	checkout.placeOrder();
 
