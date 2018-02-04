@@ -24,7 +24,7 @@ test.describe( 'Checkout flow', function() {
 	test.before( t.startBrowser );
 
 	test.describe( 'One-time payment', function() {
-		config.get( 'stripe' ).forEach( stripeSetting => {
+		config.get( 'stripeCC' ).forEach( stripeSetting => {
 			test.before( () => {
 				t.setStripeSettings( stripeSetting );
 			} );
@@ -39,6 +39,5 @@ test.describe( 'Checkout flow', function() {
 			} );
 		} );
 	} );
-
 	test.after( t.quitBrowser );
 } );

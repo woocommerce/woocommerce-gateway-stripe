@@ -84,7 +84,10 @@ export const payWithStripe = () => {
 	helper.setWhenSettable( driver, By.css( '#billing_postcode' ), '90066' );
 	helper.setWhenSettable( driver, By.css( '#billing_phone' ), '8008008000' );
 	helper.setWhenSettable( driver, By.css( '#billing_email' ), 'john.doe@example.com' );
-	checkout.selectPaymentMethod( 'Credit card (Stripe)' );
+
+	checkout.selectPaymentMethod( 'Credit Card (Stripe)' );
+
+	wcHelper.waitTillUIBlockNotPresent( driver, 20000 );
 
 	var iframeElement = driver.findElement( By.name( '__privateStripeFrame4' ) );
 	driver.switchTo().frame( iframeElement );

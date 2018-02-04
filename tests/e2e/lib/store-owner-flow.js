@@ -36,8 +36,43 @@ export default class StoreOwnerFlow extends Base {
 		if ( args.testPublishableKey ) {
 			settings.setTestPublishableKey( args.testPublishableKey );
 		}
+
 		if ( args.testPublishableSecret ) {
 			settings.setTestPublishableSecret( args.testPublishableSecret );
+		}
+
+		if ( args.statementDescriptor ) {
+			settings.setStatementDescriptor( args.statementDescriptor );
+		}
+
+		if ( args.enableTestMode ) {
+			settings.enableTestMode();
+		} else {
+			settings.disableTestMode();
+		}
+
+		if ( args.enableInlineForm ) {
+			settings.enableInlineForm();
+		} else {
+			settings.disableInlineForm();
+		}
+
+		if ( args.enableStripeCheckout ) {
+			settings.enableStripeCheckout();
+		} else {
+			settings.disableStripeCheckout();
+		}
+
+		if ( args.enableSavedCards ) {
+			settings.enableSavedCards();
+		} else {
+			settings.disableSavedCards();
+		}
+
+		if ( args.enableLogging ) {
+			settings.enableLogging();
+		} else {
+			settings.disableLogging();
 		}
 
 		return settings.saveChanges();
