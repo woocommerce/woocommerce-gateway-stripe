@@ -103,6 +103,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 4.0.6 - 2018-xx-xx =
 * Fix - A WC 2.6 backwards compat issue with function from WC 3.0.
+* Tweak - Pre checkout validation now happens only with Stripe Modal.
 
 = 4.0.5 - 2018-02-02 =
 * Fix - Illegal offset error on settings when non is defined or saved.
