@@ -633,7 +633,7 @@ jQuery( function( $ ) {
 					if ( wc_stripe_form.isMobile() ) {
 						wc_stripe_form.openModal();
 					} else {
-						wc_stripe_form.validateCheckout( 'modal' );
+						wc_stripe_form.validateCheckout();
 					}
 
 					return false;
@@ -716,12 +716,7 @@ jQuery( function( $ ) {
 					}
 				}
 
-				// We don't need to run validate on non checkout pages.
-				if ( wc_stripe_params.is_checkout ) {
-					wc_stripe_form.validateCheckout();
-				} else {
-					wc_stripe_form.createSource();
-				}
+				wc_stripe_form.createSource();
 
 				// Prevent form submitting
 				return false;
@@ -765,53 +760,33 @@ jQuery( function( $ ) {
 			return wc_stripe_form.form.find( '.form-row.validate-required > input, .form-row.validate-required > select, .form-row.validate-required > textarea' );
 		},
 
-		validateCheckout: function( type ) {
-			if ( typeof type === 'undefined' ) {
-				type = '';
+		validateCheckout: function() {
+			if ( 'no' === wc_stripe_params.validate_modal_checkout ) {
+				wc_stripe_form.openModal();
+				return;
 			}
 
 			var data = {
 				'nonce': wc_stripe_params.stripe_nonce,
 				'required_fields': wc_stripe_form.getRequiredFields().serialize(),
-				'all_fields': wc_stripe_form.form.serialize(),
-				'source_type': wc_stripe_form.getSelectedPaymentElement().val(),
-				'is_add_payment_page': wc_stripe_params.is_add_payment_method_page
+				'all_fields': wc_stripe_form.form.serialize()
 			};
 
-			$.ajax({
+			$.ajax( {
 				type:		'POST',
 				url:		wc_stripe_form.getAjaxURL( 'validate_checkout' ),
 				data:		data,
 				dataType:   'json',
 				success:	function( result ) {
 					if ( 'success' === result ) {
-						// Stripe Checkout.
-						if ( 'modal' === type ) {
-							wc_stripe_form.openModal();
-						} else {
-							if ( wc_stripe_form.isSepaChosen() ) {
-								// Check if SEPA owner is filled before proceed.
-								if ( '' === $( '#stripe-sepa-owner' ).val() ) {
-									$( document.body ).trigger( 'stripeError', { error: { message: wc_stripe_params.no_sepa_owner_msg } } );
-									return false;
-								}
-
-								// Check if SEPA IBAN is filled before proceed.
-								if ( '' === $( '#stripe-sepa-iban' ).val() ) {
-									$( document.body ).trigger( 'stripeError', { error: { message: wc_stripe_params.no_sepa_iban_msg } } );
-									return false;
-								}
-							}
-
-							wc_stripe_form.createSource();
-						}
+						wc_stripe_form.openModal();
 					} else if ( result.messages ) {
 						wc_stripe_form.resetModal();
 						wc_stripe_form.reset();
 						wc_stripe_form.submitError( result.messages );
 					}
 				}
-			});
+			} );
 		},
 
 		submitError: function( error_message ) {

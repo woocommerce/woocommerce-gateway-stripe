@@ -280,7 +280,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			 * take care of the status changes.
 			 */
 			if ( 'pending' === $response->status ) {
-				if ( ! wc_string_to_bool( get_post_meta( $order_id, '_order_stock_reduced', true ) ) ) {
+				$order_stock_reduced = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_order_stock_reduced', true ) : $order->get_meta( '_order_stock_reduced', true );
+
+				if ( ! $order_stock_reduced ) {
 					WC_Stripe_Helper::is_pre_30() ? $order->reduce_order_stock() : wc_reduce_stock_levels( $order_id );
 				}
 

@@ -347,15 +347,13 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			wp_die( __( 'Cheatin&#8217; huh?', 'woocommerce-gateway-stripe' ) );
 		}
 
-		$errors = new WP_Error();
 		parse_str( $_POST['required_fields'], $required_fields );
 		parse_str( $_POST['all_fields'], $all_fields );
-		$source_type = isset( $_POST['source_type'] ) ? wc_clean( $_POST['source_type'] ) : '';
 		$validate_shipping_fields = false;
-		$create_account = false;
-
-		$all_fields      = apply_filters( 'wc_stripe_validate_checkout_all_fields', $all_fields );
-		$required_fields = apply_filters( 'wc_stripe_validate_checkout_required_fields', $required_fields );
+		$create_account           = false;
+		$errors                   = new WP_Error();
+		$all_fields               = apply_filters( 'wc_stripe_validate_checkout_all_fields', $all_fields );
+		$required_fields          = apply_filters( 'wc_stripe_validate_checkout_required_fields', $required_fields );
 
 		array_walk_recursive( $required_fields, 'wc_clean' );
 		array_walk_recursive( $all_fields, 'wc_clean' );
@@ -399,7 +397,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Check if email is valid format.
 		if ( ! empty( $required_fields['billing_email'] ) && ! is_email( $required_fields['billing_email'] ) ) {
-			$errors->add( 'validation', __( 'Email is not valid', 'woocommerce-gateway-stripe' ) );
+			$errors->add( 'validation', __( '<strong>Billing Email</strong> is not valid', 'woocommerce-gateway-stripe' ) );
 		}
 
 		// Check if phone number is valid format.
@@ -419,13 +417,6 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 			if ( '' !== $required_fields['billing_postcode'] && ! WC_Validation::is_postcode( $postcode, $country ) ) {
 				$errors->add( 'validation', __( 'Please enter a valid billing postcode / ZIP.', 'woocommerce-gateway-stripe' ) );
-			}
-		}
-
-		// Don't check this on add payment method page.
-		if ( ( isset( $_POST['is_add_payment_page'] ) && 'no' === $_POST['is_add_payment_page'] ) ) {
-			if ( empty( $all_fields['woocommerce_checkout_update_totals'] ) && empty( $all_fields['terms'] ) && apply_filters( 'woocommerce_checkout_show_terms', wc_get_page_id( 'terms' ) > 0 ) ) {
-				$errors->add( 'terms', __( 'You must accept our Terms &amp; Conditions.', 'woocommerce-gateway-stripe' ) );
 			}
 		}
 
@@ -469,6 +460,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				$available_gateways[ $all_fields['payment_method'] ]->validate_fields();
 			}
 		}
+
+		if ( empty( $all_fields['woocommerce_checkout_update_totals'] ) && empty( $all_fields['terms'] ) && apply_filters( 'woocommerce_checkout_show_terms', wc_get_page_id( 'terms' ) > 0 ) ) {
+			$errors->add( 'terms', __( 'You must accept our Terms &amp; Conditions.', 'woocommerce-gateway-stripe' ) );
+		}
+
+		do_action( 'wc_stripe_validate_checkout', $required_fields, $all_fields, $errors );
 
 		if ( 0 === count( $errors->errors ) ) {
 			wp_send_json( 'success' );
