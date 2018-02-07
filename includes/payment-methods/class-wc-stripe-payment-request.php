@@ -3,7 +3,7 @@
  * Stripe Payment Request API
  *
  * @package WooCommerce_Stripe/Classes/Payment_Request
- * @since   3.1.0
+ * @since   4.0.0
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -50,12 +50,20 @@ class WC_Stripe_Payment_Request {
 	public $testmode;
 
 	/**
+	 * This Instance.
+	 *
+	 * @var
+	 */
+	private static $_this;
+
+	/**
 	 * Initialize class actions.
 	 *
 	 * @since 3.0.0
 	 * @version 4.0.0
 	 */
 	public function __construct() {
+		self::$_this                   = $this;
 		$this->stripe_settings         = get_option( 'woocommerce_stripe_settings', array() );
 		$this->testmode                = ( ! empty( $this->stripe_settings['testmode'] ) && 'yes' === $this->stripe_settings['testmode'] ) ? true : false;
 		$this->publishable_key         = ! empty( $this->stripe_settings['publishable_key'] ) ? $this->stripe_settings['publishable_key'] : '';
@@ -90,6 +98,16 @@ class WC_Stripe_Payment_Request {
 
 		add_action( 'woocommerce_init', array( $this, 'set_session' ) );
 		$this->init();
+	}
+
+	/**
+	 * Get this instance.
+	 *
+	 * @since 4.0.6
+	 * @return class
+	 */
+	public static function instance() {
+		return self::$_this;
 	}
 
 	/**
