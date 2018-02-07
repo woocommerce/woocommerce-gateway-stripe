@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.0.5\n"
 "Report-Msgid-Bugs-To: "
 "https://github.com/woocommerce/woocommerce-gateway-stripe/issues\n"
-"POT-Creation-Date: 2018-02-06 23:27:05+00:00\n"
+"POT-Creation-Date: 2018-02-07 00:09:16+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -51,7 +51,7 @@ msgid "Stripe charge complete (Charge ID: %s)"
 msgstr ""
 
 #: includes/abstracts/abstract-wc-stripe-payment-gateway.php:303
-#: includes/class-wc-gateway-stripe.php:628
+#: includes/class-wc-gateway-stripe.php:632
 #: includes/compat/class-wc-stripe-compat.php:103
 #: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:374
 msgid "Payment processing failed. Please retry."
@@ -672,37 +672,37 @@ msgstr ""
 msgid "Card Code (CVC)"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:537
+#: includes/class-wc-gateway-stripe.php:541
 msgid "Please accept the terms and conditions first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:538
+#: includes/class-wc-gateway-stripe.php:542
 msgid "Please fill in required checkout fields first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:556
-#: includes/class-wc-gateway-stripe.php:622
+#: includes/class-wc-gateway-stripe.php:560
+#: includes/class-wc-gateway-stripe.php:626
 #: includes/compat/class-wc-stripe-compat.php:97
 msgid ""
 "Sorry, we're not accepting prepaid cards at this time. Your credit card has "
 "not been charge. Please try with alternative payment method."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:557
+#: includes/class-wc-gateway-stripe.php:561
 msgid "Please enter your IBAN account name."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:558
+#: includes/class-wc-gateway-stripe.php:562
 msgid "Please enter your IBAN account number."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:707
+#: includes/class-wc-gateway-stripe.php:711
 #: includes/class-wc-stripe-order-handler.php:141
 #: includes/class-wc-stripe-webhook-handler.php:180
 msgid "On going requests error and retries exhausted."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:729
+#: includes/class-wc-gateway-stripe.php:733
 #: includes/class-wc-stripe-order-handler.php:165
 #: includes/class-wc-stripe-webhook-handler.php:203
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:381

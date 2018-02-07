@@ -77,7 +77,6 @@ jQuery( function( $ ) {
 			$( 'form.woocommerce-checkout' )
 				.on(
 					'change',
-					'#stripe-bank-country',
 					this.reset
 				);
 
@@ -748,7 +747,7 @@ jQuery( function( $ ) {
 		},
 
 		reset: function() {
-			$( '.wc-stripe-error, .stripe-source, .stripe_token, .stripe-checkout-object' ).remove();
+			$( '.wc-stripe-error, .stripe-source, .stripe_token' ).remove();
 
 			// Stripe Checkout.
 			if ( 'yes' === wc_stripe_params.is_stripe_checkout ) {
