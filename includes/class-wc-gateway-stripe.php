@@ -523,6 +523,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		if ( 'no' === $this->enabled ) {
+			return;
+		}
+
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
 		wp_register_style( 'stripe_paymentfonts', plugins_url( 'assets/css/stripe-paymentfonts.css', WC_STRIPE_MAIN_FILE ), array(), '1.2.5' );
