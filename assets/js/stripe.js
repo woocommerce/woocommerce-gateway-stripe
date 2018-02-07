@@ -108,7 +108,7 @@ jQuery( function( $ ) {
 				invalid: 'invalid',
 			};
 
-			if ( 'yes' === wc_stripe_params.use_elements && $( '#stripe-card-element' ).length ) {
+			if ( 'yes' === wc_stripe_params.use_elements ) {
 				elementStyles  = wc_stripe_params.elements_styling ? wc_stripe_params.elements_styling : elementStyles;
 				elementClasses = wc_stripe_params.elements_classes ? wc_stripe_params.elements_classes : elementClasses;
 
@@ -158,26 +158,28 @@ jQuery( function( $ ) {
 				 */
 				if ( wc_stripe_params.is_checkout ) {
 					$( document.body ).on( 'updated_checkout', function() {
-						// Don't mount elements a second time.
-						if ( stripe_card ) {
+						if ( $( '#stripe-card-element' ).length ) {
+							// Don't mount elements a second time.
+							if ( stripe_card ) {
+								if ( 'yes' === wc_stripe_params.inline_cc_form ) {
+									stripe_card.unmount( '#stripe-card-element' );
+								} else {
+									stripe_card.unmount( '#stripe-card-element' );
+									stripe_exp.unmount( '#stripe-exp-element' );
+									stripe_cvc.unmount( '#stripe-cvc-element' );
+								}
+							}
+
 							if ( 'yes' === wc_stripe_params.inline_cc_form ) {
-								stripe_card.unmount( '#stripe-card-element' );
+								stripe_card.mount( '#stripe-card-element' );
 							} else {
-								stripe_card.unmount( '#stripe-card-element' );
-								stripe_exp.unmount( '#stripe-exp-element' );
-								stripe_cvc.unmount( '#stripe-cvc-element' );
+								stripe_card.mount( '#stripe-card-element' );
+								stripe_exp.mount( '#stripe-exp-element' );
+								stripe_cvc.mount( '#stripe-cvc-element' );
 							}
 						}
-
-						if ( 'yes' === wc_stripe_params.inline_cc_form ) {
-							stripe_card.mount( '#stripe-card-element' );
-						} else {
-							stripe_card.mount( '#stripe-card-element' );
-							stripe_exp.mount( '#stripe-exp-element' );
-							stripe_cvc.mount( '#stripe-cvc-element' );
-						}
 					});
-				} else if ( $( 'form#add_payment_method' ).length || $( 'form#order_review' ).length ) {
+				} else if ( $( '#stripe-card-element' ).length && ( $( 'form#add_payment_method' ).length || $( 'form#order_review' ).length ) ) {
 					if ( 'yes' === wc_stripe_params.inline_cc_form ) {
 						stripe_card.mount( '#stripe-card-element' );
 					} else {
