@@ -300,13 +300,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			}
 
 			if ( ! file_exists( $path . '/' . $dir ) ) {
-				if ( ! @mkdir( $path . '/' . $dir, 0755 ) ) {
+				if ( ! @mkdir( $path . '/' . $dir, 0755 ) ) { // @codingStandardsIgnoreLine
 					throw new Exception( __( 'Unable to create domain association folder to domain root.', 'woocommerce-gateway-stripe' ) );
 				}
 			}
 
 			if ( ! file_exists( $fullpath ) ) {
-				if ( ! @copy( WC_STRIPE_PLUGIN_PATH . '/' . $file, $fullpath ) ) {
+				if ( ! @copy( WC_STRIPE_PLUGIN_PATH . '/' . $file, $fullpath ) ) { // @codingStandardsIgnoreLine
 					throw new Exception( __( 'Unable to copy domain association file to domain root.', 'woocommerce-gateway-stripe' ) );
 				}
 			}
@@ -429,6 +429,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			if ( apply_filters( 'wc_stripe_use_elements_checkout_form', true ) ) {
 				$this->elements_form();
 			} else {
+				WC_Stripe_Logger::log( 'DEPRECATED! Since version 4.0. Stripe Elements is used. This legacy credit card form will be removed by version 4.1!' );
 				$this->form();
 				echo '<div class="stripe-source-errors" role="alert"></div>';
 			}
