@@ -263,7 +263,10 @@ class WC_Gateway_Stripe_Eps extends WC_Stripe_Payment_Gateway {
 		$post_data['type']                 = 'eps';
 		$post_data['owner']                = $this->get_owner_details( $order );
 		$post_data['redirect']             = array( 'return_url' => $return_url );
-		$post_data['statement_descriptor'] = $this->statement_descriptor;
+
+		if ( ! empty( $this->statement_descriptor ) ) {
+			$post_data['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $this->statement_descriptor );
+		}
 
 		WC_Stripe_Logger::log( 'Info: Begin creating EPS source' );
 
