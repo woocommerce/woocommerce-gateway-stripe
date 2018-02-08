@@ -113,6 +113,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-bancontact.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sofort.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-giropay.php' );
+			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-eps.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-ideal.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-p24.php' );
 			require_once( dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-alipay.php' );
@@ -379,6 +380,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			$methods[] = 'WC_Gateway_Stripe_Bancontact';
 			$methods[] = 'WC_Gateway_Stripe_Sofort';
 			$methods[] = 'WC_Gateway_Stripe_Giropay';
+			$methods[] = 'WC_Gateway_Stripe_Eps';
 			$methods[] = 'WC_Gateway_Stripe_Ideal';
 			$methods[] = 'WC_Gateway_Stripe_P24';
 			$methods[] = 'WC_Gateway_Stripe_Alipay';
@@ -398,6 +400,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			unset( $sections['stripe_bancontact'] );
 			unset( $sections['stripe_sofort'] );
 			unset( $sections['stripe_giropay'] );
+			unset( $sections['stripe_eps'] );
 			unset( $sections['stripe_ideal'] );
 			unset( $sections['stripe_p24'] );
 			unset( $sections['stripe_alipay'] );
@@ -408,6 +411,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			$sections['stripe_bancontact'] = __( 'Stripe Bancontact', 'woocommerce-gateway-stripe' );
 			$sections['stripe_sofort']     = __( 'Stripe SOFORT', 'woocommerce-gateway-stripe' );
 			$sections['stripe_giropay']    = __( 'Stripe Giropay', 'woocommerce-gateway-stripe' );
+			$sections['stripe_eps']        = __( 'Stripe EPS', 'woocommerce-gateway-stripe' );
 			$sections['stripe_ideal']      = __( 'Stripe iDeal', 'woocommerce-gateway-stripe' );
 			$sections['stripe_p24']        = __( 'Stripe P24', 'woocommerce-gateway-stripe' );
 			$sections['stripe_alipay']     = __( 'Stripe Alipay', 'woocommerce-gateway-stripe' );
