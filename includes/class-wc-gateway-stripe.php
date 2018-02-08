@@ -156,6 +156,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_scripts' ) );
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
+		add_action( 'woocommerce_admin_order_totals_after_total', array( $this, 'display_order_fee' ), 10, 1 );
+		add_action( 'woocommerce_admin_order_totals_after_total', array( $this, 'display_order_payout' ), 20, 1 );
+
 	}
 
 	/**
@@ -646,5 +649,81 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				'redirect' => '',
 			);
 		}
+	}
+
+	/**
+	 * Displays the Stripe fee
+	 *
+	 * @since 4.1.0
+	 *
+	 * @param int $order_id
+	 */
+	public function display_order_fee( $order_id ) {
+
+		if ( WC_Stripe_Helper::is_pre_30() ) {
+			$fee      = get_post_meta( $order_id, self::META_NAME_FEE, true );
+			$currency = get_post_meta( $order_id, '_stripe_currency', true );
+		} else {
+			$order    = wc_get_order( $order_id );
+			$fee      = $order->get_meta( self::META_NAME_FEE, true );
+			$currency = $order->get_meta( '_stripe_currency', true );
+		}
+
+		if ( ! $fee || ! $currency ) {
+			return;
+		}
+
+		?>
+
+		<tr>
+			<td class="label stripe-fee">
+				<?php echo wc_help_tip( __( 'This represents the commission fee on the Stripe transaction.', 'woocommerce-gateway-stripe' ) ); ?>
+				<?php esc_html_e( 'Stripe Fee:', 'woocommerce-gateway-stripe' ); ?>
+			</td>
+			<td width="1%"></td>
+			<td class="total">
+				-&nbsp;<?php echo wc_price( $fee, array( 'currency' => $currency ) ); ?>
+			</td>
+		</tr>
+
+		<?php
+	}
+
+	/**
+	 * Displays the net total of the transaction without the charges of Stripe.
+	 *
+	 * @since 4.1.0
+	 *
+	 * @param int $order_id
+	 */
+	public function display_order_payout( $order_id ) {
+
+		if ( WC_Stripe_Helper::is_pre_30() ) {
+			$net      = get_post_meta( $order_id, self::META_NAME_NET, true );
+			$currency = get_post_meta( $order_id, '_stripe_currency', true );
+		} else {
+			$order    = wc_get_order( $order_id );
+			$net      = $order->get_meta( self::META_NAME_NET, true );
+			$currency = $order->get_meta( '_stripe_currency', true );
+		}
+
+		if ( ! $net || ! $currency ) {
+			return;
+		}
+
+		?>
+
+		<tr>
+			<td class="label stripe-payout">
+				<?php echo wc_help_tip( __( 'This represents the actual total that will be credited to your Stripe bank account.', 'woocommerce-gateway-stripe' ) ); ?>
+				<?php esc_html_e( 'Stripe Payout:', 'woocommerce-gateway-stripe' ); ?>
+			</td>
+			<td width="1%"></td>
+			<td class="total">
+				<?php echo wc_price( $net, array( 'currency' => $currency ) ); ?>
+			</td>
+		</tr>
+
+		<?php
 	}
 }
