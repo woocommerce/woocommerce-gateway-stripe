@@ -271,15 +271,7 @@ jQuery( function( $ ) {
 		},
 
 		block: function() {
-			if ( wc_stripe_form.isMobile() ) {
-				$.blockUI({
-					message: null,
-					overlayCSS: {
-						background: '#fff',
-						opacity: 0.6
-					}
-				});
-			} else {
+			if ( ! wc_stripe_form.isMobile() ) {
 				wc_stripe_form.form.block({
 					message: null,
 					overlayCSS: {
@@ -291,11 +283,7 @@ jQuery( function( $ ) {
 		},
 
 		unblock: function() {
-			if ( wc_stripe_form.isMobile() ) {
-				$.unblockUI();
-			} else {
-				wc_stripe_form.form.unblock();
-			}
+			wc_stripe_form.form.unblock();
 		},
 
 		getSelectedPaymentElement: function() {
@@ -640,10 +628,6 @@ jQuery( function( $ ) {
 								this.onSubmit
 							);
 
-						if ( wc_stripe_form.isMobile() ) {
-							wc_stripe_form.unblock();
-						}
-
 						wc_stripe_form.form.submit();
 					}
 
@@ -654,10 +638,6 @@ jQuery( function( $ ) {
 								this.onSubmit
 							);
 
-						if ( wc_stripe_form.isMobile() ) {
-							wc_stripe_form.unblock();
-						}
-
 						return true;
 					}
 
@@ -667,10 +647,6 @@ jQuery( function( $ ) {
 								'submit',
 								this.onSubmit
 							);
-
-						if ( wc_stripe_form.isMobile() ) {
-							wc_stripe_form.unblock();
-						}
 
 						wc_stripe_form.form.submit();
 					}

@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.0.5\n"
 "Report-Msgid-Bugs-To: "
 "https://github.com/woocommerce/woocommerce-gateway-stripe/issues\n"
-"POT-Creation-Date: 2018-02-07 04:19:41+00:00\n"
+"POT-Creation-Date: 2018-02-09 05:06:07+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -51,7 +51,7 @@ msgid "Stripe charge complete (Charge ID: %s)"
 msgstr ""
 
 #: includes/abstracts/abstract-wc-stripe-payment-gateway.php:303
-#: includes/class-wc-gateway-stripe.php:632
+#: includes/class-wc-gateway-stripe.php:471
 #: includes/compat/class-wc-stripe-compat.php:103
 #: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:374
 msgid "Payment processing failed. Please retry."
@@ -601,11 +601,11 @@ msgstr ""
 msgid "You will be redirected to SOFORT."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:118
+#: includes/class-wc-gateway-stripe.php:104
 msgid "Stripe"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:120
+#: includes/class-wc-gateway-stripe.php:106
 #. translators: 1) link to Stripe register page 2) link to Stripe api keys page
 msgid ""
 "Stripe works by adding payment fields on the checkout and then sending the "
@@ -614,40 +614,15 @@ msgid ""
 "your Stripe account keys</a>."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:166
+#: includes/class-wc-gateway-stripe.php:150
 msgid "Continue to payment"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:249
-msgid "Unable to verify domain - missing secret key."
-msgstr ""
-
-#: includes/class-wc-gateway-stripe.php:270
-#: includes/class-wc-gateway-stripe.php:279
-#. translators: error message
-msgid "Unable to verify domain - %s"
-msgstr ""
-
-#: includes/class-wc-gateway-stripe.php:304
-msgid "Unable to create domain association folder to domain root."
-msgstr ""
-
-#: includes/class-wc-gateway-stripe.php:310
-msgid "Unable to copy domain association file to domain root."
-msgstr ""
-
-#: includes/class-wc-gateway-stripe.php:361
-#. translators: 1) HTML anchor open tag 2) HTML anchor closing tag
-msgid ""
-"Apple Pay domain verification failed. Please check the %1$slog%2$s to see "
-"the issue. (Logging must be enabled to see recorded logs)"
-msgstr ""
-
-#: includes/class-wc-gateway-stripe.php:394
+#: includes/class-wc-gateway-stripe.php:232
 msgid "Add Card"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:417
+#: includes/class-wc-gateway-stripe.php:255
 #. translators: link to Stripe testing page
 msgid ""
 "TEST MODE ENABLED. In test mode, you can use the card number "
@@ -656,53 +631,53 @@ msgid ""
 "more card numbers."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:457
+#: includes/class-wc-gateway-stripe.php:296
 msgid "Credit or debit card"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:465
+#: includes/class-wc-gateway-stripe.php:304
 msgid "Card Number"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:473
+#: includes/class-wc-gateway-stripe.php:312
 msgid "Expiry Date"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:481
+#: includes/class-wc-gateway-stripe.php:320
 msgid "Card Code (CVC)"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:541
+#: includes/class-wc-gateway-stripe.php:380
 msgid "Please accept the terms and conditions first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:542
+#: includes/class-wc-gateway-stripe.php:381
 msgid "Please fill in required checkout fields first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:560
-#: includes/class-wc-gateway-stripe.php:626
+#: includes/class-wc-gateway-stripe.php:399
+#: includes/class-wc-gateway-stripe.php:465
 #: includes/compat/class-wc-stripe-compat.php:97
 msgid ""
 "Sorry, we're not accepting prepaid cards at this time. Your credit card has "
 "not been charge. Please try with alternative payment method."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:561
+#: includes/class-wc-gateway-stripe.php:400
 msgid "Please enter your IBAN account name."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:562
+#: includes/class-wc-gateway-stripe.php:401
 msgid "Please enter your IBAN account number."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:711
+#: includes/class-wc-gateway-stripe.php:550
 #: includes/class-wc-stripe-order-handler.php:141
 #: includes/class-wc-stripe-webhook-handler.php:180
 msgid "On going requests error and retries exhausted."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:733
+#: includes/class-wc-gateway-stripe.php:572
 #: includes/class-wc-stripe-order-handler.php:165
 #: includes/class-wc-stripe-webhook-handler.php:203
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:381
@@ -711,6 +686,31 @@ msgstr ""
 
 #: includes/class-wc-stripe-api.php:122 includes/class-wc-stripe-api.php:149
 msgid "There was a problem connecting to the Stripe API endpoint."
+msgstr ""
+
+#: includes/class-wc-stripe-apple-pay-registration.php:122
+msgid "Unable to verify domain - missing secret key."
+msgstr ""
+
+#: includes/class-wc-stripe-apple-pay-registration.php:143
+#: includes/class-wc-stripe-apple-pay-registration.php:152
+#. translators: error message
+msgid "Unable to verify domain - %s"
+msgstr ""
+
+#: includes/class-wc-stripe-apple-pay-registration.php:175
+msgid "Unable to create domain association folder to domain root."
+msgstr ""
+
+#: includes/class-wc-stripe-apple-pay-registration.php:181
+msgid "Unable to copy domain association file to domain root."
+msgstr ""
+
+#: includes/class-wc-stripe-apple-pay-registration.php:234
+#. translators: 1) HTML anchor open tag 2) HTML anchor closing tag
+msgid ""
+"Apple Pay domain verification failed. Please check the %1$slog%2$s to see "
+"the issue. (Logging must be enabled to see recorded logs)"
 msgstr ""
 
 #: includes/class-wc-stripe-customer.php:164
@@ -805,9 +805,9 @@ msgid "Billing"
 msgstr ""
 
 #: includes/class-wc-stripe-order-handler.php:310
-#: includes/payment-methods/class-wc-stripe-payment-request.php:224
-#: includes/payment-methods/class-wc-stripe-payment-request.php:771
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1059
+#: includes/payment-methods/class-wc-stripe-payment-request.php:242
+#: includes/payment-methods/class-wc-stripe-payment-request.php:789
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1077
 msgid "Shipping"
 msgstr ""
 
@@ -816,7 +816,7 @@ msgid "Owner"
 msgstr ""
 
 #: includes/class-wc-stripe-order-handler.php:347
-#: woocommerce-gateway-stripe.php:149
+#: woocommerce-gateway-stripe.php:150
 msgid "Cheatin&#8217; huh?"
 msgstr ""
 
@@ -963,7 +963,7 @@ msgid "Unable to store payment details. Please try again."
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-alipay.php:60
-#: woocommerce-gateway-stripe.php:413
+#: woocommerce-gateway-stripe.php:414
 msgid "Stripe Alipay"
 msgstr ""
 
@@ -996,7 +996,7 @@ msgid "Add Payment"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-bancontact.php:60
-#: woocommerce-gateway-stripe.php:408
+#: woocommerce-gateway-stripe.php:409
 msgid "Stripe Bancontact"
 msgstr ""
 
@@ -1005,7 +1005,7 @@ msgid "Bancontact is enabled - it requires store currency to be set to Euros."
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:67
-#: woocommerce-gateway-stripe.php:415
+#: woocommerce-gateway-stripe.php:416
 msgid "Stripe Bitcoin"
 msgstr ""
 
@@ -1043,7 +1043,7 @@ msgid "Awaiting Bitcoin payment"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-giropay.php:60
-#: woocommerce-gateway-stripe.php:410
+#: woocommerce-gateway-stripe.php:411
 msgid "Stripe Giropay"
 msgstr ""
 
@@ -1052,7 +1052,7 @@ msgid "Giropay is enabled - it requires store currency to be set to Euros."
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-ideal.php:60
-#: woocommerce-gateway-stripe.php:411
+#: woocommerce-gateway-stripe.php:412
 msgid "Stripe iDeal"
 msgstr ""
 
@@ -1061,7 +1061,7 @@ msgid "iDeal is enabled - it requires store currency to be set to Euros."
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-p24.php:60
-#: woocommerce-gateway-stripe.php:412
+#: woocommerce-gateway-stripe.php:413
 msgid "Stripe P24"
 msgstr ""
 
@@ -1072,7 +1072,7 @@ msgid ""
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:60
-#: woocommerce-gateway-stripe.php:414
+#: woocommerce-gateway-stripe.php:415
 msgid "Stripe SEPA Direct Debit"
 msgstr ""
 
@@ -1107,7 +1107,7 @@ msgid ""
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-sofort.php:60
-#: woocommerce-gateway-stripe.php:409
+#: woocommerce-gateway-stripe.php:410
 msgid "Stripe SOFORT"
 msgstr ""
 
@@ -1115,77 +1115,77 @@ msgstr ""
 msgid "SOFORT is enabled - it requires store currency to be set to Euros."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:216
-#: includes/payment-methods/class-wc-stripe-payment-request.php:763
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1052
+#: includes/payment-methods/class-wc-stripe-payment-request.php:234
+#: includes/payment-methods/class-wc-stripe-payment-request.php:781
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1070
 msgid "Tax"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:231
-#: includes/payment-methods/class-wc-stripe-payment-request.php:778
+#: includes/payment-methods/class-wc-stripe-payment-request.php:249
+#: includes/payment-methods/class-wc-stripe-payment-request.php:796
 msgid "Pending"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:437
+#: includes/payment-methods/class-wc-stripe-payment-request.php:455
 msgid "Sorry, we're not accepting prepaid cards at this time."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:439
+#: includes/payment-methods/class-wc-stripe-payment-request.php:457
 #. translators: Do not translate the [option] placeholder
 msgid "Unknown shipping option \"[option]\"."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:561
+#: includes/payment-methods/class-wc-stripe-payment-request.php:579
 msgid "OR"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:652
-#: includes/payment-methods/class-wc-stripe-payment-request.php:665
+#: includes/payment-methods/class-wc-stripe-payment-request.php:670
+#: includes/payment-methods/class-wc-stripe-payment-request.php:683
 msgid "Unable to find shipping method for address."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:898
+#: includes/payment-methods/class-wc-stripe-payment-request.php:916
 msgid "Empty cart"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1066
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1084
 msgid "Discount"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:145
+#: woocommerce-gateway-stripe.php:146
 msgid "Action failed. Please refresh the page and retry."
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:215
+#: woocommerce-gateway-stripe.php:216
 #. translators: 1) int version 2) int version
 msgid ""
 "WooCommerce Stripe - The minimum PHP version required for this plugin is "
 "%1$s. You are running %2$s."
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:221
+#: woocommerce-gateway-stripe.php:222
 msgid "WooCommerce Stripe requires WooCommerce to be activated to work."
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:226
+#: woocommerce-gateway-stripe.php:227
 #. translators: 1) int version 2) int version
 msgid ""
 "WooCommerce Stripe - The minimum WooCommerce version required for this "
 "plugin is %1$s. You are running %2$s."
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:232
+#: woocommerce-gateway-stripe.php:233
 msgid "WooCommerce Stripe - cURL is not installed."
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:288
+#: woocommerce-gateway-stripe.php:289
 #. translators: 1) link
 msgid ""
 "Stripe is almost ready. To get started, <a href=\"%s\">set your Stripe "
 "account keys</a>."
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:300
+#: woocommerce-gateway-stripe.php:301
 #. translators: 1) link
 msgid ""
 "Stripe is in test mode however your test keys may not be valid. Test keys "
@@ -1193,7 +1193,7 @@ msgid ""
 "<a href=\"%s\">set your Stripe account keys</a>."
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:310
+#: woocommerce-gateway-stripe.php:311
 #. translators: 1) link
 msgid ""
 "Stripe is in live mode however your test keys may not be valid. Live keys "
@@ -1201,7 +1201,7 @@ msgid ""
 "<a href=\"%s\">set your Stripe account keys</a>."
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:319
+#: woocommerce-gateway-stripe.php:320
 #. translators: 1) link 2) link
 msgid ""
 "Stripe is enabled, but the <a href=\"%1$s\">force SSL option</a> is "
@@ -1210,15 +1210,15 @@ msgid ""
 "certificate</a> - Stripe will only work in test mode."
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:357
+#: woocommerce-gateway-stripe.php:358
 msgid "Settings"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:358
+#: woocommerce-gateway-stripe.php:359
 msgid "Docs"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:359
+#: woocommerce-gateway-stripe.php:360
 msgid "Support"
 msgstr ""
 
