@@ -11,13 +11,9 @@ return apply_filters( 'wc_stripe_multibanco_settings',
 			'description' => __( 'Relevant Payer Geography: Portugal', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
 		),
-		// 'guide' => array(
-		// 	'description' => __( '<a href="https://stripe.com/payments/payment-methods-guide#multibanco" target="_blank">Payment Method Guide</a>', 'woocommerce-gateway-stripe' ),
-		// 	'type'        => 'title',
-		// ),
 		'activation' => array(
 			'description' => __( 'Must be activated from your Stripe Dashboard Settings <a href="https://dashboard.stripe.com/account/payments/settings" target="_blank">here</a>', 'woocommerce-gateway-stripe' ),
-			'type'   => 'title',
+			'type'        => 'title',
 		),
 		'enabled' => array(
 			'title'       => __( 'Enable/Disable', 'woocommerce-gateway-stripe' ),
