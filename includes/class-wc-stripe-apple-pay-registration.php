@@ -22,7 +22,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 *
 	 * @var bool
 	 */
-	public $enabled;
+	public $stripe_enabled;
 
 	/**
 	 * Do we accept Payment Request?
@@ -88,7 +88,7 @@ class WC_Stripe_Apple_Pay_Registration {
 		if ( ! empty( $this->stripe_settings[ $setting ] ) ) {
 			return $this->stripe_settings[ $setting ];
 		}
-		
+
 		return $default;
 	}
 
@@ -209,7 +209,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @since 4.0.6
 	 */
 	public function admin_notices() {
-		if ( ! $this->stripe_enabled  ) {
+		if ( ! $this->stripe_enabled ) {
 			return;
 		}
 
