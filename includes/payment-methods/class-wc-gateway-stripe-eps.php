@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @extends WC_Gateway_Stripe
  *
- * @since 4.0.0
+ * @since 4.1.0
  */
 class WC_Gateway_Stripe_Eps extends WC_Stripe_Payment_Gateway {
 	/**
@@ -94,8 +94,8 @@ class WC_Gateway_Stripe_Eps extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Checks to make sure environment is setup correctly to use this payment method.
 	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @since 4.1.0
+	 * @version 4.1.0
 	 */
 	public function check_environment() {
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
@@ -119,8 +119,8 @@ class WC_Gateway_Stripe_Eps extends WC_Stripe_Payment_Gateway {
 	 * Checks the environment for compatibility problems. Returns a string with the first incompatibility
 	 * found or false if the environment has no problems.
 	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @since 4.1.0
+	 * @version 4.1.0
 	 */
 	public function get_environment_warning() {
 		if ( 'yes' === $this->enabled && ! in_array( get_woocommerce_currency(), $this->get_supported_currency() ) ) {
@@ -135,8 +135,8 @@ class WC_Gateway_Stripe_Eps extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Returns all supported currencies for this payment method.
 	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @since 4.1.0
+	 * @version 4.1.0
 	 * @return array
 	 */
 	public function get_supported_currency() {
@@ -148,8 +148,8 @@ class WC_Gateway_Stripe_Eps extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Checks to see if all criteria is met before showing payment method.
 	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @since 4.1.0
+	 * @version 4.1.0
 	 * @return bool
 	 */
 	public function is_available() {
@@ -163,8 +163,8 @@ class WC_Gateway_Stripe_Eps extends WC_Stripe_Payment_Gateway {
 	/**
 	 * All payment icons that work with Stripe.
 	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @since 4.1.0
+	 * @version 4.1.0
 	 * @return array
 	 */
 	public function payment_icons() {
@@ -177,7 +177,7 @@ class WC_Gateway_Stripe_Eps extends WC_Stripe_Payment_Gateway {
 	 * Get_icon function.
 	 *
 	 * @since 1.0.0
-	 * @version 4.0.0
+	 * @version 4.1.0
 	 * @return string
 	 */
 	public function get_icon() {
@@ -248,8 +248,8 @@ class WC_Gateway_Stripe_Eps extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Creates the source for charge.
 	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @since 4.1.0
+	 * @version 4.1.0
 	 * @param object $order
 	 * @return mixed
 	 */
