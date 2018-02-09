@@ -181,6 +181,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Is $order_id a subscription?
+	 * @param  int  $order_id
+	 * @return boolean
+	 */
+	public function has_subscription( $order_id ) {
+		return ( function_exists( 'wcs_order_contains_subscription' ) && ( wcs_order_contains_subscription( $order_id ) || wcs_is_subscription( $order_id ) || wcs_order_contains_renewal( $order_id ) ) );
+	}
+
+	/**
 	 * Generate the request for the payment.
 	 *
 	 * @since 3.1.0
@@ -228,6 +237,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			__( 'customer_email', 'woocommerce-gateway-stripe' ) => sanitize_email( $billing_email ),
 			'order_id' => WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id(),
 		);
+
+		if ( $this->has_subscription( WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id() ) ) {
+			$metadata += array(
+				'payment_type' => 'recurring',
+				'site_url'     => esc_url( get_site_url() ),
+			);
+		}
 
 		$post_data['metadata'] = apply_filters( 'wc_stripe_payment_metadata', $metadata, $order, $source );
 
