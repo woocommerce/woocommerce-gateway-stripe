@@ -693,7 +693,7 @@ jQuery( function( $ ) {
 		},
 
 		getRequiredFields: function() {
-			return wc_stripe_form.form.find( '.form-row.validate-required > input, .form-row.validate-required > select, .form-row.validate-required > textarea' );
+			return wc_stripe_form.form.find( '.form-row.validate-required > input:visible, .form-row.validate-required > select:visible, .form-row.validate-required > textarea:visible' );
 		},
 
 		validateCheckout: function() {
