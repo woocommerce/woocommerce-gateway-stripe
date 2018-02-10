@@ -794,4 +794,26 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'redirect' => wc_get_endpoint_url( 'payment-methods' ),
 		);
 	}
+
+	/**
+	 * Gets the locale with normalization that only Stripe accepts.
+	 *
+	 * @since 4.0.6
+	 * @return string $locale
+	 */
+	public function get_locale() {
+		$locale = get_locale();
+
+		/*
+		 * Stripe expects Norwegian to only be passed NO.
+		 * But WP has different dialects.
+		 */
+		if ( 'NO' === substr( $locale, 3, 2 ) ) {
+			$locale = 'no';
+		} else {
+			$locale = substr( get_locale(), 0, 2 );
+		}
+
+		return $locale;
+	}
 }

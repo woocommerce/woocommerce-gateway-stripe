@@ -253,7 +253,7 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 		$post_data['redirect'] = array( 'return_url' => $return_url );
 		$post_data['sofort']   = array(
 			'country'            => $bank_country,
-			'preferred_language' => substr( get_locale(), 0, 2 ),
+			'preferred_language' => $this->get_locale(),
 		);
 
 		if ( ! empty( $this->statement_descriptor ) ) {
