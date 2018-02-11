@@ -655,8 +655,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			if ( isset( $balance_transaction ) && isset( $balance_transaction->fee ) ) {
 				// Fees and Net needs to both come from Stripe to be accurate as the returned
 				// values are in the local currency of the Stripe account, not from WC.
-				$fee = ! empty( $balance_transaction->fee ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'fee' ) : 0;
-				$net = ! empty( $balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'net' ) : 0;
+				$fee_refund = ! empty( $balance_transaction->fee ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'fee' ) : 0;
+				$net_refund = ! empty( $balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'net' ) : 0;
+
+				/*current data fee*/
+				$fee_current = get_post_meta( $order_id, self::META_NAME_FEE, true );
+				$net_current = get_post_meta( $order_id, self::META_NAME_NET, true );
+
+				/*calculation*/
+				$fee = $fee_current + $fee_refund;
+				$net = $net_current + $net_refund;
 
 				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, self::META_NAME_FEE, $fee ) : $order->update_meta_data( self::META_NAME_FEE, $fee );
 				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, self::META_NAME_NET, $net ) : $order->update_meta_data( self::META_NAME_NET, $net );
