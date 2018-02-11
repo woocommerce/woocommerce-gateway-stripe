@@ -281,7 +281,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			if ( apply_filters( 'wc_stripe_use_elements_checkout_form', true ) ) {
 				$this->elements_form();
 			} else {
-				WC_Stripe_Logger::log( 'DEPRECATED! Since version 4.0. Stripe Elements is used. This legacy credit card form will be removed by version 4.1!' );
+				WC_Stripe_Logger::log( 'DEPRECATED! Since version 4.0. Stripe Elements is used. This legacy credit card form will be removed by version 5.0!' );
 				$this->form();
 				echo '<div class="stripe-source-errors" role="alert"></div>';
 			}
