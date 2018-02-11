@@ -43,6 +43,13 @@ class WC_Stripe_Payment_Request {
 	public $publishable_key;
 
 	/**
+	 * Key
+	 *
+	 * @var
+	 */
+	public $secret_key;
+
+	/**
 	 * Is test mode active?
 	 *
 	 * @var bool
@@ -67,11 +74,13 @@ class WC_Stripe_Payment_Request {
 		$this->stripe_settings         = get_option( 'woocommerce_stripe_settings', array() );
 		$this->testmode                = ( ! empty( $this->stripe_settings['testmode'] ) && 'yes' === $this->stripe_settings['testmode'] ) ? true : false;
 		$this->publishable_key         = ! empty( $this->stripe_settings['publishable_key'] ) ? $this->stripe_settings['publishable_key'] : '';
+		$this->secret_key              = ! empty( $this->stripe_settings['secret_key'] ) ? $this->stripe_settings['secret_key'] : '';
 		$this->stripe_checkout_enabled = isset( $this->stripe_settings['stripe_checkout'] ) && 'yes' === $this->stripe_settings['stripe_checkout'];
 		$this->total_label             = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
 
 		if ( $this->testmode ) {
 			$this->publishable_key = ! empty( $this->stripe_settings['test_publishable_key'] ) ? $this->stripe_settings['test_publishable_key'] : '';
+			$this->secret_key      = ! empty( $this->stripe_settings['test_secret_key'] ) ? $this->stripe_settings['test_secret_key'] : '';
 		}
 
 		// If both site title and statement descriptor is not set. Fallback.
@@ -98,6 +107,20 @@ class WC_Stripe_Payment_Request {
 
 		add_action( 'woocommerce_init', array( $this, 'set_session' ) );
 		$this->init();
+	}
+
+	/**
+	 * Checks if keys are set.
+	 *
+	 * @since 4.0.6
+	 * @return bool
+	 */
+	public function are_keys_set() {
+		if ( empty( $this->secret_key ) || empty( $this->publishable_key ) ) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -409,6 +432,18 @@ class WC_Stripe_Payment_Request {
 	 * @version 4.0.0
 	 */
 	public function scripts() {
+		// If keys are not set bail.
+		if ( ! $this->are_keys_set() ) {
+			WC_Stripe_Logger::log( 'Keys are not set correctly.' );
+			return;
+		}
+
+		// If no SSL bail.
+		if ( ! $this->testmode && ! is_ssl() ) {
+			WC_Stripe_Logger::log( 'Stripe requires SSL.' );
+			return;
+		}
+
 		if ( ! is_product() && ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) {
 			return;
 		}

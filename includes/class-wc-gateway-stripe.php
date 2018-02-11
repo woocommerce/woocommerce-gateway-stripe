@@ -159,6 +159,20 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Checks if keys are set.
+	 *
+	 * @since 4.0.6
+	 * @return bool
+	 */
+	public function are_keys_set() {
+		if ( empty( $this->secret_key ) || empty( $this->publishable_key ) ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
 	 * Checks if gateway should be available to use.
 	 *
 	 * @since 4.0.2
@@ -362,7 +376,20 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		// If Stripe is not enabled bail.
 		if ( 'no' === $this->enabled ) {
+			return;
+		}
+
+		// If keys are not set bail.
+		if ( ! $this->are_keys_set() ) {
+			WC_Stripe_Logger::log( 'Keys are not set correctly.' );
+			return;
+		}
+
+		// If no SSL bail.
+		if ( ! $this->testmode && ! is_ssl() ) {
+			WC_Stripe_Logger::log( 'Stripe requires SSL.' );
 			return;
 		}
 
