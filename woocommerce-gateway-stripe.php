@@ -126,6 +126,10 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-tokens.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php' );
 
+			/*Reports*/
+			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-reports.php' );
+			new WC_Stripe_Reports();
+
 			// REMOVE IN THE FUTURE.
 			require_once( dirname( __FILE__ ) . '/includes/deprecated/class-wc-stripe-apple-pay.php' );
 
