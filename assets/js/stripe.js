@@ -40,6 +40,9 @@ jQuery( function( $ ) {
 		},
 
 		mountElements: function() {
+			if ( !$( '#stripe-card-element' ).length ) {
+				return;
+			}
 			if ( 'yes' === wc_stripe_params.inline_cc_form ) {
 				stripe_card.mount( '#stripe-card-element' );
 			} else {
@@ -183,7 +186,7 @@ jQuery( function( $ ) {
 					this.reset
 				);
 
-			if ( 'yes' === wc_stripe_params.use_elements && $( '#stripe-card-element' ).length ) {
+			if ( 'yes' === wc_stripe_params.use_elements ) {
 				wc_stripe_form.createElements();
 			}
 		},
