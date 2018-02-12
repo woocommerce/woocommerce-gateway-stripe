@@ -21,10 +21,10 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 			add_action( 'wcs_renewal_order_created', array( $this, 'delete_renewal_meta' ), 10 );
 			add_action( 'woocommerce_subscription_failing_payment_method_updated_stripe', array( $this, 'update_failing_payment_method' ), 10, 2 );
 
-			// display the credit card used for a subscription in the "My Subscriptions" table
+			// Display the credit card used for a subscription in the "My Subscriptions" table.
 			add_filter( 'woocommerce_my_subscriptions_payment_method', array( $this, 'maybe_render_subscription_payment_method' ), 10, 2 );
 
-			// allow store managers to manually set Stripe as the payment method on a subscription
+			// Allow store managers to manually set Stripe as the payment method on a subscription.
 			add_filter( 'woocommerce_subscription_payment_meta', array( $this, 'add_subscription_payment_meta' ), 10, 2 );
 			add_filter( 'woocommerce_subscription_validate_payment_meta', array( $this, 'validate_subscription_payment_meta' ), 10, 2 );
 			add_filter( 'wc_stripe_display_save_payment_method_checkbox', array( $this, 'maybe_hide_save_checkbox' ) );
@@ -76,7 +76,7 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
 		if ( $this->has_subscription( $order_id ) ) {
-			// Regular payment with force customer enabled
+			// Regular payment with force customer enabled.
 			return parent::process_payment( $order_id, true, true );
 		} elseif ( $this->is_pre_order( $order_id ) ) {
 			return $this->process_pre_order( $order_id, $retry, $force_save_source );
@@ -114,7 +114,7 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 
 		$order_id  = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 
-		// Also store it on the subscriptions being purchased or paid for in the order
+		// Also store it on the subscriptions being purchased or paid for in the order.
 		if ( function_exists( 'wcs_order_contains_subscription' ) && wcs_order_contains_subscription( $order_id ) ) {
 			$subscriptions = wcs_get_subscriptions_for_order( $order_id );
 		} elseif ( function_exists( 'wcs_order_contains_renewal' ) && wcs_order_contains_renewal( $order_id ) ) {
@@ -147,7 +147,7 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 
 		$order_id = WC_Stripe_Helper::is_pre_30() ? $renewal_order->id : $renewal_order->get_id();
 
-		// Get source from order
+		// Get source from order.
 		$prepared_source = $this->prepare_order_source( $renewal_order );
 
 		if ( ! $prepared_source->customer ) {

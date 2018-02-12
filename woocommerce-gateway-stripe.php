@@ -99,7 +99,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-helper.php' );
 			include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php' );
 
-			// Don't hook anything else in the plugin if we're in an incompatible environment
+			// Don't hook anything else in the plugin if we're in an incompatible environment.
 			if ( self::get_environment_warning() ) {
 				return;
 			}

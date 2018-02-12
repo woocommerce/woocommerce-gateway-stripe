@@ -276,10 +276,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$captured = ( isset( $response->captured ) && $response->captured ) ? 'yes' : 'no';
 
-		// Store charge data
+		// Store charge data.
 		WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_stripe_charge_captured', $captured ) : $order->update_meta_data( '_stripe_charge_captured', $captured );
 
-		// Store other data such as fees
+		// Store other data such as fees.
 		if ( isset( $response->balance_transaction ) && isset( $response->balance_transaction->fee ) ) {
 			// Fees and Net needs to both come from Stripe to be accurate as the returned
 			// values are in the local currency of the Stripe account, not from WC.
@@ -505,7 +505,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				}
 			}
 		} elseif ( isset( $_POST[ 'wc-' . $payment_method . '-payment-token' ] ) && 'new' !== $_POST[ 'wc-' . $payment_method . '-payment-token' ] ) {
-			// Use an existing token, and then process the payment
+			// Use an existing token, and then process the payment.
 			$wc_token_id = wc_clean( $_POST[ 'wc-' . $payment_method . '-payment-token' ] );
 			$wc_token    = WC_Payment_Tokens::get( $wc_token_id );
 
