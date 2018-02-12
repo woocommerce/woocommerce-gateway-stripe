@@ -40,7 +40,7 @@ jQuery( function( $ ) {
 		},
 
 		mountElements: function() {
-			if ( !$( '#stripe-card-element' ).length ) {
+			if ( ! $( '#stripe-card-element' ).length ) {
 				return;
 			}
 			if ( 'yes' === wc_stripe_params.inline_cc_form ) {
