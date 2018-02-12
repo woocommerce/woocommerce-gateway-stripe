@@ -3,6 +3,9 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+if ( ! defined( 'WC_ABSPATH' ) ) {
+	exit;
+}
 
 include_once( WC_ABSPATH . '/includes/admin/reports/class-wc-admin-report.php' );
 
