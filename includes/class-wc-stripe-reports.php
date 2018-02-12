@@ -45,15 +45,18 @@ class WC_Stripe_Reports extends WC_Admin_Report {
 	 */
 	public function __construct() {
 
-		$this->init();
+		$check_init = $this->init();
 
-		add_filter( 'woocommerce_admin_report_data', array( $this, 'queryReport' ), 10, 1 );
-		add_filter( 'woocommerce_reports_get_order_report_query', array( $this, 'cleanQueryReport' ), 10, 1 );
-		add_filter( 'woocommerce_admin_report_chart_data', array( $this, 'addDataInChart' ), 10, 1 );
-		add_action( 'admin_print_footer_scripts', array( $this, 'addLegendToChart' ), 10 );
-		add_action( 'admin_print_footer_scripts', array( $this, 'updateLegendPlaceholder' ), 10 );
-		add_action( 'admin_print_footer_scripts', array( $this, 'drawGraph' ), 10 );
-		add_action( 'admin_print_footer_scripts', array( $this, 'updateSizeChart' ), 10 );
+		if ( $check_init === true ) {
+
+			add_filter( 'woocommerce_admin_report_data', array( $this, 'queryReport' ), 10, 1 );
+			add_filter( 'woocommerce_reports_get_order_report_query', array( $this, 'cleanQueryReport' ), 10, 1 );
+			add_filter( 'woocommerce_admin_report_chart_data', array( $this, 'addDataInChart' ), 10, 1 );
+			add_action( 'admin_print_footer_scripts', array( $this, 'addLegendToChart' ), 10 );
+			add_action( 'admin_print_footer_scripts', array( $this, 'updateLegendPlaceholder' ), 10 );
+			add_action( 'admin_print_footer_scripts', array( $this, 'drawGraph' ), 10 );
+			add_action( 'admin_print_footer_scripts', array( $this, 'updateSizeChart' ), 10 );
+		}
 
 	}
 
@@ -71,6 +74,10 @@ class WC_Stripe_Reports extends WC_Admin_Report {
 			$current_range = '7day';
 		}
 
+		if ( ! method_exists( $this, 'check_current_range_nonce' ) || ! method_exists( $this,
+				'calculate_current_range' ) ) {
+			return false;
+		}
 		$this->check_current_range_nonce( $current_range );
 		$this->calculate_current_range( $current_range );
 
@@ -80,6 +87,7 @@ class WC_Stripe_Reports extends WC_Admin_Report {
 			$this->end_date   = current_time( 'timestamp' );
 		}
 
+		return true;
 	}
 
 	/**
