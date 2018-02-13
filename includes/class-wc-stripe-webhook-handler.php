@@ -453,6 +453,39 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Process webhook review opened and review closed. This is used 
+	 * when a charge is either added or removed from Stripe Radar review queue
+	 *
+	 * @since 4.0.5
+	 * @version 4.0.5
+	 * @param object $notification
+	 */
+	public function process_webhook_review( $notification ) {
+		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->charge );
+			return;
+		}
+
+		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+
+		$review_status = $notification->data->object->open;
+		$review_reason = $notification->data->object->reason;
+
+		if( $review_status ) {
+			$order->add_order_note( __( 'This charge is flagged by Stripe Radar. Review is required. Please go to your Stripe Dashboard to review this charge. Flag reason: ' . $review_reason , 'woocommerce-gateway-stripe' ) );
+		} else {
+			$order->add_order_note( __( 'The flag on this charge has been removed. Flag reason: ' . $review_reason, 'woocommerce-gateway-stripe' ) );
+		}
+
+		if( apply_filters( 'wc_stripe_review_change_order_status', false ) ) {
+			$order->update_status( $review_status ? 'on-hold' : 'processing' );
+		}
+
+	}
+
+	/**
 	 * Checks if capture is partial.
 	 *
 	 * @since 4.0.0
@@ -542,6 +575,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			case 'charge.refunded':
 				$this->process_webhook_refund( $notification );
+				break;
+
+			case 'review.opened':
+			case 'review.closed':
+				$this->process_webhook_review( $notification );
 				break;
 
 		}
