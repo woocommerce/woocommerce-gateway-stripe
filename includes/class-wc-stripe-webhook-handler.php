@@ -301,7 +301,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				// Check and see if capture is partial.
 				if ( $this->is_partial_capture( $notification ) ) {
 					$order->set_total( $this->get_partial_amount_to_charge( $notification ) );
-					$order->add_note( __( 'This charge was partially captured via Stripe Dashboard', 'woocommerce-gateway-stripe' ) );
+					$order->add_order_note( __( 'This charge was partially captured via Stripe Dashboard', 'woocommerce-gateway-stripe' ) );
 					$order->save();
 				}
 			}
@@ -466,7 +466,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( $notification->data->object->open ) {
+		if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) ) {
 			/* translators: token is the reason returned. */
 			$order->update_status( 'on-hold', sprintf( __( 'A review has been opened for this order. Action is needed. Please go to your Stripe Dashboard to review the issue. Reason: (%s)', 'woocommerce-gateway-stripe' ), $notification->data->object->reason ) );
 		}
@@ -490,9 +490,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$message = sprintf( __( 'The opened review for this order is now closed. Reason: (%s)', 'woocommerce-gateway-stripe' ), $notification->data->object->reason );
 
 		if ( 'on-hold' === $order->get_status() ) {
-			$order->update_status( 'processing', $message );
+			if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) ) {
+				$order->update_status( 'processing', $message );
+			}
 		} else {
-			$order->add_note( $message );
+			$order->add_order_note( $message );
 		}
 	}
 
