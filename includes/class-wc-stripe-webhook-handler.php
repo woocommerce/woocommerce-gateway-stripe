@@ -453,6 +453,50 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Process webhook reviews that are opened. i.e Radar.
+	 *
+	 * @since 4.0.6
+	 * @param object $notification
+	 */
+	public function process_review_opened( $notification ) {
+		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->charge );
+			return;
+		}
+
+		if ( $notification->data->object->open ) {
+			/* translators: token is the reason returned. */
+			$order->update_status( 'on-hold', sprintf( __( 'A review has been opened for this order. Action is needed. Please go to your Stripe Dashboard to review the issue. Reason: (%s)', 'woocommerce-gateway-stripe' ), $notification->data->object->reason ) );
+		}
+	}
+
+	/**
+	 * Process webhook reviews that are closed. i.e Radar.
+	 *
+	 * @since 4.0.6
+	 * @param object $notification
+	 */
+	public function process_review_closed( $notification ) {
+		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->charge );
+			return;
+		}
+
+		/* translators: token is the reason returned. */
+		$message = sprintf( __( 'The opened review for this order is now closed. Reason: (%s)', 'woocommerce-gateway-stripe' ), $notification->data->object->reason );
+
+		if ( 'on-hold' === $order->get_status() ) {
+			$order->update_status( 'processing', $message );
+		} else {
+			$order->add_note( $message );
+		}
+	}
+
+	/**
 	 * Checks if capture is partial.
 	 *
 	 * @since 4.0.0
@@ -542,6 +586,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			case 'charge.refunded':
 				$this->process_webhook_refund( $notification );
+				break;
+
+			case 'review.opened':
+				$this->process_review_opened( $notification );
+				break;
+
+			case 'review.closed':
+				$this->process_review_closed( $notification );
 				break;
 
 		}
