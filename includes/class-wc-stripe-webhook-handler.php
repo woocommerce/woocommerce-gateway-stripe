@@ -10,7 +10,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
+	/**
+	 * Delay of retries.
+	 *
+	 * @var int
+	 */
 	public $retry_interval;
+
+	/**
+	 * Is test mode active?
+	 *
+	 * @var bool
+	 */
+	public $testmode;
 
 	/**
 	 * Constructor.
@@ -20,6 +32,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function __construct() {
 		$this->retry_interval = 2;
+		$stripe_settings      = get_option( 'woocommerce_stripe_settings', array() );
+		$this->testmode       = ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
 		add_action( 'woocommerce_api_wc_stripe', array( $this, 'check_for_webhook' ) );
 	}
 
@@ -251,7 +265,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order->update_status( 'on-hold', __( 'A dispute was created for this order. Response is needed. Please go to your Stripe Dashboard to review this dispute.', 'woocommerce-gateway-stripe' ) );
+		/* translators: 1) The URL to the order. */
+		$order->update_status( 'on-hold', sprintf( __( 'A dispute was created for this order. Response is needed. Please go to your <a href="%s" title="Stripe Dashboard" target="_blank">Stripe Dashboard</a> to review this dispute.', 'woocommerce-gateway-stripe' ), $this->get_transaction_url( $order ) ) );
 
 		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
 
@@ -301,7 +316,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				// Check and see if capture is partial.
 				if ( $this->is_partial_capture( $notification ) ) {
 					$order->set_total( $this->get_partial_amount_to_charge( $notification ) );
-					$order->add_note( __( 'This charge was partially captured via Stripe Dashboard', 'woocommerce-gateway-stripe' ) );
+					$order->add_order_note( __( 'This charge was partially captured via Stripe Dashboard', 'woocommerce-gateway-stripe' ) );
 					$order->save();
 				}
 			}
@@ -453,6 +468,58 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Process webhook reviews that are opened. i.e Radar.
+	 *
+	 * @since 4.0.6
+	 * @param object $notification
+	 */
+	public function process_review_opened( $notification ) {
+		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->charge );
+			return;
+		}
+
+		/* translators: 1) The URL to the order. 2) The reason type. */
+		$message = sprintf( __( 'A review has been opened for this order. Action is needed. Please go to your <a href="%1$s" title="Stripe Dashboard" target="_blank">Stripe Dashboard</a> to review the issue. Reason: (%2$s)', 'woocommerce-gateway-stripe' ), $this->get_transaction_url( $order ), $notification->data->object->reason );
+
+		if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) ) {
+			$order->update_status( 'on-hold', $message );
+		} else {
+			$order->add_order_note( $message );
+		}
+	}
+
+	/**
+	 * Process webhook reviews that are closed. i.e Radar.
+	 *
+	 * @since 4.0.6
+	 * @param object $notification
+	 */
+	public function process_review_closed( $notification ) {
+		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->charge );
+			return;
+		}
+
+		/* translators: 1) The reason type. */
+		$message = sprintf( __( 'The opened review for this order is now closed. Reason: (%s)', 'woocommerce-gateway-stripe' ), $notification->data->object->reason );
+
+		if ( 'on-hold' === $order->get_status() ) {
+			if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) ) {
+				$order->update_status( 'processing', $message );
+			} else {
+				$order->add_order_note( $message );
+			}
+		} else {
+			$order->add_order_note( $message );
+		}
+	}
+
+	/**
 	 * Checks if capture is partial.
 	 *
 	 * @since 4.0.0
@@ -542,6 +609,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			case 'charge.refunded':
 				$this->process_webhook_refund( $notification );
+				break;
+
+			case 'review.opened':
+				$this->process_review_opened( $notification );
+				break;
+
+			case 'review.closed':
+				$this->process_review_closed( $notification );
 				break;
 
 		}

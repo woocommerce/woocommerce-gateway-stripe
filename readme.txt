@@ -110,8 +110,10 @@ We will completely remove the older form by version 4.1.0.
 * Fix - Subs renewal sometimes failed due to parameters being different.
 * Fix - Stripe accepts only NO for Norwegian language on Stripe Checkout.
 * Fix - Refund fees may not accurately reflect net fees. Props @rvola.
+* Fix - Undefined SERVERNAME property in some cases.
 * Tweak - Pre checkout validation now happens only with Stripe Modal.
 * Update - Stripe API version to 2018-02-06.
+* Add - Webhooks for review open/closed for Radar.
 
 = 4.0.5 - 2018-02-02 =
 * Fix - Illegal offset error on settings when non is defined or saved.
