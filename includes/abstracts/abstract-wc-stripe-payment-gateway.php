@@ -824,16 +824,4 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		return $locale;
 	}
-
-	/**
-	 * A wrapper to update order status so it can be filtered.
-	 *
-	 * @since 4.0.6
-	 * @param object $order The order
-	 * @param string $status The status you want to change to.
-	 * @param string $message The order note to add.
-	 */
-	public function update_order_status( $order, $status, $message = '' ) {
-
-	}
 }
