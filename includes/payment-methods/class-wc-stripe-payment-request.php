@@ -83,11 +83,6 @@ class WC_Stripe_Payment_Request {
 			$this->secret_key      = ! empty( $this->stripe_settings['test_secret_key'] ) ? $this->stripe_settings['test_secret_key'] : '';
 		}
 
-		// If both site title and statement descriptor is not set. Fallback.
-		if ( empty( $this->total_label ) ) {
-			$this->total_label = $_SERVER['SERVER_NAME'];
-		}
-
 		$this->total_label = str_replace( "'", '', $this->total_label ) . apply_filters( 'wc_stripe_payment_request_total_label_suffix', ' (via WooCommerce)' );
 
 		// Checks if Stripe Gateway is enabled.
