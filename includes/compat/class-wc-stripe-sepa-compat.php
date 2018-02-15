@@ -199,8 +199,8 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 	 * @param int $resubscribe_order The order created for the customer to resubscribe to the old expired/cancelled subscription
 	 */
 	public function delete_renewal_meta( $renewal_order ) {
-		delete_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $renewal_order->id : $renewal_order->get_id() ), 'Stripe Fee' );
-		delete_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $renewal_order->id : $renewal_order->get_id() ), 'Net Revenue From Stripe' );
+		delete_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $renewal_order->id : $renewal_order->get_id() ), self::META_NAME_FEE );
+		delete_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $renewal_order->id : $renewal_order->get_id() ), self::META_NAME_NET );
 		return $renewal_order;
 	}
 

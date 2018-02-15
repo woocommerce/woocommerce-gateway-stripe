@@ -11,8 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
-	const META_NAME_FEE = 'Stripe Fee';
-	const META_NAME_NET = 'Net Revenue From Stripe';
+	const META_NAME_FEE = '_stripe_fee';
+	const META_NAME_NET = '_stripe_net';
 
 	/**
 	 * Checks to see if request is invalid and that
