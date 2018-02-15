@@ -87,7 +87,8 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 	public function change_subs_payment_method( $order_id ) {
 		try {
 			$subscription    = wc_get_order( $order_id );
-			$source_object   = $this->get_source_object();
+			$source_id       = ! empty( $_POST['stripe_source'] ) ? wc_clean( $_POST['stripe_source'] ) : '';
+			$source_object   = $this->get_source_object( $source_id );
 			$prepared_source = $this->prepare_source( $source_object, get_current_user_id(), true );
 
 			// Check if we don't allow prepaid credit cards.
@@ -517,7 +518,8 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 				}
 
-				$source = $this->prepare_source( $this->get_source_object(), get_current_user_id(), true );
+				$source_id       = ! empty( $_POST['stripe_source'] ) ? wc_clean( $_POST['stripe_source'] ) : '';
+				$source          = $this->prepare_source( $this->get_source_object( $source_id ), get_current_user_id(), true );
 
 				// We need a source on file to continue.
 				if ( empty( $source->customer ) || empty( $source->source ) ) {

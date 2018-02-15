@@ -389,18 +389,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Create source object by source id.
+	 * Get source object by source id.
 	 *
 	 * @since 4.0.3
 	 */
-	public function get_source_object() {
-		$source = ! empty( $_POST['stripe_source'] ) ? wc_clean( $_POST['stripe_source'] ) : '';
-
-		if ( empty( $source ) ) {
+	public function get_source_object( $source_id = '' ) {
+		if ( empty( $source_id ) ) {
 			return '';
 		}
 
-		$source_object = WC_Stripe_API::retrieve( 'sources/' . $source );
+		$source_object = WC_Stripe_API::retrieve( 'sources/' . $source_id );
 
 		if ( ! empty( $source_object->error ) ) {
 			throw new WC_Stripe_Exception( print_r( $source_object, true ), $source_object->error->message );
@@ -823,5 +821,21 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		return $locale;
+	}
+
+	/**
+	 * Change the idempotency key so charge can
+	 * process order as a different transaction.
+	 *
+	 * @since 4.0.6
+	 * @param string $idempotency_key
+	 * @param array $request
+	 */
+	public function change_idempotency_key( $idempotency_key, $request ) {
+		$customer = ! empty( $request['customer'] ) ? $request['customer'] : '';
+		$source   = ! empty( $request['source'] ) ? $request['source'] : $customer;
+		$count    = $this->retry_interval - 1;
+
+		return $request['metadata']['order_id'] . '-' . $count . '-' . $source;
 	}
 }

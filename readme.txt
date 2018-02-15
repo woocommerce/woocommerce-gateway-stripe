@@ -111,6 +111,7 @@ We will completely remove the older form by version 4.1.0.
 * Fix - Stripe accepts only NO for Norwegian language on Stripe Checkout.
 * Fix - Refund fees may not accurately reflect net fees. Props @rvola.
 * Fix - Undefined SERVERNAME property in some cases.
+* Fix - Potential issue when a charge parameter changes due to initial failed request causing retries to fail.
 * Tweak - Pre checkout validation now happens only with Stripe Modal.
 * Update - Stripe API version to 2018-02-06.
 * Add - Webhooks for review open/closed for Radar.
