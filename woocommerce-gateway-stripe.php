@@ -256,11 +256,13 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * or the environment changes after activation. Also handles upgrade routines.
 		 *
 		 * @since 1.0.0
-		 * @version 4.0.0
+		 * @version 4.1.0
 		 */
 		public function check_environment() {
 			if ( ! defined( 'IFRAME_REQUEST' ) && ( WC_STRIPE_VERSION !== get_option( 'wc_stripe_version' ) ) ) {
 				$this->install();
+
+				$this->update();
 
 				do_action( 'woocommerce_stripe_updated' );
 			}
@@ -345,6 +347,16 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			}
 
 			$this->update_plugin_version();
+		}
+
+		/**
+		 * Execute the class for the specific upgrade.
+		 *
+		 * @since 4.1.0
+		 */
+		public function update() {
+			require_once dirname( __FILE__ ) . '/includes/updates/class-wc-stripe-updater.php';
+			new WC_Stripe_Updater();
 		}
 
 		/**
