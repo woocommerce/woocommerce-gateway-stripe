@@ -104,7 +104,7 @@ class WC_Stripe_API {
 			$customer = ! empty( $request['customer'] ) ? $request['customer'] : '';
 			$source   = ! empty( $request['source'] ) ? $request['source'] : $customer;
 
-			$headers['Idempotency-Key'] = $request['metadata']['order_id'] . '-' . $source;
+			$headers['Idempotency-Key'] = apply_filters( 'wc_stripe_idempotency_key', $request['metadata']['order_id'] . '-' . $source, $request );
 		}
 
 		$response = wp_safe_remote_post(

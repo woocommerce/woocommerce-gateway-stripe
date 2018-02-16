@@ -9,6 +9,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @extends WC_Payment_Gateway
  */
 class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
+	/**
+	 * The delay between retries.
+	 *
+	 * @var int
+	 */
 	public $retry_interval;
 
 	/**
@@ -483,7 +488,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$new_stripe_customer->create_customer();
 			}
 
-			$source_object   = $this->get_source_object();
+			$source_id       = ! empty( $_POST['stripe_source'] ) ? wc_clean( $_POST['stripe_source'] ) : '';
+			$source_object   = $this->get_source_object( $source_id );
 			$prepared_source = $this->prepare_source( $source_object, get_current_user_id(), $force_save_source );
 
 			// Check if we don't allow prepaid credit cards.
@@ -544,6 +550,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 				WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
+				if ( ! $source_object ) {
+					$source_object = $this->get_source_object( $prepared_source->source );
+				}
+
+				/* If we're doing a retry and source is chargeable, we need to pass
+				 * a different idempotency key and retry for success.
+				 */
+				if ( 2 < $this->retry_interval && 'chargeable' === $source_object->status ) {
+					add_filter( 'wc_stripe_idempotency_key', array( $this, 'change_idempotency_key' ), 10, 2 );
+				}
+
 				// Make the request.
 				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $prepared_source ) );
 
@@ -572,6 +589,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 							sleep( $this->retry_interval );
 
 							$this->retry_interval++;
+
 							return $this->process_payment( $order_id, true, $force_save_source );
 						} else {
 							$localized_message = __( 'On going requests error and retries exhausted.', 'woocommerce-gateway-stripe' );
