@@ -721,6 +721,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		WC_Stripe_Logger::log( "Info: Beginning refund for order {$order->get_transaction_id()} for the amount of {$amount}" );
 
+		$request = apply_filters( 'wc_stripe_refund_request_args', $request, $order );
+
 		$response = WC_Stripe_API::request( $request, 'refunds' );
 
 		if ( ! empty( $response->error ) ) {
