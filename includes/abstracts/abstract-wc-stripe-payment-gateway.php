@@ -434,6 +434,17 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Checks if card is a prepaid card.
+	 *
+	 * @since 4.0.6
+	 * @param object $source_object
+	 * @return bool
+	 */
+	public function is_prepaid_card( $source_object ) {
+		return ( $source_object && 'token' === $source_object->object && 'prepaid' === $source_object->card->funding );
+	}
+
+	/**
 	 * Creates the 3DS source for charge.
 	 *
 	 * @since 4.0.0

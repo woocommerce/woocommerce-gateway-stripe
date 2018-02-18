@@ -493,11 +493,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$prepared_source = $this->prepare_source( $source_object, get_current_user_id(), $force_save_source );
 
 			// Check if we don't allow prepaid credit cards.
-			if ( ! apply_filters( 'wc_stripe_allow_prepaid_card', true ) ) {
-				if ( $source_object && 'token' === $source_object->object && 'prepaid' === $source_object->card->funding ) {
-					$localized_message = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charge. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
-					throw new WC_Stripe_Exception( print_r( $source_object, true ), $localized_message );
-				}
+			if ( ! apply_filters( 'wc_stripe_allow_prepaid_card', true ) && $this->is_prepaid_card( $source_object ) ) {
+				$localized_message = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charge. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
+				throw new WC_Stripe_Exception( print_r( $source_object, true ), $localized_message );
 			}
 
 			if ( empty( $prepared_source->source ) ) {
