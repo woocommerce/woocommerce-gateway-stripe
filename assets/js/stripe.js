@@ -117,7 +117,7 @@ jQuery( function( $ ) {
 			 * Only in checkout page we need to delay the mounting of the
 			 * card as some AJAX process needs to happen before we do.
 			 */
-			if ( wc_stripe_params.is_checkout ) {
+			if ( 'yes' === wc_stripe_params.is_checkout ) {
 				$( document.body ).on( 'updated_checkout', function() {
 					// Don't mount elements a second time.
 					if ( stripe_card ) {
@@ -136,7 +136,7 @@ jQuery( function( $ ) {
 		 */
 		init: function() {
 			// Initialize tokenization script if on change payment method page and pay for order page.
-			if ( 'yes' === wc_stripe_params.is_change_payment_page ) {
+			if ( 'yes' === wc_stripe_params.is_change_payment_page || 'yes' === wc_stripe_params.is_pay_for_order_page ) {
 				$( document.body ).trigger( 'wc-credit-card-form-init' );
 			}
 
