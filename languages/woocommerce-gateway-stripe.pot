@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.0.5\n"
 "Report-Msgid-Bugs-To: "
 "https://github.com/woocommerce/woocommerce-gateway-stripe/issues\n"
-"POT-Creation-Date: 2018-02-19 17:14:00+00:00\n"
+"POT-Creation-Date: 2018-02-19 18:18:00+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -14,7 +14,7 @@ msgstr ""
 "Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
 "X-Generator: grunt-wp-i18n1.0.1\n"
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:113
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:115
 #: includes/compat/class-wc-stripe-compat.php:210
 #: includes/compat/class-wc-stripe-compat.php:515
 #: includes/compat/class-wc-stripe-sepa-compat.php:145
@@ -24,60 +24,60 @@ msgstr ""
 msgid "Sorry, the minimum allowed order total is %1$s to use this payment method."
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:209
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:211
 #. translators: 1) blog name 2) order number
 msgid "%1$s - Order %2$s"
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:236
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:238
 msgid "customer_name"
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:237
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:239
 msgid "customer_email"
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:307
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:309
 #. translators: transaction id
 msgid "Stripe charge awaiting payment: %s."
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:314
-#: includes/class-wc-stripe-order-handler.php:257
-#: includes/class-wc-stripe-webhook-handler.php:314
-#: includes/class-wc-stripe-webhook-handler.php:365
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:316
+#: includes/class-wc-stripe-order-handler.php:245
+#: includes/class-wc-stripe-webhook-handler.php:302
+#: includes/class-wc-stripe-webhook-handler.php:353
 #. translators: transaction id
 msgid "Stripe charge complete (Charge ID: %s)"
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:319
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:321
 #: includes/class-wc-gateway-stripe.php:502
 #: includes/compat/class-wc-stripe-compat.php:100
 #: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:374
 msgid "Payment processing failed. Please retry."
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:331
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:333
 #. translators: transaction id
 msgid ""
 "Stripe charge authorized (Charge ID: %s). Process order to take payment, or "
 "cancel to remove the pre-authorization."
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:525
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:527
 msgid "Invalid payment method. Please input a new card number."
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:765
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:767
 #. translators: 1) dollar amount 2) transaction id 3) refund message
 msgid "Refunded %1$s - Refund ID: %2$s - Reason: %3$s"
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:765
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:767
 msgid "Pre-Authorization Released"
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:783
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:785
 msgid "There was a problem adding the card."
 msgstr ""
 
@@ -671,17 +671,18 @@ msgstr ""
 msgid "Please enter your IBAN account number."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:589
-#: includes/class-wc-stripe-order-handler.php:148
-#: includes/class-wc-stripe-webhook-handler.php:194
-msgid "On going requests error and retries exhausted."
+#: includes/class-wc-gateway-stripe.php:578
+#: includes/class-wc-stripe-order-handler.php:141
+#: includes/class-wc-stripe-webhook-handler.php:205
+#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:377
+msgid "This card is no longer available and has been removed."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:611
-#: includes/class-wc-stripe-order-handler.php:172
-#: includes/class-wc-stripe-webhook-handler.php:217
-#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:381
-msgid "This card is no longer available and has been removed."
+#: includes/class-wc-gateway-stripe.php:598
+#: includes/class-wc-stripe-order-handler.php:159
+#: includes/class-wc-stripe-webhook-handler.php:182
+#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:397
+msgid "On going requests error and retries exhausted."
 msgstr ""
 
 #: includes/class-wc-stripe-api.php:122 includes/class-wc-stripe-api.php:149
@@ -786,85 +787,19 @@ msgstr ""
 msgid "The billing country is not accepted by SOFORT. Please try another country."
 msgstr ""
 
-#: includes/class-wc-stripe-order-handler.php:129
-msgid "API connection error and retries exhausted."
-msgstr ""
-
-#: includes/class-wc-stripe-order-handler.php:198
+#: includes/class-wc-stripe-order-handler.php:186
 #. translators: error message
 msgid "Stripe payment failed: %s"
 msgstr ""
 
-#: includes/class-wc-stripe-order-handler.php:254
+#: includes/class-wc-stripe-order-handler.php:242
 #. translators: error message
 msgid "Unable to capture charge! %s"
 msgstr ""
 
-#: includes/class-wc-stripe-order-handler.php:315
-msgid "Billing"
-msgstr ""
-
-#: includes/class-wc-stripe-order-handler.php:317
-#: includes/payment-methods/class-wc-stripe-payment-request.php:260
-#: includes/payment-methods/class-wc-stripe-payment-request.php:819
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1107
-msgid "Shipping"
-msgstr ""
-
-#: includes/class-wc-stripe-order-handler.php:338
-msgid "Owner"
-msgstr ""
-
-#: includes/class-wc-stripe-order-handler.php:354
+#: includes/class-wc-stripe-order-handler.php:297
 #: woocommerce-gateway-stripe.php:150
 msgid "Cheatin&#8217; huh?"
-msgstr ""
-
-#: includes/class-wc-stripe-order-handler.php:401
-#. translators: error field name
-msgid "<strong>%s</strong> cannot be empty"
-msgstr ""
-
-#: includes/class-wc-stripe-order-handler.php:407
-msgid "<strong>Billing Email</strong> is not valid"
-msgstr ""
-
-#: includes/class-wc-stripe-order-handler.php:416
-#. translators: %s: phone number
-msgid "Please enter a valid phone number."
-msgstr ""
-
-#: includes/class-wc-stripe-order-handler.php:426
-msgid "Please enter a valid billing postcode / ZIP."
-msgstr ""
-
-#: includes/class-wc-stripe-order-handler.php:437
-msgid "Please enter a valid shipping postcode / ZIP."
-msgstr ""
-
-#: includes/class-wc-stripe-order-handler.php:446
-msgid "Please enter an address to continue."
-msgstr ""
-
-#: includes/class-wc-stripe-order-handler.php:449
-#. translators: country name
-msgid ""
-"Unfortunately <strong>we do not ship %s</strong>. Please enter an "
-"alternative shipping address."
-msgstr ""
-
-#: includes/class-wc-stripe-order-handler.php:455
-msgid ""
-"No shipping method has been selected. Please double check your address, or "
-"contact us if you need any help."
-msgstr ""
-
-#: includes/class-wc-stripe-order-handler.php:465
-msgid "Invalid payment method."
-msgstr ""
-
-#: includes/class-wc-stripe-order-handler.php:472
-msgid "You must accept our Terms &amp; Conditions."
 msgstr ""
 
 #: includes/class-wc-stripe-payment-tokens.php:150
@@ -876,7 +811,7 @@ msgstr ""
 msgid "SEPA IBAN ending in %s"
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:269
+#: includes/class-wc-stripe-webhook-handler.php:257
 #. translators: 1) The URL to the order.
 msgid ""
 "A dispute was created for this order. Response is needed. Please go to your "
@@ -884,27 +819,27 @@ msgid ""
 "Dashboard</a> to review this dispute."
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:319
+#: includes/class-wc-stripe-webhook-handler.php:307
 msgid "This charge was partially captured via Stripe Dashboard"
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:390
+#: includes/class-wc-stripe-webhook-handler.php:378
 msgid "This payment failed to clear."
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:417
+#: includes/class-wc-stripe-webhook-handler.php:405
 msgid "This payment has cancelled."
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:452
+#: includes/class-wc-stripe-webhook-handler.php:440
 msgid "Refunded via Stripe Dashboard"
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:452
+#: includes/class-wc-stripe-webhook-handler.php:440
 msgid "Pre-Authorization Released via Stripe Dashboard"
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:485
+#: includes/class-wc-stripe-webhook-handler.php:473
 #. translators: 1) The URL to the order. 2) The reason type.
 msgid ""
 "A review has been opened for this order. Action is needed. Please go to "
@@ -912,7 +847,7 @@ msgid ""
 "Dashboard</a> to review the issue. Reason: (%2$s)"
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:509
+#: includes/class-wc-stripe-webhook-handler.php:497
 #. translators: 1) The reason type.
 msgid "The opened review for this order is now closed. Reason: (%s)"
 msgstr ""
@@ -988,7 +923,7 @@ msgstr ""
 #: includes/payment-methods/class-wc-gateway-stripe-giropay.php:62
 #: includes/payment-methods/class-wc-gateway-stripe-ideal.php:62
 #: includes/payment-methods/class-wc-gateway-stripe-p24.php:62
-#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:62
+#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:70
 #: includes/payment-methods/class-wc-gateway-stripe-sofort.php:62
 #. translators: link
 msgid "All other general Stripe settings can be adjusted <a href=\"%s\">here</a>."
@@ -1005,7 +940,7 @@ msgstr ""
 #: includes/payment-methods/class-wc-gateway-stripe-giropay.php:218
 #: includes/payment-methods/class-wc-gateway-stripe-ideal.php:218
 #: includes/payment-methods/class-wc-gateway-stripe-p24.php:219
-#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:279
+#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:287
 #: includes/payment-methods/class-wc-gateway-stripe-sofort.php:218
 msgid "Add Payment"
 msgstr ""
@@ -1086,16 +1021,16 @@ msgid ""
 "Zloty."
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:60
+#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:68
 #: woocommerce-gateway-stripe.php:415
 msgid "Stripe SEPA Direct Debit"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:141
+#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:149
 msgid "SEPA is enabled - it requires store currency to be set to Euros."
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:230
+#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:238
 #. translators: statement descriptor
 msgid ""
 "By providing your IBAN and confirming this payment, you are authorizing %s "
@@ -1107,15 +1042,15 @@ msgid ""
 "debited."
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:246
+#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:254
 msgid "IBAN Account Name."
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:252
+#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:260
 msgid "IBAN Account Number."
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:292
+#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:300
 msgid ""
 "TEST MODE ENABLED. In test mode, you can use IBAN number "
 "DE89370400440532013000."
@@ -1134,6 +1069,12 @@ msgstr ""
 #: includes/payment-methods/class-wc-stripe-payment-request.php:811
 #: includes/payment-methods/class-wc-stripe-payment-request.php:1100
 msgid "Tax"
+msgstr ""
+
+#: includes/payment-methods/class-wc-stripe-payment-request.php:260
+#: includes/payment-methods/class-wc-stripe-payment-request.php:819
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1107
+msgid "Shipping"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:267

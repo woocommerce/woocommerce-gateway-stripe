@@ -581,7 +581,7 @@ jQuery( function( $ ) {
 				// Stripe Checkout.
 				if ( 'yes' === wc_stripe_params.is_stripe_checkout && wc_stripe_form.isStripeModalNeeded() && wc_stripe_form.isStripeCardChosen() ) {
 					// Since in mobile actions cannot be deferred, no dynamic validation applied.
-					if ( wc_stripe_form.isMobile() ) {
+					if ( wc_stripe_form.isMobile() || 'no' === wc_stripe_params.validate_modal_checkout ) {
 						wc_stripe_form.openModal();
 					} else {
 						wc_stripe_form.validateCheckout();
@@ -700,11 +700,6 @@ jQuery( function( $ ) {
 		},
 
 		validateCheckout: function() {
-			if ( 'no' === wc_stripe_params.validate_modal_checkout ) {
-				wc_stripe_form.openModal();
-				return;
-			}
-
 			var data = {
 				'nonce': wc_stripe_params.stripe_nonce,
 				'required_fields': wc_stripe_form.getRequiredFields().serialize(),
