@@ -488,9 +488,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$new_stripe_customer->create_customer();
 			}
 
-			$source_id       = ! empty( $_POST['stripe_source'] ) ? wc_clean( $_POST['stripe_source'] ) : '';
-			$source_object   = $this->get_source_object( $source_id );
-			$prepared_source = $this->prepare_source( $source_object, get_current_user_id(), $force_save_source );
+			$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source );
+			$source_object   = $prepared_source->source_object;
 
 			// Check if we don't allow prepaid credit cards.
 			if ( ! apply_filters( 'wc_stripe_allow_prepaid_card', true ) && $this->is_prepaid_card( $source_object ) ) {
@@ -548,14 +547,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 				WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
-				if ( ! $source_object ) {
-					$source_object = $this->get_source_object( $prepared_source->source );
-				}
-
 				/* If we're doing a retry and source is chargeable, we need to pass
 				 * a different idempotency key and retry for success.
 				 */
-				if ( 2 < $this->retry_interval && 'chargeable' === $source_object->status ) {
+				if ( 2 < $this->retry_interval && ! empty( $source_object ) && 'chargeable' === $source_object->status ) {
 					add_filter( 'wc_stripe_idempotency_key', array( $this, 'change_idempotency_key' ), 10, 2 );
 				}
 

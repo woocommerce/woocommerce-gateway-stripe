@@ -87,9 +87,8 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 	public function change_subs_payment_method( $order_id ) {
 		try {
 			$subscription    = wc_get_order( $order_id );
-			$source_id       = ! empty( $_POST['stripe_source'] ) ? wc_clean( $_POST['stripe_source'] ) : '';
-			$source_object   = $this->get_source_object( $source_id );
-			$prepared_source = $this->prepare_source( $source_object, get_current_user_id(), true );
+			$prepared_source = $this->prepare_source( get_current_user_id(), true );
+			$source_object   = $prepared_source->source_object;
 
 			// Check if we don't allow prepaid credit cards.
 			if ( ! apply_filters( 'wc_stripe_allow_prepaid_card', true ) && $this->is_prepaid_card( $source_object ) ) {
@@ -516,15 +515,14 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 					throw new Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 				}
 
-				$source_id       = ! empty( $_POST['stripe_source'] ) ? wc_clean( $_POST['stripe_source'] ) : '';
-				$source          = $this->prepare_source( $this->get_source_object( $source_id ), get_current_user_id(), true );
+				$prepared_source = $this->prepare_source( get_current_user_id(), true );
 
 				// We need a source on file to continue.
-				if ( empty( $source->customer ) || empty( $source->source ) ) {
+				if ( empty( $prepared_source->customer ) || empty( $prepared_source->source ) ) {
 					throw new Exception( __( 'Unable to store payment details. Please try again.', 'woocommerce-gateway-stripe' ) );
 				}
 
-				$this->save_source_to_order( $order, $source );
+				$this->save_source_to_order( $order, $prepared_source );
 
 				// Remove cart
 				WC()->cart->empty_cart();

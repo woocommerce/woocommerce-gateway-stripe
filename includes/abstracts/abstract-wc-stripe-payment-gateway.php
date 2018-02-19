@@ -195,10 +195,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since 3.1.0
 	 * @version 4.0.0
 	 * @param  WC_Order $order
-	 * @param  object $source
+	 * @param  object $prepared_source
 	 * @return array()
 	 */
-	public function generate_payment_request( $order, $source ) {
+	public function generate_payment_request( $order, $prepared_source ) {
 		$settings                          = get_option( 'woocommerce_stripe_settings', array() );
 		$statement_descriptor              = ! empty( $settings['statement_descriptor'] ) ? str_replace( "'", '', $settings['statement_descriptor'] ) : '';
 		$capture                           = ! empty( $settings['capture'] ) && 'yes' === $settings['capture'] ? true : false;
@@ -245,14 +245,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			);
 		}
 
-		$post_data['metadata'] = apply_filters( 'wc_stripe_payment_metadata', $metadata, $order, $source );
+		$post_data['metadata'] = apply_filters( 'wc_stripe_payment_metadata', $metadata, $order, $prepared_source );
 
-		if ( $source->customer ) {
-			$post_data['customer'] = $source->customer;
+		if ( $prepared_source->customer ) {
+			$post_data['customer'] = $prepared_source->customer;
 		}
 
-		if ( $source->source ) {
-			$post_data['source'] = $source->source;
+		if ( $prepared_source->source ) {
+			$post_data['source'] = $prepared_source->source;
 		}
 
 		/**
@@ -263,7 +263,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		 * @param WC_Order $order
 		 * @param object $source
 		 */
-		return apply_filters( 'wc_stripe_generate_payment_request', $post_data, $order, $source );
+		return apply_filters( 'wc_stripe_generate_payment_request', $post_data, $order, $prepared_source );
 	}
 
 	/**
@@ -392,6 +392,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Get source object by source id.
 	 *
 	 * @since 4.0.3
+	 * @param string $source_id The source ID to get source object for.
 	 */
 	public function get_source_object( $source_id = '' ) {
 		if ( empty( $source_id ) ) {
@@ -479,24 +480,25 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
-	 * @param object $source_object
 	 * @param string $user_id
 	 * @param bool $force_save_source Should we force save payment source.
 	 *
 	 * @throws Exception When card was not added or for and invalid card.
 	 * @return object
 	 */
-	public function prepare_source( $source_object = '', $user_id, $force_save_source = false ) {
+	public function prepare_source( $user_id, $force_save_source = false ) {
 		$customer           = new WC_Stripe_Customer( $user_id );
 		$set_customer       = true;
 		$force_save_source  = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
+		$source_object      = '';
 		$source_id          = '';
 		$wc_token_id        = false;
 		$payment_method     = isset( $_POST['payment_method'] ) ? wc_clean( $_POST['payment_method'] ) : 'stripe';
 
 		// New CC info was entered and we have a new source to process.
-		if ( ! empty( $source_object ) ) {
-			$source_id = $source_object->id;
+		if ( ! empty( $_POST['stripe_source'] ) ) {
+			$source_object = self::get_source_object( wc_clean( $_POST['stripe_source'] ) );
+			$source_id     = $source_object->id;
 
 			// This checks to see if customer opted to save the payment method to file.
 			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
@@ -547,10 +549,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$customer_id = $customer->get_id() ? $customer->get_id() : false;
 		}
 
+		if ( empty( $source_object ) ) {
+			$source_object = self::get_source_object( $source_id );
+		}
+
 		return (object) array(
-			'token_id' => $wc_token_id,
-			'customer' => $customer_id,
-			'source'   => $source_id,
+			'token_id'      => $wc_token_id,
+			'customer'      => $customer_id,
+			'source'        => $source_id,
+			'source_object' => $source_object,
 		);
 	}
 
@@ -672,8 +679,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$net_current = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, self::META_NAME_NET, true ) : $order->get_meta( self::META_NAME_NET, true );
 
 				// Calculation.
-				$fee = $fee_current + $fee_refund;
-				$net = $net_current + $net_refund;
+				$fee = (float) $fee_current + (float) $fee_refund;
+				$net = (float) $net_current + (float) $net_refund;
 
 				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, self::META_NAME_FEE, $fee ) : $order->update_meta_data( self::META_NAME_FEE, $fee );
 				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, self::META_NAME_NET, $net ) : $order->update_meta_data( self::META_NAME_NET, $net );
