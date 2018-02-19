@@ -25,7 +25,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		return (
 			'invalid_request_error' === $error->type ||
 			'idempotency_error' === $error->type ||
-			'rate_limit_error' === $error->type
+			'rate_limit_error' === $error->type ||
+			'api_connection_error' === $error->type ||
+			'api_error' === $error->type
 		);
 	}
 

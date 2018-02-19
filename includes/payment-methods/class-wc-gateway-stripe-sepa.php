@@ -12,6 +12,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	/**
+	 * The delay between retries.
+	 *
+	 * @var int
+	 */
+	public $retry_interval;
+
+	/**
 	 * Notices (array)
 	 * @var array
 	 */
@@ -56,6 +63,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
+		$this->retry_interval       = 1;
 		$this->id                   = 'stripe_sepa';
 		$this->method_title         = __( 'Stripe SEPA Direct Debit', 'woocommerce-gateway-stripe' );
 		/* translators: link */
@@ -350,13 +358,22 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $prepared_source ) );
 
 				if ( ! empty( $response->error ) ) {
-					// If it is an API error such connection or server, let's retry.
-					if ( 'api_connection_error' === $response->error->type || 'api_error' === $response->error->type ) {
+					// We want to retry.
+					if ( $this->is_retryable_error( $response->error ) ) {
 						if ( $retry ) {
-							sleep( 5 );
-							return $this->process_payment( $order_id, false, $force_save_source );
+							// Don't do anymore retries after this.
+							if ( 5 <= $this->retry_interval ) {
+
+								return $this->process_payment( $order_id, false, $force_save_source );
+							}
+
+							sleep( $this->retry_interval );
+
+							$this->retry_interval++;
+
+							return $this->process_payment( $order_id, true, $force_save_source );
 						} else {
-							$localized_message = 'API connection error and retries exhausted.';
+							$localized_message = __( 'On going requests error and retries exhausted.', 'woocommerce-gateway-stripe' );
 							$order->add_order_note( $localized_message );
 							throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 						}

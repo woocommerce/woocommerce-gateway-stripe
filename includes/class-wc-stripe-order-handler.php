@@ -120,18 +120,6 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source_object ) );
 
 			if ( ! empty( $response->error ) ) {
-				// If it is an API error such connection or server, let's retry.
-				if ( 'api_connection_error' === $response->error->type || 'api_error' === $response->error->type ) {
-					if ( $retry ) {
-						sleep( 5 );
-						return $this->process_redirect_payment( $order_id, false );
-					} else {
-						$localized_message = __( 'API connection error and retries exhausted.', 'woocommerce-gateway-stripe' );
-						$order->add_order_note( $localized_message );
-						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
-					}
-				}
-
 				// We want to retry.
 				if ( $this->is_retryable_error( $response->error ) ) {
 					if ( $retry ) {
