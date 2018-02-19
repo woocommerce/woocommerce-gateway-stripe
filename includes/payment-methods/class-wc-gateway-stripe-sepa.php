@@ -358,27 +358,6 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $prepared_source ) );
 
 				if ( ! empty( $response->error ) ) {
-					// We want to retry.
-					if ( $this->is_retryable_error( $response->error ) ) {
-						if ( $retry ) {
-							// Don't do anymore retries after this.
-							if ( 5 <= $this->retry_interval ) {
-
-								return $this->process_payment( $order_id, false, $force_save_source );
-							}
-
-							sleep( $this->retry_interval );
-
-							$this->retry_interval++;
-
-							return $this->process_payment( $order_id, true, $force_save_source );
-						} else {
-							$localized_message = __( 'On going requests error and retries exhausted.', 'woocommerce-gateway-stripe' );
-							$order->add_order_note( $localized_message );
-							throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
-						}
-					}
-
 					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 					if ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
 						if ( WC_Stripe_Helper::is_pre_30() ) {
@@ -398,6 +377,27 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 						$localized_message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
 						$order->add_order_note( $localized_message );
 						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+					}
+
+					// We want to retry.
+					if ( $this->is_retryable_error( $response->error ) ) {
+						if ( $retry ) {
+							// Don't do anymore retries after this.
+							if ( 5 <= $this->retry_interval ) {
+
+								return $this->process_payment( $order_id, false, $force_save_source );
+							}
+
+							sleep( $this->retry_interval );
+
+							$this->retry_interval++;
+
+							return $this->process_payment( $order_id, true, $force_save_source );
+						} else {
+							$localized_message = __( 'On going requests error and retries exhausted.', 'woocommerce-gateway-stripe' );
+							$order->add_order_note( $localized_message );
+							throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+						}
 					}
 
 					$localized_messages = WC_Stripe_Helper::get_localized_messages();
