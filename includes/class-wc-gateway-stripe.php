@@ -104,7 +104,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->retry_interval       = 2;
+		$this->retry_interval       = 1;
 		$this->id                   = 'stripe';
 		$this->method_title         = __( 'Stripe', 'woocommerce-gateway-stripe' );
 		/* translators: 1) link to Stripe register page 2) link to Stripe api keys page */
@@ -550,7 +550,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				/* If we're doing a retry and source is chargeable, we need to pass
 				 * a different idempotency key and retry for success.
 				 */
-				if ( 2 < $this->retry_interval && ! empty( $source_object ) && 'chargeable' === $source_object->status ) {
+				if ( 1 < $this->retry_interval && ! empty( $source_object ) && 'chargeable' === $source_object->status ) {
 					add_filter( 'wc_stripe_idempotency_key', array( $this, 'change_idempotency_key' ), 10, 2 );
 				}
 

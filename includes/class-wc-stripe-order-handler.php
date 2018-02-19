@@ -21,7 +21,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	public function __construct() {
 		self::$_this = $this;
 
-		$this->retry_interval = 2;
+		$this->retry_interval = 1;
 
 		add_action( 'wp', array( $this, 'maybe_process_redirect_order' ) );
 		add_action( 'woocommerce_order_status_on-hold_to_processing', array( $this, 'capture_payment' ) );
@@ -112,7 +112,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			/* If we're doing a retry and source is chargeable, we need to pass
 			 * a different idempotency key and retry for success.
 			 */
-			if ( 2 < $this->retry_interval && 'chargeable' === $source_info->status ) {
+			if ( 1 < $this->retry_interval && 'chargeable' === $source_info->status ) {
 				add_filter( 'wc_stripe_idempotency_key', array( $this, 'change_idempotency_key' ), 10, 2 );
 			}
 

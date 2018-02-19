@@ -854,7 +854,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function change_idempotency_key( $idempotency_key, $request ) {
 		$customer = ! empty( $request['customer'] ) ? $request['customer'] : '';
 		$source   = ! empty( $request['source'] ) ? $request['source'] : $customer;
-		$count    = $this->retry_interval - 1;
+		$count    = $this->retry_interval;
 
 		return $request['metadata']['order_id'] . '-' . $count . '-' . $source;
 	}
