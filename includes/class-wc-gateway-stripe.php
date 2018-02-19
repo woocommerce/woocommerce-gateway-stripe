@@ -648,6 +648,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
+			/* translators: error message */
+			$order->update_status( 'failed' );
+
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
 				$this->send_failed_order_email( $order_id );
 			}
