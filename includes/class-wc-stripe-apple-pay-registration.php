@@ -67,6 +67,11 @@ class WC_Stripe_Apple_Pay_Registration {
 		$this->apple_pay_verify_notice = '';
 		$this->testmode                = 'yes' === $this->get_option( 'testmode', 'no' );
 		$this->secret_key              = $this->testmode ? $this->get_option( 'test_secret_key' ) : $this->get_option( 'secret_key' );
+
+		if ( empty( $this->stripe_settings ) ) {
+			return;
+		}
+
 		$this->init_apple_pay();
 
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
