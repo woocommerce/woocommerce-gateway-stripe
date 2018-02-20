@@ -113,10 +113,11 @@ We will completely remove the older form by version 4.1.0.
 * Fix - Undefined SERVERNAME property in some cases.
 * Fix - Potential issue when a charge parameter changes due to initial failed request causing retries to fail.
 * Fix - When 3DS is not required, failed payments was not change order status to failed.
+* Fix - Potential duplicate order processes on WC side when webhook and redirect has a race condition.
 * Remove - Checkout validation and let WC handle it.
 * Update - Stripe API version to 2018-02-06.
 * Add - Webhooks for review open/closed for Radar.
-* Add - Hook `wc_stripe_refund_request_args` for refund request arguments.
+* Add - Hook `wc_stripe_refund_request` for refund request arguments.
 * Add - Hook `wc_stripe_validate_modal_checkout` to enable 3rd party checkout validation.
 * Add - Hook `wc_stripe_validate_modal_checkout_action`.
 

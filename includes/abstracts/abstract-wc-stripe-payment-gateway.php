@@ -741,7 +741,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		WC_Stripe_Logger::log( "Info: Beginning refund for order {$order->get_transaction_id()} for the amount of {$amount}" );
 
-		$request = apply_filters( 'wc_stripe_refund_request_args', $request, $order );
+		$request = apply_filters( 'wc_stripe_refund_request', $request, $order );
 
 		$response = WC_Stripe_API::request( $request, 'refunds' );
 
@@ -859,5 +859,21 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$count    = $this->retry_interval;
 
 		return $request['metadata']['order_id'] . '-' . $count . '-' . $source;
+	}
+
+	/**
+	 * Checks if request is the original to prevent double processing
+	 * on WC side. The original-request header and request-id header
+	 * needs to be the same to mean its the original request.
+	 *
+	 * @since 4.0.6
+	 * @param array $headers
+	 */
+	public function is_original_request( $headers ) {
+		if ( $headers['original-request'] === $headers['request-id'] ) {
+			return true;
+		}
+
+		return false;
 	}
 }

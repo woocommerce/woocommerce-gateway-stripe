@@ -90,12 +90,13 @@ class WC_Stripe_API {
 	 * Send the request to Stripe's API
 	 *
 	 * @since 3.1.0
-	 * @version 4.0.0
+	 * @version 4.0.6
 	 * @param array $request
 	 * @param string $api
+	 * @param bool $with_headers To get the response with headers.
 	 * @return array|WP_Error
 	 */
-	public static function request( $request, $api = 'charges', $method = 'POST' ) {
+	public static function request( $request, $api = 'charges', $method = 'POST', $with_headers = false ) {
 		WC_Stripe_Logger::log( "{$api} request: " . print_r( $request, true ) );
 
 		$headers = self::get_headers();
@@ -120,6 +121,10 @@ class WC_Stripe_API {
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
 			WC_Stripe_Logger::log( 'Error Response: ' . print_r( $response, true ) );
 			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( $with_headers ) {
+			return array( 'headers' => wp_remote_retrieve_headers( $response ), 'body' => json_decode( $response['body'] ) );
 		}
 
 		return json_decode( $response['body'] );

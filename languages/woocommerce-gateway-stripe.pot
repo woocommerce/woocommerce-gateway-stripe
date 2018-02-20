@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.0.5\n"
 "Report-Msgid-Bugs-To: "
 "https://github.com/woocommerce/woocommerce-gateway-stripe/issues\n"
-"POT-Creation-Date: 2018-02-19 18:18:00+00:00\n"
+"POT-Creation-Date: 2018-02-20 15:44:44+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -43,9 +43,9 @@ msgid "Stripe charge awaiting payment: %s."
 msgstr ""
 
 #: includes/abstracts/abstract-wc-stripe-payment-gateway.php:316
-#: includes/class-wc-stripe-order-handler.php:245
-#: includes/class-wc-stripe-webhook-handler.php:302
-#: includes/class-wc-stripe-webhook-handler.php:353
+#: includes/class-wc-stripe-order-handler.php:252
+#: includes/class-wc-stripe-webhook-handler.php:309
+#: includes/class-wc-stripe-webhook-handler.php:360
 #. translators: transaction id
 msgid "Stripe charge complete (Charge ID: %s)"
 msgstr ""
@@ -672,20 +672,20 @@ msgid "Please enter your IBAN account number."
 msgstr ""
 
 #: includes/class-wc-gateway-stripe.php:578
-#: includes/class-wc-stripe-order-handler.php:141
-#: includes/class-wc-stripe-webhook-handler.php:205
+#: includes/class-wc-stripe-order-handler.php:143
+#: includes/class-wc-stripe-webhook-handler.php:207
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:377
 msgid "This card is no longer available and has been removed."
 msgstr ""
 
 #: includes/class-wc-gateway-stripe.php:598
-#: includes/class-wc-stripe-order-handler.php:159
-#: includes/class-wc-stripe-webhook-handler.php:182
+#: includes/class-wc-stripe-order-handler.php:161
+#: includes/class-wc-stripe-webhook-handler.php:184
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:397
 msgid "On going requests error and retries exhausted."
 msgstr ""
 
-#: includes/class-wc-stripe-api.php:122 includes/class-wc-stripe-api.php:149
+#: includes/class-wc-stripe-api.php:123 includes/class-wc-stripe-api.php:154
 msgid "There was a problem connecting to the Stripe API endpoint."
 msgstr ""
 
@@ -787,17 +787,17 @@ msgstr ""
 msgid "The billing country is not accepted by SOFORT. Please try another country."
 msgstr ""
 
-#: includes/class-wc-stripe-order-handler.php:186
+#: includes/class-wc-stripe-order-handler.php:193
 #. translators: error message
 msgid "Stripe payment failed: %s"
 msgstr ""
 
-#: includes/class-wc-stripe-order-handler.php:242
+#: includes/class-wc-stripe-order-handler.php:249
 #. translators: error message
 msgid "Unable to capture charge! %s"
 msgstr ""
 
-#: includes/class-wc-stripe-order-handler.php:297
+#: includes/class-wc-stripe-order-handler.php:304
 #: woocommerce-gateway-stripe.php:150
 msgid "Cheatin&#8217; huh?"
 msgstr ""
@@ -811,7 +811,7 @@ msgstr ""
 msgid "SEPA IBAN ending in %s"
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:257
+#: includes/class-wc-stripe-webhook-handler.php:264
 #. translators: 1) The URL to the order.
 msgid ""
 "A dispute was created for this order. Response is needed. Please go to your "
@@ -819,27 +819,27 @@ msgid ""
 "Dashboard</a> to review this dispute."
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:307
+#: includes/class-wc-stripe-webhook-handler.php:314
 msgid "This charge was partially captured via Stripe Dashboard"
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:378
+#: includes/class-wc-stripe-webhook-handler.php:385
 msgid "This payment failed to clear."
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:405
+#: includes/class-wc-stripe-webhook-handler.php:412
 msgid "This payment has cancelled."
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:440
+#: includes/class-wc-stripe-webhook-handler.php:447
 msgid "Refunded via Stripe Dashboard"
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:440
+#: includes/class-wc-stripe-webhook-handler.php:447
 msgid "Pre-Authorization Released via Stripe Dashboard"
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:473
+#: includes/class-wc-stripe-webhook-handler.php:480
 #. translators: 1) The URL to the order. 2) The reason type.
 msgid ""
 "A review has been opened for this order. Action is needed. Please go to "
@@ -847,7 +847,7 @@ msgid ""
 "Dashboard</a> to review the issue. Reason: (%2$s)"
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:497
+#: includes/class-wc-stripe-webhook-handler.php:504
 #. translators: 1) The reason type.
 msgid "The opened review for this order is now closed. Reason: (%s)"
 msgstr ""

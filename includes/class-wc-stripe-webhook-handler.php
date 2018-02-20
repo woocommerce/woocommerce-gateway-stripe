@@ -162,7 +162,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$source_object->source   = $source_id;
 
 			// Make the request.
-			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source_object ) );
+			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source_object ), 'charges', 'POST', true );
+			$headers  = $response['headers'];
+			$response = $response['body'];
 
 			if ( ! empty( $response->error ) ) {
 				// We want to retry.
@@ -218,6 +220,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$order->add_order_note( $localized_message );
 
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+			}
+
+			// To prevent double processing the order on WC side.
+			if ( ! $this->is_original_request( $headers ) ) {
+				return;
 			}
 
 			do_action( 'wc_gateway_stripe_process_webhook_payment', $response, $order );

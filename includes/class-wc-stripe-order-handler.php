@@ -117,7 +117,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			// Make the request.
-			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source_object ) );
+			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source_object ), 'charges', 'POST', true );
+			$headers  = $response['headers'];
+			$response = $response['body'];
 
 			if ( ! empty( $response->error ) ) {
 				// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
@@ -171,6 +173,11 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				}
 
 				throw new WC_Stripe_Exception( print_r( $response, true ), $message );
+			}
+
+			// To prevent double processing the order on WC side.
+			if ( ! $this->is_original_request( $headers ) ) {
+				return;
 			}
 
 			do_action( 'wc_gateway_stripe_process_redirect_payment', $response, $order );
