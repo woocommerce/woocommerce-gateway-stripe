@@ -105,6 +105,9 @@ We will completely remove the older form by version 4.1.0.
 
 == Changelog ==
 
+= 4.0.7 - 2018-xx-xx =
+* Fix - Potential conflict issue when adding payment method from another payment gateway.
+
 = 4.0.6 - 2018-02-20 =
 * Fix - A WC 2.6 backwards compat issue with function from WC 3.0.
 * Fix - Subs renewal sometimes failed due to parameters being different.

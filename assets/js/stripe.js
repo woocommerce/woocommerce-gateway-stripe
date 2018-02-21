@@ -575,7 +575,11 @@ jQuery( function( $ ) {
 		},
 
 		onSubmit: function( e ) {
-			if ( wc_stripe_form.isStripeChosen() && ! wc_stripe_form.isStripeSaveCardChosen() && ! wc_stripe_form.hasSource() && ! wc_stripe_form.hasToken() ) {
+			if ( ! wc_stripe_form.isStripeChosen() ) {
+				return;
+			}
+
+			if ( ! wc_stripe_form.isStripeSaveCardChosen() && ! wc_stripe_form.hasSource() && ! wc_stripe_form.hasToken() ) {
 				e.preventDefault();
 
 				// Stripe Checkout.
