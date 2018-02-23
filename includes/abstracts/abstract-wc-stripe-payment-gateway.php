@@ -496,6 +496,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$source_id          = '';
 		$wc_token_id        = false;
 		$payment_method     = isset( $_POST['payment_method'] ) ? wc_clean( $_POST['payment_method'] ) : 'stripe';
+		$is_token           = false;
 
 		// New CC info was entered and we have a new source to process.
 		if ( ! empty( $_POST['stripe_source'] ) ) {
@@ -528,6 +529,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 
 			$source_id = $wc_token->get_token();
+			$is_token  = true;
 		} elseif ( isset( $_POST['stripe_token'] ) && 'new' !== $_POST['stripe_token'] ) {
 			$stripe_token     = wc_clean( $_POST['stripe_token'] );
 			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
@@ -542,6 +544,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			} else {
 				$set_customer = false;
 				$source_id    = $stripe_token;
+				$is_token     = true;
 			}
 		}
 
@@ -551,7 +554,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$customer_id = $customer->get_id() ? $customer->get_id() : false;
 		}
 
-		if ( empty( $source_object ) ) {
+		if ( empty( $source_object ) && ! $is_token ) {
 			$source_object = self::get_source_object( $source_id );
 		}
 
