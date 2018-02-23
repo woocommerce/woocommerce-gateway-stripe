@@ -38,6 +38,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public $stripe_checkout;
 
 	/**
+	 * Stripe Checkout description.
+	 *
+	 * @var string
+	 */
+	public $stripe_checkout_description;
+
+	/**
 	 * Require 3D Secure enabled
 	 *
 	 * @var bool
@@ -135,21 +142,22 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$this->init_settings();
 
 		// Get setting values.
-		$this->title                   = $this->get_option( 'title' );
-		$this->description             = $this->get_option( 'description' );
-		$this->enabled                 = $this->get_option( 'enabled' );
-		$this->testmode                = 'yes' === $this->get_option( 'testmode' );
-		$this->inline_cc_form          = 'yes' === $this->get_option( 'inline_cc_form' );
-		$this->capture                 = 'yes' === $this->get_option( 'capture', 'yes' );
-		$this->statement_descriptor    = WC_Stripe_Helper::clean_statement_descriptor( $this->get_option( 'statement_descriptor' ) );
-		$this->three_d_secure          = 'yes' === $this->get_option( 'three_d_secure' );
-		$this->stripe_checkout         = 'yes' === $this->get_option( 'stripe_checkout' );
-		$this->stripe_checkout_image   = $this->get_option( 'stripe_checkout_image', '' );
-		$this->saved_cards             = 'yes' === $this->get_option( 'saved_cards' );
-		$this->secret_key              = $this->testmode ? $this->get_option( 'test_secret_key' ) : $this->get_option( 'secret_key' );
-		$this->publishable_key         = $this->testmode ? $this->get_option( 'test_publishable_key' ) : $this->get_option( 'publishable_key' );
-		$this->bitcoin                 = 'USD' === strtoupper( get_woocommerce_currency() ) && 'yes' === $this->get_option( 'stripe_bitcoin' );
-		$this->payment_request         = 'yes' === $this->get_option( 'payment_request', 'yes' );
+		$this->title                       = $this->get_option( 'title' );
+		$this->description                 = $this->get_option( 'description' );
+		$this->enabled                     = $this->get_option( 'enabled' );
+		$this->testmode                    = 'yes' === $this->get_option( 'testmode' );
+		$this->inline_cc_form              = 'yes' === $this->get_option( 'inline_cc_form' );
+		$this->capture                     = 'yes' === $this->get_option( 'capture', 'yes' );
+		$this->statement_descriptor        = WC_Stripe_Helper::clean_statement_descriptor( $this->get_option( 'statement_descriptor' ) );
+		$this->three_d_secure              = 'yes' === $this->get_option( 'three_d_secure' );
+		$this->stripe_checkout             = 'yes' === $this->get_option( 'stripe_checkout' );
+		$this->stripe_checkout_image       = $this->get_option( 'stripe_checkout_image', '' );
+		$this->stripe_checkout_description = $this->get_option( 'stripe_checkout_description' );
+		$this->saved_cards                 = 'yes' === $this->get_option( 'saved_cards' );
+		$this->secret_key                  = $this->testmode ? $this->get_option( 'test_secret_key' ) : $this->get_option( 'secret_key' );
+		$this->publishable_key             = $this->testmode ? $this->get_option( 'test_publishable_key' ) : $this->get_option( 'publishable_key' );
+		$this->bitcoin                     = 'USD' === strtoupper( get_woocommerce_currency() ) && 'yes' === $this->get_option( 'stripe_bitcoin' );
+		$this->payment_request             = 'yes' === $this->get_option( 'payment_request', 'yes' );
 
 		if ( $this->stripe_checkout ) {
 			$this->order_button_text = __( 'Continue to payment', 'woocommerce-gateway-stripe' );
@@ -257,7 +265,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		echo '<div
 			id="stripe-payment-data"
 			data-panel-label="' . esc_attr( $pay_button_text ) . '"
-			data-description=""
+			data-description="'. esc_attr( strip_tags( $this->stripe_checkout_description ) ) . '"
 			data-email="' . esc_attr( $user_email ) . '"
 			data-amount="' . esc_attr( WC_Stripe_Helper::get_stripe_amount( $total ) ) . '"
 			data-name="' . esc_attr( $this->statement_descriptor ) . '"

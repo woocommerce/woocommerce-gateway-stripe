@@ -45,11 +45,11 @@ jQuery( function( $ ) {
 			// Toggle Stripe Checkout settings.
 			$( '#woocommerce_stripe_stripe_checkout' ).change( function() {
 				if ( $( this ).is( ':checked' ) ) {
-					$( '#woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image' ).closest( 'tr' ).show();
+					$( '#woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image, #woocommerce_stripe_stripe_checkout_description' ).closest( 'tr' ).show();
 				} else {
-					$( '#woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image' ).closest( 'tr' ).hide();
+					$( '#woocommerce_stripe_stripe_bitcoin, #woocommerce_stripe_stripe_checkout_image, #woocommerce_stripe_stripe_checkout_description' ).closest( 'tr' ).hide();
 				}
-			}).change();
+			} ).change();
 
 			// Toggle Payment Request buttons settings.
 			$( '#woocommerce_stripe_payment_request' ).change( function() {
@@ -58,9 +58,9 @@ jQuery( function( $ ) {
 				} else {
 					$( '#woocommerce_stripe_payment_request_button_theme, #woocommerce_stripe_payment_request_button_type, #woocommerce_stripe_payment_request_button_height' ).closest( 'tr' ).hide();
 				}
-			}).change();
+			} ).change();
 		}
 	};
 
 	wc_stripe_admin.init();
-});
+} );

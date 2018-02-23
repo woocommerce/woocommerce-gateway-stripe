@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.0.6\n"
 "Report-Msgid-Bugs-To: "
 "https://github.com/woocommerce/woocommerce-gateway-stripe/issues\n"
-"POT-Creation-Date: 2018-02-22 16:47:47+00:00\n"
+"POT-Creation-Date: 2018-02-23 01:12:45+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -51,7 +51,7 @@ msgid "Stripe charge complete (Charge ID: %s)"
 msgstr ""
 
 #: includes/abstracts/abstract-wc-stripe-payment-gateway.php:321
-#: includes/class-wc-gateway-stripe.php:502
+#: includes/class-wc-gateway-stripe.php:510
 #: includes/compat/class-wc-stripe-compat.php:100
 #: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:374
 msgid "Payment processing failed. Please retry."
@@ -475,107 +475,115 @@ msgid ""
 msgstr ""
 
 #: includes/admin/stripe-settings.php:127
-msgid "Payment Request Buttons"
+msgid "Stripe Checkout Description"
 msgstr ""
 
 #: includes/admin/stripe-settings.php:129
+msgid "Shows a description of your store on Stripe Modal Checkout."
+msgstr ""
+
+#: includes/admin/stripe-settings.php:134
+msgid "Payment Request Buttons"
+msgstr ""
+
+#: includes/admin/stripe-settings.php:136
 #. translators: 1) br tag 2) opening anchor tag 3) closing anchor tag
 msgid ""
 "Enable Payment Request Buttons. (Apple Pay/Chrome Payment Request API) "
 "%1$sBy using Apple Pay, you agree to %2$s and %3$s's terms of service."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:131
+#: includes/admin/stripe-settings.php:138
 msgid ""
 "If enabled, users will be able to pay using Apple Pay or Chrome Payment "
 "Request if supported by the browser."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:136
+#: includes/admin/stripe-settings.php:143
 msgid "Payment Request Button Type"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:137
+#: includes/admin/stripe-settings.php:144
 msgid "Button Type"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:139
+#: includes/admin/stripe-settings.php:146
 msgid "Select the button type you would like to show."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:143
+#: includes/admin/stripe-settings.php:150
 msgid "Default"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:144
+#: includes/admin/stripe-settings.php:151
 msgid "Buy"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:145
+#: includes/admin/stripe-settings.php:152
 msgid "Donate"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:149
+#: includes/admin/stripe-settings.php:156
 msgid "Payment Request Button Theme"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:150
+#: includes/admin/stripe-settings.php:157
 msgid "Button Theme"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:152
+#: includes/admin/stripe-settings.php:159
 msgid "Select the button theme you would like to show."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:156
+#: includes/admin/stripe-settings.php:163
 msgid "Dark"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:157
+#: includes/admin/stripe-settings.php:164
 msgid "Light"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:158
+#: includes/admin/stripe-settings.php:165
 msgid "Light-Outline"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:162
+#: includes/admin/stripe-settings.php:169
 msgid "Payment Request Button Height"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:163
+#: includes/admin/stripe-settings.php:170
 msgid "Button Height"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:165
+#: includes/admin/stripe-settings.php:172
 msgid ""
 "Enter the height you would like the button to be in pixels. Width will "
 "always be 100%."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:170
+#: includes/admin/stripe-settings.php:177
 msgid "Saved Cards"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:171
+#: includes/admin/stripe-settings.php:178
 msgid "Enable Payment via Saved Cards"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:173
+#: includes/admin/stripe-settings.php:180
 msgid ""
 "If enabled, users will be able to pay with a saved card during checkout. "
 "Card details are saved on Stripe servers, not on your store."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:178
+#: includes/admin/stripe-settings.php:185
 msgid "Logging"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:179
+#: includes/admin/stripe-settings.php:186
 msgid "Log debug messages"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:181
+#: includes/admin/stripe-settings.php:188
 msgid "Save debug messages to the WooCommerce System Status log."
 msgstr ""
 
@@ -601,11 +609,11 @@ msgstr ""
 msgid "You will be redirected to SOFORT."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:109
+#: includes/class-wc-gateway-stripe.php:116
 msgid "Stripe"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:111
+#: includes/class-wc-gateway-stripe.php:118
 #. translators: 1) link to Stripe register page 2) link to Stripe api keys page
 msgid ""
 "Stripe works by adding payment fields on the checkout and then sending the "
@@ -614,15 +622,15 @@ msgid ""
 "your Stripe account keys</a>."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:155
+#: includes/class-wc-gateway-stripe.php:163
 msgid "Continue to payment"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:251
+#: includes/class-wc-gateway-stripe.php:259
 msgid "Add Card"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:274
+#: includes/class-wc-gateway-stripe.php:282
 #. translators: link to Stripe testing page
 msgid ""
 "TEST MODE ENABLED. In test mode, you can use the card number "
@@ -631,54 +639,54 @@ msgid ""
 "more card numbers."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:315
+#: includes/class-wc-gateway-stripe.php:323
 msgid "Credit or debit card"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:323
+#: includes/class-wc-gateway-stripe.php:331
 msgid "Card Number"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:331
+#: includes/class-wc-gateway-stripe.php:339
 msgid "Expiry Date"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:339
+#: includes/class-wc-gateway-stripe.php:347
 msgid "Card Code (CVC)"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:412
+#: includes/class-wc-gateway-stripe.php:420
 msgid "Please accept the terms and conditions first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:413
+#: includes/class-wc-gateway-stripe.php:421
 msgid "Please fill in required checkout fields first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:431
-#: includes/class-wc-gateway-stripe.php:497
+#: includes/class-wc-gateway-stripe.php:439
+#: includes/class-wc-gateway-stripe.php:505
 #: includes/compat/class-wc-stripe-compat.php:95
 msgid ""
 "Sorry, we're not accepting prepaid cards at this time. Your credit card has "
 "not been charge. Please try with alternative payment method."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:432
+#: includes/class-wc-gateway-stripe.php:440
 msgid "Please enter your IBAN account name."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:433
+#: includes/class-wc-gateway-stripe.php:441
 msgid "Please enter your IBAN account number."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:578
+#: includes/class-wc-gateway-stripe.php:586
 #: includes/class-wc-stripe-order-handler.php:143
 #: includes/class-wc-stripe-webhook-handler.php:207
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:377
 msgid "This card is no longer available and has been removed."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:598
+#: includes/class-wc-gateway-stripe.php:606
 #: includes/class-wc-stripe-order-handler.php:161
 #: includes/class-wc-stripe-webhook-handler.php:184
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:397

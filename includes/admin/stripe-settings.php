@@ -123,6 +123,13 @@ return apply_filters( 'wc_stripe_settings',
 			'default'     => '',
 			'desc_tip'    => true,
 		),
+		'stripe_checkout_description' => array(
+			'title'       => __( 'Stripe Checkout Description', 'woocommerce-gateway-stripe' ),
+			'type'        => 'text',
+			'description' => __( 'Shows a description of your store on Stripe Modal Checkout.', 'woocommerce-gateway-stripe' ),
+			'default'     => '',
+			'desc_tip'    => true,
+		),
 		'payment_request' => array(
 			'title'       => __( 'Payment Request Buttons', 'woocommerce-gateway-stripe' ),
 			/* translators: 1) br tag 2) opening anchor tag 3) closing anchor tag */
