@@ -5,7 +5,7 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 4.0.6
+ * Version: 4.0.7
  * Requires at least: 4.4
  * Tested up to: 4.9
  * WC requires at least: 2.6
@@ -23,7 +23,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 	/**
 	 * Required minimums and constants
 	 */
-	define( 'WC_STRIPE_VERSION', '4.0.6' );
+	define( 'WC_STRIPE_VERSION', '4.0.7' );
 	define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
 	define( 'WC_STRIPE_MIN_WC_VER', '2.6.0' );
 	define( 'WC_STRIPE_MAIN_FILE', __FILE__ );

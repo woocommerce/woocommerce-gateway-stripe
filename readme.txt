@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 4.9
 Requires PHP: 5.6
-Stable tag: 4.0.6
+Stable tag: 4.0.7
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -105,26 +105,10 @@ We will completely remove the older form by version 4.1.0.
 
 == Changelog ==
 
-= 4.0.7 - 2018-xx-xx =
+= 4.0.7 - 2018-02-23 =
 * Fix - Potential conflict issue when adding payment method from another payment gateway.
 * Fix - Issue when using saved card before sources were introduced.
 * Add - Description field/setting for Stripe Checkout Modal/popup.
-
-= 4.0.6 - 2018-02-20 =
-* Fix - A WC 2.6 backwards compat issue with function from WC 3.0.
-* Fix - Subs renewal sometimes failed due to parameters being different.
-* Fix - Stripe accepts only NO for Norwegian language on Stripe Checkout.
-* Fix - Refund fees may not accurately reflect net fees. Props @rvola.
-* Fix - Undefined SERVERNAME property in some cases.
-* Fix - Potential issue when a charge parameter changes due to initial failed request causing retries to fail.
-* Fix - When 3DS is not required, failed payments was not change order status to failed.
-* Fix - Potential duplicate order processes on WC side when webhook and redirect has a race condition.
-* Remove - Checkout validation and let WC handle it.
-* Update - Stripe API version to 2018-02-06.
-* Add - Webhooks for review open/closed for Radar.
-* Add - Hook `wc_stripe_refund_request` for refund request arguments.
-* Add - Hook `wc_stripe_validate_modal_checkout` to enable 3rd party checkout validation.
-* Add - Hook `wc_stripe_validate_modal_checkout_action` to enable 3rd party checkout validation.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/changelog.txt).
 
