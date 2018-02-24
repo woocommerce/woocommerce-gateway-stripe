@@ -100,7 +100,7 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		add_action( 'woocommerce_init', array( $this, 'set_session' ) );
+		add_action( 'template_redirect', array( $this, 'set_session' ) );
 		$this->init();
 	}
 
@@ -135,6 +135,10 @@ class WC_Stripe_Payment_Request {
 	 * @since 4.0.0
 	 */
 	public function set_session() {
+		if ( ! is_product() ) {
+			return;
+		}
+
 		if ( ! is_user_logged_in() ) {
 			$wc_session = new WC_Session_Handler();
 

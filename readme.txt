@@ -105,6 +105,9 @@ We will completely remove the older form by version 4.1.0.
 
 == Changelog ==
 
+= 4.0.8 - 2018-xx-xx =
+* Tweak - Create user session only on product detail page.
+
 = 4.0.7 - 2018-02-23 =
 * Fix - Potential conflict issue when adding payment method from another payment gateway.
 * Fix - Issue when using saved card before sources were introduced.
