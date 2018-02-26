@@ -448,6 +448,17 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Checks if source is of legacy type card.
+	 *
+	 * @since 4.0.8
+	 * @param string $source_id
+	 * @return bool
+	 */
+	public function is_type_legacy_card( $source_id ) {
+		return ( preg_match( '/^card_/', $source_id ) );
+	}
+
+	/**
 	 * Creates the 3DS source for charge.
 	 *
 	 * @since 4.0.0
@@ -529,6 +540,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 
 			$source_id = $wc_token->get_token();
+
+			if ( $this->is_type_legacy_card( $source_id ) ) {
+				$is_token = true;
+			}
 		} elseif ( isset( $_POST['stripe_token'] ) && 'new' !== $_POST['stripe_token'] ) {
 			$stripe_token     = wc_clean( $_POST['stripe_token'] );
 			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
