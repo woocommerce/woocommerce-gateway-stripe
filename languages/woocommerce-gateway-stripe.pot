@@ -1100,7 +1100,7 @@ msgid "Unknown shipping option \"[option]\"."
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:609
-msgid "OR"
+msgid "or"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:700
