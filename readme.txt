@@ -107,6 +107,7 @@ We will completely remove the older form by version 4.1.0.
 
 = 4.0.8 - 2018-xx-xx =
 * Tweak - Create user session only on product detail page.
+* Tweak - Payment Request session handling to bail if session already exists.
 * Fix - When SEPA was used in subscription payment, it does not show SEPA in payment method table.
 
 = 4.0.7 - 2018-02-23 =

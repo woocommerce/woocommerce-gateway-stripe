@@ -135,21 +135,18 @@ class WC_Stripe_Payment_Request {
 	 * @since 4.0.0
 	 */
 	public function set_session() {
-		if ( ! is_product() ) {
+		if ( ! is_product() || ( isset( WC()->session ) && WC()->session->has_session() ) ) {
 			return;
 		}
 
-		if ( ! is_user_logged_in() ) {
-			$wc_session = new WC_Session_Handler();
+		$session_class = apply_filters( 'woocommerce_session_handler', 'WC_Session_Handler' );
+		$wc_session    = new $session_class();
 
-			if ( version_compare( WC_VERSION, '3.3', '>=' ) ) {
-				$wc_session->init();
-			}
-
-			if ( ! $wc_session->has_session() ) {
-				$wc_session->set_customer_session_cookie( true );
-			}
+		if ( version_compare( WC_VERSION, '3.3', '>=' ) ) {
+			$wc_session->init();
 		}
+
+		$wc_session->set_customer_session_cookie( true );
 	}
 
 	/**
