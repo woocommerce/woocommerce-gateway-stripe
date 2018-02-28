@@ -371,13 +371,20 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$details = array();
 
-		$details['name']                   = $billing_first_name . ' ' . $billing_last_name;
-		$details['email']                  = WC_Stripe_Helper::is_pre_30() ? $order->billing_email : $order->get_billing_email();
-
-		$phone                             = WC_Stripe_Helper::is_pre_30() ? $order->billing_phone : $order->get_billing_phone();
+		$name  = $billing_first_name . ' ' . $billing_last_name;
+		$email = WC_Stripe_Helper::is_pre_30() ? $order->billing_email : $order->get_billing_email();
+		$phone = WC_Stripe_Helper::is_pre_30() ? $order->billing_phone : $order->get_billing_phone();
 
 		if ( ! empty( $phone ) ) {
-			$details['phone']              = $phone;
+			$details['phone'] = $phone;
+		}
+
+		if ( ! empty( $name ) ) {
+			$details['name'] = $name;
+		}
+
+		if ( ! empty( $email ) ) {
+			$details['email'] = $email;
 		}
 
 		$details['address']['line1']       = WC_Stripe_Helper::is_pre_30() ? $order->billing_address_1 : $order->get_billing_address_1();
