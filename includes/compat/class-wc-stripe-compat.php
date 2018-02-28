@@ -462,6 +462,7 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 		$sources = $stripe_customer->get_sources();
 
 		if ( $sources ) {
+			$card         = false;
 			$found_source = false;
 			foreach ( $sources as $source ) {
 				if ( isset( $source->type ) && 'card' === $source->type ) {

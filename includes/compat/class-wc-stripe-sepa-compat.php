@@ -395,35 +395,15 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 		$sources = $stripe_customer->get_sources();
 
 		if ( $sources ) {
-			$found_source = false;
 			foreach ( $sources as $source ) {
-				if ( isset( $source->type ) && 'card' === $source->type ) {
-					$card = $source->card;
-				}
-
 				if ( $source->id === $stripe_source_id ) {
-					$found_source = true;
-
-					if ( $card ) {
-						/* translators: 1) card brand 2) last 4 digits */
-						$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
+					if ( $source->sepa_debit ) {
+						/* translators: 1) last 4 digits of SEPA Direct Debit */
+						$payment_method_to_display = sprintf( __( 'Via SEPA Direct Debit ending in %1$s', 'woocommerce-gateway-stripe' ), $source->sepa_debit->last4 );
 					} else {
 						$payment_method_to_display = __( 'N/A', 'woocommerce-gateway-stripe' );
 					}
 					break;
-				}
-			}
-
-			if ( ! $found_source ) {
-				if ( 'card' === $sources[0]->type ) {
-					$card = $sources[0]->card;
-				}
-
-				if ( $card ) {
-					/* translators: 1) card brand 2) last 4 digits */
-					$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
-				} else {
-					$payment_method_to_display = __( 'N/A', 'woocommerce-gateway-stripe' );
 				}
 			}
 		}
