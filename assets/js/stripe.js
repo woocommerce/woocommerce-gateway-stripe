@@ -275,13 +275,13 @@ jQuery( function( $ ) {
 
 		block: function() {
 			if ( ! wc_stripe_form.isMobile() ) {
-				wc_stripe_form.form.block({
+				wc_stripe_form.form.block( {
 					message: null,
 					overlayCSS: {
 						background: '#fff',
 						opacity: 0.6
 					}
-				});
+				} );
 			}
 		},
 
@@ -318,7 +318,7 @@ jQuery( function( $ ) {
 				}
 			};
 
-			StripeCheckout.open({
+			StripeCheckout.open( {
 				key               : wc_stripe_params.key,
 				billingAddress    : 'yes' === wc_stripe_params.stripe_checkout_require_billing_address,
 				amount            : $data.data( 'amount' ),
@@ -333,7 +333,7 @@ jQuery( function( $ ) {
 				allowRememberMe   : $data.data( 'allow-remember-me' ),
 				token             : token_action,
 				closed            : wc_stripe_form.onClose()
-			});
+			} );
 		},
 
 		// Stripe Checkout.

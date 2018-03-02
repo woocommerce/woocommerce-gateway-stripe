@@ -93,7 +93,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = When will the older credit card form ( pre version 4.0.0 ) be deprecated? =
 
-We will completely remove the older form by version 4.1.0.
+We will completely remove the older form by version 5.0.
 
 == Screenshots ==
 
