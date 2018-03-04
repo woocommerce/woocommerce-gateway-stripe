@@ -15,6 +15,17 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	const META_NAME_NET = 'Net Revenue From Stripe';
 
 	/**
+	 * Displays the admin settings webhook description.
+	 *
+	 * @since 4.1.0
+	 * @return mixed
+	 */
+	public function display_admin_settings_webhook_description() {
+		/* translators: 1) webhook url */
+		return sprintf( __( 'You must add the following webhook endpoint <strong style="background-color:#ddd;">&nbsp;%s&nbsp;</strong> to your <a href="https://dashboard.stripe.com/account/webhooks" target="_blank">Stripe account settings</a>. This will enable you to receive notifications on the charge statuses.', 'woocommerce-gateway-stripe' ), WC_Stripe_Helper::get_webhook_url() );
+	}
+
+	/**
 	 * Checks to see if request is invalid and that
 	 * they are worth retrying.
 	 *

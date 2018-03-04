@@ -3,8 +3,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$webhook_url = WC_Stripe_Helper::get_webhook_url();
-
 return apply_filters( 'wc_stripe_sepa_settings',
 	array(
 		'geo_target' => array(
@@ -44,7 +42,7 @@ return apply_filters( 'wc_stripe_sepa_settings',
 			'title'       => __( 'Webhook Endpoints', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
 			/* translators: webhook URL */
-			'description' => sprintf( __( 'You must add the following webhook endpoint <strong style="background-color:#ddd;">&nbsp;&nbsp;%s&nbsp;&nbsp;</strong> to your <a href="https://dashboard.stripe.com/account/webhooks" target="_blank">Stripe account settings</a>. This will enable you to receive notifications on the charge statuses.', 'woocommerce-gateway-stripe' ), $webhook_url ),
+			'description' => $this->display_admin_settings_webhook_description(),
 		),
 	)
 );
