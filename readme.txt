@@ -105,10 +105,13 @@ We will completely remove the older form by version 5.0.
 
 == Changelog ==
 
-= 4.0.8 - 2018-xx-xx =
+= 4.1.0 - 2018-xx-xx =
 * Tweak - Create user session only on product detail page.
 * Tweak - Payment Request session handling to bail if session already exists.
 * Fix - When SEPA was used in subscription payment, it does not show SEPA in payment method table.
+* Add - Multibanco payment method.
+* Add - EPS payment method.
+* Add - Stripe fees to order line item total section.
 
 = 4.0.7 - 2018-02-23 =
 * Fix - Potential conflict issue when adding payment method from another payment gateway.
