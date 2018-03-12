@@ -112,6 +112,7 @@ We will completely remove the older form by version 5.0.
 * Add - Multibanco payment method.
 * Add - EPS payment method.
 * Add - Stripe fees to order line item total section.
+* Add - Hook to separately control Stripe Checkout Modal's allow remember me option. `wc_stripe_allow_remember_me` (bool).
 
 = 4.0.7 - 2018-02-23 =
 * Fix - Potential conflict issue when adding payment method from another payment gateway.

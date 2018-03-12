@@ -277,7 +277,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			data-bitcoin="' . esc_attr( ( $this->bitcoin && $this->capture ) ? 'true' : 'false' ) . '"
 			data-locale="' . esc_attr( apply_filters( 'wc_stripe_checkout_locale', $this->get_locale() ) ) . '"
 			data-three-d-secure="' . esc_attr( $this->three_d_secure ? 'true' : 'false' ) . '"
-			data-allow-remember-me="' . esc_attr( $this->saved_cards ? 'true' : 'false' ) . '">';
+			data-allow-remember-me="' . esc_attr( apply_filters( 'wc_stripe_allow_remember_me', true ) ? 'true' : 'false' ) . '">';
 
 		if ( $this->description ) {
 			if ( $this->testmode ) {
