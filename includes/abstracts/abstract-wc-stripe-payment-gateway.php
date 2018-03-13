@@ -436,15 +436,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Checks if 3DS is required.
 	 *
 	 * @since 4.0.4
+	 * @since 4.1.0 Add filter and changed optional to recommended.
 	 * @param object $source_object
 	 * @return bool
 	 */
 	public function is_3ds_required( $source_object ) {
-		return (
+		return apply_filters( 'wc_stripe_require_3ds', (
 			$source_object && ! empty( $source_object->card ) ) &&
 			( 'card' === $source_object->type && 'required' === $source_object->card->three_d_secure ||
-			( $this->three_d_secure && 'optional' === $source_object->card->three_d_secure )
-		);
+			( $this->three_d_secure && 'recommended' === $source_object->card->three_d_secure )
+		), $source_object, $this->three_d_secure );
 	}
 
 	/**

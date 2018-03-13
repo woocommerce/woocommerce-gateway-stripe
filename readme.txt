@@ -108,12 +108,14 @@ We will completely remove the older form by version 5.0.
 = 4.1.0 - 2018-xx-xx =
 * Tweak - Create user session only on product detail page.
 * Tweak - Payment Request session handling to bail if session already exists.
+* Tweak - 3DS recommended is now required and 3DS optional is now not required.
 * Fix - When SEPA was used in subscription payment, it does not show SEPA in payment method table.
 * Fix - Refund via Stripe dashboard not reflecting amount in order notes.
 * Add - Multibanco payment method.
 * Add - EPS payment method.
 * Add - Stripe fees to order line item total section.
 * Add - Hook to separately control Stripe Checkout Modal's allow remember me option. `wc_stripe_allow_remember_me` (bool).
+* Add - Hook to filter 3DS requirements `wc_stripe_require_3ds`.
 * Update - Stripe API version to 2018-02-28.
 
 = 4.0.7 - 2018-02-23 =
