@@ -14,7 +14,7 @@ class WC_Stripe_API {
 	 * Stripe API Endpoint
 	 */
 	const ENDPOINT = 'https://api.stripe.com/v1/';
-	const STRIPE_API_VERSION = '2018-02-06';
+	const STRIPE_API_VERSION = '2018-02-28';
 
 	/**
 	 * Secret API Key.

@@ -416,7 +416,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Process webhook refund.
-	 * Note currently only support 1 time refund.
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
@@ -448,16 +447,31 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				// Create the refund.
 				$refund = wc_create_refund( array(
-					'order_id'       => $order_id,
-					'amount'         => $this->get_refund_amount( $notification ),
-					'reason'         => $reason,
+					'order_id' => $order_id,
+					'amount'   => $this->get_refund_amount( $notification ),
+					'reason'   => $reason,
 				) );
 
 				if ( is_wp_error( $refund ) ) {
 					WC_Stripe_Logger::log( $refund->get_error_message() );
 				}
 
-				$order->add_order_note( $reason );
+				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_stripe_refund_id', $notification->data->object->refunds->data[0]->id ) : $order->update_meta_data( '_stripe_refund_id', $notification->data->object->refunds->data[0]->id );
+
+				$amount = wc_price( $notification->data->object->refunds->data[0]->amount / 100 );
+
+				if ( in_array( strtolower( $order->get_currency() ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
+					$amount = wc_price( $notification->data->object->refunds->data[0]->amount );
+				}
+
+				if ( isset( $notification->data->object->refunds->data[0]->balance_transaction ) ) {
+					$this->update_fees( $order, $notification->data->object->refunds->data[0]->balance_transaction );
+				}
+
+				/* translators: 1) dollar amount 2) transaction id 3) refund message */
+				$refund_message = ( isset( $captured ) && 'yes' === $captured ) ? sprintf( __( 'Refunded %1$s - Refund ID: %2$s - %3$s', 'woocommerce-gateway-stripe' ), $amount, $notification->data->object->refunds->data[0]->id, $reason ) : __( 'Pre-Authorization Released via Stripe Dashboard', 'woocommerce-gateway-stripe' );
+
+				$order->add_order_note( $refund_message );
 			}
 		}
 	}
@@ -534,10 +548,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_refund_amount( $notification ) {
 		if ( $this->is_partial_capture( $notification ) ) {
-			$amount = $notification->data->object->amount_refunded / 100;
+			$amount = $notification->data->object->refunds->data[0]->amount / 100;
 
 			if ( in_array( strtolower( $notification->data->object->currency ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
-				$amount = $notification->data->object->amount_refunded;
+				$amount = $notification->data->object->refunds->data[0]->amount;
 			}
 
 			return $amount;
