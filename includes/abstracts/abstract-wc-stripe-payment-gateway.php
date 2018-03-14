@@ -83,10 +83,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * All payment icons that work with Stripe.
+	 * All payment icons that work with Stripe. Some icons references
+	 * WC core icons.
 	 *
 	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @since 4.1.0 Changed to using img with svg (colored) instead of fonts.
 	 * @return array
 	 */
 	public function payment_icons() {
