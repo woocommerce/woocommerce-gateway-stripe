@@ -265,10 +265,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$pay_button_text = '';
 		}
 
+		ob_start();
+
 		echo '<div
 			id="stripe-payment-data"
 			data-panel-label="' . esc_attr( $pay_button_text ) . '"
-			data-description="'. esc_attr( strip_tags( $this->stripe_checkout_description ) ) . '"
+			data-description="' . esc_attr( strip_tags( $this->stripe_checkout_description ) ) . '"
 			data-email="' . esc_attr( $user_email ) . '"
 			data-amount="' . esc_attr( WC_Stripe_Helper::get_stripe_amount( $total ) ) . '"
 			data-name="' . esc_attr( $this->statement_descriptor ) . '"
@@ -308,6 +310,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		echo '</div>';
+
+		ob_end_flush();
 	}
 
 	/**
