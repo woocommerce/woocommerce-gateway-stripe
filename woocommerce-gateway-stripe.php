@@ -180,7 +180,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		}
 
 		/**
-		 * Display any notices we've collected thus far (e.g. for connection, disconnection).
+		 * Display any notices we've collected thus far.
 		 *
 		 * @since 1.0.0
 		 * @version 4.0.0
@@ -206,7 +206,8 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		}
 
 		/**
-		 * Checks the environment for compatibility problems.  Returns a string with the first incompatibility
+		 * Checks the environment for compatibility problems.
+		 * Returns a string with the first incompatibility
 		 * found or false if the environment has no problems.
 		 *
 		 * @since 1.0.0

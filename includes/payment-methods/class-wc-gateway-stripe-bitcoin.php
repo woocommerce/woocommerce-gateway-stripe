@@ -214,15 +214,15 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 	 * Initialize Gateway Settings Form Fields.
 	 */
 	public function init_form_fields() {
-		$this->form_fields = require( WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-bitcoin-settings.php' );
+		$this->form_fields = require_once( WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-bitcoin-settings.php' );
 	}
 
 	/**
 	 * Payment form on checkout page
 	 */
 	public function payment_fields() {
-		$user                 = wp_get_current_user();
-		$total                = WC()->cart->total;
+		$user  = wp_get_current_user();
+		$total = WC()->cart->total;
 
 		// If paying from order, we need to get total from order not cart.
 		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) {
