@@ -676,15 +676,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param int $order_id
 	 */
 	public function display_order_fee( $order_id ) {
+		$order = wc_get_order( $order_id );
 
-		if ( WC_Stripe_Helper::is_pre_30() ) {
-			$fee      = get_post_meta( $order_id, self::META_NAME_FEE, true );
-			$currency = get_post_meta( $order_id, '_stripe_currency', true );
-		} else {
-			$order    = wc_get_order( $order_id );
-			$fee      = $order->get_meta( self::META_NAME_FEE, true );
-			$currency = $order->get_meta( '_stripe_currency', true );
-		}
+		$fee      = WC_Stripe_Helper::get_stripe_fee( $order );
+		$currency = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_currency', true ) : $order->get_meta( '_stripe_currency', true );
 
 		if ( ! $fee || ! $currency ) {
 			return;
@@ -714,15 +709,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param int $order_id
 	 */
 	public function display_order_payout( $order_id ) {
+		$order = wc_get_order( $order_id );
 
-		if ( WC_Stripe_Helper::is_pre_30() ) {
-			$net      = get_post_meta( $order_id, self::META_NAME_NET, true );
-			$currency = get_post_meta( $order_id, '_stripe_currency', true );
-		} else {
-			$order    = wc_get_order( $order_id );
-			$net      = $order->get_meta( self::META_NAME_NET, true );
-			$currency = $order->get_meta( '_stripe_currency', true );
-		}
+		$net      = WC_Stripe_Helper::get_stripe_net( $order );
+		$currency = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_currency', true ) : $order->get_meta( '_stripe_currency', true );
 
 		if ( ! $net || ! $currency ) {
 			return;

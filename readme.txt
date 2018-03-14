@@ -111,11 +111,12 @@ We will completely remove the older form by version 5.0.
 * Tweak - 3DS recommended is now required and 3DS optional is now not required.
 * Tweak - Admin notices for currency check are now all dismissible.
 * Tweak - Added all color payment logos in svg.
+* Tweak - Update Stripe Fee and Stripe Net meta names.
 * Fix - When SEPA was used in subscription payment, it does not show SEPA in payment method table.
 * Fix - Refund via Stripe dashboard not reflecting amount in order notes.
 * Add - Multibanco payment method.
 * Add - EPS payment method.
-* Add - Stripe fees to order line item total section.
+* Add - Stripe fee and net payout to order line item total section.
 * Add - Hook to separately control Stripe Checkout Modal's allow remember me option. `wc_stripe_allow_remember_me` (bool).
 * Add - Hook to filter 3DS requirements `wc_stripe_require_3ds`.
 * Add - Hook to verify zipcode in Stripe Checkout Modal. `wc_stripe_checkout_verify_zip`. Only works when require address is true.

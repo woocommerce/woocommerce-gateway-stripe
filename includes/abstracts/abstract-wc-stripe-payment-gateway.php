@@ -11,9 +11,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
-	const META_NAME_FEE = 'Stripe Fee';
-	const META_NAME_NET = 'Net Revenue From Stripe';
-
 	/**
 	 * Displays the admin settings webhook description.
 	 *
@@ -300,8 +297,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			// values are in the local currency of the Stripe account, not from WC.
 			$fee = ! empty( $response->balance_transaction->fee ) ? WC_Stripe_Helper::format_balance_fee( $response->balance_transaction, 'fee' ) : 0;
 			$net = ! empty( $response->balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $response->balance_transaction, 'net' ) : 0;
-			WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, self::META_NAME_FEE, $fee ) : $order->update_meta_data( self::META_NAME_FEE, $fee );
-			WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, self::META_NAME_NET, $net ) : $order->update_meta_data( self::META_NAME_NET, $net );
+			WC_Stripe_Helper::update_stripe_fee( $order, $fee );
+			WC_Stripe_Helper::update_stripe_net( $order, $net );
 
 			// Store currency stripe.
 			$currency = ! empty( $response->balance_transaction->currency ) ? strtoupper( $response->balance_transaction->currency ) : null;
@@ -719,15 +716,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$net_refund = ! empty( $balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'net' ) : 0;
 
 				// Current data fee & net.
-				$fee_current = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, self::META_NAME_FEE, true ) : $order->get_meta( self::META_NAME_FEE, true );
-				$net_current = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, self::META_NAME_NET, true ) : $order->get_meta( self::META_NAME_NET, true );
+				$fee_current = WC_Stripe_Helper::get_stripe_fee( $order );
+				$net_current = WC_Stripe_Helper::get_stripe_net( $order );
 
 				// Calculation.
 				$fee = (float) $fee_current + (float) $fee_refund;
 				$net = (float) $net_current + (float) $net_refund;
 
-				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, self::META_NAME_FEE, $fee ) : $order->update_meta_data( self::META_NAME_FEE, $fee );
-				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, self::META_NAME_NET, $net ) : $order->update_meta_data( self::META_NAME_NET, $net );
+				WC_Stripe_Helper::update_stripe_fee( $order, $fee );
+				WC_Stripe_Helper::update_stripe_net( $order, $net );
 
 				if ( is_callable( array( $order, 'save' ) ) ) {
 					$order->save();
