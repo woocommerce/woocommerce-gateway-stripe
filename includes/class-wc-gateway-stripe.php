@@ -689,7 +689,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		<tr>
 			<td class="label stripe-fee">
-				<?php echo wc_help_tip( __( 'This represents the commission fee on the Stripe transaction.', 'woocommerce-gateway-stripe' ) ); ?>
+				<?php echo wc_help_tip( __( 'This represents the fee Stripe collects for the transaction.', 'woocommerce-gateway-stripe' ) ); ?>
 				<?php esc_html_e( 'Stripe Fee:', 'woocommerce-gateway-stripe' ); ?>
 			</td>
 			<td width="1%"></td>
@@ -722,7 +722,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		<tr>
 			<td class="label stripe-payout">
-				<?php echo wc_help_tip( __( 'This represents the actual total that will be credited to your Stripe bank account.', 'woocommerce-gateway-stripe' ) ); ?>
+				<?php echo wc_help_tip( __( 'This represents the net total that will be credited to your Stripe bank account. This may be in the currency that is set in your Stripe account.', 'woocommerce-gateway-stripe' ) ); ?>
 				<?php esc_html_e( 'Stripe Payout:', 'woocommerce-gateway-stripe' ); ?>
 			</td>
 			<td width="1%"></td>
