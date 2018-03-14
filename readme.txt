@@ -110,6 +110,7 @@ We will completely remove the older form by version 5.0.
 * Tweak - Payment Request session handling to bail if session already exists.
 * Tweak - 3DS recommended is now required and 3DS optional is now not required.
 * Tweak - Admin notices for currency check are now all dismissible.
+* Tweak - Added all color payment logos in svg.
 * Fix - When SEPA was used in subscription payment, it does not show SEPA in payment method table.
 * Fix - Refund via Stripe dashboard not reflecting amount in order notes.
 * Add - Multibanco payment method.

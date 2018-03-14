@@ -1,0 +1,18 @@
+#add_payment_method #payment_method_stripe { margin: 25px 0 25px 25px; }
+#add_payment_method #payment_method_stripe_sepa { margin: 25px 0 25px 25px; }
+#add_payment_method .woocommerce-PaymentMethod label { margin-left: 10px; }
+#add_payment_method li { clear: right; }
+#add_payment_method #wc-stripe_sepa-form { padding: 10px; }
+form#order_review #payment_method_stripe { margin: 25px 0 25px 25px; }
+form#order_review #payment_method_stripe_sepa { margin: 25px 0 25px 25px; }
+form#order_review .payment_methods label { margin-left: 10px; }
+form#order_review li { clear: right; }
+form#order_review #wc-stripe_sepa-form { padding: 10px; }
+#payment .payment_methods li img.stripe-icon { float: right; max-width: 52px; padding-left: 3px; }
+#payment .payment_methods li img.stripe-bancontact-icon { max-height: 65px; }
+#payment .payment_methods li img.stripe-ideal-icon { max-height: 35px; }
+#payment .payment_methods li img.stripe-p24-icon { max-width: 65px; }
+#payment .payment_methods li img.stripe-sofort-icon { max-width: 65px; }
+#payment .payment_methods li img.stripe-multibanco-icon { max-height: 30px; }
+#payment .payment_methods li img.stripe-eps-icon { max-height: 30px; }
+#payment .payment_methods li img.stripe-bitcoin-icon { max-width: 65px; }

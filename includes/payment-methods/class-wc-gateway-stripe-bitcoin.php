@@ -216,7 +216,7 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		wp_enqueue_style( 'stripe_paymentfonts' );
+		wp_enqueue_style( 'stripe_styles' );
 		wp_enqueue_script( 'woocommerce_stripe' );
 	}
 
