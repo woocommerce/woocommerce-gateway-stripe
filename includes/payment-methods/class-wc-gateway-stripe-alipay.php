@@ -98,19 +98,29 @@ class WC_Gateway_Stripe_Alipay extends WC_Stripe_Payment_Gateway {
 	 * @since 4.0.0
 	 * @version 4.0.0
 	 */
-	public function check_environment() {
+	public function check_environment( $payment_method = '' ) {
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+
+		$show_notice = get_option( 'wc_stripe_show_alipay_notice' );
+
+		if ( 'yes' !== $this->enabled || 'no' === $show_notice ) {
 			return;
 		}
 
 		$environment_warning = $this->get_environment_warning();
 
 		if ( $environment_warning ) {
-			$this->add_admin_notice( 'bad_environment', 'error', $environment_warning );
+			$this->add_admin_notice( 'alipay', 'notice notice-error', $environment_warning );
 		}
 
 		foreach ( (array) $this->notices as $notice_key => $notice ) {
-			echo "<div class='" . esc_attr( $notice['class'] ) . "'><p>";
+			echo '<div class="' . esc_attr( $notice['class'] ) . '" style="position:relative;">';
+			?>
+				<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'wc-stripe-hide-notice', $notice_key ), 'wc_stripe_hide_notices_nonce', '_wc_stripe_notice_nonce' ) ); ?>" class="woocommerce-message-close notice-dismiss" style="position:absolute;right:1px;padding:9px;text-decoration:none;"></a>
+			<?php
+			echo '<p>';
 			echo wp_kses( $notice['message'], array( 'a' => array( 'href' => array() ) ) );
 			echo '</p></div>';
 		}
@@ -124,9 +134,7 @@ class WC_Gateway_Stripe_Alipay extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function get_environment_warning() {
-		if (
-			'yes' === $this->enabled && ! in_array( get_woocommerce_currency(), $this->get_supported_currency() )
-		) {
+		if ( ! in_array( get_woocommerce_currency(), $this->get_supported_currency() ) ) {
 			/* translators: supported currency list */
 			$message = sprintf( __( 'Alipay is enabled - it requires store currency to be set to %s', 'woocommerce-gateway-stripe' ), implode( ', ', $this->get_supported_currency() ) );
 
@@ -208,7 +216,7 @@ class WC_Gateway_Stripe_Alipay extends WC_Stripe_Payment_Gateway {
 	 * Initialize Gateway Settings Form Fields.
 	 */
 	public function init_form_fields() {
-		$this->form_fields = require_once( WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-alipay-settings.php' );
+		$this->form_fields = require( WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-alipay-settings.php' );
 	}
 
 	/**

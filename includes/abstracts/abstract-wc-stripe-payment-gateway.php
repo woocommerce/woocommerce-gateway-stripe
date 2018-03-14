@@ -62,13 +62,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Allow this class and other classes to add slug keyed notices (to avoid duplication).
 	 *
-	 * @since 4.0.0
+	 * @since 1.0.0
 	 * @version 4.0.0
 	 */
-	public function add_admin_notice( $slug, $class, $message ) {
+	public function add_admin_notice( $slug, $class, $message, $dismissible = false ) {
 		$this->notices[ $slug ] = array(
-			'class'   => $class,
-			'message' => $message,
+			'class'       => $class,
+			'message'     => $message,
+			'dismissible' => $dismissible,
 		);
 	}
 

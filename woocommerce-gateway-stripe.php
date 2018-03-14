@@ -161,6 +161,36 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 					case 'keys':
 						update_option( 'wc_stripe_show_keys_notice', 'no' );
 						break;
+					case 'alipay':
+						update_option( 'wc_stripe_show_alipay_notice', 'no' );
+						break;
+					case 'bancontact':
+						update_option( 'wc_stripe_show_bancontact_notice', 'no' );
+						break;
+					case 'bitcoin':
+						update_option( 'wc_stripe_show_bitcoin_notice', 'no' );
+						break;
+					case 'eps':
+						update_option( 'wc_stripe_show_eps_notice', 'no' );
+						break;
+					case 'giropay':
+						update_option( 'wc_stripe_show_giropay_notice', 'no' );
+						break;
+					case 'ideal':
+						update_option( 'wc_stripe_show_ideal_notice', 'no' );
+						break;
+					case 'multibanco':
+						update_option( 'wc_stripe_show_multibanco_notice', 'no' );
+						break;
+					case 'p24':
+						update_option( 'wc_stripe_show_p24_notice', 'no' );
+						break;
+					case 'sepa':
+						update_option( 'wc_stripe_show_sepa_notice', 'no' );
+						break;
+					case 'sofort':
+						update_option( 'wc_stripe_show_sofort_notice', 'no' );
+						break;
 				}
 			}
 		}
@@ -284,7 +314,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			$live_secret_key  = isset( $options['secret_key'] ) ? $options['secret_key'] : '';
 
 			if ( isset( $options['enabled'] ) && 'yes' === $options['enabled'] && empty( $show_keys_notice ) ) {
-				$secret  = WC_Stripe_API::get_secret_key();
+				$secret = WC_Stripe_API::get_secret_key();
 
 				if ( empty( $secret ) && ! ( isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 'stripe' === $_GET['section'] ) ) {
 					$setting_link = $this->get_setting_link();
