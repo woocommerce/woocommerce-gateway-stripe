@@ -484,16 +484,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Process the payment
 	 *
 	 * @since 1.0.0
-	 * @version 4.0.0
+	 * @since 4.1.0 Add 4th parameter to track previous error.
 	 * @param int  $order_id Reference.
 	 * @param bool $retry Should we retry on fail.
 	 * @param bool $force_save_source Force save the payment source.
+	 * @param mix $previous_error Any error message from previous request.
 	 *
 	 * @throws Exception If payment will not be accepted.
 	 *
 	 * @return array|void
 	 */
-	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
+	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false ) {
 		try {
 			$order = wc_get_order( $order_id );
 
@@ -568,7 +569,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				/* If we're doing a retry and source is chargeable, we need to pass
 				 * a different idempotency key and retry for success.
 				 */
-				if ( 1 < $this->retry_interval && ! empty( $source_object ) && 'chargeable' === $source_object->status ) {
+				if ( $this->need_update_idempotency_key( $source_object, $previous_error ) ) {
 					add_filter( 'wc_stripe_idempotency_key', array( $this, 'change_idempotency_key' ), 10, 2 );
 				}
 
@@ -587,7 +588,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 							$order->save();
 						}
 
-						return $this->process_payment( $order_id, false, $force_save_source );
+						return $this->process_payment( $order_id, false, $force_save_source, $response->error );
 					} elseif ( preg_match( '/No such token/i', $response->error->message ) && $prepared_source->token_id ) {
 						// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
 						$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
@@ -602,15 +603,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 						if ( $retry ) {
 							// Don't do anymore retries after this.
 							if ( 5 <= $this->retry_interval ) {
-
-								return $this->process_payment( $order_id, false, $force_save_source );
+								return $this->process_payment( $order_id, false, $force_save_source, $response->error );
 							}
 
 							sleep( $this->retry_interval );
 
 							$this->retry_interval++;
 
-							return $this->process_payment( $order_id, true, $force_save_source );
+							return $this->process_payment( $order_id, true, $force_save_source, $response->error );
 						} else {
 							$localized_message = __( 'On going requests error and retries exhausted.', 'woocommerce-gateway-stripe' );
 							$order->add_order_note( $localized_message );

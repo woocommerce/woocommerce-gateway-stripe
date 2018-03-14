@@ -74,14 +74,14 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 	 * @param  int $order_id
 	 * @return array
 	 */
-	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
+	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false ) {
 		if ( $this->has_subscription( $order_id ) ) {
 			// Regular payment with force customer enabled.
-			return parent::process_payment( $order_id, true, true );
+			return parent::process_payment( $order_id, $retry, true, $previous_error );
 		} elseif ( $this->is_pre_order( $order_id ) ) {
 			return $this->process_pre_order( $order_id, $retry, $force_save_source );
 		} else {
-			return parent::process_payment( $order_id, $retry, $force_save_source );
+			return parent::process_payment( $order_id, $retry, $force_save_source, $previous_error );
 		}
 	}
 
@@ -417,7 +417,7 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 	 * @param int $order_id
 	 * @return array
 	 */
-	public function process_pre_order( $order_id, $retry, $force_save_source ) {
+	public function process_pre_order( $order_id, $retry, $force_save_source, $previous_error = false ) {
 		if ( WC_Pre_Orders_Order::order_requires_payment_tokenization( $order_id ) ) {
 			try {
 				$order = wc_get_order( $order_id );
@@ -452,7 +452,7 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 				return;
 			}
 		} else {
-			return parent::process_payment( $order_id, $retry, $force_save_source );
+			return parent::process_payment( $order_id, $retry, $force_save_source, $prevous_error );
 		}
 	}
 

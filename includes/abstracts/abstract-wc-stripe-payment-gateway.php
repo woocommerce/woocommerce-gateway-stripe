@@ -40,6 +40,38 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Checks to see if error is of same idempotency key
+	 * error due to retries with different parameters.
+	 *
+	 * @since 4.1.0
+	 * @param array $error
+	 */
+	public function is_same_idempotency_error( $error ) {
+		return (
+			'idempotency_error' === $error->type &&
+			preg_match( '/Keys for idempotent requests can only be used with the same parameters they were first used with./i', $error->message )
+		);
+	}
+
+	/**
+	 * Check to see if we need to update the idempotency
+	 * key to be different from previous charge request.
+	 *
+	 * @since 4.1.0
+	 * @param object $source_object
+	 * @param object $error
+	 * @return bool
+	 */
+	public function need_update_idempotency_key( $source_object, $error ) {
+		return (
+			1 < $this->retry_interval &&
+			! empty( $source_object ) &&
+			'chargeable' === $source_object->status &&
+			self::is_same_idempotency_error( $error )
+		);
+	}
+
+	/**
 	 * Check if this gateway is enabled
 	 */
 	public function is_available() {
