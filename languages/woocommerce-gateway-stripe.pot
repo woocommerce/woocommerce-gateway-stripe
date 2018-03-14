@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.0.7\n"
 "Report-Msgid-Bugs-To: "
 "https://github.com/woocommerce/woocommerce-gateway-stripe/issues\n"
-"POT-Creation-Date: 2018-03-14 14:39:06+00:00\n"
+"POT-Creation-Date: 2018-03-14 15:04:40+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -61,7 +61,7 @@ msgid "Stripe charge complete (Charge ID: %s)"
 msgstr ""
 
 #: includes/abstracts/abstract-wc-stripe-payment-gateway.php:338
-#: includes/class-wc-gateway-stripe.php:517
+#: includes/class-wc-gateway-stripe.php:519
 #: includes/compat/class-wc-stripe-compat.php:100
 #: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:384
 msgid "Payment processing failed. Please retry."
@@ -672,7 +672,7 @@ msgstr ""
 msgid "Add Card"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:287
+#: includes/class-wc-gateway-stripe.php:289
 #. translators: link to Stripe testing page
 msgid ""
 "TEST MODE ENABLED. In test mode, you can use the card number "
@@ -681,76 +681,76 @@ msgid ""
 "more card numbers."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:330
+#: includes/class-wc-gateway-stripe.php:332
 msgid "Credit or debit card"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:338
+#: includes/class-wc-gateway-stripe.php:340
 msgid "Card Number"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:346
+#: includes/class-wc-gateway-stripe.php:348
 msgid "Expiry Date"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:354
+#: includes/class-wc-gateway-stripe.php:356
 msgid "Card Code (CVC)"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:427
+#: includes/class-wc-gateway-stripe.php:429
 msgid "Please accept the terms and conditions first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:428
+#: includes/class-wc-gateway-stripe.php:430
 msgid "Please fill in required checkout fields first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:446
-#: includes/class-wc-gateway-stripe.php:512
+#: includes/class-wc-gateway-stripe.php:448
+#: includes/class-wc-gateway-stripe.php:514
 #: includes/compat/class-wc-stripe-compat.php:95
 msgid ""
 "Sorry, we're not accepting prepaid cards at this time. Your credit card has "
 "not been charge. Please try with alternative payment method."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:447
+#: includes/class-wc-gateway-stripe.php:449
 msgid "Please enter your IBAN account name."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:448
+#: includes/class-wc-gateway-stripe.php:450
 msgid "Please enter your IBAN account number."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:593
+#: includes/class-wc-gateway-stripe.php:595
 #: includes/class-wc-stripe-order-handler.php:143
 #: includes/class-wc-stripe-webhook-handler.php:207
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:387
 msgid "This card is no longer available and has been removed."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:613
+#: includes/class-wc-gateway-stripe.php:615
 #: includes/class-wc-stripe-order-handler.php:161
 #: includes/class-wc-stripe-webhook-handler.php:184
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:407
 msgid "On going requests error and retries exhausted."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:695
+#: includes/class-wc-gateway-stripe.php:697
 #. translators: error message
 msgid "This represents the commission fee on the Stripe transaction."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:696
+#: includes/class-wc-gateway-stripe.php:698
 msgid "Stripe Fee:"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:733
+#: includes/class-wc-gateway-stripe.php:735
 msgid ""
 "This represents the actual total that will be credited to your Stripe bank "
 "account."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:734
+#: includes/class-wc-gateway-stripe.php:736
 msgid "Stripe Payout:"
 msgstr ""
 

@@ -118,6 +118,7 @@ We will completely remove the older form by version 5.0.
 * Add - Stripe fees to order line item total section.
 * Add - Hook to separately control Stripe Checkout Modal's allow remember me option. `wc_stripe_allow_remember_me` (bool).
 * Add - Hook to filter 3DS requirements `wc_stripe_require_3ds`.
+* Add - Hook to verify zipcode in Stripe Checkout Modal. `wc_stripe_checkout_verify_zip`. Only works when require address is true.
 * Update - Stripe API version to 2018-02-28.
 
 = 4.0.7 - 2018-02-23 =
