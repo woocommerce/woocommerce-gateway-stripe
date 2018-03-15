@@ -169,29 +169,27 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Updates other subscription sources.
+	 * Scheduled_subscription_payment function.
 	 *
-	 * @since 3.1.0
-	 * @version 4.0.0
+	 * @param $amount_to_charge float The amount to charge.
+	 * @param $renewal_order WC_Order A WC_Order object created to record the renewal payment.
 	 */
-	public function save_source_to_order( $order, $source ) {
-		parent::save_source_to_order( $order, $source );
+	public function scheduled_subscription_payment( $amount_to_charge, $renewal_order ) {
+		$response = $this->process_subscription_payment( $amount_to_charge, $renewal_order );
 
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
-
-		// Also store it on the subscriptions being purchased or paid for in the order
-		if ( function_exists( 'wcs_order_contains_subscription' ) && wcs_order_contains_subscription( $order_id ) ) {
-			$subscriptions = wcs_get_subscriptions_for_order( $order_id );
-		} elseif ( function_exists( 'wcs_order_contains_renewal' ) && wcs_order_contains_renewal( $order_id ) ) {
-			$subscriptions = wcs_get_subscriptions_for_renewal_order( $order_id );
-		} else {
-			$subscriptions = array();
+		if ( is_wp_error( $response ) ) {
+			/* translators: error message */
+			$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->get_error_message() ) );
 		}
 
-		foreach ( $subscriptions as $subscription ) {
-			$subscription_id = WC_Stripe_Helper::is_pre_30() ? $subscription->id : $subscription->get_id();
-			update_post_meta( $subscription_id, '_stripe_customer_id', $source->customer );
-			update_post_meta( $subscription_id, '_stripe_source_id', $source->source );
+		if ( ! empty( $response->error ) ) {
+			// This is a very generic error to listen for but worth a retry before total fail.
+			if ( isset( $response->error->type ) && 'invalid_request_error' === $response->error->type && apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
+				$this->process_subscription_payment( $amount_to_charge, $renewal_order, true );
+			} else {
+				/* translators: error message */
+				$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->error->message ) );
+			}
 		}
 	}
 
@@ -248,6 +246,33 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 	}
 
 	/**
+	 * Updates other subscription sources.
+	 *
+	 * @since 3.1.0
+	 * @version 4.0.0
+	 */
+	public function save_source_to_order( $order, $source ) {
+		parent::save_source_to_order( $order, $source );
+
+		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+
+		// Also store it on the subscriptions being purchased or paid for in the order
+		if ( function_exists( 'wcs_order_contains_subscription' ) && wcs_order_contains_subscription( $order_id ) ) {
+			$subscriptions = wcs_get_subscriptions_for_order( $order_id );
+		} elseif ( function_exists( 'wcs_order_contains_renewal' ) && wcs_order_contains_renewal( $order_id ) ) {
+			$subscriptions = wcs_get_subscriptions_for_renewal_order( $order_id );
+		} else {
+			$subscriptions = array();
+		}
+
+		foreach ( $subscriptions as $subscription ) {
+			$subscription_id = WC_Stripe_Helper::is_pre_30() ? $subscription->id : $subscription->get_id();
+			update_post_meta( $subscription_id, '_stripe_customer_id', $source->customer );
+			update_post_meta( $subscription_id, '_stripe_source_id', $source->source );
+		}
+	}
+
+	/**
 	 * Don't transfer Stripe customer/token meta to resubscribe orders.
 	 * @param int $resubscribe_order The order created for the customer to resubscribe to the old expired/cancelled subscription
 	 */
@@ -268,31 +293,6 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 		WC_Stripe_Helper::delete_stripe_net( $renewal_order );
 
 		return $renewal_order;
-	}
-
-	/**
-	 * Scheduled_subscription_payment function.
-	 *
-	 * @param $amount_to_charge float The amount to charge.
-	 * @param $renewal_order WC_Order A WC_Order object created to record the renewal payment.
-	 */
-	public function scheduled_subscription_payment( $amount_to_charge, $renewal_order ) {
-		$response = $this->process_subscription_payment( $amount_to_charge, $renewal_order );
-
-		if ( is_wp_error( $response ) ) {
-			/* translators: error message */
-			$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->get_error_message() ) );
-		}
-
-		if ( ! empty( $response->error ) ) {
-			// This is a very generic error to listen for but worth a retry before total fail.
-			if ( isset( $response->error->type ) && 'invalid_request_error' === $response->error->type && apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
-				$this->process_subscription_payment( $amount_to_charge, $renewal_order, true );
-			} else {
-				/* translators: error message */
-				$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->error->message ) );
-			}
-		}
 	}
 
 	/**

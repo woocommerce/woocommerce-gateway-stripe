@@ -28,7 +28,6 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 			add_filter( 'woocommerce_subscription_payment_meta', array( $this, 'add_subscription_payment_meta' ), 10, 2 );
 			add_filter( 'woocommerce_subscription_validate_payment_meta', array( $this, 'validate_subscription_payment_meta' ), 10, 2 );
 			add_filter( 'wc_stripe_display_save_payment_method_checkbox', array( $this, 'maybe_hide_save_checkbox' ) );
-			add_filter( 'wc_stripe_payment_metadata', array( $this, 'add_subscription_meta_data' ), 10, 2 );
 		}
 
 		if ( class_exists( 'WC_Pre_Orders_Order' ) ) {
@@ -70,40 +69,6 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 	}
 
 	/**
-	 * Process the payment based on type.
-	 * @param  int $order_id
-	 * @return array
-	 */
-	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false ) {
-		if ( $this->has_subscription( $order_id ) ) {
-			// Regular payment with force customer enabled.
-			return parent::process_payment( $order_id, $retry, true, $previous_error );
-		} elseif ( $this->is_pre_order( $order_id ) ) {
-			return $this->process_pre_order( $order_id, $retry, $force_save_source );
-		} else {
-			return parent::process_payment( $order_id, $retry, $force_save_source, $previous_error );
-		}
-	}
-
-	/**
-	 * Adds subscription related meta data on charge request.
-	 *
-	 * @since 4.0.0
-	 * @param array $metadata
-	 * @param object $order
-	 */
-	public function add_subscription_meta_data( $metadata, $order ) {
-		if ( ! $this->has_subscription( WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id() ) ) {
-			return $metadata;
-		}
-
-		return $metadata += array(
-			'payment_type'   => 'recurring',
-			'site_url'       => esc_url( get_site_url() ),
-		);
-	}
-
-	/**
 	 * Updates other subscription sources.
 	 *
 	 * @since 3.1.0
@@ -127,6 +92,47 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 			$subscription_id = WC_Stripe_Helper::is_pre_30() ? $subscription->id : $subscription->get_id();
 			update_post_meta( $subscription_id, '_stripe_customer_id', $source->customer );
 			update_post_meta( $subscription_id, '_stripe_source_id', $source->source );
+		}
+	}
+
+	/**
+	 * Process the payment based on type.
+	 * @param  int $order_id
+	 * @return array
+	 */
+	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false ) {
+		if ( $this->has_subscription( $order_id ) ) {
+			// Regular payment with force customer enabled.
+			return parent::process_payment( $order_id, $retry, true, $previous_error );
+		} elseif ( $this->is_pre_order( $order_id ) ) {
+			return $this->process_pre_order( $order_id, $retry, $force_save_source );
+		} else {
+			return parent::process_payment( $order_id, $retry, $force_save_source, $previous_error );
+		}
+	}
+
+	/**
+	 * Scheduled_subscription_payment function.
+	 *
+	 * @param $amount_to_charge float The amount to charge.
+	 * @param $renewal_order WC_Order A WC_Order object created to record the renewal payment.
+	 */
+	public function scheduled_subscription_payment( $amount_to_charge, $renewal_order ) {
+		$response = $this->process_subscription_payment( $amount_to_charge, $renewal_order );
+
+		if ( is_wp_error( $response ) ) {
+			/* translators: error message */
+			$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->get_error_message() ) );
+		}
+
+		if ( ! empty( $response->error ) ) {
+			// This is a very generic error to listen for but worth a retry before total fail.
+			if ( isset( $response->error->type ) && 'invalid_request_error' === $response->error->type && apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
+				$this->process_subscription_payment( $amount_to_charge, $renewal_order, true );
+			} else {
+				/* translators: error message */
+				$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->error->message ) );
+			}
 		}
 	}
 
@@ -203,31 +209,6 @@ class WC_Stripe_Sepa_Compat extends WC_Gateway_Stripe_Sepa {
 		WC_Stripe_Helper::delete_stripe_net( $renewal_order );
 
 		return $renewal_order;
-	}
-
-	/**
-	 * Scheduled_subscription_payment function.
-	 *
-	 * @param $amount_to_charge float The amount to charge.
-	 * @param $renewal_order WC_Order A WC_Order object created to record the renewal payment.
-	 */
-	public function scheduled_subscription_payment( $amount_to_charge, $renewal_order ) {
-		$response = $this->process_subscription_payment( $amount_to_charge, $renewal_order );
-
-		if ( is_wp_error( $response ) ) {
-			/* translators: error message */
-			$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->get_error_message() ) );
-		}
-
-		if ( ! empty( $response->error ) ) {
-			// This is a very generic error to listen for but worth a retry before total fail.
-			if ( isset( $response->error->type ) && 'invalid_request_error' === $response->error->type && apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
-				$this->process_subscription_payment( $amount_to_charge, $renewal_order, true );
-			} else {
-				/* translators: error message */
-				$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->error->message ) );
-			}
-		}
 	}
 
 	/**
