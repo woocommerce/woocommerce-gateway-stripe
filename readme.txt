@@ -121,6 +121,7 @@ We will completely remove the older form by version 5.0.
 * Add - Hook to separately control Stripe Checkout Modal's allow remember me option. `wc_stripe_allow_remember_me` (bool).
 * Add - Hook to filter 3DS requirements `wc_stripe_require_3ds`.
 * Add - Hook to verify zipcode in Stripe Checkout Modal. `wc_stripe_checkout_verify_zip`. Only works when require address is true.
+* Add - Hook to require shipping address on Stripe Checkout Modal. `wc_stripe_checkout_require_shipping_address` (bool).
 * Update - Stripe API version to 2018-02-28.
 
 = 4.0.7 - 2018-02-23 =
