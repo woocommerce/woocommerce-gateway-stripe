@@ -48,8 +48,39 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function is_same_idempotency_error( $error ) {
 		return (
+			$error &&
 			'idempotency_error' === $error->type &&
 			preg_match( '/Keys for idempotent requests can only be used with the same parameters they were first used with./i', $error->message )
+		);
+	}
+
+	/**
+	 * Checks to see if error is of invalid request
+	 * error and it is no such source.
+	 *
+	 * @since 4.1.0
+	 * @param array $error
+	 */
+	public function is_no_such_source_error( $error ) {
+		return (
+			$error &&
+			'invalid_request_error' === $error->type &&
+			preg_match( '/No such source/i', $error->message )
+		);
+	}
+
+	/**
+	 * Checks to see if error is of invalid request
+	 * error and it is no such source linked to customer.
+	 *
+	 * @since 4.1.0
+	 * @param array $error
+	 */
+	public function is_no_linked_source_error( $error ) {
+		return (
+			$error &&
+			'invalid_request_error' === $error->type &&
+			preg_match( '/does not have a linked source with ID/i', $error->message )
 		);
 	}
 
@@ -64,6 +95,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function need_update_idempotency_key( $source_object, $error ) {
 		return (
+			$error &&
 			1 < $this->retry_interval &&
 			! empty( $source_object ) &&
 			'chargeable' === $source_object->status &&
@@ -652,6 +684,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$stripe_customer = new WC_Stripe_Customer();
 		$stripe_source   = false;
 		$token_id        = false;
+		$source_object   = false;
 
 		if ( $order ) {
 			$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
@@ -678,6 +711,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			if ( $source_id ) {
 				$stripe_source = $source_id;
+				$source_object = WC_Stripe_API::retrieve( 'sources/' . $source_id );
 			} elseif ( apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
 				/*
 				 * We can attempt to charge the customer's default source
@@ -688,9 +722,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		return (object) array(
-			'token_id' => $token_id,
-			'customer' => $stripe_customer ? $stripe_customer->get_id() : false,
-			'source'   => $stripe_source,
+			'token_id'      => $token_id,
+			'customer'      => $stripe_customer ? $stripe_customer->get_id() : false,
+			'source'        => $stripe_source,
+			'source_object' => $source_object,
 		);
 	}
 

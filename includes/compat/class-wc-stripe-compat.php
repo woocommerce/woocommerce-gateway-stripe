@@ -175,22 +175,7 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 	 * @param $renewal_order WC_Order A WC_Order object created to record the renewal payment.
 	 */
 	public function scheduled_subscription_payment( $amount_to_charge, $renewal_order ) {
-		$response = $this->process_subscription_payment( $amount_to_charge, $renewal_order );
-
-		if ( is_wp_error( $response ) ) {
-			/* translators: error message */
-			$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->get_error_message() ) );
-		}
-
-		if ( ! empty( $response->error ) ) {
-			// This is a very generic error to listen for but worth a retry before total fail.
-			if ( isset( $response->error->type ) && 'invalid_request_error' === $response->error->type && apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
-				$this->process_subscription_payment( $amount_to_charge, $renewal_order, true );
-			} else {
-				/* translators: error message */
-				$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->error->message ) );
-			}
-		}
+		$this->process_subscription_payment( $amount_to_charge, $renewal_order, true, false );
 	}
 
 	/**
@@ -198,50 +183,96 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 	 *
 	 * @since 3.0
 	 * @since 4.0.4 Add third parameter flag to retry.
+	 * @since 4.1.0 Add fourth parameter to log previous errors.
 	 * @param float $amount
 	 * @param mixed $renewal_order
-	 * @param bool $is_retry Is this a retry process.
+	 * @param bool $retry Should we retry the process?
+	 * @param object $previous_error
 	 */
-	public function process_subscription_payment( $amount = 0.0, $renewal_order, $is_retry = false ) {
-		if ( $amount * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
-			/* translators: minimum amount */
-			return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
-		}
-
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $renewal_order->id : $renewal_order->get_id();
-
-		// Get source from order
-		$prepared_source = $this->prepare_order_source( $renewal_order );
-
-		if ( ! $prepared_source->customer ) {
-			return new WP_Error( 'stripe_error', __( 'Customer not found', 'woocommerce-gateway-stripe' ) );
-		}
-
-		WC_Stripe_Logger::log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
-
-		if ( $is_retry ) {
-			// Passing empty source with charge customer default.
-			$prepared_source->source = '';
-		}
-
-		$request            = $this->generate_payment_request( $renewal_order, $prepared_source );
-		$request['capture'] = 'true';
-		$request['amount']  = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
-		$response           = WC_Stripe_API::request( $request );
-
-		if ( ! empty( $response->error ) || is_wp_error( $response ) ) {
-			if ( $is_retry ) {
-				/* translators: error message */
-				$renewal_order->update_status( 'failed', sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $response->error->message ) );
+	public function process_subscription_payment( $amount = 0.0, $renewal_order, $retry = true, $previous_error ) {
+		try {
+			if ( $amount * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
+				/* translators: minimum amount */
+				return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 			}
 
-			return $response; // Default catch all errors.
-		}
+			$order_id = WC_Stripe_Helper::is_pre_30() ? $renewal_order->id : $renewal_order->get_id();
 
-		$this->process_response( $response, $renewal_order );
+			// Get source from order
+			$prepared_source = $this->prepare_order_source( $renewal_order );
+			$source_object   = $prepared_source->source_object;
 
-		if ( ! $is_retry ) {
-			return $response;
+			if ( ! $prepared_source->customer ) {
+				return new WP_Error( 'stripe_error', __( 'Customer not found', 'woocommerce-gateway-stripe' ) );
+			}
+
+			WC_Stripe_Logger::log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
+
+			/* If we're doing a retry and source is chargeable, we need to pass
+			 * a different idempotency key and retry for success.
+			 */
+			if ( is_object( $source_object ) && empty( $source_object->error ) && $this->need_update_idempotency_key( $source_object, $previous_error ) ) {
+				add_filter( 'wc_stripe_idempotency_key', array( $this, 'change_idempotency_key' ), 10, 2 );
+			}
+
+			if ( $this->is_no_such_source_error( $previous_error ) || $this->is_no_linked_source_error( $previous_error ) && apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
+				// Passing empty source will charge customer default.
+				$prepared_source->source = '';
+			}
+
+			$request            = $this->generate_payment_request( $renewal_order, $prepared_source );
+			$request['capture'] = 'true';
+			$request['amount']  = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
+			$response           = WC_Stripe_API::request( $request );
+
+			if ( ! empty( $response->error ) ) {
+				// We want to retry.
+				if ( $this->is_retryable_error( $response->error ) ) {
+					if ( $retry ) {
+						// Don't do anymore retries after this.
+						if ( 5 <= $this->retry_interval ) {
+							return $this->process_subscription_payment( $amount, $renewal_order, false, $response->error );
+						}
+
+						sleep( $this->retry_interval );
+
+						$this->retry_interval++;
+
+						return $this->process_subscription_payment( $amount, $renewal_order, true, $response->error );
+					} else {
+						$localized_message = __( 'On going requests error and retries exhausted.', 'woocommerce-gateway-stripe' );
+						$renewal_order->add_order_note( $localized_message );
+						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+					}
+				}
+
+				$localized_messages = WC_Stripe_Helper::get_localized_messages();
+
+				if ( 'card_error' === $response->error->type ) {
+					$localized_message = isset( $localized_messages[ $response->error->code ] ) ? $localized_messages[ $response->error->code ] : $response->error->message;
+				} else {
+					$localized_message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
+				}
+
+				$renewal_order->add_order_note( $localized_message );
+
+				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+			}
+
+			do_action( 'wc_gateway_stripe_process_payment', $response, $renewal_order );
+
+			$this->process_response( $response, $renewal_order );
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
+
+			/* translators: error message */
+			$renewal_order->update_status( 'failed' );
+
+			if ( $renewal_order->has_status( array( 'pending', 'failed' ) ) ) {
+				$this->send_failed_order_email( $order_id );
+			}
 		}
 	}
 

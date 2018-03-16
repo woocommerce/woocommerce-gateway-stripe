@@ -114,6 +114,7 @@ We will completely remove the older form by version 5.0.
 * Tweak - Update Stripe Fee and Stripe Net meta names.
 * Fix - When SEPA was used in subscription payment, it does not show SEPA in payment method table.
 * Fix - Refund via Stripe dashboard not reflecting amount in order notes.
+* Fix - Potential idempotency issues with subs recurring payment processing.
 * Add - Multibanco payment method.
 * Add - EPS payment method.
 * Add - Stripe fee and net payout to order line item total section.
