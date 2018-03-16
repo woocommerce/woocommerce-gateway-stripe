@@ -117,6 +117,7 @@ We will completely remove the older form by version 5.0.
 * Fix - Potential idempotency issues with subs recurring payment processing.
 * Add - Multibanco payment method.
 * Add - EPS payment method.
+* Add - Notice for customer to change saved cards when billing address has been updated.
 * Add - Stripe fee and net payout to order line item total section.
 * Add - Hook to separately control Stripe Checkout Modal's allow remember me option. `wc_stripe_allow_remember_me` (bool).
 * Add - Hook to filter 3DS requirements `wc_stripe_require_3ds`.

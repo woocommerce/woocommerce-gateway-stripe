@@ -171,7 +171,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
 		add_action( 'woocommerce_admin_order_totals_after_total', array( $this, 'display_order_fee' ), 10, 1 );
 		add_action( 'woocommerce_admin_order_totals_after_total', array( $this, 'display_order_payout' ), 20, 1 );
-
+		add_action( 'woocommerce_customer_save_address', array( $this, 'show_update_card_notice' ), 10, 2 );
 	}
 
 	/**
@@ -199,6 +199,22 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		return parent::is_available();
+	}
+
+	/**
+	 * Adds a notice for customer when they update their billing address.
+	 *
+	 * @since 4.1.0
+	 * @param int $user_id
+	 * @param array $load_address
+	 */
+	public function show_update_card_notice( $user_id, $load_address ) {
+		if ( ! $this->saved_cards ) {
+			return;
+		}
+
+		/* translators: 1) Opening anchor tag 2) closing anchor tag */
+		wc_add_notice( sprintf( __( 'If your billing address has been changed, be sure to remove any %1$ssaved payment methods%2$s on file and re-add them.', 'woocommerce-gateway-stripe' ), '<a href="' . esc_url( wc_get_endpoint_url( 'payment-methods' ) ) . '" style="text-decoration:underline">', '</a>' ), 'error' );
 	}
 
 	/**
