@@ -395,6 +395,7 @@ class WC_Stripe_Payment_Request {
 			'variable',
 			'variation',
 			'subscription',
+			'booking',
 		) );
 	}
 

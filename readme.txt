@@ -125,6 +125,7 @@ We will completely remove the older form by version 5.0.
 * Add - Hook to require shipping address on Stripe Checkout Modal. `wc_stripe_checkout_require_shipping_address` (bool).
 * Add - Compatibility with different coupon types such as gift/store credit by Smart Coupons (requires WC 3.2+).
 * Add - Compatibility with Payment Request/Apple Pay and Simple Subscription product in cart page.
+* Add - Compatibility with Bookings product in cart page.
 * Update - Stripe API version to 2018-02-28.
 
 = 4.0.7 - 2018-02-23 =
