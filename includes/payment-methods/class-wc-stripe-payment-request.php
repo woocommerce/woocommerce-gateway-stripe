@@ -394,6 +394,7 @@ class WC_Stripe_Payment_Request {
 			'simple',
 			'variable',
 			'variation',
+			'subscription',
 		) );
 	}
 
@@ -1090,11 +1091,21 @@ class WC_Stripe_Payment_Request {
 			}
 		}
 
-		$discounts   = wc_format_decimal( WC()->cart->get_cart_discount_total(), WC()->cart->dp );
+		if ( version_compare( WC_VERSION, '3.2', '<' ) ) {
+			$discounts = wc_format_decimal( WC()->cart->get_cart_discount_total(), WC()->cart->dp );
+		} else {
+			$applied_coupons = array_values( WC()->cart->coupon_discount_totals );
+
+			foreach ( $applied_coupons as $amount ) {
+				$discounts += (float) $amount;
+			}
+		}
+
+		$discounts   = wc_format_decimal( $discounts, WC()->cart->dp );
 		$tax         = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
 		$shipping    = wc_format_decimal( WC()->cart->shipping_total, WC()->cart->dp );
 		$items_total = wc_format_decimal( WC()->cart->cart_contents_total, WC()->cart->dp ) + $discounts;
-		$order_total = wc_format_decimal( $items_total + $tax + $shipping - $discounts, WC()->cart->dp );
+		$order_total = version_compare( WC_VERSION, '3.2', '<' ) ? wc_format_decimal( $items_total + $tax + $shipping - $discounts, WC()->cart->dp ) : WC()->cart->get_total( false );
 
 		if ( wc_tax_enabled() ) {
 			$items[] = array(
