@@ -1095,7 +1095,7 @@ class WC_Stripe_Payment_Request {
 		if ( version_compare( WC_VERSION, '3.2', '<' ) ) {
 			$discounts = wc_format_decimal( WC()->cart->get_cart_discount_total(), WC()->cart->dp );
 		} else {
-			$applied_coupons = array_values( WC()->cart->coupon_discount_totals );
+			$applied_coupons = array_values( WC()->cart->get_coupon_discount_totals() );
 
 			foreach ( $applied_coupons as $amount ) {
 				$discounts += (float) $amount;
