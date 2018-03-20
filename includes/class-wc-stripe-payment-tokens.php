@@ -55,6 +55,32 @@ class WC_Stripe_Payment_Tokens {
 	}
 
 	/**
+	 * Checks if customer has saved payment methods.
+	 *
+	 * @since 4.1.0
+	 * @param int $customer_id
+	 * @return bool
+	 */
+	public static function customer_has_saved_methods( $customer_id ) {
+		$gateways = array( 'stripe', 'stripe_sepa' );
+
+		if ( empty( $customer_id ) ) {
+			return false;
+		}
+
+		$has_token = false;
+
+		foreach ( $gateways as $gateway ) {
+			if ( ! empty( WC_Payment_Tokens::get_customer_tokens( $customer_id, $gateway ) ) ) {
+				$has_token = true;
+				break;
+			}
+		}
+
+		return $has_token;
+	}
+
+	/**
 	 * Gets saved tokens from API if they don't already exist in WooCommerce.
 	 *
 	 * @since 3.1.0
