@@ -56,6 +56,51 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 	/**
 	 * Checks to see if error is of invalid request
+	 * error and source is already consumed.
+	 *
+	 * @since 4.1.0
+	 * @param array $error
+	 */
+	public function is_source_already_consumed_error( $error ) {
+		return (
+			$error &&
+			'invalid_request_error' === $error->type &&
+			preg_match( '/The reusable source you provided is consumed because it was previously charged without being attached to a customer or was detached from a customer. To charge a reusable source multiple time you must attach it to a customer first./i', $error->message )
+		);
+	}
+
+	/**
+	 * Checks to see if error is of invalid request
+	 * error and it is no such customer.
+	 *
+	 * @since 4.1.0
+	 * @param array $error
+	 */
+	public function is_no_such_customer_error( $error ) {
+		return (
+			$error &&
+			'invalid_request_error' === $error->type &&
+			preg_match( '/No such customer/i', $error->message )
+		);
+	}
+
+	/**
+	 * Checks to see if error is of invalid request
+	 * error and it is no such token.
+	 *
+	 * @since 4.1.0
+	 * @param array $error
+	 */
+	public function is_no_such_token_error( $error ) {
+		return (
+			$error &&
+			'invalid_request_error' === $error->type &&
+			preg_match( '/No such token/i', $error->message )
+		);
+	}
+
+	/**
+	 * Checks to see if error is of invalid request
 	 * error and it is no such source.
 	 *
 	 * @since 4.1.0

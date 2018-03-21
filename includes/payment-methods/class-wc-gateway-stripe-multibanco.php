@@ -269,9 +269,9 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 
 		$payment_method = WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method();
 
-		WC_Stripe_Logger::log( 'Multibanco status:' . $order->get_status() );
 		if ( ! $sent_to_admin && 'stripe_multibanco' === $payment_method && $order->has_status( 'on-hold' ) ) {
-			WC_Stripe_Logger::log( 'Sending email for order #' . $order_id );
+			WC_Stripe_Logger::log( 'Sending multibanco email for order #' . $order_id );
+
 			$this->get_instructions( $order_id, $plain_text );
 		}
 	}

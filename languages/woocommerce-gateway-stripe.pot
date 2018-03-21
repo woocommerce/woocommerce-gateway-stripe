@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.0.7\n"
 "Report-Msgid-Bugs-To: "
 "https://github.com/woocommerce/woocommerce-gateway-stripe/issues\n"
-"POT-Creation-Date: 2018-03-21 20:17:36+00:00\n"
+"POT-Creation-Date: 2018-03-21 23:53:20+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -24,7 +24,7 @@ msgid ""
 "receive notifications on the charge statuses."
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:190
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:235
 #: includes/compat/class-wc-stripe-compat.php:196
 #: includes/compat/class-wc-stripe-compat.php:548
 #: includes/compat/class-wc-stripe-sepa-compat.php:153
@@ -34,25 +34,25 @@ msgstr ""
 msgid "Sorry, the minimum allowed order total is %1$s to use this payment method."
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:286
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:331
 #. translators: 1) blog name 2) order number
 msgid "%1$s - Order %2$s"
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:313
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:358
 msgid "customer_name"
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:314
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:359
 msgid "customer_email"
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:388
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:433
 #. translators: transaction id
 msgid "Stripe charge awaiting payment: %s."
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:395
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:440
 #: includes/class-wc-stripe-order-handler.php:252
 #: includes/class-wc-stripe-webhook-handler.php:309
 #: includes/class-wc-stripe-webhook-handler.php:360
@@ -60,34 +60,34 @@ msgstr ""
 msgid "Stripe charge complete (Charge ID: %s)"
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:400
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:445
 #: includes/class-wc-gateway-stripe.php:537
 #: includes/compat/class-wc-stripe-compat.php:100
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:384
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:386
 msgid "Payment processing failed. Please retry."
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:412
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:457
 #. translators: transaction id
 msgid ""
 "Stripe charge authorized (Charge ID: %s). Process order to take payment, or "
 "cancel to remove the pre-authorization."
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:626
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:671
 msgid "Invalid payment method. Please input a new card number."
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:874
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:919
 #. translators: 1) dollar amount 2) transaction id 3) refund message
 msgid "Refunded %1$s - Refund ID: %2$s - Reason: %3$s"
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:874
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:919
 msgid "Pre-Authorization Released"
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:892
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:937
 msgid "There was a problem adding the card."
 msgstr ""
 
@@ -741,25 +741,27 @@ msgstr ""
 #: includes/compat/class-wc-stripe-compat.php:243
 #: includes/compat/class-wc-stripe-sepa-compat.php:200
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:407
-msgid "On going requests error and retries exhausted."
+msgid ""
+"Sorry, we are unable to process your payment at this time. Please retry "
+"later."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:709
+#: includes/class-wc-gateway-stripe.php:713
 #. translators: error message
 msgid "This represents the fee Stripe collects for the transaction."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:710
+#: includes/class-wc-gateway-stripe.php:714
 msgid "Stripe Fee:"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:742
+#: includes/class-wc-gateway-stripe.php:750
 msgid ""
 "This represents the net total that will be credited to your Stripe bank "
 "account. This may be in the currency that is set in your Stripe account."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:743
+#: includes/class-wc-gateway-stripe.php:751
 msgid "Stripe Payout:"
 msgstr ""
 
@@ -796,72 +798,72 @@ msgstr ""
 msgid "Unable to add payment source."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:172
+#: includes/class-wc-stripe-helper.php:207
 msgid "The card number is not a valid credit card number."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:173
+#: includes/class-wc-stripe-helper.php:208
 msgid "The card's expiration month is invalid."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:174
+#: includes/class-wc-stripe-helper.php:209
 msgid "The card's expiration year is invalid."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:175
+#: includes/class-wc-stripe-helper.php:210
 msgid "The card's security code is invalid."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:176
+#: includes/class-wc-stripe-helper.php:211
 msgid "The card number is incorrect."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:177
+#: includes/class-wc-stripe-helper.php:212
 msgid "The card number is incomplete."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:178
+#: includes/class-wc-stripe-helper.php:213
 msgid "The card's security code is incomplete."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:179
+#: includes/class-wc-stripe-helper.php:214
 msgid "The card's expiration date is incomplete."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:180
+#: includes/class-wc-stripe-helper.php:215
 msgid "The card has expired."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:181
+#: includes/class-wc-stripe-helper.php:216
 msgid "The card's security code is incorrect."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:182
+#: includes/class-wc-stripe-helper.php:217
 msgid "The card's zip code failed validation."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:183
+#: includes/class-wc-stripe-helper.php:218
 msgid "The card's expiration year is in the past"
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:184
+#: includes/class-wc-stripe-helper.php:219
 msgid "The card was declined."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:185
+#: includes/class-wc-stripe-helper.php:220
 msgid "There is no card on a customer that is being charged."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:186
+#: includes/class-wc-stripe-helper.php:221
 msgid "An error occurred while processing the card."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:187
+#: includes/class-wc-stripe-helper.php:222
 #: includes/class-wc-stripe-order-handler.php:93
 msgid "Unable to process this payment, please try again or use alternative method."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:188
+#: includes/class-wc-stripe-helper.php:223
 msgid "The billing country is not accepted by SOFORT. Please try another country."
 msgstr ""
 
@@ -1046,32 +1048,32 @@ msgstr ""
 msgid "Bitcoin is enabled - it requires store currency to be set to USD."
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:301
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:313
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:303
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:315
 msgid "Please pay the following:"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:303
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:316
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:305
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:318
 msgid "Bitcoin Amount:"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:306
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:320
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:308
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:322
 msgid "Receiver:"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:309
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:324
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:311
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:326
 msgid "URI:"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:328
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:330
 #. translators: link
 msgid "<a href=\"%s\">Pay Bitcoin</a>"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:396
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:398
 msgid "Awaiting Bitcoin payment"
 msgstr ""
 

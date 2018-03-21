@@ -123,7 +123,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 			if ( ! empty( $response->error ) ) {
 				// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
-				if ( preg_match( '/No such customer/i', $response->error->message ) && $retry ) {
+				if ( $this->is_no_such_customer_error( $response->error ) && $retry ) {
 					if ( WC_Stripe_Helper::is_pre_30() ) {
 						delete_user_meta( $order->customer_user, '_stripe_customer_id' );
 						delete_post_meta( $order_id, '_stripe_customer_id' );
@@ -135,7 +135,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 					return $this->process_redirect_payment( $order_id, false );
 
-				} elseif ( preg_match( '/No such token/i', $response->error->message ) && $source_object->token_id ) {
+				} elseif ( $this->is_no_such_token_error( $response->error ) && $source_object->token_id ) {
 					// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
 
 					$wc_token = WC_Payment_Tokens::get( $source_object->token_id );
@@ -158,7 +158,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						$this->retry_interval++;
 						return $this->process_redirect_payment( $order_id, true );
 					} else {
-						$localized_message = __( 'On going requests error and retries exhausted.', 'woocommerce-gateway-stripe' );
+						$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
 						$order->add_order_note( $localized_message );
 						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 					}

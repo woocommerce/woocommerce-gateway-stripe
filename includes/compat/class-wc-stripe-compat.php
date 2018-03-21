@@ -215,7 +215,7 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 				add_filter( 'wc_stripe_idempotency_key', array( $this, 'change_idempotency_key' ), 10, 2 );
 			}
 
-			if ( $this->is_no_such_source_error( $previous_error ) || $this->is_no_linked_source_error( $previous_error ) && apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
+			if ( ( $this->is_no_such_source_error( $previous_error ) || $this->is_no_linked_source_error( $previous_error ) ) && apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
 				// Passing empty source will charge customer default.
 				$prepared_source->source = '';
 			}
@@ -240,7 +240,7 @@ class WC_Stripe_Compat extends WC_Gateway_Stripe {
 
 						return $this->process_subscription_payment( $amount, $renewal_order, true, $response->error );
 					} else {
-						$localized_message = __( 'On going requests error and retries exhausted.', 'woocommerce-gateway-stripe' );
+						$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
 						$renewal_order->add_order_note( $localized_message );
 						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 					}

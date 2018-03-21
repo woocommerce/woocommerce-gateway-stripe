@@ -153,7 +153,7 @@ class WC_Stripe_Customer {
 			// It is possible the WC user once was linked to a customer on Stripe
 			// but no longer exists. Instead of failing, lets try to create a
 			// new customer.
-			if ( preg_match( '/No such customer/i', $response->error->message ) ) {
+			if ( $this->is_no_such_customer_error( $response->error ) ) {
 				delete_user_meta( $this->get_user_id(), '_stripe_customer_id' );
 				$this->create_customer();
 				return $this->add_source( $source_id, false );
