@@ -1071,8 +1071,9 @@ class WC_Stripe_Payment_Request {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
-		$items    = array();
-		$subtotal = 0;
+		$items     = array();
+		$subtotal  = 0;
+		$discounts = 0;
 
 		// Default show only subtotal instead of itemization.
 		if ( ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) ) {
