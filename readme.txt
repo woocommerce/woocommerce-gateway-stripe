@@ -126,6 +126,7 @@ We will completely remove the older form by version 5.0.
 * Add - Compatibility with different coupon types such as gift/store credit by Smart Coupons (requires WC 3.2+).
 * Add - Compatibility with Payment Request/Apple Pay and Simple Subscription product in cart page.
 * Add - Compatibility with Bookings product in cart page.
+* Add - $post object on hook `wc_stripe_hide_payment_request_on_product_page`.
 * Update - Stripe API version to 2018-02-28.
 
 = 4.0.7 - 2018-02-23 =

@@ -455,7 +455,7 @@ class WC_Stripe_Payment_Request {
 				return;
 			}
 
-			if ( apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false ) ) {
+			if ( apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post ) ) {
 				return;
 			}
 		}
@@ -516,6 +516,8 @@ class WC_Stripe_Payment_Request {
 	 * @version 4.0.0
 	 */
 	public function display_payment_request_button_html() {
+		global $post;
+
 		$gateways = WC()->payment_gateways->get_available_payment_gateways();
 
 		if ( ! isset( $gateways['stripe'] ) ) {
@@ -526,17 +528,15 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		if ( is_product() && apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false ) ) {
+		if ( is_product() && apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post ) ) {
 			return;
 		}
 
-		if ( is_checkout() && ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', false ) ) {
+		if ( is_checkout() && ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post ) ) {
 			return;
 		}
 
 		if ( is_product() ) {
-			global $post;
-
 			$product = wc_get_product( $post->ID );
 
 			if ( ! is_object( $product ) || ! in_array( ( WC_Stripe_Helper::is_pre_30() ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
@@ -570,6 +570,8 @@ class WC_Stripe_Payment_Request {
 	 * @version 4.0.0
 	 */
 	public function display_payment_request_button_separator_html() {
+		global $post;
+
 		$gateways = WC()->payment_gateways->get_available_payment_gateways();
 
 		if ( ! isset( $gateways['stripe'] ) ) {
@@ -580,17 +582,15 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		if ( is_product() && apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false ) ) {
+		if ( is_product() && apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post ) ) {
 			return;
 		}
 
-		if ( is_checkout() && ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', false ) ) {
+		if ( is_checkout() && ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post ) ) {
 			return;
 		}
 
 		if ( is_product() ) {
-			global $post;
-
 			$product = wc_get_product( $post->ID );
 
 			if ( ! is_object( $product ) || ! in_array( ( WC_Stripe_Helper::is_pre_30() ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
