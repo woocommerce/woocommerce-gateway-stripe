@@ -189,6 +189,13 @@ jQuery( function( $ ) {
 			if ( 'yes' === wc_stripe_params.use_elements ) {
 				wc_stripe_form.createElements();
 			}
+
+			if ( 'yes' === wc_stripe_params.is_stripe_checkout ) {
+				$( document.body ).on( 'click', '.wc-stripe-checkout-button', function() {
+					wc_stripe_form.openModal();
+					return false;
+				} );
+			}
 		},
 
 		// Check to see if Stripe in general is being used for checkout.
@@ -487,7 +494,7 @@ jQuery( function( $ ) {
 			} else if ( 'no' === wc_stripe_params.allow_prepaid_card && 'card' === response.source.type && 'prepaid' === response.source.card.funding ) {
 				response.error = { message: wc_stripe_params.no_prepaid_card_msg };
 
-				if ( wc_stripe_params.is_stripe_checkout ) {
+				if ( 'yes' === wc_stripe_params.is_stripe_checkout ) {
 					wc_stripe_form.submitError( '<ul class="woocommerce-error"><li>' + wc_stripe_params.no_prepaid_card_msg + '</li></ul>' );
 				} else {
 					$( document.body ).trigger( 'stripeError', response );
@@ -583,19 +590,17 @@ jQuery( function( $ ) {
 			if ( ! wc_stripe_form.isStripeSaveCardChosen() && ! wc_stripe_form.hasSource() && ! wc_stripe_form.hasToken() ) {
 				e.preventDefault();
 
-				// Stripe Checkout.
-				if ( 'yes' === wc_stripe_params.is_stripe_checkout && wc_stripe_form.isStripeModalNeeded() && wc_stripe_form.isStripeCardChosen() ) {
-					// Since in mobile actions cannot be deferred, no dynamic validation applied.
-					if ( wc_stripe_form.isMobile() || 'no' === wc_stripe_params.validate_modal_checkout ) {
-						wc_stripe_form.openModal();
-					} else {
-						wc_stripe_form.validateCheckout();
-					}
-
-					return false;
-				}
-
 				wc_stripe_form.block();
+
+				// Stripe Checkout.
+				if ( 'yes' === wc_stripe_params.is_stripe_checkout && wc_stripe_form.isStripeModalNeeded() && wc_stripe_form.isStripeCardChosen() && 'no' === wc_stripe_params.is_add_payment_page ) {
+					if ( 'no' === wc_stripe_params.is_pay_for_order_page ) {
+						return true;
+					} else {
+						wc_stripe_form.openModal();
+						return false;
+					}
+				}
 
 				// Process legacy card token.
 				if ( wc_stripe_form.isStripeCardChosen() && 'no' === wc_stripe_params.use_elements ) {
@@ -698,34 +703,6 @@ jQuery( function( $ ) {
 			if ( 'yes' === wc_stripe_params.is_stripe_checkout ) {
 				wc_stripe_form.stripe_submit = false;
 			}
-		},
-
-		getRequiredFields: function() {
-			return wc_stripe_form.form.find( '.form-row.validate-required > input:visible, .form-row.validate-required > select:visible, .form-row.validate-required > textarea:visible' );
-		},
-
-		validateCheckout: function() {
-			var data = {
-				'nonce': wc_stripe_params.stripe_nonce,
-				'required_fields': wc_stripe_form.getRequiredFields().serialize(),
-				'all_fields': wc_stripe_form.form.serialize()
-			};
-
-			$.ajax( {
-				type:		'POST',
-				url:		wc_stripe_form.getAjaxURL( 'validate_checkout' ),
-				data:		data,
-				dataType:   'json',
-				success:	function( result ) {
-					if ( 'success' === result ) {
-						wc_stripe_form.openModal();
-					} else if ( result.messages ) {
-						wc_stripe_form.resetModal();
-						wc_stripe_form.reset();
-						wc_stripe_form.submitError( result.messages );
-					}
-				}
-			} );
 		},
 
 		onError: function( e, result ) {

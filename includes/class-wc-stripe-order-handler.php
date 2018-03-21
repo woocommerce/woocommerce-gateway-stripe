@@ -28,7 +28,6 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_order_status_on-hold_to_completed', array( $this, 'capture_payment' ) );
 		add_action( 'woocommerce_order_status_on-hold_to_cancelled', array( $this, 'cancel_payment' ) );
 		add_action( 'woocommerce_order_status_on-hold_to_refunded', array( $this, 'cancel_payment' ) );
-		add_action( 'wc_ajax_wc_stripe_validate_checkout', array( $this, 'validate_checkout' ) );
 	}
 
 	/**
@@ -291,25 +290,6 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			// This hook fires when admin manually changes order status to cancel.
 			do_action( 'woocommerce_stripe_process_manual_cancel', $order );
 		}
-	}
-
-	/**
-	 * Validates the checkout before submitting checkout form.
-	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
-	 */
-	public function validate_checkout() {
-		if ( ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_nonce' ) ) {
-			wp_die( __( 'Cheatin&#8217; huh?', 'woocommerce-gateway-stripe' ) );
-		}
-
-		/*
-		 * Client expects json encoded results to be "success" or message of HTML errors.
-		 * i.e. wp_send_json( 'success' ); // On successful validation.
-		 * i.e. For errors follow WC https://github.com/woocommerce/woocommerce/blob/master/includes/class-wc-checkout.php#L918-L938
-		 */
-		do_action( 'wc_stripe_validate_modal_checkout_action', $_POST['required_fields'], $_POST['all_fields'] );
 	}
 }
 
