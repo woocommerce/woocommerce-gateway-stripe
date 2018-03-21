@@ -367,7 +367,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			// Store currency stripe.
 			$currency = ! empty( $response->balance_transaction->currency ) ? strtoupper( $response->balance_transaction->currency ) : null;
-			WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_stripe_currency', $currency ) : $order->update_meta_data( '_stripe_currency', $currency );
+			WC_Stripe_Helper::update_stripe_currency( $order, $currency );
 		}
 
 		if ( 'yes' === $captured ) {

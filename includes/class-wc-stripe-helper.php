@@ -9,10 +9,45 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Helper {
-	const LEGACY_META_NAME_FEE = 'Stripe Fee';
-	const LEGACY_META_NAME_NET = 'Net Revenue From Stripe';
-	const META_NAME_FEE        = '_stripe_fee';
-	const META_NAME_NET        = '_stripe_net';
+	const LEGACY_META_NAME_FEE      = 'Stripe Fee';
+	const LEGACY_META_NAME_NET      = 'Net Revenue From Stripe';
+	const META_NAME_FEE             = '_stripe_fee';
+	const META_NAME_NET             = '_stripe_net';
+	const META_NAME_STRIPE_CURRENCY = '_stripe_currency';
+
+	/**
+	 * Gets the Stripe currency for order.
+	 *
+	 * @since 4.1.0
+	 * @param object $order
+	 * @return string $currency
+	 */
+	public static function get_stripe_currency( $order = null ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+
+		return WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, self::META_NAME_STRIPE_CURRENCY, true ) : $order->get_meta( self::META_NAME_STRIPE_CURRENCY, true );
+	}
+
+	/**
+	 * Updates the Stripe currency for order.
+	 *
+	 * @since 4.1.0
+	 * @param object $order
+	 * @param string $currency
+	 */
+	public static function update_stripe_currency( $order = null, $currency ) {
+		if ( is_null( $order ) ) {
+			return false;
+		}
+
+		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+
+		WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, self::META_NAME_STRIPE_CURRENCY, $currency ) : $order->update_meta_data( self::META_NAME_STRIPE_CURRENCY, $currency );
+	}
 
 	/**
 	 * Gets the Stripe fee for order. With legacy check.

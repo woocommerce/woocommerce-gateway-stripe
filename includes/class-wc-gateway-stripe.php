@@ -700,7 +700,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$order = wc_get_order( $order_id );
 
 		$fee      = WC_Stripe_Helper::get_stripe_fee( $order );
-		$currency = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_currency', true ) : $order->get_meta( '_stripe_currency', true );
+		$currency = WC_Stripe_Helper::get_stripe_currency( $order );
 
 		if ( ! $fee || ! $currency ) {
 			return;
@@ -737,7 +737,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$order = wc_get_order( $order_id );
 
 		$net      = WC_Stripe_Helper::get_stripe_net( $order );
-		$currency = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_currency', true ) : $order->get_meta( '_stripe_currency', true );
+		$currency = WC_Stripe_Helper::get_stripe_currency( $order );
 
 		if ( ! $net || ! $currency ) {
 			return;
