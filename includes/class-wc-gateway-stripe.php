@@ -693,6 +693,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param int $order_id
 	 */
 	public function display_order_fee( $order_id ) {
+		if ( apply_filters( 'wc_stripe_hide_display_order_fee', false, $order_id ) ) {
+			return;
+		}
+
 		$order = wc_get_order( $order_id );
 
 		$fee      = WC_Stripe_Helper::get_stripe_fee( $order );
@@ -726,6 +730,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param int $order_id
 	 */
 	public function display_order_payout( $order_id ) {
+		if ( apply_filters( 'wc_stripe_hide_display_order_payout', false, $order_id ) ) {
+			return;
+		}
+
 		$order = wc_get_order( $order_id );
 
 		$net      = WC_Stripe_Helper::get_stripe_net( $order );
