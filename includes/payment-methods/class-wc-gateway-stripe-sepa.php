@@ -369,7 +369,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 
 				if ( ! empty( $response->error ) ) {
 					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
-					if ( $this->is_no_such_customer_error( $response->error ) && $retry ) {
+					if ( $this->is_no_such_customer_error( $response->error ) ) {
 						if ( WC_Stripe_Helper::is_pre_30() ) {
 							delete_user_meta( $order->customer_user, '_stripe_customer_id' );
 							delete_post_meta( $order_id, '_stripe_customer_id' );
@@ -378,9 +378,9 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 							$order->delete_meta_data( '_stripe_customer_id' );
 							$order->save();
 						}
+					}
 
-						return $this->process_payment( $order_id, false, $force_save_source );
-					} elseif ( $this->is_no_such_token_error( $response->error ) && $prepared_source->token_id ) {
+					if ( $this->is_no_such_token_error( $response->error ) && $prepared_source->token_id ) {
 						// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
 						$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
 						$wc_token->delete();

@@ -167,6 +167,27 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$response = $response['body'];
 
 			if ( ! empty( $response->error ) ) {
+				// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
+				if ( $this->is_no_such_customer_error( $response->error ) ) {
+					if ( WC_Stripe_Helper::is_pre_30() ) {
+						delete_user_meta( $order->customer_user, '_stripe_customer_id' );
+						delete_post_meta( $order_id, '_stripe_customer_id' );
+					} else {
+						delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
+						$order->delete_meta_data( '_stripe_customer_id' );
+						$order->save();
+					}
+				}
+
+				if ( $this->is_no_such_token_error( $response->error ) && $prepared_source->token_id ) {
+					// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
+					$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
+					$wc_token->delete();
+					$localized_message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
+					$order->add_order_note( $localized_message );
+					throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+				}
+
 				// We want to retry.
 				if ( $this->is_retryable_error( $response->error ) ) {
 					if ( $retry ) {
@@ -185,28 +206,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 						$order->add_order_note( $localized_message );
 						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 					}
-				}
-
-				// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
-				if ( $this->is_no_such_customer_error( $response->error ) && $retry ) {
-					if ( WC_Stripe_Helper::is_pre_30() ) {
-						delete_user_meta( $order->customer_user, '_stripe_customer_id' );
-						delete_post_meta( $order_id, '_stripe_customer_id' );
-					} else {
-						delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
-						$order->delete_meta_data( '_stripe_customer_id' );
-						$order->save();
-					}
-
-					return $this->process_webhook_payment( $notification, false );
-
-				} elseif ( $this->is_no_such_token_error( $response->error ) && $source_object->token_id ) {
-					// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
-					$wc_token = WC_Payment_Tokens::get( $source_object->token_id );
-					$wc_token->delete();
-					$message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
-					$order->add_order_note( $message );
-					throw new WC_Stripe_Exception( print_r( $response, true ), $message );
 				}
 
 				$localized_messages = WC_Stripe_Helper::get_localized_messages();
