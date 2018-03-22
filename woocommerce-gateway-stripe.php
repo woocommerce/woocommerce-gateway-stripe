@@ -81,8 +81,8 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * *Singleton* via the `new` operator from outside of this class.
 		 */
 		private function __construct() {
-			add_action( 'admin_init', array( $this, 'check_environment' ) );
-			add_action( 'admin_notices', array( $this, 'admin_notices' ), 15 );
+			add_action( 'admin_init', array( $this, 'install' ) );
+			add_action( 'admin_notices', array( $this, 'admin_notices' ) );
 			add_action( 'plugins_loaded', array( $this, 'init' ) );
 			add_action( 'wp_loaded', array( $this, 'hide_notices' ) );
 		}
@@ -220,6 +220,8 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 				return;
 			}
 
+			$this->check_environment();
+
 			foreach ( (array) $this->notices as $notice_key => $notice ) {
 				echo '<div class="' . esc_attr( $notice['class'] ) . '" style="position:relative;">';
 
@@ -292,12 +294,6 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * @version 4.0.0
 		 */
 		public function check_environment() {
-			if ( ! defined( 'IFRAME_REQUEST' ) && ( WC_STRIPE_VERSION !== get_option( 'wc_stripe_version' ) ) ) {
-				$this->install();
-
-				do_action( 'woocommerce_stripe_updated' );
-			}
-
 			$environment_warning = $this->get_environment_warning();
 
 			if ( $environment_warning && is_plugin_active( plugin_basename( __FILE__ ) ) ) {
@@ -373,11 +369,15 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * @version 3.1.0
 		 */
 		public function install() {
-			if ( ! defined( 'WC_STRIPE_INSTALLING' ) ) {
-				define( 'WC_STRIPE_INSTALLING', true );
-			}
+			if ( ! defined( 'IFRAME_REQUEST' ) && ( WC_STRIPE_VERSION !== get_option( 'wc_stripe_version' ) ) ) {
+				do_action( 'woocommerce_stripe_updated' );
 
-			$this->update_plugin_version();
+				if ( ! defined( 'WC_STRIPE_INSTALLING' ) ) {
+					define( 'WC_STRIPE_INSTALLING', true );
+				}
+
+				$this->update_plugin_version();
+			}
 		}
 
 		/**
