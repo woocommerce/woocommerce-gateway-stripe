@@ -109,7 +109,6 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
 		add_action( 'admin_notices', array( $this, 'check_environment' ) );
-		add_action( 'admin_head', array( $this, 'remove_admin_notice' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
 	}
 

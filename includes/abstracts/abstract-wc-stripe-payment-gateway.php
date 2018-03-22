@@ -180,18 +180,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Remove admin notice.
-	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
-	 */
-	public function remove_admin_notice() {
-		if ( did_action( 'woocommerce_update_options' ) ) {
-			remove_action( 'admin_notices', array( $this, 'check_environment' ) );
-		}
-	}
-
-	/**
 	 * All payment icons that work with Stripe. Some icons references
 	 * WC core icons.
 	 *
