@@ -101,7 +101,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 	 * @since 4.0.0
 	 * @version 4.0.0
 	 */
-	public function check_environment( $payment_method = '' ) {
+	public function check_environment() {
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
 			return;
 		}
