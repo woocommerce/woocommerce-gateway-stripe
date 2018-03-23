@@ -126,6 +126,7 @@ We will completely remove the older form by version 5.0.
 * Add - Hook to require shipping address on Stripe Checkout Modal. `wc_stripe_checkout_require_shipping_address` (bool).
 * Add - Hook to hide Stripe net payout on order line item `wc_stripe_hide_display_order_payout` (bool).
 * Add - Hook to hide Stripe fee on order line item `wc_stripe_hide_display_order_fee` (bool).
+* Add - Hook to filter out logging messages `wc_stripe_logging` (bool).
 * Add - Compatibility with different coupon types such as gift/store credit by Smart Coupons (requires WC 3.2+).
 * Add - Compatibility with Payment Request/Apple Pay and Simple Subscription product in cart page.
 * Add - Compatibility with Bookings product in cart page.

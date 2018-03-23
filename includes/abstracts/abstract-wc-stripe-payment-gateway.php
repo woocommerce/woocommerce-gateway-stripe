@@ -153,9 +153,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function is_available() {
 		if ( 'yes' === $this->enabled ) {
-			if ( ! $this->testmode && is_checkout() && ! is_ssl() ) {
-				return false;
-			}
 			if ( ! $this->secret_key || ! $this->publishable_key ) {
 				return false;
 			}

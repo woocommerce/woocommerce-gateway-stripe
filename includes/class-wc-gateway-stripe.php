@@ -452,8 +452,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// If no SSL bail.
 		if ( ! $this->testmode && ! is_ssl() ) {
-			WC_Stripe_Logger::log( 'Stripe requires SSL.' );
-			return;
+			WC_Stripe_Logger::log( 'Stripe live mode requires SSL.' );
 		}
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
