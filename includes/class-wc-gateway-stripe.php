@@ -108,6 +108,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public $inline_cc_form;
 
 	/**
+	 * Pre Orders Object
+	 *
+	 * @var object
+	 */
+	public $pre_orders;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -174,6 +181,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_customer_save_address', array( $this, 'show_update_card_notice' ), 10, 2 );
 		add_action( 'woocommerce_receipt_stripe', array( $this, 'stripe_checkout_receipt_page' ) );
 		add_action( 'woocommerce_api_' . strtolower( get_class( $this ) ), array( $this, 'stripe_checkout_return_handler' ) );
+
+		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
+			$this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
+
+			add_action( 'wc_pre_orders_process_pre_order_completion_payment_' . $this->id, array( $this->pre_orders, 'process_pre_order_release_payment' ) );
+		}
 	}
 
 	/**
@@ -550,7 +563,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		echo '<input type="hidden" name="order_id" value="' . esc_attr( $order_id ) . '" />';
 		echo '<input type="hidden" name="stripe_checkout_order" value="yes" />';
 
-		if ( function_exists( 'wcs_order_contains_subscription' ) && ! WC_Subscriptions_Cart::cart_contains_subscription() ) {
+		if ( ( function_exists( 'wcs_order_contains_subscription' ) && ! WC_Subscriptions_Cart::cart_contains_subscription() ) && ( WC_Stripe_Helper::is_pre_orders_exists() && ! $this->pre_orders->is_pre_order( $order_id ) ) ) {
 			$this->save_payment_method_checkbox();
 		}
 
@@ -578,7 +591,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$order_id = wc_clean( $_POST['order_id'] );
 		$order    = wc_get_order( $order_id );
-		$result   = $this->process_payment( $order_id );
+
+		if ( WC_Stripe_Helper::is_pre_orders_exists() && $this->pre_orders->is_pre_order( $order_id ) && WC_Pre_Orders_Order::order_requires_payment_tokenization( $order_id ) ) {
+			$result = $this->pre_orders->process_pre_order( $order_id );
+		} else {
+			$result = $this->process_payment( $order_id );
+		}
 
 		if ( 'success' === $result['result'] ) {
 			wp_redirect( $result['redirect'] );
@@ -597,7 +615,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return bool
 	 */
 	public function maybe_redirect_stripe_checkout() {
-		return ( $this->stripe_checkout && ! isset( $_POST['stripe_checkout_order'] ) && ! $this->is_using_saved_payment_method() && ! is_wc_endpoint_url( 'order-pay' ) );
+		return (
+			$this->stripe_checkout &&
+			! isset( $_POST['stripe_checkout_order'] ) &&
+			! $this->is_using_saved_payment_method() &&
+			! is_wc_endpoint_url( 'order-pay' )
+		);
 	}
 
 	/**
@@ -625,6 +648,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					'result'   => 'success',
 					'redirect' => $order->get_checkout_payment_url( true ),
 				);
+			}
+
+			if ( $this->maybe_process_pre_orders( $order_id ) ) {
+				return $this->pre_orders->process_pre_order( $order_id );
 			}
 
 			// This comes from the create account checkbox in the checkout page.

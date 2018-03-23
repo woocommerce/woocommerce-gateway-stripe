@@ -339,6 +339,16 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Checks if Pre Orders is available.
+	 *
+	 * @since 4.1.0
+	 * @return bool
+	 */
+	public static function is_pre_orders_exists() {
+		return class_exists( 'WC_Pre_Orders_Order' );
+	}
+
+	/**
 	 * Check if WC version is pre 3.0.
 	 *
 	 * @since 4.0.0

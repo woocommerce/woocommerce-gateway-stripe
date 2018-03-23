@@ -166,6 +166,23 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Checks if we need to process pre orders when
+	 * pre orders is in the cart.
+	 *
+	 * @since 4.1.0
+	 * @param int $order_id
+	 * @return bool
+	 */
+	public function maybe_process_pre_orders( $order_id ) {
+		return (
+			WC_Stripe_Helper::is_pre_orders_exists() &&
+			$this->pre_orders->is_pre_order( $order_id ) &&
+			WC_Pre_Orders_Order::order_requires_payment_tokenization( $order_id ) &&
+			! is_wc_endpoint_url( 'order-pay' )
+		);
+	}
+
+	/**
 	 * Allow this class and other classes to add slug keyed notices (to avoid duplication).
 	 *
 	 * @since 1.0.0

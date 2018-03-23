@@ -149,6 +149,8 @@ class WC_Stripe_Customer {
 			'source' => $source_id,
 		), 'customers/' . $this->get_id() . '/sources' );
 
+		$wc_token = false;
+
 		if ( ! empty( $response->error ) ) {
 			// It is possible the WC user once was linked to a customer on Stripe
 			// but no longer exists. Instead of failing, lets try to create a

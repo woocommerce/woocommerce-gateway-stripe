@@ -60,6 +60,13 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	public $saved_cards;
 
 	/**
+	 * Pre Orders Object
+	 *
+	 * @var object
+	 */
+	public $pre_orders;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -110,6 +117,12 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
 		add_action( 'admin_notices', array( $this, 'check_environment' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
+
+		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
+			$this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
+
+			add_action( 'wc_pre_orders_process_pre_order_completion_payment_' . $this->id, array( $this->pre_orders, 'process_pre_order_release_payment' ) );
+		}
 	}
 
 	/**
@@ -340,6 +353,10 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
 		try {
 			$order = wc_get_order( $order_id );
+
+			if ( $this->maybe_process_pre_orders( $order_id ) ) {
+				return $this->pre_orders->process_pre_order( $order_id );
+			}
 
 			// This comes from the create account checkbox in the checkout page.
 			$create_account = ! empty( $_POST['createaccount'] ) ? true : false;
