@@ -127,9 +127,14 @@ We will completely remove the older form by version 5.0.
 * Add - Hook to hide Stripe net payout on order line item `wc_stripe_hide_display_order_payout` (bool).
 * Add - Hook to hide Stripe fee on order line item `wc_stripe_hide_display_order_fee` (bool).
 * Add - Hook to filter out logging messages `wc_stripe_logging` (bool).
-* Add - Compatibility with different coupon types such as gift/store credit by Smart Coupons (requires WC 3.2+).
-* Add - Compatibility with Payment Request/Apple Pay and Simple Subscription product in cart page.
-* Add - Compatibility with Bookings product in cart page.
+* Add - Compatibility with Payment Request/Apple Pay and different coupon types such as gift/store credit by Smart Coupons (requires WC 3.2+).
+* Add - Compatibility with Payment Request/Apple Pay and Subscription product in cart page.
+* Add - Compatibility with Payment Request/Apple Pay and Bookings product in cart page.
+* Add - Compatibility with Payment Request/Apple Pay and Composite products in cart page.
+* Add - Compatibility with Payment Request/Apple Pay and Product Bundles in cart page.
+* Add - Compatibility with Payment Request/Apple Pay and Account Funds in cart page.
+* Add - Compatibility with Payment Request/Apple Pay and Mix and Match products in cart page.
+* Add - Compatibility with Payment Request/Apple Pay and Product Addons in cart page.
 * Add - $post object on hook `wc_stripe_hide_payment_request_on_product_page`.
 * Update - Stripe API version to 2018-02-28.
 

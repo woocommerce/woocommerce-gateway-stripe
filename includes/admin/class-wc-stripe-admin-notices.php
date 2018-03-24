@@ -160,7 +160,7 @@ class WC_Stripe_Admin_Notices {
 		$payment_methods = $this->get_payment_methods();
 
 		foreach ( $payment_methods as $method => $class ) {
-			$show_notice = get_option( 'wc_stripe_show_' . $method . '_notice' );
+			$show_notice = get_option( 'wc_stripe_show_' . strtolower( $method ) . '_notice' );
 			$gateway     = new $class();
 
 			if ( 'yes' !== $gateway->enabled || 'no' === $show_notice ) {
