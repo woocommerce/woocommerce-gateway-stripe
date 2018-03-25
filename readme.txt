@@ -137,6 +137,7 @@ We will completely remove the older form by version 5.0.
 * Add - Compatibility with Payment Request/Apple Pay and Product Addons in cart page.
 * Add - $post object on hook `wc_stripe_hide_payment_request_on_product_page`.
 * Update - Stripe API version to 2018-02-28.
+* Remove - Hard deprecated Stripe JS v2 credit card form process.
 
 = 4.0.7 - 2018-02-23 =
 * Fix - Potential conflict issue when adding payment method from another payment gateway.

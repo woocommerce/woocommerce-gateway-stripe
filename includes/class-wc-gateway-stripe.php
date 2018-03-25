@@ -339,13 +339,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( ! $this->stripe_checkout || is_wc_endpoint_url( 'add-payment-method' ) ) {
-			if ( apply_filters( 'wc_stripe_use_elements_checkout_form', true ) ) {
-				$this->elements_form();
-			} else {
-				WC_Stripe_Logger::log( 'DEPRECATED! Since version 4.0. Stripe Elements is used. This legacy credit card form will be removed by version 5.0!' );
-				$this->form();
-				echo '<div class="stripe-source-errors" role="alert"></div>';
-			}
+			$this->elements_form();
 		}
 
 		if ( apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) && ! $this->stripe_checkout ) {
@@ -460,9 +454,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		wp_register_style( 'stripe_styles', plugins_url( 'assets/css/stripe-styles.css', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION );
 		wp_enqueue_style( 'stripe_styles' );
 		wp_register_script( 'stripe_checkout', 'https://checkout.stripe.com/checkout.js', '', WC_STRIPE_VERSION, true );
-		wp_register_script( 'stripev2', 'https://js.stripe.com/v2/', '', '2.0', true );
 		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
-		wp_register_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery-payment', 'stripev2', 'stripe' ), WC_STRIPE_VERSION, true );
+		wp_register_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery-payment', 'stripe' ), WC_STRIPE_VERSION, true );
 
 		$stripe_params = array(
 			'key'                  => $this->publishable_key,
@@ -497,7 +490,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$stripe_params['ajaxurl']                                 = WC_AJAX::get_endpoint( '%%endpoint%%' );
 		$stripe_params['stripe_nonce']                            = wp_create_nonce( '_wc_stripe_nonce' );
 		$stripe_params['statement_descriptor']                    = $this->statement_descriptor;
-		$stripe_params['use_elements']                            = apply_filters( 'wc_stripe_use_elements_checkout_form', true ) ? 'yes' : 'no';
 		$stripe_params['elements_options']                        = apply_filters( 'wc_stripe_elements_options', array() );
 		$stripe_params['is_stripe_checkout']                      = $this->stripe_checkout ? 'yes' : 'no';
 		$stripe_params['is_change_payment_page']                  = isset( $_GET['change_payment_method'] ) ? 'yes' : 'no';
