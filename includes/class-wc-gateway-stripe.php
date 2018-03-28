@@ -326,7 +326,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		if ( $this->description ) {
 			if ( $this->testmode ) {
 				/* translators: link to Stripe testing page */
-				$this->description .= ' ' . sprintf( __( 'TEST MODE ENABLED. In test mode, you can use the card number 4242424242424242 with any CVC and a valid expiration date or check the documentation "<a href="%s" target="_blank">Testing Stripe</a>" for more card numbers.', 'woocommerce-gateway-stripe' ), 'https://stripe.com/docs/testing' );
+				$this->description .= ' ' . sprintf( __( 'TEST MODE ENABLED. In test mode, you can use the card number 4242424242424242 with any CVC and a valid expiration date or check the <a href="%s" target="_blank">Testing Stripe documentation</a> for more card numbers.', 'woocommerce-gateway-stripe' ), 'https://stripe.com/docs/testing' );
 				$this->description  = trim( $this->description );
 			}
 
