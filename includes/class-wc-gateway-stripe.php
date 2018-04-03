@@ -274,10 +274,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public function payment_fields() {
 		$user                 = wp_get_current_user();
 		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
+		$total                = WC()->cart->total;
 		$user_email           = '';
 
 		// If paying from order, we need to get total from order not cart.
 		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) {
+			$order      = wc_get_order( wc_get_order_id_by_order_key( wc_clean( $_GET['key'] ) ) );
+			$total      = $order->get_total();
 			$user_email = WC_Stripe_Helper::is_pre_30() ? $order->billing_email : $order->get_billing_email();
 		} else {
 			if ( $user->ID ) {
@@ -286,11 +289,39 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
+		if ( is_add_payment_method_page() ) {
+			$pay_button_text = __( 'Add Card', 'woocommerce-gateway-stripe' );
+			$total        = '';
+		} else {
+			$pay_button_text = '';
+		}
+
+		// Subscriptions change payment method page.
+		if ( function_exists( 'wcs_order_contains_subscription' ) && isset( $_GET['change_payment_method'] ) ) {
+			$pay_button_text = __( 'Change Payment Method', 'woocommerce-gateway-stripe' );
+			$total        = '';
+		} else {
+			$pay_button_text = '';
+		}
+
 		ob_start();
 
 		echo '<div
 			id="stripe-payment-data"
-			data-email="' . esc_attr( $user_email ) . '"';
+			data-panel-label="' . esc_attr( $pay_button_text ) . '"
+			data-description="' . esc_attr( strip_tags( $this->stripe_checkout_description ) ) . '"
+			data-email="' . esc_attr( $user_email ) . '"
+			data-verify-zip="' . esc_attr( apply_filters( 'wc_stripe_checkout_verify_zip', false ) ? 'true' : 'false' ) . '"
+			data-billing-address="' . esc_attr( apply_filters( 'wc_stripe_checkout_require_billing_address', false ) ? 'true' : 'false' ) . '"
+			data-shipping-address="' . esc_attr( apply_filters( 'wc_stripe_checkout_require_shipping_address', false ) ? 'true' : 'false' ) . '" 
+			data-amount="' . esc_attr( WC_Stripe_Helper::get_stripe_amount( $total ) ) . '"
+			data-name="' . esc_attr( $this->statement_descriptor ) . '"
+			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '"
+			data-image="' . esc_attr( $this->stripe_checkout_image ) . '"
+			data-bitcoin="' . esc_attr( ( $this->bitcoin && $this->capture ) ? 'true' : 'false' ) . '"
+			data-locale="' . esc_attr( apply_filters( 'wc_stripe_checkout_locale', $this->get_locale() ) ) . '"
+			data-three-d-secure="' . esc_attr( $this->three_d_secure ? 'true' : 'false' ) . '"
+			data-allow-remember-me="' . esc_attr( apply_filters( 'wc_stripe_allow_remember_me', true ) ? 'true' : 'false' ) . '">';
 
 		if ( $this->description ) {
 			if ( $this->testmode ) {
@@ -496,12 +527,16 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$total      = WC()->cart->total;
 		$user_email = '';
 
-		if ( $user->ID ) {
-			$user_email = get_user_meta( $user->ID, 'billing_email', true );
-			$user_email = $user_email ? $user_email : $user->user_email;
-		} elseif ( isset( $_GET['key'] ) ) {
+		// If paying from order, we need to get total from order not cart.
+		if ( ! empty( $_GET['key'] ) ) {
 			$order      = wc_get_order( wc_get_order_id_by_order_key( wc_clean( $_GET['key'] ) ) );
+			$total      = $order->get_total();
 			$user_email = WC_Stripe_Helper::is_pre_30() ? $order->billing_email : $order->get_billing_email();
+		} else {
+			if ( $user->ID ) {
+				$user_email = get_user_meta( $user->ID, 'billing_email', true );
+				$user_email = $user_email ? $user_email : $user->user_email;
+			}
 		}
 
 		ob_start();
