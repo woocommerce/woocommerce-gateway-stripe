@@ -292,12 +292,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		if ( is_add_payment_method_page() ) {
 			$pay_button_text = __( 'Add Card', 'woocommerce-gateway-stripe' );
 			$total        = '';
-		} else {
-			$pay_button_text = '';
-		}
-
-		// Subscriptions change payment method page.
-		if ( function_exists( 'wcs_order_contains_subscription' ) && isset( $_GET['change_payment_method'] ) ) {
+		} elseif ( function_exists( 'wcs_order_contains_subscription' ) && isset( $_GET['change_payment_method'] ) ) {
 			$pay_button_text = __( 'Change Payment Method', 'woocommerce-gateway-stripe' );
 			$total        = '';
 		} else {
@@ -338,7 +333,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$this->saved_payment_methods();
 		}
 
-		if ( ! $this->stripe_checkout || is_wc_endpoint_url( 'add-payment-method' ) ) {
+		if ( ! $this->stripe_checkout ) {
 			$this->elements_form();
 		}
 

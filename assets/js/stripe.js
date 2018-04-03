@@ -525,8 +525,8 @@ jQuery( function( $ ) {
 				wc_stripe_form.block();
 
 				// Stripe Checkout.
-				if ( 'yes' === wc_stripe_params.is_stripe_checkout && wc_stripe_form.isStripeModalNeeded() && wc_stripe_form.isStripeCardChosen() && 'no' === wc_stripe_params.is_add_payment_page ) {
-					if ( 'no' === wc_stripe_params.is_pay_for_order_page ) {
+				if ( 'yes' === wc_stripe_params.is_stripe_checkout && wc_stripe_form.isStripeModalNeeded() && wc_stripe_form.isStripeCardChosen() ) {
+					if ( 'yes' === wc_stripe_params.is_checkout ) {
 						return true;
 					} else {
 						wc_stripe_form.openModal();
