@@ -606,6 +606,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$order_id = wc_clean( $_POST['order_id'] );
 		$order    = wc_get_order( $order_id );
 
+		do_action( 'wc_stripe_checkout_return_handler', $order );
+
 		if ( WC_Stripe_Helper::is_pre_orders_exists() && $this->pre_orders->is_pre_order( $order_id ) && WC_Pre_Orders_Order::order_requires_payment_tokenization( $order_id ) ) {
 			$result = $this->pre_orders->process_pre_order( $order_id );
 		} else {

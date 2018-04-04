@@ -127,6 +127,11 @@ We will completely remove the older form by version 5.0.
 * Add - Hook to hide Stripe net payout on order line item `wc_stripe_hide_display_order_payout` (bool).
 * Add - Hook to hide Stripe fee on order line item `wc_stripe_hide_display_order_fee` (bool).
 * Add - Hook to filter out logging messages `wc_stripe_logging` (bool).
+* Add - Hook to add content to the Stripe Checkout Receipt Page `wc_stripe_checkout_receipt_page_before_form`.
+* Add - Hook to add content to the Stripe Checkout Receipt Page `wc_stripe_checkout_receipt_page_after_form`.
+* Add - Hook to add content to the Stripe Checkout Receipt Page `wc_stripe_checkout_receipt_page_before_form_submit`.
+* Add - Hook to add content to the Stripe Checkout Receipt Page `wc_stripe_checkout_receipt_page_after_form_submit`.
+* Add - Hook to add handling to the Stripe Checkout return handler `wc_stripe_checkout_return_handler`.
 * Add - Compatibility with Payment Request/Apple Pay and different coupon types such as gift/store credit by Smart Coupons (requires WC 3.2+).
 * Add - Compatibility with Payment Request/Apple Pay and Subscription product in cart page.
 * Add - Compatibility with Payment Request/Apple Pay and Bookings product in cart page.
