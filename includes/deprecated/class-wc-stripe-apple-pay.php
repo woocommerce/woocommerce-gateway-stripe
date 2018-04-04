@@ -20,7 +20,7 @@ if ( ! class_exists( 'WC_Stripe_Apple_Pay' ) ) {
 		}
 
 		public static function instance() {
-			WC_Stripe_Logger::log( 'DEPRECATED! WC_Stripe_Apple_Pay class has been hard deprecated. Please remove any code that references this class or instance. This class will be removed by version 5.0' );
+			WC_Stripe_Logger::log( 'DEPRECATED! WC_Stripe_Apple_Pay class has been hard deprecated. Please remove any code that references this class or instance. This class will be removed by version 4.2' );
 			return self::$_this;
 		}
 
