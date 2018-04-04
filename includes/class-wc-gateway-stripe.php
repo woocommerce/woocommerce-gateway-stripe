@@ -337,8 +337,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$this->elements_form();
 		}
 
-		if ( apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) && ! $this->stripe_checkout ) {
-			$this->save_payment_method_checkbox();
+		if ( apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) ) {
+
+			if ( ! $this->stripe_checkout ) {
+				$this->save_payment_method_checkbox();
+			} elseif ( $this->stripe_checkout && isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) {
+				$this->save_payment_method_checkbox();
+			}
 		}
 
 		echo '</div>';
@@ -518,9 +523,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$user       = wp_get_current_user();
-		$total      = WC()->cart->total;
-		$user_email = '';
+		$user                 = wp_get_current_user();
+		$total                = WC()->cart->total;
+		$user_email           = '';
+		$display_tokenization = $this->supports( 'tokenization' ) && $this->saved_cards;
 
 		// If paying from order, we need to get total from order not cart.
 		if ( ! empty( $_GET['key'] ) ) {
@@ -535,6 +541,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		ob_start();
+
+		do_action( 'wc_stripe_checkout_receipt_page_before_form' );
 
 		echo '<form method="post" class="woocommerce-checkout" action="' . WC()->api_request_url( get_class( $this ) ) . '">';
 		echo '<div
@@ -556,13 +564,26 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		echo '<input type="hidden" name="order_id" value="' . esc_attr( $order_id ) . '" />';
 		echo '<input type="hidden" name="stripe_checkout_order" value="yes" />';
 
-		if ( ( function_exists( 'wcs_order_contains_subscription' ) && ! WC_Subscriptions_Cart::cart_contains_subscription() ) && ( WC_Stripe_Helper::is_pre_orders_exists() && ! $this->pre_orders->is_pre_order( $order_id ) ) ) {
+		if (
+			apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) &&
+			( ! function_exists( 'wcs_order_contains_subscription' ) || ( function_exists( 'wcs_order_contains_subscription' ) && ! WC_Subscriptions_Cart::cart_contains_subscription() ) ) &&
+			( ! WC_Stripe_Helper::is_pre_orders_exists() || ( WC_Stripe_Helper::is_pre_orders_exists() && ! $this->pre_orders->is_pre_order( $order_id ) ) )
+		) {
 			$this->save_payment_method_checkbox();
 		}
 
 		wp_nonce_field( 'stripe-checkout-process', 'stripe_checkout_process_nonce' );
+
+		do_action( 'wc_stripe_checkout_receipt_page_before_form_submit' );
+
 		echo '<button type="submit" class="wc-stripe-checkout-button">' . __( 'Place Order', 'woocommerce-gateway-stripe' ) . '</button>';
+
+		do_action( 'wc_stripe_checkout_receipt_page_after_form_submit' );
+
 		echo '</form>';
+
+		do_action( 'wc_stripe_checkout_receipt_page_after_form' );
+
 		echo '</div>';
 
 		ob_end_flush();
