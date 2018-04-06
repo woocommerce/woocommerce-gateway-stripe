@@ -128,7 +128,7 @@ class WC_Gateway_Stripe_Alipay extends WC_Stripe_Payment_Gateway {
 			'yes' === $this->enabled && ! in_array( get_woocommerce_currency(), $this->get_supported_currency() )
 		) {
 			/* translators: supported currency list */
-			$message = sprintf( __( 'Alipay is enabled - it requires store currency to be set to %s', 'woocommerce-gateway-stripe' ), implode( ', ', $this->get_supported_currency() ) );
+			$message = sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s.', 'woocommerce-gateway-stripe' ), __( 'Alipay', 'woocommerce-gateway-stripe' ), implode( ', ', $this->get_supported_currency() ) );
 
 			return $message;
 		}
