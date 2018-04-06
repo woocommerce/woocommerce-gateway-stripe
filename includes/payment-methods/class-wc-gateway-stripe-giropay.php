@@ -125,7 +125,7 @@ class WC_Gateway_Stripe_Giropay extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_environment_warning() {
 		if ( 'yes' === $this->enabled && ! in_array( get_woocommerce_currency(), $this->get_supported_currency() ) ) {
-			$message = __( 'Giropay is enabled - it requires store currency to be set to Euros.', 'woocommerce-gateway-stripe' );
+			$message = sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s.', 'woocommerce-gateway-stripe' ), __( 'Giropay', 'woocommerce-gateway-stripe' ), __( 'Euros', 'woocommerce-gateway-stripe' ) );
 
 			return $message;
 		}
