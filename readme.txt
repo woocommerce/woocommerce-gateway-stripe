@@ -113,6 +113,7 @@ We will completely remove the older form by version 5.0.
 * Tweak - Added all color payment logos in svg.
 * Tweak - Update Stripe Fee and Stripe Net meta names.
 * Tweak - Stripe Checkout Popup Modal will validate checkout before proceeding to payment step.
+* Tweak - Verbiage for saving payment information to account.
 * Fix - When SEPA was used in subscription payment, it does not show SEPA in payment method table.
 * Fix - Refund via Stripe dashboard not reflecting amount in order notes.
 * Fix - Potential idempotency issues with subs recurring payment processing.
@@ -132,6 +133,7 @@ We will completely remove the older form by version 5.0.
 * Add - Hook to add content to the Stripe Checkout Receipt Page `wc_stripe_checkout_receipt_page_before_form_submit`.
 * Add - Hook to add content to the Stripe Checkout Receipt Page `wc_stripe_checkout_receipt_page_after_form_submit`.
 * Add - Hook to add handling to the Stripe Checkout return handler `wc_stripe_checkout_return_handler`.
+* Add - Hook to change save to account checkbox text `wc_stripe_save_to_account_text`.
 * Add - Compatibility with Payment Request/Apple Pay and different coupon types such as gift/store credit by Smart Coupons (requires WC 3.2+).
 * Add - Compatibility with Payment Request/Apple Pay and Subscription product in cart page.
 * Add - Compatibility with Payment Request/Apple Pay and Bookings product in cart page.
