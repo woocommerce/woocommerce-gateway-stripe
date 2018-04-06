@@ -8,7 +8,7 @@ $webhook_url = WC_Stripe_Helper::get_webhook_url();
 return apply_filters( 'wc_stripe_bancontact_settings',
 	array(
 		'geo_target' => array(
-			'description' => __( 'Relevant Payer Geography: Belgium', 'woocommerce-gateway-stripe' ),
+			'description' => sprintf( __( 'Relevant Payer Geography: %s', 'woocommerce-gateway-stripe' ), __( 'Belgium', 'woocommerce-gateway-stripe' ) ),
 			'type'        => 'title',
 		),
 		'guide' => array(
