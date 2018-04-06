@@ -12,7 +12,7 @@ return apply_filters( 'wc_stripe_bancontact_settings',
 			'type'        => 'title',
 		),
 		'guide' => array(
-			'description' => __( '<a href="https://stripe.com/payments/payment-methods-guide#bancontact" target="_blank">Payment Method Guide</a>', 'woocommerce-gateway-stripe' ),
+			'description' => sprintf( __( '<a href="%s" target="_blank">Payment Method Guide</a>', 'woocommerce-gateway-stripe' ), 'https://stripe.com/payments/payment-methods-guide#bancontact' ),
 			'type'        => 'title',
 		),
 		'activation' => array(
