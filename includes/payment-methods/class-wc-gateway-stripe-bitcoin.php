@@ -141,7 +141,7 @@ class WC_Gateway_Stripe_Bitcoin extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( 'yes' === $this->enabled && ! in_array( get_woocommerce_currency(), $this->get_supported_currency() ) ) {
-			$message = __( 'Bitcoin is enabled - it requires store currency to be set to USD.', 'woocommerce-gateway-stripe' );
+			$message = sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s.', 'woocommerce-gateway-stripe' ), __( 'Bitcoin', 'woocommerce-gateway-stripe' ), __( 'USD', 'woocommerce-gateway-stripe' ) );
 
 			return $message;
 		}
