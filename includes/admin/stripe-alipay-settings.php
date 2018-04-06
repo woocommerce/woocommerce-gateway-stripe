@@ -8,7 +8,7 @@ $webhook_url = WC_Stripe_Helper::get_webhook_url();
 return apply_filters( 'wc_stripe_alipay_settings',
 	array(
 		'geo_target' => array(
-			'description' => __( 'Relevant Payer Geography: China', 'woocommerce-gateway-stripe' ),
+			'description' => sprintf( __( 'Relevant Payer Geography: %s', 'woocommerce-gateway-stripe' ), __( 'China', 'woocommerce-gateway-stripe' ) ),
 			'type'        => 'title',
 		),
 		'guide' => array(
