@@ -146,14 +146,9 @@ We will completely remove the older form by version 5.0.
 * Update - Stripe API version to 2018-02-28.
 * Remove - Hard deprecated Stripe JS v2 credit card form process.
 
-= 4.0.7 - 2018-02-23 =
-* Fix - Potential conflict issue when adding payment method from another payment gateway.
-* Fix - Issue when using saved card before sources were introduced.
-* Add - Description field/setting for Stripe Checkout Modal/popup.
-
 [See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/changelog.txt).
 
 == Upgrade Notice ==
 
-= 4.0 =
-4.0 is a major update. Please do a full site backup and test on a staging site before deploying to a live/production server.
+= 4.1 =
+4.1 is a minor release. Please do a full site backup and test on a staging site before deploying to a live/production server.
