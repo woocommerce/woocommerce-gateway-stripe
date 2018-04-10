@@ -233,7 +233,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
-			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $e, $order );
+			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, $e );
 
 			$statuses = array( 'pending', 'failed' );
 
