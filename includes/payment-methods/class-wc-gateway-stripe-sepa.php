@@ -270,7 +270,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 				$this->description .= ' ' . __( 'TEST MODE ENABLED. In test mode, you can use IBAN number DE89370400440532013000.', 'woocommerce-gateway-stripe' );
 				$this->description  = trim( $this->description );
 			}
-			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $this->description ) ) );
+			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $this->description ) ), $this->id );
 		}
 
 		if ( $display_tokenization ) {

@@ -325,7 +325,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$this->description  = trim( $this->description );
 			}
 
-			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $this->description ) ) );
+			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $this->description ) ), $this->id );
 		}
 
 		if ( $display_tokenization ) {
@@ -495,7 +495,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$stripe_params['is_change_payment_page']                  = isset( $_GET['change_payment_method'] ) ? 'yes' : 'no';
 		$stripe_params['is_add_payment_page']                     = is_wc_endpoint_url( 'add-payment-method' ) ? 'yes' : 'no';
 		$stripe_params['is_pay_for_order_page']                   = is_wc_endpoint_url( 'order-pay' ) ? 'yes' : 'no';
-		$stripe_params['validate_modal_checkout']                 = apply_filters( 'wc_stripe_validate_modal_checkout', false ) ? 'yes' : 'no';
 		$stripe_params['elements_styling']                        = apply_filters( 'wc_stripe_elements_styling', false );
 		$stripe_params['elements_classes']                        = apply_filters( 'wc_stripe_elements_classes', false );
 
