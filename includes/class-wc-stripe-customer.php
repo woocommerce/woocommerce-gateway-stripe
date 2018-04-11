@@ -52,6 +52,13 @@ class WC_Stripe_Customer {
 	 * @param [type] $id [description]
 	 */
 	public function set_id( $id ) {
+		// Backwards compat for customer ID stored in array format. (Pre 3.0)
+		if ( is_array( $id ) && isset( $id['customer_id'] ) ) {
+			$id = $id['customer_id'];
+
+			update_user_meta( $this->get_user_id(), '_stripe_customer_id', $id );
+		}
+
 		$this->id = wc_clean( $id );
 	}
 

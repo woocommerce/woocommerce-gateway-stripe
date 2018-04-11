@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 4.9
 Requires PHP: 5.6
-Stable tag: 4.0.7
+Stable tag: 4.1.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -105,7 +105,7 @@ We will completely remove the older form by version 5.0.
 
 == Changelog ==
 
-= 4.1.0 - 2018-xx-xx =
+= 4.1.0 - 2018-04-11 =
 * Tweak - Create user session only on product detail page.
 * Tweak - Payment Request session handling to bail if session already exists.
 * Tweak - 3DS recommended is now required and 3DS optional is now not required.
@@ -117,6 +117,7 @@ We will completely remove the older form by version 5.0.
 * Fix - When SEPA was used in subscription payment, it does not show SEPA in payment method table.
 * Fix - Refund via Stripe dashboard not reflecting amount in order notes.
 * Fix - Potential idempotency issues with subs recurring payment processing.
+* Fix - Issue with very old customer id stored pre 3.0 version not able to checkout.
 * Add - Multibanco payment method.
 * Add - EPS payment method.
 * Add - Notice for customer to change saved cards when billing address has been updated.
