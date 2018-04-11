@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 4.1.0 - 2018-xx-xx =
+= 4.1.0 - 2018-04-11 =
 * Tweak - Create user session only on product detail page.
 * Tweak - Payment Request session handling to bail if session already exists.
 * Tweak - 3DS recommended is now required and 3DS optional is now not required.
