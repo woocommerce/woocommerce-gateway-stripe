@@ -92,7 +92,7 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php' );
 
 			// Don't hook anything else in the plugin if we're in an incompatible environment.
-			if ( $this->get_environment_warning() && is_plugin_active( plugin_basename( __FILE__ ) ) ) {
+			if ( $this->get_environment_warning() ) {
 				return;
 			}
 
@@ -185,6 +185,10 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * @version 3.1.0
 		 */
 		public function install() {
+			if ( ! is_plugin_active( plugin_basename( __FILE__ ) ) ) {
+				return;
+			}
+
 			if ( ! defined( 'IFRAME_REQUEST' ) && ( WC_STRIPE_VERSION !== get_option( 'wc_stripe_version' ) ) ) {
 				do_action( 'woocommerce_stripe_updated' );
 
