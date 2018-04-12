@@ -105,6 +105,9 @@ We will completely remove the older form by version 5.0.
 
 == Changelog ==
 
+= 4.1.1 - 2018-xx-xx =
+* Tweak - Use payment_complete method when charge is succeeded or captured so other WC related tasks gets triggered.
+
 = 4.1.0 - 2018-04-11 =
 * Tweak - Create user session only on product detail page.
 * Tweak - Payment Request session handling to bail if session already exists.

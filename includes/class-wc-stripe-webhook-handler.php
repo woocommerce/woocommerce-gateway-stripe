@@ -300,17 +300,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$this->update_fees( $order, $notification->data->object->balance_transaction );
 				}
 
-				if ( is_callable( array( $order, 'save' ) ) ) {
-					$order->save();
-				}
-
-				/* translators: transaction id */
-				$order->update_status( $order->needs_processing() ? 'processing' : 'completed', sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
-
 				// Check and see if capture is partial.
 				if ( $this->is_partial_capture( $notification ) ) {
-					$order->set_total( $this->get_partial_amount_to_charge( $notification ) );
-					$order->add_order_note( __( 'This charge was partially captured via Stripe Dashboard', 'woocommerce-gateway-stripe' ) );
+					$partial_amount = $this->get_partial_amount_to_charge( $notification );
+					$order->set_total( $partial_amount );
+					$order->add_order_note( sprintf( __( 'This charge was partially captured via Stripe Dashboard in the amount of: %s', 'woocommerce-gateway-stripe' ), $partial_amount ) );
+				} else {
+					$order->payment_complete( $notification->data->object->id );
+
+					/* translators: transaction id */
+					$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
+				}
+
+				if ( is_callable( array( $order, 'save' ) ) ) {
 					$order->save();
 				}
 			}
@@ -351,12 +353,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$this->update_fees( $order, $notification->data->object->balance_transaction );
 		}
 
+		$order->payment_complete( $notification->data->object->id );
+
+		/* translators: transaction id */
+		$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
+
 		if ( is_callable( array( $order, 'save' ) ) ) {
 			$order->save();
 		}
-
-		/* translators: transaction id */
-		$order->update_status( $order->needs_processing() ? 'processing' : 'completed', sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
 	}
 
 	/**
