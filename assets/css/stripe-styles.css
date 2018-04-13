@@ -9,7 +9,7 @@ form#order_review .payment_methods label { margin-left: 10px; }
 form#order_review li { clear: right; }
 form#order_review #wc-stripe_sepa-form { padding: 10px; }
 .woocommerce-checkout #payment ul.payment_methods li img.stripe-icon,
-#add_payment_method #payment ul.payment_methods li img.stripe-icon { float: right; max-width: 52px; padding-left: 3px; margin: 0; }
+#add_payment_method #payment ul.payment_methods li img.stripe-icon { float: right; max-width: 40px; padding-left: 3px; margin: 0; }
 
 .woocommerce-checkout #payment ul.payment_methods li img.stripe-bancontact-icon,
 #add_payment_method #payment ul.payment_methods li img.stripe-bancontact-icon { max-height: 65px; }

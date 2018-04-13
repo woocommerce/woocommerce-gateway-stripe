@@ -144,7 +144,7 @@ jQuery( function( $ ) {
 			};
 
 			var imageElement = $( '.stripe-card-brand' ),
-				imageClass;
+				imageClass = 'stripe-credit-card-brand';
 
 			if ( brand in brandClass ) {
 				imageClass = brandClass[ brand ];
