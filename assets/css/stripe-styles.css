@@ -8,11 +8,53 @@ form#order_review #payment_method_stripe_sepa { margin: 25px 0 25px 25px; }
 form#order_review .payment_methods label { margin-left: 10px; }
 form#order_review li { clear: right; }
 form#order_review #wc-stripe_sepa-form { padding: 10px; }
-#payment .payment_methods li img.stripe-icon { float: right; max-width: 52px; padding-left: 3px; }
-#payment .payment_methods li img.stripe-bancontact-icon { max-height: 65px; }
-#payment .payment_methods li img.stripe-ideal-icon { max-height: 35px; }
-#payment .payment_methods li img.stripe-p24-icon { max-width: 65px; }
-#payment .payment_methods li img.stripe-sofort-icon { max-width: 65px; }
-#payment .payment_methods li img.stripe-multibanco-icon { max-height: 30px; }
-#payment .payment_methods li img.stripe-eps-icon { max-height: 30px; }
-#payment .payment_methods li img.stripe-bitcoin-icon { max-width: 65px; }
+.woocommerce-checkout #payment ul.payment_methods li img.stripe-icon,
+#add_payment_method #payment ul.payment_methods li img.stripe-icon { float: right; max-width: 40px; padding-left: 3px; margin: 0; }
+
+.woocommerce-checkout #payment ul.payment_methods li img.stripe-bancontact-icon,
+#add_payment_method #payment ul.payment_methods li img.stripe-bancontact-icon { max-height: 65px; }
+
+.woocommerce-checkout #payment ul.payment_methods li img.stripe-ideal-icon,
+#add_payment_method #payment ul.payment_methods li img.stripe-ideal-icon { max-height: 35px; }
+
+.woocommerce-checkout #payment ul.payment_methods li img.stripe-p24-icon,
+#add_payment_method #payment ul.payment_methods li img.stripe-p24-icon { max-width: 65px; }
+
+.woocommerce-checkout #payment ul.payment_methods li img.stripe-sofort-icon,
+#add_payment_method #payment ul.payment_methods li img.stripe-sofort-icon { max-width: 65px; }
+
+.woocommerce-checkout #payment ul.payment_methods li img.stripe-multibanco-icon,
+#add_payment_method #payment ul.payment_methods li img.stripe-multibanco-icon { max-height: 30px; }
+
+.woocommerce-checkout #payment ul.payment_methods li img.stripe-eps-icon,
+#add_payment_method #payment ul.payment_methods li img.stripe-eps-icon { max-height: 30px; }
+
+.woocommerce-checkout #payment ul.payment_methods li img.stripe-bitcoin-icon,
+#add_payment_method #payment ul.payment_methods li img.stripe-bitcoin-icon { max-width: 65px; }
+
+.woocommerce-checkout #payment ul.payment_methods li .stripe-credit-card-brand,
+#add_payment_method #payment ul.payment_methods li .stripe-credit-card-brand { position: absolute; top: 10px; right: 5px; background: no-repeat url( '../images/credit-card.svg' ); display: block; width: 30px; height: 24px; }
+
+.woocommerce-checkout #payment ul.payment_methods li .stripe-visa-brand,
+#add_payment_method #payment ul.payment_methods li .stripe-visa-brand { position: absolute; top: 10px; right: 5px; background: no-repeat url( '../images/visa.svg' ); display: block; width: 30px; height: 24px; }
+
+.woocommerce-checkout #payment ul.payment_methods li .stripe-amex-brand,
+#add_payment_method #payment ul.payment_methods li .stripe-amex-brand { position: absolute; top: 10px; right: 5px; background: no-repeat url( '../images/amex.svg' ); display: block; width: 30px; height: 24px; }
+
+.woocommerce-checkout #payment ul.payment_methods li .stripe-diners-brand,
+#add_payment_method #payment ul.payment_methods li .stripe-diners-brand { position: absolute; top: 10px; right: 5px; background: no-repeat url( '../images/diners.svg' ); display: block; width: 30px; height: 24px; }
+
+.woocommerce-checkout #payment ul.payment_methods li .stripe-discover-brand,
+#add_payment_method #payment ul.payment_methods li .stripe-discover-brand { position: absolute; top: 10px; right: 5px; background: no-repeat url( '../images/discover.svg' ); display: block; width: 30px; height: 24px; }
+
+.woocommerce-checkout #payment ul.payment_methods li .stripe-jcb-brand,
+#add_payment_method #payment ul.payment_methods li .stripe-jcb-brand { position: absolute; top: 10px; right: 5px; background: no-repeat url( '../images/jcb.svg' ); display: block; width: 30px; height: 24px; }
+
+.woocommerce-checkout #payment ul.payment_methods li .stripe-maestro-brand,
+#add_payment_method #payment ul.payment_methods li .stripe-maestro-brand { position: absolute; top: 10px; right: 5px; background: no-repeat url( '../images/maestro.svg' ); display: block; width: 30px; height: 24px; }
+
+.woocommerce-checkout #payment ul.payment_methods li .stripe-mastercard-brand,
+#add_payment_method #payment ul.payment_methods li .stripe-mastercard-brand { position: absolute; top: 10px; right: 5px; background: no-repeat url( '../images/mastercard.svg' ); display: block; width: 30px; height: 24px; }
+
+.woocommerce-checkout #payment ul.payment_methods .stripe-card-group,
+#add_payment_method #payment ul.payment_methods .stripe-card-group { position: relative; }

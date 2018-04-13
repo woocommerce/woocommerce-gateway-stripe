@@ -120,6 +120,34 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 	}
 
 	/**
+	 * Process the payment method change for subscriptions.
+	 *
+	 * @since 4.0.4
+	 * @param int $order_id
+	 */
+	public function change_subs_payment_method( $order_id ) {
+		try {
+			$subscription    = wc_get_order( $order_id );
+			$prepared_source = $this->prepare_source( get_current_user_id(), true );
+
+			if ( empty( $prepared_source->source ) ) {
+				$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
+				throw new WC_Stripe_Exception( print_r( $prepared_source, true ), $localized_message );
+			}
+
+			$this->save_source_to_order( $subscription, $prepared_source );
+
+			return array(
+				'result'   => 'success',
+				'redirect' => $this->get_return_url( $subscription ),
+			);
+		} catch ( WC_Stripe_Exception $e ) {
+			wc_add_notice( $e->getLocalizedMessage(), 'error' );
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+		}
+	}
+
+	/**
 	 * Scheduled_subscription_payment function.
 	 *
 	 * @param $amount_to_charge float The amount to charge.

@@ -90,6 +90,8 @@ jQuery( function( $ ) {
 				stripe_card.addEventListener( 'change', function( event ) {
 					wc_stripe_form.onCCFormChange();
 
+					wc_stripe_form.updateCardBrand( event.brand );
+
 					if ( event.error ) {
 						$( document.body ).trigger( 'stripeError', event );
 					}
@@ -128,6 +130,32 @@ jQuery( function( $ ) {
 			} else if ( $( 'form#add_payment_method' ).length || $( 'form#order_review' ).length ) {
 				wc_stripe_form.mountElements();
 			}
+		},
+
+		updateCardBrand: function( brand ) {
+			var brandClass = {
+				'visa': 'stripe-visa-brand',
+				'mastercard': 'stripe-mastercard-brand',
+				'amex': 'stripe-amex-brand',
+				'discover': 'stripe-discover-brand',
+				'diners': 'stripe-diners-brand',
+				'jcb': 'stripe-jcb-brand',
+				'unknown': 'stripe-credit-card-brand'
+			};
+
+			var imageElement = $( '.stripe-card-brand' ),
+				imageClass = 'stripe-credit-card-brand';
+
+			if ( brand in brandClass ) {
+				imageClass = brandClass[ brand ];
+			}
+
+			// Remove existing card brand class.
+			$.each( brandClass, function( index, el ) {
+				imageElement.removeClass( el );
+			} );
+
+			imageElement.addClass( imageClass );
 		},
 
 		/**
@@ -197,7 +225,7 @@ jQuery( function( $ ) {
 
 		// Check to see if Stripe in general is being used for checkout.
 		isStripeChosen: function() {
-			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_giropay, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa, #payment_method_stripe_bitcoin' ).is( ':checked' ) || ( $( '#payment_method_stripe' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() ) || ( $( '#payment_method_stripe_sepa' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() );
+			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_giropay, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa, #payment_method_stripe_bitcoin, #payment_method_stripe_eps, #payment_method_stripe_multibanco' ).is( ':checked' ) || ( $( '#payment_method_stripe' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() ) || ( $( '#payment_method_stripe_sepa' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() );
 		},
 
 		// Currently only support saved cards via credit cards and SEPA. No other payment method.
@@ -241,6 +269,14 @@ jQuery( function( $ ) {
 
 		isP24Chosen: function() {
 			return $( '#payment_method_stripe_p24' ).is( ':checked' );
+		},
+
+		isEpsChosen: function() {
+			return $( '#payment_method_stripe_eps' ).is( ':checked' );
+		},
+
+		isMultibancoChosen: function() {
+			return $( '#payment_method_stripe_multibanco' ).is( ':checked' );
 		},
 
 		hasSource: function() {
@@ -558,7 +594,9 @@ jQuery( function( $ ) {
 					wc_stripe_form.isIdealChosen() ||
 					wc_stripe_form.isAlipayChosen() ||
 					wc_stripe_form.isSofortChosen() ||
-					wc_stripe_form.isP24Chosen()
+					wc_stripe_form.isP24Chosen() ||
+					wc_stripe_form.isEpsChosen() ||
+					wc_stripe_form.isMultibancoChosen()
 				) {
 					if ( $( 'form#order_review' ).length ) {
 						$( 'form#order_review' )
@@ -568,15 +606,11 @@ jQuery( function( $ ) {
 							);
 
 						wc_stripe_form.form.submit();
+
+						return false;
 					}
 
 					if ( $( 'form.woocommerce-checkout' ).length ) {
-						$( 'form.woocommerce-checkout' )
-							.off(
-								'submit',
-								this.onSubmit
-							);
-
 						return true;
 					}
 
@@ -588,6 +622,8 @@ jQuery( function( $ ) {
 							);
 
 						wc_stripe_form.form.submit();
+
+						return false;
 					}
 				}
 
