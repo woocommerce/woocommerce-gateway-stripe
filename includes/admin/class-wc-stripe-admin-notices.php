@@ -100,53 +100,86 @@ class WC_Stripe_Admin_Notices {
 	 * @version 4.0.0
 	 */
 	public function stripe_check_environment() {
-		$show_ssl_notice  = get_option( 'wc_stripe_show_ssl_notice' );
-		$show_keys_notice = get_option( 'wc_stripe_show_keys_notice' );
-		$options          = get_option( 'woocommerce_stripe_settings' );
-		$testmode         = ( isset( $options['testmode'] ) && 'yes' === $options['testmode'] ) ? true : false;
-		$test_pub_key     = isset( $options['test_publishable_key'] ) ? $options['test_publishable_key'] : '';
-		$test_secret_key  = isset( $options['test_secret_key'] ) ? $options['test_secret_key'] : '';
-		$live_pub_key     = isset( $options['publishable_key'] ) ? $options['publishable_key'] : '';
-		$live_secret_key  = isset( $options['secret_key'] ) ? $options['secret_key'] : '';
+		$show_ssl_notice    = get_option( 'wc_stripe_show_ssl_notice' );
+		$show_keys_notice   = get_option( 'wc_stripe_show_keys_notice' );
+		$show_phpver_notice = get_option( 'wc_stripe_show_phpver_notice' );
+		$show_wcver_notice  = get_option( 'wc_stripe_show_wcver_notice' );
+		$show_curl_notice   = get_option( 'wc_stripe_show_curl_notice' );
+		$options            = get_option( 'woocommerce_stripe_settings' );
+		$testmode           = ( isset( $options['testmode'] ) && 'yes' === $options['testmode'] ) ? true : false;
+		$test_pub_key       = isset( $options['test_publishable_key'] ) ? $options['test_publishable_key'] : '';
+		$test_secret_key    = isset( $options['test_secret_key'] ) ? $options['test_secret_key'] : '';
+		$live_pub_key       = isset( $options['publishable_key'] ) ? $options['publishable_key'] : '';
+		$live_secret_key    = isset( $options['secret_key'] ) ? $options['secret_key'] : '';
 
-		if ( isset( $options['enabled'] ) && 'yes' === $options['enabled'] && empty( $show_keys_notice ) ) {
-			$secret = WC_Stripe_API::get_secret_key();
+		if ( isset( $options['enabled'] ) && 'yes' === $options['enabled'] ) {
+			if ( empty( $show_phpver_notice ) ) {
+				if ( version_compare( phpversion(), WC_STRIPE_MIN_PHP_VER, '<' ) ) {
+					/* translators: 1) int version 2) int version */
+					$message = __( 'WooCommerce Stripe - The minimum PHP version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe' );
 
-			if ( empty( $secret ) && ! ( isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 'stripe' === $_GET['section'] ) ) {
-				$setting_link = $this->get_setting_link();
-				/* translators: 1) link */
-				$this->add_admin_notice( 'keys', 'notice notice-warning', sprintf( __( 'Stripe is almost ready. To get started, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ), true );
-			}
+					$this->add_admin_notice( 'phpver', 'error', sprintf( $message, WC_STRIPE_MIN_PHP_VER, phpversion() ), true );
 
-			// Check if keys are entered properly per live/test mode.
-			if ( $testmode ) {
-				if (
-					! empty( $test_pub_key ) && ! preg_match( '/^pk_test_/', $test_pub_key )
-					|| ( ! empty( $test_secret_key ) && ! preg_match( '/^sk_test_/', $test_secret_key )
-					&& ! empty( $test_secret_key ) && ! preg_match( '/^rk_test_/', $test_secret_key ) ) )
-				{
-					$setting_link = $this->get_setting_link();
-					/* translators: 1) link */
-					$this->add_admin_notice( 'keys', 'notice notice-error', sprintf( __( 'Stripe is in test mode however your test keys may not be valid. Test keys start with pk_test and sk_test or rk_test. Please go to your settings and, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ), true );
-				}
-			} else {
-				if (
-					! empty( $live_pub_key ) && ! preg_match( '/^pk_live_/', $live_pub_key )
-					|| ( ! empty( $live_secret_key ) && ! preg_match( '/^sk_live_/', $live_secret_key )
-					&& ! empty( $live_secret_key ) && ! preg_match( '/^rk_live_/', $live_secret_key ) ) )
-				{
-					$setting_link = $this->get_setting_link();
-					/* translators: 1) link */
-					$this->add_admin_notice( 'keys', 'notice notice-error', sprintf( __( 'Stripe is in live mode however your test keys may not be valid. Live keys start with pk_live and sk_live or rk_live. Please go to your settings and, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ), true );
+					return;
 				}
 			}
-		}
 
-		if ( empty( $show_ssl_notice ) && isset( $options['enabled'] ) && 'yes' === $options['enabled'] ) {
-			// Show message if enabled and FORCE SSL is disabled and WordpressHTTPS plugin is not detected.
-			if ( ( function_exists( 'wc_site_is_https' ) && ! wc_site_is_https() ) && ( 'no' === get_option( 'woocommerce_force_ssl_checkout' ) && ! class_exists( 'WordPressHTTPS' ) ) ) {
-				/* translators: 1) link 2) link */
-				$this->add_admin_notice( 'ssl', 'notice notice-warning', sprintf( __( 'Stripe is enabled, but the <a href="%1$s">force SSL option</a> is disabled; your checkout may not be secure! Please enable SSL and ensure your server has a valid <a href="%2$s" target="_blank">SSL certificate</a> - Stripe will only work in test mode.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ), 'https://en.wikipedia.org/wiki/Transport_Layer_Security' ), true );
+			if ( empty( $show_wcver_notice ) ) {
+				if ( version_compare( WC_VERSION, WC_STRIPE_MIN_WC_VER, '<' ) ) {
+					/* translators: 1) int version 2) int version */
+					$message = __( 'WooCommerce Stripe - The minimum WooCommerce version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe' );
+
+					$this->add_admin_notice( 'wcver', 'notice notice-warning', sprintf( $message, WC_STRIPE_MIN_WC_VER, WC_VERSION ), true );
+
+					return;
+				}
+			}
+
+			if ( empty( $show_curl_notice ) ) {
+				if ( ! function_exists( 'curl_init' ) ) {
+					$this->add_admin_notice( 'curl', 'notice notice-warning', __( 'WooCommerce Stripe - cURL is not installed.', 'woocommerce-gateway-stripe' ), true );
+				}
+			}
+
+			if ( empty( $show_keys_notice ) ) {
+				$secret = WC_Stripe_API::get_secret_key();
+
+				if ( empty( $secret ) && ! ( isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 'stripe' === $_GET['section'] ) ) {
+					$setting_link = $this->get_setting_link();
+					/* translators: 1) link */
+					$this->add_admin_notice( 'keys', 'notice notice-warning', sprintf( __( 'Stripe is almost ready. To get started, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ), true );
+				}
+
+				// Check if keys are entered properly per live/test mode.
+				if ( $testmode ) {
+					if (
+						! empty( $test_pub_key ) && ! preg_match( '/^pk_test_/', $test_pub_key )
+						|| ( ! empty( $test_secret_key ) && ! preg_match( '/^sk_test_/', $test_secret_key )
+						&& ! empty( $test_secret_key ) && ! preg_match( '/^rk_test_/', $test_secret_key ) ) )
+					{
+						$setting_link = $this->get_setting_link();
+						/* translators: 1) link */
+						$this->add_admin_notice( 'keys', 'notice notice-error', sprintf( __( 'Stripe is in test mode however your test keys may not be valid. Test keys start with pk_test and sk_test or rk_test. Please go to your settings and, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ), true );
+					}
+				} else {
+					if (
+						! empty( $live_pub_key ) && ! preg_match( '/^pk_live_/', $live_pub_key )
+						|| ( ! empty( $live_secret_key ) && ! preg_match( '/^sk_live_/', $live_secret_key )
+						&& ! empty( $live_secret_key ) && ! preg_match( '/^rk_live_/', $live_secret_key ) ) )
+					{
+						$setting_link = $this->get_setting_link();
+						/* translators: 1) link */
+						$this->add_admin_notice( 'keys', 'notice notice-error', sprintf( __( 'Stripe is in live mode however your test keys may not be valid. Live keys start with pk_live and sk_live or rk_live. Please go to your settings and, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ), true );
+					}
+				}
+			}
+
+			if ( empty( $show_ssl_notice ) ) {
+				// Show message if enabled and FORCE SSL is disabled and WordpressHTTPS plugin is not detected.
+				if ( ( function_exists( 'wc_site_is_https' ) && ! wc_site_is_https() ) && ( 'no' === get_option( 'woocommerce_force_ssl_checkout' ) && ! class_exists( 'WordPressHTTPS' ) ) ) {
+					/* translators: 1) link 2) link */
+					$this->add_admin_notice( 'ssl', 'notice notice-warning', sprintf( __( 'Stripe is enabled, but the <a href="%1$s">force SSL option</a> is disabled; your checkout may not be secure! Please enable SSL and ensure your server has a valid <a href="%2$s" target="_blank">SSL certificate</a> - Stripe will only work in test mode.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ), 'https://en.wikipedia.org/wiki/Transport_Layer_Security' ), true );
+				}
 			}
 		}
 	}
@@ -192,6 +225,15 @@ class WC_Stripe_Admin_Notices {
 			$notice = wc_clean( $_GET['wc-stripe-hide-notice'] );
 
 			switch ( $notice ) {
+				case 'phpver':
+					update_option( 'wc_stripe_show_phpver_notice', 'no' );
+					break;
+				case 'wcver':
+					update_option( 'wc_stripe_show_wcver_notice', 'no' );
+					break;
+				case 'curl':
+					update_option( 'wc_stripe_show_curl_notice', 'no' );
+					break;
 				case 'ssl':
 					update_option( 'wc_stripe_show_ssl_notice', 'no' );
 					break;

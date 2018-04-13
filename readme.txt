@@ -107,8 +107,11 @@ We will completely remove the older form by version 5.0.
 
 = 4.1.1 - 2018-xx-xx =
 * Tweak - Use payment_complete method when charge is succeeded or captured so other WC related tasks gets triggered.
+* Tweak - Styling for the credit card logos.
 * Add - Subscription change payment method support for SEPA.
+* Add - Credit card branding detection on credit card field.
 * Fix - When checkout form fields fails second time, page refreshes instead of using AJAX.
+* Fix - Potential issue when WC is not activated.
 
 = 4.1.0 - 2018-04-11 =
 * Tweak - Create user session only on product detail page.

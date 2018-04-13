@@ -86,15 +86,15 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * @version 4.0.0
 		 */
 		public function init() {
+			if ( function_exists( 'is_woocommerce_active' ) && ! is_woocommerce_active() ) {
+				add_action( 'admin_notices', array( $this, 'woocommerce_missing_notice' ) );
+				return;
+			}
+
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-exception.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-logger.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-helper.php' );
 			include_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php' );
-
-			// Don't hook anything else in the plugin if we're in an incompatible environment.
-			if ( $this->get_environment_warning() ) {
-				return;
-			}
 
 			load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
 
@@ -134,37 +134,13 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		}
 
 		/**
-		 * Checks the environment for compatibility problems.
-		 * Returns a string with the first incompatibility
-		 * found or false if the environment has no problems.
+		 * WooCommerce fallback notice.
 		 *
-		 * @since 1.0.0
-		 * @version 4.0.0
+		 * @since 4.1.1
+		 * @return string
 		 */
-		public function get_environment_warning() {
-			if ( version_compare( phpversion(), WC_STRIPE_MIN_PHP_VER, '<' ) ) {
-				/* translators: 1) int version 2) int version */
-				$message = __( 'WooCommerce Stripe - The minimum PHP version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe' );
-
-				return sprintf( $message, WC_STRIPE_MIN_PHP_VER, phpversion() );
-			}
-
-			if ( ! defined( 'WC_VERSION' ) ) {
-				return __( 'WooCommerce Stripe requires WooCommerce to be activated to work.', 'woocommerce-gateway-stripe' );
-			}
-
-			if ( version_compare( WC_VERSION, WC_STRIPE_MIN_WC_VER, '<' ) ) {
-				/* translators: 1) int version 2) int version */
-				$message = __( 'WooCommerce Stripe - The minimum WooCommerce version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe' );
-
-				return sprintf( $message, WC_STRIPE_MIN_WC_VER, WC_VERSION );
-			}
-
-			if ( ! function_exists( 'curl_init' ) ) {
-				return __( 'WooCommerce Stripe - cURL is not installed.', 'woocommerce-gateway-stripe' );
-			}
-
-			return false;
+		public function woocommerce_missing_notice() {
+			echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce to be installed and active. You can download %s here.', 'woocommerce-gateway-stripe' ), '<a href="https://woocommerce.com/" target="_blank">WooCommerce</a>' ) . '</strong></p></div>';
 		}
 
 		/**

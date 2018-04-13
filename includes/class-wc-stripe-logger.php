@@ -21,6 +21,10 @@ class WC_Stripe_Logger {
 	 * @version 4.0.0
 	 */
 	public static function log( $message, $start_time = null, $end_time = null ) {
+		if ( ! class_exists( 'WC_Logger' ) ) {
+			return;
+		}
+
 		if ( apply_filters( 'wc_stripe_logging', true, $message ) ) {
 			if ( empty( self::$logger ) ) {
 				self::$logger = new WC_Logger();

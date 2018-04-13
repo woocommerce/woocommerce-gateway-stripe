@@ -90,6 +90,8 @@ jQuery( function( $ ) {
 				stripe_card.addEventListener( 'change', function( event ) {
 					wc_stripe_form.onCCFormChange();
 
+					wc_stripe_form.updateCardBrand( event.brand );
+
 					if ( event.error ) {
 						$( document.body ).trigger( 'stripeError', event );
 					}
@@ -128,6 +130,32 @@ jQuery( function( $ ) {
 			} else if ( $( 'form#add_payment_method' ).length || $( 'form#order_review' ).length ) {
 				wc_stripe_form.mountElements();
 			}
+		},
+
+		updateCardBrand: function( brand ) {
+			var brandClass = {
+				'visa': 'stripe-visa-brand',
+				'mastercard': 'stripe-mastercard-brand',
+				'amex': 'stripe-amex-brand',
+				'discover': 'stripe-discover-brand',
+				'diners': 'stripe-diners-brand',
+				'jcb': 'stripe-jcb-brand',
+				'unknown': 'stripe-credit-card-brand'
+			};
+
+			var imageElement = $( '.stripe-card-brand' ),
+				imageClass;
+
+			if ( brand in brandClass ) {
+				imageClass = brandClass[ brand ];
+			}
+
+			// Remove existing card brand class.
+			$.each( brandClass, function( index, el ) {
+				imageElement.removeClass( el );
+			} );
+
+			imageElement.addClass( imageClass );
 		},
 
 		/**
