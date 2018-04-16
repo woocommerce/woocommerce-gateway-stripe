@@ -162,8 +162,9 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 	 * Payment form on checkout page
 	 */
 	public function payment_fields() {
-		$user  = wp_get_current_user();
-		$total = WC()->cart->total;
+		$user        = wp_get_current_user();
+		$total       = WC()->cart->total;
+		$description = $this->get_description();
 
 		// If paying from order, we need to get total from order not cart.
 		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) {
@@ -183,8 +184,8 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 			data-amount="' . esc_attr( WC_Stripe_Helper::get_stripe_amount( $total ) ) . '"
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '">';
 
-		if ( $this->description ) {
-			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $this->description ) ), $this->id );
+		if ( $description ) {
+			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $description ) ), $this->id );
 		}
 
 		echo '</div>';
