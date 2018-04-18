@@ -142,6 +142,21 @@ class WC_Stripe_Customer {
 	}
 
 	/**
+	 * Checks to see if error is of invalid request
+	 * error and it is no such customer.
+	 *
+	 * @since 4.1.2
+	 * @param array $error
+	 */
+	public function is_no_such_customer_error( $error ) {
+		return (
+			$error &&
+			'invalid_request_error' === $error->type &&
+			preg_match( '/No such customer/i', $error->message )
+		);
+	}
+
+	/**
 	 * Add a source for this stripe customer.
 	 * @param string $source_id
 	 * @param bool $retry
