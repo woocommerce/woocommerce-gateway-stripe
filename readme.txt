@@ -102,7 +102,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 4.1.2 - 2018-04-23 =
-* Fix - When payment method is invalid while trying to force save card, error can unexpected error can occur.
+* Fix - When payment method is invalid while trying to force save card, unexpected error can occur.
 * Tweak - Icon CSS styling to work for more different theme setups.
 
 = 4.1.1 - 2018-04-17 =
