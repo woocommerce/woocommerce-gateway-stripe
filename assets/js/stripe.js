@@ -397,6 +397,8 @@ jQuery( function( $ ) {
 
 			if ( first_name && last_name ) {
 				extra_details.owner.name = first_name + ' ' + last_name;
+			} else {
+				extra_details.owner.name = $( '#stripe-payment-data' ).data( 'full-name' );
 			}
 
 			extra_details.owner.email = $( '#billing_email' ).val();
