@@ -103,6 +103,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 4.1.2 - 2018-04-23 =
 * Fix - When payment method is invalid while trying to force save card, error can unexpected error can occur.
+* Tweak - Icon CSS styling to work for more different theme setups.
 
 = 4.1.1 - 2018-04-17 =
 * Tweak - Use payment_complete method when charge is succeeded or captured so other WC related tasks gets triggered.
