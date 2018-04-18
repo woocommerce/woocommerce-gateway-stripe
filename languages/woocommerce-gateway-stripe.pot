@@ -2,10 +2,10 @@
 # This file is distributed under the same license as the WooCommerce Stripe Gateway package.
 msgid ""
 msgstr ""
-"Project-Id-Version: WooCommerce Stripe Gateway 4.1.0\n"
+"Project-Id-Version: WooCommerce Stripe Gateway 4.1.1\n"
 "Report-Msgid-Bugs-To: "
 "https://github.com/woocommerce/woocommerce-gateway-stripe/issues\n"
-"POT-Creation-Date: 2018-04-13 17:33:17+00:00\n"
+"POT-Creation-Date: 2018-04-18 00:00:54+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -63,10 +63,10 @@ msgid "Stripe charge complete (Charge ID: %s)"
 msgstr ""
 
 #: includes/abstracts/abstract-wc-stripe-payment-gateway.php:463
-#: includes/class-wc-gateway-stripe.php:694
+#: includes/class-wc-gateway-stripe.php:695
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:134
 #: includes/compat/class-wc-stripe-subs-compat.php:96
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:328
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:329
 msgid "Payment processing failed. Please retry."
 msgstr ""
 
@@ -740,15 +740,15 @@ msgid ""
 "to remove any %1$ssaved payment methods%2$s on file and re-add them."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:293
+#: includes/class-wc-gateway-stripe.php:294
 msgid "Add Card"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:296
+#: includes/class-wc-gateway-stripe.php:297
 msgid "Change Payment Method"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:324
+#: includes/class-wc-gateway-stripe.php:325
 #. translators: link to Stripe testing page
 msgid ""
 "TEST MODE ENABLED. In test mode, you can use the card number "
@@ -757,84 +757,84 @@ msgid ""
 "card numbers."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:367
+#: includes/class-wc-gateway-stripe.php:368
 msgid "Credit or debit card"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:375
+#: includes/class-wc-gateway-stripe.php:376
 msgid "Card Number"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:386
+#: includes/class-wc-gateway-stripe.php:387
 msgid "Expiry Date"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:394
+#: includes/class-wc-gateway-stripe.php:395
 msgid "Card Code (CVC)"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:465
+#: includes/class-wc-gateway-stripe.php:466
 msgid "Please accept the terms and conditions first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:466
+#: includes/class-wc-gateway-stripe.php:467
 msgid "Please fill in required checkout fields first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:484
-#: includes/class-wc-gateway-stripe.php:689
+#: includes/class-wc-gateway-stripe.php:485
+#: includes/class-wc-gateway-stripe.php:690
 #: includes/compat/class-wc-stripe-subs-compat.php:91
 msgid ""
 "Sorry, we're not accepting prepaid cards at this time. Your credit card has "
 "not been charge. Please try with alternative payment method."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:485
+#: includes/class-wc-gateway-stripe.php:486
 msgid "Please enter your IBAN account name."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:486
+#: includes/class-wc-gateway-stripe.php:487
 msgid "Please enter your IBAN account number."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:581
+#: includes/class-wc-gateway-stripe.php:582
 msgid "Place Order"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:770
+#: includes/class-wc-gateway-stripe.php:771
 #: includes/class-wc-stripe-order-handler.php:140
 #: includes/class-wc-stripe-webhook-handler.php:186
-#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:351
+#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:348
 msgid "This card is no longer available and has been removed."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:789
+#: includes/class-wc-gateway-stripe.php:790
 #: includes/class-wc-stripe-order-handler.php:158
 #: includes/class-wc-stripe-webhook-handler.php:205
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:222
 #: includes/compat/class-wc-stripe-subs-compat.php:237
-#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:371
+#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:368
 msgid ""
 "Sorry, we are unable to process your payment at this time. Please retry "
 "later."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:870
+#: includes/class-wc-gateway-stripe.php:871
 #. translators: error message
 msgid "This represents the fee Stripe collects for the transaction."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:871
+#: includes/class-wc-gateway-stripe.php:872
 msgid "Stripe Fee:"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:907
+#: includes/class-wc-gateway-stripe.php:908
 msgid ""
 "This represents the net total that will be credited to your Stripe bank "
 "account. This may be in the currency that is set in your Stripe account."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:908
+#: includes/class-wc-gateway-stripe.php:909
 msgid "Stripe Payout:"
 msgstr ""
 
@@ -1078,16 +1078,15 @@ msgstr ""
 msgid "All other general Stripe settings can be adjusted <a href=\"%s\">here</a>."
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-alipay.php:182
-#: includes/payment-methods/class-wc-gateway-stripe-bancontact.php:175
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:186
-#: includes/payment-methods/class-wc-gateway-stripe-eps.php:175
-#: includes/payment-methods/class-wc-gateway-stripe-giropay.php:175
-#: includes/payment-methods/class-wc-gateway-stripe-ideal.php:175
-#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:179
-#: includes/payment-methods/class-wc-gateway-stripe-p24.php:176
-#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:257
-#: includes/payment-methods/class-wc-gateway-stripe-sofort.php:175
+#: includes/payment-methods/class-wc-gateway-stripe-alipay.php:183
+#: includes/payment-methods/class-wc-gateway-stripe-bancontact.php:176
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:187
+#: includes/payment-methods/class-wc-gateway-stripe-eps.php:176
+#: includes/payment-methods/class-wc-gateway-stripe-giropay.php:176
+#: includes/payment-methods/class-wc-gateway-stripe-ideal.php:176
+#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:180
+#: includes/payment-methods/class-wc-gateway-stripe-p24.php:177
+#: includes/payment-methods/class-wc-gateway-stripe-sofort.php:176
 msgid "Add Payment"
 msgstr ""
 
@@ -1101,32 +1100,32 @@ msgstr ""
 msgid "Stripe Bitcoin"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:245
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:257
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:246
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:258
 msgid "Please pay the following:"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:247
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:260
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:248
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:261
 msgid "Bitcoin Amount:"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:250
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:264
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:251
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:265
 msgid "Receiver:"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:253
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:268
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:254
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:269
 msgid "URI:"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:272
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:273
 #. translators: link
 msgid "<a href=\"%s\">Pay Bitcoin</a>"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:340
+#: includes/payment-methods/class-wc-gateway-stripe-bitcoin.php:341
 msgid "Awaiting Bitcoin payment"
 msgstr ""
 
@@ -1150,27 +1149,27 @@ msgstr ""
 msgid "Stripe Multibanco"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:238
-#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:250
+#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:239
+#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:251
 msgid "MULTIBANCO INFORMAÇÕES DE ENCOMENDA:"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:240
-#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:253
+#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:241
+#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:254
 msgid "Montante:"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:243
-#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:257
+#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:244
+#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:258
 msgid "Entidade:"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:246
-#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:261
+#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:247
+#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:262
 msgid "Referencia:"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:362
+#: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:363
 msgid "Awaiting Multibanco payment"
 msgstr ""
 
@@ -1204,7 +1203,7 @@ msgstr ""
 msgid "IBAN Account Number."
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:270
+#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:267
 msgid ""
 "TEST MODE ENABLED. In test mode, you can use IBAN number "
 "DE89370400440532013000."
