@@ -19,6 +19,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( ! function_exists( 'woothemes_queue_update' ) ) {
+	require_once( 'woo-includes/woo-functions.php' );
+}
+
+/**
+ * WooCommerce fallback notice.
+ *
+ * @since 4.1.2
+ * @return string
+ */
+function woocommerce_stripe_missing_wc_notice() {
+	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce to be installed and active. You can download %s here.', 'woocommerce-gateway-stripe' ), '<a href="https://woocommerce.com/" target="_blank">WooCommerce</a>' ) . '</strong></p></div>';
+}
+
+if ( ! is_woocommerce_active() ) {
+	add_action( 'admin_notices', 'woocommerce_stripe_missing_wc_notice' );
+	return;
+}
+
 if ( ! class_exists( 'WC_Stripe' ) ) :
 	/**
 	 * Required minimums and constants
@@ -86,11 +105,6 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * @version 4.0.0
 		 */
 		public function init() {
-			if ( function_exists( 'is_woocommerce_active' ) && ! is_woocommerce_active() ) {
-				add_action( 'admin_notices', array( $this, 'woocommerce_missing_notice' ) );
-				return;
-			}
-
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-exception.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-logger.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-helper.php' );
@@ -131,16 +145,6 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 			add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateways' ) );
 			add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );
 			add_filter( 'woocommerce_get_sections_checkout', array( $this, 'filter_gateway_order_admin' ) );
-		}
-
-		/**
-		 * WooCommerce fallback notice.
-		 *
-		 * @since 4.1.1
-		 * @return string
-		 */
-		public function woocommerce_missing_notice() {
-			echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce to be installed and active. You can download %s here.', 'woocommerce-gateway-stripe' ), '<a href="https://woocommerce.com/" target="_blank">WooCommerce</a>' ) . '</strong></p></div>';
 		}
 
 		/**
@@ -255,5 +259,4 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 	}
 
 	WC_Stripe::get_instance();
-
 endif;
