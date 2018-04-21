@@ -81,7 +81,6 @@ class WC_Stripe_Admin_Notices {
 		return array(
 			'Alipay'     => 'WC_Gateway_Stripe_Alipay',
 			'Bancontact' => 'WC_Gateway_Stripe_Bancontact',
-			'Bitcoin'    => 'WC_Gateway_Stripe_Bitcoin',
 			'EPS'        => 'WC_Gateway_Stripe_EPS',
 			'Giropay'    => 'WC_Gateway_Stripe_Giropay',
 			'iDeal'      => 'WC_Gateway_Stripe_Ideal',
@@ -245,9 +244,6 @@ class WC_Stripe_Admin_Notices {
 					break;
 				case 'Bancontact':
 					update_option( 'wc_stripe_show_bancontact_notice', 'no' );
-					break;
-				case 'Bitcoin':
-					update_option( 'wc_stripe_show_bitcoin_notice', 'no' );
 					break;
 				case 'EPS':
 					update_option( 'wc_stripe_show_eps_notice', 'no' );

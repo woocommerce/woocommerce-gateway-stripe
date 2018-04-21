@@ -105,6 +105,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - When payment method is invalid while trying to force save card, unexpected error can occur.
 * Fix - Pass name attribute when adding payment method from my account to allow Radar to work properly.
 * Tweak - Icon CSS styling to work for more different theme setups.
+* Remove - Bitcoin method as it is hard deprecated by Stripe as of April 23, 2018.
 
 = 4.1.1 - 2018-04-17 =
 * Tweak - Use payment_complete method when charge is succeeded or captured so other WC related tasks gets triggered.

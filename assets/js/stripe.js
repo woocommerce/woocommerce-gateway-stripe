@@ -177,7 +177,7 @@ jQuery( function( $ ) {
 
 			$( 'form.woocommerce-checkout' )
 				.on(
-					'checkout_place_order_stripe checkout_place_order_stripe_bancontact checkout_place_order_stripe_sofort checkout_place_order_stripe_giropay checkout_place_order_stripe_ideal checkout_place_order_stripe_alipay checkout_place_order_stripe_sepa checkout_place_order_stripe_bitcoin',
+					'checkout_place_order_stripe checkout_place_order_stripe_bancontact checkout_place_order_stripe_sofort checkout_place_order_stripe_giropay checkout_place_order_stripe_ideal checkout_place_order_stripe_alipay checkout_place_order_stripe_sepa',
 					this.onSubmit
 				);
 
@@ -225,7 +225,7 @@ jQuery( function( $ ) {
 
 		// Check to see if Stripe in general is being used for checkout.
 		isStripeChosen: function() {
-			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_giropay, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa, #payment_method_stripe_bitcoin, #payment_method_stripe_eps, #payment_method_stripe_multibanco' ).is( ':checked' ) || ( $( '#payment_method_stripe' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() ) || ( $( '#payment_method_stripe_sepa' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() );
+			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_giropay, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa, #payment_method_stripe_eps, #payment_method_stripe_multibanco' ).is( ':checked' ) || ( $( '#payment_method_stripe' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() ) || ( $( '#payment_method_stripe_sepa' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() );
 		},
 
 		// Currently only support saved cards via credit cards and SEPA. No other payment method.
@@ -261,10 +261,6 @@ jQuery( function( $ ) {
 
 		isSepaChosen: function() {
 			return $( '#payment_method_stripe_sepa' ).is( ':checked' );
-		},
-
-		isBitcoinChosen: function() {
-			return $( '#payment_method_stripe_bitcoin' ).is( ':checked' );
 		},
 
 		isP24Chosen: function() {
@@ -367,7 +363,6 @@ jQuery( function( $ ) {
 				description       : $data.data( 'description' ),
 				currency          : $data.data( 'currency' ),
 				image             : $data.data( 'image' ),
-				bitcoin           : $data.data( 'bitcoin' ),
 				locale            : $data.data( 'locale' ),
 				email             : $( '#billing_email' ).val() || $data.data( 'email' ),
 				panelLabel        : $data.data( 'panel-label' ),
@@ -459,10 +454,6 @@ jQuery( function( $ ) {
 				source_type = 'sofort';
 			}
 
-			if ( wc_stripe_form.isBitcoinChosen() ) {
-				source_type = 'bitcoin';
-			}
-
 			if ( wc_stripe_form.isGiropayChosen() ) {
 				source_type = 'giropay';
 			}
@@ -507,7 +498,6 @@ jQuery( function( $ ) {
 					case 'ideal':
 						extra_details.ideal = { bank: $( '#stripe-ideal-bank' ).val() };
 						break;
-					case 'bitcoin':
 					case 'alipay':
 						extra_details.currency = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
 						extra_details.amount = $( '#stripe-' + source_type + '-payment-data' ).data( 'amount' );

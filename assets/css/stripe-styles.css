@@ -18,9 +18,6 @@ form#order_review #wc-stripe_sepa-form { padding: 10px; }
 .woocommerce-checkout #payment .payment_method_stripe_alipay,
 #add_payment_method #payment .payment_method_stripe_alipay { position: relative; }
 
-.woocommerce-checkout #payment .payment_method_stripe_bitcoin,
-#add_payment_method #payment .payment_method_stripe_bitcoin { position: relative; }
-
 .woocommerce-checkout #payment .payment_method_stripe_eps,
 #add_payment_method #payment .payment_method_stripe_eps { position: relative; }
 
@@ -51,9 +48,6 @@ form#order_review #wc-stripe_sepa-form { padding: 10px; }
 .woocommerce-checkout #payment input#payment_method_stripe_alipay,
 #add_payment_method #payment input#payment_method_stripe_alipay { position: absolute; top: 6px; }
 
-.woocommerce-checkout #payment input#payment_method_stripe_bitcoin,
-#add_payment_method #payment input#payment_method_stripe_bitcoin { position: absolute; top: 6px; }
-
 .woocommerce-checkout #payment input#payment_method_stripe_eps,
 #add_payment_method #payment input#payment_method_stripe_eps { position: absolute; top: 6px; }
 
@@ -83,9 +77,6 @@ form#order_review #wc-stripe_sepa-form { padding: 10px; }
 
 .woocommerce-checkout #payment .payment_method_stripe_alipay label[for=payment_method_stripe_alipay],
 #add_payment_method #payment .payment_method_stripe_alipay label[for=payment_method_stripe_alipay] { display: block; padding-left: 25px; }
-
-.woocommerce-checkout #payment .payment_method_stripe_bitcoin label[for=payment_method_stripe_bitcoin],
-#add_payment_method #payment .payment_method_stripe_bitcoin label[for=payment_method_stripe_bitcoin] { display: block; padding-left: 25px; }
 
 .woocommerce-checkout #payment .payment_method_stripe_eps label[for=payment_method_stripe_eps],
 #add_payment_method #payment .payment_method_stripe_eps label[for=payment_method_stripe_eps] { display: block; padding-left: 25px; }
@@ -134,9 +125,6 @@ form#order_review #wc-stripe_sepa-form { padding: 10px; }
 
 .woocommerce-checkout #payment ul.payment_methods li img.stripe-eps-icon,
 #add_payment_method #payment ul.payment_methods li img.stripe-eps-icon { max-height: 30px; }
-
-.woocommerce-checkout #payment ul.payment_methods li img.stripe-bitcoin-icon,
-#add_payment_method #payment ul.payment_methods li img.stripe-bitcoin-icon { max-width: 65px; }
 
 .woocommerce-checkout #payment ul.payment_methods li img.stripe-giropay-icon,
 #add_payment_method #payment ul.payment_methods li img.stripe-giropay-icon { max-width: 50px; }
