@@ -10,6 +10,7 @@
 abstract class WC_Extensions_Privacy {
 	public $plugin_name;
 	protected $exporters;
+	protected $erasures;
 
 	/**
 	 * Constructor
@@ -20,9 +21,11 @@ abstract class WC_Extensions_Privacy {
 	public function __construct( $plugin_name = '' ) {
 		$this->plugin_name = $plugin_name;
 		$this->exporters   = array();
+		$this->erasures    = array();
 
 		add_action( 'admin_init', array( $this, 'add_privacy_message' ) );
 		add_filter( 'wp_privacy_personal_data_exporters', array( $this, 'register_exporters' ) );
+		add_filter( 'wp_privacy_personal_data_erasers', array( $this, 'register_erasures' ) );
 	}
 
 	/**
@@ -58,6 +61,17 @@ abstract class WC_Extensions_Privacy {
 	}
 
 	/**
+	 * Integrate this erasure implementation within the WordPress core erasures.
+	 *
+	 * @param array $erasures List of erasure callbacks.
+	 * @return array
+	 */
+	public function register_erasures( $erasures = array() ) {
+		return array_merge( $erasures, $this->erasures );
+	}
+
+
+	/**
 	 * Add exporter to list of exporters.
 	 *
 	 * @param string $name Exporter name
@@ -69,12 +83,26 @@ abstract class WC_Extensions_Privacy {
 			'callback'               => $callback,
 		);
 
-		return $exporters;
+		return $this->exporters;
 	}
 
 	/**
-	 * Gets the message of the privacy to display.
-	 * To be overloaded by the implementor.
+	 * Add erasure to list of exporters.
+	 *
+	 * @param string $name Exporter name
+	 * @param string $callback Exporter callback
+	 */
+	public function add_erasure( $name, $callback ) {
+		$this->erasures[] = array(
+			'exporter_friendly_name' => $name,
+			'callback'               => $callback,
+		);
+
+		return $this->erasures;
+	}
+
+	/**
+	 * Example implementation of an exporter.
 	 *
 	 * Plugins can add as many items in the item data array as they want. Example:
 	 *
@@ -112,4 +140,44 @@ abstract class WC_Extensions_Privacy {
 	 * @return array
 	 */
 	public final function example_exporter( $email_address, $page = 1 ) {}
+
+	/**
+	 * Example implementation of an erasure.
+	 *
+	 * Plugins can add as many items in the item data array as they want. Example:
+	 *
+	 *     $data = array(
+	 *   	array(
+	 *   	  'name'  => __( 'Commenter Latitude' ),
+	 *   	  'value' => $latitude
+	 *   	),
+	 *   	array(
+	 *   	  'name'  => __( 'Commenter Longitude' ),
+	 *   	  'value' => $longitude
+	 *   	)
+	 *     );
+	 *
+	 *     $export_items[] = array(
+	 *   	'group_id'    => $group_id,
+	 *   	'group_label' => $group_label,
+	 *   	'item_id'     => $item_id,
+	 *   	'data'        => $data,
+	 *     );
+	 *   }
+	 * }
+	 *
+	 * Tell core if we have more comments to work on still. Example:
+	 * $done = count( $comments ) < $number;
+	 *
+	 * return array(
+	 *   'data' => $export_items,
+	 *   'done' => $done,
+	 * );
+	 *
+	 * @param string $email_address E-mail address to export.
+	 * @param int    $page          Pagination of data.
+	 *
+	 * @return array
+	 */
+	public final function example_erasure( $email_address, $page = 1 ) {}
 }
