@@ -9,8 +9,14 @@ require_once $_tests_dir . '/includes/functions.php';
 
 function _manually_load_plugin() {
 	$plugin_dir = dirname( dirname( dirname( dirname( __FILE__ ) ) ) ) . '/';
-	require $plugin_dir . 'woocommerce-gateway-stripe/woocommerce-gateway-stripe.php';
 	require $plugin_dir . 'woocommerce/woocommerce.php';
+	require $plugin_dir . 'woocommerce-gateway-stripe/woocommerce-gateway-stripe.php';
+}
+
+if ( ! function_exists( 'is_woocommerce_active' ) ) {
+	function is_woocommerce_active() {
+		return true;
+	}
 }
 
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
