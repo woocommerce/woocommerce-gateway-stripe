@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 4.9
 Requires PHP: 5.6
-Stable tag: 4.1.1
+Stable tag: 4.1.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -106,14 +106,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Pass name attribute when adding payment method from my account to allow Radar to work properly.
 * Tweak - Icon CSS styling to work for more different theme setups.
 * Remove - Bitcoin method as it is hard deprecated by Stripe as of April 23, 2018.
-
-= 4.1.1 - 2018-04-17 =
-* Tweak - Use payment_complete method when charge is succeeded or captured so other WC related tasks gets triggered.
-* Tweak - Styling for the credit card logos.
-* Add - Subscription change payment method support for SEPA.
-* Add - Credit card branding detection on credit card field.
-* Fix - When checkout form fields fails second time, page refreshes instead of using AJAX.
-* Fix - Potential issue when WC is not activated.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/changelog.txt).
 

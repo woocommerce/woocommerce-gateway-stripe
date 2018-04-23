@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.1.1\n"
 "Report-Msgid-Bugs-To: "
 "https://github.com/woocommerce/woocommerce-gateway-stripe/issues\n"
-"POT-Creation-Date: 2018-04-22 05:23:47+00:00\n"
+"POT-Creation-Date: 2018-04-23 05:51:44+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -907,7 +907,7 @@ msgstr ""
 msgid "Unable to capture charge! %s"
 msgstr ""
 
-#: includes/class-wc-stripe-payment-tokens.php:173
+#: includes/class-wc-stripe-payment-tokens.php:175
 msgid "SEPA IBAN"
 msgstr ""
 
@@ -1017,7 +1017,7 @@ msgid "Via %1$s card ending in %2$s"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-alipay.php:60
-#: woocommerce-gateway-stripe.php:249
+#: woocommerce-gateway-stripe.php:247
 msgid "Stripe Alipay"
 msgstr ""
 
@@ -1046,27 +1046,27 @@ msgid "Add Payment"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-bancontact.php:60
-#: woocommerce-gateway-stripe.php:243
+#: woocommerce-gateway-stripe.php:241
 msgid "Stripe Bancontact"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-eps.php:60
-#: woocommerce-gateway-stripe.php:246
+#: woocommerce-gateway-stripe.php:244
 msgid "Stripe EPS"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-giropay.php:60
-#: woocommerce-gateway-stripe.php:245
+#: woocommerce-gateway-stripe.php:243
 msgid "Stripe Giropay"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-ideal.php:60
-#: woocommerce-gateway-stripe.php:247
+#: woocommerce-gateway-stripe.php:245
 msgid "Stripe iDeal"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:60
-#: woocommerce-gateway-stripe.php:251
+#: woocommerce-gateway-stripe.php:249
 msgid "Stripe Multibanco"
 msgstr ""
 
@@ -1095,12 +1095,12 @@ msgid "Awaiting Multibanco payment"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-p24.php:60
-#: woocommerce-gateway-stripe.php:248
+#: woocommerce-gateway-stripe.php:246
 msgid "Stripe P24"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:75
-#: woocommerce-gateway-stripe.php:250
+#: woocommerce-gateway-stripe.php:248
 msgid "Stripe SEPA Direct Debit"
 msgstr ""
 
@@ -1131,7 +1131,7 @@ msgid ""
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-sofort.php:60
-#: woocommerce-gateway-stripe.php:244
+#: woocommerce-gateway-stripe.php:242
 msgid "Stripe SOFORT"
 msgstr ""
 
@@ -1178,21 +1178,21 @@ msgstr ""
 msgid "Discount"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:33
+#: woocommerce-gateway-stripe.php:31
 msgid ""
 "Stripe requires WooCommerce to be installed and active. You can download %s "
 "here."
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:190
+#: woocommerce-gateway-stripe.php:188
 msgid "Settings"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:191
+#: woocommerce-gateway-stripe.php:189
 msgid "Docs"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:192
+#: woocommerce-gateway-stripe.php:190
 msgid "Support"
 msgstr ""
 
