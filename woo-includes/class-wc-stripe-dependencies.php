@@ -4,7 +4,7 @@
  *
  * Checks if WooCommerce is enabled
  */
-class WC_Dependencies {
+class WC_Stripe_Dependencies {
 
 	private static $active_plugins;
 

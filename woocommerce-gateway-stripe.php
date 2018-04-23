@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once( 'woo-includes/woo-functions.php' );
+require_once( dirname( __FILE__ ) . '/woo-includes/woo-functions.php' );
 
 /**
  * WooCommerce fallback notice.
@@ -31,7 +31,7 @@ function woocommerce_stripe_missing_wc_notice() {
 	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce to be installed and active. You can download %s here.', 'woocommerce-gateway-stripe' ), '<a href="https://woocommerce.com/" target="_blank">WooCommerce</a>' ) . '</strong></p></div>';
 }
 
-if ( ! is_woocommerce_active() ) {
+if ( ! wc_stripe_is_wc_active() ) {
 	add_action( 'admin_notices', 'woocommerce_stripe_missing_wc_notice' );
 	return;
 }

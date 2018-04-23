@@ -2,14 +2,15 @@
 /**
  * Functions used by plugins
  */
-if ( ! class_exists( 'WC_Dependencies' ) )
-	require_once 'class-wc-dependencies.php';
+if ( ! class_exists( 'WC_Stripe_Dependencies' ) ) {
+	require_once( dirname( __FILE__ ) . '/class-wc-stripe-dependencies.php' );
+}
 
 /**
  * WC Detection
  */
-if ( ! function_exists( 'is_woocommerce_active' ) ) {
-	function is_woocommerce_active() {
-		return WC_Dependencies::woocommerce_active_check();
+if ( ! function_exists( 'wc_stripe_is_wc_active' ) ) {
+	function wc_stripe_is_wc_active() {
+		return WC_Stripe_Dependencies::woocommerce_active_check();
 	}
 }

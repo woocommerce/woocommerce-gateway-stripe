@@ -13,8 +13,8 @@ function _manually_load_plugin() {
 	require $plugin_dir . 'woocommerce-gateway-stripe/woocommerce-gateway-stripe.php';
 }
 
-if ( ! function_exists( 'is_woocommerce_active' ) ) {
-	function is_woocommerce_active() {
+if ( ! function_exists( 'wc_stripe_is_wc_active' ) ) {
+	function wc_stripe_is_wc_active() {
 		return true;
 	}
 }
