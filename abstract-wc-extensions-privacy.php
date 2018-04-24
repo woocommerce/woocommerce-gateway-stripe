@@ -10,7 +10,7 @@
 abstract class WC_Extensions_Privacy {
 	public $plugin_name;
 	protected $exporters;
-	protected $erasures;
+	protected $erasers;
 
 	/**
 	 * Constructor
@@ -21,11 +21,11 @@ abstract class WC_Extensions_Privacy {
 	public function __construct( $plugin_name = '' ) {
 		$this->plugin_name = $plugin_name;
 		$this->exporters   = array();
-		$this->erasures    = array();
+		$this->erasers    = array();
 
 		add_action( 'admin_init', array( $this, 'add_privacy_message' ) );
 		add_filter( 'wp_privacy_personal_data_exporters', array( $this, 'register_exporters' ) );
-		add_filter( 'wp_privacy_personal_data_erasers', array( $this, 'register_erasures' ) );
+		add_filter( 'wp_privacy_personal_data_erasers', array( $this, 'register_erasers' ) );
 	}
 
 	/**
@@ -61,13 +61,13 @@ abstract class WC_Extensions_Privacy {
 	}
 
 	/**
-	 * Integrate this erasure implementation within the WordPress core erasures.
+	 * Integrate this eraser implementation within the WordPress core erasers.
 	 *
-	 * @param array $erasures List of erasure callbacks.
+	 * @param array $erasers List of eraser callbacks.
 	 * @return array
 	 */
-	public function register_erasures( $erasures = array() ) {
-		return array_merge( $erasures, $this->erasures );
+	public function register_erasers( $erasers = array() ) {
+		return array_merge( $erasers, $this->erasers );
 	}
 
 
@@ -87,18 +87,18 @@ abstract class WC_Extensions_Privacy {
 	}
 
 	/**
-	 * Add erasure to list of exporters.
+	 * Add eraser to list of exporters.
 	 *
 	 * @param string $name Exporter name
 	 * @param string $callback Exporter callback
 	 */
-	public function add_erasure( $name, $callback ) {
-		$this->erasures[] = array(
-			'exporter_friendly_name' => $name,
-			'callback'               => $callback,
+	public function add_eraser( $name, $callback ) {
+		$this->erasers[] = array(
+			'eraser_friendly_name' => $name,
+			'callback'             => $callback,
 		);
 
-		return $this->erasures;
+		return $this->erasers;
 	}
 
 	/**
@@ -142,7 +142,7 @@ abstract class WC_Extensions_Privacy {
 	public final function example_exporter( $email_address, $page = 1 ) {}
 
 	/**
-	 * Example implementation of an erasure.
+	 * Example implementation of an eraser.
 	 *
 	 * Plugins can add as many items in the item data array as they want. Example:
 	 *
@@ -179,5 +179,5 @@ abstract class WC_Extensions_Privacy {
 	 *
 	 * @return array
 	 */
-	public final function example_erasure( $email_address, $page = 1 ) {}
+	public final function example_eraser( $email_address, $page = 1 ) {}
 }

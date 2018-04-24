@@ -9,7 +9,7 @@ class WC_Stripe_Privacy extends WC_Extensions_Privacy {
 
 		$this->add_exporter( __( 'WooCommerce Stripe Order Data', 'woocommerce-gateway-stripe' ), array( $this, 'order_data_exporter' ) );
 		$this->add_exporter( __( 'WooCommerce Stripe Customer Data', 'woocommerce-gateway-stripe' ), array( $this, 'customer_data_exporter' ) );
-		$this->add_erasure( __( 'WooCommerce Stripe Order Data', 'woocommerce-gateway-stripe' ), array( $this, 'order_data_eraser' ) );
+		$this->add_eraser( __( 'WooCommerce Stripe Order Data', 'woocommerce-gateway-stripe' ), array( $this, 'order_data_eraser' ) );
 	}
 
 	/**
@@ -155,28 +155,52 @@ class WC_Stripe_Privacy extends WC_Extensions_Privacy {
 		);
 	}
 
+	/**
+	 * Handle eraser of data tied to Subscriptions
+	 *
+	 * @param WC_Order $order
+	 * @return array
+	 */
 	protected function maybe_handle_subscription( $order ) {
-		// TODO: Figure out how to get sub transaction id
-		$sub_transaction_id = get_post_meta( $order->get_id(), '_sub_transaction_id', true );
+		if ( ! wcs_order_contains_subscription( $order ) ) {
+			return array( 0, 0, array() );
+		}
 
-		if ( empty( $sub_transaction_id ) ) {
-			return array( 0, 0, [] );
+		$subscription    = current( wcs_get_subscriptions_for_order( $order->get_id() ) );
+		$subscription_id = $subscription->get_id();
+
+		$stripe_source_id = get_post_meta( $subscription_id, '_stripe_source_id', true );
+
+		if ( empty( $stripe_source_id ) ) {
+			return array( 0, 0, array() );
 		}
 
 		$order_age = strtotime( 'now' ) - $order->get_date_created()->getTimestamp();
 
-		// If order age is longer than 180 days, don't do anything to it
+		// If order age is longer than specified days, don't do anything to it
 		// TODO: Figure out if 180 is the real number
 		if ( $order_age < DAY_IN_SECONDS * 180 ) {
-			return array( 0, 1, [ sprintf( __( 'Order ID %d is less than 180 days (Stripe)' ), $order->get_id() ) ] );
+			return array( 0, 1, array( sprintf( __( 'Order ID %d is less than 180 days (Stripe)' ), $order->get_id() ) ) );
 		}
 
-		if ( has_active_subscription( $order ) ) {
-			return array( 0, 1, [ sprintf( __( 'Order ID %d contains an active Subscription' ), $order->get_id() ) ] );
+		if ( $subscription->has_status( apply_filters( 'wc_stripe_privacy_eraser_subs_statuses', array( 'on-hold', 'active' ) ) ) ) {
+			return array( 0, 1, array( sprintf( __( 'Order ID %d contains an active Subscription' ), $order->get_id() ) ) );
 		}
 
-		delete_post_meta( $order->get_id(), '_sub_transaction_id' );
-		return array( 1, 0, [] );
+		$renewal_orders = WC_Subscriptions_Renewal_Order::get_renewal_orders( $order->get_id() );
+
+		foreach ( $renewal_orders as $renewal_order_id ) {
+			delete_post_meta( $renewal_order_id, '_stripe_source_id' );
+			delete_post_meta( $renewal_order_id, '_stripe_customer_id' );
+		}
+
+		delete_post_meta( $subscription_id, '_stripe_source_id' );
+		delete_post_meta( $subscription_id, '_stripe_customer_id' );
+
+		delete_post_meta( $order->get_id(), '_stripe_source_id' );
+		delete_post_meta( $order->get_id(), '_stripe_customer_id' );
+
+		return array( 1, 0, array() );
 	}
 }
 
