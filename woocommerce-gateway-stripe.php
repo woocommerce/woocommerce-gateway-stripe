@@ -103,7 +103,6 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * @version 4.0.0
 		 */
 		public function init() {
-			require_once( dirname( __FILE__ ) . '/abstract-wc-extensions-privacy.php' );
 			require_once( dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-privacy.php' );
 
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-exception.php' );
