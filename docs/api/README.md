@@ -433,16 +433,6 @@ curl -u consumer_key:consumer_secret -X PUT \
         "sv": "Swedish"
       }
     },
-    "stripe_bitcoin": {
-      "id": "stripe_bitcoin",
-      "label": "Enable Bitcoin Currency",
-      "description": "If enabled, an option to accept bitcoin will show on the checkout modal. Note: Stripe Checkout needs to be enabled and store currency must be set to USD.",
-      "type": "checkbox",
-      "value": "no",
-      "default": "no",
-      "tip": "If enabled, an option to accept bitcoin will show on the checkout modal. Note: Stripe Checkout needs to be enabled and store currency must be set to USD.",
-      "placeholder": ""
-    },
     "stripe_checkout_image": {
       "id": "stripe_checkout_image",
       "label": "Stripe Checkout Image",
