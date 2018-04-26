@@ -19,6 +19,32 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	}
 
 	/**
+	 * Returns a list of orders that are using one of Stripe's payment methods.
+	 *
+	 * @param string  $email_address
+	 * @param int     $page
+	 *
+	 * @return array WP_Post
+	 */
+	protected function get_stripe_orders( $email_address, $page ) {
+		$user = get_user_by( 'email', $email_address ); // Check if user has an ID in the DB to load stored personal data.
+
+		$order_query    = array(
+			'payment_method' => array( 'stripe', 'stripe_alipay', 'stripe_bancontact', 'stripe_eps', 'stripe_giropay', 'stripe_ideal', 'stripe_multibanco', 'stripe_p24', 'stripe_sepa', 'stripe_sofort' ),
+			'limit'          => 10,
+			'page'           => $page,
+		);
+
+		if ( $user instanceof WP_User ) {
+			$order_query['customer_id'] = (int) $user->ID;
+		} else {
+			$order_query['billing_email'] = $email_address;
+		}
+
+		return wc_get_orders( $order_query );
+	}
+
+	/**
 	 * Gets the message of the privacy to display.
 	 *
 	 */
@@ -36,24 +62,9 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	 */
 	public function order_data_exporter( $email_address, $page = 1 ) {
 		$done           = false;
-		$page           = (int) $page;
 		$data_to_export = array();
 
-		$user = get_user_by( 'email', $email_address ); // Check if user has an ID in the DB to load stored personal data.
-
-		$order_query    = array(
-			'payment_method' => array( 'stripe', 'stripe_alipay', 'stripe_bancontact', 'stripe_eps', 'stripe_giropay', 'stripe_ideal', 'stripe_multibanco', 'stripe_p24', 'stripe_sepa', 'stripe_sofort' ),
-			'limit'          => 10,
-			'page'           => $page,
-		);
-
-		if ( $user instanceof WP_User ) {
-			$order_query['customer_id'] = (int) $user->ID;
-		} else {
-			$order_query['billing_email'] = $email_address;
-		}
-
-		$orders = wc_get_orders( $order_query );
+		$orders = $this->get_stripe_orders( $email_address, (int) $page );
 
 		$done = true;
 
@@ -62,15 +73,15 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 				$data_to_export[] = array(
 					'group_id'    => 'woocommerce_orders',
 					'group_label' => __( 'Orders', 'woocommerce-gateway-stripe' ),
-					'item_id'     => 'order-' . $order->ID,
+					'item_id'     => 'order-' . $order->get_id(),
 					'data'        => array(
 						array(
 							'name'  => __( 'Stripe payment id', 'woocommerce-gateway-stripe' ),
-							'value' => get_post_meta( $order->ID, '_stripe_source_id', true ),
+							'value' => get_post_meta( $order->get_id(), '_stripe_source_id', true ),
 						),
 						array(
 							'name'  => __( 'Stripe customer id', 'woocommerce-gateway-stripe' ),
-							'value' => get_post_meta( $order->ID, '_stripe_customer_id', true ),
+							'value' => get_post_meta( $order->get_id(), '_stripe_customer_id', true ),
 						),
 					),
 				);
@@ -232,29 +243,14 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	 * @return array An array of personal data in name value pairs
 	 */
 	public function order_data_eraser( $email_address, $page ) {
-		$page = (int) $page;
-		$user = get_user_by( 'email', $email_address ); // Check if user has an ID in the DB to load stored personal data.
-
-		$order_query    = array(
-			'payment_method' => 'stripe', // TODO: Check for other methods
-			'limit'          => 10,
-			'page'           => $page,
-		);
-
-		if ( $user instanceof WP_User ) {
-			$order_query['customer_id'] = (int) $user->ID;
-		} else {
-			$order_query['billing_email'] = $email_address;
-		}
-
-		$orders = wc_get_orders( $order_query );
+		$orders = $this->get_stripe_orders( $email_address, (int) $page );
 
 		$num_items_removed  = 0;
 		$num_items_retained = 0;
 		$messages           = array();
 
 		foreach ( (array) $orders as $order ) {
-			$order = wc_get_order( $order->ID );
+			$order = wc_get_order( $order->get_id() );
 
 			list( $removed, $retained, $msgs ) = $this->maybe_handle_order( $order );
 			$num_items_removed  += $removed;
