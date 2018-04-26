@@ -32,6 +32,7 @@
     "eslint": "^3.4.0",
     "eslint-config-wpcalypso": "^0.5.0",
     "eslint-plugin-wpcalypso": "^2.0.0",
+    "stylelint": "^9.2.0",
     "grunt": "~1.0.1",
     "grunt-checktextdomain": "~1.0.1",
     "grunt-contrib-clean": "~1.1.0",
