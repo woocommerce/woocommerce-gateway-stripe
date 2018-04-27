@@ -98,7 +98,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_request_headers() {
 		if ( ! function_exists( 'getallheaders' ) ) {
-			$headers = [];
+			$headers = array();
+
 			foreach ( $_SERVER as $name => $value ) {
 				if ( 'HTTP_' === substr( $name, 0, 5 ) ) {
 					$headers[ str_replace( ' ', '-', ucwords( strtolower( str_replace( '_', ' ', substr( $name, 5 ) ) ) ) ) ] = $value;
