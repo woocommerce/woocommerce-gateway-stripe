@@ -693,7 +693,7 @@ class WC_Stripe_Payment_Request {
 				'address_2' => FILTER_SANITIZE_STRING,
 			) );
 
-			$this->calculate_shipping( $posted );
+			$this->calculate_shipping( apply_filters( 'wc_stripe_payment_request_shipping_posted_values', $posted ) );
 
 			// Set the shipping options.
 			$data     = array();
