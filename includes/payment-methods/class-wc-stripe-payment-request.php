@@ -991,6 +991,19 @@ class WC_Stripe_Payment_Request {
 		}
 
 		WC()->shipping->reset_shipping();
+		
+		/**
+		 * ApplePay does not return full postcodes, if you have limited delivery
+		 * i.e only N3 area you cannot calculate correct shipping, as a hack add 1AA
+		 * to the partial postcode recieved as postcode does not need to be valid.
+		 * This sepecifcally address this issue in the United Kingdom but similar
+		 * could be applied to other countries were applicable.
+		 */
+		
+		$postcode = trim($postcode);
+		if($country == 'GB' && strlen($postcode) < 5) {
+			$postcode .= " 1AA";
+		}
 
 		if ( $postcode && WC_Validation::is_postcode( $postcode, $country ) ) {
 			$postcode = wc_format_postcode( $postcode, $country );
