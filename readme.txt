@@ -104,6 +104,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 4.1.3 - 2018-xx-xx =
 * Add - Hook to manipulate payment request shipping posted values `wc_stripe_payment_request_shipping_posted_values`.
 * Add - Accessibility attribute for credit card label.
+* Fix - WC 2.6 compatibility issue during a refund.
 
 = 4.1.2 - 2018-04-23 =
 * Fix - When payment method is invalid while trying to force save card, unexpected error can occur.
