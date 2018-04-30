@@ -184,7 +184,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 					// TODO: User also has data in `wp_woocommerce_payment_tokens`. Check with core.
 					array(
 						'name'  => __( 'Stripe payment id', 'woocommerce-gateway-stripe' ),
-						'value' => get_post_meta( $user->ID, '_stripe_source_id', true ),
+						'value' => get_user_meta( $user->ID, '_stripe_source_id', true ),
 					),
 					array(
 						'name'  => __( 'Stripe customer id', 'woocommerce-gateway-stripe' ),
