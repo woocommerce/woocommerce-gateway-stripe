@@ -285,6 +285,10 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	 * @return array
 	 */
 	protected function maybe_handle_subscription( $order ) {
+		if ( ! class_exists( 'WC_Subscriptions' ) ) {
+			return array( 0, 0, array() );
+		}
+
 		if ( ! wcs_order_contains_subscription( $order ) ) {
 			return array( 0, 0, array() );
 		}
