@@ -15,6 +15,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Payment_Request {
 	/**
+	 * Instance of this class.
+	 *
+	 * @var object
+	 */
+	protected static $instance = null;
+	
+	/**
 	 * Enabled.
 	 *
 	 * @var
@@ -63,6 +70,18 @@ class WC_Stripe_Payment_Request {
 	 */
 	private static $_this;
 
+	/**
+	 * Return an instance of this class.
+	 *
+	 * @return object single instance of this class.
+	 */
+	public static function get_instance() {
+		if ( null === self::$instance ) {
+			self::$instance = new self;
+		}
+		return self::$instance;
+	}
+	
 	/**
 	 * Initialize class actions.
 	 *
@@ -1157,4 +1176,4 @@ class WC_Stripe_Payment_Request {
 	}
 }
 
-new WC_Stripe_Payment_Request();
+WC_Stripe_Payment_Request::get_instance();
