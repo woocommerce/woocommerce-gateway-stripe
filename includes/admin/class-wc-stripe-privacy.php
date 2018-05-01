@@ -12,7 +12,11 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		parent::__construct( 'Stripe' );
 
 		$this->add_exporter( __( 'WooCommerce Stripe Order Data', 'woocommerce-gateway-stripe' ), array( $this, 'order_data_exporter' ) );
-		$this->add_exporter( __( 'WooCommerce Stripe Subscriptions Data', 'woocommerce-gateway-stripe' ), array( $this, 'subscriptions_data_exporter' ) );
+
+		if ( function_exists( 'wcs_get_subscriptions' ) ) {
+			$this->add_exporter( __( 'WooCommerce Stripe Subscriptions Data', 'woocommerce-gateway-stripe' ), array( $this, 'subscriptions_data_exporter' ) );
+		}
+
 		$this->add_exporter( __( 'WooCommerce Stripe Customer Data', 'woocommerce-gateway-stripe' ), array( $this, 'customer_data_exporter' ) );
 		$this->add_eraser( __( 'WooCommerce Stripe Customer Data', 'woocommerce-gateway-stripe' ), array( $this, 'customer_data_eraser' ) );
 		$this->add_eraser( __( 'WooCommerce Stripe Data', 'woocommerce-gateway-stripe' ), array( $this, 'order_data_eraser' ) );
