@@ -220,21 +220,20 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$stripe_customer_id = get_user_meta( $user->ID, '_stripe_customer_id', true );
 		$stripe_source_id   = get_user_meta( $user->ID, '_stripe_source_id', true );
 
-		$num_items_removed  = 0;
-		$num_items_retained = 0;
-		$messages           = array();
+		$items_removed  = false;
+		$messages       = array();
 
 		if ( ! empty( $stripe_customer_id ) || ! empty( $stripe_source_id ) ) {
-			$num_items_removed++;
+			$items_removed = true;
 			delete_user_meta( $user->ID, '_stripe_customer_id' );
 			delete_user_meta( $user->ID, '_stripe_source_id' );
 		}
 
 		return array(
-			'num_items_removed'  => $num_items_removed,
-			'num_items_retained' => $num_items_retained,
-			'messages'           => $messages,
-			'done'               => true,
+			'items_removed'  => $items_removed,
+			'items_retained' => false,
+			'messages'       => $messages,
+			'done'           => true,
 		);
 	}
 
@@ -249,32 +248,32 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	public function order_data_eraser( $email_address, $page ) {
 		$orders = $this->get_stripe_orders( $email_address, (int) $page );
 
-		$num_items_removed  = 0;
-		$num_items_retained = 0;
-		$messages           = array();
+		$items_removed  = false;
+		$items_retained = false;
+		$messages       = array();
 
 		foreach ( (array) $orders as $order ) {
 			$order = wc_get_order( $order->get_id() );
 
 			list( $removed, $retained, $msgs ) = $this->maybe_handle_order( $order );
-			$num_items_removed  += $removed;
-			$num_items_retained += $retained;
-			$messages            = array_merge( $messages, $msgs );
+			$items_removed  |= $removed;
+			$items_retained |= $retained;
+			$messages        = array_merge( $messages, $msgs );
 
 			list( $removed, $retained, $msgs ) = $this->maybe_handle_subscription( $order );
-			$num_items_removed  += $removed;
-			$num_items_retained += $retained;
-			$messages            = array_merge( $messages, $msgs );
+			$items_removed  |= $removed;
+			$items_retained |= $retained;
+			$messages        = array_merge( $messages, $msgs );
 		}
 
 		// Tell core if we have more orders to work on still
 		$done = count( $orders ) < 10;
 
 		return array(
-			'num_items_removed'  => $num_items_removed,
-			'num_items_retained' => $num_items_retained,
-			'messages'           => $messages,
-			'done'               => $done,
+			'items_removed'  => $items_removed,
+			'items_retained' => $items_retained,
+			'messages'       => $messages,
+			'done'           => $done,
 		);
 	}
 
