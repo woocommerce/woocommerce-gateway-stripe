@@ -285,11 +285,11 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	 */
 	protected function maybe_handle_subscription( $order ) {
 		if ( ! class_exists( 'WC_Subscriptions' ) ) {
-			return array( 0, 0, array() );
+			return array( false, false, array() );
 		}
 
 		if ( ! wcs_order_contains_subscription( $order ) ) {
-			return array( 0, 0, array() );
+			return array( false, false, array() );
 		}
 
 		$subscription    = current( wcs_get_subscriptions_for_order( $order->get_id() ) );
@@ -298,7 +298,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$stripe_source_id = get_post_meta( $subscription_id, '_stripe_source_id', true );
 
 		if ( empty( $stripe_source_id ) ) {
-			return array( 0, 0, array() );
+			return array( false, false, array() );
 		}
 
 		$order_age = strtotime( 'now' ) - $order->get_date_created()->getTimestamp();
@@ -306,11 +306,11 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		// If order age is longer than specified days, don't do anything to it
 		// TODO: Figure out if 180 is the real number
 		if ( $order_age < DAY_IN_SECONDS * 180 ) {
-			return array( 0, 1, array( sprintf( __( 'Order ID %d is less than 180 days (Stripe)' ), $order->get_id() ) ) );
+			return array( false, true, array( sprintf( __( 'Order ID %d is less than 180 days (Stripe)' ), $order->get_id() ) ) );
 		}
 
 		if ( $subscription->has_status( apply_filters( 'wc_stripe_privacy_eraser_subs_statuses', array( 'on-hold', 'active' ) ) ) ) {
-			return array( 0, 1, array( sprintf( __( 'Order ID %d contains an active Subscription' ), $order->get_id() ) ) );
+			return array( false, true, array( sprintf( __( 'Order ID %d contains an active Subscription' ), $order->get_id() ) ) );
 		}
 
 		$renewal_orders = WC_Subscriptions_Renewal_Order::get_renewal_orders( $order->get_id() );
@@ -325,7 +325,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		delete_post_meta( $subscription_id, '_stripe_refund_id' );
 		delete_post_meta( $subscription_id, '_stripe_customer_id' );
 
-		return array( 1, 0, array() );
+		return array( true, false, array() );
 	}
 
 	/**
@@ -341,14 +341,14 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$stripe_customer_id = get_post_meta( $order_id, '_stripe_customer_id', true );
 
 		if ( empty( $stripe_source_id ) && empty( $stripe_refund_id ) && empty( $stripe_customer_id ) ) {
-			return array( 0, 0, array() );
+			return array( false, false, array() );
 		}
 
 		delete_post_meta( $order_id, '_stripe_source_id' );
 		delete_post_meta( $order_id, '_stripe_refund_id' );
 		delete_post_meta( $order_id, '_stripe_customer_id' );
 
-		return array( 1, 0, array() );
+		return array( true, false, array() );
 	}
 }
 
