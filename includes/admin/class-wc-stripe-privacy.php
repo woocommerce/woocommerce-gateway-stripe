@@ -185,7 +185,6 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 				'group_label' => __( 'Customer Data', 'woocommerce-gateway-stripe' ),
 				'item_id'     => 'user',
 				'data'        => array(
-					// TODO: User also has data in `wp_woocommerce_payment_tokens`. Check with core.
 					array(
 						'name'  => __( 'Stripe payment id', 'woocommerce-gateway-stripe' ),
 						'value' => get_user_meta( $user->ID, '_stripe_source_id', true ),
@@ -216,7 +215,6 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$page = (int) $page;
 		$user = get_user_by( 'email', $email_address ); // Check if user has an ID in the DB to load stored personal data.
 
-		// TODO: User also has data in `wp_woocommerce_payment_tokens`. Check with core.
 		$stripe_customer_id = get_user_meta( $user->ID, '_stripe_customer_id', true );
 		$stripe_source_id   = get_user_meta( $user->ID, '_stripe_source_id', true );
 
