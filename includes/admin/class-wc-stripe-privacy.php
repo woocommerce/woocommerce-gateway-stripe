@@ -9,17 +9,18 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	 *
 	 */
 	public function __construct() {
-		parent::__construct( 'Stripe' );
+		parent::__construct( __( 'Stripe', 'woocommerce-gateway-stripe' ) );
 
-		$this->add_exporter( __( 'WooCommerce Stripe Order Data', 'woocommerce-gateway-stripe' ), array( $this, 'order_data_exporter' ) );
+		$this->add_exporter( 'woocommerce-gateway-stripe-order-data', __( 'WooCommerce Stripe Order Data', 'woocommerce-gateway-stripe' ), array( $this, 'order_data_exporter' ) );
 
 		if ( function_exists( 'wcs_get_subscriptions' ) ) {
-			$this->add_exporter( __( 'WooCommerce Stripe Subscriptions Data', 'woocommerce-gateway-stripe' ), array( $this, 'subscriptions_data_exporter' ) );
+			$this->add_exporter( 'woocommerce-gateway-stripe-subscriptions-data', __( 'WooCommerce Stripe Subscriptions Data', 'woocommerce-gateway-stripe' ), array( $this, 'subscriptions_data_exporter' ) );
 		}
 
-		$this->add_exporter( __( 'WooCommerce Stripe Customer Data', 'woocommerce-gateway-stripe' ), array( $this, 'customer_data_exporter' ) );
-		$this->add_eraser( __( 'WooCommerce Stripe Customer Data', 'woocommerce-gateway-stripe' ), array( $this, 'customer_data_eraser' ) );
-		$this->add_eraser( __( 'WooCommerce Stripe Data', 'woocommerce-gateway-stripe' ), array( $this, 'order_data_eraser' ) );
+		$this->add_exporter( 'woocommerce-gateway-stripe-customer-data', __( 'WooCommerce Stripe Customer Data', 'woocommerce-gateway-stripe' ), array( $this, 'customer_data_exporter' ) );
+
+		$this->add_eraser( 'woocommerce-gateway-stripe-customer-data', __( 'WooCommerce Stripe Customer Data', 'woocommerce-gateway-stripe' ), array( $this, 'customer_data_eraser' ) );
+		$this->add_eraser( 'woocommerce-gateway-stripe-order-data', __( 'WooCommerce Stripe Data', 'woocommerce-gateway-stripe' ), array( $this, 'order_data_eraser' ) );
 	}
 
 	/**
