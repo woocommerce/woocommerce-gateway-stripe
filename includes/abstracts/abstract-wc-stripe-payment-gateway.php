@@ -165,7 +165,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Check if this gateway is enabled
+	 * Check if we need to make gateways available.
+	 *
+	 * @since 4.1.3
 	 */
 	public function is_available() {
 		if ( 'yes' === $this->enabled ) {
@@ -936,7 +938,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			$amount = wc_price( $response->amount / 100 );
 
-			if ( in_array( strtolower( $order->get_currency() ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
+			if ( in_array( strtolower( WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency() ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
 				$amount = wc_price( $response->amount );
 			}
 
