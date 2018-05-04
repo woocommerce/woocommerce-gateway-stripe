@@ -141,7 +141,10 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 
 			add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateways' ) );
 			add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );
-			add_filter( 'woocommerce_get_sections_checkout', array( $this, 'filter_gateway_order_admin' ) );
+
+			if ( version_compare( WC_VERSION, '3.4', '<' ) ) {
+				add_filter( 'woocommerce_get_sections_checkout', array( $this, 'filter_gateway_order_admin' ) );
+			}
 		}
 
 		/**
