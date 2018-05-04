@@ -107,6 +107,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - Hook to change Stripe supported countries `wc_stripe_supported_countries`.
 * Fix - WC 2.6 compatibility issue during a refund.
 * Fix - Payment Request JS error when default country setting is not supported.
+* Fix - Failed payments were sending two failed emails to admin instead of one.
 
 = 4.1.2 - 2018-04-23 =
 * Fix - When payment method is invalid while trying to force save card, unexpected error can occur.

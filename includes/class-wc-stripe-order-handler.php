@@ -189,10 +189,6 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			/* translators: error message */
 			$order->update_status( 'failed', sprintf( __( 'Stripe payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() ) );
 
-			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
-				$this->send_failed_order_email( $order_id );
-			}
-
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			wp_safe_redirect( wc_get_checkout_url() );
 			exit;

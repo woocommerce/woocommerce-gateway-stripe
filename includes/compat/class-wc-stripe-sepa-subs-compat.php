@@ -248,10 +248,6 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 
 			/* translators: error message */
 			$renewal_order->update_status( 'failed' );
-
-			if ( $renewal_order->has_status( array( 'pending', 'failed' ) ) ) {
-				$this->send_failed_order_email( $order_id );
-			}
 		}
 	}
 
