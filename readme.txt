@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 4.9
 Requires PHP: 5.6
-Stable tag: 4.1.2
+Stable tag: 4.1.3
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -101,7 +101,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.1.3 - 2018-xx-xx =
+= 4.1.3 - 2018-05-07 =
 * Add - Hook to manipulate payment request shipping posted values `wc_stripe_payment_request_shipping_posted_values`.
 * Add - Accessibility attribute for credit card label.
 * Add - Hook to change Stripe supported countries `wc_stripe_supported_countries`.
@@ -109,12 +109,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Payment Request JS error when default country setting is not supported.
 * Fix - Failed payments were sending two failed emails to admin instead of one.
 * Tweak - Remove payment methods links from WC Payment Settings page for WC 3.4+.
-
-= 4.1.2 - 2018-04-23 =
-* Fix - When payment method is invalid while trying to force save card, unexpected error can occur.
-* Fix - Pass name attribute when adding payment method from my account to allow Radar to work properly.
-* Tweak - Icon CSS styling to work for more different theme setups.
-* Remove - Bitcoin method as it is hard deprecated by Stripe as of April 23, 2018.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/changelog.txt).
 
