@@ -382,7 +382,7 @@ class WC_Stripe_Helper {
 	public static function get_order_by_source_id( $source_id ) {
 		global $wpdb;
 
-		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s", $source_id ) );
+		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $source_id, '_stripe_source_id' ) );
 
 		if ( ! empty( $order_id ) ) {
 			return wc_get_order( $order_id );
@@ -401,7 +401,7 @@ class WC_Stripe_Helper {
 	public static function get_order_by_charge_id( $charge_id ) {
 		global $wpdb;
 
-		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s", $charge_id ) );
+		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $charge_id, '_transaction_id' ) );
 
 		if ( ! empty( $order_id ) ) {
 			return wc_get_order( $order_id );
