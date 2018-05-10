@@ -101,6 +101,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 4.1.4 - 2018-xx-xx =
+* Tweak - Improve performance when getting source id and charge id from database.
+
 = 4.1.3 - 2018-05-07 =
 * Add - Hook to manipulate payment request shipping posted values `wc_stripe_payment_request_shipping_posted_values`.
 * Add - Accessibility attribute for credit card label.
