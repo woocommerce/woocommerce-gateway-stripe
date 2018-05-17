@@ -169,7 +169,6 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	/**
 	 * Finds and exports customer data by email address.
 	 *
-	 * @since 3.4.0
 	 * @param string $email_address The user email address.
 	 * @param int    $page  Page.
 	 * @return array An array of personal data in name value pairs
@@ -207,7 +206,6 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	/**
 	 * Finds and erases customer data by email address.
 	 *
-	 * @since 3.4.0
 	 * @param string $email_address The user email address.
 	 * @param int    $page  Page.
 	 * @return array An array of personal data in name value pairs
@@ -239,7 +237,6 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	/**
 	 * Finds and erases order data by email address.
 	 *
-	 * @since 3.4.0
 	 * @param string $email_address The user email address.
 	 * @param int    $page  Page.
 	 * @return array An array of personal data in name value pairs
@@ -347,7 +344,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		delete_post_meta( $order_id, '_stripe_refund_id' );
 		delete_post_meta( $order_id, '_stripe_customer_id' );
 
-		return array( true, false, array() );
+		return array( true, false, array( __( 'Stripe personal data erased.', 'woocommerce-gateway-stripe' ) ) );
 	}
 }
 
