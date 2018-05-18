@@ -224,6 +224,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 			$items_removed = true;
 			delete_user_meta( $user->ID, '_stripe_customer_id' );
 			delete_user_meta( $user->ID, '_stripe_source_id' );
+			$messages[] = __( 'Stripe User Data Erased.', 'woocommerce-gateway-stripe' );
 		}
 
 		return array(
@@ -321,7 +322,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		delete_post_meta( $subscription_id, '_stripe_refund_id' );
 		delete_post_meta( $subscription_id, '_stripe_customer_id' );
 
-		return array( true, false, array() );
+		return array( true, false, array( __( 'Stripe Subscription Data Erased.', 'woocommerce-gateway-stripe' ) ) );
 	}
 
 	/**
