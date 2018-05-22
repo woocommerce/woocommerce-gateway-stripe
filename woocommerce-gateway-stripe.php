@@ -9,7 +9,7 @@
  * Requires at least: 4.4
  * Tested up to: 4.9
  * WC requires at least: 2.6
- * WC tested up to: 3.3
+ * WC tested up to: 3.4
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages/
  *
@@ -103,6 +103,10 @@ if ( ! class_exists( 'WC_Stripe' ) ) :
 		 * @version 4.0.0
 		 */
 		public function init() {
+			if ( is_admin() ) {
+				require_once( dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-privacy.php' );
+			}
+
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-exception.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-logger.php' );
 			require_once( dirname( __FILE__ ) . '/includes/class-wc-stripe-helper.php' );
