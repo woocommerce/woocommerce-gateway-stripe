@@ -366,11 +366,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Process webhook charge failed. This is used for payment methods
-	 * that takes time to clear which is asynchronous. e.g. SEPA, SOFORT.
+	 * Process webhook charge failed.
 	 *
 	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @since 4.1.5 Can handle any fail payments from any methods.
 	 * @param object $notification
 	 */
 	public function process_webhook_charge_failed( $notification ) {
@@ -383,7 +382,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
 
-		if ( 'on-hold' !== $order->get_status() ) {
+		// If order status is already in failed status don't continue.
+		if ( 'failed' === $order->get_status() ) {
 			return;
 		}
 

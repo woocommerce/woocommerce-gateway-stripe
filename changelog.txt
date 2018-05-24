@@ -1,5 +1,9 @@
 *** Changelog ***
 
+= 4.1.5 - 2018-xx-xx =
+* Tweak - Refactor initialization of plugin.
+* Tweak - Webhook failed handler now handles all payment methods.
+
 = 4.1.4 - 2018-05-22 =
 * Tweak - Improve performance when getting source id and charge id from database.
 * Add - GDPR privacy support.
