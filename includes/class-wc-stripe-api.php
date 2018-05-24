@@ -119,7 +119,10 @@ class WC_Stripe_API {
 		);
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
-			WC_Stripe_Logger::log( 'Error Response: ' . print_r( $response, true ) );
+			WC_Stripe_Logger::log( 'Error Response: ' . print_r( $response, true ) . PHP_EOL . PHP_EOL . 'Failed request: ' . print_r( array(
+				'api'     => $api,
+				'request' => $request,
+			), true ) );
 			throw new WC_Stripe_Exception( print_r( $response, true ), __( 'There was a problem connecting to the Stripe API endpoint.', 'woocommerce-gateway-stripe' ) );
 		}
 
