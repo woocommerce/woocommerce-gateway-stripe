@@ -3,6 +3,7 @@
 = 4.1.5 - 2018-xx-xx =
 * Tweak - Refactor initialization of plugin.
 * Tweak - Webhook failed handler now handles all payment methods.
+* Add - Username to the description field of the Stripe customer when created.
 
 = 4.1.4 - 2018-05-22 =
 * Tweak - Improve performance when getting source id and charge id from database.
