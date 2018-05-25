@@ -100,15 +100,16 @@ class WC_Stripe_Customer {
 	 */
 	public function create_customer( $args = array() ) {
 		$billing_email = isset( $_POST['billing_email'] ) ? filter_var( $_POST['billing_email'], FILTER_SANITIZE_EMAIL ) : '';
-		$user = $this->get_user();
+		$user          = $this->get_user();
 
 		if ( $user ) {
 			$billing_first_name = get_user_meta( $user->ID, 'billing_first_name', true );
 			$billing_last_name  = get_user_meta( $user->ID, 'billing_last_name', true );
+			$description        = __( 'Name', 'woocommerce-gateway-stripe' ) . ': ' . $billing_first_name . ' ' . $billing_last_name . ' ' . __( 'Username', 'woocommerce-gateway-stripe' ) . ': ' . $user->user_login;
 
 			$defaults = array(
 				'email'       => $user->user_email,
-				'description' => $billing_first_name . ' ' . $billing_last_name,
+				'description' => $description,
 			);
 		} else {
 			$defaults = array(
