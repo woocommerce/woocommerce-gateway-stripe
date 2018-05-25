@@ -723,12 +723,18 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 						$order->save();
 					}
 
-					WC_Stripe_Logger::log( 'Info: Redirecting to 3DS...' );
+					/*
+					 * Make sure after creating 3DS object it is in pending status
+					 * before redirecting.
+					 */
+					if ( 'pending' === $response->redirect->status ) {
+						WC_Stripe_Logger::log( 'Info: Redirecting to 3DS...' );
 
-					return array(
-						'result'   => 'success',
-						'redirect' => esc_url_raw( $response->redirect->url ),
-					);
+						return array(
+							'result'   => 'success',
+							'redirect' => esc_url_raw( $response->redirect->url ),
+						);
+					}
 				}
 
 				WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
