@@ -626,11 +626,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return bool
 	 */
 	public function maybe_redirect_stripe_checkout() {
+		$is_payment_request = ( isset( $_POST ) && isset( $_POST['payment_request_type'] ) );
+
 		return (
 			$this->stripe_checkout &&
 			! isset( $_POST['stripe_checkout_order'] ) &&
 			! $this->is_using_saved_payment_method() &&
-			! is_wc_endpoint_url( 'order-pay' )
+			! is_wc_endpoint_url( 'order-pay' ) &&
+			! $is_payment_request
 		);
 	}
 
