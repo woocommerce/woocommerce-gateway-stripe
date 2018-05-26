@@ -21,6 +21,32 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 
 		$this->add_eraser( 'woocommerce-gateway-stripe-customer-data', __( 'WooCommerce Stripe Customer Data', 'woocommerce-gateway-stripe' ), array( $this, 'customer_data_eraser' ) );
 		$this->add_eraser( 'woocommerce-gateway-stripe-order-data', __( 'WooCommerce Stripe Data', 'woocommerce-gateway-stripe' ), array( $this, 'order_data_eraser' ) );
+
+		add_filter( 'woocommerce_get_settings_account', array( $this, 'account_settings' ) );
+	}
+
+	/**
+	 * Add retention settings to account tab.
+	 *
+	 * @param array $settings
+	 * @return array $settings Updated
+	 */
+	public function account_settings( $settings ) {
+		$insert_setting = array(
+			array(
+				'title'       => __( 'Retain Stripe Data', 'woocommerce-gateway-stripe' ),
+				'desc_tip'    => __( 'Retains any Stripe data such as Stripe customer ID, source ID.', 'woocommerce-gateway-stripe' ),
+				'id'          => 'woocommerce_gateway_stripe_retention',
+				'type'        => 'relative_date_selector',
+				'placeholder' => __( 'N/A', 'woocommerce-gateway-stripe' ),
+				'default'     => '',
+				'autoload'    => false,
+			),
+		);
+
+		array_splice( $settings, ( count( $settings ) - 1 ), 0, $insert_setting );
+
+		return $settings;
 	}
 
 	/**
@@ -298,16 +324,12 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 			return array( false, false, array() );
 		}
 
-		$order_age = strtotime( 'now' ) - $order->get_date_created()->getTimestamp();
-
-		// If order age is longer than specified days, don't do anything to it
-		// TODO: Figure out if 180 is the real number
-		if ( $order_age < DAY_IN_SECONDS * 180 ) {
-			return array( false, true, array( sprintf( __( 'Order ID %d is less than 180 days (Stripe)' ), $order->get_id() ) ) );
+		if ( ! $this->is_retention_expired( $order->get_date_created()->getTimestamp() ) ) {
+			return array( false, true, array( sprintf( __( 'Order ID %d is less than set retention days. Personal data retained. (Stripe)' ), $order->get_id() ) ) );
 		}
 
 		if ( $subscription->has_status( apply_filters( 'wc_stripe_privacy_eraser_subs_statuses', array( 'on-hold', 'active' ) ) ) ) {
-			return array( false, true, array( sprintf( __( 'Order ID %d contains an active Subscription' ), $order->get_id() ) ) );
+			return array( false, true, array( sprintf( __( 'Order ID %d contains an active Subscription. Personal data retained. (Stripe)' ), $order->get_id() ) ) );
 		}
 
 		$renewal_orders = WC_Subscriptions_Renewal_Order::get_renewal_orders( $order->get_id() );
@@ -337,6 +359,10 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$stripe_refund_id   = get_post_meta( $order_id, '_stripe_refund_id', true );
 		$stripe_customer_id = get_post_meta( $order_id, '_stripe_customer_id', true );
 
+		if ( ! $this->is_retention_expired( $order->get_date_created()->getTimestamp() ) ) {
+			return array( false, true, array( sprintf( __( 'Order ID %d is less than set retention days. Personal data retained. (Stripe)' ), $order->get_id() ) ) );
+		}
+
 		if ( empty( $stripe_source_id ) && empty( $stripe_refund_id ) && empty( $stripe_customer_id ) ) {
 			return array( false, false, array() );
 		}
@@ -346,6 +372,46 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		delete_post_meta( $order_id, '_stripe_customer_id' );
 
 		return array( true, false, array( __( 'Stripe personal data erased.', 'woocommerce-gateway-stripe' ) ) );
+	}
+
+	/**
+	 * Checks if create date is passed retention duration.
+	 *
+	 */
+	public function is_retention_expired( $created_date ) {
+		$retention  = wc_parse_relative_date_option( get_option( 'woocommerce_gateway_stripe_retention' ) );
+		$is_expired = false;
+		$time_span  = time() - strtotime( $created_date );
+		if ( empty( $retention ) || empty( $created_date ) ) {
+			return false;
+		}
+		switch ( $retention['unit'] ) {
+			case 'days':
+				$retention = $retention['number'] * DAY_IN_SECONDS;
+				if ( $time_span > $retention ) {
+					$is_expired = true;
+				}
+				break;
+			case 'weeks':
+				$retention = $retention['number'] * WEEK_IN_SECONDS;
+				if ( $time_span > $retention ) {
+					$is_expired = true;
+				}
+				break;
+			case 'months':
+				$retention = $retention['number'] * MONTH_IN_SECONDS;
+				if ( $time_span > $retention ) {
+					$is_expired = true;
+				}
+				break;
+			case 'years':
+				$retention = $retention['number'] * YEAR_IN_SECONDS;
+				if ( $time_span > $retention ) {
+					$is_expired = true;
+				}
+				break;
+		}
+		return $is_expired;
 	}
 }
 
