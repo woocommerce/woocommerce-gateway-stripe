@@ -237,11 +237,15 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	 * @return array An array of personal data in name value pairs
 	 */
 	public function customer_data_eraser( $email_address, $page ) {
-		$page = (int) $page;
-		$user = get_user_by( 'email', $email_address ); // Check if user has an ID in the DB to load stored personal data.
+		$page               = (int) $page;
+		$user               = get_user_by( 'email', $email_address ); // Check if user has an ID in the DB to load stored personal data.
+		$stripe_customer_id = '';
+		$stripe_source_id   = '';
 
-		$stripe_customer_id = get_user_meta( $user->ID, '_stripe_customer_id', true );
-		$stripe_source_id   = get_user_meta( $user->ID, '_stripe_source_id', true );
+		if ( $user instanceof WP_User ) {
+			$stripe_customer_id = get_user_meta( $user->ID, '_stripe_customer_id', true );
+			$stripe_source_id   = get_user_meta( $user->ID, '_stripe_source_id', true );
+		}
 
 		$items_removed  = false;
 		$messages       = array();
