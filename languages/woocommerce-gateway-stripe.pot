@@ -2,10 +2,10 @@
 # This file is distributed under the same license as the WooCommerce Stripe Gateway package.
 msgid ""
 msgstr ""
-"Project-Id-Version: WooCommerce Stripe Gateway 4.1.3\n"
+"Project-Id-Version: WooCommerce Stripe Gateway 4.1.4\n"
 "Report-Msgid-Bugs-To: "
 "https://github.com/woocommerce/woocommerce-gateway-stripe/issues\n"
-"POT-Creation-Date: 2018-05-07 13:34:19+00:00\n"
+"POT-Creation-Date: 2018-05-28 21:53:47+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -63,7 +63,7 @@ msgid "Stripe charge complete (Charge ID: %s)"
 msgstr ""
 
 #: includes/abstracts/abstract-wc-stripe-payment-gateway.php:464
-#: includes/class-wc-gateway-stripe.php:687
+#: includes/class-wc-gateway-stripe.php:690
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:134
 #: includes/compat/class-wc-stripe-subs-compat.php:96
 msgid "Payment processing failed. Please retry."
@@ -135,12 +135,11 @@ msgid ""
 msgstr ""
 
 #: includes/admin/class-wc-stripe-admin-notices.php:180
-#. translators: 1) link 2) link
+#. translators: 1) link
 msgid ""
-"Stripe is enabled, but the <a href=\"%1$s\">force SSL option</a> is "
-"disabled; your checkout may not be secure! Please enable SSL and ensure "
-"your server has a valid <a href=\"%2$s\" target=\"_blank\">SSL "
-"certificate</a> - Stripe will only work in test mode."
+"Stripe is enabled, but a SSL certificate is not detected. Your checkout may "
+"not be secure! Please ensure your server has a valid <a href=\"%1$s\" "
+"target=\"_blank\">SSL certificate</a> - Stripe will only work in test mode."
 msgstr ""
 
 #: includes/admin/class-wc-stripe-admin-notices.php:203
@@ -153,6 +152,102 @@ msgstr ""
 
 #: includes/admin/class-wc-stripe-admin-notices.php:221
 msgid "Cheatin&#8217; huh?"
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:12
+#: includes/class-wc-gateway-stripe.php:116
+msgid "Stripe"
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:14
+msgid "WooCommerce Stripe Order Data"
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:17
+msgid "WooCommerce Stripe Subscriptions Data"
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:20
+#: includes/admin/class-wc-stripe-privacy.php:22
+msgid "WooCommerce Stripe Customer Data"
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:23
+msgid "WooCommerce Stripe Data"
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:37
+msgid "Retain Stripe Data"
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:38
+msgid "Retains any Stripe data such as Stripe customer ID, source ID."
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:41
+#: includes/compat/class-wc-stripe-sepa-subs-compat.php:429
+#: includes/compat/class-wc-stripe-subs-compat.php:481
+#: includes/compat/class-wc-stripe-subs-compat.php:483
+#: includes/compat/class-wc-stripe-subs-compat.php:496
+#: includes/compat/class-wc-stripe-subs-compat.php:498
+msgid "N/A"
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:83
+msgid ""
+"By using this extension, you may be storing personal data or sharing data "
+"with an external service. <a href=\"%s\" target=\"_blank\">Learn more about "
+"how this works, including what you may want to include in your privacy "
+"policy.</a>"
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:106
+msgid "Orders"
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:110
+#: includes/admin/class-wc-stripe-privacy.php:175
+#: includes/admin/class-wc-stripe-privacy.php:215
+msgid "Stripe payment id"
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:114
+#: includes/admin/class-wc-stripe-privacy.php:179
+#: includes/admin/class-wc-stripe-privacy.php:219
+msgid "Stripe customer id"
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:171
+msgid "Subscriptions"
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:211
+msgid "Customer Data"
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:257
+msgid "Stripe User Data Erased."
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:332
+#: includes/admin/class-wc-stripe-privacy.php:367
+msgid ""
+"Order ID %d is less than set retention days. Personal data retained. "
+"(Stripe)"
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:336
+msgid ""
+"Order ID %d contains an active Subscription. Personal data retained. "
+"(Stripe)"
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:351
+msgid "Stripe Subscription Data Erased."
+msgstr ""
+
+#: includes/admin/class-wc-stripe-privacy.php:378
+msgid "Stripe personal data erased."
 msgstr ""
 
 #: includes/admin/stripe-alipay-settings.php:9
@@ -673,10 +768,6 @@ msgstr ""
 msgid "You will be redirected to SOFORT."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:116
-msgid "Stripe"
-msgstr ""
-
 #: includes/class-wc-gateway-stripe.php:118
 #. translators: 1) link to Stripe register page 2) link to Stripe api keys page
 msgid ""
@@ -739,7 +830,7 @@ msgid "Please fill in required checkout fields first"
 msgstr ""
 
 #: includes/class-wc-gateway-stripe.php:478
-#: includes/class-wc-gateway-stripe.php:682
+#: includes/class-wc-gateway-stripe.php:685
 #: includes/compat/class-wc-stripe-subs-compat.php:91
 msgid ""
 "Sorry, we're not accepting prepaid cards at this time. Your credit card has "
@@ -758,14 +849,14 @@ msgstr ""
 msgid "Place Order"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:763
+#: includes/class-wc-gateway-stripe.php:772
 #: includes/class-wc-stripe-order-handler.php:140
 #: includes/class-wc-stripe-webhook-handler.php:187
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:348
 msgid "This card is no longer available and has been removed."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:782
+#: includes/class-wc-gateway-stripe.php:791
 #: includes/class-wc-stripe-order-handler.php:158
 #: includes/class-wc-stripe-webhook-handler.php:206
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:222
@@ -776,26 +867,26 @@ msgid ""
 "later."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:859
+#: includes/class-wc-gateway-stripe.php:868
 #. translators: error message
 msgid "This represents the fee Stripe collects for the transaction."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:860
+#: includes/class-wc-gateway-stripe.php:869
 msgid "Stripe Fee:"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:896
+#: includes/class-wc-gateway-stripe.php:905
 msgid ""
 "This represents the net total that will be credited to your Stripe bank "
 "account. This may be in the currency that is set in your Stripe account."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:897
+#: includes/class-wc-gateway-stripe.php:906
 msgid "Stripe Payout:"
 msgstr ""
 
-#: includes/class-wc-stripe-api.php:123 includes/class-wc-stripe-api.php:154
+#: includes/class-wc-stripe-api.php:129 includes/class-wc-stripe-api.php:160
 msgid "There was a problem connecting to the Stripe API endpoint."
 msgstr ""
 
@@ -824,7 +915,15 @@ msgid ""
 "the issue. (Logging must be enabled to see recorded logs)"
 msgstr ""
 
-#: includes/class-wc-stripe-customer.php:188
+#: includes/class-wc-stripe-customer.php:108
+msgid "Name"
+msgstr ""
+
+#: includes/class-wc-stripe-customer.php:108
+msgid "Username"
+msgstr ""
+
+#: includes/class-wc-stripe-customer.php:189
 msgid "Unable to add payment source."
 msgstr ""
 
@@ -1003,14 +1102,6 @@ msgstr ""
 msgid "Via SEPA Direct Debit ending in %1$s"
 msgstr ""
 
-#: includes/compat/class-wc-stripe-sepa-subs-compat.php:429
-#: includes/compat/class-wc-stripe-subs-compat.php:481
-#: includes/compat/class-wc-stripe-subs-compat.php:483
-#: includes/compat/class-wc-stripe-subs-compat.php:496
-#: includes/compat/class-wc-stripe-subs-compat.php:498
-msgid "N/A"
-msgstr ""
-
 #: includes/compat/class-wc-stripe-subs-compat.php:481
 #: includes/compat/class-wc-stripe-subs-compat.php:496
 #. translators: 1) card brand 2) last 4 digits
@@ -1018,7 +1109,7 @@ msgid "Via %1$s card ending in %2$s"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-alipay.php:60
-#: woocommerce-gateway-stripe.php:250
+#: woocommerce-gateway-stripe.php:255
 msgid "Stripe Alipay"
 msgstr ""
 
@@ -1047,27 +1138,27 @@ msgid "Add Payment"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-bancontact.php:60
-#: woocommerce-gateway-stripe.php:244
+#: woocommerce-gateway-stripe.php:249
 msgid "Stripe Bancontact"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-eps.php:60
-#: woocommerce-gateway-stripe.php:247
+#: woocommerce-gateway-stripe.php:252
 msgid "Stripe EPS"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-giropay.php:60
-#: woocommerce-gateway-stripe.php:246
+#: woocommerce-gateway-stripe.php:251
 msgid "Stripe Giropay"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-ideal.php:60
-#: woocommerce-gateway-stripe.php:248
+#: woocommerce-gateway-stripe.php:253
 msgid "Stripe iDeal"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:60
-#: woocommerce-gateway-stripe.php:252
+#: woocommerce-gateway-stripe.php:257
 msgid "Stripe Multibanco"
 msgstr ""
 
@@ -1096,12 +1187,12 @@ msgid "Awaiting Multibanco payment"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-p24.php:60
-#: woocommerce-gateway-stripe.php:249
+#: woocommerce-gateway-stripe.php:254
 msgid "Stripe P24"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:75
-#: woocommerce-gateway-stripe.php:251
+#: woocommerce-gateway-stripe.php:256
 msgid "Stripe SEPA Direct Debit"
 msgstr ""
 
@@ -1132,7 +1223,7 @@ msgid ""
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-sofort.php:60
-#: woocommerce-gateway-stripe.php:245
+#: woocommerce-gateway-stripe.php:250
 msgid "Stripe SOFORT"
 msgstr ""
 
@@ -1179,21 +1270,22 @@ msgstr ""
 msgid "Discount"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:31
+#: woocommerce-gateway-stripe.php:30
+#. translators: 1. URL link.
 msgid ""
 "Stripe requires WooCommerce to be installed and active. You can download %s "
 "here."
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:191
+#: woocommerce-gateway-stripe.php:196
 msgid "Settings"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:192
+#: woocommerce-gateway-stripe.php:197
 msgid "Docs"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:193
+#: woocommerce-gateway-stripe.php:198
 msgid "Support"
 msgstr ""
 

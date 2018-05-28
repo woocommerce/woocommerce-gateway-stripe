@@ -329,11 +329,11 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		}
 
 		if ( ! $this->is_retention_expired( $order->get_date_created()->getTimestamp() ) ) {
-			return array( false, true, array( sprintf( __( 'Order ID %d is less than set retention days. Personal data retained. (Stripe)' ), $order->get_id() ) ) );
+			return array( false, true, array( sprintf( __( 'Order ID %d is less than set retention days. Personal data retained. (Stripe)', 'woocommerce-gateway-stripe' ), $order->get_id() ) ) );
 		}
 
 		if ( $subscription->has_status( apply_filters( 'wc_stripe_privacy_eraser_subs_statuses', array( 'on-hold', 'active' ) ) ) ) {
-			return array( false, true, array( sprintf( __( 'Order ID %d contains an active Subscription. Personal data retained. (Stripe)' ), $order->get_id() ) ) );
+			return array( false, true, array( sprintf( __( 'Order ID %d contains an active Subscription. Personal data retained. (Stripe)', 'woocommerce-gateway-stripe' ), $order->get_id() ) ) );
 		}
 
 		$renewal_orders = WC_Subscriptions_Renewal_Order::get_renewal_orders( $order->get_id() );
@@ -364,7 +364,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$stripe_customer_id = get_post_meta( $order_id, '_stripe_customer_id', true );
 
 		if ( ! $this->is_retention_expired( $order->get_date_created()->getTimestamp() ) ) {
-			return array( false, true, array( sprintf( __( 'Order ID %d is less than set retention days. Personal data retained. (Stripe)' ), $order->get_id() ) ) );
+			return array( false, true, array( sprintf( __( 'Order ID %d is less than set retention days. Personal data retained. (Stripe)', 'woocommerce-gateway-stripe' ), $order->get_id() ) ) );
 		}
 
 		if ( empty( $stripe_source_id ) && empty( $stripe_refund_id ) && empty( $stripe_customer_id ) ) {
