@@ -4,6 +4,7 @@
 * Tweak - Refactor initialization of plugin.
 * Tweak - Webhook failed handler now handles all payment methods.
 * Tweak - Make 3DS object is in pending status before redirecting.
+* Tweak - CSS styling.
 * Add - Username to the description field of the Stripe customer when created.
 * Add - GDPR retention setting and logic.
 * Fix - Payment request payments were redirected to Pay Order when it should be Order Received.

@@ -223,13 +223,13 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 				<label for="stripe-sepa-owner">
 					<?php esc_html_e( 'IBAN Account Name.', 'woocommerce-gateway-stripe' ); ?> <span class="required">*</span>
 				</label>
-				<input id="stripe-sepa-owner" name="stripe_sepa_owner" value="" style="border:1px solid #ddd;margin:5px 0;padding:10px 5px;background-color:#fff;outline:0;" />
+				<input id="stripe-sepa-owner" class="wc-stripe-elements-field" name="stripe_sepa_owner" value="" />
 			</p>
 			<p class="form-row form-row-wide">
 				<label for="stripe-sepa-iban">
 					<?php esc_html_e( 'IBAN Account Number.', 'woocommerce-gateway-stripe' ); ?> <span class="required">*</span>
 				</label>
-				<input id="stripe-sepa-iban" name="stripe_sepa_iban" value="" style="border:1px solid #ddd;margin:5px 0;padding:10px 5px;background-color:#fff;outline:0;" />
+				<input id="stripe-sepa-iban" class="wc-stripe-elements-field" name="stripe_sepa_iban" value="" />
 			</p>
 			<!-- Used to display form errors -->
 			<div class="stripe-source-errors" role="alert"></div>
