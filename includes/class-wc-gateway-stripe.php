@@ -626,11 +626,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return bool
 	 */
 	public function maybe_redirect_stripe_checkout() {
+		$is_payment_request = ( isset( $_POST ) && isset( $_POST['payment_request_type'] ) );
+
 		return (
 			$this->stripe_checkout &&
 			! isset( $_POST['stripe_checkout_order'] ) &&
 			! $this->is_using_saved_payment_method() &&
-			! is_wc_endpoint_url( 'order-pay' )
+			! is_wc_endpoint_url( 'order-pay' ) &&
+			! $is_payment_request
 		);
 	}
 
@@ -723,12 +726,18 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 						$order->save();
 					}
 
-					WC_Stripe_Logger::log( 'Info: Redirecting to 3DS...' );
+					/*
+					 * Make sure after creating 3DS object it is in pending status
+					 * before redirecting.
+					 */
+					if ( 'pending' === $response->redirect->status ) {
+						WC_Stripe_Logger::log( 'Info: Redirecting to 3DS...' );
 
-					return array(
-						'result'   => 'success',
-						'redirect' => esc_url_raw( $response->redirect->url ),
-					);
+						return array(
+							'result'   => 'success',
+							'redirect' => esc_url_raw( $response->redirect->url ),
+						);
+					}
 				}
 
 				WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
