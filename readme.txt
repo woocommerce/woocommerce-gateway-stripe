@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 4.9
 Requires PHP: 5.6
-Stable tag: 4.1.4
+Stable tag: 4.1.5
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -101,10 +101,15 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.1.4 - 2018-05-22 =
-* Tweak - Improve performance when getting source id and charge id from database.
-* Add - GDPR privacy support.
-* Update - WC 3.4 compatibility.
+= 4.1.5 - 2018-05-28 =
+* Tweak - Refactor initialization of plugin.
+* Tweak - Webhook failed handler now handles all payment methods.
+* Tweak - Make sure 3DS object is in pending status before redirecting.
+* Tweak - CSS styling.
+* Add - Username to the description field of the Stripe customer when created.
+* Add - GDPR retention setting and logic.
+* Fix - Payment request payments were redirected to Pay Order when it should be Order Received.
+* Update - Stripe API version to 2018-05-21.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/changelog.txt).
 

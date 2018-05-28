@@ -3,7 +3,7 @@
 = 4.1.5 - 2018-05-28 =
 * Tweak - Refactor initialization of plugin.
 * Tweak - Webhook failed handler now handles all payment methods.
-* Tweak - Make 3DS object is in pending status before redirecting.
+* Tweak - Make sure 3DS object is in pending status before redirecting.
 * Tweak - CSS styling.
 * Add - Username to the description field of the Stripe customer when created.
 * Add - GDPR retention setting and logic.
