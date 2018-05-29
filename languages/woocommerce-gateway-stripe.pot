@@ -2,10 +2,10 @@
 # This file is distributed under the same license as the WooCommerce Stripe Gateway package.
 msgid ""
 msgstr ""
-"Project-Id-Version: WooCommerce Stripe Gateway 4.1.4\n"
+"Project-Id-Version: WooCommerce Stripe Gateway 4.1.5\n"
 "Report-Msgid-Bugs-To: "
 "https://github.com/woocommerce/woocommerce-gateway-stripe/issues\n"
-"POT-Creation-Date: 2018-05-28 21:53:47+00:00\n"
+"POT-Creation-Date: 2018-05-29 21:57:06+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -63,7 +63,7 @@ msgid "Stripe charge complete (Charge ID: %s)"
 msgstr ""
 
 #: includes/abstracts/abstract-wc-stripe-payment-gateway.php:464
-#: includes/class-wc-gateway-stripe.php:690
+#: includes/class-wc-gateway-stripe.php:703
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:134
 #: includes/compat/class-wc-stripe-subs-compat.php:96
 msgid "Payment processing failed. Please retry."
@@ -821,42 +821,42 @@ msgstr ""
 msgid "Card Code (CVC)"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:459
+#: includes/class-wc-gateway-stripe.php:472
 msgid "Please accept the terms and conditions first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:460
+#: includes/class-wc-gateway-stripe.php:473
 msgid "Please fill in required checkout fields first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:478
-#: includes/class-wc-gateway-stripe.php:685
+#: includes/class-wc-gateway-stripe.php:491
+#: includes/class-wc-gateway-stripe.php:698
 #: includes/compat/class-wc-stripe-subs-compat.php:91
 msgid ""
 "Sorry, we're not accepting prepaid cards at this time. Your credit card has "
 "not been charge. Please try with alternative payment method."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:479
+#: includes/class-wc-gateway-stripe.php:492
 msgid "Please enter your IBAN account name."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:480
+#: includes/class-wc-gateway-stripe.php:493
 msgid "Please enter your IBAN account number."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:574
+#: includes/class-wc-gateway-stripe.php:587
 msgid "Place Order"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:772
+#: includes/class-wc-gateway-stripe.php:785
 #: includes/class-wc-stripe-order-handler.php:140
 #: includes/class-wc-stripe-webhook-handler.php:187
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:348
 msgid "This card is no longer available and has been removed."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:791
+#: includes/class-wc-gateway-stripe.php:804
 #: includes/class-wc-stripe-order-handler.php:158
 #: includes/class-wc-stripe-webhook-handler.php:206
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:222
@@ -867,22 +867,22 @@ msgid ""
 "later."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:868
+#: includes/class-wc-gateway-stripe.php:881
 #. translators: error message
 msgid "This represents the fee Stripe collects for the transaction."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:869
+#: includes/class-wc-gateway-stripe.php:882
 msgid "Stripe Fee:"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:905
+#: includes/class-wc-gateway-stripe.php:918
 msgid ""
 "This represents the net total that will be credited to your Stripe bank "
 "account. This may be in the currency that is set in your Stripe account."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:906
+#: includes/class-wc-gateway-stripe.php:919
 msgid "Stripe Payout:"
 msgstr ""
 

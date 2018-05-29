@@ -1,0 +1,29 @@
+.woocommerce-checkout #payment .payment_method_stripe label[for=payment_method_stripe] { display: block; padding-left: 1.41575em; }
+#add_payment_method #payment .payment_method_stripe label[for=payment_method_stripe] { display: block; padding-left: 1.41575em; }
+
+.woocommerce-checkout #payment .payment_method_stripe_bancontact label[for=payment_method_stripe_bancontact] { display: block; padding-left: 1.41575em; }
+#add_payment_method #payment .payment_method_stripe_bancontact label[for=payment_method_stripe_bancontact] { display: block; padding-left: 1.41575em; }
+
+.woocommerce-checkout #payment .payment_method_stripe_alipay label[for=payment_method_stripe_alipay] { display: block; padding-left: 1.41575em; }
+#add_payment_method #payment .payment_method_stripe_alipay label[for=payment_method_stripe_alipay] { display: block; padding-left: 1.41575em; }
+
+.woocommerce-checkout #payment .payment_method_stripe_eps label[for=payment_method_stripe_eps] { display: block; padding-left: 1.41575em; }
+#add_payment_method #payment .payment_method_stripe_eps label[for=payment_method_stripe_eps] { display: block; padding-left: 1.41575em; }
+
+.woocommerce-checkout #payment .payment_method_stripe_giropay label[for=payment_method_stripe_giropay] { display: block; padding-left: 1.41575em; }
+#add_payment_method #payment .payment_method_stripe_giropay label[for=payment_method_stripe_giropay] { display: block; padding-left: 1.41575em; }
+
+.woocommerce-checkout #payment .payment_method_stripe_ideal label[for=payment_method_stripe_ideal] { display: block; padding-left: 1.41575em; }
+#add_payment_method #payment .payment_method_stripe_ideal label[for=payment_method_stripe_ideal] { display: block; padding-left: 1.41575em; }
+
+.woocommerce-checkout #payment .payment_method_stripe_multibanco label[for=payment_method_stripe_multibanco] { display: block; padding-left: 1.41575em; }
+#add_payment_method #payment .payment_method_stripe_multibanco label[for=payment_method_stripe_multibanco] { display: block; padding-left: 1.41575em; }
+
+.woocommerce-checkout #payment .payment_method_stripe_p24 label[for=payment_method_stripe_p24] { display: block; padding-left: 1.41575em; }
+#add_payment_method #payment .payment_method_stripe_p24 label[for=payment_method_stripe_p24] { display: block; padding-left: 1.41575em; }
+
+.woocommerce-checkout #payment .payment_method_stripe_sepa label[for=payment_method_stripe_sepa] { display: block; padding-left: 1.41575em; }
+#add_payment_method #payment .payment_method_stripe_sepa label[for=payment_method_stripe_sepa] { display: block; padding-left: 1.41575em; }
+
+.woocommerce-checkout #payment .payment_method_stripe_sofort label[for=payment_method_stripe_sofort] { display: block; padding-left: 1.41575em; }
+#add_payment_method #payment .payment_method_stripe_sofort label[for=payment_method_stripe_sofort] { display: block; padding-left: 1.41575em; }
