@@ -1,5 +1,9 @@
 *** Changelog ***
 
+= 4.1.6 - 2018-05-31 =
+* Fix - Radio buttons on checkout on some themes are not aligned properly.
+* Fix - False negative on SSL warning notice in admin.
+
 = 4.1.5 - 2018-05-28 =
 * Tweak - Refactor initialization of plugin.
 * Tweak - Webhook failed handler now handles all payment methods.
