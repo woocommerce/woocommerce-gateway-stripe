@@ -2,10 +2,10 @@
 # This file is distributed under the same license as the WooCommerce Stripe Gateway package.
 msgid ""
 msgstr ""
-"Project-Id-Version: WooCommerce Stripe Gateway 4.1.5\n"
+"Project-Id-Version: WooCommerce Stripe Gateway 4.1.6\n"
 "Report-Msgid-Bugs-To: "
 "https://github.com/woocommerce/woocommerce-gateway-stripe/issues\n"
-"POT-Creation-Date: 2018-05-29 21:57:06+00:00\n"
+"POT-Creation-Date: 2018-05-31 19:36:20+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -139,7 +139,7 @@ msgstr ""
 msgid ""
 "Stripe is enabled, but a SSL certificate is not detected. Your checkout may "
 "not be secure! Please ensure your server has a valid <a href=\"%1$s\" "
-"target=\"_blank\">SSL certificate</a> - Stripe will only work in test mode."
+"target=\"_blank\">SSL certificate</a>"
 msgstr ""
 
 #: includes/admin/class-wc-stripe-admin-notices.php:203
