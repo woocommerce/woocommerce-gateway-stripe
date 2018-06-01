@@ -458,6 +458,7 @@ class WC_Stripe_Payment_Request {
 		// If no SSL bail.
 		if ( ! $this->testmode && ! is_ssl() ) {
 			WC_Stripe_Logger::log( 'Stripe Payment Request live mode requires SSL.' );
+			return;
 		}
 
 		if ( ! is_product() && ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) {
