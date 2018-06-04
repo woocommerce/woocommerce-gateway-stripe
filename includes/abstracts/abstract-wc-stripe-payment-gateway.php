@@ -894,6 +894,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( empty( $balance_transaction->error ) ) {
 			$currency = ! empty( $balance_transaction->currency ) ? strtoupper( $balance_transaction->currency ) : null;
 			WC_Stripe_Helper::update_stripe_currency( $order, $currency );
+
+			if ( is_callable( array( $order, 'save' ) ) ) {
+				$order->save();
+			}
 		} else {
 			WC_Stripe_Logger::log( "Unable to update currency meta for order: {$order_id}" );
 		}
