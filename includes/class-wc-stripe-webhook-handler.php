@@ -353,6 +353,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( isset( $notification->data->object->balance_transaction ) ) {
 			$this->update_fees( $order, $notification->data->object->balance_transaction );
+			$this->update_currency( $order, $notification->data->object->balance_transaction );
 		}
 
 		$order->payment_complete( $notification->data->object->id );

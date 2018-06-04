@@ -880,6 +880,30 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Updates Stripe currency in order meta.
+	 *
+	 * @since 4.1.7
+	 * @param object $order The order object
+	 * @param int $balance_transaction_id
+	 */
+	public function update_currency( $order, $balance_transaction_id ) {
+		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+
+		$balance_transaction = WC_Stripe_API::retrieve( 'balance/history/' . $balance_transaction_id );
+
+		if ( empty( $balance_transaction->error ) ) {
+			$currency = ! empty( $balance_transaction->currency ) ? strtoupper( $balance_transaction->currency ) : null;
+			WC_Stripe_Helper::update_stripe_currency( $order, $currency );
+
+			if ( is_callable( array( $order, 'save' ) ) ) {
+				$order->save();
+			}
+		} else {
+			WC_Stripe_Logger::log( "Unable to update currency meta for order: {$order_id}" );
+		}
+	}
+
+	/**
 	 * Refund a charge.
 	 *
 	 * @since 3.1.0
