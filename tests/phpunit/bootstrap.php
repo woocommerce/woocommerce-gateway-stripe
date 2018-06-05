@@ -13,12 +13,6 @@ function _manually_load_plugin() {
 	require $plugin_dir . 'woocommerce-gateway-stripe/woocommerce-gateway-stripe.php';
 }
 
-if ( ! function_exists( 'wc_stripe_is_wc_active' ) ) {
-	function wc_stripe_is_wc_active() {
-		return true;
-	}
-}
-
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 
 require $_tests_dir . '/includes/bootstrap.php';
