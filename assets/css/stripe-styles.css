@@ -152,7 +152,7 @@ form#order_review #wc-stripe_sepa-form { padding: 10px; }
 #add_payment_method #payment ul.payment_methods li .stripe-maestro-brand { position: absolute; top: 50%; margin-top: -10px; right: 10px; background: no-repeat url( '../images/maestro.svg' ); display: block; width: 30px; height: 24px; }
 
 .woocommerce-checkout #payment ul.payment_methods li .stripe-mastercard-brand,
-#add_payment_method #payment ul.payment_methods li .stripe-mastercard-brand { position: absolute; top: 50%; margin-top: -10px right: 10px; background: no-repeat url( '../images/mastercard.svg' ); display: block; width: 30px; height: 24px; }
+#add_payment_method #payment ul.payment_methods li .stripe-mastercard-brand { position: absolute; top: 50%; margin-top: -10px; right: 10px; background: no-repeat url( '../images/mastercard.svg' ); display: block; width: 30px; height: 24px; }
 
 .woocommerce-checkout #payment ul.payment_methods .stripe-card-group,
 #add_payment_method #payment ul.payment_methods .stripe-card-group { position: relative; }
