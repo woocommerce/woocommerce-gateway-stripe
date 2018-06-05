@@ -27,7 +27,11 @@ class WC_Stripe_Logger {
 
 		if ( apply_filters( 'wc_stripe_logging', true, $message ) ) {
 			if ( empty( self::$logger ) ) {
-				self::$logger = wc_get_logger();
+				if ( version_compare( WC_VERSION, '3.0.0', '>=' ) ) {
+					self::$logger = wc_get_logger();
+				} else {
+					self::$logger = new WC_Logger();
+				}
 			}
 
 			$settings = get_option( 'woocommerce_stripe_settings' );
