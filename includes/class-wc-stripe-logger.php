@@ -57,7 +57,11 @@ class WC_Stripe_Logger {
 
 			}
 
-			self::$logger->add( self::WC_LOG_FILENAME, $log_entry );
+			if ( version_compare( WC_VERSION, '3.0.0', '>=' ) ) {
+				self::$logger->debug( $log_entry, array( 'source' => self::WC_LOG_FILENAME ) );
+			} else {
+				self::$logger->add( self::WC_LOG_FILENAME, $log_entry );
+			}
 		}
 	}
 }
