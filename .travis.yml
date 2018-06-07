@@ -1,40 +1,38 @@
 language: php
 
+addons:
+  chrome: stable
+  apt:
+    packages:
+      - nginx
+
 sudo: false
 
 # Test main supported versions of PHP against latest WP. 5.2 is min supported PHP version.
 php:
-  - 5.6
-  - 7.0
-  - 7.1
+  # - 5.6
+  # - 7.1
+  - 7.2
 
 env:
-  - WP_VERSION=latest WP_MULTISITE=0  WC_VERSION=2.6.14
-
-# Additonal tests against stable PHP (min recommended version is 5.6) and past supported versions of WP.
-matrix:
-  include:
-  - php: 5.6
-    env: WP_VERSION=latest WP_MULTISITE=1 WC_VERSION=2.6.14
-  - php: 5.6
-    env: WP_VERSION=latest WP_MULTISITE=0 WC_VERSION=3.0.0-rc.2
-
-install:
-    - . $HOME/.nvm/nvm.sh
-    - nvm install 4.0.0
-    - nvm use 4.0.0
-    - npm install
-    - travis_retry composer install --no-interaction --prefer-source
+  # - WP_VERSION=latest WP_MULTISITE=0 WC_VERSION=2.6.14
+  - WP_VERSION=latest WP_MULTISITE=0 WC_VERSION=3.4.2 RUN_E2E=1
 
 before_script:
-  - phpenv config-rm xdebug.ini
+  - export PATH="$HOME/.composer/vendor/bin:$PATH"
   - bash tests/bin/install.sh wc_stripe_test root '' localhost $WP_VERSION
   - bash tests/bin/travis.sh before
+
+script:
+  - bash tests/bin/phpunit.sh
+  # - bash tests/bin/phpcs.sh
+  - bash tests/bin/run-e2e-CI.sh
 
 #save node_modules to speed up build
 cache:
       directories:
               - node_modules
 
-after_script:
-  - bash tests/bin/travis.sh after
+branches:
+  only:
+    - new/e2e-testing
