@@ -46,9 +46,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * saved to a customer card (if applicable) from process_payment.
 	 *
 	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @since 4.1.8 Add $previous_error parameter.
+	 * @param int $order_id
+	 * @param bool $retry
+	 * @param mix $previous_error Any error message from previous request.
 	 */
-	public function process_redirect_payment( $order_id, $retry = true ) {
+	public function process_redirect_payment( $order_id, $retry = true, $previous_error = false ) {
 		try {
 			$source = wc_clean( $_GET['source'] );
 
@@ -107,11 +110,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$source_object->token_id = '';
 			$source_object->customer = $this->get_stripe_customer_id( $order );
 			$source_object->source   = $source_info->id;
+			$source_object->status   = 'chargeable';
 
 			/* If we're doing a retry and source is chargeable, we need to pass
 			 * a different idempotency key and retry for success.
 			 */
-			if ( 1 < $this->retry_interval && 'chargeable' === $source_info->status ) {
+			if ( $this->need_update_idempotency_key( $source_object, $previous_error ) ) {
 				add_filter( 'wc_stripe_idempotency_key', array( $this, 'change_idempotency_key' ), 10, 2 );
 			}
 
@@ -147,13 +151,13 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					if ( $retry ) {
 						// Don't do anymore retries after this.
 						if ( 5 <= $this->retry_interval ) {
-							return $this->process_redirect_payment( $order_id, false );
+							return $this->process_redirect_payment( $order_id, false, $response->error );
 						}
 
 						sleep( $this->retry_interval );
 
 						$this->retry_interval++;
-						return $this->process_redirect_payment( $order_id, true );
+						return $this->process_redirect_payment( $order_id, true, $response->error );
 					} else {
 						$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
 						$order->add_order_note( $localized_message );

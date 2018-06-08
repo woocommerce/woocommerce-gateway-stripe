@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 4.1.8 - 2018-xx-xx =
+* Fix - 3DS payment sometimes will create additional transaction in Stripe.
+
 = 4.1.7 - 2018-06-06 =
 * Fix - Asynchronous payment methods such as SEPA, did not show order Stripe fees/net after payment succeed.
 * Fix - Missing semicolon on a CSS style value which causes display issues in some browsers.
