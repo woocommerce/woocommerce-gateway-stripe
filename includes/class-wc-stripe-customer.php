@@ -105,6 +105,17 @@ class WC_Stripe_Customer {
 		if ( $user ) {
 			$billing_first_name = get_user_meta( $user->ID, 'billing_first_name', true );
 			$billing_last_name  = get_user_meta( $user->ID, 'billing_last_name', true );
+
+			// If billing first name does not exists try the user first name.
+			if ( empty( $billing_first_name ) ) {
+				$billing_first_name = get_user_meta( $user->ID, 'first_name', true );
+			}
+
+			// If billing last name does not exists try the user last name.
+			if ( empty( $billing_last_name ) ) {
+				$billing_last_name = get_user_meta( $user->ID, 'last_name', true );
+			}
+
 			$description        = __( 'Name', 'woocommerce-gateway-stripe' ) . ': ' . $billing_first_name . ' ' . $billing_last_name . ' ' . __( 'Username', 'woocommerce-gateway-stripe' ) . ': ' . $user->user_login;
 
 			$defaults = array(

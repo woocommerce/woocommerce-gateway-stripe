@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.1.7\n"
 "Report-Msgid-Bugs-To: "
 "https://github.com/woocommerce/woocommerce-gateway-stripe/issues\n"
-"POT-Creation-Date: 2018-06-06 15:36:21+00:00\n"
+"POT-Creation-Date: 2018-06-08 21:19:13+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -55,7 +55,7 @@ msgid "Stripe charge awaiting payment: %s."
 msgstr ""
 
 #: includes/abstracts/abstract-wc-stripe-payment-gateway.php:459
-#: includes/class-wc-stripe-order-handler.php:245
+#: includes/class-wc-stripe-order-handler.php:249
 #: includes/class-wc-stripe-webhook-handler.php:314
 #: includes/class-wc-stripe-webhook-handler.php:362
 #. translators: transaction id
@@ -850,14 +850,14 @@ msgid "Place Order"
 msgstr ""
 
 #: includes/class-wc-gateway-stripe.php:785
-#: includes/class-wc-stripe-order-handler.php:140
+#: includes/class-wc-stripe-order-handler.php:144
 #: includes/class-wc-stripe-webhook-handler.php:187
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:348
 msgid "This card is no longer available and has been removed."
 msgstr ""
 
 #: includes/class-wc-gateway-stripe.php:804
-#: includes/class-wc-stripe-order-handler.php:158
+#: includes/class-wc-stripe-order-handler.php:162
 #: includes/class-wc-stripe-webhook-handler.php:206
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:222
 #: includes/compat/class-wc-stripe-subs-compat.php:237
@@ -988,7 +988,7 @@ msgid "An error occurred while processing the card."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:222
-#: includes/class-wc-stripe-order-handler.php:92
+#: includes/class-wc-stripe-order-handler.php:95
 msgid "Unable to process this payment, please try again or use alternative method."
 msgstr ""
 
@@ -996,12 +996,12 @@ msgstr ""
 msgid "The billing country is not accepted by SOFORT. Please try another country."
 msgstr ""
 
-#: includes/class-wc-stripe-order-handler.php:190
+#: includes/class-wc-stripe-order-handler.php:194
 #. translators: error message
 msgid "Stripe payment failed: %s"
 msgstr ""
 
-#: includes/class-wc-stripe-order-handler.php:242
+#: includes/class-wc-stripe-order-handler.php:246
 #. translators: error message
 msgid "Unable to capture charge! %s"
 msgstr ""
