@@ -86,7 +86,7 @@ class WC_Payment_Token_SEPA extends WC_Payment_Token {
 	 * @return string Last 4 digits
 	 */
 	public function get_last4( $context = 'view' ) {
-		return $this->get_prop( 'last4', $context );
+		return WC_Stripe_Helper::is_pre_30() ? $this->get_meta( 'last4' ) : $this->get_prop( 'last4', $context );
 	}
 
 	/**
@@ -96,6 +96,6 @@ class WC_Payment_Token_SEPA extends WC_Payment_Token {
 	 * @param string $last4
 	 */
 	public function set_last4( $last4 ) {
-		$this->set_prop( 'last4', $last4 );
+		WC_Stripe_Helper::is_pre_30() ? $this->add_meta_data( 'last4', $last4, true ) : $this->set_prop( 'last4', $last4 );
 	}
 }
