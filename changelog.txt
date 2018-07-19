@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 4.1.8 - 2018-xx-xx =
+= 4.1.8 - 2018-07-19 =
 * Fix - 3DS payment sometimes will create additional transaction in Stripe.
 * Fix - WC 2.6 with SEPA saved payment causing error on checkout.
 * Update - EPS logo.

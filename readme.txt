@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 4.9
 Requires PHP: 5.6
-Stable tag: 4.1.7
+Stable tag: 4.1.8
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -101,9 +101,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.1.7 - 2018-06-06 =
-* Fix - Asynchronous payment methods such as SEPA, did not show order Stripe fees/net after payment succeed.
-* Fix - Missing semicolon on a CSS style value which causes display issues in some browsers.
+= 4.1.8 - 2018-07-19 =
+* Fix - 3DS payment sometimes will create additional transaction in Stripe.
+* Fix - WC 2.6 with SEPA saved payment causing error on checkout.
+* Update - EPS logo.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/changelog.txt).
 
