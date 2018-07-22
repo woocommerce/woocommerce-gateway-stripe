@@ -217,6 +217,10 @@ class WC_Stripe_Apple_Pay_Registration {
 		if ( ! $this->stripe_enabled ) {
 			return;
 		}
+		
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
 
 		if ( $this->payment_request && ! empty( $this->apple_pay_verify_notice ) ) {
 			$allowed_html = array(
