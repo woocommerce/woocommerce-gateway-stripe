@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 4.1.9 - 2018-xx-xx =
+* Fix - Don't display admin notices to user that cannot manage woocommerce.
+
 = 4.1.8 - 2018-07-19 =
 * Fix - 3DS payment sometimes will create additional transaction in Stripe.
 * Fix - WC 2.6 with SEPA saved payment causing error on checkout.
