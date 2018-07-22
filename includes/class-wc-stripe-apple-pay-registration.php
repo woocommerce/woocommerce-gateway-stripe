@@ -234,7 +234,7 @@ class WC_Stripe_Apple_Pay_Registration {
 		 * when setting screen is displayed. So if domain verification is not set,
 		 * something went wrong so lets notify user.
 		 */
-		if ( ! empty( $this->secret_key ) && $this->payment_request && ! $this->apple_pay_domain_set ) {
+		if ( current_user_can( 'manage_woocommerce' ) && ! empty( $this->secret_key ) && $this->payment_request && ! $this->apple_pay_domain_set ) {
 			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
 			echo '<div class="error stripe-apple-pay-message"><p>' . sprintf( __( 'Apple Pay domain verification failed. Please check the %1$slog%2$s to see the issue. (Logging must be enabled to see recorded logs)', 'woocommerce-gateway-stripe' ), '<a href="' . admin_url( 'admin.php?page=wc-status&tab=logs' ) . '">', '</a>' ) . '</p></div>';
 		}
