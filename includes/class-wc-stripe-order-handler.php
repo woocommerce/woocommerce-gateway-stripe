@@ -259,6 +259,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						$net = ! empty( $result->balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $result->balance_transaction, 'net' ) : 0;
 						WC_Stripe_Helper::update_stripe_fee( $order, $fee );
 						WC_Stripe_Helper::update_stripe_net( $order, $net );
+
+						// Store currency stripe.
+						$currency = ! empty( $result->balance_transaction->currency ) ? strtoupper( $result->balance_transaction->currency ) : null;
+						WC_Stripe_Helper::update_stripe_currency( $order, $currency );
 					}
 
 					if ( is_callable( array( $order, 'save' ) ) ) {

@@ -3,6 +3,7 @@
 = 4.1.9 - 2018-xx-xx =
 * Fix - Don't display admin notices to user that cannot manage woocommerce.
 * Fix - Fatal error when clicking on order link that doesn't exist.
+* Fix - When capturing a charge from authorize, Stripe fees not displaying.
 * Fix - Undefined property error on card type in rare cases.
 
 = 4.1.8 - 2018-07-19 =
