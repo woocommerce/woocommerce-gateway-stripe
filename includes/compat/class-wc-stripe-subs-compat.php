@@ -466,6 +466,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		if ( $sources ) {
 			$card         = false;
 			$found_source = false;
+
 			foreach ( $sources as $source ) {
 				if ( isset( $source->type ) && 'card' === $source->type ) {
 					$card = $source->card;
@@ -487,7 +488,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			}
 
 			if ( ! $found_source ) {
-				if ( 'card' === $sources[0]->type ) {
+				if ( isset( $sources[0]->type ) && 'card' === $sources[0]->type ) {
 					$card = $sources[0]->card;
 				}
 
