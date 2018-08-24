@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 4.1.9 - 2018-xx-xx =
+= 4.1.9 - 2018-08-27 =
 * Fix - Don't display admin notices to user that cannot manage woocommerce.
 * Fix - Fatal error when clicking on order link that doesn't exist.
 * Fix - When capturing a charge from authorize, Stripe fees not displaying.

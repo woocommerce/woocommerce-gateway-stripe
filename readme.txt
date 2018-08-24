@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 4.9
 Requires PHP: 5.6
-Stable tag: 4.1.8
+Stable tag: 4.1.9
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -101,10 +101,11 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.1.8 - 2018-07-19 =
-* Fix - 3DS payment sometimes will create additional transaction in Stripe.
-* Fix - WC 2.6 with SEPA saved payment causing error on checkout.
-* Update - EPS logo.
+= 4.1.9 - 2018-08-27 =
+* Fix - Don't display admin notices to user that cannot manage woocommerce.
+* Fix - Fatal error when clicking on order link that doesn't exist.
+* Fix - When capturing a charge from authorize, Stripe fees not displaying.
+* Fix - Undefined property error on card type in rare cases.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/changelog.txt).
 
