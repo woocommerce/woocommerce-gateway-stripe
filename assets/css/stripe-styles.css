@@ -1,4 +1,4 @@
-.wc-stripe-elements-field { border:1px solid #ddd; margin:5px 0; padding:5px; background-color:#fff; outline:0; }
+.wc-stripe-elements-field, .wc-stripe-iban-element-field { border:1px solid #ddd; margin:5px 0; padding:5px; background-color:#fff; outline:0; }
 
 #add_payment_method .woocommerce-PaymentMethod label { margin-left: 10px; }
 #add_payment_method li { clear: right; }

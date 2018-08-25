@@ -395,6 +395,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			<!-- Used to display form errors -->
 			<div class="stripe-source-errors" role="alert"></div>
+			<br />
 			<?php do_action( 'woocommerce_credit_card_form_end', $this->id ); ?>
 			<div class="clear"></div>
 		</fieldset>
@@ -503,6 +504,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$stripe_params['stripe_nonce']                            = wp_create_nonce( '_wc_stripe_nonce' );
 		$stripe_params['statement_descriptor']                    = $this->statement_descriptor;
 		$stripe_params['elements_options']                        = apply_filters( 'wc_stripe_elements_options', array() );
+		$stripe_params['sepa_elements_options']                   = apply_filters( 'wc_stripe_sepa_elements_options', array( 'supportedCountries' => array( 'SEPA' ), 'placeholderCountry' => WC()->countries->get_base_country(), 'style' => array( 'base' => array( 'fontSize' => '15px' ) ) ) );
+		$stripe_params['invalid_owner_name']                      = __( 'Billing First Name and Last Name are required.', 'woocommerce-gateway-stripe' );
 		$stripe_params['is_stripe_checkout']                      = $this->stripe_checkout ? 'yes' : 'no';
 		$stripe_params['is_change_payment_page']                  = isset( $_GET['change_payment_method'] ) ? 'yes' : 'no';
 		$stripe_params['is_add_payment_page']                     = is_wc_endpoint_url( 'add-payment-method' ) ? 'yes' : 'no';
