@@ -129,11 +129,16 @@ jQuery( function( $ ) {
 
 					wc_stripe_form.mountElements();
 
-					iban.mount( '#stripe-iban-element' );
+					if ( $( '#stripe-iban-element' ).length ) {
+						iban.mount( '#stripe-iban-element' );
+					}
 				} );
 			} else if ( $( 'form#add_payment_method' ).length || $( 'form#order_review' ).length ) {
 				wc_stripe_form.mountElements();
-				iban.mount( '#stripe-iban-element' );
+
+				if ( $( '#stripe-iban-element' ).length ) {
+					iban.mount( '#stripe-iban-element' );
+				}
 			}
 		},
 
