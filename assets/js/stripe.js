@@ -5,12 +5,13 @@ jQuery( function( $ ) {
 
 	var stripe = Stripe( wc_stripe_params.key );
 
-	var stripe_elements_options = wc_stripe_params.elements_options.length ? wc_stripe_params.elements_options : {},
-		elements = stripe.elements( stripe_elements_options ),
+	var stripe_elements_options = Object.keys( wc_stripe_params.elements_options ).length ? wc_stripe_params.elements_options : {},
+		sepa_elements_options   = Object.keys( wc_stripe_params.sepa_elements_options ).length ? wc_stripe_params.sepa_elements_options : {},
+		elements                = stripe.elements( stripe_elements_options ),
+		iban                    = elements.create( 'iban', sepa_elements_options ),
 		stripe_card,
 		stripe_exp,
 		stripe_cvc;
-
 
 	/**
 	 * Object to handle Stripe elements payment form.
@@ -42,6 +43,7 @@ jQuery( function( $ ) {
 			if ( ! $( '#stripe-card-element' ).length ) {
 				return;
 			}
+
 			if ( 'yes' === wc_stripe_params.inline_cc_form ) {
 				stripe_card.mount( '#stripe-card-element' );
 			} else {
@@ -126,9 +128,12 @@ jQuery( function( $ ) {
 					}
 
 					wc_stripe_form.mountElements();
+
+					iban.mount( '#stripe-iban-element' );
 				} );
 			} else if ( $( 'form#add_payment_method' ).length || $( 'form#order_review' ).length ) {
 				wc_stripe_form.mountElements();
+				iban.mount( '#stripe-iban-element' );
 			}
 		},
 
@@ -212,6 +217,11 @@ jQuery( function( $ ) {
 					'checkout_error',
 					this.reset
 				);
+
+			// SEPA IBAN.
+			iban.on( 'change',
+				this.onSepaError
+			);
 
 			wc_stripe_form.createElements();
 
@@ -403,15 +413,19 @@ jQuery( function( $ ) {
 			 * we need to remove the parameter if we're not
 			 * passing any value.
 			 */
-			if ( typeof extra_details.owner.phone !== 'undefined' && 0 >= extra_details.owner.phone.length ) {
+			if ( typeof extra_details.owner.phone === 'undefined' || 0 >= extra_details.owner.phone.length ) {
 				delete extra_details.owner.phone;
 			}
 
-			if ( typeof extra_details.owner.email !== 'undefined' && 0 >= extra_details.owner.email.length ) {
-				delete extra_details.owner.email;
+			if ( typeof extra_details.owner.email === 'undefined' || 0 >= extra_details.owner.email.length ) {
+				if ( $( '#stripe-payment-data' ).data( 'email' ).length ) {
+					extra_details.owner.email = $( '#stripe-payment-data' ).data( 'email' );
+				} else {
+					delete extra_details.owner.email;
+				}
 			}
 
-			if ( typeof extra_details.owner.name !== 'undefined' && 0 >= extra_details.owner.name.length ) {
+			if ( typeof extra_details.owner.name === 'undefined' || 0 >= extra_details.owner.name.length ) {
 				delete extra_details.owner.name;
 			}
 
@@ -486,14 +500,8 @@ jQuery( function( $ ) {
 				// Handle special inputs that are unique to a payment method.
 				switch ( source_type ) {
 					case 'sepa_debit':
-						var owner = $( '#stripe-payment-data' ),
-							email = $( '#billing_email' ).length ? $( '#billing_email' ).val() : owner.data( 'email' );
-
-						extra_details.currency    = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
-						extra_details.owner.name  = $( '#stripe-sepa-owner' ).val();
-						extra_details.owner.email = email;
-						extra_details.sepa_debit  = { iban: $( '#stripe-sepa-iban' ).val() };
-						extra_details.mandate     = { notification_method: wc_stripe_params.sepa_mandate_notification };
+						extra_details.currency = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
+						extra_details.mandate  = { notification_method: wc_stripe_params.sepa_mandate_notification };
 						break;
 					case 'ideal':
 						extra_details.ideal = { bank: $( '#stripe-ideal-bank' ).val() };
@@ -509,7 +517,11 @@ jQuery( function( $ ) {
 
 				extra_details.type = source_type;
 
-				stripe.createSource( extra_details ).then( wc_stripe_form.sourceResponse );
+				if ( 'sepa_debit' === source_type ) {
+					stripe.createSource( iban, extra_details ).then( wc_stripe_form.sourceResponse );
+				} else {
+					stripe.createSource( extra_details ).then( wc_stripe_form.sourceResponse );
+				}
 			}
 		},
 
@@ -558,20 +570,6 @@ jQuery( function( $ ) {
 						return true;
 					} else {
 						wc_stripe_form.openModal();
-						return false;
-					}
-				}
-
-				if ( wc_stripe_form.isSepaChosen() ) {
-					// Check if SEPA owner is filled before proceed.
-					if ( '' === $( '#stripe-sepa-owner' ).val() ) {
-						$( document.body ).trigger( 'stripeError', { error: { message: wc_stripe_params.no_sepa_owner_msg } } );
-						return false;
-					}
-
-					// Check if SEPA IBAN is filled before proceed.
-					if ( '' === $( '#stripe-sepa-iban' ).val() ) {
-						$( document.body ).trigger( 'stripeError', { error: { message: wc_stripe_params.no_sepa_iban_msg } } );
 						return false;
 					}
 				}
@@ -653,9 +651,34 @@ jQuery( function( $ ) {
 			}
 		},
 
+		onSepaError: function( e ) {
+			var errorContainer = wc_stripe_form.getSelectedPaymentElement().parents( 'li' ).eq(0).find( '.stripe-source-errors' );
+
+			if ( e.error ) {
+				console.log( e.error.message ); // Leave for troubleshooting.
+				$( errorContainer ).html( '<ul class="woocommerce_error woocommerce-error wc-stripe-error"><li>' + e.error.message + '</li></ul>' );
+			} else {
+				$( errorContainer ).html( '' );
+			}
+		},
+
 		onError: function( e, result ) {
 			var message = result.error.message,
 				errorContainer = wc_stripe_form.getSelectedPaymentElement().parents( 'li' ).eq(0).find( '.stripe-source-errors' );
+
+			/*
+			 * If payment method is SEPA and owner name is not completed,
+			 * source cannot be created. So we need to show the normal
+			 * Billing name is required error message on top of form instead
+			 * of inline.
+			 */
+			if ( wc_stripe_form.isSepaChosen() ) {
+				if ( 'invalid_owner_name' === result.error.code && wc_stripe_params.hasOwnProperty( result.error.code ) ) {
+					var error = '<ul class="woocommerce-error"><li>' + wc_stripe_params[ result.error.code ] + '</li></ul>';
+
+					return wc_stripe_form.submitError( error );
+				}
+			}
 
 			/*
 			 * Customers do not need to know the specifics of the below type of errors

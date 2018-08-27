@@ -5,6 +5,7 @@
 * Fix - Fatal error when clicking on order link that doesn't exist.
 * Fix - When capturing a charge from authorize, Stripe fees not displaying.
 * Fix - Undefined property error on card type in rare cases.
+* Tweak - Update SEPA IBAN to use new elements implementation.
 
 = 4.1.8 - 2018-07-19 =
 * Fix - 3DS payment sometimes will create additional transaction in Stripe.
