@@ -106,6 +106,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Fatal error when clicking on order link that doesn't exist.
 * Fix - When capturing a charge from authorize, Stripe fees not displaying.
 * Fix - Undefined property error on card type in rare cases.
+* Tweak - Update SEPA IBAN to use new elements implementation.
+* Add - Filter for Payment Request Button locale `wc_stripe_payment_request_button_locale`.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/changelog.txt).
 
