@@ -518,7 +518,7 @@ class WC_Stripe_Payment_Request {
 					'type'   => $this->get_button_type(),
 					'theme'  => $this->get_button_theme(),
 					'height' => $this->get_button_height(),
-					'locale' => substr( get_locale(), 0, 2 ), // Default format is en_US.
+					'locale' => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ), // Default format is en_US.
 				),
 				'is_product_page' => is_product(),
 				'product'         => $this->get_product_data(),

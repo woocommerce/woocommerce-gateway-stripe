@@ -6,6 +6,7 @@
 * Fix - When capturing a charge from authorize, Stripe fees not displaying.
 * Fix - Undefined property error on card type in rare cases.
 * Tweak - Update SEPA IBAN to use new elements implementation.
+* Add - Filter for Payment Request Button locale `wc_stripe_payment_request_button_locale`.
 
 = 4.1.8 - 2018-07-19 =
 * Fix - 3DS payment sometimes will create additional transaction in Stripe.
