@@ -2,6 +2,7 @@
 
 = 4.1.10 - 2018-xx-xx =
 * Fix - When 3DS card redirect status is "not_required", charge the 3DS source.
+* Fix - Payment Request not validating quantity before payment sheet shows.
 
 = 4.1.9 - 2018-08-27 =
 * Fix - Don't display admin notices to user that cannot manage woocommerce.

@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.1.9\n"
 "Report-Msgid-Bugs-To: "
 "https://github.com/woocommerce/woocommerce-gateway-stripe/issues\n"
-"POT-Creation-Date: 2018-08-27 21:24:41+00:00\n"
+"POT-Creation-Date: 2018-09-08 16:27:03+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -63,7 +63,7 @@ msgid "Stripe charge complete (Charge ID: %s)"
 msgstr ""
 
 #: includes/abstracts/abstract-wc-stripe-payment-gateway.php:464
-#: includes/class-wc-gateway-stripe.php:708
+#: includes/class-wc-gateway-stripe.php:707
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:134
 #: includes/compat/class-wc-stripe-subs-compat.php:96
 msgid "Payment processing failed. Please retry."
@@ -830,7 +830,7 @@ msgid "Please fill in required checkout fields first"
 msgstr ""
 
 #: includes/class-wc-gateway-stripe.php:494
-#: includes/class-wc-gateway-stripe.php:703
+#: includes/class-wc-gateway-stripe.php:702
 #: includes/compat/class-wc-stripe-subs-compat.php:91
 msgid ""
 "Sorry, we're not accepting prepaid cards at this time. Your credit card has "
@@ -853,14 +853,14 @@ msgstr ""
 msgid "Place Order"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:790
+#: includes/class-wc-gateway-stripe.php:792
 #: includes/class-wc-stripe-order-handler.php:144
 #: includes/class-wc-stripe-webhook-handler.php:187
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:346
 msgid "This card is no longer available and has been removed."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:809
+#: includes/class-wc-gateway-stripe.php:811
 #: includes/class-wc-stripe-order-handler.php:162
 #: includes/class-wc-stripe-webhook-handler.php:206
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:222
@@ -871,22 +871,22 @@ msgid ""
 "later."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:886
+#: includes/class-wc-gateway-stripe.php:888
 #. translators: error message
 msgid "This represents the fee Stripe collects for the transaction."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:887
+#: includes/class-wc-gateway-stripe.php:889
 msgid "Stripe Fee:"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:923
+#: includes/class-wc-gateway-stripe.php:925
 msgid ""
 "This represents the net total that will be credited to your Stripe bank "
 "account. This may be in the currency that is set in your Stripe account."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:924
+#: includes/class-wc-gateway-stripe.php:926
 msgid "Stripe Payout:"
 msgstr ""
 
@@ -1228,19 +1228,19 @@ msgid "Stripe SOFORT"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:269
-#: includes/payment-methods/class-wc-stripe-payment-request.php:833
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1133
+#: includes/payment-methods/class-wc-stripe-payment-request.php:844
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1147
 msgid "Tax"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:277
-#: includes/payment-methods/class-wc-stripe-payment-request.php:841
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1140
+#: includes/payment-methods/class-wc-stripe-payment-request.php:852
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1154
 msgid "Shipping"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:284
-#: includes/payment-methods/class-wc-stripe-payment-request.php:848
+#: includes/payment-methods/class-wc-stripe-payment-request.php:859
 msgid "Pending"
 msgstr ""
 
@@ -1262,11 +1262,18 @@ msgstr ""
 msgid "Unable to find shipping method for address."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:968
+#: includes/payment-methods/class-wc-stripe-payment-request.php:827
+#. translators: 1: product name 2: quantity in stock
+msgid ""
+"You cannot add that amount of \"%1$s\"; to the cart because there is not "
+"enough stock (%2$s remaining)."
+msgstr ""
+
+#: includes/payment-methods/class-wc-stripe-payment-request.php:982
 msgid "Empty cart"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1147
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1161
 msgid "Discount"
 msgstr ""
 
