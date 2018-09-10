@@ -481,49 +481,47 @@ class WC_Stripe_Payment_Request {
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
+		$stripe_params = array(
+			'ajax_url' => WC_AJAX::get_endpoint( '%%endpoint%%' ),
+			'stripe'   => array(
+				'key'                => $this->publishable_key,
+				'allow_prepaid_card' => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
+			),
+			'nonce'    => array(
+				'payment'                        => wp_create_nonce( 'wc-stripe-payment-request' ),
+				'shipping'                       => wp_create_nonce( 'wc-stripe-payment-request-shipping' ),
+				'update_shipping'                => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
+				'checkout'                       => wp_create_nonce( 'woocommerce-process_checkout' ),
+				'add_to_cart'                    => wp_create_nonce( 'wc-stripe-add-to-cart' ),
+				'get_selected_product_data'      => wp_create_nonce( 'wc-stripe-get-selected-product-data' ),
+				'log_errors'                     => wp_create_nonce( 'wc-stripe-log-errors' ),
+				'clear_cart'                     => wp_create_nonce( 'wc-stripe-clear-cart' ),
+			),
+			'i18n'     => array(
+				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
+				/* translators: Do not translate the [option] placeholder */
+				'unknown_shipping' => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' ),
+			),
+			'checkout' => array(
+				'url'            => wc_get_checkout_url(),
+				'currency_code'  => strtolower( get_woocommerce_currency() ),
+				'country_code'   => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
+				'needs_shipping' => WC()->cart->needs_shipping() ? 'yes' : 'no',
+			),
+			'button' => array(
+				'type'   => $this->get_button_type(),
+				'theme'  => $this->get_button_theme(),
+				'height' => $this->get_button_height(),
+				'locale' => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ), // Default format is en_US.
+			),
+			'is_product_page' => is_product(),
+			'product'         => $this->get_product_data(),
+		);
+
 		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
 		wp_register_script( 'wc_stripe_payment_request', plugins_url( 'assets/js/stripe-payment-request' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array( 'jquery', 'stripe' ), WC_STRIPE_VERSION, true );
 
-		wp_localize_script(
-			'wc_stripe_payment_request',
-			'wc_stripe_payment_request_params',
-			array(
-				'ajax_url' => WC_AJAX::get_endpoint( '%%endpoint%%' ),
-				'stripe'   => array(
-					'key'                => $this->publishable_key,
-					'allow_prepaid_card' => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
-				),
-				'nonce'    => array(
-					'payment'                        => wp_create_nonce( 'wc-stripe-payment-request' ),
-					'shipping'                       => wp_create_nonce( 'wc-stripe-payment-request-shipping' ),
-					'update_shipping'                => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
-					'checkout'                       => wp_create_nonce( 'woocommerce-process_checkout' ),
-					'add_to_cart'                    => wp_create_nonce( 'wc-stripe-add-to-cart' ),
-					'get_selected_product_data'      => wp_create_nonce( 'wc-stripe-get-selected-product-data' ),
-					'log_errors'                     => wp_create_nonce( 'wc-stripe-log-errors' ),
-					'clear_cart'                     => wp_create_nonce( 'wc-stripe-clear-cart' ),
-				),
-				'i18n'     => array(
-					'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
-					/* translators: Do not translate the [option] placeholder */
-					'unknown_shipping' => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' ),
-				),
-				'checkout' => array(
-					'url'            => wc_get_checkout_url(),
-					'currency_code'  => strtolower( get_woocommerce_currency() ),
-					'country_code'   => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
-					'needs_shipping' => WC()->cart->needs_shipping() ? 'yes' : 'no',
-				),
-				'button' => array(
-					'type'   => $this->get_button_type(),
-					'theme'  => $this->get_button_theme(),
-					'height' => $this->get_button_height(),
-					'locale' => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ), // Default format is en_US.
-				),
-				'is_product_page' => is_product(),
-				'product'         => $this->get_product_data(),
-			)
-		);
+		wp_localize_script( 'wc_stripe_payment_request', 'wc_stripe_payment_request_params', apply_filters( 'wc_stripe_payment_request_params', $stripe_params ) );
 
 		wp_enqueue_script( 'wc_stripe_payment_request' );
 	}
