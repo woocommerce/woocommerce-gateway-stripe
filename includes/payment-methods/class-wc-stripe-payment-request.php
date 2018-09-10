@@ -1001,24 +1001,20 @@ class WC_Stripe_Payment_Request {
 	 * @param array $address
 	 */
 	protected function calculate_shipping( $address = array() ) {
-		global $states;
-
 		$country   = $address['country'];
 		$state     = $address['state'];
 		$postcode  = $address['postcode'];
 		$city      = $address['city'];
 		$address_1 = $address['address'];
 		$address_2 = $address['address_2'];
-
-		$country_class = new WC_Countries();
-		$country_class->load_country_states();
+		$wc_states = WC()->countries->get_states( $country );
 
 		/**
 		 * In some versions of Chrome, state can be a full name. So we need
 		 * to convert that to abbreviation as WC is expecting that.
 		 */
-		if ( 2 < strlen( $state ) ) {
-			$state = array_search( ucfirst( strtolower( $state ) ), $states[ $country ] );
+		if ( 2 < strlen( $state ) && ! empty( $wc_states ) ) {
+			$state = array_search( ucwords( strtolower( $state ) ), $wc_states );
 		}
 
 		WC()->shipping->reset_shipping();
