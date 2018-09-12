@@ -794,75 +794,89 @@ class WC_Stripe_Payment_Request {
 	public function ajax_get_selected_product_data() {
 		check_ajax_referer( 'wc-stripe-get-selected-product-data', 'security' );
 
-		$product_id = absint( $_POST['product_id'] );
-		$qty = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
+		try {
+			$product_id   = absint( $_POST['product_id'] );
+			$qty          = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', absint( $_POST['qty'] ), $product_id );
+			$product      = wc_get_product( $product_id );
+			$variation_id = null;
 
-		$product = wc_get_product( $product_id );
+			if ( 'variable' === ( WC_Stripe_Helper::is_pre_30() ? $product->product_type : $product->get_type() ) && isset( $_POST['attributes'] ) ) {
+				$attributes = array_map( 'wc_clean', $_POST['attributes'] );
 
-		if ( 'variable' === ( WC_Stripe_Helper::is_pre_30() ? $product->product_type : $product->get_type() ) && isset( $_POST['attributes'] ) ) {
-			$attributes = array_map( 'wc_clean', $_POST['attributes'] );
+				if ( WC_Stripe_Helper::is_pre_30() ) {
+					$variation_id = $product->get_matching_variation( $attributes );
+				} else {
+					$data_store = WC_Data_Store::load( 'product' );
+					$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
+				}
 
-			if ( WC_Stripe_Helper::is_pre_30() ) {
-				$variation_id = $product->get_matching_variation( $attributes );
-			} else {
-				$data_store = WC_Data_Store::load( 'product' );
-				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
+				if ( ! empty( $variation_id ) ) {
+					$product = wc_get_product( $variation_id );
+				}
+			} elseif ( 'simple' === ( WC_Stripe_Helper::is_pre_30() ? $product->product_type : $product->get_type() ) ) {
+				$product = wc_get_product( $product_id );
 			}
 
-			if ( ! empty( $variation_id ) ) {
-				$product = wc_get_product( $variation_id );
+			// Force quantity to 1 if sold individually and check for existing item in cart.
+			if ( $product->is_sold_individually() ) {
+				$qty = apply_filters( 'wc_stripe_payment_request_add_to_cart_sold_individually_quantity', 1, $qty, $product_id, $variation_id );
 			}
-		} elseif ( 'simple' === ( WC_Stripe_Helper::is_pre_30() ? $product->product_type : $product->get_type() ) ) {
-			$product = wc_get_product( $product_id );
-		}
 
-		$total = $qty * ( WC_Stripe_Helper::is_pre_30() ? $product->price : $product->get_price() );
+			if ( ! $product->has_enough_stock( $qty ) ) {
+				/* translators: 1: product name 2: quantity in stock */
+				throw new Exception( sprintf( __( 'You cannot add that amount of "%1$s"; to the cart because there is not enough stock (%2$s remaining).', 'woocommerce-gateway-stripe' ), $product->get_name(), wc_format_stock_quantity_for_display( $product->get_stock_quantity(), $product ) ) );
+			}
 
-		$quantity_label = 1 < $qty ? ' (x' . $qty . ')' : '';
+			$total = $qty * ( WC_Stripe_Helper::is_pre_30() ? $product->price : $product->get_price() );
 
-		$data  = array();
-		$items = array();
+			$quantity_label = 1 < $qty ? ' (x' . $qty . ')' : '';
 
-		$items[] = array(
-			'label'  => ( WC_Stripe_Helper::is_pre_30() ? $product->name : $product->get_name() ) . $quantity_label,
-			'amount' => WC_Stripe_Helper::get_stripe_amount( $total ),
-		);
+			$data  = array();
+			$items = array();
 
-		if ( wc_tax_enabled() ) {
 			$items[] = array(
-				'label'   => __( 'Tax', 'woocommerce-gateway-stripe' ),
-				'amount'  => 0,
+				'label'  => ( WC_Stripe_Helper::is_pre_30() ? $product->name : $product->get_name() ) . $quantity_label,
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $total ),
+			);
+
+			if ( wc_tax_enabled() ) {
+				$items[] = array(
+					'label'   => __( 'Tax', 'woocommerce-gateway-stripe' ),
+					'amount'  => 0,
+					'pending' => true,
+				);
+			}
+
+			if ( wc_shipping_enabled() && $product->needs_shipping() ) {
+				$items[] = array(
+					'label'   => __( 'Shipping', 'woocommerce-gateway-stripe' ),
+					'amount'  => 0,
+					'pending' => true,
+				);
+
+				$data['shippingOptions']  = array(
+					'id'     => 'pending',
+					'label'  => __( 'Pending', 'woocommerce-gateway-stripe' ),
+					'detail' => '',
+					'amount' => 0,
+				);
+			}
+
+			$data['displayItems'] = $items;
+			$data['total'] = array(
+				'label'   => $this->total_label,
+				'amount'  => WC_Stripe_Helper::get_stripe_amount( $total ),
 				'pending' => true,
 			);
+
+			$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
+			$data['currency']        = strtolower( get_woocommerce_currency() );
+			$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
+
+			wp_send_json( $data );
+		} catch ( Exception $e ) {
+			wp_send_json( array( 'error' => strip_tags( $e->getMessage() ) ) );
 		}
-
-		if ( wc_shipping_enabled() && $product->needs_shipping() ) {
-			$items[] = array(
-				'label'   => __( 'Shipping', 'woocommerce-gateway-stripe' ),
-				'amount'  => 0,
-				'pending' => true,
-			);
-
-			$data['shippingOptions']  = array(
-				'id'     => 'pending',
-				'label'  => __( 'Pending', 'woocommerce-gateway-stripe' ),
-				'detail' => '',
-				'amount' => 0,
-			);
-		}
-
-		$data['displayItems'] = $items;
-		$data['total'] = array(
-			'label'   => $this->total_label,
-			'amount'  => WC_Stripe_Helper::get_stripe_amount( $total ),
-			'pending' => true,
-		);
-
-		$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
-		$data['currency']        = strtolower( get_woocommerce_currency() );
-		$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
-
-		wp_send_json( $data );
 	}
 
 	/**
@@ -987,24 +1001,20 @@ class WC_Stripe_Payment_Request {
 	 * @param array $address
 	 */
 	protected function calculate_shipping( $address = array() ) {
-		global $states;
-
 		$country   = $address['country'];
 		$state     = $address['state'];
 		$postcode  = $address['postcode'];
 		$city      = $address['city'];
 		$address_1 = $address['address'];
 		$address_2 = $address['address_2'];
-
-		$country_class = new WC_Countries();
-		$country_class->load_country_states();
+		$wc_states = WC()->countries->get_states( $country );
 
 		/**
 		 * In some versions of Chrome, state can be a full name. So we need
 		 * to convert that to abbreviation as WC is expecting that.
 		 */
-		if ( 2 < strlen( $state ) ) {
-			$state = array_search( ucfirst( strtolower( $state ) ), $states[ $country ] );
+		if ( 2 < strlen( $state ) && ! empty( $wc_states ) ) {
+			$state = array_search( ucwords( strtolower( $state ) ), $wc_states );
 		}
 
 		WC()->shipping->reset_shipping();
