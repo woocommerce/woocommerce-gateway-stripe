@@ -75,6 +75,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 		$this->method_title         = __( 'Stripe SEPA Direct Debit', 'woocommerce-gateway-stripe' );
 		/* translators: link */
 		$this->method_description   = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
+		$this->has_fields           = true;
 		$this->supports             = array(
 			'products',
 			'refunds',
@@ -243,7 +244,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	public function payment_fields() {
 		$total                = WC()->cart->total;
 		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
-		$description          = $this->get_description() ? $this->get_description() : '';
+		$description          = ! empty( $this->get_description() ) ? $this->get_description() : '';
 
 		// If paying from order, we need to get total from order not cart.
 		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) {
@@ -260,13 +261,13 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 			data-amount="' . esc_attr( WC_Stripe_Helper::get_stripe_amount( $total ) ) . '"
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '">';
 
-		if ( $description ) {
-			if ( $this->testmode ) {
-				$description .= ' ' . __( 'TEST MODE ENABLED. In test mode, you can use IBAN number DE89370400440532013000.', 'woocommerce-gateway-stripe' );
-				$description  = trim( $description );
-			}
-			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $description ) ), $this->id );
+		if ( $this->testmode ) {
+			$description .= ' ' . __( 'TEST MODE ENABLED. In test mode, you can use IBAN number DE89370400440532013000.', 'woocommerce-gateway-stripe' );
 		}
+
+		$description = trim( $description );
+
+		echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $description ) ), $this->id );
 
 		if ( $display_tokenization ) {
 			$this->tokenization_script();
