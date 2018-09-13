@@ -111,13 +111,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->retry_interval       = 1;
-		$this->id                   = 'stripe';
-		$this->method_title         = __( 'Stripe', 'woocommerce-gateway-stripe' );
+		$this->retry_interval     = 1;
+		$this->id                 = 'stripe';
+		$this->method_title       = __( 'Stripe', 'woocommerce-gateway-stripe' );
 		/* translators: 1) link to Stripe register page 2) link to Stripe api keys page */
-		$this->method_description   = sprintf( __( 'Stripe works by adding payment fields on the checkout and then sending the details to Stripe for verification. <a href="%1$s" target="_blank">Sign up</a> for a Stripe account, and <a href="%2$s" target="_blank">get your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), 'https://dashboard.stripe.com/register', 'https://dashboard.stripe.com/account/apikeys' );
-		$this->has_fields           = true;
-		$this->supports             = array(
+		$this->method_description = sprintf( __( 'Stripe works by adding payment fields on the checkout and then sending the details to Stripe for verification. <a href="%1$s" target="_blank">Sign up</a> for a Stripe account, and <a href="%2$s" target="_blank">get your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), 'https://dashboard.stripe.com/register', 'https://dashboard.stripe.com/account/apikeys' );
+		$this->has_fields         = true;
+		$this->supports           = array(
 			'products',
 			'refunds',
 			'tokenization',
@@ -264,7 +264,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
 		$total                = WC()->cart->total;
 		$user_email           = '';
-		$description          = $this->get_description() ? $this->get_description() : '';
+		$description          = ! empty( $this->get_description() ) ? $this->get_description() : '';
 		$firstname            = '';
 		$lastname             = '';
 
@@ -288,7 +288,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		} elseif ( function_exists( 'wcs_order_contains_subscription' ) && isset( $_GET['change_payment_method'] ) ) {
 			$pay_button_text = __( 'Change Payment Method', 'woocommerce-gateway-stripe' );
-			$total        = '';
+			$total           = '';
 		} else {
 			$pay_button_text = '';
 		}
@@ -312,15 +312,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			data-three-d-secure="' . esc_attr( $this->three_d_secure ? 'true' : 'false' ) . '"
 			data-allow-remember-me="' . esc_attr( apply_filters( 'wc_stripe_allow_remember_me', true ) ? 'true' : 'false' ) . '">';
 
-		if ( $description ) {
-			if ( $this->testmode ) {
-				/* translators: link to Stripe testing page */
-				$description .= ' ' . sprintf( __( 'TEST MODE ENABLED. In test mode, you can use the card number 4242424242424242 with any CVC and a valid expiration date or check the <a href="%s" target="_blank">Testing Stripe documentation</a> for more card numbers.', 'woocommerce-gateway-stripe' ), 'https://stripe.com/docs/testing' );
-				$description  = trim( $description );
-			}
-
-			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $description ) ), $this->id );
+		if ( $this->testmode ) {
+			/* translators: link to Stripe testing page */
+			$description .= ' ' . sprintf( __( 'TEST MODE ENABLED. In test mode, you can use the card number 4242424242424242 with any CVC and a valid expiration date or check the <a href="%s" target="_blank">Testing Stripe documentation</a> for more card numbers.', 'woocommerce-gateway-stripe' ), 'https://stripe.com/docs/testing' );
 		}
+
+		$description = trim( $description );
+
+		echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $description ) ), $this->id );
 
 		if ( $display_tokenization ) {
 			$this->tokenization_script();
