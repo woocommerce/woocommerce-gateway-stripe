@@ -3,6 +3,7 @@
 = 4.1.10 - 2018-xx-xx =
 * Fix - When 3DS card redirect status is "not_required", charge the 3DS source.
 * Fix - Payment Request not validating quantity before payment sheet shows.
+* Fix - Test mode info not showing when description field is left blank.
 * Add - Filter for Payment Request localized parameters `wc_stripe_payment_request_params`.
 * Update - Stripe API version to 2018-09-06.
 
