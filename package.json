@@ -11,7 +11,7 @@
   "devDependencies": {
     "babel": "^6.5.2",
     "babel-cli": "^6.14.0",
-    "babel-eslint": "^7.0.0",
+    "babel-eslint": "^8.2.3",
     "babel-plugin-add-module-exports": "^0.2.1",
     "babel-preset-es2015": "^6.14.0",
     "babel-preset-stage-2": "^6.13.0",
@@ -19,21 +19,13 @@
     "chai-as-promised": "^7.1.1",
     "clean-css-cli": "^4.1.10",
     "config": "^1.24.0",
-    "cross-env": "^3.0.0",
-    "eslint": "^3.4.0",
-    "eslint-config-wpcalypso": "^0.5.0",
-    "eslint-plugin-wpcalypso": "^2.0.0",
-    "grunt-wp-i18n": "~0.5.0",
-    "jquery": "*",
-    "jsdom": "9.12.0",
-    "jsdom-global": "2.1.1",
+    "cross-env": "^5.1.6",
+    "stylelint": "~9.2.1",
     "mocha": "^5.2.0",
     "uglify-js": "^3.1.3",
-    "underscore": "*",
     "chromedriver": "^2.40.0",
     "wc-e2e-page-objects": "0.10.0",
-    "wp-e2e-page-objects": "^0.7.0",
-    "wp-e2e-webdriver": "^0.10.0"
+    "wp-e2e-webdriver": "0.15.0"
   },
   "assets": {
     "js": {
@@ -49,16 +41,12 @@
     "postmakepot": "sed -i '' \"s/wordpress\\.org\\/support\\/plugin\\/$npm_package_name/docs\\.woocommerce\\.com/g\" languages/$npm_package_name.pot",
     "po2mo": "rm -f languages/*.mo;",
     "postpo2mo": "for f in languages/*.po; do file=${f%.po}; msgfmt -o $file.mo $file.po; done",
-    "test": "cross-env NODE_CONFIG_DIR='./tests/e2e/config' BABEL_ENV=commonjs mocha \"tests/e2e\" --compilers js:babel-register --recursive",
-    "test:grep": "cross-env NODE_CONFIG_DIR='./tests/e2e/config' BABEL_ENV=commonjs mocha \"tests/e2e\" --compilers js:babel-register --grep ",
-    "test:single": "cross-env NODE_CONFIG_DIR='./tests/e2e/config' BABEL_ENV=commonjs mocha --compilers js:babel-register",
-    "update-deps": "npm install -g rimraf && rimraf node_modules && rimraf npm-shrinkwrap.json && npm install && npm shrinkwrap --dev"
+    "test": "cross-env NODE_CONFIG_DIR='./tests/e2e/config' BABEL_ENV=commonjs mocha \"tests/e2e\" --require babel-register --recursive",
+    "test:grep": "cross-env NODE_CONFIG_DIR='./tests/e2e/config' BABEL_ENV=commonjs mocha \"tests/e2e\" --require babel-register --grep ",
+    "test:single": "cross-env NODE_CONFIG_DIR='./tests/e2e/config' BABEL_ENV=commonjs mocha --require babel-register"
   },
   "engines": {
     "node": ">=8.9.3",
     "npm": ">=5.5.1"
-  },
-  "dependencies": {
-    "npm": "^5.8.0"
   }
 }
