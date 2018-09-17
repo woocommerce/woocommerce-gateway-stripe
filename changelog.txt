@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 4.1.10 - 2018-xx-xx =
+= 4.1.10 - 2018-09-17 =
 * Fix - When 3DS card redirect status is "not_required", charge the 3DS source.
 * Fix - Payment Request not validating quantity before payment sheet shows.
 * Fix - Test mode info not showing when description field is left blank.
