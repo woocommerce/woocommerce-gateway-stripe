@@ -756,6 +756,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					} elseif ( 'not_required' === $response->redirect->status && 'chargeable' === $response->status ) {
 						// Override the original source object with 3DS.
 						$prepared_source->source_object = $response;
+						$prepared_source->source        = $response->id;
 					}
 				}
 
