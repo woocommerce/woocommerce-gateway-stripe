@@ -1,12 +1,17 @@
 .wc-stripe-elements-field, .wc-stripe-iban-element-field { border:1px solid #ddd; margin:5px 0; padding:5px; background-color:#fff; outline:0; }
-.woocommerce-PaymentMethod { list-style: none; }
-.woocommerce-checkout label { width: 100%; }
-#add_payment_method li { clear: right; }
-form#order_review li { clear: right; }
-.wc_payment_method .payment_box label { display: inline; }
+#payment .methods label[for="payment_method_stripe"],
+#payment .methods label[for="payment_method_stripe_sofort"],
+#payment .methods label[for="payment_method_stripe_bancontact"],
+#payment .methods label[for="payment_method_stripe_ideal"],
+#payment .methods label[for="payment_method_stripe_p24"],
+#payment .methods label[for="payment_method_stripe_alipay"],
+#payment .methods label[for="payment_method_stripe_sepa"],
+#payment .methods label[for="payment_method_stripe_multibanco"],
+#payment .methods label[for="payment_method_stripe_eps"],
+#payment .methods label[for="payment_method_stripe_giropay"] { display: inline; }
 
-.woocommerce-checkout #payment .payment_method_stripe_sofort label[for=payment_method_stripe_sofort],
-#add_payment_method #payment .payment_method_stripe_sofort label[for=payment_method_stripe_sofort] { display: block; }
+#payment ul.payment_methods li input#wc-stripe-new-payment-method { height: auto; margin-right: 5px; }
+#payment ul.payment_methods li input#wc-stripe_sepa-new-payment-method { height: auto; margin-right: 5px; }
 
 .woocommerce-checkout #payment ul.payment_methods li img.stripe-icon,
 #add_payment_method #payment ul.payment_methods li img.stripe-icon { float: right; max-width: 40px; padding-left: 3px; margin: 0; }
