@@ -298,7 +298,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		echo '<div
 			id="stripe-payment-data"
 			data-panel-label="' . esc_attr( $pay_button_text ) . '"
-			data-description="' . esc_attr( strip_tags( $this->stripe_checkout_description ) ) . '"
+			data-description="' . esc_attr( wp_strip_all_tags( $this->stripe_checkout_description ) ) . '"
 			data-email="' . esc_attr( $user_email ) . '"
 			data-verify-zip="' . esc_attr( apply_filters( 'wc_stripe_checkout_verify_zip', false ) ? 'true' : 'false' ) . '"
 			data-billing-address="' . esc_attr( apply_filters( 'wc_stripe_checkout_require_billing_address', false ) ? 'true' : 'false' ) . '"
@@ -549,7 +549,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		echo '<div
 			id="stripe-payment-data"
 			data-panel-label="' . esc_attr( apply_filters( 'wc_stripe_checkout_label', '' ) ) . '"
-			data-description="' . esc_attr( strip_tags( $this->stripe_checkout_description ) ) . '"
+			data-description="' . esc_attr( wp_strip_all_tags( $this->stripe_checkout_description ) ) . '"
 			data-email="' . esc_attr( $user_email ) . '"
 			data-verify-zip="' . esc_attr( apply_filters( 'wc_stripe_checkout_verify_zip', false ) ? 'true' : 'false' ) . '"
 			data-billing-address="' . esc_attr( apply_filters( 'wc_stripe_checkout_require_billing_address', false ) ? 'true' : 'false' ) . '"
