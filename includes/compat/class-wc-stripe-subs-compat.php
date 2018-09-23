@@ -20,6 +20,8 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			add_action( 'wcs_resubscribe_order_created', array( $this, 'delete_resubscribe_meta' ), 10 );
 			add_action( 'wcs_renewal_order_created', array( $this, 'delete_renewal_meta' ), 10 );
 			add_action( 'woocommerce_subscription_failing_payment_method_updated_stripe', array( $this, 'update_failing_payment_method' ), 10, 2 );
+			add_action( 'wc_stripe_cards_payment_fields', array( $this, 'display_update_subs_payment_checkout' ) );
+			add_action( 'wc_stripe_change_subs_payment_method_success', array( $this, 'handle_add_payment_method_success' ), 10, 2 );
 
 			// display the credit card used for a subscription in the "My Subscriptions" table
 			add_filter( 'woocommerce_my_subscriptions_payment_method', array( $this, 'maybe_render_subscription_payment_method' ), 10, 2 );
@@ -75,9 +77,59 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	}
 
 	/**
+	 * Displays a checkbox to allow users to update all subs payments with new
+	 * payment.
+	 *
+	 * @since 4.1.11
+	 */
+	public function display_update_subs_payment_checkout() {
+		if (
+			apply_filters( 'wc_stripe_display_update_subs_payment_method_card_checkbox', true ) &&
+			wcs_user_has_subscription( get_current_user_id(), '', 'active' ) &&
+			$this->is_subs_change_payment()
+		) {
+			printf(
+				'<p class="form-row">
+					<input id="wc-%1$s-update-subs-payment-method-card" name="wc-%1$s-update-subs-payment-method-card" type="checkbox" value="true" style="width:auto;" />
+					<label for="wc-%1$s-update-subs-payment-method-card" style="display:inline;">%2$s</label>
+				</p>',
+				esc_attr( $this->id ),
+				esc_html( apply_filters( 'wc_stripe_save_to_subs_text', __( 'Update the Payment Method used for all of my active subscriptions (optional).', 'woocommerce-gateway-stripe' ) ) )
+			);
+		}
+	}
+
+	/**
+	 * Updates all active subscriptions payment method.
+	 *
+	 * @since 4.1.11
+	 * @param string $source_id
+	 * @param object $source_object
+	 */
+	public function handle_add_payment_method_success( $source_id, $source_object ) {
+		if ( isset( $_POST['wc-stripe-update-subs-payment-method-card'] ) ) {
+			$all_subs = wcs_get_users_subscriptions();
+
+			if ( ! empty( $all_subs ) ) {
+				foreach ( $all_subs as $sub ) {
+					if ( 'active' === $sub->get_status() ) {
+						if ( WC_Stripe_Helper::is_pre_30() ) {
+							update_post_meta( $sub->get_id(), '_stripe_source_id', $source_id );
+						} else {
+							$sub->update_meta_data( '_stripe_source_id', $source_id );
+							$sub->save();
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/**
 	 * Process the payment method change for subscriptions.
 	 *
 	 * @since 4.0.4
+	 * @since 4.1.11 Remove 3DS check as it is not needed.
 	 * @param int $order_id
 	 */
 	public function change_subs_payment_method( $order_id ) {
@@ -99,40 +151,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 
 			$this->save_source_to_order( $subscription, $prepared_source );
 
-			/*
-			 * Check if card 3DS is required or optional with 3DS setting.
-			 * Will need to first create 3DS source and require redirection
-			 * for customer to login to their credit card company.
-			 * Note that if we need to save source, the original source must be first
-			 * attached to a customer in Stripe before it can be charged.
-			 */
-			if ( $this->is_3ds_required( $source_object ) ) {
-				$order    = $subscription->get_parent();
-				$response = $this->create_3ds_source( $order, $source_object, $subscription->get_view_order_url() );
-
-				if ( ! empty( $response->error ) ) {
-					$localized_message = $response->error->message;
-
-					$order->add_order_note( $localized_message );
-
-					throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
-				}
-
-				// Update order meta with 3DS source.
-				if ( WC_Stripe_Helper::is_pre_30() ) {
-					update_post_meta( $order_id, '_stripe_source_id', $response->id );
-				} else {
-					$subscription->update_meta_data( '_stripe_source_id', $response->id );
-					$subscription->save();
-				}
-
-				WC_Stripe_Logger::log( 'Info: Redirecting to 3DS...' );
-
-				return array(
-					'result'   => 'success',
-					'redirect' => esc_url_raw( $response->redirect->url ),
-				);
-			}
+			do_action( 'wc_stripe_change_subs_payment_method_success', $prepared_source->source, $prepared_source );
 
 			return array(
 				'result'   => 'success',

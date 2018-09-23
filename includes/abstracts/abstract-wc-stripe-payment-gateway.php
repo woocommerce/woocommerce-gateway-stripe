@@ -989,7 +989,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function add_payment_method() {
 		$error     = false;
-		$error_msg = __( 'There was a problem adding the card.', 'woocommerce-gateway-stripe' );
+		$error_msg = __( 'There was a problem adding the payment method.', 'woocommerce-gateway-stripe' );
 		$source_id = '';
 
 		if ( empty( $_POST['stripe_source'] ) && empty( $_POST['stripe_token'] ) || ! is_user_logged_in() ) {
@@ -1023,6 +1023,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			WC_Stripe_Logger::log( 'Add payment method Error: ' . $error_msg );
 			return;
 		}
+
+		do_action( 'wc_stripe_add_payment_method_success', $source_id, $source_object );
 
 		return array(
 			'result'   => 'success',
