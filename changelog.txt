@@ -2,7 +2,9 @@
 
 = 4.1.11 - 2018-xx-xx =
 * Fix - Explicitly set 3DS source id to prevent 3DS source not charging when not required.
+* Update - CSS styling.
 * Fix - Prevent Stripe JS failed live/test check from throwing JS error.
+
 
 = 4.1.10 - 2018-09-17 =
 * Fix - When 3DS card redirect status is "not_required", charge the 3DS source.

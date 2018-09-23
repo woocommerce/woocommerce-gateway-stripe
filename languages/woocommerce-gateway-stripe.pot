@@ -61,7 +61,7 @@ msgid "Stripe charge complete (Charge ID: %s)"
 msgstr ""
 
 #: includes/abstracts/abstract-wc-stripe-payment-gateway.php:464
-#: includes/class-wc-gateway-stripe.php:706
+#: includes/class-wc-gateway-stripe.php:694
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:134
 #: includes/compat/class-wc-stripe-subs-compat.php:96
 msgid "Payment processing failed. Please retry."
@@ -751,33 +751,33 @@ msgstr ""
 msgid "Card Code (CVC)"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:472
+#: includes/class-wc-gateway-stripe.php:460
 msgid "Please accept the terms and conditions first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:473
+#: includes/class-wc-gateway-stripe.php:461
 msgid "Please fill in required checkout fields first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:493
-#: includes/class-wc-gateway-stripe.php:701
+#: includes/class-wc-gateway-stripe.php:481
+#: includes/class-wc-gateway-stripe.php:689
 #: includes/compat/class-wc-stripe-subs-compat.php:91
 msgid "Sorry, we're not accepting prepaid cards at this time. Your credit card has not been charge. Please try with alternative payment method."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:494
+#: includes/class-wc-gateway-stripe.php:482
 msgid "Please enter your IBAN account name."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:495
+#: includes/class-wc-gateway-stripe.php:483
 msgid "Please enter your IBAN account number."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:507
+#: includes/class-wc-gateway-stripe.php:495
 msgid "Billing First Name and Last Name are required."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:591
+#: includes/class-wc-gateway-stripe.php:579
 msgid "Place Order"
 msgstr ""
 
@@ -812,6 +812,7 @@ msgid "This represents the net total that will be credited to your Stripe bank a
 msgstr ""
 
 #: includes/class-wc-gateway-stripe.php:926
+
 msgid "Stripe Payout:"
 msgstr ""
 
