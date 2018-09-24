@@ -404,18 +404,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	public function process_webhook_source_canceled( $notification ) {
 		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
 
+		// If can't find order by charge ID, try source ID.
 		if ( ! $order ) {
-			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->id );
-			return;
+			$order = WC_Stripe_Helper::get_order_by_source_id( $notification->data->object->id );
+
+			if ( ! $order ) {
+				WC_Stripe_Logger::log( 'Could not find order via charge/source ID: ' . $notification->data->object->id );
+				return;
+			}
 		}
 
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
-
-		if ( 'on-hold' !== $order->get_status() || 'cancelled' !== $order->get_status() ) {
-			return;
+		if ( 'cancelled' !== $order->get_status() ) {
+			$order->update_status( 'cancelled', __( 'This payment has cancelled.', 'woocommerce-gateway-stripe' ) );
 		}
-
-		$order->update_status( 'cancelled', __( 'This payment has cancelled.', 'woocommerce-gateway-stripe' ) );
 
 		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
 	}
