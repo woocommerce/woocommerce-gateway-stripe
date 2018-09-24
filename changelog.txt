@@ -5,6 +5,7 @@
 * Fix - Find order by source ID if charge ID is not found when cancelled webhook is triggered.
 * Update - CSS styling.
 * Fix - Prevent Stripe JS failed live/test check from throwing JS error.
+* Remove - Soft deprecated function is_pre_30 with is_wc_lt function.
 
 = 4.1.10 - 2018-09-17 =
 * Fix - When 3DS card redirect status is "not_required", charge the 3DS source.
