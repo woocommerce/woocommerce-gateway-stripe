@@ -298,7 +298,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		echo '<div
 			id="stripe-payment-data"
 			data-panel-label="' . esc_attr( $pay_button_text ) . '"
-			data-description="' . esc_attr( strip_tags( $this->stripe_checkout_description ) ) . '"
+			data-description="' . esc_attr( wp_strip_all_tags( $this->stripe_checkout_description ) ) . '"
 			data-email="' . esc_attr( $user_email ) . '"
 			data-verify-zip="' . esc_attr( apply_filters( 'wc_stripe_checkout_verify_zip', false ) ? 'true' : 'false' ) . '"
 			data-billing-address="' . esc_attr( apply_filters( 'wc_stripe_checkout_require_billing_address', false ) ? 'true' : 'false' ) . '"
@@ -446,22 +446,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::log( 'Stripe live mode requires SSL.' );
 		}
 
-		$current_theme = wp_get_theme();
-
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
 		wp_register_style( 'stripe_styles', plugins_url( 'assets/css/stripe-styles.css', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION );
 		wp_enqueue_style( 'stripe_styles' );
-
-		if ( 'storefront' === $current_theme->get_template() ) {
-			wp_register_style( 'stripe_storefront_styles', plugins_url( 'assets/css/stripe-storefront-styles.css', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION );
-			wp_enqueue_style( 'stripe_storefront_styles' );
-		}
-
-		if ( 'twentyseventeen' === $current_theme->get_template() ) {
-			wp_register_style( 'stripe_twentyseventeen_styles', plugins_url( 'assets/css/stripe-twentyseventeen-styles.css', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION );
-			wp_enqueue_style( 'stripe_twentyseventeen_styles' );
-		}
 
 		wp_register_script( 'stripe_checkout', 'https://checkout.stripe.com/checkout.js', '', WC_STRIPE_VERSION, true );
 		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
@@ -561,7 +549,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		echo '<div
 			id="stripe-payment-data"
 			data-panel-label="' . esc_attr( apply_filters( 'wc_stripe_checkout_label', '' ) ) . '"
-			data-description="' . esc_attr( strip_tags( $this->stripe_checkout_description ) ) . '"
+			data-description="' . esc_attr( wp_strip_all_tags( $this->stripe_checkout_description ) ) . '"
 			data-email="' . esc_attr( $user_email ) . '"
 			data-verify-zip="' . esc_attr( apply_filters( 'wc_stripe_checkout_verify_zip', false ) ? 'true' : 'false' ) . '"
 			data-billing-address="' . esc_attr( apply_filters( 'wc_stripe_checkout_require_billing_address', false ) ? 'true' : 'false' ) . '"

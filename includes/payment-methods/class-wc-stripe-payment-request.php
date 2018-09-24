@@ -879,7 +879,7 @@ class WC_Stripe_Payment_Request {
 
 			wp_send_json( $data );
 		} catch ( Exception $e ) {
-			wp_send_json( array( 'error' => strip_tags( $e->getMessage() ) ) );
+			wp_send_json( array( 'error' => wp_strip_all_tags( $e->getMessage() ) ) );
 		}
 	}
 
