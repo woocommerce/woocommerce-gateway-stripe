@@ -264,7 +264,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
 		$total                = WC()->cart->total;
 		$user_email           = '';
-		$description          = ! empty( $this->get_description() ) ? $this->get_description() : '';
+		$description          = $this->get_description();
+		$description          = ! empty( $description ) ? $description : '';
 		$firstname            = '';
 		$lastname             = '';
 

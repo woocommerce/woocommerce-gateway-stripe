@@ -1017,7 +1017,7 @@ class WC_Stripe_Payment_Request {
 		 * to convert that to abbreviation as WC is expecting that.
 		 */
 		if ( 2 < strlen( $state ) && ! empty( $wc_states ) ) {
-			$state = array_search( ucwords( strtolower( $state ) ), $wc_states );
+			$state = array_search( ucwords( strtolower( $state ) ), $wc_states, true );
 		}
 
 		WC()->shipping->reset_shipping();

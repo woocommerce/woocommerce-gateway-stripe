@@ -244,7 +244,8 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	public function payment_fields() {
 		$total                = WC()->cart->total;
 		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
-		$description          = ! empty( $this->get_description() ) ? $this->get_description() : '';
+		$description          = $this->get_description();
+		$description          = ! empty( $description ) ? $description : '';
 
 		// If paying from order, we need to get total from order not cart.
 		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) {
