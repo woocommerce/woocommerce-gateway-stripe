@@ -226,8 +226,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		$order = wc_get_order( $order_id );
 
 		if ( 'stripe' === ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->payment_method : $order->get_payment_method() ) ) {
-			$charge   = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, '_transaction_id', true ) : $order->get_transaction_id();
-			$captured = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, '_stripe_charge_captured', true ) : $order->get_meta( '_stripe_charge_captured', true );
+			$charge             = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, '_transaction_id', true ) : $order->get_transaction_id();
+			$captured           = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, '_stripe_charge_captured', true ) : $order->get_meta( '_stripe_charge_captured', true );
+			$is_stripe_captured = false;
 
 			if ( $charge && 'no' === $captured ) {
 				$order_total = $order->get_total();
@@ -236,15 +237,29 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					$order_total = $order_total - $order->get_total_refunded();
 				}
 
-				$result = WC_Stripe_API::request( array(
-					'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
-					'expand[]' => 'balance_transaction',
-				), 'charges/' . $charge . '/capture' );
+				// First retrieve charge to see if it has been captured.
+				$result = WC_Stripe_API::retrieve( 'charges/' . $charge );
 
 				if ( ! empty( $result->error ) ) {
 					/* translators: error message */
-					$order->update_status( 'failed', sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
-				} else {
+					$order->add_order_note( sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
+				} elseif ( false === $result->captured ) {
+					$result = WC_Stripe_API::request( array(
+						'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
+						'expand[]' => 'balance_transaction',
+					), 'charges/' . $charge . '/capture' );
+
+					if ( ! empty( $result->error ) ) {
+						/* translators: error message */
+						$order->update_status( 'failed', sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
+					} else {
+						$is_stripe_captured = true;
+					}
+				} elseif ( true === $result->captured ) {
+					$is_stripe_captured = true;
+				}
+
+				if ( $is_stripe_captured ) {
 					/* translators: transaction id */
 					$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $result->id ) );
 					WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_stripe_charge_captured', 'yes' ) : $order->update_meta_data( '_stripe_charge_captured', 'yes' );
@@ -252,22 +267,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					// Store other data such as fees
 					WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_transaction_id', $result->id ) : $order->set_transaction_id( $result->id );
 
-					if ( isset( $result->balance_transaction ) && isset( $result->balance_transaction->fee ) ) {
-						// Fees and Net needs to both come from Stripe to be accurate as the returned
-						// values are in the local currency of the Stripe account, not from WC.
-						$fee = ! empty( $result->balance_transaction->fee ) ? WC_Stripe_Helper::format_balance_fee( $result->balance_transaction, 'fee' ) : 0;
-						$net = ! empty( $result->balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $result->balance_transaction, 'net' ) : 0;
-						WC_Stripe_Helper::update_stripe_fee( $order, $fee );
-						WC_Stripe_Helper::update_stripe_net( $order, $net );
-
-						// Store currency stripe.
-						$currency = ! empty( $result->balance_transaction->currency ) ? strtoupper( $result->balance_transaction->currency ) : null;
-						WC_Stripe_Helper::update_stripe_currency( $order, $currency );
-					}
-
-					if ( is_callable( array( $order, 'save' ) ) ) {
-						$order->save();
-					}
+					$this->update_fees( $order, $result->balance_transaction );
 				}
 
 				// This hook fires when admin manually changes order status to processing or completed.
