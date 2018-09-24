@@ -346,20 +346,22 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	 * @return array
 	 */
 	public function add_subscription_payment_meta( $payment_meta, $subscription ) {
-		$source_id = get_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $subscription->id : $subscription->get_id() ), '_stripe_source_id', true );
+		$subscription_id = WC_Stripe_Helper::is_pre_30() ? $subscription->id : $subscription->get_id();
+		$source_id = get_post_meta( $subscription_id, '_stripe_source_id', true );
 
 		// For BW compat will remove in future.
 		if ( empty( $source_id ) ) {
-			$source_id = get_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $subscription->id : $subscription->get_id() ), '_stripe_card_id', true );
+			$source_id = get_post_meta( $subscription_id, '_stripe_card_id', true );
 
 			// Take this opportunity to update the key name.
-			WC_Stripe_Helper::is_pre_30() ? update_post_meta( $subscription->id, '_stripe_source_id', $source_id ) : update_post_meta( $subscription->get_id(), '_stripe_source_id', $source_id );
+			update_post_meta( $subscription_id, '_stripe_source_id', $source_id );
+			delete_post_meta( $subscription_id, '_stripe_card_id', $source_id );
 		}
 
 		$payment_meta[ $this->id ] = array(
 			'post_meta' => array(
 				'_stripe_customer_id' => array(
-					'value' => get_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $subscription->id : $subscription->get_id() ), '_stripe_customer_id', true ),
+					'value' => get_post_meta( $subscription_id, '_stripe_customer_id', true ),
 					'label' => 'Stripe Customer ID',
 				),
 				'_stripe_source_id' => array(
