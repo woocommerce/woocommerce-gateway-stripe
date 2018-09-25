@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:ignoreFile -- To get around the error about class name different from file name.
+// phpcs:disable WordPress.Files.FileName
 
 /**
  * WooCommerce fallback notice.
