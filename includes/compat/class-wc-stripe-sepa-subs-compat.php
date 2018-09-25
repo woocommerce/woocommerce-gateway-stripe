@@ -21,7 +21,7 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 			add_action( 'wcs_renewal_order_created', array( $this, 'delete_renewal_meta' ), 10 );
 			add_action( 'woocommerce_subscription_failing_payment_method_updated_stripe', array( $this, 'update_failing_payment_method' ), 10, 2 );
 			add_action( 'wc_stripe_sepa_payment_fields', array( $this, 'display_update_subs_payment_checkout' ) );
-			add_action( 'wc_stripe_change_subs_payment_method_success', array( $this, 'handle_add_payment_method_success' ), 10, 2 );
+			add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', array( $this, 'handle_add_payment_method_success' ), 10, 2 );
 
 			// Display the credit card used for a subscription in the "My Subscriptions" table.
 			add_filter( 'woocommerce_my_subscriptions_payment_method', array( $this, 'maybe_render_subscription_payment_method' ), 10, 2 );
@@ -86,7 +86,7 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 		if (
 			apply_filters( 'wc_stripe_display_update_subs_payment_method_card_checkbox', true ) &&
 			wcs_user_has_subscription( get_current_user_id(), '', 'active' ) &&
-			$this->is_subs_change_payment()
+			is_add_payment_method_page()
 		) {
 			printf(
 				'<p class="form-row">
@@ -107,18 +107,15 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 	 * @param object $source_object
 	 */
 	public function handle_add_payment_method_success( $source_id, $source_object ) {
-		if ( isset( $_POST['wc-stripe_sepa-update-subs-payment-method-card'] ) ) {
+		if ( isset( $_POST['wc-' . $this->id . '-update-subs-payment-method-card'] ) ) {
 			$all_subs = wcs_get_users_subscriptions();
 
 			if ( ! empty( $all_subs ) ) {
 				foreach ( $all_subs as $sub ) {
 					if ( 'active' === $sub->get_status() ) {
-						if ( WC_Stripe_Helper::is_pre_30() ) {
-							update_post_meta( $sub->get_id(), '_stripe_source_id', $source_id );
-						} else {
-							$sub->update_meta_data( '_stripe_source_id', $source_id );
-							$sub->save();
-						}
+						update_post_meta( $sub->get_id(), '_stripe_source_id', $source_id );
+						update_post_meta( $sub->get_id(), '_payment_method', $this->id );
+						update_post_meta( $sub->get_id(), '_payment_method_title', $this->method_title );
 					}
 				}
 			}

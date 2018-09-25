@@ -1024,7 +1024,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return;
 		}
 
-		do_action( 'wc_stripe_add_payment_method_success', $source_id, $source_object );
+		do_action( 'wc_stripe_add_payment_method_' . $_POST['payment_method'] . '_success', $source_id, $source_object );
 
 		return array(
 			'result'   => 'success',
