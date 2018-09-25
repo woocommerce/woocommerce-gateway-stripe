@@ -281,6 +281,8 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 			$this->save_payment_method_checkbox();
 		}
 
+		do_action( 'wc_stripe_sepa_payment_fields', $this->id );
+
 		echo '</div>';
 	}
 

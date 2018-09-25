@@ -340,6 +340,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
+		do_action( 'wc_stripe_cards_payment_fields', $this->id );
+
 		echo '</div>';
 
 		ob_end_flush();
