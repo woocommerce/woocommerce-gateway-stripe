@@ -278,11 +278,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.0
 	 */
 	public function get_stripe_customer_id( $order ) {
-		$customer = get_user_meta( WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id', true );
+		$customer = get_user_meta( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id', true );
 
 		if ( empty( $customer ) ) {
 			// Try to get it via the order.
-			if ( WC_Stripe_Helper::is_pre_30() ) {
+			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 				return get_post_meta( $order->id, '_stripe_customer_id', true );
 			} else {
 				return $order->get_meta( '_stripe_customer_id', true );
@@ -308,7 +308,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$id = uniqid();
 			}
 
-			$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+			$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 
 			$args = array(
 				'utm_nooverride' => '1',
@@ -344,19 +344,19 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$statement_descriptor              = ! empty( $settings['statement_descriptor'] ) ? str_replace( "'", '', $settings['statement_descriptor'] ) : '';
 		$capture                           = ! empty( $settings['capture'] ) && 'yes' === $settings['capture'] ? true : false;
 		$post_data                         = array();
-		$post_data['currency']             = strtolower( WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency() );
+		$post_data['currency']             = strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency() );
 		$post_data['amount']               = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $post_data['currency'] );
 		/* translators: 1) blog name 2) order number */
 		$post_data['description']          = sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() );
-		$billing_email      = WC_Stripe_Helper::is_pre_30() ? $order->billing_email : $order->get_billing_email();
-		$billing_first_name = WC_Stripe_Helper::is_pre_30() ? $order->billing_first_name : $order->get_billing_first_name();
-		$billing_last_name  = WC_Stripe_Helper::is_pre_30() ? $order->billing_last_name : $order->get_billing_last_name();
+		$billing_email      = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_email : $order->get_billing_email();
+		$billing_first_name = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_first_name : $order->get_billing_first_name();
+		$billing_last_name  = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_last_name : $order->get_billing_last_name();
 
 		if ( ! empty( $billing_email ) && apply_filters( 'wc_stripe_send_stripe_receipt', false ) ) {
 			$post_data['receipt_email'] = $billing_email;
 		}
 
-		switch ( WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method() ) {
+		switch ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->payment_method : $order->get_payment_method() ) {
 			case 'stripe':
 				if ( ! empty( $statement_descriptor ) ) {
 					$post_data['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor );
@@ -379,7 +379,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'order_id' => $order->get_order_number(),
 		);
 
-		if ( $this->has_subscription( WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id() ) ) {
+		if ( $this->has_subscription( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id() ) ) {
 			$metadata += array(
 				'payment_type' => 'recurring',
 				'site_url'     => esc_url( get_site_url() ),
@@ -413,12 +413,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function process_response( $response, $order ) {
 		WC_Stripe_Logger::log( 'Processing response: ' . print_r( $response, true ) );
 
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 
 		$captured = ( isset( $response->captured ) && $response->captured ) ? 'yes' : 'no';
 
 		// Store charge data.
-		WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_stripe_charge_captured', $captured ) : $order->update_meta_data( '_stripe_charge_captured', $captured );
+		WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_stripe_charge_captured', $captured ) : $order->update_meta_data( '_stripe_charge_captured', $captured );
 
 		// Store other data such as fees.
 		if ( isset( $response->balance_transaction ) && isset( $response->balance_transaction->fee ) ) {
@@ -441,13 +441,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			 * take care of the status changes.
 			 */
 			if ( 'pending' === $response->status ) {
-				$order_stock_reduced = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_order_stock_reduced', true ) : $order->get_meta( '_order_stock_reduced', true );
+				$order_stock_reduced = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, '_order_stock_reduced', true ) : $order->get_meta( '_order_stock_reduced', true );
 
 				if ( ! $order_stock_reduced ) {
-					WC_Stripe_Helper::is_pre_30() ? $order->reduce_order_stock() : wc_reduce_stock_levels( $order_id );
+					WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->reduce_order_stock() : wc_reduce_stock_levels( $order_id );
 				}
 
-				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_transaction_id', $response->id ) : $order->set_transaction_id( $response->id );
+				WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_transaction_id', $response->id ) : $order->set_transaction_id( $response->id );
 				/* translators: transaction id */
 				$order->update_status( 'on-hold', sprintf( __( 'Stripe charge awaiting payment: %s.', 'woocommerce-gateway-stripe' ), $response->id ) );
 			}
@@ -466,10 +466,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
 		} else {
-			WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_transaction_id', $response->id ) : $order->set_transaction_id( $response->id );
+			WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_transaction_id', $response->id ) : $order->set_transaction_id( $response->id );
 
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
-				WC_Stripe_Helper::is_pre_30() ? $order->reduce_order_stock() : wc_reduce_stock_levels( $order_id );
+				WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->reduce_order_stock() : wc_reduce_stock_levels( $order_id );
 			}
 
 			/* translators: transaction id */
@@ -509,14 +509,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return object $details
 	 */
 	public function get_owner_details( $order ) {
-		$billing_first_name = WC_Stripe_Helper::is_pre_30() ? $order->billing_first_name : $order->get_billing_first_name();
-		$billing_last_name  = WC_Stripe_Helper::is_pre_30() ? $order->billing_last_name : $order->get_billing_last_name();
+		$billing_first_name = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_first_name : $order->get_billing_first_name();
+		$billing_last_name  = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_last_name : $order->get_billing_last_name();
 
 		$details = array();
 
 		$name  = $billing_first_name . ' ' . $billing_last_name;
-		$email = WC_Stripe_Helper::is_pre_30() ? $order->billing_email : $order->get_billing_email();
-		$phone = WC_Stripe_Helper::is_pre_30() ? $order->billing_phone : $order->get_billing_phone();
+		$email = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_email : $order->get_billing_email();
+		$phone = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_phone : $order->get_billing_phone();
 
 		if ( ! empty( $phone ) ) {
 			$details['phone'] = $phone;
@@ -530,12 +530,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$details['email'] = $email;
 		}
 
-		$details['address']['line1']       = WC_Stripe_Helper::is_pre_30() ? $order->billing_address_1 : $order->get_billing_address_1();
-		$details['address']['line2']       = WC_Stripe_Helper::is_pre_30() ? $order->billing_address_2 : $order->get_billing_address_2();
-		$details['address']['state']       = WC_Stripe_Helper::is_pre_30() ? $order->billing_state : $order->get_billing_state();
-		$details['address']['city']        = WC_Stripe_Helper::is_pre_30() ? $order->billing_city : $order->get_billing_city();
-		$details['address']['postal_code'] = WC_Stripe_Helper::is_pre_30() ? $order->billing_postcode : $order->get_billing_postcode();
-		$details['address']['country']     = WC_Stripe_Helper::is_pre_30() ? $order->billing_country : $order->get_billing_country();
+		$details['address']['line1']       = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_address_1 : $order->get_billing_address_1();
+		$details['address']['line2']       = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_address_2 : $order->get_billing_address_2();
+		$details['address']['state']       = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_state : $order->get_billing_state();
+		$details['address']['city']        = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_city : $order->get_billing_city();
+		$details['address']['postal_code'] = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_postcode : $order->get_billing_postcode();
+		$details['address']['country']     = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_country : $order->get_billing_country();
 
 		return (object) apply_filters( 'wc_stripe_owner_details', $details, $order );
 	}
@@ -632,8 +632,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return mixed
 	 */
 	public function create_3ds_source( $order, $source_object, $return_url = '' ) {
-		$currency                    = WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency();
-		$order_id                    = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$currency                    = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency();
+		$order_id                    = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 		$return_url                  = empty( $return_url ) ? $this->get_stripe_return_url( $order ) : $return_url;
 
 		$post_data                   = array();
@@ -763,7 +763,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$source_object   = false;
 
 		if ( $order ) {
-			$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+			$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 
 			$stripe_customer_id = get_post_meta( $order_id, '_stripe_customer_id', true );
 
@@ -771,14 +771,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$stripe_customer->set_id( $stripe_customer_id );
 			}
 
-			$source_id = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_source_id', true ) : $order->get_meta( '_stripe_source_id', true );
+			$source_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, '_stripe_source_id', true ) : $order->get_meta( '_stripe_source_id', true );
 
 			// Since 4.0.0, we changed card to source so we need to account for that.
 			if ( empty( $source_id ) ) {
-				$source_id = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_card_id', true ) : $order->get_meta( '_stripe_card_id', true );
+				$source_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, '_stripe_card_id', true ) : $order->get_meta( '_stripe_card_id', true );
 
 				// Take this opportunity to update the key name.
-				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_stripe_source_id', $source_id ) : $order->update_meta_data( '_stripe_source_id', $source_id );
+				WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_stripe_source_id', $source_id ) : $order->update_meta_data( '_stripe_source_id', $source_id );
 
 				if ( is_callable( array( $order, 'save' ) ) ) {
 					$order->save();
@@ -814,11 +814,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param stdClass $source Source information.
 	 */
 	public function save_source_to_order( $order, $source ) {
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 
 		// Store source in the order.
 		if ( $source->customer ) {
-			if ( WC_Stripe_Helper::is_pre_30() ) {
+			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 				update_post_meta( $order_id, '_stripe_customer_id', $source->customer );
 			} else {
 				$order->update_meta_data( '_stripe_customer_id', $source->customer );
@@ -826,7 +826,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		if ( $source->source ) {
-			if ( WC_Stripe_Helper::is_pre_30() ) {
+			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 				update_post_meta( $order_id, '_stripe_source_id', $source->source );
 			} else {
 				$order->update_meta_data( '_stripe_source_id', $source->source );
@@ -848,7 +848,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param int $balance_transaction_id
 	 */
 	public function update_fees( $order, $balance_transaction_id ) {
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 
 		$balance_transaction = WC_Stripe_API::retrieve( 'balance/history/' . $balance_transaction_id );
 
@@ -870,36 +870,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				WC_Stripe_Helper::update_stripe_fee( $order, $fee );
 				WC_Stripe_Helper::update_stripe_net( $order, $net );
 
+				$currency = ! empty( $balance_transaction->currency ) ? strtoupper( $balance_transaction->currency ) : null;
+				WC_Stripe_Helper::update_stripe_currency( $order, $currency );
+
 				if ( is_callable( array( $order, 'save' ) ) ) {
 					$order->save();
 				}
 			}
 		} else {
 			WC_Stripe_Logger::log( "Unable to update fees/net meta for order: {$order_id}" );
-		}
-	}
-
-	/**
-	 * Updates Stripe currency in order meta.
-	 *
-	 * @since 4.1.7
-	 * @param object $order The order object
-	 * @param int $balance_transaction_id
-	 */
-	public function update_currency( $order, $balance_transaction_id ) {
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
-
-		$balance_transaction = WC_Stripe_API::retrieve( 'balance/history/' . $balance_transaction_id );
-
-		if ( empty( $balance_transaction->error ) ) {
-			$currency = ! empty( $balance_transaction->currency ) ? strtoupper( $balance_transaction->currency ) : null;
-			WC_Stripe_Helper::update_stripe_currency( $order, $currency );
-
-			if ( is_callable( array( $order, 'save' ) ) ) {
-				$order->save();
-			}
-		} else {
-			WC_Stripe_Logger::log( "Unable to update currency meta for order: {$order_id}" );
 		}
 	}
 
@@ -921,7 +900,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$request = array();
 
-		if ( WC_Stripe_Helper::is_pre_30() ) {
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 			$order_currency = get_post_meta( $order_id, '_order_currency', true );
 			$captured       = get_post_meta( $order_id, '_stripe_charge_captured', true );
 		} else {
@@ -958,11 +937,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return $response;
 
 		} elseif ( ! empty( $response->id ) ) {
-			WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_stripe_refund_id', $response->id ) : $order->update_meta_data( '_stripe_refund_id', $response->id );
+			WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_stripe_refund_id', $response->id ) : $order->update_meta_data( '_stripe_refund_id', $response->id );
 
 			$amount = wc_price( $response->amount / 100 );
 
-			if ( in_array( strtolower( WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency() ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
+			if ( in_array( strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency() ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
 				$amount = wc_price( $response->amount );
 			}
 

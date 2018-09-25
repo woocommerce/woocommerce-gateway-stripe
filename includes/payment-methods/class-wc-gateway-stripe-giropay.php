@@ -200,8 +200,8 @@ class WC_Gateway_Stripe_Giropay extends WC_Stripe_Payment_Gateway {
 	 * @return mixed
 	 */
 	public function create_source( $order ) {
-		$currency              = WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency();
-		$order_id              = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$currency              = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency();
+		$order_id              = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 		$return_url            = $this->get_stripe_return_url( $order );
 		$post_data             = array();
 		$post_data['amount']   = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
@@ -241,7 +241,7 @@ class WC_Gateway_Stripe_Giropay extends WC_Stripe_Payment_Gateway {
 			$create_account = ! empty( $_POST['createaccount'] ) ? true : false;
 
 			if ( $create_account ) {
-				$new_customer_id     = WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id();
+				$new_customer_id     = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->customer_user : $order->get_customer_id();
 				$new_stripe_customer = new WC_Stripe_Customer( $new_customer_id );
 				$new_stripe_customer->create_customer();
 			}
@@ -254,7 +254,7 @@ class WC_Gateway_Stripe_Giropay extends WC_Stripe_Payment_Gateway {
 				throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
 			}
 
-			if ( WC_Stripe_Helper::is_pre_30() ) {
+			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 				update_post_meta( $order_id, '_stripe_source_id', $response->id );
 			} else {
 				$order->update_meta_data( '_stripe_source_id', $response->id );

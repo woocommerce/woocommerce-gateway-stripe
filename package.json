@@ -39,9 +39,6 @@
     "preuglify": "rm -f $npm_package_assets_js_min",
     "uglify": "for f in $npm_package_assets_js_js; do file=${f%.js}; node_modules/.bin/uglifyjs $f -c -m > $file.min.js; done",
     "makepot": "php node_modules/grunt-wp-i18n/vendor/wp-i18n-tools/grunt-makepot.php wp-plugin . languages/$npm_package_name.pot",
-    "postmakepot": "sed -i '' \"s/wordpress\\.org\\/support\\/plugin\\/$npm_package_name/docs\\.woocommerce\\.com/g\" languages/$npm_package_name.pot",
-    "po2mo": "rm -f languages/*.mo;",
-    "postpo2mo": "for f in languages/*.po; do file=${f%.po}; msgfmt -o $file.mo $file.po; done",
     "test": "cross-env NODE_CONFIG_DIR='./tests/e2e/config' BABEL_ENV=commonjs mocha \"tests/e2e\" --require babel-register --recursive",
     "test:grep": "cross-env NODE_CONFIG_DIR='./tests/e2e/config' BABEL_ENV=commonjs mocha \"tests/e2e\" --require babel-register --grep ",
     "test:single": "cross-env NODE_CONFIG_DIR='./tests/e2e/config' BABEL_ENV=commonjs mocha --require babel-register"
