@@ -264,7 +264,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
 		$total                = WC()->cart->total;
 		$user_email           = '';
-		$description          = ! empty( $this->get_description() ) ? $this->get_description() : '';
+		$description          = $this->get_description();
+		$description          = ! empty( $description ) ? $description : '';
 		$firstname            = '';
 		$lastname             = '';
 
@@ -272,7 +273,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) {
 			$order      = wc_get_order( wc_get_order_id_by_order_key( wc_clean( $_GET['key'] ) ) );
 			$total      = $order->get_total();
-			$user_email = WC_Stripe_Helper::is_pre_30() ? $order->billing_email : $order->get_billing_email();
+			$user_email = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_email : $order->get_billing_email();
 		} else {
 			if ( $user->ID ) {
 				$user_email = get_user_meta( $user->ID, 'billing_email', true );
@@ -469,14 +470,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$order    = wc_get_order( $order_id );
 
 			if ( is_a( $order, 'WC_Order' ) ) {
-				$stripe_params['billing_first_name'] = WC_Stripe_Helper::is_pre_30() ? $order->billing_first_name : $order->get_billing_first_name();
-				$stripe_params['billing_last_name']  = WC_Stripe_Helper::is_pre_30() ? $order->billing_last_name : $order->get_billing_last_name();
-				$stripe_params['billing_address_1']  = WC_Stripe_Helper::is_pre_30() ? $order->billing_address_1 : $order->get_billing_address_1();
-				$stripe_params['billing_address_2']  = WC_Stripe_Helper::is_pre_30() ? $order->billing_address_2 : $order->get_billing_address_2();
-				$stripe_params['billing_state']      = WC_Stripe_Helper::is_pre_30() ? $order->billing_state : $order->get_billing_state();
-				$stripe_params['billing_city']       = WC_Stripe_Helper::is_pre_30() ? $order->billing_city : $order->get_billing_city();
-				$stripe_params['billing_postcode']   = WC_Stripe_Helper::is_pre_30() ? $order->billing_postcode : $order->get_billing_postcode();
-				$stripe_params['billing_country']    = WC_Stripe_Helper::is_pre_30() ? $order->billing_country : $order->get_billing_country();
+				$stripe_params['billing_first_name'] = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_first_name : $order->get_billing_first_name();
+				$stripe_params['billing_last_name']  = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_last_name : $order->get_billing_last_name();
+				$stripe_params['billing_address_1']  = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_address_1 : $order->get_billing_address_1();
+				$stripe_params['billing_address_2']  = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_address_2 : $order->get_billing_address_2();
+				$stripe_params['billing_state']      = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_state : $order->get_billing_state();
+				$stripe_params['billing_city']       = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_city : $order->get_billing_city();
+				$stripe_params['billing_postcode']   = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_postcode : $order->get_billing_postcode();
+				$stripe_params['billing_country']    = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_country : $order->get_billing_country();
 			}
 		}
 
@@ -535,7 +536,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		if ( ! empty( $_GET['key'] ) ) {
 			$order      = wc_get_order( wc_get_order_id_by_order_key( wc_clean( $_GET['key'] ) ) );
 			$total      = $order->get_total();
-			$user_email = WC_Stripe_Helper::is_pre_30() ? $order->billing_email : $order->get_billing_email();
+			$user_email = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_email : $order->get_billing_email();
 		} else {
 			if ( $user->ID ) {
 				$user_email = get_user_meta( $user->ID, 'billing_email', true );
@@ -679,7 +680,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$create_account = ! empty( $_POST['createaccount'] ) ? true : false;
 
 			if ( $create_account ) {
-				$new_customer_id     = WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id();
+				$new_customer_id     = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->customer_user : $order->get_customer_id();
 				$new_stripe_customer = new WC_Stripe_Customer( $new_customer_id );
 				$new_stripe_customer->create_customer();
 			}
@@ -725,7 +726,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					}
 
 					// Update order meta with 3DS source.
-					if ( WC_Stripe_Helper::is_pre_30() ) {
+					if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 						update_post_meta( $order_id, '_stripe_source_id', $response->id );
 					} else {
 						$order->update_meta_data( '_stripe_source_id', $response->id );
@@ -765,7 +766,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				if ( ! empty( $response->error ) ) {
 					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 					if ( $this->is_no_such_customer_error( $response->error ) ) {
-						if ( WC_Stripe_Helper::is_pre_30() ) {
+						if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 							delete_user_meta( $order->customer_user, '_stripe_customer_id' );
 							delete_post_meta( $order_id, '_stripe_customer_id' );
 						} else {
