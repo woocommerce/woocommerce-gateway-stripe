@@ -61,11 +61,6 @@ function woocommerce_gateway_stripe_init() {
 			private static $instance;
 
 			/**
-			 * @var Reference to logging class.
-			 */
-			private static $log;
-
-			/**
 			 * Returns the *Singleton* instance of this class.
 			 *
 			 * @return Singleton The *Singleton* instance.
