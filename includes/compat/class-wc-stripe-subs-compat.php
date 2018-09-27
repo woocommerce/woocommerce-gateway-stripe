@@ -84,7 +84,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	 */
 	public function display_update_subs_payment_checkout() {
 		if (
-			apply_filters( 'wc_stripe_display_update_subs_payment_method_card_checkbox', false ) &&
+			apply_filters( 'wc_stripe_display_update_subs_payment_method_card_checkbox', true ) &&
 			wcs_user_has_subscription( get_current_user_id(), '', 'active' ) &&
 			is_add_payment_method_page()
 		) {
