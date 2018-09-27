@@ -56,11 +56,11 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->id                   = 'stripe_bancontact';
-		$this->method_title         = __( 'Stripe Bancontact', 'woocommerce-gateway-stripe' );
+		$this->id           = 'stripe_bancontact';
+		$this->method_title = __( 'Stripe Bancontact', 'woocommerce-gateway-stripe' );
 		/* translators: link */
-		$this->method_description   = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
-		$this->supports             = array(
+		$this->method_description = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
+		$this->supports           = array(
 			'products',
 			'refunds',
 		);
@@ -98,9 +98,12 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 	 * @return array
 	 */
 	public function get_supported_currency() {
-		return apply_filters( 'wc_stripe_bancontact_supported_currencies', array(
-			'EUR',
-		) );
+		return apply_filters(
+			'wc_stripe_bancontact_supported_currencies',
+			array(
+				'EUR',
+			)
+		);
 	}
 
 	/**
@@ -174,7 +177,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 
 		if ( is_add_payment_method_page() ) {
 			$pay_button_text = __( 'Add Payment', 'woocommerce-gateway-stripe' );
-			$total        = '';
+			$total           = '';
 		} else {
 			$pay_button_text = '';
 		}

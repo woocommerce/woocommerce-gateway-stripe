@@ -70,13 +70,13 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->retry_interval       = 1;
-		$this->id                   = 'stripe_sepa';
-		$this->method_title         = __( 'Stripe SEPA Direct Debit', 'woocommerce-gateway-stripe' );
+		$this->retry_interval = 1;
+		$this->id             = 'stripe_sepa';
+		$this->method_title   = __( 'Stripe SEPA Direct Debit', 'woocommerce-gateway-stripe' );
 		/* translators: link */
-		$this->method_description   = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
-		$this->has_fields           = true;
-		$this->supports             = array(
+		$this->method_description = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
+		$this->has_fields         = true;
+		$this->supports           = array(
 			'products',
 			'refunds',
 			'tokenization',
@@ -133,9 +133,12 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	 * @return array
 	 */
 	public function get_supported_currency() {
-		return apply_filters( 'wc_stripe_sepa_supported_currencies', array(
-			'EUR',
-		) );
+		return apply_filters(
+			'wc_stripe_sepa_supported_currencies',
+			array(
+				'EUR',
+			)
+		);
 	}
 
 	/**

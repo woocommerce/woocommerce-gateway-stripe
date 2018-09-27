@@ -116,7 +116,7 @@ class WC_Stripe_Customer {
 				$billing_last_name = get_user_meta( $user->ID, 'last_name', true );
 			}
 
-			$description        = __( 'Name', 'woocommerce-gateway-stripe' ) . ': ' . $billing_first_name . ' ' . $billing_last_name . ' ' . __( 'Username', 'woocommerce-gateway-stripe' ) . ': ' . $user->user_login;
+			$description = __( 'Name', 'woocommerce-gateway-stripe' ) . ': ' . $billing_first_name . ' ' . $billing_last_name . ' ' . __( 'Username', 'woocommerce-gateway-stripe' ) . ': ' . $user->user_login;
 
 			$defaults = array(
 				'email'       => $user->user_email,
@@ -179,9 +179,12 @@ class WC_Stripe_Customer {
 			$this->set_id( $this->create_customer() );
 		}
 
-		$response = WC_Stripe_API::request( array(
-			'source' => $source_id,
-		), 'customers/' . $this->get_id() . '/sources' );
+		$response = WC_Stripe_API::request(
+			array(
+				'source' => $source_id,
+			),
+			'customers/' . $this->get_id() . '/sources'
+		);
 
 		$wc_token = false;
 
@@ -259,9 +262,13 @@ class WC_Stripe_Customer {
 
 		$sources = get_transient( 'stripe_sources_' . $this->get_id() );
 
-		$response = WC_Stripe_API::request( array(
-			'limit'       => 100,
-		), 'customers/' . $this->get_id() . '/sources', 'GET' );
+		$response = WC_Stripe_API::request(
+			array(
+				'limit' => 100,
+			),
+			'customers/' . $this->get_id() . '/sources',
+			'GET'
+		);
 
 		if ( ! empty( $response->error ) ) {
 			return array();
@@ -301,9 +308,13 @@ class WC_Stripe_Customer {
 	 * @param string $source_id
 	 */
 	public function set_default_source( $source_id ) {
-		$response = WC_Stripe_API::request( array(
-			'default_source' => sanitize_text_field( $source_id ),
-		), 'customers/' . $this->get_id(), 'POST' );
+		$response = WC_Stripe_API::request(
+			array(
+				'default_source' => sanitize_text_field( $source_id ),
+			),
+			'customers/' . $this->get_id(),
+			'POST'
+		);
 
 		$this->clear_cache();
 

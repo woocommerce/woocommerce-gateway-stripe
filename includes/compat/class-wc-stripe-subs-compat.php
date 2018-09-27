@@ -107,7 +107,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	 * @param object $source_object
 	 */
 	public function handle_add_payment_method_success( $source_id, $source_object ) {
-		if ( isset( $_POST['wc-' . $this->id . '-update-subs-payment-method-card'] ) ) {
+		if ( isset( $_POST[ 'wc-' . $this->id . '-update-subs-payment-method-card' ] ) ) {
 			$all_subs = wcs_get_users_subscriptions();
 
 			if ( ! empty( $all_subs ) ) {
@@ -147,7 +147,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			}
 
 			$this->save_source_to_order( $subscription, $prepared_source );
- 
+
 			do_action( 'wc_stripe_change_subs_payment_method_success', $prepared_source->source, $prepared_source );
 
 			return array(
@@ -363,7 +363,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	 */
 	public function add_subscription_payment_meta( $payment_meta, $subscription ) {
 		$subscription_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $subscription->id : $subscription->get_id();
-		$source_id = get_post_meta( $subscription_id, '_stripe_source_id', true );
+		$source_id       = get_post_meta( $subscription_id, '_stripe_source_id', true );
 
 		// For BW compat will remove in future.
 		if ( empty( $source_id ) ) {
@@ -380,7 +380,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 					'value' => get_post_meta( $subscription_id, '_stripe_customer_id', true ),
 					'label' => 'Stripe Customer ID',
 				),
-				'_stripe_source_id' => array(
+				'_stripe_source_id'   => array(
 					'value' => $source_id,
 					'label' => 'Stripe Source ID',
 				),

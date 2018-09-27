@@ -244,10 +244,13 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					/* translators: error message */
 					$order->add_order_note( sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
 				} elseif ( false === $result->captured ) {
-					$result = WC_Stripe_API::request( array(
-						'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
-						'expand[]' => 'balance_transaction',
-					), 'charges/' . $charge . '/capture' );
+					$result = WC_Stripe_API::request(
+						array(
+							'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
+							'expand[]' => 'balance_transaction',
+						),
+						'charges/' . $charge . '/capture'
+					);
 
 					if ( ! empty( $result->error ) ) {
 						/* translators: error message */

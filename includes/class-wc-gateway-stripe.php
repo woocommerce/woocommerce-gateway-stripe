@@ -111,9 +111,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->retry_interval     = 1;
-		$this->id                 = 'stripe';
-		$this->method_title       = __( 'Stripe', 'woocommerce-gateway-stripe' );
+		$this->retry_interval = 1;
+		$this->id             = 'stripe';
+		$this->method_title   = __( 'Stripe', 'woocommerce-gateway-stripe' );
 		/* translators: 1) link to Stripe register page 2) link to Stripe api keys page */
 		$this->method_description = sprintf( __( 'Stripe works by adding payment fields on the checkout and then sending the details to Stripe for verification. <a href="%1$s" target="_blank">Sign up</a> for a Stripe account, and <a href="%2$s" target="_blank">get your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), 'https://dashboard.stripe.com/register', 'https://dashboard.stripe.com/account/apikeys' );
 		$this->has_fields         = true;
@@ -494,7 +494,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$stripe_params['stripe_nonce']                            = wp_create_nonce( '_wc_stripe_nonce' );
 		$stripe_params['statement_descriptor']                    = $this->statement_descriptor;
 		$stripe_params['elements_options']                        = apply_filters( 'wc_stripe_elements_options', array() );
-		$stripe_params['sepa_elements_options']                   = apply_filters( 'wc_stripe_sepa_elements_options', array( 'supportedCountries' => array( 'SEPA' ), 'placeholderCountry' => WC()->countries->get_base_country(), 'style' => array( 'base' => array( 'fontSize' => '15px' ) ) ) );
+		$stripe_params['sepa_elements_options']                   = apply_filters(
+			'wc_stripe_sepa_elements_options',
+			array(
+				'supportedCountries' => array( 'SEPA' ),
+				'placeholderCountry' => WC()->countries->get_base_country(),
+				'style'              => array( 'base' => array( 'fontSize' => '15px' ) ),
+			)
+		);
 		$stripe_params['invalid_owner_name']                      = __( 'Billing First Name and Last Name are required.', 'woocommerce-gateway-stripe' );
 		$stripe_params['is_stripe_checkout']                      = $this->stripe_checkout ? 'yes' : 'no';
 		$stripe_params['is_change_payment_page']                  = isset( $_GET['change_payment_method'] ) ? 'yes' : 'no';

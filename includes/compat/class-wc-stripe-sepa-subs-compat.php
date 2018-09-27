@@ -107,7 +107,7 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 	 * @param object $source_object
 	 */
 	public function handle_add_payment_method_success( $source_id, $source_object ) {
-		if ( isset( $_POST['wc-' . $this->id . '-update-subs-payment-method-card'] ) ) {
+		if ( isset( $_POST[ 'wc-' . $this->id . '-update-subs-payment-method-card' ] ) ) {
 			$all_subs = wcs_get_users_subscriptions();
 
 			if ( ! empty( $all_subs ) ) {
@@ -131,7 +131,7 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 	public function save_source_to_order( $order, $source ) {
 		parent::save_source_to_order( $order, $source );
 
-		$order_id  = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 
 		// Also store it on the subscriptions being purchased or paid for in the order.
 		if ( function_exists( 'wcs_order_contains_subscription' ) && wcs_order_contains_subscription( $order_id ) ) {
@@ -370,7 +370,7 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 					'value' => get_post_meta( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $subscription->id : $subscription->get_id() ), '_stripe_customer_id', true ),
 					'label' => 'Stripe Customer ID',
 				),
-				'_stripe_source_id' => array(
+				'_stripe_source_id'   => array(
 					'value' => $source_id,
 					'label' => 'Stripe Source ID',
 				),
