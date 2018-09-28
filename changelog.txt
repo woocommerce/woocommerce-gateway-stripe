@@ -11,6 +11,7 @@
 * Add - Ability to update all active subscription's payment method when adding a payment.
 * Add - Hook to show update all active subscription's payment method checkbox `wc_stripe_display_update_subs_payment_method_card_checkbox`.
 * Update - WC 3.5 compatibility.
+* Update - Stripe API version to 2018-09-24.
 
 = 4.1.10 - 2018-09-17 =
 * Fix - When 3DS card redirect status is "not_required", charge the 3DS source.
