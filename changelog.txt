@@ -7,7 +7,7 @@
 * Fix - Partial refund on Stripe captured charge erroneously refunding total amount.
 * Fix - Capture charge on previously authorized charge, not showing Stripe fees.
 * Deprecate - Soft deprecated function is_pre_30 with is_wc_lt function.
-* Update - CSS styling.
+* Update - CSS styling to bare minimum styling to allow adoption of theme styles.
 * Add - Ability to update all active subscription's payment method when adding a payment.
 * Add - Hook to show update all active subscription's payment method checkbox `wc_stripe_display_update_subs_payment_method_card_checkbox`.
 * Update - WC 3.5 compatibility.
