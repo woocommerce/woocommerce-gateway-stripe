@@ -141,7 +141,7 @@ class WC_Gateway_Stripe_Alipay extends WC_Stripe_Payment_Gateway {
 
 		$icons_str = '';
 
-		$icons_str .= $icons['alipay'];
+		$icons_str .= isset( $icons['alipay'] ) ? $icons['alipay'] : '';
 
 		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
 	}

@@ -133,7 +133,7 @@ class WC_Gateway_Stripe_Bancontact extends WC_Stripe_Payment_Gateway {
 
 		$icons_str = '';
 
-		$icons_str .= $icons['bancontact'];
+		$icons_str .= isset( $icons['bancontact'] ) ? $icons['bancontact'] : '';
 
 		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
 	}

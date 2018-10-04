@@ -133,7 +133,7 @@ class WC_Gateway_Stripe_Giropay extends WC_Stripe_Payment_Gateway {
 
 		$icons_str = '';
 
-		$icons_str .= $icons['giropay'];
+		$icons_str .= isset( $icons['giropay'] ) ? $icons['giropay'] : '';
 
 		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
 	}

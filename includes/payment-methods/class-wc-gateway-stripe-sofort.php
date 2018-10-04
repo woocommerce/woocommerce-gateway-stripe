@@ -133,7 +133,7 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 
 		$icons_str = '';
 
-		$icons_str .= $icons['sofort'];
+		$icons_str .= isset( $icons['sofort'] ) ? $icons['sofort'] : '';
 
 		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
 	}

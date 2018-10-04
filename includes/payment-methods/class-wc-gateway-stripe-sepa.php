@@ -172,7 +172,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 
 		$icons_str = '';
 
-		$icons_str .= $icons['sepa'];
+		$icons_str .= isset( $icons['sepa'] ) ? $icons['sepa'] : '';
 
 		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
 	}

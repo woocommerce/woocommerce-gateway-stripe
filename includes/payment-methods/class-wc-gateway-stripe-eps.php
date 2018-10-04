@@ -133,7 +133,7 @@ class WC_Gateway_Stripe_Eps extends WC_Stripe_Payment_Gateway {
 
 		$icons_str = '';
 
-		$icons_str .= $icons['eps'];
+		$icons_str .= isset( $icons['eps'] ) ? $icons['eps'] : '';
 
 		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
 	}
