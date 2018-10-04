@@ -236,14 +236,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$icons_str = '';
 
-		$icons_str .= $icons['visa'];
-		$icons_str .= $icons['amex'];
-		$icons_str .= $icons['mastercard'];
+		$icons_str .= isset( $icons['visa'] ) ? $icons['visa'] : '';
+		$icons_str .= isset( $icons['amex'] ) ? $icons['amex'] : '';
+		$icons_str .= isset( $icons['mastercard'] ) ? $icons['mastercard'] : '';
 
 		if ( 'USD' === get_woocommerce_currency() ) {
-			$icons_str .= $icons['discover'];
-			$icons_str .= $icons['jcb'];
-			$icons_str .= $icons['diners'];
+			$icons_str .= isset( $icons['discover'] ) ? $icons['discover'] : '';
+			$icons_str .= isset( $icons['jcb'] ) ? $icons['jcb'] : '';
+			$icons_str .= isset( $icons['diners'] ) ? $icons['diners'] : '';
 		}
 
 		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );

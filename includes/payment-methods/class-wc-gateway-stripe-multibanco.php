@@ -137,7 +137,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 
 		$icons_str = '';
 
-		$icons_str .= $icons['multibanco'];
+		$icons_str .= isset( $icons['multibanco'] ) ? $icons['multibanco'] : '';
 
 		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
 	}

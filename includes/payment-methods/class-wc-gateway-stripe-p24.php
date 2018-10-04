@@ -134,7 +134,7 @@ class WC_Gateway_Stripe_P24 extends WC_Stripe_Payment_Gateway {
 
 		$icons_str = '';
 
-		$icons_str .= $icons['p24'];
+		$icons_str .= isset( $icons['p24'] ) ? $icons['p24'] : '';
 
 		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
 	}
