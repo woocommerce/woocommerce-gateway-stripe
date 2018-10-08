@@ -8,7 +8,6 @@
 * Fix - Capture charge on previously authorized charge, not showing Stripe fees.
 * Fix - Check if payment icons are set before trying to use them.
 * Deprecate - Soft deprecated function is_pre_30 with is_wc_lt function.
-* Update - CSS styling to bare minimum styling to allow adoption of theme styles.
 * Add - Ability to update all active subscription's payment method when adding a payment.
 * Add - Hook to show update all active subscription's payment method checkbox `wc_stripe_display_update_subs_payment_method_card_checkbox`.
 * Add - CSS minification.
