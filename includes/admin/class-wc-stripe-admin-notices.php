@@ -99,6 +99,7 @@ class WC_Stripe_Admin_Notices {
 	 * @version 4.0.0
 	 */
 	public function stripe_check_environment() {
+		$show_styles_notice = get_option( 'wc_stripe_show_styles_notice' );
 		$show_ssl_notice    = get_option( 'wc_stripe_show_ssl_notice' );
 		$show_keys_notice   = get_option( 'wc_stripe_show_keys_notice' );
 		$show_phpver_notice = get_option( 'wc_stripe_show_phpver_notice' );
@@ -118,6 +119,18 @@ class WC_Stripe_Admin_Notices {
 					$message = __( 'WooCommerce Stripe - The minimum PHP version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe' );
 
 					$this->add_admin_notice( 'phpver', 'error', sprintf( $message, WC_STRIPE_MIN_PHP_VER, phpversion() ), true );
+
+					return;
+				}
+			}
+
+			// To be removed 4.1.12.
+			if ( empty( $show_styles_notice ) ) {
+				if ( version_compare( WC_STRIPE_VERSION, '4.1.12', '<' ) ) {
+					/* translators: 1) int version 2) int version */
+					$message = __( 'Howdy! We wanted to let you know about a change coming in WooCommerce Stripe:' . PHP_EOL . 'In the past, WooCommerce Stripe included styling elements for the checkout page, such as the spacing and logo positions, to make the checkout experience consistent for anyone using the extension. However, this limits the options for stores to style their checkout in the way that works for them.' . PHP_EOL . 'In the next release of WooCommerce Stripe (slated for MONTH YEAR), we will be removing these styling elements. To make sure your store continues to look great, you can test out how your theme would look by logging in as an administrator, add a product to the cart and going to the checkout page. Only you will be able to see these styles removed.', 'woocommerce-gateway-stripe' );
+
+					$this->add_admin_notice( 'styles', 'notice notice-warning', $message, true );
 
 					return;
 				}
@@ -223,7 +236,10 @@ class WC_Stripe_Admin_Notices {
 			$notice = wc_clean( $_GET['wc-stripe-hide-notice'] );
 
 			switch ( $notice ) {
-				case 'phpver':
+				case 'styles':
+					update_option( 'wc_stripe_show_styles_notice', 'no' );
+					break;
+				case 'styles':
 					update_option( 'wc_stripe_show_phpver_notice', 'no' );
 					break;
 				case 'wcver':
