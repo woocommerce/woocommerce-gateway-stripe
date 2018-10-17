@@ -127,8 +127,7 @@ class WC_Stripe_Admin_Notices {
 			// To be removed 4.1.12.
 			if ( empty( $show_styles_notice ) ) {
 				if ( version_compare( WC_STRIPE_VERSION, '4.1.12', '<' ) ) {
-					/* translators: 1) int version 2) int version */
-					$message = __( 'Howdy! We wanted to let you know about a change coming in WooCommerce Stripe:' . PHP_EOL . 'In the past, WooCommerce Stripe included styling elements for the checkout page, such as the spacing and logo positions, to make the checkout experience consistent for anyone using the extension. However, this limits the options for stores to style their checkout in the way that works for them.' . PHP_EOL . 'In the next release of WooCommerce Stripe (slated for MONTH YEAR), we will be removing these styling elements. To make sure your store continues to look great, you can test out how your theme would look by logging in as an administrator, add a product to the cart and going to the checkout page. Only you will be able to see these styles removed.', 'woocommerce-gateway-stripe' );
+					$message = __( 'Action required: In January 2019 we will be introducing changes that could effect how Stripe looks in your checkout. <a href="https://docs.woocommerce.com/document/stripe/#section-45" target="_blank">Learn more</a> about how to make sure your site continues to look great.', 'woocommerce-gateway-stripe' );
 
 					$this->add_admin_notice( 'styles', 'notice notice-warning', $message, true );
 

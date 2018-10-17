@@ -2,10 +2,10 @@
 # This file is distributed under the same license as the WooCommerce Stripe Gateway package.
 msgid ""
 msgstr ""
-"Project-Id-Version: WooCommerce Stripe Gateway 4.1.10\n"
+"Project-Id-Version: WooCommerce Stripe Gateway 4.1.11\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
-"POT-Creation-Date: 2018-10-13 03:38:09+00:00\n"
+"POT-Creation-Date: 2018-10-17 15:00:09+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -100,25 +100,34 @@ msgid ""
 "%1$s. You are running %2$s."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:142
+#: includes/admin/class-wc-stripe-admin-notices.php:130
+msgid ""
+"Action required: In January 2019 we will be introducing changes that could "
+"effect how Stripe looks in your checkout. <a "
+"href=\"https://docs.woocommerce.com/document/stripe/#section-45\" "
+"target=\"_blank\">Learn more</a> about how to make sure your site continues "
+"to look great."
+msgstr ""
+
+#: includes/admin/class-wc-stripe-admin-notices.php:141
 #. translators: 1) int version 2) int version
 msgid ""
 "WooCommerce Stripe - The minimum WooCommerce version required for this "
 "plugin is %1$s. You are running %2$s."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:152
+#: includes/admin/class-wc-stripe-admin-notices.php:151
 msgid "WooCommerce Stripe - cURL is not installed."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:162
+#: includes/admin/class-wc-stripe-admin-notices.php:161
 #. translators: 1) link
 msgid ""
 "Stripe is almost ready. To get started, <a href=\"%s\">set your Stripe "
 "account keys</a>."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:173
+#: includes/admin/class-wc-stripe-admin-notices.php:172
 #. translators: 1) link
 msgid ""
 "Stripe is in test mode however your test keys may not be valid. Test keys "
@@ -126,7 +135,7 @@ msgid ""
 "<a href=\"%s\">set your Stripe account keys</a>."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:182
+#: includes/admin/class-wc-stripe-admin-notices.php:181
 #. translators: 1) link
 msgid ""
 "Stripe is in live mode however your test keys may not be valid. Live keys "
@@ -134,7 +143,7 @@ msgid ""
 "<a href=\"%s\">set your Stripe account keys</a>."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:191
+#: includes/admin/class-wc-stripe-admin-notices.php:190
 #. translators: 1) link
 msgid ""
 "Stripe is enabled, but a SSL certificate is not detected. Your checkout may "
@@ -142,16 +151,16 @@ msgid ""
 "target=\"_blank\">SSL certificate</a>"
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:215
+#: includes/admin/class-wc-stripe-admin-notices.php:214
 #. translators: %1$s Payment method, %2$s List of supported currencies
 msgid "%1$s is enabled - it requires store currency to be set to %2$s"
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:229
+#: includes/admin/class-wc-stripe-admin-notices.php:228
 msgid "Action failed. Please refresh the page and retry."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:233
+#: includes/admin/class-wc-stripe-admin-notices.php:232
 msgid "Cheatin&#8217; huh?"
 msgstr ""
 

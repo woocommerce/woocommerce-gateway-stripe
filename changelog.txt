@@ -1,12 +1,13 @@
 *** Changelog ***
 
-= 4.1.11 - 2018-xx-xx =
+= 4.1.11 - 2018-10-17 =
 * Fix - Explicitly set 3DS source id to prevent 3DS source not charging when not required.
 * Fix - Prevent Stripe JS failed live/test check from throwing JS error.
 * Fix - Find order by source ID if charge ID is not found when cancelled webhook is triggered.
 * Fix - Partial refund on Stripe captured charge erroneously refunding total amount.
 * Fix - Capture charge on previously authorized charge, not showing Stripe fees.
 * Fix - Check if payment icons are set before trying to use them.
+* Fix - Can't use method in write context errors.
 * Deprecate - Soft deprecated function is_pre_30 with is_wc_lt function.
 * Add - Ability to update all active subscription's payment method when adding a payment.
 * Add - Hook to show update all active subscription's payment method checkbox `wc_stripe_display_update_subs_payment_method_card_checkbox`.
