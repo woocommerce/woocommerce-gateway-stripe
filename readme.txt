@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 4.9
 Requires PHP: 5.6
-Stable tag: 4.1.11
+Stable tag: 4.1.12
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -101,20 +101,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.1.11 - 2018-10-17 =
-* Fix - Explicitly set 3DS source id to prevent 3DS source not charging when not required.
-* Fix - Prevent Stripe JS failed live/test check from throwing JS error.
-* Fix - Find order by source ID if charge ID is not found when cancelled webhook is triggered.
-* Fix - Partial refund on Stripe captured charge erroneously refunding total amount.
-* Fix - Capture charge on previously authorized charge, not showing Stripe fees.
-* Fix - Check if payment icons are set before trying to use them.
-* Fix - Can't use method in write context errors.
-* Deprecate - Soft deprecated function is_pre_30 with is_wc_lt function.
-* Add - Ability to update all active subscription's payment method when adding a payment.
-* Add - Hook to show update all active subscription's payment method checkbox `wc_stripe_display_update_subs_payment_method_card_checkbox`.
-* Add - CSS minification.
-* Update - WC 3.5 compatibility.
-* Update - Stripe API version to 2018-09-24.
+= 4.1.12 - 2018-10-19 =
+* Fix - Typo on notice banner.
+* Fix - On auth/capture scenario, error can occur when completing the order in backend.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/changelog.txt).
 
