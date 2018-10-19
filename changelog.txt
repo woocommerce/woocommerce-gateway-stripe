@@ -1,5 +1,9 @@
 *** Changelog ***
 
+= 4.1.12 - 2018-10-19 =
+* Fix - Typo on notice banner.
+* Fix - On auth/capture scenario, error can occur when completing the order in backend.
+
 = 4.1.11 - 2018-10-17 =
 * Fix - Explicitly set 3DS source id to prevent 3DS source not charging when not required.
 * Fix - Prevent Stripe JS failed live/test check from throwing JS error.

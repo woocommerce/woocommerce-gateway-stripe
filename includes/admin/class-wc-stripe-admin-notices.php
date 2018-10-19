@@ -127,7 +127,7 @@ class WC_Stripe_Admin_Notices {
 			// To be removed 4.1.12.
 			if ( empty( $show_styles_notice ) ) {
 				if ( version_compare( WC_STRIPE_VERSION, '4.1.12', '<' ) ) {
-					$message = __( 'Action required: In January 2019 we will be introducing changes that could effect how Stripe looks in your checkout. <a href="https://docs.woocommerce.com/document/stripe/#section-45" target="_blank">Learn more</a> about how to make sure your site continues to look great.', 'woocommerce-gateway-stripe' );
+					$message = __( 'Action required: In January 2019 we will be introducing changes that could affect how Stripe looks in your checkout. <a href="https://docs.woocommerce.com/document/stripe/#section-45" target="_blank">Learn more</a> about how to make sure your site continues to look great.', 'woocommerce-gateway-stripe' );
 
 					$this->add_admin_notice( 'styles', 'notice notice-warning', $message, true );
 
