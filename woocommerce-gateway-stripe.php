@@ -7,7 +7,7 @@
  * Author URI: https://woocommerce.com/
  * Version: 4.1.12
  * Requires at least: 4.4
- * Tested up to: 4.9
+ * Tested up to: 5.0
  * WC requires at least: 2.6
  * WC tested up to: 3.5
  * Text Domain: woocommerce-gateway-stripe
