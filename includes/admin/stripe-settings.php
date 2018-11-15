@@ -169,7 +169,7 @@ return apply_filters(
 			'label'       => __( 'Enable Payment via Saved Cards', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
 			'description' => __( 'If enabled, users will be able to pay with a saved card during checkout. Card details are saved on Stripe servers, not on your store.', 'woocommerce-gateway-stripe' ),
-			'default'     => 'no',
+			'default'     => 'yes',
 			'desc_tip'    => true,
 		),
 		'logging'                       => array(
