@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 4.9
 Requires PHP: 5.6
-Stable tag: 4.1.12
+Stable tag: 4.1.13
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -101,9 +101,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.1.12 - 2018-10-19 =
-* Fix - Typo on notice banner.
-* Fix - On auth/capture scenario, error can occur when completing the order in backend.
+= 4.1.13 - 2018-11-20 =
+* Update - WP 5.0 compatibility.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/changelog.txt).
 

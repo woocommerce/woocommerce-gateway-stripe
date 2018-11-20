@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 4.1.13 - 2018-11-20 =
+* Update - WP 5.0 compatibility.
+
 = 4.1.12 - 2018-10-19 =
 * Fix - Typo on notice banner.
 * Fix - On auth/capture scenario, error can occur when completing the order in backend.
