@@ -607,7 +607,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		do_action( 'wc_stripe_checkout_receipt_page_before_form_submit' );
 
-		echo '<button type="submit" class="wc-stripe-checkout-button">' . __( 'Place Order', 'woocommerce-gateway-stripe' ) . '</button>';
+		echo '<button type="submit" class="wc-stripe-checkout-button button">' . apply_filters( 'wc_stripe_checkout_button_text', __( 'Place Order', 'woocommerce-gateway-stripe' ) ) . '</button>';
 
 		do_action( 'wc_stripe_checkout_receipt_page_after_form_submit' );
 
