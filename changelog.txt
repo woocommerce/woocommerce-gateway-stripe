@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 4.1.14 - 2019-xx-xx =
+* Remove - Stripe specific styling to allow themes to style accordingly.
+
 = 4.1.13 - 2018-11-20 =
 * Update - WP 5.0 compatibility.
 

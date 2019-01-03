@@ -99,7 +99,6 @@ class WC_Stripe_Admin_Notices {
 	 * @version 4.0.0
 	 */
 	public function stripe_check_environment() {
-		$show_styles_notice = get_option( 'wc_stripe_show_styles_notice' );
 		$show_ssl_notice    = get_option( 'wc_stripe_show_ssl_notice' );
 		$show_keys_notice   = get_option( 'wc_stripe_show_keys_notice' );
 		$show_phpver_notice = get_option( 'wc_stripe_show_phpver_notice' );
@@ -119,17 +118,6 @@ class WC_Stripe_Admin_Notices {
 					$message = __( 'WooCommerce Stripe - The minimum PHP version required for this plugin is %1$s. You are running %2$s.', 'woocommerce-gateway-stripe' );
 
 					$this->add_admin_notice( 'phpver', 'error', sprintf( $message, WC_STRIPE_MIN_PHP_VER, phpversion() ), true );
-
-					return;
-				}
-			}
-
-			// To be removed 4.1.12.
-			if ( empty( $show_styles_notice ) ) {
-				if ( version_compare( WC_STRIPE_VERSION, '4.1.12', '<' ) ) {
-					$message = __( 'Action required: In January 2019 we will be introducing changes that could affect how Stripe looks in your checkout. <a href="https://docs.woocommerce.com/document/stripe/#section-45" target="_blank">Learn more</a> about how to make sure your site continues to look great.', 'woocommerce-gateway-stripe' );
-
-					$this->add_admin_notice( 'styles', 'notice notice-warning', $message, true );
 
 					return;
 				}
@@ -235,10 +223,7 @@ class WC_Stripe_Admin_Notices {
 			$notice = wc_clean( $_GET['wc-stripe-hide-notice'] );
 
 			switch ( $notice ) {
-				case 'styles':
-					update_option( 'wc_stripe_show_styles_notice', 'no' );
-					break;
-				case 'styles':
+				case 'phpver':
 					update_option( 'wc_stripe_show_phpver_notice', 'no' );
 					break;
 				case 'wcver':
