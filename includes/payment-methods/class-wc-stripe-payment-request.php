@@ -804,6 +804,10 @@ class WC_Stripe_Payment_Request {
 			$product      = wc_get_product( $product_id );
 			$variation_id = null;
 
+			if ( ! is_a( $product, 'WC_Product' ) ) {
+				throw new Exception( sprintf( __( 'Product with the ID (%d) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
+			}
+
 			if ( 'variable' === ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type() ) && isset( $_POST['attributes'] ) ) {
 				$attributes = array_map( 'wc_clean', $_POST['attributes'] );
 

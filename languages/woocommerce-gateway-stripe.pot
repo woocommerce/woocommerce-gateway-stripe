@@ -1,15 +1,15 @@
-# Copyright (C) 2018 WooCommerce
+# Copyright (C) 2019 WooCommerce
 # This file is distributed under the same license as the WooCommerce Stripe Gateway package.
 msgid ""
 msgstr ""
-"Project-Id-Version: WooCommerce Stripe Gateway 4.1.11\n"
+"Project-Id-Version: WooCommerce Stripe Gateway 4.1.13\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
-"POT-Creation-Date: 2018-10-17 15:00:09+00:00\n"
+"POT-Creation-Date: 2019-01-03 21:59:09+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2018-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: 2019-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "X-Generator: node-wp-i18n 1.2.1\n"
@@ -63,7 +63,7 @@ msgid "Stripe charge complete (Charge ID: %s)"
 msgstr ""
 
 #: includes/abstracts/abstract-wc-stripe-payment-gateway.php:469
-#: includes/class-wc-gateway-stripe.php:725
+#: includes/class-wc-gateway-stripe.php:706
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:182
 #: includes/compat/class-wc-stripe-subs-compat.php:145
 msgid "Payment processing failed. Please retry."
@@ -93,41 +93,32 @@ msgstr ""
 msgid "There was a problem adding the payment method."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:119
+#: includes/admin/class-wc-stripe-admin-notices.php:118
 #. translators: 1) int version 2) int version
 msgid ""
 "WooCommerce Stripe - The minimum PHP version required for this plugin is "
 "%1$s. You are running %2$s."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:130
-msgid ""
-"Action required: In January 2019 we will be introducing changes that could "
-"effect how Stripe looks in your checkout. <a "
-"href=\"https://docs.woocommerce.com/document/stripe/#section-45\" "
-"target=\"_blank\">Learn more</a> about how to make sure your site continues "
-"to look great."
-msgstr ""
-
-#: includes/admin/class-wc-stripe-admin-notices.php:141
+#: includes/admin/class-wc-stripe-admin-notices.php:129
 #. translators: 1) int version 2) int version
 msgid ""
 "WooCommerce Stripe - The minimum WooCommerce version required for this "
 "plugin is %1$s. You are running %2$s."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:151
+#: includes/admin/class-wc-stripe-admin-notices.php:139
 msgid "WooCommerce Stripe - cURL is not installed."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:161
+#: includes/admin/class-wc-stripe-admin-notices.php:149
 #. translators: 1) link
 msgid ""
 "Stripe is almost ready. To get started, <a href=\"%s\">set your Stripe "
 "account keys</a>."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:172
+#: includes/admin/class-wc-stripe-admin-notices.php:160
 #. translators: 1) link
 msgid ""
 "Stripe is in test mode however your test keys may not be valid. Test keys "
@@ -135,7 +126,7 @@ msgid ""
 "<a href=\"%s\">set your Stripe account keys</a>."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:181
+#: includes/admin/class-wc-stripe-admin-notices.php:169
 #. translators: 1) link
 msgid ""
 "Stripe is in live mode however your test keys may not be valid. Live keys "
@@ -143,7 +134,7 @@ msgid ""
 "<a href=\"%s\">set your Stripe account keys</a>."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:190
+#: includes/admin/class-wc-stripe-admin-notices.php:178
 #. translators: 1) link
 msgid ""
 "Stripe is enabled, but a SSL certificate is not detected. Your checkout may "
@@ -151,16 +142,16 @@ msgid ""
 "target=\"_blank\">SSL certificate</a>"
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:214
+#: includes/admin/class-wc-stripe-admin-notices.php:202
 #. translators: %1$s Payment method, %2$s List of supported currencies
 msgid "%1$s is enabled - it requires store currency to be set to %2$s"
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:228
+#: includes/admin/class-wc-stripe-admin-notices.php:216
 msgid "Action failed. Please refresh the page and retry."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:232
+#: includes/admin/class-wc-stripe-admin-notices.php:220
 msgid "Cheatin&#8217; huh?"
 msgstr ""
 
@@ -832,46 +823,45 @@ msgstr ""
 msgid "Card Code (CVC)"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:484
+#: includes/class-wc-gateway-stripe.php:465
 msgid "Please accept the terms and conditions first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:485
+#: includes/class-wc-gateway-stripe.php:466
 msgid "Please fill in required checkout fields first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:505
-#: includes/class-wc-gateway-stripe.php:720
-#: includes/compat/class-wc-stripe-subs-compat.php:140
+#: includes/class-wc-gateway-stripe.php:486
+#: includes/class-wc-gateway-stripe.php:701
 msgid ""
 "Sorry, we're not accepting prepaid cards at this time. Your credit card has "
-"not been charge. Please try with alternative payment method."
+"not been charged. Please try with alternative payment method."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:506
+#: includes/class-wc-gateway-stripe.php:487
 msgid "Please enter your IBAN account name."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:507
+#: includes/class-wc-gateway-stripe.php:488
 msgid "Please enter your IBAN account number."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:526
+#: includes/class-wc-gateway-stripe.php:507
 msgid "Billing First Name and Last Name are required."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:610
+#: includes/class-wc-gateway-stripe.php:591
 msgid "Place Order"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:811
+#: includes/class-wc-gateway-stripe.php:792
 #: includes/class-wc-stripe-order-handler.php:144
 #: includes/class-wc-stripe-webhook-handler.php:187
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:353
 msgid "This card is no longer available and has been removed."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:830
+#: includes/class-wc-gateway-stripe.php:811
 #: includes/class-wc-stripe-order-handler.php:162
 #: includes/class-wc-stripe-webhook-handler.php:206
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:272
@@ -882,22 +872,22 @@ msgid ""
 "later."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:907
+#: includes/class-wc-gateway-stripe.php:888
 #. translators: error message
 msgid "This represents the fee Stripe collects for the transaction."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:908
+#: includes/class-wc-gateway-stripe.php:889
 msgid "Stripe Fee:"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:944
+#: includes/class-wc-gateway-stripe.php:925
 msgid ""
 "This represents the net total that will be credited to your Stripe bank "
 "account. This may be in the currency that is set in your Stripe account."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:945
+#: includes/class-wc-gateway-stripe.php:926
 msgid "Stripe Payout:"
 msgstr ""
 
@@ -1123,6 +1113,12 @@ msgstr ""
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:479
 #. translators: 1) last 4 digits of SEPA Direct Debit
 msgid "Via SEPA Direct Debit ending in %1$s"
+msgstr ""
+
+#: includes/compat/class-wc-stripe-subs-compat.php:140
+msgid ""
+"Sorry, we're not accepting prepaid cards at this time. Your credit card has "
+"not been charge. Please try with alternative payment method."
 msgstr ""
 
 #: includes/compat/class-wc-stripe-subs-compat.php:499
