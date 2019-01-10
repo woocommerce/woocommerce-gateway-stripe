@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.1.13\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
-"POT-Creation-Date: 2019-01-03 21:59:09+00:00\n"
+"POT-Creation-Date: 2019-01-10 22:11:24+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -96,29 +96,39 @@ msgstr ""
 #: includes/admin/class-wc-stripe-admin-notices.php:118
 #. translators: 1) int version 2) int version
 msgid ""
+"WooCommerce Stripe - We recently made changes to Stripe that may impact the "
+"appearance of your checkout. If your checkout has changed unexpectedly, "
+"please follow these <a "
+"href=\"https://docs.woocommerce.com/document/stripe/#section-45\" "
+"target=\"_blank\">instructions</a> to fix."
+msgstr ""
+
+#: includes/admin/class-wc-stripe-admin-notices.php:128
+#. translators: 1) int version 2) int version
+msgid ""
 "WooCommerce Stripe - The minimum PHP version required for this plugin is "
 "%1$s. You are running %2$s."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:129
+#: includes/admin/class-wc-stripe-admin-notices.php:139
 #. translators: 1) int version 2) int version
 msgid ""
 "WooCommerce Stripe - The minimum WooCommerce version required for this "
 "plugin is %1$s. You are running %2$s."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:139
+#: includes/admin/class-wc-stripe-admin-notices.php:149
 msgid "WooCommerce Stripe - cURL is not installed."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:149
+#: includes/admin/class-wc-stripe-admin-notices.php:159
 #. translators: 1) link
 msgid ""
 "Stripe is almost ready. To get started, <a href=\"%s\">set your Stripe "
 "account keys</a>."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:160
+#: includes/admin/class-wc-stripe-admin-notices.php:170
 #. translators: 1) link
 msgid ""
 "Stripe is in test mode however your test keys may not be valid. Test keys "
@@ -126,7 +136,7 @@ msgid ""
 "<a href=\"%s\">set your Stripe account keys</a>."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:169
+#: includes/admin/class-wc-stripe-admin-notices.php:179
 #. translators: 1) link
 msgid ""
 "Stripe is in live mode however your test keys may not be valid. Live keys "
@@ -134,7 +144,7 @@ msgid ""
 "<a href=\"%s\">set your Stripe account keys</a>."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:178
+#: includes/admin/class-wc-stripe-admin-notices.php:188
 #. translators: 1) link
 msgid ""
 "Stripe is enabled, but a SSL certificate is not detected. Your checkout may "
@@ -142,16 +152,16 @@ msgid ""
 "target=\"_blank\">SSL certificate</a>"
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:202
+#: includes/admin/class-wc-stripe-admin-notices.php:212
 #. translators: %1$s Payment method, %2$s List of supported currencies
 msgid "%1$s is enabled - it requires store currency to be set to %2$s"
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:216
+#: includes/admin/class-wc-stripe-admin-notices.php:226
 msgid "Action failed. Please refresh the page and retry."
 msgstr ""
 
-#: includes/admin/class-wc-stripe-admin-notices.php:220
+#: includes/admin/class-wc-stripe-admin-notices.php:230
 msgid "Cheatin&#8217; huh?"
 msgstr ""
 
@@ -1242,19 +1252,19 @@ msgid "Stripe SOFORT"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:269
-#: includes/payment-methods/class-wc-stripe-payment-request.php:848
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1146
+#: includes/payment-methods/class-wc-stripe-payment-request.php:852
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1150
 msgid "Tax"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:277
-#: includes/payment-methods/class-wc-stripe-payment-request.php:856
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1153
+#: includes/payment-methods/class-wc-stripe-payment-request.php:860
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1157
 msgid "Shipping"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:284
-#: includes/payment-methods/class-wc-stripe-payment-request.php:863
+#: includes/payment-methods/class-wc-stripe-payment-request.php:867
 msgid "Pending"
 msgstr ""
 
@@ -1276,18 +1286,22 @@ msgstr ""
 msgid "Unable to find shipping method for address."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:831
+#: includes/payment-methods/class-wc-stripe-payment-request.php:808
+msgid "Product with the ID (%d) cannot be found."
+msgstr ""
+
+#: includes/payment-methods/class-wc-stripe-payment-request.php:835
 #. translators: 1: product name 2: quantity in stock
 msgid ""
 "You cannot add that amount of \"%1$s\"; to the cart because there is not "
 "enough stock (%2$s remaining)."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:985
+#: includes/payment-methods/class-wc-stripe-payment-request.php:989
 msgid "Empty cart"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1160
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1164
 msgid "Discount"
 msgstr ""
 

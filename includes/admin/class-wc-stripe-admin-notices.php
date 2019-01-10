@@ -99,6 +99,7 @@ class WC_Stripe_Admin_Notices {
 	 * @version 4.0.0
 	 */
 	public function stripe_check_environment() {
+		$show_style_notice  = get_option( 'wc_stripe_show_style_notice' );
 		$show_ssl_notice    = get_option( 'wc_stripe_show_ssl_notice' );
 		$show_keys_notice   = get_option( 'wc_stripe_show_keys_notice' );
 		$show_phpver_notice = get_option( 'wc_stripe_show_phpver_notice' );
@@ -112,6 +113,15 @@ class WC_Stripe_Admin_Notices {
 		$live_secret_key    = isset( $options['secret_key'] ) ? $options['secret_key'] : '';
 
 		if ( isset( $options['enabled'] ) && 'yes' === $options['enabled'] ) {
+			if ( empty( $show_style_notice ) ) {
+				/* translators: 1) int version 2) int version */
+				$message = __( 'WooCommerce Stripe - We recently made changes to Stripe that may impact the appearance of your checkout. If your checkout has changed unexpectedly, please follow these <a href="https://docs.woocommerce.com/document/stripe/#section-45" target="_blank">instructions</a> to fix.', 'woocommerce-gateway-stripe' );
+
+				$this->add_admin_notice( 'style', 'error', $message, true );
+
+				return;
+			}
+
 			if ( empty( $show_phpver_notice ) ) {
 				if ( version_compare( phpversion(), WC_STRIPE_MIN_PHP_VER, '<' ) ) {
 					/* translators: 1) int version 2) int version */
@@ -223,6 +233,9 @@ class WC_Stripe_Admin_Notices {
 			$notice = wc_clean( $_GET['wc-stripe-hide-notice'] );
 
 			switch ( $notice ) {
+				case 'style':
+					update_option( 'wc_stripe_show_style_notice', 'no' );
+					break;
 				case 'phpver':
 					update_option( 'wc_stripe_show_phpver_notice', 'no' );
 					break;
