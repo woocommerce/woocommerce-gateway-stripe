@@ -135,6 +135,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			'pre-orders',
 		);
 
+		// These filters must be registered before settings form fields are loaded.
+		add_filter( 'wc_stripe_settings', array( $this, 'disable_hard_coded_options' ) );
+		add_filter( 'option_woocommerce_stripe_settings', array( $this, 'maybe_return_hard_coded_settings' ), 10, 2 );
+
 		// Load the form fields.
 		$this->init_form_fields();
 
@@ -167,6 +171,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		// Hooks.
 		add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_scripts' ) );
+		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'empty_hard_coded_options' ), 9);
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
 		add_action( 'woocommerce_admin_order_totals_after_total', array( $this, 'display_order_fee' ) );
 		add_action( 'woocommerce_admin_order_totals_after_total', array( $this, 'display_order_payout' ), 20 );
@@ -179,6 +184,68 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			add_action( 'wc_pre_orders_process_pre_order_completion_payment_' . $this->id, array( $this->pre_orders, 'process_pre_order_release_payment' ) );
 		}
+	}
+
+	/**
+	 * When options are returned, get hard-coded values rather than those from DB when
+	 * respective options are defined by constants.
+	 *
+	 * @param mixed $value
+	 * @param string $option
+	 * @return mixed
+	 */
+	public function maybe_return_hard_coded_settings( $value, $option ) {
+		if( $option !== 'woocommerce_stripe_settings' ) {
+			return $value;
+		}
+
+		if( empty( $value ) ) {
+			return $value;
+		}
+
+		array_walk( $value, function( &$v, $k ) {
+			$constantKey = strtoupper( 'WOOCOMMERCE_STRIPE_' . $k );
+			if( defined( $constantKey ) ) {
+				$v = constant( $constantKey );
+			}
+		} );
+
+		return $value;
+	}
+
+	/**
+	 * For each setting that is defined by a consant, disable the respective field in the admin.
+	 *
+	 * @param array $settings
+	 * @return void
+	 */
+	public function disable_hard_coded_options( $settings ) {
+		array_walk( $settings, function ( &$setting, $key ) {
+			if( defined( 'WOOCOMMERCE_STRIPE_' . strtoupper( $key ) ) ) {
+				$setting["custom_attributes"] = ["disabled" => true];
+				$setting["placeholder"] = "Defined by a Constant";
+			}
+		} );
+
+		return $settings;
+	}
+
+	/**
+	 * Empty the $_POST values for options whose values are defined by constants,
+	 * to avoid any value from being saved in the database.
+	 *
+	 * @return void
+	 */
+	public function empty_hard_coded_options() {
+		if( empty( $_POST ) ) {
+			return;
+		}
+
+		array_walk( $_POST, function ( &$setting, $key ) {
+			if( defined( strtoupper( $key ) ) ) {
+				$setting = "";
+			}
+		} );
 	}
 
 	/**
