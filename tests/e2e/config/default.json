@@ -13,15 +13,32 @@
     "startBrowserTimeoutMs": 30000,
     "mochaTimeoutMs": 120000,
     "products": {
-        "onePayment": "/product/hoodie-with-logo"
-    },
-    "stripe": [
-            {
-                "country": "United States",
-                "currency": "United States Dollars ($)",
-                "testPublishableKey": "",
-                "testPublishableSecretKey": "",
-                "useSandbox": true
-            }
-    ]
+    "onePayment": "/product/hoodie-with-logo"
+},
+"stripeCC": [
+{
+"testPublishableKey": "pk_test_0Ztp3OyAvX2FmfFkU7NmgNZj",
+"testPublishableSecretKey": "sk_test_kDd5DHaH4YUBX5eiNVFO2ETY",
+"statementDescriptor": "My Custom Statement Descriptor",
+"enableTestMode": true,
+"enableInlineForm": true,
+"enableStripeCheckout": false,
+"enablePaymentRequest": true,
+"enableSavedCards": true,
+"enableLogging": true
+}
+],
+"stripeCCNoInline": [
+{
+"testPublishableKey": "pk_test_0Ztp3OyAvX2FmfFkU7NmgNZj",
+"testPublishableSecretKey": "sk_test_kDd5DHaH4YUBX5eiNVFO2ETY",
+"statementDescriptor": "My Custom Statement Descriptor",
+"enableTestMode": true,
+"enableInlineForm": false,
+"enableStripeCheckout": false,
+"enablePaymentRequest": true,
+"enableSavedCards": true,
+"enableLogging": true
+}
+]
 }

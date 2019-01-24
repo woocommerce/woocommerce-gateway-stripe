@@ -90,7 +90,7 @@ export const payWithStripe = ( inline ) => {
 	wcHelper.waitTillUIBlockNotPresent( driver, 20000 );
 
 	if ( inline ) {
-		var iframeElement = driver.findElement( By.name( '__privateStripeFrame4' ) );
+		var iframeElement = driver.findElement( By.name( '__privateStripeFrame5' ) );
 		driver.switchTo().frame( iframeElement );
 		driver.findElement( By.name( 'cardnumber' ) ).sendKeys( '4242424242424242' );
 		driver.findElement( By.name( 'exp-date' ) ).sendKeys( '1220' );
@@ -98,9 +98,9 @@ export const payWithStripe = ( inline ) => {
 
 		driver.switchTo().defaultContent();
 	} else {
-		var iframeElement4 = driver.findElement( By.name( '__privateStripeFrame4' ) ),
-			iframeElement5 = driver.findElement( By.name( '__privateStripeFrame5' ) ),
-			iframeElement6 = driver.findElement( By.name( '__privateStripeFrame6' ) );
+		var iframeElement4 = driver.findElement( By.name( '__privateStripeFrame5' ) ),
+			iframeElement5 = driver.findElement( By.name( '__privateStripeFrame6' ) ),
+			iframeElement6 = driver.findElement( By.name( '__privateStripeFrame7' ) );
 
 		driver.switchTo().frame( iframeElement4 );
 		driver.findElement( By.name( 'cardnumber' ) ).sendKeys( '4242424242424242' );

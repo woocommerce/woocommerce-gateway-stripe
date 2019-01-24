@@ -28,7 +28,7 @@ matrix:
         packages:
           - nginx
     script:
-      - git clone --branch=master git@github.com:woocommerce/extensions-e2e-core-tests.git /tmp/tests
+      - git clone --branch=master https://github.com/woocommerce/extensions-e2e-core-tests.git /tmp/tests
       - mkdir -p $E2E_FOLDER
       - mv -v /tmp/tests/* "$E2E_FOLDER/"
       - export PATH="$HOME/.composer/vendor/bin:$PATH"
