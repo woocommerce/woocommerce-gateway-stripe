@@ -18,6 +18,25 @@ matrix:
     env: WP_VERSION=latest WP_MULTISITE=1 WC_VERSION=2.6.14
   - php: 5.6
     env: WP_VERSION=latest WP_MULTISITE=0 WC_VERSION=3.0.0-rc.2
+  - name: "WC E2E 3.0.0"
+    env: WP_VERSION=latest WP_MULTISITE=0 RUN_E2E=1 E2E_FOLDER='core_e2e_tests'
+    php: 7.2
+    install: true
+    before_script: true
+    addons:
+      chrome: stable
+      apt:
+        packages:
+          - nginx
+    script:
+      - git clone --branch=master git@github.com:woocommerce/extensions-e2e-core-tests.git /tmp/tests
+      - mkdir -p $E2E_FOLDER
+      - mv -v /tmp/tests/* "$E2E_FOLDER/"
+      - export PATH="$HOME/.composer/vendor/bin:$PATH"
+      - export NODE_CONFIG='{"users":{"admin":{"username":"admin","password":"password"},"customer":{"username":"customer","password":"password"}}}'
+      - $E2E_FOLDER/bin/install.sh woocommerce_test root '' localhost $WP_VERSION
+      - $E2E_FOLDER/bin/travis.sh before
+      - $E2E_FOLDER/bin/run-e2e-CI.sh
 
 install:
     - . $HOME/.nvm/nvm.sh
