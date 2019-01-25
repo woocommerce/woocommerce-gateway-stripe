@@ -1,44 +1,44 @@
 {
-    "url": "https://YOURSITE.test",
-    "users": {
-        "shopmanager": {
-            "username": "shopmanager",
-            "password": "password"
-        },
-        "customer": {
-            "username": "customer",
-            "password": "password"
-        }
-    },
-    "startBrowserTimeoutMs": 30000,
-    "mochaTimeoutMs": 120000,
-    "products": {
-    "onePayment": "/product/hoodie-with-logo"
-},
-"stripeCC": [
-{
-"testPublishableKey": "pk_test_0Ztp3OyAvX2FmfFkU7NmgNZj",
-"testPublishableSecretKey": "sk_test_kDd5DHaH4YUBX5eiNVFO2ETY",
-"statementDescriptor": "My Custom Statement Descriptor",
-"enableTestMode": true,
-"enableInlineForm": true,
-"enableStripeCheckout": false,
-"enablePaymentRequest": true,
-"enableSavedCards": true,
-"enableLogging": true
-}
-],
-"stripeCCNoInline": [
-{
-"testPublishableKey": "pk_test_0Ztp3OyAvX2FmfFkU7NmgNZj",
-"testPublishableSecretKey": "sk_test_kDd5DHaH4YUBX5eiNVFO2ETY",
-"statementDescriptor": "My Custom Statement Descriptor",
-"enableTestMode": true,
-"enableInlineForm": false,
-"enableStripeCheckout": false,
-"enablePaymentRequest": true,
-"enableSavedCards": true,
-"enableLogging": true
-}
-]
+  "url": "https://YOURSITE.test",
+  "users": {
+	"shopmanager": {
+	  "username": "shopmanager",
+	  "password": "password"
+	},
+	"customer": {
+	  "username": "customer",
+	  "password": "password"
+	}
+  },
+  "startBrowserTimeoutMs": 30000,
+  "mochaTimeoutMs": 120000,
+  "products": {
+	"onePayment": "/product/hoodie-with-logo"
+  },
+  "stripeCC": [
+	{
+	  "testPublishableKey": "ENTER_YOUR_KEY_HERE",
+	  "testPublishableSecretKey": "ENTER_YOUR_SECRET_HERE",
+	  "statementDescriptor": "My Custom Statement Descriptor",
+	  "enableTestMode": true,
+	  "enableInlineForm": true,
+	  "enableStripeCheckout": false,
+	  "enablePaymentRequest": true,
+	  "enableSavedCards": true,
+	  "enableLogging": true
+	}
+  ],
+  "stripeCCNoInline": [
+	{
+	  "testPublishableKey": "ENTER_YOUR_KEY_HERE",
+	  "testPublishableSecretKey": "ENTER_YOUR_SECRET_HERE",
+	  "statementDescriptor": "My Custom Statement Descriptor",
+	  "enableTestMode": true,
+	  "enableInlineForm": false,
+	  "enableStripeCheckout": false,
+	  "enablePaymentRequest": true,
+	  "enableSavedCards": true,
+	  "enableLogging": true
+	}
+  ]
 }
