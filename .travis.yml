@@ -32,10 +32,10 @@ matrix:
       - mkdir -p $E2E_FOLDER
       - mv -v /tmp/tests/* "$E2E_FOLDER/"
       - export PATH="$HOME/.composer/vendor/bin:$PATH"
-      - export NODE_CONFIG='{"users":{"admin":{"username":"admin","password":"password"},"customer":{"username":"customer","password":"password"}}}'
+      - echo $NODE_CONFIG
       - $E2E_FOLDER/bin/install.sh woocommerce_test root '' localhost $WP_VERSION
       - $E2E_FOLDER/bin/travis.sh before
-      - $E2E_FOLDER/bin/run-e2e-CI.sh
+      - $E2E_FOLDER/bin/run-e2e-CI.sh run
       - bash tests/bin/travis.sh before
       - tests/bin/run-e2e-CI.sh
 
