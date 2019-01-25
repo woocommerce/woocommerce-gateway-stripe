@@ -134,7 +134,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_id  = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$order_id  = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 		$source_id = $notification->data->object->id;
 
 		$is_pending_receiver = ( 'receiver' === $notification->data->object->flow );
@@ -170,7 +170,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			if ( ! empty( $response->error ) ) {
 				// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 				if ( $this->is_no_such_customer_error( $response->error ) ) {
-					if ( WC_Stripe_Helper::is_pre_30() ) {
+					if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 						delete_user_meta( $order->customer_user, '_stripe_customer_id' );
 						delete_post_meta( $order_id, '_stripe_customer_id' );
 					} else {
@@ -265,7 +265,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
 
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 		$this->send_failed_order_email( $order_id );
 	}
 
@@ -285,17 +285,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 
-		if ( 'stripe' === ( WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method() ) ) {
-			$charge   = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_transaction_id', true ) : $order->get_transaction_id();
-			$captured = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_charge_captured', true ) : $order->get_meta( '_stripe_charge_captured', true );
+		if ( 'stripe' === ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->payment_method : $order->get_payment_method() ) ) {
+			$charge   = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, '_transaction_id', true ) : $order->get_transaction_id();
+			$captured = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, '_stripe_charge_captured', true ) : $order->get_meta( '_stripe_charge_captured', true );
 
 			if ( $charge && 'no' === $captured ) {
-				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_stripe_charge_captured', 'yes' ) : $order->update_meta_data( '_stripe_charge_captured', 'yes' );
+				WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_stripe_charge_captured', 'yes' ) : $order->update_meta_data( '_stripe_charge_captured', 'yes' );
 
 				// Store other data such as fees
-				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_transaction_id', $notification->data->object->id ) : $order->set_transaction_id( $notification->data->object->id );
+				WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_transaction_id', $notification->data->object->id ) : $order->set_transaction_id( $notification->data->object->id );
 
 				if ( isset( $notification->data->object->balance_transaction ) ) {
 					$this->update_fees( $order, $notification->data->object->balance_transaction );
@@ -342,18 +342,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 
 		if ( 'on-hold' !== $order->get_status() ) {
 			return;
 		}
 
 		// Store other data such as fees
-		WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_transaction_id', $notification->data->object->id ) : $order->set_transaction_id( $notification->data->object->id );
+		WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_transaction_id', $notification->data->object->id ) : $order->set_transaction_id( $notification->data->object->id );
 
 		if ( isset( $notification->data->object->balance_transaction ) ) {
 			$this->update_fees( $order, $notification->data->object->balance_transaction );
-			$this->update_currency( $order, $notification->data->object->balance_transaction );
 		}
 
 		$order->payment_complete( $notification->data->object->id );
@@ -381,7 +380,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 
 		// If order status is already in failed status don't continue.
 		if ( 'failed' === $order->get_status() ) {
@@ -404,18 +403,19 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	public function process_webhook_source_canceled( $notification ) {
 		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
 
+		// If can't find order by charge ID, try source ID.
 		if ( ! $order ) {
-			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->id );
-			return;
+			$order = WC_Stripe_Helper::get_order_by_source_id( $notification->data->object->id );
+
+			if ( ! $order ) {
+				WC_Stripe_Logger::log( 'Could not find order via charge/source ID: ' . $notification->data->object->id );
+				return;
+			}
 		}
 
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
-
-		if ( 'on-hold' !== $order->get_status() || 'cancelled' !== $order->get_status() ) {
-			return;
+		if ( 'cancelled' !== $order->get_status() ) {
+			$order->update_status( 'cancelled', __( 'This payment has cancelled.', 'woocommerce-gateway-stripe' ) );
 		}
-
-		$order->update_status( 'cancelled', __( 'This payment has cancelled.', 'woocommerce-gateway-stripe' ) );
 
 		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
 	}
@@ -435,12 +435,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 
-		if ( 'stripe' === ( WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method() ) ) {
-			$charge    = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_transaction_id', true ) : $order->get_transaction_id();
-			$captured  = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_charge_captured', true ) : $order->get_meta( '_stripe_charge_captured', true );
-			$refund_id = WC_Stripe_Helper::is_pre_30() ? get_post_meta( $order_id, '_stripe_refund_id', true ) : $order->get_meta( '_stripe_refund_id', true );
+		if ( 'stripe' === ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->payment_method : $order->get_payment_method() ) ) {
+			$charge    = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, '_transaction_id', true ) : $order->get_transaction_id();
+			$captured  = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, '_stripe_charge_captured', true ) : $order->get_meta( '_stripe_charge_captured', true );
+			$refund_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, '_stripe_refund_id', true ) : $order->get_meta( '_stripe_refund_id', true );
 
 			// If the refund ID matches, don't continue to prevent double refunding.
 			if ( $notification->data->object->refunds->data[0]->id === $refund_id ) {
@@ -452,21 +452,23 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$reason = ( isset( $captured ) && 'yes' === $captured ) ? __( 'Refunded via Stripe Dashboard', 'woocommerce-gateway-stripe' ) : __( 'Pre-Authorization Released via Stripe Dashboard', 'woocommerce-gateway-stripe' );
 
 				// Create the refund.
-				$refund = wc_create_refund( array(
-					'order_id' => $order_id,
-					'amount'   => $this->get_refund_amount( $notification ),
-					'reason'   => $reason,
-				) );
+				$refund = wc_create_refund(
+					array(
+						'order_id' => $order_id,
+						'amount'   => $this->get_refund_amount( $notification ),
+						'reason'   => $reason,
+					)
+				);
 
 				if ( is_wp_error( $refund ) ) {
 					WC_Stripe_Logger::log( $refund->get_error_message() );
 				}
 
-				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $order_id, '_stripe_refund_id', $notification->data->object->refunds->data[0]->id ) : $order->update_meta_data( '_stripe_refund_id', $notification->data->object->refunds->data[0]->id );
+				WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_stripe_refund_id', $notification->data->object->refunds->data[0]->id ) : $order->update_meta_data( '_stripe_refund_id', $notification->data->object->refunds->data[0]->id );
 
 				$amount = wc_price( $notification->data->object->refunds->data[0]->amount / 100 );
 
-				if ( in_array( strtolower( WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency() ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
+				if ( in_array( strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency() ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
 					$amount = wc_price( $notification->data->object->refunds->data[0]->amount );
 				}
 

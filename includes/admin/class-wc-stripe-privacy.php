@@ -60,7 +60,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	protected function get_stripe_orders( $email_address, $page ) {
 		$user = get_user_by( 'email', $email_address ); // Check if user has an ID in the DB to load stored personal data.
 
-		$order_query    = array(
+		$order_query = array(
 			'payment_method' => array( 'stripe', 'stripe_alipay', 'stripe_bancontact', 'stripe_eps', 'stripe_giropay', 'stripe_ideal', 'stripe_multibanco', 'stripe_p24', 'stripe_sepa', 'stripe_sofort' ),
 			'limit'          => 10,
 			'page'           => $page,
@@ -80,6 +80,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	 *
 	 */
 	public function get_privacy_message() {
+		/* translators: %s URL to docs */
 		return wpautop( sprintf( __( 'By using this extension, you may be storing personal data or sharing data with an external service. <a href="%s" target="_blank">Learn more about how this works, including what you may want to include in your privacy policy.</a>', 'woocommerce-gateway-stripe' ), 'https://docs.woocommerce.com/document/privacy-payments/#woocommerce-gateway-stripe' ) );
 	}
 
@@ -141,7 +142,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$data_to_export = array();
 
 		$meta_query = array(
-			'relation'    => 'AND',
+			'relation' => 'AND',
 			array(
 				'key'     => '_payment_method',
 				'value'   => array( 'stripe', 'stripe_alipay', 'stripe_bancontact', 'stripe_eps', 'stripe_giropay', 'stripe_ideal', 'stripe_multibanco', 'stripe_p24', 'stripe_sepa', 'stripe_sofort' ),
@@ -154,10 +155,10 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 			),
 		);
 
-		$subscription_query    = array(
-			'posts_per_page'  => 10,
-			'page'            => $page,
-			'meta_query'      => $meta_query,
+		$subscription_query = array(
+			'posts_per_page' => 10,
+			'page'           => $page,
+			'meta_query'     => $meta_query,
 		);
 
 		$subscriptions = wcs_get_subscriptions( $subscription_query );
@@ -247,8 +248,8 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 			$stripe_source_id   = get_user_meta( $user->ID, '_stripe_source_id', true );
 		}
 
-		$items_removed  = false;
-		$messages       = array();
+		$items_removed = false;
+		$messages      = array();
 
 		if ( ! empty( $stripe_customer_id ) || ! empty( $stripe_source_id ) ) {
 			$items_removed = true;
@@ -283,14 +284,14 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 			$order = wc_get_order( $order->get_id() );
 
 			list( $removed, $retained, $msgs ) = $this->maybe_handle_order( $order );
-			$items_removed  |= $removed;
-			$items_retained |= $retained;
-			$messages        = array_merge( $messages, $msgs );
+			$items_removed                    |= $removed;
+			$items_retained                   |= $retained;
+			$messages                          = array_merge( $messages, $msgs );
 
 			list( $removed, $retained, $msgs ) = $this->maybe_handle_subscription( $order );
-			$items_removed  |= $removed;
-			$items_retained |= $retained;
-			$messages        = array_merge( $messages, $msgs );
+			$items_removed                    |= $removed;
+			$items_retained                   |= $retained;
+			$messages                          = array_merge( $messages, $msgs );
 		}
 
 		// Tell core if we have more orders to work on still
@@ -329,10 +330,12 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		}
 
 		if ( ! $this->is_retention_expired( $order->get_date_created()->getTimestamp() ) ) {
+			/* translators: %d Order ID */
 			return array( false, true, array( sprintf( __( 'Order ID %d is less than set retention days. Personal data retained. (Stripe)', 'woocommerce-gateway-stripe' ), $order->get_id() ) ) );
 		}
 
 		if ( $subscription->has_status( apply_filters( 'wc_stripe_privacy_eraser_subs_statuses', array( 'on-hold', 'active' ) ) ) ) {
+			/* translators: %d Order ID */
 			return array( false, true, array( sprintf( __( 'Order ID %d contains an active Subscription. Personal data retained. (Stripe)', 'woocommerce-gateway-stripe' ), $order->get_id() ) ) );
 		}
 
@@ -364,6 +367,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$stripe_customer_id = get_post_meta( $order_id, '_stripe_customer_id', true );
 
 		if ( ! $this->is_retention_expired( $order->get_date_created()->getTimestamp() ) ) {
+			/* translators: %d Order ID */
 			return array( false, true, array( sprintf( __( 'Order ID %d is less than set retention days. Personal data retained. (Stripe)', 'woocommerce-gateway-stripe' ), $order->get_id() ) ) );
 		}
 

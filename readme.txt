@@ -2,9 +2,9 @@
 Contributors: automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
 Requires at least: 4.4
-Tested up to: 4.9
+Tested up to: 5.0
 Requires PHP: 5.6
-Stable tag: 4.1.9
+Stable tag: 4.1.14
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -101,13 +101,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.1.9 - 2018-08-27 =
-* Fix - Don't display admin notices to user that cannot manage woocommerce.
-* Fix - Fatal error when clicking on order link that doesn't exist.
-* Fix - When capturing a charge from authorize, Stripe fees not displaying.
-* Fix - Undefined property error on card type in rare cases.
-* Tweak - Update SEPA IBAN to use new elements implementation.
-* Add - Filter for Payment Request Button locale `wc_stripe_payment_request_button_locale`.
+= 4.1.14 - 2019-01-10 =
+* Remove - Stripe specific styling to allow themes to style accordingly.
+* Tweak  - Handle error if product is not found in payment request.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/changelog.txt).
 

@@ -85,12 +85,16 @@ export const payWithStripe = ( inline ) => {
 	helper.setWhenSettable( driver, By.css( '#billing_phone' ), '8008008000' );
 	helper.setWhenSettable( driver, By.css( '#billing_email' ), 'john.doe@example.com' );
 
+	wcHelper.waitTillUIBlockNotPresent( driver, 20000 );
+
 	checkout.selectPaymentMethod( 'Credit Card (Stripe)' );
 
 	wcHelper.waitTillUIBlockNotPresent( driver, 20000 );
 
 	if ( inline ) {
-		var iframeElement = driver.findElement( By.name( '__privateStripeFrame5' ) );
+		var cardElement   = driver.findElement( By.id( 'stripe-card-element' ) ),
+			iframeElement = cardElement.findElement( By.tagName( 'iframe' ) );
+
 		driver.switchTo().frame( iframeElement );
 		driver.findElement( By.name( 'cardnumber' ) ).sendKeys( '4242424242424242' );
 		driver.findElement( By.name( 'exp-date' ) ).sendKeys( '1220' );
@@ -98,21 +102,25 @@ export const payWithStripe = ( inline ) => {
 
 		driver.switchTo().defaultContent();
 	} else {
-		var iframeElement4 = driver.findElement( By.name( '__privateStripeFrame5' ) ),
-			iframeElement5 = driver.findElement( By.name( '__privateStripeFrame6' ) ),
-			iframeElement6 = driver.findElement( By.name( '__privateStripeFrame7' ) );
 
-		driver.switchTo().frame( iframeElement4 );
+		var cardElement    = driver.findElement( By.id( 'stripe-card-element' ) ),
+			expElement     = driver.findElement( By.id( 'stripe-exp-element' ) ),
+			cvcElement     = driver.findElement( By.id( 'stripe-cvc-element' ) ),
+			iframeElement1 = cardElement.findElement( By.tagName( 'iframe' ) ),
+			iframeElement2 = expElement.findElement( By.tagName( 'iframe' ) ),
+			iframeElement3 = cvcElement.findElement( By.tagName( 'iframe' ) );
+
+		driver.switchTo().frame( iframeElement1 );
 		driver.findElement( By.name( 'cardnumber' ) ).sendKeys( '4242424242424242' );
 
 		driver.switchTo().defaultContent();
 
-		driver.switchTo().frame( iframeElement5 );
+		driver.switchTo().frame( iframeElement2 );
 		driver.findElement( By.name( 'exp-date' ) ).sendKeys( '1220' );
 
 		driver.switchTo().defaultContent();
 
-		driver.switchTo().frame( iframeElement6 );
+		driver.switchTo().frame( iframeElement3 );
 		driver.findElement( By.name( 'cvc' ) ).sendKeys( '222' );
 
 		driver.switchTo().defaultContent();

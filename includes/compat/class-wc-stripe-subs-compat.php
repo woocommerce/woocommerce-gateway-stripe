@@ -20,6 +20,8 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			add_action( 'wcs_resubscribe_order_created', array( $this, 'delete_resubscribe_meta' ), 10 );
 			add_action( 'wcs_renewal_order_created', array( $this, 'delete_renewal_meta' ), 10 );
 			add_action( 'woocommerce_subscription_failing_payment_method_updated_stripe', array( $this, 'update_failing_payment_method' ), 10, 2 );
+			add_action( 'wc_stripe_cards_payment_fields', array( $this, 'display_update_subs_payment_checkout' ) );
+			add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', array( $this, 'handle_add_payment_method_success' ), 10, 2 );
 
 			// display the credit card used for a subscription in the "My Subscriptions" table
 			add_filter( 'woocommerce_my_subscriptions_payment_method', array( $this, 'maybe_render_subscription_payment_method' ), 10, 2 );
@@ -75,9 +77,56 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	}
 
 	/**
+	 * Displays a checkbox to allow users to update all subs payments with new
+	 * payment.
+	 *
+	 * @since 4.1.11
+	 */
+	public function display_update_subs_payment_checkout() {
+		if (
+			apply_filters( 'wc_stripe_display_update_subs_payment_method_card_checkbox', true ) &&
+			wcs_user_has_subscription( get_current_user_id(), '', 'active' ) &&
+			is_add_payment_method_page()
+		) {
+			printf(
+				'<p class="form-row">
+					<input id="wc-%1$s-update-subs-payment-method-card" name="wc-%1$s-update-subs-payment-method-card" type="checkbox" value="true" style="width:auto;" />
+					<label for="wc-%1$s-update-subs-payment-method-card" style="display:inline;">%2$s</label>
+				</p>',
+				esc_attr( $this->id ),
+				esc_html( apply_filters( 'wc_stripe_save_to_subs_text', __( 'Update the Payment Method used for all of my active subscriptions (optional).', 'woocommerce-gateway-stripe' ) ) )
+			);
+		}
+	}
+
+	/**
+	 * Updates all active subscriptions payment method.
+	 *
+	 * @since 4.1.11
+	 * @param string $source_id
+	 * @param object $source_object
+	 */
+	public function handle_add_payment_method_success( $source_id, $source_object ) {
+		if ( isset( $_POST[ 'wc-' . $this->id . '-update-subs-payment-method-card' ] ) ) {
+			$all_subs = wcs_get_users_subscriptions();
+
+			if ( ! empty( $all_subs ) ) {
+				foreach ( $all_subs as $sub ) {
+					if ( 'active' === $sub->get_status() ) {
+						update_post_meta( $sub->get_id(), '_stripe_source_id', $source_id );
+						update_post_meta( $sub->get_id(), '_payment_method', $this->id );
+						update_post_meta( $sub->get_id(), '_payment_method_title', $this->method_title );
+					}
+				}
+			}
+		}
+	}
+
+	/**
 	 * Process the payment method change for subscriptions.
 	 *
 	 * @since 4.0.4
+	 * @since 4.1.11 Remove 3DS check as it is not needed.
 	 * @param int $order_id
 	 */
 	public function change_subs_payment_method( $order_id ) {
@@ -99,40 +148,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 
 			$this->save_source_to_order( $subscription, $prepared_source );
 
-			/*
-			 * Check if card 3DS is required or optional with 3DS setting.
-			 * Will need to first create 3DS source and require redirection
-			 * for customer to login to their credit card company.
-			 * Note that if we need to save source, the original source must be first
-			 * attached to a customer in Stripe before it can be charged.
-			 */
-			if ( $this->is_3ds_required( $source_object ) ) {
-				$order    = $subscription->get_parent();
-				$response = $this->create_3ds_source( $order, $source_object, $subscription->get_view_order_url() );
-
-				if ( ! empty( $response->error ) ) {
-					$localized_message = $response->error->message;
-
-					$order->add_order_note( $localized_message );
-
-					throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
-				}
-
-				// Update order meta with 3DS source.
-				if ( WC_Stripe_Helper::is_pre_30() ) {
-					update_post_meta( $order_id, '_stripe_source_id', $response->id );
-				} else {
-					$subscription->update_meta_data( '_stripe_source_id', $response->id );
-					$subscription->save();
-				}
-
-				WC_Stripe_Logger::log( 'Info: Redirecting to 3DS...' );
-
-				return array(
-					'result'   => 'success',
-					'redirect' => esc_url_raw( $response->redirect->url ),
-				);
-			}
+			do_action( 'wc_stripe_change_subs_payment_method_success', $prepared_source->source, $prepared_source );
 
 			return array(
 				'result'   => 'success',
@@ -190,7 +206,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 				return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 			}
 
-			$order_id = WC_Stripe_Helper::is_pre_30() ? $renewal_order->id : $renewal_order->get_id();
+			$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id();
 
 			// Get source from order
 			$prepared_source = $this->prepare_order_source( $renewal_order );
@@ -275,7 +291,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	public function save_source_to_order( $order, $source ) {
 		parent::save_source_to_order( $order, $source );
 
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 
 		// Also store it on the subscriptions being purchased or paid for in the order
 		if ( function_exists( 'wcs_order_contains_subscription' ) && wcs_order_contains_subscription( $order_id ) ) {
@@ -287,7 +303,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		}
 
 		foreach ( $subscriptions as $subscription ) {
-			$subscription_id = WC_Stripe_Helper::is_pre_30() ? $subscription->id : $subscription->get_id();
+			$subscription_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $subscription->id : $subscription->get_id();
 			update_post_meta( $subscription_id, '_stripe_customer_id', $source->customer );
 			update_post_meta( $subscription_id, '_stripe_source_id', $source->source );
 		}
@@ -298,10 +314,10 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	 * @param int $resubscribe_order The order created for the customer to resubscribe to the old expired/cancelled subscription
 	 */
 	public function delete_resubscribe_meta( $resubscribe_order ) {
-		delete_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $resubscribe_order->id : $resubscribe_order->get_id() ), '_stripe_customer_id' );
-		delete_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $resubscribe_order->id : $resubscribe_order->get_id() ), '_stripe_source_id' );
+		delete_post_meta( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $resubscribe_order->id : $resubscribe_order->get_id() ), '_stripe_customer_id' );
+		delete_post_meta( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $resubscribe_order->id : $resubscribe_order->get_id() ), '_stripe_source_id' );
 		// For BW compat will remove in future
-		delete_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $resubscribe_order->id : $resubscribe_order->get_id() ), '_stripe_card_id' );
+		delete_post_meta( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $resubscribe_order->id : $resubscribe_order->get_id() ), '_stripe_card_id' );
 		$this->delete_renewal_meta( $resubscribe_order );
 	}
 
@@ -326,7 +342,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	 * @return void
 	 */
 	public function update_failing_payment_method( $subscription, $renewal_order ) {
-		if ( WC_Stripe_Helper::is_pre_30() ) {
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 			update_post_meta( $subscription->id, '_stripe_customer_id', $renewal_order->stripe_customer_id );
 			update_post_meta( $subscription->id, '_stripe_source_id', $renewal_order->stripe_source_id );
 
@@ -346,23 +362,25 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	 * @return array
 	 */
 	public function add_subscription_payment_meta( $payment_meta, $subscription ) {
-		$source_id = get_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $subscription->id : $subscription->get_id() ), '_stripe_source_id', true );
+		$subscription_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $subscription->id : $subscription->get_id();
+		$source_id       = get_post_meta( $subscription_id, '_stripe_source_id', true );
 
 		// For BW compat will remove in future.
 		if ( empty( $source_id ) ) {
-			$source_id = get_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $subscription->id : $subscription->get_id() ), '_stripe_card_id', true );
+			$source_id = get_post_meta( $subscription_id, '_stripe_card_id', true );
 
 			// Take this opportunity to update the key name.
-			WC_Stripe_Helper::is_pre_30() ? update_post_meta( $subscription->id, '_stripe_source_id', $source_id ) : update_post_meta( $subscription->get_id(), '_stripe_source_id', $source_id );
+			update_post_meta( $subscription_id, '_stripe_source_id', $source_id );
+			delete_post_meta( $subscription_id, '_stripe_card_id', $source_id );
 		}
 
 		$payment_meta[ $this->id ] = array(
 			'post_meta' => array(
 				'_stripe_customer_id' => array(
-					'value' => get_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $subscription->id : $subscription->get_id() ), '_stripe_customer_id', true ),
+					'value' => get_post_meta( $subscription_id, '_stripe_customer_id', true ),
 					'label' => 'Stripe Customer ID',
 				),
-				'_stripe_source_id' => array(
+				'_stripe_source_id'   => array(
 					'value' => $source_id,
 					'label' => 'Stripe Source ID',
 				),
@@ -411,25 +429,25 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	 * @return string the subscription payment method
 	 */
 	public function maybe_render_subscription_payment_method( $payment_method_to_display, $subscription ) {
-		$customer_user = WC_Stripe_Helper::is_pre_30() ? $subscription->customer_user : $subscription->get_customer_id();
+		$customer_user = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $subscription->customer_user : $subscription->get_customer_id();
 
 		// bail for other payment methods
-		if ( ( WC_Stripe_Helper::is_pre_30() ? $subscription->payment_method : $subscription->get_payment_method() ) !== $this->id || ! $customer_user ) {
+		if ( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $subscription->payment_method : $subscription->get_payment_method() ) !== $this->id || ! $customer_user ) {
 			return $payment_method_to_display;
 		}
 
-		$stripe_source_id = get_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $subscription->id : $subscription->get_id() ), '_stripe_source_id', true );
+		$stripe_source_id = get_post_meta( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $subscription->id : $subscription->get_id() ), '_stripe_source_id', true );
 
 		// For BW compat will remove in future.
 		if ( empty( $stripe_source_id ) ) {
-			$stripe_source_id = get_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $subscription->id : $subscription->get_id() ), '_stripe_card_id', true );
+			$stripe_source_id = get_post_meta( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $subscription->id : $subscription->get_id() ), '_stripe_card_id', true );
 
 			// Take this opportunity to update the key name.
-			WC_Stripe_Helper::is_pre_30() ? update_post_meta( $subscription->id, '_stripe_source_id', $stripe_source_id ) : update_post_meta( $subscription->get_id(), '_stripe_source_id', $stripe_source_id );
+			WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $subscription->id, '_stripe_source_id', $stripe_source_id ) : update_post_meta( $subscription->get_id(), '_stripe_source_id', $stripe_source_id );
 		}
 
 		$stripe_customer    = new WC_Stripe_Customer();
-		$stripe_customer_id = get_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $subscription->id : $subscription->get_id() ), '_stripe_customer_id', true );
+		$stripe_customer_id = get_post_meta( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $subscription->id : $subscription->get_id() ), '_stripe_customer_id', true );
 
 		// If we couldn't find a Stripe customer linked to the subscription, fallback to the user meta data.
 		if ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) {
@@ -448,24 +466,25 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 
 		// If we couldn't find a Stripe customer linked to the account, fallback to the order meta data.
 		if ( ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) && false !== $subscription->order ) {
-			$stripe_customer_id = get_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $subscription->order->id : $subscription->get_parent_id() ), '_stripe_customer_id', true );
-			$stripe_source_id   = get_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $subscription->order->id : $subscription->get_parent_id() ), '_stripe_source_id', true );
+			$stripe_customer_id = get_post_meta( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $subscription->order->id : $subscription->get_parent_id() ), '_stripe_customer_id', true );
+			$stripe_source_id   = get_post_meta( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $subscription->order->id : $subscription->get_parent_id() ), '_stripe_source_id', true );
 
 			// For BW compat will remove in future.
 			if ( empty( $stripe_source_id ) ) {
-				$stripe_source_id = get_post_meta( ( WC_Stripe_Helper::is_pre_30() ? $subscription->order->id : $subscription->get_parent_id() ), '_stripe_card_id', true );
+				$stripe_source_id = get_post_meta( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $subscription->order->id : $subscription->get_parent_id() ), '_stripe_card_id', true );
 
 				// Take this opportunity to update the key name.
-				WC_Stripe_Helper::is_pre_30() ? update_post_meta( $subscription->order->id, '_stripe_source_id', $stripe_source_id ) : update_post_meta( $subscription->get_parent_id(), '_stripe_source_id', $stripe_source_id );
+				WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $subscription->order->id, '_stripe_source_id', $stripe_source_id ) : update_post_meta( $subscription->get_parent_id(), '_stripe_source_id', $stripe_source_id );
 			}
 		}
 
 		$stripe_customer->set_id( $stripe_customer_id );
-		$sources = $stripe_customer->get_sources();
+
+		$sources                   = $stripe_customer->get_sources();
+		$payment_method_to_display = __( 'N/A', 'woocommerce-gateway-stripe' );
 
 		if ( $sources ) {
-			$card         = false;
-			$found_source = false;
+			$card = false;
 
 			foreach ( $sources as $source ) {
 				if ( isset( $source->type ) && 'card' === $source->type ) {
@@ -475,28 +494,12 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 				}
 
 				if ( $source->id === $stripe_source_id ) {
-					$found_source = true;
-
 					if ( $card ) {
 						/* translators: 1) card brand 2) last 4 digits */
 						$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
-					} else {
-						$payment_method_to_display = __( 'N/A', 'woocommerce-gateway-stripe' );
 					}
+
 					break;
-				}
-			}
-
-			if ( ! $found_source ) {
-				if ( isset( $sources[0]->type ) && 'card' === $sources[0]->type ) {
-					$card = $sources[0]->card;
-				}
-
-				if ( $card ) {
-					/* translators: 1) card brand 2) last 4 digits */
-					$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
-				} else {
-					$payment_method_to_display = __( 'N/A', 'woocommerce-gateway-stripe' );
 				}
 			}
 		}

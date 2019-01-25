@@ -3,24 +3,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-return apply_filters( 'wc_stripe_p24_settings',
+return apply_filters(
+	'wc_stripe_p24_settings',
 	array(
-		'geo_target' => array(
+		'geo_target'  => array(
 			'description' => __( 'Relevant Payer Geography: Poland', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
 		),
-		'activation' => array(
+		'activation'  => array(
 			'description' => __( 'Must be activated from your Stripe Dashboard Settings <a href="https://dashboard.stripe.com/account/payments/settings" target="_blank">here</a>', 'woocommerce-gateway-stripe' ),
-			'type'   => 'title',
+			'type'        => 'title',
 		),
-		'enabled' => array(
+		'enabled'     => array(
 			'title'       => __( 'Enable/Disable', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Enable Stripe P24', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
 			'description' => '',
 			'default'     => 'no',
 		),
-		'title' => array(
+		'title'       => array(
 			'title'       => __( 'Title', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
 			'description' => __( 'This controls the title which the user sees during checkout.', 'woocommerce-gateway-stripe' ),
@@ -34,7 +35,7 @@ return apply_filters( 'wc_stripe_p24_settings',
 			'default'     => __( 'You will be redirected to P24.', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		),
-		'webhook' => array(
+		'webhook'     => array(
 			'title'       => __( 'Webhook Endpoints', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
 			/* translators: webhook URL */

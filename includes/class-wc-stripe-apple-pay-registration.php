@@ -138,10 +138,13 @@ class WC_Stripe_Apple_Pay_Registration {
 			'Authorization' => 'Bearer ' . $secret_key,
 		);
 
-		$response = wp_remote_post( $endpoint, array(
-			'headers' => $headers,
-			'body'    => http_build_query( $data ),
-		) );
+		$response = wp_remote_post(
+			$endpoint,
+			array(
+				'headers' => $headers,
+				'body'    => http_build_query( $data ),
+			)
+		);
 
 		if ( is_wp_error( $response ) ) {
 			/* translators: error message */
@@ -193,7 +196,7 @@ class WC_Stripe_Apple_Pay_Registration {
 
 			// No errors to this point, verification success!
 			$this->stripe_settings['apple_pay_domain_set'] = 'yes';
-			$this->apple_pay_domain_set = true;
+			$this->apple_pay_domain_set                    = true;
 
 			update_option( 'woocommerce_stripe_settings', $this->stripe_settings );
 
@@ -217,7 +220,7 @@ class WC_Stripe_Apple_Pay_Registration {
 		if ( ! $this->stripe_enabled ) {
 			return;
 		}
-		
+
 		if ( ! current_user_can( 'manage_woocommerce' ) ) {
 			return;
 		}
@@ -225,7 +228,7 @@ class WC_Stripe_Apple_Pay_Registration {
 		if ( $this->payment_request && ! empty( $this->apple_pay_verify_notice ) ) {
 			$allowed_html = array(
 				'a' => array(
-					'href' => array(),
+					'href'  => array(),
 					'title' => array(),
 				),
 			);

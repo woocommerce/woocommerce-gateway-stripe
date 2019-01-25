@@ -60,9 +60,9 @@ class WC_Stripe_Admin_Notices {
 			echo '<div class="' . esc_attr( $notice['class'] ) . '" style="position:relative;">';
 
 			if ( $notice['dismissible'] ) {
-			?>
-				<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'wc-stripe-hide-notice', $notice_key ), 'wc_stripe_hide_notices_nonce', '_wc_stripe_notice_nonce' ) ); ?>" class="woocommerce-message-close notice-dismiss" style="position:absolute;right:1px;padding:9px;text-decoration:none;"></a>
-			<?php
+				?>
+				<a href="<?php echo esc_url( wp_nonce_url( add_query_arg( 'wc-stripe-hide-notice', $notice_key ), 'wc_stripe_hide_notices_nonce', '_wc_stripe_notice_nonce' ) ); ?>" class="woocommerce-message-close notice-dismiss" style="position:relative;float:right;padding:9px 0px 9px 9px 9px;text-decoration:none;"></a>
+				<?php
 			}
 
 			echo '<p>';
@@ -99,6 +99,7 @@ class WC_Stripe_Admin_Notices {
 	 * @version 4.0.0
 	 */
 	public function stripe_check_environment() {
+		$show_style_notice  = get_option( 'wc_stripe_show_style_notice' );
 		$show_ssl_notice    = get_option( 'wc_stripe_show_ssl_notice' );
 		$show_keys_notice   = get_option( 'wc_stripe_show_keys_notice' );
 		$show_phpver_notice = get_option( 'wc_stripe_show_phpver_notice' );
@@ -112,6 +113,15 @@ class WC_Stripe_Admin_Notices {
 		$live_secret_key    = isset( $options['secret_key'] ) ? $options['secret_key'] : '';
 
 		if ( isset( $options['enabled'] ) && 'yes' === $options['enabled'] ) {
+			if ( empty( $show_style_notice ) ) {
+				/* translators: 1) int version 2) int version */
+				$message = __( 'WooCommerce Stripe - We recently made changes to Stripe that may impact the appearance of your checkout. If your checkout has changed unexpectedly, please follow these <a href="https://docs.woocommerce.com/document/stripe/#section-45" target="_blank">instructions</a> to fix.', 'woocommerce-gateway-stripe' );
+
+				$this->add_admin_notice( 'style', 'error', $message, true );
+
+				return;
+			}
+
 			if ( empty( $show_phpver_notice ) ) {
 				if ( version_compare( phpversion(), WC_STRIPE_MIN_PHP_VER, '<' ) ) {
 					/* translators: 1) int version 2) int version */
@@ -154,8 +164,7 @@ class WC_Stripe_Admin_Notices {
 					if (
 						! empty( $test_pub_key ) && ! preg_match( '/^pk_test_/', $test_pub_key )
 						|| ( ! empty( $test_secret_key ) && ! preg_match( '/^sk_test_/', $test_secret_key )
-						&& ! empty( $test_secret_key ) && ! preg_match( '/^rk_test_/', $test_secret_key ) ) )
-					{
+						&& ! empty( $test_secret_key ) && ! preg_match( '/^rk_test_/', $test_secret_key ) ) ) {
 						$setting_link = $this->get_setting_link();
 						/* translators: 1) link */
 						$this->add_admin_notice( 'keys', 'notice notice-error', sprintf( __( 'Stripe is in test mode however your test keys may not be valid. Test keys start with pk_test and sk_test or rk_test. Please go to your settings and, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ), true );
@@ -164,8 +173,7 @@ class WC_Stripe_Admin_Notices {
 					if (
 						! empty( $live_pub_key ) && ! preg_match( '/^pk_live_/', $live_pub_key )
 						|| ( ! empty( $live_secret_key ) && ! preg_match( '/^sk_live_/', $live_secret_key )
-						&& ! empty( $live_secret_key ) && ! preg_match( '/^rk_live_/', $live_secret_key ) ) )
-					{
+						&& ! empty( $live_secret_key ) && ! preg_match( '/^rk_live_/', $live_secret_key ) ) ) {
 						$setting_link = $this->get_setting_link();
 						/* translators: 1) link */
 						$this->add_admin_notice( 'keys', 'notice notice-error', sprintf( __( 'Stripe is in live mode however your test keys may not be valid. Live keys start with pk_live and sk_live or rk_live. Please go to your settings and, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ), true );
@@ -200,7 +208,8 @@ class WC_Stripe_Admin_Notices {
 			}
 
 			if ( ! in_array( get_woocommerce_currency(), $gateway->get_supported_currency() ) ) {
-				$this->add_admin_notice( $method, 'notice notice-error', sprintf( __( '%s is enabled - it requires store currency to be set to %s', 'woocommerce-gateway-stripe' ), $method, implode( ', ', $gateway->get_supported_currency() ) ), true );
+				/* translators: %1$s Payment method, %2$s List of supported currencies */
+				$this->add_admin_notice( $method, 'notice notice-error', sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s', 'woocommerce-gateway-stripe' ), $method, implode( ', ', $gateway->get_supported_currency() ) ), true );
 			}
 		}
 	}
@@ -224,6 +233,9 @@ class WC_Stripe_Admin_Notices {
 			$notice = wc_clean( $_GET['wc-stripe-hide-notice'] );
 
 			switch ( $notice ) {
+				case 'style':
+					update_option( 'wc_stripe_show_style_notice', 'no' );
+					break;
 				case 'phpver':
 					update_option( 'wc_stripe_show_phpver_notice', 'no' );
 					break;

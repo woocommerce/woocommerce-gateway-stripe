@@ -16,6 +16,7 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 if ( defined( 'WC_REMOVE_ALL_DATA' ) && true === WC_REMOVE_ALL_DATA ) {
 	// Delete options.
 	delete_option( 'woocommerce_stripe_settings' );
+	delete_option( 'wc_stripe_show_styles_notice' );
 	delete_option( 'wc_stripe_show_request_api_notice' );
 	delete_option( 'wc_stripe_show_apple_pay_notice' );
 	delete_option( 'wc_stripe_show_ssl_notice' );

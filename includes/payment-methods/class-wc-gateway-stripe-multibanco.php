@@ -56,11 +56,11 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->id                   = 'stripe_multibanco';
-		$this->method_title         = __( 'Stripe Multibanco', 'woocommerce-gateway-stripe' );
+		$this->id           = 'stripe_multibanco';
+		$this->method_title = __( 'Stripe Multibanco', 'woocommerce-gateway-stripe' );
 		/* translators: link */
-		$this->method_description   = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
-		$this->supports             = array(
+		$this->method_description = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
+		$this->supports           = array(
 			'products',
 			'refunds',
 		);
@@ -102,9 +102,12 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 	 * @return array
 	 */
 	public function get_supported_currency() {
-		return apply_filters( 'wc_stripe_multibanco_supported_currencies', array(
-			'EUR',
-		) );
+		return apply_filters(
+			'wc_stripe_multibanco_supported_currencies',
+			array(
+				'EUR',
+			)
+		);
 	}
 
 	/**
@@ -134,7 +137,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 
 		$icons_str = '';
 
-		$icons_str .= $icons['multibanco'];
+		$icons_str .= isset( $icons['multibanco'] ) ? $icons['multibanco'] : '';
 
 		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
 	}
@@ -178,7 +181,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 
 		if ( is_add_payment_method_page() ) {
 			$pay_button_text = __( 'Add Payment', 'woocommerce-gateway-stripe' );
-			$total        = '';
+			$total           = '';
 		} else {
 			$pay_button_text = '';
 		}
@@ -214,9 +217,9 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 	 * @param bool $plain_text
 	 */
 	public function email_instructions( $order, $sent_to_admin, $plain_text = false ) {
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 
-		$payment_method = WC_Stripe_Helper::is_pre_30() ? $order->payment_method : $order->get_payment_method();
+		$payment_method = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->payment_method : $order->get_payment_method();
 
 		if ( ! $sent_to_admin && 'stripe_multibanco' === $payment_method && $order->has_status( 'on-hold' ) ) {
 			WC_Stripe_Logger::log( 'Sending multibanco email for order #' . $order_id );
@@ -282,7 +285,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 			'reference' => $source_object->multibanco->reference,
 		);
 
-		$order_id = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 
 		update_post_meta( $order_id, '_stripe_multibanco', $data );
 	}
@@ -296,8 +299,8 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 	 * @return mixed
 	 */
 	public function create_source( $order ) {
-		$currency              = WC_Stripe_Helper::is_pre_30() ? $order->get_order_currency() : $order->get_currency();
-		$order_id              = WC_Stripe_Helper::is_pre_30() ? $order->id : $order->get_id();
+		$currency              = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency();
+		$order_id              = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 		$return_url            = $this->get_stripe_return_url( $order );
 		$post_data             = array();
 		$post_data['amount']   = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
@@ -337,7 +340,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 			$create_account = ! empty( $_POST['createaccount'] ) ? true : false;
 
 			if ( $create_account ) {
-				$new_customer_id     = WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id();
+				$new_customer_id     = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->customer_user : $order->get_customer_id();
 				$new_stripe_customer = new WC_Stripe_Customer( $new_customer_id );
 				$new_stripe_customer->create_customer();
 			}
@@ -350,7 +353,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 				throw new Exception( $response->error->message );
 			}
 
-			if ( WC_Stripe_Helper::is_pre_30() ) {
+			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 				update_post_meta( $order_id, '_stripe_source_id', $response->id );
 			} else {
 				$order->update_meta_data( '_stripe_source_id', $response->id );

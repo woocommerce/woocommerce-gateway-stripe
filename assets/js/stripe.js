@@ -3,7 +3,12 @@
 jQuery( function( $ ) {
 	'use strict';
 
-	var stripe = Stripe( wc_stripe_params.key );
+	try {
+		var stripe = Stripe( wc_stripe_params.key );
+	} catch( error ) {
+		console.log( error );
+		return;
+	}
 
 	var stripe_elements_options = Object.keys( wc_stripe_params.elements_options ).length ? wc_stripe_params.elements_options : {},
 		sepa_elements_options   = Object.keys( wc_stripe_params.sepa_elements_options ).length ? wc_stripe_params.sepa_elements_options : {},

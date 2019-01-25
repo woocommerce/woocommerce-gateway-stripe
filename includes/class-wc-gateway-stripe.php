@@ -111,13 +111,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->retry_interval       = 1;
-		$this->id                   = 'stripe';
-		$this->method_title         = __( 'Stripe', 'woocommerce-gateway-stripe' );
+		$this->retry_interval = 1;
+		$this->id             = 'stripe';
+		$this->method_title   = __( 'Stripe', 'woocommerce-gateway-stripe' );
 		/* translators: 1) link to Stripe register page 2) link to Stripe api keys page */
-		$this->method_description   = sprintf( __( 'Stripe works by adding payment fields on the checkout and then sending the details to Stripe for verification. <a href="%1$s" target="_blank">Sign up</a> for a Stripe account, and <a href="%2$s" target="_blank">get your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), 'https://dashboard.stripe.com/register', 'https://dashboard.stripe.com/account/apikeys' );
-		$this->has_fields           = true;
-		$this->supports             = array(
+		$this->method_description = sprintf( __( 'Stripe works by adding payment fields on the checkout and then sending the details to Stripe for verification. <a href="%1$s" target="_blank">Sign up</a> for a Stripe account, and <a href="%2$s" target="_blank">get your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), 'https://dashboard.stripe.com/register', 'https://dashboard.stripe.com/account/apikeys' );
+		$this->has_fields         = true;
+		$this->supports           = array(
 			'products',
 			'refunds',
 			'tokenization',
@@ -236,14 +236,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$icons_str = '';
 
-		$icons_str .= $icons['visa'];
-		$icons_str .= $icons['amex'];
-		$icons_str .= $icons['mastercard'];
+		$icons_str .= isset( $icons['visa'] ) ? $icons['visa'] : '';
+		$icons_str .= isset( $icons['amex'] ) ? $icons['amex'] : '';
+		$icons_str .= isset( $icons['mastercard'] ) ? $icons['mastercard'] : '';
 
 		if ( 'USD' === get_woocommerce_currency() ) {
-			$icons_str .= $icons['discover'];
-			$icons_str .= $icons['jcb'];
-			$icons_str .= $icons['diners'];
+			$icons_str .= isset( $icons['discover'] ) ? $icons['discover'] : '';
+			$icons_str .= isset( $icons['jcb'] ) ? $icons['jcb'] : '';
+			$icons_str .= isset( $icons['diners'] ) ? $icons['diners'] : '';
 		}
 
 		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
@@ -264,7 +264,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
 		$total                = WC()->cart->total;
 		$user_email           = '';
-		$description          = $this->get_description() ? $this->get_description() : '';
+		$description          = $this->get_description();
+		$description          = ! empty( $description ) ? $description : '';
 		$firstname            = '';
 		$lastname             = '';
 
@@ -272,7 +273,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) {
 			$order      = wc_get_order( wc_get_order_id_by_order_key( wc_clean( $_GET['key'] ) ) );
 			$total      = $order->get_total();
-			$user_email = WC_Stripe_Helper::is_pre_30() ? $order->billing_email : $order->get_billing_email();
+			$user_email = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_email : $order->get_billing_email();
 		} else {
 			if ( $user->ID ) {
 				$user_email = get_user_meta( $user->ID, 'billing_email', true );
@@ -288,7 +289,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		} elseif ( function_exists( 'wcs_order_contains_subscription' ) && isset( $_GET['change_payment_method'] ) ) {
 			$pay_button_text = __( 'Change Payment Method', 'woocommerce-gateway-stripe' );
-			$total        = '';
+			$total           = '';
 		} else {
 			$pay_button_text = '';
 		}
@@ -298,7 +299,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		echo '<div
 			id="stripe-payment-data"
 			data-panel-label="' . esc_attr( $pay_button_text ) . '"
-			data-description="' . esc_attr( strip_tags( $this->stripe_checkout_description ) ) . '"
+			data-description="' . esc_attr( wp_strip_all_tags( $this->stripe_checkout_description ) ) . '"
 			data-email="' . esc_attr( $user_email ) . '"
 			data-verify-zip="' . esc_attr( apply_filters( 'wc_stripe_checkout_verify_zip', false ) ? 'true' : 'false' ) . '"
 			data-billing-address="' . esc_attr( apply_filters( 'wc_stripe_checkout_require_billing_address', false ) ? 'true' : 'false' ) . '"
@@ -312,15 +313,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			data-three-d-secure="' . esc_attr( $this->three_d_secure ? 'true' : 'false' ) . '"
 			data-allow-remember-me="' . esc_attr( apply_filters( 'wc_stripe_allow_remember_me', true ) ? 'true' : 'false' ) . '">';
 
-		if ( $description ) {
-			if ( $this->testmode ) {
-				/* translators: link to Stripe testing page */
-				$description .= ' ' . sprintf( __( 'TEST MODE ENABLED. In test mode, you can use the card number 4242424242424242 with any CVC and a valid expiration date or check the <a href="%s" target="_blank">Testing Stripe documentation</a> for more card numbers.', 'woocommerce-gateway-stripe' ), 'https://stripe.com/docs/testing' );
-				$description  = trim( $description );
-			}
-
-			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $description ) ), $this->id );
+		if ( $this->testmode ) {
+			/* translators: link to Stripe testing page */
+			$description .= ' ' . sprintf( __( 'TEST MODE ENABLED. In test mode, you can use the card number 4242424242424242 with any CVC and a valid expiration date or check the <a href="%s" target="_blank">Testing Stripe documentation</a> for more card numbers.', 'woocommerce-gateway-stripe' ), 'https://stripe.com/docs/testing' );
 		}
+
+		$description = trim( $description );
+
+		echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $description ) ), $this->id );
 
 		if ( $display_tokenization ) {
 			$this->tokenization_script();
@@ -339,6 +339,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$this->save_payment_method_checkbox();
 			}
 		}
+
+		do_action( 'wc_stripe_cards_payment_fields', $this->id );
 
 		echo '</div>';
 
@@ -452,17 +454,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
 		wp_register_style( 'stripe_styles', plugins_url( 'assets/css/stripe-styles.css', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION );
-		wp_enqueue_style( 'stripe_styles' );
-
-		if ( 'storefront' === $current_theme->get_template() ) {
-			wp_register_style( 'stripe_storefront_styles', plugins_url( 'assets/css/stripe-storefront-styles.css', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION );
-			wp_enqueue_style( 'stripe_storefront_styles' );
-		}
-
-		if ( 'twentyseventeen' === $current_theme->get_template() ) {
-			wp_register_style( 'stripe_twentyseventeen_styles', plugins_url( 'assets/css/stripe-twentyseventeen-styles.css', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION );
-			wp_enqueue_style( 'stripe_twentyseventeen_styles' );
-		}
+		wp_enqueue_style( 'stripe_styles' );	
 
 		wp_register_script( 'stripe_checkout', 'https://checkout.stripe.com/checkout.js', '', WC_STRIPE_VERSION, true );
 		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
@@ -480,18 +472,18 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$order    = wc_get_order( $order_id );
 
 			if ( is_a( $order, 'WC_Order' ) ) {
-				$stripe_params['billing_first_name'] = WC_Stripe_Helper::is_pre_30() ? $order->billing_first_name : $order->get_billing_first_name();
-				$stripe_params['billing_last_name']  = WC_Stripe_Helper::is_pre_30() ? $order->billing_last_name : $order->get_billing_last_name();
-				$stripe_params['billing_address_1']  = WC_Stripe_Helper::is_pre_30() ? $order->billing_address_1 : $order->get_billing_address_1();
-				$stripe_params['billing_address_2']  = WC_Stripe_Helper::is_pre_30() ? $order->billing_address_2 : $order->get_billing_address_2();
-				$stripe_params['billing_state']      = WC_Stripe_Helper::is_pre_30() ? $order->billing_state : $order->get_billing_state();
-				$stripe_params['billing_city']       = WC_Stripe_Helper::is_pre_30() ? $order->billing_city : $order->get_billing_city();
-				$stripe_params['billing_postcode']   = WC_Stripe_Helper::is_pre_30() ? $order->billing_postcode : $order->get_billing_postcode();
-				$stripe_params['billing_country']    = WC_Stripe_Helper::is_pre_30() ? $order->billing_country : $order->get_billing_country();
+				$stripe_params['billing_first_name'] = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_first_name : $order->get_billing_first_name();
+				$stripe_params['billing_last_name']  = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_last_name : $order->get_billing_last_name();
+				$stripe_params['billing_address_1']  = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_address_1 : $order->get_billing_address_1();
+				$stripe_params['billing_address_2']  = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_address_2 : $order->get_billing_address_2();
+				$stripe_params['billing_state']      = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_state : $order->get_billing_state();
+				$stripe_params['billing_city']       = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_city : $order->get_billing_city();
+				$stripe_params['billing_postcode']   = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_postcode : $order->get_billing_postcode();
+				$stripe_params['billing_country']    = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_country : $order->get_billing_country();
 			}
 		}
 
-		$stripe_params['no_prepaid_card_msg']                     = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charge. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
+		$stripe_params['no_prepaid_card_msg']                     = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charged. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
 		$stripe_params['no_sepa_owner_msg']                       = __( 'Please enter your IBAN account name.', 'woocommerce-gateway-stripe' );
 		$stripe_params['no_sepa_iban_msg']                        = __( 'Please enter your IBAN account number.', 'woocommerce-gateway-stripe' );
 		$stripe_params['sepa_mandate_notification']               = apply_filters( 'wc_stripe_sepa_mandate_notification', 'email' );
@@ -504,7 +496,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$stripe_params['stripe_nonce']                            = wp_create_nonce( '_wc_stripe_nonce' );
 		$stripe_params['statement_descriptor']                    = $this->statement_descriptor;
 		$stripe_params['elements_options']                        = apply_filters( 'wc_stripe_elements_options', array() );
-		$stripe_params['sepa_elements_options']                   = apply_filters( 'wc_stripe_sepa_elements_options', array( 'supportedCountries' => array( 'SEPA' ), 'placeholderCountry' => WC()->countries->get_base_country(), 'style' => array( 'base' => array( 'fontSize' => '15px' ) ) ) );
+		$stripe_params['sepa_elements_options']                   = apply_filters(
+			'wc_stripe_sepa_elements_options',
+			array(
+				'supportedCountries' => array( 'SEPA' ),
+				'placeholderCountry' => WC()->countries->get_base_country(),
+				'style'              => array( 'base' => array( 'fontSize' => '15px' ) ),
+			)
+		);
 		$stripe_params['invalid_owner_name']                      = __( 'Billing First Name and Last Name are required.', 'woocommerce-gateway-stripe' );
 		$stripe_params['is_stripe_checkout']                      = $this->stripe_checkout ? 'yes' : 'no';
 		$stripe_params['is_change_payment_page']                  = isset( $_GET['change_payment_method'] ) ? 'yes' : 'no';
@@ -546,7 +545,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		if ( ! empty( $_GET['key'] ) ) {
 			$order      = wc_get_order( wc_get_order_id_by_order_key( wc_clean( $_GET['key'] ) ) );
 			$total      = $order->get_total();
-			$user_email = WC_Stripe_Helper::is_pre_30() ? $order->billing_email : $order->get_billing_email();
+			$user_email = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_email : $order->get_billing_email();
 		} else {
 			if ( $user->ID ) {
 				$user_email = get_user_meta( $user->ID, 'billing_email', true );
@@ -562,7 +561,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		echo '<div
 			id="stripe-payment-data"
 			data-panel-label="' . esc_attr( apply_filters( 'wc_stripe_checkout_label', '' ) ) . '"
-			data-description="' . esc_attr( strip_tags( $this->stripe_checkout_description ) ) . '"
+			data-description="' . esc_attr( wp_strip_all_tags( $this->stripe_checkout_description ) ) . '"
 			data-email="' . esc_attr( $user_email ) . '"
 			data-verify-zip="' . esc_attr( apply_filters( 'wc_stripe_checkout_verify_zip', false ) ? 'true' : 'false' ) . '"
 			data-billing-address="' . esc_attr( apply_filters( 'wc_stripe_checkout_require_billing_address', false ) ? 'true' : 'false' ) . '"
@@ -690,7 +689,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$create_account = ! empty( $_POST['createaccount'] ) ? true : false;
 
 			if ( $create_account ) {
-				$new_customer_id     = WC_Stripe_Helper::is_pre_30() ? $order->customer_user : $order->get_customer_id();
+				$new_customer_id     = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->customer_user : $order->get_customer_id();
 				$new_stripe_customer = new WC_Stripe_Customer( $new_customer_id );
 				$new_stripe_customer->create_customer();
 			}
@@ -699,7 +698,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			// Check if we don't allow prepaid credit cards.
 			if ( ! apply_filters( 'wc_stripe_allow_prepaid_card', true ) && $this->is_prepaid_card( $prepared_source->source_object ) ) {
-				$localized_message = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charge. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
+				$localized_message = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charged. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
 				throw new WC_Stripe_Exception( print_r( $prepared_source->source_object, true ), $localized_message );
 			}
 
@@ -736,7 +735,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					}
 
 					// Update order meta with 3DS source.
-					if ( WC_Stripe_Helper::is_pre_30() ) {
+					if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 						update_post_meta( $order_id, '_stripe_source_id', $response->id );
 					} else {
 						$order->update_meta_data( '_stripe_source_id', $response->id );
@@ -757,6 +756,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					} elseif ( 'not_required' === $response->redirect->status && 'chargeable' === $response->status ) {
 						// Override the original source object with 3DS.
 						$prepared_source->source_object = $response;
+						$prepared_source->source        = $response->id;
 					}
 				}
 
@@ -775,7 +775,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				if ( ! empty( $response->error ) ) {
 					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 					if ( $this->is_no_such_customer_error( $response->error ) ) {
-						if ( WC_Stripe_Helper::is_pre_30() ) {
+						if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 							delete_user_meta( $order->customer_user, '_stripe_customer_id' );
 							delete_post_meta( $order_id, '_stripe_customer_id' );
 						} else {
