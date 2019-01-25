@@ -36,6 +36,7 @@ matrix:
       - $E2E_FOLDER/bin/install.sh woocommerce_test root '' localhost $WP_VERSION
       - $E2E_FOLDER/bin/travis.sh before
       - $E2E_FOLDER/bin/run-e2e-CI.sh
+      - bash tests/bin/travis.sh before
       - tests/bin/run-e2e-CI.sh
 
 before_script:
