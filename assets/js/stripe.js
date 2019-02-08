@@ -4,7 +4,9 @@ jQuery( function( $ ) {
 	'use strict';
 
 	try {
-		var stripe = Stripe( wc_stripe_params.key );
+		var stripe = Stripe( wc_stripe_params.key, {
+			betas: [ 'payment_intent_beta_3' ],
+		} );
 	} catch( error ) {
 		console.log( error );
 		return;
@@ -295,8 +297,8 @@ jQuery( function( $ ) {
 			return $( '#payment_method_stripe_multibanco' ).is( ':checked' );
 		},
 
-		hasSource: function() {
-			return 0 < $( 'input.stripe-source' ).length;
+		hasIntent: function() {
+			return 0 < $( 'input.stripe-intent' ).length;
 		},
 
 		// Legacy
@@ -460,7 +462,8 @@ jQuery( function( $ ) {
 
 		createSource: function() {
 			var extra_details = wc_stripe_form.getOwnerDetails(),
-				source_type   = 'card';
+				source_type   = 'card',
+				client_secret = $( '#stripe-payment-data' ).data( 'secret' );
 
 			if ( wc_stripe_form.isBancontactChosen() ) {
 				source_type = 'bancontact';
@@ -487,7 +490,19 @@ jQuery( function( $ ) {
 			}
 
 			if ( 'card' === source_type ) {
-				stripe.createSource( stripe_card, extra_details ).then( wc_stripe_form.sourceResponse );
+				stripe.handleCardPayment( client_secret, stripe_card, {
+					source_data: extra_details,
+				} ).then( function( result ) {
+					console.log( JSON.stringify( result, null, "\t" ) );
+					return result;
+				} )
+				.then( wc_stripe_form.sourceResponse );
+				// stripe.createSource( stripe_card, extra_details )
+				// 	.then( function( result ) {
+				// 		console.log( JSON.stringify( result, null, "\t" ) );
+				// 		return result;
+				// 	} )
+				// 	.then( wc_stripe_form.sourceResponse );
 			} else {
 				switch ( source_type ) {
 					case 'bancontact':
@@ -538,24 +553,16 @@ jQuery( function( $ ) {
 		sourceResponse: function( response ) {
 			if ( response.error ) {
 				$( document.body ).trigger( 'stripeError', response );
-			} else if ( 'no' === wc_stripe_params.allow_prepaid_card && 'card' === response.source.type && 'prepaid' === response.source.card.funding ) {
-				response.error = { message: wc_stripe_params.no_prepaid_card_msg };
-
-				if ( 'yes' === wc_stripe_params.is_stripe_checkout ) {
-					wc_stripe_form.submitError( '<ul class="woocommerce-error"><li>' + wc_stripe_params.no_prepaid_card_msg + '</li></ul>' );
-				} else {
-					$( document.body ).trigger( 'stripeError', response );
-				}
 			} else {
-				wc_stripe_form.processStripeResponse( response.source );
+				wc_stripe_form.processStripeResponse( response.paymentIntent );
 			}
 		},
 
-		processStripeResponse: function( source ) {
+		processStripeResponse: function( intent ) {
 			wc_stripe_form.reset();
 
-			// Insert the Source into the form so it gets submitted to the server.
-			wc_stripe_form.form.append( "<input type='hidden' class='stripe-source' name='stripe_source' value='" + source.id + "'/>" );
+			// Insert the paymentIntent ID into the form so it gets submitted to the server.
+			wc_stripe_form.form.append( "<input type='hidden' class='stripe-intent' name='stripe_intent' value='" + intent.id + "'/>" );
 
 			if ( $( 'form#add_payment_method' ).length ) {
 				$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
@@ -569,7 +576,7 @@ jQuery( function( $ ) {
 				return;
 			}
 
-			if ( ! wc_stripe_form.isStripeSaveCardChosen() && ! wc_stripe_form.hasSource() && ! wc_stripe_form.hasToken() ) {
+			if ( ! wc_stripe_form.isStripeSaveCardChosen() && ! wc_stripe_form.hasIntent() && ! wc_stripe_form.hasToken() ) {
 				e.preventDefault();
 
 				wc_stripe_form.block();
@@ -730,7 +737,7 @@ jQuery( function( $ ) {
 			wc_stripe_form.form.prepend( '<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout">' + error_message + '</div>' );
 			wc_stripe_form.form.removeClass( 'processing' ).unblock();
 			wc_stripe_form.form.find( '.input-text, select, input:checkbox' ).blur();
-			
+
 			var selector = '';
 
 			if ( $( '#add_payment_method' ).length ) {

@@ -336,80 +336,49 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Generate the request for the payment.
+	 * Checks whether an authorization should be captured.
+	 *
+	 */
+	public function should_capture_payment( $order, $prepared_intent ) {
+		$settings = get_option( 'woocommerce_stripe_settings', array() );
+		$capture  = ( ! empty( $settings['capture'] ) && 'yes' === $settings['capture'] );
+
+		/**
+		 * Filter the return value of the WC_Payment_Gateway_CC::should_capture_payment method.
+		 *
+		 * @since 3.1.0
+		 * @param bool $capture
+		 * @param WC_Order $order
+		 * @param object $intent
+		 */
+		return apply_filters( 'wc_stripe_should_capture', $capture, $order, $reppared_intent );
+	}
+
+	/**
+	 * Generate the request for the capturing of the payment.
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
 	 * @param  WC_Order $order
-	 * @param  object $prepared_source
+	 * @param  object $reppared_intent
 	 * @return array()
 	 */
-	public function generate_payment_request( $order, $prepared_source ) {
-		$settings              = get_option( 'woocommerce_stripe_settings', array() );
-		$statement_descriptor  = ! empty( $settings['statement_descriptor'] ) ? str_replace( "'", '', $settings['statement_descriptor'] ) : '';
-		$capture               = ! empty( $settings['capture'] ) && 'yes' === $settings['capture'] ? true : false;
-		$post_data             = array();
-		$post_data['currency'] = strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency() );
-		$post_data['amount']   = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $post_data['currency'] );
-		/* translators: 1) blog name 2) order number */
-		$post_data['description'] = sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() );
-		$billing_email            = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_email : $order->get_billing_email();
-		$billing_first_name       = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_first_name : $order->get_billing_first_name();
-		$billing_last_name        = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_last_name : $order->get_billing_last_name();
+	public function generate_capture_request( $order, $reppared_intent ) {
+		$currency = strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency() );
 
-		if ( ! empty( $billing_email ) && apply_filters( 'wc_stripe_send_stripe_receipt', false ) ) {
-			$post_data['receipt_email'] = $billing_email;
-		}
-
-		switch ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->payment_method : $order->get_payment_method() ) {
-			case 'stripe':
-				if ( ! empty( $statement_descriptor ) ) {
-					$post_data['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor );
-				}
-
-				$post_data['capture'] = $capture ? 'true' : 'false';
-				break;
-			case 'stripe_sepa':
-				if ( ! empty( $statement_descriptor ) ) {
-					$post_data['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor );
-				}
-				break;
-		}
-
-		$post_data['expand[]'] = 'balance_transaction';
-
-		$metadata = array(
-			__( 'customer_name', 'woocommerce-gateway-stripe' ) => sanitize_text_field( $billing_first_name ) . ' ' . sanitize_text_field( $billing_last_name ),
-			__( 'customer_email', 'woocommerce-gateway-stripe' ) => sanitize_email( $billing_email ),
-			'order_id' => $order->get_order_number(),
+		$post_data = array(
+			'amount_to_capture' => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency ),
 		);
 
-		if ( $this->has_subscription( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id() ) ) {
-			$metadata += array(
-				'payment_type' => 'recurring',
-				'site_url'     => esc_url( get_site_url() ),
-			);
-		}
-
-		$post_data['metadata'] = apply_filters( 'wc_stripe_payment_metadata', $metadata, $order, $prepared_source );
-
-		if ( $prepared_source->customer ) {
-			$post_data['customer'] = $prepared_source->customer;
-		}
-
-		if ( $prepared_source->source ) {
-			$post_data['source'] = $prepared_source->source;
-		}
-
 		/**
-		 * Filter the return value of the WC_Payment_Gateway_CC::generate_payment_request.
+		 * Filter the return value of the WC_Payment_Gateway_CC::generate_capture_request for a payment intent.
 		 *
 		 * @since 3.1.0
 		 * @param array $post_data
 		 * @param WC_Order $order
-		 * @param object $source
+		 * @param object $intent
 		 */
-		return apply_filters( 'wc_stripe_generate_payment_request', $post_data, $order, $prepared_source );
+		return apply_filters( 'wc_stripe_generate_payment_request', $post_data, $order, $reppared_intent );
 	}
 
 	/**
@@ -566,24 +535,20 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Checks if 3DS is required.
+	 * Retrieve intent object by ID.
 	 *
-	 * @since 4.0.4
-	 * @since 4.1.0 Add filter and changed optional to recommended.
-	 * @param object $source_object
-	 * @return bool
+	 * @since 5.0
+	 * @param string $intent_id The intent ID to retrieve an object for.
+	 * @return mixed
 	 */
-	public function is_3ds_required( $source_object ) {
-		return apply_filters(
-			'wc_stripe_require_3ds',
-			(
-			$source_object && ! empty( $source_object->card ) ) &&
-			( 'card' === $source_object->type && 'required' === $source_object->card->three_d_secure ||
-			( $this->three_d_secure && 'recommended' === $source_object->card->three_d_secure )
-			),
-			$source_object,
-			$this->three_d_secure
-		);
+	public function get_intent_object( $intent_id = '' ) {
+		$intent_object = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id );
+
+		if ( ! empty( $intent_object->error ) ) {
+			throw new WC_Stripe_Exception( print_r( $intent_object, true ), $intent_object->error->message );
+		}
+
+		return $intent_object;
 	}
 
 	/**
@@ -605,7 +570,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return bool
 	 */
 	public function is_prepaid_card( $source_object ) {
-		return ( $source_object && 'token' === $source_object->object && 'prepaid' === $source_object->card->funding );
+		return (
+			$source_object
+			&& 'three_d_secure' === $source_object->type
+			&& 'prepaid' === $source_object->three_d_secure->funding
+		);
 	}
 
 	/**
@@ -657,6 +626,28 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		WC_Stripe_Logger::log( 'Info: Begin creating 3DS source...' );
 
 		return WC_Stripe_API::request( apply_filters( 'wc_stripe_3ds_source', $post_data, $order ), 'sources' );
+	}
+
+	/**
+	 * Comment TBD. This replaces `prepare_source`.
+	 */
+	public function prepare_intent( $user_id, $force_save_source = false ) {
+		$intent_id = isset( $_POST['stripe_intent'] ) ? wc_clean( $_POST['stripe_intent'] ) : false;
+
+		if ( empty( $intent_id ) ) {
+			throw new WC_Stripe_Exception( 'Missing PaymentIntent', __( 'Your payment cannot be processed.', 'woocommerce-gateway-stripe' ) );
+		}
+
+		$intent = $this->get_intent_object( $intent_id );
+		$charge = $intent->charges->data[0];
+		$source = $charge->source;
+
+		return (object) array(
+			'intent_id'     => $intent_id,
+			'customer'      => $user_id,
+			'source'        => $source->id,
+			'source_object' => $source,
+		);
 	}
 
 	/**
@@ -821,25 +812,25 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since 3.1.0
 	 * @version 4.0.0
 	 * @param WC_Order $order For to which the source applies.
-	 * @param stdClass $source Source information.
+	 * @param stdClass $intent Intent information.
 	 */
-	public function save_source_to_order( $order, $source ) {
+	public function save_intent_to_order( $order, $intent ) {
 		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 
 		// Store source in the order.
-		if ( $source->customer ) {
+		if ( $intent->customer ) {
 			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-				update_post_meta( $order_id, '_stripe_customer_id', $source->customer );
+				update_post_meta( $order_id, '_stripe_customer_id', $intent->customer );
 			} else {
-				$order->update_meta_data( '_stripe_customer_id', $source->customer );
+				$order->update_meta_data( '_stripe_customer_id', $intent->customer );
 			}
 		}
 
-		if ( $source->source ) {
+		if ( $intent->source ) {
 			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-				update_post_meta( $order_id, '_stripe_source_id', $source->source );
+				update_post_meta( $order_id, '_stripe_source_id', $intent->source );
 			} else {
-				$order->update_meta_data( '_stripe_source_id', $source->source );
+				$order->update_meta_data( '_stripe_source_id', $intent->source );
 			}
 		}
 

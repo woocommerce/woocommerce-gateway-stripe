@@ -109,6 +109,7 @@ function woocommerce_gateway_stripe_init() {
 				}
 
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-exception.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-capture-exception.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-logger.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-helper.php';
 				include_once dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php';
