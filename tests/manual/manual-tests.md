@@ -1,4 +1,4 @@
-## Acivate
+## Activate
 
 ```
 start_path: /wp-admin/plugins.php?plugin_status=search&s=stripe
@@ -10,9 +10,9 @@ You can skip this test if plugin already activated.
 
 I see **Plugin activated** notice.
 
-## Dismiss feature and ssl notices
+## Dismiss feature and SSL notices
 
-When Stripe is active, there may be notices such as new features or ssl not detected. These notices should be dimissible.
+When Stripe is active, there may be notices such as new features or ssl not detected. These notices should be dismissible.
 
 ### Click on the dismiss/close icon/link in each notice
 
@@ -20,22 +20,20 @@ Observe that on next page load, these notices should be gone.
 
 ## Enable the Stripe Gateway Test Mode
 
-To be able to use and test Stripe, you need to enable Stripe and set required
-settings.
+To be able to use and test Stripe, you need to enable Stripe and set required settings.
 
-### Go to WooCommerce > Settings > Checkout
+### Go to WooCommerce > Settings > Payments
 
-I see Stripe, Stripe Bancontact, Stripe SOFORT, Stripe Giropay, Stripe iDeal, Stripe P24, Stripe Alipay and Stripe SEPA Direct Debit submenus.
+I see Stripe, Stripe Bancontact, Stripe SOFORT, Stripe Giropay, Stripe iDeal, Stripe P24, Stripe Alipay and Stripe SEPA Direct Debit, Stripe EPS, Stripe Multibanco Methods listed.
 
-### Click Stripe submenu
+### Click into Stripe via Manage button
 
 I see settings form.
 
 ### Click Enable Stripe Checkbox
 
-### Fill the Test Publishable Key text field
-
-### Fill the Test Secret Key text field
+1.  Fill the Test Publishable Key text field
+2.  Fill the Test Secret Key text field
 
 ### Click Save changes button at the bottom
 
@@ -43,9 +41,7 @@ I see **Your settings have been saved** notice.
 
 ## Test Checkout with Stripe in Test Mode
 
-To be able to test checkout flow with Stripe in Test Mode, you will need
-test product, add the product to the cart, and then checkout using Stripe
-as the payment method.
+To be able to test checkout flow with Stripe in Test Mode, you will need test product, add the product to the cart, and then checkout using Stripe as the payment method.
 
 ## Credit card checkout with Elements form
 
