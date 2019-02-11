@@ -5,7 +5,7 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 4.1.14
+ * Version: 5.5
  * Requires at least: 4.4
  * Tested up to: 5.0
  * WC requires at least: 2.6
