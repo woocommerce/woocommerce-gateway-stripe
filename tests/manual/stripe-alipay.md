@@ -2,7 +2,7 @@
 
 ### Go to WooCommerce > Settings > Payments > Stripe Alipay
 
-#### Click on Enable and save
+#### Click Enable/Disable checkbox
 
 #### Click Save changes button at the bottom
 
