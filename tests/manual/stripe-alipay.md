@@ -12,7 +12,7 @@ Be sure to also copy the webhook endpoint provided on the settings page and add 
 
 ### Go to WooCommerce > Settings > General
 
-#### Set currency to USD, EUR, GBP, CAD, AUD, SGD, HKD, JPY, or NZD
+#### Set currency to United States dollar ($), Euro (€), Pound sterling (£), Canadian dollar ($), Australian dollar ($), Singapore dollar ($), Hong Kong dollar ($), Japanese yen (¥), or New Zealand dollar ($)
 #### Set country to China
 
 #### Click Save changes button at the bottom
