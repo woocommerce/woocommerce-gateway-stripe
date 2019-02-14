@@ -27,17 +27,8 @@ jQuery( function( $ ) {
 		paymentIntent: null,
 
 		/**
-		 * Get WC AJAX endpoint URL.
-		 *
-		 * @param  {String} endpoint Endpoint.
-		 * @return {String}
+		 * Unmounts all Stripe elements when the checkout page is being updated.
 		 */
-		getAjaxURL: function( endpoint ) {
-			return wc_stripe_params.ajaxurl
-				.toString()
-				.replace( '%%endpoint%%', 'wc_stripe_' + endpoint );
-		},
-
 		unmountElements: function() {
 			if ( 'yes' === wc_stripe_params.inline_cc_form ) {
 				stripe_card.unmount( '#stripe-card-element' );
@@ -48,20 +39,26 @@ jQuery( function( $ ) {
 			}
 		},
 
+		/**
+		 * Mounts all elements to their DOM nodes on initial loads and updates.
+		 */
 		mountElements: function() {
 			if ( ! $( '#stripe-card-element' ).length ) {
 				return;
 			}
 
 			if ( 'yes' === wc_stripe_params.inline_cc_form ) {
-				stripe_card.mount( '#stripe-card-element' );
-			} else {
-				stripe_card.mount( '#stripe-card-element' );
-				stripe_exp.mount( '#stripe-exp-element' );
-				stripe_cvc.mount( '#stripe-cvc-element' );
+				return stripe_card.mount( '#stripe-card-element' );
 			}
+
+			stripe_card.mount( '#stripe-card-element' );
+			stripe_exp.mount( '#stripe-exp-element' );
+			stripe_cvc.mount( '#stripe-cvc-element' );
 		},
 
+		/**
+		 * Creates all Stripe elements that will be used to enter cards or IBANs.
+		 */
 		createElements: function() {
 			var elementStyles = {
 				base: {
@@ -151,6 +148,11 @@ jQuery( function( $ ) {
 			}
 		},
 
+		/**
+		 * Updates the card brand logo with non-inline CC forms.
+		 *
+		 * @param {string} brand The identifier of the chosen brand.
+		 */
 		updateCardBrand: function( brand ) {
 			var brandClass = {
 				'visa': 'stripe-visa-brand',
@@ -186,13 +188,12 @@ jQuery( function( $ ) {
 				$( document.body ).trigger( 'wc-credit-card-form-init' );
 			}
 
-			// Stripe Checkout.
-			this.stripe_checkout_submit = false;
-
 			// checkout page
 			if ( $( 'form.woocommerce-checkout' ).length ) {
 				this.form = $( 'form.woocommerce-checkout' );
 			}
+
+			// ToDo: Combine those listeners and conditions in a meaningful way
 
 			$( 'form.woocommerce-checkout' )
 				.on(
@@ -238,105 +239,172 @@ jQuery( function( $ ) {
 			);
 
 			wc_stripe_form.createElements();
-
-			if ( 'yes' === wc_stripe_params.is_stripe_checkout ) {
-				$( document.body ).on( 'click', '.wc-stripe-checkout-button', function() {
-					wc_stripe_form.openModal();
-					return false;
-				} );
-			}
 		},
 
-		// Check to see if Stripe in general is being used for checkout.
+		/**
+		 * Check to see if Stripe in general is being used for checkout.
+		 *
+		 * @return {boolean}
+		 */
 		isStripeChosen: function() {
 			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_giropay, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa, #payment_method_stripe_eps, #payment_method_stripe_multibanco' ).is( ':checked' ) || ( $( '#payment_method_stripe' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() ) || ( $( '#payment_method_stripe_sepa' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() );
 		},
 
-		// Currently only support saved cards via credit cards and SEPA. No other payment method.
+		/**
+		 * Currently only support saved cards via credit cards and SEPA. No other payment method.
+		 *
+		 * @return {boolean}
+		 */
 		isStripeSaveCardChosen: function() {
-			return ( $( '#payment_method_stripe' ).is( ':checked' ) && ( $( 'input[name="wc-stripe-payment-token"]' ).is( ':checked' ) && 'new' !== $( 'input[name="wc-stripe-payment-token"]:checked' ).val() ) ) ||
-				( $( '#payment_method_stripe_sepa' ).is( ':checked' ) && ( $( 'input[name="wc-stripe_sepa-payment-token"]' ).is( ':checked' ) && 'new' !== $( 'input[name="wc-stripe_sepa-payment-token"]:checked' ).val() ) );
+			return (
+				$( '#payment_method_stripe' ).is( ':checked' )
+				&& $( 'input[name="wc-stripe-payment-token"]' ).is( ':checked' )
+				&& 'new' !== $( 'input[name="wc-stripe-payment-token"]:checked' ).val()
+			) || (
+				$( '#payment_method_stripe_sepa' ).is( ':checked' )
+				&& $( 'input[name="wc-stripe_sepa-payment-token"]' ).is( ':checked' )
+				&& 'new' !== $( 'input[name="wc-stripe_sepa-payment-token"]:checked' ).val()
+			);
 		},
 
-		// Stripe credit card used.
+		/**
+		 * Check if Stripe credit card is being used used.
+		 *
+		 * @return {boolean}
+		 */
 		isStripeCardChosen: function() {
 			return $( '#payment_method_stripe' ).is( ':checked' );
 		},
 
+		/**
+		 * Check if Stripe Bancontact is being used used.
+		 *
+		 * @return {boolean}
+		 */
 		isBancontactChosen: function() {
 			return $( '#payment_method_stripe_bancontact' ).is( ':checked' );
 		},
 
+		/**
+		 * Check if Stripe Giropay is being used used.
+		 *
+		 * @return {boolean}
+		 */
 		isGiropayChosen: function() {
 			return $( '#payment_method_stripe_giropay' ).is( ':checked' );
 		},
 
+		/**
+		 * Check if Stripe iDeal is being used used.
+		 *
+		 * @return {boolean}
+		 */
 		isIdealChosen: function() {
 			return $( '#payment_method_stripe_ideal' ).is( ':checked' );
 		},
 
+		/**
+		 * Check if Stripe SOFORT is being used used.
+		 *
+		 * @return {boolean}
+		 */
 		isSofortChosen: function() {
 			return $( '#payment_method_stripe_sofort' ).is( ':checked' );
 		},
 
+		/**
+		 * Check if Stripe Alipay is being used used.
+		 *
+		 * @return {boolean}
+		 */
 		isAlipayChosen: function() {
 			return $( '#payment_method_stripe_alipay' ).is( ':checked' );
 		},
 
+		/**
+		 * Check if Stripe SEPA Direct Debit is being used used.
+		 *
+		 * @return {boolean}
+		 */
 		isSepaChosen: function() {
 			return $( '#payment_method_stripe_sepa' ).is( ':checked' );
 		},
 
+		/**
+		 * Check if Stripe P24 is being used used.
+		 *
+		 * @return {boolean}
+		 */
 		isP24Chosen: function() {
 			return $( '#payment_method_stripe_p24' ).is( ':checked' );
 		},
 
+		/**
+		 * Check if Stripe EPS is being used used.
+		 *
+		 * @return {boolean}
+		 */
 		isEpsChosen: function() {
 			return $( '#payment_method_stripe_eps' ).is( ':checked' );
 		},
 
+		/**
+		 * Check if Stripe Multibanco is being used used.
+		 *
+		 * @return {boolean}
+		 */
 		isMultibancoChosen: function() {
 			return $( '#payment_method_stripe_multibanco' ).is( ':checked' );
 		},
 
+		/**
+		 * Checks if a source ID is present as a hidden input.
+		 * Only used when SEPA Direct Debit is chosen.
+		 *
+		 * @return {boolean}
+		 */
 		hasSource: function() {
 			return 0 < $( 'input.stripe-source' ).length;
 		},
 
-		// Legacy
+		/**
+		 * Checks if a legacy token ID is present as a hidden input.
+		 *
+		 * ToDo: Check whether such inputs would appear from PHP and either
+		 * remove this check or make sure that the needed PHP logic is in place.
+		 *
+		 * @return {boolean}
+		 */
 		hasToken: function() {
 			return 0 < $( 'input.stripe_token' ).length;
 		},
 
+		/**
+		 * Checks whether a payment intent ID is present as a hidden input.
+		 * Only used in combination with credit cards.
+		 *
+		 * @return {boolean}
+		 */
 		hasIntent: function() {
 			return 0 < $( 'input.stripe-intent' ).length;
 		},
 
+		/**
+		 * Check whether a mobile device is being used.
+		 *
+		 * @return {boolean}
+		 */
 		isMobile: function() {
-			if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
+			if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test( navigator.userAgent ) ) {
 				return true;
 			}
 
 			return false;
 		},
 
-		isStripeModalNeeded: function( e ) {
-			var token = wc_stripe_form.form.find( 'input.stripe_token' ),
-				$required_inputs;
-
-			// If this is a stripe submission (after modal) and token exists, allow submit.
-			if ( wc_stripe_form.stripe_submit && token ) {
-				return false;
-			}
-
-			// Don't affect submission if modal is not needed.
-			if ( ! wc_stripe_form.isStripeChosen() ) {
-				return false;
-			}
-
-			return true;
-		},
-
+		/**
+		 * Blocks payment forms with an overlay while being submitted.
+		 */
 		block: function() {
 			if ( ! wc_stripe_form.isMobile() ) {
 				wc_stripe_form.form.block( {
@@ -349,246 +417,128 @@ jQuery( function( $ ) {
 			}
 		},
 
+		/**
+		 * Removes overlays from payment forms.
+		 */
 		unblock: function() {
 			wc_stripe_form.form.unblock();
 		},
 
+		/**
+		 * Returns the selected payment method HTML element.
+		 *
+		 * @return {HTMLElement}
+		 */
 		getSelectedPaymentElement: function() {
 			return $( '.payment_methods input[name="payment_method"]:checked' );
 		},
 
-		// Stripe Checkout.
-		openModal: function() {
-			// Capture submittal and open stripecheckout
-			var $form = wc_stripe_form.form,
-				$data = $( '#stripe-payment-data' );
-
-			wc_stripe_form.reset();
-
-			var token_action = function( res ) {
-				$form.find( 'input.stripe_source' ).remove();
-
-				/* Since source was introduced in 4.0. We need to
-				 * convert the token into a source.
-				 */
-				if ( 'token' === res.object ) {
-					stripe.createSource( {
-						type: 'card',
-						token: res.id,
-					} ).then( wc_stripe_form.sourceResponse );
-				} else if ( 'source' === res.object ) {
-					var response = { source: res };
-					wc_stripe_form.sourceResponse( response );
-				}
-			};
-
-			StripeCheckout.open( {
-				key               : wc_stripe_params.key,
-				billingAddress    : $data.data( 'billing-address' ),
-				zipCode           : $data.data( 'verify-zip' ),
-				amount            : $data.data( 'amount' ),
-				name              : $data.data( 'name' ),
-				description       : $data.data( 'description' ),
-				currency          : $data.data( 'currency' ),
-				image             : $data.data( 'image' ),
-				locale            : $data.data( 'locale' ),
-				email             : $( '#billing_email' ).val() || $data.data( 'email' ),
-				panelLabel        : $data.data( 'panel-label' ),
-				allowRememberMe   : $data.data( 'allow-remember-me' ),
-				token             : token_action,
-				closed            : wc_stripe_form.onClose()
-			} );
-		},
-
-		// Stripe Checkout.
-		resetModal: function() {
-			wc_stripe_form.reset();
-			wc_stripe_form.stripe_checkout_submit = false;
-		},
-
-		// Stripe Checkout.
-		onClose: function() {
-			wc_stripe_form.unblock();
-		},
-
+		/**
+		 * Retrieves "owner" data from either the billing fields in a form or preset settings.
+		 *
+		 * @return {Object}
+		 */
 		getOwnerDetails: function() {
 			var first_name = $( '#billing_first_name' ).length ? $( '#billing_first_name' ).val() : wc_stripe_params.billing_first_name,
 				last_name  = $( '#billing_last_name' ).length ? $( '#billing_last_name' ).val() : wc_stripe_params.billing_last_name,
-				extra_details = { owner: { name: '', address: {}, email: '', phone: '' } };
+				owner      = { name: '', address: {}, email: '', phone: '' };
 
-			extra_details.owner.name = first_name;
+			owner.name = first_name;
 
 			if ( first_name && last_name ) {
-				extra_details.owner.name = first_name + ' ' + last_name;
+				owner.name = first_name + ' ' + last_name;
 			} else {
-				extra_details.owner.name = $( '#stripe-payment-data' ).data( 'full-name' );
+				owner.name = $( '#stripe-payment-data' ).data( 'full-name' );
 			}
 
-			extra_details.owner.email = $( '#billing_email' ).val();
-			extra_details.owner.phone = $( '#billing_phone' ).val();
+			owner.email = $( '#billing_email' ).val();
+			owner.phone = $( '#billing_phone' ).val();
 
 			/* Stripe does not like empty string values so
 			 * we need to remove the parameter if we're not
 			 * passing any value.
 			 */
-			if ( typeof extra_details.owner.phone === 'undefined' || 0 >= extra_details.owner.phone.length ) {
-				delete extra_details.owner.phone;
+			if ( typeof owner.phone === 'undefined' || 0 >= owner.phone.length ) {
+				delete owner.phone;
 			}
 
-			if ( typeof extra_details.owner.email === 'undefined' || 0 >= extra_details.owner.email.length ) {
+			if ( typeof owner.email === 'undefined' || 0 >= owner.email.length ) {
 				if ( $( '#stripe-payment-data' ).data( 'email' ).length ) {
-					extra_details.owner.email = $( '#stripe-payment-data' ).data( 'email' );
+					owner.email = $( '#stripe-payment-data' ).data( 'email' );
 				} else {
-					delete extra_details.owner.email;
+					delete owner.email;
 				}
 			}
 
-			if ( typeof extra_details.owner.name === 'undefined' || 0 >= extra_details.owner.name.length ) {
-				delete extra_details.owner.name;
+			if ( typeof owner.name === 'undefined' || 0 >= owner.name.length ) {
+				delete owner.name;
 			}
 
 			if ( $( '#billing_address_1' ).length > 0 ) {
-				extra_details.owner.address.line1       = $( '#billing_address_1' ).val();
-				extra_details.owner.address.line2       = $( '#billing_address_2' ).val();
-				extra_details.owner.address.state       = $( '#billing_state' ).val();
-				extra_details.owner.address.city        = $( '#billing_city' ).val();
-				extra_details.owner.address.postal_code = $( '#billing_postcode' ).val();
-				extra_details.owner.address.country     = $( '#billing_country' ).val();
+				owner.address.line1       = $( '#billing_address_1' ).val();
+				owner.address.line2       = $( '#billing_address_2' ).val();
+				owner.address.state       = $( '#billing_state' ).val();
+				owner.address.city        = $( '#billing_city' ).val();
+				owner.address.postal_code = $( '#billing_postcode' ).val();
+				owner.address.country     = $( '#billing_country' ).val();
 			} else if ( wc_stripe_params.billing_address_1 ) {
-				extra_details.owner.address.line1       = wc_stripe_params.billing_address_1;
-				extra_details.owner.address.line2       = wc_stripe_params.billing_address_2;
-				extra_details.owner.address.state       = wc_stripe_params.billing_state;
-				extra_details.owner.address.city        = wc_stripe_params.billing_city;
-				extra_details.owner.address.postal_code = wc_stripe_params.billing_postcode;
-				extra_details.owner.address.country     = wc_stripe_params.billing_country;
+				owner.address.line1       = wc_stripe_params.billing_address_1;
+				owner.address.line2       = wc_stripe_params.billing_address_2;
+				owner.address.state       = wc_stripe_params.billing_state;
+				owner.address.city        = wc_stripe_params.billing_city;
+				owner.address.postal_code = wc_stripe_params.billing_postcode;
+				owner.address.country     = wc_stripe_params.billing_country;
 			}
 
-			return extra_details;
+			return {
+				owner: owner,
+			};
 		},
 
+		/**
+		 * Initiates the creation of a Source object.
+		 *
+		 * Currently this is only used for credit cards and SEPA Direct Debit,
+		 * all other payment methods work with redirects to create sources.
+		 */
 		createSource: function() {
-			var extra_details = wc_stripe_form.getOwnerDetails(),
-				source_type   = 'card';
+			var extra_details = wc_stripe_form.getOwnerDetails();
 
-			if ( wc_stripe_form.isBancontactChosen() ) {
-				source_type = 'bancontact';
-			}
-
+			// Handle SEPA Direct Debit payments.
 			if ( wc_stripe_form.isSepaChosen() ) {
-				source_type = 'sepa_debit';
+				extra_details.currency = $( '#stripe-sepa_debig-payment-data' ).data( 'currency' );
+				extra_details.mandate  = { notification_method: wc_stripe_params.sepa_mandate_notification };
+				extra_details.type     = 'sepa_debit';
+
+				return stripe.createSource( iban, extra_details ).then( wc_stripe_form.sepaDirectDebitResponse );
 			}
 
-			if ( wc_stripe_form.isIdealChosen() ) {
-				source_type = 'ideal';
-			}
+			// Handle card payments.
+			var client_secret = $( '#stripe-payment-data' ).data( 'client-secret' );
+			var data = {
+				source_data: extra_details,
+			};
 
-			if ( wc_stripe_form.isSofortChosen() ) {
-				source_type = 'sofort';
-			}
-
-			if ( wc_stripe_form.isGiropayChosen() ) {
-				source_type = 'giropay';
-			}
-
-			if ( wc_stripe_form.isAlipayChosen() ) {
-				source_type = 'alipay';
-			}
-
-			if ( 'card' === source_type ) {
-				wc_stripe_form.getIntent()
-					.then( function( intent ) {
-						return stripe.handleCardPayment( intent.client_secret, stripe_card, {
-							source_data: extra_details,
-						} );
-					} )
-					.then( wc_stripe_form.intentResponse )
-					.catch( function( error ) {
-						$( document.body ).trigger( 'stripeError', { error: error } );
-					} );
-				;
-			} else {
-				switch ( source_type ) {
-					case 'bancontact':
-					case 'giropay':
-					case 'ideal':
-					case 'sofort':
-					case 'alipay':
-						// These redirect flow payment methods need this information to be set at source creation.
-						extra_details.amount   = $( '#stripe-' + source_type + '-payment-data' ).data( 'amount' );
-						extra_details.currency = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
-						extra_details.redirect = { return_url: wc_stripe_params.return_url };
-
-						if ( wc_stripe_params.statement_descriptor ) {
-							extra_details.statement_descriptor = wc_stripe_params.statement_descriptor;
-						}
-
-						break;
-				}
-
-				// Handle special inputs that are unique to a payment method.
-				switch ( source_type ) {
-					case 'sepa_debit':
-						extra_details.currency = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
-						extra_details.mandate  = { notification_method: wc_stripe_params.sepa_mandate_notification };
-						break;
-					case 'ideal':
-						extra_details.ideal = { bank: $( '#stripe-ideal-bank' ).val() };
-						break;
-					case 'alipay':
-						extra_details.currency = $( '#stripe-' + source_type + '-payment-data' ).data( 'currency' );
-						extra_details.amount = $( '#stripe-' + source_type + '-payment-data' ).data( 'amount' );
-						break;
-					case 'sofort':
-						extra_details.sofort = { country: $( '#billing_country' ).val() };
-						break;
-				}
-
-				extra_details.type = source_type;
-
-				if ( 'sepa_debit' === source_type ) {
-					stripe.createSource( iban, extra_details ).then( wc_stripe_form.sourceResponse );
-				} else {
-					stripe.createSource( extra_details ).then( wc_stripe_form.sourceResponse );
-				}
-			}
+			stripe.handleCardPayment( client_secret, stripe_card, data )
+				.then( wc_stripe_form.paymentIntentResponse );
 		},
 
-		sourceResponse: function( response ) {
-			if ( response.error ) {
-				$( document.body ).trigger( 'stripeError', response );
-			} else if ( 'no' === wc_stripe_params.allow_prepaid_card && 'card' === response.source.type && 'prepaid' === response.source.card.funding ) {
-				response.error = { message: wc_stripe_params.no_prepaid_card_msg };
-
-				if ( 'yes' === wc_stripe_params.is_stripe_checkout ) {
-					wc_stripe_form.submitError( '<ul class="woocommerce-error"><li>' + wc_stripe_params.no_prepaid_card_msg + '</li></ul>' );
-				} else {
-					$( document.body ).trigger( 'stripeError', response );
-				}
-			} else {
-				wc_stripe_form.processStripeResponse( response.source );
-			}
-		},
-
-		intentResponse: function( response ) {
+		/**
+		 * Handles responses, based on source object.
+		 *
+		 * After the switch to payment intents in {PAYMENT_INTENTS_VERSION} this method
+		 * is only applicable to SEPA Direct Debit payments, as cards are handled by
+		 * intents and all other payment methods require a redirect to an external portal.
+		 *
+		 * @param {Object} response The `stripe.createSource` response.
+		 */
+		sepaDirectDebitResponse: function( response ) {
 			if ( response.error ) {
 				return $( document.body ).trigger( 'stripeError', response );
 			}
 
-			var intent = response.paymentIntent;
-
 			wc_stripe_form.reset();
-			wc_stripe_form.form.append( "<input type='hidden' class='stripe-intent' name='stripe_intent' value='" + intent.id + "'/>" );
-
-			// ToDo: Check for `form#add_payment_method` and remove event listeners
-
-			wc_stripe_form.form.submit();
-		},
-
-		processStripeResponse: function( source ) {
-			wc_stripe_form.reset();
-
-			// Insert the Source into the form so it gets submitted to the server.
-			wc_stripe_form.form.append( "<input type='hidden' class='stripe-source' name='stripe_source' value='" + source.id + "'/>" );
+			wc_stripe_form.addHiddenInput( 'source', response.source.id );
 
 			if ( $( 'form#add_payment_method' ).length ) {
 				$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
@@ -597,114 +547,142 @@ jQuery( function( $ ) {
 			wc_stripe_form.form.submit();
 		},
 
+		/**
+		 * Responds to payments with credit cards, which use PaymentIntents.
+		 *
+		 * @param {object} response The response from calling `stripe.handleCardPayment`.
+		 */
+		paymentIntentResponse: function( response ) {
+			if ( response.error ) {
+				return $( document.body ).trigger( 'stripeError', response );
+			}
+
+			wc_stripe_form.reset();
+			wc_stripe_form.addHiddenInput( 'intent', response.paymentIntent.id );
+
+			// ToDo: Check for `form#add_payment_method` and remove event listeners
+
+			wc_stripe_form.form.submit();
+		},
+
+		/**
+		 * Performs payment-related actions when a checkout/payment form is being submitted.
+		 *
+		 * @param {Event} e A form submission event.
+		 */
 		onSubmit: function( e ) {
 			if ( ! wc_stripe_form.isStripeChosen() ) {
 				return;
 			}
 
-			if ( ! wc_stripe_form.isStripeSaveCardChosen() && ! wc_stripe_form.hasSource() && ! wc_stripe_form.hasToken() && ! wc_stripe_form.hasIntent() ) {
-				e.preventDefault();
+			/**
+			 * ToDo: The logic here was restructured a bit, make sure it still works well.
+			 */
 
-				wc_stripe_form.block();
+			// If a source, token, or an intent is already in place, submit the form as usual.
+			if ( wc_stripe_form.isStripeSaveCardChosen() || wc_stripe_form.hasSource() || wc_stripe_form.hasToken() || wc_stripe_form.hasIntent() ) {
+				return true;
+			}
 
-				// Stripe Checkout.
-				if ( 'yes' === wc_stripe_params.is_stripe_checkout && wc_stripe_form.isStripeModalNeeded() && wc_stripe_form.isStripeCardChosen() ) {
-					if ( 'yes' === wc_stripe_params.is_checkout ) {
-						return true;
-					} else {
-						wc_stripe_form.openModal();
-						return false;
-					}
-				}
+			// For methods that needs redirect, we will create the source server side so we can obtain the order ID.
+			if (
+				wc_stripe_form.isBancontactChosen() ||
+				wc_stripe_form.isGiropayChosen() ||
+				wc_stripe_form.isIdealChosen() ||
+				wc_stripe_form.isAlipayChosen() ||
+				wc_stripe_form.isSofortChosen() ||
+				wc_stripe_form.isP24Chosen() ||
+				wc_stripe_form.isEpsChosen() ||
+				wc_stripe_form.isMultibancoChosen()
+			) {
+				if ( $( 'form#order_review' ).length ) {
+					$( 'form#order_review' )
+						.off(
+							'submit',
+							this.onSubmit
+						);
 
-				/*
-				 * For methods that needs redirect, we will create the
-				 * source server side so we can obtain the order ID.
-				 */
-				if (
-					wc_stripe_form.isBancontactChosen() ||
-					wc_stripe_form.isGiropayChosen() ||
-					wc_stripe_form.isIdealChosen() ||
-					wc_stripe_form.isAlipayChosen() ||
-					wc_stripe_form.isSofortChosen() ||
-					wc_stripe_form.isP24Chosen() ||
-					wc_stripe_form.isEpsChosen() ||
-					wc_stripe_form.isMultibancoChosen()
-				) {
-					if ( $( 'form#order_review' ).length ) {
-						$( 'form#order_review' )
-							.off(
-								'submit',
-								this.onSubmit
-							);
-
-						wc_stripe_form.form.submit();
-
-						return false;
-					}
-
-					if ( $( 'form.woocommerce-checkout' ).length ) {
-						return true;
-					}
-
-					if ( $( 'form#add_payment_method' ).length ) {
-						$( 'form#add_payment_method' )
-							.off(
-								'submit',
-								this.onSubmit
-							);
-
-						wc_stripe_form.form.submit();
-
-						return false;
-					}
-				}
-
-				wc_stripe_form.createSource();
-
-				// Prevent form submitting
-				return false;
-			} else if ( $( 'form#add_payment_method' ).length ) {
-				e.preventDefault();
-
-				// Stripe Checkout.
-				if ( 'yes' === wc_stripe_params.is_stripe_checkout && wc_stripe_form.isStripeModalNeeded() && wc_stripe_form.isStripeCardChosen() ) {
-					wc_stripe_form.openModal();
+					wc_stripe_form.form.submit();
 
 					return false;
 				}
 
-				wc_stripe_form.block();
+				if ( $( 'form#add_payment_method' ).length ) {
+					$( 'form#add_payment_method' )
+						.off(
+							'submit',
+							this.onSubmit
+						);
 
-				wc_stripe_form.createSource();
-				return false;
+					wc_stripe_form.form.submit();
+
+					return false;
+				}
+
+				return true; // The checkout form will be sumitted if this is !== false.
 			}
+
+			e.preventDefault();
+			wc_stripe_form.block();
+			wc_stripe_form.createSource();
+
+			return false;
 		},
 
+		/**
+		 * If a new credit card is entered, reset sources, tokens, and intents.
+		 */
 		onCCFormChange: function() {
 			wc_stripe_form.reset();
 		},
 
+		/**
+		 * Removes all Stripe errors and hidden fields with IDs from the form.
+		 */
 		reset: function() {
-			$( '.wc-stripe-error, .stripe-source, .stripe_token' ).remove();
-
-			// Stripe Checkout.
-			if ( 'yes' === wc_stripe_params.is_stripe_checkout ) {
-				wc_stripe_form.stripe_submit = false;
-			}
+			$( '.wc-stripe-error, .stripe-source, .stripe_token, .stripe-intent' ).remove();
 		},
 
+		/**
+		 * Adds a hidden input with the ID of a payment intent or source.
+		 *
+		 * @param {string} type  The type of value that is being added to the form, ex. `source`.
+		 * @param {string} value The ID of the source/payment intent.
+		 */
+		addHiddenInput: function( type, value ) {
+			$( '.stripe-source, .stripe-intent' ).remove();
+
+			wc_stripe_form.form.append(
+				$( '<input type="hidden" />' )
+					.addClass( 'stripe-' + type )
+					.attr( 'name', 'stripe_' + type )
+					.val( value )
+			);
+		},
+
+		/**
+		 * Displays a SEPA-specific error message.
+		 *
+		 * @param {Event} e The event with the error.
+		 */
 		onSepaError: function( e ) {
-			var errorContainer = wc_stripe_form.getSelectedPaymentElement().parents( 'li' ).eq(0).find( '.stripe-source-errors' );
+			var errorContainer = wc_stripe_form.getSelectedPaymentElement().parents( 'li' ).eq( 0 ).find( '.stripe-source-errors' );
 
-			if ( e.error ) {
-				console.log( e.error.message ); // Leave for troubleshooting.
-				$( errorContainer ).html( '<ul class="woocommerce_error woocommerce-error wc-stripe-error"><li>' + e.error.message + '</li></ul>' );
-			} else {
-				$( errorContainer ).html( '' );
+			if ( ! e.error ) {
+				return $( errorContainer ).html( '' );
 			}
+
+			console.log( e.error.message ); // Leave for troubleshooting.
+			$( errorContainer ).html( '<ul class="woocommerce_error woocommerce-error wc-stripe-error"><li /></ul>' );
+			$( errorContainer ).find( 'li' ).text( e.error.message ); // Prevent XSS
 		},
 
+		/**
+		 * Displays stripe-related errors.
+		 *
+		 * @param {Event}  e      The jQuery event.
+		 * @param {Object} result The result of Stripe call.
+		 */
 		onError: function( e, result ) {
 			var message = result.error.message,
 				errorContainer = wc_stripe_form.getSelectedPaymentElement().parents( 'li' ).eq(0).find( '.stripe-source-errors' );
@@ -717,7 +695,8 @@ jQuery( function( $ ) {
 			 */
 			if ( wc_stripe_form.isSepaChosen() ) {
 				if ( 'invalid_owner_name' === result.error.code && wc_stripe_params.hasOwnProperty( result.error.code ) ) {
-					var error = '<ul class="woocommerce-error"><li>' + wc_stripe_params[ result.error.code ] + '</li></ul>';
+					var error = '<ul class="woocommerce-error"><li /></ul>';
+					error.find( 'li' ).text( wc_stripe_params[ result.error.code ] ); // Prevent XSS
 
 					return wc_stripe_form.submitError( error );
 				}
@@ -748,7 +727,8 @@ jQuery( function( $ ) {
 			wc_stripe_form.reset();
 			$( '.woocommerce-NoticeGroup-checkout' ).remove();
 			console.log( result.error.message ); // Leave for troubleshooting.
-			$( errorContainer ).html( '<ul class="woocommerce_error woocommerce-error wc-stripe-error"><li>' + message + '</li></ul>' );
+			$( errorContainer ).html( '<ul class="woocommerce_error woocommerce-error wc-stripe-error"><li /></ul>' );
+			$( errorContainer ).find( 'li' ).text( message ); // Prevent XSS
 
 			if ( $( '.wc-stripe-error' ).length ) {
 				$( 'html, body' ).animate({
@@ -758,6 +738,11 @@ jQuery( function( $ ) {
 			wc_stripe_form.unblock();
 		},
 
+		/**
+		 * Displays an error message in the beginning of the form and scrolls to it.
+		 *
+		 * @param {Object} error_message An error message jQuery object.
+		 */
 		submitError: function( error_message ) {
 			$( '.woocommerce-NoticeGroup-checkout, .woocommerce-error, .woocommerce-message' ).remove();
 			wc_stripe_form.form.prepend( '<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout">' + error_message + '</div>' );
