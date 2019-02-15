@@ -2,12 +2,12 @@
     "url": "https://YOURSITE.test",
     "users": {
         "shopmanager": {
-            "username": "shopmanager",
-            "password": "password"
+            "username": "USERNAME",
+            "password": "PASSWORD"
         },
         "customer": {
-            "username": "customer",
-            "password": "password"
+            "username": "USERNAME",
+            "password": "PASSWORD"
         }
     },
     "startBrowserTimeoutMs": 30000,
@@ -15,13 +15,31 @@
     "products": {
         "onePayment": "/product/hoodie-with-logo"
     },
-    "stripe": [
+    "stripeCC": [
             {
-                "country": "United States",
-                "currency": "United States Dollars ($)",
-                "testPublishableKey": "",
-                "testPublishableSecretKey": "",
-                "useSandbox": true
+                "testPublishableKey": "TESTKEY",
+                "testPublishableSecretKey": "TESTSECRET",
+                "statementDescriptor": "My Custom Statement Descriptor",
+                "enableTestMode": true,
+                "enableInlineForm": true,
+                "enableStripeCheckout": false,
+                "enablePaymentRequest": true,
+                "enableSavedCards": true,
+                "enableLogging": true
+            }
+    ],
+    "stripeCCNoInline": [
+            {
+                "testPublishableKey": "TESTKEY",
+                "testPublishableSecretKey": "TESTSECRET",
+                "statementDescriptor": "My Custom Statement Descriptor",
+                "enableTestMode": true,
+                "enableInlineForm": false,
+                "enableStripeCheckout": false,
+                "enablePaymentRequest": true,
+                "enableSavedCards": true,
+                "enableLogging": true
             }
     ]
+
 }
