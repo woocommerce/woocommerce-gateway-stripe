@@ -300,7 +300,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		 * @see https://stripe.com/docs/payments/payment-intents/quickstart
 		 */
 		$request = array(
-			'amount'               => round( $total * 100 ),
+			'amount'               => WC_Stripe_Helper::get_stripe_amount( $total ),
 			'capture_method'       => 'manual',
 			'currency'             => get_woocommerce_currency(),
 			'allowed_source_types' => array(
@@ -712,6 +712,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$new_stripe_customer->create_customer();
 			}
 
+			// ToDo: Remove all direct access to a source in favor of intents.
 			try {
 				$prepared_source = $this->prepare_source_from_intent( get_current_user_id(), $force_save_source );
 			} catch ( WC_Stripe_Exception $e ) {
@@ -859,7 +860,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				do_action( 'wc_gateway_stripe_process_payment', $response, $order );
 
 				// Process valid response.
-				$this->process_response( $response, $order );
+				if ( 'payment_intent' === $response->object ) {
+					// ToDo: Check whether chrges[] only contains a single charge.
+					$this->process_response( $response->charges->data[0], $order );
+				} else {
+					$this->process_response( $response, $order );
+				}
 			} else {
 				$order->payment_complete();
 			}
@@ -980,8 +986,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$response = (object) array(
 			// 'token_id'      => $wc_token_id, // This was in place, investigate where it is used...
 			'customer'      => new WC_Stripe_Customer( $user_id ),
-			'source'        => $intent_object->source,
-			'source_object' => self::get_source_object( $intent_object->source ),
+			'source'        => $intent_object->source->id,
+			'source_object' => $intent_object->source,
 			'is_intent'     => true,
 			'intent_id'     => $intent_id,
 		);
@@ -990,7 +996,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	public function get_intent_object( $intent_id = '' ) {
-		$intent_object = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id );
+		$intent_object = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=source' );
 
 		if ( ! empty( $intent_object->error ) ) {
 			throw new WC_Stripe_Exception( print_r( $intent_object, true ), $intent_object->error->message );
