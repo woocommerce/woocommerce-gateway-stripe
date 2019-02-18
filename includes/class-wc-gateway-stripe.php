@@ -307,6 +307,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				'card',
 			),
 		);
+
+		// ToDo: Extract this into an ajax call that is performed just before `handleCardPayment` in JS.
 		$intent        = WC_Stripe_API::request( $request, 'payment_intents' );
 		$client_secret = $intent->client_secret;
 
