@@ -294,6 +294,24 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$pay_button_text = '';
 		}
 
+		/**
+		 * Start a payment intent.
+		 *
+		 * @see https://stripe.com/docs/payments/payment-intents/quickstart
+		 */
+		$request = array(
+			'amount'               => WC_Stripe_Helper::get_stripe_amount( $total ),
+			'capture_method'       => 'manual',
+			'currency'             => get_woocommerce_currency(),
+			'allowed_source_types' => array(
+				'card',
+			),
+		);
+
+		// ToDo: Extract this into an ajax call that is performed just before `handleCardPayment` in JS.
+		$intent        = WC_Stripe_API::request( $request, 'payment_intents' );
+		$client_secret = $intent->client_secret;
+
 		ob_start();
 
 		echo '<div
@@ -303,15 +321,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			data-email="' . esc_attr( $user_email ) . '"
 			data-verify-zip="' . esc_attr( apply_filters( 'wc_stripe_checkout_verify_zip', false ) ? 'true' : 'false' ) . '"
 			data-billing-address="' . esc_attr( apply_filters( 'wc_stripe_checkout_require_billing_address', false ) ? 'true' : 'false' ) . '"
-			data-shipping-address="' . esc_attr( apply_filters( 'wc_stripe_checkout_require_shipping_address', false ) ? 'true' : 'false' ) . '" 
+			data-shipping-address="' . esc_attr( apply_filters( 'wc_stripe_checkout_require_shipping_address', false ) ? 'true' : 'false' ) . '"
 			data-amount="' . esc_attr( WC_Stripe_Helper::get_stripe_amount( $total ) ) . '"
 			data-name="' . esc_attr( $this->statement_descriptor ) . '"
 			data-full-name="' . esc_attr( $firstname . ' ' . $lastname ) . '"
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '"
 			data-image="' . esc_attr( $this->stripe_checkout_image ) . '"
 			data-locale="' . esc_attr( apply_filters( 'wc_stripe_checkout_locale', $this->get_locale() ) ) . '"
-			data-three-d-secure="' . esc_attr( $this->three_d_secure ? 'true' : 'false' ) . '"
-			data-allow-remember-me="' . esc_attr( apply_filters( 'wc_stripe_allow_remember_me', true ) ? 'true' : 'false' ) . '">';
+			data-three-d-secure="' . esc_attr( $this->three_d_secure ? 'true' : 'false' ) . /* ToDo: three_d_secure should be obsolete */ '"
+			data-allow-remember-me="' . esc_attr( apply_filters( 'wc_stripe_allow_remember_me', true ) ? 'true' : 'false' ) . '"
+			data-client-secret="' . esc_attr( $client_secret ) . '"
+		>';
 
 		if ( $this->testmode ) {
 			/* translators: link to Stripe testing page */
@@ -454,7 +474,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
 		wp_register_style( 'stripe_styles', plugins_url( 'assets/css/stripe-styles.css', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION );
-		wp_enqueue_style( 'stripe_styles' );	
+		wp_enqueue_style( 'stripe_styles' );
 
 		wp_register_script( 'stripe_checkout', 'https://checkout.stripe.com/checkout.js', '', WC_STRIPE_VERSION, true );
 		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
@@ -565,7 +585,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			data-email="' . esc_attr( $user_email ) . '"
 			data-verify-zip="' . esc_attr( apply_filters( 'wc_stripe_checkout_verify_zip', false ) ? 'true' : 'false' ) . '"
 			data-billing-address="' . esc_attr( apply_filters( 'wc_stripe_checkout_require_billing_address', false ) ? 'true' : 'false' ) . '"
-			data-shipping-address="' . esc_attr( apply_filters( 'wc_stripe_checkout_require_shipping_address', false ) ? 'true' : 'false' ) . '" 
+			data-shipping-address="' . esc_attr( apply_filters( 'wc_stripe_checkout_require_shipping_address', false ) ? 'true' : 'false' ) . '"
 			data-amount="' . esc_attr( WC_Stripe_Helper::get_stripe_amount( $total ) ) . '"
 			data-name="' . esc_attr( $this->statement_descriptor ) . '"
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '"
@@ -694,7 +714,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$new_stripe_customer->create_customer();
 			}
 
-			$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source );
+			// ToDo: Remove all direct access to a source in favor of intents.
+			try {
+				$prepared_source = $this->prepare_source_from_intent( get_current_user_id(), $force_save_source );
+			} catch ( WC_Stripe_Exception $e ) {
+				$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source );
+			}
 
 			// Check if we don't allow prepaid credit cards.
 			if ( ! apply_filters( 'wc_stripe_allow_prepaid_card', true ) && $this->is_prepaid_card( $prepared_source->source_object ) ) {
@@ -770,11 +795,32 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				}
 
 				// Make the request.
-				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $prepared_source ) );
+				if ( $prepared_source->is_intent ) {
+					$post_data = array(
+						'amount_to_capture' => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency ),
+					);
+					$response = WC_Stripe_API::request( $post_data, "payment_intents/{$prepared_source->intent_id}/capture" );
 
-				if ( ! empty( $response->error ) ) {
+					if ( ! empty( $response->error ) ) {
+						$response_error = $response->error;
+					} else {
+						// ToDo: Check whether chrges[] only contains a single charge.
+						$charge = $response->charges->data[0];
+					}
+				} else {
+					$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $prepared_source ) );
+
+					if ( ! empty( $response->error ) ) {
+						$response_error = $response->error;
+					} else {
+						// ToDo: Check whether chrges[] only contains a single charge.
+						$charge = $response;
+					}
+				}
+
+				if ( ! empty( $response_error ) ) {
 					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
-					if ( $this->is_no_such_customer_error( $response->error ) ) {
+					if ( $this->is_no_such_customer_error( $response_error ) ) {
 						if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 							delete_user_meta( $order->customer_user, '_stripe_customer_id' );
 							delete_post_meta( $order_id, '_stripe_customer_id' );
@@ -785,7 +831,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 						}
 					}
 
-					if ( $this->is_no_such_token_error( $response->error ) && $prepared_source->token_id ) {
+					if ( $this->is_no_such_token_error( $response_error ) && $prepared_source->token_id ) {
 						// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
 						$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
 						$wc_token->delete();
@@ -795,18 +841,18 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					}
 
 					// We want to retry.
-					if ( $this->is_retryable_error( $response->error ) ) {
+					if ( $this->is_retryable_error( $response_error ) ) {
 						if ( $retry ) {
 							// Don't do anymore retries after this.
 							if ( 5 <= $this->retry_interval ) {
-								return $this->process_payment( $order_id, false, $force_save_source, $response->error );
+								return $this->process_payment( $order_id, false, $force_save_source, $response_error );
 							}
 
 							sleep( $this->retry_interval );
 
 							$this->retry_interval++;
 
-							return $this->process_payment( $order_id, true, $force_save_source, $response->error );
+							return $this->process_payment( $order_id, true, $force_save_source, $response_error );
 						} else {
 							$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
 							$order->add_order_note( $localized_message );
@@ -816,10 +862,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 					$localized_messages = WC_Stripe_Helper::get_localized_messages();
 
-					if ( 'card_error' === $response->error->type ) {
-						$localized_message = isset( $localized_messages[ $response->error->code ] ) ? $localized_messages[ $response->error->code ] : $response->error->message;
+					if ( 'card_error' === $response_error->type ) {
+						$localized_message = isset( $localized_messages[ $response_error->code ] ) ? $localized_messages[ $response_error->code ] : $response_error->message;
 					} else {
-						$localized_message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
+						$localized_message = isset( $localized_messages[ $response_error->type ] ) ? $localized_messages[ $response_error->type ] : $response_error->message;
 					}
 
 					$order->add_order_note( $localized_message );
@@ -827,10 +873,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 				}
 
-				do_action( 'wc_gateway_stripe_process_payment', $response, $order );
+				do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
 
 				// Process valid response.
-				$this->process_response( $response, $order );
+				$this->process_response( $charge, $order );
 			} else {
 				$order->payment_complete();
 			}
@@ -932,5 +978,41 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		</tr>
 
 		<?php
+	}
+
+	public function prepare_source_from_intent( $user_id, $force_save_source = false ) {
+		// ToDo: This should either use or mimic WC_Stripe_Payment_Gateway::prepare_source().
+
+		if ( ! isset( $_POST['stripe_intent'] ) || empty( $_POST['stripe_intent'] ) ) { // wpcs: csrf ok.
+			throw new WC_Stripe_Exception( 'missing_intent_id', 'Missing intent ID' );
+		}
+
+		$intent_id     = wc_clean( $_POST['stripe_intent'] );     // wpcs: csrf ok.
+		$intent_object = $this->get_intent_object( $intent_id );
+
+		if ( 'requires_capture' !== $intent_object->status ) {
+			throw new WC_Stripe_Exception( print_r( $intent_object, true ), 'The payment intent is not expecting a capture.' );
+		}
+
+		$response = (object) array(
+			// 'token_id'      => $wc_token_id, // This was in place, investigate where it is used...
+			'customer'      => new WC_Stripe_Customer( $user_id ),
+			'source'        => $intent_object->source->id,
+			'source_object' => $intent_object->source,
+			'is_intent'     => true,
+			'intent_id'     => $intent_id,
+		);
+
+		return $response;
+	}
+
+	public function get_intent_object( $intent_id = '' ) {
+		$intent_object = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=source' );
+
+		if ( ! empty( $intent_object->error ) ) {
+			throw new WC_Stripe_Exception( print_r( $intent_object, true ), $intent_object->error->message );
+		}
+
+		return $intent_object;
 	}
 }

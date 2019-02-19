@@ -419,7 +419,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		WC_Stripe_Logger::log( 'Processing response: ' . print_r( $response, true ) );
 
 		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
-
 		$captured = ( isset( $response->captured ) && $response->captured ) ? 'yes' : 'no';
 
 		// Store charge data.
