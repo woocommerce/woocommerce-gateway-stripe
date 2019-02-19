@@ -800,13 +800,27 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 						'amount_to_capture' => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency ),
 					);
 					$response = WC_Stripe_API::request( $post_data, "payment_intents/{$prepared_source->intent_id}/capture" );
+
+					if ( ! empty( $response->error ) ) {
+						$response_error = $response->error;
+					} else {
+						// ToDo: Check whether chrges[] only contains a single charge.
+						$charge = $response->charges->data[0];
+					}
 				} else {
 					$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $prepared_source ) );
+
+					if ( ! empty( $response->error ) ) {
+						$response_error = $response->error;
+					} else {
+						// ToDo: Check whether chrges[] only contains a single charge.
+						$charge = $response;
+					}
 				}
 
-				if ( ! empty( $response->error ) ) {
+				if ( ! empty( $response_error ) ) {
 					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
-					if ( $this->is_no_such_customer_error( $response->error ) ) {
+					if ( $this->is_no_such_customer_error( $response_error ) ) {
 						if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 							delete_user_meta( $order->customer_user, '_stripe_customer_id' );
 							delete_post_meta( $order_id, '_stripe_customer_id' );
@@ -817,7 +831,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 						}
 					}
 
-					if ( $this->is_no_such_token_error( $response->error ) && $prepared_source->token_id ) {
+					if ( $this->is_no_such_token_error( $response_error ) && $prepared_source->token_id ) {
 						// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
 						$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
 						$wc_token->delete();
@@ -827,18 +841,18 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					}
 
 					// We want to retry.
-					if ( $this->is_retryable_error( $response->error ) ) {
+					if ( $this->is_retryable_error( $response_error ) ) {
 						if ( $retry ) {
 							// Don't do anymore retries after this.
 							if ( 5 <= $this->retry_interval ) {
-								return $this->process_payment( $order_id, false, $force_save_source, $response->error );
+								return $this->process_payment( $order_id, false, $force_save_source, $response_error );
 							}
 
 							sleep( $this->retry_interval );
 
 							$this->retry_interval++;
 
-							return $this->process_payment( $order_id, true, $force_save_source, $response->error );
+							return $this->process_payment( $order_id, true, $force_save_source, $response_error );
 						} else {
 							$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
 							$order->add_order_note( $localized_message );
@@ -848,10 +862,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 					$localized_messages = WC_Stripe_Helper::get_localized_messages();
 
-					if ( 'card_error' === $response->error->type ) {
-						$localized_message = isset( $localized_messages[ $response->error->code ] ) ? $localized_messages[ $response->error->code ] : $response->error->message;
+					if ( 'card_error' === $response_error->type ) {
+						$localized_message = isset( $localized_messages[ $response_error->code ] ) ? $localized_messages[ $response_error->code ] : $response_error->message;
 					} else {
-						$localized_message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
+						$localized_message = isset( $localized_messages[ $response_error->type ] ) ? $localized_messages[ $response_error->type ] : $response_error->message;
 					}
 
 					$order->add_order_note( $localized_message );
@@ -859,15 +873,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 				}
 
-				do_action( 'wc_gateway_stripe_process_payment', $response, $order );
+				do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
 
 				// Process valid response.
-				if ( 'payment_intent' === $response->object ) {
-					// ToDo: Check whether chrges[] only contains a single charge.
-					$this->process_response( $response->charges->data[0], $order );
-				} else {
-					$this->process_response( $response, $order );
-				}
+				$this->process_response( $charge, $order );
 			} else {
 				$order->payment_complete();
 			}
