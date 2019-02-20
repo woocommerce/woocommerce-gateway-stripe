@@ -58,10 +58,10 @@ class WC_Stripe_API {
 	 */
 	public static function get_stripe_api_version() {
 		if ( ! self::$stripe_api_version ) {
-			$options = get_option( 'stripe_api_version' );
+			$options = get_option( 'woocommerce_stripe_settings' );
 
-			if ( isset( $options['stripe_api_version'] ) ) {
-				self::set_api_version( $options['stripe_api_version'] );
+			if ( isset( $options['testmode'], $options['stripe_api_version'], $options['test_stripe_api_version'] ) ) {
+				self::set_api_version( 'yes' === $options['testmode'] ? $options['test_stripe_api_version'] : $options['stripe_api_version'] );
 			}
 		}
 		return self::$stripe_api_version;

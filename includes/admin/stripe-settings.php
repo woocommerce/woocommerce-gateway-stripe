@@ -55,6 +55,13 @@ return apply_filters(
 			'default'     => '',
 			'desc_tip'    => true,
 		),
+		'test_stripe_api_version'            => array(
+			'title'       => __( 'Test Stripe Api Version', 'woocommerce-gateway-stripe' ),
+			'type'        => 'text',
+			'description' => __( 'Set the api version that the plugin will use for test requests.', 'woocommerce-gateway-stripe' ),
+			'default'     => '2018-09-24',
+			'desc_tip'    => true,
+		),
 		'publishable_key'               => array(
 			'title'       => __( 'Live Publishable Key', 'woocommerce-gateway-stripe' ),
 			'type'        => 'password',
