@@ -69,6 +69,13 @@ return apply_filters(
 			'default'     => '',
 			'desc_tip'    => true,
 		),
+		'stripe_api_version'            => array(
+			'title'       => __( 'Stripe Api Version', 'woocommerce-gateway-stripe' ),
+			'type'        => 'text',
+			'description' => __( 'Set the api version that the plugin will use for requests.', 'woocommerce-gateway-stripe' ),
+			'default'     => '2018-09-24',
+			'desc_tip'    => true,
+		),
 		'inline_cc_form'                => array(
 			'title'       => __( 'Inline Credit Card Form', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',

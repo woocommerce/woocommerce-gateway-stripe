@@ -14,7 +14,6 @@ class WC_Stripe_API {
 	 * Stripe API Endpoint
 	 */
 	const ENDPOINT           = 'https://api.stripe.com/v1/';
-	const STRIPE_API_VERSION = '2018-09-24';
 
 	/**
 	 * Secret API Key.
@@ -43,6 +42,29 @@ class WC_Stripe_API {
 			}
 		}
 		return self::$secret_key;
+	}
+
+	/**
+	 * Set API version.
+	 * @param string $key
+	 */
+	public static function set_stripe_api_version( $stripe_api_version ) {
+		self::$stripe_api_version = $stripe_api_version;
+	}
+
+	/**
+	 * Get API version.
+	 * @return string
+	 */
+	public static function get_stripe_api_version() {
+		if ( ! self::$stripe_api_version ) {
+			$options = get_option( 'stripe_api_version' );
+
+			if ( isset( $options['stripe_api_version'] ) ) {
+				self::set_api_version( $options['stripe_api_version'] );
+			}
+		}
+		return self::$stripe_api_version;
 	}
 
 	/**
@@ -82,7 +104,7 @@ class WC_Stripe_API {
 			'woocommerce_stripe_request_headers',
 			array(
 				'Authorization'              => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
-				'Stripe-Version'             => self::STRIPE_API_VERSION,
+				'Stripe-Version'             => self::get_stripe_api_version(),
 				'User-Agent'                 => $app_info['name'] . '/' . $app_info['version'] . ' (' . $app_info['url'] . ')',
 				'X-Stripe-Client-User-Agent' => json_encode( $user_agent ),
 			)
