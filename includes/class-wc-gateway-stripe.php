@@ -310,7 +310,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '"
 			data-image="' . esc_attr( $this->stripe_checkout_image ) . '"
 			data-locale="' . esc_attr( apply_filters( 'wc_stripe_checkout_locale', $this->get_locale() ) ) . '"
-			data-three-d-secure="' . esc_attr( $this->three_d_secure ? 'true' : 'false' ) . /* ToDo: three_d_secure should be obsolete */ '"
 			data-allow-remember-me="' . esc_attr( apply_filters( 'wc_stripe_allow_remember_me', true ) ? 'true' : 'false' ) . '"
 		>';
 
@@ -573,7 +572,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '"
 			data-image="' . esc_attr( $this->stripe_checkout_image ) . '"
 			data-locale="' . esc_attr( apply_filters( 'wc_stripe_checkout_locale', $this->get_locale() ) ) . '"
-			data-three-d-secure="' . esc_attr( $this->three_d_secure ? 'true' : 'false' ) . '"
 			data-allow-remember-me="' . esc_attr( apply_filters( 'wc_stripe_allow_remember_me', true ) ? 'true' : 'false' ) . '">';
 		echo '<input type="hidden" name="order_id" value="' . esc_attr( $order_id ) . '" />';
 		echo '<input type="hidden" name="stripe_checkout_order" value="yes" />';
@@ -722,50 +720,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			if ( $order->get_total() > 0 ) {
 				// This will throw exception if not valid.
 				$this->validate_minimum_order_amount( $order );
-
-				/*
-				 * Check if card 3DS is required or optional with 3DS setting.
-				 * Will need to first create 3DS source and require redirection
-				 * for customer to login to their credit card company.
-				 * Note that if we need to save source, the original source must be first
-				 * attached to a customer in Stripe before it can be charged.
-				 */
-				if ( $this->is_3ds_required( $prepared_source->source_object ) ) {
-					$response = $this->create_3ds_source( $order, $prepared_source->source_object );
-
-					if ( ! empty( $response->error ) ) {
-						$localized_message = $response->error->message;
-
-						$order->add_order_note( $localized_message );
-
-						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
-					}
-
-					// Update order meta with 3DS source.
-					if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-						update_post_meta( $order_id, '_stripe_source_id', $response->id );
-					} else {
-						$order->update_meta_data( '_stripe_source_id', $response->id );
-						$order->save();
-					}
-
-					/*
-					 * Make sure after creating 3DS object it is in pending status
-					 * before redirecting.
-					 */
-					if ( 'pending' === $response->redirect->status ) {
-						WC_Stripe_Logger::log( 'Info: Redirecting to 3DS...' );
-
-						return array(
-							'result'   => 'success',
-							'redirect' => esc_url_raw( $response->redirect->url ),
-						);
-					} elseif ( 'not_required' === $response->redirect->status && 'chargeable' === $response->status ) {
-						// Override the original source object with 3DS.
-						$prepared_source->source_object = $response;
-						$prepared_source->source        = $response->id;
-					}
-				}
 
 				WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 

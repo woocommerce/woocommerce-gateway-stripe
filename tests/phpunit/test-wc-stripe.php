@@ -99,49 +99,4 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( $statement_descriptor4['expected'], WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor4['actual'] ) );
 	}
-
-	/**
-	 * Test if credit card is of type 3DS.
-	 */
-	public function test_is_3ds_card() {
-		$stripe = new WC_Gateway_Stripe();
-
-		$source = new stdClass();
-		$source->type = 'three_d_secure';
-
-		$this->assertEquals( true, $stripe->is_3ds_card( $source ) );
-
-		$source = new stdClass();
-		$source->type = 'card';
-
-		$this->assertEquals( false, $stripe->is_3ds_card( $source ) );
-	}
-
-	/**
-	 * Test if 3DS is required.
-	 */
-	public function test_is_3ds_required() {
-		$stripe = new WC_Gateway_Stripe();
-
-		$source = new stdClass();
-		$source->type = 'card';
-		$source->card = new stdClass();
-		$source->card->three_d_secure = 'required';
-
-		$this->assertEquals( true, $stripe->is_3ds_required( $source ) );
-
-		$source = new stdClass();
-		$source->type = 'card';
-		$source->card = new stdClass();
-		$source->card->three_d_secure = 'optional';
-
-		$this->assertEquals( false, $stripe->is_3ds_required( $source ) );
-
-		$source = new stdClass();
-		$source->type = 'card';
-		$source->card = new stdClass();
-		$source->card->three_d_secure = 'not_supported';
-
-		$this->assertEquals( false, $stripe->is_3ds_required( $source ) );
-	}
 }
