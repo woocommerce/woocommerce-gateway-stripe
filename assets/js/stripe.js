@@ -588,8 +588,6 @@ jQuery( function( $ ) {
 			wc_stripe_form.reset();
 			wc_stripe_form.form.append( "<input type='hidden' class='stripe-intent' name='stripe_intent' value='" + intent.id + "'/>" );
 
-			// ToDo: Check for `form#add_payment_method` and remove event listeners
-
 			wc_stripe_form.form.submit();
 		},
 
