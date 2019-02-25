@@ -496,15 +496,15 @@ jQuery( function( $ ) {
 
 			if ( 'card' === source_type ) {
 				wc_stripe_form.getIntent()
-					.catch( function( error ) {
-						$( document.body ).trigger( 'stripeError', { error: error } );
-					} )
 					.then( function( intent ) {
 						return stripe.handleCardPayment( intent.client_secret, stripe_card, {
 							source_data: extra_details,
 						} );
 					} )
-					.then( wc_stripe_form.intentResponse );
+					.then( wc_stripe_form.intentResponse )
+					.catch( function( error ) {
+						$( document.body ).trigger( 'stripeError', { error: error } );
+					} );
 				;
 			} else {
 				switch ( source_type ) {
