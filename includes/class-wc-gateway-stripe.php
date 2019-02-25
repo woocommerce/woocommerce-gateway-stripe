@@ -45,13 +45,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public $stripe_checkout_description;
 
 	/**
-	 * Require 3D Secure enabled
-	 *
-	 * @var bool
-	 */
-	public $three_d_secure;
-
-	/**
 	 * Credit card image
 	 *
 	 * @var string
@@ -149,7 +142,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$this->inline_cc_form              = 'yes' === $this->get_option( 'inline_cc_form' );
 		$this->capture                     = 'yes' === $this->get_option( 'capture', 'yes' );
 		$this->statement_descriptor        = WC_Stripe_Helper::clean_statement_descriptor( $this->get_option( 'statement_descriptor' ) );
-		$this->three_d_secure              = 'yes' === $this->get_option( 'three_d_secure' );
 		$this->stripe_checkout             = 'yes' === $this->get_option( 'stripe_checkout' );
 		$this->stripe_checkout_image       = $this->get_option( 'stripe_checkout_image', '' );
 		$this->stripe_checkout_description = $this->get_option( 'stripe_checkout_description' );
