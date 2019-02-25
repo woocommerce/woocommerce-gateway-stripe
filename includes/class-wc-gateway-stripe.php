@@ -661,7 +661,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @since 4.1.0
 	 * @return bool
 	 */
-	public function maybe_redirect_stripe_checkout() {
+	public function shoult_redirect_to_stripe_checkout() {
 		$is_payment_request = ( isset( $_POST ) && isset( $_POST['payment_request_type'] ) );
 
 		return (
@@ -670,6 +670,109 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			! $this->is_using_saved_payment_method() &&
 			! is_wc_endpoint_url( 'order-pay' ) &&
 			! $is_payment_request
+		);
+	}
+
+	/**
+	 * Generates the `process_payment` redirect to Stripe Checkout.
+	 *
+	 * @since 5.0.0
+	 * @param WC_Order $order The order that needs a payment.
+	 * @return array
+	 */
+	public function redirect_to_stripe_checkout( $order ) {
+		WC_Stripe_Logger::log( sprintf( 'Redirecting to Stripe Checkout page for order %s', $order->get_id() ) );
+
+		return array(
+			'result'   => 'success',
+			'redirect' => $order->get_checkout_payment_url( true ),
+		);
+	}
+
+	/**
+	 * Creates a new WC_Stripe_Customer if the visitor chooses to.
+	 *
+	 * @since 5.0
+	 * @param WC_Order $order The order that is being created.
+	 */
+	public function maybe_create_customer( $order ) {
+		// This comes from the create account checkbox in the checkout page.
+		if ( empty( $_POST['createaccount'] ) ) {
+			return;
+		}
+
+		$new_customer_id     = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->customer_user : $order->get_customer_id();
+		$new_stripe_customer = new WC_Stripe_Customer( $new_customer_id );
+		$new_stripe_customer->create_customer();
+	}
+
+	/**
+	 * Checks if a source object represents a prepaid credit card and
+	 * throws an exception if it is one, but that is not allowed.
+	 *
+	 * @since 5.0.0
+	 * @param stdClass $prepared_source The object with source details.
+	 * @throws WC_Stripe_Exception
+	 */
+	public function maybe_disallow_prepaid_card( $prepared_source ) {
+		// Check if we don't allow prepaid credit cards.
+		if ( apply_filters( 'wc_stripe_allow_prepaid_card', true ) || ! $this->is_prepaid_card( $prepared_source->source_object ) ) {
+			return;
+		}
+
+		$localized_message = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charged. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
+		throw new WC_Stripe_Exception( print_r( $prepared_source->source_object, true ), $localized_message );
+	}
+
+	public function check_source( $prepared_source ) {
+		if ( ! empty( $prepared_source->source ) ) {
+			return;
+		}
+
+		$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
+		throw new WC_Stripe_Exception( print_r( $prepared_source, true ), $localized_message );
+	}
+
+	/**
+	 * Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
+	 *
+	 * @since 5.0
+	 * @param stdClass $error The error that was returned from Stripe's API.
+	 * @param WC_Order $order The order those payment is being processed.
+	 */
+	public function maybe_remove_non_existent_customer( $error, $order ) {
+		if ( ! $this->is_no_such_customer_error( $error ) ) {
+			return false;
+		}
+
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+			delete_user_meta( $order->customer_user, '_stripe_customer_id' );
+			delete_post_meta( $order->get_id(), '_stripe_customer_id' );
+		} else {
+			delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
+			$order->delete_meta_data( '_stripe_customer_id' );
+			$order->save();
+		}
+
+		return true;
+	}
+
+	/**
+	 * Completes an order without a positive value.
+	 *
+	 * @param WC_Order $order The order to complete.
+	 * @return array          Redirection data for `process_payment`.
+	 */
+	public function complete_free_order( $order ) {
+		$order->payment_complete();
+
+		// Remove cart.
+		WC()->cart->empty_cart();
+
+		// Return thank you page redirect.
+		return array(
+			'result'   => 'success',
+			'redirect' => $this->get_return_url( $order ),
 		);
 	}
 
@@ -691,125 +794,61 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		try {
 			$order = wc_get_order( $order_id );
 
-			if ( $this->maybe_redirect_stripe_checkout() ) {
-				WC_Stripe_Logger::log( sprintf( 'Redirecting to Stripe Checkout page for order %s', $order_id ) );
-
-				return array(
-					'result'   => 'success',
-					'redirect' => $order->get_checkout_payment_url( true ),
-				);
+			if ( $this->shoult_redirect_to_stripe_checkout() ) {
+				return $this->redirect_to_stripe_checkout( $order );
 			}
 
+			// ToDo: `process_pre_order` saves the source to the order for a later payment.
+			// This would not work well with PaymentIntents.
 			if ( $this->maybe_process_pre_orders( $order_id ) ) {
 				return $this->pre_orders->process_pre_order( $order_id );
 			}
 
-			// This comes from the create account checkbox in the checkout page.
-			$create_account = ! empty( $_POST['createaccount'] ) ? true : false;
+			$this->maybe_create_customer( $order );
 
-			if ( $create_account ) {
-				$new_customer_id     = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->customer_user : $order->get_customer_id();
-				$new_stripe_customer = new WC_Stripe_Customer( $new_customer_id );
-				$new_stripe_customer->create_customer();
+			if ( isset( $_POST['stripe_intent'] ) ) {
+				$prepared_source = $this->prepare_source_from_intent( get_current_user_id(), $force_save_source );
+			} else {
+				$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source );
 			}
 
-			// ToDo: Remove all direct access to a source in favor of intents.
-			$prepared_source = $this->prepare_source_from_intent( get_current_user_id(), $force_save_source );
-
-			// Check if we don't allow prepaid credit cards.
-			if ( ! apply_filters( 'wc_stripe_allow_prepaid_card', true ) && $this->is_prepaid_card( $prepared_source->source_object ) ) {
-				$localized_message = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charged. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
-				throw new WC_Stripe_Exception( print_r( $prepared_source->source_object, true ), $localized_message );
-			}
-
-			if ( empty( $prepared_source->source ) ) {
-				$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
-				throw new WC_Stripe_Exception( print_r( $prepared_source, true ), $localized_message );
-			}
-
+			$this->maybe_disallow_prepaid_card( $prepared_source );
+			$this->check_source( $prepared_source );
 			$this->save_source_to_order( $order, $prepared_source );
 
-			// Result from Stripe API request.
-			$response = null;
+			if ( 0 <= $order->get_total() ) {
+				return $this->complete_free_order( $order );
+			}
 
-			if ( $order->get_total() > 0 ) {
-				// This will throw exception if not valid.
-				$this->validate_minimum_order_amount( $order );
+			// This will throw exception if not valid.
+			$this->validate_minimum_order_amount( $order );
 
-				WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
+			WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
-				// Make the request.
-				$request_url       = "payment_intents/{$prepared_source->intent_id}/capture";
-				$amount_to_capture = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
-				$response          = WC_Stripe_API::request( array(
-					'amount_to_capture' => $amount_to_capture,
-				), $request_url );
+			// Make the request.
+			if ( $prepared_source->is_intent ) {
+				$response = $this->capture_intent( $prepared_source, $order );
+			} else {
+				$response = $this->charge_source( $prepared_source, $order, $previous_error );
+			}
 
-				if ( ! empty( $response->error ) ) {
-					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
-					if ( $this->is_no_such_customer_error( $response->error ) ) {
-						if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-							delete_user_meta( $order->customer_user, '_stripe_customer_id' );
-							delete_post_meta( $order_id, '_stripe_customer_id' );
-						} else {
-							delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
-							$order->delete_meta_data( '_stripe_customer_id' );
-							$order->save();
-						}
-					}
-
-					if ( $this->is_no_such_token_error( $response->error ) && $prepared_source->token_id ) {
-						// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
-						$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
-						$wc_token->delete();
-						$localized_message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
-						$order->add_order_note( $localized_message );
-						throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
-					}
-
-					// We want to retry.
-					if ( $this->is_retryable_error( $response->error ) ) {
-						if ( $retry ) {
-							// Don't do anymore retries after this.
-							if ( 5 <= $this->retry_interval ) {
-								return $this->process_payment( $order_id, false, $force_save_source, $response->error );
-							}
-
-							sleep( $this->retry_interval );
-
-							$this->retry_interval++;
-
-							return $this->process_payment( $order_id, true, $force_save_source, $response->error );
-						} else {
-							$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
-							$order->add_order_note( $localized_message );
-							throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
-						}
-					}
-
-					$localized_messages = WC_Stripe_Helper::get_localized_messages();
-
-					if ( 'card_error' === $response->error->type ) {
-						$localized_message = isset( $localized_messages[ $response->error->code ] ) ? $localized_messages[ $response->error->code ] : $response->error->message;
-					} else {
-						$localized_message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
-					}
-
-					$order->add_order_note( $localized_message );
-
-					throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+			if ( ! empty( $response->error ) ) {
+				if ( ! $prepared_source->is_intent ) {
+					$this->maybe_remove_non_existent_customer( $response->error, $order );
 				}
 
-				// ToDo: Check whether chrges[] only contains a single charge.
-				$charge = $response->charges->data[0];
+				// We want to retry.
+				if ( $this->is_retryable_error( $response->error ) ) {
+					return $this->retry_after_error( $response, $order, $retry, $force_save_source, $previous_error );
+				}
 
-				do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
-
-				// Process valid response.
-				$this->process_response( $charge, $order );
-			} else {
-				$order->payment_complete();
+				$this->throw_localized_message( $response, $order );
 			}
+
+			do_action( 'wc_gateway_stripe_process_payment', $response, $order );
+
+			// Process valid response.
+			$this->process_response( $response, $order );
 
 			// Remove cart.
 			WC()->cart->empty_cart();
@@ -910,6 +949,26 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		<?php
 	}
 
+    /**
+     * Charges a source based on an order.
+     *
+     * @param  stdClass $prepared_source An object with everything, related to the source.
+     * @param  WC_Order $order           The order that is being paid for.
+     * @param  mixed    $previous_error  Any error message from a previous request.
+     * @return stdClass                  The response from the Stripe API, a charge on success.
+     */
+    public function charge_source( $prepared_source, $order, $previous_error ) {
+        /**
+         * If we're doing a retry and source is chargeable, we need to pass
+         * a different idempotency key and retry for success.
+         */
+        if ( $this->need_update_idempotency_key( $prepared_source->source_object, $previous_error ) ) {
+            add_filter( 'wc_stripe_idempotency_key', array( $this, 'change_idempotency_key' ), 10, 2 );
+        }
+
+        return WC_Stripe_API::request( $this->generate_payment_request( $order, $prepared_source ) );
+    }
+
 	public function prepare_source_from_intent( $user_id, $force_save_source = false ) {
 		// ToDo: This should either use or mimic WC_Stripe_Payment_Gateway::prepare_source().
 
@@ -976,4 +1035,80 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		</div>
 		<?php
 	}
+
+	/**
+	 * Captures a payment intent.
+	 *
+	 * @since 5.0.0
+	 * @param stdClass $prepared_source The already fetched source.
+	 * @param WC_Order $order           The order whose amount is needed.
+	 * @return stdClass                 A response from the API.
+	 */
+	public function capture_intent( $prepared_source, $order ) {
+		$request_url       = "payment_intents/{$prepared_source->intent_id}/capture";
+		$amount_to_capture = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
+		$args              = array(
+			'amount_to_capture' => $amount_to_capture,
+		);
+
+		$response = WC_Stripe_API::request( $args, $request_url );
+
+		if ( $response->error ) {
+			return $response;
+		}
+
+		// ToDo: Check whether chrges[] only contains a single charge.
+		return $response->charges->data[0];
+	}
+
+    /**
+     * Generates a localized message for an error, adds it as a note and throws it.
+     *
+     * @param  stdClass $response  The response from the Stripe API.
+     * @param  WC_Order $order     The order to add a note to.
+     * @throws WC_Stripe_Exception An exception with the right message.
+     */
+    public function throw_localized_message( $response, $order ) {
+        $localized_messages = WC_Stripe_Helper::get_localized_messages();
+
+        if ( 'card_error' === $response->error->type ) {
+            $localized_message = isset( $localized_messages[ $response->error->code ] ) ? $localized_messages[ $response->error->code ] : $response->error->message;
+        } else {
+            $localized_message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
+        }
+
+        $order->add_order_note( $localized_message );
+
+        throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+	}
+
+    /**
+     * Retries the payment process once an error occured.
+     *
+     * @since 5.0.0
+     * @param stdClass $response          The response from the Stripe API.
+     * @param WC_Order $order             An order that is being paid for.
+     * @param bool     $retry             A flag that indicates whether another retry should be attempted.
+     * @param bool     $force_save_source Force save the payment source.
+	 * @param mixed    $previous_error Any error message from previous request.
+     * @throws WC_Stripe_Exception        If the payment is not accepted.
+     * @return array|void
+     */
+    public function retry_after_error( $response, $order, $retry, $force_save_source, $previous_error ) {
+        if ( ! $retry ) {
+            $localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
+            $order->add_order_note( $localized_message );
+            throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+        }
+
+        // Don't do anymore retries after this.
+        if ( 5 <= $this->retry_interval ) {
+            return $this->process_payment( $order->get_id(), false, $force_save_source, $response->error, $previous_error );
+        }
+
+        sleep( $this->retry_interval );
+        $this->retry_interval++;
+
+        return $this->process_payment( $order->get_id(), true, $force_save_source, $response->error, $previous_error );
+    }
 }
