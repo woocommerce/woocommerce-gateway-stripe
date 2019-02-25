@@ -188,6 +188,9 @@ jQuery( function( $ ) {
 				$( document.body ).trigger( 'wc-credit-card-form-init' );
 			}
 
+			// Stripe Checkout.
+			this.stripe_checkout_submit = false;
+
 			// checkout page
 			if ( $( 'form.woocommerce-checkout' ).length ) {
 				this.form = $( 'form.woocommerce-checkout' );
@@ -239,6 +242,13 @@ jQuery( function( $ ) {
 			);
 
 			wc_stripe_form.createElements();
+
+			if ( 'yes' === wc_stripe_params.is_stripe_checkout ) {
+				$( document.body ).on( 'click', '.wc-stripe-checkout-button', function() {
+					wc_stripe_form.openModal();
+					return false;
+				} );
+			}
 		},
 
 		/**
@@ -403,6 +413,28 @@ jQuery( function( $ ) {
 		},
 
 		/**
+		 * Checks whether Stripe is chosen and Checkout is enabled to determine
+		 * if the Stripe Checkout modal should be used instead of inline CC fields.
+		 *
+		 * @return {boolean}
+		 */
+		isStripeModalNeeded: function() {
+			var token = wc_stripe_form.form.find( 'input.stripe_token' );
+
+			// If this is a stripe submission (after modal) and token exists, allow submit.
+			if ( wc_stripe_form.stripe_submit && token ) {
+				return false;
+			}
+
+			// Don't affect submission if modal is not needed.
+			if ( ! wc_stripe_form.isStripeChosen() ) {
+				return false;
+			}
+
+			return true;
+		},
+
+		/**
 		 * Blocks payment forms with an overlay while being submitted.
 		 */
 		block: function() {
@@ -431,6 +463,66 @@ jQuery( function( $ ) {
 		 */
 		getSelectedPaymentElement: function() {
 			return $( '.payment_methods input[name="payment_method"]:checked' );
+		},
+
+		/**
+		 * Opens the Stripe Checkout modal.
+		 */
+		openModal: function() {
+			// Capture submittal and open stripecheckout
+			var $form = wc_stripe_form.form,
+				$data = $( '#stripe-payment-data' );
+
+			wc_stripe_form.reset();
+
+			var token_action = function( res ) {
+				$form.find( 'input.stripe_source' ).remove();
+
+				/* Since source was introduced in 4.0. We need to
+				 * convert the token into a source.
+				 */
+				if ( 'token' === res.object ) {
+					stripe.createSource( {
+						type: 'card',
+						token: res.id,
+					} ).then( wc_stripe_form.sourceResponse );
+				} else if ( 'source' === res.object ) {
+					var response = { source: res };
+					wc_stripe_form.sourceResponse( response );
+				}
+			};
+
+			StripeCheckout.open( {
+				key               : wc_stripe_params.key,
+				billingAddress    : $data.data( 'billing-address' ),
+				zipCode           : $data.data( 'verify-zip' ),
+				amount            : $data.data( 'amount' ),
+				name              : $data.data( 'name' ),
+				description       : $data.data( 'description' ),
+				currency          : $data.data( 'currency' ),
+				image             : $data.data( 'image' ),
+				locale            : $data.data( 'locale' ),
+				email             : $( '#billing_email' ).val() || $data.data( 'email' ),
+				panelLabel        : $data.data( 'panel-label' ),
+				allowRememberMe   : $data.data( 'allow-remember-me' ),
+				token             : token_action,
+				closed            : wc_stripe_form.onClose()
+			} );
+		},
+
+		/**
+		 * Resets the Stripe Checkout modal.
+		 */
+		resetModal: function() {
+			wc_stripe_form.reset();
+			wc_stripe_form.stripe_checkout_submit = false;
+		},
+
+		/**
+		 * Closes the Stripe Checkout modal.
+		 */
+		onClose: function() {
+			wc_stripe_form.unblock();
 		},
 
 		/**
@@ -510,7 +602,7 @@ jQuery( function( $ ) {
 				extra_details.mandate  = { notification_method: wc_stripe_params.sepa_mandate_notification };
 				extra_details.type     = 'sepa_debit';
 
-				return stripe.createSource( iban, extra_details ).then( wc_stripe_form.sepaDirectDebitResponse );
+				return stripe.createSource( iban, extra_details ).then( wc_stripe_form.sourceResponse );
 			}
 
 			// Handle card payments.
@@ -532,7 +624,7 @@ jQuery( function( $ ) {
 		 *
 		 * @param {Object} response The `stripe.createSource` response.
 		 */
-		sepaDirectDebitResponse: function( response ) {
+		sourceResponse: function( response ) {
 			if ( response.error ) {
 				return $( document.body ).trigger( 'stripeError', response );
 			}
@@ -582,6 +674,16 @@ jQuery( function( $ ) {
 			// If a source, token, or an intent is already in place, submit the form as usual.
 			if ( wc_stripe_form.isStripeSaveCardChosen() || wc_stripe_form.hasSource() || wc_stripe_form.hasToken() || wc_stripe_form.hasIntent() ) {
 				return true;
+			}
+
+			// Open the Stripe Checkout modal.
+			if ( 'yes' === wc_stripe_params.is_stripe_checkout && wc_stripe_form.isStripeModalNeeded() && wc_stripe_form.isStripeCardChosen() ) {
+				if ( 'yes' === wc_stripe_params.is_checkout ) {
+					return true;
+				} else {
+					wc_stripe_form.openModal();
+					return false;
+				}
 			}
 
 			// For methods that needs redirect, we will create the source server side so we can obtain the order ID.
