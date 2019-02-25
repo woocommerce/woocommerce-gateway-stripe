@@ -641,7 +641,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		if ( WC_Stripe_Helper::is_pre_orders_exists() && $this->pre_orders->is_pre_order( $order_id ) && WC_Pre_Orders_Order::order_requires_payment_tokenization( $order_id ) ) {
 			$result = $this->pre_orders->process_pre_order( $order_id );
 		} else {
-			// ToDo: Do not merge this PR if Stripe checkout remains in place.
 			$result = $this->process_payment( $order_id );
 		}
 
@@ -795,7 +794,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param mix $previous_error Any error message from previous request.
 	 *
 	 * @throws Exception If payment will not be accepted.
-	 *
 	 * @return array|void
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false ) {
@@ -807,7 +805,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			}
 
 			// ToDo: `process_pre_order` saves the source to the order for a later payment.
-			// This would not work well with PaymentIntents.
+			// This might not work well with PaymentIntents.
 			if ( $this->maybe_process_pre_orders( $order_id ) ) {
 				return $this->pre_orders->process_pre_order( $order_id );
 			}
@@ -959,7 +957,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
     /**
      * Charges a source based on an order.
-     *
+	 *
 	 * @since 5.0.0
      * @param  object   $prepared_source An object with everything, related to the source.
      * @param  WC_Order $order           The order that is being paid for.
