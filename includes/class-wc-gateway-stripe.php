@@ -294,24 +294,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$pay_button_text = '';
 		}
 
-		/**
-		 * Start a payment intent.
-		 *
-		 * @see https://stripe.com/docs/payments/payment-intents/quickstart
-		 */
-		$request = array(
-			'amount'               => WC_Stripe_Helper::get_stripe_amount( $total ),
-			'capture_method'       => 'manual',
-			'currency'             => get_woocommerce_currency(),
-			'allowed_source_types' => array(
-				'card',
-			),
-		);
-
-		// ToDo: Extract this into an ajax call that is performed just before `handleCardPayment` in JS.
-		$intent        = WC_Stripe_API::request( $request, 'payment_intents' );
-		$client_secret = $intent->client_secret;
-
 		ob_start();
 
 		echo '<div
@@ -330,7 +312,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			data-locale="' . esc_attr( apply_filters( 'wc_stripe_checkout_locale', $this->get_locale() ) ) . '"
 			data-three-d-secure="' . esc_attr( $this->three_d_secure ? 'true' : 'false' ) . /* ToDo: three_d_secure should be obsolete */ '"
 			data-allow-remember-me="' . esc_attr( apply_filters( 'wc_stripe_allow_remember_me', true ) ? 'true' : 'false' ) . '"
-			data-client-secret="' . esc_attr( $client_secret ) . '"
 		>';
 
 		if ( $this->testmode ) {
@@ -507,6 +488,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$stripe_params['no_prepaid_card_msg']                     = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charged. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
 		$stripe_params['no_sepa_owner_msg']                       = __( 'Please enter your IBAN account name.', 'woocommerce-gateway-stripe' );
 		$stripe_params['no_sepa_iban_msg']                        = __( 'Please enter your IBAN account number.', 'woocommerce-gateway-stripe' );
+		$stripe_params['payment_intent_error']                    = __( 'We couldn\'t initiate the payment. Please try again.', 'woocommerce-gateway-stripe' );
 		$stripe_params['sepa_mandate_notification']               = apply_filters( 'wc_stripe_sepa_mandate_notification', 'email' );
 		$stripe_params['allow_prepaid_card']                      = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
 		$stripe_params['inline_cc_form']                          = $this->inline_cc_form ? 'yes' : 'no';
@@ -1015,5 +997,36 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $intent_object;
+	}
+
+	/**
+	 * Prepares and retrieves a new PaymentIntent from Stripe's API.
+	 *
+	 * @see https://stripe.com/docs/payments/payment-intents/quickstart
+	 * @return array An array with the intent `id` and `client_secret`.
+	 */
+	public function get_intent_and_secret() {
+		$total = WC()->cart->total;
+
+		if ( empty( WC()->cart->get_cart_contents() ) ) {
+			$message = __( 'Your cart is empty.', 'woocommerce-gateway-stripe' );
+			throw new WC_Stripe_Exception( 'empty_cart', $message );
+		}
+
+		$request = array(
+			'amount'               => WC_Stripe_Helper::get_stripe_amount( $total ),
+			'capture_method'       => 'manual',
+			'currency'             => get_woocommerce_currency(),
+			'allowed_source_types' => array(
+				'card',
+			),
+		);
+
+		$intent = WC_Stripe_API::request( $request, 'payment_intents' );
+
+		return array(
+			'id'            => $intent->id,
+			'client_secret' => $intent->client_secret,
+		);
 	}
 }
