@@ -24,6 +24,8 @@ jQuery( function( $ ) {
 	 * Object to handle Stripe elements payment form.
 	 */
 	var wc_stripe_form = {
+		paymentIntent: null,
+
 		/**
 		 * Get WC AJAX endpoint URL.
 		 *
@@ -466,8 +468,7 @@ jQuery( function( $ ) {
 
 		createSource: function() {
 			var extra_details = wc_stripe_form.getOwnerDetails(),
-				source_type   = 'card',
-				client_secret = $( '#stripe-payment-data' ).data( 'client-secret' );
+				source_type   = 'card';
 
 			if ( wc_stripe_form.isBancontactChosen() ) {
 				source_type = 'bancontact';
@@ -494,10 +495,17 @@ jQuery( function( $ ) {
 			}
 
 			if ( 'card' === source_type ) {
-				stripe.handleCardPayment( client_secret, stripe_card, {
-					source_data: extra_details,
-				} )
-				.then( wc_stripe_form.intentResponse );
+				wc_stripe_form.getIntent()
+					.then( function( intent ) {
+						return stripe.handleCardPayment( intent.client_secret, stripe_card, {
+							source_data: extra_details,
+						} );
+					} )
+					.then( wc_stripe_form.intentResponse )
+					.catch( function( error ) {
+						$( document.body ).trigger( 'stripeError', { error: error } );
+					} );
+				;
 			} else {
 				switch ( source_type ) {
 					case 'bancontact':
@@ -778,7 +786,40 @@ jQuery( function( $ ) {
 
 			$( document.body ).trigger( 'checkout_error' );
 			wc_stripe_form.unblock();
-		}
+		},
+
+		/**
+		 * Queries the server for a PaymentIntent.
+		 *
+		 * @return {Promise} A promise that resolves to a payment intent.
+		 */
+		getIntent: function() {
+			return new Promise( function( resolve, reject ) {
+				if ( wc_stripe_form.paymentIntent ) {
+					return resolve( wc_stripe_form.paymentIntent );
+				}
+
+				$.ajax( {
+					url: wc_stripe_form.getAjaxURL( 'create_intent' ),
+					type: 'post',
+					dataType: 'json',
+					success: function( result ) {
+						if ( result.error ) {
+							reject( result.error );
+						}
+
+						wc_stripe_form.paymentIntent = result;
+						resolve( result );
+					},
+					error: function() {
+						reject( {
+							code   : 'ajax_failed',
+							message: wc_stripe_params.payment_intent_error,
+						} );
+					},
+				} );
+			} );
+		},
 	};
 
 	wc_stripe_form.init();
