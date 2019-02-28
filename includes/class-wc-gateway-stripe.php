@@ -660,7 +660,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @since 4.1.0
 	 * @return bool
 	 */
-	public function shoult_redirect_to_stripe_checkout() {
+	public function should_redirect_to_stripe_checkout() {
 		$is_payment_request = ( isset( $_POST ) && isset( $_POST['payment_request_type'] ) );
 
 		return (
