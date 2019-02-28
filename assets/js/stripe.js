@@ -603,8 +603,8 @@ jQuery( function( $ ) {
 		/**
 		 * Handles responses, based on source object.
 		 *
-		 * After the switch to payment intents in {PAYMENT_INTENTS_VERSION} this method
-		 * is only applicable to SEPA Direct Debit payments, as cards are handled by
+		 * After the switch to payment intents in 4.2.0 this method is only applicable to
+		 * SEPA Direct Debit payments and the Stripe Checkout modal, as cards are handled by
 		 * intents and all other payment methods require a redirect to an external portal.
 		 *
 		 * @param {Object} response The `stripe.createSource` response.
@@ -615,7 +615,13 @@ jQuery( function( $ ) {
 			}
 
 			wc_stripe_form.reset();
-			wc_stripe_form.addHiddenInput( 'source', response.source.id );
+
+			wc_stripe_form.form.append(
+				$( '<input type="hidden" />' )
+					.addClass( 'stripe-source' )
+					.attr( 'name', 'stripe_source' )
+					.val( response.source.id )
+			);
 
 			if ( $( 'form#add_payment_method' ).length ) {
 				$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
@@ -635,7 +641,13 @@ jQuery( function( $ ) {
 			}
 
 			wc_stripe_form.reset();
-			wc_stripe_form.addHiddenInput( 'intent', response.paymentIntent.id );
+
+			wc_stripe_form.form.append(
+				$( '<input type="hidden" />' )
+					.addClass( 'stripe-intent' )
+					.attr( 'name', 'stripe_intent' )
+					.val( response.paymentIntent.id )
+			);
 
 			// ToDo: Check for `form#add_payment_method` and remove event listeners
 
@@ -728,23 +740,6 @@ jQuery( function( $ ) {
 		 */
 		reset: function() {
 			$( '.wc-stripe-error, .stripe-source, .stripe-intent' ).remove();
-		},
-
-		/**
-		 * Adds a hidden input with the ID of a payment intent or source.
-		 *
-		 * @param {string} type  The type of value that is being added to the form, ex. `source`.
-		 * @param {string} value The ID of the source/payment intent.
-		 */
-		addHiddenInput: function( type, value ) {
-			$( '.stripe-source, .stripe-intent' ).remove();
-
-			wc_stripe_form.form.append(
-				$( '<input type="hidden" />' )
-					.addClass( 'stripe-' + type )
-					.attr( 'name', 'stripe_' + type )
-					.val( value )
-			);
 		},
 
 		/**
