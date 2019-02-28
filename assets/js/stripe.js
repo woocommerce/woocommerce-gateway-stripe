@@ -378,18 +378,6 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Checks if a legacy token ID is present as a hidden input.
-		 *
-		 * ToDo: Check whether such inputs would appear from PHP and either
-		 * remove this check or make sure that the needed PHP logic is in place.
-		 *
-		 * @return {boolean}
-		 */
-		hasToken: function() {
-			return 0 < $( 'input.stripe_token' ).length;
-		},
-
-		/**
 		 * Checks whether a payment intent ID is present as a hidden input.
 		 * Only used in combination with credit cards.
 		 *
@@ -419,10 +407,7 @@ jQuery( function( $ ) {
 		 * @return {boolean}
 		 */
 		isStripeModalNeeded: function() {
-			var token = wc_stripe_form.form.find( 'input.stripe_token' );
-
-			// If this is a stripe submission (after modal) and token exists, allow submit.
-			if ( wc_stripe_form.stripe_submit && token ) {
+			if ( 'yes' !== wc_stripe_params.is_stripe_checkout ) {
 				return false;
 			}
 
@@ -671,13 +656,13 @@ jQuery( function( $ ) {
 			 * ToDo: The logic here was restructured a bit, make sure it still works well.
 			 */
 
-			// If a source, token, or an intent is already in place, submit the form as usual.
-			if ( wc_stripe_form.isStripeSaveCardChosen() || wc_stripe_form.hasSource() || wc_stripe_form.hasToken() || wc_stripe_form.hasIntent() ) {
+			// If a source, or an intent is already in place, submit the form as usual.
+			if ( wc_stripe_form.isStripeSaveCardChosen() || wc_stripe_form.hasSource() || wc_stripe_form.hasIntent() ) {
 				return true;
 			}
 
 			// Open the Stripe Checkout modal.
-			if ( 'yes' === wc_stripe_params.is_stripe_checkout && wc_stripe_form.isStripeModalNeeded() && wc_stripe_form.isStripeCardChosen() ) {
+			if ( wc_stripe_form.isStripeModalNeeded() && wc_stripe_form.isStripeCardChosen() ) {
 				if ( 'yes' === wc_stripe_params.is_checkout ) {
 					return true;
 				} else {
@@ -732,7 +717,7 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * If a new credit card is entered, reset sources, tokens, and intents.
+		 * If a new credit card is entered, reset sources, and intents.
 		 */
 		onCCFormChange: function() {
 			wc_stripe_form.reset();
@@ -742,7 +727,7 @@ jQuery( function( $ ) {
 		 * Removes all Stripe errors and hidden fields with IDs from the form.
 		 */
 		reset: function() {
-			$( '.wc-stripe-error, .stripe-source, .stripe_token, .stripe-intent' ).remove();
+			$( '.wc-stripe-error, .stripe-source, .stripe-intent' ).remove();
 		},
 
 		/**
