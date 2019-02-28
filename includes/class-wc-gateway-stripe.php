@@ -800,7 +800,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		try {
 			$order = wc_get_order( $order_id );
 
-			if ( $this->shoult_redirect_to_stripe_checkout() ) {
+			if ( $this->should_redirect_to_stripe_checkout() ) {
 				return $this->redirect_to_stripe_checkout( $order );
 			}
 
