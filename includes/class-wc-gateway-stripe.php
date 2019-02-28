@@ -675,7 +675,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Generates the `process_payment` redirect to Stripe Checkout.
 	 *
-	 * @since 5.0.0
+	 * @since 4.2.0
 	 * @param WC_Order $order The order that needs a payment.
 	 * @return array
 	 */
@@ -691,7 +691,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Creates a new WC_Stripe_Customer if the visitor chooses to.
 	 *
-	 * @since 5.0.0
+	 * @since 4.2.0
 	 * @param WC_Order $order The order that is being created.
 	 */
 	public function maybe_create_customer( $order ) {
@@ -709,7 +709,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Checks if a source object represents a prepaid credit card and
 	 * throws an exception if it is one, but that is not allowed.
 	 *
-	 * @since 5.0.0
+	 * @since 4.2.0
 	 * @param object   $prepared_source The object with source details.
 	 * @throws WC_Stripe_Exception
 	 */
@@ -726,7 +726,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Checks whether a source exists.
 	 *
-	 * @since 5.0.0
+	 * @since 4.2.0
 	 * @param  object $prepared_source The source that should be verified.
 	 * @throws WC_Stripe_Exception     An exception if the source ID is missing.
 	 */
@@ -742,7 +742,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 	 *
-	 * @since 5.0.0
+	 * @since 4.2.0
 	 * @param object   $error The error that was returned from Stripe's API.
 	 * @param WC_Order $order The order those payment is being processed.
 	 */
@@ -766,7 +766,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Completes an order without a positive value.
 	 *
-	 * @since 5.0.0
+	 * @since 4.2.0
 	 * @param WC_Order $order The order to complete.
 	 * @return array          Redirection data for `process_payment`.
 	 */
@@ -958,7 +958,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
     /**
      * Charges a source based on an order.
 	 *
-	 * @since 5.0.0
+	 * @since 4.2.0
      * @param  object   $prepared_source An object with everything, related to the source.
      * @param  WC_Order $order           The order that is being paid for.
      * @param  mixed    $previous_error  Any error message from a previous request.
@@ -979,7 +979,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Prepares all needed details for an intent.
 	 *
-	 * @since 5.0.0
+	 * @since 4.2.0
 	 * @param int     $user_id            The ID of the current user.
 	 * @param boolean $force_save_source  Should we force save payment source.
 	 *
@@ -1050,7 +1050,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Captures a payment intent.
 	 *
-	 * @since 5.0.0
+	 * @since 4.2.0
 	 * @param object   $prepared_source The already fetched source.
 	 * @param WC_Order $order           The order whose amount is needed.
 	 * @return stdClass                 A response from the API.
@@ -1075,7 +1075,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
     /**
      * Generates a localized message for an error, adds it as a note and throws it.
      *
-	 * @since 5.0.0
+	 * @since 4.2.0
      * @param  stdClass $response  The response from the Stripe API.
      * @param  WC_Order $order     The order to add a note to.
      * @throws WC_Stripe_Exception An exception with the right message.
@@ -1097,7 +1097,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
     /**
      * Retries the payment process once an error occured.
      *
-     * @since 5.0.0
+     * @since 4.2.0
      * @param object   $response          The response from the Stripe API.
      * @param WC_Order $order             An order that is being paid for.
      * @param bool     $retry             A flag that indicates whether another retry should be attempted.
