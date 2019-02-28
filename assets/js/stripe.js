@@ -583,7 +583,7 @@ jQuery( function( $ ) {
 
 			// Handle SEPA Direct Debit payments.
 			if ( wc_stripe_form.isSepaChosen() ) {
-				extra_details.currency = $( '#stripe-sepa_debig-payment-data' ).data( 'currency' );
+				extra_details.currency = $( '#stripe-sepa_debit-payment-data' ).data( 'currency' );
 				extra_details.mandate  = { notification_method: wc_stripe_params.sepa_mandate_notification };
 				extra_details.type     = 'sepa_debit';
 
