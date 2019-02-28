@@ -245,6 +245,7 @@ jQuery( function( $ ) {
 
 			if ( 'yes' === wc_stripe_params.is_stripe_checkout ) {
 				$( document.body ).on( 'click', '.wc-stripe-checkout-button', function() {
+					wc_stripe_form.block();
 					wc_stripe_form.openModal();
 					return false;
 				} );
@@ -491,7 +492,7 @@ jQuery( function( $ ) {
 				panelLabel        : $data.data( 'panel-label' ),
 				allowRememberMe   : $data.data( 'allow-remember-me' ),
 				token             : token_action,
-				closed            : wc_stripe_form.onClose()
+				closed            : wc_stripe_form.onClose,
 			} );
 		},
 
@@ -657,16 +658,13 @@ jQuery( function( $ ) {
 		/**
 		 * Performs payment-related actions when a checkout/payment form is being submitted.
 		 *
-		 * @param {Event} e A form submission event.
+		 * @return {boolean} An indicator whether the submission should proceed.
+		 *                   WooCommerce's checkout.js stops only on `false`, so this needs to be explicit.
 		 */
-		onSubmit: function( e ) {
+		onSubmit: function() {
 			if ( ! wc_stripe_form.isStripeChosen() ) {
-				return;
+				return true;
 			}
-
-			/**
-			 * ToDo: The logic here was restructured a bit, make sure it still works well.
-			 */
 
 			// If a source, or an intent is already in place, submit the form as usual.
 			if ( wc_stripe_form.isStripeSaveCardChosen() || wc_stripe_form.hasSource() || wc_stripe_form.hasIntent() ) {
@@ -678,6 +676,7 @@ jQuery( function( $ ) {
 				if ( 'yes' === wc_stripe_params.is_checkout ) {
 					return true;
 				} else {
+					wc_stripe_form.block();
 					wc_stripe_form.openModal();
 					return false;
 				}
@@ -694,31 +693,7 @@ jQuery( function( $ ) {
 				wc_stripe_form.isEpsChosen() ||
 				wc_stripe_form.isMultibancoChosen()
 			) {
-				if ( $( 'form#order_review' ).length ) {
-					$( 'form#order_review' )
-						.off(
-							'submit',
-							this.onSubmit
-						);
-
-					wc_stripe_form.form.submit();
-
-					return false;
-				}
-
-				if ( $( 'form#add_payment_method' ).length ) {
-					$( 'form#add_payment_method' )
-						.off(
-							'submit',
-							this.onSubmit
-						);
-
-					wc_stripe_form.form.submit();
-
-					return false;
-				}
-
-				return true; // The checkout form will be sumitted if this is !== false.
+				return true;
 			}
 
 			wc_stripe_form.block();
