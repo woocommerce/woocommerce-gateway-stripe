@@ -743,6 +743,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @since 4.2.0
 	 * @param object   $error The error that was returned from Stripe's API.
 	 * @param WC_Order $order The order those payment is being processed.
+	 * @return bool           A flag that indicates that the customer does not exist and should be removed.
 	 */
 	public function maybe_remove_non_existent_customer( $error, $order ) {
 		if ( ! $this->is_no_such_customer_error( $error ) ) {
