@@ -721,7 +721,6 @@ jQuery( function( $ ) {
 				return true; // The checkout form will be sumitted if this is !== false.
 			}
 
-			e.preventDefault();
 			wc_stripe_form.block();
 			wc_stripe_form.createSource();
 
