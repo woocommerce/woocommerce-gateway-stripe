@@ -1040,14 +1040,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				throw new WC_Stripe_Exception( 'Invalid payment method', __( 'Invalid payment method. Please input a new card number.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$source_id = $wc_token->get_token();
-			if ( $this->is_type_legacy_card( $source_id ) ) {
-				// Legacy tokens are not supported in the context of payment intents.
-				$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
-				throw new WC_Stripe_Exception( print_r( $wc_token, true ), $localized_message );
-			}
-
-			$request['source']   = $source_id;
+			$request['source']   = $wc_token->get_token();
 			$request['customer'] = $customer->get_id();
 		}
 
