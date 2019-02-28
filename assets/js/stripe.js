@@ -513,8 +513,10 @@ jQuery( function( $ ) {
 							source_data: extra_details,
 						} );
 					} )
-					.then( wc_stripe_form.intentResponse );
-				}
+					.then( wc_stripe_form.intentResponse )
+					.catch( function( error ) {
+						$( document.body ).trigger( 'stripeError', { error: error } );
+					} );
 			} else {
 				switch ( source_type ) {
 					case 'bancontact':
@@ -673,19 +675,22 @@ jQuery( function( $ ) {
 				return false;
 			} else if ( wc_stripe_form.isStripeSaveCardChosen() && ! wc_stripe_form.hasIntent() ) {
 				/**
-				 * Use the saved "token" (source actually) to retrieve a payment itnent
-				 * and then process it in order to allow 3DS to do authorizations and transactions.
+				 * Use the saved source to retrieve a payment itnent and then process
+				 * it in order to allow 3DS to do authorizations and transactions.
 				 */
-				var tokenId = $( 'input[name="wc-stripe-payment-token"]:checked' ).val();
+				var sourceId = $( 'input[name="wc-stripe-payment-token"]:checked' ).val();
 
 				wc_stripe_form.block();
-				wc_stripe_form.getIntent( tokenId )
+				wc_stripe_form.getIntent( sourceId )
 					.then( function( intent ) {
 						return stripe.handleCardPayment( intent.client_secret, {
 							source: intent.source,
 						} );
 					} )
-					.then( wc_stripe_form.intentResponse );
+					.then( wc_stripe_form.intentResponse )
+					.catch( function( error ) {
+						$( document.body ).trigger( 'stripeError', { error: error } );
+					} );
 
 				// Prevent form submitting
 				return false;
@@ -822,12 +827,12 @@ jQuery( function( $ ) {
 		getIntent: function( savedCard ) {
 			savedCard = savedCard || 'new';
 
-			// If we have an intent for this card already, use it.
-			if ( wc_stripe_form.paymentIntentCache.hasOwnProperty( savedCard ) ) {
-				return Promise.resolve( wc_stripe_form.paymentIntentCache[ savedCard ] );
-			}
+			return new Promise( function( resolve, reject ) {
+				// If we have an intent for this card already, use it.
+				if ( wc_stripe_form.paymentIntentCache.hasOwnProperty( savedCard ) ) {
+					return resolve( wc_stripe_form.paymentIntentCache[ savedCard ] );
+				}
 
-			return new Promise( function( resolve ) {
 				$.ajax( {
 					url: wc_stripe_form.getAjaxURL( 'create_intent' ),
 					type: 'post',
@@ -837,17 +842,17 @@ jQuery( function( $ ) {
 					dataType: 'json',
 					success: function( result ) {
 						if ( result.error ) {
-							return $( document.body ).trigger( 'stripeError', { error: result.error } );
+							return reject( result.error );
 						}
 
 						wc_stripe_form.paymentIntentCache[ savedCard ] = result;
 						resolve( result );
 					},
 					error: function() {
-						$( document.body ).trigger( 'stripeError', { error: {
+						reject( {
 							code   : 'ajax_failed',
 							message: wc_stripe_params.payment_intent_error,
-						} } );
+						} );
 					},
 				} );
 			} );
