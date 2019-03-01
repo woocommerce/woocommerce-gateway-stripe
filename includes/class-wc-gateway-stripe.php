@@ -814,6 +814,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			// Make the request.
 			if ( $prepared_source->is_intent ) {
+				// Update the intent with proper meta and description.
+				$full_request = $this->generate_payment_request( $order, $prepared_source );
+				$updated_data = array(
+					'description' => $full_request['description'],
+					'metadata'    => $full_request['metadata'],
+				);
+				WC_Stripe_API::request( $updated_data, "payment_intents/{$prepared_source->intent_id}" );
+
+				// Capture the intent.
 				$response = $this->capture_intent( $prepared_source, $order );
 			} else {
 				$response = $this->charge_source( $prepared_source, $order, $previous_error );
@@ -1015,10 +1024,16 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $total ),
 			'capture_method'       => 'manual',
 			'currency'             => get_woocommerce_currency(),
+			'description'          => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
+			'statement_descriptor' => '',
 			'allowed_source_types' => array(
 				'card',
 			),
 		);
+
+        if ( ! empty( $this->get_option( 'statement_descriptor' ) ) ) {
+            $request['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( str_replace( "'", '', $this->get_option( 'statement_descriptor' ) ) );
+        }
 
 		$intent = WC_Stripe_API::request( $request, 'payment_intents' );
 
