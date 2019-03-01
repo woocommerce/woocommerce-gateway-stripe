@@ -1011,6 +1011,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			throw new WC_Stripe_Exception( 'empty_cart', $message );
 		}
 
+		// ToDo: Add meta
+
 		$request = array(
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $total ),
 			'capture_method'       => 'manual',
