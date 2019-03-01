@@ -1011,16 +1011,20 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			throw new WC_Stripe_Exception( 'empty_cart', $message );
 		}
 
-		// ToDo: Add meta
-
 		$request = array(
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $total ),
 			'capture_method'       => 'manual',
 			'currency'             => get_woocommerce_currency(),
+			'description'          => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
+			'statement_descriptor' => '',
 			'allowed_source_types' => array(
 				'card',
 			),
 		);
+
+        if ( ! empty( $this->get_option( 'statement_descriptor' ) ) ) {
+            $request['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( str_replace( "'", '', $this->get_option( 'statement_descriptor' ) ) );
+        }
 
 		$intent = WC_Stripe_API::request( $request, 'payment_intents' );
 
