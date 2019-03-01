@@ -551,38 +551,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Checks if 3DS is required.
-	 *
-	 * @since 4.0.4
-	 * @since 4.1.0 Add filter and changed optional to recommended.
-	 * @param object $source_object
-	 * @return bool
-	 */
-	public function is_3ds_required( $source_object ) {
-		return apply_filters(
-			'wc_stripe_require_3ds',
-			(
-			$source_object && ! empty( $source_object->card ) ) &&
-			( 'card' === $source_object->type && 'required' === $source_object->card->three_d_secure ||
-			( $this->three_d_secure && 'recommended' === $source_object->card->three_d_secure )
-			),
-			$source_object,
-			$this->three_d_secure
-		);
-	}
-
-	/**
-	 * Checks if card is 3DS.
-	 *
-	 * @since 4.0.4
-	 * @param object $source_object
-	 * @return bool
-	 */
-	public function is_3ds_card( $source_object ) {
-		return ( $source_object && 'three_d_secure' === $source_object->type );
-	}
-
-	/**
 	 * Checks if card is a prepaid card.
 	 *
 	 * @since 4.0.6
@@ -614,34 +582,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$payment_method = isset( $_POST['payment_method'] ) ? wc_clean( $_POST['payment_method'] ) : 'stripe';
 
 		return ( isset( $_POST[ 'wc-' . $payment_method . '-payment-token' ] ) && 'new' !== $_POST[ 'wc-' . $payment_method . '-payment-token' ] );
-	}
-
-	/**
-	 * Creates the 3DS source for charge.
-	 *
-	 * @since 4.0.0
-	 * @since 4.0.4 Add $return_url
-	 * @param object $order
-	 * @param object $source_object
-	 * @param string $return_url
-	 * @return mixed
-	 */
-	public function create_3ds_source( $order, $source_object, $return_url = '' ) {
-		$currency   = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency();
-		$order_id   = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
-		$return_url = empty( $return_url ) ? $this->get_stripe_return_url( $order ) : $return_url;
-
-		$post_data                   = array();
-		$post_data['amount']         = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
-		$post_data['currency']       = strtolower( $currency );
-		$post_data['type']           = 'three_d_secure';
-		$post_data['owner']          = $this->get_owner_details( $order );
-		$post_data['three_d_secure'] = array( 'card' => $source_object->id );
-		$post_data['redirect']       = array( 'return_url' => $return_url );
-
-		WC_Stripe_Logger::log( 'Info: Begin creating 3DS source...' );
-
-		return WC_Stripe_API::request( apply_filters( 'wc_stripe_3ds_source', $post_data, $order ), 'sources' );
 	}
 
 	/**
@@ -731,6 +671,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		return (object) array(
+			'is_intent'     => false,
 			'token_id'      => $wc_token_id,
 			'customer'      => $customer_id,
 			'source'        => $source_id,

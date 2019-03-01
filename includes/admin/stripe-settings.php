@@ -91,14 +91,6 @@ return apply_filters(
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		),
-		'three_d_secure'                => array(
-			'title'       => __( '3D Secure', 'woocommerce-gateway-stripe' ),
-			'label'       => __( 'Require 3D Secure when applicable', 'woocommerce-gateway-stripe' ),
-			'type'        => 'checkbox',
-			'description' => __( 'Some payment methods have 3D Secure feature. This is an extra security layer for your store. Choose how to handle payments when 3D Secure is recommended. Enabling would require customers to use 3D Secure when recommended.', 'woocommerce-gateway-stripe' ),
-			'default'     => 'yes',
-			'desc_tip'    => true,
-		),
 		'stripe_checkout'               => array(
 			'title'       => __( 'Stripe Modal Checkout', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Enable Stripe Checkout', 'woocommerce-gateway-stripe' ),
