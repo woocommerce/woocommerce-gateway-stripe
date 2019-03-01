@@ -685,6 +685,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		return (object) array(
+			'is_intent'     => false,
 			'token_id'      => $wc_token_id,
 			'customer'      => $customer_id,
 			'source'        => $source_id,
