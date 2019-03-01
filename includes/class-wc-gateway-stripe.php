@@ -824,9 +824,37 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					$this->maybe_remove_non_existent_customer( $response->error, $order );
 				}
 
-				// We want to retry.
-				if ( $this->is_retryable_error( $response->error ) ) {
-					return $this->retry_after_error( $response, $order, $retry, $force_save_source, $previous_error );
+				// Make the request.
+				if ( $prepared_source->is_intent ) {
+					// Update the intent with proper meta and description.
+					$full_request = $this->generate_payment_request( $order, $prepared_source );
+					$updated_data = array(
+						'description' => $full_request['description'],
+						'metadata'    => $full_request['metadata'],
+					);
+					WC_Stripe_API::request( $updated_data, "payment_intents/{$prepared_source->intent_id}" );
+
+					// Capture the intent.
+					$post_data = array(
+						'amount_to_capture' => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
+					);
+					$response = WC_Stripe_API::request( $post_data, "payment_intents/{$prepared_source->intent_id}/capture" );
+
+					if ( ! empty( $response->error ) ) {
+						$response_error = $response->error;
+					} else {
+						// ToDo: Check whether chrges[] only contains a single charge.
+						$charge = $response->charges->data[0];
+					}
+				} else {
+					$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $prepared_source ) );
+
+					if ( ! empty( $response->error ) ) {
+						$response_error = $response->error;
+					} else {
+						// ToDo: Check whether chrges[] only contains a single charge.
+						$charge = $response;
+					}
 				}
 
 				$this->throw_localized_message( $response, $order );
