@@ -248,7 +248,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$this->form_fields = require( dirname( __FILE__ ) . '/admin/stripe-settings.php' );
 
 		if ( 'yes' === $this->get_option( 'three_d_secure' ) ) {
-			if ( isset( $_POST['stripe_dismiss_3ds'] ) && wp_verify_nonce( $_POST['stripe_dismiss_3ds'], 'no-3ds' ) ) {
+			if ( isset( $_REQUEST['stripe_dismiss_3ds'] ) && wp_verify_nonce( $_REQUEST['stripe_dismiss_3ds'], 'no-3ds' ) ) {
 				$this->update_option( '3ds_setting_notice_dismissed', true );
 			}
 

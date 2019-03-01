@@ -66,12 +66,9 @@ jQuery( function( $ ) {
 
 				$setting.find( '.notice-dismiss' ).on( 'click.wc-stripe-dismiss-notice', function() {
 					$.ajax( {
-						type: 'post',
-						url: window.location.href,
-						data: {
-							stripe_dismiss_3ds: $setting.data( 'nonce' ),
-						},
-					} )
+						type: 'head',
+						url: window.location.href + '&stripe_dismiss_3ds=' + $setting.data( 'nonce' ),
+					} );
 				} );
 			} );
 		}
