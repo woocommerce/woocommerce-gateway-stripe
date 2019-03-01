@@ -998,17 +998,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			<p>
 				<?php
 				$url     = 'https://stripe.com/docs/payments/dynamic-3ds';
-				$message = __( 'We see that you had the "Require 3D secure when applicable" setting turned on. This setting is not available here anymore, because it is now replaced by Stripe Radar. You can learn more about it <a href="%s">here</a>.', 'woocommerce-gateway-stripe' );
+				$message = __( '<strong>WooCommerce Stripe Gateway:</strong> We see that you had the "Require 3D secure when applicable" setting turned on. This setting is not available here anymore, because it is now replaced by Stripe Radar. You can learn more about it <a href="%s">here</a>.', 'woocommerce-gateway-stripe' );
 
 				$allowed_tags = array(
 					'a' => array(
 						'href' => array()
 					),
+					'strong' => array(),
 				);
 				printf( wp_kses( $message, $allowed_tags ), esc_url( $url ) );
 				?>
 			</p>
-
 		</div>
 		<?php
 	}
