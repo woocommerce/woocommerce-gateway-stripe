@@ -997,8 +997,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		<div data-nonce="<?php echo esc_attr( wp_create_nonce( 'no-3ds' ) ) ?>" class="notice notice-warning is-dismissible wc-stripe-3ds-missing">
 			<p>
 				<?php
-				// ToDo: Replace this URL with a Stripe link or a WooCommerce article.
-				$url     = 'http://example.com';
+				$url     = 'https://stripe.com/docs/payments/dynamic-3ds';
 				$message = __( 'We see that you had the "Require 3D secure when applicable" setting turned on. This setting is not available here anymore, because it is now replaced by Stripe Radar. You can learn more about it <a href="%s">here</a>.', 'woocommerce-gateway-stripe' );
 
 				$allowed_tags = array(
