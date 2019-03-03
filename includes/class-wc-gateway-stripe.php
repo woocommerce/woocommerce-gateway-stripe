@@ -1095,8 +1095,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return $response;
 		}
 
-		// ToDo: Check whether chrges[] only contains a single charge.
-		return $response->charges->data[0];
+		return end( $response->charges->data );
 	}
 
     /**
