@@ -101,6 +101,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 4.1.15 - 2019-03-10 =
+* Fix - "Retain Stripe Data" setting placement on WooCommerce settings page.
+
 = 4.1.14 - 2019-01-10 =
 * Remove - Stripe specific styling to allow themes to style accordingly.
 * Tweak  - Handle error if product is not found in payment request.
