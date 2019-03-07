@@ -1035,11 +1035,35 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
             $request['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( str_replace( "'", '', $this->get_option( 'statement_descriptor' ) ) );
         }
 
+		/**
+		 * If a saved card has been chosen, use its source object
+		 * for the payment intent in order to let intents handle 3DS.
+		 */
+		if ( isset( $_POST['saved_card'] ) && ! empty( $_POST['saved_card'] ) ) {
+			if ( ! is_user_logged_in() ) {
+				$localized_message = __( 'You need to be logged in to use a saved card.', 'woocommerce-gateway-stripe' );
+				throw new WC_Stripe_Exception( 'saved_card_logged_out', $localized_message );
+			}
+
+			$user_id    = get_current_user_id();
+			$saved_card = intval( $_POST['saved_card'] );
+			$wc_token   = WC_Payment_Tokens::get( $saved_card );
+			$customer   = new WC_Stripe_Customer( $user_id );
+
+			if ( ! $wc_token || $wc_token->get_user_id() !== $user_id ) {
+				throw new WC_Stripe_Exception( 'Invalid payment method', __( 'Invalid payment method. Please input a new card number.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			$request['source']   = $wc_token->get_token();
+			$request['customer'] = $customer->get_id();
+		}
+
 		$intent = WC_Stripe_API::request( $request, 'payment_intents' );
 
 		return array(
 			'id'            => $intent->id,
 			'client_secret' => $intent->client_secret,
+			'source'        => $intent->source,
 		);
 	}
 
@@ -1071,61 +1095,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			</p>
 		</div>
 		<?php
-	}
-
-	/**
-	 * Prepares and retrieves a new PaymentIntent from Stripe's API.
-	 *
-	 * @see https://stripe.com/docs/payments/payment-intents/quickstart
-	 * @return array An array with the intent `id` and `client_secret`.
-	 */
-	public function get_intent_and_secret() {
-		$total = WC()->cart->total;
-
-		if ( empty( WC()->cart->get_cart_contents() ) ) {
-			$message = __( 'Your cart is empty.', 'woocommerce-gateway-stripe' );
-			throw new WC_Stripe_Exception( 'empty_cart', $message );
-		}
-
-		$request = array(
-			'amount'               => WC_Stripe_Helper::get_stripe_amount( $total ),
-			'capture_method'       => 'manual',
-			'currency'             => get_woocommerce_currency(),
-			'allowed_source_types' => array(
-				'card',
-			),
-		);
-
-		/**
-		 * If a saved card has been chosen, use its source object
-		 * for the payment intent in order to let intents handle 3DS.
-		 */
-		if ( isset( $_POST['saved_card'] ) && ! empty( $_POST['saved_card'] ) ) {
-			if ( ! is_user_logged_in() ) {
-				$localized_message = __( 'You need to be logged in to use a saved card.', 'woocommerce-gateway-stripe' );
-				throw new WC_Stripe_Exception( 'saved_card_logged_out', $localized_message );
-			}
-
-			$user_id    = get_current_user_id();
-			$saved_card = intval( $_POST['saved_card'] );
-			$wc_token   = WC_Payment_Tokens::get( $saved_card );
-			$customer   = new WC_Stripe_Customer( $user_id );
-
-			if ( ! $wc_token || $wc_token->get_user_id() !== $user_id ) {
-				throw new WC_Stripe_Exception( 'Invalid payment method', __( 'Invalid payment method. Please input a new card number.', 'woocommerce-gateway-stripe' ) );
-			}
-
-			$request['source']   = $wc_token->get_token();
-			$request['customer'] = $customer->get_id();
-		}
-
-		$intent = WC_Stripe_API::request( $request, 'payment_intents' );
-
-		return array(
-			'id'            => $intent->id,
-			'client_secret' => $intent->client_secret,
-			'source'        => $intent->source,
-		);
 	}
 
 	/**

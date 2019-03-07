@@ -24,8 +24,6 @@ jQuery( function( $ ) {
 	 * Object to handle Stripe elements payment form.
 	 */
 	var wc_stripe_form = {
-		paymentIntent: null,
-
 		/**
 		 * Stores payment intents for saved/new cards.
 		 *
@@ -644,15 +642,6 @@ jQuery( function( $ ) {
 				return $( document.body ).trigger( 'stripeError', response );
 			}
 
-			var intent = response.paymentIntent;
-
-			wc_stripe_form.reset();
-			wc_stripe_form.form.append( "<input type='hidden' class='stripe-intent' name='stripe_intent' value='" + intent.id + "'/>" );
-
-			wc_stripe_form.form.submit();
-		},
-
-		processStripeResponse: function( source ) {
 			wc_stripe_form.reset();
 
 			wc_stripe_form.form.append(
@@ -717,7 +706,7 @@ jQuery( function( $ ) {
 							source: intent.source,
 						} );
 					} )
-					.then( wc_stripe_form.intentResponse )
+					.then( wc_stripe_form.paymentIntentResponse )
 					.catch( function( error ) {
 						$( document.body ).trigger( 'stripeError', { error: error } );
 					} );
