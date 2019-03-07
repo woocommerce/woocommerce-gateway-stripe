@@ -59,6 +59,18 @@ jQuery( function( $ ) {
 					$( '#woocommerce_stripe_payment_request_button_theme, #woocommerce_stripe_payment_request_button_type, #woocommerce_stripe_payment_request_button_height' ).closest( 'tr' ).hide();
 				}
 			} ).change();
+
+			// Make the 3DS notice dismissable.
+			$( '.wc-stripe-3ds-missing' ).each( function() {
+				var $setting = $( this );
+
+				$setting.find( '.notice-dismiss' ).on( 'click.wc-stripe-dismiss-notice', function() {
+					$.ajax( {
+						type: 'head',
+						url: window.location.href + '&stripe_dismiss_3ds=' + $setting.data( 'nonce' ),
+					} );
+				} );
+			} );
 		}
 	};
 
