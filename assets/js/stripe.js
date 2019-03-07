@@ -24,7 +24,13 @@ jQuery( function( $ ) {
 	 * Object to handle Stripe elements payment form.
 	 */
 	var wc_stripe_form = {
-		paymentIntent: null,
+		/**
+		 * Stores payment intents for saved/new cards.
+		 *
+		 * For saved cards, the key will be the ID of the WC_Token object,
+		 * for new cards it will be `"new"`.
+		 */
+		paymentIntentCache: {},
 
 		/**
 		 * Get WC AJAX endpoint URL.
@@ -603,6 +609,12 @@ jQuery( function( $ ) {
 				return stripe.createSource( iban, extra_details ).then( wc_stripe_form.sourceResponse );
 			}
 
+			// For new payment methods without orders, we only want the source.
+			if ( $( 'form#add_payment_method' ).length ) {
+				return stripe.createSource( stripe_card, extra_details )
+					.then( wc_stripe_form.sourceResponse );
+			}
+
 			// Handle card payments.
 			wc_stripe_form.getIntent()
 				.then( function( intent ) {
@@ -677,6 +689,30 @@ jQuery( function( $ ) {
 		onSubmit: function() {
 			if ( ! wc_stripe_form.isStripeChosen() ) {
 				return true;
+			}
+
+			// For saved cards, use the card to create an intent.
+			if ( wc_stripe_form.isStripeSaveCardChosen() && ! wc_stripe_form.hasIntent() ) {
+				/**
+				 * Use the saved source to retrieve a payment itnent and then process
+				 * it in order to allow 3DS to do authorizations and transactions.
+				 */
+				var sourceId = $( 'input[name="wc-stripe-payment-token"]:checked' ).val();
+
+				wc_stripe_form.block();
+				wc_stripe_form.getIntent( sourceId )
+					.then( function( intent ) {
+						return stripe.handleCardPayment( intent.client_secret, {
+							source: intent.source,
+						} );
+					} )
+					.then( wc_stripe_form.paymentIntentResponse )
+					.catch( function( error ) {
+						$( document.body ).trigger( 'stripeError', { error: error } );
+					} );
+
+				// Prevent form submitting
+				return false;
 			}
 
 			// If a source, or an intent is already in place, submit the form as usual.
@@ -845,24 +881,31 @@ jQuery( function( $ ) {
 		/**
 		 * Queries the server for a PaymentIntent.
 		 *
+		 * @param {string} savedCard The ID of the saved card. (Optional)
 		 * @return {Promise} A promise that resolves to a payment intent.
 		 */
-		getIntent: function() {
+		getIntent: function( savedCard ) {
+			savedCard = savedCard || 'new';
+
 			return new Promise( function( resolve, reject ) {
-				if ( wc_stripe_form.paymentIntent ) {
-					return resolve( wc_stripe_form.paymentIntent );
+				// If we have an intent for this card already, use it.
+				if ( wc_stripe_form.paymentIntentCache.hasOwnProperty( savedCard ) ) {
+					return resolve( wc_stripe_form.paymentIntentCache[ savedCard ] );
 				}
 
 				$.ajax( {
 					url: wc_stripe_form.getAjaxURL( 'create_intent' ),
 					type: 'post',
+					data: {
+						saved_card: ( 'new' === savedCard ? null : savedCard ),
+					},
 					dataType: 'json',
 					success: function( result ) {
 						if ( result.error ) {
-							reject( result.error );
+							return reject( result.error );
 						}
 
-						wc_stripe_form.paymentIntent = result;
+						wc_stripe_form.paymentIntentCache[ savedCard ] = result;
 						resolve( result );
 					},
 					error: function() {
