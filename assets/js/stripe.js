@@ -4,7 +4,9 @@ jQuery( function( $ ) {
 	'use strict';
 
 	try {
-		var stripe = Stripe( wc_stripe_params.key );
+		var stripe = Stripe( wc_stripe_params.key, {
+				betas: [ 'payment_intent_beta_3' ],
+		} );
 	} catch( error ) {
 		console.log( error );
 		return;
@@ -23,6 +25,18 @@ jQuery( function( $ ) {
 	 */
 	var wc_stripe_form = {
 		paymentIntent: null,
+
+		/**
+		 * Get WC AJAX endpoint URL.
+		 *
+		 * @param  {String} endpoint Endpoint.
+		 * @return {String}
+		 */
+		getAjaxURL: function( endpoint ) {
+			return wc_stripe_params.ajaxurl
+				.toString()
+				.replace( '%%endpoint%%', 'wc_stripe_' + endpoint );
+		},
 
 		/**
 		 * Unmounts all Stripe elements when the checkout page is being updated.
@@ -590,13 +604,16 @@ jQuery( function( $ ) {
 			}
 
 			// Handle card payments.
-			var client_secret = $( '#stripe-payment-data' ).data( 'client-secret' );
-			var data = {
-				source_data: extra_details,
-			};
-
-			stripe.handleCardPayment( client_secret, stripe_card, data )
-				.then( wc_stripe_form.paymentIntentResponse );
+			wc_stripe_form.getIntent()
+				.then( function( intent ) {
+					return stripe.handleCardPayment( intent.client_secret, stripe_card, {
+						source_data: extra_details,
+					} );
+				} )
+				.then( wc_stripe_form.paymentIntentResponse )
+				.catch( function( error ) {
+					$( document.body ).trigger( 'stripeError', { error: error } );
+				} );
 		},
 
 		/**
@@ -647,8 +664,6 @@ jQuery( function( $ ) {
 					.attr( 'name', 'stripe_intent' )
 					.val( response.paymentIntent.id )
 			);
-
-			// ToDo: Check for `form#add_payment_method` and remove event listeners
 
 			wc_stripe_form.form.submit();
 		},
