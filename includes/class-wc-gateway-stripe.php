@@ -981,7 +981,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			throw new WC_Stripe_Exception( 'missing_intent_id', 'Missing intent ID' );
 		}
 
-		$intent_id     = wc_clean( $_POST['stripe_intent'] );     // wpcs: csrf ok.
+		$wc_token_id   = false;
+		$intent_id     = wc_clean( $_POST['stripe_intent'] );                                              // wpcs: csrf ok.
 		$intent_object = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=source' );
 
 		if ( ! empty( $intent_object->error ) ) {
@@ -1007,10 +1008,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			if ( ! empty( $response->error ) ) {
 				throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
 			}
+		} elseif ( $this->is_using_saved_payment_method() ) {
+			// Use an existing token, and then process the payment.
+			$wc_token_id = wc_clean( $_POST[ 'wc-stripe-payment-token' ] );
 		}
 
 		$response = (object) array(
-			// 'token_id'      => $wc_token_id, // This was in place, investigate where it is used...
+			'token_id'      => $wc_token_id,
 			'customer'      => new WC_Stripe_Customer( $user_id ),
 			'source'        => $intent_object->source->id,
 			'source_object' => $intent_object->source,
