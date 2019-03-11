@@ -977,8 +977,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return object
 	 */
 	public function prepare_source_from_intent( $user_id, $force_save_source = false ) {
-		// ToDo: This should either use or mimic WC_Stripe_Payment_Gateway::prepare_source().
-
 		if ( ! isset( $_POST['stripe_intent'] ) || empty( $_POST['stripe_intent'] ) ) { // wpcs: csrf ok.
 			throw new WC_Stripe_Exception( 'missing_intent_id', 'Missing intent ID' );
 		}
@@ -992,6 +990,23 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		if ( 'requires_capture' !== $intent_object->status ) {
 			throw new WC_Stripe_Exception( print_r( $intent_object, true ), 'The payment intent is not expecting a capture.' );
+		}
+
+		// This checks to see if customer opted to save the payment method to file.
+		$maybe_saved_card = isset( $_POST[ 'wc-stripe-new-payment-method' ] ) && ! empty( $_POST[ 'wc-stripe-new-payment-method' ] );
+
+		/**
+		 * This is true if the user wants to store the card to their account.
+		 * Criteria to save to file is they are logged in, they opted to save or product requirements and the source is
+		 * actually reusable. Either that or force_save_source is true.
+		 */
+		if ( ( $user_id && $this->saved_cards && $maybe_saved_card && 'reusable' === $intent_object->source->usage ) || $force_save_source ) {
+			$customer = new WC_Stripe_Customer( $user_id );
+			$response = $customer->add_source( $intent_object->source->id );
+
+			if ( ! empty( $response->error ) ) {
+				throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
+			}
 		}
 
 		$response = (object) array(
@@ -1171,5 +1186,5 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
         $this->retry_interval++;
 
         return $this->process_payment( $order->get_id(), true, $force_save_source, $response->error, $previous_error );
-    }
+	}
 }
