@@ -79,7 +79,7 @@ return apply_filters(
 		'statement_descriptor'          => array(
 			'title'       => __( 'Statement Descriptor', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
-			'description' => __( 'This may be up to 22 characters. The statement description must contain at least one letter, may not include ><"\' characters, and will appear on your customer\'s statement in capital letters.', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'Statement descriptors are limited to 22 characters, cannot use the special characters >, <, ", \, \', *, and must not consist solely of numbers. This will appear on your customer\'s statement in capital letters.', 'woocommerce-gateway-stripe' ),
 			'default'     => '',
 			'desc_tip'    => true,
 		),
