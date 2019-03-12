@@ -101,7 +101,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.1.15 - 2019-xx-xx =
+= 4.1.15 - 2019-03-12 =
 * Fix - Prevent canceled webhook from processing non Stripe payments.
 * Tweak - Stripe API version updated to support 2019-02-19.
 
