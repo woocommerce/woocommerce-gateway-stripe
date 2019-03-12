@@ -1,5 +1,9 @@
 *** Changelog ***
 
+= 4.1.15 - 2019-xx-xx =
+* Fix - Prevent canceled webhook from processing non Stripe payments.
+* Tweak - Stripe API version updated to support 2019-02-19.
+
 = 4.1.14 - 2019-01-10 =
 * Remove - Stripe specific styling to allow themes to style accordingly.
 * Tweak  - Handle error if product is not found in payment request.
