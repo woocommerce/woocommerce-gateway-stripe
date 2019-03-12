@@ -101,12 +101,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.1.15 - 2019-03-10 =
+= 4.1.15 - 2019-03-12 =
+* Fix - Prevent canceled webhook from processing non Stripe payments.
 * Fix - "Retain Stripe Data" setting placement on WooCommerce settings page.
-
-= 4.1.14 - 2019-01-10 =
-* Remove - Stripe specific styling to allow themes to style accordingly.
-* Tweak  - Handle error if product is not found in payment request.
+* Tweak - Stripe API version updated to support 2019-02-19.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/changelog.txt).
 
