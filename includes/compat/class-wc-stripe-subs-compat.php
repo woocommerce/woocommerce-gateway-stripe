@@ -233,7 +233,11 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			$request            = $this->generate_payment_request( $renewal_order, $prepared_source );
 			$request['capture'] = 'true';
 			$request['amount']  = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
-			$response           = WC_Stripe_API::request( $request );
+			if ( $this->are_sca_subscriptions_enabled() ) {
+				$request['previous_charges'] = $this->load_previous_charges( $prepared_source, $renewal_order );
+			}
+
+			$response = WC_Stripe_API::request( $request );
 
 			if ( ! empty( $response->error ) ) {
 				// We want to retry.
@@ -505,5 +509,48 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		}
 
 		return $payment_method_to_display;
+	}
+
+	/**
+	 * Loads a list of previous charges for subscriptions.
+	 *
+	 * @param  object $prepared_source All available data about the payment instrucment.
+	 * @param  object $order           The order that is being created for the renewal.
+	 * @return array                   A list of charge IDs.
+	 */
+	public function load_previous_charges( $prepared_source, $order ) {
+		// Load the subscription ID and use its post parent as the first order in the series.
+		$subscription_id = get_post_meta( $order->get_id(), '_subscription_renewal', true );
+		$order_ids       = array( get_post_field( 'post_parent', $subscription_id ) );
+
+		$args      = array(
+			'post_type'      => 'shop_order',
+			'posts_per_page' => -1,
+			'post__not_in'   => array( $order->get_id() ),
+			'meta_query'     => array(
+				array(
+					'key'   => '_subscription_renewal',
+					'value' => $subscription_id,
+				),
+			),
+		);
+		$order_ids = array_merge( $order_ids, wp_list_pluck( get_posts( $args ), 'ID' ) );
+
+		// Load all charges, belonging to the same customer.
+		$args = array(
+			'customer' => $prepared_source->customer,
+			'limit'    => 100,
+		);
+		$list = WC_Stripe_API::request( $args, 'charges', 'GET' );
+
+		// Mix & match charges & orders.
+		$charges = array();
+		foreach ( $list->data as $item ) {
+			if ( isset( $item->metadata->order_id ) && in_array( intval( $item->metadata->order_id ), $order_ids, true ) ) {
+				$charges[] = $item->id;
+			}
+		}
+
+		return $charges;
 	}
 }

@@ -673,12 +673,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Creates a new WC_Stripe_Customer if the visitor chooses to.
 	 *
-	 * @since 4.2.0
-	 * @param WC_Order $order The order that is being created.
+	 * @since 4.2.0 Isolated as a separate method.
+	 * @since 4.2.0 Added `force_save_source` to ensure subscriptions work.
+	 * @param WC_Order $order             The order that is being created.
+	 * @param bool     $force_save_source An idicator whether to check for a checkbox or just save.
 	 */
-	public function maybe_create_customer( $order ) {
+	public function maybe_create_customer( $order, $force_save_source = false ) {
 		// This comes from the create account checkbox in the checkout page.
-		if ( empty( $_POST['createaccount'] ) ) {
+		if ( empty( $_POST['createaccount'] ) && ! $force_save_source ) {
 			return;
 		}
 
@@ -791,7 +793,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				return $this->pre_orders->process_pre_order( $order_id );
 			}
 
-			$this->maybe_create_customer( $order );
+			$this->maybe_create_customer( $order, $force_save_source );
 
 			if ( isset( $_POST['stripe_intent'] ) ) {
 				$prepared_source = $this->prepare_source_from_intent( get_current_user_id(), $force_save_source );
@@ -803,7 +805,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$this->check_source( $prepared_source );
 			$this->save_source_to_order( $order, $prepared_source );
 
-			if ( 0 <= $order->get_total() ) {
+			if ( 0 >= $order->get_total() ) {
 				return $this->complete_free_order( $order );
 			}
 
@@ -811,30 +813,56 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$this->validate_minimum_order_amount( $order );
 
 			WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
+			$response_error = null;
 
 			// Make the request.
 			if ( $prepared_source->is_intent ) {
-				// Update the intent with proper meta and description.
+				// Update both the charge and th intent with proper meta and description.
+
 				$full_request = $this->generate_payment_request( $order, $prepared_source );
-				$updated_data = array(
+
+				// Extract some specific details and push them to the intent.
+				$intent_updates = array(
 					'description' => $full_request['description'],
 					'metadata'    => $full_request['metadata'],
 				);
-				WC_Stripe_API::request( $updated_data, "payment_intents/{$prepared_source->intent_id}" );
+				if ( isset( $full_request['customer'] ) ) {
+					$intent_updates['customer'] = $full_request['customer'];
+				}
+
+				$intent_update = WC_Stripe_API::request( $intent_updates, "payment_intents/{$prepared_source->intent_id}" );
+				if ( ! empty( $intent_update->error ) ) {
+					$response_error = $intent_update->error;
+				}
 
 				// Capture the intent.
-				$response = $this->capture_intent( $prepared_source, $order );
+				if ( empty( $response_error ) ) {
+					$response = $this->capture_intent( $prepared_source, $order );
+
+					if ( ! empty( $intent_update->error ) ) {
+						$response_error = $response->error;
+					}
+				}
+
+				// Update the charge (after capture, because only then `$response` contains the charge).
+				if ( empty( $response_error ) ) {
+					$charge_update = WC_Stripe_API::request( $intent_updates, "charges/{$response->id}" );
+
+					if ( ! empty( $charge_update->error ) ) {
+						$response_error = $charge_update->error;
+					}
+				}
 			} else {
 				$response = $this->charge_source( $prepared_source, $order, $previous_error );
 			}
 
-			if ( ! empty( $response->error ) ) {
+			if ( ! empty( $response_error ) ) {
 				if ( ! $prepared_source->is_intent ) {
-					$this->maybe_remove_non_existent_customer( $response->error, $order );
+					$this->maybe_remove_non_existent_customer( $response_error, $order );
 				}
 
 				// We want to retry.
-				if ( $this->is_retryable_error( $response->error ) ) {
+				if ( $this->is_retryable_error( $response_error ) ) {
 					return $this->retry_after_error( $response, $order, $retry, $force_save_source, $previous_error );
 				}
 
@@ -994,9 +1022,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			throw new WC_Stripe_Exception( print_r( $intent_object, true ), 'The payment intent is not expecting a capture.' );
 		}
 
+		$customer = new WC_Stripe_Customer( $user_id );
+
 		$response = (object) array(
 			// 'token_id'      => $wc_token_id, // This was in place, investigate where it is used...
-			'customer'      => new WC_Stripe_Customer( $user_id ),
+			'customer'      => $customer->get_id(),
 			'source'        => $intent_object->source->id,
 			'source_object' => $intent_object->source,
 			'is_intent'     => true,
@@ -1171,5 +1201,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
         $this->retry_interval++;
 
         return $this->process_payment( $order->get_id(), true, $force_save_source, $response->error, $previous_error );
-    }
+	}
+
+	/**
+	 * Indicates if SCA (especially for subscriptions) is already enabled.
+	 *
+	 * @since 4.2.0
+	 * @return boolean
+	 */
+	public function are_sca_subscriptions_enabled() {
+		return true;
+	}
 }
