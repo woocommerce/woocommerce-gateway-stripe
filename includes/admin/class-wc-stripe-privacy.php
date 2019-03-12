@@ -44,7 +44,18 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 			),
 		);
 
-		array_splice( $settings, ( count( $settings ) - 1 ), 0, $insert_setting );
+		$index = null;
+
+		foreach ( $settings as $key => $value) {
+			if ( 'sectionend' === $value[ 'type' ] && 'personal_data_retention' === $value[ 'id' ] ) {
+				$index = $key;
+				break;
+			}
+		}
+
+		if ( ! is_null( $index ) ) {
+			array_splice( $settings, $index, 0, $insert_setting );
+		}
 
 		return $settings;
 	}
