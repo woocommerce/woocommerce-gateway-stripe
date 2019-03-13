@@ -818,7 +818,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			// Make the request.
 			if ( $prepared_source->is_intent ) {
 				// Update both the charge and th intent with proper meta and description.
-
 				$full_request = $this->generate_payment_request( $order, $prepared_source );
 
 				// Extract some specific details and push them to the intent.
@@ -826,7 +825,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					'description' => $full_request['description'],
 					'metadata'    => $full_request['metadata'],
 				);
-				if ( isset( $full_request['customer'] ) ) {
+
+				if ( empty( $prepared_source->source_object->customer ) && isset( $full_request['customer'] ) ) {
 					$intent_updates['customer'] = $full_request['customer'];
 				}
 
