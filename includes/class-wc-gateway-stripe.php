@@ -978,13 +978,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return object
 	 */
 	public function prepare_source_from_intent( $user_id, $force_save_source = false ) {
-		// ToDo: This should either use or mimic WC_Stripe_Payment_Gateway::prepare_source().
-
 		if ( ! isset( $_POST['stripe_intent'] ) || empty( $_POST['stripe_intent'] ) ) { // wpcs: csrf ok.
 			throw new WC_Stripe_Exception( 'missing_intent_id', 'Missing intent ID' );
 		}
 
-		$intent_id     = wc_clean( $_POST['stripe_intent'] );     // wpcs: csrf ok.
+		$wc_token_id   = false;
+		$intent_id     = wc_clean( $_POST['stripe_intent'] );                                              // wpcs: csrf ok.
 		$intent_object = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=source' );
 
 		if ( ! empty( $intent_object->error ) ) {
@@ -995,8 +994,28 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			throw new WC_Stripe_Exception( print_r( $intent_object, true ), 'The payment intent is not expecting a capture.' );
 		}
 
+		// This checks to see if customer opted to save the payment method to file.
+		$maybe_saved_card = isset( $_POST[ 'wc-stripe-new-payment-method' ] ) && ! empty( $_POST[ 'wc-stripe-new-payment-method' ] );
+
+		/**
+		 * This is true if the user wants to store the card to their account.
+		 * Criteria to save to file is they are logged in, they opted to save or product requirements and the source is
+		 * actually reusable. Either that or force_save_source is true.
+		 */
+		if ( ( $user_id && $this->saved_cards && $maybe_saved_card && 'reusable' === $intent_object->source->usage ) || $force_save_source ) {
+			$customer = new WC_Stripe_Customer( $user_id );
+			$response = $customer->add_source( $intent_object->source->id );
+
+			if ( ! empty( $response->error ) ) {
+				throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
+			}
+		} elseif ( $this->is_using_saved_payment_method() ) {
+			// Use an existing token, and then process the payment.
+			$wc_token_id = wc_clean( $_POST[ 'wc-stripe-payment-token' ] );
+		}
+
 		$response = (object) array(
-			// 'token_id'      => $wc_token_id, // This was in place, investigate where it is used...
+			'token_id'      => $wc_token_id,
 			'customer'      => new WC_Stripe_Customer( $user_id ),
 			'source'        => $intent_object->source->id,
 			'source_object' => $intent_object->source,
@@ -1172,5 +1191,5 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
         $this->retry_interval++;
 
         return $this->process_payment( $order->get_id(), true, $force_save_source, $response->error, $previous_error );
-    }
+	}
 }
