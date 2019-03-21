@@ -155,14 +155,7 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		$session_class = apply_filters( 'woocommerce_session_handler', 'WC_Session_Handler' );
-		$wc_session    = new $session_class();
-
-		if ( version_compare( WC_VERSION, '3.3', '>=' ) ) {
-			$wc_session->init();
-		}
-
-		$wc_session->set_customer_session_cookie( true );
+		WC()->session->set_customer_session_cookie( true );
 	}
 
 	/**
