@@ -996,30 +996,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		<?php
 	}
 
-	/**
-	 * Captures a payment intent.
-	 *
-	 * @since 4.2.0
-	 * @param object   $prepared_source The already fetched source.
-	 * @param WC_Order $order           The order whose amount is needed.
-	 * @return stdClass                 A response from the API.
-	 */
-	public function capture_intent( $prepared_source, $order ) {
-		$request_url       = "payment_intents/{$prepared_source->intent_id}/capture";
-		$amount_to_capture = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order->get_currency() );
-		$args              = array(
-			'amount_to_capture' => $amount_to_capture,
-		);
-
-		$response = WC_Stripe_API::request( $args, $request_url );
-
-		if ( $response->error ) {
-			return $response;
-		}
-
-		return end( $response->charges->data );
-	}
-
     /**
      * Generates a localized message for an error, adds it as a note and throws it.
      *

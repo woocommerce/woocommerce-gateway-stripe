@@ -589,6 +589,34 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		return false;
 	}
 
+	public function process_payment_intent_success( $notification ) {
+		$intent = $notification->data->object;
+		$order = WC_Stripe_Helper::get_order_by_intent_id( $intent->id );
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::log( 'Could not find order via intent ID: ' . $intent->id );
+			return;
+		}
+
+		if ( 'payment_intent.succeeded' === $notification->type ) {
+			$charge = end( $intent->charges->data );
+			do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
+
+			// Process valid response.
+			$this->process_response( $charge, $order );
+		} else {
+			$error_message = $intent->last_payment_error ? $intent->last_payment_error->message : "";
+
+			/* translators: 1) The error message that was received from Stripe. */
+			$order->update_status( 'on-hold', sprintf( __( 'Stripe error: %s', 'woocommerce-gateway-stripe' ), $error_message ) );
+
+			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
+
+			$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+			$this->send_failed_order_email( $order_id );
+		}
+	}
+
 	/**
 	 * Processes the incoming webhook.
 	 *
@@ -635,6 +663,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			case 'review.closed':
 				$this->process_review_closed( $notification );
 				break;
+
+			case 'payment_intent.succeeded':
+			case 'payment_intent.payment_failed':
+				$this->process_payment_intent_success( $notification );
 
 		}
 	}
