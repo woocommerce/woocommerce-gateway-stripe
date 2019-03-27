@@ -268,6 +268,18 @@ jQuery( function( $ ) {
 					return false;
 				} );
 			}
+
+			window.addEventListener( 'hashchange', function() {
+				var partials = window.location.hash.match( /^#?confirm-pi-(.+):(.+)$/ );
+
+				if ( partials ) {
+					stripe.handleCardPayment( partials[1] ).then( function( response ) {
+						if ( 'succeeded' === response.paymentIntent.status ) {
+							window.location = decodeURIComponent( partials[2] );
+						}
+					} );
+				}
+			} );
 		},
 
 		/**
@@ -616,6 +628,9 @@ jQuery( function( $ ) {
 			}
 
 			// Handle card payments.
+			return stripe.createSource( stripe_card, extra_details )
+				.then( wc_stripe_form.sourceResponse );
+
 			wc_stripe_form.getIntent()
 				.then( function( intent ) {
 					return stripe.handleCardPayment( intent.client_secret, stripe_card, {

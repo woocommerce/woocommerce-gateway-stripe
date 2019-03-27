@@ -261,3 +261,27 @@ function woocommerce_gateway_stripe_init() {
 		WC_Stripe::get_instance();
 	endif;
 }
+
+add_action('template_redirect', function() {
+	$order_id = get_query_var( 'order-received' );
+
+	if ( ! $order_id ) {
+		return;
+	}
+
+	$order = wc_get_order( intval( $order_id ) );
+	if ( 'pending' !== $order->get_status() ) {
+		return;
+	}
+
+	$intent_id = get_post_meta( $order->get_id(), '_stripe_intent_id', true );
+	if ( ! $intent_id ) {
+		return;
+	}
+
+	$intent = WC_Stripe_API::request( array(), "payment_intents/$intent_id", 'GET' );
+	if ( 'succeeded' === $intent->status ) {
+		WC()->cart->empty_cart();
+		$order->payment_complete( $intent->id );
+	}
+}, 10, 1);

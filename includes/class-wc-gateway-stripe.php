@@ -793,17 +793,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			$this->maybe_create_customer( $order );
 
-			if ( isset( $_POST['stripe_intent'] ) ) {
-				$prepared_source = $this->prepare_source_from_intent( get_current_user_id(), $force_save_source );
-			} else {
-				$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source );
-			}
+			// if ( isset( $_POST['stripe_intent'] ) ) {
+			// 	$prepared_source = $this->prepare_source_from_intent( get_current_user_id(), $force_save_source );
+			// } else {
+				// }
+			$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source );
 
 			$this->maybe_disallow_prepaid_card( $prepared_source );
 			$this->check_source( $prepared_source );
 			$this->save_source_to_order( $order, $prepared_source );
 
-			if ( 0 <= $order->get_total() ) {
+			if ( 0 >= $order->get_total() ) {
 				return $this->complete_free_order( $order );
 			}
 
@@ -813,20 +813,51 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
 			// Make the request.
-			if ( $prepared_source->is_intent ) {
-				// Update the intent with proper meta and description.
-				$full_request = $this->generate_payment_request( $order, $prepared_source );
-				$updated_data = array(
-					'description' => $full_request['description'],
-					'metadata'    => $full_request['metadata'],
-				);
-				WC_Stripe_API::request( $updated_data, "payment_intents/{$prepared_source->intent_id}" );
+			$full_request = $this->generate_payment_request( $order, $prepared_source );
 
-				// Capture the intent.
-				$response = $this->capture_intent( $prepared_source, $order );
-			} else {
-				$response = $this->charge_source( $prepared_source, $order, $previous_error );
+			$request = array(
+				'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
+				'currency'             => get_woocommerce_currency(),
+				'description' => $full_request['description'],
+				'metadata'    => $full_request['metadata'],
+				'statement_descriptor' => '',
+				'allowed_source_types' => array(
+					'card',
+				),
+			);
+
+			if ( ! empty( $this->get_option( 'statement_descriptor' ) ) ) {
+				$request['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( str_replace( "'", '', $this->get_option( 'statement_descriptor' ) ) );
 			}
+
+			/**
+			 * If a saved card has been chosen, use its source object
+			 * for the payment intent in order to let intents handle 3DS.
+			 */
+			if ( isset( $_POST['saved_card'] ) && ! empty( $_POST['saved_card'] ) ) {
+				if ( ! is_user_logged_in() ) {
+					$localized_message = __( 'You need to be logged in to use a saved card.', 'woocommerce-gateway-stripe' );
+					throw new WC_Stripe_Exception( 'saved_card_logged_out', $localized_message );
+				}
+
+				$user_id    = get_current_user_id();
+				$saved_card = intval( $_POST['saved_card'] );
+				$wc_token   = WC_Payment_Tokens::get( $saved_card );
+				$customer   = new WC_Stripe_Customer( $user_id );
+
+				if ( ! $wc_token || $wc_token->get_user_id() !== $user_id ) {
+					throw new WC_Stripe_Exception( 'Invalid payment method', __( 'Invalid payment method. Please input a new card number.', 'woocommerce-gateway-stripe' ) );
+				}
+
+				$request['source']   = $wc_token->get_token();
+				$request['customer'] = $customer->get_id();
+			} else {
+				$request['source'] = $prepared_source->source;
+			}
+
+			$intent = WC_Stripe_API::request( $request, 'payment_intents' );
+			$response = WC_Stripe_API::request( array( 'source' => $request['source'] ), "payment_intents/$intent->id/confirm" );
+			update_post_meta( $order->get_id(), '_stripe_intent_id', $intent->id );
 
 			if ( ! empty( $response->error ) ) {
 				if ( ! $prepared_source->is_intent ) {
@@ -839,6 +870,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				}
 
 				$this->throw_localized_message( $response, $order );
+			}
+
+			if ( 'requires_source_action' === $response->status ) {
+				return array(
+					'result'   => 'success',
+					'redirect' => '#confirm-pi-' . $intent->client_secret . ':' . urlencode( $this->get_return_url( $order ) ),
+				);
 			}
 
 			do_action( 'wc_gateway_stripe_process_payment', $response, $order );
