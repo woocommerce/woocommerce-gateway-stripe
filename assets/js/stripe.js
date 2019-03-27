@@ -594,12 +594,6 @@ jQuery( function( $ ) {
 				return stripe.createSource( iban, extra_details ).then( wc_stripe_form.sourceResponse );
 			}
 
-			// For new payment methods without orders, we only want the source.
-			if ( $( 'form#add_payment_method' ).length ) {
-				return stripe.createSource( stripe_card, extra_details )
-					.then( wc_stripe_form.sourceResponse );
-			}
-
 			// Handle card payments.
 			return stripe.createSource( stripe_card, extra_details )
 				.then( wc_stripe_form.sourceResponse );
