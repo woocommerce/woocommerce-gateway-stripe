@@ -263,6 +263,9 @@ jQuery( function( $ ) {
 
 			// Listen for hash changes in order to handle payment intents
 			window.addEventListener( 'hashchange', wc_stripe_form.onHashChange );
+			if ( $( '.stripe-intent-id' ).length && $( '.stripe-intent-return' ).length ) {
+				wc_stripe_form.openIntentModal( $( '.stripe-intent-id' ).val(), $( '.stripe-intent-return' ).val() );
+			}
 		},
 
 		/**
@@ -812,6 +815,19 @@ jQuery( function( $ ) {
 			var intentClientSecret = partials[1];
 			var successRedirectURL = decodeURIComponent( partials[2] );
 
+			wc_stripe_form.openIntentModal( intentClientSecret, successRedirectURL );
+
+			// Cleanup the URL
+			window.location.hash = '';
+		},
+
+		/**
+		 * Opens the modal for PaymentIntents.
+		 *
+		 * @param {string} intentClientSecret The client secret of the intent.
+		 * @param {string} successRedirectURL A URL to redirect to on success.
+		 */
+		openIntentModal: function( intentClientSecret, successRedirectURL ) {
 			stripe.handleCardPayment( intentClientSecret )
 				.then( function( response ) {
 					if ( response.error ) {
@@ -826,10 +842,7 @@ jQuery( function( $ ) {
 					$( document.body ).trigger( 'stripeError', { error: error } );
 					wc_stripe_form.form.removeClass( 'processing' );
 				} );
-
-			// Cleanup the URL
-			window.location.hash = '';
-		}
+		},
 	};
 
 	wc_stripe_form.init();

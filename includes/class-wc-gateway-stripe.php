@@ -165,6 +165,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_customer_save_address', array( $this, 'show_update_card_notice' ), 10, 2 );
 		add_action( 'woocommerce_receipt_stripe', array( $this, 'stripe_checkout_receipt_page' ) );
 		add_action( 'woocommerce_api_' . strtolower( get_class( $this ) ), array( $this, 'stripe_checkout_return_handler' ) );
+		add_filter( 'woocommerce_available_payment_gateways', array( $this, 'prepare_order_pay_page' ) );
 
 		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
 			$this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
@@ -812,7 +813,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			if ( $this->stripe_checkout ) {
 				$response = $this->charge_source( $prepared_source, $order, $previous_error );
 			} else {
-				$intent = $response = $this->create_and_confirm_intent( $order, $prepared_source );
+				$intent = $this->get_intent_from_order( $order );
+
+				if ( ! $intent ) {
+					$intent = $response = $this->create_and_confirm_intent( $order, $prepared_source );
+				}
 			}
 
 			if ( ! empty( $response->error ) ) {
@@ -834,9 +839,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 				// If the intent requires a 3DS flow, redirect to it.
 				if ( 'requires_source_action' === $intent->status ) {
+					if ( is_wc_endpoint_url( 'order-pay' ) ) {
+						$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
+					} else {
+						$redirect_url = '#confirm-pi-' . $intent->client_secret . ':' . urlencode( $this->get_return_url( $order ) );
+					}
+
 					return array(
 						'result'   => 'success',
-						'redirect' => '#confirm-pi-' . $intent->client_secret . ':' . urlencode( $this->get_return_url( $order ) ),
+						'redirect' => $redirect_url,
 					);
 				}
 			}
@@ -1078,22 +1089,31 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
         $intent = WC_Stripe_API::request( $request, 'payment_intents' );
         if ( ! empty( $intent->error ) ) {
             return $intent;
-        }
+		}
+
+		$order->add_order_note( sprintf( __( 'Stripe PaymentIntent initiated (ID: %s)', 'woocommerce-gateway-stripe' ), $intent->id ) );
 
         // Try to confirm the intent & capture the charge (if 3DS is not required).
         $request = array(
-            'source' => $request['source'],
+			'source' => $request['source'],
         );
-        $confirmed_event = WC_Stripe_API::request( $request, "payment_intents/$intent->id/confirm" );
+        $confirmed_intent = WC_Stripe_API::request( $request, "payment_intents/$intent->id/confirm" );
 
-        if ( ! empty( $confirmed_event->error ) ) {
-            return $confirmed_event;
+        if ( ! empty( $confirmed_intent->error ) ) {
+			return $confirmed_intent;
         }
 
         // Save the intent ID to the order
-        $this->save_intent_to_order( $order, $confirmed_event );
+		$this->save_intent_to_order( $order, $confirmed_intent );
 
-        return $confirmed_event;
+		// Save a note about the status of the intent.
+		if ( 'succeeded' === $confirmed_intent->status ) {
+			$order->add_order_note( sprintf( __( 'Stripe PaymentIntent succeeded (ID: %s)', 'woocommerce-gateway-stripe' ), $intent->id ) );
+		} else if ( 'requires_source_action' === $confirmed_intent->status ) {
+			$order->add_order_note( sprintf( __( 'Stripe PaymentIntent requires authentication (ID: %s)', 'woocommerce-gateway-stripe' ), $intent->id ) );
+		}
+
+        return $confirmed_intent;
     }
 
 	/**
@@ -1115,5 +1135,74 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		if ( is_callable( array( $order, 'save' ) ) ) {
 			$order->save();
 		}
+	}
+
+	/**
+	 * Retrieves the payment intent, associated with an order.
+	 *
+	 * @since 4.2
+	 * @param WC_Order $order The order to retrieve an intent for.
+	 * @return obect|bool     Either the intent object or `false`.
+	 */
+	public function get_intent_from_order( $order ) {
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+            $intent_id = get_post_meta( $order_id, '_stripe_intent_id', true );
+        } else {
+            $intent_id = $order->get_meta( '_stripe_intent_id' );
+		}
+
+		if ( ! $intent_id ) {
+			return false;
+		}
+
+		return WC_Stripe_API::request( array(), "payment_intents/$intent_id", 'GET' );
+	}
+
+	/**
+	 * Adds the necessary hooks to modify the "Pay for order" page in order to clean
+	 * it up and prepare it for the Stripe PaymentIntents modal to confirm a payment.
+	 *
+	 * @since 4.2
+	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways.
+	 * @return WC_Payment_Gateway[]          Either the same list or an empty one in the right conditions.
+	 */
+	public function prepare_order_pay_page( $gateways ) {
+		if ( ! is_wc_endpoint_url( 'order-pay' ) || ! isset( $_GET['wc-stripe-confirmation'] ) ) {
+			return $gateways;
+		}
+
+		add_filter( 'woocommerce_checkout_show_terms', '__return_false' );
+		add_filter( 'woocommerce_pay_order_button_html', '__return_false' );
+		add_filter( 'woocommerce_available_payment_gateways', array( $this, '__return_empty_array' ) );
+		add_filter( 'woocommerce_no_available_payment_methods_message', array( $this, 'change_no_available_methods_message' ) );
+		add_action( 'woocommerce_pay_order_after_submit', array( $this, 'render_payment_intent_inputs' ) );
+
+		return array();
+	}
+
+	/**
+	 * Changes the text of the "No available methods" message to one that indicates
+	 * the need for a PaymentIntent to be confirmed.
+	 *
+	 * @since 4.2
+	 * @return string the new message.
+	 */
+	public function change_no_available_methods_message() {
+		return __( "Almost there!<br />Your order has already been created, the only thing that still needs to be done is for you to authorize the payment with your bank.", 'woocommerce-gateway-stripe' );
+	}
+
+	/**
+	 * Renders hidden inputs on the "Pay for Order" page in order to let Stripe handle PaymentIntents.
+	 *
+	 * @since 4.2
+	 */
+	public function render_payment_intent_inputs() {
+		$order  = wc_get_order( absint( $GLOBALS['wp']->query_vars['order-pay'] ) );
+		$intent = $this->get_intent_from_order( $order );
+
+		echo '<input type="hidden" class="stripe-intent-id" value="' . esc_attr( $intent->client_secret ) . '" />';
+		echo '<input type="hidden" class="stripe-intent-return" value="' . esc_attr( $this->get_return_url( $order ) ) . '" />';
 	}
 }

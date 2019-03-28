@@ -600,6 +600,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( 'payment_intent.succeeded' === $notification->type ) {
 			$charge = end( $intent->charges->data );
+			$order->add_order_note( sprintf( __( 'Stripe PaymentIntent succeeded (ID: %s)', 'woocommerce-gateway-stripe' ), $intent->id ) );
+
 			do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
 
 			// Process valid response.
@@ -608,12 +610,23 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$error_message = $intent->last_payment_error ? $intent->last_payment_error->message : "";
 
 			/* translators: 1) The error message that was received from Stripe. */
-			$order->update_status( 'on-hold', sprintf( __( 'Stripe error: %s', 'woocommerce-gateway-stripe' ), $error_message ) );
+			$order->update_status( 'failed', sprintf( __( 'Stripe authentication failed.', 'woocommerce-gateway-stripe' ), $error_message ) );
 
 			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
 
 			$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 			$this->send_failed_order_email( $order_id );
+
+			// Forget about the intent.
+			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+				delete_post_meta( $order_id, '_stripe_intent_id' );
+			} else {
+				$order->delete_meta_data( '_stripe_intent_id' );
+			}
+
+			if ( is_callable( array( $order, 'save' ) ) ) {
+				$order->save();
+			}
 		}
 	}
 
