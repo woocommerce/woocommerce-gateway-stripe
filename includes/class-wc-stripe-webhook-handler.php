@@ -599,6 +599,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( 'payment_intent.succeeded' === $notification->type ) {
+			if ( 'processing' === $order->get_status() || 'completed' === $order->get_status() ) {
+				return;
+			}
+
 			$charge = end( $intent->charges->data );
 			$order->add_order_note( sprintf( __( 'Stripe PaymentIntent succeeded (ID: %s)', 'woocommerce-gateway-stripe' ), $intent->id ) );
 
@@ -616,17 +620,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 			$this->send_failed_order_email( $order_id );
-
-			// Forget about the intent.
-			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-				delete_post_meta( $order_id, '_stripe_intent_id' );
-			} else {
-				$order->delete_meta_data( '_stripe_intent_id' );
-			}
-
-			if ( is_callable( array( $order, 'save' ) ) ) {
-				$order->save();
-			}
 		}
 	}
 

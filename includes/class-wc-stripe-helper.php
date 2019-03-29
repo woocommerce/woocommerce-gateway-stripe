@@ -434,7 +434,7 @@ class WC_Stripe_Helper {
 	 * @param string $intent_id The ID of the intent.
 	 * @return WC_Order|bool Either an order or false when not found.
 	 */
-	public function get_order_by_intent_id( $intent_id ) {
+	public static function get_order_by_intent_id( $intent_id ) {
 		global $wpdb;
 
 		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $intent_id, '_stripe_intent_id' ) );

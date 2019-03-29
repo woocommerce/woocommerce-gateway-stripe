@@ -815,7 +815,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			} else {
 				$intent = $this->get_intent_from_order( $order );
 
-				if ( ! $intent ) {
+				if ( $intent ) {
+					$intent = $this->update_existing_intent( $intent, $order, $prepared_source );
+				} else {
 					$intent = $response = $this->create_and_confirm_intent( $order, $prepared_source );
 				}
 			}
@@ -842,6 +844,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					if ( is_wc_endpoint_url( 'order-pay' ) ) {
 						$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
 					} else {
+						// $redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
 						$redirect_url = '#confirm-pi-' . $intent->client_secret . ':' . urlencode( $this->get_return_url( $order ) );
 					}
 
@@ -1114,7 +1117,44 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
         return $confirmed_intent;
-    }
+	}
+
+	/**
+	 * Updates an existing intent with updated amount, source, and customer.
+	 *
+	 * @param object   $intent          The existing intent object.
+	 * @param WC_Order $order           The order.
+	 * @param object   $prepared_source Currently selected source.
+	 * @return object                   An updated intent.
+	 */
+	public function update_existing_intent( $intent, $order, $prepared_source ) {
+		$request = array();
+
+		if ( $prepared_source->source !== $intent->source ) {
+			$request['source'] = $prepared_source->source;
+		}
+
+		$new_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
+		if ( $intent->amount !== $new_amount ) {
+			$request['amount'] = $new_amount;
+		}
+
+		if ( $prepared_source->customer && $intent->customer !== $prepared_source->customer ) {
+			$request['customer'] = $prepared_source->customer;
+		}
+
+		if ( empty( $request ) ) {
+			return $intent;
+		}
+
+		$updated_intent = WC_Stripe_API::request( $request, "payment_intents/$intent->id" );
+
+		if ( 'requires_confirmation' === $updated_intent->status ) {
+			return WC_Stripe_API::request( array(), "payment_intents/$intent->id/confirm" );
+		} else {
+			return $updated_intent;
+		}
+	}
 
 	/**
 	 * Saves intent to order.
