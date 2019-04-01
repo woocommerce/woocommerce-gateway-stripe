@@ -674,7 +674,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Creates a new WC_Stripe_Customer if the visitor chooses to.
 	 *
 	 * @since 4.2.0 Isolated as a separate method.
-	 * @since 4.2.0 Added `force_save_source` to ensure subscriptions work.
 	 * @param WC_Order $order             The order that is being created.
 	 * @param bool     $force_save_source An idicator whether to check for a checkbox or just save.
 	 */
@@ -1201,15 +1200,5 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
         $this->retry_interval++;
 
         return $this->process_payment( $order->get_id(), true, $force_save_source, $response->error, $previous_error );
-	}
-
-	/**
-	 * Indicates if SCA (especially for subscriptions) is already enabled.
-	 *
-	 * @since 4.2.0
-	 * @return boolean
-	 */
-	public function are_sca_subscriptions_enabled() {
-		return true;
 	}
 }
