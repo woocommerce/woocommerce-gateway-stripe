@@ -1239,10 +1239,26 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @since 4.2
 	 */
 	public function render_payment_intent_inputs() {
-		$order  = wc_get_order( absint( $GLOBALS['wp']->query_vars['order-pay'] ) );
-		$intent = $this->get_intent_from_order( $order );
+		$order     = wc_get_order( absint( $GLOBALS['wp']->query_vars['order-pay'] ) );
+		$intent    = $this->get_intent_from_order( $order );
+		$error_url = $order->get_checkout_order_received_url();
 
 		echo '<input type="hidden" class="stripe-intent-id" value="' . esc_attr( $intent->client_secret ) . '" />';
 		echo '<input type="hidden" class="stripe-intent-return" value="' . esc_attr( $this->get_return_url( $order ) ) . '" />';
+		echo '<input type="hidden" class="stripe-intent-error" value="' . esc_attr( $error_url ) . '" />';
+	}
+
+	/**
+	 * Adds an error message wrapper to each saved method.
+	 *
+	 * @since 4.2.0
+	 * @param WC_Payment_Token $token Payment Token.
+	 * @return string                 Generated payment method HTML
+	 */
+	public function get_saved_payment_method_option_html( $token ) {
+		$html          = parent::get_saved_payment_method_option_html( $token );
+		$error_wrapper = '<div class="stripe-source-errors" role="alert"></div>';
+
+		return preg_replace( '~</(\w+)>\s*$~', "$error_wrapper</$1>", $html );
 	}
 }
