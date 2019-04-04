@@ -781,8 +781,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false ) {
 		try {
-			$order  = wc_get_order( $order_id );
-			$intent = null;
+			$order = wc_get_order( $order_id );
 
 			if ( $this->should_redirect_to_stripe_checkout() ) {
 				return $this->redirect_to_stripe_checkout( $order );
@@ -811,6 +810,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
+			$intent = null;
 			if ( $this->stripe_checkout ) {
 				$response = $this->charge_source( $prepared_source, $order, $previous_error );
 			} else {
