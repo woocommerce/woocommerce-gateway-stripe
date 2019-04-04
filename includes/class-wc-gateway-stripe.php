@@ -1077,7 +1077,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$request = array(
 			'source'               => $prepared_source->source,
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
-			'currency'             => get_woocommerce_currency(),
+			'currency'             => strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency() ),
 			'description'          => $full_request['description'],
 			'metadata'             => $full_request['metadata'],
 			'statement_descriptor' => $full_request['statement_descriptor'],
