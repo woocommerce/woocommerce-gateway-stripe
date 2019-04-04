@@ -819,10 +819,10 @@ jQuery( function( $ ) {
 			var intentClientSecret = partials[1];
 			var successRedirectURL = decodeURIComponent( partials[2] );
 
-			wc_stripe_form.openIntentModal( intentClientSecret, successRedirectURL );
-
 			// Cleanup the URL
 			window.location.hash = '';
+
+			wc_stripe_form.openIntentModal( intentClientSecret, successRedirectURL );
 		},
 
 		/**
