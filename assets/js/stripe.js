@@ -808,6 +808,14 @@ jQuery( function( $ ) {
 
 		/**
 		 * Handles changes in the hash in order to show a modal for PaymentIntent confirmations.
+		 *
+		 * Listens for `hashchange` events and checks for a hash in the following format:
+		 * #confirm-pi-<intentClientSecret>:<successRedirectURL>
+		 *
+		 * If such a hash appears, the partials will be used to call `stripe.handleCardPayment`
+		 * in order to allow customers to confirm an 3DS/SCA authorization.
+		 *
+		 * Those redirects/hashes are generated in `WC_Gateway_Stripe::process_payment`.
 		 */
 		onHashChange: function() {
 			var partials = window.location.hash.match( /^#?confirm-pi-(.+):(.+)$/ );

@@ -846,7 +846,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					if ( is_wc_endpoint_url( 'order-pay' ) ) {
 						$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
 					} else {
-						// Use the format above (with `wc-stripe-confirmation`) to avoid hash-based actions.
+						/**
+						 * This URL contains only a hash, which will be sent to `checkout.js` where it will be set like this:
+						 * `window.location = result.redirect`
+						 * Once this redirect is sent to JS, the `onHashChange` function will execute `handleCardPayment`.
+						 */
+
+						// Remove this `else` block to avoid hash-based actions.
 						$redirect_url = '#confirm-pi-' . $intent->client_secret . ':' . rawurlencode( $this->get_return_url( $order ) );
 					}
 
