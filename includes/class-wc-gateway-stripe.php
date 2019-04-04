@@ -857,8 +857,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				}
 			}
 
-			do_action( 'wc_gateway_stripe_process_payment', $response, $order );
-
 			// Process valid response.
 			$this->process_response( $response, $order );
 
@@ -1235,7 +1233,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return string the new message.
 	 */
 	public function change_no_available_methods_message() {
-		return __( 'Almost there!<br />Your order has already been created, the only thing that still needs to be done is for you to authorize the payment with your bank.', 'woocommerce-gateway-stripe' );
+		return wpautop( __( "Almost there!\n\nYour order has already been created, the only thing that still needs to be done is for you to authorize the payment with your bank.", 'woocommerce-gateway-stripe' ) );
 	}
 
 	/**
@@ -1244,7 +1242,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @since 4.2
 	 */
 	public function render_payment_intent_inputs() {
-		$order     = wc_get_order( absint( $GLOBALS['wp']->query_vars['order-pay'] ) );
+		$order     = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
 		$intent    = $this->get_intent_from_order( $order );
 		$error_url = $order->get_checkout_order_received_url();
 
