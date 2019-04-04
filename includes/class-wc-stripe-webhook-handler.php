@@ -598,13 +598,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 		if ( 'payment_intent.succeeded' === $notification->type ) {
 			if ( 'processing' === $order->get_status() || 'completed' === $order->get_status() ) {
 				return;
 			}
 
 			$charge = end( $intent->charges->data );
-			$order->add_order_note( sprintf( __( 'Stripe PaymentIntent succeeded (ID: %s)', 'woocommerce-gateway-stripe' ), $intent->id ) );
+			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
 
 			do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
 
@@ -618,7 +619,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
 
-			$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 			$this->send_failed_order_email( $order_id );
 		}
 	}

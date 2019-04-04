@@ -820,7 +820,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 					$intent = $this->update_existing_intent( $intent, $order, $prepared_source );
 				} else {
 					$intent = $this->create_and_confirm_intent( $order, $prepared_source );
-					$intent = $response;
+					$response = $intent;
 				}
 			}
 
@@ -1094,8 +1094,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return $intent;
 		}
 
-		/* translators: 1) The ID of the PaymentIntent */
-		$order->add_order_note( sprintf( __( 'Stripe PaymentIntent initiated (ID: %s)', 'woocommerce-gateway-stripe' ), $intent->id ) );
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+		WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id initiated for order $order_id" );
 
 		// Try to confirm the intent & capture the charge (if 3DS is not required).
 		$confirm_request  = array(
@@ -1112,11 +1112,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// Save a note about the status of the intent.
 		if ( 'succeeded' === $confirmed_intent->status ) {
-			/* translators: 1) The ID of the PaymentIntent */
-			$order->add_order_note( sprintf( __( 'Stripe PaymentIntent succeeded (ID: %s)', 'woocommerce-gateway-stripe' ), $intent->id ) );
+			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
 		} elseif ( 'requires_source_action' === $confirmed_intent->status ) {
-			/* translators: 1) The ID of the PaymentIntent */
-			$order->add_order_note( sprintf( __( 'Stripe PaymentIntent requires authentication (ID: %s)', 'woocommerce-gateway-stripe' ), $intent->id ) );
+			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id requires authentication for order $order_id" );
 		}
 
 		return $confirmed_intent;
