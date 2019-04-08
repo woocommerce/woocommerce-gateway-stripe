@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 4.1.16 - 2019-xx-xx =
+* Tweak - WC 3.6 compatibility.
+
 = 4.1.15 - 2019-03-12 =
 * Fix - Prevent canceled webhook from processing non Stripe payments.
 * Fix - "Retain Stripe Data" setting placement on WooCommerce settings page.

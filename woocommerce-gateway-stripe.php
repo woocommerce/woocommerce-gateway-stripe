@@ -9,7 +9,7 @@
  * Requires at least: 4.4
  * Tested up to: 5.0
  * WC requires at least: 2.6
- * WC tested up to: 3.5
+ * WC tested up to: 3.6
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  *
