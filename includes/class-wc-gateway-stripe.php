@@ -844,7 +844,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$response = end( $intent->charges->data );
 
 				// If the intent requires a 3DS flow, redirect to it.
-				if ( 'requires_source_action' === $intent->status ) {
+				if ( 'requires_action' === $intent->status ) {
 					if ( is_wc_endpoint_url( 'order-pay' ) ) {
 						$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
 					} else {
@@ -1087,7 +1087,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			'description'          => $full_request['description'],
 			'metadata'             => $full_request['metadata'],
 			'statement_descriptor' => $full_request['statement_descriptor'],
-			'allowed_source_types' => array(
+			'payment_method_types' => array(
 				'card',
 			),
 		);
@@ -1121,7 +1121,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		// Save a note about the status of the intent.
 		if ( 'succeeded' === $confirmed_intent->status ) {
 			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
-		} elseif ( 'requires_source_action' === $confirmed_intent->status ) {
+		} elseif ( 'requires_action' === $confirmed_intent->status ) {
 			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id requires authentication for order $order_id" );
 		}
 
