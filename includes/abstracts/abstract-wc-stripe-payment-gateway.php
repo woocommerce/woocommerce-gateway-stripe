@@ -849,7 +849,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function process_refund( $order_id, $amount = null, $reason = '' ) {
 		$order = wc_get_order( $order_id );
 
-		if ( ! $order || ! $order->get_transaction_id() ) {
+		if ( ! $order ) {
 			return false;
 		}
 
@@ -858,9 +858,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 			$order_currency = get_post_meta( $order_id, '_order_currency', true );
 			$captured       = get_post_meta( $order_id, '_stripe_charge_captured', true );
+			$charge_id      = get_post_meta( $order_id, '_transaction_id', true );
 		} else {
 			$order_currency = $order->get_currency();
 			$captured       = $order->get_meta( '_stripe_charge_captured', true );
+			$charge_id      = $order->get_transaction_id();
+		}
+
+		if ( ! $charge_id ) {
+			return false;
 		}
 
 		if ( ! is_null( $amount ) ) {
@@ -878,9 +884,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			);
 		}
 
-		$request['charge'] = $order->get_transaction_id();
-
-		WC_Stripe_Logger::log( "Info: Beginning refund for order {$order->get_transaction_id()} for the amount of {$amount}" );
+		$request['charge'] = $charge_id;
+		WC_Stripe_Logger::log( "Info: Beginning refund for order {$charge_id} for the amount of {$amount}" );
 
 		$request = apply_filters( 'wc_stripe_refund_request', $request, $order );
 
