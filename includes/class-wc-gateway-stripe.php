@@ -854,6 +854,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 						// Remove this `else` block to avoid hash-based actions.
 						$redirect_url = '#confirm-pi-' . $intent->client_secret . ':' . rawurlencode( $this->get_return_url( $order ) );
+						$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
 					}
 
 					return array(
@@ -1250,9 +1251,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$intent    = $this->get_intent_from_order( $order );
 		$error_url = $order->get_checkout_order_received_url();
 
-		echo '<input type="hidden" class="stripe-intent-id" value="' . esc_attr( $intent->client_secret ) . '" />';
-		echo '<input type="hidden" class="stripe-intent-return" value="' . esc_attr( $this->get_return_url( $order ) ) . '" />';
-		echo '<input type="hidden" class="stripe-intent-error" value="' . esc_attr( $error_url ) . '" />';
+		echo '<input type="hidden" id="stripe-intent-id" value="' . esc_attr( $intent->client_secret ) . '" />';
+		echo '<input type="hidden" id="stripe-intent-return" value="' . esc_attr( $this->get_return_url( $order ) ) . '" />';
+		echo '<input type="hidden" id="stripe-intent-error" value="' . esc_attr( $error_url ) . '" />';
 	}
 
 	/**

@@ -263,10 +263,10 @@ jQuery( function( $ ) {
 
 			// Listen for hash changes in order to handle payment intents
 			window.addEventListener( 'hashchange', wc_stripe_form.onHashChange );
-			if ( $( '.stripe-intent-id' ).length && $( '.stripe-intent-return' ).length ) {
-				var intentId  = $( '.stripe-intent-id' ).val(),
-					returnURL = $( '.stripe-intent-return' ).val(),
-					errorURL  = $( '.stripe-intent-error' ).val();
+			if ( $( '#stripe-intent-id' ).length && $( '#stripe-intent-return' ).length ) {
+				var intentId  = $( '#stripe-intent-id' ).val(),
+					returnURL = $( '#stripe-intent-return' ).val(),
+					errorURL  = $( '#stripe-intent-error' ).val();
 
 				wc_stripe_form.openIntentModal( intentId, returnURL, errorURL );
 			}
