@@ -247,9 +247,9 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						$result = WC_Stripe_API::request(
 							array(
 								'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
-								'expand[]' => 'charges.balance_transaction',
+								'expand[]' => 'charges.data.balance_transaction',
 							),
-							'payment_intents/' . $charge . '/capture'
+							'payment_intents/' . $intent->id . '/capture'
 						);
 
 						if ( ! empty( $result->error ) ) {
