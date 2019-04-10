@@ -889,7 +889,32 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$request = apply_filters( 'wc_stripe_refund_request', $request, $order );
 
-		$response = WC_Stripe_API::request( $request, 'refunds' );
+		$intent = $this->get_intent_from_order( $order );
+		$intent_cancelled = false;
+		if ( $intent ) {
+			// If the order has a Payment Intent pending capture, then the Intent itself must be refunded (cancelled), not the Charge
+			if ( ! empty( $intent->error ) ) {
+				$response = $intent;
+				$intent_cancelled = true;
+			} elseif ( 'requires_capture' === $intent->status ) {
+				$result = WC_Stripe_API::request(
+					array(),
+					'payment_intents/' . $intent->id . '/cancel'
+				);
+				$intent_cancelled = true;
+
+				if ( ! empty( $result->error ) ) {
+					$response = $result;
+				} else {
+					$charge = end( $result->charges->data );
+					$response = end( $charge->refunds->data );
+				}
+			}
+		}
+
+		if ( ! $intent_cancelled ) {
+			$response = WC_Stripe_API::request( $request, 'refunds' );
+		}
 
 		if ( ! empty( $response->error ) ) {
 			WC_Stripe_Logger::log( 'Error: ' . $response->error->message );
