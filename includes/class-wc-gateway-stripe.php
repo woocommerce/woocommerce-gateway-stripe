@@ -166,6 +166,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_receipt_stripe', array( $this, 'stripe_checkout_receipt_page' ) );
 		add_action( 'woocommerce_api_' . strtolower( get_class( $this ) ), array( $this, 'stripe_checkout_return_handler' ) );
 		add_filter( 'woocommerce_available_payment_gateways', array( $this, 'prepare_order_pay_page' ) );
+		add_filter( 'woocommerce_thankyou_order_id', array( $this, 'thankyou_order_id' ), 100 );
 
 		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
 			$this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
@@ -1267,5 +1268,29 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$error_wrapper = '<div class="stripe-source-errors" role="alert"></div>';
 
 		return preg_replace( '~</(\w+)>\s*$~', "$error_wrapper</$1>", $html );
+	}
+
+	/**
+	 * Attempt to manually complete the payment process for orders, which are still pending
+	 * before displaying the Thank You page. This is useful in case webhooks have not been set up.
+	 *
+	 * @since 4.2.0
+	 *
+	 * @param int $order_id The ID that will be used for the thank you page.
+	 * @return int          The ID to use.
+	 */
+	public function thankyou_order_id( $order_id ) {
+		if ( $order_id > 0 ) {
+			$order = wc_get_order( $order_id );
+
+			if ( $order && 'pending' === $order->get_status() && $order->get_payment_method() === $this->id ) {
+				$intent = $this->get_intent_from_order( $order );
+				if ( 'succeeded' === $intent->status ) {
+					$this->process_response( end( $intent->charges->data ), $order );
+				}
+			}
+		}
+
+		return $order_id;
 	}
 }
