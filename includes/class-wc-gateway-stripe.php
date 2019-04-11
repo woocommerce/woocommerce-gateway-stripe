@@ -854,7 +854,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 						// Remove this `else` block to avoid hash-based actions.
 						$redirect_url = '#confirm-pi-' . $intent->client_secret . ':' . rawurlencode( $this->get_return_url( $order ) );
-						$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
 					}
 
 					return array(
