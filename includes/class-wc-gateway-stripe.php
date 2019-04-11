@@ -922,7 +922,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			</td>
 			<td width="1%"></td>
 			<td class="total">
-				-&nbsp;<?php echo esc_html( wc_price( $fee, array( 'currency' => $currency ) ) ); ?>
+				-&nbsp;<?php echo wc_price( $fee, array( 'currency' => $currency ) ); // wpcs: xss ok. ?>
 			</td>
 		</tr>
 
@@ -959,7 +959,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			</td>
 			<td width="1%"></td>
 			<td class="total">
-				<?php echo esc_html( wc_price( $net, array( 'currency' => $currency ) ) ); ?>
+				<?php echo wc_price( $net, array( 'currency' => $currency ) ); // wpcs: xss ok. ?>
 			</td>
 		</tr>
 
