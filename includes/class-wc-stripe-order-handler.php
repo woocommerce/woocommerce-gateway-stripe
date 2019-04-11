@@ -257,7 +257,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 							$order->update_status( 'failed', sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
 						} else {
 							$is_stripe_captured = true;
-							$result = end( $intent->charges->data );
+							$result = end( $result->charges->data );
 						}
 					} elseif ( 'succeeded' === $intent->status ) {
 						$is_stripe_captured = true;
