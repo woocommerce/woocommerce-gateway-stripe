@@ -25,14 +25,6 @@ jQuery( function( $ ) {
 	 */
 	var wc_stripe_form = {
 		/**
-		 * Stores payment intents for saved/new cards.
-		 *
-		 * For saved cards, the key will be the ID of the WC_Token object,
-		 * for new cards it will be `"new"`.
-		 */
-		paymentIntentCache: {},
-
-		/**
 		 * Get WC AJAX endpoint URL.
 		 *
 		 * @param  {String} endpoint Endpoint.
@@ -268,6 +260,16 @@ jQuery( function( $ ) {
 					return false;
 				} );
 			}
+
+			// Listen for hash changes in order to handle payment intents
+			window.addEventListener( 'hashchange', wc_stripe_form.onHashChange );
+			if ( $( '#stripe-intent-id' ).length && $( '#stripe-intent-return' ).length ) {
+				var intentId  = $( '#stripe-intent-id' ).val(),
+					returnURL = $( '#stripe-intent-return' ).val(),
+					errorURL  = $( '#stripe-intent-error' ).val();
+
+				wc_stripe_form.openIntentModal( intentId, returnURL, errorURL );
+			}
 		},
 
 		/**
@@ -394,16 +396,6 @@ jQuery( function( $ ) {
 		 */
 		hasSource: function() {
 			return 0 < $( 'input.stripe-source' ).length;
-		},
-
-		/**
-		 * Checks whether a payment intent ID is present as a hidden input.
-		 * Only used in combination with credit cards.
-		 *
-		 * @return {boolean}
-		 */
-		hasIntent: function() {
-			return 0 < $( 'input.stripe-intent' ).length;
 		},
 
 		/**
@@ -609,31 +601,13 @@ jQuery( function( $ ) {
 				return stripe.createSource( iban, extra_details ).then( wc_stripe_form.sourceResponse );
 			}
 
-			// For new payment methods without orders, we only want the source.
-			if ( $( 'form#add_payment_method' ).length ) {
-				return stripe.createSource( stripe_card, extra_details )
-					.then( wc_stripe_form.sourceResponse );
-			}
-
 			// Handle card payments.
-			wc_stripe_form.getIntent()
-				.then( function( intent ) {
-					return stripe.handleCardPayment( intent.client_secret, stripe_card, {
-						source_data: extra_details,
-					} );
-				} )
-				.then( wc_stripe_form.paymentIntentResponse )
-				.catch( function( error ) {
-					$( document.body ).trigger( 'stripeError', { error: error } );
-				} );
+			return stripe.createSource( stripe_card, extra_details )
+				.then( wc_stripe_form.sourceResponse );
 		},
 
 		/**
 		 * Handles responses, based on source object.
-		 *
-		 * After the switch to payment intents in 4.2.0 this method is only applicable to
-		 * SEPA Direct Debit payments and the Stripe Checkout modal, as cards are handled by
-		 * intents and all other payment methods require a redirect to an external portal.
 		 *
 		 * @param {Object} response The `stripe.createSource` response.
 		 */
@@ -659,28 +633,6 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Responds to payments with credit cards, which use PaymentIntents.
-		 *
-		 * @param {object} response The response from calling `stripe.handleCardPayment`.
-		 */
-		paymentIntentResponse: function( response ) {
-			if ( response.error ) {
-				return $( document.body ).trigger( 'stripeError', response );
-			}
-
-			wc_stripe_form.reset();
-
-			wc_stripe_form.form.append(
-				$( '<input type="hidden" />' )
-					.addClass( 'stripe-intent' )
-					.attr( 'name', 'stripe_intent' )
-					.val( response.paymentIntent.id )
-			);
-
-			wc_stripe_form.form.submit();
-		},
-
-		/**
 		 * Performs payment-related actions when a checkout/payment form is being submitted.
 		 *
 		 * @return {boolean} An indicator whether the submission should proceed.
@@ -691,32 +643,8 @@ jQuery( function( $ ) {
 				return true;
 			}
 
-			// For saved cards, use the card to create an intent.
-			if ( wc_stripe_form.isStripeSaveCardChosen() && ! wc_stripe_form.hasIntent() ) {
-				/**
-				 * Use the saved source to retrieve a payment itnent and then process
-				 * it in order to allow 3DS to do authorizations and transactions.
-				 */
-				var sourceId = $( 'input[name="wc-stripe-payment-token"]:checked' ).val();
-
-				wc_stripe_form.block();
-				wc_stripe_form.getIntent( sourceId )
-					.then( function( intent ) {
-						return stripe.handleCardPayment( intent.client_secret, {
-							source: intent.source,
-						} );
-					} )
-					.then( wc_stripe_form.paymentIntentResponse )
-					.catch( function( error ) {
-						$( document.body ).trigger( 'stripeError', { error: error } );
-					} );
-
-				// Prevent form submitting
-				return false;
-			}
-
-			// If a source, or an intent is already in place, submit the form as usual.
-			if ( wc_stripe_form.isStripeSaveCardChosen() || wc_stripe_form.hasSource() || wc_stripe_form.hasIntent() ) {
+			// If a source is already in place, submit the form as usual.
+			if ( wc_stripe_form.isStripeSaveCardChosen() || wc_stripe_form.hasSource() ) {
 				return true;
 			}
 
@@ -752,7 +680,7 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * If a new credit card is entered, reset sources, and intents.
+		 * If a new credit card is entered, reset sources.
 		 */
 		onCCFormChange: function() {
 			wc_stripe_form.reset();
@@ -762,7 +690,7 @@ jQuery( function( $ ) {
 		 * Removes all Stripe errors and hidden fields with IDs from the form.
 		 */
 		reset: function() {
-			$( '.wc-stripe-error, .stripe-source, .stripe-intent' ).remove();
+			$( '.wc-stripe-error, .stripe-source' ).remove();
 		},
 
 		/**
@@ -879,43 +807,58 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Queries the server for a PaymentIntent.
+		 * Handles changes in the hash in order to show a modal for PaymentIntent confirmations.
 		 *
-		 * @param {string} savedCard The ID of the saved card. (Optional)
-		 * @return {Promise} A promise that resolves to a payment intent.
+		 * Listens for `hashchange` events and checks for a hash in the following format:
+		 * #confirm-pi-<intentClientSecret>:<successRedirectURL>
+		 *
+		 * If such a hash appears, the partials will be used to call `stripe.handleCardPayment`
+		 * in order to allow customers to confirm an 3DS/SCA authorization.
+		 *
+		 * Those redirects/hashes are generated in `WC_Gateway_Stripe::process_payment`.
 		 */
-		getIntent: function( savedCard ) {
-			savedCard = savedCard || 'new';
+		onHashChange: function() {
+			var partials = window.location.hash.match( /^#?confirm-pi-(.+):(.+)$/ );
 
-			return new Promise( function( resolve, reject ) {
-				// If we have an intent for this card already, use it.
-				if ( wc_stripe_form.paymentIntentCache.hasOwnProperty( savedCard ) ) {
-					return resolve( wc_stripe_form.paymentIntentCache[ savedCard ] );
-				}
+			if ( ! partials || 3 > partials.length ) {
+				return;
+			}
 
-				$.ajax( {
-					url: wc_stripe_form.getAjaxURL( 'create_intent' ),
-					type: 'post',
-					data: {
-						saved_card: ( 'new' === savedCard ? null : savedCard ),
-					},
-					dataType: 'json',
-					success: function( result ) {
-						if ( result.error ) {
-							return reject( result.error );
-						}
+			var intentClientSecret = partials[1];
+			var successRedirectURL = decodeURIComponent( partials[2] );
 
-						wc_stripe_form.paymentIntentCache[ savedCard ] = result;
-						resolve( result );
-					},
-					error: function() {
-						reject( {
-							code   : 'ajax_failed',
-							message: wc_stripe_params.payment_intent_error,
-						} );
-					},
+			// Cleanup the URL
+			window.location.hash = '';
+
+			wc_stripe_form.openIntentModal( intentClientSecret, successRedirectURL );
+		},
+
+		/**
+		 * Opens the modal for PaymentIntents.
+		 *
+		 * @param {string} intentClientSecret The client secret of the intent.
+		 * @param {string} successRedirectURL A URL to redirect to on success.
+		 * @param {string} failureRedirectURL A URL to redirect to on error (optional).
+		 */
+		openIntentModal: function( intentClientSecret, successRedirectURL, failureRedirectURL ) {
+			stripe.handleCardPayment( intentClientSecret )
+				.then( function( response ) {
+					if ( response.error ) {
+						throw response.error;
+					}
+
+					if ( 'succeeded' === response.paymentIntent.status ) {
+						window.location = successRedirectURL;
+					}
+				} )
+				.catch ( function( error ) {
+					if ( failureRedirectURL ) {
+						return window.location = failureRedirectURL;
+					}
+
+					$( document.body ).trigger( 'stripeError', { error: error } );
+					wc_stripe_form.form.removeClass( 'processing' );
 				} );
-			} );
 		},
 	};
 
