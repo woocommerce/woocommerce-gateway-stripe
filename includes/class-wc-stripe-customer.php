@@ -249,6 +249,59 @@ class WC_Stripe_Customer {
 		return $response->id;
 	}
 
+	public function add_payment_method( $payment_method ) {
+		if ( ! $this->get_id() ) {
+			$this->set_id( $this->create_customer() );
+		}
+
+		if ( $this->get_id() !== $payment_method->customer ) {
+			$response = WC_Stripe_API::request(
+				array(
+					'customer' => $this->get_id(),
+				),
+				"payment_methods/$payment_method->id/attach"
+			);
+
+			if ( ! empty( $response->error ) ) {
+				// It is possible the WC user once was linked to a customer on Stripe
+				// but no longer exists. Instead of failing, lets try to create a
+				// new customer.
+				if ( $this->is_no_such_customer_error( $response->error ) ) {
+					delete_user_meta( $this->get_user_id(), '_stripe_customer_id' );
+					$this->create_customer();
+					return $this->add_payment_method( $payment_method, false );
+				} else {
+					return $response;
+				}
+			} elseif ( empty( $response->id ) ) {
+				return new WP_Error( 'error', __( 'Unable to add payment method to customer.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			// Replace the payment method with the updated version.
+			$payment_method = $response;
+		}
+
+		// Add token to WooCommerce.
+		if ( $this->get_user_id() ) {
+			$wc_token = new WC_Payment_Token_CC();
+			$wc_token->set_token( $payment_method->id );
+			$wc_token->set_gateway_id( 'stripe' );
+			$wc_token->set_card_type( strtolower( $payment_method->card->brand ) );
+			$wc_token->set_last4( $payment_method->card->last4 );
+			$wc_token->set_expiry_month( $payment_method->card->exp_month );
+			$wc_token->set_expiry_year( $payment_method->card->exp_year );
+
+			$wc_token->set_user_id( $this->get_user_id() );
+			$wc_token->save();
+		}
+
+		$this->clear_cache();
+
+		do_action( 'woocommerce_stripe_add_payment_method', $this->get_id(), $wc_token, $payment_method, $payment_method );
+
+		return $payment_method;
+	}
+
 	/**
 	 * Get a customers saved sources using their Stripe ID.
 	 *

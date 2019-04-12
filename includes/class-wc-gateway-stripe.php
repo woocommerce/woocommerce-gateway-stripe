@@ -796,11 +796,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			$this->maybe_create_customer( $order );
 
-			$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source );
+			if ( isset( $_POST['stripe_payment_method'] ) && ! empty( $_POST['stripe_payment_method'] ) ) {
+				$prepared_method = $this->prepare_payment_method( wc_clean( $_POST['stripe_payment_method'] ), get_current_user_id(), $force_save_source );
+			} else {
+				$prepared_method = $this->prepare_payment_method_from_source( get_current_user_id(), $force_save_source );
+			}
 
-			$this->maybe_disallow_prepaid_card( $prepared_source );
-			$this->check_source( $prepared_source );
-			$this->save_source_to_order( $order, $prepared_source );
+			$this->maybe_disallow_prepaid_card( $prepared_method );
+			$this->check_source( $prepared_method );
+			$this->save_source_to_order( $order, $prepared_method );
 
 			if ( 0 >= $order->get_total() ) {
 				return $this->complete_free_order( $order );
@@ -811,61 +815,45 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
-			$intent = null;
-			if ( $this->stripe_checkout ) {
-				$response = $this->charge_source( $prepared_source, $order, $previous_error );
+			$intent = $this->get_intent_from_order( $order );
+			if ( $intent ) {
+				$intent = $this->update_existing_intent( $intent, $order, $prepared_method );
 			} else {
-				$intent = $this->get_intent_from_order( $order );
-
-				if ( $intent ) {
-					$intent = $this->update_existing_intent( $intent, $order, $prepared_source );
-				} else {
-					$intent = $this->create_and_confirm_intent( $order, $prepared_source );
-					$response = $intent;
-				}
+				$intent = $this->create_and_confirm_intent( $order, $prepared_method );
 			}
 
-			if ( ! empty( $response->error ) ) {
-				if ( ! $prepared_source->is_intent ) {
-					$this->maybe_remove_non_existent_customer( $response->error, $order );
-				}
-
+			if ( ! empty( $intent->error ) ) {
 				// We want to retry.
-				if ( $this->is_retryable_error( $response->error ) ) {
-					return $this->retry_after_error( $response, $order, $retry, $force_save_source, $previous_error );
+				if ( $this->is_retryable_error( $intent->error ) ) {
+					return $this->retry_after_error( $intent, $order, $retry, $force_save_source, $previous_error );
 				}
 
-				$this->throw_localized_message( $response, $order );
+				$this->throw_localized_message( $intent, $order );
 			}
 
-			if ( ! empty( $intent ) ) {
-				// Use the last charge within the intent to proceed.
-				$response = end( $intent->charges->data );
+			// If the intent requires a 3DS flow, redirect to it.
+			if ( 'requires_source_action' === $intent->status ) {
+				if ( is_wc_endpoint_url( 'order-pay' ) ) {
+					$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
+				} else {
+					/**
+					 * This URL contains only a hash, which will be sent to `checkout.js` where it will be set like this:
+					 * `window.location = result.redirect`
+					 * Once this redirect is sent to JS, the `onHashChange` function will execute `handleCardPayment`.
+					 */
 
-				// If the intent requires a 3DS flow, redirect to it.
-				if ( 'requires_source_action' === $intent->status ) {
-					if ( is_wc_endpoint_url( 'order-pay' ) ) {
-						$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
-					} else {
-						/**
-						 * This URL contains only a hash, which will be sent to `checkout.js` where it will be set like this:
-						 * `window.location = result.redirect`
-						 * Once this redirect is sent to JS, the `onHashChange` function will execute `handleCardPayment`.
-						 */
-
-						// Remove this `else` block to avoid hash-based actions.
-						$redirect_url = '#confirm-pi-' . $intent->client_secret . ':' . rawurlencode( $this->get_return_url( $order ) );
-					}
-
-					return array(
-						'result'   => 'success',
-						'redirect' => $redirect_url,
-					);
+					// Remove this `else` block to avoid hash-based actions.
+					$redirect_url = '#confirm-pi-' . $intent->client_secret . ':' . rawurlencode( $this->get_return_url( $order ) );
 				}
+
+				return array(
+					'result'   => 'success',
+					'redirect' => $redirect_url,
+				);
 			}
 
 			// Process valid response.
-			$this->process_response( $response, $order );
+			$this->process_intent_response( $intent, $order );
 
 			// Remove cart.
 			WC()->cart->empty_cart();
@@ -1080,8 +1068,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$full_request = $this->generate_payment_request( $order, $prepared_source );
 
 		$request = array(
-			'source'               => $prepared_source->source,
+			'payment_method'       => $prepared_source->source,
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
+			// "confirm"              => true,
+			"confirmation_method"  => 'manual',
 			'currency'             => strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency() ),
 			'description'          => $full_request['description'],
 			'metadata'             => $full_request['metadata'],
@@ -1135,11 +1125,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param object   $prepared_source Currently selected source.
 	 * @return object                   An updated intent.
 	 */
-	public function update_existing_intent( $intent, $order, $prepared_source ) {
+	public function update_existing_intent( $intent, $order, $prepared_method ) {
 		$request = array();
 
-		if ( $prepared_source->source !== $intent->source ) {
-			$request['source'] = $prepared_source->source;
+		if ( $prepared_method->source !== $intent->payment_method ) {
+			$request['payment_method'] = $prepared_method->source;
 		}
 
 		$new_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
@@ -1147,8 +1137,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$request['amount'] = $new_amount;
 		}
 
-		if ( $prepared_source->customer && $intent->customer !== $prepared_source->customer ) {
-			$request['customer'] = $prepared_source->customer;
+		if ( $prepared_method->customer && $intent->customer !== $prepared_method->customer ) {
+			$request['customer'] = $prepared_method->customer;
 		}
 
 		if ( empty( $request ) ) {
@@ -1285,6 +1275,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			if ( $order && 'pending' === $order->get_status() && $order->get_payment_method() === $this->id ) {
 				$intent = $this->get_intent_from_order( $order );
+
+				if ( 'requires_confirmation' === $intent->status ) {
+					$intent = WC_Stripe_API::request( array(), "payment_intents/$intent->id/confirm" );
+				}
+
 				if ( 'succeeded' === $intent->status ) {
 					$this->process_response( end( $intent->charges->data ), $order );
 				}
@@ -1292,5 +1287,42 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $order_id;
+	}
+
+	/**
+	 * Prepares a payment method and its details based on the current request.
+	 *
+	 * @param string $payment_method_id The ID of the Stripe payment method.
+	 * @param int    $user_id           The ID of the currently logged in user.
+	 * @param bool   $force_save_source Whether to save the payment mehod regardless of user opt-in.
+	 * @return object                   A combination of the payment method and related details.
+	 */
+	public function prepare_payment_method( $payment_method_id, $user_id, $force_save_source ) {
+		$customer          = new WC_Stripe_Customer( $user_id );
+		$force_save_source = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
+		$payment_method    = $this->get_payment_method_object( $payment_method_id );
+
+		// This checks to see if customer opted to save the payment method to file.
+		$maybe_saved_card = isset( $_POST[ 'wc-stripe-new-payment-method' ] ) && ! empty( $_POST[ 'wc-stripe-new-payment-method' ] );
+
+		// Stores the card in the users acount if there is a logged in user and they opred in or products require it.
+		if ( ( $user_id && $this->saved_cards && $maybe_saved_card ) || $force_save_source ) {
+			$response = $customer->add_payment_method( $payment_method );
+			if ( ! empty( $response->error ) ) {
+				return $response;
+			}
+		}
+
+		return (object) array(
+			'is_intent'     => false,
+			'token_id'      => null,
+			'customer'      => $customer ? $customer->get_id() : null,
+			'source'        => $payment_method_id,
+			'source_object' => $payment_method,
+		);
+	}
+
+	public function prepare_payment_method_from_source( $user_id, $force_save_source = false ) {
+		return $this->prepare_source( $user_id, $force_save_source );
 	}
 }

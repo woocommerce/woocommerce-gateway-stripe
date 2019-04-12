@@ -399,6 +399,15 @@ jQuery( function( $ ) {
 		},
 
 		/**
+		 * Checks if a payment method ID is present as a hidden input.
+		 *
+		 * @return {boolean}
+		 */
+		hasPaymentMethod: function() {
+			return 0 < $( 'input.stripe-payment-method' ).length;
+		},
+
+		/**
 		 * Check whether a mobile device is being used.
 		 *
 		 * @return {boolean}
@@ -632,6 +641,39 @@ jQuery( function( $ ) {
 			wc_stripe_form.form.submit();
 		},
 
+		createPaymentMethod: function() {
+			var extra_details = wc_stripe_form.getOwnerDetails();
+
+			var data = {
+				billing_details: extra_details.owner,
+			};
+
+			stripe.createPaymentMethod( 'card', stripe_card, data )
+				.then( wc_stripe_form.paymentMethodResponse );
+		},
+
+		paymentMethodResponse: function( response ) {
+			if ( response.error ) {
+				return $( document.body ).trigger( 'stripeError', response );
+			}
+
+			wc_stripe_form.reset();
+
+			wc_stripe_form.form.append(
+				$( '<input type="hidden" />' )
+					.addClass( 'stripe-payment-method' )
+					.attr( 'name', 'stripe_payment_method' )
+					.val( response.paymentMethod.id )
+			);
+
+			 // ToDo: Check if this is even necessary.
+			// if ( $( 'form#add_payment_method' ).length ) {
+				// $( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
+			// }
+
+			wc_stripe_form.form.submit();
+		},
+
 		/**
 		 * Performs payment-related actions when a checkout/payment form is being submitted.
 		 *
@@ -644,7 +686,7 @@ jQuery( function( $ ) {
 			}
 
 			// If a source is already in place, submit the form as usual.
-			if ( wc_stripe_form.isStripeSaveCardChosen() || wc_stripe_form.hasSource() ) {
+			if ( wc_stripe_form.isStripeSaveCardChosen() || wc_stripe_form.hasSource() || wc_stripe_form.hasPaymentMethod() ) {
 				return true;
 			}
 
@@ -674,7 +716,11 @@ jQuery( function( $ ) {
 			}
 
 			wc_stripe_form.block();
-			wc_stripe_form.createSource();
+			if ( wc_stripe_form.isSepaChosen() ) {
+				wc_stripe_form.createSource();
+			} else {
+				wc_stripe_form.createPaymentMethod();
+			}
 
 			return false;
 		},
@@ -690,7 +736,7 @@ jQuery( function( $ ) {
 		 * Removes all Stripe errors and hidden fields with IDs from the form.
 		 */
 		reset: function() {
-			$( '.wc-stripe-error, .stripe-source' ).remove();
+			$( '.wc-stripe-error, .stripe-source, .stripe-payment-method' ).remove();
 		},
 
 		/**
@@ -812,7 +858,7 @@ jQuery( function( $ ) {
 		 * Listens for `hashchange` events and checks for a hash in the following format:
 		 * #confirm-pi-<intentClientSecret>:<successRedirectURL>
 		 *
-		 * If such a hash appears, the partials will be used to call `stripe.handleCardPayment`
+		 * If such a hash appears, the partials will be used to call `stripe.handleCardAction`
 		 * in order to allow customers to confirm an 3DS/SCA authorization.
 		 *
 		 * Those redirects/hashes are generated in `WC_Gateway_Stripe::process_payment`.
@@ -841,13 +887,13 @@ jQuery( function( $ ) {
 		 * @param {string} failureRedirectURL A URL to redirect to on error (optional).
 		 */
 		openIntentModal: function( intentClientSecret, successRedirectURL, failureRedirectURL ) {
-			stripe.handleCardPayment( intentClientSecret )
+			stripe.handleCardAction( intentClientSecret )
 				.then( function( response ) {
 					if ( response.error ) {
 						throw response.error;
 					}
 
-					if ( 'succeeded' === response.paymentIntent.status ) {
+					if ( -1 !== [ 'succeeded', 'requires_confirmation' ].indexOf( response.paymentIntent.status ) ) {
 						window.location = successRedirectURL;
 					}
 				} )

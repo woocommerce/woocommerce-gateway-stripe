@@ -570,6 +570,26 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Get source object by source id.
+	 *
+	 * @since 4.0.3
+	 * @param string $source_id The source ID to get source object for.
+	 */
+	public function get_payment_method_object( $payment_method_id = '' ) {
+		if ( empty( $payment_method_id ) ) {
+			return '';
+		}
+
+		$payment_method_object = WC_Stripe_API::retrieve( 'payment_methods/' . $payment_method_id );
+
+		if ( ! empty( $payment_method_object->error ) ) {
+			throw new WC_Stripe_Exception( print_r( $payment_method_object, true ), $payment_method_object->error->message );
+		}
+
+		return $payment_method_object;
+	}
+
+	/**
 	 * Checks if card is a prepaid card.
 	 *
 	 * @since 4.0.6
@@ -577,7 +597,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return bool
 	 */
 	public function is_prepaid_card( $source_object ) {
-		return ( $source_object && 'token' === $source_object->object && 'prepaid' === $source_object->card->funding );
+		return ( $source_object && ( 'token' === $source_object->object || 'payment_method' === $source_object->object ) && 'prepaid' === $source_object->card->funding );
 	}
 
 	/**
@@ -589,6 +609,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function is_type_legacy_card( $source_id ) {
 		return ( preg_match( '/^card_/', $source_id ) );
+	}
+
+	/**
+	 * Checks if an identifier belongs to a payment method.
+	 *
+	 * @param string $source_id The ID of the object.
+	 * @return bool
+	 */
+	public function is_payment_method( $source_id ) {
+		return ( preg_match( '/^pm_/', $source_id ) );
 	}
 
 	/**
@@ -686,7 +716,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		if ( empty( $source_object ) && ! $is_token ) {
-			$source_object = self::get_source_object( $source_id );
+			$source_object = $this->is_payment_method( $source_id )
+				? $this->get_payment_method_object( $source_id )
+				: $this->get_source_object( $source_id );
 		}
 
 		return (object) array(
