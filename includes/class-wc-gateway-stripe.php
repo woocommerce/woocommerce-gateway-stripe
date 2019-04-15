@@ -853,7 +853,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			}
 
 			// Process valid response.
-			$this->process_intent_response( $intent, $order );
+			$this->process_response( end( $intent->charges->data ), $order );
 
 			// Remove cart.
 			WC()->cart->empty_cart();
@@ -1070,8 +1070,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$request = array(
 			'payment_method'       => $prepared_source->source,
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
-			"confirm"              => 'true',
-			"confirmation_method"  => 'manual',
+			'confirm'              => 'true',
+			'confirmation_method'  => 'manual',
 			'currency'             => strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency() ),
 			'description'          => $full_request['description'],
 			'metadata'             => $full_request['metadata'],
