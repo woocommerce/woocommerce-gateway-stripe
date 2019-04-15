@@ -377,8 +377,6 @@ class WC_Stripe_Customer {
 			return false;
 		}
 
-		var_dump( $source_id ); exit;
-
 		$response = WC_Stripe_API::request( array(), 'customers/' . $this->get_id() . '/sources/' . sanitize_text_field( $source_id ), 'DELETE' );
 
 		$this->clear_cache();
