@@ -389,6 +389,15 @@ jQuery( function( $ ) {
 		},
 
 		/**
+		 * Checks if the currently displayed page is the "Add payment method" one.
+		 *
+		 * @return {boolean}
+		 */
+		isAddPaymentMethodPage() {
+			return 0 < $( 'form#add_payment_method' ).length;
+		},
+
+		/**
 		 * Checks if a source ID is present as a hidden input.
 		 * Only used when SEPA Direct Debit is chosen.
 		 *
@@ -641,6 +650,9 @@ jQuery( function( $ ) {
 			wc_stripe_form.form.submit();
 		},
 
+		/**
+		 * Initiates the creation of a payment method object based on elements.
+		 */
 		createPaymentMethod: function() {
 			var extra_details = wc_stripe_form.getOwnerDetails();
 
@@ -652,6 +664,11 @@ jQuery( function( $ ) {
 				.then( wc_stripe_form.paymentMethodResponse );
 		},
 
+		/**
+		 * Responds to `createPaymentMethod` by adding a hidden input with the method's ID.
+		 *
+		 * @param {Object} response The response from `createPaymentMethod`.
+		 */
 		paymentMethodResponse: function( response ) {
 			if ( response.error ) {
 				return $( document.body ).trigger( 'stripeError', response );
@@ -665,11 +682,6 @@ jQuery( function( $ ) {
 					.attr( 'name', 'stripe_payment_method' )
 					.val( response.paymentMethod.id )
 			);
-
-			 // ToDo: Check if this is even necessary.
-			// if ( $( 'form#add_payment_method' ).length ) {
-				// $( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
-			// }
 
 			wc_stripe_form.form.submit();
 		},
@@ -716,7 +728,7 @@ jQuery( function( $ ) {
 			}
 
 			wc_stripe_form.block();
-			if ( wc_stripe_form.isSepaChosen() ) {
+			if ( wc_stripe_form.isSepaChosen() || wc_stripe_form.isAddPaymentMethodPage() ) {
 				wc_stripe_form.createSource();
 			} else {
 				wc_stripe_form.createPaymentMethod();
