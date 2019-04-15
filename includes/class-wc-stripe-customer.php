@@ -249,6 +249,13 @@ class WC_Stripe_Customer {
 		return $response->id;
 	}
 
+	/**
+	 * Associates a payment method with the customer.
+	 *
+	 * @since 4.3.0
+	 * @param object $payment_method The payment method object, as received through the API.
+	 * @return object                Either the same object as the parameter on success, or an error.
+	 */
 	public function add_payment_method( $payment_method ) {
 		if ( ! $this->get_id() ) {
 			$this->set_id( $this->create_customer() );
@@ -303,8 +310,9 @@ class WC_Stripe_Customer {
 	}
 
 	/**
-	 * Get a customers saved sources using their Stripe ID.
+	 * Get a customers saved sources and payment methods using their Stripe ID.
 	 *
+	 * @since 4.3.0 Returns both sources and payment methods.
 	 * @param  string $customer_id
 	 * @return array
 	 */
@@ -313,25 +321,51 @@ class WC_Stripe_Customer {
 			return array();
 		}
 
-		$sources = get_transient( 'stripe_sources_' . $this->get_id() );
+		// Look for cached sources.
+		$combined_sources = get_transient( 'stripe_customer_sources_' . $this->get_id() );
+		if ( is_array( $combined_sources ) ) {
+			return $combined_sources;
+		}
 
-		$response = WC_Stripe_API::request(
+		// Query standard sources.
+		$sources_response = WC_Stripe_API::request(
 			array(
 				'limit' => 100,
 			),
 			'customers/' . $this->get_id() . '/sources',
 			'GET'
 		);
-
-		if ( ! empty( $response->error ) ) {
+		if ( ! empty( $sources_response->error ) ) {
 			return array();
 		}
 
-		if ( is_array( $response->data ) ) {
-			$sources = $response->data;
+		// Query payment methods sources.
+		$payment_methods_response = WC_Stripe_API::request(
+			array(
+				'customer' => $this->get_id(),
+				'type'     => 'card',
+				'limit'    => 100,
+			),
+			'payment_methods',
+			'GET'
+		);
+		if ( ! empty( $payment_methods_response->error ) ) {
+			return array();
 		}
 
-		return empty( $sources ) ? array() : $sources;
+		// Combine both sources of sources (🤓).
+		$combined_sources = array();
+		if ( is_array( $sources_response->data ) ) {
+			$combined_sources = $sources_response->data;
+		}
+		if ( is_array( $payment_methods_response->data ) ) {
+			$combined_sources = array_merge( $combined_sources, $payment_methods_response->data );
+		}
+
+		// Cache for later.
+		set_transient( 'stripe_customer_sources_' . $this->get_id(), $combined_sources );
+
+		return $combined_sources;
 	}
 
 	/**
@@ -342,6 +376,8 @@ class WC_Stripe_Customer {
 		if ( ! $this->get_id() ) {
 			return false;
 		}
+
+		var_dump( $source_id ); exit;
 
 		$response = WC_Stripe_API::request( array(), 'customers/' . $this->get_id() . '/sources/' . sanitize_text_field( $source_id ), 'DELETE' );
 
@@ -361,6 +397,7 @@ class WC_Stripe_Customer {
 	 * @param string $source_id
 	 */
 	public function set_default_source( $source_id ) {
+		// ToDo: This would not work with payment methods.
 		$response = WC_Stripe_API::request(
 			array(
 				'default_source' => sanitize_text_field( $source_id ),
@@ -384,7 +421,7 @@ class WC_Stripe_Customer {
 	 * Deletes caches for this users cards.
 	 */
 	public function clear_cache() {
-		delete_transient( 'stripe_sources_' . $this->get_id() );
+		delete_transient( 'stripe_customer_sources_' . $this->get_id() );
 		delete_transient( 'stripe_customer_' . $this->get_id() );
 		$this->customer_data = array();
 	}
