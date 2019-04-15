@@ -1070,7 +1070,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$request = array(
 			'payment_method'       => $prepared_source->source,
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
-			// "confirm"              => true,
+			"confirm"              => 'true',
 			"confirmation_method"  => 'manual',
 			'currency'             => strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency() ),
 			'description'          => $full_request['description'],
@@ -1094,27 +1094,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 		WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id initiated for order $order_id" );
 
-		// Try to confirm the intent & capture the charge (if 3DS is not required).
-		$confirm_request  = array(
-			'source' => $request['source'],
-		);
-		$confirmed_intent = WC_Stripe_API::request( $confirm_request, "payment_intents/$intent->id/confirm" );
-
-		if ( ! empty( $confirmed_intent->error ) ) {
-			return $confirmed_intent;
-		}
-
 		// Save the intent ID to the order.
-		$this->save_intent_to_order( $order, $confirmed_intent );
+		$this->save_intent_to_order( $order, $intent );
 
 		// Save a note about the status of the intent.
-		if ( 'succeeded' === $confirmed_intent->status ) {
+		if ( 'succeeded' === $intent->status ) {
 			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
-		} elseif ( 'requires_source_action' === $confirmed_intent->status ) {
+		} elseif ( 'requires_source_action' === $intent->status ) {
 			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id requires authentication for order $order_id" );
 		}
 
-		return $confirmed_intent;
+		return $intent;
 	}
 
 	/**
