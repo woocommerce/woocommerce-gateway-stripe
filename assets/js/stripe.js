@@ -198,9 +198,6 @@ jQuery( function( $ ) {
 				$( document.body ).trigger( 'wc-credit-card-form-init' );
 			}
 
-			// Stripe Checkout.
-			this.stripe_checkout_submit = false;
-
 			// checkout page
 			if ( $( 'form.woocommerce-checkout' ).length ) {
 				this.form = $( 'form.woocommerce-checkout' );

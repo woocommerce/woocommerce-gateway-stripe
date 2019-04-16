@@ -55,10 +55,6 @@ as the payment method.
 
 [stripe-cc.md](stripe-cc.md)
 
-## Stripe Checkout/Modal
-
-[stripe-checkout.md](stripe-checkout.md)
-
 ## Stripe Bancontact
 
 [stripe-bancontact.md](stripe-bancontact.md)
