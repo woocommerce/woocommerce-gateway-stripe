@@ -447,6 +447,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		// If no SSL bail.
 		if ( ! $this->testmode && ! is_ssl() ) {
 			WC_Stripe_Logger::log( 'Stripe live mode requires SSL.' );
+			return;
 		}
 
 		$current_theme = wp_get_theme();
