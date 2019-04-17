@@ -1282,15 +1282,65 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public function thankyou_order_id( $order_id ) {
 		if ( $order_id > 0 ) {
 			$order = wc_get_order( $order_id );
-
-			if ( $order && 'pending' === $order->get_status() && $order->get_payment_method() === $this->id ) {
-				$intent = $this->get_intent_from_order( $order );
-				if ( 'succeeded' === $intent->status ) {
-					$this->process_response( end( $intent->charges->data ), $order );
-				}
-			}
+			$this->maybe_complete_order( $order );
 		}
 
 		return $order_id;
+	}
+
+	/**
+	 * Attempts to manually complete the payment process for orders, which have
+	 * an attached PaymentIntent, but are still pending.
+	 *
+	 * @since 4.2.0
+	 * @param WC_Order $order The order to eventually complete.
+	 */
+	public function maybe_complete_order( $order ) {
+		if ( 'pending' !== $order->get_status() && 'failed' !== $order->get_status() ) {
+			return;
+		}
+
+		// If this is not the payment method, an intent would not be available.
+		if ( $order->get_payment_method() !== $this->id ) {
+			return;
+		}
+
+		$intent = $this->get_intent_from_order( $order );
+
+		if ( $intent && 'succeeded' === $intent->status ) {
+			$this->process_response( end( $intent->charges->data ), $order );
+		}
+	}
+
+	/**
+	 * Checks if the payment intent associated with an order failed and records the event.
+	 *
+	 * @since 4.2.0
+	 * @param WC_Order $order The order which should be checked.
+	 */
+	public function failed_auth( $order ) {
+		// Only "Pending Payment" or "Payment Failed" orders matter here.
+		if ( 'pending' !== $order->get_status() && 'failed' !== $order->get_status() ) {
+			return;
+		}
+
+		// If this is not the payment method, an intent would not be available.
+		if ( $order->get_payment_method() !== $this->id ) {
+			return;
+		}
+
+		// Intent-free orders cannot have failed intent authorizations.
+		$intent = $this->get_intent_from_order( $order );
+		if ( ! $intent || 'requires_action' !== $intent->status ) {
+			return;
+		}
+
+		$status_message = ( $intent->last_payment_error )
+			/* translators: 1) The error message that was received from Stripe. */
+			? sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $intent->last_payment_error->message )
+			: __( 'Stripe SCA authentication failed.', 'woocommerce-gateway-stripe' );
+		$order->update_status( 'failed', $status_message );
+
+		$this->send_failed_order_email( $order->get_id() );
 	}
 }
