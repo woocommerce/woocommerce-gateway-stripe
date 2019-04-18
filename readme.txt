@@ -101,10 +101,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.1.15 - 2019-03-12 =
-* Fix - Prevent canceled webhook from processing non Stripe payments.
-* Fix - "Retain Stripe Data" setting placement on WooCommerce settings page.
-* Tweak - Stripe API version updated to support 2019-02-19.
+= 4.1.16 - 2019-04-18 =
+* Deprecate - Warn about the future removal of the Modal Checkout option.
+* Tweak - WC 3.6 compatibility.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/changelog.txt).
 
