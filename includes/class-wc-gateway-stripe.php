@@ -167,6 +167,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_api_' . strtolower( get_class( $this ) ), array( $this, 'stripe_checkout_return_handler' ) );
 		add_filter( 'woocommerce_available_payment_gateways', array( $this, 'prepare_order_pay_page' ) );
 		add_filter( 'woocommerce_thankyou_order_id', array( $this, 'thankyou_order_id' ), 100 );
+		add_filter( 'woocommerce_payment_successful_result', array( $this, 'modify_successful_payment_result' ), 99999, 2 );
 
 		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
 			$this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
@@ -846,6 +847,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				if ( 'requires_action' === $intent->status ) {
 					if ( is_wc_endpoint_url( 'order-pay' ) ) {
 						$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
+
+						return array(
+							'result'   => 'success',
+							'redirect' => $redirect_url,
+						);
 					} else {
 						/**
 						 * This URL contains only a hash, which will be sent to `checkout.js` where it will be set like this:
@@ -853,14 +859,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 						 * Once this redirect is sent to JS, the `onHashChange` function will execute `handleCardPayment`.
 						 */
 
-						// Remove this `else` block to avoid hash-based actions.
-						$redirect_url = '#confirm-pi-' . $intent->client_secret . ':' . rawurlencode( $this->get_return_url( $order ) );
+						return array(
+							'result'           => 'success',
+							'redirect'         => $this->get_return_url( $order ),
+							'intent_secret'    => $intent->client_secret,
+						);
 					}
-
-					return array(
-						'result'   => 'success',
-						'redirect' => $redirect_url,
-					);
 				}
 			}
 
@@ -1252,7 +1256,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$error_url = $order->get_checkout_order_received_url();
 
 		echo '<input type="hidden" id="stripe-intent-id" value="' . esc_attr( $intent->client_secret ) . '" />';
-		echo '<input type="hidden" id="stripe-intent-return" value="' . esc_attr( $this->get_return_url( $order ) ) . '" />';
+		echo '<input type="hidden" id="stripe-intent-order" value="' . esc_attr( $order->get_id() ) . '" />';
 		echo '<input type="hidden" id="stripe-intent-error" value="' . esc_attr( $error_url ) . '" />';
 	}
 
@@ -1275,66 +1279,104 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * before displaying the Thank You page. This is useful in case webhooks have not been set up.
 	 *
 	 * @since 4.2.0
-	 *
 	 * @param int $order_id The ID that will be used for the thank you page.
 	 * @return int          The ID to use.
 	 */
 	public function thankyou_order_id( $order_id ) {
 		if ( $order_id > 0 ) {
 			$order = wc_get_order( $order_id );
-			$this->maybe_complete_order( $order );
+			$this->verify_intent_after_checkout( $order );
 		}
 
 		return $order_id;
 	}
 
 	/**
-	 * Attempts to manually complete the payment process for orders, which have
-	 * an attached PaymentIntent, but are still pending.
+	 * Attached to `woocommerce_payment_successful_result` with a late priority,
+	 * this method will combine the "naturally" generated redirect URL from
+	 * WooCommerce and a payment intent secret into a hash, which contains both
+	 * the secret, and a proper URL, which will confirm whether the intent succeeded.
 	 *
 	 * @since 4.2.0
-	 * @param WC_Order $order The order to eventually complete.
+	 * @param array $result   The result from `process_payment`.
+	 * @param int   $order_id The ID of the order which is being paid for.
+	 * @return array
 	 */
-	public function maybe_complete_order( $order ) {
+	public function modify_successful_payment_result( $result, $order_id ) {
+		// Put the final thank you page redirect into the verification URL.
+		$verification_url = add_query_arg(
+			array(
+				'order'       => $order_id,
+				'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
+				'redirect_to' => rawurlencode( $result['redirect'] ),
+			),
+			WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
+		);
+
+		// Combine into a hash.
+		$redirect = sprintf( '#confirm-pi-%s:%s', $result['intent_secret'], rawurlencode( $verification_url ) );
+
+		return array(
+			'result'   => 'success',
+			'redirect' => $redirect,
+		);
+	}
+
+	/**
+	 * Executed between the "Checkout" and "Thank you" pages, this
+	 * method updates orders based on the status of associated PaymentIntents.
+	 *
+	 * @since 4.2.0
+	 * @param WC_Order $order The order which is in a transitional state.
+	 * @return bool           An indicator whether a redirect to the Thank you page is in order.
+	 */
+	public function verify_intent_after_checkout( $order ) {
 		if ( 'pending' !== $order->get_status() && 'failed' !== $order->get_status() ) {
-			return;
+			// If payment has already been completed, this function is redundant.
+			return true;
 		}
 
-		// If this is not the payment method, an intent would not be available.
 		if ( $order->get_payment_method() !== $this->id ) {
-			return;
+			// If this is not the payment method, an intent would not be available.
+			return true;
 		}
 
 		$intent = $this->get_intent_from_order( $order );
-
-		if ( $intent && 'succeeded' === $intent->status ) {
-			$this->process_response( end( $intent->charges->data ), $order );
+		if ( ! $intent ) {
+			// No intent, redirect to the order received page for further actions.
+			return true;
 		}
+
+		if ( 'succeeded' === $intent->status ) {
+			// Proceed with the payment completion.
+			$this->process_response( end( $intent->charges->data ), $order );
+			return true;
+		} else {
+			$this->failed_sca_auth( $order, $intent );
+		}
+
+		return false;
 	}
 
 	/**
 	 * Checks if the payment intent associated with an order failed and records the event.
 	 *
 	 * @since 4.2.0
-	 * @param WC_Order $order The order which should be checked.
+	 * @param WC_Order $order  The order which should be checked.
+	 * @param object   $intent The intent, associated with the order.
 	 */
-	public function failed_auth( $order ) {
-		// Only "Pending Payment" or "Payment Failed" orders matter here.
-		if ( 'pending' !== $order->get_status() && 'failed' !== $order->get_status() ) {
+	public function failed_sca_auth( $order, $intent ) {
+		// Only intents with failed 3DS authentication matter here.
+		if ( 'requires_payment_method' !== $intent->status && 'requires_action' !== $intent->status ) {
 			return;
 		}
 
-		// If this is not the payment method, an intent would not be available.
-		if ( $order->get_payment_method() !== $this->id ) {
+		// If the order has already failed, do not repeat the same message.
+		if ( 'failed' === $order->get_status() ) {
 			return;
 		}
 
-		// Intent-free orders cannot have failed intent authorizations.
-		$intent = $this->get_intent_from_order( $order );
-		if ( ! $intent || 'requires_action' !== $intent->status ) {
-			return;
-		}
-
+		// Load the right message and update the status.
 		$status_message = ( $intent->last_payment_error )
 			/* translators: 1) The error message that was received from Stripe. */
 			? sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $intent->last_payment_error->message )

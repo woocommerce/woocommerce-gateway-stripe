@@ -23,8 +23,7 @@ class WC_Stripe_Intent_Controller {
 	 * @since 4.2.0
 	 */
 	public function __construct() {
-		add_action( 'wc_ajax_wc_stripe_payment_intent_auth_succeeded', array( $this, 'successful_auth' ) );
-		add_action( 'wc_ajax_wc_stripe_payment_intent_auth_failed', array( $this, 'failed_auth' ) );
+		add_action( 'wc_ajax_wc_stripe_verify_intent', array( $this, 'verify_intent' ) );
 	}
 
 	/**
@@ -35,39 +34,16 @@ class WC_Stripe_Intent_Controller {
 	 */
 	protected function get_gateway() {
 		if ( ! isset( $this->gateway ) ) {
-			// ToDo: Load the correct gateway here (preorders, etc).
-			$this->gateway = new WC_Gateway_Stripe();
+			if ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) {
+				$class_name = 'WC_Stripe_Subs_Compat';
+			} else {
+				$class_name = 'WC_Gateway_Stripe';
+			}
+
+			$this->gateway = new $class_name();
 		}
 
 		return $this->gateway;
-	}
-
-	/**
-	 * Responds with a JSON-encoded result.
-	 *
-	 * @since 4.2
-	 * @param mixed $result The result to send back to JS, JSON-encodeable.
-	 */
-	protected function respond( $result ) {
-		echo wp_json_encode( $result );
-		exit;
-	}
-
-	/**
-	 * Formats an exception as proper JSON.
-	 *
-	 * @since 4.2.0
-	 * @param WC_Stripe_Exception $e The exception that occured.
-	 */
-	protected function respond_with_exception( $e ) {
-		$response = array(
-			'error' => array(
-				'error'   => $e->getMessage(),
-				'message' => $e->getLocalizedMessage(),
-			),
-		);
-		echo wp_json_encode( $response );
-		exit;
 	}
 
 	/**
@@ -78,11 +54,21 @@ class WC_Stripe_Intent_Controller {
 	 * @return WC_Order
 	 */
 	protected function get_order_from_request() {
-		$order_id = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : null; // wpcs: csrf ok.
-		$order    = wc_get_order( $order_id );
+		if ( ! isset( $_GET['nonce'] ) || ! wp_verify_nonce( sanitize_key( $_GET['nonce'] ), 'wc_stripe_confirm_pi' ) ) {
+			throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
+		}
+
+		// Load the order ID.
+		$order_id = null;
+		if ( isset( $_GET['order'] ) && absint( $_GET['order'] ) ) {
+			$order_id = absint( $_GET['order'] );
+		}
+
+		// Retrieve the order.
+		$order = wc_get_order( $order_id );
 
 		if ( ! $order ) {
-			throw new WC_Stripe_Exception( 'missing-order', __( 'Missing order ID for PaymentIntent action', 'woocommerce-gateway-stripe' ) );
+			throw new WC_Stripe_Exception( 'missing-order', __( 'Missing order ID for payment confirmation', 'woocommerce-gateway-stripe' ) );
 		}
 
 		return $order;
@@ -93,44 +79,26 @@ class WC_Stripe_Intent_Controller {
 	 *
 	 * @since 4.2.0
 	 */
-	public function successful_auth() {
+	public function verify_intent() {
 		$gateway = $this->get_gateway();
 
 		try {
-			$order = $this->get_order_from_request();
-			$gateway->maybe_complete_order( $order );
+			$order           = $this->get_order_from_request();
+			$should_redirect = $gateway->verify_intent_after_checkout( $order );
 
-			$this->respond(
-				array(
-					'success'  => true,
-					'redirect' => $gateway->get_return_url( $order ),
-				)
-			);
+			if ( $should_redirect ) {
+				$redirect_url = isset( $_GET['redirect_to'] ) // wpcs: csrf ok.
+					? esc_url_raw( wp_unslash( $_GET['redirect_to'] ) ) // wpcs: csrf ok.
+					: $gateway->get_return_url( $order );
+
+				wp_safe_redirect( $redirect_url );
+
+			}
 		} catch ( WC_Stripe_Exception $e ) {
-			$this->respond_with_exception( $e );
+			wp_die( esc_html( $e->getMessage() ) );
 		}
-	}
 
-	/**
-	 * Handles failed PaymentIntent authentications.
-	 *
-	 * @since 4.2.0
-	 */
-	public function failed_auth() {
-		$gateway = $this->get_gateway();
-
-		try {
-			$order = $this->get_order_from_request();
-			$gateway->failed_auth( $order );
-
-			$this->respond(
-				array(
-					'success' => true,
-				)
-			);
-		} catch ( WC_Stripe_Exception $e ) {
-			$this->respond_with_exception( $e );
-		}
+		exit;
 	}
 }
 
