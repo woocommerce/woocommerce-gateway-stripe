@@ -605,7 +605,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			$charge = end( $intent->charges->data );
-			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
+			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id from" );
 
 			do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
 
@@ -672,7 +672,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			case 'payment_intent.succeeded':
 			case 'payment_intent.payment_failed':
-				// $this->process_payment_intent_success( $notification );
+				$this->process_payment_intent_success( $notification );
 
 		}
 	}

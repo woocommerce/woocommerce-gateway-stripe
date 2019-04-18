@@ -1253,11 +1253,19 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public function render_payment_intent_inputs() {
 		$order     = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
 		$intent    = $this->get_intent_from_order( $order );
-		$error_url = $order->get_checkout_order_received_url();
+
+		$verification_url = add_query_arg(
+			array(
+				'order'            => $order->get_id(),
+				'nonce'            => wp_create_nonce( 'wc_stripe_confirm_pi' ),
+				'redirect_to'      => rawurlencode( $this->get_return_url( $order ) ),
+				'is_pay_for_order' => true,
+			),
+			WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
+		);
 
 		echo '<input type="hidden" id="stripe-intent-id" value="' . esc_attr( $intent->client_secret ) . '" />';
-		echo '<input type="hidden" id="stripe-intent-order" value="' . esc_attr( $order->get_id() ) . '" />';
-		echo '<input type="hidden" id="stripe-intent-error" value="' . esc_attr( $error_url ) . '" />';
+		echo '<input type="hidden" id="stripe-intent-return" value="' . esc_attr( $verification_url ) . '" />';
 	}
 
 	/**
@@ -1303,6 +1311,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return array
 	 */
 	public function modify_successful_payment_result( $result, $order_id ) {
+		// Only redirects with intents need to be modified.
+		if ( ! isset( $result['intent_secret'] ) ) {
+			return $result;
+		}
+
 		// Put the final thank you page redirect into the verification URL.
 		$verification_url = add_query_arg(
 			array(
@@ -1328,34 +1341,30 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.2.0
 	 * @param WC_Order $order The order which is in a transitional state.
-	 * @return bool           An indicator whether a redirect to the Thank you page is in order.
 	 */
 	public function verify_intent_after_checkout( $order ) {
 		if ( 'pending' !== $order->get_status() && 'failed' !== $order->get_status() ) {
 			// If payment has already been completed, this function is redundant.
-			return true;
+			return;
 		}
 
 		if ( $order->get_payment_method() !== $this->id ) {
 			// If this is not the payment method, an intent would not be available.
-			return true;
+			return;
 		}
 
 		$intent = $this->get_intent_from_order( $order );
 		if ( ! $intent ) {
 			// No intent, redirect to the order received page for further actions.
-			return true;
+			return;
 		}
 
 		if ( 'succeeded' === $intent->status ) {
 			// Proceed with the payment completion.
 			$this->process_response( end( $intent->charges->data ), $order );
-			return true;
 		} else {
 			$this->failed_sca_auth( $order, $intent );
 		}
-
-		return false;
 	}
 
 	/**

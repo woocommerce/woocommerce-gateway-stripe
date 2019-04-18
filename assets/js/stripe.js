@@ -6,7 +6,7 @@ jQuery( function( $ ) {
 	try {
 		var stripe = Stripe( wc_stripe_params.key, {
 			betas: [ 'payment_intent_beta_3' ],
-	} );
+		} );
 	} catch( error ) {
 		console.log( error );
 		return;
@@ -263,13 +263,7 @@ jQuery( function( $ ) {
 
 			// Listen for hash changes in order to handle payment intents
 			window.addEventListener( 'hashchange', wc_stripe_form.onHashChange );
-			if ( $( '#stripe-intent-id' ).length && $( '#stripe-intent-order' ).length && $( '#stripe-intent-error' ).length ) {
-				var intentId  = $( '#stripe-intent-id' ).val(),
-					orderId = $( '#stripe-intent-order' ).val(),
-					errorURL  = $( '#stripe-intent-error' ).val();
-
-				wc_stripe_form.openIntentModal( intentId, orderId, errorURL );
-			}
+			wc_stripe_form.maybeConfirmIntent();
 		},
 
 		/**
@@ -833,13 +827,26 @@ jQuery( function( $ ) {
 			wc_stripe_form.openIntentModal( intentClientSecret, redirectURL );
 		},
 
+		maybeConfirmIntent: function() {
+			if ( ! $( '#stripe-intent-id' ).length || ! $( '#stripe-intent-return' ).length ) {
+				return;
+			}
+
+			var intentSecret = $( '#stripe-intent-id' ).val();
+			var returnURL    = $( '#stripe-intent-return' ).val();
+
+			wc_stripe_form.openIntentModal( intentSecret, returnURL, true );
+		},
+
 		/**
 		 * Opens the modal for PaymentIntent authorizations.
 		 *
-		 * @param {string} intentClientSecret The client secret of the intent.
-		 * @param {string} redirectURL The URL to ping on fail or redirect to on success.
+		 * @param {string}  intentClientSecret The client secret of the intent.
+		 * @param {string}  redirectURL        The URL to ping on fail or redirect to on success.
+		 * @param {boolean} alwaysRedirect     If set to true, an immediate redirect will happen no matter the result.
+		 *                                     If not, an error will be displayed on failure.
 		 */
-		openIntentModal: function( intentClientSecret, redirectURL ) {
+		openIntentModal: function( intentClientSecret, redirectURL, alwaysRedirect ) {
 			stripe.handleCardPayment( intentClientSecret )
 				.then( function( response ) {
 					if ( response.error ) {
@@ -853,15 +860,15 @@ jQuery( function( $ ) {
 					window.location = redirectURL;
 				} )
 				.catch( function( error ) {
-					// if ( failureRedirectURL ) {
-					// 	return window.location = failureRedirectURL;
-					// }
+					if ( alwaysRedirect ) {
+						return window.location = redirectURL;
+					}
 
 					$( document.body ).trigger( 'stripeError', { error: error } );
 					wc_stripe_form.form.removeClass( 'processing' );
 
 					// Report back to the server.
-					$.get( redirectURL );
+					$.get( redirectURL + '&is_ajax' );
 				} );
 		}
 	};

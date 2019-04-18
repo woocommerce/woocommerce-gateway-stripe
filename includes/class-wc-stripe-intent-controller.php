@@ -83,16 +83,15 @@ class WC_Stripe_Intent_Controller {
 		$gateway = $this->get_gateway();
 
 		try {
-			$order           = $this->get_order_from_request();
-			$should_redirect = $gateway->verify_intent_after_checkout( $order );
+			$order = $this->get_order_from_request();
+			$gateway->verify_intent_after_checkout( $order );
 
-			if ( $should_redirect ) {
+			if ( ! isset( $_GET['is_ajax'] ) ) {
 				$redirect_url = isset( $_GET['redirect_to'] ) // wpcs: csrf ok.
 					? esc_url_raw( wp_unslash( $_GET['redirect_to'] ) ) // wpcs: csrf ok.
 					: $gateway->get_return_url( $order );
 
 				wp_safe_redirect( $redirect_url );
-
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			wp_die( esc_html( $e->getMessage() ) );
