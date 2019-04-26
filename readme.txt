@@ -13,24 +13,38 @@ Take credit card payments on your store using Stripe.
 
 == Description ==
 
-Accept Visa, MasterCard, American Express, Discover, JCB, Diners Club, SEPA, Sofort, iDeal, Giropay, Alipay and more directly on your store with the Stripe payment gateway for WooCommerce, including Apple Pay for mobile and desktop.
+Accept Visa, MasterCard, American Express, Discover, JCB, Diners Club, SEPA, Sofort, iDeal, Giropay, Alipay, and more directly on your store with the Stripe payment gateway for WooCommerce, including Apple Pay, Google Pay, and Microsoft Pay for mobile and desktop.
 
 = Take Credit card payments easily and directly on your store =
 
 The Stripe plugin extends WooCommerce allowing you to take payments directly on your store via Stripe’s API.
 
-Stripe is available in:
+Stripe is available for Store Owners and Merchants in:
 
-* United States
-* Canada
-* UK
 * Australia
+* Austria
 * Belgium
+* Canada
+* Denmark
+* Finland
 * France
 * Germany
+* Hong Kong
 * Ireland
-* The Netherlands
-* [and more](https://support.stripe.com/questions/what-countries-does-stripe-support)
+* Italy
+* Japan
+* Luxembourg
+* Netherlands
+* New Zealand
+* Norway
+* Portugal
+* Singapore
+* Spain
+* Sweden
+* Switzerland
+* United Kingdom
+* United States
+* [with more being added](https://stripe.com/global)
 
 Stripe is a simple way to accept payments online. With Stripe you can accept Visa, MasterCard, American Express, Discover, JCB, and Diners Club cards, even Bitcoin, directly on your store.
 
@@ -38,15 +52,15 @@ Stripe is a simple way to accept payments online. With Stripe you can accept Vis
 
 Stripe has no setup fees, no monthly fees, no hidden costs: you only get charged when you earn money! Earnings are transferred to your bank account on a 7-day rolling basis.
 
-Stripe also supports the [Subscriptions extension](https://woocommerce.com/products/woocommerce-subscriptions/) and re-using cards. When a customer pays, they are set up in Stripe as a customer. If they create another order, they can check out using the same card. A massive timesaver for returning customers.
+Stripe also supports the [WooCommerce Subscriptions extension](https://woocommerce.com/products/woocommerce-subscriptions/) and re-using cards. When a customer pays, they are set up in Stripe as a customer. If they create another order, they can check out using the same card. A massive timesaver for returning customers.
 
 = Apple Pay Support =
 
-WooCommerce Stripe now includes [Apple Pay](https://stripe.com/apple-pay) support, which means customers can pay using payment details associated to their Apple ID. Checkout is now just a thumbprint away. on both mobile and desktop. Only supports simple and variable products for now. More support to come.
+WooCommerce Stripe now includes [Apple Pay](https://stripe.com/apple-pay) support, which means customers can pay using payment details associated with their Apple ID. Checkout is now just an authorization (Touch ID or Face ID) away on both mobile and desktop. Only supports simple and variable products for now. More support to come.
 
 = Web Payments API Support =
 
-WooCommerce Stripe now includes [Web Payments API](https://www.w3.org/TR/payment-request/) support, which means customers can pay using payment details associated to their mobile devices, in browsers supporting the Web Payments API (Chrome for Android, amongst others). Checkout is now just a few taps away. on mobile. Only supports simple and variable products for now. More support to come.
+WooCommerce Stripe now includes [Web Payments API](https://www.w3.org/TR/payment-request/) support, which means customers can pay using payment details associated to their mobile devices, in browsers supporting the Web Payments API (Chrome for Android, amongst others). Checkout is now just a few taps away on mobile. Only supports simple and variable products for now. More support to come.
 
 == Installation ==
 
@@ -56,10 +70,9 @@ You can download an [older version of this gateway for older versions of WooComm
 
 = Automatic installation =
 
-Automatic installation is the easiest option as WordPress handles the file transfers itself and you don’t need to leave your web browser. To
-do an automatic install of, log in to your WordPress dashboard, navigate to the Plugins menu and click Add New.
+Automatic installation is the easiest option as WordPress handles the file transfers itself and you don’t need to leave your web browser. To do an automatic install of the WooCommerce Stripe plugin, log in to your WordPress dashboard, navigate to the Plugins menu and click Add New.
 
-In the search field type “WooCommerce Stripe Payment Gateway” and click Search Plugins. Once you’ve found our plugin you can view details about it such as the point release, rating and description. Most importantly of course, you can install it by simply clicking "Install Now".
+In the search field type “WooCommerce Stripe Payment Gateway” and click Search Plugins. Once you’ve found our plugin you can view details about it such as the point release, rating, and description. Most importantly, of course, you can install it by simply clicking "Install Now", then "Activate".
 
 = Manual installation =
 
@@ -77,15 +90,15 @@ Yes!
 
 = Does this require an SSL certificate? =
 
-Yes! In live mode, an SSL certificate must be installed on your site to use Stripe. In addition to SSL encryption, Stripe provides an extra JavaScript method to secure card data.
+Yes! In Live Mode, an SSL certificate must be installed on your site to use Stripe. In addition to SSL encryption, Stripe provides an extra JavaScript method to secure card data using [Stripe Elements](https://stripe.com/elements).
 
 = Does this support both production mode and sandbox mode for testing? =
 
-Yes it does - production and sandbox mode is driven by the API keys you use.
+Yes, it does - production and sandbox mode is driven by the API keys you use.
 
 = Where can I find documentation? =
 
-For help setting up and configuring, please refer to our [user guide](https://docs.woocommerce.com/document/stripe/)
+For help setting up and configuring, please refer to our [documentation](https://docs.woocommerce.com/document/stripe/).
 
 = Where can I get support or talk to other users? =
 
@@ -98,16 +111,3 @@ If you get stuck, you can ask for help in the Plugin Forum.
 3. Option to save a card to your account.
 4. Checking out with a saved card.
 5. Using the Stripe checkout modal.
-
-== Changelog ==
-
-= 4.1.16 - 2019-04-18 =
-* Deprecate - Warn about the future removal of the Modal Checkout option.
-* Tweak - WC 3.6 compatibility.
-
-[See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/changelog.txt).
-
-== Upgrade Notice ==
-
-= 4.1 =
-4.1 is a minor release. Please do a full site backup and test on a staging site before deploying to a live/production server.
