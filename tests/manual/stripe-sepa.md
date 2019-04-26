@@ -1,12 +1,14 @@
 ## Stripe SEPA Direct Debit
 
-### Go to WooCommerce > Settings > Checkout > Stripe SEPA Direct Debit
+### Go to WooCommerce > Settings > Payments > Stripe SEPA Direct Debit
 
-### Click on Enable and save
+### Click on Enable/Disable checkbox
 
 ### Click Save changes button at the bottom
 
 I see **Your settings have been saved** notice.
+
+I see **SEPA is enabled - it requires store currency to be set to EUR** notice if my store currency is not set to Euro (€)
 
 Be sure to also copy the webhook endpoint provided on the settings page and add it to your Stripe Dashboard API/Webhook setting.
 
