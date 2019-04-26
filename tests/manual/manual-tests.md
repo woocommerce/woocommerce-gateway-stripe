@@ -24,11 +24,11 @@ To be able to use and test Stripe, you need to enable Stripe and set required se
 
 ### Go to WooCommerce > Settings > Payments
 
-I see Stripe, Stripe Bancontact, Stripe SOFORT, Stripe Giropay, Stripe iDeal, Stripe P24, Stripe Alipay and Stripe SEPA Direct Debit, Stripe EPS, Stripe Multibanco Methods listed.
+I see Stripe, Stripe SEPA Direct Debit, Stripe Bancontact, Stripe SOFORT, Stripe Giropay, Stripe EPS, Stripe iDeal, Stripe P24, Stripe Alipay, and Stripe Multibanco methods listed.
 
 ### Click into Stripe via Manage button
 
-I see settings form.
+I see the Stripe settings form.
 
 ### Click Enable Stripe Checkbox
 
