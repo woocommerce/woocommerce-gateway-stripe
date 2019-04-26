@@ -1,5 +1,10 @@
 *** Changelog ***
 
+= 4.1.17 - 2019-XX-XX =
+* Tweak - Change support link
+* Tweak - Refreshed readme.txt copy
+* Tweak - Change woothemes > woocommerce for organisation name in CONTRIBUTING.MD
+
 = 4.1.16 - 2019-04-18 =
 * Deprecate - Warn about the future removal of the Modal Checkout option.
 * Tweak - WC 3.6 compatibility.
