@@ -397,7 +397,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * that redirects and awaits payments from customer.
 	 *
 	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @since 4.1.15 Add check to make sure order is processed by Stripe.
 	 * @param object $notification
 	 */
 	public function process_webhook_source_canceled( $notification ) {
@@ -411,6 +411,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				WC_Stripe_Logger::log( 'Could not find order via charge/source ID: ' . $notification->data->object->id );
 				return;
 			}
+		}
+
+		// Don't proceed if payment method isn't Stripe.
+		if ( 'stripe' !== $order->get_payment_method() ) {
+			WC_Stripe_Logger::log( 'Canceled webhook abort: Order was not processed by Stripe: ' . $order->get_id() );
+			return;
 		}
 
 		if ( 'cancelled' !== $order->get_status() ) {

@@ -111,8 +111,15 @@ class WC_Stripe_Admin_Notices {
 		$test_secret_key    = isset( $options['test_secret_key'] ) ? $options['test_secret_key'] : '';
 		$live_pub_key       = isset( $options['publishable_key'] ) ? $options['publishable_key'] : '';
 		$live_secret_key    = isset( $options['secret_key'] ) ? $options['secret_key'] : '';
+		$checkout_enabled   = isset( $options['stripe_checkout'] ) && 'yes' === $options['stripe_checkout'];
 
 		if ( isset( $options['enabled'] ) && 'yes' === $options['enabled'] ) {
+			if ( $checkout_enabled ) {
+				$url = 'https://docs.woocommerce.com/document/stripe/modal-checkout';
+				$message = sprintf( __( 'WooCommerce Stripe - Support for Stripe Modal Checkout will be ending soon. This will impact the appearance of your checkout. <a href="%1$s" target="_blank">Click here to learn more.</a>', 'woocommerce-gateway-stripe' ), $url );
+				$this->add_admin_notice( 'legacy_checkout', 'notice notice-warning', $message );
+			}
+
 			if ( empty( $show_style_notice ) ) {
 				/* translators: 1) int version 2) int version */
 				$message = __( 'WooCommerce Stripe - We recently made changes to Stripe that may impact the appearance of your checkout. If your checkout has changed unexpectedly, please follow these <a href="https://docs.woocommerce.com/document/stripe/#section-45" target="_blank">instructions</a> to fix.', 'woocommerce-gateway-stripe' );

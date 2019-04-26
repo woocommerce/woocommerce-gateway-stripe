@@ -412,11 +412,15 @@ class WC_Stripe_Helper {
 	 * Gets the order by Stripe charge ID.
 	 *
 	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @since 4.1.16 Return false if charge_id is empty.
 	 * @param string $charge_id
 	 */
 	public static function get_order_by_charge_id( $charge_id ) {
 		global $wpdb;
+
+		if ( empty( $charge_id ) ) {
+			return false;
+		}
 
 		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $charge_id, '_transaction_id' ) );
 
