@@ -237,29 +237,58 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					$order_total = $order_total - $order->get_total_refunded();
 				}
 
-				// First retrieve charge to see if it has been captured.
-				$result = WC_Stripe_API::retrieve( 'charges/' . $charge );
+				$intent = $this->get_intent_from_order( $order );
+				if ( $intent ) {
+					// If the order has a Payment Intent, then the Intent itself must be captured, not the Charge
+					if ( ! empty( $intent->error ) ) {
+						/* translators: error message */
+						$order->add_order_note( sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $intent->error->message ) );
+					} elseif ( 'requires_capture' === $intent->status ) {
+						$result = WC_Stripe_API::request(
+							array(
+								'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
+								'expand[]' => 'charges.data.balance_transaction',
+							),
+							'payment_intents/' . $intent->id . '/capture'
+						);
 
-				if ( ! empty( $result->error ) ) {
-					/* translators: error message */
-					$order->add_order_note( sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
-				} elseif ( false === $result->captured ) {
-					$result = WC_Stripe_API::request(
-						array(
-							'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
-							'expand[]' => 'balance_transaction',
-						),
-						'charges/' . $charge . '/capture'
-					);
+						if ( ! empty( $result->error ) ) {
+							/* translators: error message */
+							$order->update_status( 'failed', sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
+						} else {
+							$is_stripe_captured = true;
+							$result = end( $result->charges->data );
+						}
+					} elseif ( 'succeeded' === $intent->status ) {
+						$is_stripe_captured = true;
+					}
+				} else {
+					// The order doesn't have a Payment Intent, fall back to capturing the Charge directly
+
+					// First retrieve charge to see if it has been captured.
+					$result = WC_Stripe_API::retrieve( 'charges/' . $charge );
 
 					if ( ! empty( $result->error ) ) {
 						/* translators: error message */
-						$order->update_status( 'failed', sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
-					} else {
+						$order->add_order_note( sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
+					} elseif ( false === $result->captured ) {
+						$result = WC_Stripe_API::request(
+							array(
+								'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
+								'expand[]' => 'balance_transaction',
+							),
+							'charges/' . $charge . '/capture'
+						);
+
+						if ( ! empty( $result->error ) ) {
+							/* translators: error message */
+							$order->update_status( 'failed', sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
+						} else {
+							$is_stripe_captured = true;
+						}
+					} elseif ( true === $result->captured ) {
 						$is_stripe_captured = true;
 					}
-				} elseif ( true === $result->captured ) {
-					$is_stripe_captured = true;
 				}
 
 				if ( $is_stripe_captured ) {
