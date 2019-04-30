@@ -1236,11 +1236,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param object   $intent The intent, associated with the order.
 	 */
 	public function failed_sca_auth( $order, $intent ) {
-		// Only intents with failed 3DS authentication matter here.
-		if ( 'requires_payment_method' !== $intent->status && 'requires_action' !== $intent->status ) {
-			return;
-		}
-
 		// If the order has already failed, do not repeat the same message.
 		if ( 'failed' === $order->get_status() ) {
 			return;
