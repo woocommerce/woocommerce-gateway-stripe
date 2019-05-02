@@ -133,51 +133,6 @@ Status: 200 OK
       "tip": "Whether or not to immediately capture the charge. When unchecked, the charge issues an authorization and will need to be captured later. Uncaptured charges expire in 7 days.",
       "placeholder": ""
     },
-    "stripe_checkout": {
-      "id": "stripe_checkout",
-      "label": "Enable Stripe Checkout",
-      "description": "If enabled, this option shows a \"pay\" button and modal credit card form on the checkout, instead of credit card fields directly on the page.",
-      "type": "checkbox",
-      "value": "no",
-      "default": "no",
-      "tip": "If enabled, this option shows a \"pay\" button and modal credit card form on the checkout, instead of credit card fields directly on the page.",
-      "placeholder": ""
-    },
-    "stripe_checkout_locale": {
-      "id": "stripe_checkout_locale",
-      "label": "Stripe Checkout locale",
-      "description": "Language to display in Stripe Checkout modal. Specify Auto to display Checkout in the user's preferred language, if available. English will be used by default.",
-      "type": "select",
-      "value": "en",
-      "default": "en",
-      "tip": "Language to display in Stripe Checkout modal. Specify Auto to display Checkout in the user's preferred language, if available. English will be used by default.",
-      "placeholder": "",
-      "options": {
-        "auto": "Auto",
-        "zh": "Simplified Chinese",
-        "da": "Danish",
-        "nl": "Dutch",
-        "en": "English",
-        "fi": "Finnish",
-        "fr": "French",
-        "de": "German",
-        "it": "Italian",
-        "ja": "Japanese",
-        "no": "Norwegian",
-        "es": "Spanish",
-        "sv": "Swedish"
-      }
-    },
-    "stripe_checkout_image": {
-      "id": "stripe_checkout_image",
-      "label": "Stripe Checkout Image",
-      "description": "Optionally enter the URL to a 128x128px image of your brand or product. e.g. <code>https://yoursite.com/wp-content/uploads/2013/09/yourimage.jpg</code>",
-      "type": "text",
-      "value": "",
-      "default": "",
-      "tip": "Optionally enter the URL to a 128x128px image of your brand or product. e.g. <code>https://yoursite.com/wp-content/uploads/2013/09/yourimage.jpg</code>",
-      "placeholder": ""
-    },
     "request_payment_api": {
       "id": "request_payment_api",
       "label": "Enable Payment Request API",
@@ -300,7 +255,6 @@ curl -u consumer_key:consumer_secret -X PUT \
    "enabled": true,
    "title": "Stripe",
    "settings": {
-     "stripe_checkout": "yes",
      "request_payment_api": "yes"
    }
   }'
@@ -396,51 +350,6 @@ curl -u consumer_key:consumer_secret -X PUT \
       "value": "yes",
       "default": "yes",
       "tip": "Whether or not to immediately capture the charge. When unchecked, the charge issues an authorization and will need to be captured later. Uncaptured charges expire in 7 days.",
-      "placeholder": ""
-    },
-    "stripe_checkout": {
-      "id": "stripe_checkout",
-      "label": "Enable Stripe Checkout",
-      "description": "If enabled, this option shows a \"pay\" button and modal credit card form on the checkout, instead of credit card fields directly on the page.",
-      "type": "checkbox",
-      "value": "no",
-      "default": "no",
-      "tip": "If enabled, this option shows a \"pay\" button and modal credit card form on the checkout, instead of credit card fields directly on the page.",
-      "placeholder": ""
-    },
-    "stripe_checkout_locale": {
-      "id": "stripe_checkout_locale",
-      "label": "Stripe Checkout locale",
-      "description": "Language to display in Stripe Checkout modal. Specify Auto to display Checkout in the user's preferred language, if available. English will be used by default.",
-      "type": "select",
-      "value": "en",
-      "default": "en",
-      "tip": "Language to display in Stripe Checkout modal. Specify Auto to display Checkout in the user's preferred language, if available. English will be used by default.",
-      "placeholder": "",
-      "options": {
-        "auto": "Auto",
-        "zh": "Simplified Chinese",
-        "da": "Danish",
-        "nl": "Dutch",
-        "en": "English",
-        "fi": "Finnish",
-        "fr": "French",
-        "de": "German",
-        "it": "Italian",
-        "ja": "Japanese",
-        "no": "Norwegian",
-        "es": "Spanish",
-        "sv": "Swedish"
-      }
-    },
-    "stripe_checkout_image": {
-      "id": "stripe_checkout_image",
-      "label": "Stripe Checkout Image",
-      "description": "Optionally enter the URL to a 128x128px image of your brand or product. e.g. <code>https://yoursite.com/wp-content/uploads/2013/09/yourimage.jpg</code>",
-      "type": "text",
-      "value": "",
-      "default": "",
-      "tip": "Optionally enter the URL to a 128x128px image of your brand or product. e.g. <code>https://yoursite.com/wp-content/uploads/2013/09/yourimage.jpg</code>",
       "placeholder": ""
     },
     "request_payment_api": {
