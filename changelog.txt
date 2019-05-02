@@ -3,7 +3,7 @@
 = 4.1.16 - 2019-04-18 =
 * Deprecate - Warn about the future removal of the Modal Checkout option.
 * Tweak - WC 3.6 compatibility.
-* Update - Add Puerto Rico to supported countries for Payment Requests.
+* Update - Enable Payment Request buttons for Puerto Rico based stores.
 
 = 4.1.15 - 2019-03-12 =
 * Fix - Prevent canceled webhook from processing non Stripe payments.
