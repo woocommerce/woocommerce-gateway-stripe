@@ -97,7 +97,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 2. Normal checkout with Stripe.
 3. Option to save a card to your account.
 4. Checking out with a saved card.
-5. Using the Stripe checkout modal.
 
 == Changelog ==
 

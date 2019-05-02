@@ -91,28 +91,6 @@ return apply_filters(
 			'default'     => 'yes',
 			'desc_tip'    => true,
 		),
-		'stripe_checkout'               => array(
-			'title'       => __( 'Stripe Modal Checkout', 'woocommerce-gateway-stripe' ),
-			'label'       => __( 'Enable Stripe Checkout', 'woocommerce-gateway-stripe' ),
-			'type'        => 'checkbox',
-			'description' => __( 'If enabled, this option shows a "pay" button and modal credit card form on the checkout, instead of credit card fields directly on the page. We recommend you leave this disabled and use the embedded form as that is the preferred method.', 'woocommerce-gateway-stripe' ),
-			'default'     => 'no',
-			'desc_tip'    => true,
-		),
-		'stripe_checkout_image'         => array(
-			'title'       => __( 'Stripe Checkout Image', 'woocommerce-gateway-stripe' ),
-			'description' => __( 'Optionally enter the URL to a 128x128px image of your brand or product. e.g. <code>https://yoursite.com/wp-content/uploads/2013/09/yourimage.jpg</code>', 'woocommerce-gateway-stripe' ),
-			'type'        => 'text',
-			'default'     => '',
-			'desc_tip'    => true,
-		),
-		'stripe_checkout_description'   => array(
-			'title'       => __( 'Stripe Checkout Description', 'woocommerce-gateway-stripe' ),
-			'type'        => 'text',
-			'description' => __( 'Shows a description of your store on Stripe Modal Checkout.', 'woocommerce-gateway-stripe' ),
-			'default'     => '',
-			'desc_tip'    => true,
-		),
 		'payment_request'               => array(
 			'title'       => __( 'Payment Request Buttons', 'woocommerce-gateway-stripe' ),
 			/* translators: 1) br tag 2) opening anchor tag 3) closing anchor tag */

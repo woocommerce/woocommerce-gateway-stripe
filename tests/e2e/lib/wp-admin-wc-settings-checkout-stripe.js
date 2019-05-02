@@ -13,7 +13,6 @@ const INLINE_FORM_SELECTOR = By.css( '#woocommerce_stripe_inline_cc_form' );
 const STATEMENT_DESCRIPTOR_SELECTOR = By.css( '#woocommerce_stripe_statement_descriptor' );
 const CAPTURE_SELECTOR = By.css( '#woocommerce_stripe_capture' );
 const REQUIRE_3DS_SELECTOR = By.css( '#woocommerce_stripe_three_d_secure' );
-const STRIPE_CHECKOUT_SELECTOR = By.css( '#woocommerce_stripe_stripe_checkout' );
 const PAYMENT_REQUEST_SELECTOR = By.css( '#woocommerce_stripe_payment_request' );
 const SAVED_CARDS_SELECTOR = By.css( '#woocommerce_stripe_saved_cards' );
 const LOGGING_SELECTOR = By.css( '#woocommerce_stripe_logging' );
@@ -59,14 +58,6 @@ export default class WPAdminWCSettingsCheckoutStripe extends WPAdminWCSettings {
 
 	disableInlineForm() {
 		return helper.unsetCheckbox( this.driver, INLINE_FORM_SELECTOR );
-	}
-
-	enableStripeCheckout() {
-		return helper.unsetCheckbox( this.driver, STRIPE_CHECKOUT_SELECTOR );
-	}
-
-	disableStripeCheckout() {
-		return helper.unsetCheckbox( this.driver, STRIPE_CHECKOUT_SELECTOR );
 	}
 
 	enableSavedCards() {

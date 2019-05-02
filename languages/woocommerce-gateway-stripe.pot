@@ -173,7 +173,7 @@ msgid "Cheatin&#8217; huh?"
 msgstr ""
 
 #: includes/admin/class-wc-stripe-privacy.php:12
-#: includes/class-wc-gateway-stripe.php:116
+#: includes/class-wc-gateway-stripe.php:88
 msgid "Stripe"
 msgstr ""
 
@@ -203,9 +203,9 @@ msgid "Retains any Stripe data such as Stripe customer ID, source ID."
 msgstr ""
 
 #: includes/admin/class-wc-stripe-privacy.php:41
-#: includes/compat/class-wc-stripe-sepa-subs-compat.php:472
-#: includes/compat/class-wc-stripe-subs-compat.php:484
-#: includes/compat/class-wc-stripe-subs-compat.php:499
+#: includes/compat/class-wc-stripe-sepa-subs-compat.php:463
+#: includes/compat/class-wc-stripe-subs-compat.php:475
+#: includes/compat/class-wc-stripe-subs-compat.php:490
 msgid "N/A"
 msgstr ""
 
@@ -610,158 +610,107 @@ msgid ""
 msgstr ""
 
 #: includes/admin/stripe-settings.php:95
-msgid "3D Secure"
-msgstr ""
-
-#: includes/admin/stripe-settings.php:96
-msgid "Require 3D Secure when applicable"
-msgstr ""
-
-#: includes/admin/stripe-settings.php:98
-msgid ""
-"Some payment methods have 3D Secure feature. This is an extra security "
-"layer for your store. Choose how to handle payments when 3D Secure is "
-"recommended. Enabling would require customers to use 3D Secure when "
-"recommended."
-msgstr ""
-
-#: includes/admin/stripe-settings.php:103
-msgid "Stripe Modal Checkout"
-msgstr ""
-
-#: includes/admin/stripe-settings.php:104
-msgid "Enable Stripe Checkout"
-msgstr ""
-
-#: includes/admin/stripe-settings.php:106
-msgid ""
-"If enabled, this option shows a \"pay\" button and modal credit card form "
-"on the checkout, instead of credit card fields directly on the page. We "
-"recommend you leave this disabled and use the embedded form as that is the "
-"preferred method."
-msgstr ""
-
-#: includes/admin/stripe-settings.php:111
-msgid "Stripe Checkout Image"
-msgstr ""
-
-#: includes/admin/stripe-settings.php:112
-msgid ""
-"Optionally enter the URL to a 128x128px image of your brand or product. "
-"e.g. "
-"<code>https://yoursite.com/wp-content/uploads/2013/09/yourimage.jpg</code>"
-msgstr ""
-
-#: includes/admin/stripe-settings.php:118
-msgid "Stripe Checkout Description"
-msgstr ""
-
-#: includes/admin/stripe-settings.php:120
-msgid "Shows a description of your store on Stripe Modal Checkout."
-msgstr ""
-
-#: includes/admin/stripe-settings.php:125
 msgid "Payment Request Buttons"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:127
+#: includes/admin/stripe-settings.php:97
 #. translators: 1) br tag 2) opening anchor tag 3) closing anchor tag
 msgid ""
 "Enable Payment Request Buttons. (Apple Pay/Chrome Payment Request API) "
 "%1$sBy using Apple Pay, you agree to %2$s and %3$s's terms of service."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:129
+#: includes/admin/stripe-settings.php:99
 msgid ""
 "If enabled, users will be able to pay using Apple Pay or Chrome Payment "
 "Request if supported by the browser."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:134
+#: includes/admin/stripe-settings.php:104
 msgid "Payment Request Button Type"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:135
+#: includes/admin/stripe-settings.php:105
 msgid "Button Type"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:137
+#: includes/admin/stripe-settings.php:107
 msgid "Select the button type you would like to show."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:141
+#: includes/admin/stripe-settings.php:111
 msgid "Default"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:142
+#: includes/admin/stripe-settings.php:112
 msgid "Buy"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:143
+#: includes/admin/stripe-settings.php:113
 msgid "Donate"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:147
+#: includes/admin/stripe-settings.php:117
 msgid "Payment Request Button Theme"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:148
+#: includes/admin/stripe-settings.php:118
 msgid "Button Theme"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:150
+#: includes/admin/stripe-settings.php:120
 msgid "Select the button theme you would like to show."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:154
+#: includes/admin/stripe-settings.php:124
 msgid "Dark"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:155
+#: includes/admin/stripe-settings.php:125
 msgid "Light"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:156
+#: includes/admin/stripe-settings.php:126
 msgid "Light-Outline"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:160
+#: includes/admin/stripe-settings.php:130
 msgid "Payment Request Button Height"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:161
+#: includes/admin/stripe-settings.php:131
 msgid "Button Height"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:163
+#: includes/admin/stripe-settings.php:133
 msgid ""
 "Enter the height you would like the button to be in pixels. Width will "
 "always be 100%."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:168
+#: includes/admin/stripe-settings.php:138
 msgid "Saved Cards"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:169
+#: includes/admin/stripe-settings.php:139
 msgid "Enable Payment via Saved Cards"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:171
+#: includes/admin/stripe-settings.php:141
 msgid ""
 "If enabled, users will be able to pay with a saved card during checkout. "
 "Card details are saved on Stripe servers, not on your store."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:176
+#: includes/admin/stripe-settings.php:146
 msgid "Logging"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:177
+#: includes/admin/stripe-settings.php:147
 msgid "Log debug messages"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:179
+#: includes/admin/stripe-settings.php:149
 msgid "Save debug messages to the WooCommerce System Status log."
 msgstr ""
 
@@ -787,7 +736,7 @@ msgstr ""
 msgid "You will be redirected to SOFORT."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:118
+#: includes/class-wc-gateway-stripe.php:90
 #. translators: 1) link to Stripe register page 2) link to Stripe api keys page
 msgid ""
 "Stripe works by adding payment fields on the checkout and then sending the "
@@ -796,26 +745,22 @@ msgid ""
 "your Stripe account keys</a>."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:162
-msgid "Continue to payment"
-msgstr ""
-
-#: includes/class-wc-gateway-stripe.php:224
+#: includes/class-wc-gateway-stripe.php:188
 #. translators: 1) Opening anchor tag 2) closing anchor tag
 msgid ""
 "If your billing address has been changed for saved payment methods, be sure "
 "to remove any %1$ssaved payment methods%2$s on file and re-add them."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:285
+#: includes/class-wc-gateway-stripe.php:257
 msgid "Add Card"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:291
+#: includes/class-wc-gateway-stripe.php:263
 msgid "Change Payment Method"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:318
+#: includes/class-wc-gateway-stripe.php:284
 #. translators: link to Stripe testing page
 msgid ""
 "TEST MODE ENABLED. In test mode, you can use the card number "
@@ -824,19 +769,19 @@ msgid ""
 "card numbers."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:363
+#: includes/class-wc-gateway-stripe.php:323
 msgid "Credit or debit card"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:371
+#: includes/class-wc-gateway-stripe.php:331
 msgid "Card Number"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:382
+#: includes/class-wc-gateway-stripe.php:342
 msgid "Expiry Date"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:390
+#: includes/class-wc-gateway-stripe.php:350
 msgid "Card Code (CVC)"
 msgstr ""
 
@@ -906,6 +851,34 @@ msgstr ""
 
 #: includes/class-wc-gateway-stripe.php:927
 msgid "Stripe Payout:"
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:780
+#. translators: 1) A URL that explains Stripe Radar.
+msgid ""
+"<strong>WooCommerce Stripe Gateway:</strong> We see that you had the "
+"\"Require 3D secure when applicable\" setting turned on. This setting is "
+"not available here anymore, because it is now replaced by Stripe Radar. You "
+"can learn more about it <a href=\"%s\">here</a>."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:831
+#: includes/class-wc-stripe-order-handler.php:162
+#: includes/class-wc-stripe-webhook-handler.php:206
+#: includes/compat/class-wc-stripe-sepa-subs-compat.php:263
+#: includes/compat/class-wc-stripe-subs-compat.php:244
+#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:373
+msgid ""
+"Sorry, we are unable to process your payment at this time. Please retry "
+"later."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:1016
+msgid ""
+"Almost there!\n"
+"\n"
+"Your order has already been created, the only thing that still needs to be "
+"done is for you to authorize the payment with your bank."
 msgstr ""
 
 #: includes/class-wc-stripe-api.php:138 includes/class-wc-stripe-api.php:172
@@ -1018,6 +991,12 @@ msgstr ""
 msgid "The billing country is not accepted by SOFORT. Please try another country."
 msgstr ""
 
+#: includes/class-wc-stripe-order-handler.php:144
+#: includes/class-wc-stripe-webhook-handler.php:187
+#: includes/payment-methods/class-wc-gateway-stripe-sepa.php:353
+msgid "This card is no longer available and has been removed."
+msgstr ""
+
 #: includes/class-wc-stripe-order-handler.php:194
 #. translators: error message
 msgid "Stripe payment failed: %s"
@@ -1086,6 +1065,11 @@ msgstr ""
 msgid "The opened review for this order is now closed. Reason: (%s)"
 msgstr ""
 
+#: includes/class-wc-stripe-webhook-handler.php:618
+#. translators: 1) The error message that was received from Stripe.
+msgid "Stripe authentication failed."
+msgstr ""
+
 #: includes/compat/class-wc-stripe-pre-orders-compat.php:61
 msgid "Unable to store payment details. Please try again."
 msgstr ""
@@ -1095,56 +1079,56 @@ msgstr ""
 msgid "Stripe Transaction Failed (%s)"
 msgstr ""
 
-#: includes/compat/class-wc-stripe-sepa-subs-compat.php:97
-#: includes/compat/class-wc-stripe-subs-compat.php:97
+#: includes/compat/class-wc-stripe-sepa-subs-compat.php:88
+#: includes/compat/class-wc-stripe-subs-compat.php:88
 msgid ""
 "Update the Payment Method used for all of my active subscriptions "
 "(optional)."
 msgstr ""
 
-#: includes/compat/class-wc-stripe-sepa-subs-compat.php:235
-#: includes/compat/class-wc-stripe-subs-compat.php:216
+#: includes/compat/class-wc-stripe-sepa-subs-compat.php:226
+#: includes/compat/class-wc-stripe-subs-compat.php:207
 msgid "Customer not found"
 msgstr ""
 
-#: includes/compat/class-wc-stripe-sepa-subs-compat.php:395
-#: includes/compat/class-wc-stripe-subs-compat.php:407
+#: includes/compat/class-wc-stripe-sepa-subs-compat.php:386
+#: includes/compat/class-wc-stripe-subs-compat.php:398
 #. translators: error message
 msgid "A \"Stripe Customer ID\" value is required."
 msgstr ""
 
-#: includes/compat/class-wc-stripe-sepa-subs-compat.php:397
-#: includes/compat/class-wc-stripe-subs-compat.php:409
+#: includes/compat/class-wc-stripe-sepa-subs-compat.php:388
+#: includes/compat/class-wc-stripe-subs-compat.php:400
 msgid ""
 "Invalid customer ID. A valid \"Stripe Customer ID\" must begin with "
 "\"cus_\"."
 msgstr ""
 
-#: includes/compat/class-wc-stripe-sepa-subs-compat.php:406
-#: includes/compat/class-wc-stripe-subs-compat.php:418
+#: includes/compat/class-wc-stripe-sepa-subs-compat.php:397
+#: includes/compat/class-wc-stripe-subs-compat.php:409
 msgid ""
 "Invalid source ID. A valid source \"Stripe Source ID\" must begin with "
 "\"src_\" or \"card_\"."
 msgstr ""
 
-#: includes/compat/class-wc-stripe-sepa-subs-compat.php:479
+#: includes/compat/class-wc-stripe-sepa-subs-compat.php:470
 #. translators: 1) last 4 digits of SEPA Direct Debit
 msgid "Via SEPA Direct Debit ending in %1$s"
 msgstr ""
 
-#: includes/compat/class-wc-stripe-subs-compat.php:140
+#: includes/compat/class-wc-stripe-subs-compat.php:131
 msgid ""
 "Sorry, we're not accepting prepaid cards at this time. Your credit card has "
 "not been charge. Please try with alternative payment method."
 msgstr ""
 
-#: includes/compat/class-wc-stripe-subs-compat.php:499
+#: includes/compat/class-wc-stripe-subs-compat.php:490
 #. translators: 1) card brand 2) last 4 digits
 msgid "Via %1$s card ending in %2$s"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-alipay.php:60
-#: woocommerce-gateway-stripe.php:252
+#: woocommerce-gateway-stripe.php:253
 msgid "Stripe Alipay"
 msgstr ""
 
@@ -1173,27 +1157,27 @@ msgid "Add Payment"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-bancontact.php:60
-#: woocommerce-gateway-stripe.php:246
+#: woocommerce-gateway-stripe.php:247
 msgid "Stripe Bancontact"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-eps.php:60
-#: woocommerce-gateway-stripe.php:249
+#: woocommerce-gateway-stripe.php:250
 msgid "Stripe EPS"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-giropay.php:60
-#: woocommerce-gateway-stripe.php:248
+#: woocommerce-gateway-stripe.php:249
 msgid "Stripe Giropay"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-ideal.php:60
-#: woocommerce-gateway-stripe.php:250
+#: woocommerce-gateway-stripe.php:251
 msgid "Stripe iDeal"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:60
-#: woocommerce-gateway-stripe.php:254
+#: woocommerce-gateway-stripe.php:255
 msgid "Stripe Multibanco"
 msgstr ""
 
@@ -1222,12 +1206,12 @@ msgid "Awaiting Multibanco payment"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-p24.php:60
-#: woocommerce-gateway-stripe.php:251
+#: woocommerce-gateway-stripe.php:252
 msgid "Stripe P24"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:75
-#: woocommerce-gateway-stripe.php:253
+#: woocommerce-gateway-stripe.php:254
 msgid "Stripe SEPA Direct Debit"
 msgstr ""
 
@@ -1254,61 +1238,61 @@ msgid ""
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-sofort.php:60
-#: woocommerce-gateway-stripe.php:247
+#: woocommerce-gateway-stripe.php:248
 msgid "Stripe SOFORT"
+msgstr ""
+
+#: includes/payment-methods/class-wc-stripe-payment-request.php:261
+#: includes/payment-methods/class-wc-stripe-payment-request.php:844
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1142
+msgid "Tax"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:269
 #: includes/payment-methods/class-wc-stripe-payment-request.php:852
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1150
-msgid "Tax"
-msgstr ""
-
-#: includes/payment-methods/class-wc-stripe-payment-request.php:277
-#: includes/payment-methods/class-wc-stripe-payment-request.php:860
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1157
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1149
 msgid "Shipping"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:284
-#: includes/payment-methods/class-wc-stripe-payment-request.php:867
+#: includes/payment-methods/class-wc-stripe-payment-request.php:276
+#: includes/payment-methods/class-wc-stripe-payment-request.php:859
 msgid "Pending"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:504
+#: includes/payment-methods/class-wc-stripe-payment-request.php:496
 msgid "Sorry, we're not accepting prepaid cards at this time."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:506
+#: includes/payment-methods/class-wc-stripe-payment-request.php:498
 #. translators: Do not translate the [option] placeholder
 msgid "Unknown shipping option \"[option]\"."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:632
+#: includes/payment-methods/class-wc-stripe-payment-request.php:624
 msgid "OR"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:726
-#: includes/payment-methods/class-wc-stripe-payment-request.php:739
+#: includes/payment-methods/class-wc-stripe-payment-request.php:718
+#: includes/payment-methods/class-wc-stripe-payment-request.php:731
 msgid "Unable to find shipping method for address."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:808
+#: includes/payment-methods/class-wc-stripe-payment-request.php:800
 msgid "Product with the ID (%d) cannot be found."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:835
+#: includes/payment-methods/class-wc-stripe-payment-request.php:827
 #. translators: 1: product name 2: quantity in stock
 msgid ""
 "You cannot add that amount of \"%1$s\"; to the cart because there is not "
 "enough stock (%2$s remaining)."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:989
+#: includes/payment-methods/class-wc-stripe-payment-request.php:981
 msgid "Empty cart"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1164
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1156
 msgid "Discount"
 msgstr ""
 
@@ -1319,15 +1303,15 @@ msgid ""
 "here."
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:193
+#: woocommerce-gateway-stripe.php:194
 msgid "Settings"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:194
+#: woocommerce-gateway-stripe.php:195
 msgid "Docs"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:195
+#: woocommerce-gateway-stripe.php:196
 msgid "Support"
 msgstr ""
 
