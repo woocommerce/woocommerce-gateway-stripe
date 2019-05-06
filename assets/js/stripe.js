@@ -853,7 +853,7 @@ jQuery( function( $ ) {
 						throw response.error;
 					}
 
-					if ( 'succeeded' !== response.paymentIntent.status ) {
+					if ( 'requires_capture' !== response.paymentIntent.status && 'succeeded' !== response.paymentIntent.status ) {
 						return;
 					}
 
