@@ -609,6 +609,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
+			if ( $this->lock_order_payment( $order, $intent ) ) {
+				return;
+			}
+
 			$charge = end( $intent->charges->data );
 			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
 
@@ -616,6 +620,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			// Process valid response.
 			$this->process_response( $charge, $order );
+
+			$this->unlock_order_payment( $order );
 		} else {
 			$error_message = $intent->last_payment_error ? $intent->last_payment_error->message : "";
 

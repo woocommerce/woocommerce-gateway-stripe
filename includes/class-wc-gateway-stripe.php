@@ -1219,6 +1219,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		if ( $this->lock_order_payment( $order, $intent ) ) {
+			return;
+		}
+
 		if ( 'succeeded' === $intent->status ) {
 			// Proceed with the payment completion.
 			$this->process_response( end( $intent->charges->data ), $order );
@@ -1226,6 +1230,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			// `requires_payment_method` means that SCA got denied for the current payment method.
 			$this->failed_sca_auth( $order, $intent );
 		}
+
+		$this->unlock_order_payment( $order );
 	}
 
 	/**
