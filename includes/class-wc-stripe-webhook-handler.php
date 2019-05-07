@@ -305,6 +305,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				if ( $this->is_partial_capture( $notification ) ) {
 					$partial_amount = $this->get_partial_amount_to_charge( $notification );
 					$order->set_total( $partial_amount );
+					$this->update_fees( $order, $notification->data->object->refunds->data[0]->balance_transaction );
 					/* translators: partial captured amount */
 					$order->add_order_note( sprintf( __( 'This charge was partially captured via Stripe Dashboard in the amount of: %s', 'woocommerce-gateway-stripe' ), $partial_amount ) );
 				} else {

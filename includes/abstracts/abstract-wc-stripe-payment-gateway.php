@@ -410,23 +410,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// Store charge data.
 		WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_stripe_charge_captured', $captured ) : $order->update_meta_data( '_stripe_charge_captured', $captured );
 
-		$balance_transaction = isset( $response->balance_transaction ) ? $response->balance_transaction : false;
-		if ( is_string( $response->balance_transaction ) ) {
-			$balance_transaction = WC_Stripe_API::request( array(), "balance/history/$response->balance_transaction", 'GET' );
-		}
-
-		// Store other data such as fees.
-		if ( $balance_transaction ) {
-			// Fees and Net needs to both come from Stripe to be accurate as the returned
-			// values are in the local currency of the Stripe account, not from WC.
-			$fee = ! empty( $balance_transaction->fee ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'fee' ) : 0;
-			$net = ! empty( $balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'net' ) : 0;
-			WC_Stripe_Helper::update_stripe_fee( $order, $fee );
-			WC_Stripe_Helper::update_stripe_net( $order, $net );
-
-			// Store currency stripe.
-			$currency = ! empty( $balance_transaction->currency ) ? strtoupper( $balance_transaction->currency ) : null;
-			WC_Stripe_Helper::update_stripe_currency( $order, $currency );
+		if ( isset( $response->balance_transaction ) ) {
+			$this->update_fees( $order, is_string( $response->balance_transaction ) ? $response->balance_transaction : $response->balance_transaction->id );
 		}
 
 		if ( 'yes' === $captured ) {
