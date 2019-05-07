@@ -5,7 +5,7 @@ jQuery( function( $ ) {
 
 	try {
 		var stripe = Stripe( wc_stripe_params.key, {
-				betas: [ 'payment_intent_beta_3' ],
+			betas: [ 'payment_intent_beta_3' ],
 		} );
 	} catch( error ) {
 		console.log( error );
@@ -252,13 +252,7 @@ jQuery( function( $ ) {
 
 			// Listen for hash changes in order to handle payment intents
 			window.addEventListener( 'hashchange', wc_stripe_form.onHashChange );
-			if ( $( '#stripe-intent-id' ).length && $( '#stripe-intent-return' ).length ) {
-				var intentId  = $( '#stripe-intent-id' ).val(),
-					returnURL = $( '#stripe-intent-return' ).val(),
-					errorURL  = $( '#stripe-intent-error' ).val();
-
-				wc_stripe_form.openIntentModal( intentId, returnURL, errorURL );
-			}
+			wc_stripe_form.maybeConfirmIntent();
 		},
 
 		/**
@@ -717,48 +711,65 @@ jQuery( function( $ ) {
 		 * Those redirects/hashes are generated in `WC_Gateway_Stripe::process_payment`.
 		 */
 		onHashChange: function() {
-			var partials = window.location.hash.match( /^#?confirm-pi-(.+):(.+)$/ );
+			var partials = window.location.hash.match( /^#?confirm-pi-([^:]+):(.+)$/ );
 
 			if ( ! partials || 3 > partials.length ) {
 				return;
 			}
 
 			var intentClientSecret = partials[1];
-			var successRedirectURL = decodeURIComponent( partials[2] );
+			var redirectURL        = decodeURIComponent( partials[2] );
 
 			// Cleanup the URL
 			window.location.hash = '';
 
-			wc_stripe_form.openIntentModal( intentClientSecret, successRedirectURL );
+			wc_stripe_form.openIntentModal( intentClientSecret, redirectURL );
+		},
+
+		maybeConfirmIntent: function() {
+			if ( ! $( '#stripe-intent-id' ).length || ! $( '#stripe-intent-return' ).length ) {
+				return;
+			}
+
+			var intentSecret = $( '#stripe-intent-id' ).val();
+			var returnURL    = $( '#stripe-intent-return' ).val();
+
+			wc_stripe_form.openIntentModal( intentSecret, returnURL, true );
 		},
 
 		/**
-		 * Opens the modal for PaymentIntents.
+		 * Opens the modal for PaymentIntent authorizations.
 		 *
-		 * @param {string} intentClientSecret The client secret of the intent.
-		 * @param {string} successRedirectURL A URL to redirect to on success.
-		 * @param {string} failureRedirectURL A URL to redirect to on error (optional).
+		 * @param {string}  intentClientSecret The client secret of the intent.
+		 * @param {string}  redirectURL        The URL to ping on fail or redirect to on success.
+		 * @param {boolean} alwaysRedirect     If set to true, an immediate redirect will happen no matter the result.
+		 *                                     If not, an error will be displayed on failure.
 		 */
-		openIntentModal: function( intentClientSecret, successRedirectURL, failureRedirectURL ) {
+		openIntentModal: function( intentClientSecret, redirectURL, alwaysRedirect ) {
 			stripe.handleCardPayment( intentClientSecret )
 				.then( function( response ) {
 					if ( response.error ) {
 						throw response.error;
 					}
 
-					if ( 'succeeded' === response.paymentIntent.status ) {
-						window.location = successRedirectURL;
+					if ( 'requires_capture' !== response.paymentIntent.status && 'succeeded' !== response.paymentIntent.status ) {
+						return;
 					}
+
+					window.location = redirectURL;
 				} )
-				.catch ( function( error ) {
-					if ( failureRedirectURL ) {
-						return window.location = failureRedirectURL;
+				.catch( function( error ) {
+					if ( alwaysRedirect ) {
+						return window.location = redirectURL;
 					}
 
 					$( document.body ).trigger( 'stripeError', { error: error } );
 					wc_stripe_form.form.removeClass( 'processing' );
+
+					// Report back to the server.
+					$.get( redirectURL + '&is_ajax' );
 				} );
-		},
+		}
 	};
 
 	wc_stripe_form.init();

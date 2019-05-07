@@ -330,6 +330,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_charge_succeeded( $notification ) {
+		// Ignore the notification for charges, created through PaymentIntents.
+		if ( isset( $notification->data->object->payment_intent ) && $notification->data->object->payment_intent ) {
+			return;
+		}
+
 		// The following payment methods are synchronous so does not need to be handle via webhook.
 		if ( ( isset( $notification->data->object->source->type ) && 'card' === $notification->data->object->source->type ) || ( isset( $notification->data->object->source->type ) && 'three_d_secure' === $notification->data->object->source->type ) ) {
 			return;
@@ -606,7 +611,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 		if ( 'payment_intent.succeeded' === $notification->type || 'payment_intent.amount_capturable_updated' === $notification->type ) {
-			if ( 'processing' === $order->get_status() || 'completed' === $order->get_status() ) {
+			if ( 'pending' !== $order->get_status() && 'failed' !== $order->get_status() ) {
+				return;
+			}
+
+			if ( $this->lock_order_payment( $order, $intent ) ) {
 				return;
 			}
 
@@ -617,6 +626,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			// Process valid response.
 			$this->process_response( $charge, $order );
+
+			$this->unlock_order_payment( $order );
 		} else {
 			$error_message = $intent->last_payment_error ? $intent->last_payment_error->message : "";
 

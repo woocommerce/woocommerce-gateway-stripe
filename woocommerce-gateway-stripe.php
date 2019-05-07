@@ -133,7 +133,7 @@ function woocommerce_gateway_stripe_init() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-order-handler.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-tokens.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php';
-				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-intent-generator.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-intent-controller.php';
 
 				if ( is_admin() ) {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
