@@ -984,7 +984,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( $order->get_payment_method() !== $this->id ) {
+		$payment_method = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->payment_method : $order->get_payment_method();
+		if ( $payment_method !== $this->id ) {
 			// If this is not the payment method, an intent would not be available.
 			return;
 		}

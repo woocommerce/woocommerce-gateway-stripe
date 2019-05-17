@@ -1170,7 +1170,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 */
 	public function lock_order_payment( $order, $intent ) {
-		$transient_name = 'wc_stripe_processing_intent_' . $order->get_id();
+		$order_id       = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+		$transient_name = 'wc_stripe_processing_intent_' . $order_id;
 		$processing     = get_transient( $transient_name );
 
 		// Block the process if the same intent is already being handled.
@@ -1191,6 +1192,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param WC_Order $order The order that is being unlocked.
 	 */
 	public function unlock_order_payment( $order ) {
-		delete_transient( 'wc_stripe_processing_intent_' . $order->get_id() );
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+		delete_transient( 'wc_stripe_processing_intent_' . $order_id );
 	}
 }
