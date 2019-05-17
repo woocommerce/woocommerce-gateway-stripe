@@ -610,13 +610,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		if ( $this->lock_order_payment( $order, $intent ) ) {
+			return;
+		}
+
 		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 		if ( 'payment_intent.succeeded' === $notification->type || 'payment_intent.amount_capturable_updated' === $notification->type ) {
 			if ( 'pending' !== $order->get_status() && 'failed' !== $order->get_status() ) {
-				return;
-			}
-
-			if ( $this->lock_order_payment( $order, $intent ) ) {
 				return;
 			}
 
@@ -628,17 +628,18 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// Process valid response.
 			$this->process_response( $charge, $order );
 
-			$this->unlock_order_payment( $order );
 		} else {
 			$error_message = $intent->last_payment_error ? $intent->last_payment_error->message : "";
 
 			/* translators: 1) The error message that was received from Stripe. */
-			$order->update_status( 'failed', sprintf( __( 'Stripe authentication failed.', 'woocommerce-gateway-stripe' ), $error_message ) );
+			$order->update_status( 'failed', sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message ) );
 
 			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
 
 			$this->send_failed_order_email( $order_id );
 		}
+
+		$this->unlock_order_payment( $order );
 	}
 
 	/**
