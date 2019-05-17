@@ -192,7 +192,7 @@ function woocommerce_gateway_stripe_init() {
 				$plugin_links = array(
 					'<a href="admin.php?page=wc-settings&tab=checkout&section=stripe">' . esc_html__( 'Settings', 'woocommerce-gateway-stripe' ) . '</a>',
 					'<a href="https://docs.woocommerce.com/document/stripe/">' . esc_html__( 'Docs', 'woocommerce-gateway-stripe' ) . '</a>',
-					'<a href="https://woocommerce.com/contact-us/">' . esc_html__( 'Support', 'woocommerce-gateway-stripe' ) . '</a>',
+					'<a href="https://woocommerce.com/my-account/create-a-ticket?broken=primary&select=18627">' . esc_html__( 'Support', 'woocommerce-gateway-stripe' ) . '</a>',
 				);
 				return array_merge( $plugin_links, $links );
 			}

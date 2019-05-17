@@ -1,6 +1,6 @@
 ### Create Bug Reports
 
-If you find a bug or suggest enhancement, let us know by [opening a new issue](https://github.com/woothemes/woocommerce-gateway-stripe/issues/new).
+If you find a bug or suggest enhancement, let us know by [opening a new issue](https://github.com/woocommerce/woocommerce-gateway-stripe/issues/new).
 
 ### Write and submit a patch
 
@@ -11,4 +11,3 @@ When creating Pull Requests, remember:
 - [Check In Early, Check In Often](http://blog.codinghorror.com/check-in-early-check-in-often/).
 - Write [good commit messages](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
 - Respect the [Best practices for WordPress development](http://jetpack.com/contribute/#practices).
-
