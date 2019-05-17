@@ -611,13 +611,21 @@ jQuery( function( $ ) {
 		 */
 		onError: function( e, result ) {
 			var message = result.error.message;
-
 			var selectedMethodElement = wc_stripe_form.getSelectedPaymentElement().closest( 'li' );
+			var savedTokens = selectedMethodElement.find( '.woocommerce-SavedPaymentMethods-tokenInput' );
+			var errorContainer;
 
-			// Use the right error wrapper if there are saved cards.
-			var errorContainer = selectedMethodElement.find( '.woocommerce-SavedPaymentMethods-tokenInput' ).length
-				? selectedMethodElement.find( '.woocommerce-SavedPaymentMethods-tokenInput:checked' ).closest( 'li' ).find( '.stripe-source-errors' )
-				: selectedMethodElement.find( '.stripe-source-errors' );
+			if ( savedTokens.length ) {
+				var selectedToken = savedTokens.filter( ':checked' );
+
+				if ( selectedToken.closest( '.woocommerce-SavedPaymentMethods-new' ).length ) {
+					errorContainer = $( '#wc-stripe-cc-form .stripe-source-errors' );
+				} else {
+					errorContainer = selectedToken.closest( 'li' ).find( '.stripe-source-errors' );
+				}
+			} else {
+				errorContainer = selectedMethodElement.find( '.stripe-source-errors' );
+			}
 
 			/*
 			 * If payment method is SEPA and owner name is not completed,
