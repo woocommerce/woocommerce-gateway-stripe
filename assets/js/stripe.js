@@ -610,8 +610,14 @@ jQuery( function( $ ) {
 		 * @param {Object} result The result of Stripe call.
 		 */
 		onError: function( e, result ) {
-			var message = result.error.message,
-				errorContainer = wc_stripe_form.getSelectedPaymentElement().parents( 'li' ).eq(0).find( '.stripe-source-errors' );
+			var message = result.error.message;
+
+			var selectedMethodElement = wc_stripe_form.getSelectedPaymentElement().closest( 'li' );
+
+			// Use the right error wrapper if there are saved cards.
+			var errorContainer = selectedMethodElement.find( '.woocommerce-SavedPaymentMethods-tokenInput' ).length
+				? selectedMethodElement.find( '.woocommerce-SavedPaymentMethods-tokenInput:checked' ).closest( 'li' ).find( '.stripe-source-errors' )
+				: selectedMethodElement.find( '.stripe-source-errors' );
 
 			/*
 			 * If payment method is SEPA and owner name is not completed,
