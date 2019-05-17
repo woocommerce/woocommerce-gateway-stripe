@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.1.16\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
-"POT-Creation-Date: 2019-05-10 11:56:06+00:00\n"
+"POT-Creation-Date: 2019-05-17 22:44:20+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -863,12 +863,13 @@ msgid ""
 "done is for you to authorize the payment with your bank."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1029
+#: includes/class-wc-gateway-stripe.php:1030
+#: includes/class-wc-stripe-webhook-handler.php:635
 #. translators: 1) The error message that was received from Stripe.
 msgid "Stripe SCA authentication failed. Reason: %s"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1030
+#: includes/class-wc-gateway-stripe.php:1031
 msgid "Stripe SCA authentication failed."
 msgstr ""
 
@@ -990,6 +991,11 @@ msgstr ""
 msgid "Missing order ID for payment confirmation"
 msgstr ""
 
+#: includes/class-wc-stripe-intent-controller.php:91
+#. translators: Error message text
+msgid "Payment verification error: %s"
+msgstr ""
+
 #: includes/class-wc-stripe-order-handler.php:144
 #: includes/class-wc-stripe-webhook-handler.php:187
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:353
@@ -1064,11 +1070,6 @@ msgstr ""
 #: includes/class-wc-stripe-webhook-handler.php:538
 #. translators: 1) The reason type.
 msgid "The opened review for this order is now closed. Reason: (%s)"
-msgstr ""
-
-#: includes/class-wc-stripe-webhook-handler.php:636
-#. translators: 1) The error message that was received from Stripe.
-msgid "Stripe authentication failed."
 msgstr ""
 
 #: includes/compat/class-wc-stripe-pre-orders-compat.php:61
