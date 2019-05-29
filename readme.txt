@@ -113,11 +113,13 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.1.16 - 2019-04-18 =
-* Deprecate - Warn about the future removal of the Modal Checkout option.
-* Tweak - WC 3.6 compatibility.
+= 4.2.0 - 2019-05-29 =
+* Update - Enable Payment Request buttons for Puerto Rico based stores.
+* Update - Add support for Strong Customer Authentication (SCA) for user-initiated payments.
+* Remove - Stripe Modal Checkout.
+* Remove - 3D Secure settings are no longer available in the gateway settings. Use Stripe Radar instead.
 
-[See changelog for all versions](https://raw.githubusercontent.com/woothemes/woocommerce-gateway-stripe/master/changelog.txt).
+[See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
 == Upgrade Notice ==
 

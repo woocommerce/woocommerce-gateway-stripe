@@ -203,8 +203,6 @@ jQuery( function( $ ) {
 				this.form = $( 'form.woocommerce-checkout' );
 			}
 
-			// ToDo: Combine those listeners and conditions in a meaningful way
-
 			$( 'form.woocommerce-checkout' )
 				.on(
 					'checkout_place_order_stripe checkout_place_order_stripe_bancontact checkout_place_order_stripe_sofort checkout_place_order_stripe_giropay checkout_place_order_stripe_ideal checkout_place_order_stripe_alipay checkout_place_order_stripe_sepa',
