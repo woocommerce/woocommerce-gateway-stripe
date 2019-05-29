@@ -57,12 +57,6 @@ export default class StoreOwnerFlow extends Base {
 			settings.disableInlineForm();
 		}
 
-		if ( args.enableStripeCheckout ) {
-			settings.enableStripeCheckout();
-		} else {
-			settings.disableStripeCheckout();
-		}
-
 		if ( args.enableSavedCards ) {
 			settings.enableSavedCards();
 		} else {

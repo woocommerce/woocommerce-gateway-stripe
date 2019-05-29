@@ -432,6 +432,25 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Gets the order by Stripe PaymentIntent ID.
+	 *
+	 * @since 4.2
+	 * @param string $intent_id The ID of the intent.
+	 * @return WC_Order|bool Either an order or false when not found.
+	 */
+	public static function get_order_by_intent_id( $intent_id ) {
+		global $wpdb;
+
+		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $intent_id, '_stripe_intent_id' ) );
+
+		if ( ! empty( $order_id ) ) {
+			return wc_get_order( $order_id );
+		}
+
+		return false;
+	}
+
+	/**
 	 * Sanitize statement descriptor text.
 	 *
 	 * Stripe requires max of 22 characters and no

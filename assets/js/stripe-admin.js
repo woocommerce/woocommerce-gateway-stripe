@@ -42,15 +42,6 @@ jQuery( function( $ ) {
 
 			$( '#woocommerce_stripe_testmode' ).change();
 
-			// Toggle Stripe Checkout settings.
-			$( '#woocommerce_stripe_stripe_checkout' ).change( function() {
-				if ( $( this ).is( ':checked' ) ) {
-					$( '#woocommerce_stripe_stripe_checkout_image, #woocommerce_stripe_stripe_checkout_description' ).closest( 'tr' ).show();
-				} else {
-					$( '#woocommerce_stripe_stripe_checkout_image, #woocommerce_stripe_stripe_checkout_description' ).closest( 'tr' ).hide();
-				}
-			} ).change();
-
 			// Toggle Payment Request buttons settings.
 			$( '#woocommerce_stripe_payment_request' ).change( function() {
 				if ( $( this ).is( ':checked' ) ) {
@@ -59,6 +50,18 @@ jQuery( function( $ ) {
 					$( '#woocommerce_stripe_payment_request_button_theme, #woocommerce_stripe_payment_request_button_type, #woocommerce_stripe_payment_request_button_height' ).closest( 'tr' ).hide();
 				}
 			} ).change();
+
+			// Make the 3DS notice dismissable.
+			$( '.wc-stripe-3ds-missing' ).each( function() {
+				var $setting = $( this );
+
+				$setting.find( '.notice-dismiss' ).on( 'click.wc-stripe-dismiss-notice', function() {
+					$.ajax( {
+						type: 'head',
+						url: window.location.href + '&stripe_dismiss_3ds=' + $setting.data( 'nonce' ),
+					} );
+				} );
+			} );
 		}
 	};
 

@@ -1,7 +1,11 @@
 *** Changelog ***
 
-= 4.2.0 - 2019-xx-xx =
+= 4.2.0 - 2019-05-29 =
 * Update - Enable Payment Request buttons for Puerto Rico based stores.
+* Update - Add support for Strong Customer Authentication (SCA) for user-initiated payments.
+* Remove - Stripe Modal Checkout.
+* Remove - 3D Secure settings are no longer available in the gateway settings. Use Stripe Radar instead.
+* Fix - Display error messages only next to the chosen saved card.
 
 = 4.1.16 - 2019-04-18 =
 * Deprecate - Warn about the future removal of the Modal Checkout option.

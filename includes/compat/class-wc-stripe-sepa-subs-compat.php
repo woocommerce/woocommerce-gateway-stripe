@@ -34,15 +34,6 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 	}
 
 	/**
-	 * Handles the return from processing the payment for Stripe Checkout.
-	 *
-	 * @since 4.1.0
-	 */
-	public function stripe_checkout_return_handler() {
-		return parent::stripe_checkout_return_handler();
-	}
-
-	/**
 	 * Checks to see if we need to hide the save checkbox field.
 	 * Because when cart contains a subs product, it will save regardless.
 	 *

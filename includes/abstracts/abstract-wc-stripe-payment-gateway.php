@@ -405,24 +405,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		WC_Stripe_Logger::log( 'Processing response: ' . print_r( $response, true ) );
 
 		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
-
 		$captured = ( isset( $response->captured ) && $response->captured ) ? 'yes' : 'no';
 
 		// Store charge data.
 		WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_stripe_charge_captured', $captured ) : $order->update_meta_data( '_stripe_charge_captured', $captured );
 
-		// Store other data such as fees.
-		if ( isset( $response->balance_transaction ) && isset( $response->balance_transaction->fee ) ) {
-			// Fees and Net needs to both come from Stripe to be accurate as the returned
-			// values are in the local currency of the Stripe account, not from WC.
-			$fee = ! empty( $response->balance_transaction->fee ) ? WC_Stripe_Helper::format_balance_fee( $response->balance_transaction, 'fee' ) : 0;
-			$net = ! empty( $response->balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $response->balance_transaction, 'net' ) : 0;
-			WC_Stripe_Helper::update_stripe_fee( $order, $fee );
-			WC_Stripe_Helper::update_stripe_net( $order, $net );
-
-			// Store currency stripe.
-			$currency = ! empty( $response->balance_transaction->currency ) ? strtoupper( $response->balance_transaction->currency ) : null;
-			WC_Stripe_Helper::update_stripe_currency( $order, $currency );
+		if ( isset( $response->balance_transaction ) ) {
+			$this->update_fees( $order, is_string( $response->balance_transaction ) ? $response->balance_transaction : $response->balance_transaction->id );
 		}
 
 		if ( 'yes' === $captured ) {
@@ -552,38 +541,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Checks if 3DS is required.
-	 *
-	 * @since 4.0.4
-	 * @since 4.1.0 Add filter and changed optional to recommended.
-	 * @param object $source_object
-	 * @return bool
-	 */
-	public function is_3ds_required( $source_object ) {
-		return apply_filters(
-			'wc_stripe_require_3ds',
-			(
-			$source_object && ! empty( $source_object->card ) ) &&
-			( 'card' === $source_object->type && 'required' === $source_object->card->three_d_secure ||
-			( $this->three_d_secure && 'recommended' === $source_object->card->three_d_secure )
-			),
-			$source_object,
-			$this->three_d_secure
-		);
-	}
-
-	/**
-	 * Checks if card is 3DS.
-	 *
-	 * @since 4.0.4
-	 * @param object $source_object
-	 * @return bool
-	 */
-	public function is_3ds_card( $source_object ) {
-		return ( $source_object && 'three_d_secure' === $source_object->type );
-	}
-
-	/**
 	 * Checks if card is a prepaid card.
 	 *
 	 * @since 4.0.6
@@ -615,34 +572,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$payment_method = isset( $_POST['payment_method'] ) ? wc_clean( $_POST['payment_method'] ) : 'stripe';
 
 		return ( isset( $_POST[ 'wc-' . $payment_method . '-payment-token' ] ) && 'new' !== $_POST[ 'wc-' . $payment_method . '-payment-token' ] );
-	}
-
-	/**
-	 * Creates the 3DS source for charge.
-	 *
-	 * @since 4.0.0
-	 * @since 4.0.4 Add $return_url
-	 * @param object $order
-	 * @param object $source_object
-	 * @param string $return_url
-	 * @return mixed
-	 */
-	public function create_3ds_source( $order, $source_object, $return_url = '' ) {
-		$currency   = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency();
-		$order_id   = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
-		$return_url = empty( $return_url ) ? $this->get_stripe_return_url( $order ) : $return_url;
-
-		$post_data                   = array();
-		$post_data['amount']         = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
-		$post_data['currency']       = strtolower( $currency );
-		$post_data['type']           = 'three_d_secure';
-		$post_data['owner']          = $this->get_owner_details( $order );
-		$post_data['three_d_secure'] = array( 'card' => $source_object->id );
-		$post_data['redirect']       = array( 'return_url' => $return_url );
-
-		WC_Stripe_Logger::log( 'Info: Begin creating 3DS source...' );
-
-		return WC_Stripe_API::request( apply_filters( 'wc_stripe_3ds_source', $post_data, $order ), 'sources' );
 	}
 
 	/**
@@ -890,7 +819,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function process_refund( $order_id, $amount = null, $reason = '' ) {
 		$order = wc_get_order( $order_id );
 
-		if ( ! $order || ! $order->get_transaction_id() ) {
+		if ( ! $order ) {
 			return false;
 		}
 
@@ -899,9 +828,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 			$order_currency = get_post_meta( $order_id, '_order_currency', true );
 			$captured       = get_post_meta( $order_id, '_stripe_charge_captured', true );
+			$charge_id      = get_post_meta( $order_id, '_transaction_id', true );
 		} else {
 			$order_currency = $order->get_currency();
 			$captured       = $order->get_meta( '_stripe_charge_captured', true );
+			$charge_id      = $order->get_transaction_id();
+		}
+
+		if ( ! $charge_id ) {
+			return false;
 		}
 
 		if ( ! is_null( $amount ) ) {
@@ -919,13 +854,37 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			);
 		}
 
-		$request['charge'] = $order->get_transaction_id();
-
-		WC_Stripe_Logger::log( "Info: Beginning refund for order {$order->get_transaction_id()} for the amount of {$amount}" );
+		$request['charge'] = $charge_id;
+		WC_Stripe_Logger::log( "Info: Beginning refund for order {$charge_id} for the amount of {$amount}" );
 
 		$request = apply_filters( 'wc_stripe_refund_request', $request, $order );
 
-		$response = WC_Stripe_API::request( $request, 'refunds' );
+		$intent = $this->get_intent_from_order( $order );
+		$intent_cancelled = false;
+		if ( $intent ) {
+			// If the order has a Payment Intent pending capture, then the Intent itself must be refunded (cancelled), not the Charge
+			if ( ! empty( $intent->error ) ) {
+				$response = $intent;
+				$intent_cancelled = true;
+			} elseif ( 'requires_capture' === $intent->status ) {
+				$result = WC_Stripe_API::request(
+					array(),
+					'payment_intents/' . $intent->id . '/cancel'
+				);
+				$intent_cancelled = true;
+
+				if ( ! empty( $result->error ) ) {
+					$response = $result;
+				} else {
+					$charge = end( $result->charges->data );
+					$response = end( $charge->refunds->data );
+				}
+			}
+		}
+
+		if ( ! $intent_cancelled ) {
+			$response = WC_Stripe_API::request( $request, 'refunds' );
+		}
 
 		if ( ! empty( $response->error ) ) {
 			WC_Stripe_Logger::log( 'Error: ' . $response->error->message );
@@ -1059,5 +1018,181 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Create a new PaymentIntent and attempt to confirm it.
+	 *
+	 * @param WC_Order $order           The order that is being paid for.
+	 * @param object   $prepared_source The source that is used for the payment.
+	 * @return object                   An intent (that is either successful or requires an action) or an error.
+	 */
+	public function create_and_confirm_intent( $order, $prepared_source ) {
+		// The request for a charge contains metadata for the intent.
+		$full_request = $this->generate_payment_request( $order, $prepared_source );
+
+		$request = array(
+			'source'               => $prepared_source->source,
+			'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
+			'currency'             => strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency() ),
+			'description'          => $full_request['description'],
+			'metadata'             => $full_request['metadata'],
+			'statement_descriptor' => $full_request['statement_descriptor'],
+			'capture_method'       => ( 'true' === $full_request['capture'] ) ? 'automatic' : 'manual',
+			'payment_method_types' => array(
+				'card',
+			),
+		);
+
+		if ( $prepared_source->customer ) {
+			$request['customer'] = $prepared_source->customer;
+		}
+
+		// Create an intent that awaits an action.
+		$intent = WC_Stripe_API::request( $request, 'payment_intents' );
+		if ( ! empty( $intent->error ) ) {
+			return $intent;
+		}
+
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+		WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id initiated for order $order_id" );
+
+		// Try to confirm the intent & capture the charge (if 3DS is not required).
+		$confirm_request  = array(
+			'source' => $request['source'],
+		);
+		$confirmed_intent = WC_Stripe_API::request( $confirm_request, "payment_intents/$intent->id/confirm" );
+
+		if ( ! empty( $confirmed_intent->error ) ) {
+			return $confirmed_intent;
+		}
+
+		// Save the intent ID to the order.
+		$this->save_intent_to_order( $order, $confirmed_intent );
+
+		// Save a note about the status of the intent.
+		if ( 'succeeded' === $confirmed_intent->status ) {
+			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
+		} elseif ( 'requires_action' === $confirmed_intent->status ) {
+			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id requires authentication for order $order_id" );
+		}
+
+		return $confirmed_intent;
+	}
+
+	/**
+	 * Updates an existing intent with updated amount, source, and customer.
+	 *
+	 * @param object   $intent          The existing intent object.
+	 * @param WC_Order $order           The order.
+	 * @param object   $prepared_source Currently selected source.
+	 * @return object                   An updated intent.
+	 */
+	public function update_existing_intent( $intent, $order, $prepared_source ) {
+		$request = array();
+
+		if ( $prepared_source->source !== $intent->source ) {
+			$request['source'] = $prepared_source->source;
+		}
+
+		$new_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
+		if ( $intent->amount !== $new_amount ) {
+			$request['amount'] = $new_amount;
+		}
+
+		if ( $prepared_source->customer && $intent->customer !== $prepared_source->customer ) {
+			$request['customer'] = $prepared_source->customer;
+		}
+
+		if ( empty( $request ) ) {
+			return $intent;
+		}
+
+		$updated_intent = WC_Stripe_API::request( $request, "payment_intents/$intent->id" );
+
+		if ( 'requires_confirmation' === $updated_intent->status ) {
+			return WC_Stripe_API::request( array(), "payment_intents/$intent->id/confirm" );
+		} else {
+			return $updated_intent;
+		}
+	}
+
+	/**
+	 * Saves intent to order.
+	 *
+	 * @since 3.2.0
+	 * @param WC_Order $order For to which the source applies.
+	 * @param stdClass $intent Payment intent information.
+	 */
+	public function save_intent_to_order( $order, $intent ) {
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+			update_post_meta( $order_id, '_stripe_intent_id', $intent->id );
+		} else {
+			$order->update_meta_data( '_stripe_intent_id', $intent->id );
+		}
+
+		if ( is_callable( array( $order, 'save' ) ) ) {
+			$order->save();
+		}
+	}
+
+	/**
+	 * Retrieves the payment intent, associated with an order.
+	 *
+	 * @since 4.2
+	 * @param WC_Order $order The order to retrieve an intent for.
+	 * @return obect|bool     Either the intent object or `false`.
+	 */
+	public function get_intent_from_order( $order ) {
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+			$intent_id = get_post_meta( $order_id, '_stripe_intent_id', true );
+		} else {
+			$intent_id = $order->get_meta( '_stripe_intent_id' );
+		}
+
+		if ( ! $intent_id ) {
+			return false;
+		}
+
+		return WC_Stripe_API::request( array(), "payment_intents/$intent_id", 'GET' );
+	}
+
+	/**
+	 * Locks an order for payment intent processing for 5 minutes.
+	 *
+	 * @since 4.2
+	 * @param WC_Order $order  The order that is being paid.
+	 * @param stdClass $intent The intent that is being processed.
+	 * @return bool            A flag that indicates whether the order is already locked.
+	 */
+	public function lock_order_payment( $order, $intent ) {
+		$order_id       = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+		$transient_name = 'wc_stripe_processing_intent_' . $order_id;
+		$processing     = get_transient( $transient_name );
+
+		// Block the process if the same intent is already being handled.
+		if ( $processing === $intent->id ) {
+			return true;
+		}
+
+		// Save the new intent as a transient, eventually overwriting another one.
+		set_transient( $transient_name, $intent->id, 5 * MINUTE_IN_SECONDS );
+
+		return false;
+	}
+
+	/**
+	 * Unlocks an order for processing by payment intents.
+	 *
+	 * @since 4.2
+	 * @param WC_Order $order The order that is being unlocked.
+	 */
+	public function unlock_order_payment( $order ) {
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+		delete_transient( 'wc_stripe_processing_intent_' . $order_id );
 	}
 }

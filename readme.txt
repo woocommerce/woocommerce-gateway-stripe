@@ -110,4 +110,19 @@ If you get stuck, you can ask for help in the Plugin Forum.
 2. Normal checkout with Stripe.
 3. Option to save a card to your account.
 4. Checking out with a saved card.
-5. Using the Stripe checkout modal.
+
+== Changelog ==
+
+= 4.2.0 - 2019-05-29 =
+* Update - Enable Payment Request buttons for Puerto Rico based stores.
+* Update - Add support for Strong Customer Authentication (SCA) for user-initiated payments.
+* Remove - Stripe Modal Checkout.
+* Remove - 3D Secure settings are no longer available in the gateway settings. Use Stripe Radar instead.
+* Fix - Display error messages only next to the chosen saved card.
+
+[See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
+
+== Upgrade Notice ==
+
+= 4.1 =
+4.1 is a minor release. Please do a full site backup and test on a staging site before deploying to a live/production server.

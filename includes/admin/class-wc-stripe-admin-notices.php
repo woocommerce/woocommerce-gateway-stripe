@@ -102,6 +102,7 @@ class WC_Stripe_Admin_Notices {
 		$show_style_notice  = get_option( 'wc_stripe_show_style_notice' );
 		$show_ssl_notice    = get_option( 'wc_stripe_show_ssl_notice' );
 		$show_keys_notice   = get_option( 'wc_stripe_show_keys_notice' );
+		$show_3ds_notice    = get_option( 'wc_stripe_show_3ds_notice' );
 		$show_phpver_notice = get_option( 'wc_stripe_show_phpver_notice' );
 		$show_wcver_notice  = get_option( 'wc_stripe_show_wcver_notice' );
 		$show_curl_notice   = get_option( 'wc_stripe_show_curl_notice' );
@@ -111,13 +112,16 @@ class WC_Stripe_Admin_Notices {
 		$test_secret_key    = isset( $options['test_secret_key'] ) ? $options['test_secret_key'] : '';
 		$live_pub_key       = isset( $options['publishable_key'] ) ? $options['publishable_key'] : '';
 		$live_secret_key    = isset( $options['secret_key'] ) ? $options['secret_key'] : '';
-		$checkout_enabled   = isset( $options['stripe_checkout'] ) && 'yes' === $options['stripe_checkout'];
+		$three_d_secure     = isset( $options['three_d_secure'] ) && 'yes' === $options['three_d_secure'];
 
 		if ( isset( $options['enabled'] ) && 'yes' === $options['enabled'] ) {
-			if ( $checkout_enabled ) {
-				$url = 'https://docs.woocommerce.com/document/stripe/modal-checkout';
-				$message = sprintf( __( 'WooCommerce Stripe - Support for Stripe Modal Checkout will be ending soon. This will impact the appearance of your checkout. <a href="%1$s" target="_blank">Click here to learn more.</a>', 'woocommerce-gateway-stripe' ), $url );
-				$this->add_admin_notice( 'legacy_checkout', 'notice notice-warning', $message );
+			if ( empty( $show_3ds_notice ) && $three_d_secure ) {
+				$url = 'https://stripe.com/docs/payments/dynamic-3ds';
+
+				/* translators: 1) A URL that explains Stripe Radar. */
+				$message = __( 'WooCommerce Stripe - We see that you had the "Require 3D secure when applicable" setting turned on. This setting is not available here anymore, because it is now replaced by Stripe Radar. You can learn more about it <a href="%s">here</a>.', 'woocommerce-gateway-stripe' );
+
+				$this->add_admin_notice( '3ds', 'notice notice-warning', sprintf( $message, $url ), true );
 			}
 
 			if ( empty( $show_style_notice ) ) {
@@ -257,6 +261,9 @@ class WC_Stripe_Admin_Notices {
 					break;
 				case 'keys':
 					update_option( 'wc_stripe_show_keys_notice', 'no' );
+					break;
+				case '3ds':
+					update_option( 'wc_stripe_show_3ds_notice', 'no' );
 					break;
 				case 'Alipay':
 					update_option( 'wc_stripe_show_alipay_notice', 'no' );
