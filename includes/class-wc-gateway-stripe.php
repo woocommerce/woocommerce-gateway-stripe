@@ -219,14 +219,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function init_form_fields() {
 		$this->form_fields = require( dirname( __FILE__ ) . '/admin/stripe-settings.php' );
-
-		if ( 'yes' === $this->get_option( 'three_d_secure' ) ) {
-			if ( isset( $_REQUEST['stripe_dismiss_3ds'] ) && wp_verify_nonce( $_REQUEST['stripe_dismiss_3ds'], 'no-3ds' ) ) { // wpcs: sanitization ok.
-				$this->update_option( '3ds_setting_notice_dismissed', true );
-			}
-
-			add_action( 'admin_notices', array( $this, 'display_three_d_secure_notice' ) );
-		}
 	}
 
 	/**
@@ -764,36 +756,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			</td>
 		</tr>
 
-		<?php
-	}
-
-	/**
-	 * Displays a notice that 3DS is not a setting anymore.
-	 *
-	 * @since 4.2.0
-	 */
-	public function display_three_d_secure_notice() {
-		if ( $this->get_option( '3ds_setting_notice_dismissed' ) ) {
-			return;
-		}
-		?>
-		<div data-nonce="<?php echo esc_attr( wp_create_nonce( 'no-3ds' ) ); ?>" class="notice notice-warning is-dismissible wc-stripe-3ds-missing">
-			<p>
-				<?php
-				$url = 'https://stripe.com/docs/payments/dynamic-3ds';
-				/* translators: 1) A URL that explains Stripe Radar. */
-				$message = __( '<strong>WooCommerce Stripe Gateway:</strong> We see that you had the "Require 3D secure when applicable" setting turned on. This setting is not available here anymore, because it is now replaced by Stripe Radar. You can learn more about it <a href="%s">here</a>.', 'woocommerce-gateway-stripe' );
-
-				$allowed_tags = array(
-					'strong' => array(),
-					'a'      => array(
-						'href' => array(),
-					),
-				);
-				printf( wp_kses( $message, $allowed_tags ), esc_url( $url ) );
-				?>
-			</p>
-		</div>
 		<?php
 	}
 
