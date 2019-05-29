@@ -1,10 +1,10 @@
 ## Stripe P24
 
-### Go to WooCommerce > Settings > Checkout > Stripe P24
+### Go to WooCommerce > Settings > Payments > Stripe P24
 
-### Click on Enable and save
+#### Click Enable/Disable checkbox
 
-### Click Save changes button at the bottom
+#### Click Save changes button at the bottom
 
 I see **Your settings have been saved** notice.
 
