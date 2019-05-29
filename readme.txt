@@ -118,6 +118,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Update - Add support for Strong Customer Authentication (SCA) for user-initiated payments.
 * Remove - Stripe Modal Checkout.
 * Remove - 3D Secure settings are no longer available in the gateway settings. Use Stripe Radar instead.
+* Fix - Display error messages only next to the chosen saved card.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
