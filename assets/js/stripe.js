@@ -616,14 +616,18 @@ jQuery( function( $ ) {
 			var errorContainer;
 
 			if ( savedTokens.length ) {
+				// In case there are saved cards too, display the message next to the correct one.
 				var selectedToken = savedTokens.filter( ':checked' );
 
 				if ( selectedToken.closest( '.woocommerce-SavedPaymentMethods-new' ).length ) {
+					// Display the error next to the CC fields if a new card is being entered.
 					errorContainer = $( '#wc-stripe-cc-form .stripe-source-errors' );
 				} else {
+					// Display the error next to the chosen saved card.
 					errorContainer = selectedToken.closest( 'li' ).find( '.stripe-source-errors' );
 				}
 			} else {
+				// When no saved cards are available, display the error next to CC fields.
 				errorContainer = selectedMethodElement.find( '.stripe-source-errors' );
 			}
 
