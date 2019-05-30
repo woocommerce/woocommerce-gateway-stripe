@@ -411,7 +411,7 @@ jQuery( function( $ ) {
 		 * Removes overlays from payment forms.
 		 */
 		unblock: function() {
-			wc_stripe_form.form.unblock();
+			wc_stripe_form.form && wc_stripe_form.form.unblock();
 		},
 
 		/**
@@ -780,7 +780,7 @@ jQuery( function( $ ) {
 					}
 
 					$( document.body ).trigger( 'stripeError', { error: error } );
-					wc_stripe_form.form.removeClass( 'processing' );
+					wc_stripe_form.form && wc_stripe_form.form.removeClass( 'processing' );
 
 					// Report back to the server.
 					$.get( redirectURL + '&is_ajax' );
