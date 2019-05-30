@@ -678,6 +678,7 @@ jQuery( function( $ ) {
 				}, 200 );
 			}
 			wc_stripe_form.unblock();
+			$.unblockUI(); // If arriving via Payment Request Button.
 		},
 
 		/**
