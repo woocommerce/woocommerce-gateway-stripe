@@ -235,21 +235,21 @@ class WC_Stripe_Helper {
 	public static function no_decimal_currencies() {
 		return array(
 			'bif', // Burundian Franc
-			'djf', // Djiboutian Franc
-			'jpy', // Japanese Yen
-			'krw', // South Korean Won
-			'pyg', // Paraguayan Guaraní
-			'vnd', // Vietnamese Đồng
-			'xaf', // Central African Cfa Franc
-			'xpf', // Cfp Franc
 			'clp', // Chilean Peso
+			'djf', // Djiboutian Franc
 			'gnf', // Guinean Franc
+			'jpy', // Japanese Yen
 			'kmf', // Comorian Franc
+			'krw', // South Korean Won
 			'mga', // Malagasy Ariary
+			'pyg', // Paraguayan Guaraní
 			'rwf', // Rwandan Franc
+			'ugx', // Ugandan Shilling
+			'vnd', // Vietnamese Đồng
 			'vuv', // Vanuatu Vatu
+			'xaf', // Central African Cfa Franc
 			'xof', // West African Cfa Franc
-			'ugx', // Ugandan shilling
+			'xpf', // Cfp Franc
 		);
 	}
 
