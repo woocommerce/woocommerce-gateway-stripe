@@ -228,7 +228,8 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * List of currencies supported by Stripe that has no decimals.
+	 * List of currencies supported by Stripe that has no decimals
+	 * https://stripe.com/docs/currencies#zero-decimal from https://stripe.com/docs/currencies#presentment-currencies
 	 *
 	 * @return array $currencies
 	 */
