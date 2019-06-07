@@ -850,13 +850,21 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @since 4.2
 	 */
 	public function render_payment_intent_inputs() {
-		$order     = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
-		$intent    = $this->get_intent_from_order( $order );
+		$order  = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
+		$intent = $this->get_intent_from_order( $order );
+		$nonce  = wp_create_nonce( 'wc_stripe_confirm_pi' );
+
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+			update_post_meta( $order->get_id(), '_stripe_pi_verification_nonce', $nonce );
+		} else {
+			$order->update_meta_data( '_stripe_pi_verification_nonce', $nonce );
+			$order->save();
+		}
 
 		$verification_url = add_query_arg(
 			array(
 				'order'            => $order->get_id(),
-				'nonce'            => wp_create_nonce( 'wc_stripe_confirm_pi' ),
+				'nonce'            => $nonce,
 				'redirect_to'      => rawurlencode( $this->get_return_url( $order ) ),
 				'is_pay_for_order' => true,
 			),
@@ -914,11 +922,20 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return $result;
 		}
 
+		$nonce  = wp_create_nonce( 'wc_stripe_confirm_pi' );
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+			update_post_meta( $order_id, '_stripe_pi_verification_nonce', $nonce );
+		} else {
+			$order = wc_get_order( $order_id );
+			$order->update_meta_data( '_stripe_pi_verification_nonce', $nonce );
+			$order->save();
+		}
+
 		// Put the final thank you page redirect into the verification URL.
 		$verification_url = add_query_arg(
 			array(
 				'order'       => $order_id,
-				'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
+				'nonce'       => $nonce,
 				'redirect_to' => rawurlencode( $result['redirect'] ),
 			),
 			WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )

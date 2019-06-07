@@ -54,14 +54,11 @@ class WC_Stripe_Intent_Controller {
 	 * @return WC_Order
 	 */
 	protected function get_order_from_request() {
-		if ( ! isset( $_GET['nonce'] ) || ! wp_verify_nonce( sanitize_key( $_GET['nonce'] ), 'wc_stripe_confirm_pi' ) ) {
-			throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
-		}
-
 		// Load the order ID.
 		$order_id = null;
-		if ( isset( $_GET['order'] ) && absint( $_GET['order'] ) ) {
-			$order_id = absint( $_GET['order'] );
+		if ( isset( $_GET['order'] ) && absint( $_GET['order'] ) ) { // phpcs:ignore WordPress.Security.CSRF.
+			$order_id = absint( $_GET['order'] ); // phpcs:ignore WordPress.Security.CSRF.
+
 		}
 
 		// Retrieve the order.
@@ -69,6 +66,17 @@ class WC_Stripe_Intent_Controller {
 
 		if ( ! $order ) {
 			throw new WC_Stripe_Exception( 'missing-order', __( 'Missing order ID for payment confirmation', 'woocommerce-gateway-stripe' ) );
+		}
+
+		// Nonce verification.
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+			$nonce = get_post_meta( $order_id, '_stripe_pi_verification_nonce', true );
+		} else {
+			$nonce = $order->get_meta( '_stripe_pi_verification_nonce' );
+		}
+
+		if ( ! isset( $_GET['nonce'] ) || sanitize_key( $_GET['nonce'] ) !== $nonce ) { // phpcs:ignore WordPress.Security.CSRF.
+			throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
 		}
 
 		return $order;
@@ -100,6 +108,12 @@ class WC_Stripe_Intent_Controller {
 
 		try {
 			$gateway->verify_intent_after_checkout( $order );
+
+			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+				delete_post_meta( $order->get_id(), '_stripe_pi_verification_nonce' );
+			} else {
+				$order->delete_meta_data( '_stripe_pi_verification_nonce' );
+			}
 
 			if ( ! isset( $_GET['is_ajax'] ) ) {
 				$redirect_url = isset( $_GET['redirect_to'] ) // wpcs: csrf ok.
