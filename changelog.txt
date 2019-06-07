@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 4.2.1 - 2019-xx-xx =
+* Update - Add UGX (Ugandan Shilling) to zero decimal currency list
+
 = 4.2.0 - 2019-05-29 =
 * Update - Enable Payment Request buttons for Puerto Rico based stores.
 * Update - Add support for Strong Customer Authentication (SCA) for user-initiated payments.
