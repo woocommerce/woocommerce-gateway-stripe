@@ -249,6 +249,7 @@ class WC_Stripe_Helper {
 			'rwf', // Rwandan Franc
 			'vuv', // Vanuatu Vatu
 			'xof', // West African Cfa Franc
+			'ugx', // Ugandan shilling
 		);
 	}
 
