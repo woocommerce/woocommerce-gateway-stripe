@@ -138,6 +138,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_available_payment_gateways', array( $this, 'prepare_order_pay_page' ) );
 		add_action( 'woocommerce_account_view-order_endpoint', array( $this, 'check_intent_status_on_order_page' ), 1 );
 		add_filter( 'woocommerce_payment_successful_result', array( $this, 'modify_successful_payment_result' ), 99999, 2 );
+		add_action( 'set_logged_in_cookie', array( $this, 'set_cookie_on_current_request' ) );
 
 		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
 			$this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
@@ -382,7 +383,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function payment_scripts() {
-		if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) ) { // wpcs: csrf ok.
+		if ( ! is_product() && ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) ) { // wpcs: csrf ok.
 			return;
 		}
 
@@ -931,6 +932,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			'result'   => 'success',
 			'redirect' => $redirect,
 		);
+	}
+
+	/**
+	 * Proceed with current request using new login session (to ensure consistent nonce).
+	 */
+	public function set_cookie_on_current_request( $cookie ) {
+		$_COOKIE[ LOGGED_IN_COOKIE ] = $cookie;
 	}
 
 	/**
