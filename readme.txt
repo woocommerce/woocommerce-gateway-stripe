@@ -113,12 +113,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.2.0 - 2019-05-29 =
-* Update - Enable Payment Request buttons for Puerto Rico based stores.
-* Update - Add support for Strong Customer Authentication (SCA) for user-initiated payments.
-* Remove - Stripe Modal Checkout.
-* Remove - 3D Secure settings are no longer available in the gateway settings. Use Stripe Radar instead.
-* Fix - Display error messages only next to the chosen saved card.
+= 4.2.1 - xxxx-xx-xx =
+* Fix - CSRF verification error upon creating account on checkout.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
