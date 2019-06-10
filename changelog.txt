@@ -1,6 +1,7 @@
 *** Changelog ***
 
-= 4.2.1 - xxxx-xx-xx =
+= 4.2.1 - 2019-xx-xx =
+* Update - Add UGX (Ugandan Shilling) to zero decimal currency list.
 * Fix - CSRF verification error upon creating account on checkout.
 
 = 4.2.0 - 2019-05-29 =
