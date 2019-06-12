@@ -114,6 +114,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 4.2.1 - xxxx-xx-xx =
+* Update - Add UGX (Ugandan Shilling) to zero decimal currency list.
 * Fix - CSRF verification error upon creating account on checkout.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
