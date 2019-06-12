@@ -949,11 +949,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param WC_Order $order The order which is in a transitional state.
 	 */
 	public function verify_intent_after_checkout( $order ) {
-		if ( 'pending' !== $order->get_status() && 'failed' !== $order->get_status() ) {
-			// If payment has already been completed, this function is redundant.
-			return;
-		}
-
 		$payment_method = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->payment_method : $order->get_payment_method();
 		if ( $payment_method !== $this->id ) {
 			// If this is not the payment method, an intent would not be available.
@@ -963,6 +958,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$intent = $this->get_intent_from_order( $order );
 		if ( ! $intent ) {
 			// No intent, redirect to the order received page for further actions.
+			return;
+		}
+
+		// A webhook might have modified or locked the order while the intent was retreived. This ensures we are reading the right status.
+		clean_post_cache( $order->get_id() );
+		$order = wc_get_order( $order->get_id() );
+
+		if ( 'pending' !== $order->get_status() && 'failed' !== $order->get_status() ) {
+			// If payment has already been completed, this function is redundant.
 			return;
 		}
 
