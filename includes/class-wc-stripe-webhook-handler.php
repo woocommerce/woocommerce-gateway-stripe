@@ -295,12 +295,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_stripe_charge_captured', 'yes' ) : $order->update_meta_data( '_stripe_charge_captured', 'yes' );
 
 				// Store other data such as fees
-				if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-					update_post_meta( $order_id, '_transaction_id', $notification->data->object->id );
-				} else {
-					$order->set_transaction_id( $notification->data->object->id );
-					$order->save();
-				}
+				WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_transaction_id', $notification->data->object->id ) : $order->set_transaction_id( $notification->data->object->id );
 
 				if ( isset( $notification->data->object->balance_transaction ) ) {
 					$this->update_fees( $order, $notification->data->object->balance_transaction );
