@@ -114,6 +114,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 4.2.1 - 2019-06-17 =
+* Update - Add UGX (Ugandan Shilling) to zero decimal currency list.
 * Fix - CSRF verification error upon creating account on checkout.
 * Fix - Duplicate emails and order notes after successful transactions.
 
