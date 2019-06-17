@@ -299,6 +299,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					// Store other data such as fees
 					WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_transaction_id', $result->id ) : $order->set_transaction_id( $result->id );
 
+					if ( is_callable( array( $order, 'save' ) ) ) {
+						$order->save();
+					}
+
 					$this->update_fees( $order, $result->balance_transaction->id );
 				}
 

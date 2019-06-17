@@ -1021,13 +1021,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Create a new PaymentIntent and attempt to confirm it.
+	 * Create a new PaymentIntent.
 	 *
 	 * @param WC_Order $order           The order that is being paid for.
 	 * @param object   $prepared_source The source that is used for the payment.
-	 * @return object                   An intent (that is either successful or requires an action) or an error.
+	 * @return object                   An intent or an error.
 	 */
-	public function create_and_confirm_intent( $order, $prepared_source ) {
+	public function create_intent( $order, $prepared_source ) {
 		// The request for a charge contains metadata for the intent.
 		$full_request = $this->generate_payment_request( $order, $prepared_source );
 
@@ -1057,27 +1057,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 		WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id initiated for order $order_id" );
 
-		// Try to confirm the intent & capture the charge (if 3DS is not required).
-		$confirm_request  = array(
-			'source' => $request['source'],
-		);
-		$confirmed_intent = WC_Stripe_API::request( $confirm_request, "payment_intents/$intent->id/confirm" );
-
-		if ( ! empty( $confirmed_intent->error ) ) {
-			return $confirmed_intent;
-		}
-
 		// Save the intent ID to the order.
-		$this->save_intent_to_order( $order, $confirmed_intent );
+		$this->save_intent_to_order( $order, $intent );
 
-		// Save a note about the status of the intent.
-		if ( 'succeeded' === $confirmed_intent->status ) {
-			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
-		} elseif ( 'requires_action' === $confirmed_intent->status ) {
-			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id requires authentication for order $order_id" );
-		}
-
-		return $confirmed_intent;
+		return $intent;
 	}
 
 	/**
@@ -1108,13 +1091,43 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return $intent;
 		}
 
-		$updated_intent = WC_Stripe_API::request( $request, "payment_intents/$intent->id" );
+		return WC_Stripe_API::request( $request, "payment_intents/$intent->id" );
+	}
 
-		if ( 'requires_confirmation' === $updated_intent->status ) {
-			return WC_Stripe_API::request( array(), "payment_intents/$intent->id/confirm" );
-		} else {
-			return $updated_intent;
+	/**
+	 * Confirms an intent if it is the `requires_confirmation` state.
+	 *
+	 * @since 4.2.1
+	 * @param object   $intent          The intent to confirm.
+	 * @param WC_Order $order           The order that the intent is associated with.
+	 * @param object   $prepared_source The source that is being charged.
+	 * @return object                   Either an error or the updated intent.
+	 */
+	public function confirm_intent( $intent, $order, $prepared_source ) {
+		if ( 'requires_confirmation' !== $intent->status ) {
+			return $intent;
 		}
+
+		// Try to confirm the intent & capture the charge (if 3DS is not required).
+		$confirm_request = array(
+			'source' => $prepared_source->source,
+		);
+
+		$confirmed_intent = WC_Stripe_API::request( $confirm_request, "payment_intents/$intent->id/confirm" );
+
+		if ( ! empty( $confirmed_intent->error ) ) {
+			return $confirmed_intent;
+		}
+
+		// Save a note about the status of the intent.
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+		if ( 'succeeded' === $confirmed_intent->status ) {
+			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
+		} elseif ( 'requires_action' === $confirmed_intent->status ) {
+			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id requires authentication for order $order_id" );
+		}
+
+		return $confirmed_intent;
 	}
 
 	/**

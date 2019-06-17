@@ -614,19 +614,25 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			if ( $intent ) {
 				$intent = $this->update_existing_intent( $intent, $order, $prepared_source );
 			} else {
-				$intent   = $this->create_and_confirm_intent( $order, $prepared_source );
-				$response = $intent;
+				$intent = $this->create_intent( $order, $prepared_source );
 			}
 
-			if ( ! empty( $response->error ) ) {
-				$this->maybe_remove_non_existent_customer( $response->error, $order );
+			// Confirm the intent after locking the order to make sure webhooks will not interfere.
+			if ( empty( $intent->error ) ) {
+				$this->lock_order_payment( $order, $intent );
+				$intent = $this->confirm_intent( $intent, $order, $prepared_source );
+			}
+
+			if ( ! empty( $intent->error ) ) {
+				$this->maybe_remove_non_existent_customer( $intent->error, $order );
 
 				// We want to retry.
-				if ( $this->is_retryable_error( $response->error ) ) {
-					return $this->retry_after_error( $response, $order, $retry, $force_save_source, $previous_error );
+				if ( $this->is_retryable_error( $intent->error ) ) {
+					return $this->retry_after_error( $intent, $order, $retry, $force_save_source, $previous_error );
 				}
 
-				$this->throw_localized_message( $response, $order );
+				$this->unlock_order_payment( $order );
+				$this->throw_localized_message( $intent, $order );
 			}
 
 			if ( ! empty( $intent ) ) {
@@ -635,6 +641,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 				// If the intent requires a 3DS flow, redirect to it.
 				if ( 'requires_action' === $intent->status ) {
+					$this->unlock_order_payment( $order );
+
 					if ( is_wc_endpoint_url( 'order-pay' ) ) {
 						$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
 
@@ -650,9 +658,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 						 */
 
 						return array(
-							'result'           => 'success',
-							'redirect'         => $this->get_return_url( $order ),
-							'intent_secret'    => $intent->client_secret,
+							'result'        => 'success',
+							'redirect'      => $this->get_return_url( $order ),
+							'intent_secret' => $intent->client_secret,
 						);
 					}
 				}
@@ -663,6 +671,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			// Remove cart.
 			WC()->cart->empty_cart();
+
+			// Unlock the order.
+			$this->unlock_order_payment( $order );
 
 			// Return thank you page redirect.
 			return array(
@@ -949,11 +960,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param WC_Order $order The order which is in a transitional state.
 	 */
 	public function verify_intent_after_checkout( $order ) {
-		if ( 'pending' !== $order->get_status() && 'failed' !== $order->get_status() ) {
-			// If payment has already been completed, this function is redundant.
-			return;
-		}
-
 		$payment_method = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->payment_method : $order->get_payment_method();
 		if ( $payment_method !== $this->id ) {
 			// If this is not the payment method, an intent would not be available.
@@ -963,6 +969,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$intent = $this->get_intent_from_order( $order );
 		if ( ! $intent ) {
 			// No intent, redirect to the order received page for further actions.
+			return;
+		}
+
+		// A webhook might have modified or locked the order while the intent was retreived. This ensures we are reading the right status.
+		clean_post_cache( $order->get_id() );
+		$order = wc_get_order( $order->get_id() );
+
+		if ( 'pending' !== $order->get_status() && 'failed' !== $order->get_status() ) {
+			// If payment has already been completed, this function is redundant.
 			return;
 		}
 
