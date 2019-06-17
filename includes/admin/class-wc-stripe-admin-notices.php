@@ -66,7 +66,7 @@ class WC_Stripe_Admin_Notices {
 			}
 
 			echo '<p>';
-			echo wp_kses( $notice['message'], array( 'a' => array( 'href' => array() ) ) );
+			echo wp_kses( $notice['message'], array( 'a' => array( 'href' => array(), 'target' => array() ) ) );
 			echo '</p></div>';
 		}
 	}
@@ -119,7 +119,7 @@ class WC_Stripe_Admin_Notices {
 				$url = 'https://stripe.com/docs/payments/3d-secure#three-ds-radar';
 
 				/* translators: 1) A URL that explains Stripe Radar. */
-				$message = __( 'WooCommerce Stripe - We see that you had the "Require 3D secure when applicable" setting turned on. This setting is not available here anymore, because it is now replaced by Stripe Radar. You can learn more about it <a href="%s">here</a>.', 'woocommerce-gateway-stripe' );
+				$message = __( 'WooCommerce Stripe - We see that you had the "Require 3D secure when applicable" setting turned on. This setting is not available here anymore, because it is now replaced by Stripe Radar. You can learn more about it <a href="%s" target="_blank">here</a>.', 'woocommerce-gateway-stripe' );
 
 				$this->add_admin_notice( '3ds', 'notice notice-warning', sprintf( $message, $url ), true );
 			}
