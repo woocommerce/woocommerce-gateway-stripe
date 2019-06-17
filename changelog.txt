@@ -1,8 +1,9 @@
 *** Changelog ***
 
-= 4.2.1 - 2019-xx-xx =
+= 4.2.1 - 2019-06-17 =
 * Update - Add UGX (Ugandan Shilling) to zero decimal currency list.
 * Fix - CSRF verification error upon creating account on checkout.
+* Fix - Duplicate emails and order notes after successful transactions.
 
 = 4.2.0 - 2019-05-29 =
 * Update - Enable Payment Request buttons for Puerto Rico based stores.

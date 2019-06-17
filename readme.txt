@@ -113,8 +113,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.2.1 - xxxx-xx-xx =
+= 4.2.1 - 2019-06-17 =
 * Fix - CSRF verification error upon creating account on checkout.
+* Fix - Duplicate emails and order notes after successful transactions.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
