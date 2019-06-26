@@ -326,7 +326,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$captured = WC_Stripe_Helper::is_wc_lt( '3.0' )
 				? get_post_meta( $order_id, '_stripe_charge_captured', true )
 				: $order->get_meta( '_stripe_charge_captured', true );
-			if ( ! $captured ) {
+			if ( 'no' === $captured ) {
 				$this->process_refund( $order_id );
 			}
 
