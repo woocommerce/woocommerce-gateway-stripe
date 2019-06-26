@@ -114,7 +114,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 4.2.2 - 2019-06-26 =
-* Fix - Changing an order status to "Cancelled" will no longer refund the payment.
+* Fix - Changing an order status to "Cancelled" or "Refunded" will no longer refund the payment, will only void the payment if it was just authorized.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
