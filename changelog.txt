@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 4.2.2 - 2019-06-26 =
+* Fix - Changing an order status to "Cancelled" will no longer refund the payment.
+
 = 4.2.1 - 2019-06-17 =
 * Update - Add UGX (Ugandan Shilling) to zero decimal currency list.
 * Fix - CSRF verification error upon creating account on checkout.
