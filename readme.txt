@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 5.2.1
 Requires PHP: 5.6
-Stable tag: 4.2.1
+Stable tag: 4.2.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -113,14 +113,12 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.2.1 - 2019-06-17 =
-* Update - Add UGX (Ugandan Shilling) to zero decimal currency list.
-* Fix - CSRF verification error upon creating account on checkout.
-* Fix - Duplicate emails and order notes after successful transactions.
+= 4.2.2 - 2019-06-26 =
+* Fix - Changing an order status to "Cancelled" or "Refunded" will no longer refund the payment, will only void the payment if it was just authorized.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
 == Upgrade Notice ==
 
-= 4.1 =
-4.1 is a minor release. Please do a full site backup and test on a staging site before deploying to a live/production server.
+= 4.2 =
+4.2 is a minor release. Please do a full site backup and test on a staging site before deploying to a live/production server.

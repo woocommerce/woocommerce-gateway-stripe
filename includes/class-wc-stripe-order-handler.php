@@ -316,14 +316,19 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * Cancel pre-auth on refund/cancellation.
 	 *
 	 * @since 3.1.0
-	 * @version 4.0.0
+	 * @version 4.2.2
 	 * @param  int $order_id
 	 */
 	public function cancel_payment( $order_id ) {
 		$order = wc_get_order( $order_id );
 
 		if ( 'stripe' === ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->payment_method : $order->get_payment_method() ) ) {
-			$this->process_refund( $order_id );
+			$captured = WC_Stripe_Helper::is_wc_lt( '3.0' )
+				? get_post_meta( $order_id, '_stripe_charge_captured', true )
+				: $order->get_meta( '_stripe_charge_captured', true );
+			if ( 'no' === $captured ) {
+				$this->process_refund( $order_id );
+			}
 
 			// This hook fires when admin manually changes order status to cancel.
 			do_action( 'woocommerce_stripe_process_manual_cancel', $order );
