@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 4.x.x - 2019-xx-xx =
+* Fix - Ignore "payment failed" webhooks if they come after another payment has already succeeded for that order.
+
 = 4.2.2 - 2019-06-26 =
 * Fix - Changing an order status to "Cancelled" or "Refunded" will no longer refund the payment, will only void the payment if it was just authorized.
 
