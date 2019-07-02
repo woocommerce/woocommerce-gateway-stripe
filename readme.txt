@@ -113,8 +113,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.2.2 - 2019-06-26 =
-* Fix - Changing an order status to "Cancelled" or "Refunded" will no longer refund the payment, will only void the payment if it was just authorized.
+= 4.x.x - 2019-xx-xx =
+* Fix - Ignore "payment failed" webhooks if they come after another payment has already succeeded for that order.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
