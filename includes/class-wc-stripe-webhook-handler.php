@@ -610,16 +610,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		if ( 'pending' !== $order->get_status() && 'failed' !== $order->get_status() ) {
+			return;
+		}
+
 		if ( $this->lock_order_payment( $order, $intent ) ) {
 			return;
 		}
 
 		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 		if ( 'payment_intent.succeeded' === $notification->type || 'payment_intent.amount_capturable_updated' === $notification->type ) {
-			if ( 'pending' !== $order->get_status() && 'failed' !== $order->get_status() ) {
-				return;
-			}
-
 			$charge = end( $intent->charges->data );
 			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
 
