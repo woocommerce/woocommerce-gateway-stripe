@@ -24,19 +24,25 @@ jQuery( function( $ ) {
 			$( document.body ).on( 'change', '#woocommerce_stripe_testmode', function() {
 				var test_secret_key = $( '#woocommerce_stripe_test_secret_key' ).parents( 'tr' ).eq( 0 ),
 					test_publishable_key = $( '#woocommerce_stripe_test_publishable_key' ).parents( 'tr' ).eq( 0 ),
+					test_webhook_secret = $( '#woocommerce_stripe_test_webhook_secret' ).parents( 'tr' ).eq( 0 ),
 					live_secret_key = $( '#woocommerce_stripe_secret_key' ).parents( 'tr' ).eq( 0 ),
-					live_publishable_key = $( '#woocommerce_stripe_publishable_key' ).parents( 'tr' ).eq( 0 );
+					live_publishable_key = $( '#woocommerce_stripe_publishable_key' ).parents( 'tr' ).eq( 0 ),
+					live_webhook_secret = $( '#woocommerce_stripe_webhook_secret' ).parents( 'tr' ).eq( 0 );
 
 				if ( $( this ).is( ':checked' ) ) {
 					test_secret_key.show();
 					test_publishable_key.show();
+					test_webhook_secret.show();
 					live_secret_key.hide();
 					live_publishable_key.hide();
+					live_webhook_secret.hide();
 				} else {
 					test_secret_key.hide();
 					test_publishable_key.hide();
+					test_webhook_secret.hide();
 					live_secret_key.show();
 					live_publishable_key.show();
+					live_webhook_secret.show();
 				}
 			} );
 

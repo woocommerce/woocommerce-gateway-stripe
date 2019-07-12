@@ -55,6 +55,13 @@ return apply_filters(
 			'default'     => '',
 			'desc_tip'    => true,
 		),
+		'test_webhook_secret'           => array(
+			'title'       => __( 'Test Webhook Secret', 'woocommerce-gateway-stripe' ),
+			'type'        => 'password',
+			'description' => __( 'Get your webhook signing secret from the webhooks section in your stripe account.', 'woocommerce-gateway-stripe' ),
+			'default'     => '',
+			'desc_tip'    => true,
+		),
 		'publishable_key'               => array(
 			'title'       => __( 'Live Publishable Key', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
@@ -66,6 +73,13 @@ return apply_filters(
 			'title'       => __( 'Live Secret Key', 'woocommerce-gateway-stripe' ),
 			'type'        => 'password',
 			'description' => __( 'Get your API keys from your stripe account.', 'woocommerce-gateway-stripe' ),
+			'default'     => '',
+			'desc_tip'    => true,
+		),
+		'webhook_secret'               => array(
+			'title'       => __( 'Webhook Secret', 'woocommerce-gateway-stripe' ),
+			'type'        => 'password',
+			'description' => __( 'Get your webhook signing secret from the webhooks section in your stripe account.', 'woocommerce-gateway-stripe' ),
 			'default'     => '',
 			'desc_tip'    => true,
 		),
