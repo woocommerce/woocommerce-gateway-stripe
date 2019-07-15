@@ -115,6 +115,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 4.x.x - 2019-xx-xx =
 * Fix - Ignore "payment failed" webhooks if they come after another payment has already succeeded for that order.
+* Fix - Fix successful retries of 3ds failing
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
