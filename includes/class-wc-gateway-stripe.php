@@ -985,7 +985,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( 'succeeded' === $intent->status ) {
+		if ( 'succeeded' === $intent->status || 'requires_capture' === $intent->status ) {
 			// Proceed with the payment completion.
 			$this->process_response( end( $intent->charges->data ), $order );
 		} else if ( 'requires_payment_method' === $intent->status ) {
