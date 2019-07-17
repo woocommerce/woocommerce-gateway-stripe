@@ -503,10 +503,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_review_opened( $notification ) {
-		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
+		$order = WC_Stripe_Helper::get_order_by_intent_id( $notification->data->object->payment_intent );
 
 		if ( ! $order ) {
-			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->charge );
+			WC_Stripe_Logger::log( '[Review Opened] Could not find order via intent ID: ' . $notification->data->object->payment_intent );
 			return;
 		}
 
@@ -527,10 +527,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_review_closed( $notification ) {
-		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
+		$order = WC_Stripe_Helper::get_order_by_intent_id( $notification->data->object->payment_intent );
 
 		if ( ! $order ) {
-			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->charge );
+			WC_Stripe_Logger::log( '[Review Closed] Could not find order via intent ID: ' . $notification->data->object->payment_intent );
 			return;
 		}
 
