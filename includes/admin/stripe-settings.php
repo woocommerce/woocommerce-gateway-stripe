@@ -43,7 +43,7 @@ return apply_filters(
 		),
 		'test_publishable_key'          => array(
 			'title'       => __( 'Test Publishable Key', 'woocommerce-gateway-stripe' ),
-			'type'        => 'password',
+			'type'        => 'text',
 			'description' => __( 'Get your API keys from your stripe account.', 'woocommerce-gateway-stripe' ),
 			'default'     => '',
 			'desc_tip'    => true,
@@ -57,7 +57,7 @@ return apply_filters(
 		),
 		'publishable_key'               => array(
 			'title'       => __( 'Live Publishable Key', 'woocommerce-gateway-stripe' ),
-			'type'        => 'password',
+			'type'        => 'text',
 			'description' => __( 'Get your API keys from your stripe account.', 'woocommerce-gateway-stripe' ),
 			'default'     => '',
 			'desc_tip'    => true,
