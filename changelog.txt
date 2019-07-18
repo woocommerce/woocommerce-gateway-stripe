@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 4.x.x - 2019-x-x =
+* Fix - Add payment request button compatibility with variable subscriptions
+
 = 4.2.3 - 2019-07-18 =
 * Fix - Ignore "payment failed" webhooks if they come after another payment has already succeeded for that order.
 * Fix - Correctly transition an order to "On Hold" if the payment was put under review by Stripe Radar, and back to "Processing" when the review is approved.

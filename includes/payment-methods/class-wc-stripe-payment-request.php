@@ -405,6 +405,8 @@ class WC_Stripe_Payment_Request {
 				'variable',
 				'variation',
 				'subscription',
+				'variable-subscription',
+				'subscription_variation',
 				'booking',
 				'bundle',
 				'composite',
