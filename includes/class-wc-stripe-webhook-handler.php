@@ -536,11 +536,20 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_review_opened( $notification ) {
-		$order = WC_Stripe_Helper::get_order_by_intent_id( $notification->data->object->payment_intent );
+		if ( isset( $notification->data->object->payment_intent ) ) {
+			$order = WC_Stripe_Helper::get_order_by_intent_id( $notification->data->object->payment_intent );
 
-		if ( ! $order ) {
-			WC_Stripe_Logger::log( '[Review Opened] Could not find order via intent ID: ' . $notification->data->object->payment_intent );
-			return;
+			if ( ! $order ) {
+				WC_Stripe_Logger::log( '[Review Opened] Could not find order via intent ID: ' . $notification->data->object->payment_intent );
+				return;
+			}
+		} else {
+			$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
+
+			if ( ! $order ) {
+				WC_Stripe_Logger::log( '[Review Opened] Could not find order via charge ID: ' . $notification->data->object->charge );
+				return;
+			}
 		}
 
 		/* translators: 1) The URL to the order. 2) The reason type. */
@@ -560,11 +569,20 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_review_closed( $notification ) {
-		$order = WC_Stripe_Helper::get_order_by_intent_id( $notification->data->object->payment_intent );
+		if ( isset( $notification->data->object->payment_intent ) ) {
+			$order = WC_Stripe_Helper::get_order_by_intent_id( $notification->data->object->payment_intent );
 
-		if ( ! $order ) {
-			WC_Stripe_Logger::log( '[Review Closed] Could not find order via intent ID: ' . $notification->data->object->payment_intent );
-			return;
+			if ( ! $order ) {
+				WC_Stripe_Logger::log( '[Review Closed] Could not find order via intent ID: ' . $notification->data->object->payment_intent );
+				return;
+			}
+		} else {
+			$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
+
+			if ( ! $order ) {
+				WC_Stripe_Logger::log( '[Review Closed] Could not find order via charge ID: ' . $notification->data->object->charge );
+				return;
+			}
 		}
 
 		/* translators: 1) The reason type. */
