@@ -115,6 +115,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 4.x.x - 2019-x-x =
 * Fix - Add payment request button compatibility with variable subscriptions
+* Tweak - Do not show payment request button for shippable trial subscription products
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
