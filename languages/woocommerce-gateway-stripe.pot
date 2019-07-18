@@ -2,7 +2,7 @@
 # This file is distributed under the same license as the WooCommerce Stripe Gateway package.
 msgid ""
 msgstr ""
-"Project-Id-Version: WooCommerce Stripe Gateway 4.2.2\n"
+"Project-Id-Version: WooCommerce Stripe Gateway 4.2.3\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
 "POT-Creation-Date: 2019-07-12 15:21:21+00:00\n"
