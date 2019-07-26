@@ -466,6 +466,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$stripe_params['is_pay_for_order_page']     = is_wc_endpoint_url( 'order-pay' ) ? 'yes' : 'no';
 		$stripe_params['elements_styling']          = apply_filters( 'wc_stripe_elements_styling', false );
 		$stripe_params['elements_classes']          = apply_filters( 'wc_stripe_elements_classes', false );
+		$stripe_params['locale']                    = apply_filters( 'wc_stripe_locale', substr( get_locale(), 0, 2 ) );
 
 		// Merge localized messages to be use in JS.
 		$stripe_params = array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );

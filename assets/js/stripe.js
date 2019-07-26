@@ -5,7 +5,7 @@ jQuery( function( $ ) {
 
 	try {
 		var stripe = Stripe( wc_stripe_params.key, {
-			betas: [ 'payment_intent_beta_3' ],
+			locale: wc_stripe_params.locale,
 		} );
 	} catch( error ) {
 		console.log( error );
