@@ -1,4 +1,15 @@
-.wc-stripe-elements-field, .wc-stripe-iban-element-field { border:1px solid #ddd; margin:5px 0; padding:5px; background-color:#fff; outline:0; }
+.wc-stripe-elements-field, .wc-stripe-iban-element-field {
+    border: 1px solid #ddd;
+    margin: 5px 0;
+    padding: 5px;
+    outline: 0;
+    min-height: 30px;
+
+    &.StripeElement {
+        background-color: #fff;
+    }
+}
+
 #payment .methods li.woocommerce-SavedPaymentMethods-token label { display: inline; }
 #payment .methods li.woocommerce-SavedPaymentMethods-new label { display: inline; }
 
