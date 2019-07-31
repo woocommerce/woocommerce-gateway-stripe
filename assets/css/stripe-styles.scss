@@ -3,7 +3,10 @@
 #payment .methods li.woocommerce-SavedPaymentMethods-new label { display: inline; }
 
 .woocommerce-checkout #payment ul.payment_methods li img.stripe-icon,
-#add_payment_method #payment ul.payment_methods li img.stripe-icon { max-width: 40px; padding-left: 3px; margin: 0; }
+#add_payment_method #payment ul.payment_methods li img.stripe-icon { max-width: 38px; padding-left: 3px; padding-bottom: 1px; margin: 0; border-radius: 0; }
+
+.woocommerce-checkout #payment ul.payment_methods li .payment_method_stripe,
+#add_payment_method #payment ul.payment_methods li .payment_method_stripe { clear: both; }
 
 .woocommerce-checkout #payment ul.payment_methods li img.stripe-bancontact-icon,
 #add_payment_method #payment ul.payment_methods li img.stripe-bancontact-icon { max-height: 65px; max-width: 45px; }
