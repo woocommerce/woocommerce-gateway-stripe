@@ -644,14 +644,14 @@ jQuery( function( $ ) {
 				}
 			}
 
-			/* Notify users that the email is invalid */
+			// Notify users that the email is invalid.
 			if ( 'email_invalid' === result.error.code ) {
 				message = wc_stripe_params.email_invalid;
 			} else if (
 				/*
-				* Customers do not need to know the specifics of the below type of errors
-				* therefore return a generic localizable error message.
-				*/
+				 * Customers do not need to know the specifics of the below type of errors
+				 * therefore return a generic localizable error message.
+				 */
 				'invalid_request_error' === result.error.type ||
 				'api_connection_error'  === result.error.type ||
 				'api_error'             === result.error.type ||
