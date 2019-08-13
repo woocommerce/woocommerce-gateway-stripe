@@ -124,19 +124,9 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		try {
 			$subscription    = wc_get_order( $order_id );
 			$prepared_source = $this->prepare_source( get_current_user_id(), true );
-			$source_object   = $prepared_source->source_object;
 
-			// Check if we don't allow prepaid credit cards.
-			if ( ! apply_filters( 'wc_stripe_allow_prepaid_card', true ) && $this->is_prepaid_card( $source_object ) ) {
-				$localized_message = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charge. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
-				throw new WC_Stripe_Exception( print_r( $source_object, true ), $localized_message );
-			}
-
-			if ( empty( $prepared_source->source ) ) {
-				$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
-				throw new WC_Stripe_Exception( print_r( $prepared_source, true ), $localized_message );
-			}
-
+			$this->maybe_disallow_prepaid_card( $prepared_source );
+			$this->check_source( $prepared_source );
 			$this->save_source_to_order( $subscription, $prepared_source );
 
 			do_action( 'wc_stripe_change_subs_payment_method_success', $prepared_source->source, $prepared_source );

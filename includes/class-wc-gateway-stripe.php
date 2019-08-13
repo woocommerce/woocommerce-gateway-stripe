@@ -248,29 +248,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( is_add_payment_method_page() ) {
-			$pay_button_text = __( 'Add Card', 'woocommerce-gateway-stripe' );
-			$total           = '';
 			$firstname       = $user->user_firstname;
 			$lastname        = $user->user_lastname;
-
-		} elseif ( function_exists( 'wcs_order_contains_subscription' ) && isset( $_GET['change_payment_method'] ) ) { // wpcs: csrf ok.
-			$pay_button_text = __( 'Change Payment Method', 'woocommerce-gateway-stripe' );
-			$total           = '';
-		} else {
-			$pay_button_text = '';
 		}
 
 		ob_start();
 
 		echo '<div
 			id="stripe-payment-data"
-			data-panel-label="' . esc_attr( $pay_button_text ) . '"
 			data-email="' . esc_attr( $user_email ) . '"
-			data-amount="' . esc_attr( WC_Stripe_Helper::get_stripe_amount( $total ) ) . '"
-			data-name="' . esc_attr( $this->statement_descriptor ) . '"
 			data-full-name="' . esc_attr( $firstname . ' ' . $lastname ) . '"
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '"
-			data-allow-remember-me="' . esc_attr( apply_filters( 'wc_stripe_allow_remember_me', true ) ? 'true' : 'false' ) . '"
 		>';
 
 		if ( $this->testmode ) {
