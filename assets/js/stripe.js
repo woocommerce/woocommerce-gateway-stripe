@@ -717,30 +717,42 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Handles changes in the hash in order to show a modal for PaymentIntent confirmations.
+		 * Handles changes in the hash in order to show a modal for PaymentIntent/SetupIntent confirmations.
 		 *
 		 * Listens for `hashchange` events and checks for a hash in the following format:
 		 * #confirm-pi-<intentClientSecret>:<successRedirectURL>
 		 *
 		 * If such a hash appears, the partials will be used to call `stripe.handleCardPayment`
-		 * in order to allow customers to confirm an 3DS/SCA authorization.
+		 * in order to allow customers to confirm an 3DS/SCA authorization, or stripe.handleCardSetup if
+		 * what needs to be confirmed is a SetupIntent.
 		 *
 		 * Those redirects/hashes are generated in `WC_Gateway_Stripe::process_payment`.
 		 */
 		onHashChange: function() {
-			var partials = window.location.hash.match( /^#?confirm-pi-([^:]+):(.+)$/ );
+			var partials = window.location.hash.match( /^#?confirm-(pi|si)-([^:]+):(.+)$/ );
 
-			if ( ! partials || 3 > partials.length ) {
+			if ( ! partials || 4 > partials.length ) {
 				return;
 			}
 
-			var intentClientSecret = partials[1];
-			var redirectURL        = decodeURIComponent( partials[2] );
+			var type               = partials[1];
+			var intentClientSecret = partials[2];
+			var redirectURL        = decodeURIComponent( partials[3] );
 
 			// Cleanup the URL
 			window.location.hash = '';
 
-			wc_stripe_form.openIntentModal( intentClientSecret, redirectURL );
+			switch ( type ) {
+				case 'pi': // Payment Intent
+					wc_stripe_form.openIntentModal( intentClientSecret, redirectURL );
+					break;
+				case 'si': // Setup Intent
+					stripe.handleCardSetup( intentClientSecret )
+						.then( function() {
+							window.location = redirectURL;
+						} );
+					break;
+			}
 		},
 
 		maybeConfirmIntent: function() {

@@ -554,20 +554,38 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Completes an order without a positive value.
 	 *
 	 * @since 4.2.0
-	 * @param WC_Order $order The order to complete.
-	 * @return array          Redirection data for `process_payment`.
+	 * @param WC_Order $order             The order to complete.
+	 * @param WC_Order $prepared_source   Payment source and customer data.
+	 * @param boolean  $force_save_source Whether the payment source must be saved, like when dealing with a Subscription setup.
+	 * @return array                      Redirection data for `process_payment`.
 	 */
-	public function complete_free_order( $order ) {
+	public function complete_free_order( $order, $prepared_source, $force_save_source ) {
 		$order->payment_complete();
 
 		// Remove cart.
 		WC()->cart->empty_cart();
 
-		// Return thank you page redirect.
-		return array(
+		$response = array(
 			'result'   => 'success',
 			'redirect' => $this->get_return_url( $order ),
 		);
+
+		if ( $force_save_source ) {
+			$setup_intent = WC_Stripe_API::request( array(
+				'payment_method' => $prepared_source->source,
+				'customer'       => $prepared_source->customer,
+				'confirm'        => 'true',
+			), 'setup_intents' );
+
+			if ( is_wp_error( $setup_intent ) ) {
+				WC_Stripe_Logger::log( "Unable to create SetupIntent for Order #$order->get_id(): " . print_r( $setup_intent, true ) );
+			} elseif ( 'requires_action' === $setup_intent->status ) {
+				$response['setup_intent_secret'] = $setup_intent->client_secret;
+			}
+		}
+
+		// Return thank you page redirect.
+		return $response;
 	}
 
 	/**
@@ -602,7 +620,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$this->save_source_to_order( $order, $prepared_source );
 
 			if ( 0 >= $order->get_total() ) {
-				return $this->complete_free_order( $order );
+				return $this->complete_free_order( $order, $prepared_source, $force_save_source );
 			}
 
 			// This will throw exception if not valid.
@@ -921,28 +939,35 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return array
 	 */
 	public function modify_successful_payment_result( $result, $order_id ) {
-		// Only redirects with intents need to be modified.
-		if ( ! isset( $result['intent_secret'] ) ) {
-			return $result;
+		if ( isset( $result['intent_secret'] ) ) {
+			// Put the final thank you page redirect into the verification URL.
+			$verification_url = add_query_arg(
+				array(
+					'order'       => $order_id,
+					'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
+					'redirect_to' => rawurlencode( $result['redirect'] ),
+				),
+				WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
+			);
+
+			// Combine into a hash.
+			$redirect = sprintf( '#confirm-pi-%s:%s', $result['intent_secret'], rawurlencode( $verification_url ) );
+
+			return array(
+				'result'   => 'success',
+				'redirect' => $redirect,
+			);
+		} elseif ( isset( $result['setup_intent_secret'] ) ) {
+			$redirect = sprintf( '#confirm-si-%s:%s', $result['setup_intent_secret'], rawurlencode( $result['redirect'] ) );
+
+			return array(
+				'result'   => 'success',
+				'redirect' => $redirect,
+			);
 		}
 
-		// Put the final thank you page redirect into the verification URL.
-		$verification_url = add_query_arg(
-			array(
-				'order'       => $order_id,
-				'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
-				'redirect_to' => rawurlencode( $result['redirect'] ),
-			),
-			WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
-		);
-
-		// Combine into a hash.
-		$redirect = sprintf( '#confirm-pi-%s:%s', $result['intent_secret'], rawurlencode( $verification_url ) );
-
-		return array(
-			'result'   => 'success',
-			'redirect' => $redirect,
-		);
+		// Only redirects with intents need to be modified.
+		return $result;
 	}
 
 	/**
