@@ -464,21 +464,12 @@ jQuery( function( $ ) {
 				delete owner.name;
 			}
 
-			if ( $( '#billing_address_1' ).length > 0 ) {
-				owner.address.line1       = $( '#billing_address_1' ).val();
-				owner.address.line2       = $( '#billing_address_2' ).val();
-				owner.address.state       = $( '#billing_state' ).val();
-				owner.address.city        = $( '#billing_city' ).val();
-				owner.address.postal_code = $( '#billing_postcode' ).val();
-				owner.address.country     = $( '#billing_country' ).val();
-			} else if ( wc_stripe_params.billing_address_1 ) {
-				owner.address.line1       = wc_stripe_params.billing_address_1;
-				owner.address.line2       = wc_stripe_params.billing_address_2;
-				owner.address.state       = wc_stripe_params.billing_state;
-				owner.address.city        = wc_stripe_params.billing_city;
-				owner.address.postal_code = wc_stripe_params.billing_postcode;
-				owner.address.country     = wc_stripe_params.billing_country;
-			}
+			owner.address.line1       = $( '#billing_address_1' ).val() || wc_stripe_params.billing_address_1;
+			owner.address.line2       = $( '#billing_address_2' ).val() || wc_stripe_params.billing_address_2;
+			owner.address.state       = $( '#billing_state' ).val()     || wc_stripe_params.billing_state;
+			owner.address.city        = $( '#billing_city' ).val()      || wc_stripe_params.billing_city;
+			owner.address.postal_code = $( '#billing_postcode' ).val()  || wc_stripe_params.billing_postcode;
+			owner.address.country     = $( '#billing_country' ).val()   || wc_stripe_params.billing_country;
 
 			return {
 				owner: owner,
