@@ -25,6 +25,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	public $testmode;
 
 	/**
+	 * The secret to use when verifying webhooks.
+	 *
+	 * @var string
+	 */
+	protected $secret;
+
+	/**
 	 * Constructor.
 	 *
 	 * @since 4.0.0
@@ -34,6 +41,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$this->retry_interval = 2;
 		$stripe_settings      = get_option( 'woocommerce_stripe_settings', array() );
 		$this->testmode       = ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
+		$secret_key           = ( $this->testmode ? 'test_' : '' ) . 'webhook_secret';
+		$this->secret         = ! empty( $stripe_settings[ $secret_key ] ) ? $stripe_settings[ $secret_key ] : false;
+
 		add_action( 'woocommerce_api_wc_stripe', array( $this, 'check_for_webhook' ) );
 	}
 
@@ -83,6 +93,29 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( ! empty( $request_headers['USER-AGENT'] ) && ! preg_match( '/Stripe/', $request_headers['USER-AGENT'] ) ) {
 			return false;
+		}
+
+		if ( ! empty( $this->secret ) ) {
+			// Check for a valid signature.
+			$signature_format = '/^t=(?P<timestamp>\d+)(?P<signatures>(,v\d+=[a-z0-9]+){1,2})$/';
+			if ( empty( $request_headers['STRIPE-SIGNATURE'] ) || ! preg_match( $signature_format, $request_headers['STRIPE-SIGNATURE'], $matches ) ) {
+				return false;
+			}
+
+			// Verify the timestamp.
+			$timestamp = intval( $matches['timestamp'] );
+			if ( abs( $timestamp - time() ) > MINUTE_IN_SECONDS ) {
+				return;
+			}
+
+			// Generate the expected signature.
+			$signed_payload     = $timestamp . '.' . $request_body;
+			$expected_signature = hash_hmac( 'sha256', $signed_payload, $this->secret );
+
+			// Check if the expected signature is present.
+			if ( ! preg_match( '/,v\d+=' . preg_quote( $expected_signature, '/' ) . '/', $matches['signatures'] ) ) {
+				return false;
+			}
 		}
 
 		return true;
@@ -503,11 +536,20 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_review_opened( $notification ) {
-		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
+		if ( isset( $notification->data->object->payment_intent ) ) {
+			$order = WC_Stripe_Helper::get_order_by_intent_id( $notification->data->object->payment_intent );
 
-		if ( ! $order ) {
-			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->charge );
-			return;
+			if ( ! $order ) {
+				WC_Stripe_Logger::log( '[Review Opened] Could not find order via intent ID: ' . $notification->data->object->payment_intent );
+				return;
+			}
+		} else {
+			$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
+
+			if ( ! $order ) {
+				WC_Stripe_Logger::log( '[Review Opened] Could not find order via charge ID: ' . $notification->data->object->charge );
+				return;
+			}
 		}
 
 		/* translators: 1) The URL to the order. 2) The reason type. */
@@ -527,11 +569,20 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_review_closed( $notification ) {
-		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
+		if ( isset( $notification->data->object->payment_intent ) ) {
+			$order = WC_Stripe_Helper::get_order_by_intent_id( $notification->data->object->payment_intent );
 
-		if ( ! $order ) {
-			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->charge );
-			return;
+			if ( ! $order ) {
+				WC_Stripe_Logger::log( '[Review Closed] Could not find order via intent ID: ' . $notification->data->object->payment_intent );
+				return;
+			}
+		} else {
+			$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
+
+			if ( ! $order ) {
+				WC_Stripe_Logger::log( '[Review Closed] Could not find order via charge ID: ' . $notification->data->object->charge );
+				return;
+			}
 		}
 
 		/* translators: 1) The reason type. */

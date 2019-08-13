@@ -223,6 +223,7 @@ class WC_Stripe_Helper {
 				'processing_error'         => __( 'An error occurred while processing the card.', 'woocommerce-gateway-stripe' ),
 				'invalid_request_error'    => __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ),
 				'invalid_sofort_country'   => __( 'The billing country is not accepted by SOFORT. Please try another country.', 'woocommerce-gateway-stripe' ),
+				'email_invalid'            => __( 'Invalid email address, please correct and try again.', 'woocommerce-gateway-stripe' ),
 			)
 		);
 	}
