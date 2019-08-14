@@ -249,6 +249,23 @@ jQuery( function( $ ) {
 			// Listen for hash changes in order to handle payment intents
 			window.addEventListener( 'hashchange', wc_stripe_form.onHashChange );
 			wc_stripe_form.maybeConfirmIntent();
+
+			// Add the "confirm setup intent" button handler on the "Order Received" page
+			var authorizeButtonEnabled = true;
+			$( '#stripe-setup-intent-authorize-button' ).click( function() {
+				if ( ! authorizeButtonEnabled ) {
+					return;
+				}
+				authorizeButtonEnabled = false;
+				stripe.handleCardSetup( $( '#stripe-setup-intent-authorize-button' ).data( 'secret' ) )
+					.then( function( data ) {
+						if ( 'succeeded' === data.setupIntent.status ) {
+							$( '#stripe-setup-intent-authorize-container' ).hide();
+						} else {
+							window.location.reload();
+						}
+					} );
+			} );
 		},
 
 		/**
