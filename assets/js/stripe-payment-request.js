@@ -406,12 +406,9 @@ jQuery( function( $ ) {
 					}
 
 					if ( $( '#wc-stripe-payment-request-button' ).length ) {
+						$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).show();
 						prButton.mount( '#wc-stripe-payment-request-button' );
-						$( '#wc-stripe-payment-request-button-separator' ).show();
 					}
-				} else {
-					$( '#wc-stripe-payment-request-button' ).hide();
-					$( '#wc-stripe-payment-request-button-separator' ).hide();
 				}
 			} );
 
