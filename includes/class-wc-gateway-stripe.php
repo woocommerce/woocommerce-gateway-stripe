@@ -139,6 +139,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_account_view-order_endpoint', array( $this, 'check_intent_status_on_order_page' ), 1 );
 		add_filter( 'woocommerce_payment_successful_result', array( $this, 'modify_successful_payment_result' ), 99999, 2 );
 		add_action( 'set_logged_in_cookie', array( $this, 'set_cookie_on_current_request' ) );
+		add_action( 'woocommerce_thankyou', array( $this, 'thankyou_page' ) );
 
 		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
 			$this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
@@ -548,15 +549,59 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				'confirm'        => 'true',
 			), 'setup_intents' );
 
+			$order_id  = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 			if ( is_wp_error( $setup_intent ) ) {
-				WC_Stripe_Logger::log( "Unable to create SetupIntent for Order #$order->get_id(): " . print_r( $setup_intent, true ) );
+				WC_Stripe_Logger::log( "Unable to create SetupIntent for Order #$order_id: " . print_r( $setup_intent, true ) );
 			} elseif ( 'requires_action' === $setup_intent->status ) {
+				if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+					update_post_meta( $order_id, '_stripe_setup_intent', $setup_intent->id );
+				} else {
+					$order->update_meta_data( '_stripe_setup_intent', $setup_intent->id );
+					$order->save();
+				}
 				$response['setup_intent_secret'] = $setup_intent->client_secret;
 			}
 		}
 
 		// Return thank you page redirect.
 		return $response;
+	}
+
+	public function thankyou_page( $order_id ) {
+		$order = wc_get_order( $order_id );
+		$setup_intent_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, '_stripe_setup_intent', true ) : $order->get_meta( '_stripe_setup_intent', true );
+
+		if ( $setup_intent_id ) {
+			$setup_intent = WC_Stripe_API::request( array(), 'setup_intents/' . $setup_intent_id, 'GET' );
+
+			// When authentication fails in a SetupIntent, the "payment_method" property is erased. We need to update it again before it's in a "requires_action" state again
+			if ( ! is_wp_error( $setup_intent ) && 'succeeded' !== $setup_intent->status ) {
+				if ( 'requires_payment_method' === $setup_intent->status && 'setup_intent_authentication_failure' === $setup_intent->last_setup_error->code ) {
+					$setup_intent = WC_Stripe_API::request( array(
+						'payment_method' => $setup_intent->last_setup_error->payment_method->id,
+					), 'setup_intents/' . $setup_intent_id . '/confirm' );
+				}
+			}
+
+			if ( ! is_wp_error( $setup_intent ) ) {
+				if ( 'requires_action' === $setup_intent->status ) {
+					// TODO: Style the hell out of this
+					?>
+					<p id="stripe-setup-intent-authorize-container">
+						We need you to authorize us to charge your credit card in the future. Authorize us now so we won't need to bother you later.
+						<a href="javascript:void(0);" id="stripe-setup-intent-authorize-button" data-secret="<?php echo esc_attr( $setup_intent->client_secret ) ?>">Authorize</a>
+					</p>
+					<?php
+				} else {
+					if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+						delete_post_meta( $order_id, '_stripe_setup_intent' );
+					} else {
+						$order->delete_meta_data( '_stripe_setup_intent' );
+						$order->save();
+					}
+				}
+			}
+		}
 	}
 
 	/**
