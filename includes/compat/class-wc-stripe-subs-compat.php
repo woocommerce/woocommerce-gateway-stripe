@@ -170,6 +170,23 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	}
 
 	/**
+	 * Overloads WC_Stripe_Payment_Gateway::generate_create_intent_request() in order to
+	 * include additional flags, used when setting payment intents up for off-session usage.
+	 *
+	 * @param WC_Order $order           The order that is being paid for.
+	 * @param object   $prepared_source The source that is used for the payment.
+	 * @return array                    The arguments for the request.
+	 */
+	public function generate_create_intent_request( $order, $prepared_source ) {
+		$request = parent::generate_create_intent_request( $order, $prepared_source );
+
+		// Let Stripe know that the payment should be prepared for future usage.
+		$request['setup_future_usage'] = 'off_session';
+
+		return $request;
+	}
+
+	/**
 	 * Scheduled_subscription_payment function.
 	 *
 	 * @param $amount_to_charge float The amount to charge.
