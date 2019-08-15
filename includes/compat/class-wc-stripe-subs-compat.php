@@ -10,6 +10,14 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	/**
+	 * When processing renewals, this flag is updated
+	 * in order to properly modify the behavior of the gateway.
+	 *
+	 * @var boolean
+	 */
+	protected $is_renewal = false;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -221,7 +229,8 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 				$prepared_source->source = '';
 			}
 
-			$response = $this->create_and_confirm_intent( $amount, $renewal_order, $prepared_source );
+			$this->is_renewal = true;
+			$response = $this->create_intent( $renewal_order, $prepared_source );
 
 			if ( ! empty( $response->error ) ) {
 				// We want to retry.
@@ -272,51 +281,28 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Create and confirm a new PaymentIntent.
+	 * Overloads WC_Stripe_Payment_Gateway::generate_create_intent_request() in order to
+	 * include additional flags, used when setting payment intents up for off-session usage.
 	 *
-	 * @param float    $amount          The amount to charge.
 	 * @param WC_Order $order           The order that is being paid for.
 	 * @param object   $prepared_source The source that is used for the payment.
-	 * @return object                   An intent or an error.
+	 * @return array                    The arguments for the request.
 	 */
-	public function create_and_confirm_intent( $amount, $order, $prepared_source ) {
-		// The request for a charge contains metadata for the intent.
-		$full_request = $this->generate_payment_request( $order, $prepared_source );
+	public function generate_create_intent_request( $order, $prepared_source ) {
+		$request = parent::generate_create_intent_request( $order, $prepared_source );
 
-		$request = array(
-			'source'               => $prepared_source->source,
-			'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, $full_request['currency'] ),
-			'currency'             => strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency() ),
-			'description'          => $full_request['description'],
-			'metadata'             => $full_request['metadata'],
-			'payment_method_types' => array(
-				'card',
-			),
-			'off_session'          => 'true',
-			'confirm'              => 'true',
-			'confirmation_method'  => 'automatic',
-		);
-
-		if ( isset( $full_request['statement_descriptor'] ) ) {
-			$request['statement_descriptor'] = $full_request['statement_descriptor'];
+		if ( $this->is_renewal ) {
+			// Let Stripe know this payment is an off-session one.
+			$request['off_session']         = 'true';
+			$request['confirm']             = 'true';
+			$request['confirmation_method'] = 'automatic';
+			// Q: Capture method?
+		} else {
+			// Let Stripe know that the payment should be prepared for future usage.
+			$request['setup_future_usage'] = 'off_session';
 		}
 
-		if ( $prepared_source->customer ) {
-			$request['customer'] = $prepared_source->customer;
-		}
-
-		$intent = WC_Stripe_API::request( $request, 'payment_intents' );
-		if ( ! empty( $intent->error ) ) {
-			return $intent;
-		}
-
-		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
-		WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id initiated for order $order_id" );
-
-		// Save the intent ID to the order.
-		$this->save_intent_to_order( $order, $intent );
-
-		return $intent;
+		return $request;
 	}
 
 	/**
