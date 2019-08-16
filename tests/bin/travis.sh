@@ -16,6 +16,8 @@ if [ $1 == 'before' ]; then
 	npm install
 
 elif [ $1 == 'after' ]; then
+	# Run at least one command so that script doesn't break
+	echo "Nothing to do in 'after' script."
 
 	# no Xdebug and therefore no coverage in PHP 5.2
 	#[ $TRAVIS_PHP_VERSION == '5.2' ] && exit;
@@ -24,7 +26,7 @@ elif [ $1 == 'after' ]; then
 	#php vendor/bin/coveralls --verbose --exclude-no-stmt
 
 	# get scrutinizer ocular and run it
-	w#get https://scrutinizer-ci.com/ocular.phar
+	# wget https://scrutinizer-ci.com/ocular.phar
 	#ocular.phar code-coverage:upload --format=php-clover ./tmp/clover.xml
 
 fi
