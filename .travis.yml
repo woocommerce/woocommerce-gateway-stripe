@@ -8,6 +8,9 @@ php:
   - 7.0
   - 7.1
 
+services:
+  - mysql
+
 env:
   - WP_VERSION=latest WP_MULTISITE=0  WC_VERSION=3.4.5
 
