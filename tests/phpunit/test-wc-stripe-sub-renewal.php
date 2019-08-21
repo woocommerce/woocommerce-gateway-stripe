@@ -54,7 +54,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	public function test_renewal_successful() {
 		// Arrange: Some variables we'll use later.
 		$renewal_order                 = WC_Helper_Order::create_order();
-		$amount                        = 20;
+		$amount                        = 50;
 		$stripe_amount                 = WC_Stripe_Helper::get_stripe_amount( $amount );
 		$currency                      = strtolower( $renewal_order->get_currency() );
 		$customer                      = 'cus_123abc';
@@ -63,6 +63,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$previous_error                = false;
 		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
 		$urls_used                     = array();
+
+		$renewal_order->set_payment_method('stripe');
 
 		// Arrange: Mock prepare_order_source() so that we have a customer and source.
 		$this->wc_stripe_subs_compat

@@ -293,11 +293,12 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 
 		if ( $this->is_renewal ) {
 			// Let Stripe know this payment is an off-session one.
-			$request['capture']             = 'true';
 			$request['off_session']         = 'true';
 			$request['confirm']             = 'true';
 			$request['confirmation_method'] = 'automatic';
-			// Q: Capture method?
+
+			// The capture method should default to 'automatic'.
+			unset( $request['capture_method'] );
 		} else {
 			// Let Stripe know that the payment should be prepared for future usage.
 			$request['setup_future_usage'] = 'off_session';
