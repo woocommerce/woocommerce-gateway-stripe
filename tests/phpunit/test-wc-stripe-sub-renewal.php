@@ -22,6 +22,13 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	private $wc_stripe_subs_compat;
 
 	/**
+	 * The statement descriptor we'll use in a test.
+	 *
+	 * @var string
+	 */
+	private $statement_descriptor;
+
+	/**
 	 * Sets up things all tests need.
 	 */
 	public function setUp() {
@@ -39,6 +46,23 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			->will(
 				$this->returnValue( true )
 			);
+
+		$this->statement_descriptor = 'This is a statement descriptor.';
+		add_option(
+			'woocommerce_stripe_settings',
+			array(
+				'statement_descriptor' => $this->statement_descriptor,
+			)
+		);
+	}
+
+	/**
+	 * Tears down the stuff we set up.
+	 */
+	public function tearDown() {
+		parent::tearDown();
+
+		delete_option( 'woocommerce_stripe_settings' );
 	}
 
 	/**
@@ -59,10 +83,20 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$currency                      = strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->get_order_currency() : $renewal_order->get_currency() );
 		$customer                      = 'cus_123abc';
 		$source                        = 'src_123abc';
+		$statement_descriptor          = WC_Stripe_Helper::clean_statement_descriptor( $this->statement_descriptor );
 		$should_retry                  = false;
 		$previous_error                = false;
 		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
 		$urls_used                     = array();
+
+		// Arrange: Set payment method to stripe, and not stripe_sepa, for example.
+		// This needed for testing the statement_descriptor.
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+			$renewal_order->payment_method = 'stripe';
+		} else {
+			$renewal_order->set_payment_method( 'stripe' );
+		}
+
 
 		// Arrange: Mock prepare_order_source() so that we have a customer and source.
 		$this->wc_stripe_subs_compat
@@ -87,6 +121,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			$currency,
 			$customer,
 			$source,
+			$statement_descriptor,
 			$payments_intents_api_endpoint,
 			&$urls_used
 		) {
@@ -115,7 +150,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				'off_session'          => 'true',
 				'confirm'              => 'true',
 				'confirmation_method'  => 'automatic',
-				// Not mocking 'statement_descriptor' since it's not available during this test.
+				'statement_descriptor' => $statement_descriptor,
 			);
 			foreach ( $expected_request_body_values as $key => $value ) {
 				$this->assertArrayHasKey( $key, $request_args['body'] );
