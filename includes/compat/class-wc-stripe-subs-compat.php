@@ -180,6 +180,11 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	public function generate_create_intent_request( $order, $prepared_source ) {
 		$request = parent::generate_create_intent_request( $order, $prepared_source );
 
+		// Non-subscription orders do not need any additional parameters.
+		if ( ! $this->has_subscription( $order ) ) {
+			return $request;
+		}
+
 		// Let Stripe know that the payment should be prepared for future usage.
 		$request['setup_future_usage'] = 'off_session';
 
