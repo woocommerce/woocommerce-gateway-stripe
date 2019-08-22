@@ -2,6 +2,8 @@
 
 = 4.2.4 - 2019-XX-XX =
 * Fix - Unclear error message when email address not completely filled in.
+* Fix - Add payment request button compatibility with variable subscriptions
+* Tweak - Do not show payment request button for shippable trial subscription products
 
 = 4.2.3 - 2019-07-18 =
 * Fix - Ignore "payment failed" webhooks if they come after another payment has already succeeded for that order.

@@ -113,11 +113,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.2.3 - 2019-07-18 =
-* Fix - Ignore "payment failed" webhooks if they come after another payment has already succeeded for that order.
-* Fix - Correctly transition an order to "On Hold" if the payment was put under review by Stripe Radar, and back to "Processing" when the review is approved.
-* Tweak - Make the publishable key fields be plain text instead of "password".
-* Fix - Fix successful retries of 3ds failing.
+= 4.x.x - 2019-x-x =
+* Fix - Add payment request button compatibility with variable subscriptions
+* Tweak - Do not show payment request button for shippable trial subscription products
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
