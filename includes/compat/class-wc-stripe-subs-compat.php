@@ -309,6 +309,8 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		delete_post_meta( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $resubscribe_order->id : $resubscribe_order->get_id() ), '_stripe_source_id' );
 		// For BW compat will remove in future
 		delete_post_meta( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $resubscribe_order->id : $resubscribe_order->get_id() ), '_stripe_card_id' );
+		// delete payment intent ID
+		delete_post_meta( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $resubscribe_order->id : $resubscribe_order->get_id() ), '_stripe_intent_id' );
 		$this->delete_renewal_meta( $resubscribe_order );
 	}
 
@@ -319,6 +321,9 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	public function delete_renewal_meta( $renewal_order ) {
 		WC_Stripe_Helper::delete_stripe_fee( $renewal_order );
 		WC_Stripe_Helper::delete_stripe_net( $renewal_order );
+
+		// delete payment intent ID
+		delete_post_meta( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id() ), '_stripe_intent_id' );
 
 		return $renewal_order;
 	}
