@@ -1048,7 +1048,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$request['customer'] = $prepared_source->customer;
 		}
 
-		return $request;
+		/**
+		 * Filter the return value of the WC_Payment_Gateway_CC::generate_create_intent_request.
+		 *
+		 * @since 3.1.0
+		 * @param array $request
+		 * @param WC_Order $order
+		 * @param object $source
+		 */
+		return apply_filters( 'wc_stripe_generate_create_intent_request', $request, $order, $prepared_source );
 	}
 
 	/**
