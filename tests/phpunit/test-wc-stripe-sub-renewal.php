@@ -236,4 +236,101 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		// Clean up.
 		remove_filter( 'pre_http_request', array( $this, 'pre_http_request_response_success' ) );
 	}
+
+	/**
+	 * Overall this test works like this:
+	 *
+	 * 1. Several things are set up or mocked.
+	 * 2. A function that will mock an HTTP response for the payment_intents is created.
+	 * 3. That same function has some assertions about the things we send to the
+	 * payments_intents endpoint.
+	 * 4. The function under test - `process_subscription_payment` - is called.
+	 * 5. More assertions are made.
+	 */
+	public function test_renewal_authorization_required() {
+		// Arrange: Some variables we'll use later.
+		$renewal_order                 = WC_Helper_Order::create_order();
+		$amount                        = 20;
+		$stripe_amount                 = WC_Stripe_Helper::get_stripe_amount( $amount );
+		$currency                      = strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->get_order_currency() : $renewal_order->get_currency() );
+		$customer                      = 'cus_123abc';
+		$source                        = 'src_123abc';
+		$should_retry                  = false;
+		$previous_error                = false;
+		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
+		$urls_used                     = array();
+
+		// Arrange: Mock prepare_order_source() so that we have a customer and source.
+		$this->wc_stripe_subs_compat
+			->expects( $this->any() )
+			->method( 'prepare_order_source' )
+			->will(
+				$this->returnValue(
+					(object) array(
+						'token_id'      => false,
+						'customer'      => $customer,
+						'source'        => $source,
+						'source_object' => (object) array(),
+					)
+				)
+			);
+
+		// Arrange: Add filter that will return a mocked HTTP response for the payment_intent call.
+		$pre_http_request_response_callback = function( $preempt, $request_args, $url ) use (
+			$renewal_order,
+			$stripe_amount,
+			$currency,
+			$customer,
+			$source,
+			$payments_intents_api_endpoint,
+			&$urls_used
+		) {
+			// Add all urls to array so we can later make assertions about which endpoints were used.
+			array_push( $urls_used, $url );
+
+			// Continue without mocking the request if it's not the endpoint we care about.
+			if ( $payments_intents_api_endpoint !== $url ) {
+				return false;
+			}
+
+			// Arrange: return dummy content as the response.
+			return array(
+				'headers'  => array(),
+				// Too bad we aren't dynamically setting things 'cus_123abc' when using this file.
+				'body'     => file_get_contents( 'tests/phpunit/dummy-data/subscription_renewal_response_authentication_required.json' ),
+				'response' => array(
+					'code'    => 402,
+					'message' => 'Payment Required',
+				),
+				'cookies'  => array(),
+				'filename' => null,
+			);
+		};
+		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
+
+		// Act: call process_subscription_payment().
+		// We need to use `wc_stripe_subs_compat` here because we mocked this class earlier.
+		$result = $this->wc_stripe_subs_compat->process_subscription_payment( 20, $renewal_order, $should_retry, $previous_error );
+
+		// Assert: nothing was returned.
+		$this->assertEquals( $result, null );
+
+		// Assert that we saved the payment intent to the order.
+		$order_id   = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id();
+		$order      = wc_get_order( $order_id );
+		$order_data = (
+			WC_Stripe_Helper::is_wc_lt( '3.0' )
+				? get_post_meta( $order_id, '_stripe_intent_id', true )
+				: $order->get_meta( '_stripe_intent_id' )
+		);
+
+		// Intent was not saved to order since there was an error in the response body.
+		$this->assertEquals( $order_data, '' );
+
+		// Assert: called payment intents.
+		$this->assertTrue( in_array( $payments_intents_api_endpoint, $urls_used ) );
+
+		// Clean up.
+		remove_filter( 'pre_http_request', array( $this, 'pre_http_request_response_success' ) );
+	}
 }
