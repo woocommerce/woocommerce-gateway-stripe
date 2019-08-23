@@ -294,6 +294,8 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 
 				$error_message = __( 'This transaction requires authentication.', 'woocommerce-gateway-stripe' );
 				$renewal_order->add_order_note( $error_message );
+
+				$this->process_authentication_required_response();
 			} else {
 				// The charge was successfully captured
 				do_action( 'wc_gateway_stripe_process_payment', $response, $renewal_order );
