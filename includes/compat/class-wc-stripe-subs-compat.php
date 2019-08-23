@@ -235,7 +235,11 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 
 			$response = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
 
-			if ( ! empty( $response->error ) ) {
+			$is_authentication_required = $this->is_authentication_required_for_payment( $response );
+
+			// It's only a failed payment if it's an error and it's not of the type 'authentication_required'.
+			// If it's 'authentication_required', then we should email the user and ask them to authenticate.
+			if ( ! empty( $response->error ) && ! $is_authentication_required ) {
 				// We want to retry.
 				if ( $this->is_retryable_error( $response->error ) ) {
 					if ( $retry ) {
@@ -269,10 +273,17 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
 
-			do_action( 'wc_gateway_stripe_process_payment', $response, $renewal_order );
+			// Either the charge was successfully captured, or it requires further authentication.
 
+			if ( $is_authentication_required ) {
+				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order, $response );
 
-			$this->process_response( end( $response->charges->data ), $renewal_order );
+			} else {
+				// The charge was successfully captured
+				do_action( 'wc_gateway_stripe_process_payment', $response, $renewal_order );
+
+				$this->process_response( end( $response->charges->data ), $renewal_order );
+			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
