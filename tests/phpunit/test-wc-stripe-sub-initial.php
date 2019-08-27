@@ -70,8 +70,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 	public function test_initial_intent_parameters() {
 		$initial_order        = WC_Helper_Order::create_order();
 		$order_id             = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $initial_order->id : $initial_order->get_id();
-		$amount               = 50;
-		$stripe_amount        = WC_Stripe_Helper::get_stripe_amount( $amount );
+		$stripe_amount        = WC_Stripe_Helper::get_stripe_amount( $initial_order->get_total() );
 		$currency             = strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $initial_order->get_order_currency() : $initial_order->get_currency() );
 		$customer             = 'cus_123abc';
 		$source               = 'src_123abc';
@@ -86,7 +85,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 			$initial_order->save();
 		}
 
-		// Arrange: Mock prepare_order_source() so that we have a customer and source.
+		// Arrange: Mock prepare_source() so that we have a customer and source.
 		$this->wc_stripe_subs_compat
 			->expects( $this->any() )
 			->method( 'prepare_source' )
