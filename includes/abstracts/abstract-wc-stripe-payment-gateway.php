@@ -1037,7 +1037,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'currency'             => strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency() ),
 			'description'          => $full_request['description'],
 			'metadata'             => $full_request['metadata'],
-			'statement_descriptor' => $full_request['statement_descriptor'],
 			'capture_method'       => ( 'true' === $full_request['capture'] ) ? 'automatic' : 'manual',
 			'payment_method_types' => array(
 				'card',
@@ -1046,6 +1045,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( $prepared_source->customer ) {
 			$request['customer'] = $prepared_source->customer;
+		}
+
+		if ( isset( $full_request['statement_descriptor'] ) ) {
+			$request['statement_descriptor'] = $full_request['statement_descriptor'];
 		}
 
 		/**
