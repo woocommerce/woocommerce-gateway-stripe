@@ -80,6 +80,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 
 		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 			$initial_order->payment_method = 'stripe';
+			update_post_meta( $order_id, '_payment_method', 'stripe' ); // for `wc_get_order()`.
 		} else {
 			$initial_order->set_payment_method( 'stripe' );
 			$initial_order->save();
