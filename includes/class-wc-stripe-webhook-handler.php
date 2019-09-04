@@ -81,7 +81,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @todo Implement proper webhook signature validation. Ref https://stripe.com/docs/webhooks#signatures
 	 * @param string $request_headers The request headers from Stripe.
 	 * @param string $request_body The request body from Stripe.
 	 * @return bool
