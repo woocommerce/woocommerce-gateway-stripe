@@ -575,12 +575,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$setup_intent = WC_Stripe_API::request( array(), 'setup_intents/' . $setup_intent_id, 'GET' );
 
 			// When authentication fails in a SetupIntent, the "payment_method" property is erased. We need to update it again before it's in a "requires_action" state again
-			if ( ! is_wp_error( $setup_intent ) && 'succeeded' !== $setup_intent->status ) {
-				if ( 'requires_payment_method' === $setup_intent->status && 'setup_intent_authentication_failure' === $setup_intent->last_setup_error->code ) {
-					$setup_intent = WC_Stripe_API::request( array(
-						'payment_method' => $setup_intent->last_setup_error->payment_method->id,
-					), 'setup_intents/' . $setup_intent_id . '/confirm' );
-				}
+			if ( ! is_wp_error( $setup_intent )
+			     && 'requires_payment_method' === $setup_intent->status
+			     && 'setup_intent_authentication_failure' === $setup_intent->last_setup_error->code ) {
+				$setup_intent = WC_Stripe_API::request( array(
+					'payment_method' => $setup_intent->last_setup_error->payment_method->id,
+				), 'setup_intents/' . $setup_intent_id . '/confirm' );
 			}
 
 			if ( ! is_wp_error( $setup_intent ) ) {
