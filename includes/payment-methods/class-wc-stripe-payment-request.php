@@ -584,7 +584,7 @@ class WC_Stripe_Payment_Request {
 			}
 		}
 		?>
-		<div id="wc-stripe-payment-request-wrapper" style="clear:both;padding-top:1.5em;">
+		<div id="wc-stripe-payment-request-wrapper" style="clear:both;padding-top:1.5em;display:none;">
 			<div id="wc-stripe-payment-request-button">
 				<!-- A Stripe Element will be inserted here. -->
 			</div>
