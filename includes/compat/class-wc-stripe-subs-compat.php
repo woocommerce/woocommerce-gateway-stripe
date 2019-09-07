@@ -268,7 +268,6 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $renewal_order );
 
-			/* translators: error message */
 			$renewal_order->update_status( 'failed' );
 		}
 	}

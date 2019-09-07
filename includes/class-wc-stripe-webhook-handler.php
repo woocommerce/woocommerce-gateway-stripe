@@ -269,9 +269,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, $e );
 
-			$statuses = array( 'pending', 'failed' );
-
-			if ( $order->has_status( $statuses ) ) {
+			if ( $order->has_status( 'pending' ) ) {
 				$this->send_failed_order_email( $order_id );
 			}
 		}
@@ -686,8 +684,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$order->update_status( 'failed', sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message ) );
 
 			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
-
-			$this->send_failed_order_email( $order_id );
 		}
 
 		$this->unlock_order_payment( $order );

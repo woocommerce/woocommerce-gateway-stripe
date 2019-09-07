@@ -283,9 +283,7 @@ class WC_Gateway_Stripe_Alipay extends WC_Stripe_Payment_Gateway {
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
-			$statuses = array( 'pending', 'failed' );
-
-			if ( $order->has_status( $statuses ) ) {
+			if ( $order->has_status( 'pending' ) ) {
 				$this->send_failed_order_email( $order_id );
 			}
 

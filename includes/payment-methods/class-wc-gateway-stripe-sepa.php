@@ -412,7 +412,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
-			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
+			if ( $order->has_status( 'pending' ) ) {
 				$this->send_failed_order_email( $order_id );
 			}
 
