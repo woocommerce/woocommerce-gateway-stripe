@@ -330,6 +330,9 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		// Intent was saved to order even though there was an error in the response body.
 		$this->assertEquals( $order_data, 'pi_123abc' );
 
+		// Assert: the order was marked as on-hold.
+		$this->assertEquals( $order->get_status(), 'on-hold' );
+
 		// Assert: called payment intents.
 		$this->assertTrue( in_array( $payments_intents_api_endpoint, $urls_used ) );
 
