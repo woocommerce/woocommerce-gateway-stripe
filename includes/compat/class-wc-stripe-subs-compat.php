@@ -192,20 +192,6 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Given a response from Stripe, check if it's a card error where authentication is required
-	 * to complete the payment.
-	 *
-	 * @param object The response from Stripe.
-	 * @return boolean Whether or not it's a 'needs_authentication' error
-	 */
-	public function is_authentication_required_for_payment( $response ) {
-		return (
-			! empty( $response->error )
-			&& 'authentication_required' === $response->error->code
-		);
-	}
-
-	/**
 	 * Process_subscription_payment function.
 	 *
 	 * @since 3.0
