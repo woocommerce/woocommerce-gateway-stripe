@@ -335,15 +335,25 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		}
 
 		$intent = WC_Stripe_API::request( $request, 'payment_intents' );
-		if ( ! empty( $intent->error ) ) {
+		$intent_requires_authentication = $this->is_authentication_required_for_payment( $intent );
+
+		if ( ! empty( $intent->error ) && ! $intent_requires_authentication ) {
 			return $intent;
 		}
 
+		$intent_id = ( ! empty( $intent->error )
+			? $intent->error->payment_intent->id
+			: $intent->id
+		);
+		$payment_intent = ( ! empty( $intent->error )
+			? $intent->error->payment_intent
+			: $intent
+		);
 		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
-		WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id initiated for order $order_id" );
+		WC_Stripe_Logger::log( "Stripe PaymentIntent $intent_id initiated for order $order_id" );
 
 		// Save the intent ID to the order.
-		$this->save_intent_to_order( $order, $intent );
+		$this->save_intent_to_order( $order, $payment_intent );
 
 		return $intent;
 	}
