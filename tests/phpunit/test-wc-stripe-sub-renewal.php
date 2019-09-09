@@ -97,7 +97,6 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			$renewal_order->set_payment_method( 'stripe' );
 		}
 
-
 		// Arrange: Mock prepare_order_source() so that we have a customer and source.
 		$this->wc_stripe_subs_compat
 			->expects( $this->any() )
@@ -238,7 +237,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		);
 		$this->assertEquals( $order_data, 'pi_123abc' );
 
-		// Transaction ID was saved to order
+		// Transaction ID was saved to order.
 		$order_transaction_id = (
 			WC_Stripe_Helper::is_wc_lt( '3.0' )
 				? get_post_meta( $order_id, '_transaction_id', true )
@@ -246,18 +245,17 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		);
 		$this->assertEquals( $order_transaction_id, 'ch_123abc' );
 
-		// Assert: the order was marked as processing (this is done in process_response())
+		// Assert: the order was marked as processing (this is done in process_response()).
 		$this->assertEquals( $order->get_status(), 'processing' );
 
 		// Assert: called payment intents.
 		$this->assertTrue( in_array( $payments_intents_api_endpoint, $urls_used ) );
 
-		// Assert: Our hook was called once
+		// Assert: Our hook was called once.
 		$this->assertEquals( 1, $mock_action_process_payment->get_call_count() );
 
-		// Assert: Only our hook was called
+		// Assert: Only our hook was called.
 		$this->assertEquals( array( 'wc_gateway_stripe_process_payment' ), $mock_action_process_payment->get_tags() );
-
 
 		// Clean up.
 		remove_filter( 'pre_http_request', array( $this, 'pre_http_request_response_success' ) );
@@ -350,9 +348,9 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEquals( $result, null );
 
 		// Assert that we saved the payment intent to the order.
-		$order_id   = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id();
-		$order      = wc_get_order( $order_id );
-		$order_data = (
+		$order_id             = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id();
+		$order                = wc_get_order( $order_id );
+		$order_data           = (
 			WC_Stripe_Helper::is_wc_lt( '3.0' )
 				? get_post_meta( $order_id, '_stripe_intent_id', true )
 				: $order->get_meta( '_stripe_intent_id' )
@@ -366,19 +364,19 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		// Intent was saved to order even though there was an error in the response body.
 		$this->assertEquals( $order_data, 'pi_123abc' );
 
-		// Transaction ID was saved to order
+		// Transaction ID was saved to order.
 		$this->assertEquals( $order_transaction_id, 'ch_123abc' );
 
-		// Assert: the order was marked as on-hold
+		// Assert: the order was marked as on-hold.
 		$this->assertEquals( $order->get_status(), 'on-hold' );
 
 		// Assert: called payment intents.
 		$this->assertTrue( in_array( $payments_intents_api_endpoint, $urls_used ) );
 
-		// Assert: Our hook was called once
+		// Assert: Our hook was called once.
 		$this->assertEquals( 1, $mock_action_process_payment->get_call_count() );
 
-		// Assert: Only our hook was called
+		// Assert: Only our hook was called.
 		$this->assertEquals( array( 'wc_gateway_stripe_process_payment_authentication_required' ), $mock_action_process_payment->get_tags() );
 
 		// Clean up.
