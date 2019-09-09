@@ -228,7 +228,6 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				? get_post_meta( $order_id, '_stripe_intent_id', true )
 				: $order->get_meta( '_stripe_intent_id' )
 		);
-
 		$this->assertEquals( $order_data, 'pi_123abc' );
 
 		// Transaction ID was saved to order
