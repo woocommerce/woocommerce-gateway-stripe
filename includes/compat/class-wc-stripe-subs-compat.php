@@ -279,7 +279,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 					$renewal_order->save();
 				}
 
-				$this->process_authentication_required_response();
+				$this->process_authentication_required_response( $renewal_order );
 			} else {
 				// The charge was successfully captured
 				do_action( 'wc_gateway_stripe_process_payment', $response, $renewal_order );
@@ -352,12 +352,6 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		$this->save_intent_to_order( $order, $payment_intent );
 
 		return $intent;
-	}
-
-	public function process_authentication_required_response() {
-		// TODO: Email the user about the payment requring authentication.
-		// TODO: Make sure that store owner knows not to fulfill this yet.
-		// TODO: Make sure that if authentication is provided, order fails.
 	}
 
 	/**

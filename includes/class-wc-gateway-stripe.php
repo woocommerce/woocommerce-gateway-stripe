@@ -139,6 +139,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_account_view-order_endpoint', array( $this, 'check_intent_status_on_order_page' ), 1 );
 		add_filter( 'woocommerce_payment_successful_result', array( $this, 'modify_successful_payment_result' ), 99999, 2 );
 		add_action( 'set_logged_in_cookie', array( $this, 'set_cookie_on_current_request' ) );
+		/*
+		 * WC subscriptions hooks into the "template_redirect" hook with priority 100.
+		 * If the screen is "Pay for order" and the order is a subscription renewal, it redirects to the plain checkout.
+		 * See: https://github.com/woocommerce/woocommerce-subscriptions/blob/99a75687e109b64cbc07af6e5518458a6305f366/includes/class-wcs-cart-renewal.php#L165
+		 * If we are in the "You just need to authorize SCA" flow, we don't want that redirection to happen.
+		 */
+		add_action( 'template_redirect', array( $this, 'remove_order_pay_var' ), 99 );
+		add_action( 'template_redirect', array( $this, 'restore_order_pay_var' ), 101 );
 
 		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
 			$this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
@@ -859,11 +867,22 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Renders hidden inputs on the "Pay for Order" page in order to let Stripe handle PaymentIntents.
 	 *
+	 * @param WC_Order|null $order Order object, or null to get the order from the "order-pay" URL parameter
+	 *
 	 * @since 4.2
 	 */
-	public function render_payment_intent_inputs() {
-		$order     = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
-		$intent    = $this->get_intent_from_order( $order );
+	public function render_payment_intent_inputs( $order = null ) {
+		if ( ! isset( $order ) ) {
+			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
+		}
+		$intent = $this->get_intent_from_order( $order );
+
+		// TODO: Handle errors
+		if ( $intent && 'requires_payment_method' === $intent->status && isset( $intent->last_payment_error ) ) {
+			$intent = WC_Stripe_API::request( array(
+				'payment_method' => $intent->last_payment_error->source->id,
+			), 'payment_intents/' . $intent->id . '/confirm' );
+		}
 
 		$verification_url = add_query_arg(
 			array(
@@ -1015,7 +1034,44 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			? sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $intent->last_payment_error->message )
 			: __( 'Stripe SCA authentication failed.', 'woocommerce-gateway-stripe' );
 		$order->update_status( 'failed', $status_message );
+	}
 
-		$this->send_failed_order_email( $order->get_id() );
+	/**
+	 * Given a response from Stripe, check if it's a card error where authentication is required
+	 * to complete the payment.
+	 *
+	 * @param object The response from Stripe.
+	 * @return boolean Whether or not it's a 'needs_authentication' error
+	 */
+	public function is_authentication_required_for_payment( $intent ) {
+		return ( ! empty( $intent->error ) && 'authentication_required' === $intent->error->code )
+			|| ( ! empty( $intent->last_payment_error ) && 'authentication_required' === $intent->last_payment_error->code );
+	}
+
+	public function process_authentication_required_response( $order ) {
+		$auth_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
+		$order->add_order_note( '[TODO: send a real e-mail here] Go here to authenticate: ' . $auth_url, true );
+	}
+
+	/**
+	 * If this is the "Pass the SCA challenge" flow, remove a variable that is checked by WC Subscriptions
+	 * so WC Subscriptions doesn't redirect to the checkout
+	 */
+	public function remove_order_pay_var() {
+		global $wp;
+		if ( isset( $_GET['wc-stripe-confirmation'] ) ) {
+			$this->order_pay_var = $wp->query_vars['order-pay'];
+			$wp->query_vars['order-pay'] = null;
+		}
+	}
+
+	/**
+	 * Restore the variable that was removed in remove_order_pay_var()
+	 */
+	public function restore_order_pay_var() {
+		global $wp;
+		if ( isset( $this->order_pay_var ) ) {
+			$wp->query_vars['order-pay'] = $this->order_pay_var;
+		}
 	}
 }
