@@ -139,6 +139,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_account_view-order_endpoint', array( $this, 'check_intent_status_on_order_page' ), 1 );
 		add_filter( 'woocommerce_payment_successful_result', array( $this, 'modify_successful_payment_result' ), 99999, 2 );
 		add_action( 'set_logged_in_cookie', array( $this, 'set_cookie_on_current_request' ) );
+		/*
+		 * WC subscriptions hooks into the "template_redirect" hook with priority 100.
+		 * If the screen is "Pay for order" and the order is a subscription renewal, it redirects to the plain checkout.
+		 * See: https://github.com/woocommerce/woocommerce-subscriptions/blob/99a75687e109b64cbc07af6e5518458a6305f366/includes/class-wcs-cart-renewal.php#L165
+		 * If we are in the "You just need to authorize SCA" flow, we don't want that redirection to happen.
+		 */
+		add_action( 'template_redirect', array( $this, 'remove_order_pay_var' ), 99 );
+		add_action( 'template_redirect', array( $this, 'restore_order_pay_var' ), 101 );
 
 		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
 			$this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
