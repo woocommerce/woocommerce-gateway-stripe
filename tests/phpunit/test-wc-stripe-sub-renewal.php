@@ -240,6 +240,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		// Assert: the order was marked as processing (this is done in process_response())
 		$this->assertEquals( $order->get_status(), 'processing' );
+
 		// Assert: called payment intents.
 		$this->assertTrue( in_array( $payments_intents_api_endpoint, $urls_used ) );
 
