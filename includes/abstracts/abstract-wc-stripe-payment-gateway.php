@@ -1236,4 +1236,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 		delete_transient( 'wc_stripe_processing_intent_' . $order_id );
 	}
+
+	/**
+	 * Given a response from Stripe, check if it's a card error where authentication is required
+	 * to complete the payment.
+	 *
+	 * @param object The response from Stripe.
+	 * @return boolean Whether or not it's a 'needs_authentication' error
+	 */
+	public function is_authentication_required_for_payment( $response ) {
+		return (
+			! empty( $response->error )
+			&& 'authentication_required' === $response->error->code
+		);
+	}
 }
