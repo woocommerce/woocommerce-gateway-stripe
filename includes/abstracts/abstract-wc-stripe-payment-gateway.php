@@ -1214,7 +1214,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * to complete the payment.
 	 *
 	 * @param object $response The response from Stripe.
-	 * @return boolean Whether or not it's a 'needs_authentication' error
+	 * @return boolean Whether or not it's a 'authentication_required' error
 	 */
 	public function is_authentication_required_for_payment( $response ) {
 		return (
