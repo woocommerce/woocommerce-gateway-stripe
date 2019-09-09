@@ -320,16 +320,24 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEquals( $result, null );
 
 		// Assert that we saved the payment intent to the order.
-		$order_id   = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id();
-		$order      = wc_get_order( $order_id );
-		$order_data = (
+		$order_id             = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id();
+		$order                = wc_get_order( $order_id );
+		$order_data           = (
 			WC_Stripe_Helper::is_wc_lt( '3.0' )
 				? get_post_meta( $order_id, '_stripe_intent_id', true )
 				: $order->get_meta( '_stripe_intent_id' )
 		);
+		$order_transaction_id = (
+			WC_Stripe_Helper::is_wc_lt( '3.0' )
+				? get_post_meta( $order_id, '_transaction_id', true )
+				: $order->get_transaction_id()
+		);
 
 		// Intent was saved to order even though there was an error in the response body.
 		$this->assertEquals( $order_data, 'pi_123abc' );
+
+		// Transaction ID was saved to order.
+		$this->assertEquals( $order_transaction_id, 'ch_123abc' );
 
 		// Assert: the order was marked as on-hold.
 		$this->assertEquals( $order->get_status(), 'on-hold' );
