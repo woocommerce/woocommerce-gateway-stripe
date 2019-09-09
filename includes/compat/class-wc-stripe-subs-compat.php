@@ -291,6 +291,10 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 				$error_message = __( 'This transaction requires authentication.', 'woocommerce-gateway-stripe' );
 				$renewal_order->add_order_note( $error_message );
 
+				$charge = end( $response->error->payment_intent->charges->data );
+				$id = $charge->id;
+				$renewal_order->update_status( 'on-hold', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
+				$renewal_order->save();
 				$this->process_authentication_required_response();
 			} else {
 				// The charge was successfully captured
