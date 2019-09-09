@@ -325,8 +325,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				: $order->get_meta( '_stripe_intent_id' )
 		);
 
-		// Intent was not saved to order since there was an error in the response body.
-		$this->assertEquals( $order_data, '' );
+		// Intent was saved to order even though there was an error in the response body.
+		$this->assertEquals( $order_data, 'pi_123abc' );
 
 		// Assert: called payment intents.
 		$this->assertTrue( in_array( $payments_intents_api_endpoint, $urls_used ) );
