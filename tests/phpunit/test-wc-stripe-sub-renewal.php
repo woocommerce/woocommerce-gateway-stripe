@@ -231,6 +231,14 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( $order_data, 'pi_123abc' );
 
+		// Transaction ID was saved to order.
+		$order_transaction_id = (
+			WC_Stripe_Helper::is_wc_lt( '3.0' )
+				? get_post_meta( $order_id, '_transaction_id', true )
+				: $order->get_transaction_id()
+		);
+		$this->assertEquals( $order_transaction_id, 'ch_123abc' );
+
 		// Assert: the order was marked as processing (this is done in process_response()).
 		$this->assertEquals( $order->get_status(), 'processing' );
 
