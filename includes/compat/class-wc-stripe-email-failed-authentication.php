@@ -69,7 +69,7 @@ abstract class WC_Stripe_Email_Failed_Authentication extends WC_Email {
 	 * @return string
 	 */
 	public function get_authorization_url( $order ) {
-		return add_query_arg( 'open-sca-modal', 'yes', $order->get_view_order_url() );
+		return add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
 	}
 
 	/**
