@@ -103,6 +103,10 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source ) );
 
 				if ( ! empty( $response->error ) ) {
+					if ( 'card_error' === $response->error->type && 'authentication_required' === $response->error->decline_code ) {
+						throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
+					}
+
 					if ( 0 === sizeof( $retry_callbacks ) ) {
 						throw new Exception( $response->error->message );
 					} else {
@@ -116,6 +120,10 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 				}
 			}
 		} catch ( Exception $e ) {
+			WC_Emails::instance();
+
+			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
+
 			/* translators: error message */
 			$order_note = sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $e->getMessage() );
 
