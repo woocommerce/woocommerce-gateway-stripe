@@ -30,6 +30,15 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			add_filter( 'woocommerce_subscription_payment_meta', array( $this, 'add_subscription_payment_meta' ), 10, 2 );
 			add_filter( 'woocommerce_subscription_validate_payment_meta', array( $this, 'validate_subscription_payment_meta' ), 10, 2 );
 			add_filter( 'wc_stripe_display_save_payment_method_checkbox', array( $this, 'maybe_hide_save_checkbox' ) );
+
+			/*
+			 * WC subscriptions hooks into the "template_redirect" hook with priority 100.
+			 * If the screen is "Pay for order" and the order is a subscription renewal, it redirects to the plain checkout.
+			 * See: https://github.com/woocommerce/woocommerce-subscriptions/blob/99a75687e109b64cbc07af6e5518458a6305f366/includes/class-wcs-cart-renewal.php#L165
+			 * If we are in the "You just need to authorize SCA" flow, we don't want that redirection to happen.
+			 */
+			add_action( 'template_redirect', array( $this, 'remove_order_pay_var' ), 99 );
+			add_action( 'template_redirect', array( $this, 'restore_order_pay_var' ), 101 );
 		}
 	}
 
@@ -577,5 +586,27 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		}
 
 		return $payment_method_to_display;
+	}
+
+	/**
+	 * If this is the "Pass the SCA challenge" flow, remove a variable that is checked by WC Subscriptions
+	 * so WC Subscriptions doesn't redirect to the checkout
+	 */
+	public function remove_order_pay_var() {
+		global $wp;
+		if ( isset( $_GET['wc-stripe-confirmation'] ) ) {
+			$this->order_pay_var = $wp->query_vars['order-pay'];
+			$wp->query_vars['order-pay'] = null;
+		}
+	}
+
+	/**
+	 * Restore the variable that was removed in remove_order_pay_var()
+	 */
+	public function restore_order_pay_var() {
+		global $wp;
+		if ( isset( $this->order_pay_var ) ) {
+			$wp->query_vars['order-pay'] = $this->order_pay_var;
+		}
 	}
 }
