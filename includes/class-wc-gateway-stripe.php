@@ -872,7 +872,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @since 4.2
 	 */
 	public function render_payment_intent_inputs( $order = null ) {
-		if ( ! isset( $order ) ) {
+		if ( ! isset( $order ) || empty( $order ) ) {
 			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
 		}
 		$intent = $this->get_intent_from_order( $order );
