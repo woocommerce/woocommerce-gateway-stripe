@@ -283,7 +283,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 				$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id();
 
 				WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_transaction_id', $id ) : $renewal_order->set_transaction_id( $id );
-				$renewal_order->update_status( 'on-hold', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
+				$renewal_order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
 				if ( is_callable( array( $renewal_order, 'save' ) ) ) {
 					$renewal_order->save();
 				}
