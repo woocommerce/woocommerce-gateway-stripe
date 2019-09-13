@@ -836,6 +836,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return $gateways;
 		}
 
+		try {
+			$this->prepare_intent_for_order_pay_page();
+		} catch ( WC_Stripe_Exception $e ) {
+			// Just show the full order pay page if there was a problem preparing the Payment Intent
+			return $gateways;
+		}
+
 		add_filter( 'woocommerce_checkout_show_terms', '__return_false' );
 		add_filter( 'woocommerce_pay_order_button_html', '__return_false' );
 		add_filter( 'woocommerce_available_payment_gateways', array( $this, '__return_empty_array' ) );
@@ -857,23 +864,50 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Prepares the Payment Intent for it to be completed in the "Pay for Order" page.
+	 *
+	 * @param WC_Order|null $order Order object, or null to get the order from the "order-pay" URL parameter
+	 *
+	 * @throws WC_Stripe_Exception
+	 * @since 4.3
+	 */
+	public function prepare_intent_for_order_pay_page( $order = null ) {
+		if ( ! isset( $order ) || empty( $order ) ) {
+			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
+		}
+		$intent = $this->get_intent_from_order( $order );
+
+		if ( ! $intent ) {
+			throw new WC_Stripe_Exception( 'Payment Intent not found', __( 'Payment Intent not found for order #' . $order->get_id(), 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( 'requires_payment_method' === $intent->status && isset( $intent->last_payment_error )
+		     && 'authentication_required' === $intent->last_payment_error->code ) {
+			$intent = WC_Stripe_API::request( array(
+				'payment_method' => $intent->last_payment_error->source->id,
+			), 'payment_intents/' . $intent->id . '/confirm' );
+			if ( isset( $intent->error ) ) {
+				throw new WC_Stripe_Exception( print_r( $intent, true ), $intent->error->message );
+			}
+		}
+
+		$this->order_pay_intent = $intent;
+	}
+
+	/**
 	 * Renders hidden inputs on the "Pay for Order" page in order to let Stripe handle PaymentIntents.
 	 *
 	 * @param WC_Order|null $order Order object, or null to get the order from the "order-pay" URL parameter
 	 *
+	 * @throws WC_Stripe_Exception
 	 * @since 4.2
 	 */
 	public function render_payment_intent_inputs( $order = null ) {
 		if ( ! isset( $order ) || empty( $order ) ) {
 			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
 		}
-		$intent = $this->get_intent_from_order( $order );
-
-		// TODO: Handle errors
-		if ( $intent && 'requires_payment_method' === $intent->status && isset( $intent->last_payment_error ) ) {
-			$intent = WC_Stripe_API::request( array(
-				'payment_method' => $intent->last_payment_error->source->id,
-			), 'payment_intents/' . $intent->id . '/confirm' );
+		if ( ! isset( $this->order_pay_intent ) ) {
+			$this->prepare_intent_for_order_pay_page( $order );
 		}
 
 		$verification_url = add_query_arg(
@@ -886,7 +920,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
 		);
 
-		echo '<input type="hidden" id="stripe-intent-id" value="' . esc_attr( $intent->client_secret ) . '" />';
+		echo '<input type="hidden" id="stripe-intent-id" value="' . esc_attr( $this->order_pay_intent->client_secret ) . '" />';
 		echo '<input type="hidden" id="stripe-intent-return" value="' . esc_attr( $verification_url ) . '" />';
 	}
 
