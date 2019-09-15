@@ -367,8 +367,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		// Transaction ID was saved to order.
 		$this->assertEquals( $order_transaction_id, 'ch_123abc' );
 
-		// Assert: the order was marked as on-hold.
-		$this->assertEquals( $order->get_status(), 'on-hold' );
+		// Assert: the order was marked as failed.
+		$this->assertEquals( $order->get_status(), 'failed' );
 
 		// Assert: called payment intents.
 		$this->assertTrue( in_array( $payments_intents_api_endpoint, $urls_used ) );
