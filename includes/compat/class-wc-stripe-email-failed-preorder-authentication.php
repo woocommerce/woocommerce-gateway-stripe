@@ -41,7 +41,7 @@ class WC_Stripe_Email_Failed_Preorder_Authentication extends WC_Stripe_Email_Fai
 	 * @param WC_Stripe_Exception $error The exception that occured.
 	 * @param WC_Order            $order The order that is being paid.
 	 */
-	public function trigger( $error, $order ) {
+	public function trigger( $error, $order = null ) {
 		if ( WC_Pre_Orders_Order::order_contains_pre_order( $order->get_id() ) ) {
 			parent::trigger( $error, $order );
 

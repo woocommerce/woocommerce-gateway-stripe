@@ -273,7 +273,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			// Either the charge was successfully captured, or it requires further authentication.
 
 			if ( $charge_requires_authentication ) {
-				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $response, $renewal_order );
+				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order, $response );
 
 				$error_message = 'This transaction requires authentication.';
 				$renewal_order->add_order_note( $error_message );
@@ -287,8 +287,6 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 				if ( is_callable( array( $renewal_order, 'save' ) ) ) {
 					$renewal_order->save();
 				}
-
-				$this->process_authentication_required_response( $renewal_order );
 			} else {
 				// The charge was successfully captured
 				do_action( 'wc_gateway_stripe_process_payment', $response, $renewal_order );
