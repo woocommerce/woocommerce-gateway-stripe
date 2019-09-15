@@ -39,9 +39,6 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			 */
 			add_action( 'template_redirect', array( $this, 'remove_order_pay_var' ), 99 );
 			add_action( 'template_redirect', array( $this, 'restore_order_pay_var' ), 101 );
-
-			// Add subs emails.
-			add_filter( 'woocommerce_email_classes', array( $this, 'add_emails' ), 20 );
 		}
 	}
 
@@ -611,27 +608,5 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		if ( isset( $this->order_pay_var ) ) {
 			$wp->query_vars['order-pay'] = $this->order_pay_var;
 		}
-	}
-
-	/**
-	 * Adds the failed SCA auth email to WooCommerce.
-	 *
-	 * @param object[] $email_classes All existing emails.
-	 * @return object[]
-	 */
-	public function add_emails( $email_classes ) {
-		require_once dirname( WC_STRIPE_MAIN_FILE ) . '/includes/compat/class-wc-stripe-email-failed-offsession-authentication.php';
-
-		// Store a reference to the original renewal invoice in order to disable it if an SCA one was already sent.
-		$renewal_invoice_email = null;
-		if ( isset( $email_classes['WCS_Email_Customer_Renewal_Invoice'] ) ) {
-			$renewal_invoice_email = $email_classes['WCS_Email_Customer_Renewal_Invoice'];
-		}
-
-		// Add the SCA email.
-		$sca_email = new WC_Stripe_Email_Failed_Offsession_Authentication( $renewal_invoice_email );
-		$email_classes['WC_Stripe_Email_Failed_Offsession_Authentication'] = $sca_email;
-
-		return $email_classes;
 	}
 }
