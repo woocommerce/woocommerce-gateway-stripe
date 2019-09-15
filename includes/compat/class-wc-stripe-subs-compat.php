@@ -245,11 +245,11 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 
 			$response = $this->create_and_confirm_intent_for_renewal( $amount, $renewal_order, $prepared_source );
 
-			$charge_requires_authentication = $this->is_authentication_required_for_payment( $response );
+			$is_authentication_required = $this->is_authentication_required_for_payment( $response );
 
 			// It's only a failed payment if it's an error and it's not of the type 'authentication_required'.
 			// If it's 'authentication_required', then we should email the user and ask them to authenticate.
-			if ( ! empty( $response->error ) && ! $charge_requires_authentication ) {
+			if ( ! empty( $response->error ) && ! $is_authentication_required ) {
 				// We want to retry.
 				if ( $this->is_retryable_error( $response->error ) ) {
 					if ( $retry ) {
@@ -285,8 +285,8 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 
 			// Either the charge was successfully captured, or it requires further authentication.
 
-			if ( $charge_requires_authentication ) {
-				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $response, $renewal_order );
+			if ( $is_authentication_required ) {
+				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order, $response );
 
 				$error_message = __( 'This transaction requires authentication.', 'woocommerce-gateway-stripe' );
 				$renewal_order->add_order_note( $error_message );
@@ -356,9 +356,9 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		}
 
 		$intent = WC_Stripe_API::request( $request, 'payment_intents' );
-		$intent_requires_authentication = $this->is_authentication_required_for_payment( $intent );
+		$is_authentication_required = $this->is_authentication_required_for_payment( $intent );
 
-		if ( ! empty( $intent->error ) && ! $intent_requires_authentication ) {
+		if ( ! empty( $intent->error ) && ! $is_authentication_required ) {
 			return $intent;
 		}
 
