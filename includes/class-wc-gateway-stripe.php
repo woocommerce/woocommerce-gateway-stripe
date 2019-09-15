@@ -1073,9 +1073,4 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		return ( ! empty( $intent->error ) && 'authentication_required' === $intent->error->code )
 			|| ( ! empty( $intent->last_payment_error ) && 'authentication_required' === $intent->last_payment_error->code );
 	}
-
-	public function process_authentication_required_response( $order ) {
-		$auth_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
-		$order->add_order_note( '[TODO: send a real e-mail here] Go here to authenticate: ' . $auth_url, true );
-	}
 }
