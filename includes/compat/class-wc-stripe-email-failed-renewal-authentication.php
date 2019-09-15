@@ -58,7 +58,7 @@ class WC_Stripe_Email_Failed_Renewal_Authentication extends WC_Stripe_Email_Fail
 	 * @return string
 	 */
 	public function get_default_subject() {
-		return __( 'Payment authorization needed for renewal order {order_number}', 'woocommerce-gateway-stripe' );
+		return __( 'Payment authorization needed for renewal of {site_title} order {order_number}', 'woocommerce-gateway-stripe' );
 	}
 
 	/**
@@ -67,6 +67,6 @@ class WC_Stripe_Email_Failed_Renewal_Authentication extends WC_Stripe_Email_Fail
 	 * @return string
 	 */
 	public function get_default_heading() {
-		return __( 'Payment authorization needed for renewal order {order_number}', 'woocommerce-gateway-stripe' );
+		return __( 'Payment authorization needed for renewal of order {order_number}', 'woocommerce-gateway-stripe' );
 	}
 }
