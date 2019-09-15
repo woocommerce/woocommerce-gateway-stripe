@@ -25,7 +25,7 @@ class WC_Stripe_Email_Failed_Preorder_Authentication extends WC_Stripe_Email_Fai
 		$this->template_base  = plugin_dir_path( WC_STRIPE_MAIN_FILE ) . 'templates/';
 
 		// Triggers the email at the correct hook.
-		add_action( 'wc_gateway_stripe_process_payment_error', array( $this, 'trigger' ), 10, 2 );
+		add_action( 'wc_gateway_stripe_process_payment_authentication_required', array( $this, 'trigger' ), 10, 2 );
 
 		if ( isset( $email_classes['WC_Pre_Orders_Email_Pre_Order_Available'] ) ) {
 			$this->original_email = $email_classes['WC_Pre_Orders_Email_Pre_Order_Available'];
@@ -38,12 +38,11 @@ class WC_Stripe_Email_Failed_Preorder_Authentication extends WC_Stripe_Email_Fai
 	/**
 	 * Triggers the email while also disconnecting the original Pre-Orders email.
 	 *
-	 * @param WC_Stripe_Exception $error The exception that occured.
-	 * @param WC_Order            $order The order that is being paid.
+	 * @param WC_Order $order The order that is being paid.
 	 */
-	public function trigger( $error, $order = null ) {
+	public function trigger( $order ) {
 		if ( WC_Pre_Orders_Order::order_contains_pre_order( $order->get_id() ) ) {
-			parent::trigger( $error, $order );
+			parent::trigger( $order );
 
 			if ( isset( $this->original_email ) ) {
 				remove_action( 'wc_pre_order_status_completed_notification', array( $this->original_email, 'trigger' ), 10, 2 );
