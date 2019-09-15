@@ -103,14 +103,23 @@ abstract class WC_Stripe_Email_Failed_Authentication extends WC_Email {
 			return;
 		}
 
-		$this->object    = $order;
-		$this->recipient = wcs_get_objects_property( $this->object, 'billing_email' );
+		$this->object = $order;
 
-		$this->find['order_date']    = '{order_date}';
-		$this->replace['order_date'] = wcs_format_datetime( wcs_get_objects_property( $this->object, 'date_created' ) );
+		if ( method_exists( $order, 'get_billing_email' ) ) {
+			$this->recipient = $order->get_billing_email();
+		} else {
+			$this->recipient = $order->billing_email;
+		}
+
+		$this->find['order_date'] = '{order_date}';
+		if ( function_exists( 'wc_format_datetime' ) ) { // WC 3.0+
+			$this->replace['order_date'] = wc_format_datetime( $order->get_date_created() );
+		} else { // WC < 3.0
+			$this->replace['order_date'] = $order->date_created->date_i18n( wc_date_format() );
+		}
 
 		$this->find['order_number']    = '{order_number}';
-		$this->replace['order_number'] = $this->object->get_order_number();
+		$this->replace['order_number'] = $order->get_order_number();
 
 		$this->send( $this->get_recipient(), $this->get_subject(), $this->get_content(), $this->get_headers(), $this->get_attachments() );
 	}
