@@ -1083,9 +1083,4 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			: __( 'Stripe SCA authentication failed.', 'woocommerce-gateway-stripe' );
 		$order->update_status( 'failed', $status_message );
 	}
-
-	public function process_authentication_required_response( $order ) {
-		$auth_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
-		$order->add_order_note( '[TODO: send a real e-mail here] Go here to authenticate: ' . $auth_url, true );
-	}
 }

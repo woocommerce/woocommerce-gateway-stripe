@@ -96,15 +96,10 @@ abstract class WC_Stripe_Email_Failed_Authentication extends WC_Email {
 	/**
 	 * Triggers the email.
 	 *
-	 * @param WC_Stripe_Exception $error An exception that occured.
-	 * @param WC_Order            $order The renewal order whose payment failed.
+	 * @param WC_Order $order The renewal order whose payment failed.
 	 */
-	public function trigger( $error, $order ) {
+	public function trigger( $order ) {
 		if ( ! $this->is_enabled() ) {
-			return;
-		}
-
-		if ( false === strpos( $error->getMessage(), 'authentication_required' ) ) {
 			return;
 		}
 
