@@ -543,8 +543,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		);
 
 		if ( $force_save_source ) {
-			$order_id      = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
-			$intent_secret = $this->setup_intent( $order_id, $prepared_source );
+			$intent_secret = $this->setup_intent( $order, $prepared_source );
 
 			if ( ! empty( $intent_secret ) ) {
 				$response['setup_intent_secret'] = $intent_secret;
@@ -553,34 +552,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// Return thank you page redirect.
 		return $response;
-	}
-
-	/**
-	 * Creates a SetupIntent for future payments, and saves it to the order.
-	 *
-	 * @param int    $order_id        The ID of the (free/pre- order).
-	 * @param object $prepared_source The source, entered/chosen by the customer.
-	 * @return string                 The client secret of the intent, used for confirmation in JS.
-	 */
-	public function setup_intent( $order_id, $prepared_source ) {
-		$setup_intent = WC_Stripe_API::request( array(
-			'payment_method' => $prepared_source->source,
-			'customer'       => $prepared_source->customer,
-			'confirm'        => 'true',
-		), 'setup_intents' );
-
-		if ( is_wp_error( $setup_intent ) ) {
-			WC_Stripe_Logger::log( "Unable to create SetupIntent for Order #$order_id: " . print_r( $setup_intent, true ) );
-		} elseif ( 'requires_action' === $setup_intent->status ) {
-			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-				update_post_meta( $order_id, '_stripe_setup_intent', $setup_intent->id );
-			} else {
-				$order->update_meta_data( '_stripe_setup_intent', $setup_intent->id );
-				$order->save();
-			}
-
-			return $setup_intent->client_secret;
-		}
 	}
 
 	public function thankyou_page( $order_id ) {
@@ -636,6 +607,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false ) {
 		try {
 			$order = wc_get_order( $order_id );
+
+			$this->maybe_create_customer( $order );
 
 			// ToDo: `process_pre_order` saves the source to the order for a later payment.
 			// This might not work well with PaymentIntents.
