@@ -1235,4 +1235,33 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			&& 'authentication_required' === $response->error->code
 		);
 	}
+
+	/**
+	 * Creates a SetupIntent for future payments, and saves it to the order.
+	 *
+	 * @param WC_Order $order           The ID of the (free/pre- order).
+	 * @param object   $prepared_source The source, entered/chosen by the customer.
+	 * @return string                   The client secret of the intent, used for confirmation in JS.
+	 */
+	public function setup_intent( $order, $prepared_source ) {
+		$order_id     = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+		$setup_intent = WC_Stripe_API::request( array(
+			'payment_method' => $prepared_source->source,
+			'customer'       => $prepared_source->customer,
+			'confirm'        => 'true',
+		), 'setup_intents' );
+
+		if ( is_wp_error( $setup_intent ) ) {
+			WC_Stripe_Logger::log( "Unable to create SetupIntent for Order #$order_id: " . print_r( $setup_intent, true ) );
+		} elseif ( 'requires_action' === $setup_intent->status ) {
+			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+				update_post_meta( $order_id, '_stripe_setup_intent', $setup_intent->id );
+			} else {
+				$order->update_meta_data( '_stripe_setup_intent', $setup_intent->id );
+				$order->save();
+			}
+
+			return $setup_intent->client_secret;
+		}
+	}
 }
