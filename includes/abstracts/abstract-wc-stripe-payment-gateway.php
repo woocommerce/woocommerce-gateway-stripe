@@ -1023,13 +1023,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Create a new PaymentIntent.
+	 * Generates the request when creating a new payment intent.
 	 *
 	 * @param WC_Order $order           The order that is being paid for.
 	 * @param object   $prepared_source The source that is used for the payment.
-	 * @return object                   An intent or an error.
+	 * @return array                    The arguments for the request.
 	 */
-	public function create_intent( $order, $prepared_source ) {
+	public function generate_create_intent_request( $order, $prepared_source ) {
 		// The request for a charge contains metadata for the intent.
 		$full_request = $this->generate_payment_request( $order, $prepared_source );
 
@@ -1039,7 +1039,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'currency'             => strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency() ),
 			'description'          => $full_request['description'],
 			'metadata'             => $full_request['metadata'],
-			'statement_descriptor' => $full_request['statement_descriptor'],
 			'capture_method'       => ( 'true' === $full_request['capture'] ) ? 'automatic' : 'manual',
 			'payment_method_types' => array(
 				'card',
@@ -1049,6 +1048,31 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( $prepared_source->customer ) {
 			$request['customer'] = $prepared_source->customer;
 		}
+
+		if ( isset( $full_request['statement_descriptor'] ) ) {
+			$request['statement_descriptor'] = $full_request['statement_descriptor'];
+		}
+
+		/**
+		 * Filter the return value of the WC_Payment_Gateway_CC::generate_create_intent_request.
+		 *
+		 * @since 3.1.0
+		 * @param array $request
+		 * @param WC_Order $order
+		 * @param object $source
+		 */
+		return apply_filters( 'wc_stripe_generate_create_intent_request', $request, $order, $prepared_source );
+	}
+
+	/**
+	 * Create a new PaymentIntent.
+	 *
+	 * @param WC_Order $order           The order that is being paid for.
+	 * @param object   $prepared_source The source that is used for the payment.
+	 * @return object                   An intent or an error.
+	 */
+	public function create_intent( $order, $prepared_source ) {
+		$request = $this->generate_create_intent_request( $order, $prepared_source );
 
 		// Create an intent that awaits an action.
 		$intent = WC_Stripe_API::request( $request, 'payment_intents' );
