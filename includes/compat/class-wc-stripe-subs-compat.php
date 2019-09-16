@@ -208,6 +208,11 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 
 			$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id();
 
+			// Check for an existing intent, which is associated with the order.
+			if ( $this->has_authentication_already_failed( $renewal_order ) ) {
+				return;
+			}
+
 			// Get source from order
 			$prepared_source = $this->prepare_order_source( $renewal_order );
 			$source_object   = $prepared_source->source_object;
@@ -273,7 +278,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			// Either the charge was successfully captured, or it requires further authentication.
 
 			if ( $charge_requires_authentication ) {
-				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order, $response );
+				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order );
 
 				$error_message = 'This transaction requires authentication.';
 				$renewal_order->add_order_note( $error_message );
@@ -606,5 +611,41 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		if ( isset( $this->order_pay_var ) ) {
 			$wp->query_vars['order-pay'] = $this->order_pay_var;
 		}
+	}
+
+	/**
+	 * Checks if a renewal already failed because a manual authentication is required.
+	 *
+	 * @param WC_Order $renewal_order The renewal order.
+	 * @return boolean
+	 */
+	public function has_authentication_already_failed( $renewal_order ) {
+		$existing_intent = $this->get_intent_from_order( $renewal_order );
+
+		if (
+			! $existing_intent
+			|| 'requires_payment_method' !== $existing_intent->status
+			|| empty( $existing_intent->last_payment_error )
+			|| 'authentication_required' !== $existing_intent->last_payment_error->code
+		) {
+			return false;
+		}
+
+		// Make sure all emails are instantiated.
+		WC_Emails::instance();
+
+		/**
+		 * A payment attempt failed because SCA authentication is required.
+		 *
+		 * @param WC_Order $renewal_order The order that is being renewed.
+		 */
+		do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order );
+
+		// Fail the payment attempt (order would be currently pending because of retry rules).
+		$charge    = end( $existing_intent->charges->data );
+		$charge_id = $charge->id;
+		$renewal_order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $charge_id ) );
+
+		return true;
 	}
 }
