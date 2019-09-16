@@ -25,7 +25,7 @@ class WC_Stripe_Email_Failed_Renewal_Authentication extends WC_Stripe_Email_Fail
 		$this->template_base  = plugin_dir_path( WC_STRIPE_MAIN_FILE ) . 'templates/';
 
 		// Triggers the email at the correct hook.
-		add_action( 'wc_gateway_stripe_process_payment_authentication_required', array( $this, 'trigger' ), 10, 2 );
+		add_action( 'wc_gateway_stripe_process_payment_authentication_required', array( $this, 'trigger' ) );
 
 		if ( isset( $email_classes['WCS_Email_Customer_Renewal_Invoice'] ) ) {
 			$this->original_email = $email_classes['WCS_Email_Customer_Renewal_Invoice'];
@@ -42,13 +42,16 @@ class WC_Stripe_Email_Failed_Renewal_Authentication extends WC_Stripe_Email_Fail
 	 */
 	public function trigger( $order ) {
 		if ( function_exists( 'wcs_order_contains_subscription' ) && ( wcs_order_contains_subscription( $order->get_id() ) || wcs_is_subscription( $order->get_id() ) || wcs_order_contains_renewal( $order->get_id() ) ) ) {
+			parent::trigger( $order );
+
 			// Prevent the renewal email from WooCommerce Subscriptions from being sent.
 			if ( isset( $this->original_email ) ) {
 				remove_action( 'woocommerce_generated_manual_renewal_order_renewal_notification', array( $this->original_email, 'trigger' ) );
 				remove_action( 'woocommerce_order_status_failed_renewal_notification', array( $this->original_email, 'trigger' ) );
 			}
 
-			parent::trigger( $order );
+			// Prevent the retry email from WooCommerce Subscriptions from being sent.
+			add_filter( 'wcs_get_retry_rule_raw', array( $this, 'prevent_retry_notification_email' ), 100, 3 );
 		}
 	}
 
@@ -68,5 +71,21 @@ class WC_Stripe_Email_Failed_Renewal_Authentication extends WC_Stripe_Email_Fail
 	 */
 	public function get_default_heading() {
 		return __( 'Payment authorization needed for renewal of order {order_number}', 'woocommerce-gateway-stripe' );
+	}
+
+	/**
+	 * Prevent all customer-facing retry notifications from being sent after this email.
+	 *
+	 * @param array $rule_array   The raw details about the retry rule.
+	 * @param int   $retry_number The number of the retry.
+	 * @param int   $order_id     The ID of the order that needs payment.
+	 * @return array
+	 */
+	public function prevent_retry_notification_email( $rule_array, $retry_number, $order_id ) {
+		if ( wcs_get_objects_property( $this->object, 'id' ) === $order_id ) {
+			$rule_array['email_template_customer'] = '';
+		}
+
+		return $rule_array;
 	}
 }
