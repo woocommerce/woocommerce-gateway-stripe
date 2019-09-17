@@ -5,6 +5,7 @@
 * Fix - Add payment request button compatibility with variable subscriptions
 * Tweak - Do not show payment request button for shippable trial subscription products
 * Fix - Do not copy the payment intent id when creating a subscription renewal
+* Fix - Return early from check intent status if no order - props strayobject
 
 = 4.2.3 - 2019-07-18 =
 * Fix - Ignore "payment failed" webhooks if they come after another payment has already succeeded for that order.
