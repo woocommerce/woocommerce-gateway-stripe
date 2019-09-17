@@ -9,6 +9,7 @@
 * Fix - Extend webhook time window from 1 to 5 minutes to match Stripe client
 * Update - WooCommerce 3.7 compatibility
 * Update - Apple Pay Domain association file
+* Update - Grandfather pre-SCA subscription renewals for SCA
 
 = 4.2.3 - 2019-07-18 =
 * Fix - Ignore "payment failed" webhooks if they come after another payment has already succeeded for that order.
