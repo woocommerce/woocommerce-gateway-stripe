@@ -121,6 +121,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Return early from check intent status if no order - props strayobject
 * Fix - Extend webhook time window from 1 to 5 minutes to match Stripe client
 * Update - WooCommerce 3.7 compatibility
+* Update - Apple Pay Domain association file
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
