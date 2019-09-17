@@ -2,9 +2,9 @@
 Contributors: automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
 Requires at least: 4.4
-Tested up to: 5.2.1
+Tested up to: 5.2.2
 Requires PHP: 5.6
-Stable tag: 4.2.3
+Stable tag: 4.2.4
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -114,9 +114,13 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 4.x.x - 2019-x-x =
+* Fix - Unclear error message when email address not completely filled in.
 * Fix - Add payment request button compatibility with variable subscriptions
 * Tweak - Do not show payment request button for shippable trial subscription products
 * Fix - Do not copy the payment intent id when creating a subscription renewal
+* Fix - Return early from check intent status if no order - props strayobject
+* Fix - Extend webhook time window from 1 to 5 minutes to match Stripe client
+* Update - WooCommerce 3.7 compatibility
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
