@@ -906,6 +906,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		$order = wc_get_order( absint( $order_id ) );
+
+		if ( ! $order ) {
+			return;
+		}
+
 		$this->verify_intent_after_checkout( $order );
 	}
 
