@@ -113,7 +113,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.x.x - 2019-x-x =
+= 4.x.x - 2019-09-18 =
 * Fix - Unclear error message when email address not completely filled in.
 * Fix - Add payment request button compatibility with variable subscriptions
 * Tweak - Do not show payment request button for shippable trial subscription products
