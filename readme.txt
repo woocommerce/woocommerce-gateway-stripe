@@ -122,6 +122,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Extend webhook time window from 1 to 5 minutes to match Stripe client
 * Update - WooCommerce 3.7 compatibility
 * Update - Apple Pay Domain association file
+* Update - Grandfather pre-SCA subscription renewals for SCA
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
