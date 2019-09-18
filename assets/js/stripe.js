@@ -4,9 +4,7 @@ jQuery( function( $ ) {
 	'use strict';
 
 	try {
-		var stripe = Stripe( wc_stripe_params.key, {
-			betas: [ 'payment_intent_beta_3' ],
-		} );
+		var stripe = Stripe( wc_stripe_params.key );
 	} catch( error ) {
 		console.log( error );
 		return;
