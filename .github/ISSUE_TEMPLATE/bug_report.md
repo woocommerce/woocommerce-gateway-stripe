@@ -26,7 +26,7 @@ If applicable, add screenshots to help explain your problem.
 **Environment (please complete the following information):**
  - WordPress Version
  - WooCommerce Version
- - PayPal Express Checkout Plugin Version
+ - Stripe Plugin Version
  - Browser [e.g. chrome, safari] and Version
  - Any other plugins installed
 
