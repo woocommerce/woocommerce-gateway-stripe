@@ -383,7 +383,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function payment_scripts() {
-		if ( ! is_product() && ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) ) { // wpcs: csrf ok.
+		if ( ! is_product() && ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) || ( is_order_received_page() ) ) { // wpcs: csrf ok.
 			return;
 		}
 
