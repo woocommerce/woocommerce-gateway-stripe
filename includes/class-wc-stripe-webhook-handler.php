@@ -329,6 +329,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				// Store other data such as fees
 				WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_transaction_id', $notification->data->object->id ) : $order->set_transaction_id( $notification->data->object->id );
+				WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_test_mode', $notification->data->object->livemode ? 'no' : 'yes' ) : $order->update_meta_data( '_test_mode', $notification->data->object->livemode ? 'no' : 'yes' );
 
 				if ( isset( $notification->data->object->balance_transaction ) ) {
 					$this->update_fees( $order, $notification->data->object->balance_transaction );
@@ -389,6 +390,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Store other data such as fees
 		WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_transaction_id', $notification->data->object->id ) : $order->set_transaction_id( $notification->data->object->id );
+		WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_test_mode', $notification->data->object->livemode ? 'no' : 'yes' ) : $order->update_meta_data( '_test_mode', $notification->data->object->livemode ? 'no' : 'yes' );
 
 		if ( isset( $notification->data->object->balance_transaction ) ) {
 			$this->update_fees( $order, $notification->data->object->balance_transaction );

@@ -428,6 +428,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				}
 
 				WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_transaction_id', $response->id ) : $order->set_transaction_id( $response->id );
+				WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_test_mode', $this->testmode ? 'yes' : 'no' ) : $order->update_meta_data( '_test_mode', $this->testmode ? 'yes' : 'no' );
 				/* translators: transaction id */
 				$order->update_status( 'on-hold', sprintf( __( 'Stripe charge awaiting payment: %s.', 'woocommerce-gateway-stripe' ), $response->id ) );
 			}
@@ -447,6 +448,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 		} else {
 			WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_transaction_id', $response->id ) : $order->set_transaction_id( $response->id );
+			WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_test_mode', $this->testmode ? 'yes' : 'no' ) : $order->update_meta_data( '_test_mode', $this->testmode ? 'yes' : 'no' );
 
 			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
 				WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->reduce_order_stock() : wc_reduce_stock_levels( $order_id );
