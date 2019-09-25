@@ -838,7 +838,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		add_filter( 'woocommerce_checkout_show_terms', '__return_false' );
 		add_filter( 'woocommerce_pay_order_button_html', '__return_false' );
-		add_filter( 'woocommerce_available_payment_gateways', array( $this, '__return_empty_array' ) );
+		add_filter( 'woocommerce_available_payment_gateways', '__return_empty_array' );
 		add_filter( 'woocommerce_no_available_payment_methods_message', array( $this, 'change_no_available_methods_message' ) );
 		add_action( 'woocommerce_pay_order_after_submit', array( $this, 'render_payment_intent_inputs' ) );
 
