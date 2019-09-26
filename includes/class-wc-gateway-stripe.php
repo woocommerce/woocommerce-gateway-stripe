@@ -670,8 +670,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$this->process_response( $response, $order );
 
 			// Remove cart.
-			WC()->cart->empty_cart();
-
+			if ( isset( WC()->cart ) ) {
+				WC()->cart->empty_cart();
+			}
+			
 			// Unlock the order.
 			$this->unlock_order_payment( $order );
 
