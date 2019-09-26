@@ -30,6 +30,15 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			add_filter( 'woocommerce_subscription_payment_meta', array( $this, 'add_subscription_payment_meta' ), 10, 2 );
 			add_filter( 'woocommerce_subscription_validate_payment_meta', array( $this, 'validate_subscription_payment_meta' ), 10, 2 );
 			add_filter( 'wc_stripe_display_save_payment_method_checkbox', array( $this, 'maybe_hide_save_checkbox' ) );
+
+			/*
+			 * WC subscriptions hooks into the "template_redirect" hook with priority 100.
+			 * If the screen is "Pay for order" and the order is a subscription renewal, it redirects to the plain checkout.
+			 * See: https://github.com/woocommerce/woocommerce-subscriptions/blob/99a75687e109b64cbc07af6e5518458a6305f366/includes/class-wcs-cart-renewal.php#L165
+			 * If we are in the "You just need to authorize SCA" flow, we don't want that redirection to happen.
+			 */
+			add_action( 'template_redirect', array( $this, 'remove_order_pay_var' ), 99 );
+			add_action( 'template_redirect', array( $this, 'restore_order_pay_var' ), 101 );
 		}
 	}
 
@@ -296,12 +305,12 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 				$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id();
 
 				WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_transaction_id', $id ) : $renewal_order->set_transaction_id( $id );
-				$renewal_order->update_status( 'on-hold', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
+				$renewal_order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
 				if ( is_callable( array( $renewal_order, 'save' ) ) ) {
 					$renewal_order->save();
 				}
 
-				$this->process_authentication_required_response();
+				$this->process_authentication_required_response( $renewal_order );
 			} else {
 				// The charge was successfully captured
 				do_action( 'wc_gateway_stripe_process_payment', $response, $renewal_order );
@@ -377,12 +386,6 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		$this->save_intent_to_order( $order, $payment_intent );
 
 		return $intent;
-	}
-
-	public function process_authentication_required_response() {
-		// TODO: Email the user about the payment requring authentication.
-		// TODO: Make sure that store owner knows not to fulfill this yet.
-		// TODO: Make sure that if authentication is provided, order fails.
 	}
 
 	/**
@@ -613,5 +616,27 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		}
 
 		return $payment_method_to_display;
+	}
+
+	/**
+	 * If this is the "Pass the SCA challenge" flow, remove a variable that is checked by WC Subscriptions
+	 * so WC Subscriptions doesn't redirect to the checkout
+	 */
+	public function remove_order_pay_var() {
+		global $wp;
+		if ( isset( $_GET['wc-stripe-confirmation'] ) ) {
+			$this->order_pay_var = $wp->query_vars['order-pay'];
+			$wp->query_vars['order-pay'] = null;
+		}
+	}
+
+	/**
+	 * Restore the variable that was removed in remove_order_pay_var()
+	 */
+	public function restore_order_pay_var() {
+		global $wp;
+		if ( isset( $this->order_pay_var ) ) {
+			$wp->query_vars['order-pay'] = $this->order_pay_var;
+		}
 	}
 }
