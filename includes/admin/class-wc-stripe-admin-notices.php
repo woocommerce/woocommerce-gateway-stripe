@@ -23,6 +23,7 @@ class WC_Stripe_Admin_Notices {
 	public function __construct() {
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
 		add_action( 'wp_loaded', array( $this, 'hide_notices' ) );
+		add_action( 'woocommerce_stripe_updated', array( $this, 'stripe_updated' ) );
 	}
 
 	/**
@@ -309,6 +310,20 @@ class WC_Stripe_Admin_Notices {
 		$section_slug = $use_id_as_section ? 'stripe' : strtolower( 'WC_Gateway_Stripe' );
 
 		return admin_url( 'admin.php?page=wc-settings&tab=checkout&section=' . $section_slug );
+	}
+
+	/**
+	 * Saves options in order to hide notices based on the gateway's version.
+	 *
+	 * @since 4.3.0
+	 */
+	public function stripe_updated() {
+		$previous_version = get_option( 'wc_stripe_version' );
+
+		// Only show the style notice if the plugin was installed and older than 4.1.4.
+		if ( empty( $previous_version ) || version_compare( $previous_version, '4.1.4', 'ge' ) ) {
+			update_option( 'wc_stripe_show_style_notice', 'no' );
+		}
 	}
 }
 
