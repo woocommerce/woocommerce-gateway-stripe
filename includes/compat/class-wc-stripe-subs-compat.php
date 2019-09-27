@@ -300,8 +300,8 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			$request['statement_descriptor'] = $full_request['statement_descriptor'];
 		}
 
-		if ( $prepared_source->customer ) {
-			$request['customer'] = $prepared_source->customer;
+		if ( isset( $full_request['customer'] ) ) {
+			$request['customer'] = $full_request['customer'];
 		}
 
 		if ( isset( $full_request['source'] ) ) {
