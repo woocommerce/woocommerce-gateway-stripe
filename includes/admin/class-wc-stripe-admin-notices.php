@@ -129,7 +129,7 @@ class WC_Stripe_Admin_Notices {
 				/* translators: 1) int version 2) int version */
 				$message = __( 'WooCommerce Stripe - We recently made changes to Stripe that may impact the appearance of your checkout. If your checkout has changed unexpectedly, please follow these <a href="https://docs.woocommerce.com/document/stripe/#section-45" target="_blank">instructions</a> to fix.', 'woocommerce-gateway-stripe' );
 
-				$this->add_admin_notice( 'style', 'error', $message, true );
+				$this->add_admin_notice( 'style', 'notice notice-warning', $message, true );
 
 				return;
 			}
