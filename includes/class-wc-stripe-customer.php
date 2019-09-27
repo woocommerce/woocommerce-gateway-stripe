@@ -123,9 +123,14 @@ class WC_Stripe_Customer {
 				'description' => $description,
 			);
 		} else {
+			$billing_first_name = isset( $_POST['billing_first_name'] ) ? filter_var( wp_unslash( $_POST['billing_first_name'] ), FILTER_SANITIZE_STRING ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+			$billing_last_name  = isset( $_POST['billing_last_name'] ) ? filter_var( wp_unslash( $_POST['billing_last_name'] ), FILTER_SANITIZE_STRING ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+
+			$description = __( 'Name', 'woocommerce-gateway-stripe' ) . ': ' . $billing_first_name . ' ' . $billing_last_name . ' ' . __( ', Guest', 'woocommerce-gateway-stripe' );
+
 			$defaults = array(
 				'email'       => $billing_email,
-				'description' => '',
+				'description' => $description,
 			);
 		}
 
