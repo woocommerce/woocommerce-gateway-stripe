@@ -91,6 +91,8 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 	 * @return void
 	 */
 	public function process_pre_order_release_payment( $order ) {
+		add_filter( 'wc_stripe_idempotency_key', array( $this, 'change_idempotency_key' ), 10, 2 );
+
 		try {
 			// Define some callbacks if the first attempt fails.
 			$retry_callbacks = array(
@@ -127,5 +129,23 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 				$order->add_order_note( $order_note );
 			}
 		}
+
+		remove_filter( 'wc_stripe_idempotency_key', array( $this, 'change_idempotency_key' ), 10, 2 );
+	}
+
+	/**
+	 * Because of retry callbacks, the default idempotency key would remain
+	 * the same by default, even tough the request will change (source and/or customer params).
+	 * This method will include both the source and the customer in the idempotency key to fix that.
+	 *
+	 * @param string $idempotency_key WC_Stripe_API's idempotency key.
+	 * @param array  $request         All of the request's parameters.
+	 * @return string                 An idempotency key, which includes both the customer, and the source.
+	 */
+	public function change_idempotency_key( $idempotency_key, $request ) {
+		$customer = ! empty( $request['customer'] ) ? $request['customer'] : '';
+		$source   = ! empty( $request['source'] ) ? $request['source'] : $customer;
+
+		return $request['metadata']['order_id'] . '-' . $source . '-' . $customer;
 	}
 }
