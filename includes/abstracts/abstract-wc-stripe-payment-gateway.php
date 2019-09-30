@@ -548,7 +548,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return bool
 	 */
 	public function is_prepaid_card( $source_object ) {
-		return ( $source_object && 'token' === $source_object->object && 'prepaid' === $source_object->card->funding );
+		return (
+			$source_object
+			&& ( 'token' === $source_object->object || 'source' === $source_object->object )
+			&& 'prepaid' === $source_object->card->funding
+		);
 	}
 
 	/**
