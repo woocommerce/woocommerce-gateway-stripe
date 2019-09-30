@@ -249,23 +249,6 @@ jQuery( function( $ ) {
 			// Listen for hash changes in order to handle payment intents
 			window.addEventListener( 'hashchange', wc_stripe_form.onHashChange );
 			wc_stripe_form.maybeConfirmIntent();
-
-			// Add the "confirm setup intent" button handler on the "Order Received" page
-			var authorizeButtonEnabled = true;
-			$( '#stripe-setup-intent-authorize-button' ).click( function() {
-				if ( ! authorizeButtonEnabled ) {
-					return;
-				}
-				authorizeButtonEnabled = false;
-				stripe.handleCardSetup( $( '#stripe-setup-intent-authorize-button' ).data( 'secret' ) )
-					.then( function( data ) {
-						if ( 'succeeded' === data.setupIntent.status ) {
-							$( '#stripe-setup-intent-authorize-container' ).hide();
-						} else {
-							window.location.reload();
-						}
-					} );
-			} );
 		},
 
 		/**
@@ -751,17 +734,7 @@ jQuery( function( $ ) {
 			// Cleanup the URL
 			window.location.hash = '';
 
-			switch ( type ) {
-				case 'pi': // Payment Intent
-					wc_stripe_form.openIntentModal( intentClientSecret, redirectURL );
-					break;
-				case 'si': // Setup Intent
-					stripe.handleCardSetup( intentClientSecret )
-						.then( function() {
-							window.location = redirectURL;
-						} );
-					break;
-			}
+			wc_stripe_form.openIntentModal( intentClientSecret, redirectURL, false, 'si' === type );
 		},
 
 		maybeConfirmIntent: function() {
@@ -772,7 +745,7 @@ jQuery( function( $ ) {
 			var intentSecret = $( '#stripe-intent-id' ).val();
 			var returnURL    = $( '#stripe-intent-return' ).val();
 
-			wc_stripe_form.openIntentModal( intentSecret, returnURL, true );
+			wc_stripe_form.openIntentModal( intentSecret, returnURL, true, false );
 		},
 
 		/**
@@ -782,15 +755,18 @@ jQuery( function( $ ) {
 		 * @param {string}  redirectURL        The URL to ping on fail or redirect to on success.
 		 * @param {boolean} alwaysRedirect     If set to true, an immediate redirect will happen no matter the result.
 		 *                                     If not, an error will be displayed on failure.
+		 * @param {boolean} isSetupIntent      If set to true, ameans that the flow is handling a Setup Intent.
+		 *                                     If false, it's a Payment Intent.
 		 */
-		openIntentModal: function( intentClientSecret, redirectURL, alwaysRedirect ) {
-			stripe.handleCardPayment( intentClientSecret )
+		openIntentModal: function( intentClientSecret, redirectURL, alwaysRedirect, isSetupIntent ) {
+			stripe[ isSetupIntent ? 'handleCardSetup' : 'handleCardPayment' ]( intentClientSecret )
 				.then( function( response ) {
 					if ( response.error ) {
 						throw response.error;
 					}
 
-					if ( 'requires_capture' !== response.paymentIntent.status && 'succeeded' !== response.paymentIntent.status ) {
+					var intent = response[ isSetupIntent ? 'setupIntent' : 'paymentIntent' ];
+					if ( 'requires_capture' !== intent.status && 'succeeded' !== intent.status ) {
 						return;
 					}
 

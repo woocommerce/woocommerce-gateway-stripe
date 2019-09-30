@@ -692,6 +692,39 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$this->unlock_order_payment( $order );
 	}
 
+	public function process_setup_intent( $notification ) {
+		$intent = $notification->data->object;
+		$order = WC_Stripe_Helper::get_order_by_setup_intent_id( $intent->id );
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::log( 'Could not find order via setup intent ID: ' . $intent->id );
+			return;
+		}
+
+		if ( 'pending' !== $order->get_status() && 'failed' !== $order->get_status() ) {
+			return;
+		}
+
+		if ( $this->lock_order_payment( $order, $intent ) ) {
+			return;
+		}
+
+		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+		if ( 'setup_intent.succeeded' === $notification->type ) {
+			WC_Stripe_Logger::log( "Stripe SetupIntent $intent->id succeeded for order $order_id" );
+			$order->payment_complete();
+		} else {
+			$error_message = $intent->last_setup_error ? $intent->last_setup_error->message : "";
+
+			/* translators: 1) The error message that was received from Stripe. */
+			$order->update_status( 'failed', sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message ) );
+
+			$this->send_failed_order_email( $order_id );
+		}
+
+		$this->unlock_order_payment( $order );
+	}
+
 	/**
 	 * Processes the incoming webhook.
 	 *
@@ -743,6 +776,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			case 'payment_intent.payment_failed':
 			case 'payment_intent.amount_capturable_updated':
 				$this->process_payment_intent_success( $notification );
+
+			case 'setup_intent.succeeded':
+			case 'setup_intent.setup_failed':
+				$this->process_setup_intent( $notification );
 
 		}
 	}
