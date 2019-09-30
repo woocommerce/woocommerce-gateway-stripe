@@ -139,7 +139,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_account_view-order_endpoint', array( $this, 'check_intent_status_on_order_page' ), 1 );
 		add_filter( 'woocommerce_payment_successful_result', array( $this, 'modify_successful_payment_result' ), 99999, 2 );
 		add_action( 'set_logged_in_cookie', array( $this, 'set_cookie_on_current_request' ) );
-		add_action( 'woocommerce_thankyou', array( $this, 'thankyou_page' ) );
 
 		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
 			$this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
@@ -372,8 +371,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function payment_scripts() {
-		// TODO: We only need to enqueue stripe.js in the Order Received page if the order has an unresolved Setup Intent
-		if ( ! is_product() && ! is_cart() && ! is_checkout() && ! is_order_received_page() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) ) { // wpcs: csrf ok.
+		if ( ! is_product() && ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) || ( is_order_received_page() ) ) { // wpcs: csrf ok.
 			return;
 		}
 
@@ -550,11 +548,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return array                      Redirection data for `process_payment`.
 	 */
 	public function complete_free_order( $order, $prepared_source, $force_save_source ) {
-		$order->payment_complete();
-
-		// Remove cart.
-		WC()->cart->empty_cart();
-
 		$response = array(
 			'result'   => 'success',
 			'redirect' => $this->get_return_url( $order ),
@@ -566,47 +559,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			if ( ! empty( $intent_secret ) ) {
 				$response['setup_intent_secret'] = $intent_secret;
 			}
+		} else {
+			// Remove cart.
+			WC()->cart->empty_cart();
+
+			$order->payment_complete();
 		}
 
 		// Return thank you page redirect.
 		return $response;
-	}
-
-	public function thankyou_page( $order_id ) {
-		$order = wc_get_order( $order_id );
-		$setup_intent_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, '_stripe_setup_intent', true ) : $order->get_meta( '_stripe_setup_intent', true );
-
-		if ( $setup_intent_id ) {
-			$setup_intent = WC_Stripe_API::request( array(), 'setup_intents/' . $setup_intent_id, 'GET' );
-
-			// When authentication fails in a SetupIntent, the "payment_method" property is erased. We need to update it again before it's in a "requires_action" state again
-			if ( ! is_wp_error( $setup_intent )
-			     && 'requires_payment_method' === $setup_intent->status
-			     && 'setup_intent_authentication_failure' === $setup_intent->last_setup_error->code ) {
-				$setup_intent = WC_Stripe_API::request( array(
-					'payment_method' => $setup_intent->last_setup_error->payment_method->id,
-				), 'setup_intents/' . $setup_intent_id . '/confirm' );
-			}
-
-			if ( ! is_wp_error( $setup_intent ) ) {
-				if ( 'requires_action' === $setup_intent->status ) {
-					// TODO: Style the hell out of this
-					?>
-					<p id="stripe-setup-intent-authorize-container">
-						We need you to authorize us to charge your credit card in the future. Authorize us now so we won't need to bother you later.
-						<a href="javascript:void(0);" id="stripe-setup-intent-authorize-button" data-secret="<?php echo esc_attr( $setup_intent->client_secret ) ?>">Authorize</a>
-					</p>
-					<?php
-				} else {
-					if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-						delete_post_meta( $order_id, '_stripe_setup_intent' );
-					} else {
-						$order->delete_meta_data( '_stripe_setup_intent' );
-						$order->save();
-					}
-				}
-			}
-		}
 	}
 
 	/**
@@ -650,6 +611,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
 			$intent = $this->get_intent_from_order( $order );
+			if ( 'setup_intent' === $intent->object ) {
+				$intent = false; // This function can only deal with *payment* intents
+			}
+
 			if ( $intent ) {
 				$intent = $this->update_existing_intent( $intent, $order, $prepared_source );
 			} else {
@@ -697,9 +662,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 						 */
 
 						return array(
-							'result'        => 'success',
-							'redirect'      => $this->get_return_url( $order ),
-							'intent_secret' => $intent->client_secret,
+							'result'                => 'success',
+							'redirect'              => $this->get_return_url( $order ),
+							'payment_intent_secret' => $intent->client_secret,
 						);
 					}
 				}
@@ -1003,7 +968,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Attached to `woocommerce_payment_successful_result` with a late priority,
 	 * this method will combine the "naturally" generated redirect URL from
-	 * WooCommerce and a payment intent secret into a hash, which contains both
+	 * WooCommerce and a payment/setup intent secret into a hash, which contains both
 	 * the secret, and a proper URL, which will confirm whether the intent succeeded.
 	 *
 	 * @since 4.2.0
@@ -1012,35 +977,31 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return array
 	 */
 	public function modify_successful_payment_result( $result, $order_id ) {
-		if ( isset( $result['intent_secret'] ) ) {
-			// Put the final thank you page redirect into the verification URL.
-			$verification_url = add_query_arg(
-				array(
-					'order'       => $order_id,
-					'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
-					'redirect_to' => rawurlencode( $result['redirect'] ),
-				),
-				WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
-			);
-
-			// Combine into a hash.
-			$redirect = sprintf( '#confirm-pi-%s:%s', $result['intent_secret'], rawurlencode( $verification_url ) );
-
-			return array(
-				'result'   => 'success',
-				'redirect' => $redirect,
-			);
-		} elseif ( isset( $result['setup_intent_secret'] ) ) {
-			$redirect = sprintf( '#confirm-si-%s:%s', $result['setup_intent_secret'], rawurlencode( $result['redirect'] ) );
-
-			return array(
-				'result'   => 'success',
-				'redirect' => $redirect,
-			);
+		if ( ! isset( $result['payment_intent_secret'] ) && ! isset( $result['setup_intent_secret'] ) ) {
+			// Only redirects with intents need to be modified.
+			return $result;
 		}
 
-		// Only redirects with intents need to be modified.
-		return $result;
+		// Put the final thank you page redirect into the verification URL.
+		$verification_url = add_query_arg(
+			array(
+				'order'       => $order_id,
+				'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
+				'redirect_to' => rawurlencode( $result['redirect'] ),
+			),
+			WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
+		);
+
+		if ( isset( $result['payment_intent_secret'] ) ) {
+			$redirect = sprintf( '#confirm-pi-%s:%s', $result['payment_intent_secret'], rawurlencode( $verification_url ) );
+		} else {
+			$redirect = sprintf( '#confirm-si-%s:%s', $result['setup_intent_secret'], rawurlencode( $verification_url ) );
+		}
+
+		return array(
+			'result'   => 'success',
+			'redirect' => $redirect,
+		);
 	}
 
 	/**
@@ -1083,7 +1044,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( 'succeeded' === $intent->status || 'requires_capture' === $intent->status ) {
+		if ( 'setup_intent' === $intent->object && 'succeeded' === $intent->status ) {
+			WC()->cart->empty_cart();
+			$order->payment_complete();
+		} else if ( 'succeeded' === $intent->status || 'requires_capture' === $intent->status ) {
 			// Proceed with the payment completion.
 			$this->process_response( end( $intent->charges->data ), $order );
 		} else if ( 'requires_payment_method' === $intent->status ) {
