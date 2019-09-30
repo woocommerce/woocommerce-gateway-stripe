@@ -49,7 +49,7 @@ do_action( 'woocommerce_email_customer_details', $order, $sent_to_admin, $plain_
 
 ?>
 <p>
-<?php esc_html_e( 'Thanks for shopping with us.', 'wc-pre-orders' ); ?>
+<?php esc_html_e( 'Thanks for shopping with us.', 'woocommerce-gateway-stripe' ); ?>
 </p>
 <?php
 

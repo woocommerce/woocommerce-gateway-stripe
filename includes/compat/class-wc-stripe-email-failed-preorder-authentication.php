@@ -16,7 +16,7 @@ class WC_Stripe_Email_Failed_Preorder_Authentication extends WC_Stripe_Email_Fai
 	 */
 	public function __construct( $email_classes = array() ) {
 		$this->id             = 'failed_preorder_sca_authentication';
-		$this->title          = __( 'Pre-order Payment Action Needed', 'wc-pre-orders' );
+		$this->title          = __( 'Pre-order Payment Action Needed', 'woocommerce-gateway-stripe' );
 		$this->description    = __( 'This is an order notification sent to the customer once a pre-order is complete, but additional payment steps are required.', 'woocommerce-gateway-stripe' );
 		$this->customer_email = true;
 
