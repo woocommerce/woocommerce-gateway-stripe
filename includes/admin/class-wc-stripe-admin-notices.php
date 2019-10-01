@@ -23,6 +23,7 @@ class WC_Stripe_Admin_Notices {
 	public function __construct() {
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
 		add_action( 'wp_loaded', array( $this, 'hide_notices' ) );
+		add_action( 'woocommerce_stripe_updated', array( $this, 'stripe_updated' ) );
 	}
 
 	/**
@@ -126,9 +127,9 @@ class WC_Stripe_Admin_Notices {
 
 			if ( empty( $show_style_notice ) ) {
 				/* translators: 1) int version 2) int version */
-				$message = __( 'WooCommerce Stripe - We recently made changes to Stripe that may impact the appearance of your checkout. If your checkout has changed unexpectedly, please follow these <a href="https://docs.woocommerce.com/document/stripe/#section-45" target="_blank">instructions</a> to fix.', 'woocommerce-gateway-stripe' );
+				$message = __( 'WooCommerce Stripe - We recently made changes to Stripe that may impact the appearance of your checkout. If your checkout has changed unexpectedly, please follow these <a href="https://docs.woocommerce.com/document/stripe/#section-48" target="_blank">instructions</a> to fix.', 'woocommerce-gateway-stripe' );
 
-				$this->add_admin_notice( 'style', 'error', $message, true );
+				$this->add_admin_notice( 'style', 'notice notice-warning', $message, true );
 
 				return;
 			}
@@ -309,6 +310,20 @@ class WC_Stripe_Admin_Notices {
 		$section_slug = $use_id_as_section ? 'stripe' : strtolower( 'WC_Gateway_Stripe' );
 
 		return admin_url( 'admin.php?page=wc-settings&tab=checkout&section=' . $section_slug );
+	}
+
+	/**
+	 * Saves options in order to hide notices based on the gateway's version.
+	 *
+	 * @since 4.3.0
+	 */
+	public function stripe_updated() {
+		$previous_version = get_option( 'wc_stripe_version' );
+
+		// Only show the style notice if the plugin was installed and older than 4.1.4.
+		if ( empty( $previous_version ) || version_compare( $previous_version, '4.1.4', 'ge' ) ) {
+			update_option( 'wc_stripe_show_style_notice', 'no' );
+		}
 	}
 }
 
