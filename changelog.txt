@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 4.2.5 - 2019-10-02 =
+* Fix - WooCommerce Subscriptions that use only the Stripe customer ID can again be renewed
+
 = 4.2.4 - 2019-09-18 =
 * Fix - Unclear error message when email address not completely filled in.
 * Fix - Add payment request button compatibility with variable subscriptions
