@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.2.4\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
-"POT-Creation-Date: 2019-09-19 16:36:22+00:00\n"
+"POT-Creation-Date: 2019-10-02 17:24:17+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -206,8 +206,8 @@ msgstr ""
 
 #: includes/admin/class-wc-stripe-privacy.php:41
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:463
-#: includes/compat/class-wc-stripe-subs-compat.php:526
-#: includes/compat/class-wc-stripe-subs-compat.php:541
+#: includes/compat/class-wc-stripe-subs-compat.php:529
+#: includes/compat/class-wc-stripe-subs-compat.php:544
 msgid "N/A"
 msgstr ""
 
@@ -1105,20 +1105,20 @@ msgid "Customer not found"
 msgstr ""
 
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:386
-#: includes/compat/class-wc-stripe-subs-compat.php:449
+#: includes/compat/class-wc-stripe-subs-compat.php:452
 #. translators: error message
 msgid "A \"Stripe Customer ID\" value is required."
 msgstr ""
 
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:388
-#: includes/compat/class-wc-stripe-subs-compat.php:451
+#: includes/compat/class-wc-stripe-subs-compat.php:454
 msgid ""
 "Invalid customer ID. A valid \"Stripe Customer ID\" must begin with "
 "\"cus_\"."
 msgstr ""
 
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:397
-#: includes/compat/class-wc-stripe-subs-compat.php:460
+#: includes/compat/class-wc-stripe-subs-compat.php:463
 msgid ""
 "Invalid source ID. A valid source \"Stripe Source ID\" must begin with "
 "\"src_\" or \"card_\"."
@@ -1135,7 +1135,7 @@ msgid ""
 "not been charge. Please try with alternative payment method."
 msgstr ""
 
-#: includes/compat/class-wc-stripe-subs-compat.php:541
+#: includes/compat/class-wc-stripe-subs-compat.php:544
 #. translators: 1) card brand 2) last 4 digits
 msgid "Via %1$s card ending in %2$s"
 msgstr ""
