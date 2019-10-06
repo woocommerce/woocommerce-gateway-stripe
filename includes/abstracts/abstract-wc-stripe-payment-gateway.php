@@ -1182,7 +1182,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return WC_Stripe_API::request( array(), "payment_intents/$intent_id", 'GET' );
 		}
 
-		// The order doesn't have a payment intent, but it may have a setup intent
+		// The order doesn't have a payment intent, but it may have a setup intent.
 		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 			$intent_id = get_post_meta( $order_id, '_stripe_setup_intent', true );
 		} else {
