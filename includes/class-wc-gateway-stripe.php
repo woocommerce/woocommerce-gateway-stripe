@@ -942,7 +942,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		if ( isset( $result['payment_intent_secret'] ) ) {
 			$redirect = sprintf( '#confirm-pi-%s:%s', $result['payment_intent_secret'], rawurlencode( $verification_url ) );
-		} else {
+		} else if ( isset( $result['setup_intent_secret'] ) ) {
 			$redirect = sprintf( '#confirm-si-%s:%s', $result['setup_intent_secret'], rawurlencode( $verification_url ) );
 		}
 
