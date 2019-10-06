@@ -678,7 +678,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			if ( isset( WC()->cart ) ) {
 				WC()->cart->empty_cart();
 			}
-			
+
 			// Unlock the order.
 			$this->unlock_order_payment( $order );
 
@@ -1037,7 +1037,5 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			? sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $intent->last_payment_error->message )
 			: __( 'Stripe SCA authentication failed.', 'woocommerce-gateway-stripe' );
 		$order->update_status( 'failed', $status_message );
-
-		$this->send_failed_order_email( $order->get_id() );
 	}
 }
