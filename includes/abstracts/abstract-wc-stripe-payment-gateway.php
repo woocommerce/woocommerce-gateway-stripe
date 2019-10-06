@@ -1232,6 +1232,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Given a response from Stripe, check if it's a card error where authentication is required
+	 * to complete the payment.
+	 *
+	 * @param object $response The response from Stripe.
+	 * @return boolean Whether or not it's a 'authentication_required' error
+	 */
+	public function is_authentication_required_for_payment( $response ) {
+		return ( ! empty( $response->error ) && 'authentication_required' === $response->error->code )
+			|| ( ! empty( $response->last_payment_error ) && 'authentication_required' === $response->last_payment_error->code );
+	}
+
+	/**
 	 * Creates a SetupIntent for future payments, and saves it to the order.
 	 *
 	 * @param WC_Order $order           The ID of the (free/pre- order).
@@ -1258,5 +1270,66 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			return $setup_intent->client_secret;
 		}
+	}
+
+	/**
+	 * Create and confirm a new PaymentIntent.
+	 *
+	 * @param WC_Order $order           The order that is being paid for.
+	 * @param object   $prepared_source The source that is used for the payment.
+	 * @param float    $amount          The amount to charge. If not specified, it will be read from the order.
+	 * @return object                   An intent or an error.
+	 */
+	public function create_and_confirm_intent_for_off_session( $order, $prepared_source, $amount = NULL ) {
+		// The request for a charge contains metadata for the intent.
+		$full_request = $this->generate_payment_request( $order, $prepared_source );
+
+		$request = array(
+			'amount'               => $amount ? WC_Stripe_Helper::get_stripe_amount( $amount, $full_request['currency'] ) : $full_request['amount'],
+			'currency'             => $full_request['currency'],
+			'description'          => $full_request['description'],
+			'metadata'             => $full_request['metadata'],
+			'payment_method_types' => array(
+				'card',
+			),
+			'off_session'          => 'true',
+			'confirm'              => 'true',
+			'confirmation_method'  => 'automatic',
+		);
+
+		if ( isset( $full_request['statement_descriptor'] ) ) {
+			$request['statement_descriptor'] = $full_request['statement_descriptor'];
+		}
+
+		if ( isset( $full_request['customer'] ) ) {
+			$request['customer'] = $full_request['customer'];
+		}
+
+		if ( isset( $full_request['source'] ) ) {
+			$request['source'] = $full_request['source'];
+		}
+
+		$intent = WC_Stripe_API::request( $request, 'payment_intents' );
+		$is_authentication_required = $this->is_authentication_required_for_payment( $intent );
+
+		if ( ! empty( $intent->error ) && ! $is_authentication_required ) {
+			return $intent;
+		}
+
+		$intent_id      = ( ! empty( $intent->error )
+			? $intent->error->payment_intent->id
+			: $intent->id
+		);
+		$payment_intent = ( ! empty( $intent->error )
+			? $intent->error->payment_intent
+			: $intent
+		);
+		$order_id       = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+		WC_Stripe_Logger::log( "Stripe PaymentIntent $intent_id initiated for order $order_id" );
+
+		// Save the intent ID to the order.
+		$this->save_intent_to_order( $order, $payment_intent );
+
+		return $intent;
 	}
 }
