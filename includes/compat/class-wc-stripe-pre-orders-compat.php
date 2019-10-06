@@ -73,6 +73,7 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 			$intent_secret = $this->setup_intent( $order, $prepared_source );
 			if ( ! empty( $intent_secret ) ) {
 				$response['setup_intent_secret'] = $intent_secret;
+				return $response;
 			}
 
 			// Remove cart.
