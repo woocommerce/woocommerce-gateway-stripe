@@ -1012,7 +1012,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Load the right message and update the status.
-		$status_message = ( $intent->last_payment_error )
+		$status_message = isset( $intent->last_payment_error )
 			/* translators: 1) The error message that was received from Stripe. */
 			? sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $intent->last_payment_error->message )
 			: __( 'Stripe SCA authentication failed.', 'woocommerce-gateway-stripe' );
