@@ -110,24 +110,43 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 
 			while ( 1 ) {
 				$source   = $this->prepare_order_source( $order );
-				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source ) );
+				$response = $this->create_and_confirm_intent_for_off_session( $order, $source );
 
-				if ( ! empty( $response->error ) ) {
+				$is_authentication_required = $this->is_authentication_required_for_payment( $response );
+
+				if ( ! empty( $response->error ) && ! $is_authentication_required ) {
 					if ( 0 === sizeof( $retry_callbacks ) ) {
 						throw new Exception( $response->error->message );
 					} else {
 						$retry_callback = array_shift( $retry_callbacks );
 						call_user_func( array( $this, $retry_callback ), $order );
 					}
+				} else if ( $is_authentication_required ) {
+					$charge = end( $response->error->payment_intent->charges->data );
+					$id = $charge->id;
+					$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+
+					WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_transaction_id', $id ) : $order->set_transaction_id( $id );
+					$order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
+					if ( is_callable( array( $order, 'save' ) ) ) {
+						$order->save();
+					}
+
+					WC_Emails::instance();
+
+					do_action( 'wc_gateway_stripe_process_payment_authentication_required', $order );
+
+					throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
 				} else {
 					// Successful
-					$this->process_response( $response, $order );
+					$this->process_response( end( $response->charges->data ), $order );
 					break;
 				}
 			}
 		} catch ( Exception $e ) {
+			$error_message = is_callable( array( $e, 'getLocalizedMessage' ) ) ? $e->getLocalizedMessage() : $e->getMessage();
 			/* translators: error message */
-			$order_note = sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $e->getMessage() );
+			$order_note = sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $error_message );
 
 			// Mark order as failed if not already set,
 			// otherwise, make sure we add the order note so we can detect when someone fails to check out multiple times
