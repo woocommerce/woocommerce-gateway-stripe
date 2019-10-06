@@ -541,13 +541,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			if ( ! empty( $intent_secret ) ) {
 				$response['setup_intent_secret'] = $intent_secret;
+				return $response;
 			}
-		} else {
-			// Remove cart.
-			WC()->cart->empty_cart();
-
-			$order->payment_complete();
 		}
+
+		// Remove cart.
+		WC()->cart->empty_cart();
+
+		$order->payment_complete();
 
 		// Return thank you page redirect.
 		return $response;
