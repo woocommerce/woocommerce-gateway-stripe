@@ -74,21 +74,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 	/**
 	 * Checks to see if error is of invalid request
-	 * error and source is already consumed.
-	 *
-	 * @since 4.1.0
-	 * @param array $error
-	 */
-	public function is_source_already_consumed_error( $error ) {
-		return (
-			$error &&
-			'invalid_request_error' === $error->type &&
-			preg_match( '/The reusable source you provided is consumed because it was previously charged without being attached to a customer or was detached from a customer. To charge a reusable source multiple time you must attach it to a customer first./i', $error->message )
-		);
-	}
-
-	/**
-	 * Checks to see if error is of invalid request
 	 * error and it is no such customer.
 	 *
 	 * @since 4.1.0
@@ -1195,11 +1180,22 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$intent_id = $order->get_meta( '_stripe_intent_id' );
 		}
 
-		if ( ! $intent_id ) {
-			return false;
+		if ( $intent_id ) {
+			return WC_Stripe_API::request( array(), "payment_intents/$intent_id", 'GET' );
 		}
 
-		return WC_Stripe_API::request( array(), "payment_intents/$intent_id", 'GET' );
+		// The order doesn't have a payment intent, but it may have a setup intent.
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+			$intent_id = get_post_meta( $order_id, '_stripe_setup_intent', true );
+		} else {
+			$intent_id = $order->get_meta( '_stripe_setup_intent' );
+		}
+
+		if ( $intent_id ) {
+			return WC_Stripe_API::request( array(), "setup_intents/$intent_id", 'GET' );
+		}
+
+		return false;
 	}
 
 	/**
@@ -1235,5 +1231,34 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function unlock_order_payment( $order ) {
 		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 		delete_transient( 'wc_stripe_processing_intent_' . $order_id );
+	}
+
+	/**
+	 * Creates a SetupIntent for future payments, and saves it to the order.
+	 *
+	 * @param WC_Order $order           The ID of the (free/pre- order).
+	 * @param object   $prepared_source The source, entered/chosen by the customer.
+	 * @return string                   The client secret of the intent, used for confirmation in JS.
+	 */
+	public function setup_intent( $order, $prepared_source ) {
+		$order_id     = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+		$setup_intent = WC_Stripe_API::request( array(
+			'payment_method' => $prepared_source->source,
+			'customer'       => $prepared_source->customer,
+			'confirm'        => 'true',
+		), 'setup_intents' );
+
+		if ( is_wp_error( $setup_intent ) ) {
+			WC_Stripe_Logger::log( "Unable to create SetupIntent for Order #$order_id: " . print_r( $setup_intent, true ) );
+		} elseif ( 'requires_action' === $setup_intent->status ) {
+			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+				update_post_meta( $order_id, '_stripe_setup_intent', $setup_intent->id );
+			} else {
+				$order->update_meta_data( '_stripe_setup_intent', $setup_intent->id );
+				$order->save();
+			}
+
+			return $setup_intent->client_secret;
+		}
 	}
 }

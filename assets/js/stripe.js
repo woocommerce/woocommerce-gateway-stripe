@@ -709,30 +709,32 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Handles changes in the hash in order to show a modal for PaymentIntent confirmations.
+		 * Handles changes in the hash in order to show a modal for PaymentIntent/SetupIntent confirmations.
 		 *
 		 * Listens for `hashchange` events and checks for a hash in the following format:
 		 * #confirm-pi-<intentClientSecret>:<successRedirectURL>
 		 *
 		 * If such a hash appears, the partials will be used to call `stripe.handleCardPayment`
-		 * in order to allow customers to confirm an 3DS/SCA authorization.
+		 * in order to allow customers to confirm an 3DS/SCA authorization, or stripe.handleCardSetup if
+		 * what needs to be confirmed is a SetupIntent.
 		 *
 		 * Those redirects/hashes are generated in `WC_Gateway_Stripe::process_payment`.
 		 */
 		onHashChange: function() {
-			var partials = window.location.hash.match( /^#?confirm-pi-([^:]+):(.+)$/ );
+			var partials = window.location.hash.match( /^#?confirm-(pi|si)-([^:]+):(.+)$/ );
 
-			if ( ! partials || 3 > partials.length ) {
+			if ( ! partials || 4 > partials.length ) {
 				return;
 			}
 
-			var intentClientSecret = partials[1];
-			var redirectURL        = decodeURIComponent( partials[2] );
+			var type               = partials[1];
+			var intentClientSecret = partials[2];
+			var redirectURL        = decodeURIComponent( partials[3] );
 
 			// Cleanup the URL
 			window.location.hash = '';
 
-			wc_stripe_form.openIntentModal( intentClientSecret, redirectURL );
+			wc_stripe_form.openIntentModal( intentClientSecret, redirectURL, false, 'si' === type );
 		},
 
 		maybeConfirmIntent: function() {
@@ -743,7 +745,7 @@ jQuery( function( $ ) {
 			var intentSecret = $( '#stripe-intent-id' ).val();
 			var returnURL    = $( '#stripe-intent-return' ).val();
 
-			wc_stripe_form.openIntentModal( intentSecret, returnURL, true );
+			wc_stripe_form.openIntentModal( intentSecret, returnURL, true, false );
 		},
 
 		/**
@@ -753,15 +755,18 @@ jQuery( function( $ ) {
 		 * @param {string}  redirectURL        The URL to ping on fail or redirect to on success.
 		 * @param {boolean} alwaysRedirect     If set to true, an immediate redirect will happen no matter the result.
 		 *                                     If not, an error will be displayed on failure.
+		 * @param {boolean} isSetupIntent      If set to true, ameans that the flow is handling a Setup Intent.
+		 *                                     If false, it's a Payment Intent.
 		 */
-		openIntentModal: function( intentClientSecret, redirectURL, alwaysRedirect ) {
-			stripe.handleCardPayment( intentClientSecret )
+		openIntentModal: function( intentClientSecret, redirectURL, alwaysRedirect, isSetupIntent ) {
+			stripe[ isSetupIntent ? 'handleCardSetup' : 'handleCardPayment' ]( intentClientSecret )
 				.then( function( response ) {
 					if ( response.error ) {
 						throw response.error;
 					}
 
-					if ( 'requires_capture' !== response.paymentIntent.status && 'succeeded' !== response.paymentIntent.status ) {
+					var intent = response[ isSetupIntent ? 'setupIntent' : 'paymentIntent' ];
+					if ( 'requires_capture' !== intent.status && 'succeeded' !== intent.status ) {
 						return;
 					}
 

@@ -61,19 +61,29 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 				throw new WC_Stripe_Exception( __( 'Unable to store payment details. Please try again.', 'woocommerce-gateway-stripe' ) );
 			}
 
+			// Setup the response early to allow later modifications.
+			$response = array(
+				'result'   => 'success',
+				'redirect' => $this->get_return_url( $order ),
+			);
+
 			$this->save_source_to_order( $order, $prepared_source );
 
-			// Remove cart
+			// Try setting up a payment intent.
+			$intent_secret = $this->setup_intent( $order, $prepared_source );
+			if ( ! empty( $intent_secret ) ) {
+				$response['setup_intent_secret'] = $intent_secret;
+				return $response;
+			}
+
+			// Remove cart.
 			WC()->cart->empty_cart();
 
 			// Is pre ordered!
 			WC_Pre_Orders_Order::mark_order_as_pre_ordered( $order );
 
 			// Return thank you page redirect
-			return array(
-				'result'   => 'success',
-				'redirect' => $this->get_return_url( $order ),
-			);
+			return $response;
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Pre Orders Error: ' . $e->getMessage() );
