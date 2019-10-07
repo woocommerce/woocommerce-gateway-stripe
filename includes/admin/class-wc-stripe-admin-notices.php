@@ -332,6 +332,11 @@ class WC_Stripe_Admin_Notices {
 		if ( empty( $previous_version ) || version_compare( $previous_version, '4.1.4', 'ge' ) ) {
 			update_option( 'wc_stripe_show_style_notice', 'no' );
 		}
+
+		// Only show the SCA notice on pre-4.3.0 installs.
+		if ( empty( $previous_version ) || version_compare( $previous_version, '4.3.0', 'ge' ) ) {
+			update_option( 'wc_stripe_show_sca_notice', 'no' );
+		}
 	}
 }
 
