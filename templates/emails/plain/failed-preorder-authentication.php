@@ -11,6 +11,14 @@ printf(
 	$authorization_url
 );
 
+if ( $email->get_custom_message() ) :
+
+	echo "----------\n\n";
+	echo wptexturize( $email->get_custom_message() ) . "\n\n";
+	echo "----------\n\n";
+
+endif;
+
 
 echo "\n\n=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n";
 

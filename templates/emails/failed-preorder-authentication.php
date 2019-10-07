@@ -23,6 +23,10 @@ $billing_phone = $pre_wc_30 ? $order->billing_phone : $order->get_billing_phone(
 	);
 ?></p>
 
+<?php if ( $email->get_custom_message() ) : ?>
+	<blockquote><?php echo wpautop( wptexturize( $email->get_custom_message() ) ); ?></blockquote>
+<?php endif; ?>
+
 <?php
 do_action( 'woocommerce_email_before_order_table', $order, false, $plain_text, $email );
 
