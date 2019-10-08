@@ -40,19 +40,6 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Remove order meta
-	 * @param  object $order
-	 */
-	public function remove_order_customer_before_retry( $order ) {
-		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-			delete_post_meta( $order->id, '_stripe_customer_id' );
-		} else {
-			$order->delete_meta_data( '_stripe_customer_id' );
-			$order->save();
-		}
-	}
-
-	/**
 	 * Process the pre-order when pay upon release is used.
 	 * @param int $order_id
 	 */
@@ -114,7 +101,6 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 			// Define some callbacks if the first attempt fails.
 			$retry_callbacks = array(
 				'remove_order_source_before_retry',
-				'remove_order_customer_before_retry',
 			);
 
 			while ( 1 ) {
