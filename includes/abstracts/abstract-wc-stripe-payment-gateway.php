@@ -725,14 +725,34 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return void
 	 */
 	public function get_default_customer_source_for_order( $order ) {
+		$stripe_customer = null;
+
+		// If there is a WooCommerce customer to work with, check if they have a Stripe ID.
 		$wc_customer = $order->get_user();
-		if ( ! $wc_customer ) {
+		if ( $wc_customer ) {
+			$stripe_customer = new WC_Stripe_Customer( $wc_customer->ID );
+			if ( empty( $stripe_customer->get_id() ) ) {
+				$stripe_customer = null;
+			}
+		}
+
+		// If there is no WC user or they do not have a Stripe ID, check for manual input.
+		if ( empty( $stripe_customer ) ) {
+			$order_id           = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+			$stripe_customer_id = get_post_meta( $order_id, '_stripe_customer_id', true );
+
+			if ( ! empty( $stripe_customer_id ) ) {
+				$stripe_customer = new WC_Stripe_Customer();
+				$stripe_customer->set_id( $stripe_customer_id );
+			}
+		}
+
+		// No customer to work with, neither coming from WooCommerce nor Subscription's fields.
+		if ( empty( $stripe_customer ) ) {
 			return null;
 		}
 
-		$stripe_customer = new WC_Stripe_Customer( $wc_customer->ID );
-		$source_object   = $stripe_customer->get_default_source();
-
+		$source_object = $stripe_customer->get_default_source();
 		if ( empty( $source_object ) ) {
 			return null;
 		}
