@@ -334,6 +334,38 @@ class WC_Stripe_Customer {
 	}
 
 	/**
+	 * Retrieves the default payment method either from the WC or Stripe customer.
+	 *
+	 * @since 4.3.1
+	 * @return object|null Either a basic source object, or null.
+	 */
+	public function get_default_source() {
+		if ( ! $this->get_id() ) {
+			return null;
+		}
+
+		// First, try to load the default source from the WooCommerce customer object.
+		if ( ! empty( $this->user_id ) ) {
+			$default_token = WC_Payment_Tokens::get_customer_default_token( $this->user_id );
+
+			if ( ! empty( $default_token ) && 'stripe' === $default_token->get_gateway_id() ) {
+				$source = WC_Stripe_API::request( array(), 'sources/' . $default_token->get_token(), 'GET' );
+				if ( empty( $source->error ) && $this->id === $source->customer ) {
+					return $source;
+				}
+			}
+		}
+
+		// Second, try to load the default source based on the user.
+		$customer_object = WC_Stripe_API::request( array( 'expand[]' => 'default_source' ), 'customers/' . $this->id, 'GET' );
+		if ( empty( $customer_object->error ) && ! empty( $customer_object->default_source ) && is_object( $customer_object->default_source ) ) {
+			return $customer_object->default_source;
+		}
+
+		return null;
+	}
+
+	/**
 	 * Deletes caches for this users cards.
 	 */
 	public function clear_cache() {

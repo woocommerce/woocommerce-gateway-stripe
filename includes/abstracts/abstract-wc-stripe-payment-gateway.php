@@ -702,10 +702,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$source_object = WC_Stripe_API::retrieve( 'sources/' . $source_id );
 			} elseif ( apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
 				/*
-				 * We can attempt to charge the customer's default source
-				 * by sending empty source id.
+				 * ~We can attempt to charge the customer's default source~
+				 * ~by sending empty source id.~
+				 * We retrieve the default customer source manually.
 				 */
-				$stripe_source = '';
+				return $this->get_default_customer_source_for_order( $order );
 			}
 		}
 
@@ -713,6 +714,33 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'token_id'      => $token_id,
 			'customer'      => $stripe_customer ? $stripe_customer->get_id() : false,
 			'source'        => $stripe_source,
+			'source_object' => $source_object,
+		);
+	}
+
+	/**
+	 * @todo: Check pre-3.0 compatibility.
+	 *
+	 * @param WC_Order $order
+	 * @return void
+	 */
+	public function get_default_customer_source_for_order( $order ) {
+		$wc_customer = $order->get_user();
+		if ( ! $wc_customer ) {
+			return false;
+		}
+
+		$stripe_customer = new WC_Stripe_Customer( $wc_customer->ID );
+		$source_object   = $stripe_customer->get_default_source();
+
+		if ( empty( $source_object ) ) {
+			return false;
+		}
+
+		return (object) array(
+			'token_id'      => '',
+			'customer'      => $stripe_customer->get_id(),
+			'source'        => $source_object->id,
 			'source_object' => $source_object,
 		);
 	}
