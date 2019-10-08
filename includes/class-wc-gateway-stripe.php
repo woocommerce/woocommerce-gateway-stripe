@@ -1084,18 +1084,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$order->update_status( 'failed', $status_message );
 	}
 
-	/**
-	 * Given a response from Stripe, check if it's a card error where authentication is required
-	 * to complete the payment.
-	 *
-	 * @param object The response from Stripe.
-	 * @return boolean Whether or not it's a 'needs_authentication' error
-	 */
-	public function is_authentication_required_for_payment( $intent ) {
-		return ( ! empty( $intent->error ) && 'authentication_required' === $intent->error->code )
-			|| ( ! empty( $intent->last_payment_error ) && 'authentication_required' === $intent->last_payment_error->code );
-	}
-
 	public function process_authentication_required_response( $order ) {
 		$auth_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
 		$order->add_order_note( '[TODO: send a real e-mail here] Go here to authenticate: ' . $auth_url, true );
