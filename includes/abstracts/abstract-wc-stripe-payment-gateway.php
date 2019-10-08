@@ -727,14 +727,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function get_default_customer_source_for_order( $order ) {
 		$wc_customer = $order->get_user();
 		if ( ! $wc_customer ) {
-			return false;
+			return null;
 		}
 
 		$stripe_customer = new WC_Stripe_Customer( $wc_customer->ID );
 		$source_object   = $stripe_customer->get_default_source();
 
 		if ( empty( $source_object ) ) {
-			return false;
+			return null;
 		}
 
 		return (object) array(

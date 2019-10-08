@@ -28,7 +28,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 
 			// allow store managers to manually set Stripe as the payment method on a subscription
 			add_filter( 'woocommerce_subscription_payment_meta', array( $this, 'add_subscription_payment_meta' ), 10, 2 );
-			add_filter( 'woocommerce_subscription_validate_payment_meta', array( $this, 'validate_subscription_payment_meta' ), 10, 2 );
+			add_filter( 'woocommerce_subscription_validate_payment_meta', array( $this, 'validate_subscription_payment_meta' ), 10, 3 );
 			add_filter( 'wc_stripe_display_save_payment_method_checkbox', array( $this, 'maybe_hide_save_checkbox' ) );
 
 			/*
@@ -438,28 +438,46 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	 * manually set up automatic recurring payments for a customer via the Edit Subscriptions screen in 2.0+.
 	 *
 	 * @since 2.5
-	 * @since 4.0.4 Stripe sourd id field no longer needs to be required.
+	 * @since 4.0.4 Stripe source id field no longer needs to be required.
+	 * @since 4.3.1 Stripe customer id field no longer needs to be required if a customer with default card is present.
 	 * @param string $payment_method_id The ID of the payment method to validate
 	 * @param array $payment_meta associative array of meta data required for automatic payments
+	 * @param WC_Subscription $subscription The subscription object.
 	 * @return array
 	 */
-	public function validate_subscription_payment_meta( $payment_method_id, $payment_meta ) {
+	public function validate_subscription_payment_meta( $payment_method_id, $payment_meta, $subscription ) {
 		if ( $this->id === $payment_method_id ) {
 
-			// if ( ! isset( $payment_meta['post_meta']['_stripe_customer_id']['value'] ) || empty( $payment_meta['post_meta']['_stripe_customer_id']['value'] ) ) {
-			// 	throw new Exception( __( 'A "Stripe Customer ID" value is required.', 'woocommerce-gateway-stripe' ) );
-			// } elseif ( 0 !== strpos( $payment_meta['post_meta']['_stripe_customer_id']['value'], 'cus_' ) ) {
-			// 	throw new Exception( __( 'Invalid customer ID. A valid "Stripe Customer ID" must begin with "cus_".', 'woocommerce-gateway-stripe' ) );
-			// }
+			$customer_id = isset( $payment_meta['post_meta']['_stripe_customer_id']['value'] ) && ! empty( $payment_meta['post_meta']['_stripe_customer_id']['value'] )
+				? $payment_meta['post_meta']['_stripe_customer_id']['value']
+				: null;
 
-			// if (
-			// 	( ! empty( $payment_meta['post_meta']['_stripe_source_id']['value'] )
-			// 	&& 0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'card_' ) )
-			// 	&& ( ! empty( $payment_meta['post_meta']['_stripe_source_id']['value'] )
-			// 	&& 0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'src_' ) ) ) {
+			$source_id = isset( $payment_meta['post_meta']['_stripe_source_id']['value'] ) && ! empty( $payment_meta['post_meta']['_stripe_source_id']['value'] )
+				? $payment_meta['post_meta']['_stripe_source_id']['value']
+				: null;
 
-			// 	throw new Exception( __( 'Invalid source ID. A valid source "Stripe Source ID" must begin with "src_" or "card_".', 'woocommerce-gateway-stripe' ) );
-			// }
+			// Reject if there is an invalid customer entered.
+			if ( ! empty( $customer_id ) && 0 !== strpos( $customer_id, 'cus_' ) ) {
+				throw new Exception( __( 'Invalid customer ID. A valid "Stripe Customer ID" must begin with "cus_".', 'woocommerce-gateway-stripe' ) );
+			}
+
+			// Reject if there is an invalid source entered.
+			if ( ! empty( $source_id ) && 0 !== strpos( $source_id, 'src_' ) && 0 !== strpos( $source_id, 'card_' ) ) {
+				throw new Exception( __( 'Invalid source ID. A valid source "Stripe Source ID" must begin with "src_" or "card_".', 'woocommerce-gateway-stripe' ) );
+			}
+
+			if ( empty( $customer_id ) ) {
+				// Notify merchants that `customer_id` is required when `source_id` was manually entered.
+				if ( ! empty( $source_id ) ) {
+					throw new Exception( __( 'A "Stripe Customer ID" value is required when "Stripe Source ID" is used.', 'woocommerce-gateway-stripe' ) );
+				}
+
+				// Before bailing, check if there is a default source that can be used.
+				$default_source = $this->get_default_customer_source_for_order( $subscription );
+				if ( empty( $default_source ) ) {
+					throw new Exception( __( 'A "Stripe Customer ID" value or a customer with a Stripe account are required.', 'woocommerce-gateway-stripe' ) );
+				}
+			}
 		}
 	}
 
