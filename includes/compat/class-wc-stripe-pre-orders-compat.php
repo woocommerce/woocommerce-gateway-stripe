@@ -28,10 +28,15 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 	 * @param object $order
 	 */
 	public function remove_order_source_before_retry( $order ) {
-		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
-		delete_post_meta( $order_id, '_stripe_source_id' );
-		// For BW compat will remove in the future.
-		delete_post_meta( $order_id, '_stripe_card_id' );
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+			delete_post_meta( $order->id, '_stripe_source_id' );
+			// For BW compat will remove in the future.
+			delete_post_meta( $order->id, '_stripe_card_id' );
+		} else {
+			$order->delete_meta_data( '_stripe_source_id' );
+			$order->delete_meta_data( '_stripe_card_id' );
+			$order->save();
+		}
 	}
 
 	/**
@@ -39,8 +44,12 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 	 * @param  object $order
 	 */
 	public function remove_order_customer_before_retry( $order ) {
-		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
-		delete_post_meta( $order_id, '_stripe_customer_id' );
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+			delete_post_meta( $order->id, '_stripe_customer_id' );
+		} else {
+			$order->delete_meta_data( '_stripe_customer_id' );
+			$order->save();
+		}
 	}
 
 	/**
