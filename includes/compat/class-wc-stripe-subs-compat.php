@@ -287,8 +287,10 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
 
-			// Either the charge was successfully captured, or it requires further authentication.
+			// By this point the charge _did not fail_. This means that the source and customer objects work, so make sure they are saved.
+			$this->save_source_to_order( $renewal_order, $prepared_source );
 
+			// Either the charge was successfully captured, or it requires further authentication.
 			if ( $is_authentication_required ) {
 				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order, $response );
 
