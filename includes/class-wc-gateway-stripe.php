@@ -477,23 +477,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Creates a new WC_Stripe_Customer if the visitor chooses to.
-	 *
-	 * @since 4.2.0
-	 * @param WC_Order $order The order that is being created.
-	 */
-	public function maybe_create_customer( $order ) {
-		// This comes from the create account checkbox in the checkout page.
-		if ( empty( $_POST['createaccount'] ) ) { // wpcs: csrf ok.
-			return;
-		}
-
-		$new_customer_id     = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->customer_user : $order->get_customer_id();
-		$new_stripe_customer = new WC_Stripe_Customer( $new_customer_id );
-		$new_stripe_customer->create_customer();
-	}
-
-	/**
 	 * Checks if a source object represents a prepaid credit card and
 	 * throws an exception if it is one, but that is not allowed.
 	 *
@@ -593,8 +576,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				return $this->pre_orders->process_pre_order( $order_id );
 			}
 
-			$this->maybe_create_customer( $order );
-
 			$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source );
 
 			$this->maybe_disallow_prepaid_card( $prepared_source );
@@ -673,7 +654,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			if ( isset( WC()->cart ) ) {
 				WC()->cart->empty_cart();
 			}
-			
+
 			// Unlock the order.
 			$this->unlock_order_payment( $order );
 

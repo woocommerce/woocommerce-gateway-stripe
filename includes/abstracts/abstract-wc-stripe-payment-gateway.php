@@ -593,7 +593,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function prepare_source( $user_id, $force_save_source = false ) {
 		$customer          = new WC_Stripe_Customer( $user_id );
-		$set_customer      = true;
 		$force_save_source = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
 		$source_object     = '';
 		$source_id         = '';
@@ -648,7 +647,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 					throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
 				}
 			} else {
-				$set_customer = false;
 				$source_id    = $stripe_token;
 				$is_token     = true;
 			}
