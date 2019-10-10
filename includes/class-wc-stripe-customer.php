@@ -178,10 +178,9 @@ class WC_Stripe_Customer {
 	/**
 	 * Add a source for this stripe customer.
 	 * @param string $source_id
-	 * @param bool $retry
 	 * @return WP_Error|int
 	 */
-	public function add_source( $source_id, $retry = true ) {
+	public function add_source( $source_id ) {
 		if ( ! $this->get_id() ) {
 			$this->set_id( $this->create_customer() );
 		}
@@ -202,7 +201,7 @@ class WC_Stripe_Customer {
 			if ( $this->is_no_such_customer_error( $response->error ) ) {
 				delete_user_meta( $this->get_user_id(), '_stripe_customer_id' );
 				$this->create_customer();
-				return $this->add_source( $source_id, false );
+				return $this->add_source( $source_id );
 			} else {
 				return $response;
 			}
