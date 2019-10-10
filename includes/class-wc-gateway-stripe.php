@@ -612,7 +612,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
 			$intent = $this->get_intent_from_order( $order );
-			if ( 'setup_intent' === $intent->object ) {
+			if ( isset( $intent->object ) && 'setup_intent' === $intent->object ) {
 				$intent = false; // This function can only deal with *payment* intents
 			}
 
