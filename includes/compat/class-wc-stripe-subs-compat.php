@@ -299,8 +299,6 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 				if ( is_callable( array( $renewal_order, 'save' ) ) ) {
 					$renewal_order->save();
 				}
-
-				$this->process_authentication_required_response( $renewal_order );
 			} else {
 				// The charge was successfully captured
 				do_action( 'wc_gateway_stripe_process_payment', $response, $renewal_order );
