@@ -780,6 +780,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			case 'payment_intent.payment_failed':
 			case 'payment_intent.amount_capturable_updated':
 				$this->process_payment_intent_success( $notification );
+				break;
 
 			case 'setup_intent.succeeded':
 			case 'setup_intent.setup_failed':
