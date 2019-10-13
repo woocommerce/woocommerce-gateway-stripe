@@ -69,7 +69,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
-			if ( 'processing' === $order->get_status() || 'completed' === $order->get_status() || 'on-hold' === $order->get_status() ) {
+			if ( $order->has_status( array( 'processing', 'completed', 'on-hold' ) ) ) {
 				return;
 			}
 
