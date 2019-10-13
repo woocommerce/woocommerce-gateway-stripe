@@ -39,6 +39,9 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			 */
 			add_action( 'template_redirect', array( $this, 'remove_order_pay_var' ), 99 );
 			add_action( 'template_redirect', array( $this, 'restore_order_pay_var' ), 101 );
+
+			// The SCA flow is not compatible with the "Early manual renew modal" feature
+			add_filter( 'wcs_is_early_renewal_via_modal_enabled', '__return_false' );
 		}
 	}
 
