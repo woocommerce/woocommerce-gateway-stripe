@@ -30,7 +30,6 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			add_filter( 'woocommerce_subscription_payment_meta', array( $this, 'add_subscription_payment_meta' ), 10, 2 );
 			add_filter( 'woocommerce_subscription_validate_payment_meta', array( $this, 'validate_subscription_payment_meta' ), 10, 2 );
 			add_filter( 'wc_stripe_display_save_payment_method_checkbox', array( $this, 'maybe_hide_save_checkbox' ) );
-			add_filter( 'woocommerce_get_checkout_payment_url', array( $this, 'get_checkout_payment_url' ), 10, 2 );
 
 			/*
 			 * WC subscriptions hooks into the "template_redirect" hook with priority 100.
@@ -607,21 +606,5 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		$renewal_order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $charge_id ) );
 
 		return true;
-	}
-
-	/**
-	 * Preserves the "wc-stripe-confirmation" URL parameter so the user can complete the SCA authentication after logging in.
-	 *
-	 * @param string $pay_url Current computed checkout URL for the given order.
-	 * @param WC_Order $order Order object.
-	 *
-	 * @return string Checkout URL for the given order.
-	 */
-	public function get_checkout_payment_url( $pay_url, $order ) {
-		global $wp;
-		if ( isset( $_GET['wc-stripe-confirmation'] ) && isset( $wp->query_vars['order-pay'] ) && $wp->query_vars['order-pay'] == $order->get_id() ) {
-			$pay_url = add_query_arg( 'wc-stripe-confirmation', 1, $pay_url );
-		}
-		return $pay_url;
 	}
 }
