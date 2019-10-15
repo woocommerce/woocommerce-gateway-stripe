@@ -60,6 +60,8 @@ class WC_Stripe_Apple_Pay_Registration {
 	public $apple_pay_verify_notice;
 
 	public function __construct() {
+		add_action( 'woocommerce_stripe_updated', array( $this, 'update_verification_file' ) );
+
 		$this->stripe_settings         = get_option( 'woocommerce_stripe_settings', array() );
 		$this->stripe_enabled          = $this->get_option( 'enabled' );
 		$this->payment_request         = 'yes' === $this->get_option( 'payment_request', 'yes' );
@@ -162,6 +164,41 @@ class WC_Stripe_Apple_Pay_Registration {
 	}
 
 	/**
+	 * Updates the Apple Pay domain verification file.
+	 *
+	 * @param bool $force True to create the file if it didn't exist, false for just updating the file if needed.
+	 *
+	 * @version 4.3.0
+	 * @since 4.3.0
+	 */
+	public function update_verification_file( $force = false ) {
+			$path     = untrailingslashit( $_SERVER['DOCUMENT_ROOT'] );
+			$dir      = '.well-known';
+			$file     = 'apple-developer-merchantid-domain-association';
+			$fullpath = $path . '/' . $dir . '/' . $file;
+
+			$existing_contents = @file_get_contents( $fullpath );
+			$new_contents = @file_get_contents( WC_STRIPE_PLUGIN_PATH . '/' . $file );
+			if ( ( ! $existing_contents && ! $force ) || $existing_contents === $new_contents ) {
+				return;
+			}
+
+			if ( ! file_exists( $path . '/' . $dir ) ) {
+				if ( ! @mkdir( $path . '/' . $dir, 0755 ) ) { // @codingStandardsIgnoreLine
+					WC_Stripe_Logger::log( 'Error: ' . __( 'Unable to create domain association folder to domain root.', 'woocommerce-gateway-stripe' ) );
+					return;
+				}
+			}
+
+			if ( ! @copy( WC_STRIPE_PLUGIN_PATH . '/' . $file, $fullpath ) ) { // @codingStandardsIgnoreLine
+				WC_Stripe_Logger::log( 'Error: ' . __( 'Unable to copy domain association file to domain root.', 'woocommerce-gateway-stripe' ) );
+				return;
+			}
+
+			WC_Stripe_Logger::log( 'Domain association file updated.' );
+	}
+
+	/**
 	 * Processes the Apple Pay domain verification.
 	 *
 	 * @since 3.1.0
@@ -169,26 +206,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 */
 	public function process_apple_pay_verification() {
 		try {
-			$path     = untrailingslashit( $_SERVER['DOCUMENT_ROOT'] );
-			$dir      = '.well-known';
-			$file     = 'apple-developer-merchantid-domain-association';
-			$fullpath = $path . '/' . $dir . '/' . $file;
-
-			if ( $this->apple_pay_domain_set && file_exists( $fullpath ) ) {
-				return;
-			}
-
-			if ( ! file_exists( $path . '/' . $dir ) ) {
-				if ( ! @mkdir( $path . '/' . $dir, 0755 ) ) { // @codingStandardsIgnoreLine
-					throw new Exception( __( 'Unable to create domain association folder to domain root.', 'woocommerce-gateway-stripe' ) );
-				}
-			}
-
-			if ( ! file_exists( $fullpath ) ) {
-				if ( ! @copy( WC_STRIPE_PLUGIN_PATH . '/' . $file, $fullpath ) ) { // @codingStandardsIgnoreLine
-					throw new Exception( __( 'Unable to copy domain association file to domain root.', 'woocommerce-gateway-stripe' ) );
-				}
-			}
+			$this->update_verification_file( true );
 
 			// At this point then the domain association folder and file should be available.
 			// Proceed to verify/and or verify again.
