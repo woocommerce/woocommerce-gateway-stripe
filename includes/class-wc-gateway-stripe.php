@@ -572,8 +572,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		try {
 			$order = wc_get_order( $order_id );
 
-			$this->maybe_create_customer( $order );
-
 			// ToDo: `process_pre_order` saves the source to the order for a later payment.
 			// This might not work well with PaymentIntents.
 			if ( $this->maybe_process_pre_orders( $order_id ) ) {
