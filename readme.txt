@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 5.2.2
 Requires PHP: 5.6
-Stable tag: 4.2.5
+Stable tag: 4.3.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -113,19 +113,18 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 4.3.0 2019-10-17 =
+* Add - For WooCommerce Subscriptions optimize the payment flow for subsequent subscription payments when authentication may be required by using the  `setup_future_usage` parameter for the first subscription payment
+* Add - Allow customer to authenticate payment even if they are not charged right away for WooCommerce Subscriptions and Pre-Orders, for example for a WooCommerce Subscription that has a free trial
+* Add - When an off-session payment requires authentication, create a link for customers to come back to the store to authenticate the payment
+* Add - Send an email to WooCommerce Subscription and Pre-Orders customers who need to authenticate a payment that was automatically tried on their behalf
+* Add - When an off-session payment requires authentication, send an email to the admin
+* Add - Admin notice about SCA-readiness
+* Fix - Avoid idempotency key errors for Pre-Orders
+* Fix - Use unique anchor for link about checkout styling changes
+
 = 4.2.5 - 2019-10-02 =
 * Fix - WooCommerce Subscriptions that use only the Stripe customer ID can again be renewed
-
-= 4.2.4 - 2019-09-18 =
-* Fix - Unclear error message when email address not completely filled in.
-* Fix - Add payment request button compatibility with variable subscriptions
-* Tweak - Do not show payment request button for shippable trial subscription products
-* Fix - Do not copy the payment intent id when creating a subscription renewal
-* Fix - Return early from check intent status if no order - props strayobject
-* Fix - Extend webhook time window from 1 to 5 minutes to match Stripe client
-* Update - WooCommerce 3.7 compatibility
-* Update - Apple Pay Domain association file
-* Update - Grandfather pre-SCA subscription renewals for SCA
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
