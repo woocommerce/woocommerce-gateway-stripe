@@ -722,10 +722,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * @todo: Check pre-3.0 compatibility.
+	 * Retrieves a source based on an order. Checks for the customer, associated
+	 * with the order and/or the customer which was manually entered in the admin.
 	 *
-	 * @param WC_Order $order
-	 * @return void
+	 * @param WC_Order $order The order to use as a starting point.
+	 * @return stdClass|null  Either an object with the necessary data or null.
 	 */
 	public function get_default_customer_source_for_order( $order ) {
 		$stripe_customer = null;
