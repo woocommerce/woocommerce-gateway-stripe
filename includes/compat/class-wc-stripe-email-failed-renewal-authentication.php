@@ -52,6 +52,9 @@ class WC_Stripe_Email_Failed_Renewal_Authentication extends WC_Stripe_Email_Fail
 
 			// Prevent the retry email from WooCommerce Subscriptions from being sent.
 			add_filter( 'wcs_get_retry_rule_raw', array( $this, 'prevent_retry_notification_email' ), 100, 3 );
+
+			// Send email to store owner indicating communication is happening with the customer to request authentication.
+			add_filter( 'wcs_get_retry_rule_raw', array( $this, 'set_store_owner_custom_email' ), 100, 3 );
 		}
 	}
 
@@ -84,6 +87,25 @@ class WC_Stripe_Email_Failed_Renewal_Authentication extends WC_Stripe_Email_Fail
 	public function prevent_retry_notification_email( $rule_array, $retry_number, $order_id ) {
 		if ( wcs_get_objects_property( $this->object, 'id' ) === $order_id ) {
 			$rule_array['email_template_customer'] = '';
+		}
+
+		return $rule_array;
+	}
+
+	/**
+	 * Send store owner a different email when the retry is related to an authentication required error.
+	 *
+	 * @param array $rule_array   The raw details about the retry rule.
+	 * @param int   $retry_number The number of the retry.
+	 * @param int   $order_id     The ID of the order that needs payment.
+	 * @return array
+	 */
+	public function set_store_owner_custom_email( $rule_array, $retry_number, $order_id ) {
+		if (
+			wcs_get_objects_property( $this->object, 'id' ) === $order_id &&
+			'' !== $rule_array['email_template_admin'] // Only send our email if a retry admin email was already going to be sent.
+		) {
+			$rule_array['email_template_admin'] = 'WC_Stripe_Email_Failed_Authentication_Retry';
 		}
 
 		return $rule_array;
