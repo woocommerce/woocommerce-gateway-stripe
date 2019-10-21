@@ -170,6 +170,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 *
 	 * @version 4.3.0
 	 * @since 4.3.0
+	 * @return bool True on success, false on failure.
 	 */
 	public function update_verification_file( $force = false ) {
 			$path     = untrailingslashit( $_SERVER['DOCUMENT_ROOT'] );
@@ -180,22 +181,23 @@ class WC_Stripe_Apple_Pay_Registration {
 			$existing_contents = @file_get_contents( $fullpath );
 			$new_contents = @file_get_contents( WC_STRIPE_PLUGIN_PATH . '/' . $file );
 			if ( ( ! $existing_contents && ! $force ) || $existing_contents === $new_contents ) {
-				return;
+				return true;
 			}
 
 			if ( ! file_exists( $path . '/' . $dir ) ) {
 				if ( ! @mkdir( $path . '/' . $dir, 0755 ) ) { // @codingStandardsIgnoreLine
 					WC_Stripe_Logger::log( 'Error: ' . __( 'Unable to create domain association folder to domain root.', 'woocommerce-gateway-stripe' ) );
-					return;
+					return false;
 				}
 			}
 
 			if ( ! @copy( WC_STRIPE_PLUGIN_PATH . '/' . $file, $fullpath ) ) { // @codingStandardsIgnoreLine
 				WC_Stripe_Logger::log( 'Error: ' . __( 'Unable to copy domain association file to domain root.', 'woocommerce-gateway-stripe' ) );
-				return;
+				return false;
 			}
 
 			WC_Stripe_Logger::log( 'Domain association file updated.' );
+			return true;
 	}
 
 	/**
@@ -205,9 +207,13 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @version 3.1.0
 	 */
 	public function process_apple_pay_verification() {
-		try {
-			$this->update_verification_file( true );
+		if ( ! $this->update_verification_file( true ) ) {
+			$this->stripe_settings['apple_pay_domain_set'] = 'no';
+			update_option( 'woocommerce_stripe_settings', $this->stripe_settings );
+			return;
+		}
 
+		try {
 			// At this point then the domain association folder and file should be available.
 			// Proceed to verify/and or verify again.
 			$this->register_apple_pay_domain( $this->secret_key );
