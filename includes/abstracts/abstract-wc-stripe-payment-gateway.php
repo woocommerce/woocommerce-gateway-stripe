@@ -1179,7 +1179,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		if ( $intent_id ) {
-			return WC_Stripe_API::request( array(), "payment_intents/$intent_id", 'GET' );
+			$intent = WC_Stripe_API::request( array(), "payment_intents/$intent_id", 'GET' );
+
+			if ( ! empty( $intent->error ) ) {
+				return false;
+			}
+
+			return $intent;
 		}
 
 		// The order doesn't have a payment intent, but it may have a setup intent.
@@ -1190,7 +1196,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		if ( $intent_id ) {
-			return WC_Stripe_API::request( array(), "setup_intents/$intent_id", 'GET' );
+			$intent = WC_Stripe_API::request( array(), "setup_intents/$intent_id", 'GET' );
+
+			if ( ! empty( $intent->error ) ) {
+				return false;
+			}
+
+			return $intent;
 		}
 
 		return false;
