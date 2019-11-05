@@ -350,7 +350,7 @@ class WC_Stripe_Customer {
 
 			if ( ! empty( $default_token ) && 'stripe' === $default_token->get_gateway_id() ) {
 				$source = WC_Stripe_API::request( array(), 'sources/' . $default_token->get_token(), 'GET' );
-				if ( empty( $source->error ) && $this->id === $source->customer ) {
+				if ( empty( $source->error ) && ! empty( $source->customer ) && $this->id === $source->customer ) {
 					return $source;
 				}
 			}
