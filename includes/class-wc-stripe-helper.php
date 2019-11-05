@@ -223,6 +223,7 @@ class WC_Stripe_Helper {
 				'processing_error'         => __( 'An error occurred while processing the card.', 'woocommerce-gateway-stripe' ),
 				'invalid_request_error'    => __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ),
 				'invalid_sofort_country'   => __( 'The billing country is not accepted by SOFORT. Please try another country.', 'woocommerce-gateway-stripe' ),
+				'email_invalid'            => __( 'Invalid email address, please correct and try again.', 'woocommerce-gateway-stripe' ),
 			)
 		);
 	}
@@ -444,6 +445,25 @@ class WC_Stripe_Helper {
 		global $wpdb;
 
 		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $intent_id, '_stripe_intent_id' ) );
+
+		if ( ! empty( $order_id ) ) {
+			return wc_get_order( $order_id );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Gets the order by Stripe SetupIntent ID.
+	 *
+	 * @since 4.3
+	 * @param string $intent_id The ID of the intent.
+	 * @return WC_Order|bool Either an order or false when not found.
+	 */
+	public static function get_order_by_setup_intent_id( $intent_id ) {
+		global $wpdb;
+
+		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $intent_id, '_stripe_setup_intent' ) );
 
 		if ( ! empty( $order_id ) ) {
 			return wc_get_order( $order_id );

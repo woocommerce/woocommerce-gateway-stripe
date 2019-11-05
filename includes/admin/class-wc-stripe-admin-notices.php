@@ -23,6 +23,7 @@ class WC_Stripe_Admin_Notices {
 	public function __construct() {
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
 		add_action( 'wp_loaded', array( $this, 'hide_notices' ) );
+		add_action( 'woocommerce_stripe_updated', array( $this, 'stripe_updated' ) );
 	}
 
 	/**
@@ -106,6 +107,7 @@ class WC_Stripe_Admin_Notices {
 		$show_phpver_notice = get_option( 'wc_stripe_show_phpver_notice' );
 		$show_wcver_notice  = get_option( 'wc_stripe_show_wcver_notice' );
 		$show_curl_notice   = get_option( 'wc_stripe_show_curl_notice' );
+		$show_sca_notice    = get_option( 'wc_stripe_show_sca_notice' );
 		$options            = get_option( 'woocommerce_stripe_settings' );
 		$testmode           = ( isset( $options['testmode'] ) && 'yes' === $options['testmode'] ) ? true : false;
 		$test_pub_key       = isset( $options['test_publishable_key'] ) ? $options['test_publishable_key'] : '';
@@ -126,9 +128,9 @@ class WC_Stripe_Admin_Notices {
 
 			if ( empty( $show_style_notice ) ) {
 				/* translators: 1) int version 2) int version */
-				$message = __( 'WooCommerce Stripe - We recently made changes to Stripe that may impact the appearance of your checkout. If your checkout has changed unexpectedly, please follow these <a href="https://docs.woocommerce.com/document/stripe/#section-45" target="_blank">instructions</a> to fix.', 'woocommerce-gateway-stripe' );
+				$message = __( 'WooCommerce Stripe - We recently made changes to Stripe that may impact the appearance of your checkout. If your checkout has changed unexpectedly, please follow these <a href="https://docs.woocommerce.com/document/stripe/#styling" target="_blank">instructions</a> to fix.', 'woocommerce-gateway-stripe' );
 
-				$this->add_admin_notice( 'style', 'error', $message, true );
+				$this->add_admin_notice( 'style', 'notice notice-warning', $message, true );
 
 				return;
 			}
@@ -198,6 +200,10 @@ class WC_Stripe_Admin_Notices {
 					/* translators: 1) link */
 					$this->add_admin_notice( 'ssl', 'notice notice-warning', sprintf( __( 'Stripe is enabled, but a SSL certificate is not detected. Your checkout may not be secure! Please ensure your server has a valid <a href="%1$s" target="_blank">SSL certificate</a>', 'woocommerce-gateway-stripe' ), 'https://en.wikipedia.org/wiki/Transport_Layer_Security' ), true );
 				}
+			}
+
+			if ( empty( $show_sca_notice ) ) {
+				$this->add_admin_notice( 'sca', 'notice notice-success', sprintf( __( 'Stripe is now ready for Strong Customer Authentication (SCA) and 3D Secure 2! <a href="%1$s" target="_blank">Read about SCA</a>', 'woocommerce-gateway-stripe' ), 'https://woocommerce.com/posts/introducing-strong-customer-authentication-sca/' ), true );
 			}
 		}
 	}
@@ -292,6 +298,9 @@ class WC_Stripe_Admin_Notices {
 				case 'SOFORT':
 					update_option( 'wc_stripe_show_sofort_notice', 'no' );
 					break;
+				case 'sca':
+					update_option( 'wc_stripe_show_sca_notice', 'no' );
+					break;
 			}
 		}
 	}
@@ -309,6 +318,25 @@ class WC_Stripe_Admin_Notices {
 		$section_slug = $use_id_as_section ? 'stripe' : strtolower( 'WC_Gateway_Stripe' );
 
 		return admin_url( 'admin.php?page=wc-settings&tab=checkout&section=' . $section_slug );
+	}
+
+	/**
+	 * Saves options in order to hide notices based on the gateway's version.
+	 *
+	 * @since 4.3.0
+	 */
+	public function stripe_updated() {
+		$previous_version = get_option( 'wc_stripe_version' );
+
+		// Only show the style notice if the plugin was installed and older than 4.1.4.
+		if ( empty( $previous_version ) || version_compare( $previous_version, '4.1.4', 'ge' ) ) {
+			update_option( 'wc_stripe_show_style_notice', 'no' );
+		}
+
+		// Only show the SCA notice on pre-4.3.0 installs.
+		if ( empty( $previous_version ) || version_compare( $previous_version, '4.3.0', 'ge' ) ) {
+			update_option( 'wc_stripe_show_sca_notice', 'no' );
+		}
 	}
 }
 

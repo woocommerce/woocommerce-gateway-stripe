@@ -405,6 +405,8 @@ class WC_Stripe_Payment_Request {
 				'variable',
 				'variation',
 				'subscription',
+				'variable-subscription',
+				'subscription_variation',
 				'booking',
 				'bundle',
 				'composite',
@@ -425,6 +427,11 @@ class WC_Stripe_Payment_Request {
 			$_product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
 
 			if ( ! in_array( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $_product->product_type : $_product->get_type() ), $this->supported_product_types() ) ) {
+				return false;
+			}
+
+			// Trial subscriptions with shipping are not supported
+			if ( class_exists( 'WC_Subscriptions_Order' ) && WC_Subscriptions_Cart::cart_contains_subscription() && $_product->needs_shipping() && WC_Subscriptions_Product::get_trial_length( $_product ) > 0 ) {
 				return false;
 			}
 
@@ -560,6 +567,11 @@ class WC_Stripe_Payment_Request {
 				return;
 			}
 
+			// Trial subscriptions with shipping are not supported
+			if ( class_exists( 'WC_Subscriptions_Order' ) && $product->needs_shipping() && WC_Subscriptions_Product::get_trial_length( $product ) > 0 ) {
+				return;
+			}
+
 			// Pre Orders charge upon release not supported.
 			if ( class_exists( 'WC_Pre_Orders_Order' ) && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
 				WC_Stripe_Logger::log( 'Pre Order charge upon release is not supported. ( Payment Request button disabled )' );
@@ -572,7 +584,7 @@ class WC_Stripe_Payment_Request {
 			}
 		}
 		?>
-		<div id="wc-stripe-payment-request-wrapper" style="clear:both;padding-top:1.5em;">
+		<div id="wc-stripe-payment-request-wrapper" style="clear:both;padding-top:1.5em;display:none;">
 			<div id="wc-stripe-payment-request-button">
 				<!-- A Stripe Element will be inserted here. -->
 			</div>
@@ -611,6 +623,11 @@ class WC_Stripe_Payment_Request {
 			$product = wc_get_product( $post->ID );
 
 			if ( ! is_object( $product ) || ! in_array( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
+				return;
+			}
+
+			// Trial subscriptions with shipping are not supported
+			if ( class_exists( 'WC_Subscriptions_Order' ) && $product->needs_shipping() && WC_Subscriptions_Product::get_trial_length( $product ) > 0 ) {
 				return;
 			}
 

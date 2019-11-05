@@ -74,21 +74,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 	/**
 	 * Checks to see if error is of invalid request
-	 * error and source is already consumed.
-	 *
-	 * @since 4.1.0
-	 * @param array $error
-	 */
-	public function is_source_already_consumed_error( $error ) {
-		return (
-			$error &&
-			'invalid_request_error' === $error->type &&
-			preg_match( '/The reusable source you provided is consumed because it was previously charged without being attached to a customer or was detached from a customer. To charge a reusable source multiple time you must attach it to a customer first./i', $error->message )
-		);
-	}
-
-	/**
-	 * Checks to see if error is of invalid request
 	 * error and it is no such customer.
 	 *
 	 * @since 4.1.0
@@ -548,7 +533,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return bool
 	 */
 	public function is_prepaid_card( $source_object ) {
-		return ( $source_object && 'token' === $source_object->object && 'prepaid' === $source_object->card->funding );
+		return (
+			$source_object
+			&& ( 'token' === $source_object->object || 'source' === $source_object->object )
+			&& 'prepaid' === $source_object->card->funding
+		);
 	}
 
 	/**
@@ -589,7 +578,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function prepare_source( $user_id, $force_save_source = false ) {
 		$customer          = new WC_Stripe_Customer( $user_id );
-		$set_customer      = true;
 		$force_save_source = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
 		$source_object     = '';
 		$source_id         = '';
@@ -644,16 +632,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 					throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
 				}
 			} else {
-				$set_customer = false;
 				$source_id    = $stripe_token;
 				$is_token     = true;
 			}
 		}
 
-		if ( ! $set_customer ) {
-			$customer_id = false;
-		} else {
-			$customer_id = $customer->get_id() ? $customer->get_id() : false;
+		$customer_id = $customer->get_id();
+		if ( ! $customer_id ) {
+			$customer->set_id( $customer->create_customer() );
+			$customer_id = $customer->get_id();
 		}
 
 		if ( empty( $source_object ) && ! $is_token ) {
@@ -1021,13 +1008,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Create a new PaymentIntent.
+	 * Generates the request when creating a new payment intent.
 	 *
 	 * @param WC_Order $order           The order that is being paid for.
 	 * @param object   $prepared_source The source that is used for the payment.
-	 * @return object                   An intent or an error.
+	 * @return array                    The arguments for the request.
 	 */
-	public function create_intent( $order, $prepared_source ) {
+	public function generate_create_intent_request( $order, $prepared_source ) {
 		// The request for a charge contains metadata for the intent.
 		$full_request = $this->generate_payment_request( $order, $prepared_source );
 
@@ -1037,7 +1024,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'currency'             => strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->get_order_currency() : $order->get_currency() ),
 			'description'          => $full_request['description'],
 			'metadata'             => $full_request['metadata'],
-			'statement_descriptor' => $full_request['statement_descriptor'],
 			'capture_method'       => ( 'true' === $full_request['capture'] ) ? 'automatic' : 'manual',
 			'payment_method_types' => array(
 				'card',
@@ -1047,6 +1033,31 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( $prepared_source->customer ) {
 			$request['customer'] = $prepared_source->customer;
 		}
+
+		if ( isset( $full_request['statement_descriptor'] ) ) {
+			$request['statement_descriptor'] = $full_request['statement_descriptor'];
+		}
+
+		/**
+		 * Filter the return value of the WC_Payment_Gateway_CC::generate_create_intent_request.
+		 *
+		 * @since 3.1.0
+		 * @param array $request
+		 * @param WC_Order $order
+		 * @param object $source
+		 */
+		return apply_filters( 'wc_stripe_generate_create_intent_request', $request, $order, $prepared_source );
+	}
+
+	/**
+	 * Create a new PaymentIntent.
+	 *
+	 * @param WC_Order $order           The order that is being paid for.
+	 * @param object   $prepared_source The source that is used for the payment.
+	 * @return object                   An intent or an error.
+	 */
+	public function create_intent( $order, $prepared_source ) {
+		$request = $this->generate_create_intent_request( $order, $prepared_source );
 
 		// Create an intent that awaits an action.
 		$intent = WC_Stripe_API::request( $request, 'payment_intents' );
@@ -1167,11 +1178,22 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$intent_id = $order->get_meta( '_stripe_intent_id' );
 		}
 
-		if ( ! $intent_id ) {
-			return false;
+		if ( $intent_id ) {
+			return WC_Stripe_API::request( array(), "payment_intents/$intent_id", 'GET' );
 		}
 
-		return WC_Stripe_API::request( array(), "payment_intents/$intent_id", 'GET' );
+		// The order doesn't have a payment intent, but it may have a setup intent.
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+			$intent_id = get_post_meta( $order_id, '_stripe_setup_intent', true );
+		} else {
+			$intent_id = $order->get_meta( '_stripe_setup_intent' );
+		}
+
+		if ( $intent_id ) {
+			return WC_Stripe_API::request( array(), "setup_intents/$intent_id", 'GET' );
+		}
+
+		return false;
 	}
 
 	/**
@@ -1207,5 +1229,107 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function unlock_order_payment( $order ) {
 		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 		delete_transient( 'wc_stripe_processing_intent_' . $order_id );
+	}
+
+	/**
+	 * Given a response from Stripe, check if it's a card error where authentication is required
+	 * to complete the payment.
+	 *
+	 * @param object $response The response from Stripe.
+	 * @return boolean Whether or not it's a 'authentication_required' error
+	 */
+	public function is_authentication_required_for_payment( $response ) {
+		return ( ! empty( $response->error ) && 'authentication_required' === $response->error->code )
+			|| ( ! empty( $response->last_payment_error ) && 'authentication_required' === $response->last_payment_error->code );
+	}
+
+	/**
+	 * Creates a SetupIntent for future payments, and saves it to the order.
+	 *
+	 * @param WC_Order $order           The ID of the (free/pre- order).
+	 * @param object   $prepared_source The source, entered/chosen by the customer.
+	 * @return string                   The client secret of the intent, used for confirmation in JS.
+	 */
+	public function setup_intent( $order, $prepared_source ) {
+		$order_id     = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+		$setup_intent = WC_Stripe_API::request( array(
+			'payment_method' => $prepared_source->source,
+			'customer'       => $prepared_source->customer,
+			'confirm'        => 'true',
+		), 'setup_intents' );
+
+		if ( is_wp_error( $setup_intent ) ) {
+			WC_Stripe_Logger::log( "Unable to create SetupIntent for Order #$order_id: " . print_r( $setup_intent, true ) );
+		} elseif ( 'requires_action' === $setup_intent->status ) {
+			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+				update_post_meta( $order_id, '_stripe_setup_intent', $setup_intent->id );
+			} else {
+				$order->update_meta_data( '_stripe_setup_intent', $setup_intent->id );
+				$order->save();
+			}
+
+			return $setup_intent->client_secret;
+		}
+	}
+
+	/**
+	 * Create and confirm a new PaymentIntent.
+	 *
+	 * @param WC_Order $order           The order that is being paid for.
+	 * @param object   $prepared_source The source that is used for the payment.
+	 * @param float    $amount          The amount to charge. If not specified, it will be read from the order.
+	 * @return object                   An intent or an error.
+	 */
+	public function create_and_confirm_intent_for_off_session( $order, $prepared_source, $amount = NULL ) {
+		// The request for a charge contains metadata for the intent.
+		$full_request = $this->generate_payment_request( $order, $prepared_source );
+
+		$request = array(
+			'amount'               => $amount ? WC_Stripe_Helper::get_stripe_amount( $amount, $full_request['currency'] ) : $full_request['amount'],
+			'currency'             => $full_request['currency'],
+			'description'          => $full_request['description'],
+			'metadata'             => $full_request['metadata'],
+			'payment_method_types' => array(
+				'card',
+			),
+			'off_session'          => 'true',
+			'confirm'              => 'true',
+			'confirmation_method'  => 'automatic',
+		);
+
+		if ( isset( $full_request['statement_descriptor'] ) ) {
+			$request['statement_descriptor'] = $full_request['statement_descriptor'];
+		}
+
+		if ( isset( $full_request['customer'] ) ) {
+			$request['customer'] = $full_request['customer'];
+		}
+
+		if ( isset( $full_request['source'] ) ) {
+			$request['source'] = $full_request['source'];
+		}
+
+		$intent = WC_Stripe_API::request( $request, 'payment_intents' );
+		$is_authentication_required = $this->is_authentication_required_for_payment( $intent );
+
+		if ( ! empty( $intent->error ) && ! $is_authentication_required ) {
+			return $intent;
+		}
+
+		$intent_id      = ( ! empty( $intent->error )
+			? $intent->error->payment_intent->id
+			: $intent->id
+		);
+		$payment_intent = ( ! empty( $intent->error )
+			? $intent->error->payment_intent
+			: $intent
+		);
+		$order_id       = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+		WC_Stripe_Logger::log( "Stripe PaymentIntent $intent_id initiated for order $order_id" );
+
+		// Save the intent ID to the order.
+		$this->save_intent_to_order( $order, $payment_intent );
+
+		return $intent;
 	}
 }

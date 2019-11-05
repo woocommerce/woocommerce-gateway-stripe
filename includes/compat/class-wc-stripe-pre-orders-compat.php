@@ -28,19 +28,15 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 	 * @param object $order
 	 */
 	public function remove_order_source_before_retry( $order ) {
-		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
-		delete_post_meta( $order_id, '_stripe_source_id' );
-		// For BW compat will remove in the future.
-		delete_post_meta( $order_id, '_stripe_card_id' );
-	}
-
-	/**
-	 * Remove order meta
-	 * @param  object $order
-	 */
-	public function remove_order_customer_before_retry( $order ) {
-		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
-		delete_post_meta( $order_id, '_stripe_customer_id' );
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+			delete_post_meta( $order->id, '_stripe_source_id' );
+			// For BW compat will remove in the future.
+			delete_post_meta( $order->id, '_stripe_card_id' );
+		} else {
+			$order->delete_meta_data( '_stripe_source_id' );
+			$order->delete_meta_data( '_stripe_card_id' );
+			$order->save();
+		}
 	}
 
 	/**
@@ -61,19 +57,29 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 				throw new WC_Stripe_Exception( __( 'Unable to store payment details. Please try again.', 'woocommerce-gateway-stripe' ) );
 			}
 
+			// Setup the response early to allow later modifications.
+			$response = array(
+				'result'   => 'success',
+				'redirect' => $this->get_return_url( $order ),
+			);
+
 			$this->save_source_to_order( $order, $prepared_source );
 
-			// Remove cart
+			// Try setting up a payment intent.
+			$intent_secret = $this->setup_intent( $order, $prepared_source );
+			if ( ! empty( $intent_secret ) ) {
+				$response['setup_intent_secret'] = $intent_secret;
+				return $response;
+			}
+
+			// Remove cart.
 			WC()->cart->empty_cart();
 
 			// Is pre ordered!
 			WC_Pre_Orders_Order::mark_order_as_pre_ordered( $order );
 
 			// Return thank you page redirect
-			return array(
-				'result'   => 'success',
-				'redirect' => $this->get_return_url( $order ),
-			);
+			return $response;
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Pre Orders Error: ' . $e->getMessage() );
@@ -87,37 +93,49 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Process a pre-order payment when the pre-order is released.
+	 *
 	 * @param WC_Order $order
+	 * @param bool $retry
+	 *
 	 * @return void
 	 */
-	public function process_pre_order_release_payment( $order ) {
+	public function process_pre_order_release_payment( $order, $retry = true ) {
 		try {
-			// Define some callbacks if the first attempt fails.
-			$retry_callbacks = array(
-				'remove_order_source_before_retry',
-				'remove_order_customer_before_retry',
-			);
+			$source   = $this->prepare_order_source( $order );
+			$response = $this->create_and_confirm_intent_for_off_session( $order, $source );
 
-			while ( 1 ) {
-				$source   = $this->prepare_order_source( $order );
-				$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source ) );
+			$is_authentication_required = $this->is_authentication_required_for_payment( $response );
 
-				if ( ! empty( $response->error ) ) {
-					if ( 0 === sizeof( $retry_callbacks ) ) {
-						throw new Exception( $response->error->message );
-					} else {
-						$retry_callback = array_shift( $retry_callbacks );
-						call_user_func( array( $this, $retry_callback ), $order );
-					}
-				} else {
-					// Successful
-					$this->process_response( $response, $order );
-					break;
+			if ( ! empty( $response->error ) && ! $is_authentication_required ) {
+				if ( ! $retry ) {
+					throw new Exception( $response->error->message );
 				}
+				$this->remove_order_source_before_retry( $order );
+				$this->process_pre_order_release_payment( $order, false );
+			} else if ( $is_authentication_required ) {
+				$charge = end( $response->error->payment_intent->charges->data );
+				$id = $charge->id;
+				$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+
+				WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_transaction_id', $id ) : $order->set_transaction_id( $id );
+				$order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
+				if ( is_callable( array( $order, 'save' ) ) ) {
+					$order->save();
+				}
+
+				WC_Emails::instance();
+
+				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $order );
+
+				throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
+			} else {
+				// Successful
+				$this->process_response( end( $response->charges->data ), $order );
 			}
 		} catch ( Exception $e ) {
+			$error_message = is_callable( array( $e, 'getLocalizedMessage' ) ) ? $e->getLocalizedMessage() : $e->getMessage();
 			/* translators: error message */
-			$order_note = sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $e->getMessage() );
+			$order_note = sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $error_message );
 
 			// Mark order as failed if not already set,
 			// otherwise, make sure we add the order note so we can detect when someone fails to check out multiple times
