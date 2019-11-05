@@ -1018,7 +1018,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		clean_post_cache( $order->get_id() );
 		$order = wc_get_order( $order->get_id() );
 
-		if ( 'pending' !== $order->get_status() && 'failed' !== $order->get_status() ) {
+		if ( ! $order->has_status( array( 'pending', 'failed' ) ) ) {
 			// If payment has already been completed, this function is redundant.
 			return;
 		}
@@ -1054,7 +1054,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function failed_sca_auth( $order, $intent ) {
 		// If the order has already failed, do not repeat the same message.
-		if ( 'failed' === $order->get_status() ) {
+		if ( $order->has_status( 'failed' ) ) {
 			return;
 		}
 
