@@ -577,11 +577,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return object
 	 */
 	public function prepare_source( $user_id, $force_save_source = false, $existing_customer_id = null ) {
+		$customer = new WC_Stripe_Customer( $user_id );
 		if ( ! empty( $existing_customer_id ) ) {
-			$customer = new WC_Stripe_Customer();
 			$customer->set_id( $existing_customer_id );
-		} else {
-			$customer = new WC_Stripe_Customer( $user_id );
 		}
 
 		$force_save_source = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
