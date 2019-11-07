@@ -247,8 +247,9 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 				$prepared_source->source = '';
 			}
 
-			$response = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
+			$this->lock_order_payment( $renewal_order );
 
+			$response                   = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
 			$is_authentication_required = $this->is_authentication_required_for_payment( $response );
 
 			// It's only a failed payment if it's an error and it's not of the type 'authentication_required'.
@@ -310,6 +311,8 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 
 				$this->process_response( end( $response->charges->data ), $renewal_order );
 			}
+
+			$this->unlock_order_payment( $renewal_order );
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
