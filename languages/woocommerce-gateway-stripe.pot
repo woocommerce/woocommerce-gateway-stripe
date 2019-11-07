@@ -3,8 +3,9 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.3.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/stripe-git\n"
-"POT-Creation-Date: 2019-10-17 20:55:54+00:00\n"
+"Report-Msgid-Bugs-To: "
+"https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
+"POT-Creation-Date: 2019-11-05 10:41:18+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -828,26 +829,26 @@ msgstr ""
 msgid "Billing First Name and Last Name are required."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:716
+#: includes/class-wc-gateway-stripe.php:714
 #. translators: error message
 msgid "This represents the fee Stripe collects for the transaction."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:717
+#: includes/class-wc-gateway-stripe.php:715
 msgid "Stripe Fee:"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:753
+#: includes/class-wc-gateway-stripe.php:751
 msgid ""
 "This represents the net total that will be credited to your Stripe bank "
 "account. This may be in the currency that is set in your Stripe account."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:754
+#: includes/class-wc-gateway-stripe.php:752
 msgid "Stripe Payout:"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:801
+#: includes/class-wc-gateway-stripe.php:799
 #: includes/class-wc-stripe-order-handler.php:162
 #: includes/class-wc-stripe-webhook-handler.php:238
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:263
@@ -858,7 +859,7 @@ msgid ""
 "later."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:854
+#: includes/class-wc-gateway-stripe.php:852
 msgid ""
 "Almost there!\n"
 "\n"
@@ -866,14 +867,14 @@ msgid ""
 "done is for you to authorize the payment with your bank."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1066
+#: includes/class-wc-gateway-stripe.php:1064
 #: includes/class-wc-stripe-webhook-handler.php:685
 #: includes/class-wc-stripe-webhook-handler.php:724
 #. translators: 1) The error message that was received from Stripe.
 msgid "Stripe SCA authentication failed. Reason: %s"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1067
+#: includes/class-wc-gateway-stripe.php:1065
 msgid "Stripe SCA authentication failed."
 msgstr ""
 
@@ -881,25 +882,25 @@ msgstr ""
 msgid "There was a problem connecting to the Stripe API endpoint."
 msgstr ""
 
-#: includes/class-wc-stripe-apple-pay-registration.php:127
+#: includes/class-wc-stripe-apple-pay-registration.php:129
 msgid "Unable to verify domain - missing secret key."
 msgstr ""
 
-#: includes/class-wc-stripe-apple-pay-registration.php:151
-#: includes/class-wc-stripe-apple-pay-registration.php:160
+#: includes/class-wc-stripe-apple-pay-registration.php:153
+#: includes/class-wc-stripe-apple-pay-registration.php:162
 #. translators: error message
 msgid "Unable to verify domain - %s"
 msgstr ""
 
-#: includes/class-wc-stripe-apple-pay-registration.php:183
+#: includes/class-wc-stripe-apple-pay-registration.php:189
 msgid "Unable to create domain association folder to domain root."
 msgstr ""
 
-#: includes/class-wc-stripe-apple-pay-registration.php:189
+#: includes/class-wc-stripe-apple-pay-registration.php:195
 msgid "Unable to copy domain association file to domain root."
 msgstr ""
 
-#: includes/class-wc-stripe-apple-pay-registration.php:246
+#: includes/class-wc-stripe-apple-pay-registration.php:270
 #. translators: 1) HTML anchor open tag 2) HTML anchor closing tag
 msgid ""
 "Apple Pay domain verification failed. Please check the %1$slog%2$s to see "
