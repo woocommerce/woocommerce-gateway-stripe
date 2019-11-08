@@ -1210,12 +1210,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$processing     = get_transient( $transient_name );
 
 		// Block the process if the same intent is already being handled.
-		if ( -1 == $processing || $processing === $intent->id ) {
+		if ( "-1" === $processing || ( isset( $intent->id ) && $processing === $intent->id ) ) {
 			return true;
 		}
 
 		// Save the new intent as a transient, eventually overwriting another one.
-		set_transient( $transient_name, empty( $intent ) ? -1 : $intent->id, 5 * MINUTE_IN_SECONDS );
+		set_transient( $transient_name, empty( $intent ) ? '-1' : $intent->id, 5 * MINUTE_IN_SECONDS );
 
 		return false;
 	}
