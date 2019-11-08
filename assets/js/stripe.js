@@ -245,27 +245,7 @@ jQuery( function( $ ) {
 			);
 
 			// Subscription early renewals modal.
-			$( '#early_renewal_modal_submit' ).on( 'click', function() {
-				$.ajax( {
-					url: $( this ).attr( 'href' ),
-					method: 'get',
-					success: function( html ) {
-						if ( -1 !== html.indexOf( 'stripe_sca_required' ) ) {
-							var response = $.parseJSON( html );
-
-							if ( response.stripe_sca_required ) {
-								wc_stripe_form.openIntentModal( response.intent_secret, response.redirect_url, true, false );
-							} else {
-								window.location = response.redirect_url;
-							}
-						} else {
-							window.location = $( '#early_renewal_modal_submit' ).attr( 'href' ).replace( 'process_early_renewal=1', '' );
-						}
-					},
-				} );
-
-				return false;
-			} );
+			$( '#early_renewal_modal_submit' ).on( 'click', this.onEarlyRenewalSubmit );
 
 			wc_stripe_form.createElements();
 
@@ -806,7 +786,33 @@ jQuery( function( $ ) {
 					// Report back to the server.
 					$.get( redirectURL + '&is_ajax' );
 				} );
-		}
+		},
+
+		/**
+		 * Prevents the standard behavior of the "Renew Now" button in the
+		 * early renewals modal by using AJAX instead of a simple redirect.
+		 *
+		 * @param {Event} e The event that occured.
+		 */
+		onEarlyRenewalSubmit: function( e ) {
+			e.preventDefault();
+
+			$.ajax( {
+				url: $( '#early_renewal_modal_submit' ).attr( 'href' ),
+				method: 'get',
+				success: function( html ) {
+					var response = $.parseJSON( html );
+
+					if ( response.stripe_sca_required ) {
+						wc_stripe_form.openIntentModal( response.intent_secret, response.redirect_url, true, false );
+					} else {
+						window.location = response.redirect_url;
+					}
+				},
+			} );
+
+			return false;
+		},
 	};
 
 	wc_stripe_form.init();

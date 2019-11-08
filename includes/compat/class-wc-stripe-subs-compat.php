@@ -220,7 +220,9 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 
 			$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id();
 
-			if ( isset( $_REQUEST['process_early_renewal'] ) ) {
+
+			// Early renewals should be treated like normal payments, but with a different output.
+			if ( isset( $_REQUEST['process_early_renewal'] ) ) { // wpcs: csrf ok.
 				$response = parent::process_payment( $order_id, true, false, $previous_error );
 
 				if( 'success' === $response['result'] && isset( $response['payment_intent_secret'] ) ) {
@@ -239,6 +241,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 						'intent_secret'       => $response['payment_intent_secret'],
 						'redirect_url'        => $verification_url,
 					) );
+
 					exit;
 				}
 
@@ -639,11 +642,20 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		return true;
 	}
 
+	/**
+	 * Hijacks `wp_redirect` in order to generate a JS-friendly object with the URL.
+	 *
+	 * @param string $url The URL that Subscriptions attempts a redirect to.
+	 * @return void
+	 */
 	public function redirect_after_early_renewal( $url ) {
-		echo wp_json_encode( array(
-			'stripe_sca_required' => false,
-			'redirect_url'        => $url,
-		) );
+		echo wp_json_encode(
+			array(
+				'stripe_sca_required' => false,
+				'redirect_url'        => $url,
+			)
+		);
+
 		exit;
 	}
 }
