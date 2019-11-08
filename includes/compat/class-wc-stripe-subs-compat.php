@@ -220,6 +220,34 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 
 			$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id();
 
+			if ( isset( $_REQUEST['process_early_renewal'] ) ) {
+				$response = parent::process_payment( $order_id, true, false, $previous_error );
+
+				if( 'success' === $response['result'] && isset( $response['payment_intent_secret'] ) ) {
+					$verification_url = add_query_arg(
+						array(
+							'order'         => $order_id,
+							'nonce'         => wp_create_nonce( 'wc_stripe_confirm_pi' ),
+							'redirect_to'   => remove_query_arg( array( 'process_early_renewal', 'subscription_id', 'wcs_nonce' ) ),
+							'early_renewal' => true,
+						),
+						WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
+					);
+
+					echo wp_json_encode( array(
+						'stripe_sca_required' => true,
+						'intent_secret'       => $response['payment_intent_secret'],
+						'redirect_url'        => $verification_url,
+					) );
+					exit;
+				}
+
+				// Hijack all other redirects in order to do the redirection in JavaScript.
+				add_action( 'wp_redirect', array( $this, 'redirect_after_early_renewal' ), 100 );
+
+				return;
+			}
+
 			// Check for an existing intent, which is associated with the order.
 			if ( $this->has_authentication_already_failed( $renewal_order ) ) {
 				return;
@@ -609,5 +637,13 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		$renewal_order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $charge_id ) );
 
 		return true;
+	}
+
+	public function redirect_after_early_renewal( $url ) {
+		echo wp_json_encode( array(
+			'stripe_sca_required' => false,
+			'redirect_url'        => $url,
+		) );
+		exit;
 	}
 }

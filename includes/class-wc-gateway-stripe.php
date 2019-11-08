@@ -372,7 +372,16 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function payment_scripts() {
-		if ( ! is_product() && ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) || ( is_order_received_page() ) ) { // wpcs: csrf ok.
+		if (
+			! is_product()
+			&& ! is_cart()
+			&& ! is_checkout()
+			&& ! isset( $_GET['pay_for_order'] ) // wpcs: csrf ok.
+			&& ! is_add_payment_method_page()
+			&& ! isset( $_GET['change_payment_method'] ) // wpcs: csrf ok.
+			&& ! ( ! empty( get_query_var( 'view-subscription' ) ) && class_exists( 'WCS_Early_Renewal_Manager' ) && WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled() )
+			|| ( is_order_received_page() )
+		) {
 			return;
 		}
 
@@ -578,7 +587,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				return $this->pre_orders->process_pre_order( $order_id );
 			}
 
-			$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source );
+			if ( isset( $_REQUEST['process_early_renewal'] ) ) {
+				$prepared_source = $this->prepare_order_source( $order );
+			} else {
+				$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source );
+			}
 
 			$this->maybe_disallow_prepaid_card( $prepared_source );
 			$this->check_source( $prepared_source );
@@ -1037,7 +1050,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		} else if ( 'succeeded' === $intent->status || 'requires_capture' === $intent->status ) {
 			// Proceed with the payment completion.
 			$this->process_response( end( $intent->charges->data ), $order );
+
+			wcs_update_dates_after_early_renewal( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ), $order );
+			wc_add_notice( __( 'Your early renewal order was successful.', 'woocommerce-subscriptions' ), 'success' );
 		} else if ( 'requires_payment_method' === $intent->status ) {
+			if ( isset( $_GET['early_renewal'] ) ) {
+				$order->delete( true );
+				wc_add_notice( __( 'Payment authorization for the renewal order was unsuccessful, please try again.', 'woocommerce-gateway-stripe' ), 'error' );
+				$renewal_url = wcs_get_early_renewal_url( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ) );
+				wp_redirect( $renewal_url ); exit;
+			}
+
 			// `requires_payment_method` means that SCA got denied for the current payment method.
 			$this->failed_sca_auth( $order, $intent );
 		}
