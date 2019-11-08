@@ -372,7 +372,16 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function payment_scripts() {
-		if ( ! is_product() && ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) || ( is_order_received_page() ) ) { // wpcs: csrf ok.
+		if (
+			! is_product()
+			&& ! is_cart()
+			&& ! is_checkout()
+			&& ! isset( $_GET['pay_for_order'] ) // wpcs: csrf ok.
+			&& ! is_add_payment_method_page()
+			&& ! isset( $_GET['change_payment_method'] ) // wpcs: csrf ok.
+			&& ! ( ! empty( get_query_var( 'view-subscription' ) ) && class_exists( 'WCS_Early_Renewal_Manager' ) && WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled() )
+			|| ( is_order_received_page() )
+		) {
 			return;
 		}
 
@@ -566,11 +575,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param bool $retry Should we retry on fail.
 	 * @param bool $force_save_source Force save the payment source.
 	 * @param mix  $previous_error Any error message from previous request.
+	 * @param bool $use_order_source Whether to use the source, which should already be attached to the order.
 	 *
 	 * @throws Exception If payment will not be accepted.
 	 * @return array|void
 	 */
-	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false ) {
+	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
 		try {
 			$order = wc_get_order( $order_id );
 
@@ -591,7 +601,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$stripe_customer_id = $intent->customer;
 			}
 
-			$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source, $stripe_customer_id );
+			// For some payments the source should already be present in the order.
+			if ( $use_order_source ) {
+				$prepared_source = $this->prepare_order_source( $order );
+			} else {
+				$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source, $stripe_customer_id );
+			}
 
 			$this->maybe_disallow_prepaid_card( $prepared_source );
 			$this->check_source( $prepared_source );
@@ -623,7 +638,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 				// We want to retry.
 				if ( $this->is_retryable_error( $intent->error ) ) {
-					return $this->retry_after_error( $intent, $order, $retry, $force_save_source, $previous_error );
+					return $this->retry_after_error( $intent, $order, $retry, $force_save_source, $previous_error, $use_order_source );
 				}
 
 				$this->unlock_order_payment( $order );
@@ -798,11 +813,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param WC_Order $order             An order that is being paid for.
 	 * @param bool     $retry             A flag that indicates whether another retry should be attempted.
 	 * @param bool     $force_save_source Force save the payment source.
-	 * @param mixed    $previous_error Any error message from previous request.
+	 * @param mixed    $previous_error    Any error message from previous request.
+	 * @param bool     $use_order_source  Whether to use the source, which should already be attached to the order.
 	 * @throws WC_Stripe_Exception        If the payment is not accepted.
 	 * @return array|void
 	 */
-	public function retry_after_error( $response, $order, $retry, $force_save_source, $previous_error ) {
+	public function retry_after_error( $response, $order, $retry, $force_save_source, $previous_error, $use_order_source ) {
 		if ( ! $retry ) {
 			$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
 			$order->add_order_note( $localized_message );
@@ -817,7 +833,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		sleep( $this->retry_interval );
 		$this->retry_interval++;
 
-		return $this->process_payment( $order->get_id(), true, $force_save_source, $response->error, $previous_error );
+		return $this->process_payment( $order->get_id(), true, $force_save_source, $response->error, $previous_error, $use_order_source );
 	}
 
 	/**
@@ -1044,13 +1060,35 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			}
 		} else if ( 'succeeded' === $intent->status || 'requires_capture' === $intent->status ) {
 			// Proceed with the payment completion.
-			$this->process_response( end( $intent->charges->data ), $order );
+			$this->handle_intent_verification_success( $order, $intent );
 		} else if ( 'requires_payment_method' === $intent->status ) {
 			// `requires_payment_method` means that SCA got denied for the current payment method.
-			$this->failed_sca_auth( $order, $intent );
+			$this->handle_intent_verification_failure( $order, $intent );
 		}
 
 		$this->unlock_order_payment( $order );
+	}
+
+	/**
+	 * Called after an intent verification succeeds, this allows
+	 * specific APNs or children of this class to modify its behavior.
+	 *
+	 * @param WC_Order $order The order whose verification succeeded.
+	 * @param stdClass $intent The Payment Intent object.
+	 */
+	protected function handle_intent_verification_success( $order, $intent ) {
+		$this->process_response( end( $intent->charges->data ), $order );
+	}
+
+	/**
+	 * Called after an intent verification fails, this allows
+	 * specific APNs or children of this class to modify its behavior.
+	 *
+	 * @param WC_Order $order The order whose verification failed.
+	 * @param stdClass $intent The Payment Intent object.
+	 */
+	protected function handle_intent_verification_failure( $order, $intent ) {
+		$this->failed_sca_auth( $order, $intent );
 	}
 
 	/**
