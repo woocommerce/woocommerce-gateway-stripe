@@ -22,6 +22,8 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			add_action( 'woocommerce_subscription_failing_payment_method_updated_stripe', array( $this, 'update_failing_payment_method' ), 10, 2 );
 			add_action( 'wc_stripe_cards_payment_fields', array( $this, 'display_update_subs_payment_checkout' ) );
 			add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', array( $this, 'handle_add_payment_method_success' ), 10, 2 );
+			add_action( 'wc_stripe_after_intent_success', array( $this, 'handle_intent_success_verification' ) );
+			add_action( 'wc_stripe_before_intent_failure', array( $this, 'handle_intent_sca_failure' ) );
 
 			// display the credit card used for a subscription in the "My Subscriptions" table
 			add_filter( 'woocommerce_my_subscriptions_payment_method', array( $this, 'maybe_render_subscription_payment_method' ), 10, 2 );
@@ -155,16 +157,16 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	 * @param  int $order_id
 	 * @return array
 	 */
-	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false ) {
+	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
 		if ( $this->has_subscription( $order_id ) ) {
 			if ( $this->is_subs_change_payment() ) {
 				return $this->change_subs_payment_method( $order_id );
 			}
 
 			// Regular payment with force customer enabled
-			return parent::process_payment( $order_id, $retry, true, $previous_error );
+			return parent::process_payment( $order_id, $retry, true, $previous_error, $use_order_source );
 		} else {
-			return parent::process_payment( $order_id, $retry, $force_save_source, $previous_error );
+			return parent::process_payment( $order_id, $retry, $force_save_source, $previous_error, $use_order_source );
 		}
 	}
 
@@ -223,7 +225,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 
 			// Early renewals should be treated like normal payments, but with a different output.
 			if ( isset( $_REQUEST['process_early_renewal'] ) ) { // wpcs: csrf ok.
-				$response = parent::process_payment( $order_id, true, false, $previous_error );
+				$response = parent::process_payment( $order_id, true, false, $previous_error, true );
 
 				if( 'success' === $response['result'] && isset( $response['payment_intent_secret'] ) ) {
 					$verification_url = add_query_arg(
@@ -657,5 +659,31 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		);
 
 		exit;
+	}
+
+	/**
+	 * Once an intent has been verified, perform some final actions for early renewals.
+	 *
+	 * @param WC_Order $order The renewal order.
+	 */
+	public function handle_intent_success_verification( $order ) {
+		if ( isset( $_GET['early_renewal'] ) ) { // wpcs: csrf ok.
+			wcs_update_dates_after_early_renewal( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ), $order );
+			wc_add_notice( __( 'Your early renewal order was successful.', 'woocommerce-gateway-stripe' ), 'success' );
+		}
+	}
+
+	/**
+	 * During early renewals, instead of failing the renewal order, delete it and let Subs redirect to the checkout.
+	 *
+	 * @param WC_Order $order The renewal order.
+	 */
+	public function handle_intent_sca_failure( $order ) {
+		if ( isset( $_GET['early_renewal'] ) ) {
+			$order->delete( true );
+			wc_add_notice( __( 'Payment authorization for the renewal order was unsuccessful, please try again.', 'woocommerce-gateway-stripe' ), 'error' );
+			$renewal_url = wcs_get_early_renewal_url( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ) );
+			wp_redirect( $renewal_url ); exit;
+		}
 	}
 }

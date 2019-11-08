@@ -573,11 +573,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param bool $retry Should we retry on fail.
 	 * @param bool $force_save_source Force save the payment source.
 	 * @param mix  $previous_error Any error message from previous request.
+	 * @param bool $use_order_source Whether to use the source, which should already be attached to the order.
 	 *
 	 * @throws Exception If payment will not be accepted.
 	 * @return array|void
 	 */
-	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false ) {
+	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
 		try {
 			$order = wc_get_order( $order_id );
 
@@ -587,7 +588,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				return $this->pre_orders->process_pre_order( $order_id );
 			}
 
-			if ( isset( $_REQUEST['process_early_renewal'] ) ) {
+			// For some payments the source should already be present in the order.
+			if ( $use_order_source ) {
 				$prepared_source = $this->prepare_order_source( $order );
 			} else {
 				$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source );
@@ -628,7 +630,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 				// We want to retry.
 				if ( $this->is_retryable_error( $intent->error ) ) {
-					return $this->retry_after_error( $intent, $order, $retry, $force_save_source, $previous_error );
+					return $this->retry_after_error( $intent, $order, $retry, $force_save_source, $previous_error, $use_order_source );
 				}
 
 				$this->unlock_order_payment( $order );
@@ -803,11 +805,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param WC_Order $order             An order that is being paid for.
 	 * @param bool     $retry             A flag that indicates whether another retry should be attempted.
 	 * @param bool     $force_save_source Force save the payment source.
-	 * @param mixed    $previous_error Any error message from previous request.
+	 * @param mixed    $previous_error    Any error message from previous request.
+	 * @param bool     $use_order_source  Whether to use the source, which should already be attached to the order.
 	 * @throws WC_Stripe_Exception        If the payment is not accepted.
 	 * @return array|void
 	 */
-	public function retry_after_error( $response, $order, $retry, $force_save_source, $previous_error ) {
+	public function retry_after_error( $response, $order, $retry, $force_save_source, $previous_error, $use_order_source ) {
 		if ( ! $retry ) {
 			$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
 			$order->add_order_note( $localized_message );
@@ -822,7 +825,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		sleep( $this->retry_interval );
 		$this->retry_interval++;
 
-		return $this->process_payment( $order->get_id(), true, $force_save_source, $response->error, $previous_error );
+		return $this->process_payment( $order->get_id(), true, $force_save_source, $response->error, $previous_error, $use_order_source );
 	}
 
 	/**
@@ -1048,21 +1051,19 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$order->payment_complete();
 			}
 		} else if ( 'succeeded' === $intent->status || 'requires_capture' === $intent->status ) {
+			do_action( 'wc_stripe_before_intent_success', $order );
+
 			// Proceed with the payment completion.
 			$this->process_response( end( $intent->charges->data ), $order );
 
-			wcs_update_dates_after_early_renewal( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ), $order );
-			wc_add_notice( __( 'Your early renewal order was successful.', 'woocommerce-subscriptions' ), 'success' );
+			do_action( 'wc_stripe_after_intent_success', $order );
 		} else if ( 'requires_payment_method' === $intent->status ) {
-			if ( isset( $_GET['early_renewal'] ) ) {
-				$order->delete( true );
-				wc_add_notice( __( 'Payment authorization for the renewal order was unsuccessful, please try again.', 'woocommerce-gateway-stripe' ), 'error' );
-				$renewal_url = wcs_get_early_renewal_url( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ) );
-				wp_redirect( $renewal_url ); exit;
-			}
+			do_action( 'wc_stripe_before_intent_failure', $order );
 
 			// `requires_payment_method` means that SCA got denied for the current payment method.
 			$this->failed_sca_auth( $order, $intent );
+
+			do_action( 'wc_stripe_after_intent_failure', $order );
 		}
 
 		$this->unlock_order_payment( $order );
