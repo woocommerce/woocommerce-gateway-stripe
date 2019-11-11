@@ -585,7 +585,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			}
 
 			$stripe_customer_id = null;
-			if ( $intent ) {
+			if ( $intent && ! empty( $intent->customer ) ) {
 				$stripe_customer_id = $intent->customer;
 			}
 
