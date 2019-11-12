@@ -94,11 +94,12 @@ class WC_Stripe_Customer {
 	}
 
 	/**
-	 * Create a customer via API.
-	 * @param array $args
-	 * @return WP_Error|int
+	 * Generates the customer request, used for both creating and updating customers.
+	 *
+	 * @param  array $args Additional arguments (optional).
+	 * @return array
 	 */
-	public function create_customer( $args = array() ) {
+	protected function generate_customer_request( $args = array() ) {
 		$billing_email = isset( $_POST['billing_email'] ) ? filter_var( $_POST['billing_email'], FILTER_SANITIZE_EMAIL ) : '';
 		$user          = $this->get_user();
 
@@ -136,11 +137,19 @@ class WC_Stripe_Customer {
 			);
 		}
 
-		$metadata = array();
-
+		$metadata             = array();
 		$defaults['metadata'] = apply_filters( 'wc_stripe_customer_metadata', $metadata, $user );
 
-		$args     = wp_parse_args( $args, $defaults );
+		return wp_parse_args( $args, $defaults );
+	}
+
+	/**
+	 * Create a customer via API.
+	 * @param array $args
+	 * @return WP_Error|int
+	 */
+	public function create_customer( $args = array() ) {
+		$args     = $this->generate_customer_request( $args );
 		$response = WC_Stripe_API::request( apply_filters( 'wc_stripe_create_customer_args', $args ), 'customers' );
 
 		if ( ! empty( $response->error ) ) {
@@ -158,6 +167,30 @@ class WC_Stripe_Customer {
 		do_action( 'woocommerce_stripe_add_customer', $args, $response );
 
 		return $response->id;
+	}
+
+	/**
+	 * Updates the Stripe customer through the API.
+	 *
+	 * @param array $args Additional arguments for the request (optional).
+	 */
+	public function update_customer( $args = array() ) {
+		if ( empty( $this->id ) ) {
+			throw new WC_Stripe_Exception( 'id_required_to_update_user', __( 'Attempting to update a Stripe customer without a customer ID.', 'woocommerce-gateway-stripe' ) );
+		}
+
+		$args     = $this->generate_customer_request( $args );
+		$args     = apply_filters( 'wc_stripe_update_customer_args', $args );
+		$response = WC_Stripe_API::request( $args, 'customers/' . $this->id );
+
+		if ( ! empty( $response->error ) ) {
+			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
+		}
+
+		$this->clear_cache();
+		$this->set_customer_data( $response );
+
+		do_action( 'woocommerce_stripe_update_customer', $args, $response );
 	}
 
 	/**

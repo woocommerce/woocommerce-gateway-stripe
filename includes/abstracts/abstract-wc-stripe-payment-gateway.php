@@ -576,8 +576,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @throws Exception When card was not added or for and invalid card.
 	 * @return object
 	 */
-	public function prepare_source( $user_id, $force_save_source = false ) {
-		$customer          = new WC_Stripe_Customer( $user_id );
+	public function prepare_source( $user_id, $force_save_source = false, $existing_customer_id = null ) {
+		$customer = new WC_Stripe_Customer( $user_id );
+		if ( ! empty( $existing_customer_id ) ) {
+			$customer->set_id( $existing_customer_id );
+		}
+
 		$force_save_source = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
 		$source_object     = '';
 		$source_id         = '';
@@ -641,6 +645,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( ! $customer_id ) {
 			$customer->set_id( $customer->create_customer() );
 			$customer_id = $customer->get_id();
+		} else {
+			$customer->update_customer();
 		}
 
 		if ( empty( $source_object ) && ! $is_token ) {
