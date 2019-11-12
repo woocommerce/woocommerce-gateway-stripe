@@ -917,14 +917,15 @@ class WC_Stripe_Payment_Request {
 
 		WC()->shipping->reset_shipping();
 
-		$product_id = absint( $_POST['product_id'] );
-		$qty        = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
-		$product    = wc_get_product( $product_id );
+		$product_id   = absint( $_POST['product_id'] );
+		$qty          = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
+		$product      = wc_get_product( $product_id );
+		$product_type = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type();
 
 		// First empty the cart to prevent wrong calculation.
 		WC()->cart->empty_cart();
 
-		if ( 'variable' === ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type() ) && isset( $_POST['attributes'] ) ) {
+		if ( ( 'variable' === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
 			$attributes = array_map( 'wc_clean', $_POST['attributes'] );
 
 			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
@@ -937,7 +938,7 @@ class WC_Stripe_Payment_Request {
 			WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
 		}
 
-		if ( 'simple' === ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type() ) ) {
+		if ( 'simple' === $product_type || 'subscription' === $product_type ) {
 			WC()->cart->add_to_cart( $product->get_id(), $qty );
 		}
 
