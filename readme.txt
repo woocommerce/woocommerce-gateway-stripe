@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 5.3.0
 Requires PHP: 5.6
-Stable tag: 4.3.0
+Stable tag: 4.3.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -113,6 +113,15 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 4.3.1 2019-11-12 =
+* Fix - Overwrite the previous Apple Pay verification file if it has changed.
+* Fix - Avoid re-mounting card elements if they are already mounted in the DOM.
+* Fix - Compatibility with WooCommerce Deposits by retrieving order statuses in a different way.
+* Fix - Duplicate payment notifications for subscriptions.
+* Fix - Use the same customer after a new credit card has been entered.
+* Fix - Google Pay buttons on subscriptions.
+* Add - A filter, which allows all subscriptions' payment methods to be overwritten when adding a new payment method.
+
 = 4.3.0 2019-10-17 =
 * Add - For WooCommerce Subscriptions optimize the payment flow for subsequent subscription payments when authentication may be required by using the  `setup_future_usage` parameter for the first subscription payment
 * Add - Allow customer to authenticate payment even if they are not charged right away for WooCommerce Subscriptions and Pre-Orders, for example for a WooCommerce Subscription that has a free trial
@@ -122,9 +131,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - Admin notice about SCA-readiness
 * Fix - Avoid idempotency key errors for Pre-Orders
 * Fix - Use unique anchor for link about checkout styling changes
-
-= 4.2.5 - 2019-10-02 =
-* Fix - WooCommerce Subscriptions that use only the Stripe customer ID can again be renewed
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
