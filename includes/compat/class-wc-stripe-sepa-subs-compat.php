@@ -79,13 +79,15 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 			wcs_user_has_subscription( get_current_user_id(), '', 'active' ) &&
 			is_add_payment_method_page()
 		) {
-			printf(
-				'<p class="form-row">
-					<input id="wc-%1$s-update-subs-payment-method-card" name="wc-%1$s-update-subs-payment-method-card" type="checkbox" value="true" style="width:auto;" />
-					<label for="wc-%1$s-update-subs-payment-method-card" style="display:inline;">%2$s</label>
-				</p>',
-				esc_attr( $this->id ),
-				esc_html( apply_filters( 'wc_stripe_save_to_subs_text', __( 'Update the Payment Method used for all of my active subscriptions (optional).', 'woocommerce-gateway-stripe' ) ) )
+			$label = esc_html( apply_filters( 'wc_stripe_save_to_subs_text', __( 'Update the Payment Method used for all of my active subscriptions.', 'woocommerce-gateway-stripe' ) ) );
+			$id    = sprintf( 'wc-%1$s-update-subs-payment-method-card', $this->id );
+			woocommerce_form_field(
+				$id,
+				array(
+					'type'    => 'checkbox',
+					'label'   => $label,
+					'default' => apply_filters( 'wc_stripe_save_to_subs_checked', false ),
+				)
 			);
 		}
 	}
