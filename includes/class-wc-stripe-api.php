@@ -96,8 +96,10 @@ class WC_Stripe_API {
 	 * @version 4.0.6
 	 * @param array $request
 	 * @param string $api
+	 * @param string $method
 	 * @param bool $with_headers To get the response with headers.
-	 * @return array|WP_Error
+	 * @return stdClass|array
+	 * @throws WC_Stripe_Exception
 	 */
 	public static function request( $request, $api = 'charges', $method = 'POST', $with_headers = false ) {
 		WC_Stripe_Logger::log( "{$api} request: " . print_r( $request, true ) );

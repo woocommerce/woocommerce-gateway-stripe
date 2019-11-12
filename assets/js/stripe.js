@@ -136,7 +136,12 @@ jQuery( function( $ ) {
 			 */
 			if ( 'yes' === wc_stripe_params.is_checkout ) {
 				$( document.body ).on( 'updated_checkout', function() {
-					// Don't mount elements a second time.
+					// Don't re-mount if already mounted in DOM.
+					if ( $( '#stripe-card-element' ).children().length ) {
+						return;
+					}
+
+					// Unmount prior to re-mounting.
 					if ( stripe_card ) {
 						wc_stripe_form.unmountElements();
 					}

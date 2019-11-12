@@ -1210,18 +1210,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param stdClass $intent The intent that is being processed.
 	 * @return bool            A flag that indicates whether the order is already locked.
 	 */
-	public function lock_order_payment( $order, $intent ) {
+	public function lock_order_payment( $order, $intent = null ) {
 		$order_id       = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 		$transient_name = 'wc_stripe_processing_intent_' . $order_id;
 		$processing     = get_transient( $transient_name );
 
 		// Block the process if the same intent is already being handled.
-		if ( $processing === $intent->id ) {
+		if ( "-1" === $processing || ( isset( $intent->id ) && $processing === $intent->id ) ) {
 			return true;
 		}
 
 		// Save the new intent as a transient, eventually overwriting another one.
-		set_transient( $transient_name, $intent->id, 5 * MINUTE_IN_SECONDS );
+		set_transient( $transient_name, empty( $intent ) ? '-1' : $intent->id, 5 * MINUTE_IN_SECONDS );
 
 		return false;
 	}
