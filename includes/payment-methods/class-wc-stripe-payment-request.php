@@ -467,18 +467,8 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		if ( is_product() ) {
-			global $post;
-
-			$product = wc_get_product( $post->ID );
-
-			if ( ! is_object( $product ) || ! in_array( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
-				return;
-			}
-
-			if ( apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post ) ) {
-				return;
-			}
+		if ( is_product() && ! $this->should_show_payment_button_on_product_page() ) {
+			return;
 		}
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
@@ -552,31 +542,12 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		if ( is_product() && apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post ) ) {
-			return;
-		}
-
 		if ( is_checkout() && ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post ) ) {
 			return;
 		}
 
-		if ( is_product() ) {
-			$product = wc_get_product( $post->ID );
-
-			if ( ! is_object( $product ) || ! in_array( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
-				return;
-			}
-
-			// Trial subscriptions with shipping are not supported
-			if ( class_exists( 'WC_Subscriptions_Order' ) && $product->needs_shipping() && WC_Subscriptions_Product::get_trial_length( $product ) > 0 ) {
-				return;
-			}
-
-			// Pre Orders charge upon release not supported.
-			if ( class_exists( 'WC_Pre_Orders_Order' ) && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
-				WC_Stripe_Logger::log( 'Pre Order charge upon release is not supported. ( Payment Request button disabled )' );
-				return;
-			}
+		if ( is_product() && ! $this->should_show_payment_button_on_product_page() ) {
+			return;
 		} else {
 			if ( ! $this->allowed_items_in_cart() ) {
 				WC_Stripe_Logger::log( 'Items in the cart has unsupported product type ( Payment Request button disabled )' );
@@ -611,31 +582,12 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		if ( is_product() && apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post ) ) {
-			return;
-		}
-
 		if ( is_checkout() && ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post ) ) {
 			return;
 		}
 
-		if ( is_product() ) {
-			$product = wc_get_product( $post->ID );
-
-			if ( ! is_object( $product ) || ! in_array( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
-				return;
-			}
-
-			// Trial subscriptions with shipping are not supported
-			if ( class_exists( 'WC_Subscriptions_Order' ) && $product->needs_shipping() && WC_Subscriptions_Product::get_trial_length( $product ) > 0 ) {
-				return;
-			}
-
-			// Pre Orders charge upon release not supported.
-			if ( class_exists( 'WC_Pre_Orders_Order' ) && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
-				WC_Stripe_Logger::log( 'Pre Order charge upon release is not supported. ( Payment Request button disabled )' );
-				return;
-			}
+		if ( is_product() && ! $this->should_show_payment_button_on_product_page() ) {
+			return;
 		} else {
 			if ( ! $this->allowed_items_in_cart() ) {
 				WC_Stripe_Logger::log( 'Items in the cart has unsupported product type ( Payment Request button disabled )' );
@@ -645,6 +597,51 @@ class WC_Stripe_Payment_Request {
 		?>
 		<p id="wc-stripe-payment-request-button-separator" style="margin-top:1.5em;text-align:center;display:none;">&mdash; <?php esc_html_e( 'OR', 'woocommerce-gateway-stripe' ); ?> &mdash;</p>
 		<?php
+	}
+
+	/**
+	 * Whether payment button html should be rendered
+	 *
+	 * @since 4.3.2
+	 *
+	 * @param object $post
+	 *
+	 * @return bool
+	 */
+	private function should_show_payment_button_on_product_page() {
+		global $post;
+
+		$product = wc_get_product( $post->ID );
+
+		if ( apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post ) ) {
+			return false;
+		}
+
+		if ( ! is_object( $product ) || ! in_array( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
+			return false;
+		}
+
+		// Trial subscriptions with shipping are not supported
+		if ( class_exists( 'WC_Subscriptions_Order' ) && $product->needs_shipping() && WC_Subscriptions_Product::get_trial_length( $product ) > 0 ) {
+			return false;
+		}
+
+		// Pre Orders charge upon release not supported.
+		if ( class_exists( 'WC_Pre_Orders_Order' ) && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
+			WC_Stripe_Logger::log( 'Pre Order charge upon release is not supported. ( Payment Request button disabled )' );
+			return false;
+		}
+
+		if ( class_exists( 'WC_Product_Addons_Helper' ) ) {
+			$product_addons = WC_Product_Addons_Helper::get_product_addons( $product->get_id() );
+			foreach ( $product_addons as $addon ) {
+				if ( 'file_upload' === $addon['type'] ) {
+					return false;
+				}
+			}
+		}
+
+		return true;
 	}
 
 	/**
@@ -815,6 +812,7 @@ class WC_Stripe_Payment_Request {
 		try {
 			$product_id   = absint( $_POST['product_id'] );
 			$qty          = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', absint( $_POST['qty'] ), $product_id );
+			$addon_value  = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
 			$product      = wc_get_product( $product_id );
 			$variation_id = null;
 
@@ -849,7 +847,7 @@ class WC_Stripe_Payment_Request {
 				throw new Exception( sprintf( __( 'You cannot add that amount of "%1$s"; to the cart because there is not enough stock (%2$s remaining).', 'woocommerce-gateway-stripe' ), $product->get_name(), wc_format_stock_quantity_for_display( $product->get_stock_quantity(), $product ) ) );
 			}
 
-			$total = $qty * ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->price : $product->get_price() );
+			$total = $qty * ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->price : $product->get_price() ) + $addon_value;
 
 			$quantity_label = 1 < $qty ? ' (x' . $qty . ')' : '';
 
