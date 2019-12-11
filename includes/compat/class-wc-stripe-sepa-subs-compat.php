@@ -102,13 +102,15 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 	 */
 	public function handle_add_payment_method_success( $source_id, $source_object ) {
 		if ( isset( $_POST[ 'wc-' . $this->id . '-update-subs-payment-method-card' ] ) ) {
-			$all_subs = wcs_get_users_subscriptions();
-			$subs_statuses = apply_filters( 'wc_stripe_update_subs_payment_method_card_statuses', array( 'active' ) );
+			$all_subs        = wcs_get_users_subscriptions();
+			$subs_statuses   = apply_filters( 'wc_stripe_update_subs_payment_method_card_statuses', array( 'active' ) );
+			$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
 
 			if ( ! empty( $all_subs ) ) {
 				foreach ( $all_subs as $sub ) {
 					if ( $sub->has_status( $subs_statuses ) ) {
 						update_post_meta( $sub->get_id(), '_stripe_source_id', $source_id );
+						update_post_meta( $sub->get_id(), '_stripe_customer_id', $stripe_customer->get_id() );
 						update_post_meta( $sub->get_id(), '_payment_method', $this->id );
 						update_post_meta( $sub->get_id(), '_payment_method_title', $this->method_title );
 					}
