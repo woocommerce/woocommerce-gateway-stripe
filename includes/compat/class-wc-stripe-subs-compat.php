@@ -224,6 +224,8 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 
 			$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id();
 
+			$this->ensure_subscription_has_customer_id( $order_id );
+
 			// Check for an existing intent, which is associated with the order.
 			if ( $this->has_authentication_already_failed( $renewal_order ) ) {
 				return;

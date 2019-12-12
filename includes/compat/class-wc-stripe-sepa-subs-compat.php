@@ -222,6 +222,8 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 
 			$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id();
 
+			$this->ensure_subscription_has_customer_id( $order_id );
+
 			// Get source from order
 			$prepared_source = $this->prepare_order_source( $renewal_order );
 			$source_object   = $prepared_source->source_object;
