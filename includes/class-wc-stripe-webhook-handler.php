@@ -292,13 +292,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		// Sometimes (at least in testing) the "dispute.created" and "charge.succeeded" events can arrive really close for SEPA payments.
+		// Use the locking system to prevent the charge.succeeded to set the order to "processing" even after the dispute was created.
+		$this->lock_order_payment( $order );
+
 		/* translators: 1) The URL to the order. */
-		$order->update_status( 'on-hold', sprintf( __( 'A dispute was created for this order. Response is needed. Please go to your <a href="%s" title="Stripe Dashboard" target="_blank">Stripe Dashboard</a> to review this dispute.', 'woocommerce-gateway-stripe' ), $this->get_transaction_url( $order ) ) );
+		$order->update_status( 'failed', sprintf( __( 'A dispute was created for this order. Response is needed. Please go to your <a href="%s" title="Stripe Dashboard" target="_blank">Stripe Dashboard</a> to review this dispute.', 'woocommerce-gateway-stripe' ), $this->get_transaction_url( $order ) ) );
 
 		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
 
-		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
-		$this->send_failed_order_email( $order_id );
+		$this->unlock_order_payment( $order );
 	}
 
 	/**
@@ -380,6 +383,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		if ( $this->lock_order_payment( $order ) ) {
+			return;
+		}
+
 		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 
 		if ( ! $order->has_status( 'on-hold' ) ) {
@@ -401,6 +408,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( is_callable( array( $order, 'save' ) ) ) {
 			$order->save();
 		}
+
+		$this->unlock_order_payment( $order );
 	}
 
 	/**
