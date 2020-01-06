@@ -632,6 +632,7 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
+		// File upload addon not supported
 		if ( class_exists( 'WC_Product_Addons_Helper' ) ) {
 			$product_addons = WC_Product_Addons_Helper::get_product_addons( $product->get_id() );
 			foreach ( $product_addons as $addon ) {
