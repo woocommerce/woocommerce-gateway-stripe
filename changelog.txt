@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 4.3.2 2019-x-x =
+* Fix - Add compatibility to payment request buttons with some of the WooCommerce Product Add-ons on the product page
+
 = 4.3.1 2019-11-12 =
 * Fix - Overwrite the previous Apple Pay verification file if it has changed.
 * Fix - Avoid re-mounting card elements if they are already mounted in the DOM.
