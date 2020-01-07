@@ -606,7 +606,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$response = $customer->add_source( $source_object->id );
 
 				if ( ! empty( $response->error ) ) {
-					throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
+					throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
 				}
 			}
 		} elseif ( $this->is_using_saved_payment_method() ) {
