@@ -36,7 +36,7 @@ return apply_filters(
 			'desc_tip'    => true,
 		),
 		'webhook'     => array(
-			'title'       => __( 'Webhook Enpoints', 'woocommerce-gateway-stripe' ),
+			'title'       => __( 'Webhook Endpoints', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
 			/* translators: webhook URL */
 			'description' => $this->display_admin_settings_webhook_description(),
