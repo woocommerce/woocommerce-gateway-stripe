@@ -532,17 +532,16 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return array                      Redirection data for `process_payment`.
 	 */
 	public function complete_free_order( $order, $prepared_source, $force_save_source ) {
-		$response = array(
-			'result'   => 'success',
-			'redirect' => $this->get_return_url( $order ),
-		);
-
 		if ( $force_save_source ) {
 			$intent_secret = $this->setup_intent( $order, $prepared_source );
 
 			if ( ! empty( $intent_secret ) ) {
-				$response['setup_intent_secret'] = $intent_secret;
-				return $response;
+				// `get_return_url()` must be called immediately before returning a value.
+				return array(
+					'result'              => 'success',
+					'redirect'            => $this->get_return_url( $order ),
+					'setup_intent_secret' => $intent_secret,
+				);
 			}
 		}
 
@@ -552,7 +551,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$order->payment_complete();
 
 		// Return thank you page redirect.
-		return $response;
+		return array(
+			'result'   => 'success',
+			'redirect' => $this->get_return_url( $order ),
+		);
 	}
 
 	/**
