@@ -35,7 +35,7 @@ class WC_Stripe_Customer {
 	public function __construct( $user_id = 0 ) {
 		if ( $user_id ) {
 			$this->set_user_id( $user_id );
-			$this->set_id( get_user_meta( $user_id, '_stripe_customer_id', true ) );
+			$this->set_id( $this->get_id_from_meta( $user_id ) );
 		}
 	}
 
@@ -56,7 +56,7 @@ class WC_Stripe_Customer {
 		if ( is_array( $id ) && isset( $id['customer_id'] ) ) {
 			$id = $id['customer_id'];
 
-			update_user_meta( $this->get_user_id(), '_stripe_customer_id', $id );
+			$this->update_id_in_meta( $id );
 		}
 
 		$this->id = wc_clean( $id );
@@ -161,7 +161,7 @@ class WC_Stripe_Customer {
 		$this->set_customer_data( $response );
 
 		if ( $this->get_user_id() ) {
-			update_user_meta( $this->get_user_id(), '_stripe_customer_id', $response->id );
+			$this->update_id_in_meta( $response->id );
 		}
 
 		do_action( 'woocommerce_stripe_add_customer', $args, $response );
@@ -175,13 +175,13 @@ class WC_Stripe_Customer {
 	 * @param array $args Additional arguments for the request (optional).
 	 */
 	public function update_customer( $args = array() ) {
-		if ( empty( $this->id ) ) {
+		if ( empty( $this->get_id() ) ) {
 			throw new WC_Stripe_Exception( 'id_required_to_update_user', __( 'Attempting to update a Stripe customer without a customer ID.', 'woocommerce-gateway-stripe' ) );
 		}
 
 		$args     = $this->generate_customer_request( $args );
 		$args     = apply_filters( 'wc_stripe_update_customer_args', $args );
-		$response = WC_Stripe_API::request( $args, 'customers/' . $this->id );
+		$response = WC_Stripe_API::request( $args, 'customers/' . $this->get_id() );
 
 		if ( ! empty( $response->error ) ) {
 			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
@@ -232,7 +232,7 @@ class WC_Stripe_Customer {
 			// but no longer exists. Instead of failing, lets try to create a
 			// new customer.
 			if ( $this->is_no_such_customer_error( $response->error ) ) {
-				delete_user_meta( $this->get_user_id(), '_stripe_customer_id' );
+				$this->flush_meta( $this->get_id() );
 				$this->create_customer();
 				return $this->add_source( $source_id );
 			} else {
@@ -373,5 +373,74 @@ class WC_Stripe_Customer {
 		delete_transient( 'stripe_sources_' . $this->get_id() );
 		delete_transient( 'stripe_customer_' . $this->get_id() );
 		$this->customer_data = array();
+	}
+
+	/**
+	 * Generates a full meta key based on the current enviroment.
+	 *
+	 * The meta key includes (concatenated):
+	 * - `_stripe_customer_id`
+	 * - The blog ID when using multisite.
+	 * - `_test` if test mode is enabled for the gateway.
+	 *
+	 * @return string
+	 */
+	public function get_full_meta_key() {
+		$meta_key = '_stripe_customer_id';
+		$options  = get_option( 'woocommerce_stripe_settings' );
+
+		if ( is_multisite() ) {
+			$meta_key .= get_current_blog_id();
+		}
+
+		if ( isset( $options['testmode'] ) && 'yes' === $options['testmode'] ) {
+			$meta_key .= '_test';
+		}
+
+		return $meta_key;
+	}
+
+	/**
+	 * Retrieves the Stripe Customer ID from the user meta.
+	 *
+	 * @param  int $user_id The ID of the WordPress user.
+	 * @return string|bool  Either the Stripe ID or false.
+	 */
+	public function get_id_from_meta( $user_id ) {
+		// Look for the new meta key format first: _stripe_customer_id[_{blog_id}][_test].
+		$stripe_id = get_user_meta( $user_id, $this->get_full_meta_key(), true );
+		if ( $stripe_id ) {
+			return $stripe_id;
+		}
+
+		// Fall back to the old format where the same meta key is used in all situations.
+		return get_user_meta( $user_id, '_stripe_customer_id', true );
+	}
+
+	/**
+	 * Updates the current user with the right Stripe ID in the meta table.
+	 *
+	 * @param string $id The Stripe customer ID.
+	 */
+	public function update_id_in_meta( $id ) {
+		update_user_meta( $this->get_user_id(), $this->get_full_meta_key(), $id );
+	}
+
+	/**
+	 * Flushes the user meta whenever a specific user ID is not available.
+	 *
+	 * This method will delete meta values with all possible keys, only when
+	 * the meta value is associated with the (probably missing) customer ID.
+	 *
+	 * @param string $stripe_id The Stripe customer ID.
+	 */
+	public function flush_meta( $stripe_id ) {
+		delete_user_meta( $this->get_user_id(), '_stripe_customer_id', $stripe_id );
+		delete_user_meta( $this->get_user_id(), '_stripe_customer_id_test', $stripe_id );
+
+		if ( is_multisite() ) {
+			delete_user_meta( $this->get_user_id(), '_stripe_customer_id_' . get_current_blog_id(), $stripe_id );
+			delete_user_meta( $this->get_user_id(), '_stripe_customer_id_' . get_current_blog_id() . '_test', $stripe_id );
+		}
 	}
 }
