@@ -291,10 +291,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				'order_id'       => $order_id,
 			);
 
-			return esc_url_raw( add_query_arg( $args, $this->get_return_url( $order ) ) );
+			return wp_sanitize_redirect( esc_url_raw( add_query_arg( $args, $this->get_return_url( $order ) ) ) );
 		}
 
-		return esc_url_raw( add_query_arg( array( 'utm_nooverride' => '1' ), $this->get_return_url() ) );
+		return wp_sanitize_redirect( esc_url_raw( add_query_arg( array( 'utm_nooverride' => '1' ), $this->get_return_url() ) ) );
 	}
 
 	/**
