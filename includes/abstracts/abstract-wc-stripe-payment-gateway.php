@@ -1055,6 +1055,47 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		return apply_filters( 'wc_stripe_generate_create_intent_request', $request, $order, $prepared_source );
 	}
 
+	public function get_level_3_data_from_order( $order ) {
+		$order_items = $order->get_items();
+
+		$line_items = array_map(function($item) {
+			$product_code = $item->get_product_id();
+			$product = $item->get_product();
+			$quantity = $item->get_quantity();
+			$unit_cost = $item->get_subtotal();
+			$tax_amount = $item->get_subtotal_tax();
+			$discount_amount = $item->get_total() - $item->get_subtotal();
+
+
+			return array(
+				'product_code' => '', //  Up to  characters that uniquely identify the product.
+				'product_description' => '', // Up to  characters long describing the product.
+				'unit_cost' => '', //  Cost of the product, in cents, as a non-negative integer.
+				'quantity' => '', // The number of items of this type sold, as a non-negative integer.
+				'tax_amount' => '', // The amount of tax this item had added to it, in cents, as a non-negative integer.
+				'discount_amount' => '', // The amount an item was discounted—if there was a sale,for example, as a non-negative integer.
+			);
+		}, $order_items);
+
+		return array(
+			'merchant_reference' => $order->get_id(), // An alphanumeric string of up to  characters in length. This unique value is assigned by the merchant to identify the order. Also known as an “Order ID”.
+			'shipping_address_zip' => '', // The customer’s U.S. shipping ZIP code.
+			'shipping_from_zip' => '', // The merchant’s U.S. shipping ZIP code.
+			'shipping_amount' => '', // The shipping cost, in cents, as a non-negative integer.
+			'line_items' => array( // (Array of objects. One object per type of item.)
+				(object) array(
+					'product_code' => '', //  Up to  characters that uniquely identify the product.
+					'product_description' => '', // Up to  characters long describing the product.
+					'unit_cost' => '', //  Cost of the product, in cents, as a non-negative integer.
+					'quantity' => '', // The number of items of this type sold, as a non-negative integer.
+					'tax_amount' => '', // The amount of tax this item had added to it, in cents, as a non-negative integer.
+					'discount_amount' => '', // The amount an item was discounted—if there was a sale,for example, as a non-negative integer.
+				),
+			),
+			// total charged = sum(unit_cost * quantity) + sum(tax_amount) - sum(discount_amount) + shipping_amount
+		);
+	}
+
 	/**
 	 * Create a new PaymentIntent.
 	 *
