@@ -13,7 +13,7 @@ class WC_Stripe_Level_3_Data_Test extends WP_UnitTestCase {
 		$result = $gateway->get_level_3_data_from_order( $order );
 		echo '$result:';
 		var_dump( $result );
-		$variation_product = WC_Helper_Order::create_variation_product();
+		$variation_product = WC_Helper_Product::create_variation_product();
 		echo '$variation_product:';
 		echo $variation_product->get_id();
 		var_dump( $variation_product );
