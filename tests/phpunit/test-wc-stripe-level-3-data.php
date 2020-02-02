@@ -24,8 +24,8 @@ class WC_Stripe_Level_3_Data_Test extends WP_UnitTestCase {
 		$product_1 = wc_get_product($children_ids[0]);
 		$product_2 = wc_get_product($children_ids[1]);
 
-		$order->add_product($product_1);
-		$order->add_product($product_2);
+		$order->add_product($product_1, 1);
+		$order->add_product($product_2, 2);
 		$order->save();
 
 		echo "order total: " . $order->get_total();
