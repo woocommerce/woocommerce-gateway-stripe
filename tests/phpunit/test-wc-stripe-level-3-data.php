@@ -17,6 +17,9 @@ class WC_Stripe_Level_3_Data_Test extends WP_UnitTestCase {
 		echo '$variation_product:';
 		echo $variation_product->get_id();
 		var_dump( $variation_product );
+		$children_ids = $variation_product->get_children();
+		echo "children_ids:";
+		var_dump($children_ids);
 
 		$this->assertIsArray( $result );
 	}
