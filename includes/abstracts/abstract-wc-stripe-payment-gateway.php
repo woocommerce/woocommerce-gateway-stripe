@@ -1056,6 +1056,48 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Create the level 3 data array to send to Stripe when making a purchase.
+	 *
+	 * @param WC_Order $order           The order that is being paid for.
+	 * @param string   $store_postcode  The postcode of the store.
+	 * @return array                    The level 3 data to send to Stripe.
+	 */
+	public function get_level3_data_from_order( $order, $store_postcode ) {
+		// Get the order items. Don't need their keys, only their values.
+		// Order item IDs are used as keys in the original order items array.
+		$order_items = array_values( $order->get_items() );
+		$currency    = $order->get_currency();
+
+		$stripe_line_items = array_map(function( $item ) use ( $currency ) {
+			$product_id          = $item->get_variation_id()
+				? $item->get_variation_id()
+				: $item->get_product_id();
+			$product_description = substr( $item->get_name(), 0, 26 );
+			$quantity            = $item->get_quantity();
+			$unit_cost           = WC_Stripe_Helper::get_stripe_amount( ( $item->get_subtotal() / $quantity ), $currency );
+			$tax_amount          = WC_Stripe_Helper::get_stripe_amount( $item->get_total_tax(), $currency );
+			$discount_amount     = WC_Stripe_Helper::get_stripe_amount( $item->get_subtotal() - $item->get_total(), $currency );
+
+			return (object) array(
+				'product_code'        => (string) $product_id, // Up to 12 characters that uniquely identify the product.
+				'product_description' => $product_description, // Up to 26 characters long describing the product.
+				'unit_cost'           => $unit_cost, // Cost of the product, in cents, as a non-negative integer.
+				'quantity'            => $quantity, // The number of items of this type sold, as a non-negative integer.
+				'tax_amount'          => $tax_amount, // The amount of tax this item had added to it, in cents, as a non-negative integer.
+				'discount_amount'     => $discount_amount, // The amount an item was discounted—if there was a sale,for example, as a non-negative integer.
+			);
+		}, $order_items);
+
+		return array(
+			'merchant_reference'   => $order->get_id(), // An alphanumeric string of up to  characters in length. This unique value is assigned by the merchant to identify the order. Also known as an “Order ID”.
+			'shipping_address_zip' => $order->get_shipping_postcode(), // The customer’s U.S. shipping ZIP code.
+			'shipping_from_zip'    => $store_postcode, // The merchant’s U.S. shipping ZIP code.
+			'shipping_amount'      => WC_Stripe_Helper::get_stripe_amount( $order->get_shipping_total() + $order->get_shipping_tax(), $currency), // The shipping cost, in cents, as a non-negative integer.
+			'line_items'           => $stripe_line_items,
+		);
+	}
+
+	/**
 	 * Create a new PaymentIntent.
 	 *
 	 * @param WC_Order $order           The order that is being paid for.
