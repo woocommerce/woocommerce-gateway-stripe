@@ -435,15 +435,15 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 		// If we couldn't find a Stripe customer linked to the subscription, fallback to the user meta data.
 		if ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) {
 			$user_id            = $customer_user;
-			$stripe_customer_id = get_user_meta( $user_id, '_stripe_customer_id', true );
-			$stripe_source_id   = get_user_meta( $user_id, '_stripe_source_id', true );
+			$stripe_customer_id = get_user_option( '_stripe_customer_id', $user_id );
+			$stripe_source_id   = get_user_option( '_stripe_source_id', $user_id );
 
 			// For BW compat will remove in future.
 			if ( empty( $stripe_source_id ) ) {
-				$stripe_source_id = get_user_meta( $user_id, '_stripe_card_id', true );
+				$stripe_source_id = get_user_option( '_stripe_card_id', $user_id );
 
 				// Take this opportunity to update the key name.
-				update_user_meta( $user_id, '_stripe_source_id', $stripe_source_id );
+				update_user_option( $user_id, '_stripe_source_id', $stripe_source_id, false );
 			}
 		}
 

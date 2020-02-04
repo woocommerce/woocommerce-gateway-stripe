@@ -225,7 +225,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 				'data'        => array(
 					array(
 						'name'  => __( 'Stripe payment id', 'woocommerce-gateway-stripe' ),
-						'value' => get_user_meta( $user->ID, '_stripe_source_id', true ),
+						'value' => get_user_option( '_stripe_source_id', $user->ID ),
 					),
 					array(
 						'name'  => __( 'Stripe customer id', 'woocommerce-gateway-stripe' ),
@@ -255,8 +255,8 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$stripe_source_id   = '';
 
 		if ( $user instanceof WP_User ) {
-			$stripe_customer_id = get_user_meta( $user->ID, '_stripe_customer_id', true );
-			$stripe_source_id   = get_user_meta( $user->ID, '_stripe_source_id', true );
+			$stripe_customer_id = get_user_option( '_stripe_customer_id', $user->ID );
+			$stripe_source_id   = get_user_option( '_stripe_source_id', $user->ID );
 		}
 
 		$items_removed = false;
@@ -264,8 +264,8 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 
 		if ( ! empty( $stripe_customer_id ) || ! empty( $stripe_source_id ) ) {
 			$items_removed = true;
-			delete_user_meta( $user->ID, '_stripe_customer_id' );
-			delete_user_meta( $user->ID, '_stripe_source_id' );
+			delete_user_option( $user->ID, '_stripe_customer_id' );
+			delete_user_option( $user->ID, '_stripe_source_id' );
 			$messages[] = __( 'Stripe User Data Erased.', 'woocommerce-gateway-stripe' );
 		}
 
