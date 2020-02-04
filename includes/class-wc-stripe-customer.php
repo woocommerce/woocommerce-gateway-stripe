@@ -240,7 +240,16 @@ class WC_Stripe_Customer {
 		$wc_token = false;
 
 		if ( ! empty( $response->error ) ) {
-			return $response;
+			// It is possible the WC user once was linked to a customer on Stripe
+			// but no longer exists. Instead of failing, lets try to create a
+			// new customer.
+			if ( $this->is_no_such_customer_error( $response->error ) ) {
+				$this->delete_id_from_meta();
+				$this->create_customer();
+				return $this->add_source( $source_id );
+			} else {
+				return $response;
+			}
 		} elseif ( empty( $response->id ) ) {
 			return new WP_Error( 'error', __( 'Unable to add payment source.', 'woocommerce-gateway-stripe' ) );
 		}
@@ -395,5 +404,12 @@ class WC_Stripe_Customer {
 	 */
 	public function update_id_in_meta( $id ) {
 		update_user_option( $this->get_user_id(), '_stripe_customer_id', $id, false );
+	}
+
+	/**
+	 * Deletes the user ID from the meta table with the right key.
+	 */
+	public function delete_id_from_meta() {
+		delete_user_option( $this->get_user_id(), '_stripe_customer_id', false );
 	}
 }
