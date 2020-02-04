@@ -223,7 +223,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id();
 
 
-			// Early renewals should be treated like normal payments, but with a different output.
+			// Unlike regular off-session subscription payments, early renewals are treated as on-session payments, involving the customer.
 			if ( isset( $_REQUEST['process_early_renewal'] ) ) { // wpcs: csrf ok.
 				$response = parent::process_payment( $order_id, true, false, $previous_error, true );
 
