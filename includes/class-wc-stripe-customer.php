@@ -185,15 +185,23 @@ class WC_Stripe_Customer {
 
 		if ( ! empty( $response->error ) ) {
 			if ( $this->is_no_such_customer_error( $response->error ) ) {
-				$options = get_option( 'woocommerce_stripe_settings' );
-				$message = ( isset( $options['testmode'] ) && 'yes' === $options['testmode'] )
-					// Translators: %s contains the original message from Stripe.
-					? __( '%s. Was the customer created in live mode? ', 'woocommerce-gateway-stripe' )
-					// Translators: %s contains the original message from Stripe.
-					: __( '%s. Was the customer created in test mode? ', 'woocommerce-gateway-stripe' );
+				$message = $response->error->message;
 
-				$full_message = sprintf( $message, $response->error->message );
-				throw new WC_Stripe_Exception( print_r( $response, true ), $full_message );
+				if ( ! preg_match( '/similar object exists/i', $message ) ) {
+					$options  = get_option( 'woocommerce_stripe_settings' );
+					$testmode = isset( $options['testmode'] ) && 'yes' === $options['testmode'];
+
+					$message = sprintf(
+						( $testmode
+							// Translators: %s is a message, which states that no such customer exists, without a full stop at the end.
+							? __( '%s. Was the customer created in live mode? ', 'woocommerce-gateway-stripe' )
+							// Translators: %s is a message, which states that no such customer exists, without a full stop at the end.
+							: __( '%s. Was the customer created in test mode? ', 'woocommerce-gateway-stripe' ) ),
+						$message
+					);
+				}
+
+				throw new WC_Stripe_Exception( print_r( $response, true ), $message );
 			}
 
 			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
