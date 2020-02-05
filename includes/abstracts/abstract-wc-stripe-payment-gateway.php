@@ -254,7 +254,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.0
 	 */
 	public function get_stripe_customer_id( $order ) {
-		$customer = get_user_meta( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id', true );
+		$customer = get_user_option( '_stripe_customer_id', WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->customer_user : $order->get_customer_id() );
 
 		if ( empty( $customer ) ) {
 			// Try to get it via the order.

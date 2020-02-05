@@ -511,10 +511,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-			delete_user_meta( $order->customer_user, '_stripe_customer_id' );
+			delete_user_option( $order->customer_user, '_stripe_customer_id' );
 			delete_post_meta( $order->get_id(), '_stripe_customer_id' );
 		} else {
-			delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
+			delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
 			$order->delete_meta_data( '_stripe_customer_id' );
 			$order->save();
 		}
@@ -1088,5 +1088,39 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$pay_url = add_query_arg( 'wc-stripe-confirmation', 1, $pay_url );
 		}
 		return $pay_url;
+	}
+
+	/**
+	 * Checks whether new keys are being entered when saving options.
+	 */
+	public function process_admin_options() {
+		// Load all old values before the new settings get saved.
+		$old_publishable_key      = $this->get_option( 'publishable_key' );
+		$old_secret_key           = $this->get_option( 'secret_key' );
+		$old_test_publishable_key = $this->get_option( 'test_publishable_key' );
+		$old_test_secret_key      = $this->get_option( 'test_secret_key' );
+
+		parent::process_admin_options();
+
+		// Load all old values after the new settings have been saved.
+		$new_publishable_key      = $this->get_option( 'publishable_key' );
+		$new_secret_key           = $this->get_option( 'secret_key' );
+		$new_test_publishable_key = $this->get_option( 'test_publishable_key' );
+		$new_test_secret_key      = $this->get_option( 'test_secret_key' );
+
+		// Checks whether a value has transitioned from a non-empty value to a new one.
+		$has_changed = function( $old_value, $new_value ) {
+			return ! empty( $old_value ) && ( $old_value !== $new_value );
+		};
+
+		// Look for updates.
+		if (
+			$has_changed( $old_publishable_key, $new_publishable_key )
+			|| $has_changed( $old_secret_key, $new_secret_key )
+			|| $has_changed( $old_test_publishable_key, $new_test_publishable_key )
+			|| $has_changed( $old_test_secret_key, $new_test_secret_key )
+		) {
+			update_option( 'wc_stripe_show_changed_keys_notice', 'yes' );
+		}
 	}
 }
