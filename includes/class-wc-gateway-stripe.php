@@ -1051,23 +1051,34 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$order->payment_complete();
 			}
 		} else if ( 'succeeded' === $intent->status || 'requires_capture' === $intent->status ) {
-			do_action( 'wc_stripe_before_intent_success', $order );
-
 			// Proceed with the payment completion.
 			$this->process_response( end( $intent->charges->data ), $order );
-
-			do_action( 'wc_stripe_after_intent_success', $order );
+			$this->handle_intent_verification_success( $order );
 		} else if ( 'requires_payment_method' === $intent->status ) {
-			do_action( 'wc_stripe_before_intent_failure', $order );
+			$this->handle_intent_verification_failure( $order );
 
 			// `requires_payment_method` means that SCA got denied for the current payment method.
 			$this->failed_sca_auth( $order, $intent );
-
-			do_action( 'wc_stripe_after_intent_failure', $order );
 		}
 
 		$this->unlock_order_payment( $order );
 	}
+
+	/**
+	 * Called after an intent verification succeeds, this allows
+	 * specific APNs or children of this class to modify its behavior.
+	 *
+	 * @param WC_Order $order The order whose verification succeeded.
+	 */
+	protected function handle_intent_verification_success( $order ) {}
+
+	/**
+	 * Called after an intent verification fails, this allows
+	 * specific APNs or children of this class to modify its behavior.
+	 *
+	 * @param WC_Order $order The order whose verification succeeded.
+	 */
+	protected function handle_intent_verification_failure( $order ) {}
 
 	/**
 	 * Checks if the payment intent associated with an order failed and records the event.

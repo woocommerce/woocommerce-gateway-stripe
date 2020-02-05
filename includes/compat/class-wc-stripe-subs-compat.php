@@ -22,8 +22,6 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			add_action( 'woocommerce_subscription_failing_payment_method_updated_stripe', array( $this, 'update_failing_payment_method' ), 10, 2 );
 			add_action( 'wc_stripe_cards_payment_fields', array( $this, 'display_update_subs_payment_checkout' ) );
 			add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', array( $this, 'handle_add_payment_method_success' ), 10, 2 );
-			add_action( 'wc_stripe_after_intent_success', array( $this, 'handle_intent_success_verification' ) );
-			add_action( 'wc_stripe_before_intent_failure', array( $this, 'handle_intent_sca_failure' ) );
 
 			// display the credit card used for a subscription in the "My Subscriptions" table
 			add_filter( 'woocommerce_my_subscriptions_payment_method', array( $this, 'maybe_render_subscription_payment_method' ), 10, 2 );
@@ -666,7 +664,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	 *
 	 * @param WC_Order $order The renewal order.
 	 */
-	public function handle_intent_success_verification( $order ) {
+	protected function handle_intent_verification_success( $order ) {
 		if ( isset( $_GET['early_renewal'] ) ) { // wpcs: csrf ok.
 			wcs_update_dates_after_early_renewal( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ), $order );
 			wc_add_notice( __( 'Your early renewal order was successful.', 'woocommerce-gateway-stripe' ), 'success' );
@@ -678,7 +676,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	 *
 	 * @param WC_Order $order The renewal order.
 	 */
-	public function handle_intent_sca_failure( $order ) {
+	protected function handle_intent_verification_failure( $order ) {
 		if ( isset( $_GET['early_renewal'] ) ) {
 			$order->delete( true );
 			wc_add_notice( __( 'Payment authorization for the renewal order was unsuccessful, please try again.', 'woocommerce-gateway-stripe' ), 'error' );
