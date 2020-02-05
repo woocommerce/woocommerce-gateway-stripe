@@ -1108,12 +1108,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$new_test_publishable_key = $this->get_option( 'test_publishable_key' );
 		$new_test_secret_key      = $this->get_option( 'test_secret_key' );
 
+		// Checks whether a value has transitioned from a non-empty value to a new one.
+		$has_changed = function( $old_value, $new_value ) {
+			return ! empty( $old_value ) && ( $old_value !== $new_value );
+		};
+
 		// Look for updates.
 		if (
-			( ! empty( $old_publishable_key ) && $old_publishable_key !== $new_publishable_key )
-			|| ( ! empty( $old_secret_key ) && $old_secret_key !== $new_secret_key )
-			|| ( ! empty( $old_test_publishable_key ) && $old_test_publishable_key !== $new_test_publishable_key )
-			|| ( ! empty( $old_test_secret_key ) && $old_test_secret_key !== $new_test_secret_key )
+			$has_changed( $old_publishable_key, $new_publishable_key )
+			|| $has_changed( $old_secret_key, $new_secret_key )
+			|| $has_changed( $old_test_publishable_key, $new_test_publishable_key )
+			|| $has_changed( $old_test_secret_key, $new_test_secret_key )
 		) {
 			update_option( 'wc_stripe_show_changed_keys_notice', 'yes' );
 		}
