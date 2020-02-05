@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.3.1\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
-"POT-Creation-Date: 2020-02-04 16:38:32+00:00\n"
+"POT-Creation-Date: 2020-02-05 10:16:01+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -388,6 +388,7 @@ msgstr ""
 
 #: includes/admin/stripe-alipay-settings.php:43
 #: includes/admin/stripe-bancontact-settings.php:43
+#: includes/admin/stripe-eps-settings.php:39
 #: includes/admin/stripe-giropay-settings.php:43
 #: includes/admin/stripe-ideal-settings.php:43
 #: includes/admin/stripe-multibanco-settings.php:39
@@ -434,10 +435,6 @@ msgstr ""
 
 #: includes/admin/stripe-eps-settings.php:35
 msgid "You will be redirected to EPS."
-msgstr ""
-
-#: includes/admin/stripe-eps-settings.php:39
-msgid "Webhook Enpoints"
 msgstr ""
 
 #: includes/admin/stripe-giropay-settings.php:10
