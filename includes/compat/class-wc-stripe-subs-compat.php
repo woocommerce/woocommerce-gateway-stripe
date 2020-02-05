@@ -663,8 +663,11 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	 * Once an intent has been verified, perform some final actions for early renewals.
 	 *
 	 * @param WC_Order $order The renewal order.
+	 * @param stdClass $intent The Payment Intent object.
 	 */
-	protected function handle_intent_verification_success( $order ) {
+	protected function handle_intent_verification_success( $order, $intent ) {
+		parent::handle_intent_verification_success( $order, $intent );
+
 		if ( isset( $_GET['early_renewal'] ) ) { // wpcs: csrf ok.
 			wcs_update_dates_after_early_renewal( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ), $order );
 			wc_add_notice( __( 'Your early renewal order was successful.', 'woocommerce-gateway-stripe' ), 'success' );
