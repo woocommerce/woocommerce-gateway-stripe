@@ -116,6 +116,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 4.3.2 2019-x-x =
 * Fix - Add compatibility to payment request buttons with some of the WooCommerce Product Add-ons on the product page
 * Fix - Improved compatibility for free orders with other extensions
+* Add - Support for multisite when sites use different Stripe accounts
 
 = 4.3.1 2019-11-12 =
 * Fix - Overwrite the previous Apple Pay verification file if it has changed.
