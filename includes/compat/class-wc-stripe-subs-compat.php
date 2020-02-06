@@ -678,8 +678,9 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	 * During early renewals, instead of failing the renewal order, delete it and let Subs redirect to the checkout.
 	 *
 	 * @param WC_Order $order The renewal order.
+	 * @param stdClass $intent The Payment Intent object (unused).
 	 */
-	protected function handle_intent_verification_failure( $order ) {
+	protected function handle_intent_verification_failure( $order, $intent ) {
 		if ( isset( $_GET['early_renewal'] ) ) {
 			$order->delete( true );
 			wc_add_notice( __( 'Payment authorization for the renewal order was unsuccessful, please try again.', 'woocommerce-gateway-stripe' ), 'error' );
