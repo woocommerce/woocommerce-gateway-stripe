@@ -155,16 +155,16 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	 * @param  int $order_id
 	 * @return array
 	 */
-	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false ) {
+	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
 		if ( $this->has_subscription( $order_id ) ) {
 			if ( $this->is_subs_change_payment() ) {
 				return $this->change_subs_payment_method( $order_id );
 			}
 
 			// Regular payment with force customer enabled
-			return parent::process_payment( $order_id, $retry, true, $previous_error );
+			return parent::process_payment( $order_id, $retry, true, $previous_error, $use_order_source );
 		} else {
-			return parent::process_payment( $order_id, $retry, $force_save_source, $previous_error );
+			return parent::process_payment( $order_id, $retry, $force_save_source, $previous_error, $use_order_source );
 		}
 	}
 
@@ -219,6 +219,37 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			}
 
 			$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id();
+
+
+			// Unlike regular off-session subscription payments, early renewals are treated as on-session payments, involving the customer.
+			if ( isset( $_REQUEST['process_early_renewal'] ) ) { // wpcs: csrf ok.
+				$response = parent::process_payment( $order_id, true, false, $previous_error, true );
+
+				if( 'success' === $response['result'] && isset( $response['payment_intent_secret'] ) ) {
+					$verification_url = add_query_arg(
+						array(
+							'order'         => $order_id,
+							'nonce'         => wp_create_nonce( 'wc_stripe_confirm_pi' ),
+							'redirect_to'   => remove_query_arg( array( 'process_early_renewal', 'subscription_id', 'wcs_nonce' ) ),
+							'early_renewal' => true,
+						),
+						WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
+					);
+
+					echo wp_json_encode( array(
+						'stripe_sca_required' => true,
+						'intent_secret'       => $response['payment_intent_secret'],
+						'redirect_url'        => $verification_url,
+					) );
+
+					exit;
+				}
+
+				// Hijack all other redirects in order to do the redirection in JavaScript.
+				add_action( 'wp_redirect', array( $this, 'redirect_after_early_renewal' ), 100 );
+
+				return;
+			}
 
 			// Check for an existing intent, which is associated with the order.
 			if ( $this->has_authentication_already_failed( $renewal_order ) ) {
@@ -609,5 +640,51 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		$renewal_order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $charge_id ) );
 
 		return true;
+	}
+
+	/**
+	 * Hijacks `wp_redirect` in order to generate a JS-friendly object with the URL.
+	 *
+	 * @param string $url The URL that Subscriptions attempts a redirect to.
+	 * @return void
+	 */
+	public function redirect_after_early_renewal( $url ) {
+		echo wp_json_encode(
+			array(
+				'stripe_sca_required' => false,
+				'redirect_url'        => $url,
+			)
+		);
+
+		exit;
+	}
+
+	/**
+	 * Once an intent has been verified, perform some final actions for early renewals.
+	 *
+	 * @param WC_Order $order The renewal order.
+	 * @param stdClass $intent The Payment Intent object.
+	 */
+	protected function handle_intent_verification_success( $order, $intent ) {
+		parent::handle_intent_verification_success( $order, $intent );
+
+		if ( isset( $_GET['early_renewal'] ) ) { // wpcs: csrf ok.
+			wcs_update_dates_after_early_renewal( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ), $order );
+			wc_add_notice( __( 'Your early renewal order was successful.', 'woocommerce-gateway-stripe' ), 'success' );
+		}
+	}
+
+	/**
+	 * During early renewals, instead of failing the renewal order, delete it and let Subs redirect to the checkout.
+	 *
+	 * @param WC_Order $order The renewal order.
+	 */
+	protected function handle_intent_verification_failure( $order ) {
+		if ( isset( $_GET['early_renewal'] ) ) {
+			$order->delete( true );
+			wc_add_notice( __( 'Payment authorization for the renewal order was unsuccessful, please try again.', 'woocommerce-gateway-stripe' ), 'error' );
+			$renewal_url = wcs_get_early_renewal_url( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ) );
+			wp_redirect( $renewal_url ); exit;
+		}
 	}
 }
