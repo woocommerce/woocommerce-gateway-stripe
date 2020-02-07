@@ -176,4 +176,32 @@ class WC_Stripe_API {
 
 		return json_decode( $response['body'] );
 	}
+
+	/**
+	 * Send the request to Stripe's API with level 3 data generated
+	 * from the order. If the request fails due to an error related
+	 * to level3 data, make the request again without it to allow
+	 * the payment to go through.
+	 *
+	 * @since 4.3.2
+	 * @version 4.3.2
+	 *
+	 * @param array    $request     Array with request parameters.
+	 * @param string   $api         The API path for the request.
+	 * @param array    $level3_data The level 3 data for this request.
+	 * @param WC_Order $order       The order associated with the payment.
+	 *
+	 * @return stdClass|array The response
+	 */
+	public static function request_with_level3_data( $request, $api, $level3_data, $order ) {
+		// Add level 3 data to the request.
+		$request['level3'] = $level3_data;
+
+		$result = self::request(
+			$request,
+			$api
+		);
+
+		return $result;
+	}
 }
