@@ -202,6 +202,23 @@ class WC_Stripe_API {
 			$api
 		);
 
+		$is_level3_param_not_allowed = (
+			isset( $result->error )
+			&& isset( $result->error->code )
+			&& 'parameter_unknown' === $result->error->code
+			&& isset( $result->error->param )
+			&& 'level3' === $result->error->param
+		);
+
+		if ( $is_level3_param_not_allowed ) {
+			// Make the request again without level 3 data.
+			unset( $request['level3'] );
+			$result = WC_Stripe_API::request(
+				$request,
+				$api
+			);
+		}
+
 		return $result;
 	}
 }
