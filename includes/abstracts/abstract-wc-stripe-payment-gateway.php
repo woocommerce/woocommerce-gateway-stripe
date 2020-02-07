@@ -1150,7 +1150,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return $intent;
 		}
 
-		return WC_Stripe_API::request( $request, "payment_intents/$intent->id" );
+		$level3_data = $this->get_level3_data_from_order( $order, get_option( 'woocommerce_store_postcode' ) );
+		return WC_Stripe_API::request_with_level3_data(
+			$request,
+			"payment_intents/$intent->id",
+			$level3_data,
+			$order
+		);
 	}
 
 	/**
