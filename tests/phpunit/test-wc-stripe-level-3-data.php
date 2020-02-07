@@ -10,14 +10,23 @@ class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
 		$variation_product = WC_Helper_Product::create_variation_product();
 		$variation_ids     = $variation_product->get_children();
 
-		$product_1 = wc_get_product ( $variation_ids[0] );
-		$product_1->set_regular_price( 19.19 );
-		$product_1->set_sale_price( 11.83 );
-		$product_1->save();
+		$product_1 = wc_get_product( $variation_ids[0] );
+		if ( is_callable( [ $product_1, 'set_regular_price' ] ) ) {
+			$product_1->set_regular_price( 19.19 );
+			$product_1->set_sale_price( 11.83 );
+			$product_1->save();
+		} else {
+			update_post_meta( $product_1, '_regular_price', '19.19' );
+			update_post_meta( $product_1, '_sale_price', '11.83' );
+		}
 
 		$product_2 = wc_get_product( $variation_ids[1] );
-		$product_2->set_regular_price( 20.05 );
-		$product_2->save();
+		if ( is_callable( [ $product_2, 'set_regular_price' ] ) ) {
+			$product_2->set_regular_price( 20.05 );
+			$product_2->save();
+		} else {
+			update_post_meta( $product_2, '_regular_price', '20.05' );
+		}
 
 		// Arrange: Set up an order with:
 		// 1) A variation product.
@@ -26,8 +35,13 @@ class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
 		$order->add_product( $product_1, 1 ); // Add one item of the first product variation
 		$order->add_product( $product_2, 2 ); // Add two items of the second product variation
 
-		$order->save();
-		$order->calculate_totals();
+		if ( is_callable( [ $order, 'save' ] ) ) {
+			$order->save();
+		}
+
+		if ( is_callable( [ $order, 'calculate_totals' ] ) ) {
+			$order->calculate_totals();
+		}
 
 		// Act: Call get_level3_data_from_order().
 		$store_postcode = '90210';
@@ -35,7 +49,6 @@ class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
 		$result = $gateway->get_level3_data_from_order( $order, $store_postcode );
 
 		// Assert.
-		$this->assertIsArray( $result );
 		$this->assertEquals(
 			array(
 				'merchant_reference' => $order->get_id(),
@@ -45,7 +58,7 @@ class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
 				'line_items' => array(
 					(object) array(
 						'product_code'        => (string) $product_1->get_id(),
-						'product_description' => 'Dummy Variable Product',
+						'product_description' => substr( $product_1->get_name(), 0, 26 ),
 						'unit_cost'           => 1183,
 						'quantity'            => 1,
 						'tax_amount'          => 0,
@@ -53,7 +66,7 @@ class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
 					),
 					(object) array(
 						'product_code'        => (string) $product_2->get_id(),
-						'product_description' => 'Dummy Variable Product',
+						'product_description' => substr( $product_2->get_name(), 0, 26 ),
 						'unit_cost'           => 2005,
 						'quantity'            => 2,
 						'tax_amount'          => 0,
