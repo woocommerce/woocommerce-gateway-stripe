@@ -1370,7 +1370,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$request['source'] = $full_request['source'];
 		}
 
-		$intent = WC_Stripe_API::request( $request, 'payment_intents' );
+		$level3_data = $this->get_level3_data_from_order( $order, get_option( 'woocommerce_store_postcode' ) );
+		$intent = WC_Stripe_API::request_with_level3_data(
+			$request,
+			'payment_intents',
+			$level3_data,
+			$order
+		);
 		$is_authentication_required = $this->is_authentication_required_for_payment( $intent );
 
 		if ( ! empty( $intent->error ) && ! $is_authentication_required ) {
