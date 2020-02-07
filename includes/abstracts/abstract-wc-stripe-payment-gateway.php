@@ -1178,7 +1178,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'source' => $prepared_source->source,
 		);
 
-		$confirmed_intent = WC_Stripe_API::request( $confirm_request, "payment_intents/$intent->id/confirm" );
+		$level3_data = $this->get_level3_data_from_order( $order, get_option( 'woocommerce_store_postcode' ) );
+		$confirmed_intent = WC_Stripe_API::request_with_level3_data(
+			$confirm_request,
+			"payment_intents/$intent->id/confirm",
+			$level3_data,
+			$order
+		);
 
 		if ( ! empty( $confirmed_intent->error ) ) {
 			return $confirmed_intent;
