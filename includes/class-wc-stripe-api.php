@@ -232,7 +232,7 @@ class WC_Stripe_API {
 			);
 		}
 
-		$is_level_3data_incorrect = (
+		$is_level3_data_incorrect = (
 			isset( $result->error )
 			&& isset( $result->error->type )
 			&& 'invalid_request_error' === $result->error->type
@@ -240,7 +240,7 @@ class WC_Stripe_API {
 			&& strpos($result->error->message, "level3")
 		);
 
-		if ( $is_level_3data_incorrect ) {
+		if ( $is_level3_data_incorrect ) {
 			// Log the issue so we could debug it.
 			WC_Stripe_Logger::log(
 				'Level3 data sum incorrect: ' . PHP_EOL
