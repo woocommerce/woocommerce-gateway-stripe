@@ -232,6 +232,33 @@ class WC_Stripe_API {
 			);
 		}
 
+		$is_level_3data_incorrect = (
+			isset( $result->error )
+			&& isset( $result->error->type )
+			&& 'invalid_request_error' === $result->error->type
+		);
+
+		if ( $is_level_3data_incorrect ) {
+			// Log the issue so we could debug it.
+			WC_Stripe_Logger::log(
+				'Level3 data sum incorrect: ' . PHP_EOL
+				. print_r( $result->error->message, true ) . PHP_EOL
+				. print_r( 'Order line items: ', true ) . PHP_EOL
+				. print_r( $order->get_items(), true ) . PHP_EOL
+				. print_r( 'Order shipping amount: ', true ) . PHP_EOL
+				. print_r( $order->get_shipping_total(), true ) . PHP_EOL
+				. print_r( 'Order currency: ', true ) . PHP_EOL
+				. print_r( $order->get_currency(), true )
+			);
+
+			// Make the request again without level 3 data.
+			unset( $request['level3'] );
+			$result = WC_Stripe_API::request(
+				$request,
+				$api
+			);
+		}
+
 		return $result;
 	}
 }
