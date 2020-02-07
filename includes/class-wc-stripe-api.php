@@ -194,6 +194,15 @@ class WC_Stripe_API {
 	 * @return stdClass|array The response
 	 */
 	public static function request_with_level3_data( $request, $api, $level3_data, $order ) {
+		// If there's a transient indicating that level3 data was not accepted by
+		// Stripe in the past for this account, do not try to add level3 data.
+		if ( get_transient( 'wc_stripe_level3_not_allowed' ) ) {
+			return self::request(
+				$request,
+				$api
+			);
+		}
+
 		// Add level 3 data to the request.
 		$request['level3'] = $level3_data;
 
@@ -211,6 +220,10 @@ class WC_Stripe_API {
 		);
 
 		if ( $is_level3_param_not_allowed ) {
+			// Set a transient so that future requests do not add level 3 data.
+			// Transient is set to never expire, can be manually removed if needed.
+			set_transient( 'wc_stripe_level3_not_allowed', true );
+
 			// Make the request again without level 3 data.
 			unset( $request['level3'] );
 			$result = WC_Stripe_API::request(
