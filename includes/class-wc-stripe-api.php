@@ -194,6 +194,16 @@ class WC_Stripe_API {
 	 * @return stdClass|array The response
 	 */
 	public static function request_with_level3_data( $request, $api, $level3_data, $order ) {
+		// Do not add level3 data for WC versions less than 3.0,
+		// since the store zip code is not available.
+		// Do not add level3 data it's the array is empty.
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) || empty( $level3_data ) ) {
+			return self::request(
+				$request,
+				$api
+			);
+		}
+
 		// If there's a transient indicating that level3 data was not accepted by
 		// Stripe in the past for this account, do not try to add level3 data.
 		if ( get_transient( 'wc_stripe_level3_not_allowed' ) ) {
