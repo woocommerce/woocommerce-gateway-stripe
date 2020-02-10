@@ -896,7 +896,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		if ( 'requires_payment_method' === $intent->status && isset( $intent->last_payment_error )
 		     && 'authentication_required' === $intent->last_payment_error->code ) {
-			$level3_data = $this->get_level3_data_from_order( $order, get_option( 'woocommerce_store_postcode' ) );
+			$level3_data = WC_Stripe_Helper::is_wc_lt( '3.0' )
+				? array()
+				: $this->get_level3_data_from_order( $order, get_option( 'woocommerce_store_postcode' ) );
 			$intent      = WC_Stripe_API::request_with_level3_data(
 				array(
 					'payment_method' => $intent->last_payment_error->source->id,

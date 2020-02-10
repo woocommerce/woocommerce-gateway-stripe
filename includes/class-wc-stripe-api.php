@@ -196,7 +196,8 @@ class WC_Stripe_API {
 	public static function request_with_level3_data( $request, $api, $level3_data, $order ) {
 		// Do not add level3 data for WC versions less than 3.0,
 		// since the store zip code is not available.
-		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+		// Do not add level3 data it's the array is empty.
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) || is_empty( $level3_data ) ) {
 			return self::request(
 				$request,
 				$api
