@@ -245,8 +245,6 @@ class WC_Stripe_API {
 			isset( $result->error )
 			&& isset( $result->error->type )
 			&& 'invalid_request_error' === $result->error->type
-			&& isset( $result->error->message )
-			&& strpos($result->error->message, "level3")
 		);
 
 		if ( $is_level_3data_incorrect ) {
@@ -254,7 +252,6 @@ class WC_Stripe_API {
 			WC_Stripe_Logger::log(
 				'Level3 data sum incorrect: ' . PHP_EOL
 				. print_r( $result->error->message, true ) . PHP_EOL
-				. print_r( $level3, true ) . PHP_EOL
 				. print_r( 'Order line items: ', true ) . PHP_EOL
 				. print_r( $order->get_items(), true ) . PHP_EOL
 				. print_r( 'Order shipping amount: ', true ) . PHP_EOL
