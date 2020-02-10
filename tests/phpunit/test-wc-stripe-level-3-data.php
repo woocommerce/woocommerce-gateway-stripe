@@ -51,7 +51,7 @@ class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
 				'line_items' => array(
 					(object) array(
 						'product_code'        => (string) $product_1->get_id(),
-						'product_description' => 'Dummy Variable Product',
+						'product_description' => substr( $product_1->get_name(), 0, 26 ),
 						'unit_cost'           => 1183,
 						'quantity'            => 1,
 						'tax_amount'          => 0,
@@ -59,7 +59,7 @@ class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
 					),
 					(object) array(
 						'product_code'        => (string) $product_2->get_id(),
-						'product_description' => 'Dummy Variable Product',
+						'product_description' => substr( $product_1->get_name(), 0, 26 ),
 						'unit_cost'           => 2005,
 						'quantity'            => 2,
 						'tax_amount'          => 0,
