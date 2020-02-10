@@ -10,6 +10,7 @@ class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
 		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 			// Dummy assertion.
 			$this->assertEquals( WC_Stripe_Helper::is_wc_lt( '3.0' ), true );
+			return;
 		}
 
 		// Arrange: Create a couple of products to use.
@@ -92,6 +93,7 @@ class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
 		if ( ! WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 			// Dummy assertion.
 			$this->assertEquals( WC_Stripe_Helper::is_wc_lt( '3.0' ), false );
+			return;
 		}
 
 		// Arrange: A request array and URL path to use in request_with_level3_data().
