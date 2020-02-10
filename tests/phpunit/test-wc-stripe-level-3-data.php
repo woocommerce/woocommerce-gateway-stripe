@@ -41,7 +41,6 @@ class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
 		$result = $gateway->get_level3_data_from_order( $order, $store_postcode );
 
 		// Assert.
-		$this->assertIsArray( $result );
 		$this->assertEquals(
 			array(
 				'merchant_reference' => $order->get_id(),

@@ -1072,8 +1072,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$product_id          = $item->get_variation_id()
 				? $item->get_variation_id()
 				: $item->get_product_id();
-			$product             = wc_get_product( $product_id );
-			$product_description = substr( $product->get_name(), 0, 26 );
+			$product_description = substr( $item->get_name(), 0, 26 );
 			$quantity            = $item->get_quantity();
 			$unit_cost           = WC_Stripe_Helper::get_stripe_amount( ( $item->get_subtotal() / $quantity ), $currency );
 			$tax_amount          = WC_Stripe_Helper::get_stripe_amount( $item->get_total_tax(), $currency );
