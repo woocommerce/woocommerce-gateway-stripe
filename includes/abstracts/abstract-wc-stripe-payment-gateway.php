@@ -1058,18 +1058,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Create the level 3 data array to send to Stripe when making a purchase.
 	 *
-	 * @param WC_Order $order           The order that is being paid for.
-	 * @param string   $store_postcode  The postcode of the store.
-	 * @return array                    The level 3 data to send to Stripe.
+	 * @param WC_Order $order The order that is being paid for.
+	 * @return array          The level 3 data to send to Stripe.
 	 */
-	public function get_level3_data_from_order( $order, $store_postcode ) {
-		// Return an empty array if there's no store postcode (since it's
-		// required for level3 data), or if the version is less than 3.0
-		// (because it's not possible to get a store postcode before WC 3.0).
-		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) || empty( $store_postcode ) ) {
-			return array();
-		}
-
+	public function get_level3_data_from_order( $order ) {
 		// Get the order items. Don't need their keys, only their values.
 		// Order item IDs are used as keys in the original order items array.
 		$order_items = array_values( $order->get_items() );
@@ -1109,6 +1101,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		// The merchant’s U.S. shipping ZIP code.
+		$store_postcode = get_option( 'woocommerce_store_postcode' );
 		if ( $this->is_valid_us_zip_code( $store_postcode ) ) {
 			$level3_data['shipping_from_zip'] = $store_postcode;
 		}
@@ -1169,7 +1162,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return $intent;
 		}
 
-		$level3_data = $this->get_level3_data_from_order( $order, get_option( 'woocommerce_store_postcode' ) );
+		$level3_data = $this->get_level3_data_from_order( $order );
 		return WC_Stripe_API::request_with_level3_data(
 			$request,
 			"payment_intents/$intent->id",
@@ -1197,7 +1190,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'source' => $prepared_source->source,
 		);
 
-		$level3_data = $this->get_level3_data_from_order( $order, get_option( 'woocommerce_store_postcode' ) );
+		$level3_data = $this->get_level3_data_from_order( $order );
 		$confirmed_intent = WC_Stripe_API::request_with_level3_data(
 			$confirm_request,
 			"payment_intents/$intent->id/confirm",
@@ -1388,7 +1381,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$request['source'] = $full_request['source'];
 		}
 
-		$level3_data = $this->get_level3_data_from_order( $order, get_option( 'woocommerce_store_postcode' ) );
+		$level3_data = $this->get_level3_data_from_order( $order );
 		$intent = WC_Stripe_API::request_with_level3_data(
 			$request,
 			'payment_intents',

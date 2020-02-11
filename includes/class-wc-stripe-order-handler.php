@@ -244,7 +244,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						/* translators: error message */
 						$order->add_order_note( sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $intent->error->message ) );
 					} elseif ( 'requires_capture' === $intent->status ) {
-						$level3_data = $this->get_level3_data_from_order( $order, get_option( 'woocommerce_store_postcode' ) );
+						$level3_data = $this->get_level3_data_from_order( $order );
 						$result = WC_Stripe_API::request_with_level3_data(
 							array(
 								'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
@@ -275,7 +275,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						/* translators: error message */
 						$order->add_order_note( sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
 					} elseif ( false === $result->captured ) {
-						$level3_data = $this->get_level3_data_from_order( $order, get_option( 'woocommerce_store_postcode' ) );
+						$level3_data = $this->get_level3_data_from_order( $order );
 						$result = WC_Stripe_API::request_with_level3_data(
 							array(
 								'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
