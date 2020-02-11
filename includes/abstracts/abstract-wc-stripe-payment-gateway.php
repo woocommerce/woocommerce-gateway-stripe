@@ -1095,13 +1095,25 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			);
 		}, $order_items);
 
-		return array(
+		$level3_data = array(
 			'merchant_reference'   => $order->get_id(), // An alphanumeric string of up to  characters in length. This unique value is assigned by the merchant to identify the order. Also known as an “Order ID”.
-			'shipping_address_zip' => $order->get_shipping_postcode(), // The customer’s U.S. shipping ZIP code.
-			'shipping_from_zip'    => $store_postcode, // The merchant’s U.S. shipping ZIP code.
+
 			'shipping_amount'      => WC_Stripe_Helper::get_stripe_amount( $order->get_shipping_total() + $order->get_shipping_tax(), $currency), // The shipping cost, in cents, as a non-negative integer.
 			'line_items'           => $stripe_line_items,
 		);
+
+		// The customer’s U.S. shipping ZIP code.
+		$shipping_address_zip = $order->get_shipping_postcode();
+		if ( $this->is_valid_us_zip_code( $shipping_address_zip ) ) {
+			$level3_data['shipping_address_zip'] = $shipping_address_zip;
+		}
+
+		// The merchant’s U.S. shipping ZIP code.
+		if ( $this->is_valid_us_zip_code( $store_postcode ) ) {
+			$level3_data['shipping_from_zip'] = $store_postcode;
+		}
+
+		return $level3_data;
 	}
 
 	/**
@@ -1404,5 +1416,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$this->save_intent_to_order( $order, $payment_intent );
 
 		return $intent;
+	}
+
+	/**
+	 * Verifies whether a certain ZIP code is valid for the US, incl. 4-digit extensions.
+	 *
+	 * @param string $zip The ZIP code to verify.
+	 * @return boolean
+	 */
+	public function is_valid_us_zip_code( $zip ) {
+		return ! empty( $zip ) && preg_match( '/^\d{5,5}(-\d{4,4})?$/', $zip );
 	}
 }

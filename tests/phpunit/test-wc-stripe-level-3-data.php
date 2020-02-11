@@ -29,7 +29,9 @@ class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
 		// Arrange: Set up an order with:
 		// 1) A variation product.
 		// 2) The same product added several times.
+		// 3) A valid US ZIP code
 		$order = new WC_Order();
+		$order->set_shipping_postcode( '90210' );
 		$order->add_product( $product_1, 1 ); // Add one item of the first product variation
 		$order->add_product( $product_2, 2 ); // Add two items of the second product variation
 
@@ -141,6 +143,51 @@ class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
 				'test' => 123,
 			),
 			new WC_Order()
+		);
+	}
+
+	public function test_non_us_shipping_zip_codes() {
+		// Level 3 data is only for WC 3.0+.
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+			// Dummy assertion.
+			$this->assertEquals( WC_Stripe_Helper::is_wc_lt( '3.0' ), true );
+			return;
+		}
+
+		// Arrange: Create a couple of products to use.
+		$product = WC_Helper_Product::create_simple_product();
+		$product->set_regular_price( 19.19 );
+		$product->save();
+
+		// Arrange: Set up an order with a non-US postcode.
+		$order = new WC_Order();
+		$order->set_shipping_postcode( '1050' );
+		$order->add_product( $product, 1 );
+		$order->save();
+		$order->calculate_totals();
+
+		// Act: Call get_level3_data_from_order().
+		$store_postcode = '1100';
+		$gateway = new WC_Gateway_Stripe();
+		$result = $gateway->get_level3_data_from_order( $order, $store_postcode );
+
+		// Assert.
+		$this->assertEquals(
+			array(
+				'merchant_reference' => $order->get_id(),
+				'shipping_amount' => 0,
+				'line_items' => array(
+					(object) array(
+						'product_code'        => (string) $product->get_id(),
+						'product_description' => substr( $product->get_name(), 0, 26 ),
+						'unit_cost'           => 1919,
+						'quantity'            => 1,
+						'tax_amount'          => 0,
+						'discount_amount'     => 0,
+					),
+				),
+			),
+			$result
 		);
 	}
 }
