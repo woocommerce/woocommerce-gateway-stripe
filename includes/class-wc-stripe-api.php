@@ -231,8 +231,8 @@ class WC_Stripe_API {
 
 		if ( $is_level3_param_not_allowed ) {
 			// Set a transient so that future requests do not add level 3 data.
-			// Transient is set to never expire, can be manually removed if needed.
-			set_transient( 'wc_stripe_level3_not_allowed', true );
+			// Transient is set to expire in 3 months, can be manually removed if needed.
+			set_transient( 'wc_stripe_level3_not_allowed', true, 3 * MONTH_IN_SECONDS );
 
 			// Make the request again without level 3 data.
 			unset( $request['level3'] );
