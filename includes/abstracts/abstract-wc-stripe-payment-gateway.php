@@ -1062,6 +1062,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return array          The level 3 data to send to Stripe.
 	 */
 	public function get_level3_data_from_order( $order ) {
+		// Return an empty array if there's no store postcode (since it's
+		// required for level3 data), or if the version is less than 3.0
+		// (because it's not possible to get a store postcode before WC 3.0).
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+			return array();
+		}
+
 		// Get the order items. Don't need their keys, only their values.
 		// Order item IDs are used as keys in the original order items array.
 		$order_items = array_values( $order->get_items() );
