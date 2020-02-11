@@ -6,11 +6,12 @@
 
 class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
 	public function test_data_for_mutli_item_order() {
-		// Store postcode is available only for WC 3.0+.
-		$store_postcode = false;
-		if ( ! WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-			$store_postcode = '90210';
+		// Skip this test because of the complexity of creating variable products in WC pre-3.0.
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+			return;
 		}
+
+		$store_postcode = '90210';
 		update_option( 'woocommerce_store_postcode', $store_postcode );
 
 		// Arrange: Create a couple of products to use.
