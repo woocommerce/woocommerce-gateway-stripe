@@ -261,7 +261,7 @@ class WC_Stripe_API {
 
 			// Make the request again without level 3 data.
 			unset( $request['level3'] );
-			$result = WC_Stripe_API::request(
+			return WC_Stripe_API::request(
 				$request,
 				$api
 			);
