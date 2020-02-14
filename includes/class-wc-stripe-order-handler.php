@@ -244,12 +244,15 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						/* translators: error message */
 						$order->add_order_note( sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $intent->error->message ) );
 					} elseif ( 'requires_capture' === $intent->status ) {
-						$result = WC_Stripe_API::request(
+						$level3_data = $this->get_level3_data_from_order( $order );
+						$result = WC_Stripe_API::request_with_level3_data(
 							array(
 								'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
 								'expand[]' => 'charges.data.balance_transaction',
 							),
-							'payment_intents/' . $intent->id . '/capture'
+							'payment_intents/' . $intent->id . '/capture',
+							$level3_data,
+							$order
 						);
 
 						if ( ! empty( $result->error ) ) {
@@ -272,12 +275,15 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						/* translators: error message */
 						$order->add_order_note( sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
 					} elseif ( false === $result->captured ) {
-						$result = WC_Stripe_API::request(
+						$level3_data = $this->get_level3_data_from_order( $order );
+						$result = WC_Stripe_API::request_with_level3_data(
 							array(
 								'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
 								'expand[]' => 'balance_transaction',
 							),
-							'charges/' . $charge . '/capture'
+							'charges/' . $charge . '/capture',
+							$level3_data,
+							$order
 						);
 
 						if ( ! empty( $result->error ) ) {

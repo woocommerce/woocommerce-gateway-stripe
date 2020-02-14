@@ -176,4 +176,90 @@ class WC_Stripe_API {
 
 		return json_decode( $response['body'] );
 	}
+
+	/**
+	 * Send the request to Stripe's API with level 3 data generated
+	 * from the order. If the request fails due to an error related
+	 * to level3 data, make the request again without it to allow
+	 * the payment to go through.
+	 *
+	 * @since 4.3.2
+	 * @version 4.3.2
+	 *
+	 * @param array    $request     Array with request parameters.
+	 * @param string   $api         The API path for the request.
+	 * @param array    $level3_data The level 3 data for this request.
+	 * @param WC_Order $order       The order associated with the payment.
+	 *
+	 * @return stdClass|array The response
+	 */
+	public static function request_with_level3_data( $request, $api, $level3_data, $order ) {
+		// Do not add level3 data it's the array is empty.
+		if ( empty( $level3_data ) ) {
+			return self::request(
+				$request,
+				$api
+			);
+		}
+
+		// If there's a transient indicating that level3 data was not accepted by
+		// Stripe in the past for this account, do not try to add level3 data.
+		if ( get_transient( 'wc_stripe_level3_not_allowed' ) ) {
+			return self::request(
+				$request,
+				$api
+			);
+		}
+
+		// Add level 3 data to the request.
+		$request['level3'] = $level3_data;
+
+		$result = self::request(
+			$request,
+			$api
+		);
+
+		$is_level3_param_not_allowed = (
+			isset( $result->error )
+			&& isset( $result->error->code )
+			&& 'parameter_unknown' === $result->error->code
+			&& isset( $result->error->param )
+			&& 'level3' === $result->error->param
+		);
+
+		$is_level_3data_incorrect = (
+			isset( $result->error )
+			&& isset( $result->error->type )
+			&& 'invalid_request_error' === $result->error->type
+		);
+
+		if ( $is_level3_param_not_allowed ) {
+			// Set a transient so that future requests do not add level 3 data.
+			// Transient is set to expire in 3 months, can be manually removed if needed.
+			set_transient( 'wc_stripe_level3_not_allowed', true, 3 * MONTH_IN_SECONDS );
+		} else if ( $is_level_3data_incorrect ) {
+			// Log the issue so we could debug it.
+			WC_Stripe_Logger::log(
+				'Level3 data sum incorrect: ' . PHP_EOL
+				. print_r( $result->error->message, true ) . PHP_EOL
+				. print_r( 'Order line items: ', true ) . PHP_EOL
+				. print_r( $order->get_items(), true ) . PHP_EOL
+				. print_r( 'Order shipping amount: ', true ) . PHP_EOL
+				. print_r( $order->get_shipping_total(), true ) . PHP_EOL
+				. print_r( 'Order currency: ', true ) . PHP_EOL
+				. print_r( $order->get_currency(), true )
+			);
+		}
+
+		// Make the request again without level 3 data.
+		if ( $is_level3_param_not_allowed || $is_level_3data_incorrect ) {
+			unset( $request['level3'] );
+			return WC_Stripe_API::request(
+				$request,
+				$api
+			);
+		}
+
+		return $result;
+	}
 }
