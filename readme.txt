@@ -118,6 +118,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Improved compatibility for free orders with other extensions
 * Add - Support for multisite when sites use different Stripe accounts
 * Fix - Display a localized error message when a customer tries to save a card during checkout, but there's an error
+* Add - Send level 3 credit card data for purchases when possible
 
 = 4.3.1 2019-11-12 =
 * Fix - Overwrite the previous Apple Pay verification file if it has changed.
