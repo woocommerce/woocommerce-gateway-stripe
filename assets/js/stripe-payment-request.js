@@ -402,6 +402,19 @@ jQuery( function( $ ) {
 							} );
 						} );
 
+						$( window ).on( 'load', function() {
+							$( '#wc-stripe-payment-request-button' ).block( { message: null } );
+
+							$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function( response ) {
+								$.when( paymentRequest.update( {
+									total: response.total,
+									displayItems: response.displayItems
+								} ) ).then( function() {
+									$( '#wc-stripe-payment-request-button' ).unblock();
+								} );
+							} );
+						} );
+
 						$( '.quantity' ).on( 'keyup', '.qty', function() {
 							$( '#wc-stripe-payment-request-button' ).block( { message: null } );
 							paymentRequestError = [];

@@ -816,6 +816,7 @@ class WC_Stripe_Payment_Request {
 
 			if ( 'variable' === ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type() ) && isset( $_POST['attributes'] ) ) {
 				$attributes = array_map( 'wc_clean', $_POST['attributes'] );
+				$attributes = array_map( 'stripslashes_deep', $attributes );
 
 				if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 					$variation_id = $product->get_matching_variation( $attributes );
@@ -919,6 +920,7 @@ class WC_Stripe_Payment_Request {
 
 		if ( ( 'variable' === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
 			$attributes = array_map( 'wc_clean', $_POST['attributes'] );
+			$attributes = array_map( 'stripslashes_deep', $attributes );
 
 			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 				$variation_id = $product->get_matching_variation( $attributes );
