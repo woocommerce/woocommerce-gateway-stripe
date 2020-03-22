@@ -241,6 +241,21 @@ class WC_Stripe_Payment_Request {
 
 		$product = wc_get_product( $post->ID );
 
+		if ( 'variable' === ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type() ) ) {
+			$attributes = wc_clean( wp_unslash( $_GET ) );
+
+			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+				$variation_id = $product->get_matching_variation( $attributes );
+			} else {
+				$data_store   = WC_Data_Store::load( 'product' );
+				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
+			}
+
+			if ( ! empty( $variation_id ) ) {
+				$product = wc_get_product( $variation_id );
+			}
+		}
+
 		$data  = array();
 		$items = array();
 
@@ -815,7 +830,7 @@ class WC_Stripe_Payment_Request {
 			}
 
 			if ( 'variable' === ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type() ) && isset( $_POST['attributes'] ) ) {
-				$attributes = array_map( 'wc_clean', $_POST['attributes'] );
+				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
 
 				if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 					$variation_id = $product->get_matching_variation( $attributes );
@@ -827,8 +842,6 @@ class WC_Stripe_Payment_Request {
 				if ( ! empty( $variation_id ) ) {
 					$product = wc_get_product( $variation_id );
 				}
-			} elseif ( 'simple' === ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type() ) ) {
-				$product = wc_get_product( $product_id );
 			}
 
 			// Force quantity to 1 if sold individually and check for existing item in cart.
@@ -918,7 +931,7 @@ class WC_Stripe_Payment_Request {
 		WC()->cart->empty_cart();
 
 		if ( ( 'variable' === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
-			$attributes = array_map( 'wc_clean', $_POST['attributes'] );
+			$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
 
 			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
 				$variation_id = $product->get_matching_variation( $attributes );
