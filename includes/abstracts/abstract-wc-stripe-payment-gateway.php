@@ -708,10 +708,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$source_object = WC_Stripe_API::retrieve( 'sources/' . $source_id );
 			} elseif ( apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
 				/*
-				 * We can attempt to charge the customer's default source
-				 * by sending empty source id.
+				 * ~We can attempt to charge the customer's default source~
+				 * ~by sending empty source id.~
+				 * We retrieve the default customer source manually.
 				 */
-				$stripe_source = '';
+				$default_source = $this->get_default_customer_source_for_order( $order );
+				if ( ! empty( $default_source ) ) {
+					return $default_source;
+				}
 			}
 		}
 
@@ -719,6 +723,54 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'token_id'      => $token_id,
 			'customer'      => $stripe_customer ? $stripe_customer->get_id() : false,
 			'source'        => $stripe_source,
+			'source_object' => $source_object,
+		);
+	}
+
+	/**
+	 * Retrieves a source based on an order. Checks for the customer, associated
+	 * with the order and/or the customer which was manually entered in the admin.
+	 *
+	 * @param WC_Order $order The order to use as a starting point.
+	 * @return stdClass|null  Either an object with the necessary data or null.
+	 */
+	public function get_default_customer_source_for_order( $order ) {
+		$stripe_customer = null;
+		$order_id        = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+
+		// Check for explicit manual input first.
+		$stripe_customer_id = get_post_meta( $order_id, '_stripe_customer_id', true );
+		if ( ! empty( $stripe_customer_id ) ) {
+			$stripe_customer = new WC_Stripe_Customer();
+			$stripe_customer->set_id( $stripe_customer_id );
+		}
+
+		// If there is a WooCommerce customer to work with, check if they have a Stripe ID.
+		if ( empty( $stripe_customer ) ) {
+			$wc_customer = $order->get_user();
+			if ( $wc_customer ) {
+				$stripe_customer = new WC_Stripe_Customer( $wc_customer->ID );
+				if ( empty( $stripe_customer->get_id() ) ) {
+					$stripe_customer = null;
+				}
+			}
+		}
+
+		// No customer to work with, neither coming from WooCommerce nor Subscription's fields.
+		if ( empty( $stripe_customer ) ) {
+			return null;
+		}
+
+		// Try to retrieve the default source of the customer.
+		$source_object = $stripe_customer->get_default_source();
+		if ( empty( $source_object ) ) {
+			return null;
+		}
+
+		return (object) array(
+			'token_id'      => '',
+			'customer'      => $stripe_customer->get_id(),
+			'source'        => $source_object->id,
 			'source_object' => $source_object,
 		);
 	}
