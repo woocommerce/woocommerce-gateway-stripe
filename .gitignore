@@ -20,3 +20,6 @@ deploy-to-wp-org.sh
 
 # Test configs
 tests/e2e/config/local-*
+
+# VS Code
+.vscode
