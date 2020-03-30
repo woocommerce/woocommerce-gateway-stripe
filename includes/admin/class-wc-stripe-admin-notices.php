@@ -117,6 +117,12 @@ class WC_Stripe_Admin_Notices {
 		$live_secret_key     = isset( $options['secret_key'] ) ? $options['secret_key'] : '';
 		$three_d_secure      = isset( $options['three_d_secure'] ) && 'yes' === $options['three_d_secure'];
 
+		if ( WC_Stripe_Helper::is_wc_lt( WC_STRIPE_FUTURE_MIN_WC_VER ) ) {
+			/* translators: 1) int version 2) int version */
+			$message = __( 'WooCommerce Stripe - This is the last version of the plugin compatible with WooCommerce %1$s. All further versions of the plugin will require WooCommerce %2$s or greater.', 'woocommerce-gateway-stripe' );
+			$this->add_admin_notice( 'wcver', 'notice notice-warning', sprintf( $message, WC_VERSION, WC_STRIPE_FUTURE_MIN_WC_VER ), true );
+		}
+
 		if ( isset( $options['enabled'] ) && 'yes' === $options['enabled'] ) {
 			if ( empty( $show_3ds_notice ) && $three_d_secure ) {
 				$url = 'https://stripe.com/docs/payments/3d-secure#three-ds-radar';
