@@ -646,7 +646,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$customer->set_id( $customer->create_customer() );
 			$customer_id = $customer->get_id();
 		} else {
-			$customer->update_customer();
+			$customer_id = $customer->update_customer();
 		}
 
 		if ( empty( $source_object ) && ! $is_token ) {

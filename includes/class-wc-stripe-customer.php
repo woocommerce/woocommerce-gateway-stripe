@@ -175,6 +175,8 @@ class WC_Stripe_Customer {
 	 * @param array $args  Additional arguments for the request (optional).
 	 * @param bool  $retry Number of retries on error (optional, defaults to 0). If greater than 0, then an exception will be thrown instead of further retries on error.
 	 *
+	 * @return string Customer ID
+	 *
 	 * @throws WC_Stripe_Exception
 	 */
 	public function update_customer( $args = array(), $retries = 0 ) {
@@ -222,6 +224,8 @@ class WC_Stripe_Customer {
 		$this->set_customer_data( $response );
 
 		do_action( 'woocommerce_stripe_update_customer', $args, $response );
+
+		return $this->get_id();
 	}
 
 	/**
