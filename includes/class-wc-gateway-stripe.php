@@ -227,6 +227,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Payment form on checkout page
 	 */
 	public function payment_fields() {
+		global $wp;
 		$user                 = wp_get_current_user();
 		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
 		$total                = WC()->cart->total;
@@ -238,7 +239,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// If paying from order, we need to get total from order not cart.
 		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) { // wpcs: csrf ok.
-			$order      = wc_get_order( wc_get_order_id_by_order_key( wc_clean( $_GET['key'] ) ) ); // wpcs: csrf ok, sanitization ok.
+			$order      = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) ); // wpcs: csrf ok, sanitization ok.
 			$total      = $order->get_total();
 			$user_email = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_email : $order->get_billing_email();
 		} else {
@@ -372,6 +373,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function payment_scripts() {
+		global $wp;
 		if (
 			! is_product()
 			&& ! is_cart()
@@ -420,7 +422,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// If we're on the pay page we need to pass stripe.js the address of the order.
 		if ( isset( $_GET['pay_for_order'] ) && 'true' === $_GET['pay_for_order'] ) { // wpcs: csrf ok.
-			$order_id = wc_get_order_id_by_order_key( urldecode( $_GET['key'] ) ); // wpcs: csrf ok, sanitization ok, xss ok.
+			$order_id = wc_clean( $wp->query_vars['order-pay'] ); // wpcs: csrf ok, sanitization ok, xss ok.
 			$order    = wc_get_order( $order_id );
 
 			if ( is_a( $order, 'WC_Order' ) ) {

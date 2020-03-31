@@ -166,13 +166,14 @@ class WC_Gateway_Stripe_P24 extends WC_Stripe_Payment_Gateway {
 	 * Payment form on checkout page
 	 */
 	public function payment_fields() {
+		global $wp;
 		$user        = wp_get_current_user();
 		$total       = WC()->cart->total;
 		$description = $this->get_description();
 
 		// If paying from order, we need to get total from order not cart.
 		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) {
-			$order = wc_get_order( wc_get_order_id_by_order_key( wc_clean( $_GET['key'] ) ) );
+			$order = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) );
 			$total = $order->get_total();
 		}
 
