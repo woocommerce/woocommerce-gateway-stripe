@@ -172,9 +172,12 @@ class WC_Stripe_Customer {
 	/**
 	 * Updates the Stripe customer through the API.
 	 *
-	 * @param array $args Additional arguments for the request (optional).
+	 * @param array $args  Additional arguments for the request (optional).
+	 * @param bool  $retry Number of retries on error (optional, defaults to 0). If greater than 0, then an exception will be thrown instead of further retries on error.
+	 *
+	 * @throws WC_Stripe_Exception
 	 */
-	public function update_customer( $args = array() ) {
+	public function update_customer( $args = array(), $retries = 0 ) {
 		if ( empty( $this->get_id() ) ) {
 			throw new WC_Stripe_Exception( 'id_required_to_update_user', __( 'Attempting to update a Stripe customer without a customer ID.', 'woocommerce-gateway-stripe' ) );
 		}
@@ -185,6 +188,14 @@ class WC_Stripe_Customer {
 
 		if ( ! empty( $response->error ) ) {
 			if ( $this->is_no_such_customer_error( $response->error ) ) {
+				// This can happen when switching the main Stripe account or importing users from another site.
+				if ( 0 === $retries ) {
+					// If not already tried, recreate the customer and then update it.
+					$this->delete_id_from_meta();
+					$this->create_customer();
+					return $this->update_customer( $args, $retries++ );
+				}
+
 				$message = $response->error->message;
 
 				if ( ! preg_match( '/similar object exists/i', $message ) ) {
