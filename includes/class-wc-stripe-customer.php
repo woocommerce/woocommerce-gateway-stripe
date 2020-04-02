@@ -172,9 +172,14 @@ class WC_Stripe_Customer {
 	/**
 	 * Updates the Stripe customer through the API.
 	 *
-	 * @param array $args Additional arguments for the request (optional).
+	 * @param array $args     Additional arguments for the request (optional).
+	 * @param bool  $is_retry Whether the current call is a retry (optional, defaults to false). If true, then an exception will be thrown instead of further retries on error.
+	 *
+	 * @return string Customer ID
+	 *
+	 * @throws WC_Stripe_Exception
 	 */
-	public function update_customer( $args = array() ) {
+	public function update_customer( $args = array(), $is_retry = false ) {
 		if ( empty( $this->get_id() ) ) {
 			throw new WC_Stripe_Exception( 'id_required_to_update_user', __( 'Attempting to update a Stripe customer without a customer ID.', 'woocommerce-gateway-stripe' ) );
 		}
@@ -184,24 +189,11 @@ class WC_Stripe_Customer {
 		$response = WC_Stripe_API::request( $args, 'customers/' . $this->get_id() );
 
 		if ( ! empty( $response->error ) ) {
-			if ( $this->is_no_such_customer_error( $response->error ) ) {
-				$message = $response->error->message;
-
-				if ( ! preg_match( '/similar object exists/i', $message ) ) {
-					$options  = get_option( 'woocommerce_stripe_settings' );
-					$testmode = isset( $options['testmode'] ) && 'yes' === $options['testmode'];
-
-					$message = sprintf(
-						( $testmode
-							// Translators: %s is a message, which states that no such customer exists, without a full stop at the end.
-							? __( '%s. Was the customer created in live mode? ', 'woocommerce-gateway-stripe' )
-							// Translators: %s is a message, which states that no such customer exists, without a full stop at the end.
-							: __( '%s. Was the customer created in test mode? ', 'woocommerce-gateway-stripe' ) ),
-						$message
-					);
-				}
-
-				throw new WC_Stripe_Exception( print_r( $response, true ), $message );
+			if ( $this->is_no_such_customer_error( $response->error ) && ! $is_retry ) {
+				// This can happen when switching the main Stripe account or importing users from another site.
+				// If not already retrying, recreate the customer and then try updating it again.
+				$this->recreate_customer();
+				return $this->update_customer( $args, true );
 			}
 
 			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
@@ -211,6 +203,8 @@ class WC_Stripe_Customer {
 		$this->set_customer_data( $response );
 
 		do_action( 'woocommerce_stripe_update_customer', $args, $response );
+
+		return $this->get_id();
 	}
 
 	/**
@@ -252,8 +246,7 @@ class WC_Stripe_Customer {
 			// but no longer exists. Instead of failing, lets try to create a
 			// new customer.
 			if ( $this->is_no_such_customer_error( $response->error ) ) {
-				$this->delete_id_from_meta();
-				$this->create_customer();
+				$this->recreate_customer();
 				return $this->add_source( $source_id );
 			} else {
 				return $response;
@@ -419,5 +412,15 @@ class WC_Stripe_Customer {
 	 */
 	public function delete_id_from_meta() {
 		delete_user_option( $this->get_user_id(), '_stripe_customer_id', false );
+	}
+
+	/**
+	 * Recreates the customer for this user.
+	 *
+	 * @return string ID of the new Customer object.
+	 */
+	private function recreate_customer() {
+		$this->delete_id_from_meta();
+		return $this->create_customer();
 	}
 }
