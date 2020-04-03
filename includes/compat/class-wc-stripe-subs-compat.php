@@ -221,7 +221,11 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		try {
 			if ( $amount * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
 				/* translators: minimum amount */
-				return new WP_Error( 'stripe_error', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
+				$message = sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) );
+				throw new WC_Stripe_Exception(
+					'Error while processing renewal order ' . $renewal_order->get_id() . ' : ' . $message,
+					$message
+				);
 			}
 
 			$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id();
@@ -267,7 +271,10 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			$source_object   = $prepared_source->source_object;
 
 			if ( ! $prepared_source->customer ) {
-				return new WP_Error( 'stripe_error', __( 'Customer not found', 'woocommerce-gateway-stripe' ) );
+				throw new WC_Stripe_Exception(
+					'Customer not found while processing renewal for order ' . $renewal_order->get_id(),
+					__( 'Customer not found', 'woocommerce-gateway-stripe' )
+				);
 			}
 
 			WC_Stripe_Logger::log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
