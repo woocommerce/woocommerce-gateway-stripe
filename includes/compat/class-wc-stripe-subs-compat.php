@@ -272,7 +272,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 
 			if ( ! $prepared_source->customer ) {
 				throw new WC_Stripe_Exception(
-					'Customer not found while processing renewal for order ' . $renewal_order->get_id(),
+					'Failed to process renewal for order ' . $renewal_order->get_id() . '. Stripe customer id is missing in the order',
 					__( 'Customer not found', 'woocommerce-gateway-stripe' )
 				);
 			}
