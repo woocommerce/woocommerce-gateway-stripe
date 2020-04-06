@@ -36,7 +36,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$this->wc_stripe_subs_compat = $this->getMockBuilder( 'WC_Stripe_Subs_Compat' )
 			->disableOriginalConstructor()
-			->setMethods( array( 'prepare_order_source', 'has_subscription' ) )
+			->setMethods( array( 'prepare_order_source', 'has_subscription', 'ensure_subscription_has_customer_id' ) )
 			->getMock();
 
 		// Mocked in order to get metadata[payment_type] = recurring in the HTTP request.
