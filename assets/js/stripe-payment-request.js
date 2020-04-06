@@ -58,7 +58,7 @@ jQuery( function( $ ) {
 				'count'      : count,
 				'chosenCount': chosen,
 				'data'       : data
-			};			
+			};
 		},
 
 		processSource: function( source, paymentRequestType ) {
@@ -269,6 +269,23 @@ jQuery( function( $ ) {
 				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : []
 			};
 
+			// add addons data to the POST body
+			var formData = $( 'form.cart' ).serializeArray();
+			$.each( formData, function( i, field ) {
+				if ( /^addon-/.test( field.name ) ) {
+					if ( /\[\]$/.test( field.name ) ) {
+						var fieldName = field.name.substring( 0, field.name.length - 2);
+						if ( data[ fieldName ] ) {
+							data[ fieldName ].push( field.value );
+						} else {
+							data[ fieldName ] = [ field.value ];
+						}
+					} else {
+						data[ field.name ] = field.value;
+					}
+				}
+			} );
+
 			return $.ajax( {
 				type: 'POST',
 				data: data,
@@ -372,7 +389,7 @@ jQuery( function( $ ) {
 							}
 						} );
 
-						$( document.body ).on( 'woocommerce_variation_has_changed', function() {
+						$( document.body ).on( 'woocommerce_variation_has_changed updated_addons', function() {
 							$( '#wc-stripe-payment-request-button' ).block( { message: null } );
 
 							$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function( response ) {
@@ -428,7 +445,7 @@ jQuery( function( $ ) {
 					if ( 'fail' === response.result ) {
 						evt.updateWith( { status: 'fail' } );
 					}
-				} );												
+				} );
 			} );
 
 			paymentRequest.on( 'source', function( evt ) {
@@ -455,11 +472,15 @@ jQuery( function( $ ) {
 				product_id = $( '.single_variation_wrap' ).find( 'input[name="product_id"]' ).val();
 			}
 
+			var addons = $( '#product-addons-total' ).data('price_data') || [];
+			var addon_value = addons.reduce( function ( sum, addon ) { return sum + addon.cost; }, 0 );
+
 			var data = {
 				security: wc_stripe_payment_request_params.nonce.get_selected_product_data,
 				product_id: product_id,
 				qty: $( '.quantity .qty' ).val(),
-				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : []
+				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : [],
+				addon_value: addon_value,
 			};
 
 			return $.ajax( {

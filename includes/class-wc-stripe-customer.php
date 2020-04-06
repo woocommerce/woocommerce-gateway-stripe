@@ -35,7 +35,7 @@ class WC_Stripe_Customer {
 	public function __construct( $user_id = 0 ) {
 		if ( $user_id ) {
 			$this->set_user_id( $user_id );
-			$this->set_id( get_user_meta( $user_id, '_stripe_customer_id', true ) );
+			$this->set_id( $this->get_id_from_meta( $user_id ) );
 		}
 	}
 
@@ -56,7 +56,7 @@ class WC_Stripe_Customer {
 		if ( is_array( $id ) && isset( $id['customer_id'] ) ) {
 			$id = $id['customer_id'];
 
-			update_user_meta( $this->get_user_id(), '_stripe_customer_id', $id );
+			$this->update_id_in_meta( $id );
 		}
 
 		$this->id = wc_clean( $id );
@@ -161,7 +161,7 @@ class WC_Stripe_Customer {
 		$this->set_customer_data( $response );
 
 		if ( $this->get_user_id() ) {
-			update_user_meta( $this->get_user_id(), '_stripe_customer_id', $response->id );
+			$this->update_id_in_meta( $response->id );
 		}
 
 		do_action( 'woocommerce_stripe_add_customer', $args, $response );
@@ -172,18 +172,30 @@ class WC_Stripe_Customer {
 	/**
 	 * Updates the Stripe customer through the API.
 	 *
-	 * @param array $args Additional arguments for the request (optional).
+	 * @param array $args     Additional arguments for the request (optional).
+	 * @param bool  $is_retry Whether the current call is a retry (optional, defaults to false). If true, then an exception will be thrown instead of further retries on error.
+	 *
+	 * @return string Customer ID
+	 *
+	 * @throws WC_Stripe_Exception
 	 */
-	public function update_customer( $args = array() ) {
-		if ( empty( $this->id ) ) {
+	public function update_customer( $args = array(), $is_retry = false ) {
+		if ( empty( $this->get_id() ) ) {
 			throw new WC_Stripe_Exception( 'id_required_to_update_user', __( 'Attempting to update a Stripe customer without a customer ID.', 'woocommerce-gateway-stripe' ) );
 		}
 
 		$args     = $this->generate_customer_request( $args );
 		$args     = apply_filters( 'wc_stripe_update_customer_args', $args );
-		$response = WC_Stripe_API::request( $args, 'customers/' . $this->id );
+		$response = WC_Stripe_API::request( $args, 'customers/' . $this->get_id() );
 
 		if ( ! empty( $response->error ) ) {
+			if ( $this->is_no_such_customer_error( $response->error ) && ! $is_retry ) {
+				// This can happen when switching the main Stripe account or importing users from another site.
+				// If not already retrying, recreate the customer and then try updating it again.
+				$this->recreate_customer();
+				return $this->update_customer( $args, true );
+			}
+
 			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
 		}
 
@@ -191,6 +203,8 @@ class WC_Stripe_Customer {
 		$this->set_customer_data( $response );
 
 		do_action( 'woocommerce_stripe_update_customer', $args, $response );
+
+		return $this->get_id();
 	}
 
 	/**
@@ -232,8 +246,7 @@ class WC_Stripe_Customer {
 			// but no longer exists. Instead of failing, lets try to create a
 			// new customer.
 			if ( $this->is_no_such_customer_error( $response->error ) ) {
-				delete_user_meta( $this->get_user_id(), '_stripe_customer_id' );
-				$this->create_customer();
+				$this->recreate_customer();
 				return $this->add_source( $source_id );
 			} else {
 				return $response;
@@ -373,5 +386,41 @@ class WC_Stripe_Customer {
 		delete_transient( 'stripe_sources_' . $this->get_id() );
 		delete_transient( 'stripe_customer_' . $this->get_id() );
 		$this->customer_data = array();
+	}
+
+	/**
+	 * Retrieves the Stripe Customer ID from the user meta.
+	 *
+	 * @param  int $user_id The ID of the WordPress user.
+	 * @return string|bool  Either the Stripe ID or false.
+	 */
+	public function get_id_from_meta( $user_id ) {
+		return get_user_option( '_stripe_customer_id', $user_id );
+	}
+
+	/**
+	 * Updates the current user with the right Stripe ID in the meta table.
+	 *
+	 * @param string $id The Stripe customer ID.
+	 */
+	public function update_id_in_meta( $id ) {
+		update_user_option( $this->get_user_id(), '_stripe_customer_id', $id, false );
+	}
+
+	/**
+	 * Deletes the user ID from the meta table with the right key.
+	 */
+	public function delete_id_from_meta() {
+		delete_user_option( $this->get_user_id(), '_stripe_customer_id', false );
+	}
+
+	/**
+	 * Recreates the customer for this user.
+	 *
+	 * @return string ID of the new Customer object.
+	 */
+	private function recreate_customer() {
+		$this->delete_id_from_meta();
+		return $this->create_customer();
 	}
 }

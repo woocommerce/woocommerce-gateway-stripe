@@ -254,7 +254,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.0
 	 */
 	public function get_stripe_customer_id( $order ) {
-		$customer = get_user_meta( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->customer_user : $order->get_customer_id(), '_stripe_customer_id', true );
+		$customer = get_user_option( '_stripe_customer_id', WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->customer_user : $order->get_customer_id() );
 
 		if ( empty( $customer ) ) {
 			// Try to get it via the order.
@@ -291,10 +291,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				'order_id'       => $order_id,
 			);
 
-			return esc_url_raw( add_query_arg( $args, $this->get_return_url( $order ) ) );
+			return wp_sanitize_redirect( esc_url_raw( add_query_arg( $args, $this->get_return_url( $order ) ) ) );
 		}
 
-		return esc_url_raw( add_query_arg( array( 'utm_nooverride' => '1' ), $this->get_return_url() ) );
+		return wp_sanitize_redirect( esc_url_raw( add_query_arg( array( 'utm_nooverride' => '1' ), $this->get_return_url() ) ) );
 	}
 
 	/**
@@ -606,7 +606,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$response = $customer->add_source( $source_object->id );
 
 				if ( ! empty( $response->error ) ) {
-					throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
+					throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
 				}
 			}
 		} elseif ( $this->is_using_saved_payment_method() ) {
@@ -646,7 +646,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$customer->set_id( $customer->create_customer() );
 			$customer_id = $customer->get_id();
 		} else {
-			$customer->update_customer();
+			$customer_id = $customer->update_customer();
 		}
 
 		if ( empty( $source_object ) && ! $is_token ) {
@@ -1056,6 +1056,66 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Create the level 3 data array to send to Stripe when making a purchase.
+	 *
+	 * @param WC_Order $order The order that is being paid for.
+	 * @return array          The level 3 data to send to Stripe.
+	 */
+	public function get_level3_data_from_order( $order ) {
+		// WC Versions before 3.0 don't support postcodes and are
+		// incompatible with level3 data.
+		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
+			return array();
+		}
+
+		// Get the order items. Don't need their keys, only their values.
+		// Order item IDs are used as keys in the original order items array.
+		$order_items = array_values( $order->get_items() );
+		$currency    = $order->get_currency();
+
+		$stripe_line_items = array_map(function( $item ) use ( $currency ) {
+			$product_id          = $item->get_variation_id()
+				? $item->get_variation_id()
+				: $item->get_product_id();
+			$product_description = substr( $item->get_name(), 0, 26 );
+			$quantity            = $item->get_quantity();
+			$unit_cost           = WC_Stripe_Helper::get_stripe_amount( ( $item->get_subtotal() / $quantity ), $currency );
+			$tax_amount          = WC_Stripe_Helper::get_stripe_amount( $item->get_total_tax(), $currency );
+			$discount_amount     = WC_Stripe_Helper::get_stripe_amount( $item->get_subtotal() - $item->get_total(), $currency );
+
+			return (object) array(
+				'product_code'        => (string) $product_id, // Up to 12 characters that uniquely identify the product.
+				'product_description' => $product_description, // Up to 26 characters long describing the product.
+				'unit_cost'           => $unit_cost, // Cost of the product, in cents, as a non-negative integer.
+				'quantity'            => $quantity, // The number of items of this type sold, as a non-negative integer.
+				'tax_amount'          => $tax_amount, // The amount of tax this item had added to it, in cents, as a non-negative integer.
+				'discount_amount'     => $discount_amount, // The amount an item was discounted—if there was a sale,for example, as a non-negative integer.
+			);
+		}, $order_items);
+
+		$level3_data = array(
+			'merchant_reference'   => $order->get_id(), // An alphanumeric string of up to  characters in length. This unique value is assigned by the merchant to identify the order. Also known as an “Order ID”.
+
+			'shipping_amount'      => WC_Stripe_Helper::get_stripe_amount( $order->get_shipping_total() + $order->get_shipping_tax(), $currency), // The shipping cost, in cents, as a non-negative integer.
+			'line_items'           => $stripe_line_items,
+		);
+
+		// The customer’s U.S. shipping ZIP code.
+		$shipping_address_zip = $order->get_shipping_postcode();
+		if ( $this->is_valid_us_zip_code( $shipping_address_zip ) ) {
+			$level3_data['shipping_address_zip'] = $shipping_address_zip;
+		}
+
+		// The merchant’s U.S. shipping ZIP code.
+		$store_postcode = get_option( 'woocommerce_store_postcode' );
+		if ( $this->is_valid_us_zip_code( $store_postcode ) ) {
+			$level3_data['shipping_from_zip'] = $store_postcode;
+		}
+
+		return $level3_data;
+	}
+
+	/**
 	 * Create a new PaymentIntent.
 	 *
 	 * @param WC_Order $order           The order that is being paid for.
@@ -1108,7 +1168,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return $intent;
 		}
 
-		return WC_Stripe_API::request( $request, "payment_intents/$intent->id" );
+		$level3_data = $this->get_level3_data_from_order( $order );
+		return WC_Stripe_API::request_with_level3_data(
+			$request,
+			"payment_intents/$intent->id",
+			$level3_data,
+			$order
+		);
 	}
 
 	/**
@@ -1130,7 +1196,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'source' => $prepared_source->source,
 		);
 
-		$confirmed_intent = WC_Stripe_API::request( $confirm_request, "payment_intents/$intent->id/confirm" );
+		$level3_data = $this->get_level3_data_from_order( $order );
+		$confirmed_intent = WC_Stripe_API::request_with_level3_data(
+			$confirm_request,
+			"payment_intents/$intent->id/confirm",
+			$level3_data,
+			$order
+		);
 
 		if ( ! empty( $confirmed_intent->error ) ) {
 			return $confirmed_intent;
@@ -1315,7 +1387,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$request['source'] = $full_request['source'];
 		}
 
-		$intent = WC_Stripe_API::request( $request, 'payment_intents' );
+		$level3_data = $this->get_level3_data_from_order( $order );
+		$intent = WC_Stripe_API::request_with_level3_data(
+			$request,
+			'payment_intents',
+			$level3_data,
+			$order
+		);
 		$is_authentication_required = $this->is_authentication_required_for_payment( $intent );
 
 		if ( ! empty( $intent->error ) && ! $is_authentication_required ) {
@@ -1354,5 +1432,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				update_post_meta( $order_id, '_stripe_customer_id', $stripe_customer->get_id() );
 			}
 		}
+	}
+
+	/** Verifies whether a certain ZIP code is valid for the US, incl. 4-digit extensions.
+	 *
+	 * @param string $zip The ZIP code to verify.
+	 * @return boolean
+	 */
+	public function is_valid_us_zip_code( $zip ) {
+		return ! empty( $zip ) && preg_match( '/^\d{5,5}(-\d{4,4})?$/', $zip );
 	}
 }

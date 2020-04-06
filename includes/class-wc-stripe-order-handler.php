@@ -128,10 +128,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 				if ( $this->is_no_such_customer_error( $response->error ) ) {
 					if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-						delete_user_meta( $order->customer_user, '_stripe_customer_id' );
+						delete_user_option( $order->customer_user, '_stripe_customer_id' );
 						delete_post_meta( $order_id, '_stripe_customer_id' );
 					} else {
-						delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
+						delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
 						$order->delete_meta_data( '_stripe_customer_id' );
 						$order->save();
 					}
@@ -244,12 +244,15 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						/* translators: error message */
 						$order->add_order_note( sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $intent->error->message ) );
 					} elseif ( 'requires_capture' === $intent->status ) {
-						$result = WC_Stripe_API::request(
+						$level3_data = $this->get_level3_data_from_order( $order );
+						$result = WC_Stripe_API::request_with_level3_data(
 							array(
 								'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
 								'expand[]' => 'charges.data.balance_transaction',
 							),
-							'payment_intents/' . $intent->id . '/capture'
+							'payment_intents/' . $intent->id . '/capture',
+							$level3_data,
+							$order
 						);
 
 						if ( ! empty( $result->error ) ) {
@@ -272,12 +275,15 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						/* translators: error message */
 						$order->add_order_note( sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
 					} elseif ( false === $result->captured ) {
-						$result = WC_Stripe_API::request(
+						$level3_data = $this->get_level3_data_from_order( $order );
+						$result = WC_Stripe_API::request_with_level3_data(
 							array(
 								'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
 								'expand[]' => 'balance_transaction',
 							),
-							'charges/' . $charge . '/capture'
+							'charges/' . $charge . '/capture',
+							$level3_data,
+							$order
 						);
 
 						if ( ! empty( $result->error ) ) {

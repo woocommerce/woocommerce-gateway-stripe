@@ -372,7 +372,16 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function payment_scripts() {
-		if ( ! is_product() && ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() && ! isset( $_GET['change_payment_method'] ) || ( is_order_received_page() ) ) { // wpcs: csrf ok.
+		if (
+			! is_product()
+			&& ! is_cart()
+			&& ! is_checkout()
+			&& ! isset( $_GET['pay_for_order'] ) // wpcs: csrf ok.
+			&& ! is_add_payment_method_page()
+			&& ! isset( $_GET['change_payment_method'] ) // wpcs: csrf ok.
+			&& ! ( ! empty( get_query_var( 'view-subscription' ) ) && is_callable( 'WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled' ) && WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled() )
+			|| ( is_order_received_page() )
+		) {
 			return;
 		}
 
@@ -511,10 +520,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-			delete_user_meta( $order->customer_user, '_stripe_customer_id' );
+			delete_user_option( $order->customer_user, '_stripe_customer_id' );
 			delete_post_meta( $order->get_id(), '_stripe_customer_id' );
 		} else {
-			delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
+			delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
 			$order->delete_meta_data( '_stripe_customer_id' );
 			$order->save();
 		}
@@ -532,17 +541,16 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return array                      Redirection data for `process_payment`.
 	 */
 	public function complete_free_order( $order, $prepared_source, $force_save_source ) {
-		$response = array(
-			'result'   => 'success',
-			'redirect' => $this->get_return_url( $order ),
-		);
-
 		if ( $force_save_source ) {
 			$intent_secret = $this->setup_intent( $order, $prepared_source );
 
 			if ( ! empty( $intent_secret ) ) {
-				$response['setup_intent_secret'] = $intent_secret;
-				return $response;
+				// `get_return_url()` must be called immediately before returning a value.
+				return array(
+					'result'              => 'success',
+					'redirect'            => $this->get_return_url( $order ),
+					'setup_intent_secret' => $intent_secret,
+				);
 			}
 		}
 
@@ -552,7 +560,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$order->payment_complete();
 
 		// Return thank you page redirect.
-		return $response;
+		return array(
+			'result'   => 'success',
+			'redirect' => $this->get_return_url( $order ),
+		);
 	}
 
 	/**
@@ -564,11 +575,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param bool $retry Should we retry on fail.
 	 * @param bool $force_save_source Force save the payment source.
 	 * @param mix  $previous_error Any error message from previous request.
+	 * @param bool $use_order_source Whether to use the source, which should already be attached to the order.
 	 *
 	 * @throws Exception If payment will not be accepted.
 	 * @return array|void
 	 */
-	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false ) {
+	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
 		try {
 			$order = wc_get_order( $order_id );
 
@@ -589,7 +601,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$stripe_customer_id = $intent->customer;
 			}
 
-			$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source, $stripe_customer_id );
+			// For some payments the source should already be present in the order.
+			if ( $use_order_source ) {
+				$prepared_source = $this->prepare_order_source( $order );
+			} else {
+				$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source, $stripe_customer_id );
+			}
 
 			$this->maybe_disallow_prepaid_card( $prepared_source );
 			$this->check_source( $prepared_source );
@@ -621,7 +638,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 				// We want to retry.
 				if ( $this->is_retryable_error( $intent->error ) ) {
-					return $this->retry_after_error( $intent, $order, $retry, $force_save_source, $previous_error );
+					return $this->retry_after_error( $intent, $order, $retry, $force_save_source, $previous_error, $use_order_source );
 				}
 
 				$this->unlock_order_payment( $order );
@@ -767,14 +784,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Generates a localized message for an error, adds it as a note and throws it.
+	 * Generates a localized message for an error from a response.
 	 *
-	 * @since 4.2.0
-	 * @param  stdClass $response  The response from the Stripe API.
-	 * @param  WC_Order $order     The order to add a note to.
-	 * @throws WC_Stripe_Exception An exception with the right message.
+	 * @since 4.3.2
+	 *
+	 * @param stdClass $response The response from the Stripe API.
+	 *
+	 * @return string The localized error message.
 	 */
-	public function throw_localized_message( $response, $order ) {
+	public function get_localized_error_message_from_response( $response ) {
 		$localized_messages = WC_Stripe_Helper::get_localized_messages();
 
 		if ( 'card_error' === $response->error->type ) {
@@ -782,6 +800,20 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		} else {
 			$localized_message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
 		}
+
+		return $localized_message;
+	}
+
+	/**
+	 * Gets a localized message for an error from a response, adds it as a note to the order, and throws it.
+	 *
+	 * @since 4.2.0
+	 * @param  stdClass $response  The response from the Stripe API.
+	 * @param  WC_Order $order     The order to add a note to.
+	 * @throws WC_Stripe_Exception An exception with the right message.
+	 */
+	public function throw_localized_message( $response, $order ) {
+		$localized_message = $this->get_localized_error_message_from_response( $response );
 
 		$order->add_order_note( $localized_message );
 
@@ -796,11 +828,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param WC_Order $order             An order that is being paid for.
 	 * @param bool     $retry             A flag that indicates whether another retry should be attempted.
 	 * @param bool     $force_save_source Force save the payment source.
-	 * @param mixed    $previous_error Any error message from previous request.
+	 * @param mixed    $previous_error    Any error message from previous request.
+	 * @param bool     $use_order_source  Whether to use the source, which should already be attached to the order.
 	 * @throws WC_Stripe_Exception        If the payment is not accepted.
 	 * @return array|void
 	 */
-	public function retry_after_error( $response, $order, $retry, $force_save_source, $previous_error ) {
+	public function retry_after_error( $response, $order, $retry, $force_save_source, $previous_error, $use_order_source ) {
 		if ( ! $retry ) {
 			$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
 			$order->add_order_note( $localized_message );
@@ -815,7 +848,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		sleep( $this->retry_interval );
 		$this->retry_interval++;
 
-		return $this->process_payment( $order->get_id(), true, $force_save_source, $response->error, $previous_error );
+		return $this->process_payment( $order->get_id(), true, $force_save_source, $response->error, $previous_error, $use_order_source );
 	}
 
 	/**
@@ -878,9 +911,16 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		if ( 'requires_payment_method' === $intent->status && isset( $intent->last_payment_error )
 		     && 'authentication_required' === $intent->last_payment_error->code ) {
-			$intent = WC_Stripe_API::request( array(
-				'payment_method' => $intent->last_payment_error->source->id,
-			), 'payment_intents/' . $intent->id . '/confirm' );
+			$level3_data = $this->get_level3_data_from_order( $order );
+			$intent      = WC_Stripe_API::request_with_level3_data(
+				array(
+					'payment_method' => $intent->last_payment_error->source->id,
+				),
+				'payment_intents/' . $intent->id . '/confirm',
+				$level3_data,
+				$order
+			);
+
 			if ( isset( $intent->error ) ) {
 				throw new WC_Stripe_Exception( print_r( $intent, true ), $intent->error->message );
 			}
@@ -1042,13 +1082,35 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			}
 		} else if ( 'succeeded' === $intent->status || 'requires_capture' === $intent->status ) {
 			// Proceed with the payment completion.
-			$this->process_response( end( $intent->charges->data ), $order );
+			$this->handle_intent_verification_success( $order, $intent );
 		} else if ( 'requires_payment_method' === $intent->status ) {
 			// `requires_payment_method` means that SCA got denied for the current payment method.
-			$this->failed_sca_auth( $order, $intent );
+			$this->handle_intent_verification_failure( $order, $intent );
 		}
 
 		$this->unlock_order_payment( $order );
+	}
+
+	/**
+	 * Called after an intent verification succeeds, this allows
+	 * specific APNs or children of this class to modify its behavior.
+	 *
+	 * @param WC_Order $order The order whose verification succeeded.
+	 * @param stdClass $intent The Payment Intent object.
+	 */
+	protected function handle_intent_verification_success( $order, $intent ) {
+		$this->process_response( end( $intent->charges->data ), $order );
+	}
+
+	/**
+	 * Called after an intent verification fails, this allows
+	 * specific APNs or children of this class to modify its behavior.
+	 *
+	 * @param WC_Order $order The order whose verification failed.
+	 * @param stdClass $intent The Payment Intent object.
+	 */
+	protected function handle_intent_verification_failure( $order, $intent ) {
+		$this->failed_sca_auth( $order, $intent );
 	}
 
 	/**
@@ -1086,5 +1148,39 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$pay_url = add_query_arg( 'wc-stripe-confirmation', 1, $pay_url );
 		}
 		return $pay_url;
+	}
+
+	/**
+	 * Checks whether new keys are being entered when saving options.
+	 */
+	public function process_admin_options() {
+		// Load all old values before the new settings get saved.
+		$old_publishable_key      = $this->get_option( 'publishable_key' );
+		$old_secret_key           = $this->get_option( 'secret_key' );
+		$old_test_publishable_key = $this->get_option( 'test_publishable_key' );
+		$old_test_secret_key      = $this->get_option( 'test_secret_key' );
+
+		parent::process_admin_options();
+
+		// Load all old values after the new settings have been saved.
+		$new_publishable_key      = $this->get_option( 'publishable_key' );
+		$new_secret_key           = $this->get_option( 'secret_key' );
+		$new_test_publishable_key = $this->get_option( 'test_publishable_key' );
+		$new_test_secret_key      = $this->get_option( 'test_secret_key' );
+
+		// Checks whether a value has transitioned from a non-empty value to a new one.
+		$has_changed = function( $old_value, $new_value ) {
+			return ! empty( $old_value ) && ( $old_value !== $new_value );
+		};
+
+		// Look for updates.
+		if (
+			$has_changed( $old_publishable_key, $new_publishable_key )
+			|| $has_changed( $old_secret_key, $new_secret_key )
+			|| $has_changed( $old_test_publishable_key, $new_test_publishable_key )
+			|| $has_changed( $old_test_secret_key, $new_test_secret_key )
+		) {
+			update_option( 'wc_stripe_show_changed_keys_notice', 'yes' );
+		}
 	}
 }

@@ -2,9 +2,9 @@
 Contributors: automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
 Requires at least: 4.4
-Tested up to: 5.3.0
+Tested up to: 5.3.2
 Requires PHP: 5.6
-Stable tag: 4.3.1
+Stable tag: 4.3.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -113,6 +113,13 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 4.3.2 2020-02-17 =
+* Fix - Add compatibility to payment request buttons with some of the WooCommerce Product Add-ons on the product page
+* Fix - Improved compatibility for free orders with other extensions
+* Add - Support for multisite when sites use different Stripe accounts
+* Fix - Display a localized error message when a customer tries to save a card during checkout, but there's an error
+* Add - Send level 3 credit card data for purchases when possible
+
 = 4.3.1 2019-11-12 =
 * Fix - Overwrite the previous Apple Pay verification file if it has changed.
 * Fix - Avoid re-mounting card elements if they are already mounted in the DOM.
@@ -121,16 +128,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Use the same customer after a new credit card has been entered.
 * Fix - Google Pay buttons on subscriptions.
 * Add - A filter, which allows all subscriptions' payment methods to be overwritten when adding a new payment method.
-
-= 4.3.0 2019-10-17 =
-* Add - For WooCommerce Subscriptions optimize the payment flow for subsequent subscription payments when authentication may be required by using the  `setup_future_usage` parameter for the first subscription payment
-* Add - Allow customer to authenticate payment even if they are not charged right away for WooCommerce Subscriptions and Pre-Orders, for example for a WooCommerce Subscription that has a free trial
-* Add - When an off-session payment requires authentication, create a link for customers to come back to the store to authenticate the payment
-* Add - Send an email to WooCommerce Subscription and Pre-Orders customers who need to authenticate a payment that was automatically tried on their behalf
-* Add - When an off-session payment requires authentication, send an email to the admin
-* Add - Admin notice about SCA-readiness
-* Fix - Avoid idempotency key errors for Pre-Orders
-* Fix - Use unique anchor for link about checkout styling changes
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 

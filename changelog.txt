@@ -1,5 +1,12 @@
 *** Changelog ***
 
+= 4.3.2 2020-02-17 =
+* Fix - Add compatibility to payment request buttons with some of the WooCommerce Product Add-ons on the product page
+* Fix - Improved compatibility for free orders with other extensions
+* Add - Support for multisite when sites use different Stripe accounts
+* Fix - Display a localized error message when a customer tries to save a card during checkout, but there's an error
+* Add - Send level 3 credit card data for purchases when possible
+
 = 4.3.1 2019-11-12 =
 * Fix - Overwrite the previous Apple Pay verification file if it has changed.
 * Fix - Avoid re-mounting card elements if they are already mounted in the DOM.

@@ -203,10 +203,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 				if ( $this->is_no_such_customer_error( $response->error ) ) {
 					if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-						delete_user_meta( $order->customer_user, '_stripe_customer_id' );
+						delete_user_option( $order->customer_user, '_stripe_customer_id' );
 						delete_post_meta( $order_id, '_stripe_customer_id' );
 					} else {
-						delete_user_meta( $order->get_customer_id(), '_stripe_customer_id' );
+						delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
 						$order->delete_meta_data( '_stripe_customer_id' );
 						$order->save();
 					}
