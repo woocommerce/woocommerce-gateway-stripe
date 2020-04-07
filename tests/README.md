@@ -21,11 +21,6 @@
 
 **Running the tests**
 
-If phpunit is installed globally run the tests with command:
-```
-phpunit -c phpunit.xml
-```
-
 If phpunit is installed with composer run the tests with command:
 ```
 npm run test:php
@@ -33,4 +28,9 @@ npm run test:php
 or
 
 ./vendor/bin/phpunit -c phpunit.xml
+```
+
+If phpunit is installed globally run the tests with command:
+```
+phpunit -c phpunit.xml
 ```
