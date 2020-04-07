@@ -23,3 +23,6 @@ tests/e2e/config/local-*
 
 # VS Code
 .vscode
+
+vendor
+composer.lock
