@@ -28,5 +28,9 @@ phpunit -c phpunit.xml
 
 If phpunit is installed with composer run the tests with command:
 ```
+npm run test:php
+
+or
+
 ./vendor/bin/phpunit -c phpunit.xml
 ```
