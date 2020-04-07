@@ -23,6 +23,13 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Helper function to update test order meta data
+	 */
+	private function updateOrderMeta( $order, $key, $value ) {
+		WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order->id, $key, $value ) : $order->update_meta_data( $key, $value );
+	}
+
+	/**
 	 * Tests false is returned if payment intent is not set in the order.
 	 */
 	public function test_default_get_payment_intent_from_order() {
@@ -36,8 +43,8 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 */
 	public function test_success_get_payment_intent_from_order() {
 		$order = WC_Helper_Order::create_order();
-		$order->update_meta_data('_stripe_intent_id', 'pi_123');
-		$expected_intent = (object) [ 'id' => 'pi_123' ];
+		$this->updateOrderMeta( $order, '_stripe_intent_id', 'pi_123' );
+		$expected_intent = ( object ) [ 'id' => 'pi_123' ];
 		$callback = function( $preempt, $request_args, $url ) use ( $expected_intent ) {
 			$response = [
 				'headers' 	=> [],
@@ -59,7 +66,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$intent = $this->gateway->get_intent_from_order( $order );
 		$this->assertEquals( $expected_intent, $intent );
 
-		remove_filter( 'pre_http_request', $callback);
+		remove_filter( 'pre_http_request', $callback );
 	}
 
 	/**
@@ -67,8 +74,8 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 */
 	public function test_error_get_payment_intent_from_order() {
 		$order = WC_Helper_Order::create_order();
-		$order->update_meta_data('_stripe_intent_id', 'pi_123');
-		$response_error = (object) [
+		$this->updateOrderMeta( $order, '_stripe_intent_id', 'pi_123' );
+		$response_error = ( object ) [
 			'error' => [
 				'code' 		=> 'resource_missing',
 				'message' 	=> 'error_message'
@@ -95,6 +102,6 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$intent = $this->gateway->get_intent_from_order( $order );
 		$this->assertFalse( $intent );
 
-		remove_filter( 'pre_http_request', $callback);
+		remove_filter( 'pre_http_request', $callback );
 	}
 }
