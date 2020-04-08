@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 5.4
 Requires PHP: 5.6
-Stable tag: 4.3.2
+Stable tag: 4.3.3
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -112,6 +112,14 @@ If you get stuck, you can ask for help in the Plugin Forum.
 4. Checking out with a saved card.
 
 == Changelog ==
+
+= 4.3.3 2020-04-08 =
+* Fix - Fix Payment Request issue when product attribute has quotes
+* Fix - Fix "no such customer" error on checkout after the keys have been changed
+* Add - Add alert for end of support WC < 3.0 in future releases
+* Fix - Fix crash when used with WooCommerce Subscriptions <2.6
+* Fix - Add missing customer ID to subscriptions before processing payment
+* Fix - Fix transactions failing with trailing slash
 
 = 4.3.2 2020-02-17 =
 * Fix - Add compatibility to payment request buttons with some of the WooCommerce Product Add-ons on the product page
