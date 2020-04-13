@@ -149,20 +149,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Checks if keys are set.
-	 *
-	 * @since 4.0.6
-	 * @return bool
-	 */
-	public function are_keys_set() {
-		if ( empty( $this->secret_key ) || empty( $this->publishable_key ) ) {
-			return false;
-		}
-
-		return true;
-	}
-
-	/**
 	 * Checks if gateway should be available to use.
 	 *
 	 * @since 4.0.2

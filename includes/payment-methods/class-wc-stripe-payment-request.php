@@ -119,11 +119,13 @@ class WC_Stripe_Payment_Request {
 	 * @return bool
 	 */
 	public function are_keys_set() {
-		if ( empty( $this->secret_key ) || empty( $this->publishable_key ) ) {
-			return false;
+		if ( $this->testmode ) {
+			return preg_match( '/^pk_test_/', $this->publishable_key )
+			       && ( preg_match( '/^sk_test_/', $this->secret_key ) || preg_match( '/^rk_test_/', $this->secret_key ) );
+		} else {
+			return preg_match( '/^pk_live_/', $this->publishable_key )
+			       && ( preg_match( '/^sk_live_/', $this->secret_key ) || preg_match( '/^rk_live_/', $this->secret_key ) );
 		}
-
-		return true;
 	}
 
 	/**
