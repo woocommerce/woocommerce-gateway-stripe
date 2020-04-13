@@ -140,6 +140,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_payment_successful_result', array( $this, 'modify_successful_payment_result' ), 99999, 2 );
 		add_action( 'set_logged_in_cookie', array( $this, 'set_cookie_on_current_request' ) );
 		add_filter( 'woocommerce_get_checkout_payment_url', array( $this, 'get_checkout_payment_url' ), 10, 2 );
+		add_action( 'admin_notices', array( $this, 'display_errors' ), 9999 );
 
 		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
 			$this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
@@ -1168,5 +1169,37 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		) {
 			update_option( 'wc_stripe_show_changed_keys_notice', 'yes' );
 		}
+	}
+
+	public function validate_publishable_key_field( $key, $value ) {
+		$value = $this->validate_text_field( $key, $value );
+		if ( ! empty( $value ) && ! preg_match( '/^pk_live_/', $value ) ) {
+			throw new Exception( __( 'The "Live Publishable Key" should start with "pk_live", please make sure you have entered the correct key.', 'woocommerce-gateway-stripe' ) );
+		}
+		return $value;
+	}
+
+	public function validate_secret_key_field( $key, $value ) {
+		$value = $this->validate_text_field( $key, $value );
+		if ( ! empty( $value ) && ! ( preg_match( '/^sk_live_/', $value ) || preg_match( '/^rk_live_/', $value ) ) ) {
+			throw new Exception( __( 'The "Live Secret Key" should start with "sk_live" or "rk_live", please make sure you have entered the correct key.', 'woocommerce-gateway-stripe' ) );
+		}
+		return $value;
+	}
+
+	public function validate_test_publishable_key_field( $key, $value ) {
+		$value = $this->validate_text_field( $key, $value );
+		if ( ! empty( $value ) && ! preg_match( '/^pk_test_/', $value ) ) {
+			throw new Exception( __( 'The "Test Publishable Key" should start with "pk_test", please make sure you have entered the correct key.', 'woocommerce-gateway-stripe' ) );
+		}
+		return $value;
+	}
+
+	public function validate_test_secret_key_field( $key, $value ) {
+		$value = $this->validate_text_field( $key, $value );
+		if ( ! empty( $value ) && ! ( preg_match( '/^sk_test_/', $value ) || preg_match( '/^rk_test_/', $value ) ) ) {
+			throw new Exception( __( 'The "Test Secret Key" should start with "sk_test" or "rk_test", please make sure you have entered the correct key.', 'woocommerce-gateway-stripe' ) );
+		}
+		return $value;
 	}
 }
