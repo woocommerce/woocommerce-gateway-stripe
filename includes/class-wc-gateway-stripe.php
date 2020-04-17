@@ -1181,7 +1181,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 	public function validate_secret_key_field( $key, $value ) {
 		$value = $this->validate_text_field( $key, $value );
-		if ( ! empty( $value ) && ! ( preg_match( '/^sk_live_/', $value ) || preg_match( '/^rk_live_/', $value ) ) ) {
+		if ( ! empty( $value ) && ! preg_match( '/^[rs]k_live_/', $value ) ) {
 			throw new Exception( __( 'The "Live Secret Key" should start with "sk_live" or "rk_live", please make sure you have entered the correct key.', 'woocommerce-gateway-stripe' ) );
 		}
 		return $value;
@@ -1197,7 +1197,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 	public function validate_test_secret_key_field( $key, $value ) {
 		$value = $this->validate_text_field( $key, $value );
-		if ( ! empty( $value ) && ! ( preg_match( '/^sk_test_/', $value ) || preg_match( '/^rk_test_/', $value ) ) ) {
+		if ( ! empty( $value ) && ! preg_match( '/^[rs]k_test_/', $value ) ) {
 			throw new Exception( __( 'The "Test Secret Key" should start with "sk_test" or "rk_test", please make sure you have entered the correct key.', 'woocommerce-gateway-stripe' ) );
 		}
 		return $value;
