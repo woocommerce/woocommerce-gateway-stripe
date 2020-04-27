@@ -64,7 +64,7 @@ WooCommerce Stripe now includes [Web Payments API](https://www.w3.org/TR/payment
 
 == Installation ==
 
-Please note, v4 of this gateway requires WooCommerce 2.6 and above.
+Please note, v4 of this gateway requires WooCommerce 3.0 and above.
 
 You can download an [older version of this gateway for older versions of WooCommerce from here](https://wordpress.org/plugins/woocommerce-gateway-stripe/developers/).
 
