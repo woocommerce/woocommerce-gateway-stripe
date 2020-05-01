@@ -1095,8 +1095,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$level3_data = array(
 			'merchant_reference'   => $order->get_id(), // An alphanumeric string of up to  characters in length. This unique value is assigned by the merchant to identify the order. Also known as an “Order ID”.
-
-			'shipping_amount'      => WC_Stripe_Helper::get_stripe_amount( $order->get_shipping_total() + $order->get_shipping_tax(), $currency), // The shipping cost, in cents, as a non-negative integer.
+			'shipping_amount'      => WC_Stripe_Helper::get_stripe_amount( (float) $order->get_shipping_total() + (float) $order->get_shipping_tax(), $currency), // The shipping cost, in cents, as a non-negative integer.
 			'line_items'           => $stripe_line_items,
 		);
 
