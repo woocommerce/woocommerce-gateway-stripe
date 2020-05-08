@@ -325,11 +325,7 @@ class WC_Stripe_Admin_Notices {
 	 * @return string Setting link
 	 */
 	public function get_setting_link() {
-		$use_id_as_section = function_exists( 'WC' ) ? version_compare( WC()->version, '2.6', '>=' ) : false;
-
-		$section_slug = $use_id_as_section ? 'stripe' : strtolower( 'WC_Gateway_Stripe' );
-
-		return admin_url( 'admin.php?page=wc-settings&tab=checkout&section=' . $section_slug );
+		return admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' );
 	}
 
 	/**
