@@ -19,6 +19,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Required minimums and constants
+ */
+define( 'WC_STRIPE_VERSION', '4.3.3' );
+define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
+define( 'WC_STRIPE_MIN_WC_VER', '2.6.0' );
+define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '3.0' );
+define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
+define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
+define( 'WC_STRIPE_PLUGIN_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
+
 // phpcs:disable WordPress.Files.FileName
 
 /**
@@ -43,16 +54,6 @@ function woocommerce_gateway_stripe_init() {
 	}
 
 	if ( ! class_exists( 'WC_Stripe' ) ) :
-		/**
-		 * Required minimums and constants
-		 */
-		define( 'WC_STRIPE_VERSION', '4.3.3' );
-		define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
-		define( 'WC_STRIPE_MIN_WC_VER', '2.6.0' );
-		define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '3.0' );
-		define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
-		define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
-		define( 'WC_STRIPE_PLUGIN_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
 
 		class WC_Stripe {
 
