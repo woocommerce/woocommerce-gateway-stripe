@@ -44,6 +44,8 @@
     "build": "npm run uglify && npm run makepot && npm run sass",
     "preuglify": "rm -f $npm_package_assets_js_min",
     "uglify": "for f in $npm_package_assets_js_js; do file=${f%.js}; node_modules/.bin/uglifyjs $f -c -m > $file.min.js; done",
+    "up": "docker-compose up -d",
+    "down": "docker-compose down",
     "presass": "rm -f $npm_package_assets_styles_css",
     "sass": "node_modules/.bin/node-sass $npm_package_assets_styles_cssfolder --output $npm_package_assets_styles_cssfolder --output-style compressed",
     "watchsass": "node_modules/.bin/node-sass $npm_package_assets_styles_sass --output $npm_package_assets_styles_css --output-style compressed --watch",
