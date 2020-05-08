@@ -43,6 +43,17 @@ function woocommerce_stripe_missing_wc_notice() {
 	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce to be installed and active. You can download %s here.', 'woocommerce-gateway-stripe' ), '<a href="https://woocommerce.com/" target="_blank">WooCommerce</a>' ) . '</strong></p></div>';
 }
 
+/**
+ * WooCommerce not supported fallback notice.
+ *
+ * @since 4.4.0
+ * @return string
+ */
+function woocommerce_stripe_wc_not_supported() {
+	/* translators: $1. Minimum WooCommerce version. $2. Current WooCommerce version. */
+	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce %1$s or greater to be installed and active. WooCommerce %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), WC_STRIPE_MIN_WC_VER, WC_VERSION ) . '</strong></p></div>';
+}
+
 add_action( 'plugins_loaded', 'woocommerce_gateway_stripe_init' );
 
 function woocommerce_gateway_stripe_init() {
@@ -50,6 +61,11 @@ function woocommerce_gateway_stripe_init() {
 
 	if ( ! class_exists( 'WooCommerce' ) ) {
 		add_action( 'admin_notices', 'woocommerce_stripe_missing_wc_notice' );
+		return;
+	}
+
+	if ( version_compare( WC_VERSION, WC_STRIPE_MIN_WC_VER, '<' ) ) {
+		add_action( 'admin_notices', 'woocommerce_stripe_wc_not_supported' );
 		return;
 	}
 
