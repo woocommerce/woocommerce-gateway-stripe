@@ -1233,30 +1233,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Retrieves the payment intent, associated with an order for WooCommerce < 3.0
-	 *
-	 * @param WC_Order $order The order to retrieve an intent for.
-	 * @return obect|bool     Either the intent object or `false`.
-	 */
-	private function pre_3_0_get_intent_from_order( $order ) {
-		$order_id  = $order->id;
-		$intent_id = get_post_meta( $order_id, '_stripe_intent_id', true );
-
-		if ( $intent_id ) {
-			return $this->get_intent( 'payment_intents', $intent_id );
-		}
-
-		// The order doesn't have a payment intent, but it may have a setup intent.
-		$intent_id = get_post_meta( $order_id, '_stripe_setup_intent', true );
-
-		if ( $intent_id ) {
-			return $this->get_intent( 'setup_intents', $intent_id );
-		}
-
-		return false;
-	}
-
-	/**
 	 * Retrieves intent from Stripe API by intent id.
 	 *
 	 * @param string $intent_type 	Either 'payment_intents' or 'setup_intents'.
