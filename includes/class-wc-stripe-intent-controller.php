@@ -92,7 +92,7 @@ class WC_Stripe_Intent_Controller {
 			wc_add_notice( esc_html( $message ), 'error' );
 
 			$redirect_url = $woocommerce->cart->is_empty()
-				? get_permalink( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? woocommerce_get_page_id( 'shop' ) : wc_get_page_id( 'shop' ) )
+				? get_permalink( wc_get_page_id( 'shop' ) )
 				: wc_get_checkout_url();
 
 			$this->handle_error( $e, $redirect_url );

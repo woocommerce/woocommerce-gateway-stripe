@@ -27,11 +27,7 @@ class WC_Stripe_Logger {
 
 		if ( apply_filters( 'wc_stripe_logging', true, $message ) ) {
 			if ( empty( self::$logger ) ) {
-				if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-					self::$logger = new WC_Logger();
-				} else {
-					self::$logger = wc_get_logger();
-				}
+				self::$logger = wc_get_logger();
 			}
 
 			$settings = get_option( 'woocommerce_stripe_settings' );
@@ -57,11 +53,7 @@ class WC_Stripe_Logger {
 
 			}
 
-			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-				self::$logger->add( self::WC_LOG_FILENAME, $log_entry );
-			} else {
-				self::$logger->debug( $log_entry, array( 'source' => self::WC_LOG_FILENAME ) );
-			}
+			self::$logger->debug( $log_entry, array( 'source' => self::WC_LOG_FILENAME ) );
 		}
 	}
 }

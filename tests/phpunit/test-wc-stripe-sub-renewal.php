@@ -80,7 +80,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$renewal_order                 = WC_Helper_Order::create_order();
 		$amount                        = 20; // WC Subs sends an amount to be used, instead of using the order amount.
 		$stripe_amount                 = WC_Stripe_Helper::get_stripe_amount( $amount );
-		$currency                      = strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->get_order_currency() : $renewal_order->get_currency() );
+		$currency                      = strtolower( $renewal_order->get_currency() );
 		$customer                      = 'cus_123abc';
 		$source                        = 'src_123abc';
 		$statement_descriptor          = WC_Stripe_Helper::clean_statement_descriptor( $this->statement_descriptor );
@@ -89,14 +89,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
 		$urls_used                     = array();
 
-		// Arrange: Set payment method to stripe, and not stripe_sepa, for example.
-		// This needed for testing the statement_descriptor.
-		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-			$renewal_order->payment_method = 'stripe';
-		} else {
-			$renewal_order->set_payment_method( 'stripe' );
-		}
-
+		$renewal_order->set_payment_method( 'stripe' );
 
 		// Arrange: Mock prepare_order_source() so that we have a customer and source.
 		$this->wc_stripe_subs_compat
@@ -167,7 +160,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			}
 
 			// Assert: the body metadata has these values.
-			$order_id                 = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : (string) $renewal_order->get_id();
+			$order_id                 = (string) $renewal_order->get_id();
 			$expected_metadata_values = array(
 				'order_id'     => $order_id,
 				'payment_type' => 'recurring',
@@ -229,22 +222,14 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEquals( $result, null );
 
 		// Assert that we saved the payment intent to the order.
-		$order_id   = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id();
+		$order_id   = $renewal_order->get_id();
 		$order      = wc_get_order( $order_id );
-		$order_data = (
-			WC_Stripe_Helper::is_wc_lt( '3.0' )
-				? get_post_meta( $order_id, '_stripe_intent_id', true )
-				: $order->get_meta( '_stripe_intent_id' )
-		);
+		$order_data = $order->get_meta( '_stripe_intent_id'	);
 
 		$this->assertEquals( $order_data, 'pi_123abc' );
 
 		// Transaction ID was saved to order.
-		$order_transaction_id = (
-			WC_Stripe_Helper::is_wc_lt( '3.0' )
-				? get_post_meta( $order_id, '_transaction_id', true )
-				: $order->get_transaction_id()
-		);
+		$order_transaction_id = $order->get_transaction_id();
 		$this->assertEquals( $order_transaction_id, 'ch_123abc' );
 
 		// Assert: the order was marked as processing (this is done in process_response()).
@@ -278,7 +263,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$renewal_order                 = WC_Helper_Order::create_order();
 		$amount                        = 20;
 		$stripe_amount                 = WC_Stripe_Helper::get_stripe_amount( $amount );
-		$currency                      = strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->get_order_currency() : $renewal_order->get_currency() );
+		$currency                      = strtolower( $renewal_order->get_currency() );
 		$customer                      = 'cus_123abc';
 		$source                        = 'src_123abc';
 		$should_retry                  = false;
@@ -350,18 +335,10 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEquals( $result, null );
 
 		// Assert that we saved the payment intent to the order.
-		$order_id             = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $renewal_order->id : $renewal_order->get_id();
+		$order_id             = $renewal_order->get_id();
 		$order                = wc_get_order( $order_id );
-		$order_data           = (
-			WC_Stripe_Helper::is_wc_lt( '3.0' )
-				? get_post_meta( $order_id, '_stripe_intent_id', true )
-				: $order->get_meta( '_stripe_intent_id' )
-		);
-		$order_transaction_id = (
-			WC_Stripe_Helper::is_wc_lt( '3.0' )
-				? get_post_meta( $order_id, '_transaction_id', true )
-				: $order->get_transaction_id()
-		);
+		$order_data           = $order->get_meta( '_stripe_intent_id' );
+		$order_transaction_id = $order->get_transaction_id();
 
 		// Intent was saved to order even though there was an error in the response body.
 		$this->assertEquals( $order_data, 'pi_123abc' );
