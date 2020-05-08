@@ -109,7 +109,6 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 			} else if ( $is_authentication_required ) {
 				$charge = end( $response->error->payment_intent->charges->data );
 				$id = $charge->id;
-				$order_id = $order->get_id();
 
 				$order->set_transaction_id( $id );
 				$order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );

@@ -312,8 +312,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_id = $order->get_id();
-
 		if ( 'stripe' === $order->get_payment_method() ) {
 			$charge   = $order->get_transaction_id();
 			$captured = $order->get_meta( '_stripe_charge_captured', true );
@@ -375,8 +373,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_id = $order->get_id();
-
 		if ( ! $order->has_status( 'on-hold' ) ) {
 			return;
 		}
@@ -412,8 +408,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->id );
 			return;
 		}
-
-		$order_id = $order->get_id();
 
 		// If order status is already in failed status don't continue.
 		if ( $order->has_status( 'failed' ) ) {

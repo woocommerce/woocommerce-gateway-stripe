@@ -27,8 +27,6 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$order_id = $order->get_id();
-
 		return $order->get_meta( self::META_NAME_STRIPE_CURRENCY, true );
 	}
 
@@ -44,8 +42,6 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$order_id = $order->get_id();
-
 		$order->update_meta_data( self::META_NAME_STRIPE_CURRENCY, $currency );
 	}
 
@@ -60,8 +56,6 @@ class WC_Stripe_Helper {
 		if ( is_null( $order ) ) {
 			return false;
 		}
-
-		$order_id = $order->get_id();
 
 		$amount = $order->get_meta( self::META_NAME_FEE, true );
 
@@ -89,8 +83,6 @@ class WC_Stripe_Helper {
 		if ( is_null( $order ) ) {
 			return false;
 		}
-
-		$order_id = $order->get_id();
 
 		$order->update_meta_data( self::META_NAME_FEE, $amount );
 	}
@@ -124,8 +116,6 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$order_id = $order->get_id();
-
 		$amount = $order->get_meta( self::META_NAME_NET, true );
 
 		// If not found let's check for legacy name.
@@ -152,8 +142,6 @@ class WC_Stripe_Helper {
 		if ( is_null( $order ) ) {
 			return false;
 		}
-
-		$order_id = $order->get_id();
 
 		$order->update_meta_data( self::META_NAME_NET, $amount );
 	}

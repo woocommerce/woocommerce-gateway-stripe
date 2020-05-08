@@ -205,7 +205,6 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 	 */
 	public function create_source( $order ) {
 		$currency              = $order->get_currency();
-		$order_id              = $order->get_id();
 		$return_url            = $this->get_stripe_return_url( $order );
 		$post_data             = array();
 		$post_data['amount']   = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
