@@ -355,20 +355,6 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Check if WC version is pre 3.0.
-	 *
-	 * @todo Remove in the future.
-	 * @since 4.0.0
-	 * @deprecated 4.1.11
-	 * @return bool
-	 */
-	public static function is_pre_30() {
-		error_log( 'is_pre_30() function has been deprecated since 4.1.11. Please use is_wc_lt( $version ) instead.' );
-
-		return self::is_wc_lt( '3.0' );
-	}
-
-	/**
 	 * Checks if WC version is less than passed in version.
 	 *
 	 * @since 4.1.11
