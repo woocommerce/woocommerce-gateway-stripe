@@ -140,6 +140,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_payment_successful_result', array( $this, 'modify_successful_payment_result' ), 99999, 2 );
 		add_action( 'set_logged_in_cookie', array( $this, 'set_cookie_on_current_request' ) );
 		add_filter( 'woocommerce_get_checkout_payment_url', array( $this, 'get_checkout_payment_url' ), 10, 2 );
+
+		// Note: display error is in the parent class.
 		add_action( 'admin_notices', array( $this, 'display_errors' ), 9999 );
 
 		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
