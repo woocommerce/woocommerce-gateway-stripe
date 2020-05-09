@@ -153,6 +153,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 	/**
 	 * Checks if keys are set.
+	 * Side effect: it also returns false if a secret key was set for the publishable key.
 	 *
 	 * @since 4.0.6
 	 * @return bool
