@@ -158,6 +158,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return bool
 	 */
 	public function are_keys_set() {
+		// NOTE: updates to this function should be added to are_keys_set()
+		// in includes/payment-methods/class-wc-stripe-payment-request.php
+
 		if ( $this->testmode ) {
 			return preg_match( '/^pk_test_/', $this->publishable_key )
 				&& preg_match( '/^[rs]k_test_/', $this->secret_key );

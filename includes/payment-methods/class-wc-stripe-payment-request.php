@@ -119,6 +119,8 @@ class WC_Stripe_Payment_Request {
 	 * @return bool
 	 */
 	public function are_keys_set() {
+		// NOTE: updates to this function should be added to are_keys_set()
+		// in includes/abstracts/abstract-wc-stripe-payment-gateway.php
 		if ( $this->testmode ) {
 			return preg_match( '/^pk_test_/', $this->publishable_key )
 			       && preg_match( '/^[rs]k_test_/', $this->secret_key );
