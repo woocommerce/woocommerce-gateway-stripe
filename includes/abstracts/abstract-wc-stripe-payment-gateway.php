@@ -152,11 +152,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Checks if keys are set.
-	 * Side effect: it also returns false if a secret key was set for the publishable key.
+	 * Checks if keys are set and valid.
 	 *
 	 * @since 4.0.6
-	 * @return bool
+	 * @return bool True if the keys are set *and* valid, false otherwise (for example, if keys are empty or the secret key was pasted as publishable key).
 	 */
 	public function are_keys_set() {
 		// NOTE: updates to this function should be added to are_keys_set()

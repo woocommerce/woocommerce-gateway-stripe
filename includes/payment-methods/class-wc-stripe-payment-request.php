@@ -113,10 +113,10 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Checks if keys are set.
+	 * Checks if keys are set and valid.
 	 *
 	 * @since 4.0.6
-	 * @return bool
+	 * @return bool True if the keys are set *and* valid, false otherwise (for example, if keys are empty or the secret key was pasted as publishable key).
 	 */
 	public function are_keys_set() {
 		// NOTE: updates to this function should be added to are_keys_set()
