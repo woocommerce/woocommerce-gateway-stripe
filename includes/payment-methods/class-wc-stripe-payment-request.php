@@ -113,17 +113,21 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Checks if keys are set.
+	 * Checks if keys are set and valid.
 	 *
 	 * @since 4.0.6
-	 * @return bool
+	 * @return bool True if the keys are set *and* valid, false otherwise (for example, if keys are empty or the secret key was pasted as publishable key).
 	 */
 	public function are_keys_set() {
-		if ( empty( $this->secret_key ) || empty( $this->publishable_key ) ) {
-			return false;
+		// NOTE: updates to this function should be added to are_keys_set()
+		// in includes/abstracts/abstract-wc-stripe-payment-gateway.php
+		if ( $this->testmode ) {
+			return preg_match( '/^pk_test_/', $this->publishable_key )
+			       && preg_match( '/^[rs]k_test_/', $this->secret_key );
+		} else {
+			return preg_match( '/^pk_live_/', $this->publishable_key )
+			       && preg_match( '/^[rs]k_live_/', $this->secret_key );
 		}
-
-		return true;
 	}
 
 	/**

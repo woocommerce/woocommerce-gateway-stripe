@@ -152,16 +152,32 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Checks if keys are set and valid.
+	 *
+	 * @since 4.0.6
+	 * @return bool True if the keys are set *and* valid, false otherwise (for example, if keys are empty or the secret key was pasted as publishable key).
+	 */
+	public function are_keys_set() {
+		// NOTE: updates to this function should be added to are_keys_set()
+		// in includes/payment-methods/class-wc-stripe-payment-request.php
+
+		if ( $this->testmode ) {
+			return preg_match( '/^pk_test_/', $this->publishable_key )
+				&& preg_match( '/^[rs]k_test_/', $this->secret_key );
+		} else {
+			return preg_match( '/^pk_live_/', $this->publishable_key )
+			    && preg_match( '/^[rs]k_live_/', $this->secret_key );
+		}
+	}
+
+	/**
 	 * Check if we need to make gateways available.
 	 *
 	 * @since 4.1.3
 	 */
 	public function is_available() {
 		if ( 'yes' === $this->enabled ) {
-			if ( ! $this->secret_key || ! $this->publishable_key ) {
-				return false;
-			}
-			return true;
+			return $this->are_keys_set();
 		}
 
 		return parent::is_available();
