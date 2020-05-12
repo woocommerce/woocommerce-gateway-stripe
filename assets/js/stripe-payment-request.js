@@ -402,7 +402,7 @@ jQuery( function( $ ) {
 							} );
 						} );
 
-						$( '.quantity' ).on( 'keyup', '.qty', function() {
+						$( '.quantity' ).on( 'keyup mouseup', '.qty', function() {
 							$( '#wc-stripe-payment-request-button' ).block( { message: null } );
 							paymentRequestError = [];
 
