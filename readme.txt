@@ -56,17 +56,16 @@ Stripe also supports the [WooCommerce Subscriptions extension](https://woocommer
 
 = Apple Pay Support =
 
-WooCommerce Stripe now includes [Apple Pay](https://stripe.com/apple-pay) support, which means customers can pay using payment details associated with their Apple ID. Checkout is now just an authorization (Touch ID or Face ID) away on both mobile and desktop. Only supports simple and variable products for now. More support to come.
+WooCommerce Stripe includes [Apple Pay](https://stripe.com/apple-pay) support, which means customers can pay using payment details associated with their Apple ID. Checkout is now just an authorization (Touch ID or Face ID) away on both mobile and desktop. Only supports simple, variable, and Subscription products for now. More support to come.
 
 = Web Payments API Support =
 
-WooCommerce Stripe now includes [Web Payments API](https://www.w3.org/TR/payment-request/) support, which means customers can pay using payment details associated to their mobile devices, in browsers supporting the Web Payments API (Chrome for Android, amongst others). Checkout is now just a few taps away on mobile. Only supports simple and variable products for now. More support to come.
+WooCommerce Stripe includes [Web Payments API](https://www.w3.org/TR/payment-request/) support, which means customers can pay using payment details associated to their mobile devices, in browsers supporting the Web Payments API (Chrome for Android, amongst others). Checkout is now just a few taps away on mobile. Only supports simple, variable, and Subscription products for now. More support to come.
 
 == Installation ==
+You can download an [older version of this gateway for older versions of WooCommerce from here](https://wordpress.org/plugins/woocommerce-gateway-stripe/developers/).
 
 Please note, v4 of this gateway requires WooCommerce 3.0 and above.
-
-You can download an [older version of this gateway for older versions of WooCommerce from here](https://wordpress.org/plugins/woocommerce-gateway-stripe/developers/).
 
 = Automatic installation =
 
@@ -94,7 +93,7 @@ Yes! In Live Mode, an SSL certificate must be installed on your site to use Stri
 
 = Does this support both production mode and sandbox mode for testing? =
 
-Yes, it does - production and sandbox mode is driven by the API keys you use.
+Yes, it does - production and Test (sandbox) mode is driven by the API keys you use with a checkbox in the admin settings to toggle between both.
 
 = Where can I find documentation? =
 
@@ -106,10 +105,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Screenshots ==
 
-1. The settings panel used to configure the gateway.
-2. Normal checkout with Stripe.
-3. Option to save a card to your account.
-4. Checking out with a saved card.
+1. The Stripe payment gateway settings screen used to configure the main Stripe gateway.
+2. Offer a range of payment methods such as local and alternative payment methods.
+3. Pay with a saved payment method, a new card, and allow customers to save the payment card for future transactions.
+4. Apple Pay and other Payment Request buttons can be used on the Product Page and Checkout for express checkout.
 
 == Changelog ==
 

@@ -314,20 +314,24 @@ class WC_Stripe_Customer {
 
 		$sources = get_transient( 'stripe_sources_' . $this->get_id() );
 
-		$response = WC_Stripe_API::request(
-			array(
-				'limit' => 100,
-			),
-			'customers/' . $this->get_id() . '/sources',
-			'GET'
-		);
+		if ( false === $sources ) {
+			$response = WC_Stripe_API::request(
+				array(
+					'limit' => 100,
+				),
+				'customers/' . $this->get_id() . '/sources',
+				'GET'
+			);
 
-		if ( ! empty( $response->error ) ) {
-			return array();
-		}
+			if ( ! empty( $response->error ) ) {
+				return array();
+			}
 
-		if ( is_array( $response->data ) ) {
-			$sources = $response->data;
+			if ( is_array( $response->data ) ) {
+				$sources = $response->data;
+			}
+
+			set_transient( 'stripe_sources_' . $this->get_id(), $sources, DAY_IN_SECONDS );
 		}
 
 		return empty( $sources ) ? array() : $sources;

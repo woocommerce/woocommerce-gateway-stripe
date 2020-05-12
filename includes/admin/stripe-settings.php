@@ -44,14 +44,14 @@ return apply_filters(
 		'test_publishable_key'          => array(
 			'title'       => __( 'Test Publishable Key', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
-			'description' => __( 'Get your API keys from your stripe account.', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'Get your API keys from your stripe account. Invalid values will be rejected. Only values starting with "pk_test_" will be saved.', 'woocommerce-gateway-stripe' ),
 			'default'     => '',
 			'desc_tip'    => true,
 		),
 		'test_secret_key'               => array(
 			'title'       => __( 'Test Secret Key', 'woocommerce-gateway-stripe' ),
 			'type'        => 'password',
-			'description' => __( 'Get your API keys from your stripe account.', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'Get your API keys from your stripe account. Invalid values will be rejected. Only values starting with "sk_test_" or "rk_test_" will be saved.', 'woocommerce-gateway-stripe' ),
 			'default'     => '',
 			'desc_tip'    => true,
 		),
@@ -65,14 +65,14 @@ return apply_filters(
 		'publishable_key'               => array(
 			'title'       => __( 'Live Publishable Key', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
-			'description' => __( 'Get your API keys from your stripe account.', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'Get your API keys from your stripe account. Invalid values will be rejected. Only values starting with "pk_live_" will be saved.', 'woocommerce-gateway-stripe' ),
 			'default'     => '',
 			'desc_tip'    => true,
 		),
 		'secret_key'                    => array(
 			'title'       => __( 'Live Secret Key', 'woocommerce-gateway-stripe' ),
 			'type'        => 'password',
-			'description' => __( 'Get your API keys from your stripe account.', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'Get your API keys from your stripe account. Invalid values will be rejected. Only values starting with "sk_live_" or "rk_live_" will be saved.', 'woocommerce-gateway-stripe' ),
 			'default'     => '',
 			'desc_tip'    => true,
 		),
