@@ -752,8 +752,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param int $balance_transaction_id
 	 */
 	public function update_fees( $order, $balance_transaction_id ) {
-		$order_id = $order->get_id();
-
 		$balance_transaction = WC_Stripe_API::retrieve( 'balance/history/' . $balance_transaction_id );
 
 		if ( empty( $balance_transaction->error ) ) {
@@ -782,7 +780,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				}
 			}
 		} else {
-			WC_Stripe_Logger::log( "Unable to update fees/net meta for order: {$order_id}" );
+			WC_Stripe_Logger::log( 'Unable to update fees/net meta for order: ' . $order->get_id() );
 		}
 	}
 
