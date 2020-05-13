@@ -651,6 +651,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				if ( ! empty( $response->error ) ) {
 					throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
 				}
+				$source_id    = $response;
 			} else {
 				$source_id    = $stripe_token;
 				$is_token     = true;
