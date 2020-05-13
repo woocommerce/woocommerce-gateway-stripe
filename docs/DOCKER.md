@@ -8,6 +8,8 @@ Docker can be used to setup a local development environment:
 - The fully configured site can now be accessed on <http://localhost:8082>
 - The prompt to run the setup wizard can be dismissed unless there is something specific you would like to configure
 
+*You can also install the docker and tests setup from scratch by running `npm run docker:setup`*
+
 To shutdown:
 
 - Use `docker-compose down` to stop the running containers
