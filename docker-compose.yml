@@ -2,6 +2,7 @@ version: "3"
 
 services:
   wordpress:
+    build: ./docker/wordpress_xdebug
     image: wordpress-xdebug
     container_name: woocommerce_stripe_wordpress
     restart: always
