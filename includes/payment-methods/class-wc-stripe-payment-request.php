@@ -163,18 +163,8 @@ class WC_Stripe_Payment_Request {
 	public function init() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'scripts' ) );
 
-		/*
-		 * In order to display the Payment Request button in the correct position,
-		 * a new hook was added to WooCommerce 3.0. In older versions of WooCommerce,
-		 * CSS is used to position the button.
-		 */
-		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-			add_action( 'woocommerce_after_add_to_cart_button', array( $this, 'display_payment_request_button_html' ), 1 );
-			add_action( 'woocommerce_after_add_to_cart_button', array( $this, 'display_payment_request_button_separator_html' ), 2 );
-		} else {
-			add_action( 'woocommerce_after_add_to_cart_quantity', array( $this, 'display_payment_request_button_html' ), 1 );
-			add_action( 'woocommerce_after_add_to_cart_quantity', array( $this, 'display_payment_request_button_separator_html' ), 2 );
-		}
+		add_action( 'woocommerce_after_add_to_cart_quantity', array( $this, 'display_payment_request_button_html' ), 1 );
+		add_action( 'woocommerce_after_add_to_cart_quantity', array( $this, 'display_payment_request_button_separator_html' ), 2 );
 
 		add_action( 'woocommerce_proceed_to_checkout', array( $this, 'display_payment_request_button_html' ), 1 );
 		add_action( 'woocommerce_proceed_to_checkout', array( $this, 'display_payment_request_button_separator_html' ), 2 );
@@ -245,15 +235,11 @@ class WC_Stripe_Payment_Request {
 
 		$product = wc_get_product( $post->ID );
 
-		if ( 'variable' === ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type() ) ) {
+		if ( 'variable' === $product->get_type() ) {
 			$attributes = wc_clean( wp_unslash( $_GET ) );
 
-			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-				$variation_id = $product->get_matching_variation( $attributes );
-			} else {
-				$data_store   = WC_Data_Store::load( 'product' );
-				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
-			}
+			$data_store   = WC_Data_Store::load( 'product' );
+			$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
 
 			if ( ! empty( $variation_id ) ) {
 				$product = wc_get_product( $variation_id );
@@ -264,8 +250,8 @@ class WC_Stripe_Payment_Request {
 		$items = array();
 
 		$items[] = array(
-			'label'  => WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->name : $product->get_name(),
-			'amount' => WC_Stripe_Helper::get_stripe_amount( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->price : $product->get_price() ),
+			'label'  => $product->get_name(),
+			'amount' => WC_Stripe_Helper::get_stripe_amount( $product->get_price() ),
 		);
 
 		if ( wc_tax_enabled() ) {
@@ -294,7 +280,7 @@ class WC_Stripe_Payment_Request {
 		$data['displayItems'] = $items;
 		$data['total']        = array(
 			'label'   => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
-			'amount'  => WC_Stripe_Helper::get_stripe_amount( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->price : $product->get_price() ),
+			'amount'  => WC_Stripe_Helper::get_stripe_amount( $product->get_price() ),
 			'pending' => true,
 		);
 
@@ -316,12 +302,8 @@ class WC_Stripe_Payment_Request {
 			return $title;
 		}
 
-		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-			$method_title = get_post_meta( $post->ID, '_payment_method_title', true );
-		} else {
-			$order        = wc_get_order( $post->ID );
-			$method_title = is_object( $order ) ? $order->get_payment_method_title() : '';
-		}
+		$order        = wc_get_order( $post->ID );
+		$method_title = is_object( $order ) ? $order->get_payment_method_title() : '';
 
 		if ( 'stripe' === $id && ! empty( $method_title ) && 'Apple Pay (Stripe)' === $method_title ) {
 			return $method_title;
@@ -384,21 +366,13 @@ class WC_Stripe_Payment_Request {
 		$payment_request_type = wc_clean( $_POST['payment_request_type'] );
 
 		if ( 'apple_pay' === $payment_request_type ) {
-			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-				update_post_meta( $order_id, '_payment_method_title', 'Apple Pay (Stripe)' );
-			} else {
-				$order->set_payment_method_title( 'Apple Pay (Stripe)' );
-				$order->save();
-			}
+			$order->set_payment_method_title( 'Apple Pay (Stripe)' );
+			$order->save();
 		}
 
 		if ( 'payment_request_api' === $payment_request_type ) {
-			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-				update_post_meta( $order_id, '_payment_method_title', 'Chrome Payment Request (Stripe)' );
-			} else {
-				$order->set_payment_method_title( 'Chrome Payment Request (Stripe)' );
-				$order->save();
-			}
+			$order->set_payment_method_title( 'Chrome Payment Request (Stripe)' );
+			$order->save();
 		}
 	}
 
@@ -438,7 +412,7 @@ class WC_Stripe_Payment_Request {
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 			$_product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
 
-			if ( ! in_array( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $_product->product_type : $_product->get_type() ), $this->supported_product_types() ) ) {
+			if ( ! in_array( $_product->get_type(), $this->supported_product_types() ) ) {
 				return false;
 			}
 
@@ -629,7 +603,7 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
-		if ( ! is_object( $product ) || ! in_array( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
+		if ( ! is_object( $product ) || ! in_array( $product->get_type(), $this->supported_product_types() ) ) {
 			return false;
 		}
 
@@ -833,15 +807,11 @@ class WC_Stripe_Payment_Request {
 				throw new Exception( sprintf( __( 'Product with the ID (%d) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
 			}
 
-			if ( 'variable' === ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type() ) && isset( $_POST['attributes'] ) ) {
+			if ( 'variable' === $product->get_type() && isset( $_POST['attributes'] ) ) {
 				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
 
-				if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-					$variation_id = $product->get_matching_variation( $attributes );
-				} else {
-					$data_store   = WC_Data_Store::load( 'product' );
-					$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
-				}
+				$data_store   = WC_Data_Store::load( 'product' );
+				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
 
 				if ( ! empty( $variation_id ) ) {
 					$product = wc_get_product( $variation_id );
@@ -858,7 +828,7 @@ class WC_Stripe_Payment_Request {
 				throw new Exception( sprintf( __( 'You cannot add that amount of "%1$s"; to the cart because there is not enough stock (%2$s remaining).', 'woocommerce-gateway-stripe' ), $product->get_name(), wc_format_stock_quantity_for_display( $product->get_stock_quantity(), $product ) ) );
 			}
 
-			$total = $qty * ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->price : $product->get_price() ) + $addon_value;
+			$total = $qty * $product->get_price() + $addon_value;
 
 			$quantity_label = 1 < $qty ? ' (x' . $qty . ')' : '';
 
@@ -866,7 +836,7 @@ class WC_Stripe_Payment_Request {
 			$items = array();
 
 			$items[] = array(
-				'label'  => ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->name : $product->get_name() ) . $quantity_label,
+				'label'  => $product->get_name() . $quantity_label,
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $total ),
 			);
 
@@ -929,7 +899,7 @@ class WC_Stripe_Payment_Request {
 		$product_id   = absint( $_POST['product_id'] );
 		$qty          = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
 		$product      = wc_get_product( $product_id );
-		$product_type = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type();
+		$product_type = $product->get_type();
 
 		// First empty the cart to prevent wrong calculation.
 		WC()->cart->empty_cart();
@@ -937,12 +907,8 @@ class WC_Stripe_Payment_Request {
 		if ( ( 'variable' === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
 			$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
 
-			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-				$variation_id = $product->get_matching_variation( $attributes );
-			} else {
-				$data_store   = WC_Data_Store::load( 'product' );
-				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
-			}
+			$data_store   = WC_Data_Store::load( 'product' );
+			$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
 
 			WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
 		}
@@ -1058,16 +1024,12 @@ class WC_Stripe_Payment_Request {
 			WC()->customer->set_location( $country, $state, $postcode, $city );
 			WC()->customer->set_shipping_location( $country, $state, $postcode, $city );
 		} else {
-			WC_Stripe_Helper::is_wc_lt( '3.0' ) ? WC()->customer->set_to_base() : WC()->customer->set_billing_address_to_base();
-			WC_Stripe_Helper::is_wc_lt( '3.0' ) ? WC()->customer->set_shipping_to_base() : WC()->customer->set_shipping_address_to_base();
+			WC()->customer->set_billing_address_to_base();
+			WC()->customer->set_shipping_address_to_base();
 		}
 
-		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-			WC()->customer->calculated_shipping( true );
-		} else {
-			WC()->customer->set_calculated_shipping( true );
-			WC()->customer->save();
-		}
+		WC()->customer->set_calculated_shipping( true );
+		WC()->customer->save();
 
 		$packages = array();
 
@@ -1142,7 +1104,7 @@ class WC_Stripe_Payment_Request {
 				$subtotal      += $cart_item['line_subtotal'];
 				$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
 
-				$product_name = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $cart_item['data']->post->post_title : $cart_item['data']->get_name();
+				$product_name = $cart_item['data']->get_name();
 
 				$item = array(
 					'label'  => $product_name . $quantity_label,

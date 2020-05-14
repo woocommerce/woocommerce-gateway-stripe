@@ -230,7 +230,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) { // wpcs: csrf ok.
 			$order      = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) ); // wpcs: csrf ok, sanitization ok.
 			$total      = $order->get_total();
-			$user_email = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_email : $order->get_billing_email();
+			$user_email = $order->get_billing_email();
 		} else {
 			if ( $user->ID ) {
 				$user_email = get_user_meta( $user->ID, 'billing_email', true );
@@ -415,14 +415,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$order    = wc_get_order( $order_id );
 
 			if ( is_a( $order, 'WC_Order' ) ) {
-				$stripe_params['billing_first_name'] = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_first_name : $order->get_billing_first_name();
-				$stripe_params['billing_last_name']  = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_last_name : $order->get_billing_last_name();
-				$stripe_params['billing_address_1']  = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_address_1 : $order->get_billing_address_1();
-				$stripe_params['billing_address_2']  = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_address_2 : $order->get_billing_address_2();
-				$stripe_params['billing_state']      = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_state : $order->get_billing_state();
-				$stripe_params['billing_city']       = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_city : $order->get_billing_city();
-				$stripe_params['billing_postcode']   = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_postcode : $order->get_billing_postcode();
-				$stripe_params['billing_country']    = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_country : $order->get_billing_country();
+				$stripe_params['billing_first_name'] = $order->get_billing_first_name();
+				$stripe_params['billing_last_name']  = $order->get_billing_last_name();
+				$stripe_params['billing_address_1']  = $order->get_billing_address_1();
+				$stripe_params['billing_address_2']  = $order->get_billing_address_2();
+				$stripe_params['billing_state']      = $order->get_billing_state();
+				$stripe_params['billing_city']       = $order->get_billing_city();
+				$stripe_params['billing_postcode']   = $order->get_billing_postcode();
+				$stripe_params['billing_country']    = $order->get_billing_country();
 			}
 		}
 
@@ -510,14 +510,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
-		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-			delete_user_option( $order->customer_user, '_stripe_customer_id' );
-			delete_post_meta( $order->get_id(), '_stripe_customer_id' );
-		} else {
-			delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
-			$order->delete_meta_data( '_stripe_customer_id' );
-			$order->save();
-		}
+		delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
+		$order->delete_meta_data( '_stripe_customer_id' );
+		$order->save();
 
 		return true;
 	}
@@ -1039,7 +1034,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param WC_Order $order The order which is in a transitional state.
 	 */
 	public function verify_intent_after_checkout( $order ) {
-		$payment_method = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->payment_method : $order->get_payment_method();
+		$payment_method = $order->get_payment_method();
 		if ( $payment_method !== $this->id ) {
 			// If this is not the payment method, an intent would not be available.
 			return;

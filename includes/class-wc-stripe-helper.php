@@ -27,9 +27,7 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
-
-		return WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, self::META_NAME_STRIPE_CURRENCY, true ) : $order->get_meta( self::META_NAME_STRIPE_CURRENCY, true );
+		return $order->get_meta( self::META_NAME_STRIPE_CURRENCY, true );
 	}
 
 	/**
@@ -44,9 +42,7 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
-
-		WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, self::META_NAME_STRIPE_CURRENCY, $currency ) : $order->update_meta_data( self::META_NAME_STRIPE_CURRENCY, $currency );
+		$order->update_meta_data( self::META_NAME_STRIPE_CURRENCY, $currency );
 	}
 
 	/**
@@ -61,13 +57,11 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
-
-		$amount = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, self::META_NAME_FEE, true ) : $order->get_meta( self::META_NAME_FEE, true );
+		$amount = $order->get_meta( self::META_NAME_FEE, true );
 
 		// If not found let's check for legacy name.
 		if ( empty( $amount ) ) {
-			$amount = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, self::LEGACY_META_NAME_FEE, true ) : $order->get_meta( self::LEGACY_META_NAME_FEE, true );
+			$amount = $order->get_meta( self::LEGACY_META_NAME_FEE, true );
 
 			// If found update to new name.
 			if ( $amount ) {
@@ -90,9 +84,7 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
-
-		WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, self::META_NAME_FEE, $amount ) : $order->update_meta_data( self::META_NAME_FEE, $amount );
+		$order->update_meta_data( self::META_NAME_FEE, $amount );
 	}
 
 	/**
@@ -106,7 +98,7 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+		$order_id = $order->get_id();
 
 		delete_post_meta( $order_id, self::META_NAME_FEE );
 		delete_post_meta( $order_id, self::LEGACY_META_NAME_FEE );
@@ -124,13 +116,11 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
-
-		$amount = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, self::META_NAME_NET, true ) : $order->get_meta( self::META_NAME_NET, true );
+		$amount = $order->get_meta( self::META_NAME_NET, true );
 
 		// If not found let's check for legacy name.
 		if ( empty( $amount ) ) {
-			$amount = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? get_post_meta( $order_id, self::LEGACY_META_NAME_NET, true ) : $order->get_meta( self::LEGACY_META_NAME_NET, true );
+			$amount = $order->get_meta( self::LEGACY_META_NAME_NET, true );
 
 			// If found update to new name.
 			if ( $amount ) {
@@ -153,9 +143,7 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
-
-		WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, self::META_NAME_NET, $amount ) : $order->update_meta_data( self::META_NAME_NET, $amount );
+		$order->update_meta_data( self::META_NAME_NET, $amount );
 	}
 
 	/**
@@ -169,7 +157,7 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
+		$order_id = $order->get_id();
 
 		delete_post_meta( $order_id, self::META_NAME_NET );
 		delete_post_meta( $order_id, self::LEGACY_META_NAME_NET );
@@ -352,20 +340,6 @@ class WC_Stripe_Helper {
 	 */
 	public static function is_pre_orders_exists() {
 		return class_exists( 'WC_Pre_Orders_Order' );
-	}
-
-	/**
-	 * Check if WC version is pre 3.0.
-	 *
-	 * @todo Remove in the future.
-	 * @since 4.0.0
-	 * @deprecated 4.1.11
-	 * @return bool
-	 */
-	public static function is_pre_30() {
-		error_log( 'is_pre_30() function has been deprecated since 4.1.11. Please use is_wc_lt( $version ) instead.' );
-
-		return self::is_wc_lt( '3.0' );
 	}
 
 	/**
