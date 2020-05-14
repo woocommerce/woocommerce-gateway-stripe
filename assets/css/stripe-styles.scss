@@ -60,3 +60,5 @@
 #add_payment_method #payment ul.payment_methods .stripe-card-group { position: relative; }
 
 .woocommerce-SavedPaymentMethods-token .stripe-source-errors .woocommerce-error { margin-top: 1em; margin-bottom: 2em; }
+
+#wc-stripe-custom-button { display: block; width: 100%; }
