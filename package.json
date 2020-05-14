@@ -46,7 +46,7 @@
     "uglify": "for f in $npm_package_assets_js_js; do file=${f%.js}; node_modules/.bin/uglifyjs $f -c -m > $file.min.js; done",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
-    "docker:cli": "docker run -it --rm --user xfs --volumes-from woocommerce_stripe_wordpress --network container:woocommerce_stripe_wordpress wordpress:cli",
+    "docker:wpcli": "docker run -it --rm --user xfs --volumes-from woocommerce_stripe_wordpress --network container:woocommerce_stripe_wordpress wordpress:cli",
     "docker:setup": "bin/docker-setup.sh",
     "predocker:setup": "npm run docker:up",
     "postdocker:setup": "tests/bin/install.sh stripe_test root wordpress 127.0.0.1:5678",
