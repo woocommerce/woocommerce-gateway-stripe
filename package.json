@@ -26,6 +26,7 @@
     "node-wp-i18n": "~1.2.1",
     "stylelint": "^10.1.0",
     "uglify-js": "^3.1.3",
+    "wait-on": "^5.0.0",
     "wc-e2e-page-objects": "0.10.0",
     "wp-e2e-webdriver": "0.15.0"
   },
@@ -47,7 +48,7 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:wpcli": "docker run -it --rm --user xfs --volumes-from woocommerce_stripe_wordpress --network container:woocommerce_stripe_wordpress wordpress:cli",
-    "docker:setup": "bin/docker-setup.sh",
+    "docker:setup": "wait-on http://localhost:8082 -i 1000 -s 1 -t 60000 && bin/docker-setup.sh",
     "predocker:setup": "npm run docker:up",
     "postdocker:setup": "tests/bin/install.sh stripe_test root wordpress 127.0.0.1:5678",
     "presass": "rm -f $npm_package_assets_styles_css",
