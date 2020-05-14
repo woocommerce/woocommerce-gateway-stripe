@@ -765,7 +765,9 @@ class WC_Stripe_Payment_Request {
 				throw new Exception( __( 'Unable to find shipping method for address.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			// Check if at least single shipping option is available for new address.
+			// The first shipping option is automatically applied on the client.
+			// Keep chosen shipping method by sorting shipping options if the method still available for new address.
+			// Fallback to the first available shipping method.
 			if ( isset( $data['shipping_options'][0] ) ) {
 				if ( isset( $chosen_shipping_methods[0] ) ) {
 					$chosen_method_id         = $chosen_shipping_methods[0];
@@ -782,7 +784,7 @@ class WC_Stripe_Payment_Request {
 					};
 					usort( $data['shipping_options'], $compare_shipping_options );
 				}
-				// Auto select the first shipping method.
+
 				$first_shipping_method_id = $data['shipping_options'][0]['id'];
 				$this->update_shipping_method( [ $first_shipping_method_id ] );
 			}
