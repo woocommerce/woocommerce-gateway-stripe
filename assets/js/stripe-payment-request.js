@@ -473,10 +473,22 @@ jQuery( function( $ ) {
 			}
 
 			if ( wc_stripe_payment_request_params.button.is_branded ) {
-				// Not implemented branded buttons default to Stripe's button
-				// Apple Pay buttons can also fall back to Stripe's button, as it's already branded
-				// Set button type to default to avoid issues with Stripe
-				wc_stripe_payment_request_params.button.type = 'default';
+				if ( wc_stripe_payment_request.shouldUseGooglePayBrand() ) {
+					button = wc_stripe_payment_request.createGooglePayButton(
+						wc_stripe_payment_request_params.button.theme,
+						wc_stripe_payment_request_params.button.branded_type,
+						wc_stripe_payment_request_params.button.locale
+					);
+					button.css( 'height', wc_stripe_payment_request_params.button.height + 'px' );
+					// Add flag to be sure that created button is branded rather than fallback element.
+					button.data( 'isBranded', true );
+					return button;
+				} else {
+					// Not implemented branded buttons default to Stripe's button
+					// Apple Pay buttons can also fall back to Stripe's button, as it's already branded
+					// Set button type to default to avoid issues with Stripe
+					wc_stripe_payment_request_params.button.type = 'default';
+				}
 			}
 
 			return elements.create( 'paymentRequestButton', {
@@ -511,6 +523,28 @@ jQuery( function( $ ) {
 		 */
 		isBrandedPaymentRequestButton: function ( prButton ) {
 			return prButton && 'function' === typeof prButton.data && prButton.data( 'isBranded' );
+		},
+
+		shouldUseGooglePayBrand: function () {
+			return window.navigator.userAgent.match(/Chrome\/([0-9]+)\./i) && 'Google Inc.' == window.navigator.vendor;
+		},
+
+		createGooglePayButton: function ( theme, type, locale ) {
+			var allowedThemes = [ 'dark', 'light' ];
+			var allowedTypes = [ 'short', 'long' ];
+			theme = allowedThemes.includes( theme ) ? theme : 'light';
+			type = allowedTypes.includes( type ) ? type : 'long';
+
+			var button = $( '<button type="button" id="wc-stripe-branded-button" aria-label="Google Pay" class="gpay-button"></button>' );
+			button.addClass( theme + ' ' + type );
+			if ( 'long' === type ) {
+				var url = 'https://www.gstatic.com/instantbuy/svg/' + theme + '/' + locale + '.svg';
+				var fallbackUrl = 'https://www.gstatic.com/instantbuy/svg/' + theme + '/en.svg';
+				// Check if locale GPay button exists, default to en if not
+				setBackgroundImageWithFallback( button, url, fallbackUrl );
+			}
+
+			return button;
 		},
 
 		attachPaymentRequestButtonEventListeners: function( prButton, paymentRequest ) {
@@ -665,4 +699,14 @@ jQuery( function( $ ) {
 	$( document.body ).on( 'updated_checkout', function() {
 		wc_stripe_payment_request.init();
 	} );
+
+	function setBackgroundImageWithFallback( element, background, fallback ) {
+		element.css( 'background-image', 'url(' + background + ')' );
+		// Need to use an img element to avoid CORS issues
+		var testImg = document.createElement("img");
+		testImg.onerror = function () {
+			element.css( 'background-image', 'url(' + fallback + ')' );
+		}
+		testImg.src = background;
+	}
 } );
