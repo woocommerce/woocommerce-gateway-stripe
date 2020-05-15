@@ -126,6 +126,7 @@ return apply_filters(
 				'buy'     => __( 'Buy', 'woocommerce-gateway-stripe' ),
 				'donate'  => __( 'Donate', 'woocommerce-gateway-stripe' ),
 				'custom'  => __( 'Custom', 'woocommerce-gateway-stripe' ),
+				'branded' => __( 'Branded', 'woocommerce-gateway-stripe' ),
 			),
 		),
 		'payment_request_button_theme'  => array(
@@ -156,6 +157,18 @@ return apply_filters(
 			'description' => __( 'Enter the custom text you would like the button to have.', 'woocommerce-gateway-stripe' ),
 			'default'     => __( 'Buy now', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
+		),
+		'payment_request_button_branded_type' => array(
+			'title'       => __( 'Payment Request Branded Button Type', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Branded Button Type', 'woocommerce-gateway-stripe' ),
+			'type'        => 'select',
+			'description' => __( 'Select the type of button you would like to show.', 'woocommerce-gateway-stripe' ),
+			'default'     => 'long',
+			'desc_tip'    => true,
+			'options'     => array(
+				'short' => __( 'Short', 'woocommerce-gateway-stripe' ),
+				'long'  => __( 'Long', 'woocommerce-gateway-stripe' ),
+			),
 		),
 		'saved_cards'                   => array(
 			'title'       => __( 'Saved Cards', 'woocommerce-gateway-stripe' ),

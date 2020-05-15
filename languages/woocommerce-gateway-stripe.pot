@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.3.3\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
-"POT-Creation-Date: 2020-05-18 12:36:23+00:00\n"
+"POT-Creation-Date: 2020-05-20 16:52:17+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -702,83 +702,107 @@ msgstr ""
 msgid "Custom"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:132
-msgid "Payment Request Button Theme"
+#: includes/admin/stripe-settings.php:129
+msgid "Branded"
 msgstr ""
 
 #: includes/admin/stripe-settings.php:133
+msgid "Payment Request Button Theme"
+msgstr ""
+
+#: includes/admin/stripe-settings.php:134
 msgid "Button Theme"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:135
+#: includes/admin/stripe-settings.php:136
 msgid "Select the button theme you would like to show."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:139
+#: includes/admin/stripe-settings.php:140
 msgid "Dark"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:140
+#: includes/admin/stripe-settings.php:141
 msgid "Light"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:141
+#: includes/admin/stripe-settings.php:142
 msgid "Light-Outline"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:145
+#: includes/admin/stripe-settings.php:146
 msgid "Payment Request Button Height"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:146
+#: includes/admin/stripe-settings.php:147
 msgid "Button Height"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:148
+#: includes/admin/stripe-settings.php:149
 msgid ""
 "Enter the height you would like the button to be in pixels. Width will "
 "always be 100%."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:153
+#: includes/admin/stripe-settings.php:154
 msgid "Payment Request Button Label"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:154
+#: includes/admin/stripe-settings.php:155
 msgid "Button Label"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:156
+#: includes/admin/stripe-settings.php:157
 msgid "Enter the custom text you would like the button to have."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:157
+#: includes/admin/stripe-settings.php:158
 msgid "Buy now"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:161
+#: includes/admin/stripe-settings.php:162
+msgid "Payment Request Branded Button Type"
+msgstr ""
+
+#: includes/admin/stripe-settings.php:163
+msgid "Branded Button Type"
+msgstr ""
+
+#: includes/admin/stripe-settings.php:165
+msgid "Select the type of button you would like to show."
+msgstr ""
+
+#: includes/admin/stripe-settings.php:169
+msgid "Short"
+msgstr ""
+
+#: includes/admin/stripe-settings.php:170
+msgid "Long"
+msgstr ""
+
+#: includes/admin/stripe-settings.php:174
 msgid "Saved Cards"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:162
+#: includes/admin/stripe-settings.php:175
 msgid "Enable Payment via Saved Cards"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:164
+#: includes/admin/stripe-settings.php:177
 msgid ""
 "If enabled, users will be able to pay with a saved card during checkout. "
 "Card details are saved on Stripe servers, not on your store."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:169
+#: includes/admin/stripe-settings.php:182
 msgid "Logging"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:170
+#: includes/admin/stripe-settings.php:183
 msgid "Log debug messages"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:172
+#: includes/admin/stripe-settings.php:185
 msgid "Save debug messages to the WooCommerce System Status log."
 msgstr ""
 
@@ -1405,57 +1429,57 @@ msgstr ""
 msgid "Stripe SOFORT"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:292
-#: includes/payment-methods/class-wc-stripe-payment-request.php:888
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1179
+#: includes/payment-methods/class-wc-stripe-payment-request.php:314
+#: includes/payment-methods/class-wc-stripe-payment-request.php:953
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1244
 msgid "Tax"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:300
-#: includes/payment-methods/class-wc-stripe-payment-request.php:896
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1186
+#: includes/payment-methods/class-wc-stripe-payment-request.php:322
+#: includes/payment-methods/class-wc-stripe-payment-request.php:961
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1251
 msgid "Shipping"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:307
-#: includes/payment-methods/class-wc-stripe-payment-request.php:903
+#: includes/payment-methods/class-wc-stripe-payment-request.php:329
+#: includes/payment-methods/class-wc-stripe-payment-request.php:968
 msgid "Pending"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:512
+#: includes/payment-methods/class-wc-stripe-payment-request.php:534
 msgid "Sorry, we're not accepting prepaid cards at this time."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:514
+#: includes/payment-methods/class-wc-stripe-payment-request.php:536
 #. translators: Do not translate the [option] placeholder
 msgid "Unknown shipping option \"[option]\"."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:627
+#: includes/payment-methods/class-wc-stripe-payment-request.php:651
 msgid "OR"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:767
-#: includes/payment-methods/class-wc-stripe-payment-request.php:780
+#: includes/payment-methods/class-wc-stripe-payment-request.php:806
+#: includes/payment-methods/class-wc-stripe-payment-request.php:819
 msgid "Unable to find shipping method for address."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:850
+#: includes/payment-methods/class-wc-stripe-payment-request.php:915
 msgid "Product with the ID (%d) cannot be found."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:871
+#: includes/payment-methods/class-wc-stripe-payment-request.php:936
 #. translators: 1: product name 2: quantity in stock
 msgid ""
 "You cannot add that amount of \"%1$s\"; to the cart because there is not "
 "enough stock (%2$s remaining)."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1022
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1087
 msgid "Empty cart"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1193
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1258
 msgid "Discount"
 msgstr ""
 

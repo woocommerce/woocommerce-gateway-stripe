@@ -221,6 +221,28 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
+	 * Checks if the button is branded.
+	 *
+	 * @since 4.4.0
+	 * @version 4.4.0
+	 * @return bool
+	 */
+	public function is_branded_button() {
+		return 'branded' === $this->get_button_type();
+	}
+
+	/**
+	 * Gets the branded button type.
+	 *
+	 * @since 4.4.0
+	 * @version 4.4.0
+	 * @return string
+	 */
+	public function get_button_branded_type() {
+		return isset( $this->stripe_settings['payment_request_button_branded_type'] ) ? $this->stripe_settings['payment_request_button_branded_type'] : 'default';
+	}
+
+	/**
 	 * Checks if the button is custom.
 	 *
 	 * @since 4.4.0
@@ -520,12 +542,14 @@ class WC_Stripe_Payment_Request {
 				'needs_shipping' => WC()->cart->needs_shipping() ? 'yes' : 'no',
 			),
 			'button'          => array(
-				'type'   => $this->get_button_type(),
-				'theme'  => $this->get_button_theme(),
-				'height' => $this->get_button_height(),
-				'locale' => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ), // Default format is en_US.
-				'is_custom' => $this->is_custom_button(),
+				'type'         => $this->get_button_type(),
+				'theme'        => $this->get_button_theme(),
+				'height'       => $this->get_button_height(),
+				'locale'       => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ), // Default format is en_US.
+				'is_custom'    => $this->is_custom_button(),
+				'is_branded'   => $this->is_branded_button(),
 				'css_selector' => $this->custom_button_selector(),
+				'branded_type' => $this->get_button_branded_type(),
 			),
 			'is_product_page' => is_product(),
 			'product'         => $this->get_product_data(),

@@ -472,6 +472,13 @@ jQuery( function( $ ) {
 				}
 			}
 
+			if ( wc_stripe_payment_request_params.button.is_branded ) {
+				// Not implemented branded buttons default to Stripe's button
+				// Apple Pay buttons can also fall back to Stripe's button, as it's already branded
+				// Set button type to default to avoid issues with Stripe
+				wc_stripe_payment_request_params.button.type = 'default';
+			}
+
 			return elements.create( 'paymentRequestButton', {
 				paymentRequest: paymentRequest,
 				style: {
@@ -493,6 +500,17 @@ jQuery( function( $ ) {
 		 */
 		isCustomPaymentRequestButton: function ( prButton ) {
 			return prButton && 'function' === typeof prButton.data && prButton.data( 'isCustom' );
+		},
+
+		/**
+		 * Checks if button is custom payment request button.
+		 *
+		 * @param {object} prButton Stripe paymentRequest element or custom jQuery element.
+		 *
+		 * @return {boolean} True when prButton is custom button jQuery element.
+		 */
+		isBrandedPaymentRequestButton: function ( prButton ) {
+			return prButton && 'function' === typeof prButton.data && prButton.data( 'isBranded' );
 		},
 
 		attachPaymentRequestButtonEventListeners: function( prButton, paymentRequest ) {
@@ -527,7 +545,7 @@ jQuery( function( $ ) {
 
 				wc_stripe_payment_request.addToCart();
 
-				if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
+				if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) || wc_stripe_payment_request.isBrandedPaymentRequestButton( prButton ) ) {
 					evt.preventDefault();
 					paymentRequest.show();
 				}
@@ -591,6 +609,9 @@ jQuery( function( $ ) {
 			if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
 				prButton.addClass( 'is-active' );
 				$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).show();
+			} else if ( wc_stripe_payment_request.isBrandedPaymentRequestButton( prButton ) ) {
+				$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).show();
+				$( '#wc-stripe-payment-request-button' ).append( prButton );
 			} else if ( $( '#wc-stripe-payment-request-button' ).length ) {
 				$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).show();
 				prButton.mount( '#wc-stripe-payment-request-button' );
