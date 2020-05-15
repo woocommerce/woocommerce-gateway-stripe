@@ -629,7 +629,8 @@ jQuery( function( $ ) {
 		},
 
 		attachCartPageEventListeners: function ( prButton, paymentRequest ) {
-			if ( ! wc_stripe_payment_request_params.button.is_custom || ! wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
+			if ( ( ! wc_stripe_payment_request_params.button.is_custom || ! wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) &&
+				( ! wc_stripe_payment_request_params.button.is_branded || ! wc_stripe_payment_request.isBrandedPaymentRequestButton( prButton ) ) ) {
 				return;
 			}
 
