@@ -456,7 +456,7 @@ jQuery( function( $ ) {
 			} );
 		},
 
-		attachPaymentRequestButtonEventListeners: function ( prButton, paymentRequest ) {
+		attachPaymentRequestButtonEventListeners: function( prButton, paymentRequest ) {
 			if ( wc_stripe_payment_request_params.is_product_page ) {
 				wc_stripe_payment_request.attachProductPageEventListeners( prButton, paymentRequest );
 			} else {
@@ -464,7 +464,7 @@ jQuery( function( $ ) {
 			}
 		},
 
-		attachProductPageEventListeners( prButton, paymentRequest ) {
+		attachProductPageEventListeners: function( prButton, paymentRequest ) {
 			var paymentRequestError = [];
 			var addToCartButton = $( '.single_add_to_cart_button' );
 
