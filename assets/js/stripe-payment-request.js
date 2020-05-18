@@ -514,13 +514,6 @@ jQuery( function( $ ) {
 			return prButton && 'function' === typeof prButton.data && prButton.data( 'isCustom' );
 		},
 
-		/**
-		 * Checks if button is custom payment request button.
-		 *
-		 * @param {object} prButton Stripe paymentRequest element or custom jQuery element.
-		 *
-		 * @return {boolean} True when prButton is custom button jQuery element.
-		 */
 		isBrandedPaymentRequestButton: function ( prButton ) {
 			return prButton && 'function' === typeof prButton.data && prButton.data( 'isBranded' );
 		},
