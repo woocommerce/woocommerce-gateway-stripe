@@ -402,7 +402,7 @@ jQuery( function( $ ) {
 							} );
 						} );
 
-						$( '.quantity' ).on( 'keyup mouseup', '.qty', function() {
+						$( '.quantity' ).on( 'keyup mouseup', '.qty', wc_stripe_payment_request.debounce( 250, function() {
 							$( '#wc-stripe-payment-request-button' ).block( { message: null } );
 							paymentRequestError = [];
 
@@ -419,7 +419,7 @@ jQuery( function( $ ) {
 									} );
 								}
 							} );
-						} );
+						} ) );
 					}
 
 					if ( $( '#wc-stripe-payment-request-button' ).length ) {
@@ -488,6 +488,21 @@ jQuery( function( $ ) {
 				data: data,
 				url:  wc_stripe_payment_request.getAjaxURL( 'get_selected_product_data' )
 			} );
+		},
+
+		debounce: function ( wait, func, immediate ) {
+			var timeout;
+			return function() {
+				var context = this, args = arguments;
+				var later = function() {
+					timeout = null;
+					if (!immediate) func.apply(context, args);
+				};
+				var callNow = immediate && !timeout;
+				clearTimeout(timeout);
+				timeout = setTimeout(later, wait);
+				if (callNow) func.apply(context, args);
+			};
 		},
 
 		/**
