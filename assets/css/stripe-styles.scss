@@ -75,6 +75,7 @@
     height: 40px;
     min-height: 40px;
 	padding: 11px 24px;
+	width: 100%;
 
 	&.light {
 		background-color: #fff;
@@ -107,18 +108,11 @@
 	}
 
 	&.short {
-		min-width: 90px;
-		width: 160px;
 		&.light {
 			background-image: url(https://www.gstatic.com/instantbuy/svg/light_gpay.svg);
 		}
 		&.dark {
 			background-image: url(https://www.gstatic.com/instantbuy/svg/dark_gpay.svg);
 		}
-	}
-
-	&.long {
-		min-width: 152px;
-		width: 240px;
 	}
 }
