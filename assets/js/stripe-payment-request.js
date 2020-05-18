@@ -439,7 +439,7 @@ jQuery( function( $ ) {
 				if ( button.length ) {
 					// We fallback to default paymentRequest button if no custom button is found in the UI.
 					// Add flag to be sure that created button is custom button rather than fallback element.
-					button.isCustom = true;
+					button.data( 'isCustom', true );
 					return button;
 				}
 			}
@@ -454,6 +454,17 @@ jQuery( function( $ ) {
 					},
 				},
 			} );
+		},
+
+		/**
+		 * Checks if button is custom payment request button.
+		 *
+		 * @param {object} prButton Stripe paymentRequest element or custom jQuery element.
+		 *
+		 * @return {boolean} True when prButton is custom button jQuery element.
+		 */
+		isCustomPaymentRequestButton: function ( prButton ) {
+			return prButton && 'function' === typeof prButton.data && prButton.data( 'isCustom' );
 		},
 
 		attachPaymentRequestButtonEventListeners: function( prButton, paymentRequest ) {
@@ -488,7 +499,7 @@ jQuery( function( $ ) {
 
 				wc_stripe_payment_request.addToCart();
 
-				if ( prButton.isCustom ) {
+				if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
 					evt.preventDefault();
 					paymentRequest.show();
 				}
@@ -532,7 +543,7 @@ jQuery( function( $ ) {
 		},
 
 		attachCartPageEventListeners: function ( prButton, paymentRequest ) {
-			if ( ! wc_stripe_payment_request_params.button.is_custom || ! prButton.isCustom ) {
+			if ( ! wc_stripe_payment_request_params.button.is_custom || ! wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
 				return;
 			}
 
@@ -543,7 +554,7 @@ jQuery( function( $ ) {
 		},
 
 		showPaymentRequestButton: function( prButton ) {
-			if ( prButton.isCustom ) {
+			if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
 				prButton.addClass( 'is-acitve' );
 				$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).show();
 			} else if ( $( '#wc-stripe-payment-request-button' ).length ) {
@@ -554,14 +565,14 @@ jQuery( function( $ ) {
 
 		blockPaymentRequestButton: function( prButton ) {
 			$( '#wc-stripe-payment-request-button' ).block( { message: null } );
-			if ( prButton.isCustom ) {
+			if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
 				prButton.addClass( 'is-blocked' );
 			}
 		},
 
 		unblockPaymentRequestButton: function( prButton ) {
 			$( '#wc-stripe-payment-request-button' ).unblock();
-			if ( prButton.isCustom ) {
+			if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
 				prButton.removeClass( 'is-blocked' );
 			}
 		},
