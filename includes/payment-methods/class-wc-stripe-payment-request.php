@@ -753,7 +753,7 @@ class WC_Stripe_Payment_Request {
 			// Set the shipping options.
 			$data = array();
 
-			// Remember current shipping method before resettig.
+			// Remember current shipping method before resetting.
 			$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods' );
 			$this->calculate_shipping( apply_filters( 'wc_stripe_payment_request_shipping_posted_values', $shipping_address ) );
 
