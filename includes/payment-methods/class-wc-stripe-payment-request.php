@@ -606,11 +606,10 @@ class WC_Stripe_Payment_Request {
 			<div id="wc-stripe-payment-request-button">
 				<?php
 					if ( $this->is_custom_button() ) {
-						$label = $this->get_button_label();
-						$theme = $this->get_button_theme();
-						$height = $this->get_button_height();
-						$style = 'height:' . $height . 'px;';
-						echo "<button id=\"wc-stripe-custom-button\" class=\"button $theme\" style=\"$style\"> $label </button>";
+						$label = esc_html( $this->get_button_label() );
+						$class_name = esc_attr( 'button ' .  $this->get_button_theme() );
+						$style = esc_attr( 'height:' . $this->get_button_height() . 'px;' );
+						echo "<button id=\"wc-stripe-custom-button\" class=\"$class_name\" style=\"$style\"> $label </button>";
 					}
 				?>
 				<!-- A Stripe Element will be inserted here. -->
