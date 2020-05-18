@@ -154,7 +154,7 @@ return apply_filters(
 			'label'       => __( 'Button Label', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
 			'description' => __( 'Enter the custom text you would like the button to have.', 'woocommerce-gateway-stripe' ),
-			'default'     => 'Buy now',
+			'default'     => __( 'Buy now', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		),
 		'saved_cards'                   => array(
