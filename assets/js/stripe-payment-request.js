@@ -351,82 +351,16 @@ jQuery( function( $ ) {
 			var paymentRequest = stripe.paymentRequest( options );
 
 			var elements = stripe.elements( { locale: wc_stripe_payment_request_params.button.locale } );
-			var prButton = elements.create( 'paymentRequestButton', {
-				paymentRequest: paymentRequest,
-				style: {
-					paymentRequestButton: {
-						type: wc_stripe_payment_request_params.button.type,
-						theme: wc_stripe_payment_request_params.button.theme,
-						height: wc_stripe_payment_request_params.button.height + 'px'
-					},
-				}
-			} );
+			var prButton = wc_stripe_payment_request.createPaymentRequestButton( elements, paymentRequest );
 
 			// Check the availability of the Payment Request API first.
 			paymentRequest.canMakePayment().then( function( result ) {
-				var paymentRequestError = [];
-
-				if ( result ) {
-					paymentRequestType = result.applePay ? 'apple_pay' : 'payment_request_api';
-
-					if ( wc_stripe_payment_request_params.is_product_page ) {
-						var addToCartButton = $( '.single_add_to_cart_button' );
-
-						prButton.on( 'click', function( e ) {
-							// First check if product can be added to cart.
-							if ( addToCartButton.is( '.disabled' ) ) {
-								e.preventDefault();
-								if ( addToCartButton.is( '.wc-variation-is-unavailable' ) ) {
-									window.alert( wc_add_to_cart_variation_params.i18n_unavailable_text );
-								} else if ( addToCartButton.is( '.wc-variation-selection-needed' ) ) {
-									window.alert( wc_add_to_cart_variation_params.i18n_make_a_selection_text );
-								}
-							} else if ( 0 < paymentRequestError.length ) {
-								e.preventDefault();
-								window.alert( paymentRequestError );
-							} else {
-								wc_stripe_payment_request.addToCart();
-							}
-						} );
-
-						$( document.body ).on( 'woocommerce_variation_has_changed updated_addons', function() {
-							$( '#wc-stripe-payment-request-button' ).block( { message: null } );
-
-							$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function( response ) {
-								$.when( paymentRequest.update( {
-									total: response.total,
-									displayItems: response.displayItems
-								} ) ).then( function() {
-									$( '#wc-stripe-payment-request-button' ).unblock();
-								} );
-							} );
-						} );
-
-						$( '.quantity' ).on( 'keyup mouseup', '.qty', wc_stripe_payment_request.debounce( 250, function() {
-							$( '#wc-stripe-payment-request-button' ).block( { message: null } );
-							paymentRequestError = [];
-
-							$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function( response ) {
-								if ( response.error ) {
-									paymentRequestError = [ response.error ];
-									$( '#wc-stripe-payment-request-button' ).unblock();
-								} else {
-									$.when( paymentRequest.update( {
-										total: response.total,
-										displayItems: response.displayItems
-									} ) ).then( function() {
-										$( '#wc-stripe-payment-request-button' ).unblock();
-									} );
-								}
-							} );
-						} ) );
-					}
-
-					if ( $( '#wc-stripe-payment-request-button' ).length ) {
-						$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).show();
-						prButton.mount( '#wc-stripe-payment-request-button' );
-					}
+				if ( ! result ) {
+					return;
 				}
+				paymentRequestType = result.applePay ? 'apple_pay' : 'payment_request_api';
+				wc_stripe_payment_request.attachPaymentRequestButtonEventListeners( prButton, paymentRequest );
+				wc_stripe_payment_request.showPaymentRequestButton( prButton );
 			} );
 
 			// Possible statuses success, fail, invalid_payer_name, invalid_payer_email, invalid_payer_phone, invalid_shipping_address.
@@ -503,6 +437,159 @@ jQuery( function( $ ) {
 				timeout = setTimeout(later, wait);
 				if (callNow) func.apply(context, args);
 			};
+		},
+
+		/**
+		 * Creates stripe paymentRequest element or connects to custom button
+		 *
+		 * @param {object} elements       Stripe elements instance.
+		 * @param {object} paymentRequest Stripe paymentRequest object.
+		 *
+		 * @return {object} Stripe paymentRequest element or custom button jQuery element.
+		 */
+		createPaymentRequestButton: function( elements, paymentRequest ) {
+			var button;
+			if ( wc_stripe_payment_request_params.button.is_custom ) {
+				button = $( wc_stripe_payment_request_params.button.css_selector );
+				if ( button.length ) {
+					// We fallback to default paymentRequest button if no custom button is found in the UI.
+					// Add flag to be sure that created button is custom button rather than fallback element.
+					button.data( 'isCustom', true );
+					return button;
+				}
+			}
+
+			return elements.create( 'paymentRequestButton', {
+				paymentRequest: paymentRequest,
+				style: {
+					paymentRequestButton: {
+						type: wc_stripe_payment_request_params.button.type,
+						theme: wc_stripe_payment_request_params.button.theme,
+						height: wc_stripe_payment_request_params.button.height + 'px',
+					},
+				},
+			} );
+		},
+
+		/**
+		 * Checks if button is custom payment request button.
+		 *
+		 * @param {object} prButton Stripe paymentRequest element or custom jQuery element.
+		 *
+		 * @return {boolean} True when prButton is custom button jQuery element.
+		 */
+		isCustomPaymentRequestButton: function ( prButton ) {
+			return prButton && 'function' === typeof prButton.data && prButton.data( 'isCustom' );
+		},
+
+		attachPaymentRequestButtonEventListeners: function( prButton, paymentRequest ) {
+			if ( wc_stripe_payment_request_params.is_product_page ) {
+				wc_stripe_payment_request.attachProductPageEventListeners( prButton, paymentRequest );
+			} else {
+				wc_stripe_payment_request.attachCartPageEventListeners( prButton, paymentRequest );
+			}
+		},
+
+		attachProductPageEventListeners: function( prButton, paymentRequest ) {
+			var paymentRequestError = [];
+			var addToCartButton = $( '.single_add_to_cart_button' );
+
+			prButton.on( 'click', function ( evt ) {
+				// First check if product can be added to cart.
+				if ( addToCartButton.is( '.disabled' ) ) {
+					evt.preventDefault(); // Prevent showing payment request modal.
+					if ( addToCartButton.is( '.wc-variation-is-unavailable' ) ) {
+						window.alert( wc_add_to_cart_variation_params.i18n_unavailable_text );
+					} else if ( addToCartButton.is( '.wc-variation-selection-needed' ) ) {
+						window.alert( wc_add_to_cart_variation_params.i18n_make_a_selection_text );
+					}
+					return;
+				}
+
+				if ( 0 < paymentRequestError.length ) {
+					evt.preventDefault();
+					window.alert( paymentRequestError );
+					return;
+				}
+
+				wc_stripe_payment_request.addToCart();
+
+				if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
+					evt.preventDefault();
+					paymentRequest.show();
+				}
+			});
+
+			$( document.body ).on( 'woocommerce_variation_has_changed', function () {
+				wc_stripe_payment_request.blockPaymentRequestButton( prButton );
+
+				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
+					$.when(
+						paymentRequest.update( {
+							total: response.total,
+							displayItems: response.displayItems,
+						} )
+					).then( function () {
+						wc_stripe_payment_request.unblockPaymentRequestButton( prButton );
+					} );
+				});
+			} );
+
+      $( '.quantity' ).on( 'keyup mouseup', '.qty', wc_stripe_payment_request.debounce( 250, function() {
+				wc_stripe_payment_request.blockPaymentRequestButton( prButton );
+				paymentRequestError = [];
+
+				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
+					if ( response.error ) {
+						paymentRequestError = [ response.error ];
+						wc_stripe_payment_request.unblockPaymentRequestButton( prButton );
+					} else {
+						$.when(
+							paymentRequest.update( {
+								total: response.total,
+								displayItems: response.displayItems,
+							} )
+						).then( function () {
+							wc_stripe_payment_request.unblockPaymentRequestButton( prButton );
+						});
+					}
+				} );
+			}));
+		},
+
+		attachCartPageEventListeners: function ( prButton, paymentRequest ) {
+			if ( ! wc_stripe_payment_request_params.button.is_custom || ! wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
+				return;
+			}
+
+			prButton.on( 'click', function ( evt ) {
+				evt.preventDefault();
+				paymentRequest.show();
+			} );
+		},
+
+		showPaymentRequestButton: function( prButton ) {
+			if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
+				prButton.addClass( 'is-acitve' );
+				$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).show();
+			} else if ( $( '#wc-stripe-payment-request-button' ).length ) {
+				$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).show();
+				prButton.mount( '#wc-stripe-payment-request-button' );
+			}
+		},
+
+		blockPaymentRequestButton: function( prButton ) {
+			$( '#wc-stripe-payment-request-button' ).block( { message: null } );
+			if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
+				prButton.addClass( 'is-blocked' );
+			}
+		},
+
+		unblockPaymentRequestButton: function( prButton ) {
+			$( '#wc-stripe-payment-request-button' ).unblock();
+			if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
+				prButton.removeClass( 'is-blocked' );
+			}
 		},
 
 		/**

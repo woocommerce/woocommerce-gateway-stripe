@@ -69,22 +69,17 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 	 */
 	public function test_initial_intent_parameters() {
 		$initial_order        = WC_Helper_Order::create_order();
-		$order_id             = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $initial_order->id : $initial_order->get_id();
+		$order_id             = $initial_order->get_id();
 		$stripe_amount        = WC_Stripe_Helper::get_stripe_amount( $initial_order->get_total() );
-		$currency             = strtolower( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $initial_order->get_order_currency() : $initial_order->get_currency() );
+		$currency             = strtolower( $initial_order->get_currency() );
 		$customer             = 'cus_123abc';
 		$source               = 'src_123abc';
 		$statement_descriptor = WC_Stripe_Helper::clean_statement_descriptor( $this->statement_descriptor );
 		$intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
 		$urls_used            = array();
 
-		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-			$initial_order->payment_method = 'stripe';
-			update_post_meta( $order_id, '_payment_method', 'stripe' ); // for `wc_get_order()`.
-		} else {
-			$initial_order->set_payment_method( 'stripe' );
-			$initial_order->save();
-		}
+		$initial_order->set_payment_method( 'stripe' );
+		$initial_order->save();
 
 		// Arrange: Mock prepare_source() so that we have a customer and source.
 		$this->wc_stripe_subs_compat
@@ -200,11 +195,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'redirect', $result );
 
 		$order      = wc_get_order( $order_id );
-		$order_data = (
-			WC_Stripe_Helper::is_wc_lt( '3.0' )
-				? get_post_meta( $order_id, '_stripe_intent_id', true )
-				: $order->get_meta( '_stripe_intent_id' )
-		);
+		$order_data = $order->get_meta( '_stripe_intent_id' );
 
 		$this->assertEquals( $order_data, 'pi_123abc' );
 

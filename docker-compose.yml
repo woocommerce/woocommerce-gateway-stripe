@@ -1,0 +1,37 @@
+version: "3"
+
+services:
+  wordpress:
+    build: ./docker/wordpress_xdebug
+    image: wordpress-xdebug
+    container_name: woocommerce_stripe_wordpress
+    restart: always
+    depends_on:
+      - db
+    links:
+      - db:mysql
+    ports:
+      - "8082:80"
+    env_file:
+      - default.env
+    volumes:
+      - ./docker/wordpress:/var/www/html/
+      - ./docker/logs/apache2/:/var/log/apache2
+      - .:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe
+      - ./docker/dev-php.ini:/usr/local/etc/php/conf.d/dev-php.ini
+  db:
+    container_name: woocommerce_stripe_mysql
+    image: mysql:5.7
+    ports:
+      - "5678:3306"
+    env_file:
+      - default.env
+    volumes:
+      - ./docker/data:/var/lib/mysql
+  phpMyAdmin:
+    container_name: woocommerce_stripe_phpmyadmin
+    image: phpmyadmin/phpmyadmin:latest
+    ports:
+      - "8083:80"
+    env_file:
+      - default.env

@@ -23,3 +23,7 @@ phpunit.xml export-ignore
 docs export-ignore
 wordpress_org_assets export-ignore
 assets/css/*.scss export-ignore
+docker export-ignore
+default.env export-ignore
+docker-compose.yml export-ignore
+docs/DOCKER.md export-ignore

@@ -7,9 +7,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 <?php do_action( 'woocommerce_email_header', $email_heading, $email ); ?>
 
 <?php
-$pre_wc_30 = version_compare( WC_VERSION, '3.0', '<' );
-$billing_email = $pre_wc_30 ? $order->billing_email : $order->get_billing_email();
-$billing_phone = $pre_wc_30 ? $order->billing_phone : $order->get_billing_phone();
+$billing_email = $order->get_billing_email();
+$billing_phone = $order->get_billing_phone();
 
 ?>
 <p><?php

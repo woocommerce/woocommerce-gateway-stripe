@@ -19,6 +19,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Required minimums and constants
+ */
+define( 'WC_STRIPE_VERSION', '4.3.3' );
+define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
+define( 'WC_STRIPE_MIN_WC_VER', '3.0' );
+define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '3.0' );
+define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
+define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
+define( 'WC_STRIPE_PLUGIN_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
+
 // phpcs:disable WordPress.Files.FileName
 
 /**
@@ -32,6 +43,17 @@ function woocommerce_stripe_missing_wc_notice() {
 	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce to be installed and active. You can download %s here.', 'woocommerce-gateway-stripe' ), '<a href="https://woocommerce.com/" target="_blank">WooCommerce</a>' ) . '</strong></p></div>';
 }
 
+/**
+ * WooCommerce not supported fallback notice.
+ *
+ * @since 4.4.0
+ * @return string
+ */
+function woocommerce_stripe_wc_not_supported() {
+	/* translators: $1. Minimum WooCommerce version. $2. Current WooCommerce version. */
+	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce %1$s or greater to be installed and active. WooCommerce %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), WC_STRIPE_MIN_WC_VER, WC_VERSION ) . '</strong></p></div>';
+}
+
 add_action( 'plugins_loaded', 'woocommerce_gateway_stripe_init' );
 
 function woocommerce_gateway_stripe_init() {
@@ -42,17 +64,12 @@ function woocommerce_gateway_stripe_init() {
 		return;
 	}
 
+	if ( version_compare( WC_VERSION, WC_STRIPE_MIN_WC_VER, '<' ) ) {
+		add_action( 'admin_notices', 'woocommerce_stripe_wc_not_supported' );
+		return;
+	}
+
 	if ( ! class_exists( 'WC_Stripe' ) ) :
-		/**
-		 * Required minimums and constants
-		 */
-		define( 'WC_STRIPE_VERSION', '4.3.3' );
-		define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
-		define( 'WC_STRIPE_MIN_WC_VER', '2.6.0' );
-		define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '3.0' );
-		define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
-		define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
-		define( 'WC_STRIPE_PLUGIN_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
 
 		class WC_Stripe {
 
