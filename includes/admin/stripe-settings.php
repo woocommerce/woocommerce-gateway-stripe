@@ -125,6 +125,7 @@ return apply_filters(
 				'default' => __( 'Default', 'woocommerce-gateway-stripe' ),
 				'buy'     => __( 'Buy', 'woocommerce-gateway-stripe' ),
 				'donate'  => __( 'Donate', 'woocommerce-gateway-stripe' ),
+				'custom'  => __( 'Custom', 'woocommerce-gateway-stripe' ),
 			),
 		),
 		'payment_request_button_theme'  => array(
@@ -146,6 +147,14 @@ return apply_filters(
 			'type'        => 'text',
 			'description' => __( 'Enter the height you would like the button to be in pixels. Width will always be 100%.', 'woocommerce-gateway-stripe' ),
 			'default'     => '44',
+			'desc_tip'    => true,
+		),
+		'payment_request_button_label' => array(
+			'title'       => __( 'Payment Request Button Label', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Button Label', 'woocommerce-gateway-stripe' ),
+			'type'        => 'text',
+			'description' => __( 'Enter the custom text you would like the button to have.', 'woocommerce-gateway-stripe' ),
+			'default'     => __( 'Buy now', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		),
 		'saved_cards'                   => array(

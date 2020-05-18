@@ -221,6 +221,39 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
+	 * Checks if the button is custom.
+	 *
+	 * @since 4.4.0
+	 * @version 4.4.0
+	 * @return bool
+	 */
+	public function is_custom_button() {
+		return 'custom' === $this->get_button_type();
+	}
+
+	/**
+	 * Returns custom button css selector.
+	 *
+	 * @since 4.4.0
+	 * @version 4.4.0
+	 * @return string
+	 */
+	public function custom_button_selector() {
+		return $this->is_custom_button() ? '#wc-stripe-custom-button' : '';
+	}
+
+	/**
+	 * Gets the custom button label.
+	 *
+	 * @since 4.4.0
+	 * @version 4.4.0
+	 * @return string
+	 */
+	public function get_button_label() {
+		return isset( $this->stripe_settings['payment_request_button_label'] ) ? $this->stripe_settings['payment_request_button_label'] : 'Buy now';
+	}
+
+	/**
 	 * Gets the product data for the currently viewed page
 	 *
 	 * @since 4.0.0
@@ -491,6 +524,8 @@ class WC_Stripe_Payment_Request {
 				'theme'  => $this->get_button_theme(),
 				'height' => $this->get_button_height(),
 				'locale' => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ), // Default format is en_US.
+				'is_custom' => $this->is_custom_button(),
+				'css_selector' => $this->custom_button_selector(),
 			),
 			'is_product_page' => is_product(),
 			'product'         => $this->get_product_data(),
@@ -543,6 +578,14 @@ class WC_Stripe_Payment_Request {
 		?>
 		<div id="wc-stripe-payment-request-wrapper" style="clear:both;padding-top:1.5em;display:none;">
 			<div id="wc-stripe-payment-request-button">
+				<?php
+					if ( $this->is_custom_button() ) {
+						$label = esc_html( $this->get_button_label() );
+						$class_name = esc_attr( 'button ' .  $this->get_button_theme() );
+						$style = esc_attr( 'height:' . $this->get_button_height() . 'px;' );
+						echo "<button id=\"wc-stripe-custom-button\" class=\"$class_name\" style=\"$style\"> $label </button>";
+					}
+				?>
 				<!-- A Stripe Element will be inserted here. -->
 			</div>
 		</div>
