@@ -474,12 +474,7 @@ jQuery( function( $ ) {
 
 			if ( wc_stripe_payment_request_params.button.is_branded ) {
 				if ( wc_stripe_payment_request.shouldUseGooglePayBrand() ) {
-					button = wc_stripe_payment_request.createGooglePayButton(
-						wc_stripe_payment_request_params.button.theme,
-						wc_stripe_payment_request_params.button.branded_type,
-						wc_stripe_payment_request_params.button.locale
-					);
-					button.css( 'height', wc_stripe_payment_request_params.button.height + 'px' );
+					button = wc_stripe_payment_request.createGooglePayButton();
 					// Add flag to be sure that created button is branded rather than fallback element.
 					button.data( 'isBranded', true );
 					return button;
@@ -522,13 +517,19 @@ jQuery( function( $ ) {
 			return window.navigator.userAgent.match(/Chrome\/([0-9]+)\./i) && 'Google Inc.' == window.navigator.vendor;
 		},
 
-		createGooglePayButton: function ( theme, type, locale ) {
+		createGooglePayButton: function () {
 			var allowedThemes = [ 'dark', 'light' ];
 			var allowedTypes = [ 'short', 'long' ];
+
+			var theme  = wc_stripe_payment_request_params.button.theme;
+			var type   = wc_stripe_payment_request_params.button.branded_type;
+			var locale = wc_stripe_payment_request_params.button.locale;
+			var height = wc_stripe_payment_request_params.button.height;
 			theme = allowedThemes.includes( theme ) ? theme : 'light';
 			type = allowedTypes.includes( type ) ? type : 'long';
 
 			var button = $( '<button type="button" id="wc-stripe-branded-button" aria-label="Google Pay" class="gpay-button"></button>' );
+			button.css( 'height', height + 'px' );
 			button.addClass( theme + ' ' + type );
 			if ( 'long' === type ) {
 				var url = 'https://www.gstatic.com/instantbuy/svg/' + theme + '/' + locale + '.svg';
