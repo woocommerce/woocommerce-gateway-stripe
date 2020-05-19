@@ -159,15 +159,15 @@ return apply_filters(
 			'desc_tip'    => true,
 		),
 		'payment_request_button_branded_type' => array(
-			'title'       => __( 'Payment Request Branded Button Type', 'woocommerce-gateway-stripe' ),
-			'label'       => __( 'Branded Button Type', 'woocommerce-gateway-stripe' ),
+			'title'       => __( 'Payment Request Branded Button Label Format', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Branded Button Label Format', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
-			'description' => __( 'Select the type of button you would like to show.', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'Select the branded button label format.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'long',
 			'desc_tip'    => true,
 			'options'     => array(
-				'short' => __( 'Short', 'woocommerce-gateway-stripe' ),
-				'long'  => __( 'Long', 'woocommerce-gateway-stripe' ),
+				'short' => __( 'Logo only', 'woocommerce-gateway-stripe' ),
+				'long'  => __( 'Text and logo', 'woocommerce-gateway-stripe' ),
 			),
 		),
 		'saved_cards'                   => array(
