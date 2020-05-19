@@ -78,6 +78,8 @@
 	width: 100%;
 
 	&.light {
+		// account for button box-shadow when setting width
+		width: calc( 100% - 3px );
 		background-color: #fff;
 		&:active {
 			background-color: #fff;
