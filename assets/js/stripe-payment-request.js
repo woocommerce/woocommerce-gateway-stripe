@@ -424,7 +424,20 @@ jQuery( function( $ ) {
 			} );
 		},
 
-		debounce: function ( wait, func, immediate ) {
+
+		/**
+		 * Creates a wrapper around a function that ensures a function can not
+		 * called in rappid succesion. The function can only be executed once and then agin after
+		 * the wait time has expired.  Even if the wrapper is called multiple times, the wrapped
+		 * function only excecutes once and then blocks until the wait time expires.
+		 *
+		 * @param {int} wait       Milliseconds wait for the next time a function can be executed.
+		 * @param {function} func       The function to be wrapped.
+		 * @param {bool} immediate Overriding the wait time, will force the function to fire everytime.
+		 *
+		 * @return {function} A wrapped function with execution limited by the wait time.
+		 */
+		debounce: function( wait, func, immediate ) {
 			var timeout;
 			return function() {
 				var context = this, args = arguments;
