@@ -548,7 +548,13 @@ jQuery( function( $ ) {
 				});
 			} );
 
-			$( '.quantity' ).on( 'change', '.qty', wc_stripe_payment_request.debounce( 250, function() {
+			// Block the payment request button as soon as an "input" event is fired, to avoid sync issues
+			// when the customer clicks on the button before the debounced event is processed.
+			$( '.quantity' ).on( 'input', '.qty', function() {
+				wc_stripe_payment_request.blockPaymentRequestButton( prButton );
+			} );
+
+			$( '.quantity' ).on( 'input', '.qty', wc_stripe_payment_request.debounce( 250, function() {
 				wc_stripe_payment_request.blockPaymentRequestButton( prButton );
 				paymentRequestError = [];
 
@@ -592,6 +598,12 @@ jQuery( function( $ ) {
 		},
 
 		blockPaymentRequestButton: function( prButton ) {
+			// check if element isn't already blocked before calling block() to avoid blinking overlay issues
+			// blockUI.isBlocked is either undefined or 0 when element is not blocked
+			if ( $( '#wc-stripe-payment-request-button' ).data( 'blockUI.isBlocked' ) ) {
+				return;
+			}
+
 			$( '#wc-stripe-payment-request-button' ).block( { message: null } );
 			if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
 				prButton.addClass( 'is-blocked' );
