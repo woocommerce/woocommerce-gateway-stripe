@@ -583,7 +583,7 @@ jQuery( function( $ ) {
 
 		showPaymentRequestButton: function( prButton ) {
 			if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
-				prButton.addClass( 'is-acitve' );
+				prButton.addClass( 'is-active' );
 				$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).show();
 			} else if ( $( '#wc-stripe-payment-request-button' ).length ) {
 				$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).show();

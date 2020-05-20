@@ -741,24 +741,39 @@ class WC_Stripe_Payment_Request {
 	public function ajax_get_shipping_options() {
 		check_ajax_referer( 'wc-stripe-payment-request-shipping', 'security' );
 
+		$shipping_address = filter_input_array(
+			INPUT_POST,
+			array(
+				'country'   => FILTER_SANITIZE_STRING,
+				'state'     => FILTER_SANITIZE_STRING,
+				'postcode'  => FILTER_SANITIZE_STRING,
+				'city'      => FILTER_SANITIZE_STRING,
+				'address'   => FILTER_SANITIZE_STRING,
+				'address_2' => FILTER_SANITIZE_STRING,
+			)
+		);
+
+		$data = $this->get_shipping_options( $shipping_address );
+		wp_send_json( $data );
+	}
+
+	/**
+	 * Gets shipping options available for specified shipping address
+	 *
+	 * @param array $shipping_address Shipping address.
+	 *
+	 * @return array Shipping options data.
+	 * phpcs:ignore Squiz.Commenting.FunctionCommentThrowTag
+	 */
+	public function get_shipping_options( $shipping_address ) {
 		try {
-			// Set the shipping package.
-			$posted = filter_input_array(
-				INPUT_POST,
-				array(
-					'country'   => FILTER_SANITIZE_STRING,
-					'state'     => FILTER_SANITIZE_STRING,
-					'postcode'  => FILTER_SANITIZE_STRING,
-					'city'      => FILTER_SANITIZE_STRING,
-					'address'   => FILTER_SANITIZE_STRING,
-					'address_2' => FILTER_SANITIZE_STRING,
-				)
-			);
-
-			$this->calculate_shipping( apply_filters( 'wc_stripe_payment_request_shipping_posted_values', $posted ) );
-
 			// Set the shipping options.
-			$data     = array();
+			$data = array();
+
+			// Remember current shipping method before resetting.
+			$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods' );
+			$this->calculate_shipping( apply_filters( 'wc_stripe_payment_request_shipping_posted_values', $shipping_address ) );
+
 			$packages = WC()->shipping->get_packages();
 
 			if ( ! empty( $packages ) && WC()->customer->has_calculated_shipping() ) {
@@ -780,23 +795,40 @@ class WC_Stripe_Payment_Request {
 				throw new Exception( __( 'Unable to find shipping method for address.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			if ( isset( $data[0] ) ) {
-				// Auto select the first shipping method.
-				WC()->session->set( 'chosen_shipping_methods', array( $data[0]['id'] ) );
+			// The first shipping option is automatically applied on the client.
+			// Keep chosen shipping method by sorting shipping options if the method still available for new address.
+			// Fallback to the first available shipping method.
+			if ( isset( $data['shipping_options'][0] ) ) {
+				if ( isset( $chosen_shipping_methods[0] ) ) {
+					$chosen_method_id         = $chosen_shipping_methods[0];
+					$compare_shipping_options = function ( $a, $b ) use ( $chosen_method_id ) {
+						if ( $a['id'] === $chosen_method_id ) {
+							return -1;
+						}
+
+						if ( $b['id'] === $chosen_method_id ) {
+							return 1;
+						}
+
+						return 0;
+					};
+					usort( $data['shipping_options'], $compare_shipping_options );
+				}
+
+				$first_shipping_method_id = $data['shipping_options'][0]['id'];
+				$this->update_shipping_method( [ $first_shipping_method_id ] );
 			}
 
 			WC()->cart->calculate_totals();
 
 			$data          += $this->build_display_items();
 			$data['result'] = 'success';
-
-			wp_send_json( $data );
 		} catch ( Exception $e ) {
 			$data          += $this->build_display_items();
 			$data['result'] = 'invalid_shipping_address';
-
-			wp_send_json( $data );
 		}
+
+		return $data;
 	}
 
 	/**
@@ -809,16 +841,8 @@ class WC_Stripe_Payment_Request {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
-		$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods' );
-		$shipping_method         = filter_input( INPUT_POST, 'shipping_method', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY );
-
-		if ( is_array( $shipping_method ) ) {
-			foreach ( $shipping_method as $i => $value ) {
-				$chosen_shipping_methods[ $i ] = wc_clean( $value );
-			}
-		}
-
-		WC()->session->set( 'chosen_shipping_methods', $chosen_shipping_methods );
+		$shipping_methods = filter_input( INPUT_POST, 'shipping_method', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY );
+		$this->update_shipping_method( $shipping_methods );
 
 		WC()->cart->calculate_totals();
 
@@ -827,6 +851,23 @@ class WC_Stripe_Payment_Request {
 		$data['result'] = 'success';
 
 		wp_send_json( $data );
+	}
+
+	/**
+	 * Updates shipping method in WC session
+	 *
+	 * @param array $shipping_methods Array of selected shipping methods ids.
+	 */
+	public function update_shipping_method( $shipping_methods ) {
+		$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods' );
+
+		if ( is_array( $shipping_methods ) ) {
+			foreach ( $shipping_methods as $i => $value ) {
+				$chosen_shipping_methods[ $i ] = wc_clean( $value );
+			}
+		}
+
+		WC()->session->set( 'chosen_shipping_methods', $chosen_shipping_methods );
 	}
 
 	/**
