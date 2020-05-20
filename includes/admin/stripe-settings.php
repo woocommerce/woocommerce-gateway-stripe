@@ -125,8 +125,8 @@ return apply_filters(
 				'default' => __( 'Default', 'woocommerce-gateway-stripe' ),
 				'buy'     => __( 'Buy', 'woocommerce-gateway-stripe' ),
 				'donate'  => __( 'Donate', 'woocommerce-gateway-stripe' ),
-				'custom'  => __( 'Custom', 'woocommerce-gateway-stripe' ),
 				'branded' => __( 'Branded', 'woocommerce-gateway-stripe' ),
+				'custom'  => __( 'Custom', 'woocommerce-gateway-stripe' ),
 			),
 		),
 		'payment_request_button_theme'  => array(
