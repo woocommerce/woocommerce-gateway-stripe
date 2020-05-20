@@ -548,7 +548,7 @@ jQuery( function( $ ) {
 				});
 			} );
 
-			$( '.quantity' ).on( 'change', '.qty', wc_stripe_payment_request.debounce( 250, function() {
+			$( '.quantity' ).on( 'input', '.qty', wc_stripe_payment_request.debounce( 250, function() {
 				wc_stripe_payment_request.blockPaymentRequestButton( prButton );
 				paymentRequestError = [];
 
