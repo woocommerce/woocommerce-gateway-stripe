@@ -162,6 +162,7 @@ function woocommerce_gateway_stripe_init() {
 
 				add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateways' ) );
 				add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );
+				add_filter( 'plugin_row_meta', array( $this, 'plugin_row_meta' ), 10, 2 );
 
 				// Modify emails emails.
 				add_filter( 'woocommerce_email_classes', array( $this, 'add_emails' ), 20 );
@@ -205,7 +206,7 @@ function woocommerce_gateway_stripe_init() {
 			}
 
 			/**
-			 * Adds plugin action links.
+			 * Add plugin action links.
 			 *
 			 * @since 1.0.0
 			 * @version 4.0.0
@@ -213,10 +214,27 @@ function woocommerce_gateway_stripe_init() {
 			public function plugin_action_links( $links ) {
 				$plugin_links = array(
 					'<a href="admin.php?page=wc-settings&tab=checkout&section=stripe">' . esc_html__( 'Settings', 'woocommerce-gateway-stripe' ) . '</a>',
-					'<a href="https://docs.woocommerce.com/document/stripe/">' . esc_html__( 'Docs', 'woocommerce-gateway-stripe' ) . '</a>',
-					'<a href="https://woocommerce.com/my-account/create-a-ticket?broken=primary&select=18627">' . esc_html__( 'Support', 'woocommerce-gateway-stripe' ) . '</a>',
 				);
 				return array_merge( $plugin_links, $links );
+			}
+
+			/**
+			 * Add plugin action links.
+			 *
+			 * @since 4.x 
+			 * @param  array  $links Original list of plugin links.
+			 * @param  string $file  Name of current file.
+			 * @return array  $links Update list of plugin links.
+			 */
+			public function plugin_row_meta( $links, $file ) {
+				if ( plugin_basename( __FILE__ ) === $file ) {
+					$row_meta = array(
+						'docs'    => '<a href="' . esc_url( apply_filters( 'woocommerce_gateway_stripe_docs_url', 'https://docs.woocommerce.com/document/stripe/' ) ) . '" title="' . esc_attr( __( 'View Documentation', 'woocommerce-gateway-stripe' ) ) . '">' . __( 'Docs', 'woocommerce-gateway-stripe' ) . '</a>',
+						'support' => '<a href="' . esc_url( apply_filters( 'woocommerce_gateway_stripe_support_url', 'https://woocommerce.com/my-account/create-a-ticket?select=18627' ) ) . '" title="' . esc_attr( __( 'Open a support request at WooCommerce.com', 'woocommerce-gateway-stripe' ) ) . '">' . __( 'Support', 'woocommerce-gateway-stripe' ) . '</a>',
+					);
+					return array_merge( $links, $row_meta );
+				}
+				return (array) $links;
 			}
 
 			/**
