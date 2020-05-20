@@ -548,7 +548,8 @@ jQuery( function( $ ) {
 				});
 			} );
 
-			// To avoid an error when a user clicks the button before it updates.
+			// Block the payment request button as soon as an "input" event is fired, to avoid sync issues
+			// when the customer clicks on the button before the debounced event is processed.
 			$( '.quantity' ).on( 'input', '.qty', function() {
 				wc_stripe_payment_request.blockPaymentRequestButton( prButton );
 			} );
