@@ -221,7 +221,7 @@ function woocommerce_gateway_stripe_init() {
 			/**
 			 * Add plugin action links.
 			 *
-			 * @since 4.x 
+			 * @since 4.3.4 
 			 * @param  array  $links Original list of plugin links.
 			 * @param  string $file  Name of current file.
 			 * @return array  $links Update list of plugin links.
