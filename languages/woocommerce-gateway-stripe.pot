@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.3.3\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
-"POT-Creation-Date: 2020-05-20 16:58:08+00:00\n"
+"POT-Creation-Date: 2020-05-21 10:30:15+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -1315,7 +1315,7 @@ msgid ""
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-alipay.php:60
-#: woocommerce-gateway-stripe.php:274
+#: woocommerce-gateway-stripe.php:292
 msgid "Stripe Alipay"
 msgstr ""
 
@@ -1344,27 +1344,27 @@ msgid "Add Payment"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-bancontact.php:60
-#: woocommerce-gateway-stripe.php:268
+#: woocommerce-gateway-stripe.php:286
 msgid "Stripe Bancontact"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-eps.php:60
-#: woocommerce-gateway-stripe.php:271
+#: woocommerce-gateway-stripe.php:289
 msgid "Stripe EPS"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-giropay.php:60
-#: woocommerce-gateway-stripe.php:270
+#: woocommerce-gateway-stripe.php:288
 msgid "Stripe Giropay"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-ideal.php:60
-#: woocommerce-gateway-stripe.php:272
+#: woocommerce-gateway-stripe.php:290
 msgid "Stripe iDeal"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:60
-#: woocommerce-gateway-stripe.php:276
+#: woocommerce-gateway-stripe.php:294
 msgid "Stripe Multibanco"
 msgstr ""
 
@@ -1393,12 +1393,12 @@ msgid "Awaiting Multibanco payment"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-p24.php:60
-#: woocommerce-gateway-stripe.php:273
+#: woocommerce-gateway-stripe.php:291
 msgid "Stripe P24"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:75
-#: woocommerce-gateway-stripe.php:275
+#: woocommerce-gateway-stripe.php:293
 msgid "Stripe SEPA Direct Debit"
 msgstr ""
 
@@ -1425,7 +1425,7 @@ msgid ""
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-sofort.php:60
-#: woocommerce-gateway-stripe.php:269
+#: woocommerce-gateway-stripe.php:287
 msgid "Stripe SOFORT"
 msgstr ""
 
@@ -1515,15 +1515,23 @@ msgid ""
 "WooCommerce %2$s is no longer supported."
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:215
+#: woocommerce-gateway-stripe.php:216
 msgid "Settings"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:216
+#: woocommerce-gateway-stripe.php:232
+msgid "View Documentation"
+msgstr ""
+
+#: woocommerce-gateway-stripe.php:232
 msgid "Docs"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:217
+#: woocommerce-gateway-stripe.php:233
+msgid "Open a support request at WooCommerce.com"
+msgstr ""
+
+#: woocommerce-gateway-stripe.php:233
 msgid "Support"
 msgstr ""
 

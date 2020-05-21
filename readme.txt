@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 5.4
 Requires PHP: 5.6
-Stable tag: 4.3.3
+Stable tag: 4.4.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -111,6 +111,23 @@ If you get stuck, you can ask for help in the Plugin Forum.
 4. Apple Pay and other Payment Request buttons can be used on the Product Page and Checkout for express checkout.
 
 == Changelog ==
+
+= 4.4.0 2020-05-21 =
+* Tweak - Remove support for WooCommerce versions lower than 3.0.
+* Tweak - Update plugin assets.
+* Tweak - Improve performance on order pay screen.
+* Tweak - Compress payment methods SVGs.
+* Add   - Support for custom payment request button.
+* Fix   - Prevent users from entering secret key in the public key field and stop it from showing if they did.
+* Fix   - Revert caching layer removal to speed up My Account subscriptions tab.
+* Fix   - Bug where source ID was not set resulting in an uncaught exception.
+* Fix   - Collecting level 3 data triggers a warning.
+* Fix   - Custom button class typo.
+* Fix   - Payment Request incorrect shipping option passed.
+* Fix   - Payment Requests, like Apple Pay, not initially showing correct quantity if used on Product Page.
+* Fix   - State abbreviation breaks Payment Request button.
+* Fix   - Stripe Payment Request button using incorrect Google Pay brand asset by adding a special branded button.
+* Fix   - Move docs and support links in the plugins list page.
 
 = 4.3.3 2020-04-08 =
 * Fix - Fix Payment Request issue when product attribute has quotes
