@@ -481,8 +481,8 @@ jQuery( function( $ ) {
 				} else {
 					// Not implemented branded buttons default to Stripe's button
 					// Apple Pay buttons can also fall back to Stripe's button, as it's already branded
-					// Set button type to default to avoid issues with Stripe
-					wc_stripe_payment_request_params.button.type = 'default';
+					// Set button type to default or buy, depending on branded type, to avoid issues with Stripe
+					wc_stripe_payment_request_params.button.type = 'long' === wc_stripe_payment_request_params.button.branded_type ? 'buy' : 'default';
 				}
 			}
 
