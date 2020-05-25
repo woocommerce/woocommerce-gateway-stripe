@@ -514,7 +514,11 @@ jQuery( function( $ ) {
 		},
 
 		shouldUseGooglePayBrand: function () {
-			return window.navigator.userAgent.match(/Chrome\/([0-9]+)\./i) && 'Google Inc.' == window.navigator.vendor;
+			var ua = window.navigator.userAgent.toLowerCase();
+			var isChrome = /chrome/.test( ua ) && ! /edge|edg|opr|brave\//.test( ua ) && 'Google Inc.' === window.navigator.vendor;
+			// newer versions of Brave do not have the userAgent string
+			var isBrave = isChrome && window.navigator.brave;
+			return isChrome && ! isBrave;
 		},
 
 		createGooglePayButton: function () {
