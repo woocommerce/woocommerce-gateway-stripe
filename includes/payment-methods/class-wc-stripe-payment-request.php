@@ -464,25 +464,30 @@ class WC_Stripe_Payment_Request {
 	 * @return bool
 	 */
 	public function allowed_items_in_cart() {
+		$allowed = true;
+
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 			$_product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
 
 			if ( ! in_array( $_product->get_type(), $this->supported_product_types() ) ) {
-				return false;
+				$allowed = false;
+				break;
 			}
 
 			// Trial subscriptions with shipping are not supported
 			if ( class_exists( 'WC_Subscriptions_Order' ) && WC_Subscriptions_Cart::cart_contains_subscription() && $_product->needs_shipping() && WC_Subscriptions_Product::get_trial_length( $_product ) > 0 ) {
-				return false;
+				$allowed = false;
+				break;
 			}
 
 			// Pre Orders compatbility where we don't support charge upon release.
 			if ( class_exists( 'WC_Pre_Orders_Order' ) && WC_Pre_Orders_Cart::cart_contains_pre_order() && WC_Pre_Orders_Product::product_is_charged_upon_release( WC_Pre_Orders_Cart::get_pre_order_product() ) ) {
-				return false;
+				$allowed = false;
+				break;
 			}
 		}
 
-		return true;
+		return apply_filters( 'wc_stripe_show_payment_request_on_cart', $allowed );
 	}
 
 	/**
