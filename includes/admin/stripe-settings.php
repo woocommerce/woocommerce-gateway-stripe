@@ -59,12 +59,6 @@ return apply_filters(
 			'default'     => __( 'Pay with your credit card via Stripe.', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		),
-		'webhook'                       => array(
-			'title'       => __( 'Webhook Endpoints', 'woocommerce-gateway-stripe' ),
-			'type'        => 'title',
-			/* translators: webhook URL */
-			'description' => $this->display_admin_settings_webhook_description(),
-		),
 		'api_credentials'               => array(
 			'title'       => __( 'Stripe Account Keys', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
@@ -92,13 +86,6 @@ return apply_filters(
 			'default'     => '',
 			'desc_tip'    => true,
 		),
-		'test_webhook_secret'           => array(
-			'title'       => __( 'Test Webhook Secret', 'woocommerce-gateway-stripe' ),
-			'type'        => 'password',
-			'description' => __( 'Get your webhook signing secret from the webhooks section in your stripe account.', 'woocommerce-gateway-stripe' ),
-			'default'     => '',
-			'desc_tip'    => true,
-		),
 		'publishable_key'               => array(
 			'title'       => __( 'Live Publishable Key', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
@@ -110,6 +97,19 @@ return apply_filters(
 			'title'       => __( 'Live Secret Key', 'woocommerce-gateway-stripe' ),
 			'type'        => 'password',
 			'description' => __( 'Get your API keys from your stripe account. Invalid values will be rejected. Only values starting with "sk_live_" or "rk_live_" will be saved.', 'woocommerce-gateway-stripe' ),
+			'default'     => '',
+			'desc_tip'    => true,
+		),
+		'webhook'                       => array(
+			'title'       => __( 'Webhook Endpoints', 'woocommerce-gateway-stripe' ),
+			'type'        => 'title',
+			/* translators: webhook URL */
+			'description' => $this->display_admin_settings_webhook_description(),
+		),
+		'test_webhook_secret'           => array(
+			'title'       => __( 'Test Webhook Secret', 'woocommerce-gateway-stripe' ),
+			'type'        => 'password',
+			'description' => __( 'Get your webhook signing secret from the webhooks section in your stripe account.', 'woocommerce-gateway-stripe' ),
 			'default'     => '',
 			'desc_tip'    => true,
 		),
