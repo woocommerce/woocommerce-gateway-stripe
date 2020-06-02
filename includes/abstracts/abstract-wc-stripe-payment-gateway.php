@@ -25,13 +25,17 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$last_event_time = get_option( 'wc_stripe_last_event_time', null );
 		if ( $last_event_time ) {
+			$pending_webhook_count = get_option( 'wc_stripe_pending_webhook_count', null );
 			$webhook_status = sprintf(
-				/* translators: 1) time of last event received */
-				__(
-					'Event time of last webhook received: %s',
+				/* translators: 1) time of last event received, 2) count of pending webhooks */
+				_n(
+					'As of last webhook received (event time %s), there was %d pending webhook.',
+					'As of last webhook received (event time %s), there were %d pending webhooks.',
+					$pending_webhook_count,
 					'woocommerce-gateway-stripe'
 				),
-				date( 'Y-m-d H:i:s e', $last_event_time )
+				date( 'Y-m-d H:i:s e', $last_event_time ),
+				$pending_webhook_count
 			);
 		}
 

@@ -70,6 +70,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			$notification = json_decode( $request_body );
 			update_option( 'wc_stripe_last_event_time', $notification->created );
+			update_option( 'wc_stripe_pending_webhook_count', $notification->pending_webhooks );
 
 			status_header( 200 );
 			exit;
