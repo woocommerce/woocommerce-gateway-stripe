@@ -67,6 +67,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		// Validate it to make sure it is legit.
 		if ( $this->is_valid_request( $request_headers, $request_body ) ) {
 			$this->process_webhook( $request_body );
+
+			$notification = json_decode( $request_body );
+			update_option( 'wc_stripe_last_event_time', $notification->created );
+
 			status_header( 200 );
 			exit;
 		} else {
