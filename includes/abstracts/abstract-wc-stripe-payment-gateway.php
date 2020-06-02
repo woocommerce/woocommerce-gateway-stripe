@@ -21,7 +21,21 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function display_admin_settings_webhook_description() {
 		/* translators: 1) webhook url */
-		return sprintf( __( 'You must add the following webhook endpoint <strong style="background-color:#ddd;">&nbsp;%s&nbsp;</strong> to your <a href="https://dashboard.stripe.com/account/webhooks" target="_blank">Stripe account settings</a>. This will enable you to receive notifications on the charge statuses.', 'woocommerce-gateway-stripe' ), WC_Stripe_Helper::get_webhook_url() );
+		$must_add = sprintf( __( 'You must add the following webhook endpoint <strong style="background-color:#ddd;">&nbsp;%s&nbsp;</strong> to your <a href="https://dashboard.stripe.com/account/webhooks" target="_blank">Stripe account settings</a>. This will enable you to receive notifications on the charge statuses.', 'woocommerce-gateway-stripe' ), WC_Stripe_Helper::get_webhook_url() );
+
+		$last_event_time = get_option( 'wc_stripe_last_event_time', null );
+		if ( $last_event_time ) {
+			$webhook_status = sprintf(
+				/* translators: 1) time of last event received */
+				__(
+					'Event time of last webhook received: %s',
+					'woocommerce-gateway-stripe'
+				),
+				date( 'Y-m-d H:i:s e', $last_event_time )
+			);
+		}
+
+		return isset( $webhook_status ) ? $must_add . '<br><br>' . $webhook_status : $must_add;
 	}
 
 	/**
