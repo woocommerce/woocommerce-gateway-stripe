@@ -129,7 +129,7 @@ jQuery( function( $ ) {
 			// server time is off from browser time by > 4 minutes.
 			var timeDifference = Date.now() / 1000 - wc_stripe_settings_params.time;
 			var isTimeOutOfSync = Math.abs( timeDifference ) > 4 * 60;
-			$( '#woocommerce_stripe_test_webhook_secret, #woocommerce_stripe_live_webhook_secret' )
+			$( '#woocommerce_stripe_test_webhook_secret, #woocommerce_stripe_webhook_secret' )
 				.on( 'change input', function() {
 					var $td = $( this ).closest( 'td' );
 					var $warning = $td.find( '.webhook_secret_time_sync_warning' );
