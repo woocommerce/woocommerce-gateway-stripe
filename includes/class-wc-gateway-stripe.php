@@ -351,7 +351,18 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
-		wp_enqueue_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION, true );
+		wp_register_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION, true );
+
+		$params = array(
+			'time'             => time(),
+			'i18n_out_of_sync' => wp_kses(
+				__( '<strong>Warning:</strong> server time is out of sync with the time on your device. Webhook verification depends on the correct time, so please <strong>check your server time</strong> before setting a webhook secret.', 'woocommerce-gateway-stripe' ),
+				array( 'strong' => array() )
+			),
+		);
+		wp_localize_script( 'woocommerce_stripe_admin', 'wc_stripe_settings_params', $params );
+
+		wp_enqueue_script( 'woocommerce_stripe_admin' );
 	}
 
 	/**
