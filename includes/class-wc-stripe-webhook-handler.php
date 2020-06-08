@@ -272,8 +272,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Process webhook disputes that is created.
-	 * This is trigger when a fraud is detected or customer processes chargeback.
+	 * Process webhook dispute that is created.
+	 * This is triggered when fraud is detected or customer processes chargeback.
 	 * We want to put the order into on-hold and add an order note.
 	 *
 	 * @since 4.0.0
@@ -286,6 +286,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->charge );
 			return;
 		}
+
+		$order->update_meta_data( '_stripe_status_before_hold', $order->get_status() );
 
 		/* translators: 1) The URL to the order. */
 		$order->update_status( 'on-hold', sprintf( __( 'A dispute was created for this order. Response is needed. Please go to your <a href="%s" title="Stripe Dashboard" target="_blank">Stripe Dashboard</a> to review this dispute.', 'woocommerce-gateway-stripe' ), $this->get_transaction_url( $order ) ) );
@@ -322,7 +324,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Fail order if dispute is lost, or else revert to pre-dispute status.
-		$order_status = 'lost' === $status ? 'failed' : 'processing';
+		$order_status = 'lost' === $status ? 'failed' : $order->get_meta( '_stripe_status_before_hold', 'processing' );
 		$order->update_status( $order_status, $message );
 	}
 
@@ -570,6 +572,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 		}
 
+		$order->update_meta_data( '_stripe_status_before_hold', $order->get_status() );
+
 		/* translators: 1) The URL to the order. 2) The reason type. */
 		$message = sprintf( __( 'A review has been opened for this order. Action is needed. Please go to your <a href="%1$s" title="Stripe Dashboard" target="_blank">Stripe Dashboard</a> to review the issue. Reason: (%2$s)', 'woocommerce-gateway-stripe' ), $this->get_transaction_url( $order ), $notification->data->object->reason );
 
@@ -608,7 +612,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		if ( $order->has_status( 'on-hold' ) ) {
 			if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) ) {
-				$order->update_status( 'processing', $message );
+				$order->update_status( $order->get_meta( '_stripe_status_before_hold', 'processing' ), $message );
 			} else {
 				$order->add_order_note( $message );
 			}
