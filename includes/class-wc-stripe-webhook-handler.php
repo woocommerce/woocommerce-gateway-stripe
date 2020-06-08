@@ -297,6 +297,36 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Process webhook dispute that is closed.
+	 *
+	 * @since 4.4.1
+	 * @param object $notification
+	 */
+	public function process_webhook_dispute_closed( $notification ) {
+		$order  = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->charge );
+		$status = $notification->data->object->status;
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->charge );
+			return;
+		}
+
+		if ( 'lost' === $status ) {
+			$message = __( 'The dispute was lost or accepted.', 'woocommerce-gateway-stripe' );
+		} elseif ( 'won' === $status ) {
+			$message = __( 'The dispute was resolved in your favor.', 'woocommerce-gateway-stripe' );
+		} elseif ( 'warning_closed' === $status ) {
+			$message = __( 'The inquiry or retrieval was closed.', 'woocommerce-gateway-stripe' );
+		} else {
+			return;
+		}
+
+		// Fail order if dispute is lost, or else revert to pre-dispute status.
+		$order_status = 'lost' === $status ? 'failed' : 'processing';
+		$order->update_status( $order_status, $message );
+	}
+
+	/**
 	 * Process webhook capture. This is used for an authorized only
 	 * transaction that is later captured via Stripe not WC.
 	 *
@@ -751,6 +781,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			case 'charge.dispute.created':
 				$this->process_webhook_dispute( $notification );
+				break;
+
+			case 'charge.dispute.closed':
+				$this->process_webhook_dispute_closed( $notification );
 				break;
 
 			case 'charge.refunded':
