@@ -323,9 +323,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		// Fail order if dispute is lost, or else revert to pre-dispute status.
-		$order_status = 'lost' === $status ? 'failed' : $order->get_meta( '_stripe_status_before_hold', 'processing' );
-		$order->update_status( $order_status, $message );
+		if ( apply_filters( 'wc_stripe_webhook_dispute_change_order_status', true, $order, $notification ) ) {
+			// Fail order if dispute is lost, or else revert to pre-dispute status.
+			$order_status = 'lost' === $status ? 'failed' : $order->get_meta( '_stripe_status_before_hold', 'processing' );
+			$order->update_status( $order_status, $message );
+		} else {
+			$order->add_order_note( $message );
+		}
 	}
 
 	/**
