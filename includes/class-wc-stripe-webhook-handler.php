@@ -290,7 +290,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order->update_meta_data( '_stripe_status_before_hold', $order->get_status() );
 
 		/* translators: 1) The URL to the order. */
-		$order->update_status( 'on-hold', sprintf( __( 'A dispute was created for this order. Response is needed. Please go to your <a href="%s" title="Stripe Dashboard" target="_blank">Stripe Dashboard</a> to review this dispute.', 'woocommerce-gateway-stripe' ), $this->get_transaction_url( $order ) ) );
+		$message = sprintf( __( 'A dispute was created for this order. Response is needed. Please go to your <a href="%s" title="Stripe Dashboard" target="_blank">Stripe Dashboard</a> to review this dispute.', 'woocommerce-gateway-stripe' ), $this->get_transaction_url( $order ) );
+		if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
+			$order->update_status( 'on-hold', $message );
+		} else {
+			$order->add_order_note( $message );
+		}
 
 		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
 
@@ -324,6 +329,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( apply_filters( 'wc_stripe_webhook_dispute_change_order_status', true, $order, $notification ) ) {
+			// Mark final so that order status is not overridden by out-of-sequence events.
+			$order->update_meta_data( '_stripe_status_final', true );
+
 			// Fail order if dispute is lost, or else revert to pre-dispute status.
 			$order_status = 'lost' === $status ? 'failed' : $order->get_meta( '_stripe_status_before_hold', 'processing' );
 			$order->update_status( $order_status, $message );
@@ -450,7 +458,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order->update_status( 'failed', __( 'This payment failed to clear.', 'woocommerce-gateway-stripe' ) );
+		$message = __( 'This payment failed to clear.', 'woocommerce-gateway-stripe' );
+		if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
+			$order->update_status( 'failed', $message );
+		} else {
+			$order->add_order_note( $message );
+		}
 
 		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
 	}
@@ -482,8 +495,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( ! $order->has_status( 'cancelled' ) ) {
-			$order->update_status( 'cancelled', __( 'This payment has cancelled.', 'woocommerce-gateway-stripe' ) );
+		$message = __( 'This payment was cancelled.', 'woocommerce-gateway-stripe' );
+		if ( ! $order->has_status( 'cancelled' ) && ! $order->get_meta( '_stripe_status_final', false ) ) {
+			$order->update_status( 'cancelled', $message );
+		} else {
+			$order->add_order_note( $message );
 		}
 
 		do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
@@ -581,7 +597,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		/* translators: 1) The URL to the order. 2) The reason type. */
 		$message = sprintf( __( 'A review has been opened for this order. Action is needed. Please go to your <a href="%1$s" title="Stripe Dashboard" target="_blank">Stripe Dashboard</a> to review the issue. Reason: (%2$s)', 'woocommerce-gateway-stripe' ), $this->get_transaction_url( $order ), $notification->data->object->reason );
 
-		if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) ) {
+		if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) && ! $order->get_meta( '_stripe_status_final', false ) ) {
 			$order->update_status( 'on-hold', $message );
 		} else {
 			$order->add_order_note( $message );
@@ -614,12 +630,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		/* translators: 1) The reason type. */
 		$message = sprintf( __( 'The opened review for this order is now closed. Reason: (%s)', 'woocommerce-gateway-stripe' ), $notification->data->object->reason );
 
-		if ( $order->has_status( 'on-hold' ) ) {
-			if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) ) {
-				$order->update_status( $order->get_meta( '_stripe_status_before_hold', 'processing' ), $message );
-			} else {
-				$order->add_order_note( $message );
-			}
+		if (
+			$order->has_status( 'on-hold' ) &&
+			apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) &&
+			! $order->get_meta( '_stripe_status_final', false )
+		) {
+			$order->update_status( $order->get_meta( '_stripe_status_before_hold', 'processing' ), $message );
 		} else {
 			$order->add_order_note( $message );
 		}
@@ -709,7 +725,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$error_message = $intent->last_payment_error ? $intent->last_payment_error->message : "";
 
 			/* translators: 1) The error message that was received from Stripe. */
-			$order->update_status( 'failed', sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message ) );
+			$message = sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message );
+
+			if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
+				$order->update_status( 'failed', $message );
+			} else {
+				$order->add_order_note( $message );
+			}
 
 			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
 
@@ -748,7 +770,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$error_message = $intent->last_setup_error ? $intent->last_setup_error->message : "";
 
 			/* translators: 1) The error message that was received from Stripe. */
-			$order->update_status( 'failed', sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message ) );
+			$message = sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message );
+
+			if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
+				$order->update_status( 'failed', $message );
+			} else {
+				$order->add_order_note( $message );
+			}
 
 			$this->send_failed_order_email( $order_id );
 		}
