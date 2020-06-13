@@ -593,11 +593,8 @@ class WC_Stripe_Payment_Request {
 
 		if ( is_product() && ! $this->should_show_payment_button_on_product_page() ) {
 			return;
-		} else {
-			if ( ! $this->allowed_items_in_cart() ) {
-				WC_Stripe_Logger::log( 'Items in the cart has unsupported product type ( Payment Request button disabled )' );
-				return;
-			}
+		} else if ( ! $this->should_show_payment_button_on_cart() ) {
+			return;
 		}
 		?>
 		<div id="wc-stripe-payment-request-wrapper" style="clear:both;padding-top:1.5em;display:none;">
@@ -641,11 +638,8 @@ class WC_Stripe_Payment_Request {
 
 		if ( is_product() && ! $this->should_show_payment_button_on_product_page() ) {
 			return;
-		} else {
-			if ( ! $this->allowed_items_in_cart() ) {
-				WC_Stripe_Logger::log( 'Items in the cart has unsupported product type ( Payment Request button disabled )' );
-				return;
-			}
+		} else if ( ! $this->should_show_payment_button_on_cart() ) {
+			return;
 		}
 		?>
 		<p id="wc-stripe-payment-request-button-separator" style="margin-top:1.5em;text-align:center;display:none;">&mdash; <?php esc_html_e( 'OR', 'woocommerce-gateway-stripe' ); ?> &mdash;</p>
@@ -653,11 +647,27 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
+	 * Whether payment button html should be rendered on the Cart
+	 *
+	 * @since 4.4.1
+	 *
+	 * @return bool
+	 */
+	private function should_show_payment_button_on_cart() {
+		if ( ! apply_filters( 'wc_stripe_show_payment_request_on_cart', true ) ) {
+			return false;
+		}
+		if ( ! $this->allowed_items_in_cart() ) {
+			WC_Stripe_Logger::log( 'Items in the cart has unsupported product type ( Payment Request button disabled )' );
+			return false;
+		}
+		return true;
+	}
+
+	/**
 	 * Whether payment button html should be rendered
 	 *
 	 * @since 4.3.2
-	 *
-	 * @param object $post
 	 *
 	 * @return bool
 	 */
