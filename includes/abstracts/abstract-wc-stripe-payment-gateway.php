@@ -23,70 +23,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		/* translators: 1) webhook url */
 		$description = sprintf( __( 'You must add the following webhook endpoint <strong style="background-color:#ddd;">&nbsp;%s&nbsp;</strong> to your <a href="https://dashboard.stripe.com/account/webhooks" target="_blank">Stripe account settings</a> (if there isn\'t one already enabled). This will enable you to receive notifications on the charge statuses.', 'woocommerce-gateway-stripe' ), WC_Stripe_Helper::get_webhook_url() );
 
-		$webhook_status = $this->get_webhook_status_message();
+		$webhook_status = WC_Stripe_Webhook_State::get_webhook_status_message();
 
 		return $description . '<br><br>' . $webhook_status;
-	}
-
-	/**
-	 * Gets the state of webhook processing in a human readable format.
-	 *
-	 * @since 4.4.2
-	 * @return string Details on recent webhook successes and failures.
-	 */
-	protected function get_webhook_status_message() {
-		$monitoring_began_at = WC_Stripe_Webhook_Handler::get_monitoring_began_at();
-		$last_success_at     = WC_Stripe_Webhook_Handler::get_last_webhook_success_at();
-		$last_failure_at     = WC_Stripe_Webhook_Handler::get_last_webhook_failure_at();
-		$last_error          = WC_Stripe_Webhook_Handler::get_last_error_reason();
-
-		$date_format = 'Y-m-d H:i:s e';
-
-		// Case 1 (Nominal case): Most recent = success
-		if ( $last_success_at > $last_failure_at ) {
-			$message = sprintf(
-				/* translators: 1) date and time of last webhook received, e.g. 2020-06-28 10:30:50 UTC */
-				__( 'The most recent webhook, timestamped %s, was processed succesfully.', 'woocommerce-gateway-stripe' ),
-				date( $date_format, $last_success_at )
-			);
-			return $message;
-		}
-
-		// Case 2: No webhooks received yet
-		if ( ( 0 == $last_success_at ) && ( 0 == $last_failure_at ) ) {
-			$message = sprintf(
-				/* translators: 1) date and time webhook monitoring began, e.g. 2020-06-28 10:30:50 UTC */
-				__( 'No webhooks have been received since monitoring began at %s.', 'woocommerce-gateway-stripe' ),
-				date( $date_format, $monitoring_began_at )
-			);
-			return $message;
-		}
-
-		// Case 3: Failure after success
-		if ( $last_success_at > 0 ) {
-			$message = sprintf(
-				/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC */
-				/* translators: 2) reason webhook failed */
-				/* translators: 3) date and time of last successful webhook e.g. 2020-05-28 10:30:50 UTC */
-				__( 'Warning: The most recent webhook, received at %s, could not be processed. Reason: %s. (The last webhook to process successfully was timestamped %s.)', 'woocommerce-gateway-stripe' ),
-				date( $date_format, $last_failure_at ),
-				$last_error,
-				date( $date_format, $last_success_at )
-			);
-			return $message;
-		}
-
-		// Case 4: Failure with no prior success
-		$message = sprintf(
-			/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC */
-			/* translators: 2) reason webhook failed */
-			/* translators: 3) date and time webhook monitoring began e.g. 2020-05-28 10:30:50 UTC */
-			__( 'Warning: The most recent webhook, received at %s, could not be processed. Reason: %s. (No webhooks have been processed successfully since monitoring began at %s.)', 'woocommerce-gateway-stripe' ),
-			date( $date_format, $last_failure_at ),
-			$last_error,
-			date( $date_format, $monitoring_began_at )
-		);
-		return $message;
 	}
 
 	/**

@@ -25,36 +25,7 @@ msgid ""
 "statuses."
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:49
-#. translators: 1) date and time of last webhook received, e.g. 2020-06-28
-#. 10:30:50 UTC
-msgid "The most recent webhook, timestamped %s, was processed succesfully."
-msgstr ""
-
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:59
-#. translators: 1) date and time webhook monitoring began, e.g. 2020-06-28
-#. 10:30:50 UTC
-msgid "No webhooks have been received since monitoring began at %s."
-msgstr ""
-
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:71
-#. translators: 3) date and time of last successful webhook e.g. 2020-05-28
-#. 10:30:50 UTC
-msgid ""
-"Warning: The most recent webhook, received at %s, could not be processed. "
-"Reason: %s. (The last webhook to process successfully was timestamped %s.)"
-msgstr ""
-
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:84
-#. translators: 3) date and time webhook monitoring began e.g. 2020-05-28
-#. 10:30:50 UTC
-msgid ""
-"Warning: The most recent webhook, received at %s, could not be processed. "
-"Reason: %s. (No webhooks have been processed successfully since monitoring "
-"began at %s.)"
-msgstr ""
-
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:104
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:43
 msgid "Save payment information to my account for future purchases."
 msgstr ""
 
@@ -66,7 +37,7 @@ msgstr ""
 msgid "Sorry, the minimum allowed order total is %1$s to use this payment method."
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:403
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:342
 #. translators: 1) blog name 2) order number
 msgid "%1$s - Order %2$s"
 msgstr ""
@@ -1309,38 +1280,98 @@ msgstr ""
 msgid "The opened review for this order is now closed. Reason: (%s)"
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:865
-msgid "No error."
+#: includes/class-wc-stripe-webhook-state.php:135
+msgid "No error"
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:869
-msgid "The webhook was missing expected body."
+#: includes/class-wc-stripe-webhook-state.php:139
+msgid "The webhook was missing expected body"
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:873
-msgid "The webhook was missing expected headers."
+#: includes/class-wc-stripe-webhook-state.php:143
+msgid "The webhook was missing expected headers"
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:877
-msgid "The webhook signature was missing or was incorrectly formatted."
+#: includes/class-wc-stripe-webhook-state.php:147
+msgid "The webhook signature was missing or was incorrectly formatted"
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:881
-msgid "The webhook signature received did not match expected signature."
+#: includes/class-wc-stripe-webhook-state.php:151
+msgid "The webhook was not signed with the expected signing secret"
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:885
+#: includes/class-wc-stripe-webhook-state.php:155
 msgid ""
 "The timestamp in the webhook differed more than five minutes from the site "
-"time."
+"time"
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:889
-msgid "The webhook received did not come from Stripe."
+#: includes/class-wc-stripe-webhook-state.php:159
+msgid "The webhook received did not come from Stripe"
 msgstr ""
 
-#: includes/class-wc-stripe-webhook-handler.php:892
+#: includes/class-wc-stripe-webhook-state.php:162
 msgid "Unknown error."
+msgstr ""
+
+#: includes/class-wc-stripe-webhook-state.php:185
+#. translators: 1) date and time of last webhook received, e.g. 2020-06-28
+#. 10:30:50 UTC
+msgid "The most recent test webhook, timestamped %s, was processed succesfully."
+msgstr ""
+
+#: includes/class-wc-stripe-webhook-state.php:187
+#. translators: 1) date and time of last webhook received, e.g. 2020-06-28
+#. 10:30:50 UTC
+msgid "The most recent live webhook, timestamped %s, was processed succesfully."
+msgstr ""
+
+#: includes/class-wc-stripe-webhook-state.php:199
+#. translators: 1) date and time webhook monitoring began, e.g. 2020-06-28
+#. 10:30:50 UTC
+msgid "No test webhooks have been received since monitoring began at %s."
+msgstr ""
+
+#: includes/class-wc-stripe-webhook-state.php:201
+#. translators: 1) date and time webhook monitoring began, e.g. 2020-06-28
+#. 10:30:50 UTC
+msgid "No live webhooks have been received since monitoring began at %s."
+msgstr ""
+
+#: includes/class-wc-stripe-webhook-state.php:214
+#. translators: 3) date and time of last successful webhook e.g. 2020-05-28
+#. 10:30:50 UTC
+msgid ""
+"Warning: The most recent test webhook, received at %s, could not be "
+"processed. Reason: %s. (The last test webhook to process successfully was "
+"timestamped %s.)"
+msgstr ""
+
+#: includes/class-wc-stripe-webhook-state.php:218
+#. translators: 3) date and time of last successful webhook e.g. 2020-05-28
+#. 10:30:50 UTC
+msgid ""
+"Warning: The most recent live webhook, received at %s, could not be "
+"processed. Reason: %s. (The last live webhook to process successfully was "
+"timestamped %s.)"
+msgstr ""
+
+#: includes/class-wc-stripe-webhook-state.php:232
+#. translators: 3) date and time webhook monitoring began e.g. 2020-05-28
+#. 10:30:50 UTC
+msgid ""
+"Warning: The most recent test webhook, received at %s, could not be "
+"processed. Reason: %s. (No test webhooks have been processed successfully "
+"since monitoring began at %s.)"
+msgstr ""
+
+#: includes/class-wc-stripe-webhook-state.php:236
+#. translators: 3) date and time webhook monitoring began e.g. 2020-05-28
+#. 10:30:50 UTC
+msgid ""
+"Warning: The most recent live webhook, received at %s, could not be "
+"processed. Reason: %s. (No live webhooks have been processed successfully "
+"since monitoring began at %s.)"
 msgstr ""
 
 #: includes/compat/class-wc-stripe-email-failed-authentication-retry.php:29
