@@ -10,6 +10,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
+	const OPTION_MONITORING_BEGAN_AT = 'wc_stripe_webhook_monitoring_began_at';
+	const OPTION_LAST_SUCCESS_AT     = 'wc_stripe_webhook_last_success_at';
+	const OPTION_LAST_FAILURE_AT     = 'wc_stripe_webhook_last_failure_at';
+	const OPTION_LAST_ERROR          = 'wc_stripe_webhook_last_error';
+
+	const VALIDATION_SUCCEEDED                 = 'validation_succeeded';
+	const VALIDATION_FAILED_HEADERS_NULL       = 'headers_null';
+	const VALIDATION_FAILED_BODY_NULL          = 'body_null';
+	const VALIDATION_FAILED_USER_AGENT_INVALID = 'user_agent_invalid';
+	const VALIDATION_FAILED_SIGNATURE_INVALID  = 'signature_invalid';
+	const VALIDATION_FAILED_TIMESTAMP_MISMATCH = 'timestamp_out_of_range';
+	const VALIDATION_FAILED_SIGNATURE_MISMATCH = 'signature_mismatch';
+
 	/**
 	 * Delay of retries.
 	 *
@@ -45,6 +58,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$this->secret         = ! empty( $stripe_settings[ $secret_key ] ) ? $stripe_settings[ $secret_key ] : false;
 
 		add_action( 'woocommerce_api_wc_stripe', array( $this, 'check_for_webhook' ) );
+
+		// Get/set the time we began monitoring the health of webhooks by fetching it.
+		// This should be roughly the same as the activation time of the version of the
+		// plugin when this code first appears.
+		self::get_monitoring_began_at();
 	}
 
 	/**
@@ -65,16 +83,20 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$request_headers = array_change_key_case( $this->get_request_headers(), CASE_UPPER );
 
 		// Validate it to make sure it is legit.
-		if ( $this->is_valid_request( $request_headers, $request_body ) ) {
+		$validation_result = $this->validate_request( $request_headers, $request_body );
+		if ( self::VALIDATION_SUCCEEDED === $validation_result ) {
 			$this->process_webhook( $request_body );
 
 			$notification = json_decode( $request_body );
-			update_option( 'wc_stripe_last_event_time', $notification->created );
+			update_option( self::OPTION_LAST_SUCCESS_AT, $notification->created );
 
 			status_header( 200 );
 			exit;
 		} else {
 			WC_Stripe_Logger::log( 'Incoming webhook failed validation: ' . print_r( $request_body, true ) );
+			update_option( self::OPTION_LAST_FAILURE_AT, current_time( 'timestamp', true ) );
+			update_option( self::OPTION_LAST_ERROR, $validation_result );
+
 			status_header( 400 );
 			exit;
 		}
@@ -87,28 +109,31 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 * @param string $request_headers The request headers from Stripe.
 	 * @param string $request_body The request body from Stripe.
-	 * @return bool
+	 * @return string The validation result (e.g. self::VALIDATION_SUCCEEDED )
 	 */
-	public function is_valid_request( $request_headers = null, $request_body = null ) {
-		if ( null === $request_headers || null === $request_body ) {
-			return false;
+	public function validate_request( $request_headers = null, $request_body = null ) {
+		if ( null === $request_headers ) {
+			return self::VALIDATION_FAILED_HEADERS_NULL;
+		}
+		if ( null === $request_body ) {
+			return self::VALIDATION_FAILED_BODY_NULL;
 		}
 
 		if ( ! empty( $request_headers['USER-AGENT'] ) && ! preg_match( '/Stripe/', $request_headers['USER-AGENT'] ) ) {
-			return false;
+			return self::VALIDATION_FAILED_USER_AGENT_INVALID;
 		}
 
 		if ( ! empty( $this->secret ) ) {
 			// Check for a valid signature.
 			$signature_format = '/^t=(?P<timestamp>\d+)(?P<signatures>(,v\d+=[a-z0-9]+){1,2})$/';
 			if ( empty( $request_headers['STRIPE-SIGNATURE'] ) || ! preg_match( $signature_format, $request_headers['STRIPE-SIGNATURE'], $matches ) ) {
-				return false;
+				return self::VALIDATION_FAILED_SIGNATURE_INVALID;
 			}
 
 			// Verify the timestamp.
 			$timestamp = intval( $matches['timestamp'] );
 			if ( abs( $timestamp - time() ) > 5 * MINUTE_IN_SECONDS ) {
-				return false;
+				return self::VALIDATION_FAILED_TIMESTAMP_MISMATCH;
 			}
 
 			// Generate the expected signature.
@@ -117,11 +142,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			// Check if the expected signature is present.
 			if ( ! preg_match( '/,v\d+=' . preg_quote( $expected_signature, '/' ) . '/', $matches['signatures'] ) ) {
-				return false;
+				return self::VALIDATION_FAILED_SIGNATURE_MISMATCH;
 			}
 		}
 
-		return true;
+		return self::VALIDATION_SUCCEEDED;
 	}
 
 	/**
@@ -859,6 +884,91 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$this->process_setup_intent( $notification );
 
 		}
+	}
+
+	/**
+	 * Gets the timestamp the plugin first
+	 * started tracking webhook failure and successes.
+	 *
+	 * @since 4.4.2
+	 * @return integer UTC seconds since 1970.
+	 */
+	public static function get_monitoring_began_at() {
+		$monitoring_began_at = get_option( self::OPTION_MONITORING_BEGAN_AT, 0 );
+		if ( 0 == $monitoring_began_at ) {
+			$monitoring_began_at = current_time( 'timestamp', true );
+			update_option( self::OPTION_MONITORING_BEGAN_AT, $monitoring_began_at );
+
+			// Enforce database consistency. This should only be needed if the user
+			// has modified the database directly. We should not allow timestamps
+			// before monitoring began.
+			delete_option( self::OPTION_LAST_SUCCESS_AT );
+			delete_option( self::OPTION_LAST_FAILURE_AT );
+			delete_option( self::OPTION_LAST_ERROR );
+		}
+		return $monitoring_began_at;
+	}
+
+	/**
+	 * Gets the timestamp of the last successfully processed webhook,
+	 * or returns 0 if no webhook has ever been successfully processed.
+	 *
+	 * @since 4.4.2
+	 * @return integer UTC seconds since 1970 | 0.
+	 */
+	public static function get_last_webhook_success_at() {
+		return get_option( self::OPTION_LAST_SUCCESS_AT, 0 );
+	}
+
+	/**
+	 * Gets the timestamp of the last failed webhook,
+	 * or returns 0 if no webhook has ever failed to process.
+	 *
+	 * @since 4.4.2
+	 * @return integer UTC seconds since 1970 | 0.
+	 */
+	public static function get_last_webhook_failure_at() {
+		return get_option( self::OPTION_LAST_FAILURE_AT, 0 );
+	}
+
+	/**
+	 * Returns the localized reason the last webhook failed.
+	 *
+	 * @since 4.4.2
+	 * @return string Reason the last webhook failed.
+	 */
+	public static function get_last_error_reason() {
+		$last_error = get_option( self::OPTION_LAST_ERROR, false );
+
+		if ( ! $last_error ) {
+			return( __( 'No error', 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( self::VALIDATION_FAILED_BODY_NULL == $last_error ) {
+			return( __( 'The webhook was missing expected body', 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( self::VALIDATION_FAILED_HEADERS_NULL == $last_error ) {
+			return( __( 'The webhook was missing expected headers', 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( self::VALIDATION_FAILED_SIGNATURE_INVALID == $last_error ) {
+			return( __( 'The webhook signature was missing or was incorrectly formatted', 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( self::VALIDATION_FAILED_SIGNATURE_MISMATCH == $last_error ) {
+			return( __( 'The webhook was not signed with the expected signing secret', 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( self::VALIDATION_FAILED_TIMESTAMP_MISMATCH == $last_error ) {
+			return( __( 'The timestamp in the webhook differed more than five minutes from the site time', 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( self::VALIDATION_FAILED_USER_AGENT_INVALID == $last_error ) {
+			return( __( 'The webhook received did not come from Stripe', 'woocommerce-gateway-stripe' ) );
+		}
+
+		return( __( 'Unknown error.', 'woocommerce-gateway-stripe' ) );
 	}
 }
 
