@@ -43,7 +43,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$date_format = 'Y-m-d H:i:s e';
 
 		// Case 1 (Nominal case): Most recent = success
-		if ( last_success_at > $last_failure_at ) {
+		if ( $last_success_at > $last_failure_at ) {
 			$message = sprintf(
 				/* translators: 1) date and time of last webhook received, e.g. 2020-06-28 10:30:50 UTC */
 				__( 'The most recent webhook, timestamped %s, was processed succesfully.', 'woocommerce-gateway-stripe' ),
