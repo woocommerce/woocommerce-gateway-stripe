@@ -113,7 +113,12 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 4.5.0 2020-06-24 =
-* TBA
+* Tweak - Improve branded Google Pay button user agent detection.
+* Add   - New filter to manage the display of payment request buttons in cart.
+* Fix   - Display Apple Pay button with text if branded type is text and logo.
+* Fix   - Prevent branded payment request button duplication when checkout is re-calculated.
+* Fix   - Payment request buttons on a single product page now correctly show the product name instead of a subtotal.
+* Fix   - Quotes in variadic product attributes no longer cause payment request buttons to show only the cheapest variation.
 
 = 4.4.0 2020-05-21 =
 * Tweak - Remove support for WooCommerce versions lower than 3.0.
