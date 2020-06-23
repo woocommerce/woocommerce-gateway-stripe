@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 5.4
 Requires PHP: 5.6
-Stable tag: 4.4.0
+Stable tag: 4.5.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -111,6 +111,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 4. Apple Pay and other Payment Request buttons can be used on the Product Page and Checkout for express checkout.
 
 == Changelog ==
+
+= 4.5.0 2020-06-24 =
+* TBA
 
 = 4.4.0 2020-05-21 =
 * Tweak - Remove support for WooCommerce versions lower than 3.0.
