@@ -644,7 +644,7 @@ jQuery( function( $ ) {
 				$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).show();
 			} else if ( wc_stripe_payment_request.isBrandedPaymentRequestButton( prButton ) ) {
 				$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).show();
-				$( '#wc-stripe-payment-request-button' ).append( prButton );
+				$( '#wc-stripe-payment-request-button' ).html( prButton );
 			} else if ( $( '#wc-stripe-payment-request-button' ).length ) {
 				$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).show();
 				prButton.mount( '#wc-stripe-payment-request-button' );
