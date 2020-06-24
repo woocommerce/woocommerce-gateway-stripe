@@ -2,10 +2,10 @@
 # This file is distributed under the same license as the WooCommerce Stripe Gateway package.
 msgid ""
 msgstr ""
-"Project-Id-Version: WooCommerce Stripe Gateway 4.4.0\n"
+"Project-Id-Version: WooCommerce Stripe Gateway 4.5.0\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
-"POT-Creation-Date: 2020-06-22 13:54:43+00:00\n"
+"POT-Creation-Date: 2020-06-24 03:55:47+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -1430,19 +1430,19 @@ msgid "Stripe SOFORT"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:314
-#: includes/payment-methods/class-wc-stripe-payment-request.php:963
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1254
+#: includes/payment-methods/class-wc-stripe-payment-request.php:969
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1260
 msgid "Tax"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:322
-#: includes/payment-methods/class-wc-stripe-payment-request.php:971
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1261
+#: includes/payment-methods/class-wc-stripe-payment-request.php:977
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1267
 msgid "Shipping"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:329
-#: includes/payment-methods/class-wc-stripe-payment-request.php:978
+#: includes/payment-methods/class-wc-stripe-payment-request.php:984
 msgid "Pending"
 msgstr ""
 
@@ -1459,27 +1459,27 @@ msgstr ""
 msgid "OR"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:816
-#: includes/payment-methods/class-wc-stripe-payment-request.php:829
+#: includes/payment-methods/class-wc-stripe-payment-request.php:819
+#: includes/payment-methods/class-wc-stripe-payment-request.php:832
 msgid "Unable to find shipping method for address."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:925
+#: includes/payment-methods/class-wc-stripe-payment-request.php:931
 msgid "Product with the ID (%d) cannot be found."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:946
+#: includes/payment-methods/class-wc-stripe-payment-request.php:952
 #. translators: 1: product name 2: quantity in stock
 msgid ""
 "You cannot add that amount of \"%1$s\"; to the cart because there is not "
 "enough stock (%2$s remaining)."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1097
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1103
 msgid "Empty cart"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1268
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1274
 msgid "Discount"
 msgstr ""
 
