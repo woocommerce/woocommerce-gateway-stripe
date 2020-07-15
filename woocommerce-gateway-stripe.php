@@ -55,7 +55,7 @@ function woocommerce_stripe_wc_not_supported() {
 }
 
 /**
- * WooCommerce country not supported  notice.
+ * WooCommerce country not supported notice.
  *
  * @since 4.5.1
  * @return string
