@@ -61,7 +61,6 @@ function woocommerce_stripe_wc_not_supported() {
  * @return string
  */
 function woocommerce_stripe_wc_country_not_supported() {
-	/* translators: $1. Minimum WooCommerce version. $2. Current WooCommerce version. */
 	echo '<div class="error"><p><strong>' . __( 'Stripe is not supported in your store\'s country.', 'woocommerce-gateway-stripe' ) . '</strong></p></div>';
 }
 
