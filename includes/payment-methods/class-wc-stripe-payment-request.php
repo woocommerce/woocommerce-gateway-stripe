@@ -112,46 +112,45 @@ class WC_Stripe_Payment_Request {
 		return apply_filters(
 			'wc_stripe_supported_countries',
 			array(
-				'AT',
-				'AU',
-				'BE',
+				'AT', // Austria
+				'AU', // Australia
+				'BE', // Belgium
 				'BG', // Bulgaria
-				'BR',
-				'CA',
-				'CH',
+				'CA', // Canada
 				'CY', // Cyprus
 				'CZ', // Czech Republic
-				'DE',
-				'DK',
-				'EE',
-				'ES',
-				'FI',
-				'FR',
-				'GB',
+				'DK', // Denmark
+				'EE', // Estonia
+				'FI', // Finland
+				'FR', // France
+				'DE', // Germany
 				'GR', // Greece
-				'HK',
-				'IE',
-				'IN',
-				'IT',
-				'JP',
-				'LT',
-				'LU',
-				'LV',
-				'MX',
+				'HK', // Hong Kong
+				'IE', // Ireland
+				'IT', // Italy
+				'JP', // Japan
+				'LV', // Latvia
+				'LT', // Lithuania
+				'LU', // Luxembourg
+				'MY', // Malaysia
+				'MX', // Mexico
 				'MT', // Malta
-				'NL',
-				'NZ',
-				'NO',
-				'PH',
-				'PL',
-				'PR',
-				'PT',
-				'RO',
-				'SE',
-				'SG',
+				'NL', // Netherlands
+				'NZ', // New Zealand
+				'NO', // Norway
+				'PH', // Philippines
+				'PL', // Poland
+				'PR', // Puerto Rico
+				'PT', // Portugal
+				'RO', // Romania
+				'ES', // Spain
+				'SE', // Sweden
+				'SG', // Singapore
 				'SI', // Slovenia
-				'SK',
-				'US'
+				'SK', // Slovakia
+				'CH', // Switzerland
+				'GB', // United Kingdom (UK)
+				'US'  // United States (US)
 			)
 		);
 	}
