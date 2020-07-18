@@ -1502,6 +1502,11 @@ msgstr ""
 msgid "Authorize the payment &raquo;"
 msgstr ""
 
+#: vendor/autoload_packages.php:159
+#. translators: %s Name of a PHP Class
+msgid "Not all plugins have loaded yet but we requested the class %s"
+msgstr ""
+
 #: woocommerce-gateway-stripe.php:43
 #. translators: 1. URL link.
 msgid ""
