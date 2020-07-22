@@ -356,7 +356,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$params = array(
 			'time'             => time(),
 			'i18n_out_of_sync' => wp_kses(
-				__( '<strong>Warning:</strong> server time is out of sync with the time on your device. Webhook verification depends on the correct time, so please <strong>check your server time</strong> before setting a webhook secret.', 'woocommerce-gateway-stripe' ),
+				__( '<strong>Warning:</strong> your site\'s time does not match the time on your browser and may be incorrect. Some payment methods depend on webhook verification and verifying webhooks with a signing secret depends on your site\'s time being correct, so please check your site\'s time before setting a webhook secret. You may need to contact your site\'s hosting provider to correct the site\'s time.', 'woocommerce-gateway-stripe' ),
 				array( 'strong' => array() )
 			),
 		);
