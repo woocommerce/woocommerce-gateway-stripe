@@ -344,18 +344,37 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param string Event name, e.g. orders_edit_status_change.
 	 */
 	public function woocommerce_tracks_event_properties( $properties, $prefixed_event_name ) {
-		if ( 'wcadmin_orders_edit_status_change' === $prefixed_event_name ) {
-			$is_live         = true;
-			$stripe_settings = get_option( 'woocommerce_stripe_settings', array() );
-			if ( array_key_exists( 'testmode', $stripe_settings ) ) {
-				$is_live = 'no' === $stripe_settings[ 'testmode' ];
-			}
-
-			$properties[ 'admin_email' ]                        = get_option( 'admin_email' );
-			$properties[ 'is_live' ]                            = $is_live;
-			$properties[ 'woocommerce_gateway_stripe_version' ] = WC_STRIPE_VERSION;
-			$properties[ 'woocommerce_default_country' ]        = get_option( 'woocommerce_default_country' );
+		// Not the desired event? Bail.
+		if ( 'wcadmin_orders_edit_status_change' != $prefixed_event_name ) {
+			return $properties;
 		}
+
+		// Properties not an array? Bail.
+		if ( ! is_array( $properties ) ) {
+			return $properties;
+		}
+
+		// No payment_method in properties? Bail.
+		if ( ! array_key_exists( 'payment_method', $properties ) ) {
+			return $properties;
+		}
+
+		// Not stripe? Bail.
+		if ( 'stripe' != $properties[ 'payment_method' ] ) {
+			return $properties;
+		}
+
+		// Due diligence done. Collect the metadata.
+		$is_live         = true;
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', array() );
+		if ( array_key_exists( 'testmode', $stripe_settings ) ) {
+			$is_live = 'no' === $stripe_settings[ 'testmode' ];
+		}
+
+		$properties[ 'admin_email' ]                        = get_option( 'admin_email' );
+		$properties[ 'is_live' ]                            = $is_live;
+		$properties[ 'woocommerce_gateway_stripe_version' ] = WC_STRIPE_VERSION;
+		$properties[ 'woocommerce_default_country' ]        = get_option( 'woocommerce_default_country' );
 
 		return $properties;
 	}
