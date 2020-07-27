@@ -91,6 +91,20 @@ function woocommerce_gateway_stripe_init() {
 			}
 
 			/**
+			 * Stripe Connect API
+			 *
+			 * @var WC_Stripe_Connect_API
+			 */
+			private $api;
+
+			/**
+			 * Stripe Connect
+			 *
+			 * @var WC_Stripe_Connect
+			 */
+			private $connect;
+
+			/**
 			 * Private clone method to prevent cloning of the instance of the
 			 * *Singleton* instance.
 			 *
@@ -112,7 +126,17 @@ function woocommerce_gateway_stripe_init() {
 			 */
 			private function __construct() {
 				add_action( 'admin_init', array( $this, 'install' ) );
+
 				$this->init();
+
+				$this->api     = new WC_Stripe_Connect_API();
+				$this->connect = new WC_Stripe_Connect( $this->api );
+
+				add_action( 'rest_api_init', array( $this, 'register_connect_routes' ) );
+
+				if ( get_option( 'stripe_state', false ) ) {
+					add_action( 'admin_enqueue_scripts', array( $this->connect, 'maybe_connect_oauth' ) );
+				}
 			}
 
 			/**
@@ -148,6 +172,8 @@ function woocommerce_gateway_stripe_init() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-payment-request.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-subs-compat.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-sepa-subs-compat.php';
+				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect.php';
+				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect-api.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-order-handler.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-tokens.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php';
@@ -155,6 +181,8 @@ function woocommerce_gateway_stripe_init() {
 
 				if ( is_admin() ) {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
+					require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect.php';
+					require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect-api.php';
 				}
 
 				// REMOVE IN THE FUTURE.
@@ -314,6 +342,25 @@ function woocommerce_gateway_stripe_init() {
 				$email_classes['WC_Stripe_Email_Failed_Authentication_Retry'] = new WC_Stripe_Email_Failed_Authentication_Retry( $email_classes );
 
 				return $email_classes;
+			}
+
+			/**
+			 * Register Stripe connect rest routes.
+			 */
+			public function register_connect_routes() {
+
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-rest-controller.php';
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-rest-oauth-init-controller.php';
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-rest-oauth-connect-controller.php';
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-rest-deauthorize-controller.php';
+
+				$oauth_init    = new WC_Stripe_Connect_REST_Oauth_Init_Controller( $this->connect, $this->api );
+				$oauth_connect = new WC_Stripe_Connect_REST_Oauth_Connect_Controller( $this->connect, $this->api );
+				$deauthorize   = new WC_Stripe_Connect_REST_Deauthorize_Controller( $this->connect, $this->api );
+
+				$oauth_init->register_routes();
+				$oauth_connect->register_routes();
+				$deauthorize->register_routes();
 			}
 		}
 
