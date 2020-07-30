@@ -25,6 +25,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	public $testmode;
 
 	/**
+	 * Enabled.
+	 *
+	 * @var
+	 */
+	public $stripe_settings;
+
+	/**
 	 * The secret to use when verifying webhooks.
 	 *
 	 * @var string
@@ -38,11 +45,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function __construct() {
-		$this->retry_interval = 2;
-		$stripe_settings      = get_option( 'woocommerce_stripe_settings', array() );
-		$this->testmode       = ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
-		$secret_key           = ( $this->testmode ? 'test_' : '' ) . 'webhook_secret';
-		$this->secret         = ! empty( $stripe_settings[ $secret_key ] ) ? $stripe_settings[ $secret_key ] : false;
+		$this->retry_interval       = 2;
+		$this->stripe_settings     = get_option( 'woocommerce_stripe_settings', array() );
+		$this->testmode             = ( ! empty( $this->stripe_settings['testmode'] ) && 'yes' === $this->stripe_settings['testmode'] ) ? true : false;
+		$secret_key                 = ( $this->testmode ? 'test_' : '' ) . 'webhook_secret';
+		$this->secret               = ! empty( $this->stripe_settings[ $secret_key ] ) ? $this->stripe_settings[ $secret_key ] : false;
 
 		add_action( 'woocommerce_api_wc_stripe', array( $this, 'check_for_webhook' ) );
 	}
@@ -55,8 +62,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function check_for_webhook() {
 		if ( ( 'POST' !== $_SERVER['REQUEST_METHOD'] )
-			|| ! isset( $_GET['wc-api'] )
-			|| ( 'wc_stripe' !== $_GET['wc-api'] )
+		     || ! isset( $_GET['wc-api'] )
+		     || ( 'wc_stripe' !== $_GET['wc-api'] )
 		) {
 			return;
 		}
@@ -90,8 +97,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
-		if ( ! empty( $request_headers['USER-AGENT'] ) && ! preg_match( '/Stripe/', $request_headers['USER-AGENT'] ) ) {
-			return false;
+		if( ! empty( $this->stripe_settings['cloudfront_user_agent'] ) ) {
+			if ( ! empty( $request_headers['USER-AGENT'] ) && ! preg_match( '/Stripe/', $request_headers['USER-AGENT'] ) ) {
+				return FALSE;
+			}
 		}
 
 		if ( ! empty( $this->secret ) ) {

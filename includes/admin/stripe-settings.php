@@ -186,5 +186,13 @@ return apply_filters(
 			'default'     => 'no',
 			'desc_tip'    => true,
 		),
+		'cloudfront_user_agent'                       => array(
+			'title'       => __( 'Cloud Front User Agent', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Enable Cloud Front User Agent', 'woocommerce-gateway-stripe' ),
+			'type'        => 'checkbox',
+			'description' => __( 'Disable check for stripe user agent in webhook handles.', 'woocommerce-gateway-stripe' ),
+			'default'     => 'no',
+			'desc_tip'    => true,
+		),
 	)
 );
