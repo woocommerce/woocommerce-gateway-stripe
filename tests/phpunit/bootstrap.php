@@ -9,7 +9,7 @@ require_once $_tests_dir . '/includes/functions.php';
 function _manually_load_plugin() {
 	$plugin_dir = dirname( dirname( dirname( dirname( __FILE__ ) ) ) ) . '/';
 	require $plugin_dir . 'woocommerce/woocommerce.php';
-	update_option( 'woocommerce_default_country', 'US:CA' );
+	require dirname( __FILE__ ) . '/setup.php';
 	require $plugin_dir . 'woocommerce-gateway-stripe/woocommerce-gateway-stripe.php';
 }
 
