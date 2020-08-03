@@ -359,7 +359,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				break;
 		}
 
-		if ( ! empty( $order->get_shipping_postcode() ) ) {
+		if ( method_exists( $order, 'get_shipping_postcode' ) && ! empty( $order->get_shipping_postcode() ) ) {
 			$post_data['shipping'] = array(
 				'name'    => trim( $order->get_shipping_first_name() . ' ' . $order->get_shipping_last_name() ),
 				'address' => array(
