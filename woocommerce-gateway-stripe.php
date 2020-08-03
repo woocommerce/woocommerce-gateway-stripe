@@ -54,6 +54,73 @@ function woocommerce_stripe_wc_not_supported() {
 	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce %1$s or greater to be installed and active. WooCommerce %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), WC_STRIPE_MIN_WC_VER, WC_VERSION ) . '</strong></p></div>';
 }
 
+/**
+ * WooCommerce country not supported notice.
+ *
+ * @since 4.5.1
+ * @return string
+ */
+function woocommerce_stripe_wc_country_not_supported() {
+	echo '<div class="error"><p><strong>' . __( 'Stripe is not available in your store\'s country and will not be available for buyers to choose during checkout.', 'woocommerce-gateway-stripe' ) . '</strong></p></div>';
+}
+
+/**
+ * Check that the WooCommerce country is supported by Stripe.
+ * See https://stripe.com/global for list.
+ *
+ * @since 4.5.1
+ * @return bool
+ */
+function woocommerce_stripe_wc_country_is_supported_country() {
+	$wc_default_country = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
+
+	$supported_countries = apply_filters(
+		'wc_stripe_supported_countries',
+		array(
+			'AT', // Austria
+			'AU', // Australia
+			'BE', // Belgium
+			'BG', // Bulgaria
+			'CA', // Canada
+			'CY', // Cyprus
+			'CZ', // Czech Republic
+			'DK', // Denmark
+			'EE', // Estonia
+			'FI', // Finland
+			'FR', // France
+			'DE', // Germany
+			'GR', // Greece
+			'HK', // Hong Kong
+			'IE', // Ireland
+			'IT', // Italy
+			'JP', // Japan
+			'LV', // Latvia
+			'LT', // Lithuania
+			'LU', // Luxembourg
+			'MY', // Malaysia
+			'MT', // Malta
+			'MX', // Mexico
+			'NL', // Netherlands
+			'NZ', // New Zealand
+			'NO', // Norway
+			'PL', // Poland
+			'PR', // Puerto Rico #1203
+			'PT', // Portugal
+			'RO', // Romania
+			'SG', // Singapore
+			'SK', // Slovakia
+			'SI', // Slovenia
+			'ES', // Spain
+			'SE', // Sweden
+			'CH', // Switzerland
+			'GB', // United Kingdom (UK)
+			'US'  // United States (US)
+		)
+	);
+
+	return in_array( $wc_default_country, $supported_countries );
+}
+
 add_action( 'plugins_loaded', 'woocommerce_gateway_stripe_init' );
 
 function woocommerce_gateway_stripe_init() {
@@ -66,6 +133,11 @@ function woocommerce_gateway_stripe_init() {
 
 	if ( version_compare( WC_VERSION, WC_STRIPE_MIN_WC_VER, '<' ) ) {
 		add_action( 'admin_notices', 'woocommerce_stripe_wc_not_supported' );
+		return;
+	}
+
+	if ( ! woocommerce_stripe_wc_country_is_supported_country() ) {
+		add_action( 'admin_notices', 'woocommerce_stripe_wc_country_not_supported' );
 		return;
 	}
 

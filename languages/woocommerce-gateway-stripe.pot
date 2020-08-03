@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.5.0\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
-"POT-Creation-Date: 2020-06-24 03:55:47+00:00\n"
+"POT-Creation-Date: 2020-07-31 17:19:47+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -1315,7 +1315,7 @@ msgid ""
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-alipay.php:60
-#: woocommerce-gateway-stripe.php:292
+#: woocommerce-gateway-stripe.php:364
 msgid "Stripe Alipay"
 msgstr ""
 
@@ -1344,27 +1344,27 @@ msgid "Add Payment"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-bancontact.php:60
-#: woocommerce-gateway-stripe.php:286
+#: woocommerce-gateway-stripe.php:358
 msgid "Stripe Bancontact"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-eps.php:60
-#: woocommerce-gateway-stripe.php:289
+#: woocommerce-gateway-stripe.php:361
 msgid "Stripe EPS"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-giropay.php:60
-#: woocommerce-gateway-stripe.php:288
+#: woocommerce-gateway-stripe.php:360
 msgid "Stripe Giropay"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-ideal.php:60
-#: woocommerce-gateway-stripe.php:290
+#: woocommerce-gateway-stripe.php:362
 msgid "Stripe iDeal"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:60
-#: woocommerce-gateway-stripe.php:294
+#: woocommerce-gateway-stripe.php:366
 msgid "Stripe Multibanco"
 msgstr ""
 
@@ -1393,12 +1393,12 @@ msgid "Awaiting Multibanco payment"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-p24.php:60
-#: woocommerce-gateway-stripe.php:291
+#: woocommerce-gateway-stripe.php:363
 msgid "Stripe P24"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:75
-#: woocommerce-gateway-stripe.php:293
+#: woocommerce-gateway-stripe.php:365
 msgid "Stripe SEPA Direct Debit"
 msgstr ""
 
@@ -1425,61 +1425,61 @@ msgid ""
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-sofort.php:60
-#: woocommerce-gateway-stripe.php:287
+#: woocommerce-gateway-stripe.php:359
 msgid "Stripe SOFORT"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:314
-#: includes/payment-methods/class-wc-stripe-payment-request.php:969
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1260
+#: includes/payment-methods/class-wc-stripe-payment-request.php:300
+#: includes/payment-methods/class-wc-stripe-payment-request.php:955
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1246
 msgid "Tax"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:322
-#: includes/payment-methods/class-wc-stripe-payment-request.php:977
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1267
+#: includes/payment-methods/class-wc-stripe-payment-request.php:308
+#: includes/payment-methods/class-wc-stripe-payment-request.php:963
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1253
 msgid "Shipping"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:329
-#: includes/payment-methods/class-wc-stripe-payment-request.php:984
+#: includes/payment-methods/class-wc-stripe-payment-request.php:315
+#: includes/payment-methods/class-wc-stripe-payment-request.php:970
 msgid "Pending"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:534
+#: includes/payment-methods/class-wc-stripe-payment-request.php:520
 msgid "Sorry, we're not accepting prepaid cards at this time."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:536
+#: includes/payment-methods/class-wc-stripe-payment-request.php:522
 #. translators: Do not translate the [option] placeholder
 msgid "Unknown shipping option \"[option]\"."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:645
+#: includes/payment-methods/class-wc-stripe-payment-request.php:631
 msgid "OR"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:819
-#: includes/payment-methods/class-wc-stripe-payment-request.php:832
+#: includes/payment-methods/class-wc-stripe-payment-request.php:805
+#: includes/payment-methods/class-wc-stripe-payment-request.php:818
 msgid "Unable to find shipping method for address."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:931
+#: includes/payment-methods/class-wc-stripe-payment-request.php:917
 msgid "Product with the ID (%d) cannot be found."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:952
+#: includes/payment-methods/class-wc-stripe-payment-request.php:938
 #. translators: 1: product name 2: quantity in stock
 msgid ""
 "You cannot add that amount of \"%1$s\"; to the cart because there is not "
 "enough stock (%2$s remaining)."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1103
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1089
 msgid "Empty cart"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1274
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1260
 msgid "Discount"
 msgstr ""
 
@@ -1500,6 +1500,11 @@ msgstr ""
 msgid "Authorize the payment &raquo;"
 msgstr ""
 
+#: vendor/autoload_packages.php:159
+#. translators: %s Name of a PHP Class
+msgid "Not all plugins have loaded yet but we requested the class %s"
+msgstr ""
+
 #: woocommerce-gateway-stripe.php:43
 #. translators: 1. URL link.
 msgid ""
@@ -1515,23 +1520,29 @@ msgid ""
 "WooCommerce %2$s is no longer supported."
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:216
+#: woocommerce-gateway-stripe.php:64
+msgid ""
+"Stripe is not available in your store's country and will not be available "
+"for buyers to choose during checkout."
+msgstr ""
+
+#: woocommerce-gateway-stripe.php:288
 msgid "Settings"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:232
+#: woocommerce-gateway-stripe.php:304
 msgid "View Documentation"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:232
+#: woocommerce-gateway-stripe.php:304
 msgid "Docs"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:233
+#: woocommerce-gateway-stripe.php:305
 msgid "Open a support request at WooCommerce.com"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:233
+#: woocommerce-gateway-stripe.php:305
 msgid "Support"
 msgstr ""
 

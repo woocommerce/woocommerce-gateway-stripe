@@ -1,6 +1,8 @@
 <?php
 /**
  * Stripe Payment Request API
+ * Adds support for Apple Pay and Chrome Payment Request API buttons.
+ * Utilizes the Stripe Payment Request Button to support checkout from the product detail and cart pages.
  *
  * @package WooCommerce_Stripe/Classes/Payment_Request
  * @since   4.0.0
@@ -92,24 +94,8 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		$wc_default_country = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
-
-		if ( ! in_array( $wc_default_country, $this->get_stripe_supported_countries() ) ) {
-			return;
-		}
-
 		add_action( 'template_redirect', array( $this, 'set_session' ) );
 		$this->init();
-	}
-
-	/**
-	 * List of supported countries by Stripe.
-	 *
-	 * @since 4.1.3
-	 * @return array The list of countries.
-	 */
-	public function get_stripe_supported_countries() {
-		return apply_filters( 'wc_stripe_supported_countries', array( 'AT', 'AU', 'BE', 'BR', 'CA', 'CH', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GB', 'HK', 'IE', 'IN', 'IT', 'JP', 'LT', 'LU', 'LV', 'MX', 'NL', 'NZ', 'NO', 'PH', 'PL', 'PR', 'PT', 'RO', 'SE', 'SG', 'SK', 'US' ) );
 	}
 
 	/**
