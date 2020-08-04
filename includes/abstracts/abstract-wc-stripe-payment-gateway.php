@@ -1055,9 +1055,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @param WC_Order $order           The order that is being paid for.
 	 * @param object   $prepared_source The source that is used for the payment.
+	 * @param float    $amount          The amount to charge. If not specified, it will be read from the order.
 	 * @return array                    The arguments for the request.
 	 */
-	public function generate_create_intent_request_for_off_session( $order, $prepared_source ) {
+	public function generate_create_intent_request_for_off_session( $order, $prepared_source, $amount = NULL ) {
 		// The request for a charge contains metadata for the intent.
 		$full_request = $this->generate_payment_request( $order, $prepared_source );
 
@@ -1400,7 +1401,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function create_and_confirm_intent_for_off_session( $order, $prepared_source, $amount = NULL ) {
 		// The request for a charge contains metadata for the intent.
-		$request = $this->generate_create_intent_request_for_off_session( $order, $prepared_source );
+		$request = $this->generate_create_intent_request_for_off_session( $order, $prepared_source, $amount );
 
 		$level3_data = $this->get_level3_data_from_order( $order );
 		$intent = WC_Stripe_API::request_with_level3_data(
