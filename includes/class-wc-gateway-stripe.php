@@ -361,8 +361,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				'i18n'                  => array(
 					'wc_stripe_oauth_text' => sprintf(
 						/* translators: 1) opening anchor tag 2) closing anchor tag */
-						__( '%1$sClick here%2$s to automatically copy your Stripe account keys.', 'woocommerce-gateway-stripe' ),
-						'<a href="#" id="oauth-init">',
+						__( '%1$sSetup or link an existing Stripe Account%2$s', 'woocommerce-gateway-stripe' ),
+						'<a href="#" class="button button-primary" id="oauth-init">',
 						'</a>'
 					),
 				),
