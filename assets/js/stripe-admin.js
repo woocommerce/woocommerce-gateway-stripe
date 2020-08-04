@@ -17,6 +17,19 @@ jQuery( function( $ ) {
 			}
 		},
 
+		connectOauth: function() {
+			var data     = { nonce: woocommerce_stripe_admin.wc_stripe_connect_nonce };
+			var response = $.ajax( {
+				method:  'POST',
+				data:    data,
+				url:     woocommerce_stripe_admin.ajax_url,
+			} ).done( function( response ) {
+				if( response.success ) {
+					window.location.href = response.data;
+				}
+			} );
+		},
+
 		/**
 		 * Initialize.
 		 */

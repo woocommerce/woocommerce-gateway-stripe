@@ -87,7 +87,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$this->id             = 'stripe';
 		$this->method_title   = __( 'Stripe', 'woocommerce-gateway-stripe' );
 		/* translators: 1) link to Stripe register page 2) link to Stripe api keys page */
-		$this->method_description = sprintf( __( 'Stripe works by adding payment fields on the checkout and then sending the details to Stripe for verification. <a href="%1$s" target="_blank">Sign up</a> for a Stripe account, and <a href="%2$s" target="_blank">get your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), 'https://dashboard.stripe.com/register', 'https://dashboard.stripe.com/account/apikeys' );
+		$this->method_description = __( 'Stripe works by adding payment fields on the checkout and then sending the details to Stripe for verification.', 'woocommerce-gateway-stripe' );
 		$this->has_fields         = true;
 		$this->supports           = array(
 			'products',
@@ -351,6 +351,18 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
 		wp_enqueue_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION, true );
+		wp_localize_script(
+			'woocommerce_stripe_admin',
+			'woocommerce_stripe_admin',
+			array(
+				'ajax_url'                => WC_AJAX::get_endpoint( 'wc_stripe_connect_oauth' ),
+				'wc_stripe_connect_nonce' => wp_create_nonce( '_wc_stripe_connect_nonce' ),
+				'wc_stripe_connect_oauth' => ! $this->secret_key && ! $this->publishable_key && ! get_option( 'stripe_state', false ),
+				'i18n'                    => array(
+					'wc_stripe_connect_text' => __( 'Automatically copy your Stripe account keys.', 'woocommerce-gateway-stripe' ),
+				),
+			)
+		);
 	}
 
 	/**

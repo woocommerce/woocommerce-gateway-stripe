@@ -181,8 +181,6 @@ function woocommerce_gateway_stripe_init() {
 
 				if ( is_admin() ) {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
-					require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect.php';
-					require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect-api.php';
 				}
 
 				// REMOVE IN THE FUTURE.
