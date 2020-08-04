@@ -28,7 +28,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			$this->api = $api;
 
-			add_action( 'wc_ajax_wc_stripe_connect_oauth', array( $this, 'wc_ajax_connect_oauth' ) );
+			add_action( 'wc_ajax_wc_stripe_oauth_init', array( $this, 'wc_ajax_oauth_init' ) );
 		}
 
 		/**
@@ -177,16 +177,16 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		/**
 		 * Gets Stripe Connect Oauth url and redirects to Stripe.
 		 */
-		public function wc_ajax_connect_oauth() {
+		public function wc_ajax_oauth_init() {
 
-			if ( empty( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_connect_nonce' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-				wp_die( __( 'You are not authorized to automatically copy Stripe keys', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			if ( empty( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_oauth_nonce' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+				wp_die( __( 'You are not authorized to automatically copy Stripe keys.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			}
 
 			$oauth_url = $this->get_oauth_url();
 
 			if ( is_wp_error( $oauth_url ) ) {
-				wp_send_json_error();
+				wp_send_json_error( $oauth_url->get_error_message() );
 			}
 
 			wp_send_json_success( $oauth_url );

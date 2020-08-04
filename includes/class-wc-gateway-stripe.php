@@ -355,11 +355,16 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			'woocommerce_stripe_admin',
 			'woocommerce_stripe_admin',
 			array(
-				'ajax_url'                => WC_AJAX::get_endpoint( 'wc_stripe_connect_oauth' ),
-				'wc_stripe_connect_nonce' => wp_create_nonce( '_wc_stripe_connect_nonce' ),
-				'wc_stripe_connect_oauth' => ! $this->secret_key && ! $this->publishable_key && ! get_option( 'stripe_state', false ),
-				'i18n'                    => array(
-					'wc_stripe_connect_text' => __( 'Automatically copy your Stripe account keys.', 'woocommerce-gateway-stripe' ),
+				'ajax_url'              => WC_AJAX::get_endpoint( 'wc_stripe_oauth_init' ),
+				'wc_stripe_oauth_nonce' => wp_create_nonce( '_wc_stripe_oauth_nonce' ),
+				'wc_stripe_oauth_init'  => ! $this->secret_key && ! $this->publishable_key && ! get_option( 'stripe_state', false ),
+				'i18n'                  => array(
+					'wc_stripe_oauth_text' => sprintf(
+						/* translators: 1) opening anchor tag 2) closing anchor tag */
+						__( '%1$sClick here%2$s to automatically copy your Stripe account keys.', 'woocommerce-gateway-stripe' ),
+						'<a href="#" id="oauth-init">',
+						'</a>'
+					),
 				),
 			)
 		);
