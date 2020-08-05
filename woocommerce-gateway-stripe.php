@@ -133,10 +133,7 @@ function woocommerce_gateway_stripe_init() {
 				$this->connect = new WC_Stripe_Connect( $this->api );
 
 				add_action( 'rest_api_init', array( $this, 'register_connect_routes' ) );
-
-				if ( get_option( 'stripe_state', false ) ) {
-					add_action( 'admin_enqueue_scripts', array( $this->connect, 'maybe_connect_oauth' ) );
-				}
+				add_action( 'admin_enqueue_scripts', array( $this->connect, 'maybe_connect_oauth' ) );
 			}
 
 			/**

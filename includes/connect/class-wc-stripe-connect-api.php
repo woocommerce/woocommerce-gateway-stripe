@@ -102,20 +102,6 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		 */
 		protected function request( $method, $path, $body = array() ) {
 
-			if ( ! class_exists( 'Jetpack_Data' ) ) {
-				return new WP_Error(
-					'jetpack_data_class_not_found',
-					__( 'Unable to send request to WooCommerce Connect server. Jetpack_Data was not found.', 'woocommerce-gateway-stripe' )
-				);
-			}
-
-			if ( ! method_exists( 'Jetpack_Data', 'get_access_token' ) ) {
-				return new WP_Error(
-					'jetpack_data_get_access_token_not_found',
-					__( 'Unable to send request to WooCommerce Connect server. Jetpack_Data does not implement get_access_token.', 'woocommerce-gateway-stripe' )
-				);
-			}
-
 			if ( ! is_array( $body ) ) {
 				return new WP_Error(
 					'request_body_should_be_array',
@@ -233,15 +219,14 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			$body['settings'] = wp_parse_args(
 				$body['settings'],
 				array(
-					'base_city'       => WC()->countries->get_base_city(),
-					'base_country'    => WC()->countries->get_base_country(),
-					'base_state'      => WC()->countries->get_base_state(),
-					'base_postcode'   => WC()->countries->get_base_postcode(),
-					'currency'        => get_woocommerce_currency(),
-					'stripe_version'  => WC_STRIPE_VERSION,
-					'jetpack_version' => JETPACK__VERSION,
-					'wc_version'      => WC()->version,
-					'wp_version'      => get_bloginfo( 'version' ),
+					'base_city'      => WC()->countries->get_base_city(),
+					'base_country'   => WC()->countries->get_base_country(),
+					'base_state'     => WC()->countries->get_base_state(),
+					'base_postcode'  => WC()->countries->get_base_postcode(),
+					'currency'       => get_woocommerce_currency(),
+					'stripe_version' => WC_STRIPE_VERSION,
+					'wc_version'     => WC()->version,
+					'wp_version'     => get_bloginfo( 'version' ),
 				)
 			);
 
@@ -249,17 +234,11 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		}
 
 		/**
-		 * Generates headers for equest to the WooCommerce Connect Server.
+		 * Generates headers for request to the WooCommerce Connect Server.
 		 *
 		 * @return array|WP_Error
 		 */
 		protected function request_headers() {
-
-			$authorization = $this->authorization_header();
-
-			if ( is_wp_error( $authorization ) ) {
-				return $authorization;
-			}
 
 			$headers                    = array();
 			$locale                     = strtolower( str_replace( '_', '-', get_locale() ) );
@@ -268,98 +247,8 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			$headers['Accept-Language'] = $locale . ',' . $lang;
 			$headers['Content-Type']    = 'application/json; charset=utf-8';
 			$headers['Accept']          = 'application/vnd.woocommerce-connect.v' . self::WOOCOMMERCE_CONNECT_SERVER_API_VERSION;
-			$headers['Authorization']   = $authorization;
 
 			return $headers;
 		}
-
-		/**
-		 * Generates Jetpack authorization header for request to the WooCommerce Connect Server.
-		 *
-		 * @return string|WP_Error
-		 */
-		protected function authorization_header() {
-
-			$token = Jetpack_Data::get_access_token( 0 );
-			$token = apply_filters( 'wc_connect_jetpack_access_token', $token );
-
-			if ( ! $token || empty( $token->secret ) ) {
-				return new WP_Error(
-					'missing_token',
-					__( 'Unable to send request to WooCommerce Connect server. Jetpack Token is missing', 'woocommerce-gateway-stripe' )
-				);
-			}
-
-			if ( false === strpos( $token->secret, '.' ) ) {
-				return new WP_Error(
-					'invalid_token',
-					__( 'Unable to send request to WooCommerce Connect server. Jetpack Token is malformed.', 'woocommerce-gateway-stripe' )
-				);
-			}
-
-			list( $token_key, $token_secret ) = explode( '.', $token->secret );
-
-			$token_key = sprintf( '%s:%d:%d', $token_key, JETPACK__API_VERSION, $token->external_user_id );
-			$time_diff = (int) Jetpack_Options::get_option( 'time_diff' );
-			$timestamp = time() + $time_diff;
-			$nonce     = wp_generate_password( 10, false );
-			$signature = $this->request_signature( $token_key, $token_secret, $timestamp, $nonce, $time_diff );
-
-			if ( is_wp_error( $signature ) ) {
-				return $signature;
-			}
-
-			$auth = array(
-				'token'     => $token_key,
-				'timestamp' => $timestamp,
-				'nonce'     => $nonce,
-				'signature' => $signature,
-			);
-
-			$header_pieces = array();
-
-			foreach ( $auth as $key => $value ) {
-				$header_pieces[] = sprintf( '%s="%s"', $key, $value );
-			}
-
-			$authorization = 'X_JP_Auth ' . join( ' ', $header_pieces );
-
-			return $authorization;
-		}
-
-		/**
-		 * Generates signature for our request to the WooCommerce Connect Server.
-		 *
-		 * @param string $token_key    signature key.
-		 * @param string $token_secret signature secret.
-		 * @param string $timestamp    timestamp for signature.
-		 * @param string $nonce        nonce for signature.
-		 * @param string $time_diff    Jetpack time_diff option.
-		 *
-		 * @return string|WP_Error
-		 */
-		protected function request_signature( $token_key, $token_secret, $timestamp, $nonce, $time_diff ) {
-
-			$local_time = $timestamp - $time_diff;
-
-			if ( $local_time < time() - 600 || $local_time > time() + 300 ) {
-				return new WP_Error(
-					'invalid_signature',
-					__( 'Unable to send request to WooCommerce Connect server. The timestamp generated for the signature is too old.', 'woocommerce-gateway-stripe' )
-				);
-			}
-
-			$normalized_request_string = join(
-				"\n",
-				array(
-					$token_key,
-					$timestamp,
-					$nonce,
-				)
-			) . "\n";
-
-			return base64_encode( hash_hmac( 'sha1', $normalized_request_string, $token_secret, true ) ); //phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
-		}
-
 	}
 }

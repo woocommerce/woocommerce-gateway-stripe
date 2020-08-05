@@ -29,6 +29,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$this->api = $api;
 
 			add_action( 'wc_ajax_wc_stripe_oauth_init', array( $this, 'wc_ajax_oauth_init' ) );
+			add_action( 'wc_ajax_wc_stripe_clear_keys', array( $this, 'wc_ajax_clear_stripe_keys' ) );
 		}
 
 		/**
@@ -107,6 +108,10 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 */
 		public function maybe_connect_oauth() {
 
+			if ( ! get_option( 'stripe_state', false ) ) {
+				return;
+			}
+
 			if ( isset( $_GET['wcs_stripe_code'], $_GET['wcs_stripe_state'] ) ) {
 				$response = $this->connect_oauth( $_GET['wcs_stripe_state'], $_GET['wcs_stripe_code'] );
 
@@ -114,7 +119,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				exit;
 			}
 		}
-
 
 		/**
 		 * Saves stripe keys after OAuth response
@@ -154,8 +158,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 */
 		private function clear_stripe_keys() {
 
-			$default_options = $this->get_default_config();
-			$options         = array_merge( $default_options, get_option( self::SETTINGS_OPTION, array() ) );
+			$options = get_option( self::SETTINGS_OPTION, array() );
 
 			if ( 'yes' === $options['testmode'] ) {
 				$options['test_publishable_key'] = '';
@@ -179,7 +182,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 */
 		public function wc_ajax_oauth_init() {
 
-			if ( empty( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_oauth_nonce' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+			if ( empty( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_admin_nonce' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 				wp_die( __( 'You are not authorized to automatically copy Stripe keys.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			}
 
@@ -190,6 +193,20 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			}
 
 			wp_send_json_success( $oauth_url );
+		}
+
+		/**
+		 * Clear stripe keys.
+		 */
+		public function wc_ajax_clear_stripe_keys() {
+
+			if ( empty( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_admin_nonce' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+				wp_die( __( 'You are not authorized to reset Stripe keys.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			}
+
+			$this->clear_stripe_keys();
+
+			wp_send_json_success( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 		}
 	}
 }

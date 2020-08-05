@@ -33,6 +33,10 @@ return apply_filters(
 			/* translators: webhook URL */
 			'description' => $this->display_admin_settings_webhook_description(),
 		),
+		'api_credentials'               => array(
+			'title' => __( 'API Credentials', 'woocommerce-gateway-stripe' ),
+			'type'  => 'title',
+		),
 		'testmode'                      => array(
 			'title'       => __( 'Test mode', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Enable Test Mode', 'woocommerce-gateway-stripe' ),

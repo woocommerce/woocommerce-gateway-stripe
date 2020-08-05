@@ -348,24 +348,31 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+		$suffix         = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+		$oauth_endpoint = $this->secret_key && $this->publishable_key ? 'wc_stripe_clear_keys' : 'wc_stripe_oauth_init';
+		$oauth_text     = array(
+			'wc_stripe_clear_keys' => sprintf(
+				/* translators: 1) opening anchor tag 2) closing anchor tag */
+				__( '%1$sReset Stripe account keys%2$s', 'woocommerce-gateway-stripe' ),
+				'<a href="#" class="button button-secondary">',
+				'</a>'
+			),
+			'wc_stripe_oauth_init' => sprintf(
+				/* translators: 1) opening anchor tag 2) closing anchor tag */
+				__( '%1$sSetup or link an existing Stripe Account%2$s or manually enter Stripe keys below.', 'woocommerce-gateway-stripe' ),
+				'<a href="#" class="button button-primary">',
+				'</a>'
+			),
+		);
 
 		wp_enqueue_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION, true );
 		wp_localize_script(
 			'woocommerce_stripe_admin',
 			'woocommerce_stripe_admin',
 			array(
-				'ajax_url'              => WC_AJAX::get_endpoint( 'wc_stripe_oauth_init' ),
-				'wc_stripe_oauth_nonce' => wp_create_nonce( '_wc_stripe_oauth_nonce' ),
-				'wc_stripe_oauth_init'  => ! $this->secret_key && ! $this->publishable_key && ! get_option( 'stripe_state', false ),
-				'i18n'                  => array(
-					'wc_stripe_oauth_text' => sprintf(
-						/* translators: 1) opening anchor tag 2) closing anchor tag */
-						__( '%1$sSetup or link an existing Stripe Account%2$s', 'woocommerce-gateway-stripe' ),
-						'<a href="#" class="button button-primary" id="oauth-init">',
-						'</a>'
-					),
-				),
+				'ajax_url'                  => WC_AJAX::get_endpoint( $oauth_endpoint ),
+				'wc_stripe_admin_nonce'     => wp_create_nonce( '_wc_stripe_admin_nonce' ),
+				'wc_stripe_api_button_text' => $oauth_text[ $oauth_endpoint ],
 			)
 		);
 	}
