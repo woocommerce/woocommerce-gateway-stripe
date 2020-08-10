@@ -28,6 +28,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_order_status_completed', array( $this, 'capture_payment' ) );
 		add_action( 'woocommerce_order_status_cancelled', array( $this, 'cancel_payment' ) );
 		add_action( 'woocommerce_order_status_refunded', array( $this, 'cancel_payment' ) );
+		add_filter( 'woocommerce_tracks_event_properties', array( $this, 'woocommerce_tracks_event_properties' ), 10, 2 );
 	}
 
 	/**
@@ -332,6 +333,50 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			// This hook fires when admin manually changes order status to cancel.
 			do_action( 'woocommerce_stripe_process_manual_cancel', $order );
 		}
+	}
+
+	/**
+	 * Filter. Adds additional meta data to Tracks events.
+	 * Note that this filter is only called if WC_Site_Tracking::is_tracking_enabled.
+	 *
+	 * @since 4.5.1
+	 * @param array Properties to be appended to.
+	 * @param string Event name, e.g. orders_edit_status_change.
+	 */
+	public function woocommerce_tracks_event_properties( $properties, $prefixed_event_name ) {
+		// Not the desired event? Bail.
+		if ( 'wcadmin_orders_edit_status_change' != $prefixed_event_name ) {
+			return $properties;
+		}
+
+		// Properties not an array? Bail.
+		if ( ! is_array( $properties ) ) {
+			return $properties;
+		}
+
+		// No payment_method in properties? Bail.
+		if ( ! array_key_exists( 'payment_method', $properties ) ) {
+			return $properties;
+		}
+
+		// Not stripe? Bail.
+		if ( 'stripe' != $properties[ 'payment_method' ] ) {
+			return $properties;
+		}
+
+		// Due diligence done. Collect the metadata.
+		$is_live         = true;
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', array() );
+		if ( array_key_exists( 'testmode', $stripe_settings ) ) {
+			$is_live = 'no' === $stripe_settings[ 'testmode' ];
+		}
+
+		$properties[ 'admin_email' ]                        = get_option( 'admin_email' );
+		$properties[ 'is_live' ]                            = $is_live;
+		$properties[ 'woocommerce_gateway_stripe_version' ] = WC_STRIPE_VERSION;
+		$properties[ 'woocommerce_default_country' ]        = get_option( 'woocommerce_default_country' );
+
+		return $properties;
 	}
 }
 
