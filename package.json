@@ -20,6 +20,7 @@
     "chai-as-promised": "^7.1.1",
     "chromedriver": "^2.40.0",
     "clean-css-cli": "^4.1.10",
+    "colors": "^1.4.0",
     "config": "^1.24.0",
     "cross-env": "^5.1.6",
     "mocha": "^5.2.0",
