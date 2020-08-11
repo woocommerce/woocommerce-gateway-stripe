@@ -44,7 +44,9 @@
     }
   },
   "scripts": {
-    "build": "npm install && composer install && npm run uglify && npm run makepot && npm run sass && node tasks/release.js && mv release/woocommerce-gateway-stripe.zip .",
+    "prebuild": "npm install && composer install",
+    "build": "npm run uglify && npm run makepot && npm run sass && npm run build:release",
+    "build:release": "node tasks/release.js && mv release/woocommerce-gateway-stripe.zip .",
     "preuglify": "rm -f $npm_package_assets_js_min",
     "uglify": "for f in $npm_package_assets_js_js; do file=${f%.js}; node_modules/.bin/uglifyjs $f -c -m > $file.min.js; done",
     "docker:up": "docker-compose up -d",
