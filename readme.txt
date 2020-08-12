@@ -5,6 +5,8 @@ Requires at least: 4.4
 Tested up to: 5.4
 Requires PHP: 5.6
 Stable tag: 4.5.0
+WC requires at least: 2.6
+WC tested up to: 4.3.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
