@@ -11,6 +11,8 @@ sftp-config.json
 /deploy/
 .vscode/
 vendor
+release/
+woocommerce-gateway-stripe.zip
 
 # Ignore all log files except for .htaccess
 /logs/*

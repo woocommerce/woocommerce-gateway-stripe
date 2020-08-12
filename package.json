@@ -9,6 +9,7 @@
     "url": "git://github.com/woocommerce/woocommerce-gateway-stripe.git"
   },
   "devDependencies": {
+    "archiver": "^5.0.0",
     "babel": "^6.5.2",
     "babel-cli": "^6.14.0",
     "babel-eslint": "^8.2.3",
@@ -19,11 +20,13 @@
     "chai-as-promised": "^7.1.1",
     "chromedriver": "^2.40.0",
     "clean-css-cli": "^4.1.10",
+    "colors": "^1.4.0",
     "config": "^1.24.0",
     "cross-env": "^5.1.6",
     "mocha": "^5.2.0",
     "node-sass": "^4.11.0",
     "node-wp-i18n": "~1.2.1",
+    "shelljs": "^0.8.4",
     "stylelint": "^10.1.0",
     "uglify-js": "^3.1.3",
     "wait-on": "^5.0.0",
@@ -42,7 +45,9 @@
     }
   },
   "scripts": {
-    "build": "npm run uglify && npm run makepot && npm run sass",
+    "prebuild": "npm install && composer install",
+    "build": "npm run uglify && npm run makepot && npm run sass && npm run build:release",
+    "build:release": "node tasks/release.js && mv release/woocommerce-gateway-stripe.zip .",
     "preuglify": "rm -f $npm_package_assets_js_min",
     "uglify": "for f in $npm_package_assets_js_js; do file=${f%.js}; node_modules/.bin/uglifyjs $f -c -m > $file.min.js; done",
     "docker:up": "docker-compose up -d",
@@ -55,7 +60,7 @@
     "sass": "node_modules/.bin/node-sass $npm_package_assets_styles_cssfolder --output $npm_package_assets_styles_cssfolder --output-style compressed",
     "watchsass": "node_modules/.bin/node-sass $npm_package_assets_styles_sass --output $npm_package_assets_styles_css --output-style compressed --watch",
     "postsass": "for f in $npm_package_assets_styles_css; do file=${f%.css}; node_modules/.bin/cleancss -o $file.css $f; done",
-    "makepot": "wpi18n addtextdomain woocommerce-gateway-stripe --exclude node_modules,tests,docs,docker; wpi18n makepot --domain-path languages --pot-file woocommerce-gateway-stripe.pot --type plugin --main-file woocommerce-gateway-stripe.php --exclude node_modules,tests,docs,docker",
+    "makepot": "wpi18n addtextdomain woocommerce-gateway-stripe --exclude node_modules,tests,docs,docker,release; wpi18n makepot --domain-path languages --pot-file woocommerce-gateway-stripe.pot --type plugin --main-file woocommerce-gateway-stripe.php --exclude node_modules,tests,docs,docker,release",
     "test": "cross-env NODE_CONFIG_DIR='./tests/e2e/config' BABEL_ENV=commonjs mocha \"tests/e2e\" --require babel-register --recursive",
     "test:grep": "cross-env NODE_CONFIG_DIR='./tests/e2e/config' BABEL_ENV=commonjs mocha \"tests/e2e\" --require babel-register --grep ",
     "test:single": "cross-env NODE_CONFIG_DIR='./tests/e2e/config' BABEL_ENV=commonjs mocha --require babel-register",
