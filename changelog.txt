@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 4.5.2 - 2020-08-19 =
+* Fix - Allow extension to attempt to run in all countries, not just officially supported ones
+
 = 4.5.1 - 2020-08-12 =
 * Add - Support for Bulgaria, Czech Republic, Greece, Cyprus, Malta, Slovenia
 * Add - Additional metadata for order status change events when tracking is permitted
