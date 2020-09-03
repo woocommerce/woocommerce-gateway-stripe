@@ -69,34 +69,28 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	/**
 	 * Stripe requires statement_descriptor to be no longer than 22 characters.
 	 * In addition, it cannot contain <>"' special characters.
+	 *
+     * @dataProvider statement_descriptor_sanitation_provider
 	 */
-	public function test_statement_descriptor_sanitation() {
-		$statement_descriptor1 = array(
-			'actual'   => 'Test\'s Store',
-			'expected' => 'Tests Store',
-		);
+	public function test_statement_descriptor_sanitation( $original, $expected ) {
+		$this->assertEquals( $expected, WC_Stripe_Helper::clean_statement_descriptor( $original ) );
+	}
 
-		$this->assertEquals( $statement_descriptor1['expected'], WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor1['actual'] ) );
-
-		$statement_descriptor2 = array(
-			'actual'   => 'Test\'s Store > Driving Course Range',
-			'expected' => 'Tests Store  Driving C',
-		);
-
-		$this->assertEquals( $statement_descriptor2['expected'], WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor2['actual'] ) );
-
-		$statement_descriptor3 = array(
-			'actual'   => 'Test\'s Store < Driving Course Range',
-			'expected' => 'Tests Store  Driving C',
-		);
-
-		$this->assertEquals( $statement_descriptor3['expected'], WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor3['actual'] ) );
-
-		$statement_descriptor4 = array(
-			'actual'   => 'Test\'s Store " Driving Course Range',
-			'expected' => 'Tests Store  Driving C',
-		);
-
-		$this->assertEquals( $statement_descriptor4['expected'], WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor4['actual'] ) );
+	public function statement_descriptor_sanitation_provider() {
+		return [
+			'removes \'' => [ 'Test\'s Store', 'Tests Store' ],
+			'removes "' => [ 'Test " Store', 'Test  Store' ],
+			'removes <' => [ 'Test < Store', 'Test  Store' ],
+			'removes >' => [ 'Test > Store', 'Test  Store' ],
+			'removes /' => [ 'Test / Store', 'Test  Store' ],
+			'removes (' => [ 'Test ( Store', 'Test  Store' ],
+			'removes )' => [ 'Test ) Store', 'Test  Store' ],
+			'removes {' => [ 'Test { Store', 'Test  Store' ],
+			'removes }' => [ 'Test } Store', 'Test  Store' ],
+			'keeps at most 22 chars' => [ 'Test\'s Store > Driving Course Range', 'Tests Store  Driving C' ],
+			'mixed length, \' and >' => [ 'Test\'s Store > Driving Course Range', 'Tests Store  Driving C' ],
+			'mixed length, \' and <' => [ 'Test\'s Store < Driving Course Range', 'Tests Store  Driving C' ],
+			'mixed length, \' and "' => [ 'Test\'s Store " Driving Course Range', 'Tests Store  Driving C' ]
+		];
 	}
 }
