@@ -689,8 +689,9 @@ msgstr ""
 #: includes/admin/stripe-settings.php:133
 msgid ""
 "Statement descriptors are limited to 22 characters, cannot use the special "
-"characters >, <, \", \\, ', *, and must not consist solely of numbers. This "
-"will appear on your customer's statement in capital letters."
+"characters >, <, \", \\, ', *, /, (, ), {, }, and must not consist solely "
+"of numbers. This will appear on your customer's statement in capital "
+"letters."
 msgstr ""
 
 #: includes/admin/stripe-settings.php:138
