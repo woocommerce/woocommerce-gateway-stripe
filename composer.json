@@ -3,8 +3,7 @@
     "description": "Take credit card payments on your store using Stripe.",
     "homepage": "https://woocommerce.com/products/woocommerce-gateway-stripe/",
 		"license": "GPL-2.0",
-    "type": "wordpress-plugin",
-    "config": {
+		"config": {
       "platform": {
         "php": "7.0"
       }
