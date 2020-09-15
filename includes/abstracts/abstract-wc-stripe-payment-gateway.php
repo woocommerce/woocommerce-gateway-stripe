@@ -1049,54 +1049,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		 */
 		return apply_filters( 'wc_stripe_generate_create_intent_request', $request, $order, $prepared_source );
 	}
-	
-	/**
-	 * Generates the request when creating a new payment intent off session.
-	 *
-	 * @param WC_Order $order           The order that is being paid for.
-	 * @param object   $prepared_source The source that is used for the payment.
-	 * @param float    $amount          The amount to charge. If not specified, it will be read from the order.
-	 * @return array                    The arguments for the request.
-	 */
-	public function generate_create_intent_request_for_off_session( $order, $prepared_source, $amount = NULL ) {
-		// The request for a charge contains metadata for the intent.
-		$full_request = $this->generate_payment_request( $order, $prepared_source );
-
-		$request = array(
-			'amount'               => $amount ? WC_Stripe_Helper::get_stripe_amount( $amount, $full_request['currency'] ) : $full_request['amount'],
-			'currency'             => $full_request['currency'],
-			'description'          => $full_request['description'],
-			'metadata'             => $full_request['metadata'],
-			'payment_method_types' => array(
-				'card',
-			),
-			'off_session'          => 'true',
-			'confirm'              => 'true',
-			'confirmation_method'  => 'automatic',
-		);
-
-		if ( isset( $full_request['statement_descriptor'] ) ) {
-			$request['statement_descriptor'] = $full_request['statement_descriptor'];
-		}
-
-		if ( isset( $full_request['customer'] ) ) {
-			$request['customer'] = $full_request['customer'];
-		}
-
-		if ( isset( $full_request['source'] ) ) {
-			$request['source'] = $full_request['source'];
-		}
-	
-		/**
-		 * Filter the return value of the WC_Payment_Gateway_CC::generate_create_intent_request_for_off_session.
-		 *
-		 * @since 4.5.0
-		 * @param array $request
-		 * @param WC_Order $order
-		 * @param object $source
-		 */
-		return apply_filters('wc_stripe_generate_create_intent_request', $request, $order, $prepared_source );
-	}
 
 	/**
 	 * Create the level 3 data array to send to Stripe when making a purchase.
@@ -1401,7 +1353,42 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function create_and_confirm_intent_for_off_session( $order, $prepared_source, $amount = NULL ) {
 		// The request for a charge contains metadata for the intent.
-		$request = $this->generate_create_intent_request_for_off_session( $order, $prepared_source, $amount );
+		$full_request = $this->generate_payment_request( $order, $prepared_source );
+
+		$request = array(
+			'amount'               => $amount ? WC_Stripe_Helper::get_stripe_amount( $amount, $full_request['currency'] ) : $full_request['amount'],
+			'currency'             => $full_request['currency'],
+			'description'          => $full_request['description'],
+			'metadata'             => $full_request['metadata'],
+			'payment_method_types' => array(
+				'card',
+			),
+			'off_session'          => 'true',
+			'confirm'              => 'true',
+			'confirmation_method'  => 'automatic',
+		);
+
+		if ( isset( $full_request['statement_descriptor'] ) ) {
+			$request['statement_descriptor'] = $full_request['statement_descriptor'];
+		}
+
+		if ( isset( $full_request['customer'] ) ) {
+			$request['customer'] = $full_request['customer'];
+		}
+
+		if ( isset( $full_request['source'] ) ) {
+			$request['source'] = $full_request['source'];
+		}
+	
+		/**
+		 * Filter the value of the request.
+		 *
+		 * @since 4.5.0
+		 * @param array $request
+		 * @param WC_Order $order
+		 * @param object $source
+		 */
+		$request = apply_filters('wc_stripe_generate_create_intent_request', $request, $order, $prepared_source );
 
 		$level3_data = $this->get_level3_data_from_order( $order );
 		$intent = WC_Stripe_API::request_with_level3_data(
