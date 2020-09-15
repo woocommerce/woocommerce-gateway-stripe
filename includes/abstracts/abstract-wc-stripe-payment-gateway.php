@@ -1095,7 +1095,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		 * @param WC_Order $order
 		 * @param object $source
 		 */
-		return apply_filters('wc_stripe_generate_create_intent_request_for_off_session', $request, $order, $prepared_source );
+		return apply_filters('wc_stripe_generate_create_intent_request', $request, $order, $prepared_source );
 	}
 
 	/**
