@@ -120,7 +120,10 @@ class WC_Stripe_Customer {
 			// translators: %1$s First name, %2$s Second name, %3$s Username.
 			$description = sprintf( __( 'Name: %1$s %2$s, Username: %s', 'woocommerce-gateway-stripe' ), $billing_first_name, $billing_last_name, $user->user_login );
 
+			$billing_full_name = "$billing_first_name $billing_last_name";
+			
 			$defaults = array(
+				'name'        => $billing_full_name,
 				'email'       => $user->user_email,
 				'description' => $description,
 			);
@@ -130,8 +133,11 @@ class WC_Stripe_Customer {
 
 			// translators: %1$s First name, %2$s Second name.
 			$description = sprintf( __( 'Name: %1$s %2$s, Guest', 'woocommerce-gateway-stripe' ), $billing_first_name, $billing_last_name );
-
+			
+			$billing_full_name = "$billing_first_name $billing_last_name";
+			
 			$defaults = array(
+				'name'        => $billing_full_name,
 				'email'       => $billing_email,
 				'description' => $description,
 			);
