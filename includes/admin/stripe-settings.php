@@ -114,7 +114,7 @@ return apply_filters(
 				'<a href="https://stripe.com/apple-pay/legal" target="_blank">Stripe</a>',
 				'<a href="https://developer.apple.com/apple-pay/acceptable-use-guidelines-for-websites/" target="_blank">Apple</a>',
 				'<a href="https://dashboard.stripe.com/settings/payments/apple_pay" target="_blank">',
-				'</a>',
+				'</a>'
 			),
 			'type'        => 'checkbox',
 			'description' => __( 'If enabled, users will be able to pay using Apple Pay or Chrome Payment Request if supported by the browser.', 'woocommerce-gateway-stripe' ),
