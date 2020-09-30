@@ -322,7 +322,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Generate the request for the payment.
 	 *
 	 * @since 3.1.0
-	 * @version 4.0.0
+	 * @version 4.5.4
 	 * @param  WC_Order $order
 	 * @param  object $prepared_source
 	 * @return array()
@@ -379,12 +379,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			__( 'customer_name', 'woocommerce-gateway-stripe' ) => sanitize_text_field( $billing_first_name ) . ' ' . sanitize_text_field( $billing_last_name ),
 			__( 'customer_email', 'woocommerce-gateway-stripe' ) => sanitize_email( $billing_email ),
 			'order_id' => $order->get_order_number(),
+			'site_url' => esc_url( get_site_url() ),
 		);
 
 		if ( $this->has_subscription( $order->get_id() ) ) {
 			$metadata += array(
 				'payment_type' => 'recurring',
-				'site_url'     => esc_url( get_site_url() ),
 			);
 		}
 
@@ -1398,7 +1398,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$is_source = 'src_' === substr( $full_request['source'], 0, 4 );
 			$request[ $is_source ? 'source' : 'payment_method' ] = $full_request['source'];
 		}
-	
+
 		/**
 		 * Filter the value of the request.
 		 *
