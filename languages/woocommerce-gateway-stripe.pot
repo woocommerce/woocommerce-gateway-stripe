@@ -2,10 +2,10 @@
 # This file is distributed under the same license as the WooCommerce Stripe Gateway package.
 msgid ""
 msgstr ""
-"Project-Id-Version: WooCommerce Stripe Gateway 4.5.2\n"
+"Project-Id-Version: WooCommerce Stripe Gateway 4.5.3\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
-"POT-Creation-Date: 2020-08-19 19:45:47+00:00\n"
+"POT-Creation-Date: 2020-09-30 21:58:11+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -661,148 +661,150 @@ msgstr ""
 msgid "Payment Request Buttons"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:111
-#. translators: 1) br tag 2) opening anchor tag 3) closing anchor tag
+#: includes/admin/stripe-settings.php:112
+#. translators: 1) br tag 2) Stripe anchor tag 3) Apple anchor tag 4) Stripe
+#. dashboard opening anchor tag 5) Stripe dashboard closing anchor tag
 msgid ""
-"Enable Payment Request Buttons. (Apple Pay/Chrome Payment Request API) "
-"%1$sBy using Apple Pay, you agree to %2$s and %3$s's terms of service."
+"Enable Payment Request Buttons. (Apple Pay/Google Pay) %1$sBy using Apple "
+"Pay, you agree to %2$s and %3$s's terms of service. %4$sLog into your "
+"Stripe dashboard%5$s to complete or update your Apple Pay setup."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:113
+#: includes/admin/stripe-settings.php:120
 msgid ""
 "If enabled, users will be able to pay using Apple Pay or Chrome Payment "
 "Request if supported by the browser."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:118
+#: includes/admin/stripe-settings.php:125
 msgid "Payment Request Button Type"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:119
+#: includes/admin/stripe-settings.php:126
 msgid "Button Type"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:121
+#: includes/admin/stripe-settings.php:128
 msgid "Select the button type you would like to show."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:125
+#: includes/admin/stripe-settings.php:132
 msgid "Default"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:126
+#: includes/admin/stripe-settings.php:133
 msgid "Buy"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:127
+#: includes/admin/stripe-settings.php:134
 msgid "Donate"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:128
+#: includes/admin/stripe-settings.php:135
 msgid "Branded"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:129
+#: includes/admin/stripe-settings.php:136
 msgid "Custom"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:133
+#: includes/admin/stripe-settings.php:140
 msgid "Payment Request Button Theme"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:134
+#: includes/admin/stripe-settings.php:141
 msgid "Button Theme"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:136
+#: includes/admin/stripe-settings.php:143
 msgid "Select the button theme you would like to show."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:140
+#: includes/admin/stripe-settings.php:147
 msgid "Dark"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:141
+#: includes/admin/stripe-settings.php:148
 msgid "Light"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:142
+#: includes/admin/stripe-settings.php:149
 msgid "Light-Outline"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:146
+#: includes/admin/stripe-settings.php:153
 msgid "Payment Request Button Height"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:147
+#: includes/admin/stripe-settings.php:154
 msgid "Button Height"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:149
+#: includes/admin/stripe-settings.php:156
 msgid ""
 "Enter the height you would like the button to be in pixels. Width will "
 "always be 100%."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:154
+#: includes/admin/stripe-settings.php:161
 msgid "Payment Request Button Label"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:155
+#: includes/admin/stripe-settings.php:162
 msgid "Button Label"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:157
+#: includes/admin/stripe-settings.php:164
 msgid "Enter the custom text you would like the button to have."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:158
+#: includes/admin/stripe-settings.php:165
 msgid "Buy now"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:162
+#: includes/admin/stripe-settings.php:169
 msgid "Payment Request Branded Button Label Format"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:163
+#: includes/admin/stripe-settings.php:170
 msgid "Branded Button Label Format"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:165
+#: includes/admin/stripe-settings.php:172
 msgid "Select the branded button label format."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:169
+#: includes/admin/stripe-settings.php:176
 msgid "Logo only"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:170
+#: includes/admin/stripe-settings.php:177
 msgid "Text and logo"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:174
+#: includes/admin/stripe-settings.php:181
 msgid "Saved Cards"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:175
+#: includes/admin/stripe-settings.php:182
 msgid "Enable Payment via Saved Cards"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:177
+#: includes/admin/stripe-settings.php:184
 msgid ""
 "If enabled, users will be able to pay with a saved card during checkout. "
 "Card details are saved on Stripe servers, not on your store."
 msgstr ""
 
-#: includes/admin/stripe-settings.php:182
+#: includes/admin/stripe-settings.php:189
 msgid "Logging"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:183
+#: includes/admin/stripe-settings.php:190
 msgid "Log debug messages"
 msgstr ""
 
-#: includes/admin/stripe-settings.php:185
+#: includes/admin/stripe-settings.php:192
 msgid "Save debug messages to the WooCommerce System Status log."
 msgstr ""
 

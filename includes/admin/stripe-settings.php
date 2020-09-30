@@ -107,8 +107,15 @@ return apply_filters(
 		),
 		'payment_request'               => array(
 			'title'       => __( 'Payment Request Buttons', 'woocommerce-gateway-stripe' ),
-			/* translators: 1) br tag 2) opening anchor tag 3) closing anchor tag */
-			'label'       => sprintf( __( 'Enable Payment Request Buttons. (Apple Pay/Chrome Payment Request API) %1$sBy using Apple Pay, you agree to %2$s and %3$s\'s terms of service.', 'woocommerce-gateway-stripe' ), '<br />', '<a href="https://stripe.com/apple-pay/legal" target="_blank">Stripe</a>', '<a href="https://developer.apple.com/apple-pay/acceptable-use-guidelines-for-websites/" target="_blank">Apple</a>' ),
+			/* translators: 1) br tag 2) Stripe anchor tag 3) Apple anchor tag 4) Stripe dashboard opening anchor tag 5) Stripe dashboard closing anchor tag */
+			'label'       => sprintf(
+				__( 'Enable Payment Request Buttons. (Apple Pay/Google Pay) %1$sBy using Apple Pay, you agree to %2$s and %3$s\'s terms of service. %4$sLog into your Stripe dashboard%5$s to complete or update your Apple Pay setup.', 'woocommerce-gateway-stripe' ),
+				'<br />',
+				'<a href="https://stripe.com/apple-pay/legal" target="_blank">Stripe</a>',
+				'<a href="https://developer.apple.com/apple-pay/acceptable-use-guidelines-for-websites/" target="_blank">Apple</a>',
+				'<a href="https://dashboard.stripe.com/settings/payments/apple_pay" target="_blank">',
+				'</a>'
+			),
 			'type'        => 'checkbox',
 			'description' => __( 'If enabled, users will be able to pay using Apple Pay or Chrome Payment Request if supported by the browser.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'yes',
