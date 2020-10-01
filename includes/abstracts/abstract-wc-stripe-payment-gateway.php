@@ -1379,6 +1379,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( isset( $full_request['source'] ) ) {
 			$request['source'] = $full_request['source'];
 		}
+	
+		/**
+		 * Filter the value of the request.
+		 *
+		 * @since 4.5.0
+		 * @param array $request
+		 * @param WC_Order $order
+		 * @param object $source
+		 */
+		$request = apply_filters('wc_stripe_generate_create_intent_request', $request, $order, $prepared_source );
 
 		$level3_data = $this->get_level3_data_from_order( $order );
 		$intent = WC_Stripe_API::request_with_level3_data(
