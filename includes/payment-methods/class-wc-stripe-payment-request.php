@@ -65,12 +65,13 @@ class WC_Stripe_Payment_Request {
 	 * @version 4.0.0
 	 */
 	public function __construct() {
-		self::$_this            = $this;
-		$this->stripe_settings  = get_option( 'woocommerce_stripe_settings', array() );
-		$this->testmode         = ( ! empty( $this->stripe_settings['testmode'] ) && 'yes' === $this->stripe_settings['testmode'] ) ? true : false;
-		$this->publishable_key  = ! empty( $this->stripe_settings['publishable_key'] ) ? $this->stripe_settings['publishable_key'] : '';
-		$this->secret_key       = ! empty( $this->stripe_settings['secret_key'] ) ? $this->stripe_settings['secret_key'] : '';
-		$this->total_label      = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
+		self::$_this                        = $this;
+		$this->stripe_settings              = get_option( 'woocommerce_stripe_settings', array() );
+		$this->testmode                     = ( ! empty( $this->stripe_settings['testmode'] ) && 'yes' === $this->stripe_settings['testmode'] ) ? true : false;
+		$this->publishable_key              = ! empty( $this->stripe_settings['publishable_key'] ) ? $this->stripe_settings['publishable_key'] : '';
+		$this->secret_key                   = ! empty( $this->stripe_settings['secret_key'] ) ? $this->stripe_settings['secret_key'] : '';
+		$this->total_label                  = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
+		$this->require_phone_with_apple_pay = ! empty( $this->stripe_settings['apple_pay_phone_number_required'] ) && 'yes' === $this->stripe_settings['apple_pay_phone_number_required'];
 
 		if ( $this->testmode ) {
 			$this->publishable_key = ! empty( $this->stripe_settings['test_publishable_key'] ) ? $this->stripe_settings['test_publishable_key'] : '';
@@ -522,10 +523,11 @@ class WC_Stripe_Payment_Request {
 				'unknown_shipping' => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' ),
 			),
 			'checkout'        => array(
-				'url'            => wc_get_checkout_url(),
-				'currency_code'  => strtolower( get_woocommerce_currency() ),
-				'country_code'   => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
-				'needs_shipping' => WC()->cart->needs_shipping() ? 'yes' : 'no',
+				'url'               => wc_get_checkout_url(),
+				'currency_code'     => strtolower( get_woocommerce_currency() ),
+				'country_code'      => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
+				'needs_shipping'    => WC()->cart->needs_shipping() ? 'yes' : 'no',
+				'needs_payer_phone' => $this->require_phone_with_apple_pay,
 			),
 			'button'          => array(
 				'type'         => $this->get_button_type(),

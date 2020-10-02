@@ -315,7 +315,7 @@ jQuery( function( $ ) {
 				country: wc_stripe_payment_request_params.checkout.country_code,
 				requestPayerName: true,
 				requestPayerEmail: true,
-				requestPayerPhone: true,
+				requestPayerPhone: wc_stripe_payment_request_params.checkout.needs_payer_phone,
 				requestShipping: wc_stripe_payment_request_params.product.requestShipping,
 				displayItems: wc_stripe_payment_request_params.product.displayItems
 			};
@@ -342,7 +342,7 @@ jQuery( function( $ ) {
 					country: cart.order_data.country_code,
 					requestPayerName: true,
 					requestPayerEmail: true,
-					requestPayerPhone: true,
+					requestPayerPhone: wc_stripe_payment_request_params.checkout.needs_payer_phone,
 					requestShipping: cart.shipping_required ? true : false,
 					displayItems: cart.order_data.displayItems
 				};
