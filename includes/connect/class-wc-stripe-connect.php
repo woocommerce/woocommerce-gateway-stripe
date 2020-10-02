@@ -57,24 +57,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		}
 
 		/**
-		 * Deauthorize existing Stripe account
-		 *
-		 * @return array|WP_Error
-		 */
-		public function deauthorize_account() {
-
-			$response = $this->api->deauthorize_stripe_account();
-
-			if ( is_wp_error( $response ) ) {
-				return $response;
-			}
-
-			$this->clear_stripe_keys();
-
-			return $response;
-		}
-
-		/**
 		 * Initiate OAuth connection request to Connect Server
 		 *
 		 * @param  bool $state Stripe onboarding state.

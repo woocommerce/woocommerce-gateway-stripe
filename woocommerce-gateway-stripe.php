@@ -335,15 +335,12 @@ function wc_stripe() {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-rest-controller.php';
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-rest-oauth-init-controller.php';
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-rest-oauth-connect-controller.php';
-				require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-rest-deauthorize-controller.php';
 
 				$oauth_init    = new WC_Stripe_Connect_REST_Oauth_Init_Controller( $this->connect, $this->api );
 				$oauth_connect = new WC_Stripe_Connect_REST_Oauth_Connect_Controller( $this->connect, $this->api );
-				$deauthorize   = new WC_Stripe_Connect_REST_Deauthorize_Controller( $this->connect, $this->api );
 
 				$oauth_init->register_routes();
 				$oauth_connect->register_routes();
-				$deauthorize->register_routes();
 			}
 		}
 
@@ -366,11 +363,6 @@ function woocommerce_gateway_stripe_init() {
 
 	if ( version_compare( WC_VERSION, WC_STRIPE_MIN_WC_VER, '<' ) ) {
 		add_action( 'admin_notices', 'woocommerce_stripe_wc_not_supported' );
-		return;
-	}
-
-	if ( ! woocommerce_stripe_wc_country_is_supported_country() ) {
-		add_action( 'admin_notices', 'woocommerce_stripe_wc_country_not_supported' );
 		return;
 	}
 

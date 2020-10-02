@@ -82,16 +82,6 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		}
 
 		/**
-		 * Send request to Connect Server to deauthorize account
-		 *
-		 * @return array
-		 */
-		public function deauthorize_stripe_account() {
-
-			return $this->request( 'POST', '/stripe/account/deauthorize' );
-		}
-
-		/**
 		 * General OAuth request method.
 		 *
 		 * @param string $method request method.
