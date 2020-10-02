@@ -54,22 +54,11 @@ function woocommerce_stripe_wc_not_supported() {
 	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce %1$s or greater to be installed and active. WooCommerce %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), WC_STRIPE_MIN_WC_VER, WC_VERSION ) . '</strong></p></div>';
 }
 
-add_action( 'plugins_loaded', 'woocommerce_gateway_stripe_init' );
+function wc_stripe() {
 
-function woocommerce_gateway_stripe_init() {
-	load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
+	static $plugin;
 
-	if ( ! class_exists( 'WooCommerce' ) ) {
-		add_action( 'admin_notices', 'woocommerce_stripe_missing_wc_notice' );
-		return;
-	}
-
-	if ( version_compare( WC_VERSION, WC_STRIPE_MIN_WC_VER, '<' ) ) {
-		add_action( 'admin_notices', 'woocommerce_stripe_wc_not_supported' );
-		return;
-	}
-
-	if ( ! class_exists( 'WC_Stripe' ) ) :
+	if ( ! isset( $plugin ) ) {
 
 		class WC_Stripe {
 
@@ -102,7 +91,7 @@ function woocommerce_gateway_stripe_init() {
 			 *
 			 * @var WC_Stripe_Connect
 			 */
-			private $connect;
+			public $connect;
 
 			/**
 			 * Private clone method to prevent cloning of the instance of the
@@ -133,7 +122,6 @@ function woocommerce_gateway_stripe_init() {
 				$this->connect = new WC_Stripe_Connect( $this->api );
 
 				add_action( 'rest_api_init', array( $this, 'register_connect_routes' ) );
-				add_action( 'admin_enqueue_scripts', array( $this->connect, 'maybe_connect_oauth' ) );
 			}
 
 			/**
@@ -359,6 +347,32 @@ function woocommerce_gateway_stripe_init() {
 			}
 		}
 
-		WC_Stripe::get_instance();
-	endif;
+		$plugin = WC_Stripe::get_instance();
+
+	}
+
+	return $plugin;
+}
+
+add_action( 'plugins_loaded', 'woocommerce_gateway_stripe_init' );
+
+function woocommerce_gateway_stripe_init() {
+	load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
+
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		add_action( 'admin_notices', 'woocommerce_stripe_missing_wc_notice' );
+		return;
+	}
+
+	if ( version_compare( WC_VERSION, WC_STRIPE_MIN_WC_VER, '<' ) ) {
+		add_action( 'admin_notices', 'woocommerce_stripe_wc_not_supported' );
+		return;
+	}
+
+	if ( ! woocommerce_stripe_wc_country_is_supported_country() ) {
+		add_action( 'admin_notices', 'woocommerce_stripe_wc_country_not_supported' );
+		return;
+	}
+
+	wc_stripe();
 }

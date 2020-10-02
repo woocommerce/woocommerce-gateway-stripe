@@ -3,6 +3,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( wc_stripe()->connect->is_connected() ) {
+	$reset_link = add_query_arg(
+		array( 'reset_stripe_api_credentials' => true ),
+		admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' )
+	);
+
+	$api_credentials_text = sprintf(
+		__( '%1$sReset Stripe account keys%2$s', 'woocommerce-gateway-stripe' ),
+		'<a href="' . $reset_link . '" class="button button-secondary">',
+		'</a>'
+	);
+} else {
+	$api_credentials_text = sprintf(
+		__( '%1$sSetup or link an existing Stripe Account%2$s or manually enter Stripe keys below.', 'woocommerce-gateway-stripe' ),
+		'<a href="' . wc_stripe()->connect->get_oauth_url() . '" class="button button-primary">',
+		'</a>'
+	);
+}
+
 return apply_filters(
 	'wc_stripe_settings',
 	array(
@@ -34,8 +53,9 @@ return apply_filters(
 			'description' => $this->display_admin_settings_webhook_description(),
 		),
 		'api_credentials'               => array(
-			'title' => __( 'API Credentials', 'woocommerce-gateway-stripe' ),
-			'type'  => 'title',
+			'title'       => __( 'API Credentials', 'woocommerce-gateway-stripe' ),
+			'type'        => 'title',
+			'description' => $api_credentials_text
 		),
 		'testmode'                      => array(
 			'title'       => __( 'Test mode', 'woocommerce-gateway-stripe' ),

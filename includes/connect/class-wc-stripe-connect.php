@@ -25,11 +25,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 * @param WC_Stripe_Connect_API $api stripe connect api.
 		 */
 		public function __construct( WC_Stripe_Connect_API $api ) {
-
 			$this->api = $api;
 
-			add_action( 'wc_ajax_wc_stripe_oauth_init', array( $this, 'wc_ajax_oauth_init' ) );
-			add_action( 'wc_ajax_wc_stripe_clear_keys', array( $this, 'wc_ajax_clear_stripe_keys' ) );
+			add_action( 'admin_init', array( $this, 'maybe_handle_redirect' ) );
 		}
 
 		/**
@@ -54,8 +52,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}
-
-			update_option( 'stripe_state', $result->state );
 
 			return $result->oauthUrl; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		}
@@ -88,36 +84,37 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 */
 		public function connect_oauth( $state, $code ) {
 
-			if ( get_option( 'stripe_state', false ) !== $state ) {
-				return new WP_Error( 'Invalid stripe state' );
-			}
-
 			$response = $this->api->get_stripe_oauth_keys( $code );
 
 			if ( is_wp_error( $response ) ) {
 				return $response;
 			}
 
-			delete_option( 'stripe_state' );
-
 			return $this->save_stripe_keys( $response );
 		}
 
 		/**
-		 * Handle redirect back from oauth-init
+		 * Handle redirect back from oauth-init or credentials reset
 		 */
-		public function maybe_connect_oauth() {
-
-			if ( ! get_option( 'stripe_state', false ) ) {
+		public function maybe_handle_redirect() {
+			if ( ! is_admin() ) {
 				return;
 			}
 
+			// redirect from oauth-init
 			if ( isset( $_GET['wcs_stripe_code'], $_GET['wcs_stripe_state'] ) ) {
-				$response = $this->connect_oauth( $_GET['wcs_stripe_state'], $_GET['wcs_stripe_code'] );
 
+				$response = $this->connect_oauth( $_GET['wcs_stripe_state'], $_GET['wcs_stripe_code'] );
 				wp_safe_redirect( remove_query_arg( array( 'wcs_stripe_state', 'wcs_stripe_code' ) ) );
 				exit;
+			// redirect from credentials reset
+			} elseif ( isset( $_GET['reset_stripe_api_credentials'] ) ) {
+
+				$this->clear_stripe_keys();
+				wp_safe_redirect( remove_query_arg( array( 'reset_stripe_api_credentials' ) ) );
+				exit;
 			}
+
 		}
 
 		/**
@@ -177,36 +174,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 		}
 
-		/**
-		 * Gets Stripe Connect Oauth url and redirects to Stripe.
-		 */
-		public function wc_ajax_oauth_init() {
+		public function is_connected() {
 
-			if ( empty( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_admin_nonce' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-				wp_die( __( 'You are not authorized to automatically copy Stripe keys.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			$options = get_option( self::SETTINGS_OPTION, array() );
+
+			if ( 'yes' === $options['testmode'] ) {
+				return $options['test_publishable_key'] && $options['test_secret_key'];
+			} else {
+				return $options['publishable_key'] && $options['secret_key'];
 			}
-
-			$oauth_url = $this->get_oauth_url();
-
-			if ( is_wp_error( $oauth_url ) ) {
-				wp_send_json_error( $oauth_url->get_error_message() );
-			}
-
-			wp_send_json_success( $oauth_url );
-		}
-
-		/**
-		 * Clear stripe keys.
-		 */
-		public function wc_ajax_clear_stripe_keys() {
-
-			if ( empty( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], '_wc_stripe_admin_nonce' ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized,WordPress.Security.ValidatedSanitizedInput.MissingUnslash
-				wp_die( __( 'You are not authorized to reset Stripe keys.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			}
-
-			$this->clear_stripe_keys();
-
-			wp_send_json_success( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 		}
 	}
 }
