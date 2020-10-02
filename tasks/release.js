@@ -19,6 +19,8 @@ const filesToCopy = [
 	'woocommerce-gateway-stripe.php',
 	'changelog.txt',
 	'readme.txt',
+	'apple-developer-merchantid-domain-association',
+	'uninstall.php',
 ];
 
 // run npm dist
