@@ -15,11 +15,17 @@ if ( wc_stripe()->connect->is_connected() ) {
 		'</a>'
 	);
 } else {
-	$api_credentials_text = sprintf(
-		__( '%1$sSetup or link an existing Stripe Account%2$s or manually enter Stripe keys below.', 'woocommerce-gateway-stripe' ),
-		'<a href="' . wc_stripe()->connect->get_oauth_url() . '" class="button button-primary">',
-		'</a>'
-	);
+	$oauth_url = wc_stripe()->connect->get_oauth_url();
+
+	if ( ! is_wp_error( $oauth_url ) ) {
+		$api_credentials_text = sprintf(
+			__( '%1$sSetup or link an existing Stripe Account%2$s or manually enter Stripe keys below.', 'woocommerce-gateway-stripe' ),
+			'<a href="' . $oauth_url . '" class="button button-primary">',
+			'</a>'
+		);
+	} else {
+		$api_credentials_text = __( 'Manually enter Stripe keys below.', 'woocommerce-gateway-stripe' );
+	}
 }
 
 return apply_filters(

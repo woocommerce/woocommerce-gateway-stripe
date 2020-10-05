@@ -160,10 +160,10 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			$options = get_option( self::SETTINGS_OPTION, array() );
 
-			if ( 'yes' === $options['testmode'] ) {
-				return $options['test_publishable_key'] && $options['test_secret_key'];
+			if ( isset( $options['testmode'] ) && 'yes' === $options['testmode'] ) {
+				return isset( $options['test_publishable_key'], $options['test_secret_key'] ) && $options['test_publishable_key'] && $options['test_secret_key'];
 			} else {
-				return $options['publishable_key'] && $options['secret_key'];
+				return isset( $options['publishable_key'], $options['secret_key'] ) && $options['publishable_key'] && $options['secret_key'];
 			}
 		}
 	}
