@@ -60,7 +60,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	public $apple_pay_verify_notice;
 
 	public function __construct() {
-		add_action( 'woocommerce_stripe_updated', array( $this, 'update_verification_file' ) );
+		add_action( 'woocommerce_stripe_updated', array( $this, 'update_domain_association_file' ) );
 
 		$this->stripe_settings         = get_option( 'woocommerce_stripe_settings', array() );
 		$this->stripe_enabled          = $this->get_option( 'enabled' );
@@ -113,7 +113,7 @@ class WC_Stripe_Apple_Pay_Registration {
 			isset( $_GET['section'] ) && 'stripe' === $_GET['section'] &&
 			$this->payment_request
 		) {
-			$this->process_apple_pay_verification();
+			$this->verify_domain();
 		}
 	}
 
@@ -124,7 +124,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @version 3.1.0
 	 * @param string $secret_key
 	 */
-	private function register_apple_pay_domain( $secret_key = '' ) {
+	private function register_domain_with_apple( $secret_key = '' ) {
 		if ( empty( $secret_key ) ) {
 			throw new Exception( __( 'Unable to verify domain - missing secret key.', 'woocommerce-gateway-stripe' ) );
 		}
@@ -164,7 +164,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	}
 
 	/**
-	 * Updates the Apple Pay domain verification file.
+	 * Updates the Apple Pay domain association file.
 	 *
 	 * @param bool $force True to create the file if it didn't exist, false for just updating the file if needed.
 	 *
@@ -172,7 +172,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @since 4.3.0
 	 * @return bool True on success, false on failure.
 	 */
-	public function update_verification_file( $force = false ) {
+	public function update_domain_association_file( $force = false ) {
 			$path     = untrailingslashit( $_SERVER['DOCUMENT_ROOT'] );
 			$dir      = '.well-known';
 			$file     = 'apple-developer-merchantid-domain-association';
@@ -206,8 +206,8 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @since 3.1.0
 	 * @version 3.1.0
 	 */
-	public function process_apple_pay_verification() {
-		if ( ! $this->update_verification_file( true ) ) {
+	public function verify_domain() {
+		if ( ! $this->update_domain_association_file( true ) ) {
 			$this->stripe_settings['apple_pay_domain_set'] = 'no';
 			update_option( 'woocommerce_stripe_settings', $this->stripe_settings );
 			return;
@@ -216,7 +216,7 @@ class WC_Stripe_Apple_Pay_Registration {
 		try {
 			// At this point then the domain association folder and file should be available.
 			// Proceed to verify/and or verify again.
-			$this->register_apple_pay_domain( $this->secret_key );
+			$this->register_domain_with_apple( $this->secret_key );
 
 			// No errors to this point, verification success!
 			$this->stripe_settings['apple_pay_domain_set'] = 'yes';
