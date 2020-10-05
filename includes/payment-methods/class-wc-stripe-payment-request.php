@@ -65,14 +65,12 @@ class WC_Stripe_Payment_Request {
 	 * @version 4.0.0
 	 */
 	public function __construct() {
-		self::$_this                        = $this;
-		$this->stripe_settings              = get_option( 'woocommerce_stripe_settings', array() );
-		$this->testmode                     = ( ! empty( $this->stripe_settings['testmode'] ) && 'yes' === $this->stripe_settings['testmode'] ) ? true : false;
-		$this->publishable_key              = ! empty( $this->stripe_settings['publishable_key'] ) ? $this->stripe_settings['publishable_key'] : '';
-		$this->secret_key                   = ! empty( $this->stripe_settings['secret_key'] ) ? $this->stripe_settings['secret_key'] : '';
-		$this->total_label                  = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
-		// Defaults to 'required' to match how core initializes this option.
-		$this->require_phone_with_apple_pay = 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' );
+		self::$_this           = $this;
+		$this->stripe_settings = get_option( 'woocommerce_stripe_settings', array() );
+		$this->testmode        = ( ! empty( $this->stripe_settings['testmode'] ) && 'yes' === $this->stripe_settings['testmode'] ) ? true : false;
+		$this->publishable_key = ! empty( $this->stripe_settings['publishable_key'] ) ? $this->stripe_settings['publishable_key'] : '';
+		$this->secret_key      = ! empty( $this->stripe_settings['secret_key'] ) ? $this->stripe_settings['secret_key'] : '';
+		$this->total_label     = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
 
 		if ( $this->testmode ) {
 			$this->publishable_key = ! empty( $this->stripe_settings['test_publishable_key'] ) ? $this->stripe_settings['test_publishable_key'] : '';
@@ -532,7 +530,8 @@ class WC_Stripe_Payment_Request {
 				'currency_code'     => strtolower( get_woocommerce_currency() ),
 				'country_code'      => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
 				'needs_shipping'    => WC()->cart->needs_shipping() ? 'yes' : 'no',
-				'needs_payer_phone' => $this->require_phone_with_apple_pay,
+				// Defaults to 'required' to match how core initializes this option.
+				'needs_payer_phone' => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
 			),
 			'button'          => array(
 				'type'         => $this->get_button_type(),
