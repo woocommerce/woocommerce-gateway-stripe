@@ -71,7 +71,8 @@ class WC_Stripe_Payment_Request {
 		$this->publishable_key              = ! empty( $this->stripe_settings['publishable_key'] ) ? $this->stripe_settings['publishable_key'] : '';
 		$this->secret_key                   = ! empty( $this->stripe_settings['secret_key'] ) ? $this->stripe_settings['secret_key'] : '';
 		$this->total_label                  = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
-		$this->require_phone_with_apple_pay = ! empty( $this->stripe_settings['apple_pay_phone_number_required'] ) && 'yes' === $this->stripe_settings['apple_pay_phone_number_required'];
+		// Defaults to 'required' to match how core initializes this option.
+		$this->require_phone_with_apple_pay = 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' );
 
 		if ( $this->testmode ) {
 			$this->publishable_key = ! empty( $this->stripe_settings['test_publishable_key'] ) ? $this->stripe_settings['test_publishable_key'] : '';

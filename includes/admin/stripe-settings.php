@@ -177,14 +177,6 @@ return apply_filters(
 				'long'  => __( 'Text and logo', 'woocommerce-gateway-stripe' ),
 			),
 		),
-		'apple_pay_phone_number_required' => array(
-			'title'       => __( 'Phone number required Phone number with Apple Pay', 'woocommerce-gateway-stripe' ),
-			'label'       => __( 'Require a phone number during checkout with Apple Pay', 'woocommerce-gateway-stripe' ),
-			'type'        => 'checkbox',
-			'description' => __( 'If enabled, customers will be required to enter a phone number when checking out with Apple Pay.', 'woocommerce-gateway-stripe' ),
-			'default'     => 'no',
-			'desc_tip'    => true,
-		),
 		'saved_cards'                   => array(
 			'title'       => __( 'Saved Cards', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Enable Payment via Saved Cards', 'woocommerce-gateway-stripe' ),
