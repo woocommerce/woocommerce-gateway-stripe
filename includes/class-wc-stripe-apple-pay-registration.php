@@ -53,7 +53,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	public $apple_pay_verify_notice;
 
 	public function __construct() {
-		add_action( 'woocommerce_stripe_updated', array( $this, 'update_domain_association_file' ) );
+		add_action( 'woocommerce_stripe_updated', array( $this, 'verify_domain_if_needed' ) );
 		add_action( 'updated_option', array( $this, 'verify_domain_on_new_secret_key' ), 10, 3 );
 
 		$this->stripe_settings         = get_option( 'woocommerce_stripe_settings', array() );
@@ -257,6 +257,20 @@ class WC_Stripe_Apple_Pay_Registration {
 		$this->secret_key = $this->get_secret_key();
 
 		if ( ! empty( $this->secret_key ) && $this->secret_key !== $prev_secret_key ) {
+			$this->verify_domain();
+		}
+	}
+
+	/**
+	 * Process the Apple Pay domain verification if not already done - otherwise just update the file.
+	 *
+	 * @since 4.5.3
+	 * @version 4.5.3
+	 */
+	public function verify_domain_if_needed() {
+		if ( $this->apple_pay_domain_set ) {
+			$this->update_domain_association_file();
+		} else {
 			$this->verify_domain();
 		}
 	}
