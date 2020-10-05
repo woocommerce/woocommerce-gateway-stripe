@@ -39,13 +39,6 @@ class WC_Stripe_Apple_Pay_Registration {
 	public $apple_pay_domain_set;
 
 	/**
-	 * Testmode.
-	 *
-	 * @var bool
-	 */
-	public $testmode;
-
-	/**
 	 * Secret Key.
 	 *
 	 * @var string
@@ -61,14 +54,14 @@ class WC_Stripe_Apple_Pay_Registration {
 
 	public function __construct() {
 		add_action( 'woocommerce_stripe_updated', array( $this, 'update_domain_association_file' ) );
+		add_action( 'updated_option', array( $this, 'verify_domain_on_new_secret_key' ), 10, 3 );
 
 		$this->stripe_settings         = get_option( 'woocommerce_stripe_settings', array() );
 		$this->stripe_enabled          = $this->get_option( 'enabled' );
 		$this->payment_request         = 'yes' === $this->get_option( 'payment_request', 'yes' );
 		$this->apple_pay_domain_set    = 'yes' === $this->get_option( 'apple_pay_domain_set', 'no' );
 		$this->apple_pay_verify_notice = '';
-		$this->testmode                = 'yes' === $this->get_option( 'testmode', 'no' );
-		$this->secret_key              = $this->testmode ? $this->get_option( 'test_secret_key' ) : $this->get_option( 'secret_key' );
+		$this->secret_key              = $this->get_secret_key();
 
 		if ( empty( $this->stripe_settings ) ) {
 			return;
@@ -97,6 +90,17 @@ class WC_Stripe_Apple_Pay_Registration {
 		}
 
 		return $default;
+	}
+
+	/**
+	 * Gets the Stripe secret key for the current mode.
+	 *
+	 * @since 4.5.3
+	 * @return string Secret key.
+	 */
+	private function get_secret_key() {
+		$testmode = 'yes' === $this->get_option( 'testmode', 'no' );
+		return $testmode ? $this->get_option( 'test_secret_key' ) : $this->get_option( 'secret_key' );
 	}
 
 	/**
@@ -232,6 +236,28 @@ class WC_Stripe_Apple_Pay_Registration {
 			update_option( 'woocommerce_stripe_settings', $this->stripe_settings );
 
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Conditionally process the Apple Pay domain verification after a new secret key is set.
+	 *
+	 * @since 4.5.3
+	 * @version 4.5.3
+	 */
+	public function verify_domain_on_new_secret_key( $option, $prev_settings, $settings ) {
+		if ( 'woocommerce_stripe_settings' !== $option ) {
+			return;
+		}
+
+		$this->stripe_settings = $prev_settings;
+		$prev_secret_key = $this->get_secret_key();
+
+		$this->stripe_settings = $settings;
+		$this->secret_key = $this->get_secret_key();
+
+		if ( ! empty( $this->secret_key ) && $this->secret_key !== $prev_secret_key ) {
+			$this->verify_domain();
 		}
 	}
 
