@@ -5,7 +5,7 @@
 * Add   - Allow toggling secrets temporarily to visible in settings.
 * Fix   - Properly display field required error when SEPA method is used.
 * Tweak - Update payment request button description to include link to Stripe dashboard Apple Pay settings.
-* Add   - Add off session payment intent filter, props rfair404
+* Add   - Add off session payment intent filter, props rfair404.
 * Tweak - Update contributors list.
 
 = 4.5.3 - 2020-09-29 =
