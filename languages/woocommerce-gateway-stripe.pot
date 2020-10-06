@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.5.3\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
-"POT-Creation-Date: 2020-10-06 18:19:14+00:00\n"
+"POT-Creation-Date: 2020-10-06 20:07:26+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -979,25 +979,25 @@ msgstr ""
 msgid "There was a problem connecting to the Stripe API endpoint."
 msgstr ""
 
-#: includes/class-wc-stripe-apple-pay-registration.php:129
+#: includes/class-wc-stripe-apple-pay-registration.php:133
 msgid "Unable to verify domain - missing secret key."
 msgstr ""
 
-#: includes/class-wc-stripe-apple-pay-registration.php:153
-#: includes/class-wc-stripe-apple-pay-registration.php:162
+#: includes/class-wc-stripe-apple-pay-registration.php:157
+#: includes/class-wc-stripe-apple-pay-registration.php:166
 #. translators: error message
 msgid "Unable to verify domain - %s"
 msgstr ""
 
-#: includes/class-wc-stripe-apple-pay-registration.php:189
+#: includes/class-wc-stripe-apple-pay-registration.php:193
 msgid "Unable to create domain association folder to domain root."
 msgstr ""
 
-#: includes/class-wc-stripe-apple-pay-registration.php:195
+#: includes/class-wc-stripe-apple-pay-registration.php:199
 msgid "Unable to copy domain association file to domain root."
 msgstr ""
 
-#: includes/class-wc-stripe-apple-pay-registration.php:270
+#: includes/class-wc-stripe-apple-pay-registration.php:306
 #. translators: 1) HTML anchor open tag 2) HTML anchor closing tag
 msgid ""
 "Apple Pay domain verification failed. Please check the %1$slog%2$s to see "
