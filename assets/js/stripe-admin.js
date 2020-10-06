@@ -89,7 +89,7 @@ jQuery( function( $ ) {
 
 			// Add secret visibility toggles.
 			$( '#woocommerce_stripe_test_secret_key, #woocommerce_stripe_secret_key, #woocommerce_stripe_test_webhook_secret, #woocommerce_stripe_webhook_secret' ).after(
-				'<button class="wc-stripe-toggle-secret" style="height: 30px; margin-left: 2px"><span class="dashicons dashicons-visibility"></span></button>'
+				'<button class="wc-stripe-toggle-secret" style="height: 30px; margin-left: 2px; cursor: pointer"><span class="dashicons dashicons-visibility"></span></button>'
 			);
 			$( '.wc-stripe-toggle-secret' ).on( 'click', function( event ) {
 				event.preventDefault();
