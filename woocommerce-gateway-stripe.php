@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '4.5.3' );
+define( 'WC_STRIPE_VERSION', '4.5.3' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '3.0' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '3.0' );
