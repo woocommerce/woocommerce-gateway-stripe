@@ -86,6 +86,28 @@ jQuery( function( $ ) {
 					} );
 				} );
 			} );
+
+			// Add secret visibility toggles.
+			$( '#woocommerce_stripe_test_secret_key, #woocommerce_stripe_secret_key, #woocommerce_stripe_test_webhook_secret, #woocommerce_stripe_webhook_secret' ).after(
+				'<button class="wc-stripe-toggle-secret" style="height: 30px; margin-left: 2px; cursor: pointer"><span class="dashicons dashicons-visibility"></span></button>'
+			);
+			$( '.wc-stripe-toggle-secret' ).on( 'click', function( event ) {
+				event.preventDefault();
+
+				var $dashicon = $( this ).closest( 'button' ).find( '.dashicons' );
+				var $input = $( this ).closest( 'tr' ).find( '.input-text' );
+				var inputType = $input.attr( 'type' );
+
+				if ( 'text' == inputType ) {
+					$input.attr( 'type', 'password' );
+					$dashicon.removeClass( 'dashicons-hidden' );
+					$dashicon.addClass( 'dashicons-visibility' );
+				} else {
+					$input.attr( 'type', 'text' );
+					$dashicon.removeClass( 'dashicons-visibility' );
+					$dashicon.addClass( 'dashicons-hidden' );
+				}
+			} );
 		}
 	};
 
