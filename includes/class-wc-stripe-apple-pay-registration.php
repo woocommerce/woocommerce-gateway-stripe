@@ -54,7 +54,7 @@ class WC_Stripe_Apple_Pay_Registration {
 
 	public function __construct() {
 		add_action( 'woocommerce_stripe_updated', array( $this, 'verify_domain_if_needed' ) );
-		add_action( 'updated_option', array( $this, 'verify_domain_on_new_secret_key' ), 10, 3 );
+		add_action( 'update_option_woocommerce_stripe_settings', array( $this, 'verify_domain_on_new_secret_key' ), 10, 2 );
 
 		$this->stripe_settings         = get_option( 'woocommerce_stripe_settings', array() );
 		$this->stripe_enabled          = $this->get_option( 'enabled' );
@@ -245,11 +245,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @since 4.5.3
 	 * @version 4.5.3
 	 */
-	public function verify_domain_on_new_secret_key( $option, $prev_settings, $settings ) {
-		if ( 'woocommerce_stripe_settings' !== $option ) {
-			return;
-		}
-
+	public function verify_domain_on_new_secret_key( $prev_settings, $settings ) {
 		$this->stripe_settings = $prev_settings;
 		$prev_secret_key = $this->get_secret_key();
 
