@@ -107,8 +107,8 @@ return apply_filters(
 		),
 		'payment_request'               => array(
 			'title'       => __( 'Payment Request Buttons', 'woocommerce-gateway-stripe' ),
-			/* translators: 1) br tag 2) Stripe anchor tag 3) Apple anchor tag 4) Stripe dashboard opening anchor tag 5) Stripe dashboard closing anchor tag */
 			'label'       => sprintf(
+				/* translators: 1) br tag 2) Stripe anchor tag 3) Apple anchor tag 4) Stripe dashboard opening anchor tag 5) Stripe dashboard closing anchor tag */
 				__( 'Enable Payment Request Buttons. (Apple Pay/Google Pay) %1$sBy using Apple Pay, you agree to %2$s and %3$s\'s terms of service. %4$sLog into your Stripe dashboard%5$s to complete or update your Apple Pay setup.', 'woocommerce-gateway-stripe' ),
 				'<br />',
 				'<a href="https://stripe.com/apple-pay/legal" target="_blank">Stripe</a>',
