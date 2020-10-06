@@ -129,7 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 4.5.4 - 2020-10-06 =
 * Fix   - Apple Pay now requires a buyer's phone number only if it's required in Appearance > Customize > WooCommerce > Checkout.
 * Add   - Allow toggling secrets temporarily to visible in settings.
-* Fix   - SEPA console error and infinite spinning when required field left blank.
+* Fix   - Properly display field required error when SEPA method is used.
 * Tweak - Update payment request button description to include link to Stripe dashboard Apple Pay settings.
 * Add   - Add off session payment intent filter, props rfair404.
 * Tweak - Update contributors list.
