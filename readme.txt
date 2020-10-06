@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 5.5
 Requires PHP: 5.6
-Stable tag: 4.5.3
+Stable tag: 4.5.4
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -126,11 +126,12 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.5.4 - 2020-xx-xx =
-* Fix - Apple Pay now requires a buyer's phone number only if it's required in Appearance > Customize > WooCommerce > Checkout.
-
-= 4.5.3 - 2020-09-29 =
-* Add - Link from Payment Request button setting to Apple Pay settings in Stripe dashboard
+= 4.5.4 - 2020-10-06 =
+* Fix   - Apple Pay now requires a buyer's phone number only if it's required in Appearance > Customize > WooCommerce > Checkout.
+* Add   - Allow toggling secrets temporarily to visible in settings.
+* Tweak - Update payment request button description to include link to Stripe dashboard Apple Pay settings.
+* Add   - Add off session payment intent filter, props rfair404
+* Tweak - Update contributors list.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
