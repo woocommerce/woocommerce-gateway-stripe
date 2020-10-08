@@ -499,12 +499,13 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			}
 
 			if (
-				( ! empty( $payment_meta['post_meta']['_stripe_source_id']['value'] )
-				&& 0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'card_' ) )
-				&& ( ! empty( $payment_meta['post_meta']['_stripe_source_id']['value'] )
-				&& 0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'src_' ) ) ) {
-
-				throw new Exception( __( 'Invalid source ID. A valid source "Stripe Source ID" must begin with "src_" or "card_".', 'woocommerce-gateway-stripe' ) );
+				! empty( $payment_meta['post_meta']['_stripe_source_id']['value'] ) && (
+					0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'card_' )
+					&& 0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'src_' )
+					&& 0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'pm_' )
+				)
+			) {
+				throw new Exception( __( 'Invalid source ID. A valid source "Stripe Source ID" must begin with "src_", "pm_", or "card_".', 'woocommerce-gateway-stripe' ) );
 			}
 		}
 	}
