@@ -70,7 +70,7 @@ Stripe also supports the [WooCommerce Subscriptions extension](https://woocommer
 
 = Apple Pay Support =
 
-WooCommerce Stripe includes [Apple Pay](https://stripe.com/apple-pay) support, which means customers can pay using payment details associated with their Apple ID. Checkout is now just an authorization (Touch ID or Face ID) away on both mobile and desktop. Only supports simple, variable, and Subscription products for now. More support to come.
+WooCommerce Stripe includes [Apple Pay](https://woocommerce.com/apple-pay) support, which means customers can pay using payment details associated with their Apple ID. Checkout is now just an authorization (Touch ID or Face ID) away on both mobile and desktop. Only supports simple, variable, and Subscription products for now. More support to come.
 
 = Web Payments API Support =
 
@@ -126,7 +126,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.5.4 - 2020-10-06 =
+= 4.5.3 - 2020-10-06 =
 * Fix   - Apple Pay now requires a buyer's phone number only if it's required in Appearance > Customize > WooCommerce > Checkout.
 * Add   - Allow toggling secrets temporarily to visible in settings.
 * Fix   - Properly display field required error when SEPA method is used.
