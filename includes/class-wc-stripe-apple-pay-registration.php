@@ -281,7 +281,7 @@ class WC_Stripe_Apple_Pay_Registration {
 				<p><?php echo esc_html( $verification_failed_without_error ); ?></p>
 			<?php else : ?>
 				<p><?php echo esc_html( $verification_failed_with_error ); ?></p>
-				<p><?php echo wp_kses( make_clickable( esc_html( $this->apple_pay_verify_notice ) ), $allowed_html ); ?></p>
+				<p><i><?php echo wp_kses( make_clickable( esc_html( $this->apple_pay_verify_notice ) ), $allowed_html ); ?></i></p>
 			<?php endif; ?>
 			<p><?php echo $check_log_text; ?></p>
 		</div>
