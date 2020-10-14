@@ -266,7 +266,7 @@ class WC_Stripe_Apple_Pay_Registration {
 				'title' => array(),
 			),
 		);
-		$error_from_stripe                 = $empty_notice ? '' : '<p>' . wp_kses( make_clickable( esc_html( $this->apple_pay_verify_notice ) ), $allowed_html ) . '.</p>';
+		$error_from_stripe                 = $empty_notice ? '' : '<p>' . wp_kses( make_clickable( esc_html( $this->apple_pay_verify_notice ) ), $allowed_html ) . '</p>';
 		$verification_failed_without_error = esc_html__( 'Apple Pay domain verification failed.', 'woocommerce-gateway-stripe' );
 		$verification_failed_with_error    = esc_html__( 'Apple Pay domain verification failed with the following error:', 'woocommerce-gateway-stripe' );
 		$check_log_text                    = sprintf(
