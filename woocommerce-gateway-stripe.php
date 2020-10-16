@@ -124,6 +124,7 @@ function woocommerce_gateway_stripe_init() {
 			public function init() {
 				if ( is_admin() ) {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-privacy.php';
+					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-inbox-notes.php';
 				}
 
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-exception.php';

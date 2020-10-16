@@ -118,6 +118,7 @@ class WC_Stripe_Apple_Pay_Registration {
 			$this->payment_request
 		) {
 			$this->verify_domain();
+			WC_Stripe_Inbox_Notes::notify_of_apple_pay_domain_verification_if_needed();
 		}
 	}
 
