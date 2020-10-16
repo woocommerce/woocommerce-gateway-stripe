@@ -112,10 +112,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'Invalid credentials received from WooCommerce Connect server' );
 			}
 
-			$is_test         = false !== strpos( $result->publishableKey, '_test_' ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$prefix          = $is_test ? 'test_' : '';
-			$default_options = array();
-
+			$is_test                                = false !== strpos( $result->publishableKey, '_test_' ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$prefix                                 = $is_test ? 'test_' : '';
+			$default_options                        = $this->get_default_stripe_config();
 			$options                                = array_merge( $default_options, get_option( self::SETTINGS_OPTION, array() ) );
 			$options['enabled']                     = 'yes';
 			$options['testmode']                    = $is_test ? 'yes' : 'no';
@@ -154,6 +153,22 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			update_option( self::SETTINGS_OPTION, $options );
 
+		}
+
+		/**
+		 * Gets default Stripe settings
+		 */
+		private function get_default_stripe_config() {
+
+			$result = array();
+			$gateway = new WC_Gateway_Stripe();
+			foreach ( $gateway->form_fields as $key => $value ) {
+				if ( isset( $value['default'] ) ) {
+					$result[ $key ] = $value['default'];
+				}
+			}
+
+			return $result;
 		}
 
 		public function is_connected() {
