@@ -245,6 +245,7 @@ class WC_Stripe_Apple_Pay_Registration {
 
 		} catch ( Exception $e ) {
 			$this->stripe_settings['apple_pay_domain_set'] = 'no';
+			$this->apple_pay_domain_set                    = false;
 
 			update_option( 'woocommerce_stripe_settings', $this->stripe_settings );
 
@@ -290,7 +291,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @since 4.0.6
 	 */
 	public function admin_notices() {
-		if ( ! $this->stripe_enabled ) {
+		if ( ! $this->stripe_enabled || ! $this->payment_request ) {
 			return;
 		}
 
@@ -298,15 +299,9 @@ class WC_Stripe_Apple_Pay_Registration {
 			return;
 		}
 
-		if ( $this->payment_request && ! empty( $this->apple_pay_verify_notice ) ) {
-			$allowed_html = array(
-				'a' => array(
-					'href'  => array(),
-					'title' => array(),
-				),
-			);
-
-			echo '<div class="error stripe-apple-pay-message"><p>' . wp_kses( make_clickable( $this->apple_pay_verify_notice ), $allowed_html ) . '</p></div>';
+		$empty_notice = empty( $this->apple_pay_verify_notice );
+		if ( $empty_notice && ( $this->apple_pay_domain_set || empty( $this->secret_key ) ) ) {
+			return;
 		}
 
 		/**
@@ -314,10 +309,32 @@ class WC_Stripe_Apple_Pay_Registration {
 		 * when setting screen is displayed. So if domain verification is not set,
 		 * something went wrong so lets notify user.
 		 */
-		if ( ! empty( $this->secret_key ) && $this->payment_request && ! $this->apple_pay_domain_set ) {
+		$allowed_html                      = array(
+			'a' => array(
+				'href'  => array(),
+				'title' => array(),
+			),
+		);
+		$verification_failed_without_error = __( 'Apple Pay domain verification failed.', 'woocommerce-gateway-stripe' );
+		$verification_failed_with_error    = __( 'Apple Pay domain verification failed with the following error:', 'woocommerce-gateway-stripe' );
+		$check_log_text                    = sprintf(
 			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-			echo '<div class="error stripe-apple-pay-message"><p>' . sprintf( __( 'Apple Pay domain verification failed. Please check the %1$slog%2$s to see the issue. (Logging must be enabled to see recorded logs)', 'woocommerce-gateway-stripe' ), '<a href="' . admin_url( 'admin.php?page=wc-status&tab=logs' ) . '">', '</a>' ) . '</p></div>';
-		}
+			esc_html__( 'Please check the %1$slogs%2$s for more details on this issue. Logging must be enabled to see recorded logs.', 'woocommerce-gateway-stripe' ),
+			'<a href="' . admin_url( 'admin.php?page=wc-status&tab=logs' ) . '">',
+			'</a>'
+		);
+
+		?>
+		<div class="error stripe-apple-pay-message">
+			<?php if ( $empty_notice ) : ?>
+				<p><?php echo esc_html( $verification_failed_without_error ); ?></p>
+			<?php else : ?>
+				<p><?php echo esc_html( $verification_failed_with_error ); ?></p>
+				<p><i><?php echo wp_kses( make_clickable( esc_html( $this->apple_pay_verify_notice ) ), $allowed_html ); ?></i></p>
+			<?php endif; ?>
+			<p><?php echo $check_log_text; ?></p>
+		</div>
+		<?php
 	}
 }
 
