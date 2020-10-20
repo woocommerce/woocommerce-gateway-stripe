@@ -359,6 +359,20 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				break;
 		}
 
+		if ( method_exists( $order, 'get_shipping_postcode' ) && ! empty( $order->get_shipping_postcode() ) ) {
+			$post_data['shipping'] = array(
+				'name'    => trim( $order->get_shipping_first_name() . ' ' . $order->get_shipping_last_name() ),
+				'address' => array(
+					'line1'       => $order->get_shipping_address_1(),
+					'line2'       => $order->get_shipping_address_2(),
+					'city'        => $order->get_shipping_city(),
+					'country'     => $order->get_shipping_country(),
+					'postal_code' => $order->get_shipping_postcode(),
+					'state'       => $order->get_shipping_state(),
+				)
+			);
+		}
+
 		$post_data['expand[]'] = 'balance_transaction';
 
 		$metadata = array(
@@ -1039,6 +1053,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$request['statement_descriptor'] = $full_request['statement_descriptor'];
 		}
 
+		if ( isset( $full_request['shipping'] ) ) {
+			$request['shipping'] = $full_request['shipping'];
+		}
+
 		/**
 		 * Filter the return value of the WC_Payment_Gateway_CC::generate_create_intent_request.
 		 *
@@ -1390,6 +1408,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		 * @param object $source
 		 */
 		$request = apply_filters('wc_stripe_generate_create_intent_request', $request, $order, $prepared_source );
+
+		if ( isset( $full_request['shipping'] ) ) {
+			$request['shipping'] = $full_request['shipping'];
+		}
 
 		$level3_data = $this->get_level3_data_from_order( $order );
 		$intent = WC_Stripe_API::request_with_level3_data(
