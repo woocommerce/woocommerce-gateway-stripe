@@ -141,15 +141,14 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			if ( 'yes' === $options['testmode'] ) {
 				$options['test_publishable_key'] = '';
 				$options['test_secret_key']      = '';
+				// clear test_account_id if present
+				unset( $options['test_account_id'] );
 			} else {
 				$options['publishable_key'] = '';
 				$options['secret_key']      = '';
+				// clear account_id if present
+				unset( $options['account_id'] );
 			}
-
-			// While we are at it, let's also clear the account_id and
-			// test_account_id if present.
-			unset( $options['account_id'] );
-			unset( $options['test_account_id'] );
 
 			update_option( self::SETTINGS_OPTION, $options );
 
@@ -176,9 +175,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$options = get_option( self::SETTINGS_OPTION, array() );
 
 			if ( isset( $options['testmode'] ) && 'yes' === $options['testmode'] ) {
-				return isset( $options['test_publishable_key'], $options['test_secret_key'] ) && $options['test_publishable_key'] && $options['test_secret_key'];
+				return isset( $options['test_publishable_key'], $options['test_secret_key'] ) && trim( $options['test_publishable_key'] ) && trim( $options['test_secret_key'] );
 			} else {
-				return isset( $options['publishable_key'], $options['secret_key'] ) && $options['publishable_key'] && $options['secret_key'];
+				return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
 			}
 		}
 	}
