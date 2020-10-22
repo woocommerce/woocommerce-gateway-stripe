@@ -122,9 +122,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			}
 
 			$http_timeout = 60; // 1 minute
-			if ( function_exists( 'wc_set_time_limit' ) ) {
-				wc_set_time_limit( $http_timeout + 10 );
-			}
+			wc_set_time_limit( $http_timeout + 10 );
 			$args = array(
 				'headers'     => $headers,
 				'method'      => $method,
