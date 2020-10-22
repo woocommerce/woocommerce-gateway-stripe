@@ -16,15 +16,6 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		const WOOCOMMERCE_CONNECT_SERVER_API_VERSION = '3';
 
 		/**
-		 * Send GET request for Stripe account details
-		 *
-		 * @return array
-		 */
-		public function get_stripe_account_details() {
-			return $this->request( 'GET', '/stripe/account' );
-		}
-
-		/**
 		 * Send request to Connect Server to initiate Stripe OAuth
 		 *
 		 * @param  string $return_url return address.
@@ -147,8 +138,16 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 							$response_code
 						)
 					);
+				} else {
+					return new WP_Error(
+						'wcc_server_error_content_type',
+						sprintf(
+							// Translators: content-type error code.
+							__( 'Error: The WooCommerce Connect server returned an invalid content-type: %s.', 'woocommerce-gateway-stripe' ),
+							$content_type
+						)
+					);
 				}
-				return $response;
 			}
 
 			$response_body = wp_remote_retrieve_body( $response );
