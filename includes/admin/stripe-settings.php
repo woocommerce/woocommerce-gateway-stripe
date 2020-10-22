@@ -14,7 +14,7 @@ if ( wc_stripe()->connect->is_connected() ) {
 
 	$api_credentials_text = sprintf(
 		__( '%1$sClear all Stripe account keys.%2$s %3$sThis will disable any connection to Stripe.%4$s', 'woocommerce-gateway-stripe' ),
-		'<a href="' . $reset_link . '" class="button button-secondary">',
+		'<a id="wc_stripe_connect_button" href="' . $reset_link . '" class="button button-secondary">',
 		'</a>',
 		'<span style="color:red;">',
 		'</span>'
@@ -25,7 +25,7 @@ if ( wc_stripe()->connect->is_connected() ) {
 	if ( ! is_wp_error( $oauth_url ) ) {
 		$api_credentials_text = sprintf(
 			__( '%1$sSetup or link an existing Stripe account.%2$s By clicking this button you agree to the %3$sTerms of Service%2$s. Or, manually enter Stripe account keys below.', 'woocommerce-gateway-stripe' ),
-			'<a href="' . $oauth_url . '" class="button button-primary">',
+			'<a id="wc_stripe_connect_button" href="' . $oauth_url . '" class="button button-primary">',
 			'</a>',
 			'<a href="https://wordpress.com/tos">'
 

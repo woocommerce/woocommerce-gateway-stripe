@@ -5,6 +5,7 @@ jQuery( function( $ ) {
 	 * Object to handle Stripe admin functions.
 	 */
 	var wc_stripe_admin = {
+
 		isTestMode: function() {
 			return $( '#woocommerce_stripe_testmode' ).is( ':checked' );
 		},
@@ -107,6 +108,19 @@ jQuery( function( $ ) {
 					$dashicon.removeClass( 'dashicons-visibility' );
 					$dashicon.addClass( 'dashicons-hidden' );
 				}
+			} );
+
+			$( 'form' ).find( 'input, select' ).on( 'change input', function disableConnect() {
+
+				$( '#wc_stripe_connect_button' ).addClass( 'disabled' );
+
+				$( '#wc_stripe_connect_button' ).on( 'click', function() { return false; } );
+
+				$( '#woocommerce_stripe_api_credentials' )
+					.next( 'p' )
+					.append( ' (Please save changes before selecting this button.)' );
+
+				$( 'form' ).find( 'input, select' ).off( 'change input', disableConnect );
 			} );
 		}
 	};
