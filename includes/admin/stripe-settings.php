@@ -10,16 +10,18 @@ if ( wc_stripe()->connect->is_connected() ) {
 	);
 
 	$api_credentials_text = sprintf(
-		__( '%1$sReset Stripe account keys%2$s', 'woocommerce-gateway-stripe' ),
+		__( '%1$sClear all Stripe account keys.%2$s %3$sThis will disable any connection to Stripe.%4$s', 'woocommerce-gateway-stripe' ),
 		'<a href="' . $reset_link . '" class="button button-secondary">',
-		'</a>'
+		'</a>',
+		'<span style="color:red;">',
+		'</span>'
 	);
 } else {
 	$oauth_url = wc_stripe()->connect->get_oauth_url();
 
 	if ( ! is_wp_error( $oauth_url ) ) {
 		$api_credentials_text = sprintf(
-			__( '%1$sSetup or link an existing Stripe Account%2$s By clicking this button you agree to the %3$sTerms of Service%2$s. Or manually enter Stripe keys below.', 'woocommerce-gateway-stripe' ),
+			__( '%1$sSetup or link an existing Stripe account.%2$s By clicking this button you agree to the %3$sTerms of Service%2$s. Or, manually enter Stripe account keys below.', 'woocommerce-gateway-stripe' ),
 			'<a href="' . $oauth_url . '" class="button button-primary">',
 			'</a>',
 			'<a href="https://wordpress.com/tos">'
@@ -61,7 +63,7 @@ return apply_filters(
 			'description' => $this->display_admin_settings_webhook_description(),
 		),
 		'api_credentials'               => array(
-			'title'       => __( 'API Credentials', 'woocommerce-gateway-stripe' ),
+			'title'       => __( 'Stripe Account Keys', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
 			'description' => $api_credentials_text
 		),
