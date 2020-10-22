@@ -5,7 +5,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 if ( wc_stripe()->connect->is_connected() ) {
 	$reset_link = add_query_arg(
-		array( 'reset_stripe_api_credentials' => true ),
+		array(
+			'_wpnonce'                     => wp_create_nonce( 'reset_stripe_api_credentials' ),
+			'reset_stripe_api_credentials' => true,
+		),
 		admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' )
 	);
 
