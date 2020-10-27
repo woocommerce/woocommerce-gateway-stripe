@@ -7,7 +7,7 @@ return apply_filters(
 	'wc_stripe_alipay_settings',
 	array(
 		'geo_target'  => array(
-			'description' => __( 'Relevant Payer Geography: China', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'Customer Geography: China', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
 		),
 		'guide'       => array(
