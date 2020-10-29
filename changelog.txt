@@ -2,6 +2,7 @@
 
 = 4.5.4 - 2020-xx-xx =
 * Add - Security.md with security and vulnerability reporting guidelines.
+* Add - Accept payments via AliPay when store currency is set to CNY.
 
 = 4.5.3 - 2020-10-06 =
 * Fix   - Apple Pay now requires a buyer's phone number only if it's required in Appearance > Customize > WooCommerce > Checkout.
