@@ -54,22 +54,11 @@ function woocommerce_stripe_wc_not_supported() {
 	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce %1$s or greater to be installed and active. WooCommerce %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), WC_STRIPE_MIN_WC_VER, WC_VERSION ) . '</strong></p></div>';
 }
 
-add_action( 'plugins_loaded', 'woocommerce_gateway_stripe_init' );
+function wc_stripe() {
 
-function woocommerce_gateway_stripe_init() {
-	load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
+	static $plugin;
 
-	if ( ! class_exists( 'WooCommerce' ) ) {
-		add_action( 'admin_notices', 'woocommerce_stripe_missing_wc_notice' );
-		return;
-	}
-
-	if ( version_compare( WC_VERSION, WC_STRIPE_MIN_WC_VER, '<' ) ) {
-		add_action( 'admin_notices', 'woocommerce_stripe_wc_not_supported' );
-		return;
-	}
-
-	if ( ! class_exists( 'WC_Stripe' ) ) :
+	if ( ! isset( $plugin ) ) {
 
 		class WC_Stripe {
 
@@ -89,6 +78,20 @@ function woocommerce_gateway_stripe_init() {
 				}
 				return self::$instance;
 			}
+
+			/**
+			 * Stripe Connect API
+			 *
+			 * @var WC_Stripe_Connect_API
+			 */
+			private $api;
+
+			/**
+			 * Stripe Connect
+			 *
+			 * @var WC_Stripe_Connect
+			 */
+			public $connect;
 
 			/**
 			 * Private clone method to prevent cloning of the instance of the
@@ -112,7 +115,13 @@ function woocommerce_gateway_stripe_init() {
 			 */
 			private function __construct() {
 				add_action( 'admin_init', array( $this, 'install' ) );
+
 				$this->init();
+
+				$this->api     = new WC_Stripe_Connect_API();
+				$this->connect = new WC_Stripe_Connect( $this->api );
+
+				add_action( 'rest_api_init', array( $this, 'register_connect_routes' ) );
 			}
 
 			/**
@@ -148,6 +157,8 @@ function woocommerce_gateway_stripe_init() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-payment-request.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-subs-compat.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-sepa-subs-compat.php';
+				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect.php';
+				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect-api.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-order-handler.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-tokens.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php';
@@ -315,8 +326,45 @@ function woocommerce_gateway_stripe_init() {
 
 				return $email_classes;
 			}
+
+			/**
+			 * Register Stripe connect rest routes.
+			 */
+			public function register_connect_routes() {
+
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-connect-rest-controller.php';
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-rest-oauth-init-controller.php';
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-rest-oauth-connect-controller.php';
+
+				$oauth_init    = new WC_Stripe_Connect_REST_Oauth_Init_Controller( $this->connect, $this->api );
+				$oauth_connect = new WC_Stripe_Connect_REST_Oauth_Connect_Controller( $this->connect, $this->api );
+
+				$oauth_init->register_routes();
+				$oauth_connect->register_routes();
+			}
 		}
 
-		WC_Stripe::get_instance();
-	endif;
+		$plugin = WC_Stripe::get_instance();
+
+	}
+
+	return $plugin;
+}
+
+add_action( 'plugins_loaded', 'woocommerce_gateway_stripe_init' );
+
+function woocommerce_gateway_stripe_init() {
+	load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
+
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		add_action( 'admin_notices', 'woocommerce_stripe_missing_wc_notice' );
+		return;
+	}
+
+	if ( version_compare( WC_VERSION, WC_STRIPE_MIN_WC_VER, '<' ) ) {
+		add_action( 'admin_notices', 'woocommerce_stripe_wc_not_supported' );
+		return;
+	}
+
+	wc_stripe();
 }
