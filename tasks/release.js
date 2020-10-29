@@ -19,6 +19,7 @@ const filesToCopy = [
 	'woocommerce-gateway-stripe.php',
 	'changelog.txt',
 	'readme.txt',
+	'SECURITY.md',
 	'apple-developer-merchantid-domain-association',
 	'uninstall.php',
 ];
