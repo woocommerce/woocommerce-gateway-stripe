@@ -67,5 +67,3 @@ class WC_Stripe_Inbox_Notes {
 		$note->save();
 	}
 }
-
-new WC_Stripe_Inbox_Notes();
