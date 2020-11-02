@@ -179,43 +179,43 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @return bool True on success, false on failure.
 	 */
 	public function update_domain_association_file( $force = false ) {
-			$path     = untrailingslashit( $_SERVER['DOCUMENT_ROOT'] );
-			$dir      = '.well-known';
-			$file     = 'apple-developer-merchantid-domain-association';
-			$fullpath = $path . '/' . $dir . '/' . $file;
+		$path     = untrailingslashit( $_SERVER['DOCUMENT_ROOT'] );
+		$dir      = '.well-known';
+		$file     = 'apple-developer-merchantid-domain-association';
+		$fullpath = $path . '/' . $dir . '/' . $file;
 
-			$existing_contents = @file_get_contents( $fullpath );
-			$new_contents = @file_get_contents( WC_STRIPE_PLUGIN_PATH . '/' . $file );
-			if ( ( ! $existing_contents && ! $force ) || $existing_contents === $new_contents ) {
-				return true;
-			}
-
-			$error = null;
-			if ( ! file_exists( $path . '/' . $dir ) ) {
-				if ( ! @mkdir( $path . '/' . $dir, 0755 ) ) { // @codingStandardsIgnoreLine
-					$error = __( 'Unable to create domain association folder to domain root.', 'woocommerce-gateway-stripe' );
-				}
-			}
-			if ( ! @copy( WC_STRIPE_PLUGIN_PATH . '/' . $file, $fullpath ) ) { // @codingStandardsIgnoreLine
-				$error = __( 'Unable to copy domain association file to domain root.', 'woocommerce-gateway-stripe' );
-			}
-
-			if ( isset( $error ) ) {
-				$url            = 'https://' . $_SERVER['HTTP_HOST'] . '/' . $dir . '/' . $file;
-				$response       = wp_remote_get( $url );
-				$already_hosted = wp_remote_retrieve_body( $response ) === $new_contents;
-				if ( ! $already_hosted ) {
-					WC_Stripe_Logger::log(
-						'Error: ' . $error . ' ' .
-						/* translators: expected domain association file URL */
-						sprintf( __( 'To enable Apple Pay, domain association file must be hosted at %s.', 'woocommerce-gateway-stripe' ), $url )
-					);
-				}
-				return $already_hosted;
-			}
-
-			WC_Stripe_Logger::log( 'Domain association file updated.' );
+		$existing_contents = @file_get_contents( $fullpath );
+		$new_contents = @file_get_contents( WC_STRIPE_PLUGIN_PATH . '/' . $file );
+		if ( ( ! $existing_contents && ! $force ) || $existing_contents === $new_contents ) {
 			return true;
+		}
+
+		$error = null;
+		if ( ! file_exists( $path . '/' . $dir ) ) {
+			if ( ! @mkdir( $path . '/' . $dir, 0755 ) ) { // @codingStandardsIgnoreLine
+				$error = __( 'Unable to create domain association folder to domain root.', 'woocommerce-gateway-stripe' );
+			}
+		}
+		if ( ! @copy( WC_STRIPE_PLUGIN_PATH . '/' . $file, $fullpath ) ) { // @codingStandardsIgnoreLine
+			$error = __( 'Unable to copy domain association file to domain root.', 'woocommerce-gateway-stripe' );
+		}
+
+		if ( isset( $error ) ) {
+			$url            = 'https://' . $_SERVER['HTTP_HOST'] . '/' . $dir . '/' . $file;
+			$response       = wp_remote_get( $url );
+			$already_hosted = wp_remote_retrieve_body( $response ) === $new_contents;
+			if ( ! $already_hosted ) {
+				WC_Stripe_Logger::log(
+					'Error: ' . $error . ' ' .
+					/* translators: expected domain association file URL */
+					sprintf( __( 'To enable Apple Pay, domain association file must be hosted at %s.', 'woocommerce-gateway-stripe' ), $url )
+				);
+			}
+			return $already_hosted;
+		}
+
+		WC_Stripe_Logger::log( 'Domain association file updated.' );
+		return true;
 	}
 
 	/**
