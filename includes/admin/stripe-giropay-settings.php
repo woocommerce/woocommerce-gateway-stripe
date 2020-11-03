@@ -7,7 +7,7 @@ return apply_filters(
 	'wc_stripe_giropay_settings',
 	array(
 		'geo_target'  => array(
-			'description' => __( 'Relevant Payer Geography: Germany', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'Customer Geography: Germany', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
 		),
 		'guide'       => array(
