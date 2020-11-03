@@ -7,7 +7,7 @@ return apply_filters(
 	'wc_stripe_bancontact_settings',
 	array(
 		'geo_target'  => array(
-			'description' => __( 'Relevant Payer Geography: Belgium', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'Customer Geography: Belgium', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
 		),
 		'guide'       => array(

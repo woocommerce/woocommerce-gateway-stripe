@@ -7,7 +7,7 @@ return apply_filters(
 	'wc_stripe_sepa_settings',
 	array(
 		'geo_target'  => array(
-			'description' => __( 'Relevant Payer Geography: France, Germany, Spain, Belgium, Netherlands, Luxembourg, Italy, Portugal, Austria, Ireland', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'Customer Geography: France, Germany, Spain, Belgium, Netherlands, Luxembourg, Italy, Portugal, Austria, Ireland', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
 		),
 		'guide'       => array(
