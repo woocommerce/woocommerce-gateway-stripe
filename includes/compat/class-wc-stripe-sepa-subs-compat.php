@@ -215,7 +215,7 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 	 * @param bool $retry Should we retry the process?
 	 * @param object $previous_error
 	 */
-	public function process_subscription_payment( $amount = 0.0, $renewal_order, $retry = true, $previous_error ) {
+	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
 		try {
 			if ( $amount * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
 				/* translators: minimum amount */
