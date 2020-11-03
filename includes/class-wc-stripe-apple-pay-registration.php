@@ -56,10 +56,15 @@ class WC_Stripe_Apple_Pay_Registration {
 		add_action( 'woocommerce_stripe_updated', array( $this, 'verify_domain_if_needed' ) );
 		add_action( 'update_option_woocommerce_stripe_settings', array( $this, 'verify_domain_on_new_secret_key' ), 10, 2 );
 
+		add_action( 'init', array( $this, 'add_domain_association_rewrite_rule' ) );
+		add_filter( 'query_vars', array( $this, 'whitelist_domain_association_query_param' ), 10, 1 );
+		add_action( 'parse_request', array( $this, 'parse_domain_association_request' ), 10, 1 );
+
 		$this->stripe_settings         = get_option( 'woocommerce_stripe_settings', array() );
 		$this->stripe_enabled          = $this->get_option( 'enabled' );
 		$this->payment_request         = 'yes' === $this->get_option( 'payment_request', 'yes' );
 		$this->apple_pay_domain_set    = 'yes' === $this->get_option( 'apple_pay_domain_set', 'no' );
+		$this->apple_pay_rewrite_flush = 'yes' === $this->get_option( 'apple_pay_rewrite_flush', 'no' );
 		$this->apple_pay_verify_notice = '';
 		$this->secret_key              = $this->get_secret_key();
 
@@ -67,8 +72,7 @@ class WC_Stripe_Apple_Pay_Registration {
 			return;
 		}
 
-		$this->init_apple_pay();
-
+		add_action( 'init', array( $this, 'init_apple_pay' ) );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
 	}
 
@@ -169,6 +173,48 @@ class WC_Stripe_Apple_Pay_Registration {
 	}
 
 	/**
+	 * Adds a rewrite rule for serving the domain association file from the proper location.
+	 */
+	public function add_domain_association_rewrite_rule() {
+		$regex    = '^\.well-known\/apple-developer-merchantid-domain-association$';
+		$redirect = 'index.php?apple-developer-merchantid-domain-association=1';
+		add_rewrite_rule( $regex, $redirect, 'top' );
+	}
+
+	/**
+	 * Add to the list of publicly allowed query variables.
+	 *
+	 * @param  array $query_vars - provided public query vars.
+	 * @return array Updated public query vars.
+	 */
+	public function whitelist_domain_association_query_param( $query_vars ) {
+		$query_vars[] = 'apple-developer-merchantid-domain-association';
+		return $query_vars;
+	}
+
+	/**
+	 * Serve domain association file when proper query param is provided.
+	 *
+	 * @param WP WordPress environment object.
+	 */
+	public function parse_domain_association_request( $wp ) {
+		if (
+			! isset( $wp->query_vars['apple-developer-merchantid-domain-association'] ) ||
+			'1' !== $wp->query_vars['apple-developer-merchantid-domain-association']
+		) {
+			return;
+		}
+
+		$path     = WC_STRIPE_PLUGIN_PATH . '/' . 'apple-developer-merchantid-domain-association';
+		$contents = file_get_contents( $path );
+
+		header( 'Content-Type: application/octet-stream' );
+		echo esc_html( $contents );
+
+		exit;
+	}
+
+	/**
 	 * Updates the Apple Pay domain association file.
 	 * Reports failure only if file isn't already being served properly.
 	 *
@@ -225,10 +271,11 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @version 3.1.0
 	 */
 	public function verify_domain() {
-		if ( ! $this->update_domain_association_file( true ) ) {
-			$this->stripe_settings['apple_pay_domain_set'] = 'no';
+		if ( ! $this->apple_pay_rewrite_flush ) {
+			flush_rewrite_rules();
+			$this->stripe_settings['apple_pay_rewrite_flush'] = 'yes';
+			$this->apple_pay_rewrite_flush = true;
 			update_option( 'woocommerce_stripe_settings', $this->stripe_settings );
-			return;
 		}
 
 		try {
@@ -279,9 +326,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @version 4.5.3
 	 */
 	public function verify_domain_if_needed() {
-		if ( $this->apple_pay_domain_set ) {
-			$this->update_domain_association_file();
-		} else {
+		if ( $this->payment_request ) {
 			$this->verify_domain();
 		}
 	}
