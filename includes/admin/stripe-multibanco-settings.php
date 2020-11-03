@@ -7,7 +7,7 @@ return apply_filters(
 	'wc_stripe_multibanco_settings',
 	array(
 		'geo_target'  => array(
-			'description' => __( 'Relevant Payer Geography: Portugal', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'Customer Geography: Portugal', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
 		),
 		'activation'  => array(

@@ -7,7 +7,7 @@ return apply_filters(
 	'wc_stripe_ideal_settings',
 	array(
 		'geo_target'  => array(
-			'description' => __( 'Relevant Payer Geography: The Netherlands', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'Customer Geography: The Netherlands', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
 		),
 		'guide'       => array(
