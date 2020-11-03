@@ -90,7 +90,7 @@ class WC_Stripe_Payment_Tokens {
 	 * @param array $tokens
 	 * @return array
 	 */
-	public function woocommerce_get_customer_payment_tokens( $tokens = array(), $customer_id, $gateway_id ) {
+	public function woocommerce_get_customer_payment_tokens( $tokens, $customer_id, $gateway_id ) {
 		if ( is_user_logged_in() && class_exists( 'WC_Payment_Token_CC' ) ) {
 			$stored_tokens = array();
 
