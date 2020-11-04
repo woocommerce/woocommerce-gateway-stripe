@@ -124,6 +124,11 @@ class WC_Stripe_Customer {
 				'email'       => $user->user_email,
 				'description' => $description,
 			);
+
+			$billing_full_name = trim( $billing_first_name . ' ' . $billing_last_name );
+			if ( ! empty( $billing_full_name ) ) {
+				$defaults['name'] = $billing_full_name;
+			}
 		} else {
 			$billing_first_name = isset( $_POST['billing_first_name'] ) ? filter_var( wp_unslash( $_POST['billing_first_name'] ), FILTER_SANITIZE_STRING ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
 			$billing_last_name  = isset( $_POST['billing_last_name'] ) ? filter_var( wp_unslash( $_POST['billing_last_name'] ), FILTER_SANITIZE_STRING ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
@@ -135,6 +140,11 @@ class WC_Stripe_Customer {
 				'email'       => $billing_email,
 				'description' => $description,
 			);
+
+			$billing_full_name = trim( $billing_first_name . ' ' . $billing_last_name );
+			if ( ! empty( $billing_full_name ) ) {
+				$defaults['name'] = $billing_full_name;
+			}
 		}
 
 		$metadata             = array();
