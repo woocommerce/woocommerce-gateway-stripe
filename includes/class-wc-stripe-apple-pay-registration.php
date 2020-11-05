@@ -94,7 +94,8 @@ class WC_Stripe_Apple_Pay_Registration {
 	 */
 	public function add_domain_association_rewrite_rule() {
 		$regex    = '^\.well-known\/apple-developer-merchantid-domain-association$';
-		$redirect = 'index.php?apple-developer-merchantid-domain-association=1';
+		$redirect = parse_url( WC_STRIPE_PLUGIN_URL, PHP_URL_PATH ) . '/apple-developer-merchantid-domain-association';
+
 		add_rewrite_rule( $regex, $redirect, 'top' );
 	}
 
