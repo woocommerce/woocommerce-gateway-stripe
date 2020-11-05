@@ -66,7 +66,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * Whether the gateway and Payment Request Button (prerequisites for Apple Pay) are enabled.
 	 *
 	 * @since 4.5.4
-	 * @return string Secret key.
+	 * @return string Whether Apple Pay required settings are enabled.
 	 */
 	private function is_enabled() {
 		$stripe_enabled                 = 'yes' === $this->get_option( 'enabled', 'no' );
