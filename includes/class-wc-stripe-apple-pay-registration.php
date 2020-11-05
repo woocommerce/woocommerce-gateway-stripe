@@ -33,6 +33,9 @@ class WC_Stripe_Apple_Pay_Registration {
 
 	public function __construct() {
 		add_action( 'init', array( $this, 'add_domain_association_rewrite_rule' ) );
+		add_filter( 'query_vars', array( $this, 'whitelist_domain_association_query_param' ), 10, 1 );
+		add_action( 'parse_request', array( $this, 'parse_domain_association_request' ), 10, 1 );
+
 		add_action( 'woocommerce_stripe_updated', array( $this, 'verify_domain_if_configured' ) );
 		add_action( 'update_option_woocommerce_stripe_settings', array( $this, 'verify_domain_on_settings_change' ), 10, 2 );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
@@ -91,9 +94,39 @@ class WC_Stripe_Apple_Pay_Registration {
 	 */
 	public function add_domain_association_rewrite_rule() {
 		$regex    = '^\.well-known\/apple-developer-merchantid-domain-association$';
-		$redirect = parse_url( WC_STRIPE_PLUGIN_URL, PHP_URL_PATH ) . '/apple-developer-merchantid-domain-association';
+		$redirect = 'index.php?apple-developer-merchantid-domain-association=1';
 
 		add_rewrite_rule( $regex, $redirect, 'top' );
+	}
+
+	/**
+	 * Add to the list of publicly allowed query variables.
+	 *
+	 * @param  array $query_vars - provided public query vars.
+	 * @return array Updated public query vars.
+	 */
+	public function whitelist_domain_association_query_param( $query_vars ) {
+		$query_vars[] = 'apple-developer-merchantid-domain-association';
+		return $query_vars;
+	}
+
+	/**
+	 * Serve domain association file when proper query param is provided.
+	 *
+	 * @param WP WordPress environment object.
+	 */
+	public function parse_domain_association_request( $wp ) {
+		if (
+			! isset( $wp->query_vars['apple-developer-merchantid-domain-association'] ) ||
+			'1' !== $wp->query_vars['apple-developer-merchantid-domain-association']
+		) {
+			return;
+		}
+
+		$path = WC_STRIPE_PLUGIN_PATH . '/apple-developer-merchantid-domain-association';
+		header( 'Content-Type: application/octet-stream' );
+		echo esc_html( file_get_contents( $path ) );
+		exit;
 	}
 
 	/**
