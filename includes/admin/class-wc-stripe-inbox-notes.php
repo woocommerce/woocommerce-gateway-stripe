@@ -49,7 +49,7 @@ class WC_Stripe_Inbox_Notes {
 
 		$note = new WC_Admin_Note();
 		$note->set_title( __( 'Apple Pay domain verification needed', 'woocommerce-admin' ) );
-		$note->set_content( __( 'The WooCommerce Stripe Gateway extension attempted to perform domain verification on behalf of your store, but was unable to do so. This will need to be in place before Apple Pay will be functional for your customers.', 'woocommerce-admin' ) );
+		$note->set_content( __( 'The WooCommerce Stripe Gateway extension attempted to perform domain verification on behalf of your store, but was unable to do so. This must be resolved before Apple Pay can be offered to your customers.', 'woocommerce-admin' ) );
 		$note->set_type( WC_Admin_Note::E_WC_ADMIN_NOTE_INFORMATIONAL );
 		$note->set_name( self::NOTE_NAME );
 		$note->set_source( 'woocommerce-admin' );
