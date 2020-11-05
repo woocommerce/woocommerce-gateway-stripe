@@ -7,14 +7,13 @@ use Automattic\WooCommerce\Admin\Notes\WC_Admin_Note;
 use Automattic\WooCommerce\Admin\Notes\WC_Admin_Notes;
 
 /**
- * Class that adds inbox notifications.
+ * Class that adds Inbox notifications.
  *
  * @since 4.5.4
  */
 class WC_Stripe_Inbox_Notes {
 	const NOTE_NAME = 'stripe-apple-pay-domain-verification';
 
-	// TODO Call this only after domain verification has a chance to run
 	public static function notify_of_apple_pay_domain_verification_if_needed() {
 		if ( ! class_exists( 'Automattic\WooCommerce\Admin\Notes\WC_Admin_Notes' ) ) {
 			return;
