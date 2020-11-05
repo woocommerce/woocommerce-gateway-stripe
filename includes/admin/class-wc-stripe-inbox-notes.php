@@ -28,12 +28,6 @@ class WC_Stripe_Inbox_Notes {
 		$domain_flag_key       = 'apple_pay_domain_set';
 		$verification_complete = isset( $stripe_settings[ $domain_flag_key ] ) && 'yes' === $stripe_settings[ $domain_flag_key ];
 
-		// Only show if in the US.
-		$base_location = wc_get_base_location();
-		if ( ! $base_location || 'US' !== $base_location['country'] ) {
-			return;
-		}
-
 		$data_store = WC_Data_Store::load( 'admin-note' );
 
 		// First, see if we've already created this kind of note so we don't do it again.
