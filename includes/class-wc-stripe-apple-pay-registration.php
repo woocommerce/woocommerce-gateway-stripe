@@ -37,7 +37,8 @@ class WC_Stripe_Apple_Pay_Registration {
 		add_action( 'parse_request', array( $this, 'parse_domain_association_request' ), 10, 1 );
 
 		add_action( 'woocommerce_stripe_updated', array( $this, 'verify_domain_if_configured' ) );
-		add_action( 'update_option_woocommerce_stripe_settings', array( $this, 'verify_domain_on_settings_change' ), 10, 2 );
+		add_action( 'add_option_woocommerce_stripe_settings', array( $this, 'verify_domain_on_new_settings' ), 10, 2 );
+		add_action( 'update_option_woocommerce_stripe_settings', array( $this, 'verify_domain_on_updated_settings' ), 10, 2 );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
 
 		$this->stripe_settings                 = get_option( 'woocommerce_stripe_settings', array() );
@@ -230,12 +231,22 @@ class WC_Stripe_Apple_Pay_Registration {
 	}
 
 	/**
+	 * Conditionally process the Apple Pay domain verification after settings are initially set.
+	 *
+	 * @since 4.5.4
+	 * @version 4.5.4
+	 */
+	public function verify_domain_on_new_settings( $option, $settings ) {
+		$this->verify_domain_on_updated_settings( array(), $settings );
+	}
+
+	/**
 	 * Conditionally process the Apple Pay domain verification after settings are updated.
 	 *
 	 * @since 4.5.3
 	 * @version 4.5.4
 	 */
-	public function verify_domain_on_settings_change( $prev_settings, $settings ) {
+	public function verify_domain_on_updated_settings( $prev_settings, $settings ) {
 		// Grab previous state and then update cached settings.
 		$this->stripe_settings = $prev_settings;
 		$prev_secret_key       = $this->get_secret_key();
