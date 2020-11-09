@@ -41,9 +41,9 @@ class WC_Stripe_Apple_Pay_Registration {
 		add_action( 'update_option_woocommerce_stripe_settings', array( $this, 'verify_domain_on_updated_settings' ), 10, 2 );
 		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
 
-		$this->stripe_settings                 = get_option( 'woocommerce_stripe_settings', array() );
-		$this->apple_pay_domain_set            = 'yes' === $this->get_option( 'apple_pay_domain_set', 'no' );
-		$this->apple_pay_verify_notice         = '';
+		$this->stripe_settings         = get_option( 'woocommerce_stripe_settings', array() );
+		$this->apple_pay_domain_set    = 'yes' === $this->get_option( 'apple_pay_domain_set', 'no' );
+		$this->apple_pay_verify_notice = '';
 	}
 
 	/**
