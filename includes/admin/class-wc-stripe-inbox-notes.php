@@ -15,6 +15,10 @@ class WC_Stripe_Inbox_Notes {
 	const SUCCESS_NOTE_NAME = 'stripe-apple-pay-marketing-guide-holiday-2020';
 	const FAILURE_NOTE_NAME = 'stripe-apple-pay-domain-verification-needed';
 
+	public function __construct() {
+		add_action( 'wc_stripe_apple_pay_post_setup_success', array( self::class, 'create_marketing_note' ) );
+	}
+
 	public static function notify_on_apple_pay_domain_verification( $verification_complete ) {
 		if ( ! class_exists( 'Automattic\WooCommerce\Admin\Notes\WC_Admin_Notes' ) ) {
 			return;
@@ -24,21 +28,14 @@ class WC_Stripe_Inbox_Notes {
 			return;
 		}
 
-		$data_store = WC_Data_Store::load( 'admin-note' );
-
-		$success_note_ids = $data_store->get_notes_with_name( self::SUCCESS_NOTE_NAME );
-		$failure_note_ids = $data_store->get_notes_with_name( self::FAILURE_NOTE_NAME );
-
 		if ( $verification_complete ) {
-			// Display success note to US merchants only.
-			$base_location = wc_get_base_location();
-			if ( is_array( $base_location ) && 'US' === $base_location['country'] ) {
-				if ( empty( $success_note_ids ) ) {
-					self::create_success_note();
-				}
+			if ( self::should_show_marketing_note() && ! wp_next_scheduled( 'wc_stripe_apple_pay_post_setup_success' ) ) {
+				wp_schedule_single_event( time() + DAY_IN_SECONDS, 'wc_stripe_apple_pay_post_setup_success' );
 			}
 
 			// If the domain verification completed after failure note was created, make sure it's marked as actioned.
+			$data_store       = WC_Data_Store::load( 'admin-note' );
+			$failure_note_ids = $data_store->get_notes_with_name( self::FAILURE_NOTE_NAME );
 			if ( ! empty( $failure_note_ids ) ) {
 				$note_id = array_pop( $failure_note_ids );
 				$note    = WC_Admin_Notes::get_note( $note_id );
@@ -54,7 +51,38 @@ class WC_Stripe_Inbox_Notes {
 		}
 	}
 
-	public static function create_success_note() {
+	public static function should_show_marketing_note() {
+		// Display to US merchants only.
+		$base_location = wc_get_base_location();
+		if ( ! $base_location || 'US' !== $base_location['country'] ) {
+			return false;
+		}
+
+		// Make sure Apple Pay is enabled and setup is successful.
+		$stripe_settings       = get_option( 'woocommerce_stripe_settings', array() );
+		$stripe_enabled        = isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
+		$button_enabled        = isset( $stripe_settings['payment_request'] ) && 'yes' === $stripe_settings['payment_request'];
+		$verification_complete = isset( $stripe_settings['apple_pay_domain_set'] ) && 'yes' === $stripe_settings['apple_pay_domain_set'];
+		if ( ! $stripe_enabled || ! $button_enabled || ! $verification_complete ) {
+			return false;
+		}
+
+		// Make sure note doesn't already exist.
+		$data_store       = WC_Data_Store::load( 'admin-note' );
+		$success_note_ids = $data_store->get_notes_with_name( self::SUCCESS_NOTE_NAME );
+		if ( ! empty( $success_note_ids ) ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	public static function create_marketing_note() {
+		// Make sure conditions for this note still hold.
+		if ( ! self::should_show_marketing_note() ) {
+			return;
+		}
+
 		$note = new WC_Admin_Note();
 		$note->set_title( __( 'Boost sales this holiday season with Apple Pay!', 'woocommerce-gateway-stripe' ) );
 		$note->set_content( __( 'Now that you accept Apple Pay® with Stripe, you can increase conversion rates by letting your customers know that Apple Pay is available. Here’s a marketing guide to help you get started.', 'woocommerce-gateway-stripe' ) );
@@ -84,3 +112,5 @@ class WC_Stripe_Inbox_Notes {
 		$note->save();
 	}
 }
+
+new WC_Stripe_Inbox_Notes();
