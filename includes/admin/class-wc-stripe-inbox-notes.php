@@ -34,8 +34,12 @@ class WC_Stripe_Inbox_Notes {
 		$failure_note_ids = $data_store->get_notes_with_name( self::FAILURE_NOTE_NAME );
 
 		if ( $verification_complete ) {
-			if ( empty( $success_note_ids ) ) {
-				self::create_success_note();
+			// Display success note to US merchants only.
+			$base_location = wc_get_base_location();
+			if ( is_array( $base_location ) && 'US' === $base_location['country'] ) {
+				if ( empty( $success_note_ids ) ) {
+					self::create_success_note();
+				}
 			}
 
 			if ( ! empty( $failure_note_ids ) ) {
