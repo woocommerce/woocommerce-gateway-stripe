@@ -31,22 +31,25 @@ class WC_Stripe_Inbox_Notes {
 
 		$failure_note_ids = $data_store->get_notes_with_name( self::FAILURE_NOTE_NAME );
 
-		if ( ! empty( $failure_note_ids ) ) {
-			$note_id = array_pop( $failure_note_ids );
-			$note    = WC_Admin_Notes::get_note( $note_id );
-			if ( false === $note ) {
-				return;
-			}
+		if ( $verification_complete ) {
+			if ( ! empty( $failure_note_ids ) ) {
+				$note_id = array_pop( $failure_note_ids );
+				$note    = WC_Admin_Notes::get_note( $note_id );
+				if ( false === $note ) {
+					return;
+				}
 
-			// If the domain verification completed after failure note was created, make sure it's marked as actioned.
-			if ( $verification_complete && WC_Admin_Note::E_WC_ADMIN_NOTE_ACTIONED !== $note->get_status() ) {
-				$note->set_status( WC_Admin_Note::E_WC_ADMIN_NOTE_ACTIONED );
-				$note->save();
+				// If the domain verification completed after failure note was created, make sure it's marked as actioned.
+				if ( WC_Admin_Note::E_WC_ADMIN_NOTE_ACTIONED !== $note->get_status() ) {
+					$note->set_status( WC_Admin_Note::E_WC_ADMIN_NOTE_ACTIONED );
+					$note->save();
+				}
 			}
-			return;
+		} else {
+			if ( empty( $failure_note_ids ) ) {
+				self::create_failure_note();
+			}
 		}
-
-		self::create_failure_note();
 	}
 
 	public static function create_failure_note() {
