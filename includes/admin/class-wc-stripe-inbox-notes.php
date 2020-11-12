@@ -15,7 +15,7 @@ class WC_Stripe_Inbox_Notes {
 	const SUCCESS_NOTE_NAME = 'stripe-apple-pay-marketing-guide-holiday-2020';
 	const FAILURE_NOTE_NAME = 'stripe-apple-pay-domain-verification-needed';
 
-	public static function notify_on_apple_pay_domain_verification() {
+	public static function notify_on_apple_pay_domain_verification( $verification_complete ) {
 		if ( ! class_exists( 'Automattic\WooCommerce\Admin\Notes\WC_Admin_Notes' ) ) {
 			return;
 		}
@@ -23,10 +23,6 @@ class WC_Stripe_Inbox_Notes {
 		if ( ! class_exists( 'WC_Data_Store' ) ) {
 			return;
 		}
-
-		$stripe_settings       = get_option( 'woocommerce_stripe_settings', array() );
-		$domain_flag_key       = 'apple_pay_domain_set';
-		$verification_complete = isset( $stripe_settings[ $domain_flag_key ] ) && 'yes' === $stripe_settings[ $domain_flag_key ];
 
 		$data_store = WC_Data_Store::load( 'admin-note' );
 
@@ -42,15 +38,11 @@ class WC_Stripe_Inbox_Notes {
 				}
 			}
 
+			// If the domain verification completed after failure note was created, make sure it's marked as actioned.
 			if ( ! empty( $failure_note_ids ) ) {
 				$note_id = array_pop( $failure_note_ids );
 				$note    = WC_Admin_Notes::get_note( $note_id );
-				if ( false === $note ) {
-					return;
-				}
-
-				// If the domain verification completed after failure note was created, make sure it's marked as actioned.
-				if ( WC_Admin_Note::E_WC_ADMIN_NOTE_ACTIONED !== $note->get_status() ) {
+				if ( false !== $note && WC_Admin_Note::E_WC_ADMIN_NOTE_ACTIONED !== $note->get_status() ) {
 					$note->set_status( WC_Admin_Note::E_WC_ADMIN_NOTE_ACTIONED );
 					$note->save();
 				}
