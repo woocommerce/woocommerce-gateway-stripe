@@ -19,6 +19,9 @@ class WC_Stripe_Inbox_Notes {
 		add_action( 'wc_stripe_apple_pay_post_setup_success', array( self::class, 'create_marketing_note' ) );
 	}
 
+	/**
+	 * Manage notes to show after Apple Pay domain verification.
+	 */
 	public static function notify_on_apple_pay_domain_verification( $verification_complete ) {
 		if ( ! class_exists( 'Automattic\WooCommerce\Admin\Notes\WC_Admin_Notes' ) ) {
 			return;
@@ -51,6 +54,9 @@ class WC_Stripe_Inbox_Notes {
 		}
 	}
 
+	/**
+	 * Whether conditions are right for the marketing note.
+	 */
 	public static function should_show_marketing_note() {
 		// Display to US merchants only.
 		$base_location = wc_get_base_location();
@@ -77,6 +83,9 @@ class WC_Stripe_Inbox_Notes {
 		return true;
 	}
 
+	/**
+	 * If conditions are right, show note promoting Apple Pay marketing guide.
+	 */
 	public static function create_marketing_note() {
 		// Make sure conditions for this note still hold.
 		if ( ! self::should_show_marketing_note() ) {
@@ -97,6 +106,9 @@ class WC_Stripe_Inbox_Notes {
 		$note->save();
 	}
 
+	/**
+	 * Show note indicating domain verification failure.
+	 */
 	public static function create_failure_note() {
 		$note = new WC_Admin_Note();
 		$note->set_title( __( 'Apple Pay domain verification needed', 'woocommerce-gateway-stripe' ) );
