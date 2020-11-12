@@ -226,8 +226,8 @@ class WC_Stripe_Apple_Pay_Registration {
 		// Register the domain with Apple Pay.
 		$this->register_domain_with_apple( $secret_key );
 
-		// Show/hide failure note if necessary.
-		WC_Stripe_Inbox_Notes::notify_of_apple_pay_domain_verification_if_needed();
+		// Show/hide notes if necessary.
+		WC_Stripe_Inbox_Notes::notify_on_apple_pay_domain_verification();
 	}
 
 	/**

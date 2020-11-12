@@ -12,9 +12,9 @@ use Automattic\WooCommerce\Admin\Notes\WC_Admin_Notes;
  * @since 4.5.4
  */
 class WC_Stripe_Inbox_Notes {
-	const NOTE_NAME = 'stripe-apple-pay-domain-verification';
+	const FAILURE_NOTE_NAME = 'stripe-apple-pay-domain-verification-needed';
 
-	public static function notify_of_apple_pay_domain_verification_if_needed() {
+	public static function notify_on_apple_pay_domain_verification() {
 		if ( ! class_exists( 'Automattic\WooCommerce\Admin\Notes\WC_Admin_Notes' ) ) {
 			return;
 		}
@@ -29,16 +29,16 @@ class WC_Stripe_Inbox_Notes {
 
 		$data_store = WC_Data_Store::load( 'admin-note' );
 
-		// First, see if we've already created this kind of note so we don't do it again.
-		$note_ids = $data_store->get_notes_with_name( self::NOTE_NAME );
-		if ( ! empty( $note_ids ) ) {
-			$note_id = array_pop( $note_ids );
+		$failure_note_ids = $data_store->get_notes_with_name( self::FAILURE_NOTE_NAME );
+
+		if ( ! empty( $failure_note_ids ) ) {
+			$note_id = array_pop( $failure_note_ids );
 			$note    = WC_Admin_Notes::get_note( $note_id );
 			if ( false === $note ) {
 				return;
 			}
 
-			// If the domain verification completed after the note was created, make sure it's marked as actioned.
+			// If the domain verification completed after failure note was created, make sure it's marked as actioned.
 			if ( $verification_complete && WC_Admin_Note::E_WC_ADMIN_NOTE_ACTIONED !== $note->get_status() ) {
 				$note->set_status( WC_Admin_Note::E_WC_ADMIN_NOTE_ACTIONED );
 				$note->save();
@@ -46,11 +46,15 @@ class WC_Stripe_Inbox_Notes {
 			return;
 		}
 
+		self::create_failure_note();
+	}
+
+	public static function create_failure_note() {
 		$note = new WC_Admin_Note();
 		$note->set_title( __( 'Apple Pay domain verification needed', 'woocommerce-admin' ) );
 		$note->set_content( __( 'The WooCommerce Stripe Gateway extension attempted to perform domain verification on behalf of your store, but was unable to do so. This must be resolved before Apple Pay can be offered to your customers.', 'woocommerce-admin' ) );
 		$note->set_type( WC_Admin_Note::E_WC_ADMIN_NOTE_INFORMATIONAL );
-		$note->set_name( self::NOTE_NAME );
+		$note->set_name( self::FAILURE_NOTE_NAME );
 		$note->set_source( 'woocommerce-admin' );
 		$note->add_action(
 			'learn-more',
