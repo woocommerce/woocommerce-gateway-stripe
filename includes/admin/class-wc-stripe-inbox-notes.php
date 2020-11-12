@@ -12,6 +12,7 @@ use Automattic\WooCommerce\Admin\Notes\WC_Admin_Notes;
  * @since 4.5.4
  */
 class WC_Stripe_Inbox_Notes {
+	const SUCCESS_NOTE_NAME = 'stripe-apple-pay-marketing-guide-holiday-2020';
 	const FAILURE_NOTE_NAME = 'stripe-apple-pay-domain-verification-needed';
 
 	public static function notify_on_apple_pay_domain_verification() {
@@ -29,9 +30,14 @@ class WC_Stripe_Inbox_Notes {
 
 		$data_store = WC_Data_Store::load( 'admin-note' );
 
+		$success_note_ids = $data_store->get_notes_with_name( self::SUCCESS_NOTE_NAME );
 		$failure_note_ids = $data_store->get_notes_with_name( self::FAILURE_NOTE_NAME );
 
 		if ( $verification_complete ) {
+			if ( empty( $success_note_ids ) ) {
+				self::create_success_note();
+			}
+
 			if ( ! empty( $failure_note_ids ) ) {
 				$note_id = array_pop( $failure_note_ids );
 				$note    = WC_Admin_Notes::get_note( $note_id );
@@ -50,6 +56,21 @@ class WC_Stripe_Inbox_Notes {
 				self::create_failure_note();
 			}
 		}
+	}
+
+	public static function create_success_note() {
+		$note = new WC_Admin_Note();
+		$note->set_title( __( 'Boost sales this holiday season with Apple Pay!', 'woocommerce-gateway-stripe' ) );
+		$note->set_content( __( 'Now that you accept Apple Pay® with Stripe, you can increase conversion rates by letting your customers know that Apple Pay is available. Here’s a marketing guide to help you get started.', 'woocommerce-gateway-stripe' ) );
+		$note->set_type( WC_Admin_Note::E_WC_ADMIN_NOTE_MARKETING );
+		$note->set_name( self::SUCCESS_NOTE_NAME );
+		$note->set_source( 'woocommerce-gateway-stripe' );
+		$note->add_action(
+			'marketing-guide',
+			__( 'See marketing guide', 'woocommerce-gateway-stripe' ),
+			'https://developer.apple.com/apple-pay/marketing/'
+		);
+		$note->save();
 	}
 
 	public static function create_failure_note() {
