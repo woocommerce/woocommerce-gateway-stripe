@@ -15,8 +15,10 @@ class WC_Stripe_Inbox_Notes {
 	const SUCCESS_NOTE_NAME = 'stripe-apple-pay-marketing-guide-holiday-2020';
 	const FAILURE_NOTE_NAME = 'stripe-apple-pay-domain-verification-needed';
 
+	const POST_SETUP_SUCCESS_ACTION = 'wc_stripe_apple_pay_post_setup_success';
+
 	public function __construct() {
-		add_action( 'wc_stripe_apple_pay_post_setup_success', array( self::class, 'create_marketing_note' ) );
+		add_action( self::POST_SETUP_SUCCESS_ACTION, array( self::class, 'create_marketing_note' ) );
 	}
 
 	/**
@@ -32,8 +34,8 @@ class WC_Stripe_Inbox_Notes {
 		}
 
 		if ( $verification_complete ) {
-			if ( self::should_show_marketing_note() && ! wp_next_scheduled( 'wc_stripe_apple_pay_post_setup_success' ) ) {
-				wp_schedule_single_event( time() + DAY_IN_SECONDS, 'wc_stripe_apple_pay_post_setup_success' );
+			if ( self::should_show_marketing_note() && ! wp_next_scheduled( self::POST_SETUP_SUCCESS_ACTION ) ) {
+				wp_schedule_single_event( time() + DAY_IN_SECONDS, self::POST_SETUP_SUCCESS_ACTION );
 			}
 
 			// If the domain verification completed after failure note was created, make sure it's marked as actioned.
