@@ -183,6 +183,8 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @version 4.5.4
 	 *
 	 * @param string $secret_key
+	 *
+	 * @return bool Whether domain verification succeeded.
 	 */
 	public function register_domain_with_apple( $secret_key ) {
 		try {
@@ -196,6 +198,8 @@ class WC_Stripe_Apple_Pay_Registration {
 
 			WC_Stripe_Logger::log( 'Your domain has been verified with Apple Pay!' );
 
+			return true;
+
 		} catch ( Exception $e ) {
 			$this->stripe_settings['apple_pay_domain_set'] = 'no';
 			$this->apple_pay_domain_set                    = false;
@@ -203,9 +207,10 @@ class WC_Stripe_Apple_Pay_Registration {
 			update_option( 'woocommerce_stripe_settings', $this->stripe_settings );
 
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+			return false;
 		}
 	}
-
 
 	/**
 	 * Process the Apple Pay domain verification if proper settings are configured.
@@ -224,10 +229,10 @@ class WC_Stripe_Apple_Pay_Registration {
 		flush_rewrite_rules();
 
 		// Register the domain with Apple Pay.
-		$this->register_domain_with_apple( $secret_key );
+		$verification_complete = $this->register_domain_with_apple( $secret_key );
 
-		// Show/hide failure note if necessary.
-		WC_Stripe_Inbox_Notes::notify_of_apple_pay_domain_verification_if_needed();
+		// Show/hide notes if necessary.
+		WC_Stripe_Inbox_Notes::notify_on_apple_pay_domain_verification( $verification_complete );
 	}
 
 	/**
