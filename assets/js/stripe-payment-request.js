@@ -94,7 +94,7 @@ jQuery( function( $ ) {
 				billing_last_name:         null !== name ? name.split( ' ' ).slice( 1 ).join( ' ' ) : '',
 				billing_company:           '',
 				billing_email:             null !== email   ? email : evt.payerEmail,
-				billing_phone:             null !== phone   ? phone : evt.payerPhone.replace( '/[() -]/g', '' ),
+				billing_phone:             null !== phone   ? phone : evt.payerPhone && evt.payerPhone.replace( '/[() -]/g', '' ),
 				billing_country:           null !== billing ? billing.country : '',
 				billing_address_1:         null !== billing ? billing.line1 : '',
 				billing_address_2:         null !== billing ? billing.line2 : '',
