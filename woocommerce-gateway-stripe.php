@@ -173,7 +173,7 @@ function wc_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/deprecated/class-wc-stripe-apple-pay.php';
 
 				add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateways' ) );
-				add_filter( 'pre_update_option_woocommerce_stripe_settings', array( $this, 'settings_update' ), 10, 2 );
+				add_filter( 'pre_update_option_woocommerce_stripe_settings', array( $this, 'gateway_settings_update' ), 10, 2 );
 				add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );
 				add_filter( 'plugin_row_meta', array( $this, 'plugin_row_meta' ), 10, 2 );
 
