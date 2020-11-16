@@ -173,6 +173,7 @@ function wc_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/deprecated/class-wc-stripe-apple-pay.php';
 
 				add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateways' ) );
+				add_filter( 'pre_update_option_woocommerce_stripe_settings', array( $this, 'gateway_settings_update' ), 10, 2 );
 				add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );
 				add_filter( 'plugin_row_meta', array( $this, 'plugin_row_meta' ), 10, 2 );
 
@@ -306,6 +307,26 @@ function wc_stripe() {
 				$sections['stripe_multibanco'] = __( 'Stripe Multibanco', 'woocommerce-gateway-stripe' );
 
 				return $sections;
+			}
+
+			/**
+			 * Provide default values for missing settings on initial gateway settings save.
+			 *
+			 * @since 4.5.4
+			 * @version 4.5.4
+			 *
+			 * @param array $settings New settings to save
+			 * @param array|bool $old_settings Existing settings, if any.
+			 * @return array New value but with defaults initially filled in for missing settings.
+			 */
+			public function gateway_settings_update( $settings, $old_settings ) {
+				if ( false === $old_settings ) {
+					$gateway  = new WC_Gateway_Stripe();
+					$fields   = $gateway->get_form_fields();
+					$defaults = array_merge( array_fill_keys( array_keys( $fields ), '' ), wp_list_pluck( $fields, 'default' ) );
+					return array_merge( $defaults, $settings );
+				}
+				return $settings;
 			}
 
 			/**
