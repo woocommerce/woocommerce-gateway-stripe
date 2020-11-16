@@ -133,6 +133,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add   - Accept payments via AliPay when store currency is set to CNY.
 * Tweak - Wording of Apple Pay link.
 * Fix   - Serve Apple Pay domain verification file via a rewrite rule.
+* Add   - Add Inbox note for Apple Pay domain verification if needed.
 * Add   - Apple Pay holiday marketing notice.
 * Fix   - Apple Pay: Ensure payer phone is available before attempting to access it.
 * Add   - Pass payment method for renewal charges if not a source.

@@ -7,6 +7,7 @@
 * Add   - Accept payments via AliPay when store currency is set to CNY.
 * Tweak - Wording of Apple Pay link.
 * Fix   - Serve Apple Pay domain verification file via a rewrite rule.
+* Add   - Add Inbox note for Apple Pay domain verification if needed.
 * Add   - Apple Pay holiday marketing notice.
 * Fix   - Apple Pay: Ensure payer phone is available before attempting to access it.
 * Add   - Pass payment method for renewal charges if not a source.
@@ -22,7 +23,6 @@
 * Tweak - Update payment request button description to include link to Stripe dashboard Apple Pay settings.
 * Add   - Add off session payment intent filter, props rfair404.
 * Tweak - Update contributors list.
-* Add   - Link from Payment Request button setting to Apple Pay settings in Stripe dashboard.
 
 = 4.5.2 - 2020-08-19 =
 * Fix - Allow extension to attempt to run in all countries, not just officially supported ones
