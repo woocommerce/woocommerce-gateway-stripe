@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 5.5
 Requires PHP: 5.6
-Stable tag: 4.5.3
+Stable tag: 4.5.4
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -126,14 +126,21 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.5.3 - 2020-10-06 =
-* Fix   - Apple Pay now requires a buyer's phone number only if it's required in Appearance > Customize > WooCommerce > Checkout.
-* Add   - Allow toggling secrets temporarily to visible in settings.
-* Fix   - Properly display field required error when SEPA method is used.
-* Tweak - Update payment request button description to include link to Stripe dashboard Apple Pay settings.
-* Add   - Add off session payment intent filter, props rfair404.
-* Tweak - Update contributors list.
-* Add   - Link from Payment Request button setting to Apple Pay settings in Stripe dashboard.
+= 4.5.4 - 2020-11-16 =
+* Add   - Stripe Connect OAuth.
+* Tweak - Add site_url to all transactions, not just recurring ones.
+* Add   - Customer's full name is now included in Stripe Customer object if available.
+* Add   - Accept payments via AliPay when store currency is set to CNY.
+* Tweak - Wording of Apple Pay link.
+* Fix   - Serve Apple Pay domain verification file via a rewrite rule.
+* Add   - Add Inbox note for Apple Pay domain verification if needed.
+* Add   - Apple Pay holiday marketing notice.
+* Fix   - Apple Pay: Ensure payer phone is available before attempting to access it.
+* Add   - Pass payment method for renewal charges if not a source.
+* Fix   - Ensure defaults are used for missing settings.
+* Add   - Add shipping address to payment requests.
+* Fix   - Fix the Not a valid URL notice.
+* Add   - Security.md with security and vulnerability reporting guidelines.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
