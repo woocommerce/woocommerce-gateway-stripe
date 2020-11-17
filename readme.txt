@@ -126,21 +126,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.5.4 - 2020-11-16 =
-* Add   - Stripe Connect OAuth.
-* Tweak - Add site_url to all transactions, not just recurring ones.
-* Add   - Customer's full name is now included in Stripe Customer object if available.
-* Add   - Accept payments via AliPay when store currency is set to CNY.
-* Tweak - Wording of Apple Pay link.
-* Fix   - Serve Apple Pay domain verification file via a rewrite rule.
-* Add   - Add Inbox note for Apple Pay domain verification if needed.
-* Add   - Apple Pay holiday marketing notice.
-* Fix   - Apple Pay: Ensure payer phone is available before attempting to access it.
-* Add   - Pass payment method for renewal charges if not a source.
-* Fix   - Ensure defaults are used for missing settings.
-* Add   - Add shipping address to payment requests.
-* Fix   - Fix the Not a valid URL notice.
-* Add   - Security.md with security and vulnerability reporting guidelines.
+= 4.5.5 - 2020-xx-xx =
+* Fix - Guard against fatal errors that may occur on inbox data store load.
 
-[See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
+See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
