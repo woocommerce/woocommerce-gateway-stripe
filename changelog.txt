@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 4.5.5 - 2020-xx-xx =
+* Fix - Guard against fatal errors that may occur on inbox data store load.
+
 = 4.5.4 - 2020-11-16 =
 * Add   - Stripe Connect OAuth.
 * Tweak - Add site_url to all transactions, not just recurring ones.
