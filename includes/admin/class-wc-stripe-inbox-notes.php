@@ -39,16 +39,18 @@ class WC_Stripe_Inbox_Notes {
 			}
 
 			// If the domain verification completed after failure note was created, make sure it's marked as actioned.
-			$data_store       = WC_Data_Store::load( 'admin-note' );
-			$failure_note_ids = $data_store->get_notes_with_name( self::FAILURE_NOTE_NAME );
-			if ( ! empty( $failure_note_ids ) ) {
-				$note_id = array_pop( $failure_note_ids );
-				$note    = WC_Admin_Notes::get_note( $note_id );
-				if ( false !== $note && WC_Admin_Note::E_WC_ADMIN_NOTE_ACTIONED !== $note->get_status() ) {
-					$note->set_status( WC_Admin_Note::E_WC_ADMIN_NOTE_ACTIONED );
-					$note->save();
+			try {
+				$data_store       = WC_Data_Store::load( 'admin-note' );
+				$failure_note_ids = $data_store->get_notes_with_name( self::FAILURE_NOTE_NAME );
+				if ( ! empty( $failure_note_ids ) ) {
+					$note_id = array_pop( $failure_note_ids );
+					$note    = WC_Admin_Notes::get_note( $note_id );
+					if ( false !== $note && WC_Admin_Note::E_WC_ADMIN_NOTE_ACTIONED !== $note->get_status() ) {
+						$note->set_status( WC_Admin_Note::E_WC_ADMIN_NOTE_ACTIONED );
+						$note->save();
+					}
 				}
-			}
+			} catch ( Exception $e ) {}  // @codingStandardsIgnoreLine.
 		} else {
 			if ( empty( $failure_note_ids ) ) {
 				self::create_failure_note();
@@ -76,10 +78,14 @@ class WC_Stripe_Inbox_Notes {
 		}
 
 		// Make sure note doesn't already exist.
-		$data_store       = WC_Data_Store::load( 'admin-note' );
-		$success_note_ids = $data_store->get_notes_with_name( self::SUCCESS_NOTE_NAME );
-		if ( ! empty( $success_note_ids ) ) {
-			return false;
+		try {
+			$data_store       = WC_Data_Store::load( 'admin-note' );
+			$success_note_ids = $data_store->get_notes_with_name( self::SUCCESS_NOTE_NAME );
+			if ( ! empty( $success_note_ids ) ) {
+				return false;
+			}
+		} catch ( Exception $e ) {
+			return false; // If unable to check, assume it shouldn't show note.
 		}
 
 		return true;
