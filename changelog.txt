@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 4.5.5 - 2020-xx-xx =
+= 4.5.5 - 2020-11-17 =
 * Fix - Guard against fatal errors that may occur on inbox data store load.
 
 = 4.5.4 - 2020-11-16 =
