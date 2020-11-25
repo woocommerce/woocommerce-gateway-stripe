@@ -4,7 +4,6 @@ sudo: false
 
 # Test main supported versions of PHP against latest WP. 5.2 is min supported PHP version.
 php:
-  - 5.6
   - 7.0
   - 7.1
 #  - 7.2
@@ -20,11 +19,6 @@ env:
 
 before_script:
   - |
-    if [[ ${TRAVIS_PHP_VERSION:0:3} == "5.6" ]]; then
-      echo "downloading phpunit 5 and rename to phpunit.phar"
-      wget https://phar.phpunit.de/phpunit-5.7.27.phar && mv phpunit-5.7.27.phar phpunit.phar
-    fi
-  - |
     if [[ ${TRAVIS_PHP_VERSION:0:3} == "7.0" ]]; then
       echo "downloading phpunit 6 and rename to phpunit.phar"
       wget https://phar.phpunit.de/phpunit-6.5.14.phar && mv phpunit-6.5.14.phar phpunit.phar
@@ -35,7 +29,7 @@ before_script:
 
 script:
   - |
-    if [[ ${TRAVIS_PHP_VERSION:0:3} == "5.6" || ${TRAVIS_PHP_VERSION:0:3} == "7.0" ]]; then
+    if [[ ${TRAVIS_PHP_VERSION:0:3} == "7.0" ]]; then
       php phpunit.phar -c phpunit.xml
     else
       phpunit
