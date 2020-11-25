@@ -3,7 +3,7 @@ language: php
 sudo: false
 
 matrix:
-  fast_finish: true
+  fast_finish: false
   include:
     # Minimal versions according to https://wordpress.org/plugins/woocommerce-gateway-stripe/
     # evaluate minimal compatible WC version
