@@ -22,14 +22,12 @@ before_script:
   - |
     if [[ ${TRAVIS_PHP_VERSION:0:3} == "7.0" ]]; then
       echo "downloading phpunit 6 and rename to phpunit.phar"
-      wget https://phar.phpunit.de/phpunit-6.phar
-      mv phpunit-6.phar phpunit.phar
+      wget https://phar.phpunit.de/phpunit-6.phar && mv phpunit-6.phar phpunit.phar
     fi
   - |
     if [[ ${TRAVIS_PHP_VERSION:0:3} != "5.6" && ${TRAVIS_PHP_VERSION:0:3} != "7.0" ]]; then
       echo "downloading phpunit 7 and rename to phpunit.phar"
-      wget https://phar.phpunit.de/phpunit-7.phar
-      mv phpunit-7.phar phpunit.phar
+      wget https://phar.phpunit.de/phpunit-7.phar && mv phpunit-7.phar phpunit.phar      
     fi
   - phpenv config-rm xdebug.ini
   - bash tests/bin/install.sh wc_stripe_test root '' localhost $WP_VERSION
