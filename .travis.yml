@@ -6,9 +6,17 @@ matrix:
   fast_finish: true
   include:
     # Minimal versions according to https://wordpress.org/plugins/woocommerce-gateway-stripe/
+    # evaluate minimal compatible WC version
     - php: 5.6
       env: WP_MULTISITE=0 WP_VERSION=4.4 WC_VERSION=3.4.5
       stage: test
+    - php: 5.6
+      env: WP_MULTISITE=0 WP_VERSION=4.4 WC_VERSION=3.9.3
+      stage: test
+    - php: 5.6
+      env: WP_MULTISITE=0 WP_VERSION=4.4 WC_VERSION=4.0.0
+      stage: test
+    # /evaluate minimal compatible WC version
     # WC version according to https://wordpress.org/plugins/woocommerce-gateway-stripe/
     - php: 7.0
       env: WP_MULTISITE=0 WP_VERSION=latest WC_VERSION=latest
