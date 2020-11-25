@@ -34,11 +34,13 @@ before_script:
   - bash tests/bin/travis.sh before
 
 script:
+  - composer self-update 2.0.6
+  - php --version && composer install
   - |
     if [[ ${TRAVIS_PHP_VERSION:0:3} == "5.6" || ${TRAVIS_PHP_VERSION:0:3} == "7.0" ]]; then
       php phpunit.phar -c phpunit.xml
     else
-      phpunit
+      ./vendor/bin/phpunit
     fi
 
 #save node_modules to speed up build
