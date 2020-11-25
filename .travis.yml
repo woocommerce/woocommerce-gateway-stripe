@@ -2,21 +2,28 @@ language: php
 
 sudo: false
 
-# Test main supported versions of PHP against latest WP. 5.2 is min supported PHP version.
-php:
-  - 5.6
-  - 7.0
-  - 7.1
-#  - 7.2
-#  - 7.3
-#  - 7.4
-  - nightly
+matrix:
+  fast_finish: true
+  include:
+    # Minimal versions according to https://wordpress.org/plugins/woocommerce-gateway-stripe/
+    - php: 5.6
+      env: WP_MULTISITE=0 WP_VERSION=4.4 WC_VERSION=3.4.5
+      stage: test
+    # WC version according to https://wordpress.org/plugins/woocommerce-gateway-stripe/
+    - php: 7.0
+      env: WP_MULTISITE=0 WP_VERSION=latest WC_VERSION=5.5.3
+      stage: test
+    - php: 7.1
+      env: WP_MULTISITE=0 WP_VERSION=latest WC_VERSION=5.5.3
+      stage: test
+    # 7.2-7.4 to be added
+    # PHP8 build environment
+    - php: nightly
+      env: WP_MULTISITE=0 WP_VERSION=latest WC_VERSION=latest
+      stage: test
 
 services:
   - mysql
-
-env:
-  - WP_VERSION=latest WP_MULTISITE=0  WC_VERSION=3.4.5
 
 before_script:
   - |
