@@ -49,7 +49,7 @@ install_wp() {
 
 	if [ $WP_VERSION == 'nightly' ]; then
 		download https://wordpress.org/nightly-builds/wordpress-latest.zip /tmp/wordpress.zip
-		unzip /tmp/wordpress.zip -d /tmp/wordpress-zip-extracted && mv -f /tmp/wordpress-zip-extracted/wordpress $WP_CORE_DIR
+		unzip -qq /tmp/wordpress.zip -d /tmp/wordpress-zip-extracted && cp -rf /tmp/wordpress-zip-extracted/wordpress/* $WP_CORE_DIR
 	elif [ $WP_VERSION == 'latest' ]; then
 		download https://wordpress.org/latest.tar.gz /tmp/wordpress.tar.gz
 		tar --strip-components=1 -zxmf /tmp/wordpress.tar.gz -C $WP_CORE_DIR
