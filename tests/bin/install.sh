@@ -48,14 +48,15 @@ install_wp() {
 	mkdir -p $WP_CORE_DIR
 
 	if [ $WP_VERSION == 'nightly' ]; then
-		download https://wordpress.org/nightly-builds/wordpress-latest.zip /tmp/wordpress.tar.gz
+		download https://wordpress.org/nightly-builds/wordpress-latest.zip /tmp/wordpress.zip
+		unzip /tmp/wordpress.zip -d /tmp/wordpress-zip-extracted && mv -f /tmp/wordpress-zip-extracted/wordpress $WP_CORE_DIR
 	elif [ $WP_VERSION == 'latest' ]; then
 		download https://wordpress.org/latest.tar.gz /tmp/wordpress.tar.gz
+		tar --strip-components=1 -zxmf /tmp/wordpress.tar.gz -C $WP_CORE_DIR
 	else
 		download https://wordpress.org/wordpress-$WP_VERSION.tar.gz /tmp/wordpress.tar.gz
+		tar --strip-components=1 -zxmf /tmp/wordpress.tar.gz -C $WP_CORE_DIR
 	fi
-
-	tar --strip-components=1 -zxmf /tmp/wordpress.tar.gz -C $WP_CORE_DIR
 
 	download https://raw.github.com/markoheijnen/wp-mysqli/master/db.php $WP_CORE_DIR/wp-content/db.php
 }
