@@ -11,10 +11,10 @@ matrix:
       stage: test
     # WC version according to https://wordpress.org/plugins/woocommerce-gateway-stripe/
     - php: 7.0
-      env: WP_MULTISITE=0 WP_VERSION=latest WC_VERSION=latest
+      env: WP_MULTISITE=0 WP_VERSION=latest WC_VERSION=4.7.1
       stage: test
     - php: 7.1
-      env: WP_MULTISITE=0 WP_VERSION=latest WC_VERSION=latest
+      env: WP_MULTISITE=0 WP_VERSION=latest WC_VERSION=4.7.1
       stage: test
     # 7.2-7.4 to be added
     # PHP8 build environment

@@ -17,11 +17,10 @@ function _manually_load_plugin() {
 	// needs to still make sure that all dependencies exist for it to successfully run.
 	define( 'WCPAY_TEST_ENV', true );
 
-	// Load the WooCommerce plugin so we can use its classes in our WooCommerce Payments plugin.
-	require_once ABSPATH . '/wp-content/plugins/woocommerce/woocommerce.php';
-
+	$plugins_dir = dirname( dirname( dirname( __DIR__ ) ) );
+	require $plugins_dir . '/woocommerce/woocommerce.php';
 	require __DIR__ . '/setup.php';
-	require dirname( dirname ( __DIR__ ) ) . '/woocommerce-gateway-stripe.php';
+	require $plugins_dir . '/woocommerce-gateway-stripe/woocommerce-gateway-stripe.php';
 }
 
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
