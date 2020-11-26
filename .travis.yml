@@ -19,7 +19,7 @@ matrix:
     # 7.2-7.4 to be added
     # PHP8 build environment
     - php: nightly
-      env: WP_MULTISITE=0 WP_VERSION=latest WC_VERSION=nightly
+      env: WP_MULTISITE=0 WP_VERSION=nightly WC_VERSION=nightly
       stage: test
 
 services:
