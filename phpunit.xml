@@ -9,7 +9,7 @@
 		verbose="true"
 >
 	<testsuites>
-		<testsuite>
+		<testsuite name="Stripe">
 			<directory prefix="test-" suffix=".php">./tests/phpunit</directory>
 		</testsuite>
 	</testsuites>
