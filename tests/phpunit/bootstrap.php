@@ -14,7 +14,7 @@ require_once $_tests_dir . '/includes/functions.php';
 
 function _manually_load_plugin() {
 	$plugins_dir = dirname( dirname( dirname( __DIR__ ) ) );
-	require ABSPATH . '/wp-content/plugins/woocommerce/woocommerce.php';
+	require $plugins_dir . '/woocommerce/woocommerce.php';
 	require __DIR__ . '/setup.php';
 	require $plugins_dir . '/woocommerce-gateway-stripe/woocommerce-gateway-stripe.php';
 }
