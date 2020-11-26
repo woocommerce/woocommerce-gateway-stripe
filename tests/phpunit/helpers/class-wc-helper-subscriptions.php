@@ -10,28 +10,28 @@ function wcs_order_contains_subscription( $order ) {
 	if ( ! WC_Subscriptions::$wcs_order_contains_subscription ) {
 		return;
 	}
-	return ( WC_Subscriptions::$wcs_order_contains_subscription )( $order );
+	return call_user_func(  WC_Subscriptions::$wcs_order_contains_subscription, $order );
 }
 
 function wcs_get_subscriptions_for_order( $order ) {
 	if ( ! WC_Subscriptions::$wcs_get_subscriptions_for_order ) {
 		return;
 	}
-	return ( WC_Subscriptions::$wcs_get_subscriptions_for_order )( $order );
+	return call_user_func(  WC_Subscriptions::$wcs_get_subscriptions_for_order, $order );
 }
 
 function wcs_is_subscription( $order ) {
 	if ( ! WC_Subscriptions::$wcs_is_subscription ) {
 		return;
 	}
-	return ( WC_Subscriptions::$wcs_is_subscription )( $order );
+	return call_user_func(  WC_Subscriptions::$wcs_is_subscription, $order );
 }
 
 function wcs_get_subscription( $subscription ) {
 	if ( ! WC_Subscriptions::$wcs_get_subscription ) {
 		return;
 	}
-	return ( WC_Subscriptions::$wcs_get_subscription )( $subscription );
+	return call_user_func(  WC_Subscriptions::$wcs_get_subscription, $subscription );
 }
 
 /**
