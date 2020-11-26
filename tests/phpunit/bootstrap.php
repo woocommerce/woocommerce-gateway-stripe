@@ -13,10 +13,6 @@ if ( PHP_VERSION_ID >= 80000 && file_exists( $_tests_dir . '/includes/phpunit7/M
 require_once $_tests_dir . '/includes/functions.php';
 
 function _manually_load_plugin() {
-	// NOTE: this will skip the dependency check so the plugin can load. The test environment
-	// needs to still make sure that all dependencies exist for it to successfully run.
-	define( 'WCPAY_TEST_ENV', true );
-
 	$plugins_dir = dirname( dirname( dirname( __DIR__ ) ) );
 	require $plugins_dir . '/woocommerce/woocommerce.php';
 	require __DIR__ . '/setup.php';
