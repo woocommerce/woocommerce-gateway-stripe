@@ -68,7 +68,7 @@ install_woocommerce() {
     cd ..
 
     WC_RELEASE_URL=$(curl https://api.wordpress.org/plugins/info/1.0/woocommerce.json | jq -r ".versions[\"$WC_VERSION\"]")
-    if [[ WC_RELEASE_URL == null ]]; then
+    if [[ $WC_RELEASE_URL == null ]]; then
     	# no release, hence go hard way: get sources and install dependencies
 		git clone https://github.com/woocommerce/woocommerce.git
 		cd woocommerce
