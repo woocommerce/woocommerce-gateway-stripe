@@ -6,14 +6,15 @@ matrix:
   fast_finish: false
   include:
     # Minimal versions according to https://wordpress.org/plugins/woocommerce-gateway-stripe/
+    # TODO: debug; uncomment this once clear what minimal versions are
     # - php: 5.6
     #  env: WP_VERSION=4.6 WC_VERSION=3.9.3
     #  stage: test
-    # check if PHP 5.6 is causing an issue
+    # TODO: debug; check if PHP 5.6 is causing an issue
     - php: 5.6
       env: WP_VERSION=latest WC_VERSION=3.9.0
       stage: test
-    # check if WP version is an issue
+    # TODO: debug; check if WP version is an issue
     - php: 7.0
       env: WP_VERSION=5.6 WC_VERSION=3.9.0
       stage: test
@@ -48,13 +49,14 @@ matrix:
       env: WP_VERSION=4.6 WC_VERSION=3.9.0
       stage: test
     # WC version according to https://wordpress.org/plugins/woocommerce-gateway-stripe/
+    # TODO:here should be latest and not 4.7.0
     - php: 7.0
       env: WP_VERSION=latest WC_VERSION=4.7.0
       stage: test
     - php: 7.1
       env: WP_VERSION=latest WC_VERSION=4.7.0
       stage: test
-    # 7.2-7.4 to be added
+    # TODO: 7.2-7.4 to be added
     # PHP8 build environment
     - php: nightly
       env: WP_VERSION=nightly WC_VERSION=nightly
