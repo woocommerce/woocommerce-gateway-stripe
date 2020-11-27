@@ -73,7 +73,7 @@ install_woocommerce() {
 		git clone https://github.com/woocommerce/woocommerce.git
 		cd woocommerce
 		git checkout $WC_VERSION
-		composer install
+		composer install --no-progress
 	else
 		# a release: just get and extract it
 		download $WC_RELEASE_URL woocommerce.zip
