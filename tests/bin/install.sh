@@ -69,6 +69,7 @@ install_woocommerce() {
     git clone https://github.com/woocommerce/woocommerce.git
     cd woocommerce
     git checkout $WC_VERSION
+    composer install
     cd -
 }
 
