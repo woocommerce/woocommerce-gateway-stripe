@@ -76,8 +76,8 @@ install_woocommerce() {
 		composer install
 	else
 		# a release: just get and extract it
-		download WC_RELEASE_URL woocommerce-$WC_VERSION.zip
-		unzip -qq woocommerce-$WC_VERSION.zip
+		download WC_RELEASE_URL woocommerce.zip
+		unzip -qq woocommerce.zip
 	fi
 
 	cd -
