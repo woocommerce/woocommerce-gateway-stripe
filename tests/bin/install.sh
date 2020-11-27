@@ -66,11 +66,21 @@ install_wp() {
 install_woocommerce() {
     cd $TRAVIS_BUILD_DIR
     cd ..
-    git clone https://github.com/woocommerce/woocommerce.git
-    cd woocommerce
-    git checkout $WC_VERSION
-    composer install
-    cd -
+
+    WC_RELEASE_URL=$(curl https://api.wordpress.org/plugins/info/1.0/woocommerce.json | jq -r ".versions[$WC_VERSION]")
+    if [[ WC_RELEASE_URL == null ]]; then
+    	# no release, hence go hard way: get sources and install dependencies
+		git clone https://github.com/woocommerce/woocommerce.git
+		cd woocommerce
+		git checkout $WC_VERSION
+		composer install
+	else
+		# a release: just get and extract it
+		download WC_RELEASE_URL woocommerce-$WC_VERSION.zip
+		unzip -qq woocommerce-$WC_VERSION.zip
+	fi
+
+	cd -
 }
 
 install_test_suite() {
