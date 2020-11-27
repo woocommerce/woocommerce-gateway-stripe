@@ -5,22 +5,47 @@ sudo: false
 matrix:
   fast_finish: false
   include:
-    # PHP 7.0: WC 4.3+ works on latest WP, so the problem might be in PHP/WP versions
     # Minimal versions according to https://wordpress.org/plugins/woocommerce-gateway-stripe/
     # - php: 5.6
     #  env: WP_VERSION=4.6 WC_VERSION=3.9.3
     #  stage: test
-    - php: 7.0
-      env: WP_VERSION=latest WC_VERSION=4.2.0
-      stage: test
-    - php: 7.0
-      env: WP_VERSION=latest WC_VERSION=4.1.0
-      stage: test
-    - php: 7.0
-      env: WP_VERSION=latest WC_VERSION=4.0.0
-      stage: test
-    - php: 7.0
+    # check if PHP 5.6 is causing an issue
+    - php: 5.6
       env: WP_VERSION=latest WC_VERSION=3.9.0
+      stage: test
+    # check if WP version is an issue
+    - php: 7.0
+      env: WP_VERSION=5.6 WC_VERSION=3.9.0
+      stage: test
+    - php: 7.0
+      env: WP_VERSION=5.5 WC_VERSION=3.9.0
+      stage: test
+    - php: 7.0
+      env: WP_VERSION=5.4 WC_VERSION=3.9.0
+      stage: test
+    - php: 7.0
+      env: WP_VERSION=5.3 WC_VERSION=3.9.0
+      stage: test
+    - php: 7.0
+      env: WP_VERSION=5.2 WC_VERSION=3.9.0
+      stage: test
+    - php: 7.0
+      env: WP_VERSION=5.1 WC_VERSION=3.9.0
+      stage: test
+    - php: 7.0
+      env: WP_VERSION=5.0 WC_VERSION=3.9.0
+      stage: test
+    - php: 7.0
+      env: WP_VERSION=4.9 WC_VERSION=3.9.0
+      stage: test
+    - php: 7.0
+      env: WP_VERSION=4.8 WC_VERSION=3.9.0
+      stage: test
+    - php: 7.0
+      env: WP_VERSION=4.7 WC_VERSION=3.9.0
+      stage: test
+    - php: 7.0
+      env: WP_VERSION=4.6 WC_VERSION=3.9.0
       stage: test
     # WC version according to https://wordpress.org/plugins/woocommerce-gateway-stripe/
     - php: 7.0
