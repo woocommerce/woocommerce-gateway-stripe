@@ -1247,7 +1247,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param WC_Order $order The order to retrieve an intent for.
 	 * @return obect|bool     Either the intent object or `false`.
 	 */
-	public function get_intent_from_order( $order ) {
+	public function get_intent_from_order( WC_Order $order ) {
 		$intent_id = $order->get_meta( '_stripe_intent_id' );
 
 		if ( $intent_id ) {
