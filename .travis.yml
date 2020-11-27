@@ -10,40 +10,60 @@ matrix:
     # - php: 5.6
     #  env: WP_VERSION=4.6 WC_VERSION=3.9.3
     #  stage: test
-    # TODO: debug; next steps: PHP 5.6
-    # TODO: debug; next steps: WC 3.0 - 3.8
-    # TODO: debug; tested: WP 5.5-5.0 @PHP7 @WC3.9
-    - php: 7.0
-      env: WP_VERSION=4.9 WC_VERSION=3.9.0
-      stage: test
+    # passes at WP 4.7 and higher; the following builds will indicate min WC compatibility
     - php: 7.0
       env: WP_VERSION=4.8 WC_VERSION=3.9.0
       stage: test
+    - php: 5.6
+      env: WP_VERSION=4.8 WC_VERSION=3.9.0
+      stage: test
+    - php: 5.6
+      env: WP_VERSION=4.8 WC_VERSION=3.8.0
+      stage: test
+    - php: 5.6
+      env: WP_VERSION=4.8 WC_VERSION=3.7.0
+      stage: test
+    - php: 5.6
+      env: WP_VERSION=4.8 WC_VERSION=3.6.0
+      stage: test
+    - php: 5.6
+      env: WP_VERSION=4.8 WC_VERSION=3.5.0
+      stage: test
+    - php: 5.6
+      env: WP_VERSION=4.8 WC_VERSION=3.4.0
+      stage: test
+    - php: 5.6
+      env: WP_VERSION=4.8 WC_VERSION=3.3.0
+      stage: test
+    - php: 5.6
+      env: WP_VERSION=4.8 WC_VERSION=3.2.0
+      stage: test
+    - php: 5.6
+      env: WP_VERSION=4.8 WC_VERSION=3.1.0
+      stage: test
+    - php: 5.6
+      env: WP_VERSION=4.8 WC_VERSION=3.1.0
+      stage: test
+    # breaks at WP 4.7; bot following builds must fail
     - php: 7.0
       env: WP_VERSION=4.7 WC_VERSION=3.9.0
       stage: test
-    - php: 7.0
-      env: WP_VERSION=4.6 WC_VERSION=3.9.0
-      stage: test
-    - php: 7.0
-      env: WP_VERSION=4.5 WC_VERSION=3.9.0
-      stage: test
-    - php: 7.0
-      env: WP_VERSION=4.4 WC_VERSION=3.9.0
+    - php: 5.6
+      env: WP_VERSION=4.7 WC_VERSION=3.9.0
       stage: test
     # WC version according to https://wordpress.org/plugins/woocommerce-gateway-stripe/
     # TODO:here should be latest and not 4.7.0
-    - php: 7.0
-      env: WP_VERSION=latest WC_VERSION=4.7.0
-      stage: test
-    - php: 7.1
-      env: WP_VERSION=latest WC_VERSION=4.7.0
-      stage: test
+    # - php: 7.0
+    #  env: WP_VERSION=latest WC_VERSION=4.7.0
+    #  stage: test
+    #- php: 7.1
+    #  env: WP_VERSION=latest WC_VERSION=4.7.0
+    #  stage: test
     # TODO: 7.2-7.4 to be added
     # PHP8 build environment
-    - php: nightly
-      env: WP_VERSION=nightly WC_VERSION=nightly
-      stage: test
+    # - php: nightly
+    #  env: WP_VERSION=nightly WC_VERSION=nightly
+    #  stage: test
 
 services:
   - mysql
