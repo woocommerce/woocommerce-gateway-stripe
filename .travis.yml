@@ -10,7 +10,7 @@ matrix:
     # - php: 5.6
     #  env: WP_VERSION=4.6 WC_VERSION=3.9.3
     #  stage: test
-    # passes at WP 4.7 and higher; the following builds will indicate min WC compatibility
+    # WC 3.9 passes at WP 4.7 and higher; the following builds will indicate min WC compatibility
     - php: 7.0
       env: WP_VERSION=4.8 WC_VERSION=3.9.0
       stage: test
@@ -47,7 +47,7 @@ matrix:
     - php: 5.6
       env: WP_VERSION=4.8 WC_VERSION=3.0.0
       stage: test
-    # breaks at WP 4.7; bot following builds must fail
+    # WC 3.9 breaks at WP 4.7; both following builds must fail
     - php: 7.0
       env: WP_VERSION=4.7 WC_VERSION=3.9.0
       stage: test
