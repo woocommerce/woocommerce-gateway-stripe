@@ -10,20 +10,7 @@ matrix:
     # - php: 5.6
     #  env: WP_VERSION=4.6 WC_VERSION=3.9.3
     #  stage: test
-    # TODO: debug; check if PHP 5.6 is causing an issue
-    - php: 5.6
-      env: WP_VERSION=latest WC_VERSION=3.9.0
-      stage: test
-    # TODO: debug; check if WP version is an issue
-    - php: 7.0
-      env: WP_VERSION=5.6 WC_VERSION=3.9.0
-      stage: test
-    - php: 7.0
-      env: WP_VERSION=5.5 WC_VERSION=3.9.0
-      stage: test
-    - php: 7.0
-      env: WP_VERSION=5.4 WC_VERSION=3.9.0
-      stage: test
+    # TODO: debug; check if WP version is an issue; re-evaluate WP 4.5, 4.4
     - php: 7.0
       env: WP_VERSION=5.3 WC_VERSION=3.9.0
       stage: test
