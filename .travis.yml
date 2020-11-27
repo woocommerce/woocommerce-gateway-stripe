@@ -10,19 +10,9 @@ matrix:
     # - php: 5.6
     #  env: WP_VERSION=4.6 WC_VERSION=3.9.3
     #  stage: test
-    # TODO: debug; check if WP version is an issue; re-evaluate WP 4.5, 4.4
-    - php: 7.0
-      env: WP_VERSION=5.3 WC_VERSION=3.9.0
-      stage: test
-    - php: 7.0
-      env: WP_VERSION=5.2 WC_VERSION=3.9.0
-      stage: test
-    - php: 7.0
-      env: WP_VERSION=5.1 WC_VERSION=3.9.0
-      stage: test
-    - php: 7.0
-      env: WP_VERSION=5.0 WC_VERSION=3.9.0
-      stage: test
+    # TODO: debug; next steps: PHP 5.6
+    # TODO: debug; next steps: WC 3.0 - 3.8
+    # TODO: debug; tested: WP 5.5-5.0 @PHP7 @WC3.9
     - php: 7.0
       env: WP_VERSION=4.9 WC_VERSION=3.9.0
       stage: test
@@ -34,6 +24,12 @@ matrix:
       stage: test
     - php: 7.0
       env: WP_VERSION=4.6 WC_VERSION=3.9.0
+      stage: test
+    - php: 7.0
+      env: WP_VERSION=4.5 WC_VERSION=3.9.0
+      stage: test
+    - php: 7.0
+      env: WP_VERSION=4.4 WC_VERSION=3.9.0
       stage: test
     # WC version according to https://wordpress.org/plugins/woocommerce-gateway-stripe/
     # TODO:here should be latest and not 4.7.0
