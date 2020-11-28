@@ -6,11 +6,33 @@ matrix:
   fast_finish: false
   include:
     # failing cases, foe looking up what exactly is wrong
+    # TODO: re-evaluate WP version on lowest working WC version
     - php: 5.6
-      env: WP_VERSION=4.7 WC_VERSION=3.8.0
+      env: WP_VERSION=4.7 WC_VERSION=3.0.0
       stage: test
     - php: 5.6
-      env: WP_VERSION=4.6 WC_VERSION=3.9.0
+      env: WP_VERSION=4.7 WC_VERSION=3.1.0
+      stage: test
+    - php: 5.6
+      env: WP_VERSION=4.7 WC_VERSION=3.2.0
+      stage: test
+    - php: 5.6
+      env: WP_VERSION=4.7 WC_VERSION=3.3.0
+      stage: test
+    - php: 5.6
+      env: WP_VERSION=4.7 WC_VERSION=3.4.0
+      stage: test
+    - php: 5.6
+      env: WP_VERSION=4.7 WC_VERSION=3.5.0
+      stage: test
+    - php: 5.6
+      env: WP_VERSION=4.7 WC_VERSION=3.6.0
+      stage: test
+    - php: 5.6
+      env: WP_VERSION=4.7 WC_VERSION=3.7.0
+      stage: test
+    - php: 5.6
+      env: WP_VERSION=4.7 WC_VERSION=3.8.0
       stage: test
     # lowest dependencies edge
     - php: 5.6
