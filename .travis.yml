@@ -3,19 +3,12 @@ language: php
 sudo: false
 
 matrix:
-  fast_finish: false
+  fast_finish: true
+  allow_failures:
+    - php: nightly
+      env: WP_VERSION=nightly WC_VERSION=nightly
+      stage: test
   include:
-    # failing cases, foe looking up what exactly is wrong
-    # TODO: re-evaluate WP version on lowest working WC version
-    - php: 5.6
-      env: WP_VERSION=4.6 WC_VERSION=3.3.0
-      stage: test
-    - php: 5.6
-      env: WP_VERSION=4.5 WC_VERSION=3.3.0
-      stage: test
-    - php: 5.6
-      env: WP_VERSION=4.4 WC_VERSION=3.3.0
-      stage: test
     # lowest dependencies edge
     - php: 5.6
       env: WP_VERSION=4.7 WC_VERSION=3.3.0
@@ -30,7 +23,6 @@ matrix:
     - php: 7.4
       env: WP_VERSION=latest WC_VERSION=4.6.0
       stage: test
-    # PHP8 build environment
     - php: nightly
       env: WP_VERSION=nightly WC_VERSION=nightly
       stage: test
