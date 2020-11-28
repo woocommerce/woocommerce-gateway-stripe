@@ -5,43 +5,31 @@ sudo: false
 matrix:
   fast_finish: false
   include:
-    # Minimal versions according to https://wordpress.org/plugins/woocommerce-gateway-stripe/
-    # those should fail
-    - php: 5.6
-      env: WP_VERSION=4.8 WC_VERSION=3.8.0
-      stage: test
+    # failing cases, foe looking up what exactly is wrong
     - php: 5.6
       env: WP_VERSION=4.7 WC_VERSION=3.8.0
-      stage: test
-    # here we'll re-evaluate min WP version
-    - php: 5.6
-      env: WP_VERSION=4.8 WC_VERSION=3.9.0
-      stage: test
-    - php: 5.6
-      env: WP_VERSION=4.7 WC_VERSION=3.9.0
       stage: test
     - php: 5.6
       env: WP_VERSION=4.6 WC_VERSION=3.9.0
       stage: test
+    # lowest dependencies edge
     - php: 5.6
-      env: WP_VERSION=4.5 WC_VERSION=3.9.0
+      env: WP_VERSION=4.7 WC_VERSION=3.9.0
       stage: test
-    - php: 5.6
-      env: WP_VERSION=4.4 WC_VERSION=3.9.0
+    # php compatibility matrix
+    - php: 7.0
+      env: WP_VERSION=latest WC_VERSION=4.6.0
       stage: test
-    # WC version according to https://wordpress.org/plugins/woocommerce-gateway-stripe/
-    # TODO:here should be latest and not 4.7.0
-    # - php: 7.0
-    #  env: WP_VERSION=latest WC_VERSION=4.7.0
-    #  stage: test
-    #- php: 7.1
-    #  env: WP_VERSION=latest WC_VERSION=4.7.0
-    #  stage: test
-    # TODO: 7.2-7.4 to be added
+    - php: 7.1
+      env: WP_VERSION=latest WC_VERSION=4.6.0
+      stage: test
+    - php: 7.4
+      env: WP_VERSION=latest WC_VERSION=4.6.0
+      stage: test
     # PHP8 build environment
-    # - php: nightly
-    #  env: WP_VERSION=nightly WC_VERSION=nightly
-    #  stage: test
+    - php: nightly
+      env: WP_VERSION=nightly WC_VERSION=nightly
+      stage: test
 
 services:
   - mysql
