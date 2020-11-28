@@ -195,7 +195,6 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'redirect', $result );
 
 		$order = wc_get_order( $order_id );
-		$this->assertNotFalse( $order );
 		$order_data = $order->get_meta( '_stripe_intent_id' );
 
 		$this->assertEquals( $order_data, 'pi_123abc' );

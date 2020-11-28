@@ -222,8 +222,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEquals( $result, null );
 
 		// Assert that we saved the payment intent to the order.
-		$order = wc_get_order( $renewal_order->get_id() );
-		$this->assertNotFalse( $order );
+		$order_id   = $renewal_order->get_id();
+		$order      = wc_get_order( $order_id );
 		$order_data = $order->get_meta( '_stripe_intent_id'	);
 
 		$this->assertEquals( $order_data, 'pi_123abc' );
@@ -335,8 +335,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEquals( $result, null );
 
 		// Assert that we saved the payment intent to the order.
-		$order                = wc_get_order( $renewal_order->get_id() );
-		$this->assertNotFalse( $order );
+		$order_id             = $renewal_order->get_id();
+		$order                = wc_get_order( $order_id );
 		$order_data           = $order->get_meta( '_stripe_intent_id' );
 		$order_transaction_id = $order->get_transaction_id();
 
