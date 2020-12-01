@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( wc_stripe()->connect->is_connected() ) {
+if ( woocommerce_gateway_stripe()->connect->is_connected() ) {
 	$reset_link = add_query_arg(
 		array(
 			'_wpnonce'                     => wp_create_nonce( 'reset_stripe_api_credentials' ),
@@ -20,7 +20,7 @@ if ( wc_stripe()->connect->is_connected() ) {
 		'</span>'
 	);
 } else {
-	$oauth_url = wc_stripe()->connect->get_oauth_url();
+	$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url();
 
 	if ( ! is_wp_error( $oauth_url ) ) {
 		$api_credentials_text = sprintf(
