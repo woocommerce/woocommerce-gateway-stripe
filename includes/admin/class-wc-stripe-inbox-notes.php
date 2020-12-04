@@ -12,8 +12,8 @@ use Automattic\WooCommerce\Admin\Notes\WC_Admin_Notes;
  * @since 4.5.4
  */
 class WC_Stripe_Inbox_Notes {
-	const SUCCESS_NOTE_NAME    = 'stripe-apple-pay-marketing-guide-holiday-2020';
-	const FAILURE_NOTE_NAME    = 'stripe-apple-pay-domain-verification-needed';
+	const SUCCESS_NOTE_NAME = 'stripe-apple-pay-marketing-guide-holiday-2020';
+	const FAILURE_NOTE_NAME = 'stripe-apple-pay-domain-verification-needed';
 
 	const POST_SETUP_SUCCESS_ACTION    = 'wc_stripe_apple_pay_post_setup_success';
 	const CAMPAIGN_2020_CLEANUP_ACTION = 'wc_stripe_apple_pay_2020_cleanup';
