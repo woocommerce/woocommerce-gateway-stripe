@@ -126,10 +126,11 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= x.x.x - 2020-xx-xx =
+= 4.5.6 - 2020-12-xx =
 * Tweak - Update packages for Composer 2 compatibility.
 * Tweak - Use full jQuery function calls instead of soon-to-be-deprecated shorthands.
 * Tweak - Use JSON.parse() instead of jQuery.parseJSON().
+* Tweak - Remove holiday messaging from Apple Pay note after Dec 25.
 
 See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
