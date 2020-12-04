@@ -118,7 +118,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
         
-        add_action( 'woocommerce_order_status_changed', 'subscription_status_active', 10, 4 );
+        add_action( 'woocommerce_order_status_changed', array( $this, 'subscription_status_active' ), 10, 4 );
 
 		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
 			$this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
