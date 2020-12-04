@@ -100,16 +100,16 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 		// Load the settings.
 		$this->init_settings();
 
-		$main_settings              = get_option( 'woocommerce_stripe_settings' );
-		$this->title                = $this->get_option( 'title' );
-		$this->description          = $this->get_option( 'description' );
-		$this->enabled              = $this->get_option( 'enabled' );
-		$this->subs_status          = $this->get_option( 'subs_status' );
-		$this->testmode             = ( ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'] ) ? true : false;
-		$this->saved_cards          = ( ! empty( $main_settings['saved_cards'] ) && 'yes' === $main_settings['saved_cards'] ) ? true : false;
-		$this->publishable_key      = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
-		$this->secret_key           = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
-		$this->statement_descriptor = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
+		$main_settings                        = get_option( 'woocommerce_stripe_settings' );
+		$this->title                          = $this->get_option( 'title' );
+		$this->description                    = $this->get_option( 'description' );
+		$this->enabled                        = $this->get_option( 'enabled' );
+        $this->activate_subscriptions_early   = $this->get_option( 'activate_subscriptions_early' );
+		$this->testmode                       = ( ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'] ) ? true : false;
+		$this->saved_cards                    = ( ! empty( $main_settings['saved_cards'] ) && 'yes' === $main_settings['saved_cards'] ) ? true : false;
+		$this->publishable_key                = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
+		$this->secret_key                     = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
+		$this->statement_descriptor           = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
 
 		if ( $this->testmode ) {
 			$this->publishable_key = ! empty( $main_settings['test_publishable_key'] ) ? $main_settings['test_publishable_key'] : '';
@@ -119,7 +119,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
         
-        add_action( 'woocommerce_order_status_changed', array( $this, 'subscription_status_active' ), 10, 4 );
+        add_action( 'woocommerce_order_status_changed', array( $this, 'maybe_activate_subscriptions_early'), 10, 4 );
 
 		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
 			$this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
@@ -316,7 +316,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 			$create_account = ! empty( $_POST['createaccount'] ) ? true : false;
 
 			if ( $create_account ) {
-				$new_customer_id     = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->customer_user : $order->get_customer_id();
+				$new_customer_id     = $order->get_customer_id();
 				$new_stripe_customer = new WC_Stripe_Customer( $new_customer_id );
 				$new_stripe_customer->create_customer();
 			}
@@ -340,14 +340,9 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 				if ( ! empty( $response->error ) ) {
 					// Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
 					if ( $this->is_no_such_customer_error( $response->error ) ) {
-						if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-							delete_user_option( $order->customer_user, '_stripe_customer_id' );
-							delete_post_meta( $order_id, '_stripe_customer_id' );
-						} else {
-							delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
-							$order->delete_meta_data( '_stripe_customer_id' );
-							$order->save();
-						}
+						delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
+						$order->delete_meta_data( '_stripe_customer_id' );
+						$order->save();
 					}
 
 					if ( $this->is_no_such_token_error( $response->error ) && $prepared_source->token_id ) {
@@ -427,8 +422,12 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 		}
 	}
     
-    function subscription_status_active ( $order_id, $status_from, $status_to, $order ) {
-        if ( 'yes' !== $this->subs_status || $status_to !== 'on-hold' || ! wcs_order_contains_subscription( $order, 'any' ) ) {
+    function maybe_activate_subscriptions_early ( $order_id, $status_from, $status_to, $order ) {
+        if ( 'yes' !== $this->activate_subscriptions_early || $status_to !== 'on-hold' ) {
+            return;
+        }
+        
+        if ( ! wcs_order_contains_subscription( $order, 'any' ) || ! function_exists( 'wcs_order_contains_subscription' ) ) {
             return;
         }
         
