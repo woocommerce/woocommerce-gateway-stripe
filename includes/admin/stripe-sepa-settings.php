@@ -25,6 +25,13 @@ return apply_filters(
 			'description' => '',
 			'default'     => 'no',
 		),
+        'subs_status' => array(
+			'title'       => __( 'Subscriptions Status', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Set subscriptions to Active during payment process', 'woocommerce-gateway-stripe' ),
+			'type'        => 'checkbox',
+			'description' => '',
+			'default'     => 'no',
+		),
 		'title'       => array(
 			'title'       => __( 'Title', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
