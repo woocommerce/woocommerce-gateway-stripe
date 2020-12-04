@@ -427,16 +427,13 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	}
     
     function subscription_status_active ( $order_id, $status_from, $status_to, $order ) {
+        if ( 'yes' !== $this->subs_status || $status_to !== 'on-hold' || ! wcs_order_contains_subscription( $order, 'any' ) ) {
+            return;
+        }
         
-        if ( 'yes' === $this->subs_status ) {
-            if( $status_to === 'on-hold' ) {
-                if ( wcs_order_contains_subscription( $order, 'any' ) ) {
-                    $subscriptions = wcs_get_subscriptions_for_order( $order, array( 'order_type' => array( 'any' ) ) );
-                    foreach( $subscriptions as $subscription_id => $subscription ){
-                        $subscription->update_status( 'active' );
-                    }
-                }
-            }
+        $subscriptions = wcs_get_subscriptions_for_order( $order, array( 'order_type' => array( 'any' ) ) );
+        foreach( $subscriptions as $subscription_id => $subscription ){
+            $subscription->update_status( 'active' );
         }
     }
 }
