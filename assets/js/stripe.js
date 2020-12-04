@@ -528,7 +528,7 @@ jQuery( function( $ ) {
 				$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
 			}
 
-			wc_stripe_form.form.submit();
+			wc_stripe_form.form.trigger( 'submit' );
 		},
 
 		/**
@@ -689,7 +689,7 @@ jQuery( function( $ ) {
 			$( '.woocommerce-NoticeGroup-checkout, .woocommerce-error, .woocommerce-message' ).remove();
 			wc_stripe_form.form.prepend( '<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout">' + error_message + '</div>' );
 			wc_stripe_form.form.removeClass( 'processing' ).unblock();
-			wc_stripe_form.form.find( '.input-text, select, input:checkbox' ).blur();
+			wc_stripe_form.form.find( '.input-text, select, input:checkbox' ).trigger( 'blur' );
 
 			var selector = '';
 
