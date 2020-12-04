@@ -432,7 +432,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
         }
         
         $subscriptions = wcs_get_subscriptions_for_order( $order, array( 'order_type' => array( 'any' ) ) );
-        foreach( $subscriptions as $subscription_id => $subscription ){
+        foreach( $subscriptions as $subscription ){
             $subscription->update_status( 'active' );
         }
     }
