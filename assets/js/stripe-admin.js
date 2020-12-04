@@ -50,7 +50,7 @@ jQuery( function( $ ) {
 			$( '#woocommerce_stripe_testmode' ).trigger( 'change' );
 
 			// Toggle Payment Request buttons settings.
-			$( '#woocommerce_stripe_payment_request' ).change( function() {
+			$( '#woocommerce_stripe_payment_request' ).on( 'change', function() {
 				if ( $( this ).is( ':checked' ) ) {
 					$( '#woocommerce_stripe_payment_request_button_theme, #woocommerce_stripe_payment_request_button_type, #woocommerce_stripe_payment_request_button_height' ).closest( 'tr' ).show();
 				} else {
@@ -59,7 +59,7 @@ jQuery( function( $ ) {
 			} ).trigger( 'change' );
 
 			// Toggle Custom Payment Request configs.
-			$( '#woocommerce_stripe_payment_request_button_type' ).change( function() {
+			$( '#woocommerce_stripe_payment_request_button_type' ).on( 'change', function() {
 				if ( 'custom' === $( this ).val() ) {
 					$( '#woocommerce_stripe_payment_request_button_label' ).closest( 'tr' ).show();
 				} else {
@@ -68,7 +68,7 @@ jQuery( function( $ ) {
 			} ).trigger( 'change' )
 
 			// Toggle Branded Payment Request configs.
-			$( '#woocommerce_stripe_payment_request_button_type' ).change( function() {
+			$( '#woocommerce_stripe_payment_request_button_type' ).on( 'change', function() {
 				if ( 'branded' === $( this ).val() ) {
 					$( '#woocommerce_stripe_payment_request_button_branded_type' ).closest( 'tr' ).show();
 				} else {
