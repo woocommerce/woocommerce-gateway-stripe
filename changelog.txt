@@ -4,7 +4,7 @@
 * Tweak - Update packages for Composer 2 compatibility.
 * Tweak - Use full jQuery function calls instead of soon-to-be-deprecated shorthands.
 * Tweak - Use JSON.parse() instead of jQuery.parseJSON().
-* Tweak - Remove holiday messaging from Apple Pay note after Dec 25.
+* Tweak - Remove holiday messaging from Apple Pay note after Dec 22.
 
 = 4.5.5 - 2020-11-17 =
 * Fix - Guard against fatal errors that may occur on inbox data store load.
