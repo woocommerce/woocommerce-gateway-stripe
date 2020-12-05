@@ -1170,6 +1170,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$request['customer'] = $prepared_source->customer;
 		}
 
+		if ( $this->has_subscription( $order ) ) {
+			// If this is a failed subscription order payment, the intent should be
+			// prepared for future usage.
+			$request['setup_future_usage'] = 'off_session';
+		}
+
 		if ( empty( $request ) ) {
 			return $intent;
 		}
