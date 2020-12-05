@@ -422,6 +422,16 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 		}
 	}
     
+    /**
+	 * Maybe activate subscriptions early during payment confirmation
+     * Process can take up to 7-10 days
+     * If order fails, subscription set to On Hold
+	 *
+	 * @param $order_id
+	 * @param $status_from
+	 * @param $status_to
+	 * @param $order
+	 */
     function maybe_activate_subscriptions_early ( $order_id, $status_from, $status_to, $order ) {
         if ( 'yes' !== $this->activate_subscriptions_early || $status_to !== 'on-hold' ) {
             return;
