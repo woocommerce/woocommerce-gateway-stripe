@@ -124,6 +124,11 @@ class WC_Stripe_Customer {
 				'email'       => $user->user_email,
 				'description' => $description,
 			);
+
+			$billing_full_name = trim( $billing_first_name . ' ' . $billing_last_name );
+			if ( ! empty( $billing_full_name ) ) {
+				$defaults['name'] = $billing_full_name;
+			}
 		} else {
 			$billing_first_name = isset( $_POST['billing_first_name'] ) ? filter_var( wp_unslash( $_POST['billing_first_name'] ), FILTER_SANITIZE_STRING ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
 			$billing_last_name  = isset( $_POST['billing_last_name'] ) ? filter_var( wp_unslash( $_POST['billing_last_name'] ), FILTER_SANITIZE_STRING ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
@@ -135,6 +140,11 @@ class WC_Stripe_Customer {
 				'email'       => $billing_email,
 				'description' => $description,
 			);
+
+			$billing_full_name = trim( $billing_first_name . ' ' . $billing_last_name );
+			if ( ! empty( $billing_full_name ) ) {
+				$defaults['name'] = $billing_full_name;
+			}
 		}
 
 		$metadata             = array();
@@ -314,20 +324,24 @@ class WC_Stripe_Customer {
 
 		$sources = get_transient( 'stripe_sources_' . $this->get_id() );
 
-		$response = WC_Stripe_API::request(
-			array(
-				'limit' => 100,
-			),
-			'customers/' . $this->get_id() . '/sources',
-			'GET'
-		);
+		if ( false === $sources ) {
+			$response = WC_Stripe_API::request(
+				array(
+					'limit' => 100,
+				),
+				'customers/' . $this->get_id() . '/sources',
+				'GET'
+			);
 
-		if ( ! empty( $response->error ) ) {
-			return array();
-		}
+			if ( ! empty( $response->error ) ) {
+				return array();
+			}
 
-		if ( is_array( $response->data ) ) {
-			$sources = $response->data;
+			if ( is_array( $response->data ) ) {
+				$sources = $response->data;
+			}
+
+			set_transient( 'stripe_sources_' . $this->get_id(), $sources, DAY_IN_SECONDS );
 		}
 
 		return empty( $sources ) ? array() : $sources;

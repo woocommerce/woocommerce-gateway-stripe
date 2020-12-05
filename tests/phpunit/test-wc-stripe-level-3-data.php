@@ -6,13 +6,6 @@
 
 class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
 	public function test_data_for_mutli_item_order() {
-		// Skip this test because of the complexity of creating products in WC pre-3.0.
-		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-			// Dummy assertion.
-			$this->assertEquals( WC_Stripe_Helper::is_wc_lt( '3.0' ), true );
-			return;
-		}
-
 		$store_postcode = '90210';
 		update_option( 'woocommerce_store_postcode', $store_postcode );
 
@@ -93,13 +86,6 @@ class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
 	}
 
 	public function test_non_us_shipping_zip_codes() {
-		// Skip this test because of the complexity of creating products in WC pre-3.0.
-		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-			// Dummy assertion.
-			$this->assertEquals( WC_Stripe_Helper::is_wc_lt( '3.0' ), true );
-			return;
-		}
-
 		// Update the store with the right post code.
 		update_option( 'woocommerce_store_postcode', 1040 );
 
@@ -138,17 +124,5 @@ class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
 			),
 			$result
 		);
-	}
-
-	public function test_pre_30_postal_code_omission() {
-		if ( ! WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-			// Dummy assertion.
-			$this->assertEquals( WC_Stripe_Helper::is_wc_lt( '3.0' ), false );
-			return;
-		}
-
-		$order = new WC_Order();
-		$gateway = new WC_Gateway_Stripe();
-		$this->assertEquals( array(), $gateway->get_level3_data_from_order( $order ) );
 	}
 }

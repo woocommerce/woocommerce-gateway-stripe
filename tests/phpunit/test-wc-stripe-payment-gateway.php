@@ -26,7 +26,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Helper function to update test order meta data
 	 */
 	private function updateOrderMeta( $order, $key, $value ) {
-		WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order->id, $key, $value ) : $order->update_meta_data( $key, $value );
+		$order->update_meta_data( $key, $value );
 	}
 
 	/**

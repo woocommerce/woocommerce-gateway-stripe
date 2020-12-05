@@ -94,7 +94,7 @@ jQuery( function( $ ) {
 				billing_last_name:         null !== name ? name.split( ' ' ).slice( 1 ).join( ' ' ) : '',
 				billing_company:           '',
 				billing_email:             null !== email   ? email : evt.payerEmail,
-				billing_phone:             null !== phone   ? phone : evt.payerPhone.replace( '/[() -]/g', '' ),
+				billing_phone:             null !== phone   ? phone : evt.payerPhone && evt.payerPhone.replace( '/[() -]/g', '' ),
 				billing_country:           null !== billing ? billing.country : '',
 				billing_address_1:         null !== billing ? billing.line1 : '',
 				billing_address_2:         null !== billing ? billing.line2 : '',
@@ -220,7 +220,8 @@ jQuery( function( $ ) {
 				city:      address.city,
 				address:   typeof address.addressLine[0] === 'undefined' ? '' : address.addressLine[0],
 				address_2: typeof address.addressLine[1] === 'undefined' ? '' : address.addressLine[1],
-				payment_request_type: paymentRequestType
+				payment_request_type: paymentRequestType,
+				is_product_page: wc_stripe_payment_request_params.is_product_page,
 			};
 
 			return $.ajax( {
@@ -240,7 +241,8 @@ jQuery( function( $ ) {
 			var data = {
 				security: wc_stripe_payment_request_params.nonce.update_shipping,
 				shipping_method: [ shippingOption.id ],
-				payment_request_type: paymentRequestType
+				payment_request_type: paymentRequestType,
+				is_product_page: wc_stripe_payment_request_params.is_product_page,
 			};
 
 			return $.ajax( {
@@ -313,7 +315,7 @@ jQuery( function( $ ) {
 				country: wc_stripe_payment_request_params.checkout.country_code,
 				requestPayerName: true,
 				requestPayerEmail: true,
-				requestPayerPhone: true,
+				requestPayerPhone: wc_stripe_payment_request_params.checkout.needs_payer_phone,
 				requestShipping: wc_stripe_payment_request_params.product.requestShipping,
 				displayItems: wc_stripe_payment_request_params.product.displayItems
 			};
@@ -340,7 +342,7 @@ jQuery( function( $ ) {
 					country: cart.order_data.country_code,
 					requestPayerName: true,
 					requestPayerEmail: true,
-					requestPayerPhone: true,
+					requestPayerPhone: wc_stripe_payment_request_params.checkout.needs_payer_phone,
 					requestShipping: cart.shipping_required ? true : false,
 					displayItems: cart.order_data.displayItems
 				};
@@ -351,82 +353,16 @@ jQuery( function( $ ) {
 			var paymentRequest = stripe.paymentRequest( options );
 
 			var elements = stripe.elements( { locale: wc_stripe_payment_request_params.button.locale } );
-			var prButton = elements.create( 'paymentRequestButton', {
-				paymentRequest: paymentRequest,
-				style: {
-					paymentRequestButton: {
-						type: wc_stripe_payment_request_params.button.type,
-						theme: wc_stripe_payment_request_params.button.theme,
-						height: wc_stripe_payment_request_params.button.height + 'px'
-					},
-				}
-			} );
+			var prButton = wc_stripe_payment_request.createPaymentRequestButton( elements, paymentRequest );
 
 			// Check the availability of the Payment Request API first.
 			paymentRequest.canMakePayment().then( function( result ) {
-				var paymentRequestError = [];
-
-				if ( result ) {
-					paymentRequestType = result.applePay ? 'apple_pay' : 'payment_request_api';
-
-					if ( wc_stripe_payment_request_params.is_product_page ) {
-						var addToCartButton = $( '.single_add_to_cart_button' );
-
-						prButton.on( 'click', function( e ) {
-							// First check if product can be added to cart.
-							if ( addToCartButton.is( '.disabled' ) ) {
-								e.preventDefault();
-								if ( addToCartButton.is( '.wc-variation-is-unavailable' ) ) {
-									window.alert( wc_add_to_cart_variation_params.i18n_unavailable_text );
-								} else if ( addToCartButton.is( '.wc-variation-selection-needed' ) ) {
-									window.alert( wc_add_to_cart_variation_params.i18n_make_a_selection_text );
-								}
-							} else if ( 0 < paymentRequestError.length ) {
-								e.preventDefault();
-								window.alert( paymentRequestError );
-							} else {
-								wc_stripe_payment_request.addToCart();
-							}
-						} );
-
-						$( document.body ).on( 'woocommerce_variation_has_changed updated_addons', function() {
-							$( '#wc-stripe-payment-request-button' ).block( { message: null } );
-
-							$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function( response ) {
-								$.when( paymentRequest.update( {
-									total: response.total,
-									displayItems: response.displayItems
-								} ) ).then( function() {
-									$( '#wc-stripe-payment-request-button' ).unblock();
-								} );
-							} );
-						} );
-
-						$( '.quantity' ).on( 'keyup', '.qty', function() {
-							$( '#wc-stripe-payment-request-button' ).block( { message: null } );
-							paymentRequestError = [];
-
-							$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function( response ) {
-								if ( response.error ) {
-									paymentRequestError = [ response.error ];
-									$( '#wc-stripe-payment-request-button' ).unblock();
-								} else {
-									$.when( paymentRequest.update( {
-										total: response.total,
-										displayItems: response.displayItems
-									} ) ).then( function() {
-										$( '#wc-stripe-payment-request-button' ).unblock();
-									} );
-								}
-							} );
-						} );
-					}
-
-					if ( $( '#wc-stripe-payment-request-button' ).length ) {
-						$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).show();
-						prButton.mount( '#wc-stripe-payment-request-button' );
-					}
+				if ( ! result ) {
+					return;
 				}
+				paymentRequestType = result.applePay ? 'apple_pay' : 'payment_request_api';
+				wc_stripe_payment_request.attachPaymentRequestButtonEventListeners( prButton, paymentRequest );
+				wc_stripe_payment_request.showPaymentRequestButton( prButton );
 			} );
 
 			// Possible statuses success, fail, invalid_payer_name, invalid_payer_email, invalid_payer_phone, invalid_shipping_address.
@@ -490,6 +426,253 @@ jQuery( function( $ ) {
 			} );
 		},
 
+
+		/**
+		 * Creates a wrapper around a function that ensures a function can not
+		 * called in rappid succesion. The function can only be executed once and then agin after
+		 * the wait time has expired.  Even if the wrapper is called multiple times, the wrapped
+		 * function only excecutes once and then blocks until the wait time expires.
+		 *
+		 * @param {int} wait       Milliseconds wait for the next time a function can be executed.
+		 * @param {function} func       The function to be wrapped.
+		 * @param {bool} immediate Overriding the wait time, will force the function to fire everytime.
+		 *
+		 * @return {function} A wrapped function with execution limited by the wait time.
+		 */
+		debounce: function( wait, func, immediate ) {
+			var timeout;
+			return function() {
+				var context = this, args = arguments;
+				var later = function() {
+					timeout = null;
+					if (!immediate) func.apply(context, args);
+				};
+				var callNow = immediate && !timeout;
+				clearTimeout(timeout);
+				timeout = setTimeout(later, wait);
+				if (callNow) func.apply(context, args);
+			};
+		},
+
+		/**
+		 * Creates stripe paymentRequest element or connects to custom button
+		 *
+		 * @param {object} elements       Stripe elements instance.
+		 * @param {object} paymentRequest Stripe paymentRequest object.
+		 *
+		 * @return {object} Stripe paymentRequest element or custom button jQuery element.
+		 */
+		createPaymentRequestButton: function( elements, paymentRequest ) {
+			var button;
+			if ( wc_stripe_payment_request_params.button.is_custom ) {
+				button = $( wc_stripe_payment_request_params.button.css_selector );
+				if ( button.length ) {
+					// We fallback to default paymentRequest button if no custom button is found in the UI.
+					// Add flag to be sure that created button is custom button rather than fallback element.
+					button.data( 'isCustom', true );
+					return button;
+				}
+			}
+
+			if ( wc_stripe_payment_request_params.button.is_branded ) {
+				if ( wc_stripe_payment_request.shouldUseGooglePayBrand() ) {
+					button = wc_stripe_payment_request.createGooglePayButton();
+					// Add flag to be sure that created button is branded rather than fallback element.
+					button.data( 'isBranded', true );
+					return button;
+				} else {
+					// Not implemented branded buttons default to Stripe's button
+					// Apple Pay buttons can also fall back to Stripe's button, as it's already branded
+					// Set button type to default or buy, depending on branded type, to avoid issues with Stripe
+					wc_stripe_payment_request_params.button.type = 'long' === wc_stripe_payment_request_params.button.branded_type ? 'buy' : 'default';
+				}
+			}
+
+			return elements.create( 'paymentRequestButton', {
+				paymentRequest: paymentRequest,
+				style: {
+					paymentRequestButton: {
+						type: wc_stripe_payment_request_params.button.type,
+						theme: wc_stripe_payment_request_params.button.theme,
+						height: wc_stripe_payment_request_params.button.height + 'px',
+					},
+				},
+			} );
+		},
+
+		/**
+		 * Checks if button is custom payment request button.
+		 *
+		 * @param {object} prButton Stripe paymentRequest element or custom jQuery element.
+		 *
+		 * @return {boolean} True when prButton is custom button jQuery element.
+		 */
+		isCustomPaymentRequestButton: function ( prButton ) {
+			return prButton && 'function' === typeof prButton.data && prButton.data( 'isCustom' );
+		},
+
+		isBrandedPaymentRequestButton: function ( prButton ) {
+			return prButton && 'function' === typeof prButton.data && prButton.data( 'isBranded' );
+		},
+
+		shouldUseGooglePayBrand: function () {
+			var ua = window.navigator.userAgent.toLowerCase();
+			var isChrome = /chrome/.test( ua ) && ! /edge|edg|opr|brave\//.test( ua ) && 'Google Inc.' === window.navigator.vendor;
+			// newer versions of Brave do not have the userAgent string
+			var isBrave = isChrome && window.navigator.brave;
+			return isChrome && ! isBrave;
+		},
+
+		createGooglePayButton: function () {
+			var allowedThemes = [ 'dark', 'light' ];
+			var allowedTypes = [ 'short', 'long' ];
+
+			var theme  = wc_stripe_payment_request_params.button.theme;
+			var type   = wc_stripe_payment_request_params.button.branded_type;
+			var locale = wc_stripe_payment_request_params.button.locale;
+			var height = wc_stripe_payment_request_params.button.height;
+			theme = allowedThemes.includes( theme ) ? theme : 'light';
+			type = allowedTypes.includes( type ) ? type : 'long';
+
+			var button = $( '<button type="button" id="wc-stripe-branded-button" aria-label="Google Pay" class="gpay-button"></button>' );
+			button.css( 'height', height + 'px' );
+			button.addClass( theme + ' ' + type );
+			if ( 'long' === type ) {
+				var url = 'https://www.gstatic.com/instantbuy/svg/' + theme + '/' + locale + '.svg';
+				var fallbackUrl = 'https://www.gstatic.com/instantbuy/svg/' + theme + '/en.svg';
+				// Check if locale GPay button exists, default to en if not
+				setBackgroundImageWithFallback( button, url, fallbackUrl );
+			}
+
+			return button;
+		},
+
+		attachPaymentRequestButtonEventListeners: function( prButton, paymentRequest ) {
+			if ( wc_stripe_payment_request_params.is_product_page ) {
+				wc_stripe_payment_request.attachProductPageEventListeners( prButton, paymentRequest );
+			} else {
+				wc_stripe_payment_request.attachCartPageEventListeners( prButton, paymentRequest );
+			}
+		},
+
+		attachProductPageEventListeners: function( prButton, paymentRequest ) {
+			var paymentRequestError = [];
+			var addToCartButton = $( '.single_add_to_cart_button' );
+
+			prButton.on( 'click', function ( evt ) {
+				// First check if product can be added to cart.
+				if ( addToCartButton.is( '.disabled' ) ) {
+					evt.preventDefault(); // Prevent showing payment request modal.
+					if ( addToCartButton.is( '.wc-variation-is-unavailable' ) ) {
+						window.alert( wc_add_to_cart_variation_params.i18n_unavailable_text );
+					} else if ( addToCartButton.is( '.wc-variation-selection-needed' ) ) {
+						window.alert( wc_add_to_cart_variation_params.i18n_make_a_selection_text );
+					}
+					return;
+				}
+
+				if ( 0 < paymentRequestError.length ) {
+					evt.preventDefault();
+					window.alert( paymentRequestError );
+					return;
+				}
+
+				wc_stripe_payment_request.addToCart();
+
+				if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) || wc_stripe_payment_request.isBrandedPaymentRequestButton( prButton ) ) {
+					evt.preventDefault();
+					paymentRequest.show();
+				}
+			});
+
+			$( document.body ).on( 'woocommerce_variation_has_changed', function () {
+				wc_stripe_payment_request.blockPaymentRequestButton( prButton );
+
+				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
+					$.when(
+						paymentRequest.update( {
+							total: response.total,
+							displayItems: response.displayItems,
+						} )
+					).then( function () {
+						wc_stripe_payment_request.unblockPaymentRequestButton( prButton );
+					} );
+				});
+			} );
+
+			// Block the payment request button as soon as an "input" event is fired, to avoid sync issues
+			// when the customer clicks on the button before the debounced event is processed.
+			$( '.quantity' ).on( 'input', '.qty', function() {
+				wc_stripe_payment_request.blockPaymentRequestButton( prButton );
+			} );
+
+			$( '.quantity' ).on( 'input', '.qty', wc_stripe_payment_request.debounce( 250, function() {
+				wc_stripe_payment_request.blockPaymentRequestButton( prButton );
+				paymentRequestError = [];
+
+				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
+					if ( response.error ) {
+						paymentRequestError = [ response.error ];
+						wc_stripe_payment_request.unblockPaymentRequestButton( prButton );
+					} else {
+						$.when(
+							paymentRequest.update( {
+								total: response.total,
+								displayItems: response.displayItems,
+							} )
+						).then( function () {
+							wc_stripe_payment_request.unblockPaymentRequestButton( prButton );
+						});
+					}
+				} );
+			}));
+		},
+
+		attachCartPageEventListeners: function ( prButton, paymentRequest ) {
+			if ( ( ! wc_stripe_payment_request_params.button.is_custom || ! wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) &&
+				( ! wc_stripe_payment_request_params.button.is_branded || ! wc_stripe_payment_request.isBrandedPaymentRequestButton( prButton ) ) ) {
+				return;
+			}
+
+			prButton.on( 'click', function ( evt ) {
+				evt.preventDefault();
+				paymentRequest.show();
+			} );
+		},
+
+		showPaymentRequestButton: function( prButton ) {
+			if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
+				prButton.addClass( 'is-active' );
+				$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).show();
+			} else if ( wc_stripe_payment_request.isBrandedPaymentRequestButton( prButton ) ) {
+				$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).show();
+				$( '#wc-stripe-payment-request-button' ).html( prButton );
+			} else if ( $( '#wc-stripe-payment-request-button' ).length ) {
+				$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).show();
+				prButton.mount( '#wc-stripe-payment-request-button' );
+			}
+		},
+
+		blockPaymentRequestButton: function( prButton ) {
+			// check if element isn't already blocked before calling block() to avoid blinking overlay issues
+			// blockUI.isBlocked is either undefined or 0 when element is not blocked
+			if ( $( '#wc-stripe-payment-request-button' ).data( 'blockUI.isBlocked' ) ) {
+				return;
+			}
+
+			$( '#wc-stripe-payment-request-button' ).block( { message: null } );
+			if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
+				prButton.addClass( 'is-blocked' );
+			}
+		},
+
+		unblockPaymentRequestButton: function( prButton ) {
+			$( '#wc-stripe-payment-request-button' ).unblock();
+			if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
+				prButton.removeClass( 'is-blocked' );
+			}
+		},
+
 		/**
 		 * Initialize event handlers and UI state
 		 *
@@ -517,4 +700,14 @@ jQuery( function( $ ) {
 	$( document.body ).on( 'updated_checkout', function() {
 		wc_stripe_payment_request.init();
 	} );
+
+	function setBackgroundImageWithFallback( element, background, fallback ) {
+		element.css( 'background-image', 'url(' + background + ')' );
+		// Need to use an img element to avoid CORS issues
+		var testImg = document.createElement("img");
+		testImg.onerror = function () {
+			element.css( 'background-image', 'url(' + fallback + ')' );
+		}
+		testImg.src = background;
+	}
 } );

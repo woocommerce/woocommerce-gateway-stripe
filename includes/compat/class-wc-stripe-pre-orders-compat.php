@@ -28,15 +28,9 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 	 * @param object $order
 	 */
 	public function remove_order_source_before_retry( $order ) {
-		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-			delete_post_meta( $order->id, '_stripe_source_id' );
-			// For BW compat will remove in the future.
-			delete_post_meta( $order->id, '_stripe_card_id' );
-		} else {
-			$order->delete_meta_data( '_stripe_source_id' );
-			$order->delete_meta_data( '_stripe_card_id' );
-			$order->save();
-		}
+		$order->delete_meta_data( '_stripe_source_id' );
+		$order->delete_meta_data( '_stripe_card_id' );
+		$order->save();
 	}
 
 	/**
@@ -115,9 +109,8 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 			} else if ( $is_authentication_required ) {
 				$charge = end( $response->error->payment_intent->charges->data );
 				$id = $charge->id;
-				$order_id = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->id : $order->get_id();
 
-				WC_Stripe_Helper::is_wc_lt( '3.0' ) ? update_post_meta( $order_id, '_transaction_id', $id ) : $order->set_transaction_id( $id );
+				$order->set_transaction_id( $id );
 				$order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
 				if ( is_callable( array( $order, 'save' ) ) ) {
 					$order->save();

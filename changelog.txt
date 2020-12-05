@@ -1,5 +1,64 @@
 *** Changelog ***
 
+= 4.5.5 - 2020-11-17 =
+* Fix - Guard against fatal errors that may occur on inbox data store load.
+
+= 4.5.4 - 2020-11-16 =
+* Add   - Stripe Connect OAuth.
+* Tweak - Add site_url to all transactions, not just recurring ones.
+* Add   - Customer's full name is now included in Stripe Customer object if available.
+* Add   - Accept payments via AliPay when store currency is set to CNY.
+* Tweak - Wording of Apple Pay link.
+* Fix   - Serve Apple Pay domain verification file via a rewrite rule.
+* Add   - Add Inbox note for Apple Pay domain verification if needed.
+* Add   - Apple Pay holiday marketing notice.
+* Fix   - Apple Pay: Ensure payer phone is available before attempting to access it.
+* Add   - Pass payment method for renewal charges if not a source.
+* Fix   - Ensure defaults are used for missing settings.
+* Add   - Add shipping address to payment requests.
+* Fix   - Fix the Not a valid URL notice.
+* Add   - Security.md with security and vulnerability reporting guidelines.
+
+= 4.5.3 - 2020-10-06 =
+* Fix   - Apple Pay now requires a buyer's phone number only if it's required in Appearance > Customize > WooCommerce > Checkout.
+* Add   - Allow toggling secrets temporarily to visible in settings.
+* Fix   - Properly display field required error when SEPA method is used.
+* Tweak - Update payment request button description to include link to Stripe dashboard Apple Pay settings.
+* Add   - Add off session payment intent filter, props rfair404.
+* Tweak - Update contributors list.
+
+= 4.5.2 - 2020-08-19 =
+* Fix - Allow extension to attempt to run in all countries, not just officially supported ones
+
+= 4.5.1 - 2020-08-12 =
+* Add - Support for Bulgaria, Czech Republic, Greece, Cyprus, Malta, Slovenia
+* Add - Additional metadata for order status change events when tracking is permitted
+
+= 4.5.0 2020-06-24 =
+* Tweak - Improve branded Google Pay button user agent detection.
+* Add   - New filter to manage the display of payment request buttons in cart.
+* Fix   - Display Apple Pay button with text if branded type is text and logo.
+* Fix   - Prevent branded payment request button duplication when checkout is re-calculated.
+* Fix   - Payment request buttons on a single product page now correctly show the product name instead of a subtotal.
+* Fix   - Quotes in variadic product attributes no longer cause payment request buttons to show only the cheapest variation.
+
+= 4.4.0 2020-05-21 =
+* Tweak - Remove support for WooCommerce versions lower than 3.0.
+* Tweak - Update plugin assets.
+* Tweak - Improve performance on order pay screen.
+* Tweak - Compress payment methods SVGs.
+* Add   - Support for custom payment request button.
+* Fix   - Prevent users from entering secret key in the public key field and stop it from showing if they did.
+* Fix   - Revert caching layer removal to speed up My Account subscriptions tab.
+* Fix   - Bug where source ID was not set resulting in an uncaught exception.
+* Fix   - Collecting level 3 data triggers a warning.
+* Fix   - Custom button class typo.
+* Fix   - Payment Request incorrect shipping option passed.
+* Fix   - Payment Requests, like Apple Pay, not initially showing correct quantity if used on Product Page.
+* Fix   - State abbreviation breaks Payment Request button.
+* Fix   - Stripe Payment Request button using incorrect Google Pay brand asset by adding a special branded button.
+* Fix   - Move docs and support links in the plugins list page.
+
 = 4.3.3 2020-04-08 =
 * Fix - Fix Payment Request issue when product attribute has quotes
 * Fix - Fix "no such customer" error on checkout after the keys have been changed

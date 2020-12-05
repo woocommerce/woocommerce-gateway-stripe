@@ -7,7 +7,7 @@ return apply_filters(
 	'wc_stripe_p24_settings',
 	array(
 		'geo_target'  => array(
-			'description' => __( 'Relevant Payer Geography: Poland', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'Customer Geography: Poland', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
 		),
 		'activation'  => array(

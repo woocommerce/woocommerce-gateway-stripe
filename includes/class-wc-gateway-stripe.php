@@ -87,7 +87,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$this->id             = 'stripe';
 		$this->method_title   = __( 'Stripe', 'woocommerce-gateway-stripe' );
 		/* translators: 1) link to Stripe register page 2) link to Stripe api keys page */
-		$this->method_description = sprintf( __( 'Stripe works by adding payment fields on the checkout and then sending the details to Stripe for verification. <a href="%1$s" target="_blank">Sign up</a> for a Stripe account, and <a href="%2$s" target="_blank">get your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), 'https://dashboard.stripe.com/register', 'https://dashboard.stripe.com/account/apikeys' );
+		$this->method_description = __( 'Stripe works by adding payment fields on the checkout and then sending the details to Stripe for verification.', 'woocommerce-gateway-stripe' );
 		$this->has_fields         = true;
 		$this->supports           = array(
 			'products',
@@ -141,25 +141,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'set_logged_in_cookie', array( $this, 'set_cookie_on_current_request' ) );
 		add_filter( 'woocommerce_get_checkout_payment_url', array( $this, 'get_checkout_payment_url' ), 10, 2 );
 
+		// Note: display error is in the parent class.
+		add_action( 'admin_notices', array( $this, 'display_errors' ), 9999 );
+
 		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
 			$this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
 
 			add_action( 'wc_pre_orders_process_pre_order_completion_payment_' . $this->id, array( $this->pre_orders, 'process_pre_order_release_payment' ) );
 		}
-	}
-
-	/**
-	 * Checks if keys are set.
-	 *
-	 * @since 4.0.6
-	 * @return bool
-	 */
-	public function are_keys_set() {
-		if ( empty( $this->secret_key ) || empty( $this->publishable_key ) ) {
-			return false;
-		}
-
-		return true;
 	}
 
 	/**
@@ -241,7 +230,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) { // wpcs: csrf ok.
 			$order      = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) ); // wpcs: csrf ok, sanitization ok.
 			$total      = $order->get_total();
-			$user_email = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_email : $order->get_billing_email();
+			$user_email = $order->get_billing_email();
 		} else {
 			if ( $user->ID ) {
 				$user_email = get_user_meta( $user->ID, 'billing_email', true );
@@ -426,14 +415,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$order    = wc_get_order( $order_id );
 
 			if ( is_a( $order, 'WC_Order' ) ) {
-				$stripe_params['billing_first_name'] = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_first_name : $order->get_billing_first_name();
-				$stripe_params['billing_last_name']  = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_last_name : $order->get_billing_last_name();
-				$stripe_params['billing_address_1']  = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_address_1 : $order->get_billing_address_1();
-				$stripe_params['billing_address_2']  = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_address_2 : $order->get_billing_address_2();
-				$stripe_params['billing_state']      = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_state : $order->get_billing_state();
-				$stripe_params['billing_city']       = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_city : $order->get_billing_city();
-				$stripe_params['billing_postcode']   = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_postcode : $order->get_billing_postcode();
-				$stripe_params['billing_country']    = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->billing_country : $order->get_billing_country();
+				$stripe_params['billing_first_name'] = $order->get_billing_first_name();
+				$stripe_params['billing_last_name']  = $order->get_billing_last_name();
+				$stripe_params['billing_address_1']  = $order->get_billing_address_1();
+				$stripe_params['billing_address_2']  = $order->get_billing_address_2();
+				$stripe_params['billing_state']      = $order->get_billing_state();
+				$stripe_params['billing_city']       = $order->get_billing_city();
+				$stripe_params['billing_postcode']   = $order->get_billing_postcode();
+				$stripe_params['billing_country']    = $order->get_billing_country();
 			}
 		}
 
@@ -521,14 +510,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
-		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-			delete_user_option( $order->customer_user, '_stripe_customer_id' );
-			delete_post_meta( $order->get_id(), '_stripe_customer_id' );
-		} else {
-			delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
-			$order->delete_meta_data( '_stripe_customer_id' );
-			$order->save();
-		}
+		delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
+		$order->delete_meta_data( '_stripe_customer_id' );
+		$order->save();
 
 		return true;
 	}
@@ -1050,7 +1034,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param WC_Order $order The order which is in a transitional state.
 	 */
 	public function verify_intent_after_checkout( $order ) {
-		$payment_method = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $order->payment_method : $order->get_payment_method();
+		$payment_method = $order->get_payment_method();
 		if ( $payment_method !== $this->id ) {
 			// If this is not the payment method, an intent would not be available.
 			return;
@@ -1184,5 +1168,37 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		) {
 			update_option( 'wc_stripe_show_changed_keys_notice', 'yes' );
 		}
+	}
+
+	public function validate_publishable_key_field( $key, $value ) {
+		$value = $this->validate_text_field( $key, $value );
+		if ( ! empty( $value ) && ! preg_match( '/^pk_live_/', $value ) ) {
+			throw new Exception( __( 'The "Live Publishable Key" should start with "pk_live", enter the correct key.', 'woocommerce-gateway-stripe' ) );
+		}
+		return $value;
+	}
+
+	public function validate_secret_key_field( $key, $value ) {
+		$value = $this->validate_text_field( $key, $value );
+		if ( ! empty( $value ) && ! preg_match( '/^[rs]k_live_/', $value ) ) {
+			throw new Exception( __( 'The "Live Secret Key" should start with "sk_live" or "rk_live", enter the correct key.', 'woocommerce-gateway-stripe' ) );
+		}
+		return $value;
+	}
+
+	public function validate_test_publishable_key_field( $key, $value ) {
+		$value = $this->validate_text_field( $key, $value );
+		if ( ! empty( $value ) && ! preg_match( '/^pk_test_/', $value ) ) {
+			throw new Exception( __( 'The "Test Publishable Key" should start with "pk_test", enter the correct key.', 'woocommerce-gateway-stripe' ) );
+		}
+		return $value;
+	}
+
+	public function validate_test_secret_key_field( $key, $value ) {
+		$value = $this->validate_text_field( $key, $value );
+		if ( ! empty( $value ) && ! preg_match( '/^[rs]k_test_/', $value ) ) {
+			throw new Exception( __( 'The "Test Secret Key" should start with "sk_test" or "rk_test", enter the correct key.', 'woocommerce-gateway-stripe' ) );
+		}
+		return $value;
 	}
 }

@@ -11,6 +11,8 @@ sftp-config.json
 /deploy/
 .vscode/
 vendor
+release/
+woocommerce-gateway-stripe.zip
 
 # Ignore all log files except for .htaccess
 /logs/*
@@ -21,3 +23,8 @@ deploy-to-wp-org.sh
 
 # Test configs
 tests/e2e/config/local-*
+
+# Volumes mounted by Docker containers
+docker/data
+docker/wordpress
+docker/logs

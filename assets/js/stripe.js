@@ -634,10 +634,9 @@ jQuery( function( $ ) {
 			 */
 			if ( wc_stripe_form.isSepaChosen() ) {
 				if ( 'invalid_owner_name' === result.error.code && wc_stripe_params.hasOwnProperty( result.error.code ) ) {
-					var error = '<ul class="woocommerce-error"><li /></ul>';
+					var error = $( '<div><ul class="woocommerce-error"><li /></ul></div>' );
 					error.find( 'li' ).text( wc_stripe_params[ result.error.code ] ); // Prevent XSS
-
-					return wc_stripe_form.submitError( error );
+					return wc_stripe_form.submitError( error.html() );
 				}
 			}
 

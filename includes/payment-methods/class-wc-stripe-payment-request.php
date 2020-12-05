@@ -1,6 +1,8 @@
 <?php
 /**
  * Stripe Payment Request API
+ * Adds support for Apple Pay and Chrome Payment Request API buttons.
+ * Utilizes the Stripe Payment Request Button to support checkout from the product detail and cart pages.
  *
  * @package WooCommerce_Stripe/Classes/Payment_Request
  * @since   4.0.0
@@ -59,16 +61,16 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Initialize class actions.
 	 *
-	 * @since 3.0.0
+	 * @since   3.0.0
 	 * @version 4.0.0
 	 */
 	public function __construct() {
-		self::$_this            = $this;
-		$this->stripe_settings  = get_option( 'woocommerce_stripe_settings', array() );
-		$this->testmode         = ( ! empty( $this->stripe_settings['testmode'] ) && 'yes' === $this->stripe_settings['testmode'] ) ? true : false;
-		$this->publishable_key  = ! empty( $this->stripe_settings['publishable_key'] ) ? $this->stripe_settings['publishable_key'] : '';
-		$this->secret_key       = ! empty( $this->stripe_settings['secret_key'] ) ? $this->stripe_settings['secret_key'] : '';
-		$this->total_label      = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
+		self::$_this           = $this;
+		$this->stripe_settings = get_option( 'woocommerce_stripe_settings', array() );
+		$this->testmode        = ( ! empty( $this->stripe_settings['testmode'] ) && 'yes' === $this->stripe_settings['testmode'] ) ? true : false;
+		$this->publishable_key = ! empty( $this->stripe_settings['publishable_key'] ) ? $this->stripe_settings['publishable_key'] : '';
+		$this->secret_key      = ! empty( $this->stripe_settings['secret_key'] ) ? $this->stripe_settings['secret_key'] : '';
+		$this->total_label     = ! empty( $this->stripe_settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->stripe_settings['statement_descriptor'] ) : '';
 
 		if ( $this->testmode ) {
 			$this->publishable_key = ! empty( $this->stripe_settings['test_publishable_key'] ) ? $this->stripe_settings['test_publishable_key'] : '';
@@ -92,44 +94,32 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		$wc_default_country = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
-
-		if ( ! in_array( $wc_default_country, $this->get_stripe_supported_countries() ) ) {
-			return;
-		}
-
 		add_action( 'template_redirect', array( $this, 'set_session' ) );
 		$this->init();
 	}
 
 	/**
-	 * List of supported countries by Stripe.
+	 * Checks if keys are set and valid.
 	 *
-	 * @since 4.1.3
-	 * @return array The list of countries.
-	 */
-	public function get_stripe_supported_countries() {
-		return apply_filters( 'wc_stripe_supported_countries', array( 'AT', 'AU', 'BE', 'BR', 'CA', 'CH', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR', 'GB', 'HK', 'IE', 'IN', 'IT', 'JP', 'LT', 'LU', 'LV', 'MX', 'NL', 'NZ', 'NO', 'PH', 'PL', 'PR', 'PT', 'RO', 'SE', 'SG', 'SK', 'US' ) );
-	}
-
-	/**
-	 * Checks if keys are set.
-	 *
-	 * @since 4.0.6
-	 * @return bool
+	 * @since  4.0.6
+	 * @return boolean True if the keys are set *and* valid, false otherwise (for example, if keys are empty or the secret key was pasted as publishable key).
 	 */
 	public function are_keys_set() {
-		if ( empty( $this->secret_key ) || empty( $this->publishable_key ) ) {
-			return false;
+		// NOTE: updates to this function should be added to are_keys_set()
+		// in includes/abstracts/abstract-wc-stripe-payment-gateway.php
+		if ( $this->testmode ) {
+			return preg_match( '/^pk_test_/', $this->publishable_key )
+			       && preg_match( '/^[rs]k_test_/', $this->secret_key );
+		} else {
+			return preg_match( '/^pk_live_/', $this->publishable_key )
+			       && preg_match( '/^[rs]k_live_/', $this->secret_key );
 		}
-
-		return true;
 	}
 
 	/**
 	 * Get this instance.
 	 *
-	 * @since 4.0.6
+	 * @since  4.0.6
 	 * @return class
 	 */
 	public static function instance() {
@@ -140,7 +130,8 @@ class WC_Stripe_Payment_Request {
 	 * Sets the WC customer session if one is not set.
 	 * This is needed so nonces can be verified by AJAX Request.
 	 *
-	 * @since 4.0.0
+	 * @since  4.0.0
+	 * @return void
 	 */
 	public function set_session() {
 		if ( ! is_product() || ( isset( WC()->session ) && WC()->session->has_session() ) ) {
@@ -153,24 +144,15 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Initialize hooks.
 	 *
-	 * @since 4.0.0
+	 * @since   4.0.0
 	 * @version 4.0.0
+	 * @return  void
 	 */
 	public function init() {
 		add_action( 'wp_enqueue_scripts', array( $this, 'scripts' ) );
 
-		/*
-		 * In order to display the Payment Request button in the correct position,
-		 * a new hook was added to WooCommerce 3.0. In older versions of WooCommerce,
-		 * CSS is used to position the button.
-		 */
-		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-			add_action( 'woocommerce_after_add_to_cart_button', array( $this, 'display_payment_request_button_html' ), 1 );
-			add_action( 'woocommerce_after_add_to_cart_button', array( $this, 'display_payment_request_button_separator_html' ), 2 );
-		} else {
-			add_action( 'woocommerce_after_add_to_cart_quantity', array( $this, 'display_payment_request_button_html' ), 1 );
-			add_action( 'woocommerce_after_add_to_cart_quantity', array( $this, 'display_payment_request_button_separator_html' ), 2 );
-		}
+		add_action( 'woocommerce_after_add_to_cart_quantity', array( $this, 'display_payment_request_button_html' ), 1 );
+		add_action( 'woocommerce_after_add_to_cart_quantity', array( $this, 'display_payment_request_button_separator_html' ), 2 );
 
 		add_action( 'woocommerce_proceed_to_checkout', array( $this, 'display_payment_request_button_html' ), 1 );
 		add_action( 'woocommerce_proceed_to_checkout', array( $this, 'display_payment_request_button_separator_html' ), 2 );
@@ -196,9 +178,9 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Gets the button type.
 	 *
-	 * @since 4.0.0
+	 * @since   4.0.0
 	 * @version 4.0.0
-	 * @return string
+	 * @return  string
 	 */
 	public function get_button_type() {
 		return isset( $this->stripe_settings['payment_request_button_type'] ) ? $this->stripe_settings['payment_request_button_type'] : 'default';
@@ -207,9 +189,9 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Gets the button theme.
 	 *
-	 * @since 4.0.0
+	 * @since   4.0.0
 	 * @version 4.0.0
-	 * @return string
+	 * @return  string
 	 */
 	public function get_button_theme() {
 		return isset( $this->stripe_settings['payment_request_button_theme'] ) ? $this->stripe_settings['payment_request_button_theme'] : 'dark';
@@ -218,19 +200,75 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Gets the button height.
 	 *
-	 * @since 4.0.0
+	 * @since   4.0.0
 	 * @version 4.0.0
-	 * @return string
+	 * @return  string
 	 */
 	public function get_button_height() {
 		return isset( $this->stripe_settings['payment_request_button_height'] ) ? str_replace( 'px', '', $this->stripe_settings['payment_request_button_height'] ) : '64';
 	}
 
 	/**
+	 * Checks if the button is branded.
+	 *
+	 * @since   4.4.0
+	 * @version 4.4.0
+	 * @return  boolean
+	 */
+	public function is_branded_button() {
+		return 'branded' === $this->get_button_type();
+	}
+
+	/**
+	 * Gets the branded button type.
+	 *
+	 * @since   4.4.0
+	 * @version 4.4.0
+	 * @return  string
+	 */
+	public function get_button_branded_type() {
+		return isset( $this->stripe_settings['payment_request_button_branded_type'] ) ? $this->stripe_settings['payment_request_button_branded_type'] : 'default';
+	}
+
+	/**
+	 * Checks if the button is custom.
+	 *
+	 * @since   4.4.0
+	 * @version 4.4.0
+	 * @return  boolean
+	 */
+	public function is_custom_button() {
+		return 'custom' === $this->get_button_type();
+	}
+
+	/**
+	 * Returns custom button css selector.
+	 *
+	 * @since   4.4.0
+	 * @version 4.4.0
+	 * @return  string
+	 */
+	public function custom_button_selector() {
+		return $this->is_custom_button() ? '#wc-stripe-custom-button' : '';
+	}
+
+	/**
+	 * Gets the custom button label.
+	 *
+	 * @since   4.4.0
+	 * @version 4.4.0
+	 * @return  string
+	 */
+	public function get_button_label() {
+		return isset( $this->stripe_settings['payment_request_button_label'] ) ? $this->stripe_settings['payment_request_button_label'] : 'Buy now';
+	}
+
+	/**
 	 * Gets the product data for the currently viewed page
 	 *
-	 * @since 4.0.0
+	 * @since   4.0.0
 	 * @version 4.0.0
+	 * @return  mixed Returns false if not on a product page, the product information otherwise.
 	 */
 	public function get_product_data() {
 		if ( ! is_product() ) {
@@ -241,15 +279,11 @@ class WC_Stripe_Payment_Request {
 
 		$product = wc_get_product( $post->ID );
 
-		if ( 'variable' === ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type() ) ) {
+		if ( 'variable' === $product->get_type() ) {
 			$attributes = wc_clean( wp_unslash( $_GET ) );
 
-			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-				$variation_id = $product->get_matching_variation( $attributes );
-			} else {
-				$data_store   = WC_Data_Store::load( 'product' );
-				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
-			}
+			$data_store   = WC_Data_Store::load( 'product' );
+			$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
 
 			if ( ! empty( $variation_id ) ) {
 				$product = wc_get_product( $variation_id );
@@ -260,8 +294,8 @@ class WC_Stripe_Payment_Request {
 		$items = array();
 
 		$items[] = array(
-			'label'  => WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->name : $product->get_name(),
-			'amount' => WC_Stripe_Helper::get_stripe_amount( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->price : $product->get_price() ),
+			'label'  => $product->get_name(),
+			'amount' => WC_Stripe_Helper::get_stripe_amount( $product->get_price() ),
 		);
 
 		if ( wc_tax_enabled() ) {
@@ -290,7 +324,7 @@ class WC_Stripe_Payment_Request {
 		$data['displayItems'] = $items;
 		$data['total']        = array(
 			'label'   => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
-			'amount'  => WC_Stripe_Helper::get_stripe_amount( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->price : $product->get_price() ),
+			'amount'  => WC_Stripe_Helper::get_stripe_amount( $product->get_price() ),
 			'pending' => true,
 		);
 
@@ -303,7 +337,6 @@ class WC_Stripe_Payment_Request {
 
 	/**
 	 * Filters the gateway title to reflect Payment Request type
-	 *
 	 */
 	public function filter_gateway_title( $title, $id ) {
 		global $post;
@@ -312,12 +345,8 @@ class WC_Stripe_Payment_Request {
 			return $title;
 		}
 
-		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-			$method_title = get_post_meta( $post->ID, '_payment_method_title', true );
-		} else {
-			$order        = wc_get_order( $post->ID );
-			$method_title = is_object( $order ) ? $order->get_payment_method_title() : '';
-		}
+		$order        = wc_get_order( $post->ID );
+		$method_title = is_object( $order ) ? $order->get_payment_method_title() : '';
 
 		if ( 'stripe' === $id && ! empty( $method_title ) && 'Apple Pay (Stripe)' === $method_title ) {
 			return $method_title;
@@ -333,7 +362,7 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Removes postal code validation from WC.
 	 *
-	 * @since 3.1.4
+	 * @since   3.1.4
 	 * @version 4.0.0
 	 */
 	public function postal_code_validation( $valid, $postcode, $country ) {
@@ -365,10 +394,12 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Add needed order meta
 	 *
-	 * @since 4.0.0
+	 * @param integer $order_id    The order ID.
+	 * @param array   $posted_data The posted data from checkout form.
+	 *
+	 * @since   4.0.0
 	 * @version 4.0.0
-	 * @param int $order_id
-	 * @param array $posted_data The posted data from checkout form.
+	 * @return  void
 	 */
 	public function add_order_meta( $order_id, $posted_data ) {
 		if ( empty( $_POST['payment_request_type'] ) ) {
@@ -380,30 +411,22 @@ class WC_Stripe_Payment_Request {
 		$payment_request_type = wc_clean( $_POST['payment_request_type'] );
 
 		if ( 'apple_pay' === $payment_request_type ) {
-			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-				update_post_meta( $order_id, '_payment_method_title', 'Apple Pay (Stripe)' );
-			} else {
-				$order->set_payment_method_title( 'Apple Pay (Stripe)' );
-				$order->save();
-			}
+			$order->set_payment_method_title( 'Apple Pay (Stripe)' );
+			$order->save();
 		}
 
 		if ( 'payment_request_api' === $payment_request_type ) {
-			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-				update_post_meta( $order_id, '_payment_method_title', 'Chrome Payment Request (Stripe)' );
-			} else {
-				$order->set_payment_method_title( 'Chrome Payment Request (Stripe)' );
-				$order->save();
-			}
+			$order->set_payment_method_title( 'Chrome Payment Request (Stripe)' );
+			$order->save();
 		}
 	}
 
 	/**
 	 * Checks to make sure product type is supported.
 	 *
-	 * @since 3.1.0
+	 * @since   3.1.0
 	 * @version 4.0.0
-	 * @return array
+	 * @return  array
 	 */
 	public function supported_product_types() {
 		return apply_filters(
@@ -426,15 +449,15 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Checks the cart to see if all items are allowed to used.
 	 *
-	 * @since 3.1.4
+	 * @since   3.1.4
 	 * @version 4.0.0
-	 * @return bool
+	 * @return  boolean
 	 */
 	public function allowed_items_in_cart() {
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 			$_product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
 
-			if ( ! in_array( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $_product->product_type : $_product->get_type() ), $this->supported_product_types() ) ) {
+			if ( ! in_array( $_product->get_type(), $this->supported_product_types() ) ) {
 				return false;
 			}
 
@@ -455,7 +478,7 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Load public scripts and styles.
 	 *
-	 * @since 3.1.0
+	 * @since   3.1.0
 	 * @version 4.0.0
 	 */
 	public function scripts() {
@@ -503,16 +526,22 @@ class WC_Stripe_Payment_Request {
 				'unknown_shipping' => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' ),
 			),
 			'checkout'        => array(
-				'url'            => wc_get_checkout_url(),
-				'currency_code'  => strtolower( get_woocommerce_currency() ),
-				'country_code'   => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
-				'needs_shipping' => WC()->cart->needs_shipping() ? 'yes' : 'no',
+				'url'               => wc_get_checkout_url(),
+				'currency_code'     => strtolower( get_woocommerce_currency() ),
+				'country_code'      => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
+				'needs_shipping'    => WC()->cart->needs_shipping() ? 'yes' : 'no',
+				// Defaults to 'required' to match how core initializes this option.
+				'needs_payer_phone' => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
 			),
 			'button'          => array(
-				'type'   => $this->get_button_type(),
-				'theme'  => $this->get_button_theme(),
-				'height' => $this->get_button_height(),
-				'locale' => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ), // Default format is en_US.
+				'type'         => $this->get_button_type(),
+				'theme'        => $this->get_button_theme(),
+				'height'       => $this->get_button_height(),
+				'locale'       => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ), // Default format is en_US.
+				'is_custom'    => $this->is_custom_button(),
+				'is_branded'   => $this->is_branded_button(),
+				'css_selector' => $this->custom_button_selector(),
+				'branded_type' => $this->get_button_branded_type(),
 			),
 			'is_product_page' => is_product(),
 			'product'         => $this->get_product_data(),
@@ -534,7 +563,7 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Display the payment request button.
 	 *
-	 * @since 4.0.0
+	 * @since   4.0.0
 	 * @version 4.0.0
 	 */
 	public function display_payment_request_button_html() {
@@ -556,15 +585,20 @@ class WC_Stripe_Payment_Request {
 
 		if ( is_product() && ! $this->should_show_payment_button_on_product_page() ) {
 			return;
-		} else {
-			if ( ! $this->allowed_items_in_cart() ) {
-				WC_Stripe_Logger::log( 'Items in the cart has unsupported product type ( Payment Request button disabled )' );
-				return;
-			}
+		} else if ( ! $this->should_show_payment_button_on_cart() ) {
+			return;
 		}
 		?>
 		<div id="wc-stripe-payment-request-wrapper" style="clear:both;padding-top:1.5em;display:none;">
 			<div id="wc-stripe-payment-request-button">
+				<?php
+					if ( $this->is_custom_button() ) {
+						$label = esc_html( $this->get_button_label() );
+						$class_name = esc_attr( 'button ' .  $this->get_button_theme() );
+						$style = esc_attr( 'height:' . $this->get_button_height() . 'px;' );
+						echo "<button id=\"wc-stripe-custom-button\" class=\"$class_name\" style=\"$style\"> $label </button>";
+					}
+				?>
 				<!-- A Stripe Element will be inserted here. -->
 			</div>
 		</div>
@@ -574,7 +608,7 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Display payment request button separator.
 	 *
-	 * @since 4.0.0
+	 * @since   4.0.0
 	 * @version 4.0.0
 	 */
 	public function display_payment_request_button_separator_html() {
@@ -596,11 +630,8 @@ class WC_Stripe_Payment_Request {
 
 		if ( is_product() && ! $this->should_show_payment_button_on_product_page() ) {
 			return;
-		} else {
-			if ( ! $this->allowed_items_in_cart() ) {
-				WC_Stripe_Logger::log( 'Items in the cart has unsupported product type ( Payment Request button disabled )' );
-				return;
-			}
+		} else if ( ! $this->should_show_payment_button_on_cart() ) {
+			return;
 		}
 		?>
 		<p id="wc-stripe-payment-request-button-separator" style="margin-top:1.5em;text-align:center;display:none;">&mdash; <?php esc_html_e( 'OR', 'woocommerce-gateway-stripe' ); ?> &mdash;</p>
@@ -608,13 +639,27 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
+	 * Whether payment button html should be rendered on the Cart
+	 *
+	 * @since  4.4.1
+	 * @return boolean
+	 */
+	private function should_show_payment_button_on_cart() {
+		if ( ! apply_filters( 'wc_stripe_show_payment_request_on_cart', true ) ) {
+			return false;
+		}
+		if ( ! $this->allowed_items_in_cart() ) {
+			WC_Stripe_Logger::log( 'Items in the cart has unsupported product type ( Payment Request button disabled )' );
+			return false;
+		}
+		return true;
+	}
+
+	/**
 	 * Whether payment button html should be rendered
 	 *
-	 * @since 4.3.2
-	 *
-	 * @param object $post
-	 *
-	 * @return bool
+	 * @since  4.3.2
+	 * @return boolean
 	 */
 	private function should_show_payment_button_on_product_page() {
 		global $post;
@@ -625,7 +670,7 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
-		if ( ! is_object( $product ) || ! in_array( ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type() ), $this->supported_product_types() ) ) {
+		if ( ! is_object( $product ) || ! in_array( $product->get_type(), $this->supported_product_types() ) ) {
 			return false;
 		}
 
@@ -656,7 +701,7 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Log errors coming from Payment Request
 	 *
-	 * @since 3.1.4
+	 * @since   3.1.4
 	 * @version 4.0.0
 	 */
 	public function ajax_log_errors() {
@@ -672,7 +717,7 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Clears cart.
 	 *
-	 * @since 3.1.4
+	 * @since   3.1.4
 	 * @version 4.0.0
 	 */
 	public function ajax_clear_cart() {
@@ -720,24 +765,42 @@ class WC_Stripe_Payment_Request {
 	public function ajax_get_shipping_options() {
 		check_ajax_referer( 'wc-stripe-payment-request-shipping', 'security' );
 
+		$shipping_address = filter_input_array(
+			INPUT_POST,
+			array(
+				'country'   => FILTER_SANITIZE_STRING,
+				'state'     => FILTER_SANITIZE_STRING,
+				'postcode'  => FILTER_SANITIZE_STRING,
+				'city'      => FILTER_SANITIZE_STRING,
+				'address'   => FILTER_SANITIZE_STRING,
+				'address_2' => FILTER_SANITIZE_STRING,
+			)
+		);
+		$product_view_options      = filter_input_array( INPUT_POST, [ 'is_product_page' => FILTER_SANITIZE_STRING ] );
+		$should_show_itemized_view = ! isset( $product_view_options['is_product_page'] ) ?: filter_var( $product_view_options['is_product_page'], FILTER_VALIDATE_BOOLEAN );
+
+		$data = $this->get_shipping_options( $shipping_address, $should_show_itemized_view );
+		wp_send_json( $data );
+	}
+
+	/**
+	 * Gets shipping options available for specified shipping address
+	 *
+	 * @param array   $shipping_address       Shipping address.
+	 * @param boolean $itemized_display_items Indicates whether to show subtotals or itemized views.
+	 *
+	 * @return array Shipping options data.
+	 * phpcs:ignore Squiz.Commenting.FunctionCommentThrowTag
+	 */
+	public function get_shipping_options( $shipping_address, $itemized_display_items = false ) {
 		try {
-			// Set the shipping package.
-			$posted = filter_input_array(
-				INPUT_POST,
-				array(
-					'country'   => FILTER_SANITIZE_STRING,
-					'state'     => FILTER_SANITIZE_STRING,
-					'postcode'  => FILTER_SANITIZE_STRING,
-					'city'      => FILTER_SANITIZE_STRING,
-					'address'   => FILTER_SANITIZE_STRING,
-					'address_2' => FILTER_SANITIZE_STRING,
-				)
-			);
-
-			$this->calculate_shipping( apply_filters( 'wc_stripe_payment_request_shipping_posted_values', $posted ) );
-
 			// Set the shipping options.
-			$data     = array();
+			$data = array();
+
+			// Remember current shipping method before resetting.
+			$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods' );
+			$this->calculate_shipping( apply_filters( 'wc_stripe_payment_request_shipping_posted_values', $shipping_address ) );
+
 			$packages = WC()->shipping->get_packages();
 
 			if ( ! empty( $packages ) && WC()->customer->has_calculated_shipping() ) {
@@ -759,23 +822,40 @@ class WC_Stripe_Payment_Request {
 				throw new Exception( __( 'Unable to find shipping method for address.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			if ( isset( $data[0] ) ) {
-				// Auto select the first shipping method.
-				WC()->session->set( 'chosen_shipping_methods', array( $data[0]['id'] ) );
+			// The first shipping option is automatically applied on the client.
+			// Keep chosen shipping method by sorting shipping options if the method still available for new address.
+			// Fallback to the first available shipping method.
+			if ( isset( $data['shipping_options'][0] ) ) {
+				if ( isset( $chosen_shipping_methods[0] ) ) {
+					$chosen_method_id         = $chosen_shipping_methods[0];
+					$compare_shipping_options = function ( $a, $b ) use ( $chosen_method_id ) {
+						if ( $a['id'] === $chosen_method_id ) {
+							return -1;
+						}
+
+						if ( $b['id'] === $chosen_method_id ) {
+							return 1;
+						}
+
+						return 0;
+					};
+					usort( $data['shipping_options'], $compare_shipping_options );
+				}
+
+				$first_shipping_method_id = $data['shipping_options'][0]['id'];
+				$this->update_shipping_method( [ $first_shipping_method_id ] );
 			}
 
 			WC()->cart->calculate_totals();
 
-			$data          += $this->build_display_items();
+			$data          += $this->build_display_items( $itemized_display_items );
 			$data['result'] = 'success';
-
-			wp_send_json( $data );
 		} catch ( Exception $e ) {
-			$data          += $this->build_display_items();
+			$data          += $this->build_display_items( $itemized_display_items );
 			$data['result'] = 'invalid_shipping_address';
-
-			wp_send_json( $data );
 		}
+
+		return $data;
 	}
 
 	/**
@@ -788,32 +868,44 @@ class WC_Stripe_Payment_Request {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
-		$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods' );
-		$shipping_method         = filter_input( INPUT_POST, 'shipping_method', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY );
-
-		if ( is_array( $shipping_method ) ) {
-			foreach ( $shipping_method as $i => $value ) {
-				$chosen_shipping_methods[ $i ] = wc_clean( $value );
-			}
-		}
-
-		WC()->session->set( 'chosen_shipping_methods', $chosen_shipping_methods );
+		$shipping_methods = filter_input( INPUT_POST, 'shipping_method', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY );
+		$this->update_shipping_method( $shipping_methods );
 
 		WC()->cart->calculate_totals();
 
+		$product_view_options      = filter_input_array( INPUT_POST, [ 'is_product_page' => FILTER_SANITIZE_STRING ] );
+		$should_show_itemized_view = ! isset( $product_view_options['is_product_page'] ) ?: filter_var( $product_view_options['is_product_page'], FILTER_VALIDATE_BOOLEAN );
+
 		$data           = array();
-		$data          += $this->build_display_items();
+		$data          += $this->build_display_items( $should_show_itemized_view );
 		$data['result'] = 'success';
 
 		wp_send_json( $data );
 	}
 
 	/**
+	 * Updates shipping method in WC session
+	 *
+	 * @param array $shipping_methods Array of selected shipping methods ids.
+	 */
+	public function update_shipping_method( $shipping_methods ) {
+		$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods' );
+
+		if ( is_array( $shipping_methods ) ) {
+			foreach ( $shipping_methods as $i => $value ) {
+				$chosen_shipping_methods[ $i ] = wc_clean( $value );
+			}
+		}
+
+		WC()->session->set( 'chosen_shipping_methods', $chosen_shipping_methods );
+	}
+
+	/**
 	 * Gets the selected product data.
 	 *
-	 * @since 4.0.0
+	 * @since   4.0.0
 	 * @version 4.0.0
-	 * @return array $data
+	 * @return  array $data
 	 */
 	public function ajax_get_selected_product_data() {
 		check_ajax_referer( 'wc-stripe-get-selected-product-data', 'security' );
@@ -829,15 +921,11 @@ class WC_Stripe_Payment_Request {
 				throw new Exception( sprintf( __( 'Product with the ID (%d) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
 			}
 
-			if ( 'variable' === ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type() ) && isset( $_POST['attributes'] ) ) {
+			if ( 'variable' === $product->get_type() && isset( $_POST['attributes'] ) ) {
 				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
 
-				if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-					$variation_id = $product->get_matching_variation( $attributes );
-				} else {
-					$data_store   = WC_Data_Store::load( 'product' );
-					$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
-				}
+				$data_store   = WC_Data_Store::load( 'product' );
+				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
 
 				if ( ! empty( $variation_id ) ) {
 					$product = wc_get_product( $variation_id );
@@ -854,7 +942,7 @@ class WC_Stripe_Payment_Request {
 				throw new Exception( sprintf( __( 'You cannot add that amount of "%1$s"; to the cart because there is not enough stock (%2$s remaining).', 'woocommerce-gateway-stripe' ), $product->get_name(), wc_format_stock_quantity_for_display( $product->get_stock_quantity(), $product ) ) );
 			}
 
-			$total = $qty * ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->price : $product->get_price() ) + $addon_value;
+			$total = $qty * $product->get_price() + $addon_value;
 
 			$quantity_label = 1 < $qty ? ' (x' . $qty . ')' : '';
 
@@ -862,7 +950,7 @@ class WC_Stripe_Payment_Request {
 			$items = array();
 
 			$items[] = array(
-				'label'  => ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->name : $product->get_name() ) . $quantity_label,
+				'label'  => $product->get_name() . $quantity_label,
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $total ),
 			);
 
@@ -909,9 +997,9 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Adds the current product to the cart. Used on product detail page.
 	 *
-	 * @since 4.0.0
+	 * @since   4.0.0
 	 * @version 4.0.0
-	 * @return array $data
+	 * @return  array $data
 	 */
 	public function ajax_add_to_cart() {
 		check_ajax_referer( 'wc-stripe-add-to-cart', 'security' );
@@ -925,7 +1013,7 @@ class WC_Stripe_Payment_Request {
 		$product_id   = absint( $_POST['product_id'] );
 		$qty          = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
 		$product      = wc_get_product( $product_id );
-		$product_type = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $product->product_type : $product->get_type();
+		$product_type = $product->get_type();
 
 		// First empty the cart to prevent wrong calculation.
 		WC()->cart->empty_cart();
@@ -933,12 +1021,8 @@ class WC_Stripe_Payment_Request {
 		if ( ( 'variable' === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
 			$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
 
-			if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-				$variation_id = $product->get_matching_variation( $attributes );
-			} else {
-				$data_store   = WC_Data_Store::load( 'product' );
-				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
-			}
+			$data_store   = WC_Data_Store::load( 'product' );
+			$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
 
 			WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
 		}
@@ -962,7 +1046,7 @@ class WC_Stripe_Payment_Request {
 	 * what WC is expecting and throws an error. An example
 	 * for Ireland the county dropdown in Chrome shows "Co. Clare" format
 	 *
-	 * @since 4.0.0
+	 * @since   4.0.0
 	 * @version 4.0.0
 	 */
 	public function normalize_state() {
@@ -1001,7 +1085,7 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Create order. Security is handled by WC.
 	 *
-	 * @since 3.1.0
+	 * @since   3.1.0
 	 * @version 4.0.0
 	 */
 	public function ajax_create_order() {
@@ -1023,9 +1107,10 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Calculate and set shipping method.
 	 *
-	 * @since 3.1.0
+	 * @param array $address Shipping address.
+	 *
+	 * @since   3.1.0
 	 * @version 4.0.0
-	 * @param array $address
 	 */
 	protected function calculate_shipping( $address = array() ) {
 		$country   = $address['country'];
@@ -1040,7 +1125,7 @@ class WC_Stripe_Payment_Request {
 		 * In some versions of Chrome, state can be a full name. So we need
 		 * to convert that to abbreviation as WC is expecting that.
 		 */
-		if ( 2 < strlen( $state ) && ! empty( $wc_states ) ) {
+		if ( 2 < strlen( $state ) && ! empty( $wc_states ) && ! isset( $wc_states[ $state ] ) ) {
 			$state = array_search( ucwords( strtolower( $state ) ), $wc_states, true );
 		}
 
@@ -1054,16 +1139,12 @@ class WC_Stripe_Payment_Request {
 			WC()->customer->set_location( $country, $state, $postcode, $city );
 			WC()->customer->set_shipping_location( $country, $state, $postcode, $city );
 		} else {
-			WC_Stripe_Helper::is_wc_lt( '3.0' ) ? WC()->customer->set_to_base() : WC()->customer->set_billing_address_to_base();
-			WC_Stripe_Helper::is_wc_lt( '3.0' ) ? WC()->customer->set_shipping_to_base() : WC()->customer->set_shipping_address_to_base();
+			WC()->customer->set_billing_address_to_base();
+			WC()->customer->set_shipping_address_to_base();
 		}
 
-		if ( WC_Stripe_Helper::is_wc_lt( '3.0' ) ) {
-			WC()->customer->calculated_shipping( true );
-		} else {
-			WC()->customer->set_calculated_shipping( true );
-			WC()->customer->save();
-		}
+		WC()->customer->set_calculated_shipping( true );
+		WC()->customer->save();
 
 		$packages = array();
 
@@ -1094,7 +1175,7 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Builds the shippings methods to pass to Payment Request
 	 *
-	 * @since 3.1.0
+	 * @since   3.1.0
 	 * @version 4.0.0
 	 */
 	protected function build_shipping_methods( $shipping_methods ) {
@@ -1119,10 +1200,10 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Builds the line items to pass to Payment Request
 	 *
-	 * @since 3.1.0
+	 * @since   3.1.0
 	 * @version 4.0.0
 	 */
-	protected function build_display_items() {
+	protected function build_display_items( $itemized_display_items = false ) {
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
 			define( 'WOOCOMMERCE_CART', true );
 		}
@@ -1132,13 +1213,13 @@ class WC_Stripe_Payment_Request {
 		$discounts = 0;
 
 		// Default show only subtotal instead of itemization.
-		if ( ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) ) {
+		if ( ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items ) {
 			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 				$amount         = $cart_item['line_subtotal'];
 				$subtotal      += $cart_item['line_subtotal'];
 				$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
 
-				$product_name = WC_Stripe_Helper::is_wc_lt( '3.0' ) ? $cart_item['data']->post->post_title : $cart_item['data']->get_name();
+				$product_name = $cart_item['data']->get_name();
 
 				$item = array(
 					'label'  => $product_name . $quantity_label,

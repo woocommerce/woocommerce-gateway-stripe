@@ -1,10 +1,10 @@
 === WooCommerce Stripe Payment Gateway ===
-Contributors: automattic, royho, akeda, mattyza, bor0, woothemes
+Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
 Requires at least: 4.4
-Tested up to: 5.4
+Tested up to: 5.5
 Requires PHP: 5.6
-Stable tag: 4.3.3
+Stable tag: 4.5.5
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -24,21 +24,35 @@ Stripe is available for Store Owners and Merchants in:
 * Australia
 * Austria
 * Belgium
+* Bulgaria
 * Canada
+* Cyprus
+* Czech Republic
 * Denmark
+* Estonia
 * Finland
 * France
 * Germany
+* Greece
 * Hong Kong
 * Ireland
 * Italy
 * Japan
+* Latvia
+* Lithuania
 * Luxembourg
+* Malaysia
+* Malta
+* Mexico
 * Netherlands
 * New Zealand
 * Norway
+* Poland
 * Portugal
+* Puerto Rico
 * Singapore
+* Slovakia
+* Slovenia
 * Spain
 * Sweden
 * Switzerland
@@ -56,17 +70,16 @@ Stripe also supports the [WooCommerce Subscriptions extension](https://woocommer
 
 = Apple Pay Support =
 
-WooCommerce Stripe now includes [Apple Pay](https://stripe.com/apple-pay) support, which means customers can pay using payment details associated with their Apple ID. Checkout is now just an authorization (Touch ID or Face ID) away on both mobile and desktop. Only supports simple and variable products for now. More support to come.
+WooCommerce Stripe includes [Apple Pay](https://woocommerce.com/apple-pay) support, which means customers can pay using payment details associated with their Apple ID. Checkout is now just an authorization (Touch ID or Face ID) away on both mobile and desktop. Only supports simple, variable, and Subscription products for now. More support to come.
 
 = Web Payments API Support =
 
-WooCommerce Stripe now includes [Web Payments API](https://www.w3.org/TR/payment-request/) support, which means customers can pay using payment details associated to their mobile devices, in browsers supporting the Web Payments API (Chrome for Android, amongst others). Checkout is now just a few taps away on mobile. Only supports simple and variable products for now. More support to come.
+WooCommerce Stripe includes [Web Payments API](https://www.w3.org/TR/payment-request/) support, which means customers can pay using payment details associated to their mobile devices, in browsers supporting the Web Payments API (Chrome for Android, amongst others). Checkout is now just a few taps away on mobile. Only supports simple, variable, and Subscription products for now. More support to come.
 
 == Installation ==
-
-Please note, v4 of this gateway requires WooCommerce 2.6 and above.
-
 You can download an [older version of this gateway for older versions of WooCommerce from here](https://wordpress.org/plugins/woocommerce-gateway-stripe/developers/).
+
+Please note, v4 of this gateway requires WooCommerce 3.0 and above.
 
 = Automatic installation =
 
@@ -94,7 +107,7 @@ Yes! In Live Mode, an SSL certificate must be installed on your site to use Stri
 
 = Does this support both production mode and sandbox mode for testing? =
 
-Yes, it does - production and sandbox mode is driven by the API keys you use.
+Yes, it does - production and Test (sandbox) mode is driven by the API keys you use with a checkbox in the admin settings to toggle between both.
 
 = Where can I find documentation? =
 
@@ -106,40 +119,15 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Screenshots ==
 
-1. The settings panel used to configure the gateway.
-2. Normal checkout with Stripe.
-3. Option to save a card to your account.
-4. Checking out with a saved card.
+1. The Stripe payment gateway settings screen used to configure the main Stripe gateway.
+2. Offer a range of payment methods such as local and alternative payment methods.
+3. Pay with a saved payment method, a new card, and allow customers to save the payment card for future transactions.
+4. Apple Pay and other Payment Request buttons can be used on the Product Page and Checkout for express checkout.
 
 == Changelog ==
 
-= 4.3.3 2020-04-08 =
-* Fix - Fix Payment Request issue when product attribute has quotes
-* Fix - Fix "no such customer" error on checkout after the keys have been changed
-* Add - Add alert for end of support WC < 3.0 in future releases
-* Fix - Fix crash when used with WooCommerce Subscriptions <2.6
-* Fix - Add missing customer ID to subscriptions before processing payment
-* Fix - Fix transactions failing with trailing slash
+= 4.5.5 - 2020-11-17 =
+* Fix - Guard against fatal errors that may occur on inbox data store load.
 
-= 4.3.2 2020-02-17 =
-* Fix - Add compatibility to payment request buttons with some of the WooCommerce Product Add-ons on the product page
-* Fix - Improved compatibility for free orders with other extensions
-* Add - Support for multisite when sites use different Stripe accounts
-* Fix - Display a localized error message when a customer tries to save a card during checkout, but there's an error
-* Add - Send level 3 credit card data for purchases when possible
+See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
-= 4.3.1 2019-11-12 =
-* Fix - Overwrite the previous Apple Pay verification file if it has changed.
-* Fix - Avoid re-mounting card elements if they are already mounted in the DOM.
-* Fix - Compatibility with WooCommerce Deposits by retrieving order statuses in a different way.
-* Fix - Duplicate payment notifications for subscriptions.
-* Fix - Use the same customer after a new credit card has been entered.
-* Fix - Google Pay buttons on subscriptions.
-* Add - A filter, which allows all subscriptions' payment methods to be overwritten when adding a new payment method.
-
-[See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
-
-== Upgrade Notice ==
-
-= 4.2 =
-4.2 is a minor release. Please do a full site backup and test on a staging site before deploying to a live/production server.

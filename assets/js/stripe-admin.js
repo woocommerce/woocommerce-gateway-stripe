@@ -5,6 +5,7 @@ jQuery( function( $ ) {
 	 * Object to handle Stripe admin functions.
 	 */
 	var wc_stripe_admin = {
+
 		isTestMode: function() {
 			return $( '#woocommerce_stripe_testmode' ).is( ':checked' );
 		},
@@ -57,6 +58,24 @@ jQuery( function( $ ) {
 				}
 			} ).change();
 
+			// Toggle Custom Payment Request configs.
+			$( '#woocommerce_stripe_payment_request_button_type' ).change( function() {
+				if ( 'custom' === $( this ).val() ) {
+					$( '#woocommerce_stripe_payment_request_button_label' ).closest( 'tr' ).show();
+				} else {
+					$( '#woocommerce_stripe_payment_request_button_label' ).closest( 'tr' ).hide();
+				}
+			} ).change()
+
+			// Toggle Branded Payment Request configs.
+			$( '#woocommerce_stripe_payment_request_button_type' ).change( function() {
+				if ( 'branded' === $( this ).val() ) {
+					$( '#woocommerce_stripe_payment_request_button_branded_type' ).closest( 'tr' ).show();
+				} else {
+					$( '#woocommerce_stripe_payment_request_button_branded_type' ).closest( 'tr' ).hide();
+				}
+			} ).change()
+
 			// Make the 3DS notice dismissable.
 			$( '.wc-stripe-3ds-missing' ).each( function() {
 				var $setting = $( this );
@@ -67,6 +86,41 @@ jQuery( function( $ ) {
 						url: window.location.href + '&stripe_dismiss_3ds=' + $setting.data( 'nonce' ),
 					} );
 				} );
+			} );
+
+			// Add secret visibility toggles.
+			$( '#woocommerce_stripe_test_secret_key, #woocommerce_stripe_secret_key, #woocommerce_stripe_test_webhook_secret, #woocommerce_stripe_webhook_secret' ).after(
+				'<button class="wc-stripe-toggle-secret" style="height: 30px; margin-left: 2px; cursor: pointer"><span class="dashicons dashicons-visibility"></span></button>'
+			);
+			$( '.wc-stripe-toggle-secret' ).on( 'click', function( event ) {
+				event.preventDefault();
+
+				var $dashicon = $( this ).closest( 'button' ).find( '.dashicons' );
+				var $input = $( this ).closest( 'tr' ).find( '.input-text' );
+				var inputType = $input.attr( 'type' );
+
+				if ( 'text' == inputType ) {
+					$input.attr( 'type', 'password' );
+					$dashicon.removeClass( 'dashicons-hidden' );
+					$dashicon.addClass( 'dashicons-visibility' );
+				} else {
+					$input.attr( 'type', 'text' );
+					$dashicon.removeClass( 'dashicons-visibility' );
+					$dashicon.addClass( 'dashicons-hidden' );
+				}
+			} );
+
+			$( 'form' ).find( 'input, select' ).on( 'change input', function disableConnect() {
+
+				$( '#wc_stripe_connect_button' ).addClass( 'disabled' );
+
+				$( '#wc_stripe_connect_button' ).on( 'click', function() { return false; } );
+
+				$( '#woocommerce_stripe_api_credentials' )
+					.next( 'p' )
+					.append( ' (Please save changes before selecting this button.)' );
+
+				$( 'form' ).find( 'input, select' ).off( 'change input', disableConnect );
 			} );
 		}
 	};
