@@ -525,10 +525,33 @@ jQuery( function( $ ) {
 			);
 
 			if ( $( 'form#add_payment_method' ).length ) {
-				$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
-			}
+				// Let's try to confirm the card details with a Setup Intent.
+				// 1. Create the setup intent
+				// 2. Confirm the setup intent
+				console.log( wc_stripe_params.setup_intent_client_secret );
+				console.log( response.source );
+				console.log( wc_stripe_params.customer_id );
+				stripe.confirmCardSetup( wc_stripe_params.setup_intent_client_secret, { payment_method: response.source.id } )
+					.then( function( result ) {
+						if ( result.error ) {
+							console.error( result.error );
+							return $( document.body ).trigger( 'stripeError', result );
+						}
+						const setupIntent = result.setupIntent;
 
-			wc_stripe_form.form.submit();
+						if ( 'succeeded' !== setupIntent.status ) {
+							// TODO: We should probably do something smart here, like figuring out what specific action is needed?
+							console.error( setupIntent );
+							return $( document.body ).trigger( 'stripeError', result );
+						}
+
+						$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
+						wc_stripe_form.form.submit();
+					} )
+					.catch( function( error ) { console.error( error ); } );
+			} else {
+				wc_stripe_form.form.submit();
+			}
 		},
 
 		/**
