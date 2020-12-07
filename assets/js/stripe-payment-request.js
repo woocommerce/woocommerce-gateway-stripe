@@ -581,6 +581,7 @@ jQuery( function( $ ) {
 
 				if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) || wc_stripe_payment_request.isBrandedPaymentRequestButton( prButton ) ) {
 					evt.preventDefault();
+					$( '#wc-stripe-payment-request-button' ).data( { initiator: true } );
 					paymentRequest.show();
 				}
 			});
@@ -636,6 +637,7 @@ jQuery( function( $ ) {
 
 			prButton.on( 'click', function ( evt ) {
 				evt.preventDefault();
+				$( '#wc-stripe-payment-request-button' ).data( { initiator: true } );
 				paymentRequest.show();
 			} );
 		},

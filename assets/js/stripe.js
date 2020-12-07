@@ -610,7 +610,14 @@ jQuery( function( $ ) {
 			var savedTokens = selectedMethodElement.find( '.woocommerce-SavedPaymentMethods-tokenInput' );
 			var errorContainer;
 
-			if ( savedTokens.length ) {
+			// Capture and then clear initiator if present
+			var prButtonInitiated = $( '#wc-stripe-payment-request-button' ).data( "initiator" );
+
+			if ( prButtonInitiated ) {
+				$( '#wc-stripe-payment-request-button' ).data( { initiator: false } );
+				errorContainer = $( 'div.woocommerce-notices-wrapper' ).first();
+			}
+			else if ( savedTokens.length ) {
 				// In case there are saved cards too, display the message next to the correct one.
 				var selectedToken = savedTokens.filter( ':checked' );
 
