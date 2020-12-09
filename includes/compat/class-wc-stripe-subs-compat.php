@@ -183,6 +183,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 						'change_payment_method'  => $subscription->get_id(),
 						'_wpnonce'               => wp_create_nonce(),
 						'wc-stripe-confirmation' => 1,
+						'wc-stripe-redirect'     => rawurlencode( $result['redirect'] ),
 					),
 					$subscription->get_checkout_payment_url()
 				);

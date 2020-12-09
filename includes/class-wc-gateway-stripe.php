@@ -941,12 +941,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$this->prepare_intent_for_order_pay_page( $order );
 		}
 
+		$redirect_url = rawurlencode( $this->get_return_url( $order ) );
+
+		if ( isset( $_GET['wc-stripe-redirect'] ) ) {
+			$redirect_url = $_GET['wc-stripe-redirect'];
+		}
+
 		$verification_url = add_query_arg(
 			array(
-				'order'            => $order->get_id(),
-				'nonce'            => wp_create_nonce( 'wc_stripe_confirm_pi' ),
-				'redirect_to'      => rawurlencode( $this->get_return_url( $order ) ),
-				'is_pay_for_order' => true,
+				'order'       => $order->get_id(),
+				'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
+				'redirect_to' => $redirect_url,
 			),
 			WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
 		);
