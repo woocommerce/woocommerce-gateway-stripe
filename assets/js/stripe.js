@@ -750,9 +750,10 @@ jQuery( function( $ ) {
 			}
 
 			var intentSecret = $( '#stripe-intent-id' ).val();
+			var type         = intentSecret.match( /^pi_/ ) ? 'pi' : 'si';
 			var returnURL    = $( '#stripe-intent-return' ).val();
 
-			wc_stripe_form.openIntentModal( intentSecret, returnURL, true, false );
+			wc_stripe_form.openIntentModal( intentSecret, returnURL, true, 'si' === type );
 		},
 
 		/**
