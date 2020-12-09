@@ -861,6 +861,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_available_payment_gateways', '__return_empty_array' );
 		add_filter( 'woocommerce_no_available_payment_methods_message', array( $this, 'change_no_available_methods_message' ) );
 		add_action( 'woocommerce_pay_order_after_submit', array( $this, 'render_payment_intent_inputs' ) );
+		add_action( 'after_woocommerce_pay', array( $this, 'render_payment_intent_inputs' ), 101 );
 	}
 
 	/**
@@ -872,6 +873,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		remove_filter( 'woocommerce_available_payment_gateways', '__return_empty_array' );
 		remove_filter( 'woocommerce_no_available_payment_methods_message', array( $this, 'change_no_available_methods_message' ) );
 		remove_action( 'woocommerce_pay_order_after_submit', array( $this, 'render_payment_intent_inputs' ) );
+		remove_action( 'after_woocommerce_pay', array( $this, 'render_payment_intent_inputs' ), 101 );
 	}
 
 	/**
