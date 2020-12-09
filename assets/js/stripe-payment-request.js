@@ -548,6 +548,12 @@ jQuery( function( $ ) {
 		},
 
 		attachPaymentRequestButtonEventListeners: function( prButton, paymentRequest ) {
+			// First, attach a flag setting event so we can know when a PRB has initiated payment
+			prButton.on( 'click', function ( evt ) {
+				$( 'body' ).addClass( "woocommerce-stripe-prb-clicked" );
+			});
+
+			// Then, attach specific handling for selected pages and button types
 			if ( wc_stripe_payment_request_params.is_product_page ) {
 				wc_stripe_payment_request.attachProductPageEventListeners( prButton, paymentRequest );
 			} else {
@@ -581,7 +587,6 @@ jQuery( function( $ ) {
 
 				if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) || wc_stripe_payment_request.isBrandedPaymentRequestButton( prButton ) ) {
 					evt.preventDefault();
-					$( '#wc-stripe-payment-request-button' ).data( { initiator: true } );
 					paymentRequest.show();
 				}
 			});
@@ -637,7 +642,6 @@ jQuery( function( $ ) {
 
 			prButton.on( 'click', function ( evt ) {
 				evt.preventDefault();
-				$( '#wc-stripe-payment-request-button' ).data( { initiator: true } );
 				paymentRequest.show();
 			} );
 		},

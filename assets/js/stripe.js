@@ -610,11 +610,11 @@ jQuery( function( $ ) {
 			var savedTokens = selectedMethodElement.find( '.woocommerce-SavedPaymentMethods-tokenInput' );
 			var errorContainer;
 
-			// Capture and then clear initiator if present
-			var prButtonInitiated = $( '#wc-stripe-payment-request-button' ).data( "initiator" );
+			// Capture and then clear PRB clicked flag if present
+			var prButtonClicked = $( 'body' ).hasClass( "woocommerce-stripe-prb-clicked" );
 
-			if ( prButtonInitiated ) {
-				$( '#wc-stripe-payment-request-button' ).data( { initiator: false } );
+			if ( prButtonClicked ) {
+				$( 'body' ).removeClass( "woocommerce-stripe-prb-clicked" );
 				errorContainer = $( 'div.woocommerce-notices-wrapper' ).first();
 			}
 			else if ( savedTokens.length ) {
