@@ -135,7 +135,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_admin_order_totals_after_total', array( $this, 'display_order_fee' ) );
 		add_action( 'woocommerce_admin_order_totals_after_total', array( $this, 'display_order_payout' ), 20 );
 		add_action( 'woocommerce_customer_save_address', array( $this, 'show_update_card_notice' ), 10, 2 );
-		add_filter( 'woocommerce_available_payment_gateways', array( $this, 'prepare_order_pay_page' ) );
+		add_action( 'before_woocommerce_pay', array( $this, 'prepare_order_pay_page' ) );
 		add_action( 'woocommerce_account_view-order_endpoint', array( $this, 'check_intent_status_on_order_page' ), 1 );
 		add_filter( 'woocommerce_payment_successful_result', array( $this, 'modify_successful_payment_result' ), 99999, 2 );
 		add_action( 'set_logged_in_cookie', array( $this, 'set_cookie_on_current_request' ) );
@@ -842,19 +842,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * it up and prepare it for the Stripe PaymentIntents modal to confirm a payment.
 	 *
 	 * @since 4.2
-	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways.
-	 * @return WC_Payment_Gateway[]          Either the same list or an empty one in the right conditions.
 	 */
-	public function prepare_order_pay_page( $gateways ) {
+	public function prepare_order_pay_page() {
 		if ( ! is_wc_endpoint_url( 'order-pay' ) || ! isset( $_GET['wc-stripe-confirmation'] ) ) { // wpcs: csrf ok.
-			return $gateways;
+			return;
 		}
 
 		try {
 			$this->prepare_intent_for_order_pay_page();
 		} catch ( WC_Stripe_Exception $e ) {
 			// Just show the full order pay page if there was a problem preparing the Payment Intent
-			return $gateways;
+			return;
 		}
 
 		add_filter( 'woocommerce_checkout_show_terms', '__return_false' );
@@ -862,8 +860,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_available_payment_gateways', '__return_empty_array' );
 		add_filter( 'woocommerce_no_available_payment_methods_message', array( $this, 'change_no_available_methods_message' ) );
 		add_action( 'woocommerce_pay_order_after_submit', array( $this, 'render_payment_intent_inputs' ) );
-
-		return array();
 	}
 
 	/**
