@@ -860,8 +860,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_pay_order_button_html', '__return_false' );
 		add_filter( 'woocommerce_available_payment_gateways', '__return_empty_array' );
 		add_filter( 'woocommerce_no_available_payment_methods_message', array( $this, 'change_no_available_methods_message' ) );
-		add_action( 'woocommerce_pay_order_after_submit', array( $this, 'render_payment_intent_inputs' ) );
-		add_action( 'after_woocommerce_pay', array( $this, 'render_payment_intent_inputs' ), 101 );
+		add_action( 'woocommerce_pay_order_after_submit', array( $this, 'render_intent_inputs' ) );
+		add_action( 'after_woocommerce_pay', array( $this, 'render_intent_inputs' ), 101 );
 	}
 
 	/**
@@ -872,8 +872,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		remove_filter( 'woocommerce_pay_order_button_html', '__return_false' );
 		remove_filter( 'woocommerce_available_payment_gateways', '__return_empty_array' );
 		remove_filter( 'woocommerce_no_available_payment_methods_message', array( $this, 'change_no_available_methods_message' ) );
-		remove_action( 'woocommerce_pay_order_after_submit', array( $this, 'render_payment_intent_inputs' ) );
-		remove_action( 'after_woocommerce_pay', array( $this, 'render_payment_intent_inputs' ), 101 );
+		remove_action( 'woocommerce_pay_order_after_submit', array( $this, 'render_intent_inputs' ) );
+		remove_action( 'after_woocommerce_pay', array( $this, 'render_intent_inputs' ), 101 );
 	}
 
 	/**
@@ -902,7 +902,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$intent = $this->get_intent_from_order( $order );
 
 		if ( ! $intent ) {
-			throw new WC_Stripe_Exception( 'Payment Intent not found', __( 'Payment Intent not found for order #' . $order->get_id(), 'woocommerce-gateway-stripe' ) );
+			throw new WC_Stripe_Exception( 'Intent not found', __( 'Intent not found for order #' . $order->get_id(), 'woocommerce-gateway-stripe' ) );
 		}
 
 		if ( 'requires_payment_method' === $intent->status && isset( $intent->last_payment_error )
@@ -926,14 +926,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Renders hidden inputs on the "Pay for Order" page in order to let Stripe handle PaymentIntents.
+	 * Renders hidden inputs on the "Pay for Order" page in order to let Stripe handle intents.
 	 *
 	 * @param WC_Order|null $order Order object, or null to get the order from the "order-pay" URL parameter
 	 *
 	 * @throws WC_Stripe_Exception
 	 * @since 4.2
 	 */
-	public function render_payment_intent_inputs( $order = null ) {
+	public function render_intent_inputs( $order = null ) {
 		if ( ! isset( $order ) || empty( $order ) ) {
 			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
 		}

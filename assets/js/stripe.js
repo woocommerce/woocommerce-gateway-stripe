@@ -254,8 +254,10 @@ jQuery( function( $ ) {
 
 			wc_stripe_form.createElements();
 
-			// Listen for hash changes in order to handle payment intents
+			// Listen for hash changes in order to handle authorization.
 			window.addEventListener( 'hashchange', wc_stripe_form.onHashChange );
+
+			// Check for values in hidden form fields for handling authorization.
 			wc_stripe_form.maybeConfirmIntent();
 		},
 
@@ -757,13 +759,13 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Opens the modal for PaymentIntent authorizations.
+		 * Opens the modal for Intent authorizations.
 		 *
 		 * @param {string}  intentClientSecret The client secret of the intent.
 		 * @param {string}  redirectURL        The URL to ping on fail or redirect to on success.
 		 * @param {boolean} alwaysRedirect     If set to true, an immediate redirect will happen no matter the result.
 		 *                                     If not, an error will be displayed on failure.
-		 * @param {boolean} isSetupIntent      If set to true, ameans that the flow is handling a Setup Intent.
+		 * @param {boolean} isSetupIntent      If set to true, the flow is handling a Setup Intent.
 		 *                                     If false, it's a Payment Intent.
 		 */
 		openIntentModal: function( intentClientSecret, redirectURL, alwaysRedirect, isSetupIntent ) {
