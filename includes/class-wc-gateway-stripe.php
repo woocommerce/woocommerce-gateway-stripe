@@ -136,6 +136,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_admin_order_totals_after_total', array( $this, 'display_order_payout' ), 20 );
 		add_action( 'woocommerce_customer_save_address', array( $this, 'show_update_card_notice' ), 10, 2 );
 		add_action( 'before_woocommerce_pay', array( $this, 'prepare_order_pay_page' ) );
+		add_action( 'after_woocommerce_pay', array( $this, 'restore_order_pay_page' ), 99 );
 		add_action( 'woocommerce_account_view-order_endpoint', array( $this, 'check_intent_status_on_order_page' ), 1 );
 		add_filter( 'woocommerce_payment_successful_result', array( $this, 'modify_successful_payment_result' ), 99999, 2 );
 		add_action( 'set_logged_in_cookie', array( $this, 'set_cookie_on_current_request' ) );
@@ -860,6 +861,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_available_payment_gateways', '__return_empty_array' );
 		add_filter( 'woocommerce_no_available_payment_methods_message', array( $this, 'change_no_available_methods_message' ) );
 		add_action( 'woocommerce_pay_order_after_submit', array( $this, 'render_payment_intent_inputs' ) );
+	}
+
+	/**
+	 * Removes hooks modifying "Pay for order" page (i.e. so that later hooks can operate on available payment gateways).
+	 */
+	public function restore_order_pay_page() {
+		remove_filter( 'woocommerce_checkout_show_terms', '__return_false' );
+		remove_filter( 'woocommerce_pay_order_button_html', '__return_false' );
+		remove_filter( 'woocommerce_available_payment_gateways', '__return_empty_array' );
+		remove_filter( 'woocommerce_no_available_payment_methods_message', array( $this, 'change_no_available_methods_message' ) );
+		remove_action( 'woocommerce_pay_order_after_submit', array( $this, 'render_payment_intent_inputs' ) );
 	}
 
 	/**
