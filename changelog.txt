@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= x.x.x - xxxx-xx-xx =
+* Add - SCA: Authenticate if necessary when changing subscription payment method.
+
 = 4.5.5 - 2020-11-17 =
 * Fix - Guard against fatal errors that may occur on inbox data store load.
 
