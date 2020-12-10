@@ -551,7 +551,7 @@ jQuery( function( $ ) {
 			// First, mark the body so we know a payment request button was used.
 			// This way error handling can any display errors in the most appropriate place.
 			prButton.on( 'click', function ( evt ) {
-				$( 'body' ).addClass( "woocommerce-stripe-prb-clicked" );
+				$( 'body' ).addClass( 'woocommerce-stripe-prb-clicked' );
 			});
 
 			// Then, attach specific handling for selected pages and button types
