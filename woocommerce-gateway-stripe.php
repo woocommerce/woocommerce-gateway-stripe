@@ -54,7 +54,7 @@ function woocommerce_stripe_wc_not_supported() {
 	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce %1$s or greater to be installed and active. WooCommerce %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), WC_STRIPE_MIN_WC_VER, WC_VERSION ) . '</strong></p></div>';
 }
 
-function wc_stripe() {
+function woocommerce_gateway_stripe() {
 
 	static $plugin;
 
@@ -388,5 +388,5 @@ function woocommerce_gateway_stripe_init() {
 		return;
 	}
 
-	wc_stripe();
+	woocommerce_gateway_stripe();
 }
