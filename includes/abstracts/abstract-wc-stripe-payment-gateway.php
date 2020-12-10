@@ -590,6 +590,46 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Checks if the payment method is being saved in the current request.
+	 *
+	 * @param stdClass $source
+	 * @param WC_Stripe_Customer $customer
+	 * @param bool $force_save
+	 *
+	 * @return bool
+	 * @since 4.6.0
+	 */
+	public function should_save_payment_method( $source, $customer, $force_save ) {
+		if ( apply_filters( 'wc_stripe_force_save_source', $force_save, $customer ) ) {
+			return true;
+		}
+
+		// The customer has disabled "Saved cards" functionality.
+		if ( ! $this->saved_cards ) {
+			return false;
+		}
+
+		// The payment method in use is already saved.
+		if ( $this->is_using_saved_payment_method() ) {
+			return false;
+		}
+
+		// The customer is not logged in.
+		if ( ! $customer->get_user_id() ) {
+			return false;
+		}
+
+		// If the payment method is explicitly not reusable, dont try to save it.
+		if ( ! empty( $source ) && 'reusable' !== $source->usage ) {
+			return false;
+		}
+
+		// Lastly, check if the user has chosen to save the payment method.
+		$payment_method = isset( $_POST['payment_method'] ) ? wc_clean( $_POST['payment_method'] ) : 'stripe';
+		return isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
+	}
+
+	/**
 	 * Get payment source. This can be a new token/source or existing WC token.
 	 * If user is logged in and/or has WC account, create an account on Stripe.
 	 * This way we can attribute the payment to the user to better fight fraud.
