@@ -805,7 +805,7 @@ jQuery( function( $ ) {
 				url: $( '#early_renewal_modal_submit' ).attr( 'href' ),
 				method: 'get',
 				success: function( html ) {
-					var response = $.parseJSON( html );
+					var response = JSON.parse( html );
 
 					if ( response.stripe_sca_required ) {
 						wc_stripe_form.openIntentModal( response.intent_secret, response.redirect_url, true, false );
