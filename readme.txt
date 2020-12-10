@@ -128,6 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = x.x.x - 2020-xx-xx =
 * Tweak - Update packages for Composer 2 compatibility.
+* Tweak - Use full jQuery function calls instead of soon-to-be-deprecated shorthands.
 
 See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
