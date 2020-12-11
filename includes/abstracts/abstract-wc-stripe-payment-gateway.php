@@ -962,10 +962,24 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		do_action( 'wc_stripe_add_payment_method_' . $_POST['payment_method'] . '_success', $source_id, $source_object );
 
-		return array(
+		$result = array(
 			'result'   => 'success',
 			'redirect' => wc_get_endpoint_url( 'payment-methods' ),
 		);
+
+		$setup_intent = WC_Stripe_API::request( array(
+			'payment_method' => $source_id,
+			'customer'       => $stripe_customer->get_id(),
+			'confirm'        => 'true',
+		), 'setup_intents' );
+
+		if ( is_wp_error( $setup_intent ) ) {
+			WC_Stripe_Logger::log( "Unable to create SetupIntent when adding payment method: " . print_r( $setup_intent, true ) );
+		} elseif ( 'requires_action' === $setup_intent->status ) {
+			$result['redirect'] = sprintf( '#confirm-si-%s:%s', $setup_intent->client_secret, rawurlencode( $result['redirect'] ) );
+		}
+
+		return $result;
 	}
 
 	/**

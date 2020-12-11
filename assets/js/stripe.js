@@ -256,6 +256,7 @@ jQuery( function( $ ) {
 
 			// Listen for hash changes in order to handle payment intents
 			window.addEventListener( 'hashchange', wc_stripe_form.onHashChange );
+			wc_stripe_form.onHashChange();
 			wc_stripe_form.maybeConfirmIntent();
 		},
 
