@@ -528,9 +528,10 @@ jQuery( function( $ ) {
 				$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
 			}
 
-			if ( $( 'form#order_review' ).length ) {
+			if ( $( 'form#add_payment_method' ).length || $( 'form#order_review' ).length ) {
+				var delimiter = window.location.toString().indexOf( '?' ) === -1 ? '?' : '&';
 				return $.ajax( {
-					url: window.location + '&is_ajax',
+					url: window.location + delimiter + 'is_ajax',
 					method: 'post',
 					data: wc_stripe_form.form.serialize(),
 					success: function( response ) {
