@@ -528,6 +528,19 @@ jQuery( function( $ ) {
 				$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
 			}
 
+			if ( $( 'form#order_review' ).length ) {
+				return $.ajax( {
+					url: window.location + '&is_ajax',
+					method: 'post',
+					data: wc_stripe_form.form.serialize(),
+					success: function( response ) {
+						if ( response.result === 'success' ) {
+							window.location = response.redirect;
+						}
+					},
+				} );
+			}
+
 			wc_stripe_form.form.trigger( 'submit' );
 		},
 

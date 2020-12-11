@@ -639,26 +639,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				if ( 'requires_action' === $intent->status ) {
 					$this->unlock_order_payment( $order );
 
-					if ( is_wc_endpoint_url( 'order-pay' ) ) {
-						$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
+					/**
+					 * This URL contains only a hash, which will be sent to `checkout.js` where it will be set like this:
+					 * `window.location = result.redirect`
+					 * Once this redirect is sent to JS, the `onHashChange` function will execute `handleCardPayment`.
+					 */
 
-						return array(
-							'result'   => 'success',
-							'redirect' => $redirect_url,
-						);
-					} else {
-						/**
-						 * This URL contains only a hash, which will be sent to `checkout.js` where it will be set like this:
-						 * `window.location = result.redirect`
-						 * Once this redirect is sent to JS, the `onHashChange` function will execute `handleCardPayment`.
-						 */
-
-						return array(
-							'result'                => 'success',
-							'redirect'              => $this->get_return_url( $order ),
-							'payment_intent_secret' => $intent->client_secret,
-						);
-					}
+					return array(
+						'result'                => 'success',
+						'redirect'              => $this->get_return_url( $order ),
+						'payment_intent_secret' => $intent->client_secret,
+					);
 				}
 			}
 
@@ -1013,10 +1004,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$redirect = sprintf( '#confirm-si-%s:%s', $result['setup_intent_secret'], rawurlencode( $verification_url ) );
 		}
 
-		return array(
+		$result = array(
 			'result'   => 'success',
 			'redirect' => $redirect,
 		);
+
+		if ( isset( $_GET['is_ajax'] ) ) {
+			wp_send_json( $result );
+			exit;
+		}
+
+		return $result;
 	}
 
 	/**
