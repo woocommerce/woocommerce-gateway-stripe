@@ -31,6 +31,9 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			add_filter( 'woocommerce_subscription_validate_payment_meta', array( $this, 'validate_subscription_payment_meta' ), 10, 2 );
 			add_filter( 'wc_stripe_display_save_payment_method_checkbox', array( $this, 'maybe_hide_save_checkbox' ) );
 
+			// upon changing payment method, first redirect to confirmation screen if necessary
+			add_filter( 'woocommerce_subscriptions_process_payment_for_change_method_via_pay_shortcode', array( $this, 'process_payment_for_change_method' ), 10, 2 );
+
 			/*
 			 * WC subscriptions hooks into the "template_redirect" hook with priority 100.
 			 * If the screen is "Pay for order" and the order is a subscription renewal, it redirects to the plain checkout.
@@ -147,13 +150,44 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			do_action( 'wc_stripe_change_subs_payment_method_success', $prepared_source->source, $prepared_source );
 
 			return array(
-				'result'   => 'success',
-				'redirect' => $this->get_return_url( $subscription ),
+				'result'          => 'success',
+				'redirect'        => $this->get_return_url( $subscription ),
+				'prepared_source' => $prepared_source,
 			);
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 		}
+	}
+
+	/**
+	 * Redirect to confirmation screen if necessary, with eventual success redirect as param.
+	 *
+	 * @since 4.5.6
+	 * @param array           $result       The result from `process_payment`.
+	 * @param WC_Subscription $subscription The subscription for which the payment method is changing.
+	 * @return array
+	 */
+	public function process_payment_for_change_method( $result, $subscription ) {
+		if ( 'success' !== $result['result'] ) {
+			// TODO Send error in JSON response.
+			return $result;
+		}
+
+		try {
+			$intent_secret = $this->setup_intent( $subscription, $result['prepared_source'] );
+
+			// If confirmation on the client is required, redirect to confirmation screen first.
+			if ( ! empty( $intent_secret ) ) {
+				$result['setup_intent_secret'] = $intent_secret;
+			}
+		} catch ( WC_Stripe_Exception $e ) {
+			// TODO Send error in JSON response.
+			wc_add_notice( $e->getLocalizedMessage(), 'error' );
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+		}
+
+		return $this->modify_successful_payment_result( $result, $subscription->get_id() );
 	}
 
 	/**
