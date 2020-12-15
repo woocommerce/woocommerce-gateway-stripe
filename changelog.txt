@@ -6,6 +6,7 @@
 * Tweak - Use JSON.parse() instead of jQuery.parseJSON().
 * Tweak - Remove holiday messaging from Apple Pay note after Dec 22.
 * Fix   - Compatibility with the Stripe for WooCommerce plugin.
+* Fix   - Guard against fatal errors caused by WC_Admin_Note.
 
 = 4.5.5 - 2020-11-17 =
 * Fix - Guard against fatal errors that may occur on inbox data store load.
