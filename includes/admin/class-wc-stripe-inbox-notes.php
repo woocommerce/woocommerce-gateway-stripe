@@ -124,36 +124,40 @@ class WC_Stripe_Inbox_Notes {
 			return;
 		}
 
-		$note = new WC_Admin_Note();
-		$note->set_title( self::get_success_title() );
-		$note->set_content( __( 'Now that you accept Apple Pay® with Stripe, you can increase conversion rates by letting your customers know that Apple Pay is available. Here’s a marketing guide to help you get started.', 'woocommerce-gateway-stripe' ) );
-		$note->set_type( WC_Admin_Note::E_WC_ADMIN_NOTE_MARKETING );
-		$note->set_name( self::SUCCESS_NOTE_NAME );
-		$note->set_source( 'woocommerce-gateway-stripe' );
-		$note->add_action(
-			'marketing-guide',
-			__( 'See marketing guide', 'woocommerce-gateway-stripe' ),
-			'https://developer.apple.com/apple-pay/marketing/'
-		);
-		$note->save();
+		try {
+			$note = new WC_Admin_Note();
+			$note->set_title( self::get_success_title() );
+			$note->set_content( __( 'Now that you accept Apple Pay® with Stripe, you can increase conversion rates by letting your customers know that Apple Pay is available. Here’s a marketing guide to help you get started.', 'woocommerce-gateway-stripe' ) );
+			$note->set_type( WC_Admin_Note::E_WC_ADMIN_NOTE_MARKETING );
+			$note->set_name( self::SUCCESS_NOTE_NAME );
+			$note->set_source( 'woocommerce-gateway-stripe' );
+			$note->add_action(
+				'marketing-guide',
+				__( 'See marketing guide', 'woocommerce-gateway-stripe' ),
+				'https://developer.apple.com/apple-pay/marketing/'
+			);
+			$note->save();
+		} catch ( Exception $e ) {} // @codingStandardsIgnoreLine.
 	}
 
 	/**
 	 * Show note indicating domain verification failure.
 	 */
 	public static function create_failure_note() {
-		$note = new WC_Admin_Note();
-		$note->set_title( __( 'Apple Pay domain verification needed', 'woocommerce-gateway-stripe' ) );
-		$note->set_content( __( 'The WooCommerce Stripe Gateway extension attempted to perform domain verification on behalf of your store, but was unable to do so. This must be resolved before Apple Pay can be offered to your customers.', 'woocommerce-gateway-stripe' ) );
-		$note->set_type( WC_Admin_Note::E_WC_ADMIN_NOTE_INFORMATIONAL );
-		$note->set_name( self::FAILURE_NOTE_NAME );
-		$note->set_source( 'woocommerce-gateway-stripe' );
-		$note->add_action(
-			'learn-more',
-			__( 'Learn more', 'woocommerce-gateway-stripe' ),
-			'https://docs.woocommerce.com/document/stripe/#apple-pay'
-		);
-		$note->save();
+		try {
+			$note = new WC_Admin_Note();
+			$note->set_title( __( 'Apple Pay domain verification needed', 'woocommerce-gateway-stripe' ) );
+			$note->set_content( __( 'The WooCommerce Stripe Gateway extension attempted to perform domain verification on behalf of your store, but was unable to do so. This must be resolved before Apple Pay can be offered to your customers.', 'woocommerce-gateway-stripe' ) );
+			$note->set_type( WC_Admin_Note::E_WC_ADMIN_NOTE_INFORMATIONAL );
+			$note->set_name( self::FAILURE_NOTE_NAME );
+			$note->set_source( 'woocommerce-gateway-stripe' );
+			$note->add_action(
+				'learn-more',
+				__( 'Learn more', 'woocommerce-gateway-stripe' ),
+				'https://docs.woocommerce.com/document/stripe/#apple-pay'
+			);
+			$note->save();
+		} catch ( Exception $e ) {} // @codingStandardsIgnoreLine.
 	}
 
 	/**
@@ -185,12 +189,14 @@ class WC_Stripe_Inbox_Notes {
 		$deleted_an_unactioned_note = false;
 
 		foreach ( (array) $note_ids as $note_id ) {
-			$note = new WC_Admin_Note( $note_id );
-			if ( WC_Admin_Note::E_WC_ADMIN_NOTE_UNACTIONED == $note->get_status() ) {
-				$note->delete();
-				$deleted_an_unactioned_note = true;
-			}
-			unset( $note );
+			try {
+				$note = new WC_Admin_Note( $note_id );
+				if ( WC_Admin_Note::E_WC_ADMIN_NOTE_UNACTIONED == $note->get_status() ) {
+					$note->delete();
+					$deleted_an_unactioned_note = true;
+				}
+				unset( $note );
+			} catch ( Exception $e ) {} // @codingStandardsIgnoreLine.
 		}
 
 		if ( $deleted_an_unactioned_note ) {
