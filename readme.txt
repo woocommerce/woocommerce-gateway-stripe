@@ -126,7 +126,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.6.0 - 2020-12-xx =
+= 4.6.0 - 2020-xx-xx =
 * Tweak - Update packages for Composer 2 compatibility.
 * Tweak - Use full jQuery function calls instead of soon-to-be-deprecated shorthands.
 * Tweak - Use JSON.parse() instead of jQuery.parseJSON().
