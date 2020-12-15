@@ -548,6 +548,13 @@ jQuery( function( $ ) {
 		},
 
 		attachPaymentRequestButtonEventListeners: function( prButton, paymentRequest ) {
+			// First, mark the body so we know a payment request button was used.
+			// This way error handling can any display errors in the most appropriate place.
+			prButton.on( 'click', function ( evt ) {
+				$( 'body' ).addClass( 'woocommerce-stripe-prb-clicked' );
+			});
+
+			// Then, attach specific handling for selected pages and button types
 			if ( wc_stripe_payment_request_params.is_product_page ) {
 				wc_stripe_payment_request.attachProductPageEventListeners( prButton, paymentRequest );
 			} else {

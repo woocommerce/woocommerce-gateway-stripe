@@ -560,7 +560,7 @@ jQuery( function( $ ) {
 						}
 
 						$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
-						wc_stripe_form.form.submit();
+						wc_stripe_form.form.trigger( 'submit' );
 					} )
 					.catch( function( err ) {
 						console.log( err );
@@ -648,7 +648,12 @@ jQuery( function( $ ) {
 			var savedTokens = selectedMethodElement.find( '.woocommerce-SavedPaymentMethods-tokenInput' );
 			var errorContainer;
 
-			if ( savedTokens.length ) {
+			var prButtonClicked = $( 'body' ).hasClass( 'woocommerce-stripe-prb-clicked' );
+			if ( prButtonClicked ) {
+				// If payment was initiated with a payment request button, display errors in the notices div.
+				$( 'body' ).removeClass( 'woocommerce-stripe-prb-clicked' );
+				errorContainer = $( 'div.woocommerce-notices-wrapper' ).first();
+			} else if ( savedTokens.length ) {
 				// In case there are saved cards too, display the message next to the correct one.
 				var selectedToken = savedTokens.filter( ':checked' );
 
@@ -727,7 +732,7 @@ jQuery( function( $ ) {
 			$( '.woocommerce-NoticeGroup-checkout, .woocommerce-error, .woocommerce-message' ).remove();
 			wc_stripe_form.form.prepend( '<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout">' + error_message + '</div>' );
 			wc_stripe_form.form.removeClass( 'processing' ).unblock();
-			wc_stripe_form.form.find( '.input-text, select, input:checkbox' ).blur();
+			wc_stripe_form.form.find( '.input-text, select, input:checkbox' ).trigger( 'blur' );
 
 			var selector = '';
 
@@ -843,7 +848,7 @@ jQuery( function( $ ) {
 				url: $( '#early_renewal_modal_submit' ).attr( 'href' ),
 				method: 'get',
 				success: function( html ) {
-					var response = $.parseJSON( html );
+					var response = JSON.parse( html );
 
 					if ( response.stripe_sca_required ) {
 						wc_stripe_form.openIntentModal( response.intent_secret, response.redirect_url, true, false );

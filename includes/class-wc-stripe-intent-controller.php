@@ -157,7 +157,7 @@ class WC_Stripe_Intent_Controller {
 				! wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'wc_stripe_create_si' )
 				|| ! preg_match( '/^src_.*$/', $source_id )
 			) {
-				throw new Exception( __( 'Unable to verify your request. Please reload the page and try again.' ) );
+				throw new Exception( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}
 
 

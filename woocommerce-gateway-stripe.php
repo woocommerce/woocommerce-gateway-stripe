@@ -5,7 +5,7 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 4.5.5
+ * Version: 4.6.0
  * Requires at least: 4.4
  * Tested up to: 5.5
  * WC requires at least: 3.0
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '4.5.5' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '4.6.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '3.0' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '3.0' );
@@ -54,7 +54,7 @@ function woocommerce_stripe_wc_not_supported() {
 	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce %1$s or greater to be installed and active. WooCommerce %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), WC_STRIPE_MIN_WC_VER, WC_VERSION ) . '</strong></p></div>';
 }
 
-function wc_stripe() {
+function woocommerce_gateway_stripe() {
 
 	static $plugin;
 
@@ -388,5 +388,5 @@ function woocommerce_gateway_stripe_init() {
 		return;
 	}
 
-	wc_stripe();
+	woocommerce_gateway_stripe();
 }
