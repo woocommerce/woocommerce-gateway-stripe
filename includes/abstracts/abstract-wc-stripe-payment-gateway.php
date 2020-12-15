@@ -936,13 +936,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$source = ! empty( $_POST['stripe_source'] ) ? wc_clean( $_POST['stripe_source'] ) : '';
 
-		// Special handling for Stripe's `payment_method`s when adding a new payment method.
-		$source_object = null;
-		if ( is_add_payment_method_page() && 0 === strpos( $source, 'pm' ) ) {
-			$source_object = WC_Stripe_API::retrieve( 'payment_methods/' . $source );
-		} else {
-			$source_object = WC_Stripe_API::retrieve( 'sources/' . $source );
-		}
+		$source_object = WC_Stripe_API::retrieve( 'sources/' . $source );
 
 		if ( isset( $source_object ) ) {
 			if ( ! empty( $source_object->error ) ) {

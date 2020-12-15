@@ -524,34 +524,48 @@ jQuery( function( $ ) {
 					.val( response.source.id )
 			);
 
-			if ( $( 'form#add_payment_method' ).length ) {
-				// Let's try to confirm the card details with a Setup Intent.
-				// 1. Create the setup intent
-				// 2. Confirm the setup intent
-				console.log( wc_stripe_params.setup_intent_client_secret );
-				console.log( response.source );
-				console.log( wc_stripe_params.customer_id );
-				stripe.confirmCardSetup( wc_stripe_params.setup_intent_client_secret, { payment_method: response.source.id } )
+			if ( ! $( 'form#add_payment_method' ).length ) {
+				wc_stripe_form.form.submit();
+				return;
+			}
+
+			var apiError = {
+				error: {
+					type: 'api_connection_error'
+				}
+			};
+
+			$.post( {
+				url: wc_stripe_form.getAjaxURL( 'create_setup_intent'),
+				dataType: 'json',
+				data: {
+					stripe_source_id: response.source.id,
+				},
+				error: function() {
+					$( document.body ).trigger( 'stripeError', apiError );
+				}
+			} ).done( function( serverResponse ) {
+				if ( 'success' === serverResponse.status ) {
+					$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
+					return wc_stripe_form.form.submit();
+				} else if ( 'requires_action' !== serverResponse.status ) {
+					return $( document.body ).trigger( 'stripeError', serverResponse );
+				}
+
+				stripe.confirmCardSetup( serverResponse.client_secret, { payment_method: response.source.id } )
 					.then( function( result ) {
 						if ( result.error ) {
-							console.error( result.error );
-							return $( document.body ).trigger( 'stripeError', result );
-						}
-						const setupIntent = result.setupIntent;
-
-						if ( 'succeeded' !== setupIntent.status ) {
-							// TODO: We should probably do something smart here, like figuring out what specific action is needed?
-							console.error( setupIntent );
 							return $( document.body ).trigger( 'stripeError', result );
 						}
 
 						$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
 						wc_stripe_form.form.submit();
 					} )
-					.catch( function( error ) { console.error( error ); } );
-			} else {
-				wc_stripe_form.form.submit();
-			}
+					.catch( function( err ) {
+						console.log( err );
+						$( document.body ).trigger( 'stripeError', apiError );
+					} );
+			} );
 		},
 
 		/**

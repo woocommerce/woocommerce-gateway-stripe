@@ -409,19 +409,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			'i18n_required_fields' => __( 'Please fill in required checkout fields first', 'woocommerce-gateway-stripe' ),
 		);
 
-		// If we're on the Add Payment Method page under My Account we'll create a SetupIntent and embed the client_secret in the JS.
-		if ( is_add_payment_method_page() ) {
-			$customer_object = new WC_Stripe_Customer( wp_get_current_user()->ID );
-
-			if ( empty( $customer_object ) ) {
-				// TODO: create a customer, because we absolutely need a customer object for the setup intent.
-			}
-
-			$setup_intent = WC_Stripe_API::request( [ 'customer' => $customer_object->get_id() ], 'setup_intents' );
-
-			$stripe_params['setup_intent_client_secret'] = $setup_intent->client_secret;
-		}
-
 		// If we're on the pay page we need to pass stripe.js the address of the order.
 		if ( isset( $_GET['pay_for_order'] ) && 'true' === $_GET['pay_for_order'] ) { // wpcs: csrf ok.
 			$order_id = wc_clean( $wp->query_vars['order-pay'] ); // wpcs: csrf ok, sanitization ok, xss ok.
