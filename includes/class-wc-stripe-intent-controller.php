@@ -144,7 +144,7 @@ class WC_Stripe_Intent_Controller {
 		if (
 			! is_user_logged_in()
 			|| ! isset( $_POST['stripe_source_id'] ) // ToDo: Make the parameter shorter.
-			//|| ! isset( $_POST['nonce'] )
+			|| ! isset( $_POST['nonce'] )
 		) {
 			return;
 		}
@@ -154,8 +154,8 @@ class WC_Stripe_Intent_Controller {
 
 			// 1. Verify.
 			if (
-				//! wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'wc_stripe_create_si' ) ||
-				! preg_match( '/^src_.*$/', $source_id )
+				! wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'wc_stripe_create_si' )
+				|| ! preg_match( '/^src_.*$/', $source_id )
 			) {
 				throw new Exception( __( 'Unable to verify your request. Please reload the page and try again.' ) );
 			}

@@ -540,6 +540,7 @@ jQuery( function( $ ) {
 				dataType: 'json',
 				data: {
 					stripe_source_id: response.source.id,
+					nonce: wc_stripe_params.add_card_nonce,
 				},
 				error: function() {
 					$( document.body ).trigger( 'stripeError', apiError );
