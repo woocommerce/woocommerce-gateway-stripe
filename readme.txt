@@ -126,13 +126,14 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.5.6 - 2020-12-xx =
+= 4.6.0 - 2020-12-xx =
 * Tweak - Update packages for Composer 2 compatibility.
 * Tweak - Use full jQuery function calls instead of soon-to-be-deprecated shorthands.
 * Tweak - Use JSON.parse() instead of jQuery.parseJSON().
 * Tweak - Remove holiday messaging from Apple Pay note after Dec 22.
 * Fix   - Compatibility with the Stripe for WooCommerce plugin.
 * Fix   - Guard against fatal errors caused by WC_Admin_Note.
+* Fix   - Display error message when payment made with payment request buttons fails.
 
 See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
