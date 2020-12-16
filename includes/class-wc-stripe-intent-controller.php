@@ -162,14 +162,7 @@ class WC_Stripe_Intent_Controller {
 
 
 			// 2. Load the customer ID (and create a customer eventually).
-			$customer    = new WC_Stripe_Customer( wp_get_current_user()->ID );
-			$customer_id = $customer->get_id();
-
-			// If a customer object does not exist for the current user, create one.
-			if ( empty( $customer_id ) ) {
-				$customer->set_id( $customer->create_customer() );
-				$customer_id = $customer->get_id();
-			}
+			$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
 
 			// 3. Attach the source to the customer (Setup Intents require that).
 			$source_object = $customer->attach_source( $source_id );
@@ -180,7 +173,7 @@ class WC_Stripe_Intent_Controller {
 			// 4. Generate the setup intent
 			$setup_intent = WC_Stripe_API::request(
 				[
-					'customer'       => $customer_id,
+					'customer'       => $customer->get_id(),
 					'confirm'        => 'true',
 					'payment_method' => $source_id,
 				],

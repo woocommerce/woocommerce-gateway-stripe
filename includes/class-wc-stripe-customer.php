@@ -254,11 +254,10 @@ class WC_Stripe_Customer {
 	 * @return WP_Error|int
 	 */
 	public function add_source( $source_id ) {
-		if ( ! $this->get_id() ) {
-			$this->set_id( $this->create_customer() );
-		}
-
 		$response = $this->attach_source( $source_id );
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
 
 		// Add token to WooCommerce.
 		$wc_token = false;
@@ -315,6 +314,10 @@ class WC_Stripe_Customer {
 	 * @return object|WP_Error Either a source object, or a WP error.
 	 */
 	public function attach_source( $source_id ) {
+		if ( ! $this->get_id() ) {
+			$this->set_id( $this->create_customer() );
+		}
+
 		$response = WC_Stripe_API::request(
 			array(
 				'source' => $source_id,
@@ -328,7 +331,7 @@ class WC_Stripe_Customer {
 			// new customer.
 			if ( $this->is_no_such_customer_error( $response->error ) ) {
 				$this->recreate_customer();
-				return $this->add_source( $source_id );
+				return $this->attach_source( $source_id );
 			} elseif( $this->is_source_already_attached_error( $response->error ) ) {
 				return WC_Stripe_API::request( array(), 'sources/' . $source_id, 'GET' );
 			} else {
