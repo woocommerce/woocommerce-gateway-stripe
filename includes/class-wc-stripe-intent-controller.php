@@ -143,7 +143,7 @@ class WC_Stripe_Intent_Controller {
 	public function create_setup_intent() {
 		if (
 			! is_user_logged_in()
-			|| ! isset( $_POST['stripe_source_id'] ) // ToDo: Make the parameter shorter.
+			|| ! isset( $_POST['stripe_source_id'] )
 			|| ! isset( $_POST['nonce'] )
 		) {
 			return;
