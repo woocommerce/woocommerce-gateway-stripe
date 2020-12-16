@@ -126,6 +126,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 4.x.x - xxxx-xx-xx =
+* Fix - updating subscription payment methods from My Account page adds a note to the subscription
+
 = 4.6.0 - 2020-12-15 =
 * Tweak - Update packages for Composer 2 compatibility.
 * Tweak - Use full jQuery function calls instead of soon-to-be-deprecated shorthands.
