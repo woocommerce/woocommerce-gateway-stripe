@@ -135,5 +135,5 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix   - Guard against fatal errors caused by WC_Admin_Note.
 * Fix   - Display error message when payment made with payment request buttons fails.
 
-See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
+[See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
