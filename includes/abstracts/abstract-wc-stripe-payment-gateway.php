@@ -609,13 +609,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return false;
 		}
 
-		// The payment method in use is already saved.
-		if ( $this->is_using_saved_payment_method() ) {
+		// The customer is not logged in.
+		if ( ! $customer->get_user_id() ) {
 			return false;
 		}
 
-		// The customer is not logged in.
-		if ( ! $customer->get_user_id() ) {
+		// The payment method in use is already saved.
+		if ( $this->is_using_saved_payment_method() ) {
 			return false;
 		}
 
