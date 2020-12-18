@@ -104,7 +104,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 		$this->title                          = $this->get_option( 'title' );
 		$this->description                    = $this->get_option( 'description' );
 		$this->enabled                        = $this->get_option( 'enabled' );
-        $this->activate_subscriptions_early   = $this->get_option( 'activate_subscriptions_early' );
+		$this->activate_subscriptions_early   = $this->get_option( 'activate_subscriptions_early' );
 		$this->testmode                       = ( ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'] ) ? true : false;
 		$this->saved_cards                    = ( ! empty( $main_settings['saved_cards'] ) && 'yes' === $main_settings['saved_cards'] ) ? true : false;
 		$this->publishable_key                = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
@@ -119,7 +119,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'payment_scripts' ) );
         
-        add_action( 'woocommerce_order_status_changed', array( $this, 'maybe_activate_subscriptions_early'), 10, 4 );
+		add_action( 'woocommerce_order_status_changed', array( $this, 'maybe_activate_subscriptions_early'), 10, 4 );
 
 		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
 			$this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
@@ -422,28 +422,28 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 		}
 	}
     
-    /**
+	/*
 	 * Maybe activate subscriptions early during payment confirmation
-     * Process can take up to 7-10 days
-     * If order fails, subscription set to On Hold
+	 * Process can take up to 7-10 days
+	 * If order fails, subscription set to On Hold
 	 *
 	 * @param $order_id
 	 * @param $status_from
 	 * @param $status_to
 	 * @param $order
 	 */
-    function maybe_activate_subscriptions_early ( $order_id, $status_from, $status_to, $order ) {
-        if ( 'yes' !== $this->activate_subscriptions_early || $status_to !== 'on-hold' ) {
-            return;
-        }
-        
-        if ( ! wcs_order_contains_subscription( $order, 'any' ) || ! function_exists( 'wcs_order_contains_subscription' ) ) {
-            return;
-        }
-        
-        $subscriptions = wcs_get_subscriptions_for_order( $order, array( 'order_type' => array( 'any' ) ) );
-        foreach( $subscriptions as $subscription ){
-            $subscription->update_status( 'active' );
-        }
-    }
+	function maybe_activate_subscriptions_early ( $order_id, $status_from, $status_to, $order ) {
+		if ( 'yes' !== $this->activate_subscriptions_early || $status_to !== 'on-hold' ) {
+			return;
+		}
+
+		if ( ! wcs_order_contains_subscription( $order, 'any' ) || ! function_exists( 'wcs_order_contains_subscription' ) ) {
+			return;
+		}
+
+		$subscriptions = wcs_get_subscriptions_for_order( $order, array( 'order_type' => array( 'any' ) ) );
+		foreach( $subscriptions as $subscription ){
+			$subscription->update_status( 'active' );
+		}
+	}
 }

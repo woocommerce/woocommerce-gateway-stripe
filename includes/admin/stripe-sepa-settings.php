@@ -25,7 +25,7 @@ return apply_filters(
 			'description' => '',
 			'default'     => 'no',
 		),
-        'activate_subscriptions_early' => array(
+		'activate_subscriptions_early' => array(
 			'title'       => __( 'Subscriptions Status', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Make subscriptions active while waiting on the payment process to complete', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
