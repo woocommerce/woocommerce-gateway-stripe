@@ -56,7 +56,8 @@ jQuery( function( $ ) {
 			}
 
 			if ( 'yes' === wc_stripe_params.inline_cc_form ) {
-				return stripe_card.mount( '#stripe-card-element' );
+				stripe_card.mount( '#stripe-card-element' );
+				return;
 			}
 
 			stripe_card.mount( '#stripe-card-element' );
@@ -512,7 +513,8 @@ jQuery( function( $ ) {
 		 */
 		sourceResponse: function( response ) {
 			if ( response.error ) {
-				return $( document.body ).trigger( 'stripeError', response );
+				$( document.body ).trigger( 'stripeError', response );
+				return;
 			}
 
 			wc_stripe_form.reset();
@@ -548,15 +550,18 @@ jQuery( function( $ ) {
 			} ).done( function( serverResponse ) {
 				if ( 'success' === serverResponse.status ) {
 					$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
-					return wc_stripe_form.form.submit();
+					wc_stripe_form.form.submit();
+					return;
 				} else if ( 'requires_action' !== serverResponse.status ) {
-					return $( document.body ).trigger( 'stripeError', serverResponse );
+					$( document.body ).trigger( 'stripeError', serverResponse );
+					return;
 				}
 
 				stripe.confirmCardSetup( serverResponse.client_secret, { payment_method: response.source.id } )
 					.then( function( result ) {
 						if ( result.error ) {
-							return $( document.body ).trigger( 'stripeError', result );
+							$( document.body ).trigger( 'stripeError', result );
+							return;
 						}
 
 						$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
@@ -628,7 +633,8 @@ jQuery( function( $ ) {
 			var errorContainer = wc_stripe_form.getSelectedPaymentElement().parents( 'li' ).eq( 0 ).find( '.stripe-source-errors' );
 
 			if ( ! e.error ) {
-				return $( errorContainer ).html( '' );
+				$( errorContainer ).html( '' );
+				return;
 			}
 
 			console.log( e.error.message ); // Leave for troubleshooting.
@@ -679,7 +685,8 @@ jQuery( function( $ ) {
 				if ( 'invalid_owner_name' === result.error.code && wc_stripe_params.hasOwnProperty( result.error.code ) ) {
 					var error = $( '<div><ul class="woocommerce-error"><li /></ul></div>' );
 					error.find( 'li' ).text( wc_stripe_params[ result.error.code ] ); // Prevent XSS
-					return wc_stripe_form.submitError( error.html() );
+					wc_stripe_form.submitError( error.html() );
+					return;
 				}
 			}
 
@@ -824,7 +831,8 @@ jQuery( function( $ ) {
 				} )
 				.catch( function( error ) {
 					if ( alwaysRedirect ) {
-						return window.location = redirectURL;
+						window.location = redirectURL;
+						return;
 					}
 
 					$( document.body ).trigger( 'stripeError', { error: error } );
