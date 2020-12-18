@@ -193,7 +193,20 @@ class WC_Stripe_Intent_Controller {
 					'status'        => 'requires_action',
 					'client_secret' => $setup_intent->client_secret,
 				];
+			} elseif ( 'requires_payment_method' === $setup_intent->status
+				|| 'requires_confirmation' === $setup_intent->status
+				|| 'canceled' === $setup_intent->status ) {
+				// These statuses should not be possible, as such we return an error.
+				$response = [
+					'status' => 'error',
+					'error'  => [
+						'type'    => 'setup_intent_error',
+						'message' => __( 'Failed to save payment method.', 'woocommerce-gateway-stripe' ),
+					],
+				];
 			} else {
+				// This should only be reached when status is `processing` or `succeeded`, which are
+				// the only statuses that we haven't explicitly handled.
 				$response = [
 					'status' => 'success',
 				];
