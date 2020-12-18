@@ -109,10 +109,16 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 			if ( ! empty( $all_subs ) ) {
 				foreach ( $all_subs as $sub ) {
 					if ( $sub->has_status( $subs_statuses ) ) {
-						update_post_meta( $sub->get_id(), '_stripe_source_id', $source_id );
-						update_post_meta( $sub->get_id(), '_stripe_customer_id', $stripe_customer->get_id() );
-						update_post_meta( $sub->get_id(), '_payment_method', $this->id );
-						update_post_meta( $sub->get_id(), '_payment_method_title', $this->method_title );
+						WC_Subscriptions_Change_Payment_Gateway::update_payment_method(
+							$sub,
+							$this->id,
+							array(
+								'post_meta' => array(
+									'_stripe_source_id' => array( 'value' => $source_id ),
+									'_stripe_customer_id' => array( 'value' => $stripe_customer->get_id() ),
+								),
+							)
+						);
 					}
 				}
 			}
