@@ -569,7 +569,7 @@ jQuery( function( $ ) {
 					} )
 					.catch( function( err ) {
 						console.log( err );
-						$( document.body ).trigger( 'stripeError', { error: error } );
+						$( document.body ).trigger( 'stripeError', { error: err } );
 					} );
 			} );
 		},
