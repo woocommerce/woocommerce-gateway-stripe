@@ -422,7 +422,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 		}
 	}
     
-	/*
+	/**
 	 * Maybe activate subscriptions early during payment confirmation
 	 * Process can take up to 7-10 days
 	 * If order fails, subscription set to On Hold
