@@ -531,7 +531,7 @@ jQuery( function( $ ) {
 				return;
 			}
 
-			wc_stripe_form.form.submit();
+			wc_stripe_form.form.trigger( 'submit' );
 		},
 
 		/**
@@ -559,7 +559,7 @@ jQuery( function( $ ) {
 			} ).done( function( serverResponse ) {
 				if ( 'success' === serverResponse.status ) {
 					$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
-					wc_stripe_form.form.submit();
+					wc_stripe_form.form.trigger( 'submit' );
 					return;
 				} else if ( 'requires_action' !== serverResponse.status ) {
 					$( document.body ).trigger( 'stripeError', serverResponse );
