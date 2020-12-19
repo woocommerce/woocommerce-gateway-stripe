@@ -526,11 +526,20 @@ jQuery( function( $ ) {
 					.val( response.source.id )
 			);
 
-			if ( ! $( 'form#add_payment_method' ).length ) {
-				wc_stripe_form.form.submit();
+			if ( $( 'form#add_payment_method' ).length ) {
+				wc_stripe_form.sourceSetup( response );
 				return;
 			}
 
+			wc_stripe_form.form.submit();
+		},
+
+		/**
+		 * Authenticate Source if necessary by creating and confirming a SetupIntent.
+		 *
+		 * @param {Object} response The `stripe.createSource` response.
+		 */
+		sourceSetup: function( response ) {
 			var apiError = {
 				error: {
 					type: 'api_connection_error'
