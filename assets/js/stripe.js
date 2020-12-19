@@ -526,7 +526,7 @@ jQuery( function( $ ) {
 					.val( response.source.id )
 			);
 
-			if ( $( 'form#add_payment_method' ).length ) {
+			if ( $( 'form#add_payment_method' ).length || $( 'input[name="woocommerce_change_payment"]' ).length ) {
 				wc_stripe_form.sourceSetup( response );
 				return;
 			}
@@ -558,7 +558,9 @@ jQuery( function( $ ) {
 				}
 			} ).done( function( serverResponse ) {
 				if ( 'success' === serverResponse.status ) {
-					$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
+					if ( $( 'form#add_payment_method' ).length ) {
+						$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
+					}
 					wc_stripe_form.form.trigger( 'submit' );
 					return;
 				} else if ( 'requires_action' !== serverResponse.status ) {
@@ -573,7 +575,9 @@ jQuery( function( $ ) {
 							return;
 						}
 
-						$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
+						if ( $( 'form#add_payment_method' ).length ) {
+							$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
+						}
 						wc_stripe_form.form.trigger( 'submit' );
 					} )
 					.catch( function( err ) {
