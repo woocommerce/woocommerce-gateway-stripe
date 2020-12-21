@@ -22,6 +22,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			add_action( 'woocommerce_subscription_failing_payment_method_updated_stripe', array( $this, 'update_failing_payment_method' ), 10, 2 );
 			add_action( 'wc_stripe_cards_payment_fields', array( $this, 'display_update_subs_payment_checkout' ) );
 			add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', array( $this, 'handle_add_payment_method_success' ), 10, 2 );
+			add_action( 'woocommerce_subscriptions_change_payment_before_submit', array( $this, 'differentiate_change_payment_method_form' ) );
 
 			// display the credit card used for a subscription in the "My Subscriptions" table
 			add_filter( 'woocommerce_my_subscriptions_payment_method', array( $this, 'maybe_render_subscription_payment_method' ), 10, 2 );
@@ -132,6 +133,16 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Render a dummy element in the "Change payment method" form (that does not appear in the "Pay for order" form)
+	 * which can be checked to determine proper SCA handling to apply for each form.
+	 *
+	 * @since 4.6.1
+	 */
+	public function differentiate_change_payment_method_form() {
+		echo '<input type="hidden" id="wc-stripe-change-payment-method" />';
 	}
 
 	/**
