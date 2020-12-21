@@ -526,7 +526,7 @@ jQuery( function( $ ) {
 					.val( response.source.id )
 			);
 
-			if ( $( 'form#add_payment_method' ).length || $( 'input[name="woocommerce_change_payment"]' ).length ) {
+			if ( $( 'form#add_payment_method' ).length || $( '#wc-stripe-change-payment-method' ).length ) {
 				wc_stripe_form.sourceSetup( response );
 				return;
 			}
