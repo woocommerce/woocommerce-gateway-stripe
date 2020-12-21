@@ -2,10 +2,9 @@
 # This file is distributed under the same license as the WooCommerce Stripe Gateway package.
 msgid ""
 msgstr ""
-"Project-Id-Version: WooCommerce Stripe Gateway 4.5.5\n"
-"Report-Msgid-Bugs-To: "
-"https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
-"POT-Creation-Date: 2020-12-15 10:40:47+00:00\n"
+"Project-Id-Version: WooCommerce Stripe Gateway 4.6.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/stripe\n"
+"POT-Creation-Date: 2020-12-18 14:36:23+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -63,7 +62,7 @@ msgid "Stripe charge complete (Charge ID: %s)"
 msgstr ""
 
 #: includes/abstracts/abstract-wc-stripe-payment-gateway.php:455
-#: includes/class-wc-gateway-stripe.php:495
+#: includes/class-wc-gateway-stripe.php:496
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:179
 msgid "Payment processing failed. Please retry."
 msgstr ""
@@ -930,7 +929,7 @@ msgid "Please fill in required checkout fields first"
 msgstr ""
 
 #: includes/class-wc-gateway-stripe.php:438
-#: includes/class-wc-gateway-stripe.php:482
+#: includes/class-wc-gateway-stripe.php:483
 msgid ""
 "Sorry, we're not accepting prepaid cards at this time. Your credit card has "
 "not been charged. Please try with alternative payment method."
@@ -952,26 +951,26 @@ msgstr ""
 msgid "Billing First Name and Last Name are required."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:723
+#: includes/class-wc-gateway-stripe.php:724
 #. translators: error message
 msgid "This represents the fee Stripe collects for the transaction."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:724
+#: includes/class-wc-gateway-stripe.php:725
 msgid "Stripe Fee:"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:760
+#: includes/class-wc-gateway-stripe.php:761
 msgid ""
 "This represents the net total that will be credited to your Stripe bank "
 "account. This may be in the currency that is set in your Stripe account."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:761
+#: includes/class-wc-gateway-stripe.php:762
 msgid "Stripe Payout:"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:824
+#: includes/class-wc-gateway-stripe.php:825
 #: includes/class-wc-stripe-order-handler.php:158
 #: includes/class-wc-stripe-webhook-handler.php:233
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:278
@@ -982,7 +981,7 @@ msgid ""
 "later."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:877
+#: includes/class-wc-gateway-stripe.php:878
 msgid ""
 "Almost there!\n"
 "\n"
@@ -990,36 +989,36 @@ msgid ""
 "done is for you to authorize the payment with your bank."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1118
+#: includes/class-wc-gateway-stripe.php:1119
 #: includes/class-wc-stripe-webhook-handler.php:674
 #: includes/class-wc-stripe-webhook-handler.php:713
 #. translators: 1) The error message that was received from Stripe.
 msgid "Stripe SCA authentication failed. Reason: %s"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1119
+#: includes/class-wc-gateway-stripe.php:1120
 msgid "Stripe SCA authentication failed."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1176
+#: includes/class-wc-gateway-stripe.php:1177
 msgid ""
 "The \"Live Publishable Key\" should start with \"pk_live\", enter the "
 "correct key."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1184
+#: includes/class-wc-gateway-stripe.php:1185
 msgid ""
 "The \"Live Secret Key\" should start with \"sk_live\" or \"rk_live\", enter "
 "the correct key."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1192
+#: includes/class-wc-gateway-stripe.php:1193
 msgid ""
 "The \"Test Publishable Key\" should start with \"pk_test\", enter the "
 "correct key."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1200
+#: includes/class-wc-gateway-stripe.php:1201
 msgid ""
 "The \"Test Secret Key\" should start with \"sk_test\" or \"rk_test\", enter "
 "the correct key."
@@ -1068,7 +1067,7 @@ msgstr ""
 msgid "Attempting to update a Stripe customer without a customer ID."
 msgstr ""
 
-#: includes/class-wc-stripe-customer.php:265
+#: includes/class-wc-stripe-customer.php:341
 msgid "Unable to add payment source."
 msgstr ""
 
@@ -1133,29 +1132,47 @@ msgid "An error occurred while processing the card."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:212
+msgid "The billing country is not accepted by SOFORT. Please try another country."
+msgstr ""
+
+#: includes/class-wc-stripe-helper.php:213
+msgid "Invalid email address, please correct and try again."
+msgstr ""
+
+#: includes/class-wc-stripe-helper.php:215
+msgid ""
+"Unable to save this payment method, please try again or use alternative "
+"method."
+msgstr ""
+
+#: includes/class-wc-stripe-helper.php:216
 #: includes/class-wc-stripe-order-handler.php:96
 msgid "Unable to process this payment, please try again or use alternative method."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:213
-msgid "The billing country is not accepted by SOFORT. Please try another country."
-msgstr ""
-
-#: includes/class-wc-stripe-helper.php:214
-msgid "Invalid email address, please correct and try again."
-msgstr ""
-
-#: includes/class-wc-stripe-intent-controller.php:58
+#: includes/class-wc-stripe-intent-controller.php:59
 msgid "CSRF verification failed."
 msgstr ""
 
-#: includes/class-wc-stripe-intent-controller.php:71
+#: includes/class-wc-stripe-intent-controller.php:72
 msgid "Missing order ID for payment confirmation"
 msgstr ""
 
-#: includes/class-wc-stripe-intent-controller.php:91
+#: includes/class-wc-stripe-intent-controller.php:92
 #. translators: Error message text
 msgid "Payment verification error: %s"
+msgstr ""
+
+#: includes/class-wc-stripe-intent-controller.php:160
+msgid "Unable to verify your request. Please reload the page and try again."
+msgstr ""
+
+#: includes/class-wc-stripe-intent-controller.php:187
+msgid "Your card could not be set up for future usage."
+msgstr ""
+
+#: includes/class-wc-stripe-intent-controller.php:204
+msgid "Failed to save payment method."
 msgstr ""
 
 #: includes/class-wc-stripe-order-handler.php:140

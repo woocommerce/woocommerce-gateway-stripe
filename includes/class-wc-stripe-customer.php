@@ -233,39 +233,35 @@ class WC_Stripe_Customer {
 	}
 
 	/**
+	 * Checks to see if error is of invalid request
+	 * error and it is no such customer.
+	 *
+	 * @since 4.5.6
+	 * @param array $error
+	 * @return bool
+	 */
+	public function is_source_already_attached_error( $error ) {
+		return (
+			$error &&
+			'invalid_request_error' === $error->type &&
+			preg_match( '/already been attached to a customer/i', $error->message )
+		);
+	}
+
+	/**
 	 * Add a source for this stripe customer.
 	 * @param string $source_id
 	 * @return WP_Error|int
 	 */
 	public function add_source( $source_id ) {
-		if ( ! $this->get_id() ) {
-			$this->set_id( $this->create_customer() );
-		}
-
-		$response = WC_Stripe_API::request(
-			array(
-				'source' => $source_id,
-			),
-			'customers/' . $this->get_id() . '/sources'
-		);
-
-		$wc_token = false;
-
-		if ( ! empty( $response->error ) ) {
-			// It is possible the WC user once was linked to a customer on Stripe
-			// but no longer exists. Instead of failing, lets try to create a
-			// new customer.
-			if ( $this->is_no_such_customer_error( $response->error ) ) {
-				$this->recreate_customer();
-				return $this->add_source( $source_id );
-			} else {
-				return $response;
-			}
-		} elseif ( empty( $response->id ) ) {
-			return new WP_Error( 'error', __( 'Unable to add payment source.', 'woocommerce-gateway-stripe' ) );
+		$response = $this->attach_source( $source_id );
+		if ( is_wp_error( $response ) ) {
+			return $response;
 		}
 
 		// Add token to WooCommerce.
+		$wc_token = false;
+
 		if ( $this->get_user_id() && class_exists( 'WC_Payment_Token_CC' ) ) {
 			if ( ! empty( $response->type ) ) {
 				switch ( $response->type ) {
@@ -309,6 +305,43 @@ class WC_Stripe_Customer {
 		do_action( 'woocommerce_stripe_add_source', $this->get_id(), $wc_token, $response, $source_id );
 
 		return $response->id;
+	}
+
+	/**
+	 * Attaches a source to the Stripe customer.
+	 *
+	 * @param string $source_id The ID of the new source.
+	 * @return object|WP_Error Either a source object, or a WP error.
+	 */
+	public function attach_source( $source_id ) {
+		if ( ! $this->get_id() ) {
+			$this->set_id( $this->create_customer() );
+		}
+
+		$response = WC_Stripe_API::request(
+			array(
+				'source' => $source_id,
+			),
+			'customers/' . $this->get_id() . '/sources'
+		);
+
+		if ( ! empty( $response->error ) ) {
+			// It is possible the WC user once was linked to a customer on Stripe
+			// but no longer exists. Instead of failing, lets try to create a
+			// new customer.
+			if ( $this->is_no_such_customer_error( $response->error ) ) {
+				$this->recreate_customer();
+				return $this->attach_source( $source_id );
+			} elseif( $this->is_source_already_attached_error( $response->error ) ) {
+				return WC_Stripe_API::request( array(), 'sources/' . $source_id, 'GET' );
+			} else {
+				return $response;
+			}
+		} elseif ( empty( $response->id ) ) {
+			return new WP_Error( 'error', __( 'Unable to add payment source.', 'woocommerce-gateway-stripe' ) );
+		} else {
+			return $response;
+		}
 	}
 
 	/**

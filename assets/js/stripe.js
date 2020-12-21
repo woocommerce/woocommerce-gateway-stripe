@@ -56,7 +56,8 @@ jQuery( function( $ ) {
 			}
 
 			if ( 'yes' === wc_stripe_params.inline_cc_form ) {
-				return stripe_card.mount( '#stripe-card-element' );
+				stripe_card.mount( '#stripe-card-element' );
+				return;
 			}
 
 			stripe_card.mount( '#stripe-card-element' );
@@ -512,7 +513,8 @@ jQuery( function( $ ) {
 		 */
 		sourceResponse: function( response ) {
 			if ( response.error ) {
-				return $( document.body ).trigger( 'stripeError', response );
+				$( document.body ).trigger( 'stripeError', response );
+				return;
 			}
 
 			wc_stripe_form.reset();
@@ -524,11 +526,52 @@ jQuery( function( $ ) {
 					.val( response.source.id )
 			);
 
-			if ( $( 'form#add_payment_method' ).length ) {
-				$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
+			if ( ! $( 'form#add_payment_method' ).length ) {
+				wc_stripe_form.form.submit();
+				return;
 			}
 
-			wc_stripe_form.form.trigger( 'submit' );
+			var apiError = {
+				error: {
+					type: 'api_connection_error'
+				}
+			};
+
+			$.post( {
+				url: wc_stripe_form.getAjaxURL( 'create_setup_intent'),
+				dataType: 'json',
+				data: {
+					stripe_source_id: response.source.id,
+					nonce: wc_stripe_params.add_card_nonce,
+				},
+				error: function() {
+					$( document.body ).trigger( 'stripeError', apiError );
+				}
+			} ).done( function( serverResponse ) {
+				if ( 'success' === serverResponse.status ) {
+					$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
+					wc_stripe_form.form.submit();
+					return;
+				} else if ( 'requires_action' !== serverResponse.status ) {
+					$( document.body ).trigger( 'stripeError', serverResponse );
+					return;
+				}
+
+				stripe.confirmCardSetup( serverResponse.client_secret, { payment_method: response.source.id } )
+					.then( function( result ) {
+						if ( result.error ) {
+							$( document.body ).trigger( 'stripeError', result );
+							return;
+						}
+
+						$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
+						wc_stripe_form.form.trigger( 'submit' );
+					} )
+					.catch( function( err ) {
+						console.log( err );
+						$( document.body ).trigger( 'stripeError', { error: err } );
+					} );
+			} );
 		},
 
 		/**
@@ -590,7 +633,8 @@ jQuery( function( $ ) {
 			var errorContainer = wc_stripe_form.getSelectedPaymentElement().parents( 'li' ).eq( 0 ).find( '.stripe-source-errors' );
 
 			if ( ! e.error ) {
-				return $( errorContainer ).html( '' );
+				$( errorContainer ).html( '' );
+				return;
 			}
 
 			console.log( e.error.message ); // Leave for troubleshooting.
@@ -641,7 +685,8 @@ jQuery( function( $ ) {
 				if ( 'invalid_owner_name' === result.error.code && wc_stripe_params.hasOwnProperty( result.error.code ) ) {
 					var error = $( '<div><ul class="woocommerce-error"><li /></ul></div>' );
 					error.find( 'li' ).text( wc_stripe_params[ result.error.code ] ); // Prevent XSS
-					return wc_stripe_form.submitError( error.html() );
+					wc_stripe_form.submitError( error.html() );
+					return;
 				}
 			}
 
@@ -786,7 +831,8 @@ jQuery( function( $ ) {
 				} )
 				.catch( function( error ) {
 					if ( alwaysRedirect ) {
-						return window.location = redirectURL;
+						window.location = redirectURL;
+						return;
 					}
 
 					$( document.body ).trigger( 'stripeError', { error: error } );

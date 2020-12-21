@@ -209,9 +209,11 @@ class WC_Stripe_Helper {
 				'card_declined'            => __( 'The card was declined.', 'woocommerce-gateway-stripe' ),
 				'missing'                  => __( 'There is no card on a customer that is being charged.', 'woocommerce-gateway-stripe' ),
 				'processing_error'         => __( 'An error occurred while processing the card.', 'woocommerce-gateway-stripe' ),
-				'invalid_request_error'    => __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ),
 				'invalid_sofort_country'   => __( 'The billing country is not accepted by SOFORT. Please try another country.', 'woocommerce-gateway-stripe' ),
 				'email_invalid'            => __( 'Invalid email address, please correct and try again.', 'woocommerce-gateway-stripe' ),
+				'invalid_request_error'    => is_add_payment_method_page()
+					? __( 'Unable to save this payment method, please try again or use alternative method.', 'woocommerce-gateway-stripe' )
+					: __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ),
 			)
 		);
 	}
