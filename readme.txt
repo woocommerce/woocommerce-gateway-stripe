@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 5.5
 Requires PHP: 5.6
-Stable tag: 4.6.0
+Stable tag: 4.7.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -126,7 +126,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.7.0 - 2020-xx-xx =
+= 4.7.0 - 2020-12-22 =
 * Fix - Updating subscription payment methods from the "My Account" page now adds a note to the subscription.
 * Fix - Link is now correctly formatted in readme.txt.
 * Fix - Using SCA cards for subscriptions renewal payments now works as intended.

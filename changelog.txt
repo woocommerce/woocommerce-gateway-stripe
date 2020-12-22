@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 4.7.0 - 2020-xx-xx =
+= 4.7.0 - 2020-12-22 =
 * Fix - Updating subscription payment methods from the "My Account" page now adds a note to the subscription.
 * Fix - Link is now correctly formatted in readme.txt.
 * Fix - Using SCA cards for subscriptions renewal payments now works as intended.
