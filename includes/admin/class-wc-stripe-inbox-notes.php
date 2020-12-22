@@ -42,7 +42,7 @@ class WC_Stripe_Inbox_Notes {
 			return __( 'Boost sales this holiday season with Apple Pay!', 'woocommerce-gateway-stripe' );
 		}
 
-		return__( 'Boost sales with Apple Pay!', 'woocommerce-gateway-stripe' );
+		return __( 'Boost sales with Apple Pay!', 'woocommerce-gateway-stripe' );
 	}
 
 	/**
