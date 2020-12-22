@@ -180,7 +180,7 @@ class WC_Stripe_Intent_Controller {
 				'setup_intents'
 			);
 
-			if ( $setup_intent->error ) {
+			if ( ! empty( $setup_intent->error ) ) {
 				$error_response_message = print_r( $setup_intent, true );
 				WC_Stripe_Logger::log("Failed create Setup Intent while saving a card.");
 				WC_Stripe_Logger::log("Response: $error_response_message");
