@@ -126,17 +126,13 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.x.x - xxxx-xx-xx =
-* Fix - updating subscription payment methods from My Account page adds a note to the subscription
-
-= 4.6.0 - 2020-12-15 =
-* Tweak - Update packages for Composer 2 compatibility.
-* Tweak - Use full jQuery function calls instead of soon-to-be-deprecated shorthands.
-* Tweak - Use JSON.parse() instead of jQuery.parseJSON().
-* Tweak - Remove holiday messaging from Apple Pay note after Dec 22.
-* Fix   - Compatibility with the Stripe for WooCommerce plugin.
-* Fix   - Guard against fatal errors caused by WC_Admin_Note.
-* Fix   - Display error message when payment made with payment request buttons fails.
+= 4.7.0 - 2020-xx-xx =
+* Fix - Updating subscription payment methods from the "My Account" page now adds a note to the subscription.
+* Fix - Link is now correctly formatted in readme.txt.
+* Fix - Using SCA cards for subscriptions renewal payments now works as intended.
+* Fix - Cards added under "My Account -> Payment Methods -> Add Payment Method" will now handle SCA properly.
+* Fix - Changing a payment method for a subscription in "My Account -> Subscriptions" will now handle SCA properly.
+* Fix - Missing space causing fatal errors for certain WooCommerce Inbox Note features.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
 
