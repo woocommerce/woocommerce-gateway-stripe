@@ -134,5 +134,5 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Changing a payment method for a subscription in "My Account -> Subscriptions" will now handle SCA properly.
 * Fix - Missing space causing fatal errors for certain WooCommerce Inbox Note features.
 
-[See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/master/changelog.txt).
+[See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
 
