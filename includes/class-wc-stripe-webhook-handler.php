@@ -71,7 +71,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			exit;
 		} else {
 			WC_Stripe_Logger::log( 'Incoming webhook failed validation: ' . print_r( $request_body, true ) );
-			status_header( 400 );
+			// A webhook endpoint must return a 2xx HTTP status code.
+			// @see https://stripe.com/docs/webhooks/build#return-a-2xx-status-code-quickly
+			status_header( 204 );
 			exit;
 		}
 	}
