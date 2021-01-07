@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.7.0\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
-"POT-Creation-Date: 2021-01-13 19:10:16+00:00\n"
+"POT-Creation-Date: 2021-01-07 19:26:05+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -1550,19 +1550,19 @@ msgid "Stripe SOFORT"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:303
-#: includes/payment-methods/class-wc-stripe-payment-request.php:959
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1251
+#: includes/payment-methods/class-wc-stripe-payment-request.php:960
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1252
 msgid "Tax"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:311
-#: includes/payment-methods/class-wc-stripe-payment-request.php:967
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1258
+#: includes/payment-methods/class-wc-stripe-payment-request.php:968
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1259
 msgid "Shipping"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:318
-#: includes/payment-methods/class-wc-stripe-payment-request.php:974
+#: includes/payment-methods/class-wc-stripe-payment-request.php:975
 msgid "Pending"
 msgstr ""
 
@@ -1570,36 +1570,42 @@ msgstr ""
 msgid "Sorry, we're not accepting prepaid cards at this time."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:526
+#: includes/payment-methods/class-wc-stripe-payment-request.php:525
+msgid ""
+"Failed to initialize payment request. There may be an issue with the "
+"Payment Request Button configuration."
+msgstr ""
+
+#: includes/payment-methods/class-wc-stripe-payment-request.php:527
 #. translators: Do not translate the [option] placeholder
 msgid "Unknown shipping option \"[option]\"."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:637
+#: includes/payment-methods/class-wc-stripe-payment-request.php:638
 msgid "OR"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:809
-#: includes/payment-methods/class-wc-stripe-payment-request.php:822
+#: includes/payment-methods/class-wc-stripe-payment-request.php:810
+#: includes/payment-methods/class-wc-stripe-payment-request.php:823
 msgid "Unable to find shipping method for address."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:921
+#: includes/payment-methods/class-wc-stripe-payment-request.php:922
 msgid "Product with the ID (%d) cannot be found."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:942
+#: includes/payment-methods/class-wc-stripe-payment-request.php:943
 #. translators: 1: product name 2: quantity in stock
 msgid ""
 "You cannot add that amount of \"%1$s\"; to the cart because there is not "
 "enough stock (%2$s remaining)."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1093
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1094
 msgid "Empty cart"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1265
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1266
 msgid "Discount"
 msgstr ""
 

@@ -521,9 +521,10 @@ class WC_Stripe_Payment_Request {
 				'clear_cart'                => wp_create_nonce( 'wc-stripe-clear-cart' ),
 			),
 			'i18n'            => array(
-				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
+				'no_prepaid_card'        => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
+				'payment_request_failed' => __ ( 'Failed to initialize payment request. There may be an issue with the Payment Request Button configuration.', 'woocommerce-gateway-stripe' ),
 				/* translators: Do not translate the [option] placeholder */
-				'unknown_shipping' => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' ),
+				'unknown_shipping'       => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' ),
 			),
 			'checkout'        => array(
 				'url'               => wc_get_checkout_url(),
