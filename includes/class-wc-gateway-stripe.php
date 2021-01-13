@@ -1205,7 +1205,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Ensures the statement descriptor saved to options does not contain any invalid characters.
+	 * Ensures the statement descriptor about to be saved to options does not contain any invalid characters.
 	 *
 	 * @since 4.8.0
 	 * @param $settings WC_Settings_API settings to be filtered
