@@ -851,6 +851,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		if ( $reason ) {
+			// Trim the refund reason to a max of 499 characters.
+			if ( 499 < strlen( $reason ) ) {
+				$reason = substr( $reason, 0, 499 );
+			}
+			
 			$request['metadata'] = array(
 				'reason' => $reason,
 			);
