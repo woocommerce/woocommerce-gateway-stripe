@@ -140,6 +140,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_payment_successful_result', array( $this, 'modify_successful_payment_result' ), 99999, 2 );
 		add_action( 'set_logged_in_cookie', array( $this, 'set_cookie_on_current_request' ) );
 		add_filter( 'woocommerce_get_checkout_payment_url', array( $this, 'get_checkout_payment_url' ), 10, 2 );
+		add_filter( 'woocommerce_settings_api_sanitized_fields_' . $this->id, array( $this, 'settings_api_sanitized_fields' ) );
 
 		// Note: display error is in the parent class.
 		add_action( 'admin_notices', array( $this, 'display_errors' ), 9999 );
@@ -1201,5 +1202,21 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			throw new Exception( __( 'The "Test Secret Key" should start with "sk_test" or "rk_test", enter the correct key.', 'woocommerce-gateway-stripe' ) );
 		}
 		return $value;
+	}
+
+	/**
+	 * Ensures the statement descriptor saved to options does not contain any invalid characters.
+	 *
+	 * @since 4.8.0
+	 * @param $settings WC_Settings_API settings to be filtered
+	 * @return Filtered settings
+	 */
+	public function settings_api_sanitized_fields( $settings ) {
+		if ( is_array( $settings ) ) {
+			if ( array_key_exists( 'statement_descriptor', $settings ) ) {
+				$settings['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $settings['statement_descriptor']);
+			}
+		}
+		return $settings;
 	}
 }

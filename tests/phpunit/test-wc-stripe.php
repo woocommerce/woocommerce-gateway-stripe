@@ -87,6 +87,8 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 			'removes )' => [ 'Test ) Store', 'Test  Store' ],
 			'removes {' => [ 'Test { Store', 'Test  Store' ],
 			'removes }' => [ 'Test } Store', 'Test  Store' ],
+			'removes \\' => [ 'Test \\ Store', 'Test  Store' ],
+			'removes *' => [ 'Test * Store', 'Test  Store' ],
 			'keeps at most 22 chars' => [ 'Test\'s Store > Driving Course Range', 'Tests Store  Driving C' ],
 			'mixed length, \' and >' => [ 'Test\'s Store > Driving Course Range', 'Tests Store  Driving C' ],
 			'mixed length, \' and <' => [ 'Test\'s Store < Driving Course Range', 'Tests Store  Driving C' ],

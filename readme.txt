@@ -126,13 +126,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.7.0 - 2020-12-22 =
-* Fix - Updating subscription payment methods from the "My Account" page now adds a note to the subscription.
-* Fix - Link is now correctly formatted in readme.txt.
-* Fix - Using SCA cards for subscriptions renewal payments now works as intended.
-* Fix - Cards added under "My Account -> Payment Methods -> Add Payment Method" will now handle SCA properly.
-* Fix - Changing a payment method for a subscription in "My Account -> Subscriptions" will now handle SCA properly.
-* Fix - Missing space causing fatal errors for certain WooCommerce Inbox Note features.
+= 4.8.0 - 2021-xx-xx =
+* Fix - Filter more disallowed characters from statement descriptors.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
 

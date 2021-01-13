@@ -459,7 +459,7 @@ class WC_Stripe_Helper {
 	 * @return string $statement_descriptor Sanitized statement descriptor
 	 */
 	public static function clean_statement_descriptor( $statement_descriptor = '' ) {
-		$disallowed_characters = array( '<', '>', '"', "'", '/', '(', ')', '{', '}' );
+		$disallowed_characters = array( '<', '>', '\\', '*', '"', "'", '/', '(', ')', '{', '}' );
 
 		// Remove special characters.
 		$statement_descriptor = str_replace( $disallowed_characters, '', $statement_descriptor );
