@@ -197,24 +197,8 @@ install_woocommerce() {
 	fi
 }
 
-install_woocommerce_test_helpers() {
-    rm -rf /tmp/woocommerce-repo 2> /dev/null
-	git clone --depth 1 --filter=blob:none --no-checkout https://github.com/woocommerce/woocommerce.git /tmp/woocommerce-repo 2> /dev/null
-	cd /tmp/woocommerce-repo
-	if [[ $WC_VERSION != 'latest' ]] && [[ $WC_VERSION != 'beta' ]]; then
-		git checkout $WC_VERSION 1> /dev/null 2> /dev/null
-	else
-		git checkout master 1> /dev/null 2> /dev/null
-	fi
-	cp -R tests /var/www/html/wp-content/plugins/woocommerce 2> /dev/null
-	cd - 1> /dev/null
-}
-
 install_wp
 install_db
 configure_wp
 install_test_suite
 install_woocommerce
-
-# Some tests use helpers from the tests folder of the woocommerce repository, we need to fetch and copy them
-install_woocommerce_test_helpers
