@@ -10,16 +10,20 @@
 	<exclude-pattern>*\.(?!php$)</exclude-pattern>
 
 	<!-- Configs -->
-	<config name="minimum_supported_wp_version" value="4.7" />
-	<config name="testVersion" value="5.6-" />
+	<config name="minimum_supported_wp_version" value="5.3" />
+	<config name="testVersion" value="7.0-" />
 
 	<!-- Rules -->
 	<rule ref="WooCommerce-Core" >
 		<exclude name="Generic.Commenting.Todo.TaskFound"/>
+		<exclude name="Generic.Arrays.DisallowShortArraySyntax.Found"/>
 
 		<!-- This rule is currently generating some false positives, it would be worth retrying after PHPCS upgrades -->
 		<exclude name="Squiz.Commenting.FunctionCommentThrowTag.WrongNumber"/>
 	</rule>
+
+	<!-- Disallow long array syntax -->
+	<rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
 
 	<rule ref="WordPress.WP.I18n">
 		<properties>
@@ -46,6 +50,11 @@
 	</rule>
 
 	<rule ref="Squiz.Commenting.FunctionComment">
+		<exclude-pattern>tests/</exclude-pattern>
+	</rule>
+
+	<!-- We don't need to do nonce checks in unit test code -->
+	<rule ref="WordPress.Security.NonceVerification.Recommended">
 		<exclude-pattern>tests/</exclude-pattern>
 	</rule>
 </ruleset>
