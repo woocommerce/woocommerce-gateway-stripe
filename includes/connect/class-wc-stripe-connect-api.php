@@ -25,7 +25,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		public function get_stripe_oauth_init( $return_url ) {
 
 			$current_user                   = wp_get_current_user();
-			$business_data                  = array();
+			$business_data                  = [];
 			$business_data['url']           = get_site_url();
 			$business_data['business_name'] = html_entity_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 			$business_data['first_name']    = $current_user->user_firstname;
@@ -50,10 +50,10 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 				$business_data['zip']            = '';
 			}
 
-			$request = array(
+			$request = [
 				'returnUrl'    => $return_url,
 				'businessData' => $business_data,
-			);
+			];
 
 			return $this->request( 'POST', '/stripe/oauth-init', $request );
 		}
@@ -67,7 +67,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		 */
 		public function get_stripe_oauth_keys( $code ) {
 
-			$request = array( 'code' => $code );
+			$request = [ 'code' => $code ];
 
 			return $this->request( 'POST', '/stripe/oauth-keys', $request );
 		}
@@ -81,7 +81,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		 *
 		 * @return array|WP_Error
 		 */
-		protected function request( $method, $path, $body = array() ) {
+		protected function request( $method, $path, $body = [] ) {
 
 			if ( ! is_array( $body ) ) {
 				return new WP_Error(
@@ -95,7 +95,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 			$url = trailingslashit( $url ) . ltrim( $path, '/' );
 
 			// Add useful system information to requests that contain bodies.
-			if ( in_array( $method, array( 'POST', 'PUT' ), true ) ) {
+			if ( in_array( $method, [ 'POST', 'PUT' ], true ) ) {
 				$body = $this->request_body( $body );
 				$body = wp_json_encode( apply_filters( 'wc_connect_api_client_body', $body ) );
 
@@ -114,14 +114,14 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 
 			$http_timeout = 60; // 1 minute
 			wc_set_time_limit( $http_timeout + 10 );
-			$args = array(
+			$args = [
 				'headers'     => $headers,
 				'method'      => $method,
 				'body'        => $body,
 				'redirection' => 0,
 				'compress'    => true,
 				'timeout'     => $http_timeout,
-			);
+			];
 
 			$args          = apply_filters( 'wc_connect_request_args', $args );
 			$response      = wp_remote_request( $url, $args );
@@ -194,18 +194,18 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		 *
 		 * @return array
 		 */
-		protected function request_body( $initial_body = array() ) {
+		protected function request_body( $initial_body = [] ) {
 
-			$default_body = array(
-				'settings' => array(),
-			);
+			$default_body = [
+				'settings' => [],
+			];
 
 			$body = array_merge( $default_body, $initial_body );
 
 			// Add interesting fields to the body of each request.
 			$body['settings'] = wp_parse_args(
 				$body['settings'],
-				array(
+				[
 					'base_city'      => WC()->countries->get_base_city(),
 					'base_country'   => WC()->countries->get_base_country(),
 					'base_state'     => WC()->countries->get_base_state(),
@@ -214,7 +214,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 					'stripe_version' => WC_STRIPE_VERSION,
 					'wc_version'     => WC()->version,
 					'wp_version'     => get_bloginfo( 'version' ),
-				)
+				]
 			);
 
 			return $body;
@@ -227,7 +227,7 @@ if ( ! class_exists( 'WC_Stripe_Connect_API' ) ) {
 		 */
 		protected function request_headers() {
 
-			$headers                    = array();
+			$headers                    = [];
 			$locale                     = strtolower( str_replace( '_', '-', get_locale() ) );
 			$locale_elements            = explode( '-', $locale );
 			$lang                       = $locale_elements[0];

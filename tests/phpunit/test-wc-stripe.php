@@ -28,37 +28,37 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	 * These amounts are posted in lowest dominations.
 	 */
 	public function test_format_balance_fee() {
-		$balance_fee1 = new stdClass();
-		$balance_fee1->fee = 10500;
-		$balance_fee1->net = 10000;
+		$balance_fee1           = new stdClass();
+		$balance_fee1->fee      = 10500;
+		$balance_fee1->net      = 10000;
 		$balance_fee1->currency = 'USD';
 
 		$this->assertEquals( 105.00, WC_Stripe_Helper::format_balance_fee( $balance_fee1, 'fee' ) );
 
-		$balance_fee2 = new stdClass();
-		$balance_fee2->fee = 10500;
-		$balance_fee2->net = 10000;
+		$balance_fee2           = new stdClass();
+		$balance_fee2->fee      = 10500;
+		$balance_fee2->net      = 10000;
 		$balance_fee2->currency = 'JPY';
 
 		$this->assertEquals( 10500, WC_Stripe_Helper::format_balance_fee( $balance_fee2, 'fee' ) );
 
-		$balance_fee3 = new stdClass();
-		$balance_fee3->fee = 10500;
-		$balance_fee3->net = 10000;
+		$balance_fee3           = new stdClass();
+		$balance_fee3->fee      = 10500;
+		$balance_fee3->net      = 10000;
 		$balance_fee3->currency = 'USD';
 
 		$this->assertEquals( 100.00, WC_Stripe_Helper::format_balance_fee( $balance_fee3, 'net' ) );
 
-		$balance_fee4 = new stdClass();
-		$balance_fee4->fee = 10500;
-		$balance_fee4->net = 10000;
+		$balance_fee4           = new stdClass();
+		$balance_fee4->fee      = 10500;
+		$balance_fee4->net      = 10000;
 		$balance_fee4->currency = 'JPY';
 
 		$this->assertEquals( 10000, WC_Stripe_Helper::format_balance_fee( $balance_fee4, 'net' ) );
 
-		$balance_fee5 = new stdClass();
-		$balance_fee5->fee = 10500;
-		$balance_fee5->net = 10000;
+		$balance_fee5           = new stdClass();
+		$balance_fee5->fee      = 10500;
+		$balance_fee5->net      = 10000;
 		$balance_fee5->currency = 'USD';
 
 		$this->assertEquals( 105.00, WC_Stripe_Helper::format_balance_fee( $balance_fee5 ) );
@@ -71,31 +71,31 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	 * In addition, it cannot contain <>"' special characters.
 	 */
 	public function test_statement_descriptor_sanitation() {
-		$statement_descriptor1 = array(
+		$statement_descriptor1 = [
 			'actual'   => 'Test\'s Store',
 			'expected' => 'Tests Store',
-		);
+		];
 
 		$this->assertEquals( $statement_descriptor1['expected'], WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor1['actual'] ) );
 
-		$statement_descriptor2 = array(
+		$statement_descriptor2 = [
 			'actual'   => 'Test\'s Store > Driving Course Range',
 			'expected' => 'Tests Store  Driving C',
-		);
+		];
 
 		$this->assertEquals( $statement_descriptor2['expected'], WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor2['actual'] ) );
 
-		$statement_descriptor3 = array(
+		$statement_descriptor3 = [
 			'actual'   => 'Test\'s Store < Driving Course Range',
 			'expected' => 'Tests Store  Driving C',
-		);
+		];
 
 		$this->assertEquals( $statement_descriptor3['expected'], WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor3['actual'] ) );
 
-		$statement_descriptor4 = array(
+		$statement_descriptor4 = [
 			'actual'   => 'Test\'s Store " Driving Course Range',
 			'expected' => 'Tests Store  Driving C',
-		);
+		];
 
 		$this->assertEquals( $statement_descriptor4['expected'], WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor4['actual'] ) );
 	}

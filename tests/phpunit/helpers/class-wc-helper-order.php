@@ -51,12 +51,12 @@ class WC_Helper_Order {
 
 		WC_Helper_Shipping::create_simple_flat_rate();
 
-		$order_data = array(
+		$order_data = [
 			'status'        => 'pending',
 			'customer_id'   => $customer_id,
 			'customer_note' => '',
 			'total'         => '',
-		);
+		];
 
 		$_SERVER['REMOTE_ADDR'] = '127.0.0.1'; // Required, else wc_create_order throws an exception.
 		$order                  = wc_create_order( $order_data );
@@ -64,12 +64,12 @@ class WC_Helper_Order {
 		// Add order products.
 		$item = new WC_Order_Item_Product();
 		$item->set_props(
-			array(
+			[
 				'product'  => $product,
 				'quantity' => 4,
-				'subtotal' => wc_get_price_excluding_tax( $product, array( 'qty' => 4 ) ),
-				'total'    => wc_get_price_excluding_tax( $product, array( 'qty' => 4 ) ),
-			)
+				'subtotal' => wc_get_price_excluding_tax( $product, [ 'qty' => 4 ] ),
+				'total'    => wc_get_price_excluding_tax( $product, [ 'qty' => 4 ] ),
+			]
 		);
 		$item->save();
 		$order->add_item( $item );
@@ -92,12 +92,12 @@ class WC_Helper_Order {
 		$rate           = new WC_Shipping_Rate( 'flat_rate_shipping', 'Flat rate shipping', '10', $shipping_taxes, 'flat_rate' );
 		$item           = new WC_Order_Item_Shipping();
 		$item->set_props(
-			array(
+			[
 				'method_title' => $rate->label,
 				'method_id'    => $rate->id,
 				'total'        => wc_format_decimal( $rate->cost ),
 				'taxes'        => $rate->taxes,
-			)
+			]
 		);
 		foreach ( $rate->get_meta_data() as $key => $value ) {
 			$item->add_meta_data( $key, $value, true );

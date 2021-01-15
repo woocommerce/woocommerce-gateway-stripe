@@ -36,16 +36,16 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 
 		$this->wc_stripe_subs_compat = $this->getMockBuilder( 'WC_Stripe_Subs_Compat' )
 			->disableOriginalConstructor()
-			->setMethods( array( 'prepare_source', 'has_subscription' ) )
+			->setMethods( [ 'prepare_source', 'has_subscription' ] )
 			->getMock();
 
 		// Mocked in order to get metadata[payment_type] = recurring in the HTTP request.
 		$this->statement_descriptor = 'This is a statement descriptor.';
 		update_option(
 			'woocommerce_stripe_settings',
-			array(
+			[
 				'statement_descriptor' => $this->statement_descriptor,
-			)
+			]
 		);
 	}
 
@@ -76,7 +76,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 		$source               = 'src_123abc';
 		$statement_descriptor = WC_Stripe_Helper::clean_statement_descriptor( $this->statement_descriptor );
 		$intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
-		$urls_used            = array();
+		$urls_used            = [];
 
 		$initial_order->set_payment_method( 'stripe' );
 		$initial_order->save();
@@ -87,12 +87,12 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 			->method( 'prepare_source' )
 			->will(
 				$this->returnValue(
-					(object) array(
+					(object) [
 						'token_id'      => false,
 						'customer'      => $customer,
 						'source'        => $source,
-						'source_object' => (object) array(),
-					)
+						'source_object' => (object) [],
+					]
 				)
 			);
 
@@ -120,17 +120,17 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 			}
 
 			// Prepare the response early because it is used for confirmations too.
-			$response = array(
-				'headers'  => array(),
+			$response = [
+				'headers'  => [],
 				// Too bad we aren't dynamically setting things 'cus_123abc' when using this file.
 				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_signup_response_success.json' ),
-				'response' => array(
+				'response' => [
 					'code'    => 200,
 					'message' => 'OK',
-				),
-				'cookies'  => array(),
+				],
+				'cookies'  => [],
 				'filename' => null,
-			);
+			];
 
 			// Respond with a successfull intent for confirmations.
 			if ( $url !== $intents_api_endpoint ) {
@@ -146,25 +146,25 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 			$this->assertArrayHasKey( 'body', $request_args );
 
 			// Assert: the request body contains these values.
-			$expected_request_body_values = array(
+			$expected_request_body_values = [
 				'source'               => $source,
 				'amount'               => $stripe_amount,
 				'currency'             => $currency,
 				'statement_descriptor' => $statement_descriptor,
 				'customer'             => $customer,
 				'setup_future_usage'   => 'off_session',
-				'payment_method_types' => array( 'card' ),
-			);
+				'payment_method_types' => [ 'card' ],
+			];
 			foreach ( $expected_request_body_values as $key => $value ) {
 				$this->assertArrayHasKey( $key, $request_args['body'] );
 				$this->assertSame( $value, $request_args['body'][ $key ] );
 			}
 
 			// Assert: the request body contains these keys, without checking for their value.
-			$expected_request_body_keys = array(
+			$expected_request_body_keys = [
 				'description',
 				'capture_method',
-			);
+			];
 			foreach ( $expected_request_body_keys as $key ) {
 				$this->assertArrayHasKey( $key, $request_args['body'] );
 			}
@@ -173,10 +173,10 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 			$this->assertSame( $order_id, absint( $request_args['body']['metadata']['order_id'] ) );
 
 			// // Assert: the body metadata has these keys, without checking for their value.
-			$expected_metadata_keys = array(
+			$expected_metadata_keys = [
 				'customer_name',
 				'customer_email',
-			);
+			];
 			foreach ( $expected_metadata_keys as $key ) {
 				$this->assertArrayHasKey( $key, $request_args['body']['metadata'] );
 			}
@@ -203,6 +203,6 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 		$this->assertTrue( in_array( $intents_api_endpoint, $urls_used, true ) );
 
 		// Clean up.
-		remove_filter( 'pre_http_request', array( $this, 'pre_http_request_response_success' ) );
+		remove_filter( 'pre_http_request', [ $this, 'pre_http_request_response_success' ] );
 	}
 }

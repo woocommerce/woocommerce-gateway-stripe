@@ -5,10 +5,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 if ( woocommerce_gateway_stripe()->connect->is_connected() ) {
 	$reset_link = add_query_arg(
-		array(
+		[
 			'_wpnonce'                     => wp_create_nonce( 'reset_stripe_api_credentials' ),
 			'reset_stripe_api_credentials' => true,
-		),
+		],
 		admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' )
 	);
 
@@ -28,7 +28,6 @@ if ( woocommerce_gateway_stripe()->connect->is_connected() ) {
 			'<a id="wc_stripe_connect_button" href="' . $oauth_url . '" class="button button-primary">',
 			'</a>',
 			'<a href="https://wordpress.com/tos">'
-
 		);
 	} else {
 		$api_credentials_text = __( 'Manually enter Stripe keys below.', 'woocommerce-gateway-stripe' );
@@ -37,112 +36,112 @@ if ( woocommerce_gateway_stripe()->connect->is_connected() ) {
 
 return apply_filters(
 	'wc_stripe_settings',
-	array(
-		'enabled'                       => array(
+	[
+		'enabled'                             => [
 			'title'       => __( 'Enable/Disable', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Enable Stripe', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
 			'description' => '',
 			'default'     => 'no',
-		),
-		'title'                         => array(
+		],
+		'title'                               => [
 			'title'       => __( 'Title', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
 			'description' => __( 'This controls the title which the user sees during checkout.', 'woocommerce-gateway-stripe' ),
 			'default'     => __( 'Credit Card (Stripe)', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
-		),
-		'description'                   => array(
+		],
+		'description'                         => [
 			'title'       => __( 'Description', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
 			'description' => __( 'This controls the description which the user sees during checkout.', 'woocommerce-gateway-stripe' ),
 			'default'     => __( 'Pay with your credit card via Stripe.', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
-		),
-		'webhook'                       => array(
+		],
+		'webhook'                             => [
 			'title'       => __( 'Webhook Endpoints', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
 			/* translators: webhook URL */
 			'description' => $this->display_admin_settings_webhook_description(),
-		),
-		'api_credentials'               => array(
+		],
+		'api_credentials'                     => [
 			'title'       => __( 'Stripe Account Keys', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
-			'description' => $api_credentials_text
-		),
-		'testmode'                      => array(
+			'description' => $api_credentials_text,
+		],
+		'testmode'                            => [
 			'title'       => __( 'Test mode', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Enable Test Mode', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
 			'description' => __( 'Place the payment gateway in test mode using test API keys.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'yes',
 			'desc_tip'    => true,
-		),
-		'test_publishable_key'          => array(
+		],
+		'test_publishable_key'                => [
 			'title'       => __( 'Test Publishable Key', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
 			'description' => __( 'Get your API keys from your stripe account. Invalid values will be rejected. Only values starting with "pk_test_" will be saved.', 'woocommerce-gateway-stripe' ),
 			'default'     => '',
 			'desc_tip'    => true,
-		),
-		'test_secret_key'               => array(
+		],
+		'test_secret_key'                     => [
 			'title'       => __( 'Test Secret Key', 'woocommerce-gateway-stripe' ),
 			'type'        => 'password',
 			'description' => __( 'Get your API keys from your stripe account. Invalid values will be rejected. Only values starting with "sk_test_" or "rk_test_" will be saved.', 'woocommerce-gateway-stripe' ),
 			'default'     => '',
 			'desc_tip'    => true,
-		),
-		'test_webhook_secret'           => array(
+		],
+		'test_webhook_secret'                 => [
 			'title'       => __( 'Test Webhook Secret', 'woocommerce-gateway-stripe' ),
 			'type'        => 'password',
 			'description' => __( 'Get your webhook signing secret from the webhooks section in your stripe account.', 'woocommerce-gateway-stripe' ),
 			'default'     => '',
 			'desc_tip'    => true,
-		),
-		'publishable_key'               => array(
+		],
+		'publishable_key'                     => [
 			'title'       => __( 'Live Publishable Key', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
 			'description' => __( 'Get your API keys from your stripe account. Invalid values will be rejected. Only values starting with "pk_live_" will be saved.', 'woocommerce-gateway-stripe' ),
 			'default'     => '',
 			'desc_tip'    => true,
-		),
-		'secret_key'                    => array(
+		],
+		'secret_key'                          => [
 			'title'       => __( 'Live Secret Key', 'woocommerce-gateway-stripe' ),
 			'type'        => 'password',
 			'description' => __( 'Get your API keys from your stripe account. Invalid values will be rejected. Only values starting with "sk_live_" or "rk_live_" will be saved.', 'woocommerce-gateway-stripe' ),
 			'default'     => '',
 			'desc_tip'    => true,
-		),
-		'webhook_secret'               => array(
+		],
+		'webhook_secret'                      => [
 			'title'       => __( 'Webhook Secret', 'woocommerce-gateway-stripe' ),
 			'type'        => 'password',
 			'description' => __( 'Get your webhook signing secret from the webhooks section in your stripe account.', 'woocommerce-gateway-stripe' ),
 			'default'     => '',
 			'desc_tip'    => true,
-		),
-		'inline_cc_form'                => array(
+		],
+		'inline_cc_form'                      => [
 			'title'       => __( 'Inline Credit Card Form', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
 			'description' => __( 'Choose the style you want to show for your credit card form. When unchecked, the credit card form will display separate credit card number field, expiry date field and cvc field.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'no',
 			'desc_tip'    => true,
-		),
-		'statement_descriptor'          => array(
+		],
+		'statement_descriptor'                => [
 			'title'       => __( 'Statement Descriptor', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
 			'description' => __( 'Statement descriptors are limited to 22 characters, cannot use the special characters >, <, ", \, \', *, and must not consist solely of numbers. This will appear on your customer\'s statement in capital letters.', 'woocommerce-gateway-stripe' ),
 			'default'     => '',
 			'desc_tip'    => true,
-		),
-		'capture'                       => array(
+		],
+		'capture'                             => [
 			'title'       => __( 'Capture', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Capture charge immediately', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
 			'description' => __( 'Whether or not to immediately capture the charge. When unchecked, the charge issues an authorization and will need to be captured later. Uncaptured charges expire in 7 days.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'yes',
 			'desc_tip'    => true,
-		),
-		'payment_request'               => array(
+		],
+		'payment_request'                     => [
 			'title'       => __( 'Payment Request Buttons', 'woocommerce-gateway-stripe' ),
 			'label'       => sprintf(
 				/* translators: 1) br tag 2) Stripe anchor tag 3) Apple anchor tag 4) Stripe dashboard opening anchor tag 5) Stripe dashboard closing anchor tag */
@@ -157,78 +156,78 @@ return apply_filters(
 			'description' => __( 'If enabled, users will be able to pay using Apple Pay or Chrome Payment Request if supported by the browser.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'yes',
 			'desc_tip'    => true,
-		),
-		'payment_request_button_type'   => array(
+		],
+		'payment_request_button_type'         => [
 			'title'       => __( 'Payment Request Button Type', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Button Type', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
 			'description' => __( 'Select the button type you would like to show.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'buy',
 			'desc_tip'    => true,
-			'options'     => array(
+			'options'     => [
 				'default' => __( 'Default', 'woocommerce-gateway-stripe' ),
 				'buy'     => __( 'Buy', 'woocommerce-gateway-stripe' ),
 				'donate'  => __( 'Donate', 'woocommerce-gateway-stripe' ),
 				'branded' => __( 'Branded', 'woocommerce-gateway-stripe' ),
 				'custom'  => __( 'Custom', 'woocommerce-gateway-stripe' ),
-			),
-		),
-		'payment_request_button_theme'  => array(
+			],
+		],
+		'payment_request_button_theme'        => [
 			'title'       => __( 'Payment Request Button Theme', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Button Theme', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
 			'description' => __( 'Select the button theme you would like to show.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'dark',
 			'desc_tip'    => true,
-			'options'     => array(
+			'options'     => [
 				'dark'          => __( 'Dark', 'woocommerce-gateway-stripe' ),
 				'light'         => __( 'Light', 'woocommerce-gateway-stripe' ),
 				'light-outline' => __( 'Light-Outline', 'woocommerce-gateway-stripe' ),
-			),
-		),
-		'payment_request_button_height' => array(
+			],
+		],
+		'payment_request_button_height'       => [
 			'title'       => __( 'Payment Request Button Height', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Button Height', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
 			'description' => __( 'Enter the height you would like the button to be in pixels. Width will always be 100%.', 'woocommerce-gateway-stripe' ),
 			'default'     => '44',
 			'desc_tip'    => true,
-		),
-		'payment_request_button_label' => array(
+		],
+		'payment_request_button_label'        => [
 			'title'       => __( 'Payment Request Button Label', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Button Label', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
 			'description' => __( 'Enter the custom text you would like the button to have.', 'woocommerce-gateway-stripe' ),
 			'default'     => __( 'Buy now', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
-		),
-		'payment_request_button_branded_type' => array(
+		],
+		'payment_request_button_branded_type' => [
 			'title'       => __( 'Payment Request Branded Button Label Format', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Branded Button Label Format', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
 			'description' => __( 'Select the branded button label format.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'long',
 			'desc_tip'    => true,
-			'options'     => array(
+			'options'     => [
 				'short' => __( 'Logo only', 'woocommerce-gateway-stripe' ),
 				'long'  => __( 'Text and logo', 'woocommerce-gateway-stripe' ),
-			),
-		),
-		'saved_cards'                   => array(
+			],
+		],
+		'saved_cards'                         => [
 			'title'       => __( 'Saved Cards', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Enable Payment via Saved Cards', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
 			'description' => __( 'If enabled, users will be able to pay with a saved card during checkout. Card details are saved on Stripe servers, not on your store.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'yes',
 			'desc_tip'    => true,
-		),
-		'logging'                       => array(
+		],
+		'logging'                             => [
 			'title'       => __( 'Logging', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Log debug messages', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
 			'description' => __( 'Save debug messages to the WooCommerce System Status log.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'no',
 			'desc_tip'    => true,
-		),
-	)
+		],
+	]
 );

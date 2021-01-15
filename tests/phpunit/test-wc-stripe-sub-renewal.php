@@ -36,7 +36,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 
 		$this->wc_stripe_subs_compat = $this->getMockBuilder( 'WC_Stripe_Subs_Compat' )
 			->disableOriginalConstructor()
-			->setMethods( array( 'prepare_order_source', 'has_subscription', 'ensure_subscription_has_customer_id' ) )
+			->setMethods( [ 'prepare_order_source', 'has_subscription', 'ensure_subscription_has_customer_id' ] )
 			->getMock();
 
 		// Mocked in order to get metadata[payment_type] = recurring in the HTTP request.
@@ -50,9 +50,9 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->statement_descriptor = 'This is a statement descriptor.';
 		add_option(
 			'woocommerce_stripe_settings',
-			array(
+			[
 				'statement_descriptor' => $this->statement_descriptor,
-			)
+			]
 		);
 	}
 
@@ -87,7 +87,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$should_retry                  = false;
 		$previous_error                = false;
 		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
-		$urls_used                     = array();
+		$urls_used                     = [];
 
 		$renewal_order->set_payment_method( 'stripe' );
 
@@ -97,12 +97,12 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			->method( 'prepare_order_source' )
 			->will(
 				$this->returnValue(
-					(object) array(
+					(object) [
 						'token_id'      => false,
 						'customer'      => $customer,
 						'source'        => $source,
-						'source_object' => (object) array(),
-					)
+						'source_object' => (object) [],
+					]
 				)
 			);
 
@@ -134,74 +134,74 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			$this->assertArrayHasKey( 'body', $request_args );
 
 			// Assert: the request body contains these values.
-			$expected_request_body_values = array(
+			$expected_request_body_values = [
 				'source'               => $source,
 				'amount'               => $stripe_amount,
 				'currency'             => $currency,
-				'payment_method_types' => array( 'card' ),
+				'payment_method_types' => [ 'card' ],
 				'customer'             => $customer,
 				'off_session'          => 'true',
 				'confirm'              => 'true',
 				'confirmation_method'  => 'automatic',
 				'statement_descriptor' => $statement_descriptor,
-			);
+			];
 			foreach ( $expected_request_body_values as $key => $value ) {
 				$this->assertArrayHasKey( $key, $request_args['body'] );
 				$this->assertSame( $value, $request_args['body'][ $key ] );
 			}
 
 			// Assert: the request body contains these keys, without checking for their value.
-			$expected_request_body_keys = array(
+			$expected_request_body_keys = [
 				'description',
 				'metadata',
-			);
+			];
 			foreach ( $expected_request_body_keys as $key ) {
 				$this->assertArrayHasKey( $key, $request_args['body'] );
 			}
 
 			// Assert: the body metadata has these values.
 			$order_id                 = (string) $renewal_order->get_id();
-			$expected_metadata_values = array(
+			$expected_metadata_values = [
 				'order_id'     => $order_id,
 				'payment_type' => 'recurring',
-			);
+			];
 			foreach ( $expected_metadata_values as $key => $value ) {
 				$this->assertArrayHasKey( $key, $request_args['body']['metadata'] );
 				$this->assertSame( $value, $request_args['body']['metadata'][ $key ] );
 			}
 
 			// Assert: the body metadata has these keys, without checking for their value.
-			$expected_metadata_keys = array(
+			$expected_metadata_keys = [
 				'customer_name',
 				'customer_email',
 				'site_url',
-			);
+			];
 			foreach ( $expected_metadata_keys as $key ) {
 				$this->assertArrayHasKey( $key, $request_args['body']['metadata'] );
 			}
 
 			// Assert: the request body does not contains these keys.
-			$expected_missing_request_body_keys = array(
+			$expected_missing_request_body_keys = [
 				'capture', // No need to capture with a payment intent.
 				'capture_method', // The default ('automatic') is what we want in this case, so we leave it off.
 				'expand[]',
-			);
+			];
 			foreach ( $expected_missing_request_body_keys as $key ) {
 				$this->assertArrayNotHasKey( $key, $request_args['body'] );
 			}
 
 			// Arrange: return dummy content as the response.
-			return array(
-				'headers'  => array(),
+			return [
+				'headers'  => [],
 				// Too bad we aren't dynamically setting things 'cus_123abc' when using this file.
 				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_success.json' ),
-				'response' => array(
+				'response' => [
 					'code'    => 200,
 					'message' => 'OK',
-				),
-				'cookies'  => array(),
+				],
+				'cookies'  => [],
 				'filename' => null,
-			);
+			];
 		};
 
 		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
@@ -224,7 +224,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		// Assert that we saved the payment intent to the order.
 		$order_id   = $renewal_order->get_id();
 		$order      = wc_get_order( $order_id );
-		$order_data = $order->get_meta( '_stripe_intent_id'	);
+		$order_data = $order->get_meta( '_stripe_intent_id' );
 
 		$this->assertEquals( $order_data, 'pi_123abc' );
 
@@ -242,10 +242,10 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEquals( 1, $mock_action_process_payment->get_call_count() );
 
 		// Assert: Only our hook was called.
-		$this->assertEquals( array( 'wc_gateway_stripe_process_payment' ), $mock_action_process_payment->get_tags() );
+		$this->assertEquals( [ 'wc_gateway_stripe_process_payment' ], $mock_action_process_payment->get_tags() );
 
 		// Clean up.
-		remove_filter( 'pre_http_request', array( $this, 'pre_http_request_response_success' ) );
+		remove_filter( 'pre_http_request', [ $this, 'pre_http_request_response_success' ] );
 	}
 
 	/**
@@ -269,7 +269,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$should_retry                  = false;
 		$previous_error                = false;
 		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
-		$urls_used                     = array();
+		$urls_used                     = [];
 
 		// Arrange: Mock prepare_order_source() so that we have a customer and source.
 		$this->wc_stripe_subs_compat
@@ -277,12 +277,12 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			->method( 'prepare_order_source' )
 			->will(
 				$this->returnValue(
-					(object) array(
+					(object) [
 						'token_id'      => false,
 						'customer'      => $customer,
 						'source'        => $source,
-						'source_object' => (object) array(),
-					)
+						'source_object' => (object) [],
+					]
 				)
 			);
 
@@ -305,17 +305,17 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			}
 
 			// Arrange: return dummy content as the response.
-			return array(
-				'headers'  => array(),
+			return [
+				'headers'  => [],
 				// Too bad we aren't dynamically setting things 'cus_123abc' when using this file.
 				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_renewal_response_authentication_required.json' ),
-				'response' => array(
+				'response' => [
 					'code'    => 402,
 					'message' => 'Payment Required',
-				),
-				'cookies'  => array(),
+				],
+				'cookies'  => [],
 				'filename' => null,
-			);
+			];
 		};
 		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
 
@@ -356,9 +356,9 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$this->assertEquals( 1, $mock_action_process_payment->get_call_count() );
 
 		// Assert: Only our hook was called.
-		$this->assertEquals( array( 'wc_gateway_stripe_process_payment_authentication_required' ), $mock_action_process_payment->get_tags() );
+		$this->assertEquals( [ 'wc_gateway_stripe_process_payment_authentication_required' ], $mock_action_process_payment->get_tags() );
 
 		// Clean up.
-		remove_filter( 'pre_http_request', array( $this, 'pre_http_request_response_success' ) );
+		remove_filter( 'pre_http_request', [ $this, 'pre_http_request_response_success' ] );
 	}
 }

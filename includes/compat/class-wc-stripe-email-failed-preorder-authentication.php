@@ -21,7 +21,7 @@ class WC_Stripe_Email_Failed_Preorder_Authentication extends WC_Stripe_Email_Fai
 	 *
 	 * @param WC_Email[] $email_classes All existing instances of WooCommerce emails.
 	 */
-	public function __construct( $email_classes = array() ) {
+	public function __construct( $email_classes = [] ) {
 		$this->id             = 'failed_preorder_sca_authentication';
 		$this->title          = __( 'Pre-order Payment Action Needed', 'woocommerce-gateway-stripe' );
 		$this->description    = __( 'This is an order notification sent to the customer once a pre-order is complete, but additional payment steps are required.', 'woocommerce-gateway-stripe' );
@@ -32,7 +32,7 @@ class WC_Stripe_Email_Failed_Preorder_Authentication extends WC_Stripe_Email_Fai
 		$this->template_base  = plugin_dir_path( WC_STRIPE_MAIN_FILE ) . 'templates/';
 
 		// Use the "authentication required" hook to add the correct, later hook.
-		add_action( 'wc_gateway_stripe_process_payment_authentication_required', array( $this, 'trigger' ) );
+		add_action( 'wc_gateway_stripe_process_payment_authentication_required', [ $this, 'trigger' ] );
 
 		if ( isset( $email_classes['WC_Pre_Orders_Email_Pre_Order_Available'] ) ) {
 			$this->original_email = $email_classes['WC_Pre_Orders_Email_Pre_Order_Available'];
@@ -51,10 +51,10 @@ class WC_Stripe_Email_Failed_Preorder_Authentication extends WC_Stripe_Email_Fai
 	public function trigger( $order ) {
 		if ( class_exists( 'WC_Pre_Orders_Order' ) && WC_Pre_Orders_Order::order_contains_pre_order( $order->get_id() ) ) {
 			if ( isset( $this->original_email ) ) {
-				remove_action( 'wc_pre_order_status_completed_notification', array( $this->original_email, 'trigger' ), 10, 2 );
+				remove_action( 'wc_pre_order_status_completed_notification', [ $this->original_email, 'trigger' ], 10, 2 );
 			}
 
-			add_action( 'wc_pre_orders_pre_order_completed', array( $this, 'send_email' ), 10, 2 );
+			add_action( 'wc_pre_orders_pre_order_completed', [ $this, 'send_email' ], 10, 2 );
 		}
 	}
 
@@ -71,7 +71,7 @@ class WC_Stripe_Email_Failed_Preorder_Authentication extends WC_Stripe_Email_Fai
 
 		// Restore the action of the original email for other bulk actions.
 		if ( isset( $this->original_email ) ) {
-			add_action( 'wc_pre_order_status_completed_notification', array( $this->original_email, 'trigger' ), 10, 2 );
+			add_action( 'wc_pre_order_status_completed_notification', [ $this->original_email, 'trigger' ], 10, 2 );
 		}
 	}
 

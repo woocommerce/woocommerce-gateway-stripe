@@ -77,7 +77,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.1.0
 	 * @param object $order
-	 * @param float $amount
+	 * @param float  $amount
 	 */
 	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
 		if ( is_null( $order ) ) {
@@ -136,7 +136,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.1.0
 	 * @param object $order
-	 * @param float $amount
+	 * @param float  $amount
 	 */
 	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
 		if ( is_null( $order ) ) {
@@ -193,7 +193,7 @@ class WC_Stripe_Helper {
 	public static function get_localized_messages() {
 		return apply_filters(
 			'wc_stripe_localized_messages',
-			array(
+			[
 				'invalid_number'           => __( 'The card number is not a valid credit card number.', 'woocommerce-gateway-stripe' ),
 				'invalid_expiry_month'     => __( 'The card\'s expiration month is invalid.', 'woocommerce-gateway-stripe' ),
 				'invalid_expiry_year'      => __( 'The card\'s expiration year is invalid.', 'woocommerce-gateway-stripe' ),
@@ -214,7 +214,7 @@ class WC_Stripe_Helper {
 				'invalid_request_error'    => is_add_payment_method_page()
 					? __( 'Unable to save this payment method, please try again or use alternative method.', 'woocommerce-gateway-stripe' )
 					: __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ),
-			)
+			]
 		);
 	}
 
@@ -225,7 +225,7 @@ class WC_Stripe_Helper {
 	 * @return array $currencies
 	 */
 	public static function no_decimal_currencies() {
-		return array(
+		return [
 			'bif', // Burundian Franc
 			'clp', // Chilean Peso
 			'djf', // Djiboutian Franc
@@ -242,7 +242,7 @@ class WC_Stripe_Helper {
 			'xaf', // Central African Cfa Franc
 			'xof', // West African Cfa Franc
 			'xpf', // Cfp Franc
-		);
+		];
 	}
 
 	/**
@@ -325,7 +325,7 @@ class WC_Stripe_Helper {
 	 * @param string $setting The name of the setting to get.
 	 */
 	public static function get_settings( $method = null, $setting = null ) {
-		$all_settings = null === $method ? get_option( 'woocommerce_stripe_settings', array() ) : get_option( 'woocommerce_stripe_' . $method . '_settings', array() );
+		$all_settings = null === $method ? get_option( 'woocommerce_stripe_settings', [] ) : get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
 
 		if ( null === $setting ) {
 			return $all_settings;
@@ -459,7 +459,7 @@ class WC_Stripe_Helper {
 	 * @return string $statement_descriptor Sanitized statement descriptor
 	 */
 	public static function clean_statement_descriptor( $statement_descriptor = '' ) {
-		$disallowed_characters = array( '<', '>', '"', "'" );
+		$disallowed_characters = [ '<', '>', '"', "'" ];
 
 		// Remove special characters.
 		$statement_descriptor = str_replace( $disallowed_characters, '', $statement_descriptor );

@@ -72,16 +72,16 @@ class WC_Helper_Fee {
 	public static function add_cart_fee( $fee = '' ) {
 		switch ( $fee ) {
 			case 'taxed':
-				add_action( 'woocommerce_cart_calculate_fees', array( __CLASS__, 'create_taxed_fee' ) );
+				add_action( 'woocommerce_cart_calculate_fees', [ __CLASS__, 'create_taxed_fee' ] );
 				break;
 			case 'negative':
-				add_action( 'woocommerce_cart_calculate_fees', array( __CLASS__, 'create_negative_fee' ) );
+				add_action( 'woocommerce_cart_calculate_fees', [ __CLASS__, 'create_negative_fee' ] );
 				break;
 			case 'negative-taxed':
-				add_action( 'woocommerce_cart_calculate_fees', array( __CLASS__, 'create_negative_taxed_fee' ) );
+				add_action( 'woocommerce_cart_calculate_fees', [ __CLASS__, 'create_negative_taxed_fee' ] );
 				break;
 			default:
-				add_action( 'woocommerce_cart_calculate_fees', array( __CLASS__, 'create_simple_fee' ) );
+				add_action( 'woocommerce_cart_calculate_fees', [ __CLASS__, 'create_simple_fee' ] );
 		}
 	}
 
@@ -94,16 +94,16 @@ class WC_Helper_Fee {
 	public static function remove_cart_fee( $fee = '' ) {
 		switch ( $fee ) {
 			case 'taxed':
-				remove_action( 'woocommerce_cart_calculate_fees', array( __CLASS__, 'create_taxed_fee' ) );
+				remove_action( 'woocommerce_cart_calculate_fees', [ __CLASS__, 'create_taxed_fee' ] );
 				break;
 			case 'negative':
-				remove_action( 'woocommerce_cart_calculate_fees', array( __CLASS__, 'create_negative_fee' ) );
+				remove_action( 'woocommerce_cart_calculate_fees', [ __CLASS__, 'create_negative_fee' ] );
 				break;
 			case 'negative-taxed':
-				remove_action( 'woocommerce_cart_calculate_fees', array( __CLASS__, 'create_negative_taxed_fee' ) );
+				remove_action( 'woocommerce_cart_calculate_fees', [ __CLASS__, 'create_negative_taxed_fee' ] );
 				break;
 			default:
-				remove_action( 'woocommerce_cart_calculate_fees', array( __CLASS__, 'create_simple_fee' ) );
+				remove_action( 'woocommerce_cart_calculate_fees', [ __CLASS__, 'create_simple_fee' ] );
 		}
 	}
 }

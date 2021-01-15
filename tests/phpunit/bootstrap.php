@@ -43,10 +43,10 @@ tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 
 require $_tests_dir . '/includes/bootstrap.php';
 
-require_once( __DIR__ . '/helpers/class-wc-mock-session-handler.php' );
-require_once( __DIR__ . '/helpers/class-wc-helper-product.php' );
-require_once( __DIR__ . '/helpers/class-wc-helper-coupon.php' );
-require_once( __DIR__ . '/helpers/class-wc-helper-fee.php' );
-require_once( __DIR__ . '/helpers/class-wc-helper-shipping.php' );
-require_once( __DIR__ . '/helpers/class-wc-helper-customer.php' );
-require_once( __DIR__ . '/helpers/class-wc-helper-order.php' );
+require_once __DIR__ . '/helpers/class-wc-mock-session-handler.php';
+require_once __DIR__ . '/helpers/class-wc-helper-product.php';
+require_once __DIR__ . '/helpers/class-wc-helper-coupon.php';
+require_once __DIR__ . '/helpers/class-wc-helper-fee.php';
+require_once __DIR__ . '/helpers/class-wc-helper-shipping.php';
+require_once __DIR__ . '/helpers/class-wc-helper-customer.php';
+require_once __DIR__ . '/helpers/class-wc-helper-order.php';
