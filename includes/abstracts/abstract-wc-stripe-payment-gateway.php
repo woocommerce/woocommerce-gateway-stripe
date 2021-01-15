@@ -851,8 +851,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		if ( $reason ) {
-			// Trim the refund reason to a max of 450 characters.
-			if ( 450 < strlen( $reason ) ) {
+			// Trim the refund reason to a max of 499 characters.
+			if ( 499 < strlen( $reason ) ) {
 				$reason = substr( $reason, 0, 450 );
 				// Add some explainer text indicating where to find the full refund reason.
 				$reason = $reason . '... [See WooCommerce order page for full text.]';
