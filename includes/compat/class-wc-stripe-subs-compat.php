@@ -368,6 +368,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 				$order_id = $renewal_order->get_id();
 
 				$renewal_order->set_transaction_id( $id );
+				/* translators: %s is the charge Id */
 				$renewal_order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
 				if ( is_callable( [ $renewal_order, 'save' ] ) ) {
 					$renewal_order->save();
@@ -673,6 +674,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 		// Fail the payment attempt (order would be currently pending because of retry rules).
 		$charge    = end( $existing_intent->charges->data );
 		$charge_id = $charge->id;
+		/* translators: %s is the stripe charge Id */
 		$renewal_order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $charge_id ) );
 
 		return true;

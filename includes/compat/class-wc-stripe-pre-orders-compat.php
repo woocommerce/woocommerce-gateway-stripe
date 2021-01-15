@@ -113,6 +113,7 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 				$id     = $charge->id;
 
 				$order->set_transaction_id( $id );
+				/* translators: %s is the charge Id */
 				$order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
 				if ( is_callable( [ $order, 'save' ] ) ) {
 					$order->save();

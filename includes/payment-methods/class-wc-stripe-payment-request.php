@@ -918,6 +918,7 @@ class WC_Stripe_Payment_Request {
 			$variation_id = null;
 
 			if ( ! is_a( $product, 'WC_Product' ) ) {
+				/* translators: %d is the product Id */
 				throw new Exception( sprintf( __( 'Product with the ID (%d) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
 			}
 
