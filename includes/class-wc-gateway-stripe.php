@@ -893,7 +893,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$intent = $this->get_intent_from_order( $order );
 
 		if ( ! $intent ) {
-			throw new WC_Stripe_Exception( 'Payment Intent not found', __( 'Payment Intent not found for order #' . $order->get_id(), 'woocommerce-gateway-stripe' ) );
+			throw new WC_Stripe_Exception(
+				'Payment Intent not found',
+				sprintf(
+					/* translators: %s is the order Id */
+					__( 'Payment Intent not found for order #%s', 'woocommerce-gateway-stripe' ),
+					$order->get_id()
+				)
+			);
 		}
 
 		if ( 'requires_payment_method' === $intent->status && isset( $intent->last_payment_error )
