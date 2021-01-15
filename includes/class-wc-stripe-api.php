@@ -87,7 +87,7 @@ class WC_Stripe_API {
 				'Authorization'              => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
 				'Stripe-Version'             => self::STRIPE_API_VERSION,
 				'User-Agent'                 => $app_info['name'] . '/' . $app_info['version'] . ' (' . $app_info['url'] . ')',
-				'X-Stripe-Client-User-Agent' => json_encode( $user_agent ),
+				'X-Stripe-Client-User-Agent' => wp_json_encode( $user_agent ),
 			]
 		);
 	}

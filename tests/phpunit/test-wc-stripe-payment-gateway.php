@@ -48,7 +48,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$callback        = function( $preempt, $request_args, $url ) use ( $expected_intent ) {
 			$response = [
 				'headers'  => [],
-				'body'     => json_encode( $expected_intent ),
+				'body'     => wp_json_encode( $expected_intent ),
 				'response' => [
 					'code'    => 200,
 					'message' => 'OK',
@@ -84,7 +84,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$callback       = function( $preempt, $request_args, $url ) use ( $response_error ) {
 			$response = [
 				'headers'  => [],
-				'body'     => json_encode( $response_error ),
+				'body'     => wp_json_encode( $response_error ),
 				'response' => [
 					'code'    => 404,
 					'message' => 'ERR',
