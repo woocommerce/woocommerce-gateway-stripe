@@ -777,7 +777,7 @@ class WC_Stripe_Payment_Request {
 			]
 		);
 		$product_view_options      = filter_input_array( INPUT_POST, [ 'is_product_page' => FILTER_SANITIZE_STRING ] );
-		$should_show_itemized_view = ! isset( $product_view_options['is_product_page'] ) ?: filter_var( $product_view_options['is_product_page'], FILTER_VALIDATE_BOOLEAN );
+		$should_show_itemized_view = ! isset( $product_view_options['is_product_page'] ) ? ! isset( $product_view_options['is_product_page'] ) : filter_var( $product_view_options['is_product_page'], FILTER_VALIDATE_BOOLEAN );
 
 		$data = $this->get_shipping_options( $shipping_address, $should_show_itemized_view );
 		wp_send_json( $data );
@@ -874,7 +874,7 @@ class WC_Stripe_Payment_Request {
 		WC()->cart->calculate_totals();
 
 		$product_view_options      = filter_input_array( INPUT_POST, [ 'is_product_page' => FILTER_SANITIZE_STRING ] );
-		$should_show_itemized_view = ! isset( $product_view_options['is_product_page'] ) ?: filter_var( $product_view_options['is_product_page'], FILTER_VALIDATE_BOOLEAN );
+		$should_show_itemized_view = ! isset( $product_view_options['is_product_page'] ) ? ! isset( $product_view_options['is_product_page'] ) : filter_var( $product_view_options['is_product_page'], FILTER_VALIDATE_BOOLEAN );
 
 		$data           = [];
 		$data          += $this->build_display_items( $should_show_itemized_view );
@@ -1060,7 +1060,7 @@ class WC_Stripe_Payment_Request {
 			$valid_states = WC()->countries->get_states( $billing_country );
 
 			// Valid states found for country.
-			if ( ! empty( $valid_states ) && is_array( $valid_states ) && sizeof( $valid_states ) > 0 ) {
+			if ( ! empty( $valid_states ) && is_array( $valid_states ) && count( $valid_states ) > 0 ) {
 				foreach ( $valid_states as $state_abbr => $state ) {
 					if ( preg_match( '/' . preg_quote( $state ) . '/i', $billing_state ) ) {
 						$_POST['billing_state'] = $state_abbr;
@@ -1073,7 +1073,7 @@ class WC_Stripe_Payment_Request {
 			$valid_states = WC()->countries->get_states( $shipping_country );
 
 			// Valid states found for country.
-			if ( ! empty( $valid_states ) && is_array( $valid_states ) && sizeof( $valid_states ) > 0 ) {
+			if ( ! empty( $valid_states ) && is_array( $valid_states ) && count( $valid_states ) > 0 ) {
 				foreach ( $valid_states as $state_abbr => $state ) {
 					if ( preg_match( '/' . preg_quote( $state ) . '/i', $shipping_state ) ) {
 						$_POST['shipping_state'] = $state_abbr;
