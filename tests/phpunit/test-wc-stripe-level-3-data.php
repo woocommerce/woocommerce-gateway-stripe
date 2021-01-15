@@ -4,7 +4,7 @@
  * data.
  */
 
-class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
+class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 	public function test_data_for_mutli_item_order() {
 		$store_postcode = '90210';
 		update_option( 'woocommerce_store_postcode', $store_postcode );

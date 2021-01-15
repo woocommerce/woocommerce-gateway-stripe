@@ -4,6 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.Files.FileName
+
 /**
  * Stripe Connect base REST controller class.
  */

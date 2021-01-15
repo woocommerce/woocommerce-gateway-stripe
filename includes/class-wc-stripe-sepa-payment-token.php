@@ -4,6 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
+// phpcs:disable WordPress.Files.FileName
+
 /**
  * WooCommerce Stripe SEPA Direct Debit Payment Token.
  *
