@@ -70,7 +70,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	 * Stripe requires statement_descriptor to be no longer than 22 characters.
 	 * In addition, it cannot contain <>"' special characters.
 	 *
-     * @dataProvider statement_descriptor_sanitation_provider
+	 * @dataProvider statement_descriptor_sanitation_provider
 	 */
 	public function test_statement_descriptor_sanitation( $original, $expected ) {
 		$this->assertEquals( $expected, WC_Stripe_Helper::clean_statement_descriptor( $original ) );
