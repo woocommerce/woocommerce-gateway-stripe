@@ -145,7 +145,7 @@ class WC_Stripe_Apple_Pay_Registration {
 		$endpoint = 'https://api.stripe.com/v1/apple_pay/domains';
 
 		$data = [
-			'domain_name' => $_SERVER['HTTP_HOST'],
+			'domain_name' => wp_unslash( $_SERVER['HTTP_HOST'] ),
 		];
 
 		$headers = [

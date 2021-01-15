@@ -372,7 +372,7 @@ class WC_Stripe_Payment_Request {
 			return $valid;
 		}
 
-		$payment_request_type = isset( $_POST['payment_request_type'] ) ? wc_clean( $_POST['payment_request_type'] ) : '';
+		$payment_request_type = isset( $_POST['payment_request_type'] ) ? wc_clean( wp_unslash( $_POST['payment_request_type'] ) ) : '';
 
 		if ( 'apple_pay' !== $payment_request_type ) {
 			return $valid;
@@ -408,7 +408,7 @@ class WC_Stripe_Payment_Request {
 
 		$order = wc_get_order( $order_id );
 
-		$payment_request_type = wc_clean( $_POST['payment_request_type'] );
+		$payment_request_type = wc_clean( wp_unslash( $_POST['payment_request_type'] ) );
 
 		if ( 'apple_pay' === $payment_request_type ) {
 			$order->set_payment_method_title( 'Apple Pay (Stripe)' );
@@ -707,7 +707,7 @@ class WC_Stripe_Payment_Request {
 	public function ajax_log_errors() {
 		check_ajax_referer( 'wc-stripe-log-errors', 'security' );
 
-		$errors = wc_clean( stripslashes( $_POST['errors'] ) );
+		$errors = isset( $_POST['errors'] ) ? wc_clean( wp_unslash( $_POST['errors'] ) ) : '';
 
 		WC_Stripe_Logger::log( $errors );
 
@@ -911,7 +911,7 @@ class WC_Stripe_Payment_Request {
 		check_ajax_referer( 'wc-stripe-get-selected-product-data', 'security' );
 
 		try {
-			$product_id   = absint( $_POST['product_id'] );
+			$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 			$qty          = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', absint( $_POST['qty'] ), $product_id );
 			$addon_value  = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
 			$product      = wc_get_product( $product_id );
@@ -1011,7 +1011,7 @@ class WC_Stripe_Payment_Request {
 
 		WC()->shipping->reset_shipping();
 
-		$product_id   = absint( $_POST['product_id'] );
+		$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 		$qty          = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
 		$product      = wc_get_product( $product_id );
 		$product_type = $product->get_type();
@@ -1051,10 +1051,10 @@ class WC_Stripe_Payment_Request {
 	 * @version 4.0.0
 	 */
 	public function normalize_state() {
-		$billing_country  = ! empty( $_POST['billing_country'] ) ? wc_clean( $_POST['billing_country'] ) : '';
-		$shipping_country = ! empty( $_POST['shipping_country'] ) ? wc_clean( $_POST['shipping_country'] ) : '';
-		$billing_state    = ! empty( $_POST['billing_state'] ) ? wc_clean( $_POST['billing_state'] ) : '';
-		$shipping_state   = ! empty( $_POST['shipping_state'] ) ? wc_clean( $_POST['shipping_state'] ) : '';
+		$billing_country  = ! empty( $_POST['billing_country'] ) ? wc_clean( wp_unslash( $_POST['billing_country'] ) ) : '';
+		$shipping_country = ! empty( $_POST['shipping_country'] ) ? wc_clean( wp_unslash( $_POST['shipping_country'] ) ) : '';
+		$billing_state    = ! empty( $_POST['billing_state'] ) ? wc_clean( wp_unslash( $_POST['billing_state'] ) ) : '';
+		$shipping_state   = ! empty( $_POST['shipping_state'] ) ? wc_clean( wp_unslash( $_POST['shipping_state'] ) ) : '';
 
 		if ( $billing_state && $billing_country ) {
 			$valid_states = WC()->countries->get_states( $billing_country );

@@ -585,7 +585,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return bool
 	 */
 	public function is_using_saved_payment_method() {
-		$payment_method = isset( $_POST['payment_method'] ) ? wc_clean( $_POST['payment_method'] ) : 'stripe';
+		$payment_method = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : 'stripe';
 
 		return ( isset( $_POST[ 'wc-' . $payment_method . '-payment-token' ] ) && 'new' !== $_POST[ 'wc-' . $payment_method . '-payment-token' ] );
 	}
@@ -613,12 +613,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$source_object     = '';
 		$source_id         = '';
 		$wc_token_id       = false;
-		$payment_method    = isset( $_POST['payment_method'] ) ? wc_clean( $_POST['payment_method'] ) : 'stripe';
+		$payment_method    = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : 'stripe';
 		$is_token          = false;
 
 		// New CC info was entered and we have a new source to process.
 		if ( ! empty( $_POST['stripe_source'] ) ) {
-			$source_object = self::get_source_object( wc_clean( $_POST['stripe_source'] ) );
+			$source_object = self::get_source_object( wc_clean( wp_unslash( $_POST['stripe_source'] ) ) );
 			$source_id     = $source_object->id;
 
 			// This checks to see if customer opted to save the payment method to file.
@@ -638,7 +638,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 		} elseif ( $this->is_using_saved_payment_method() ) {
 			// Use an existing token, and then process the payment.
-			$wc_token_id = wc_clean( $_POST[ 'wc-' . $payment_method . '-payment-token' ] );
+			$wc_token_id = wc_clean( wp_unslash( $_POST[ 'wc-' . $payment_method . '-payment-token' ] ) );
 			$wc_token    = WC_Payment_Tokens::get( $wc_token_id );
 
 			if ( ! $wc_token || $wc_token->get_user_id() !== get_current_user_id() ) {
@@ -652,7 +652,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$is_token = true;
 			}
 		} elseif ( isset( $_POST['stripe_token'] ) && 'new' !== $_POST['stripe_token'] ) {
-			$stripe_token     = wc_clean( $_POST['stripe_token'] );
+			$stripe_token     = wc_clean( wp_unslash( $_POST['stripe_token'] ) );
 			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
 
 			// This is true if the user wants to store the card to their account.
@@ -947,7 +947,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
 
-		$source = ! empty( $_POST['stripe_source'] ) ? wc_clean( $_POST['stripe_source'] ) : '';
+		$source = ! empty( $_POST['stripe_source'] ) ? wc_clean( wp_unslash( $_POST['stripe_source'] ) ) : '';
 
 		$source_object = WC_Stripe_API::retrieve( 'sources/' . $source );
 
@@ -958,7 +958,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			$source_id = $source_object->id;
 		} elseif ( isset( $_POST['stripe_token'] ) ) {
-			$source_id = wc_clean( $_POST['stripe_token'] );
+			$source_id = wc_clean( wp_unslash( $_POST['stripe_token'] ) );
 		}
 
 		$response = $stripe_customer->add_source( $source_id );
@@ -973,7 +973,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return;
 		}
 
-		do_action( 'wc_stripe_add_payment_method_' . $_POST['payment_method'] . '_success', $source_id, $source_object );
+		do_action( 'wc_stripe_add_payment_method_' . wp_unslash( $_POST['payment_method'] ) . '_success', $source_id, $source_object );
 
 		return [
 			'result'   => 'success',
