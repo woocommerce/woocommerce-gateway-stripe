@@ -54,7 +54,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_redirect_payment( $order_id, $retry = true, $previous_error = false ) {
 		try {
-			$source = wc_clean( $_GET['source'] );
+			$source = wc_clean( wp_unslash( $_GET['source'] ) );
 
 			if ( empty( $source ) ) {
 				return;
@@ -207,7 +207,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_id = wc_clean( $_GET['order_id'] );
+		$order_id = wc_clean( wp_unslash( $_GET['order_id'] ) );
 
 		$this->process_redirect_payment( $order_id );
 	}

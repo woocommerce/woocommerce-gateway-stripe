@@ -86,14 +86,14 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// redirect from oauth-init
 			if ( isset( $_GET['wcs_stripe_code'], $_GET['wcs_stripe_state'] ) ) {
 
-				$response = $this->connect_oauth( $_GET['wcs_stripe_state'], $_GET['wcs_stripe_code'] );
+				$response = $this->connect_oauth( wp_unslash( $_GET['wcs_stripe_state'] ), wp_unslash( $_GET['wcs_stripe_code'] ) );
 				wp_safe_redirect( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code' ] ) );
 				exit;
 
 				// redirect from credentials reset
 			} elseif ( isset( $_GET['reset_stripe_api_credentials'], $_GET['_wpnonce'] ) ) {
 
-				if ( ! wp_verify_nonce( $_GET['_wpnonce'], 'reset_stripe_api_credentials' ) ) {
+				if ( ! wp_verify_nonce( wp_unslash( $_GET['_wpnonce'] ), 'reset_stripe_api_credentials' ) ) {
 					die( __( 'You are not authorized to clear Stripe account keys.', 'woocommerce-gateway-stripe' ) );
 				}
 

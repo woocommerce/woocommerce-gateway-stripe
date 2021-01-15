@@ -150,7 +150,7 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		try {
-			$source_id = wc_clean( $_POST['stripe_source_id'] );
+			$source_id = wc_clean( wp_unslash( $_POST['stripe_source_id'] ) );
 
 			// 1. Verify.
 			if (
