@@ -71,7 +71,7 @@ class WC_Stripe_Email_Failed_Authentication_Retry extends WC_Email_Failed_Order 
 
 		$this->find['retry-time'] = '{retry_time}';
 		if ( class_exists( 'WCS_Retry_Manager' ) && function_exists( 'wcs_get_human_time_diff' ) ) {
-			$this->retry = WCS_Retry_Manager::store()->get_last_retry_for_order( wcs_get_objects_property( $order, 'id' ) );
+			$this->retry                 = WCS_Retry_Manager::store()->get_last_retry_for_order( wcs_get_objects_property( $order, 'id' ) );
 			$this->replace['retry-time'] = wcs_get_human_time_diff( $this->retry->get_time() );
 		} else {
 			WC_Stripe_Logger::log( 'WCS_Retry_Manager class or does not exist. Not able to send admnin email about customer notification for authentication required for renewal payment.' );
@@ -96,14 +96,14 @@ class WC_Stripe_Email_Failed_Authentication_Retry extends WC_Email_Failed_Order 
 	public function get_content_html() {
 		return wc_get_template_html(
 			$this->template_html,
-			array(
+			[
 				'order'         => $this->object,
 				'retry'         => $this->retry,
 				'email_heading' => $this->get_heading(),
 				'sent_to_admin' => true,
 				'plain_text'    => false,
 				'email'         => $this,
-			),
+			],
 			'',
 			$this->template_base
 		);
@@ -117,14 +117,14 @@ class WC_Stripe_Email_Failed_Authentication_Retry extends WC_Email_Failed_Order 
 	public function get_content_plain() {
 		return wc_get_template_html(
 			$this->template_plain,
-			array(
+			[
 				'order'         => $this->object,
 				'retry'         => $this->retry,
 				'email_heading' => $this->get_heading(),
 				'sent_to_admin' => true,
 				'plain_text'    => true,
 				'email'         => $this,
-			),
+			],
 			'',
 			$this->template_base
 		);

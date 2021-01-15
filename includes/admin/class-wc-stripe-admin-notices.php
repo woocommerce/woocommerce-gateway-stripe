@@ -11,9 +11,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Admin_Notices {
 	/**
 	 * Notices (array)
+	 *
 	 * @var array
 	 */
-	public $notices = array();
+	public $notices = [];
 
 	/**
 	 * Constructor
@@ -21,9 +22,9 @@ class WC_Stripe_Admin_Notices {
 	 * @since 4.1.0
 	 */
 	public function __construct() {
-		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
-		add_action( 'wp_loaded', array( $this, 'hide_notices' ) );
-		add_action( 'woocommerce_stripe_updated', array( $this, 'stripe_updated' ) );
+		add_action( 'admin_notices', [ $this, 'admin_notices' ] );
+		add_action( 'wp_loaded', [ $this, 'hide_notices' ] );
+		add_action( 'woocommerce_stripe_updated', [ $this, 'stripe_updated' ] );
 	}
 
 	/**
@@ -33,11 +34,11 @@ class WC_Stripe_Admin_Notices {
 	 * @version 4.0.0
 	 */
 	public function add_admin_notice( $slug, $class, $message, $dismissible = false ) {
-		$this->notices[ $slug ] = array(
+		$this->notices[ $slug ] = [
 			'class'       => $class,
 			'message'     => $message,
 			'dismissible' => $dismissible,
-		);
+		];
 	}
 
 	/**
@@ -67,7 +68,15 @@ class WC_Stripe_Admin_Notices {
 			}
 
 			echo '<p>';
-			echo wp_kses( $notice['message'], array( 'a' => array( 'href' => array(), 'target' => array() ) ) );
+			echo wp_kses(
+				$notice['message'],
+				[
+					'a' => [
+						'href'   => [],
+						'target' => [],
+					],
+				]
+			);
 			echo '</p></div>';
 		}
 	}
@@ -79,7 +88,7 @@ class WC_Stripe_Admin_Notices {
 	 * @return array
 	 */
 	public function get_payment_methods() {
-		return array(
+		return [
 			'Alipay'     => 'WC_Gateway_Stripe_Alipay',
 			'Bancontact' => 'WC_Gateway_Stripe_Bancontact',
 			'EPS'        => 'WC_Gateway_Stripe_EPS',
@@ -89,7 +98,7 @@ class WC_Stripe_Admin_Notices {
 			'P24'        => 'WC_Gateway_Stripe_p24',
 			'SEPA'       => 'WC_Gateway_Stripe_Sepa',
 			'SOFORT'     => 'WC_Gateway_Stripe_Sofort',
-		);
+		];
 	}
 
 	/**

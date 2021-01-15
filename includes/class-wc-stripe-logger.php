@@ -53,7 +53,7 @@ class WC_Stripe_Logger {
 
 			}
 
-			self::$logger->debug( $log_entry, array( 'source' => self::WC_LOG_FILENAME ) );
+			self::$logger->debug( $log_entry, [ 'source' => self::WC_LOG_FILENAME ] );
 		}
 	}
 }

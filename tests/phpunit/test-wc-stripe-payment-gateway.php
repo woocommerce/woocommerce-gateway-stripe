@@ -33,7 +33,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Tests false is returned if payment intent is not set in the order.
 	 */
 	public function test_default_get_payment_intent_from_order() {
-		$order = WC_Helper_Order::create_order();
+		$order  = WC_Helper_Order::create_order();
 		$intent = $this->gateway->get_intent_from_order( $order );
 		$this->assertFalse( $intent );
 	}
@@ -44,14 +44,14 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function test_success_get_payment_intent_from_order() {
 		$order = WC_Helper_Order::create_order();
 		$this->updateOrderMeta( $order, '_stripe_intent_id', 'pi_123' );
-		$expected_intent = ( object ) [ 'id' => 'pi_123' ];
-		$callback = function( $preempt, $request_args, $url ) use ( $expected_intent ) {
+		$expected_intent = (object) [ 'id' => 'pi_123' ];
+		$callback        = function( $preempt, $request_args, $url ) use ( $expected_intent ) {
 			$response = [
-				'headers' 	=> [],
-				'body'		=> json_encode( $expected_intent ),
-				'response'	=> [
-					'code' 		=> 200,
-					'message' 	=> 'OK',
+				'headers'  => [],
+				'body'     => json_encode( $expected_intent ),
+				'response' => [
+					'code'    => 200,
+					'message' => 'OK',
 				],
 			];
 
@@ -61,7 +61,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 			return $response;
 		};
 
-		add_filter( 'pre_http_request', $callback, 10, 3);
+		add_filter( 'pre_http_request', $callback, 10, 3 );
 
 		$intent = $this->gateway->get_intent_from_order( $order );
 		$this->assertEquals( $expected_intent, $intent );
@@ -75,19 +75,19 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function test_error_get_payment_intent_from_order() {
 		$order = WC_Helper_Order::create_order();
 		$this->updateOrderMeta( $order, '_stripe_intent_id', 'pi_123' );
-		$response_error = ( object ) [
+		$response_error = (object) [
 			'error' => [
-				'code' 		=> 'resource_missing',
-				'message' 	=> 'error_message'
-			]
+				'code'    => 'resource_missing',
+				'message' => 'error_message',
+			],
 		];
-		$callback = function( $preempt, $request_args, $url ) use ( $response_error ) {
+		$callback       = function( $preempt, $request_args, $url ) use ( $response_error ) {
 			$response = [
-				'headers' 	=> [],
-				'body'		=> json_encode( $response_error ),
-				'response'	=> [
-					'code' 		=> 404,
-					'message' 	=> 'ERR',
+				'headers'  => [],
+				'body'     => json_encode( $response_error ),
+				'response' => [
+					'code'    => 404,
+					'message' => 'ERR',
 				],
 			];
 
@@ -97,7 +97,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 			return $response;
 		};
 
-		add_filter( 'pre_http_request', $callback, 10, 3);
+		add_filter( 'pre_http_request', $callback, 10, 3 );
 
 		$intent = $this->gateway->get_intent_from_order( $order );
 		$this->assertFalse( $intent );

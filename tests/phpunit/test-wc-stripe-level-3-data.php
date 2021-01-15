@@ -113,7 +113,7 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 		$variation_product = WC_Helper_Product::create_variation_product();
 		$variation_ids     = $variation_product->get_children();
 
-		$product_1 = wc_get_product ( $variation_ids[0] );
+		$product_1 = wc_get_product( $variation_ids[0] );
 		$product_1->set_regular_price( 19.19 );
 		$product_1->set_sale_price( 11.83 );
 		$product_1->save();
@@ -136,49 +136,58 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 
 		// Act: Call get_level3_data_from_order().
 		$gateway = new WC_Gateway_Stripe();
-		$result = $gateway->get_level3_data_from_order( $order );
+		$result  = $gateway->get_level3_data_from_order( $order );
 
 		// Assert.
 		$this->assertEquals(
-			array(
-				'merchant_reference' => $order->get_id(),
+			[
+				'merchant_reference'   => $order->get_id(),
 				'shipping_address_zip' => $order->get_shipping_postcode(),
-				'shipping_from_zip' => $store_postcode,
-				'shipping_amount' => 0,
-				'line_items' => array(
-					(object) array(
+				'shipping_from_zip'    => $store_postcode,
+				'shipping_amount'      => 0,
+				'line_items'           => [
+					(object) [
 						'product_code'        => (string) $product_1->get_id(),
 						'product_description' => substr( $product_1->get_name(), 0, 26 ),
 						'unit_cost'           => 1183,
 						'quantity'            => 1,
 						'tax_amount'          => 0,
 						'discount_amount'     => 0,
-					),
-					(object) array(
+					],
+					(object) [
 						'product_code'        => (string) $product_2->get_id(),
 						'product_description' => substr( $product_2->get_name(), 0, 26 ),
 						'unit_cost'           => 2005,
 						'quantity'            => 2,
 						'tax_amount'          => 0,
 						'discount_amount'     => 0,
-					),
-				),
-			),
+					],
+				],
+			],
 			$result
 		);
 
 		// Assert: Check that Stripe's total charge check passes.
-		$total_charged = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
-		$sum_of_unit_costs = array_reduce( $result['line_items'], function( $sum, $item ) {
-			return $sum + $item->quantity * $item->unit_cost;
-		}  );
-		$sum_of_taxes = array_reduce( $result['line_items'], function( $sum, $item ) {
-			return $sum + $item->tax_amount;
-		}  );
-		$sum_of_discounts = array_reduce( $result['line_items'], function( $sum, $item ) {
-			return $sum + $item->discount_amount;
-		}  );
-		$shipping_amount = $result['shipping_amount'];
+		$total_charged     = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
+		$sum_of_unit_costs = array_reduce(
+			$result['line_items'],
+			function( $sum, $item ) {
+				return $sum + $item->quantity * $item->unit_cost;
+			}
+		);
+		$sum_of_taxes      = array_reduce(
+			$result['line_items'],
+			function( $sum, $item ) {
+				return $sum + $item->tax_amount;
+			}
+		);
+		$sum_of_discounts  = array_reduce(
+			$result['line_items'],
+			function( $sum, $item ) {
+				return $sum + $item->discount_amount;
+			}
+		);
+		$shipping_amount   = $result['shipping_amount'];
 		$this->assertEquals(
 			$total_charged,
 			$sum_of_unit_costs + $sum_of_taxes - $sum_of_discounts + $shipping_amount
@@ -203,25 +212,25 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 
 		// Act: Call get_level3_data_from_order().
 		$store_postcode = '1100';
-		$gateway = new WC_Gateway_Stripe();
-		$result = $gateway->get_level3_data_from_order( $order );
+		$gateway        = new WC_Gateway_Stripe();
+		$result         = $gateway->get_level3_data_from_order( $order );
 
 		// Assert.
 		$this->assertEquals(
-			array(
+			[
 				'merchant_reference' => $order->get_id(),
-				'shipping_amount' => 0,
-				'line_items' => array(
-					(object) array(
+				'shipping_amount'    => 0,
+				'line_items'         => [
+					(object) [
 						'product_code'        => (string) $product->get_id(),
 						'product_description' => substr( $product->get_name(), 0, 26 ),
 						'unit_cost'           => 1919,
 						'quantity'            => 1,
 						'tax_amount'          => 0,
 						'discount_amount'     => 0,
-					),
-				),
-			),
+					],
+				],
+			],
 			$result
 		);
 	}
