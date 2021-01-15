@@ -208,6 +208,7 @@ class WC_Stripe_Admin_Notices {
 			}
 
 			if ( empty( $show_sca_notice ) ) {
+				/* translators: %1 is the URL for the link */
 				$this->add_admin_notice( 'sca', 'notice notice-success', sprintf( __( 'Stripe is now ready for Strong Customer Authentication (SCA) and 3D Secure 2! <a href="%1$s" target="_blank">Read about SCA</a>', 'woocommerce-gateway-stripe' ), 'https://woocommerce.com/posts/introducing-strong-customer-authentication-sca/' ), true );
 			}
 
