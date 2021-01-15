@@ -15,7 +15,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Payment_Token_SEPA extends WC_Payment_Token {
 
-	/** @protected string Token Type String. */
+	/**
+	 * Stores payment type.
+	 *
+	 * @protected string
+	 */
 	protected $type = 'sepa';
 
 	/**

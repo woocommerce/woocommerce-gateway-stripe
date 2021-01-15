@@ -35,7 +35,6 @@ define( 'WC_STRIPE_PLUGIN_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) 
  * WooCommerce fallback notice.
  *
  * @since 4.1.2
- * @return string
  */
 function woocommerce_stripe_missing_wc_notice() {
 	/* translators: 1. URL link. */
@@ -46,7 +45,6 @@ function woocommerce_stripe_missing_wc_notice() {
  * WooCommerce not supported fallback notice.
  *
  * @since 4.4.0
- * @return string
  */
 function woocommerce_stripe_wc_not_supported() {
 	/* translators: $1. Minimum WooCommerce version. $2. Current WooCommerce version. */
@@ -62,7 +60,9 @@ function woocommerce_gateway_stripe() {
 		class WC_Stripe {
 
 			/**
-			 * @var Singleton The reference the *Singleton* instance of this class
+			 * The *Singleton* instance of this class
+			 *
+			 * @var Singleton
 			 */
 			private static $instance;
 
@@ -314,7 +314,7 @@ function woocommerce_gateway_stripe() {
 			 * @since 4.5.4
 			 * @version 4.5.4
 			 *
-			 * @param array      $settings New settings to save
+			 * @param array      $settings New settings to save.
 			 * @param array|bool $old_settings Existing settings, if any.
 			 * @return array New value but with defaults initially filled in for missing settings.
 			 */

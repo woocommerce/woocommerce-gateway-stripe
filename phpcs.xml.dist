@@ -22,11 +22,7 @@
 		<exclude name="Squiz.Commenting.FunctionCommentThrowTag.WrongNumber"/>
 
 		<!-- The Commenting rules are ignored for now, they will be activated in a future PR -->
-		<exclude name="Squiz.Commenting.FileComment.Missing"/>
-		<exclude name="Squiz.Commenting.FileComment.MissingPackageTag"/>
-		<exclude name="Squiz.Commenting.ClassComment.Missing"/>
-		<exclude name="Squiz.Commenting.FunctionComment.Missing"/>
-		<exclude name="Squiz.Commenting.FunctionComment.MissingParamTag"/>
+		<exclude name="Squiz.Commenting"/>
 	</rule>
 
 	<!-- Disallow long array syntax -->

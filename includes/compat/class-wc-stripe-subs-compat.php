@@ -451,7 +451,6 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	 * Update the customer_id for a subscription after using Stripe to complete a payment to make up for
 	 * an automatic renewal payment which previously failed.
 	 *
-	 * @access public
 	 * @param WC_Subscription $subscription The subscription for which the failing payment method relates.
 	 * @param WC_Order        $renewal_order The order which recorded the successful payment (to make up for the failed automatic payment).
 	 * @return void
