@@ -21,8 +21,10 @@
 		<!-- This rule is currently generating some false positives, it would be worth retrying after PHPCS upgrades -->
 		<exclude name="Squiz.Commenting.FunctionCommentThrowTag.WrongNumber"/>
 
-		<!-- The Commenting rules are ignored for now, they will be activated in a future PR -->
+		<!-- The rules are ignored for now, they will be activated in a future PR -->
 		<exclude name="Squiz.Commenting"/>
+		<exclude name="WordPress.Security.EscapeOutput.OutputNotEscaped"/>
+		<exclude name="WordPress.Security.NonceVerification.Missing"/>
 	</rule>
 
 	<!-- Disallow long array syntax -->
