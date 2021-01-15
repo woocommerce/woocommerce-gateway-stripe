@@ -140,11 +140,7 @@ class WC_Gateway_Stripe_Eps extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * payment_scripts function.
-	 *
 	 * Outputs scripts used for stripe payment
-	 *
-	 * @access public
 	 */
 	public function payment_scripts() {
 		if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() ) {
