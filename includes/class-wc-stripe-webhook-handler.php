@@ -55,7 +55,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @version 4.0.0
 	 */
 	public function check_for_webhook() {
-		if ( ( 'POST' !== $_SERVER['REQUEST_METHOD'] )
+		if ( ! isset( $_SERVER['REQUEST_METHOD'] )
+			|| ( 'POST' !== $_SERVER['REQUEST_METHOD'] )
 			|| ! isset( $_GET['wc-api'] )
 			|| ( 'wc_stripe' !== $_GET['wc-api'] )
 		) {

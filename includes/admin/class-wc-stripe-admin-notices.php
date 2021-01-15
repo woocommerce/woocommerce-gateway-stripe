@@ -250,7 +250,7 @@ class WC_Stripe_Admin_Notices {
 	 */
 	public function hide_notices() {
 		if ( isset( $_GET['wc-stripe-hide-notice'] ) && isset( $_GET['_wc_stripe_notice_nonce'] ) ) {
-			if ( ! wp_verify_nonce( wp_unslash( $_GET['_wc_stripe_notice_nonce'] ), 'wc_stripe_hide_notices_nonce' ) ) {
+			if ( ! wp_verify_nonce( wc_clean( wp_unslash( $_GET['_wc_stripe_notice_nonce'] ) ), 'wc_stripe_hide_notices_nonce' ) ) {
 				wp_die( __( 'Action failed. Please refresh the page and retry.', 'woocommerce-gateway-stripe' ) );
 			}
 
