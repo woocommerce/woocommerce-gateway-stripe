@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 4.8.0 - 2021-xx-xx =
+* Fix - Filter more disallowed characters from statement descriptors.
+
 = 4.7.0 - 2020-12-22 =
 * Fix - Updating subscription payment methods from the "My Account" page now adds a note to the subscription.
 * Fix - Link is now correctly formatted in readme.txt.
