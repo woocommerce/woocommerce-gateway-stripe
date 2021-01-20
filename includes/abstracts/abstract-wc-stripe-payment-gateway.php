@@ -819,7 +819,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Refund a charge.
 	 *
 	 * @since 3.1.0
-	 * @version 4.0.0
+	 * @version 4.8.0
 	 * @param  int $order_id
 	 * @param  float $amount
 	 * @return bool
