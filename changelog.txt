@@ -2,6 +2,7 @@
 
 = 4.8.0 - 2021-xx-xx =
 * Fix - Filter more disallowed characters from statement descriptors.
+* Fix - Trim the refund reason to a max of 500 characters.
 
 = 4.7.0 - 2020-12-22 =
 * Fix - Updating subscription payment methods from the "My Account" page now adds a note to the subscription.
