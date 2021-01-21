@@ -165,13 +165,10 @@ jQuery( function( $ ) {
 			} else {
 				var $form = $( '.shop_table.cart' ).closest( 'form' );
 				// Need to check if element exists, otherwise an error is thrown on checkout.
-				if ( $form.length ) {
-					$form.before( message );
-
-					$( 'html, body' ).animate({
-						scrollTop: $form.prev( '.woocommerce-error' ).offset().top
-					}, 600 );
-				}
+				$form.before( message );
+				$( 'html, body' ).animate({
+					scrollTop: $form.prev( '.woocommerce-error' ).offset().top
+				}, 600 );
 			}
 		},
 
@@ -417,7 +414,6 @@ jQuery( function( $ ) {
 					}
 				} );
 			} catch( e ) {
-				wc_stripe_payment_request.displayErrorMessage( wc_stripe_payment_request.getErrorMessageHTML( wc_stripe_payment_request_params.i18n.payment_request_failed ) );
 				// Leave for troubleshooting
 				console.error( e );
 			}
