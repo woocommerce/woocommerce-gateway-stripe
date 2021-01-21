@@ -164,7 +164,6 @@ jQuery( function( $ ) {
 				}, 600 );
 			} else {
 				var $form = $( '.shop_table.cart' ).closest( 'form' );
-				// Need to check if element exists, otherwise an error is thrown on checkout.
 				$form.before( message );
 				$( 'html, body' ).animate({
 					scrollTop: $form.prev( '.woocommerce-error' ).offset().top
