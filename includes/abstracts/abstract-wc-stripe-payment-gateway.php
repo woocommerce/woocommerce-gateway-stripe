@@ -819,7 +819,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Refund a charge.
 	 *
 	 * @since 3.1.0
-	 * @version 4.0.0
+	 * @version 4.8.0
 	 * @param  int $order_id
 	 * @param  float $amount
 	 * @return bool
@@ -851,6 +851,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		if ( $reason ) {
+			// Trim the refund reason to a max of 500 characters due to Stripe limits: https://stripe.com/docs/api/metadata.
+			if ( strlen( $reason ) > 500 ) {
+				$reason = function_exists( 'mb_substr' ) ? mb_substr( $reason, 0, 450 ) : substr( $reason, 0, 450 );
+				// Add some explainer text indicating where to find the full refund reason.
+				$reason = $reason . '... [See WooCommerce order page for full text.]';
+			}
+			
 			$request['metadata'] = array(
 				'reason' => $reason,
 			);
