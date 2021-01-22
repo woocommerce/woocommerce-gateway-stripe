@@ -45,20 +45,25 @@ class WC_Stripe_Session {
 	 * @return array
 	 */
 	protected function generate_session_request( $args = array() ) {
-		$defaults = [
-			'payment_method_types' => [ 'card', 'ideal' ],
-			'line_items' => [
-				[
-					'price_data' => [
-						'currency' => 'eur',
-						'product_data' => [
-							'name' => 'T-shirt',
-						],
-						'unit_amount' => 2000,
+		$cart_contents = WC()->cart->get_cart();
+
+		$items = [];
+		foreach( $cart_contents as $item ) {
+			$items[] = [
+				'quantity'   => $item['quantity'] ?? 0,
+				'price_data' => [
+					'currency'     => 'usd',
+					'product_data' => [
+						'name' => $item['data']->get_title() ?? '',
 					],
-					'quantity' => 1,
-				]
-			],
+					'unit_amount'  => floatval( $item['data']->get_price() ) * 100 ?? 0,
+				],
+			];
+		}
+
+		$defaults = [
+			'payment_method_types' => [ 'card' ],
+			'line_items' => $items,
 			'mode' => 'payment',
 			'success_url' => '',
 			'cancel_url' => wc_get_checkout_url()
