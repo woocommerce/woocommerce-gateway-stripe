@@ -147,21 +147,16 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Abort payment and display error messages.
+		 * Display error messages.
 		 *
-		 * @since 3.1.0
-		 * @version 4.0.0
-		 * @param {PaymentResponse} payment Payment response instance.
-		 * @param {String}          message Error message to display.
+		 * @since 4.8.0
+		 * @param {Object} message DOM object with error message to display.
 		 */
-		abortPayment: function( payment, message ) {
-			payment.complete( 'fail' );
-
+		displayErrorMessage: function( message ) {
 			$( '.woocommerce-error' ).remove();
 
 			if ( wc_stripe_payment_request_params.is_product_page ) {
-				var element = $( '.product' );
-
+				var element = $( '.product' ).first();
 				element.before( message );
 
 				$( 'html, body' ).animate({
@@ -169,13 +164,24 @@ jQuery( function( $ ) {
 				}, 600 );
 			} else {
 				var $form = $( '.shop_table.cart' ).closest( 'form' );
-
 				$form.before( message );
-
 				$( 'html, body' ).animate({
 					scrollTop: $form.prev( '.woocommerce-error' ).offset().top
 				}, 600 );
 			}
+		},
+
+		/**
+		 * Abort payment and display error messages.
+		 *
+		 * @since 3.1.0
+		 * @version 4.8.0
+		 * @param {PaymentResponse} payment Payment response instance.
+		 * @param {Object}          message DOM object with error message to display.
+		 */
+		abortPayment: function( payment, message ) {
+			payment.complete( 'fail' );
+			wc_stripe_payment_request.displayErrorMessage( message );
 		},
 
 		/**
@@ -325,7 +331,7 @@ jQuery( function( $ ) {
 		 * Starts the payment request
 		 *
 		 * @since 4.0.0
-		 * @version 4.0.0
+		 * @version 4.8.0
 		 */
 		startPaymentRequest: function( cart ) {
 			var paymentDetails,
@@ -350,54 +356,66 @@ jQuery( function( $ ) {
 				paymentDetails = cart.order_data;
 			}
 
-			var paymentRequest = stripe.paymentRequest( options );
+			// Puerto Rico (PR) is the only US territory/possession that's supported by Stripe.
+			// Since it's considered a US state by Stripe, we need to do some special mapping.
+			if ( 'PR' === options.country ) {
+				options.country = 'US';
+			}
 
-			var elements = stripe.elements( { locale: wc_stripe_payment_request_params.button.locale } );
-			var prButton = wc_stripe_payment_request.createPaymentRequestButton( elements, paymentRequest );
+			// Handle errors thrown by Stripe, so we don't break the product page
+			try {
+				var paymentRequest = stripe.paymentRequest( options );
 
-			// Check the availability of the Payment Request API first.
-			paymentRequest.canMakePayment().then( function( result ) {
-				if ( ! result ) {
-					return;
-				}
-				paymentRequestType = result.applePay ? 'apple_pay' : 'payment_request_api';
-				wc_stripe_payment_request.attachPaymentRequestButtonEventListeners( prButton, paymentRequest );
-				wc_stripe_payment_request.showPaymentRequestButton( prButton );
-			} );
+				var elements = stripe.elements( { locale: wc_stripe_payment_request_params.button.locale } );
+				var prButton = wc_stripe_payment_request.createPaymentRequestButton( elements, paymentRequest );
 
-			// Possible statuses success, fail, invalid_payer_name, invalid_payer_email, invalid_payer_phone, invalid_shipping_address.
-			paymentRequest.on( 'shippingaddresschange', function( evt ) {
-				$.when( wc_stripe_payment_request.updateShippingOptions( paymentDetails, evt.shippingAddress ) ).then( function( response ) {
-					evt.updateWith( { status: response.result, shippingOptions: response.shipping_options, total: response.total, displayItems: response.displayItems } );
-				} );
-			} );
-
-			paymentRequest.on( 'shippingoptionchange', function( evt ) {
-				$.when( wc_stripe_payment_request.updateShippingDetails( paymentDetails, evt.shippingOption ) ).then( function( response ) {
-					if ( 'success' === response.result ) {
-						evt.updateWith( { status: 'success', total: response.total, displayItems: response.displayItems } );
+				// Check the availability of the Payment Request API first.
+				paymentRequest.canMakePayment().then( function( result ) {
+					if ( ! result ) {
+						return;
 					}
-
-					if ( 'fail' === response.result ) {
-						evt.updateWith( { status: 'fail' } );
-					}
+					paymentRequestType = result.applePay ? 'apple_pay' : 'payment_request_api';
+					wc_stripe_payment_request.attachPaymentRequestButtonEventListeners( prButton, paymentRequest );
+					wc_stripe_payment_request.showPaymentRequestButton( prButton );
 				} );
-			} );
 
-			paymentRequest.on( 'source', function( evt ) {
-				// Check if we allow prepaid cards.
-				if ( 'no' === wc_stripe_payment_request_params.stripe.allow_prepaid_card && 'prepaid' === evt.source.card.funding ) {
-					wc_stripe_payment_request.abortPayment( evt, wc_stripe_payment_request.getErrorMessageHTML( wc_stripe_payment_request_params.i18n.no_prepaid_card ) );
-				} else {
-					$.when( wc_stripe_payment_request.processSource( evt, paymentRequestType ) ).then( function( response ) {
+				// Possible statuses success, fail, invalid_payer_name, invalid_payer_email, invalid_payer_phone, invalid_shipping_address.
+				paymentRequest.on( 'shippingaddresschange', function( evt ) {
+					$.when( wc_stripe_payment_request.updateShippingOptions( paymentDetails, evt.shippingAddress ) ).then( function( response ) {
+						evt.updateWith( { status: response.result, shippingOptions: response.shipping_options, total: response.total, displayItems: response.displayItems } );
+					} );
+				} );
+
+				paymentRequest.on( 'shippingoptionchange', function( evt ) {
+					$.when( wc_stripe_payment_request.updateShippingDetails( paymentDetails, evt.shippingOption ) ).then( function( response ) {
 						if ( 'success' === response.result ) {
-							wc_stripe_payment_request.completePayment( evt, response.redirect );
-						} else {
-							wc_stripe_payment_request.abortPayment( evt, response.messages );
+							evt.updateWith( { status: 'success', total: response.total, displayItems: response.displayItems } );
+						}
+
+						if ( 'fail' === response.result ) {
+							evt.updateWith( { status: 'fail' } );
 						}
 					} );
-				}
-			} );
+				} );
+
+				paymentRequest.on( 'source', function( evt ) {
+					// Check if we allow prepaid cards.
+					if ( 'no' === wc_stripe_payment_request_params.stripe.allow_prepaid_card && 'prepaid' === evt.source.card.funding ) {
+						wc_stripe_payment_request.abortPayment( evt, wc_stripe_payment_request.getErrorMessageHTML( wc_stripe_payment_request_params.i18n.no_prepaid_card ) );
+					} else {
+						$.when( wc_stripe_payment_request.processSource( evt, paymentRequestType ) ).then( function( response ) {
+							if ( 'success' === response.result ) {
+								wc_stripe_payment_request.completePayment( evt, response.redirect );
+							} else {
+								wc_stripe_payment_request.abortPayment( evt, response.messages );
+							}
+						} );
+					}
+				} );
+			} catch( e ) {
+				// Leave for troubleshooting
+				console.error( e );
+			}
 		},
 
 		getSelectedProductData: function() {

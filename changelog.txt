@@ -2,6 +2,8 @@
 
 = 4.8.0 - 2021-xx-xx =
 * Fix - Filter more disallowed characters from statement descriptors.
+* Fix - Payment request button for Puerto Rico.
+* Fix - Handle error if country is not supported for payment request button.
 * Fix - Trim the refund reason to a max of 500 characters.
 
 = 4.7.0 - 2020-12-22 =
