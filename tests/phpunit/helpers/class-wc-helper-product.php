@@ -267,7 +267,9 @@ class WC_Helper_Product {
 
 		// Make sure caches are clean.
 		delete_transient( 'wc_attribute_taxonomies' );
-		WC_Cache_Helper::invalidate_cache_group( 'woocommerce-attributes' );
+		if ( is_callable( [ 'WC_Cache_Helper', 'invalidate_cache_group' ] ) ) {
+			WC_Cache_Helper::invalidate_cache_group('woocommerce-attributes');
+		}
 
 		// These are exported as labels, so convert the label to a name if possible first.
 		$attribute_labels = wp_list_pluck( wc_get_attribute_taxonomies(), 'attribute_label', 'attribute_name' );
