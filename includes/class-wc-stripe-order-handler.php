@@ -23,12 +23,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		$this->retry_interval = 1;
 
-		add_action( 'wp', [ $this, 'maybe_process_redirect_order' ] );
-		add_action( 'woocommerce_order_status_processing', [ $this, 'capture_payment' ] );
-		add_action( 'woocommerce_order_status_completed', [ $this, 'capture_payment' ] );
-		add_action( 'woocommerce_order_status_cancelled', [ $this, 'cancel_payment' ] );
-		add_action( 'woocommerce_order_status_refunded', [ $this, 'cancel_payment' ] );
-		add_filter( 'woocommerce_tracks_event_properties', [ $this, 'woocommerce_tracks_event_properties' ], 10, 2 );
+		add_action( 'wp', array( $this, 'maybe_process_redirect_order' ) );
+		add_action( 'woocommerce_order_status_processing', array( $this, 'capture_payment' ) );
+		add_action( 'woocommerce_order_status_completed', array( $this, 'capture_payment' ) );
+		add_action( 'woocommerce_order_status_cancelled', array( $this, 'cancel_payment' ) );
+		add_action( 'woocommerce_order_status_refunded', array( $this, 'cancel_payment' ) );
+		add_filter( 'woocommerce_tracks_event_properties', array( $this, 'woocommerce_tracks_event_properties' ), 10, 2 );
 	}
 
 	/**
@@ -70,7 +70,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
-			if ( $order->has_status( [ 'processing', 'completed', 'on-hold' ] ) ) {
+			if ( $order->has_status( array( 'processing', 'completed', 'on-hold' ) ) ) {
 				return;
 			}
 
@@ -118,7 +118,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			 * a different idempotency key and retry for success.
 			 */
 			if ( $this->need_update_idempotency_key( $source_object, $previous_error ) ) {
-				add_filter( 'wc_stripe_idempotency_key', [ $this, 'change_idempotency_key' ], 10, 2 );
+				add_filter( 'wc_stripe_idempotency_key', array( $this, 'change_idempotency_key' ), 10, 2 );
 			}
 
 			// Make the request.
@@ -243,10 +243,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					} elseif ( 'requires_capture' === $intent->status ) {
 						$level3_data = $this->get_level3_data_from_order( $order );
 						$result      = WC_Stripe_API::request_with_level3_data(
-							[
+							array(
 								'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
 								'expand[]' => 'charges.data.balance_transaction',
-							],
+							),
 							'payment_intents/' . $intent->id . '/capture',
 							$level3_data,
 							$order
@@ -274,10 +274,10 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					} elseif ( false === $result->captured ) {
 						$level3_data = $this->get_level3_data_from_order( $order );
 						$result      = WC_Stripe_API::request_with_level3_data(
-							[
+							array(
 								'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
 								'expand[]' => 'balance_transaction',
-							],
+							),
 							'charges/' . $charge . '/capture',
 							$level3_data,
 							$order
@@ -302,7 +302,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					// Store other data such as fees
 					$order->set_transaction_id( $result->id );
 
-					if ( is_callable( [ $order, 'save' ] ) ) {
+					if ( is_callable( array( $order, 'save' ) ) ) {
 						$order->save();
 					}
 
@@ -367,7 +367,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		// Due diligence done. Collect the metadata.
 		$is_live         = true;
-		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', array() );
 		if ( array_key_exists( 'testmode', $stripe_settings ) ) {
 			$is_live = 'no' === $stripe_settings['testmode'];
 		}

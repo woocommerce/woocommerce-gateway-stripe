@@ -29,9 +29,9 @@ class WC_Payment_Token_SEPA extends WC_Payment_Token {
 	 *
 	 * @var array
 	 */
-	protected $extra_data = [
+	protected $extra_data = array(
 		'last4' => '',
-	];
+	);
 
 	/**
 	 * Get type to display to user.

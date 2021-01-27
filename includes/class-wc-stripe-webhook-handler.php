@@ -40,12 +40,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function __construct() {
 		$this->retry_interval = 2;
-		$stripe_settings      = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings      = get_option( 'woocommerce_stripe_settings', array() );
 		$this->testmode       = ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
 		$secret_key           = ( $this->testmode ? 'test_' : '' ) . 'webhook_secret';
 		$this->secret         = ! empty( $stripe_settings[ $secret_key ] ) ? $stripe_settings[ $secret_key ] : false;
 
-		add_action( 'woocommerce_api_wc_stripe', [ $this, 'check_for_webhook' ] );
+		add_action( 'woocommerce_api_wc_stripe', array( $this, 'check_for_webhook' ) );
 	}
 
 	/**
@@ -132,7 +132,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_request_headers() {
 		if ( ! function_exists( 'getallheaders' ) ) {
-			$headers = [];
+			$headers = array();
 
 			foreach ( $_SERVER as $name => $value ) {
 				if ( 'HTTP_' === substr( $name, 0, 5 ) ) {
@@ -174,7 +174,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$is_pending_receiver = ( 'receiver' === $notification->data->object->flow );
 
 		try {
-			if ( $order->has_status( [ 'processing', 'completed' ] ) ) {
+			if ( $order->has_status( array( 'processing', 'completed' ) ) ) {
 				return;
 			}
 
@@ -265,7 +265,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification, $e );
 
-			$statuses = [ 'pending', 'failed' ];
+			$statuses = array( 'pending', 'failed' );
 
 			if ( $order->has_status( $statuses ) ) {
 				$this->send_failed_order_email( $order_id );
@@ -342,7 +342,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
 				}
 
-				if ( is_callable( [ $order, 'save' ] ) ) {
+				if ( is_callable( array( $order, 'save' ) ) ) {
 					$order->save();
 				}
 			}
@@ -391,7 +391,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		/* translators: transaction id */
 		$order->add_order_note( sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $notification->data->object->id ) );
 
-		if ( is_callable( [ $order, 'save' ] ) ) {
+		if ( is_callable( array( $order, 'save' ) ) ) {
 			$order->save();
 		}
 	}
@@ -488,11 +488,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				// Create the refund.
 				$refund = wc_create_refund(
-					[
+					array(
 						'order_id' => $order_id,
 						'amount'   => $this->get_refund_amount( $notification ),
 						'reason'   => $reason,
-					]
+					)
 				);
 
 				if ( is_wp_error( $refund ) ) {
@@ -651,7 +651,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( ! $order->has_status( [ 'pending', 'failed' ] ) ) {
+		if ( ! $order->has_status( array( 'pending', 'failed' ) ) ) {
 			return;
 		}
 
@@ -692,7 +692,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( ! $order->has_status( [ 'pending', 'failed' ] ) ) {
+		if ( ! $order->has_status( array( 'pending', 'failed' ) ) ) {
 			return;
 		}
 

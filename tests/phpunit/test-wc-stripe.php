@@ -71,31 +71,31 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	 * In addition, it cannot contain <>"' special characters.
 	 */
 	public function test_statement_descriptor_sanitation() {
-		$statement_descriptor1 = [
+		$statement_descriptor1 = array(
 			'actual'   => 'Test\'s Store',
 			'expected' => 'Tests Store',
-		];
+		);
 
 		$this->assertEquals( $statement_descriptor1['expected'], WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor1['actual'] ) );
 
-		$statement_descriptor2 = [
+		$statement_descriptor2 = array(
 			'actual'   => 'Test\'s Store > Driving Course Range',
 			'expected' => 'Tests Store  Driving C',
-		];
+		);
 
 		$this->assertEquals( $statement_descriptor2['expected'], WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor2['actual'] ) );
 
-		$statement_descriptor3 = [
+		$statement_descriptor3 = array(
 			'actual'   => 'Test\'s Store < Driving Course Range',
 			'expected' => 'Tests Store  Driving C',
-		];
+		);
 
 		$this->assertEquals( $statement_descriptor3['expected'], WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor3['actual'] ) );
 
-		$statement_descriptor4 = [
+		$statement_descriptor4 = array(
 			'actual'   => 'Test\'s Store " Driving Course Range',
 			'expected' => 'Tests Store  Driving C',
-		];
+		);
 
 		$this->assertEquals( $statement_descriptor4['expected'], WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor4['actual'] ) );
 	}

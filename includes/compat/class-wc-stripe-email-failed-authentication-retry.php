@@ -96,14 +96,14 @@ class WC_Stripe_Email_Failed_Authentication_Retry extends WC_Email_Failed_Order 
 	public function get_content_html() {
 		return wc_get_template_html(
 			$this->template_html,
-			[
+			array(
 				'order'         => $this->object,
 				'retry'         => $this->retry,
 				'email_heading' => $this->get_heading(),
 				'sent_to_admin' => true,
 				'plain_text'    => false,
 				'email'         => $this,
-			],
+			),
 			'',
 			$this->template_base
 		);
@@ -117,14 +117,14 @@ class WC_Stripe_Email_Failed_Authentication_Retry extends WC_Email_Failed_Order 
 	public function get_content_plain() {
 		return wc_get_template_html(
 			$this->template_plain,
-			[
+			array(
 				'order'         => $this->object,
 				'retry'         => $this->retry,
 				'email_heading' => $this->get_heading(),
 				'sent_to_admin' => true,
 				'plain_text'    => true,
 				'email'         => $this,
-			],
+			),
 			'',
 			$this->template_base
 		);

@@ -9,14 +9,14 @@
  * WC_Stripe_Payment_Request_Test class.
  */
 class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
-	const SHIPPING_ADDRESS = [
+	const SHIPPING_ADDRESS = array(
 		'country'   => 'US',
 		'state'     => 'CA',
 		'postcode'  => '94110',
 		'city'      => 'San Francisco',
 		'address'   => '60 29th Street #343',
 		'address_2' => '',
-	];
+	);
 
 	/**
 	 * Payment request instance.
@@ -77,7 +77,7 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 
 		WC()->session->init();
 		WC()->cart->add_to_cart( $this->simple_product->get_id(), 1 );
-		$this->pr->update_shipping_method( [ self::get_shipping_option_rate_id( $this->flat_rate_id ) ] );
+		$this->pr->update_shipping_method( array( self::get_shipping_option_rate_id( $this->flat_rate_id ) ) );
 		WC()->cart->calculate_totals();
 	}
 
@@ -111,12 +111,12 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 	 */
 	private static function get_shipping_option( $instance_id ) {
 		$method = WC_Shipping_Zones::get_shipping_method( $instance_id );
-		return [
+		return array(
 			'id'     => $method->get_rate_id(),
 			'label'  => $method->title,
 			'detail' => '',
 			'amount' => WC_Stripe_Helper::get_stripe_amount( $method->get_instance_option( 'cost' ) ),
-		];
+		);
 	}
 
 	/**
@@ -137,7 +137,7 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 
 		$expected_shipping_options = array_map(
 			'self::get_shipping_option',
-			[ $this->flat_rate_id, $this->local_pickup_id ]
+			array( $this->flat_rate_id, $this->local_pickup_id )
 		);
 
 		$this->assertEquals( 'success', $data['result'] );
@@ -148,12 +148,12 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 		$data = $this->pr->get_shipping_options( self::SHIPPING_ADDRESS );
 
 		$flat_rate              = $this->get_shipping_option( $this->flat_rate_id );
-		$expected_display_items = [
-			[
+		$expected_display_items = array(
+			array(
 				'label'  => 'Shipping',
 				'amount' => $flat_rate['amount'],
-			],
-		];
+			),
+		);
 
 		$this->assertEquals( 1500, $data['total']['amount'], 'Total amount mismatch' );
 		$this->assertEquals( $expected_display_items, $data['displayItems'], 'Display items mismatch' );
@@ -161,13 +161,13 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 
 	public function test_get_shipping_options_keeps_chosen_option() {
 		$method_id = self::get_shipping_option_rate_id( $this->local_pickup_id );
-		$this->pr->update_shipping_method( [ $method_id ] );
+		$this->pr->update_shipping_method( array( $method_id ) );
 
 		$data = $this->pr->get_shipping_options( self::SHIPPING_ADDRESS );
 
 		$expected_shipping_options = array_map(
 			'self::get_shipping_option',
-			[ $this->local_pickup_id, $this->flat_rate_id ]
+			array( $this->local_pickup_id, $this->flat_rate_id )
 		);
 
 		$this->assertEquals( 'success', $data['result'] );

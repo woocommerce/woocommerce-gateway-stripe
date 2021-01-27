@@ -16,20 +16,20 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 		parent::__construct();
 
 		if ( class_exists( 'WC_Subscriptions_Order' ) ) {
-			add_action( 'woocommerce_scheduled_subscription_payment_' . $this->id, [ $this, 'scheduled_subscription_payment' ], 10, 2 );
-			add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
-			add_action( 'wcs_renewal_order_created', [ $this, 'delete_renewal_meta' ], 10 );
-			add_action( 'woocommerce_subscription_failing_payment_method_updated_stripe', [ $this, 'update_failing_payment_method' ], 10, 2 );
-			add_action( 'wc_stripe_sepa_payment_fields', [ $this, 'display_update_subs_payment_checkout' ] );
-			add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', [ $this, 'handle_add_payment_method_success' ], 10, 2 );
+			add_action( 'woocommerce_scheduled_subscription_payment_' . $this->id, array( $this, 'scheduled_subscription_payment' ), 10, 2 );
+			add_action( 'wcs_resubscribe_order_created', array( $this, 'delete_resubscribe_meta' ), 10 );
+			add_action( 'wcs_renewal_order_created', array( $this, 'delete_renewal_meta' ), 10 );
+			add_action( 'woocommerce_subscription_failing_payment_method_updated_stripe', array( $this, 'update_failing_payment_method' ), 10, 2 );
+			add_action( 'wc_stripe_sepa_payment_fields', array( $this, 'display_update_subs_payment_checkout' ) );
+			add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', array( $this, 'handle_add_payment_method_success' ), 10, 2 );
 
 			// Display the credit card used for a subscription in the "My Subscriptions" table.
-			add_filter( 'woocommerce_my_subscriptions_payment_method', [ $this, 'maybe_render_subscription_payment_method' ], 10, 2 );
+			add_filter( 'woocommerce_my_subscriptions_payment_method', array( $this, 'maybe_render_subscription_payment_method' ), 10, 2 );
 
 			// Allow store managers to manually set Stripe as the payment method on a subscription.
-			add_filter( 'woocommerce_subscription_payment_meta', [ $this, 'add_subscription_payment_meta' ], 10, 2 );
-			add_filter( 'woocommerce_subscription_validate_payment_meta', [ $this, 'validate_subscription_payment_meta' ], 10, 2 );
-			add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'maybe_hide_save_checkbox' ] );
+			add_filter( 'woocommerce_subscription_payment_meta', array( $this, 'add_subscription_payment_meta' ), 10, 2 );
+			add_filter( 'woocommerce_subscription_validate_payment_meta', array( $this, 'validate_subscription_payment_meta' ), 10, 2 );
+			add_filter( 'wc_stripe_display_save_payment_method_checkbox', array( $this, 'maybe_hide_save_checkbox' ) );
 		}
 	}
 
@@ -75,7 +75,7 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 	 * @since 4.1.11
 	 */
 	public function display_update_subs_payment_checkout() {
-		$subs_statuses = apply_filters( 'wc_stripe_update_subs_payment_method_card_statuses', [ 'active' ] );
+		$subs_statuses = apply_filters( 'wc_stripe_update_subs_payment_method_card_statuses', array( 'active' ) );
 		if (
 			apply_filters( 'wc_stripe_display_update_subs_payment_method_card_checkbox', true ) &&
 			wcs_user_has_subscription( get_current_user_id(), '', $subs_statuses ) &&
@@ -85,11 +85,11 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 			$id    = sprintf( 'wc-%1$s-update-subs-payment-method-card', $this->id );
 			woocommerce_form_field(
 				$id,
-				[
+				array(
 					'type'    => 'checkbox',
 					'label'   => $label,
 					'default' => apply_filters( 'wc_stripe_save_to_subs_checked', false ),
-				]
+				)
 			);
 		}
 	}
@@ -104,7 +104,7 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 	public function handle_add_payment_method_success( $source_id, $source_object ) {
 		if ( isset( $_POST[ 'wc-' . $this->id . '-update-subs-payment-method-card' ] ) ) {
 			$all_subs        = wcs_get_users_subscriptions();
-			$subs_statuses   = apply_filters( 'wc_stripe_update_subs_payment_method_card_statuses', [ 'active' ] );
+			$subs_statuses   = apply_filters( 'wc_stripe_update_subs_payment_method_card_statuses', array( 'active' ) );
 			$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
 
 			if ( ! empty( $all_subs ) ) {
@@ -113,12 +113,12 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 						WC_Subscriptions_Change_Payment_Gateway::update_payment_method(
 							$sub,
 							$this->id,
-							[
-								'post_meta' => [
-									'_stripe_source_id'   => [ 'value' => $source_id ],
-									'_stripe_customer_id' => [ 'value' => $stripe_customer->get_id() ],
-								],
-							]
+							array(
+								'post_meta' => array(
+									'_stripe_source_id'   => array( 'value' => $source_id ),
+									'_stripe_customer_id' => array( 'value' => $stripe_customer->get_id() ),
+								),
+							)
 						);
 					}
 				}
@@ -143,7 +143,7 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 		} elseif ( function_exists( 'wcs_order_contains_renewal' ) && wcs_order_contains_renewal( $order_id ) ) {
 			$subscriptions = wcs_get_subscriptions_for_renewal_order( $order_id );
 		} else {
-			$subscriptions = [];
+			$subscriptions = array();
 		}
 
 		foreach ( $subscriptions as $subscription ) {
@@ -192,10 +192,10 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 
 			do_action( 'wc_stripe_change_subs_payment_method_success', $prepared_source->source, $prepared_source );
 
-			return [
+			return array(
 				'result'   => 'success',
 				'redirect' => $this->get_return_url( $subscription ),
-			];
+			);
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
@@ -256,7 +256,7 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 			 * a different idempotency key and retry for success.
 			 */
 			if ( is_object( $source_object ) && empty( $source_object->error ) && $this->need_update_idempotency_key( $source_object, $previous_error ) ) {
-				add_filter( 'wc_stripe_idempotency_key', [ $this, 'change_idempotency_key' ], 10, 2 );
+				add_filter( 'wc_stripe_idempotency_key', array( $this, 'change_idempotency_key' ), 10, 2 );
 			}
 
 			if ( ( $this->is_no_such_source_error( $previous_error ) || $this->is_no_linked_source_error( $previous_error ) ) && apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
@@ -374,18 +374,18 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 			update_post_meta( $subscription->get_id(), '_stripe_source_id', $source_id );
 		}
 
-		$payment_meta[ $this->id ] = [
-			'post_meta' => [
-				'_stripe_customer_id' => [
+		$payment_meta[ $this->id ] = array(
+			'post_meta' => array(
+				'_stripe_customer_id' => array(
 					'value' => get_post_meta( $subscription->get_id(), '_stripe_customer_id', true ),
 					'label' => 'Stripe Customer ID',
-				],
-				'_stripe_source_id'   => [
+				),
+				'_stripe_source_id'   => array(
 					'value' => $source_id,
 					'label' => 'Stripe Source ID',
-				],
-			],
-		];
+				),
+			),
+		);
 		return $payment_meta;
 	}
 

@@ -23,8 +23,8 @@ class WC_Stripe_Intent_Controller {
 	 * @since 4.2.0
 	 */
 	public function __construct() {
-		add_action( 'wc_ajax_wc_stripe_verify_intent', [ $this, 'verify_intent' ] );
-		add_action( 'wc_ajax_wc_stripe_create_setup_intent', [ $this, 'create_setup_intent' ] );
+		add_action( 'wc_ajax_wc_stripe_verify_intent', array( $this, 'verify_intent' ) );
+		add_action( 'wc_ajax_wc_stripe_create_setup_intent', array( $this, 'create_setup_intent' ) );
 	}
 
 	/**
@@ -171,11 +171,11 @@ class WC_Stripe_Intent_Controller {
 
 			// 4. Generate the setup intent
 			$setup_intent = WC_Stripe_API::request(
-				[
+				array(
 					'customer'       => $customer->get_id(),
 					'confirm'        => 'true',
 					'payment_method' => $source_id,
-				],
+				),
 				'setup_intents'
 			);
 
@@ -188,36 +188,36 @@ class WC_Stripe_Intent_Controller {
 
 			// 5. Respond.
 			if ( 'requires_action' === $setup_intent->status ) {
-				$response = [
+				$response = array(
 					'status'        => 'requires_action',
 					'client_secret' => $setup_intent->client_secret,
-				];
+				);
 			} elseif ( 'requires_payment_method' === $setup_intent->status
 				|| 'requires_confirmation' === $setup_intent->status
 				|| 'canceled' === $setup_intent->status ) {
 				// These statuses should not be possible, as such we return an error.
-				$response = [
+				$response = array(
 					'status' => 'error',
-					'error'  => [
+					'error'  => array(
 						'type'    => 'setup_intent_error',
 						'message' => __( 'Failed to save payment method.', 'woocommerce-gateway-stripe' ),
-					],
-				];
+					),
+				);
 			} else {
 				// This should only be reached when status is `processing` or `succeeded`, which are
 				// the only statuses that we haven't explicitly handled.
-				$response = [
+				$response = array(
 					'status' => 'success',
-				];
+				);
 			}
 		} catch ( Exception $e ) {
-			$response = [
+			$response = array(
 				'status' => 'error',
-				'error'  => [
+				'error'  => array(
 					'type'    => 'setup_intent_error',
 					'message' => $e->getMessage(),
-				],
-			];
+				),
+			);
 		}
 
 		echo wp_json_encode( $response );

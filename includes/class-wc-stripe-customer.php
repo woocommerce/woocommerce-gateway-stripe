@@ -29,7 +29,7 @@ class WC_Stripe_Customer {
 	 *
 	 * @var array
 	 */
-	private $customer_data = [];
+	private $customer_data = array();
 
 	/**
 	 * Constructor
@@ -108,7 +108,7 @@ class WC_Stripe_Customer {
 	 * @param  array $args Additional arguments (optional).
 	 * @return array
 	 */
-	protected function generate_customer_request( $args = [] ) {
+	protected function generate_customer_request( $args = array() ) {
 		$billing_email = isset( $_POST['billing_email'] ) ? filter_var( wp_unslash( $_POST['billing_email'] ), FILTER_SANITIZE_EMAIL ) : '';
 		$user          = $this->get_user();
 
@@ -129,10 +129,10 @@ class WC_Stripe_Customer {
 			// translators: %1$s First name, %2$s Second name, %3$s Username.
 			$description = sprintf( __( 'Name: %1$s %2$s, Username: %3$s', 'woocommerce-gateway-stripe' ), $billing_first_name, $billing_last_name, $user->user_login );
 
-			$defaults = [
+			$defaults = array(
 				'email'       => $user->user_email,
 				'description' => $description,
-			];
+			);
 
 			$billing_full_name = trim( $billing_first_name . ' ' . $billing_last_name );
 			if ( ! empty( $billing_full_name ) ) {
@@ -145,10 +145,10 @@ class WC_Stripe_Customer {
 			// translators: %1$s First name, %2$s Second name.
 			$description = sprintf( __( 'Name: %1$s %2$s, Guest', 'woocommerce-gateway-stripe' ), $billing_first_name, $billing_last_name );
 
-			$defaults = [
+			$defaults = array(
 				'email'       => $billing_email,
 				'description' => $description,
-			];
+			);
 
 			$billing_full_name = trim( $billing_first_name . ' ' . $billing_last_name );
 			if ( ! empty( $billing_full_name ) ) {
@@ -156,7 +156,7 @@ class WC_Stripe_Customer {
 			}
 		}
 
-		$metadata             = [];
+		$metadata             = array();
 		$defaults['metadata'] = apply_filters( 'wc_stripe_customer_metadata', $metadata, $user );
 
 		return wp_parse_args( $args, $defaults );
@@ -168,7 +168,7 @@ class WC_Stripe_Customer {
 	 * @param array $args
 	 * @return WP_Error|int
 	 */
-	public function create_customer( $args = [] ) {
+	public function create_customer( $args = array() ) {
 		$args     = $this->generate_customer_request( $args );
 		$response = WC_Stripe_API::request( apply_filters( 'wc_stripe_create_customer_args', $args ), 'customers' );
 
@@ -199,7 +199,7 @@ class WC_Stripe_Customer {
 	 *
 	 * @throws WC_Stripe_Exception
 	 */
-	public function update_customer( $args = [], $is_retry = false ) {
+	public function update_customer( $args = array(), $is_retry = false ) {
 		if ( empty( $this->get_id() ) ) {
 			throw new WC_Stripe_Exception( 'id_required_to_update_user', __( 'Attempting to update a Stripe customer without a customer ID.', 'woocommerce-gateway-stripe' ) );
 		}
@@ -330,9 +330,9 @@ class WC_Stripe_Customer {
 		}
 
 		$response = WC_Stripe_API::request(
-			[
+			array(
 				'source' => $source_id,
-			],
+			),
 			'customers/' . $this->get_id() . '/sources'
 		);
 
@@ -344,7 +344,7 @@ class WC_Stripe_Customer {
 				$this->recreate_customer();
 				return $this->attach_source( $source_id );
 			} elseif ( $this->is_source_already_attached_error( $response->error ) ) {
-				return WC_Stripe_API::request( [], 'sources/' . $source_id, 'GET' );
+				return WC_Stripe_API::request( array(), 'sources/' . $source_id, 'GET' );
 			} else {
 				return $response;
 			}
@@ -363,22 +363,22 @@ class WC_Stripe_Customer {
 	 */
 	public function get_sources() {
 		if ( ! $this->get_id() ) {
-			return [];
+			return array();
 		}
 
 		$sources = get_transient( 'stripe_sources_' . $this->get_id() );
 
 		if ( false === $sources ) {
 			$response = WC_Stripe_API::request(
-				[
+				array(
 					'limit' => 100,
-				],
+				),
 				'customers/' . $this->get_id() . '/sources',
 				'GET'
 			);
 
 			if ( ! empty( $response->error ) ) {
-				return [];
+				return array();
 			}
 
 			if ( is_array( $response->data ) ) {
@@ -388,7 +388,7 @@ class WC_Stripe_Customer {
 			set_transient( 'stripe_sources_' . $this->get_id(), $sources, DAY_IN_SECONDS );
 		}
 
-		return empty( $sources ) ? [] : $sources;
+		return empty( $sources ) ? array() : $sources;
 	}
 
 	/**
@@ -401,7 +401,7 @@ class WC_Stripe_Customer {
 			return false;
 		}
 
-		$response = WC_Stripe_API::request( [], 'customers/' . $this->get_id() . '/sources/' . sanitize_text_field( $source_id ), 'DELETE' );
+		$response = WC_Stripe_API::request( array(), 'customers/' . $this->get_id() . '/sources/' . sanitize_text_field( $source_id ), 'DELETE' );
 
 		$this->clear_cache();
 
@@ -421,9 +421,9 @@ class WC_Stripe_Customer {
 	 */
 	public function set_default_source( $source_id ) {
 		$response = WC_Stripe_API::request(
-			[
+			array(
 				'default_source' => sanitize_text_field( $source_id ),
-			],
+			),
 			'customers/' . $this->get_id(),
 			'POST'
 		);
@@ -445,7 +445,7 @@ class WC_Stripe_Customer {
 	public function clear_cache() {
 		delete_transient( 'stripe_sources_' . $this->get_id() );
 		delete_transient( 'stripe_customer_' . $this->get_id() );
-		$this->customer_data = [];
+		$this->customer_data = array();
 	}
 
 	/**

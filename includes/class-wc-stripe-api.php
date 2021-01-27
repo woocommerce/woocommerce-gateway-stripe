@@ -56,19 +56,19 @@ class WC_Stripe_API {
 	 * @version 4.0.0
 	 */
 	public static function get_user_agent() {
-		$app_info = [
+		$app_info = array(
 			'name'    => 'WooCommerce Stripe Gateway',
 			'version' => WC_STRIPE_VERSION,
 			'url'     => 'https://woocommerce.com/products/stripe/',
-		];
+		);
 
-		return [
+		return array(
 			'lang'         => 'php',
 			'lang_version' => phpversion(),
 			'publisher'    => 'woocommerce',
 			'uname'        => php_uname(),
 			'application'  => $app_info,
-		];
+		);
 	}
 
 	/**
@@ -83,12 +83,12 @@ class WC_Stripe_API {
 
 		return apply_filters(
 			'woocommerce_stripe_request_headers',
-			[
+			array(
 				'Authorization'              => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
 				'Stripe-Version'             => self::STRIPE_API_VERSION,
 				'User-Agent'                 => $app_info['name'] . '/' . $app_info['version'] . ' (' . $app_info['url'] . ')',
 				'X-Stripe-Client-User-Agent' => wp_json_encode( $user_agent ),
-			]
+			)
 		);
 	}
 
@@ -120,22 +120,22 @@ class WC_Stripe_API {
 
 		$response = wp_safe_remote_post(
 			self::ENDPOINT . $api,
-			[
+			array(
 				'method'  => $method,
 				'headers' => $headers,
 				'body'    => apply_filters( 'woocommerce_stripe_request_body', $request, $api ),
 				'timeout' => 70,
-			]
+			)
 		);
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {
 			WC_Stripe_Logger::log(
 				'Error Response: ' . print_r( $response, true ) . PHP_EOL . PHP_EOL . 'Failed request: ' . print_r(
-					[
+					array(
 						'api'             => $api,
 						'request'         => $request,
 						'idempotency_key' => $idempotency_key,
-					],
+					),
 					true
 				)
 			);
@@ -144,10 +144,10 @@ class WC_Stripe_API {
 		}
 
 		if ( $with_headers ) {
-			return [
+			return array(
 				'headers' => wp_remote_retrieve_headers( $response ),
 				'body'    => json_decode( $response['body'] ),
-			];
+			);
 		}
 
 		return json_decode( $response['body'] );
@@ -165,11 +165,11 @@ class WC_Stripe_API {
 
 		$response = wp_safe_remote_get(
 			self::ENDPOINT . $api,
-			[
+			array(
 				'method'  => 'GET',
 				'headers' => self::get_headers(),
 				'timeout' => 70,
-			]
+			)
 		);
 
 		if ( is_wp_error( $response ) || empty( $response['body'] ) ) {

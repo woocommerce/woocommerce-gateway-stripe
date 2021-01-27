@@ -56,14 +56,14 @@ if ( ! class_exists( 'WC_Stripe_Connect_REST_Oauth_Init_Controller' ) ) {
 				return new WP_Error(
 					$response->get_error_code(),
 					$response->get_error_message(),
-					[ 'status' => 400 ]
+					array( 'status' => 400 )
 				);
 			}
 
-			return [
+			return array(
 				'success'  => true,
 				'oauthUrl' => $response,
-			];
+			);
 		}
 	}
 }

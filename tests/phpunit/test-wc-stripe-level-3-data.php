@@ -40,30 +40,30 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 
 		// Assert.
 		$this->assertEquals(
-			[
+			array(
 				'merchant_reference'   => $order->get_id(),
 				'shipping_address_zip' => $order->get_shipping_postcode(),
 				'shipping_from_zip'    => $store_postcode,
 				'shipping_amount'      => 0,
-				'line_items'           => [
-					(object) [
+				'line_items'           => array(
+					(object) array(
 						'product_code'        => (string) $product_1->get_id(),
 						'product_description' => substr( $product_1->get_name(), 0, 26 ),
 						'unit_cost'           => 1183,
 						'quantity'            => 1,
 						'tax_amount'          => 0,
 						'discount_amount'     => 0,
-					],
-					(object) [
+					),
+					(object) array(
 						'product_code'        => (string) $product_2->get_id(),
 						'product_description' => substr( $product_2->get_name(), 0, 26 ),
 						'unit_cost'           => 2005,
 						'quantity'            => 2,
 						'tax_amount'          => 0,
 						'discount_amount'     => 0,
-					],
-				],
-			],
+					),
+				),
+			),
 			$result
 		);
 
@@ -117,20 +117,20 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 
 		// Assert.
 		$this->assertEquals(
-			[
+			array(
 				'merchant_reference' => $order->get_id(),
 				'shipping_amount'    => 0,
-				'line_items'         => [
-					(object) [
+				'line_items'         => array(
+					(object) array(
 						'product_code'        => (string) $product->get_id(),
 						'product_description' => substr( $product->get_name(), 0, 26 ),
 						'unit_cost'           => 1919,
 						'quantity'            => 1,
 						'tax_amount'          => 0,
 						'discount_amount'     => 0,
-					],
-				],
-			],
+					),
+				),
+			),
 			$result
 		);
 	}

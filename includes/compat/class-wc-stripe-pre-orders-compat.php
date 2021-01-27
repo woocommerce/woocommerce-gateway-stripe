@@ -54,10 +54,10 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 			}
 
 			// Setup the response early to allow later modifications.
-			$response = [
+			$response = array(
 				'result'   => 'success',
 				'redirect' => $this->get_return_url( $order ),
-			];
+			);
 
 			$this->save_source_to_order( $order, $prepared_source );
 
@@ -80,10 +80,10 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Pre Orders Error: ' . $e->getMessage() );
 
-			return [
+			return array(
 				'result'   => 'success',
 				'redirect' => $order->get_checkout_payment_url( true ),
-			];
+			);
 		}
 	}
 
@@ -115,7 +115,7 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 				$order->set_transaction_id( $id );
 				/* translators: %s is the charge Id */
 				$order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
-				if ( is_callable( [ $order, 'save' ] ) ) {
+				if ( is_callable( array( $order, 'save' ) ) ) {
 					$order->save();
 				}
 
@@ -129,7 +129,7 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 				$this->process_response( end( $response->charges->data ), $order );
 			}
 		} catch ( Exception $e ) {
-			$error_message = is_callable( [ $e, 'getLocalizedMessage' ] ) ? $e->getLocalizedMessage() : $e->getMessage();
+			$error_message = is_callable( array( $e, 'getLocalizedMessage' ) ) ? $e->getLocalizedMessage() : $e->getMessage();
 			/* translators: error message */
 			$order_note = sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $error_message );
 

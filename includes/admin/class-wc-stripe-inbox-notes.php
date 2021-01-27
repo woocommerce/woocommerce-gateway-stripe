@@ -19,8 +19,8 @@ class WC_Stripe_Inbox_Notes {
 	const CAMPAIGN_2020_CLEANUP_ACTION = 'wc_stripe_apple_pay_2020_cleanup';
 
 	public function __construct() {
-		add_action( self::POST_SETUP_SUCCESS_ACTION, [ self::class, 'create_marketing_note' ] );
-		add_action( self::CAMPAIGN_2020_CLEANUP_ACTION, [ self::class, 'cleanup_campaign_2020' ] );
+		add_action( self::POST_SETUP_SUCCESS_ACTION, array( self::class, 'create_marketing_note' ) );
+		add_action( self::CAMPAIGN_2020_CLEANUP_ACTION, array( self::class, 'cleanup_campaign_2020' ) );
 
 		// Schedule a 2020 holiday campaign cleanup action if needed.
 		// First, check to see if we are still before the cutoff.
@@ -93,7 +93,7 @@ class WC_Stripe_Inbox_Notes {
 		}
 
 		// Make sure Apple Pay is enabled and setup is successful.
-		$stripe_settings       = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings       = get_option( 'woocommerce_stripe_settings', array() );
 		$stripe_enabled        = isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
 		$button_enabled        = isset( $stripe_settings['payment_request'] ) && 'yes' === $stripe_settings['payment_request'];
 		$verification_complete = isset( $stripe_settings['apple_pay_domain_set'] ) && 'yes' === $stripe_settings['apple_pay_domain_set'];
@@ -174,7 +174,7 @@ class WC_Stripe_Inbox_Notes {
 			return;
 		}
 
-		$note_ids = [];
+		$note_ids = array();
 
 		try {
 			$data_store = WC_Data_Store::load( 'admin-note' );

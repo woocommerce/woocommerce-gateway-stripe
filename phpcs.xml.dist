@@ -10,13 +10,13 @@
 	<exclude-pattern>*\.(?!php$)</exclude-pattern>
 
 	<!-- Configs -->
-	<config name="minimum_supported_wp_version" value="5.3" />
-	<config name="testVersion" value="7.0-" />
+	<config name="minimum_supported_wp_version" value="4.7" />
+	<config name="testVersion" value="5.2-" />
 
 	<!-- Rules -->
 	<rule ref="WooCommerce-Core" >
 		<exclude name="Generic.Commenting.Todo.TaskFound"/>
-		<exclude name="Generic.Arrays.DisallowShortArraySyntax.Found"/>
+		<exclude name="Generic.Arrays.DisallowLongArraySyntax.Found"/>
 
 		<!-- This rule is currently generating some false positives, it would be worth retrying after PHPCS upgrades -->
 		<exclude name="Squiz.Commenting.FunctionCommentThrowTag.WrongNumber"/>
@@ -40,10 +40,6 @@
 		<properties>
 			<property name="customEscapingFunctions" type="array" value="WC_Payments_Utils,esc_interpolated_html" />
 		</properties>
-	</rule>
-
-	<rule ref="PHPCompatibility">
-		<exclude-pattern>tests/</exclude-pattern>
 	</rule>
 
 	<rule ref="WordPress.Files.FileName.InvalidClassFileName">

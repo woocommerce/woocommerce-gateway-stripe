@@ -113,14 +113,14 @@ function woocommerce_gateway_stripe() {
 			 * *Singleton* via the `new` operator from outside of this class.
 			 */
 			public function __construct() {
-				add_action( 'admin_init', [ $this, 'install' ] );
+				add_action( 'admin_init', array( $this, 'install' ) );
 
 				$this->init();
 
 				$this->api     = new WC_Stripe_Connect_API();
 				$this->connect = new WC_Stripe_Connect( $this->api );
 
-				add_action( 'rest_api_init', [ $this, 'register_connect_routes' ] );
+				add_action( 'rest_api_init', array( $this, 'register_connect_routes' ) );
 			}
 
 			/**
@@ -171,16 +171,16 @@ function woocommerce_gateway_stripe() {
 				// REMOVE IN THE FUTURE.
 				require_once dirname( __FILE__ ) . '/includes/deprecated/class-wc-stripe-apple-pay.php';
 
-				add_filter( 'woocommerce_payment_gateways', [ $this, 'add_gateways' ] );
-				add_filter( 'pre_update_option_woocommerce_stripe_settings', [ $this, 'gateway_settings_update' ], 10, 2 );
-				add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), [ $this, 'plugin_action_links' ] );
-				add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
+				add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateways' ) );
+				add_filter( 'pre_update_option_woocommerce_stripe_settings', array( $this, 'gateway_settings_update' ), 10, 2 );
+				add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'plugin_action_links' ) );
+				add_filter( 'plugin_row_meta', array( $this, 'plugin_row_meta' ), 10, 2 );
 
 				// Modify emails emails.
-				add_filter( 'woocommerce_email_classes', [ $this, 'add_emails' ], 20 );
+				add_filter( 'woocommerce_email_classes', array( $this, 'add_emails' ), 20 );
 
 				if ( version_compare( WC_VERSION, '3.4', '<' ) ) {
-					add_filter( 'woocommerce_get_sections_checkout', [ $this, 'filter_gateway_order_admin' ] );
+					add_filter( 'woocommerce_get_sections_checkout', array( $this, 'filter_gateway_order_admin' ) );
 				}
 			}
 
@@ -224,9 +224,9 @@ function woocommerce_gateway_stripe() {
 			 * @version 4.0.0
 			 */
 			public function plugin_action_links( $links ) {
-				$plugin_links = [
+				$plugin_links = array(
 					'<a href="admin.php?page=wc-settings&tab=checkout&section=stripe">' . esc_html__( 'Settings', 'woocommerce-gateway-stripe' ) . '</a>',
-				];
+				);
 				return array_merge( $plugin_links, $links );
 			}
 
@@ -240,10 +240,10 @@ function woocommerce_gateway_stripe() {
 			 */
 			public function plugin_row_meta( $links, $file ) {
 				if ( plugin_basename( __FILE__ ) === $file ) {
-					$row_meta = [
+					$row_meta = array(
 						'docs'    => '<a href="' . esc_url( apply_filters( 'woocommerce_gateway_stripe_docs_url', 'https://docs.woocommerce.com/document/stripe/' ) ) . '" title="' . esc_attr( __( 'View Documentation', 'woocommerce-gateway-stripe' ) ) . '">' . __( 'Docs', 'woocommerce-gateway-stripe' ) . '</a>',
 						'support' => '<a href="' . esc_url( apply_filters( 'woocommerce_gateway_stripe_support_url', 'https://woocommerce.com/my-account/create-a-ticket?select=18627' ) ) . '" title="' . esc_attr( __( 'Open a support request at WooCommerce.com', 'woocommerce-gateway-stripe' ) ) . '">' . __( 'Support', 'woocommerce-gateway-stripe' ) . '</a>',
-					];
+					);
 					return array_merge( $links, $row_meta );
 				}
 				return (array) $links;
