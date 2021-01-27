@@ -133,9 +133,11 @@ jQuery( function( $ ) {
 				.on( 'change input', function() {
 					var $td = $( this ).closest( 'td' );
 					var $warning = $td.find( '.webhook_secret_time_sync_warning' );
+					var hasWebhookSecretValue = $( this ).val().length > 0;
 
-					if ( $( this ).val() ){
-						if ( isTimeOutOfSync && ! $warning.length ) {
+					if ( hasWebhookSecretValue ){
+						var isWarningShown = $warning.length > 0;
+						if ( isTimeOutOfSync && ! isWarningShown ) {
 							$td.append( '<p class="webhook_secret_time_sync_warning">' + wc_stripe_settings_params.i18n_out_of_sync + '</p>' );
 						}
 					} else {
