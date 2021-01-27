@@ -1,11 +1,11 @@
-name: Compatibility - WC, WP and PHP
+name: Compatibility (WC, WP, PHP)
 
 on:
   pull_request
 
 jobs:
   woocommerce-compatibility:
-    name:    WC compatibility
+    name: Release
     runs-on: ubuntu-16.04
     strategy:
       fail-fast:    false
@@ -15,10 +15,10 @@ jobs:
         wordpress:   [ 'latest' ]
         php:         [ '7.4' ]
         include:
-          # Edge case: oldest dependencies compatibility
+          # oldest dependencies compatibility
           - woocommerce: '3.3.0'
             wordpress:   '4.7'
-            php:         '5.6'
+            php:         '5.2'
     env:
       WP_VERSION: ${{ matrix.wordpress }}
       WC_VERSION: ${{ matrix.woocommerce }}
@@ -37,14 +37,16 @@ jobs:
           tools:       composer
           coverage:    none
       # run CI checks
+      - run: if [[ "${{ matrix.php }}" == '5.2' ]]; then wget https://github.com/treffynnon/php5.2-phpunit3.6.12-phar/releases/download/1.0.2/php52-phpunit.phar && mv php52-phpunit.phar phpunit.phar; fi;
       - run: if [[ "${{ matrix.php }}" == '5.6' ]]; then wget https://phar.phpunit.de/phpunit-5.7.27.phar && mv phpunit-5.7.27.phar phpunit.phar; fi;
       - run: if [[ "${{ matrix.php }}" == '7.0' ]]; then wget https://phar.phpunit.de/phpunit-6.5.14.phar && mv phpunit-6.5.14.phar phpunit.phar; fi;
       - run: bash bin/run-ci-tests.bash
 
-  # a dedicated job, as allowed to fail
+  # a dedicated job for beta, as it's allowed to fail
   compatibility-woocommerce-beta:
-    name:    Environment - WC beta
+    name: Beta
     runs-on: ubuntu-16.04
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
