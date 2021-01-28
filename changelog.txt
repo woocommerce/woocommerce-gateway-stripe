@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 4.8.0 - 2021-xx-xx =
+= 4.8.0 - 2021-01-28 =
 * Fix   - Filter more disallowed characters from statement descriptors.
 * Fix   - Payment request button for Puerto Rico.
 * Fix   - Handle error if country is not supported for payment request button.

@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 5.5
 Requires PHP: 5.6
-Stable tag: 4.7.0
+Stable tag: 4.8.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -126,7 +126,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.8.0 - 2021-xx-xx =
+= 4.8.0 - 2021-01-28 =
 * Fix - Filter more disallowed characters from statement descriptors.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
