@@ -25,7 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'WC_STRIPE_VERSION', '4.7.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '3.0' );
-define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '3.0' );
+define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '3.3' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
 define( 'WC_STRIPE_PLUGIN_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
