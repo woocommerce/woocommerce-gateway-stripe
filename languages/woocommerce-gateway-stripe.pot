@@ -5,7 +5,7 @@ msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 4.7.0\n"
 "Report-Msgid-Bugs-To: "
 "https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
-"POT-Creation-Date: 2021-01-21 15:27:47+00:00\n"
+"POT-Creation-Date: 2021-01-28 01:47:05+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -63,7 +63,7 @@ msgid "Stripe charge complete (Charge ID: %s)"
 msgstr ""
 
 #: includes/abstracts/abstract-wc-stripe-payment-gateway.php:455
-#: includes/class-wc-gateway-stripe.php:496
+#: includes/class-wc-gateway-stripe.php:508
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:185
 msgid "Payment processing failed. Please retry."
 msgstr ""
@@ -79,16 +79,16 @@ msgstr ""
 msgid "Invalid payment method. Please input a new card number."
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:910
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:917
 #. translators: 1) dollar amount 2) transaction id 3) refund message
 msgid "Refunded %1$s - Refund ID: %2$s - Reason: %3$s"
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:910
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:917
 msgid "Pre-Authorization Released"
 msgstr ""
 
-#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:928
+#: includes/abstracts/abstract-wc-stripe-payment-gateway.php:935
 msgid "There was a problem adding the payment method."
 msgstr ""
 
@@ -894,14 +894,14 @@ msgid ""
 "details to Stripe for verification."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:180
+#: includes/class-wc-gateway-stripe.php:181
 #. translators: 1) Opening anchor tag 2) closing anchor tag
 msgid ""
 "If your billing address has been changed for saved payment methods, be sure "
 "to remove any %1$ssaved payment methods%2$s on file and re-add them."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:257
+#: includes/class-wc-gateway-stripe.php:258
 #. translators: link to Stripe testing page
 msgid ""
 "TEST MODE ENABLED. In test mode, you can use the card number "
@@ -910,73 +910,83 @@ msgid ""
 "card numbers."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:296
+#: includes/class-wc-gateway-stripe.php:297
 msgid "Credit or debit card"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:304
+#: includes/class-wc-gateway-stripe.php:305
 msgid "Card Number"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:315
+#: includes/class-wc-gateway-stripe.php:316
 msgid "Expiry Date"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:323
+#: includes/class-wc-gateway-stripe.php:324
 msgid "Card Code (CVC)"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:408
+#: includes/class-wc-gateway-stripe.php:359
+msgid ""
+"<strong>Warning:</strong> your site's time does not match the time on your "
+"browser and may be incorrect. Some payment methods depend on webhook "
+"verification and verifying webhooks with a signing secret depends on your "
+"site's time being correct, so please check your site's time before setting "
+"a webhook secret. You may need to contact your site's hosting provider to "
+"correct the site's time."
+msgstr ""
+
+#: includes/class-wc-gateway-stripe.php:420
 msgid "Please accept the terms and conditions first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:409
+#: includes/class-wc-gateway-stripe.php:421
 msgid "Please fill in required checkout fields first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:438
-#: includes/class-wc-gateway-stripe.php:483
+#: includes/class-wc-gateway-stripe.php:450
+#: includes/class-wc-gateway-stripe.php:495
 msgid ""
 "Sorry, we're not accepting prepaid cards at this time. Your credit card has "
 "not been charged. Please try with alternative payment method."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:439
+#: includes/class-wc-gateway-stripe.php:451
 msgid "Please enter your IBAN account name."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:440
+#: includes/class-wc-gateway-stripe.php:452
 msgid "Please enter your IBAN account number."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:441
+#: includes/class-wc-gateway-stripe.php:453
 msgid "We couldn't initiate the payment. Please try again."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:452
+#: includes/class-wc-gateway-stripe.php:464
 msgid "Billing First Name and Last Name are required."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:724
+#: includes/class-wc-gateway-stripe.php:736
 #. translators: error message
 msgid "This represents the fee Stripe collects for the transaction."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:725
+#: includes/class-wc-gateway-stripe.php:737
 msgid "Stripe Fee:"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:761
+#: includes/class-wc-gateway-stripe.php:773
 msgid ""
 "This represents the net total that will be credited to your Stripe bank "
 "account. This may be in the currency that is set in your Stripe account."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:762
+#: includes/class-wc-gateway-stripe.php:774
 msgid "Stripe Payout:"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:825
+#: includes/class-wc-gateway-stripe.php:837
 #: includes/class-wc-stripe-order-handler.php:158
 #: includes/class-wc-stripe-webhook-handler.php:233
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:284
@@ -987,7 +997,7 @@ msgid ""
 "later."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:878
+#: includes/class-wc-gateway-stripe.php:890
 msgid ""
 "Almost there!\n"
 "\n"
@@ -995,36 +1005,36 @@ msgid ""
 "done is for you to authorize the payment with your bank."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1119
+#: includes/class-wc-gateway-stripe.php:1131
 #: includes/class-wc-stripe-webhook-handler.php:674
 #: includes/class-wc-stripe-webhook-handler.php:713
 #. translators: 1) The error message that was received from Stripe.
 msgid "Stripe SCA authentication failed. Reason: %s"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1120
+#: includes/class-wc-gateway-stripe.php:1132
 msgid "Stripe SCA authentication failed."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1177
+#: includes/class-wc-gateway-stripe.php:1189
 msgid ""
 "The \"Live Publishable Key\" should start with \"pk_live\", enter the "
 "correct key."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1185
+#: includes/class-wc-gateway-stripe.php:1197
 msgid ""
 "The \"Live Secret Key\" should start with \"sk_live\" or \"rk_live\", enter "
 "the correct key."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1193
+#: includes/class-wc-gateway-stripe.php:1205
 msgid ""
 "The \"Test Publishable Key\" should start with \"pk_test\", enter the "
 "correct key."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1201
+#: includes/class-wc-gateway-stripe.php:1213
 msgid ""
 "The \"Test Secret Key\" should start with \"sk_test\" or \"rk_test\", enter "
 "the correct key."

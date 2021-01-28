@@ -104,7 +104,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			// Verify the timestamp.
 			$timestamp = intval( $matches['timestamp'] );
 			if ( abs( $timestamp - time() ) > 5 * MINUTE_IN_SECONDS ) {
-				return;
+				return false;
 			}
 
 			// Generate the expected signature.
