@@ -127,7 +127,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 4.8.0 - 2021-01-28 =
-* Fix - Filter more disallowed characters from statement descriptors.
+* Fix   - Filter more disallowed characters from statement descriptors.
+* Fix   - Payment request button for Puerto Rico.
+* Fix   - Handle error if country is not supported for payment request button.
+* Fix   - Trim the refund reason to a max of 500 characters.
+* Tweak - Display warning on webhook secret when server time is off from device time.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
-
