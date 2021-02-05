@@ -125,7 +125,7 @@ class WC_Stripe_Apple_Pay_Registration {
 		}
 
 		$path = WC_STRIPE_PLUGIN_PATH . '/apple-developer-merchantid-domain-association';
-		header( 'Content-Type: application/octet-stream' );
+		header( 'Content-Type: text/plain;charset=utf-8' );
 		echo esc_html( file_get_contents( $path ) );
 		exit;
 	}
