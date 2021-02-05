@@ -83,11 +83,11 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * Gets the Stripe secret key for the current mode.
 	 *
 	 * @since 4.5.3
+	 * @version 4.9.0
 	 * @return string Secret key.
 	 */
 	private function get_secret_key() {
-		$testmode = 'yes' === $this->get_option( 'testmode', 'no' );
-		return $testmode ? $this->get_option( 'test_secret_key' ) : $this->get_option( 'secret_key' );
+		return $this->get_option( 'secret_key' );
 	}
 
 	/**
@@ -134,7 +134,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * Makes request to register the domain with Stripe/Apple Pay.
 	 *
 	 * @since 3.1.0
-	 * @version 4.5.4
+	 * @version 4.9.0
 	 * @param string $secret_key
 	 */
 	private function make_domain_registration_request( $secret_key ) {
