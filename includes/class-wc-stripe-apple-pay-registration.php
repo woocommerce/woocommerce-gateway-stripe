@@ -158,6 +158,7 @@ class WC_Stripe_Apple_Pay_Registration {
 			array(
 				'headers' => $headers,
 				'body'    => http_build_query( $data ),
+				'timeout' => 30,
 			)
 		);
 
