@@ -11,7 +11,7 @@ package-lock.json export-ignore
 composer.json export-ignore
 phpunit.xml.dist export-ignore
 phpunit.xml export-ignore
-.eslintrc export-ignore
+.eslintrc.js export-ignore
 .eslintignore export-ignore
 .tx export-ignore
 .editorconfig export-ignore
@@ -19,7 +19,9 @@ phpunit.xml export-ignore
 .phpcs.xml export-ignore
 .travis.yml export-ignore
 .editorconfig export-ignore
+.prettierrc.js export-ignore
 .babelrc export-ignore
+webpack.config.js export-ignore
 docs export-ignore
 wordpress_org_assets export-ignore
 assets/css/*.scss export-ignore
