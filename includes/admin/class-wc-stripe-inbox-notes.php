@@ -57,6 +57,9 @@ class WC_Stripe_Inbox_Notes {
 			return;
 		}
 
+		$data_store       = WC_Data_Store::load( 'admin-note' );
+		$failure_note_ids = $data_store->get_notes_with_name( self::FAILURE_NOTE_NAME );
+
 		if ( $verification_complete ) {
 			if ( self::should_show_marketing_note() && ! wp_next_scheduled( self::POST_SETUP_SUCCESS_ACTION ) ) {
 				wp_schedule_single_event( time() + DAY_IN_SECONDS, self::POST_SETUP_SUCCESS_ACTION );
@@ -64,8 +67,6 @@ class WC_Stripe_Inbox_Notes {
 
 			// If the domain verification completed after failure note was created, make sure it's marked as actioned.
 			try {
-				$data_store       = WC_Data_Store::load( 'admin-note' );
-				$failure_note_ids = $data_store->get_notes_with_name( self::FAILURE_NOTE_NAME );
 				if ( ! empty( $failure_note_ids ) ) {
 					$note_id = array_pop( $failure_note_ids );
 					$note    = WC_Admin_Notes::get_note( $note_id );
