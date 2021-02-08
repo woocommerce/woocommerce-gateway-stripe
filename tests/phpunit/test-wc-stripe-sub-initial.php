@@ -123,7 +123,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 			$response = array(
 				'headers'  => array(),
 				// Too bad we aren't dynamically setting things 'cus_123abc' when using this file.
-				'body'     => file_get_contents( 'tests/phpunit/dummy-data/subscription_signup_response_success.json' ),
+				'body'     => file_get_contents( __DIR__ . '/dummy-data/subscription_signup_response_success.json' ),
 				'response' => array(
 					'code'    => 200,
 					'message' => 'OK',
