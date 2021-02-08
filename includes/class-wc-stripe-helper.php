@@ -209,9 +209,11 @@ class WC_Stripe_Helper {
 				'card_declined'            => __( 'The card was declined.', 'woocommerce-gateway-stripe' ),
 				'missing'                  => __( 'There is no card on a customer that is being charged.', 'woocommerce-gateway-stripe' ),
 				'processing_error'         => __( 'An error occurred while processing the card.', 'woocommerce-gateway-stripe' ),
-				'invalid_request_error'    => __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ),
 				'invalid_sofort_country'   => __( 'The billing country is not accepted by SOFORT. Please try another country.', 'woocommerce-gateway-stripe' ),
 				'email_invalid'            => __( 'Invalid email address, please correct and try again.', 'woocommerce-gateway-stripe' ),
+				'invalid_request_error'    => is_add_payment_method_page()
+					? __( 'Unable to save this payment method, please try again or use alternative method.', 'woocommerce-gateway-stripe' )
+					: __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ),
 			)
 		);
 	}
@@ -449,19 +451,26 @@ class WC_Stripe_Helper {
 	/**
 	 * Sanitize statement descriptor text.
 	 *
-	 * Stripe requires max of 22 characters and no
-	 * special characters with ><"'.
+	 * Stripe requires max of 22 characters and no special characters.
 	 *
 	 * @since 4.0.0
 	 * @param string $statement_descriptor
 	 * @return string $statement_descriptor Sanitized statement descriptor
 	 */
 	public static function clean_statement_descriptor( $statement_descriptor = '' ) {
-		$disallowed_characters = array( '<', '>', '"', "'" );
+		$disallowed_characters = array( '<', '>', '\\', '*', '"', "'", '/', '(', ')', '{', '}' );
 
-		// Remove special characters.
+		// Strip any tags.
+		$statement_descriptor = strip_tags( $statement_descriptor );
+
+		// Strip any HTML entities.
+		// Props https://stackoverflow.com/questions/657643/how-to-remove-html-special-chars .
+		$statement_descriptor = preg_replace( "/&#?[a-z0-9]{2,8};/i", "", $statement_descriptor );
+
+		// Next, remove any remaining disallowed characters.
 		$statement_descriptor = str_replace( $disallowed_characters, '', $statement_descriptor );
 
+		// Trim any whitespace at the ends and limit to 22 characters.
 		$statement_descriptor = substr( trim( $statement_descriptor ), 0, 22 );
 
 		return $statement_descriptor;

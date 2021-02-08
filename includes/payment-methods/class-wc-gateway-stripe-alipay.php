@@ -104,6 +104,7 @@ class WC_Gateway_Stripe_Alipay extends WC_Stripe_Payment_Gateway {
 				'EUR',
 				'AUD',
 				'CAD',
+				'CNY',
 				'GBP',
 				'HKD',
 				'JPY',

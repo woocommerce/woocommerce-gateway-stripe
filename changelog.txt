@@ -1,5 +1,59 @@
 *** Changelog ***
 
+= 4.8.0 - 2021-01-28 =
+* Fix   - Filter more disallowed characters from statement descriptors.
+* Fix   - Payment request button for Puerto Rico.
+* Fix   - Handle error if country is not supported for payment request button.
+* Fix   - Trim the refund reason to a max of 500 characters.
+* Tweak - Display warning on webhook secret when server time is off from device time.
+
+= 4.7.0 - 2020-12-22 =
+* Fix - Updating subscription payment methods from the "My Account" page now adds a note to the subscription.
+* Fix - Link is now correctly formatted in readme.txt.
+* Fix - Using SCA cards for subscriptions renewal payments now works as intended.
+* Fix - Cards added under "My Account -> Payment Methods -> Add Payment Method" will now handle SCA properly.
+* Fix - Changing a payment method for a subscription in "My Account -> Subscriptions" will now handle SCA properly.
+* Fix - Missing space causing fatal errors for certain WooCommerce Inbox Note features.
+
+= 4.6.0 - 2020-12-15 =
+* Tweak - Update packages for Composer 2 compatibility.
+* Tweak - Use full jQuery function calls instead of soon-to-be-deprecated shorthands.
+* Tweak - Use JSON.parse() instead of jQuery.parseJSON().
+* Tweak - Remove holiday messaging from Apple Pay note after Dec 22.
+* Fix   - Compatibility with the Stripe for WooCommerce plugin.
+* Fix   - Guard against fatal errors caused by WC_Admin_Note.
+* Fix   - Display error message when payment made with payment request buttons fails.
+
+= 4.5.5 - 2020-11-17 =
+* Fix - Guard against fatal errors that may occur on inbox data store load.
+
+= 4.5.4 - 2020-11-16 =
+* Add   - Stripe Connect OAuth.
+* Tweak - Add site_url to all transactions, not just recurring ones.
+* Add   - Customer's full name is now included in Stripe Customer object if available.
+* Add   - Accept payments via AliPay when store currency is set to CNY.
+* Tweak - Wording of Apple Pay link.
+* Fix   - Serve Apple Pay domain verification file via a rewrite rule.
+* Add   - Add Inbox note for Apple Pay domain verification if needed.
+* Add   - Apple Pay holiday marketing notice.
+* Fix   - Apple Pay: Ensure payer phone is available before attempting to access it.
+* Add   - Pass payment method for renewal charges if not a source.
+* Fix   - Ensure defaults are used for missing settings.
+* Add   - Add shipping address to payment requests.
+* Fix   - Fix the Not a valid URL notice.
+* Add   - Security.md with security and vulnerability reporting guidelines.
+
+= 4.5.3 - 2020-10-06 =
+* Fix   - Apple Pay now requires a buyer's phone number only if it's required in Appearance > Customize > WooCommerce > Checkout.
+* Add   - Allow toggling secrets temporarily to visible in settings.
+* Fix   - Properly display field required error when SEPA method is used.
+* Tweak - Update payment request button description to include link to Stripe dashboard Apple Pay settings.
+* Add   - Add off session payment intent filter, props rfair404.
+* Tweak - Update contributors list.
+
+= 4.5.2 - 2020-08-19 =
+* Fix - Allow extension to attempt to run in all countries, not just officially supported ones
+
 = 4.5.1 - 2020-08-12 =
 * Add - Support for Bulgaria, Czech Republic, Greece, Cyprus, Malta, Slovenia
 * Add - Additional metadata for order status change events when tracking is permitted

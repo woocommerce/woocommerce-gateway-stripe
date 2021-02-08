@@ -22,6 +22,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			add_action( 'woocommerce_subscription_failing_payment_method_updated_stripe', array( $this, 'update_failing_payment_method' ), 10, 2 );
 			add_action( 'wc_stripe_cards_payment_fields', array( $this, 'display_update_subs_payment_checkout' ) );
 			add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', array( $this, 'handle_add_payment_method_success' ), 10, 2 );
+			add_action( 'woocommerce_subscriptions_change_payment_before_submit', array( $this, 'differentiate_change_payment_method_form' ) );
 
 			// display the credit card used for a subscription in the "My Subscriptions" table
 			add_filter( 'woocommerce_my_subscriptions_payment_method', array( $this, 'maybe_render_subscription_payment_method' ), 10, 2 );
@@ -118,14 +119,30 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			if ( ! empty( $all_subs ) ) {
 				foreach ( $all_subs as $sub ) {
 					if ( $sub->has_status( $subs_statuses ) ) {
-						update_post_meta( $sub->get_id(), '_stripe_source_id', $source_id );
-						update_post_meta( $sub->get_id(), '_stripe_customer_id', $stripe_customer->get_id() );
-						update_post_meta( $sub->get_id(), '_payment_method', $this->id );
-						update_post_meta( $sub->get_id(), '_payment_method_title', $this->method_title );
+						WC_Subscriptions_Change_Payment_Gateway::update_payment_method(
+							$sub,
+							$this->id,
+							array(
+								'post_meta' => array(
+									'_stripe_source_id' => array( 'value' => $source_id ),
+									'_stripe_customer_id' => array( 'value' => $stripe_customer->get_id() ),
+								),
+							)
+						);
 					}
 				}
 			}
 		}
+	}
+
+	/**
+	 * Render a dummy element in the "Change payment method" form (that does not appear in the "Pay for order" form)
+	 * which can be checked to determine proper SCA handling to apply for each form.
+	 *
+	 * @since 4.6.1
+	 */
+	public function differentiate_change_payment_method_form() {
+		echo '<input type="hidden" id="wc-stripe-change-payment-method" />';
 	}
 
 	/**
@@ -217,7 +234,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 	 * @param bool $retry Should we retry the process?
 	 * @param object $previous_error
 	 */
-	public function process_subscription_payment( $amount = 0.0, $renewal_order, $retry = true, $previous_error ) {
+	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
 		try {
 			if ( $amount * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
 				/* translators: minimum amount */
@@ -499,12 +516,13 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			}
 
 			if (
-				( ! empty( $payment_meta['post_meta']['_stripe_source_id']['value'] )
-				&& 0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'card_' ) )
-				&& ( ! empty( $payment_meta['post_meta']['_stripe_source_id']['value'] )
-				&& 0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'src_' ) ) ) {
-
-				throw new Exception( __( 'Invalid source ID. A valid source "Stripe Source ID" must begin with "src_" or "card_".', 'woocommerce-gateway-stripe' ) );
+				! empty( $payment_meta['post_meta']['_stripe_source_id']['value'] ) && (
+					0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'card_' )
+					&& 0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'src_' )
+					&& 0 !== strpos( $payment_meta['post_meta']['_stripe_source_id']['value'], 'pm_' )
+				)
+			) {
+				throw new Exception( __( 'Invalid source ID. A valid source "Stripe Source ID" must begin with "src_", "pm_", or "card_".', 'woocommerce-gateway-stripe' ) );
 			}
 		}
 	}

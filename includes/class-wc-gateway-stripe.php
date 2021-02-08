@@ -87,7 +87,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$this->id             = 'stripe';
 		$this->method_title   = __( 'Stripe', 'woocommerce-gateway-stripe' );
 		/* translators: 1) link to Stripe register page 2) link to Stripe api keys page */
-		$this->method_description = sprintf( __( 'Stripe works by adding payment fields on the checkout and then sending the details to Stripe for verification. <a href="%1$s" target="_blank">Sign up</a> for a Stripe account, and <a href="%2$s" target="_blank">get your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), 'https://dashboard.stripe.com/register', 'https://dashboard.stripe.com/account/apikeys' );
+		$this->method_description = __( 'Stripe works by adding payment fields on the checkout and then sending the details to Stripe for verification.', 'woocommerce-gateway-stripe' );
 		$this->has_fields         = true;
 		$this->supports           = array(
 			'products',
@@ -140,6 +140,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_filter( 'woocommerce_payment_successful_result', array( $this, 'modify_successful_payment_result' ), 99999, 2 );
 		add_action( 'set_logged_in_cookie', array( $this, 'set_cookie_on_current_request' ) );
 		add_filter( 'woocommerce_get_checkout_payment_url', array( $this, 'get_checkout_payment_url' ), 10, 2 );
+		add_filter( 'woocommerce_settings_api_sanitized_fields_' . $this->id, array( $this, 'settings_api_sanitized_fields' ) );
 
 		// Note: display error is in the parent class.
 		add_action( 'admin_notices', array( $this, 'display_errors' ), 9999 );
@@ -350,7 +351,18 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
-		wp_enqueue_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION, true );
+		wp_register_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), array(), WC_STRIPE_VERSION, true );
+
+		$params = array(
+			'time'             => time(),
+			'i18n_out_of_sync' => wp_kses(
+				__( '<strong>Warning:</strong> your site\'s time does not match the time on your browser and may be incorrect. Some payment methods depend on webhook verification and verifying webhooks with a signing secret depends on your site\'s time being correct, so please check your site\'s time before setting a webhook secret. You may need to contact your site\'s hosting provider to correct the site\'s time.', 'woocommerce-gateway-stripe' ),
+				array( 'strong' => array() )
+			),
+		);
+		wp_localize_script( 'woocommerce_stripe_admin', 'wc_stripe_settings_params', $params );
+
+		wp_enqueue_script( 'woocommerce_stripe_admin' );
 	}
 
 	/**
@@ -455,6 +467,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$stripe_params['is_pay_for_order_page']     = is_wc_endpoint_url( 'order-pay' ) ? 'yes' : 'no';
 		$stripe_params['elements_styling']          = apply_filters( 'wc_stripe_elements_styling', false );
 		$stripe_params['elements_classes']          = apply_filters( 'wc_stripe_elements_classes', false );
+		$stripe_params['add_card_nonce']            = wp_create_nonce( 'wc_stripe_create_si' );
 
 		// Merge localized messages to be use in JS.
 		$stripe_params = array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
@@ -1200,5 +1213,21 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			throw new Exception( __( 'The "Test Secret Key" should start with "sk_test" or "rk_test", enter the correct key.', 'woocommerce-gateway-stripe' ) );
 		}
 		return $value;
+	}
+
+	/**
+	 * Ensures the statement descriptor about to be saved to options does not contain any invalid characters.
+	 *
+	 * @since 4.8.0
+	 * @param $settings WC_Settings_API settings to be filtered
+	 * @return Filtered settings
+	 */
+	public function settings_api_sanitized_fields( $settings ) {
+		if ( is_array( $settings ) ) {
+			if ( array_key_exists( 'statement_descriptor', $settings ) ) {
+				$settings['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $settings['statement_descriptor']);
+			}
+		}
+		return $settings;
 	}
 }

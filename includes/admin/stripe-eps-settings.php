@@ -7,7 +7,7 @@ return apply_filters(
 	'wc_stripe_eps_settings',
 	array(
 		'geo_target'  => array(
-			'description' => __( 'Relevant Payer Geography: Austria', 'woocommerce-gateway-stripe' ),
+			'description' => __( 'Customer Geography: Austria', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
 		),
 		'activation'  => array(
