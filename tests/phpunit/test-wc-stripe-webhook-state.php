@@ -180,6 +180,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
         $this->assertRegExp( str_replace( '[mode]', 'test', $expected_message ), $message );
     }
 
+    // Case 4: Failure with no prior success.
     public function test_get_webhook_status_message_failure_with_no_prior_success() {
         $this->set_valid_request_data();
         $expected_message = '/Warning: The most recent [mode] webhook, received at (.*), could not be processed. Reason: (.*) \(No [mode] webhooks have been processed successfully since monitoring began at/';
@@ -198,6 +199,58 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
         $this->assertRegExp( str_replace( '[mode]', 'test', $expected_message ), $message );
     }
 
-    // - TODO: Add failure message tests
+    // Test failure reason: no error.
+    public function test_get_error_reason_no_errors() {
+        $this->set_valid_request_data();
+        $this->process_webhook();
+        $this->assertEquals( 'No error', $this->wc_stripe_webhook_state::get_last_error_reason() );
+    }
 
+    // Test failure reason: empty headers.
+    public function test_get_error_reason_empty_headers() {
+        $this->set_valid_request_data();
+        $this->request_headers = [];
+        $this->process_webhook();
+        $this->assertRegExp( '/missing expected headers/', $this->wc_stripe_webhook_state::get_last_error_reason() );
+    }
+
+    // Test failure reason: empty body.
+    public function test_get_error_reason_empty_body() {
+        $this->set_valid_request_data();
+        $this->request_body = '';
+        $this->process_webhook();
+        $this->assertRegExp( '/missing expected body/', $this->wc_stripe_webhook_state::get_last_error_reason() );
+    }
+
+    // Test failure reason: invalid user agent.
+    public function test_get_error_reason_invalid_user_agent() {
+        $this->set_valid_request_data();
+        $this->request_headers['USER-AGENT'] = 'Other';
+        $this->process_webhook();
+        $this->assertRegExp( '/did not come from Stripe/', $this->wc_stripe_webhook_state::get_last_error_reason() );
+    }
+
+    // Test failure reason: invalid signature.
+    public function test_get_error_reason_invalid_signature() {
+        $this->set_valid_request_data();
+        $this->request_headers['STRIPE-SIGNATURE'] = 'foo';
+        $this->process_webhook();
+        $this->assertRegExp( '/signature was missing or was incorrectly formatted/', $this->wc_stripe_webhook_state::get_last_error_reason() );
+    }
+
+    // Test failure reason: timestamp mismatch.
+    public function test_get_error_reason_timestamp_mismatch() {
+        $timestamp = time() - 600; // 10 minutes ago.
+        $this->set_valid_request_data( $timestamp );
+        $this->process_webhook();
+        $this->assertRegExp( '/timestamp in the webhook differed more than five minutes/', $this->wc_stripe_webhook_state::get_last_error_reason() );
+    }
+
+    // Test failure reason: signature mismatch.
+    public function test_get_error_reason_signature_mismatch() {
+        $this->set_valid_request_data();
+        $this->request_headers['STRIPE-SIGNATURE'] = 't=' . time() . ',v1=0';
+        $this->process_webhook();
+        $this->assertRegExp( '/was not signed with the expected signing secret/', $this->wc_stripe_webhook_state::get_last_error_reason() );
+    }
 }
