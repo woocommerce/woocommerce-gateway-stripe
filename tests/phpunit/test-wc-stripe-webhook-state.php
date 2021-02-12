@@ -87,6 +87,12 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
         );
     }
 
+    private function set_testmode() {
+        $stripe_settings = get_option( 'woocommerce_stripe_settings', array() );
+        $stripe_settings['testmode'] = 'yes';
+        update_option( 'woocommerce_stripe_settings', $stripe_settings );
+    }
+
     /**
      * This function is intended to mock WC_Stripe_Webhook_Handler check_for_webhook.
      * We can't use check_for_webhook directly because it exits.
@@ -109,9 +115,37 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
         $this->set_valid_request_data();
         $expected_message = '/The most recent [mode] webhook, timestamped (.*), was processed successfully/';
 
+        // Live
         $this->process_webhook();
         $message = $this->wc_stripe_webhook_state::get_webhook_status_message();
         $this->assertRegExp( str_replace( '[mode]', 'live', $expected_message ), $message );
+        // Test
+        $this->set_testmode();
+        $this->process_webhook();
+        $message = $this->wc_stripe_webhook_state::get_webhook_status_message();
+        $this->assertRegExp( str_replace( '[mode]', 'test', $expected_message ), $message );
     }
+
+    public function test_get_webhook_status_message_no_webhooks_received() {
+        $expected_message = '/No [mode] webhooks have been received since monitoring began at/';
+
+        // Live
+        $message = $this->wc_stripe_webhook_state::get_webhook_status_message();
+        $this->assertRegExp( str_replace( '[mode]', 'live', $expected_message ), $message );
+        // Test
+        $this->set_testmode();
+        $message = $this->wc_stripe_webhook_state::get_webhook_status_message();
+        $this->assertRegExp( str_replace( '[mode]', 'test', $expected_message ), $message );
+    }
+
+    public function test_get_webhook_status_message_failure_after_success() {
+
+    }
+
+    public function test_get_webhook_status_message_failure_with_no_prior_success() {
+
+    }
+
+    // - TODO: Add failure message tests
 
 }
