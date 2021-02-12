@@ -30,7 +30,7 @@ class WC_Stripe_Webhook_State {
 
 	/**
 	 * Gets whether Stripe is in test mode or not
-	 * 
+	 *
 	 * @since 4.4.2
 	 * @return bool
 	 */
@@ -65,7 +65,7 @@ class WC_Stripe_Webhook_State {
 
 	/**
 	 * Sets the timestamp of the last successfully processed webhook.
-	 * 
+	 *
 	 * @since 4.4.2
 	 * @param integer UTC seconds since 1970.
 	 */
@@ -82,13 +82,13 @@ class WC_Stripe_Webhook_State {
 	 * @return integer UTC seconds since 1970 | 0.
 	 */
 	public static function get_last_webhook_success_at() {
-		$option = self::get_testmode() ? self::OPTION_TEST_LAST_SUCCESS_AT : self::OPTION_LIVE_LAST_FAILURE_AT;
+		$option = self::get_testmode() ? self::OPTION_TEST_LAST_SUCCESS_AT : self::OPTION_LIVE_LAST_SUCCESS_AT;
 		return get_option( $option, 0 );
 	}
 
 	/**
 	 * Sets the timestamp of the last failed webhook.
-	 * 
+	 *
 	 * @since 4.4.2
 	 * @param integer UTC seconds since 1970.
 	 */
@@ -111,10 +111,10 @@ class WC_Stripe_Webhook_State {
 
 	/**
 	 * Sets the reason for the last failed webhook.
-	 * 
+	 *
 	 * @since 4.4.2
 	 * @param string Reason code.
-	 * 
+	 *
 	 */
 	public static function set_last_error_reason( $reason ) {
 		$option = self::get_testmode() ? self::OPTION_TEST_LAST_ERROR : self::OPTION_LIVE_LAST_ERROR;
