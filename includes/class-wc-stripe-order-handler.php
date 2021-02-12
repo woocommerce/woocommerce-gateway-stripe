@@ -196,19 +196,127 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Processes a Stripe Checkout payment redirect.
+	 *
+	 * @param $order_id
+	 * @param $checkout_session_id
+	 * @since 4.9.0
+	 */
+	public function process_redirect_checkout_payment( $order_id, $checkout_session_id ) {
+		if ( empty( $order_id ) ) {
+			return;
+		}
+
+		$order = wc_get_order( $order_id );
+
+		if ( ! is_object( $order ) ) {
+			return;
+		}
+
+		if ( $order->has_status( array( 'processing', 'completed', 'on-hold' ) ) ) {
+			return;
+		}
+
+		// If the checkout session id do not match, just return
+		if ( $order->get_meta('_stripe_session_id') !== $checkout_session_id ) {
+			WC_Stripe_Logger::log( "Info: (Checkout Redirect) Stripe session_id does not match for order: {$order_id}, received session id: {$checkout_session_id}" );
+			return;
+		}
+
+		try {
+			// This will throw exception if not valid.
+			$this->validate_minimum_order_amount( $order );
+
+			WC_Stripe_Logger::log( "Info: (Checkout Redirect) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
+
+			$result = WC_Stripe_API::retrieve( "checkout/sessions/{$checkout_session_id}" );
+			if ( ! empty( $result->error ) ) {
+				/* translators: error message */
+				$localized_message = sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message );
+				$order->add_order_note( $localized_message );
+				throw new WC_Stripe_Exception( print_r( $result, true ), $localized_message );
+			}
+
+			$intent = $this->get_intent_from_order( $order );
+			if ( ! $intent ) {
+				/* translators: error message */
+				$localized_message = __( 'Unable to capture charge! No valid Stripe Intent found in order', 'woocommerce-gateway-stripe' );
+				$order->add_order_note( $localized_message );
+				throw new WC_Stripe_Exception( print_r( $result, true ), $localized_message );
+			}
+			/**
+			 * Charge can be captured but in a pending state. Payment methods
+			 * that are asynchronous may take couple days to clear. Webhook will
+			 * take care of the status changes.
+			 */
+			if ( 'pending' === $intent->status ) {
+				$order_stock_reduced = $order->get_meta( '_order_stock_reduced', true );
+
+				if ( ! $order_stock_reduced ) {
+					wc_reduce_stock_levels( $order_id );
+				}
+
+				$order->set_transaction_id( $intent->id );
+				/* translators: transaction id */
+				$order->update_status( 'on-hold', sprintf( __( 'Stripe charge awaiting payment: %s.', 'woocommerce-gateway-stripe' ), $intent->id ) );
+			}
+
+			if ( 'succeeded' === $intent->status ) {
+				$order->payment_complete( $intent->id );
+
+				/* translators: transaction id */
+				$message = sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $intent->id );
+				$order->add_order_note( $message );
+
+				$this->update_fees( $order, $intent->id );
+			}
+
+			if ( 'failed' === $intent->status ) {
+				$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
+				$order->add_order_note( $localized_message );
+				throw new WC_Stripe_Exception( print_r( $intent, true ), $localized_message );
+			}
+
+			if ( is_callable( array( $order, 'save' ) ) ) {
+				$order->save();
+			}
+
+			do_action( 'wc_gateway_stripe_process_redirect_checkout_payment', $intent, $order );
+
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+			do_action( 'wc_gateway_stripe_process_redirect_payment_error', $e, $order );
+
+			/* translators: error message */
+			$order->update_status( 'failed', sprintf( __( 'Stripe payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() ) );
+
+			wc_add_notice( $e->getLocalizedMessage(), 'error' );
+			wp_safe_redirect( wc_get_checkout_url() );
+			exit;
+		}
+	}
+
+	/**
 	 * Processses the orders that are redirected.
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
 	 */
 	public function maybe_process_redirect_order() {
-		if ( ! is_order_received_page() || empty( $_GET['client_secret'] ) || empty( $_GET['source'] ) ) {
+		if ( ! is_order_received_page() ) {
 			return;
 		}
 
-		$order_id = wc_clean( $_GET['order_id'] );
+		if ( ! empty( $_GET['client_secret'] ) &&  ! empty( $_GET['source'] ) ) {
+			$order_id = wc_clean( $_GET['order_id'] );
+			$this->process_redirect_payment( $order_id );
 
-		$this->process_redirect_payment( $order_id );
+		} elseif ( ! empty( $_GET['checkout_session_id']) ) {
+			$order_id = wc_clean( $_GET['order-received'] );
+			$checkout_session_id = wc_clean( $_GET['checkout_session_id'] );
+			$this->process_redirect_checkout_payment( $order_id, $checkout_session_id );
+		}
 	}
 
 	/**
