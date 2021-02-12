@@ -98,12 +98,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param string $request_body The request body from Stripe.
 	 * @return string The validation result (e.g. self::VALIDATION_SUCCEEDED )
 	 */
-	public function validate_request( $request_headers = null, $request_body = null ) {
-		if ( null === $request_headers ) {
-			return WC_Stripe_Webhook_State::VALIDATION_FAILED_HEADERS_NULL;
+	public function validate_request( $request_headers, $request_body ) {
+		if ( empty( $request_headers ) ) {
+			return WC_Stripe_Webhook_State::VALIDATION_FAILED_EMPTY_HEADERS;
 		}
-		if ( null === $request_body ) {
-			return WC_Stripe_Webhook_State::VALIDATION_FAILED_BODY_NULL;
+		if ( empty( $request_body ) ) {
+			return WC_Stripe_Webhook_State::VALIDATION_FAILED_EMPTY_BODY;
 		}
 
 		if ( ! empty( $request_headers['USER-AGENT'] ) && ! preg_match( '/Stripe/', $request_headers['USER-AGENT'] ) ) {

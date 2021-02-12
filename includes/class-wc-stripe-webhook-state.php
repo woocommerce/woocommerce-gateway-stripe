@@ -21,8 +21,8 @@ class WC_Stripe_Webhook_State {
 	const OPTION_TEST_LAST_ERROR          = 'wc_stripe_wh_test_last_error';
 
 	const VALIDATION_SUCCEEDED                 = 'validation_succeeded';
-	const VALIDATION_FAILED_HEADERS_NULL       = 'headers_null';
-	const VALIDATION_FAILED_BODY_NULL          = 'body_null';
+	const VALIDATION_FAILED_EMPTY_HEADERS      = 'empty_headers';
+	const VALIDATION_FAILED_EMPTY_BODY         = 'empty_body';
 	const VALIDATION_FAILED_USER_AGENT_INVALID = 'user_agent_invalid';
 	const VALIDATION_FAILED_SIGNATURE_INVALID  = 'signature_invalid';
 	const VALIDATION_FAILED_TIMESTAMP_MISMATCH = 'timestamp_out_of_range';
@@ -135,11 +135,11 @@ class WC_Stripe_Webhook_State {
 			return( __( 'No error', 'woocommerce-gateway-stripe' ) );
 		}
 
-		if ( self::VALIDATION_FAILED_BODY_NULL == $last_error ) {
+		if ( self::VALIDATION_FAILED_EMPTY_BODY == $last_error ) {
 			return( __( 'The webhook was missing expected body', 'woocommerce-gateway-stripe' ) );
 		}
 
-		if ( self::VALIDATION_FAILED_HEADERS_NULL == $last_error ) {
+		if ( self::VALIDATION_FAILED_EMPTY_HEADERS == $last_error ) {
 			return( __( 'The webhook was missing expected headers', 'woocommerce-gateway-stripe' ) );
 		}
 
