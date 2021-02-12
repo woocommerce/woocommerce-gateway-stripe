@@ -4,7 +4,107 @@
  * data.
  */
 
-class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
+/**
+ * Level3 data test suite
+ */
+class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
+
+	protected function mock_level_3_order( $shipping_postcode, $with_fee = false ) {
+		// Setup the item.
+		$mock_item = $this->getMockBuilder( WC_Order_Item_Product::class )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_name', 'get_quantity', 'get_subtotal', 'get_total_tax', 'get_total', 'get_variation_id', 'get_product_id' ] )
+			->getMock();
+
+		$mock_item
+			->method( 'get_name' )
+			->will( $this->returnValue( 'Beanie with Logo' ) );
+
+		$mock_item
+			->method( 'get_quantity' )
+			->will( $this->returnValue( 1 ) );
+
+		$mock_item
+			->method( 'get_total' )
+			->will( $this->returnValue( 18 ) );
+
+		$mock_item
+			->method( 'get_subtotal' )
+			->will( $this->returnValue( 18 ) );
+
+		$mock_item
+			->method( 'get_total_tax' )
+			->will( $this->returnValue( 2.7 ) );
+
+		$mock_item
+			->method( 'get_variation_id' )
+			->will( $this->returnValue( false ) );
+
+		$mock_item
+			->method( 'get_product_id' )
+			->will( $this->returnValue( 30 ) );
+
+		$mock_items[] = $mock_item;
+
+		if ( $with_fee ) {
+			// Setup the fee.
+			$mock_fee = $this->getMockBuilder( WC_Order_Item_Fee::class )
+				->disableOriginalConstructor()
+				->setMethods( [ 'get_name', 'get_quantity', 'get_total_tax', 'get_total' ] )
+				->getMock();
+
+			$mock_fee
+				->method( 'get_name' )
+				->will( $this->returnValue( 'fee' ) );
+
+			$mock_fee
+				->method( 'get_quantity' )
+				->will( $this->returnValue( 1 ) );
+
+			$mock_fee
+				->method( 'get_total' )
+				->will( $this->returnValue( 10 ) );
+
+			$mock_fee
+				->method( 'get_total_tax' )
+				->will( $this->returnValue( 1.5 ) );
+
+			$mock_items[] = $mock_fee;
+		}
+
+		// Setup the order.
+		$mock_order = $this->getMockBuilder( WC_Order::class )
+			->disableOriginalConstructor()
+			->setMethods( [ 'get_id', 'get_items', 'get_currency', 'get_shipping_total', 'get_shipping_tax', 'get_shipping_postcode' ] )
+			->getMock();
+
+		$mock_order
+			->method( 'get_id' )
+			->will( $this->returnValue( 210 ) );
+
+		$mock_order
+			->method( 'get_items' )
+			->will( $this->returnValue( $mock_items ) );
+
+		$mock_order
+			->method( 'get_currency' )
+			->will( $this->returnValue( 'USD' ) );
+
+		$mock_order
+			->method( 'get_shipping_total' )
+			->will( $this->returnValue( 30 ) );
+
+		$mock_order
+			->method( 'get_shipping_tax' )
+			->will( $this->returnValue( 8 ) );
+
+		$mock_order
+			->method( 'get_shipping_postcode' )
+			->will( $this->returnValue( $shipping_postcode ) );
+
+		return $mock_order;
+	}
+
 	public function test_data_for_mutli_item_order() {
 		$store_postcode = '90210';
 		update_option( 'woocommerce_store_postcode', $store_postcode );
@@ -124,5 +224,39 @@ class WC_Stripe_level3_Data_Test extends WP_UnitTestCase {
 			),
 			$result
 		);
+	}
+
+	public function test_full_level3_data_with_fee() {
+		$expected_data = array(
+			'merchant_reference'   => '210',
+			'shipping_amount'      => 3800,
+			'line_items'           => array(
+				(object) array(
+					'product_code'        => 30,
+					'product_description' => 'Beanie with Logo',
+					'unit_cost'           => 1800,
+					'quantity'            => 1,
+					'tax_amount'          => 270,
+					'discount_amount'     => 0,
+				),
+				(object) array(
+					'product_code'        => 'fee',
+					'product_description' => 'fee',
+					'unit_cost'           => 1000,
+					'quantity'            => 1,
+					'tax_amount'          => 150,
+					'discount_amount'     => 0,
+				),
+			),
+			'shipping_address_zip' => '98012',
+			'shipping_from_zip'    => '94110',
+		);
+
+		update_option( 'woocommerce_store_postcode', '94110' );
+
+		$mock_order   = $this->mock_level_3_order( '98012', true );
+		$level_3_data = $this->wcpay_gateway->get_level3_data_from_order( $mock_order );
+
+		$this->assertEquals( $expected_data, $level_3_data );
 	}
 }
