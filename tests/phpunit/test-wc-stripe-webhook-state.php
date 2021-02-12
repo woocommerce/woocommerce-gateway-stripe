@@ -111,6 +111,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		}
     }
 
+    // Case 1 (Nominal case): Most recent = success.
     public function test_get_webhook_status_message_most_recent_success() {
         $this->set_valid_request_data();
         $expected_message = '/The most recent [mode] webhook, timestamped (.*), was processed successfully/';
@@ -126,6 +127,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
         $this->assertRegExp( str_replace( '[mode]', 'test', $expected_message ), $message );
     }
 
+    // Case 2: No webhooks received yet.
     public function test_get_webhook_status_message_no_webhooks_received() {
         $expected_message = '/No [mode] webhooks have been received since monitoring began at/';
 
@@ -138,12 +140,47 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
         $this->assertRegExp( str_replace( '[mode]', 'test', $expected_message ), $message );
     }
 
+    // Case 3: Failure after success.
     public function test_get_webhook_status_message_failure_after_success() {
+        $this->set_valid_request_data();
+        $expected_message = '/Warning: The most recent [mode] webhook, received at (.*), could not be processed. Reason: (.*) \(The last [mode] webhook to process successfully was timestamped/';
+        // Live
+        // Process successful webhook.
+        $this->process_webhook();
+        // Fail next webhook.
+        $this->request_headers = [];
+        $this->process_webhook();
+        $message = $this->wc_stripe_webhook_state::get_webhook_status_message();
+        $this->assertRegExp( str_replace( '[mode]', 'live', $expected_message ), $message );
 
+        // Test
+        $this->set_testmode();
+        $this->set_valid_request_data();
+        // Process successful webhook.
+        $this->process_webhook();
+        // Fail next webhook.
+        $this->request_headers = [];
+        $this->process_webhook();
+        $message = $this->wc_stripe_webhook_state::get_webhook_status_message();
+        $this->assertRegExp( str_replace( '[mode]', 'test', $expected_message ), $message );
     }
 
     public function test_get_webhook_status_message_failure_with_no_prior_success() {
+        $this->set_valid_request_data();
+        $expected_message = '/Warning: The most recent [mode] webhook, received at (.*), could not be processed. Reason: (.*) \(No [mode] webhooks have been processed successfully since monitoring began at/';
+        // Live
+        // Fail webhook.
+        $this->request_headers = [];
+        $this->process_webhook();
+        $message = $this->wc_stripe_webhook_state::get_webhook_status_message();
+        $this->assertRegExp( str_replace( '[mode]', 'live', $expected_message ), $message );
 
+        // Test
+        $this->set_testmode();
+        // Fail webhook.
+        $this->process_webhook();
+        $message = $this->wc_stripe_webhook_state::get_webhook_status_message();
+        $this->assertRegExp( str_replace( '[mode]', 'test', $expected_message ), $message );
     }
 
     // - TODO: Add failure message tests
