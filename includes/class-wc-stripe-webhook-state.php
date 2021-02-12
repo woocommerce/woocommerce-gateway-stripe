@@ -131,32 +131,32 @@ class WC_Stripe_Webhook_State {
 		$option = self::get_testmode() ? self::OPTION_TEST_LAST_ERROR : self::OPTION_LIVE_LAST_ERROR;
 		$last_error = get_option( $option, false );
 
-		if ( ! $last_error ) {
+		if ( self::VALIDATION_SUCCEEDED == $last_error ) {
 			return( __( 'No error', 'woocommerce-gateway-stripe' ) );
-		}
-
-		if ( self::VALIDATION_FAILED_EMPTY_BODY == $last_error ) {
-			return( __( 'The webhook was missing expected body', 'woocommerce-gateway-stripe' ) );
 		}
 
 		if ( self::VALIDATION_FAILED_EMPTY_HEADERS == $last_error ) {
 			return( __( 'The webhook was missing expected headers', 'woocommerce-gateway-stripe' ) );
 		}
 
-		if ( self::VALIDATION_FAILED_SIGNATURE_INVALID == $last_error ) {
-			return( __( 'The webhook signature was missing or was incorrectly formatted', 'woocommerce-gateway-stripe' ) );
+		if ( self::VALIDATION_FAILED_EMPTY_BODY == $last_error ) {
+			return( __( 'The webhook was missing expected body', 'woocommerce-gateway-stripe' ) );
 		}
 
-		if ( self::VALIDATION_FAILED_SIGNATURE_MISMATCH == $last_error ) {
-			return( __( 'The webhook was not signed with the expected signing secret', 'woocommerce-gateway-stripe' ) );
+		if ( self::VALIDATION_FAILED_USER_AGENT_INVALID == $last_error ) {
+			return( __( 'The webhook received did not come from Stripe', 'woocommerce-gateway-stripe' ) );
+		}
+
+		if ( self::VALIDATION_FAILED_SIGNATURE_INVALID == $last_error ) {
+			return( __( 'The webhook signature was missing or was incorrectly formatted', 'woocommerce-gateway-stripe' ) );
 		}
 
 		if ( self::VALIDATION_FAILED_TIMESTAMP_MISMATCH == $last_error ) {
 			return( __( 'The timestamp in the webhook differed more than five minutes from the site time', 'woocommerce-gateway-stripe' ) );
 		}
 
-		if ( self::VALIDATION_FAILED_USER_AGENT_INVALID == $last_error ) {
-			return( __( 'The webhook received did not come from Stripe', 'woocommerce-gateway-stripe' ) );
+		if ( self::VALIDATION_FAILED_SIGNATURE_MISMATCH == $last_error ) {
+			return( __( 'The webhook was not signed with the expected signing secret', 'woocommerce-gateway-stripe' ) );
 		}
 
 		return( __( 'Unknown error.', 'woocommerce-gateway-stripe' ) );
