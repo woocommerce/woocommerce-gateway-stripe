@@ -52,7 +52,7 @@ class WC_Stripe_Session {
 			$items[] = [
 				'quantity'   => $item['quantity'] ?? 0,
 				'price_data' => [
-					'currency'     => 'usd',
+					'currency'     => 'eur',
 					'product_data' => [
 						'name' => $item['data']->get_title() ?? '',
 					],
@@ -62,7 +62,7 @@ class WC_Stripe_Session {
 		}
 
 		$defaults = [
-			'payment_method_types' => [ 'card' ],
+			'payment_method_types' => [ 'card', 'ideal' ],
 			'line_items' => $items,
 			'mode' => 'payment',
 			'success_url' => '',
@@ -74,10 +74,11 @@ class WC_Stripe_Session {
 
 	/**
 	 * Create a session via API.
+	 * @param $args
 	 * @return WP_Error|string Session ID
+	 * @throws WC_Stripe_Exception
 	 */
 	public function create_session( $args ) {
-		error_log( 'in create_session' );
 		$args     = $this->generate_session_request( $args );
 		$response = WC_Stripe_API::request( apply_filters( 'wc_stripe_create_session_args', $args ), 'checkout/sessions' );
 
@@ -87,9 +88,24 @@ class WC_Stripe_Session {
 
 		$this->set_id( $response->id );
 
-		do_action( 'woocommerce_stripe_add_customer', $args, $response );
+		do_action( 'woocommerce_stripe_create_session', $args, $response );
 
-		return $this->get_id();
+		return $response;
+	}
+
+	/**
+	 * Retrieves a Stripe Session object via API.
+	 * @param $args
+	 * @throws WC_Stripe_Exception
+	 */
+	public static function retrieve_session( $session_id ) {
+		$response = WC_Stripe_API::retrieve( "sessions/{$session_id}" );
+
+		if ( ! empty( $response->error ) ) {
+			throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
+		}
+
+		return $response;
 	}
 
 	/**

@@ -114,20 +114,63 @@ class WC_Gateway_Stripe_Checkout extends WC_Stripe_Payment_Gateway {
 	 * @since 4.6.0
 	 */
 	public function payment_fields() {
-		$description = $this->get_description();		
+		$description = $this->get_description();
 
 		// TODO: Handle paying from pay_for_order.
 
-		// Request session from stripe.
-		$stripe_session = new WC_Stripe_Session();
-		$stripe_session->create_session(
-			[ 'success_url' => $this->get_return_url() ]
-		);
-
-		echo '<div id="stripe-checkout-data" data-secret="' . esc_attr( $stripe_session->get_id() ) . '"></div>';
-
 		if ( $description ) {
 			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $description ) ), $this->id );
+		}
+	}
+
+	/**
+	 * Process the payment
+	 *
+	 * @param int  $order_id Reference.
+	 * @param bool $retry Should we retry on fail.
+	 * @param bool $force_save_source Force payment source to be saved.
+	 *
+	 * @throws Exception If payment will not be accepted.
+	 *
+	 * @return array|void
+	 */
+	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
+		try {
+			$order = wc_get_order( $order_id );
+
+			// This will throw exception if not valid.
+			$this->validate_minimum_order_amount( $order );
+
+			// TODO: Get customer if exists
+
+			// Request session from stripe.
+			$stripe_session = new WC_Stripe_Session();
+			$result = $stripe_session->create_session( [
+				'success_url' => $this->get_return_url( $order ) . '&checkout_session_id={CHECKOUT_SESSION_ID}',
+			] );
+
+			$order->update_meta_data( '_stripe_session_id', $result->id );
+			$order->update_meta_data( '_stripe_intent_id', $result->payment_intent );
+			$order->save();
+
+			return [
+				'result'   => 'success',
+				'session_id' => $stripe_session->get_id(),
+			];
+		} catch ( WC_Stripe_Exception $e ) {
+			wc_add_notice( $e->getLocalizedMessage(), 'error' );
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
+
+			if ( $order->has_status( array( 'pending', 'failed' ) ) ) {
+				$this->send_failed_order_email( $order_id );
+			}
+
+			return array(
+				'result'   => 'fail',
+				'redirect' => '',
+			);
 		}
 	}
 }

@@ -607,13 +607,44 @@ jQuery( function( $ ) {
 				return true;
 			}
 
+			// Stripe Checkout requires a client-side redirect, so we skip WooCommerce's checkout.js,
+			// but we will save the order before redirecting.
 			if ( wc_stripe_form.isStripeCheckoutChosen() ) {
-				var sessionId = $( '#stripe-checkout-data' ).data( 'secret' );
-				stripe.redirectToCheckout( {
-					sessionId: sessionId
-				} ).then( function ( result ) {
-					console.log( 'got back from stripe' );
-					console.log( result );
+				$.post( {
+					url: 'http://localhost:8082/?wc-ajax=checkout', //wc_stripe_form.getAjaxURL( 'create_order' ),
+					dataType: 'json',
+					data : wc_stripe_form.form.serialize() + '&security=' + wc_stripe_payment_request_params.nonce.payment,
+					error: function() {
+						$( document.body ).trigger( 'stripeError', {
+							error: {
+								type: 'api_connection_error',
+							}
+						} );
+					}
+				} ).done( function( serverResponse ) {
+					if ( serverResponse.result === 'failure' ) {
+						$( document.body ).trigger( 'stripeError', {
+							error: {
+								type: 'invalid_request_error',
+								message: 'Error creating order'
+							}
+						} );
+						return;
+					}
+
+					stripe.redirectToCheckout( {
+						sessionId: serverResponse.session_id
+					} ).then( function ( result ) {
+						if ( result.error ) {
+							console.log( result.error.message );
+							$( document.body ).trigger( 'stripeError', {
+								error: {
+									type: 'api_connection_error',
+									message: result.error.message
+								}
+							} );
+						}
+					} );
 				} );
 				return false;
 			}
