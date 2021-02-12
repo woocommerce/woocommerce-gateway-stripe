@@ -39,12 +39,19 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
     private $request_body;
 
     /**
+     * Webhook secret key.
+     *
+     * @var string
+     */
+    private $webhook_secret;
+
+    /**
 	 * Sets up things all tests need.
 	 */
     public function setUp() {
 		parent::setUp();
-
-        $this->wc_stripe_webhook_state = WC_Stripe_Webhook_State::class;
+        $this->webhook_secret            = 'whsec_123';
+        $this->wc_stripe_webhook_state   = WC_Stripe_Webhook_State::class;
         $this->wc_stripe_webhook_handler = new WC_Stripe_Webhook_Handler;
     }
 
@@ -53,12 +60,15 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	 */
     public function tearDown() {
 		parent::tearDown();
-
         $stripe_settings = get_option( 'woocommerce_stripe_settings', array() );
-        // Deletes testmode setting
+        $stripe_settings['webhook_secret']      = $this->webhook_secret;
+        $stripe_settings['test_webhook_secret'] = $this->webhook_secret;
         unset( $stripe_settings['testmode'] );
+
+        // Resets settings.
         update_option( 'woocommerce_stripe_settings', $stripe_settings );
-        // Deletes all webhook options
+
+        // Deletes all webhook options.
         delete_option( $this->wc_stripe_webhook_state::OPTION_LIVE_MONITORING_BEGAN_AT );
         delete_option( $this->wc_stripe_webhook_state::OPTION_LIVE_LAST_SUCCESS_AT );
         delete_option( $this->wc_stripe_webhook_state::OPTION_LIVE_LAST_FAILURE_AT );
@@ -70,21 +80,26 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
         delete_option( $this->wc_stripe_webhook_state::OPTION_TEST_LAST_ERROR );
     }
 
-    private function set_valid_request_data() {
-        // Headers
-        $this->request_headers = [
-            'USER_AGENT'       => 'Stripe/1.0 (+https://stripe.com/docs/webhooks)',
-            'CONTENT_TYPE'     => 'application/json; charset=utf-8',
-            'STRIPE_SIGNATURE' => 't=' . time() . ',v1=1,v0=0',
-        ];
+    private function set_valid_request_data( $overwrite_timestamp = null ) {
+        $timestamp = $overwrite_timestamp ?? time();
 
         // Body
         $this->request_body = json_encode(
             [
                 'type'    => 'payment_intent.succeeded',
-                'created' => time(),
+                'created' => $timestamp,
             ]
         );
+
+        $signed_payload = $timestamp . '.' . $this->request_body;
+		$signature      = hash_hmac( 'sha256', $signed_payload, $this->webhook_secret );
+
+        // Headers
+        $this->request_headers = [
+            'USER-AGENT'       => 'Stripe/1.0 (+https://stripe.com/docs/webhooks)',
+            'CONTENT-TYPE'     => 'application/json; charset=utf-8',
+            'STRIPE-SIGNATURE' => 't=' . $timestamp . ',v1=' . $signature,
+        ];
     }
 
     private function set_testmode() {
