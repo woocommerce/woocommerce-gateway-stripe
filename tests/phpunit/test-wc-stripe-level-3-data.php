@@ -255,7 +255,8 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 		update_option( 'woocommerce_store_postcode', '94110' );
 
 		$mock_order   = $this->mock_level_3_order( '98012', true );
-		$level_3_data = $this->wcpay_gateway->get_level3_data_from_order( $mock_order );
+		$gateway      = new WC_Gateway_Stripe();
+		$level_3_data = $gateway->get_level3_data_from_order( $mock_order );
 
 		$this->assertEquals( $expected_data, $level_3_data );
 	}
