@@ -857,7 +857,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				// Add some explainer text indicating where to find the full refund reason.
 				$reason = $reason . '... [See WooCommerce order page for full text.]';
 			}
-			
+
 			$request['metadata'] = array(
 				'reason' => $reason,
 			);
@@ -1084,18 +1084,24 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function get_level3_data_from_order( $order ) {
 		// Get the order items. Don't need their keys, only their values.
 		// Order item IDs are used as keys in the original order items array.
-		$order_items = array_values( $order->get_items() );
+		$order_items = array_values( $order->get_items( [ 'line_item', 'fee' ] ) );
 		$currency    = $order->get_currency();
 
-		$stripe_line_items = array_map(function( $item ) use ( $currency ) {
-			$product_id          = $item->get_variation_id()
-				? $item->get_variation_id()
-				: $item->get_product_id();
+		$stripe_line_items = array_map( function( $item ) use ( $currency ) {
+			if ( is_a( $item, 'WC_Order_Item_Product' ) ) {
+				$product_id = $item->get_variation_id()
+					? $item->get_variation_id()
+					: $item->get_product_id();
+				$subtotal   = $item->get_subtotal();
+			} else {
+				$product_id = substr( sanitize_title( $item->get_name() ), 0, 12 );
+				$subtotal   = $item->get_total();
+			}
 			$product_description = substr( $item->get_name(), 0, 26 );
 			$quantity            = $item->get_quantity();
-			$unit_cost           = WC_Stripe_Helper::get_stripe_amount( ( $item->get_subtotal() / $quantity ), $currency );
+			$unit_cost           = WC_Stripe_Helper::get_stripe_amount( ( $subtotal / $quantity ), $currency );
 			$tax_amount          = WC_Stripe_Helper::get_stripe_amount( $item->get_total_tax(), $currency );
-			$discount_amount     = WC_Stripe_Helper::get_stripe_amount( $item->get_subtotal() - $item->get_total(), $currency );
+			$discount_amount     = WC_Stripe_Helper::get_stripe_amount( $subtotal - $item->get_total(), $currency );
 
 			return (object) array(
 				'product_code'        => (string) $product_id, // Up to 12 characters that uniquely identify the product.
