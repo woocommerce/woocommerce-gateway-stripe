@@ -1,4 +1,6 @@
 *** Changelog ***
+= 4.9.0 - 2021-xx-xx
+* Fix   - Add fees as line items sent to Stripe to prevent Level 3 errors.
 
 = 4.8.0 - 2021-01-28 =
 * Fix   - Filter more disallowed characters from statement descriptors.
