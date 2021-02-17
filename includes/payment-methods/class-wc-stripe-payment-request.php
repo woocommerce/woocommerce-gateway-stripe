@@ -1119,7 +1119,9 @@ class WC_Stripe_Payment_Request {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
 		}
 
-		$this->normalize_state();
+		// Normalizes billing and shipping state values.
+		$_POST['billing_state']  = $this->get_normalized_state( 'billing' );
+		$_POST['shipping_state'] = $this->get_normalized_state( 'shipping' );
 
 		WC()->checkout()->process_checkout();
 
