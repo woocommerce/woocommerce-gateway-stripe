@@ -1042,30 +1042,48 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Normalizes the state/county field because in some
+	 * Normalizes billing and shipping state fields.
+	 *
+	 * @since 4.0.0
+	 * @version 4.9.0
+	 */
+	public function normalize_state() {
+		$billing_country  = ! empty( $_POST['billing_country'] ) ? wc_clean( $_POST['billing_country'] ) : '';
+		$shipping_country = ! empty( $_POST['shipping_country'] ) ? wc_clean( $_POST['shipping_country'] ) : '';
+		$billing_state    = ! empty( $_POST['billing_state'] ) ? wc_clean( $_POST['billing_state'] ) : '';
+		$shipping_state   = ! empty( $_POST['shipping_state'] ) ? wc_clean( $_POST['shipping_state'] ) : '';
+
+		if ( $billing_state && $billing_country ) {
+			$_POST['billing_state'] = $this->get_normalized_state( $billing_state, $billing_country );
+		}
+
+		if ( $shipping_state && $shipping_country ) {
+			$_POST['shipping_state'] = $this->get_normalized_state( $shipping_state, $shipping_country );
+		}
+	}
+
+	/**
+	 * Gets the normalized state/county field because in some
 	 * cases, the state/county field is formatted differently from
 	 * what WC is expecting and throws an error. An example
-	 * for Ireland the county dropdown in Chrome shows "Co. Clare" format
+	 * for Ireland the county dropdown in Chrome shows "Co. Clare" format.
 	 *
 	 * @since 4.9.0
 	 *
-	 * @param string $post_type (billing|shipping|null) address type.
+	 * @param string $state   Full state name or an already normalized abbreviation.
+	 * @param string $country Two-letter country code.
 	 *
 	 * @return string Normalized state abbreviation.
 	 */
-	public function get_normalized_state( $post_type = null ) {
-		$post_type = $post_type ? $post_type . '_' : '';
-		$country   = ! empty( $_POST[ $post_type . 'country' ] ) ? wc_clean( $_POST[ $post_type . 'country' ] ) : '';
-		$state     = ! empty( $_POST[ $post_type . 'state' ] ) ? wc_clean( $_POST[ $post_type . 'state' ] ) : '';
+	public function get_normalized_state( $state, $country ) {
+		$wc_valid_states = $country ? WC()->countries->get_states( $country ) : [];
 
-		$valid_states = $country ? WC()->countries->get_states( $country ) : [];
-
-		if ( $state && $country && is_array( $valid_states ) && sizeof( $valid_states ) > 0 ) {
+		if ( $state && $country && is_array( $wc_valid_states ) && sizeof( $wc_valid_states ) > 0 ) {
 
 			// If it's already normalized, skip.
-			if ( in_array( $state, array_keys( $valid_states ) ) ) {
+			if ( in_array( $state, array_keys( $wc_valid_states ) ) ) {
 				return $state;
-					}
+			}
 
 			$match_from_state_input = false;
 
@@ -1086,20 +1104,18 @@ class WC_Stripe_Payment_Request {
 				];
 				$state                  = trim( str_replace( array_keys( $replace_map ), array_values( $replace_map ), $state ) );
 				$match_from_state_input = true;
-		}
+			}
 
-			foreach ( $valid_states as $state_abbr => $state_value ) {
-				// - TODO: Match values regardless of accents.
-
-				// Match values based either on WC states or from the state input.
+			foreach ( $wc_valid_states as $wc_state_abbr => $wc_state_value ) {
+				// Match values either from WC states or from the state input.
 				if (
-					( $match_from_state_input && preg_match( '/' . preg_quote( $state, '/' ) . '/i', $state_value ) ) ||
-					( ! $match_from_state_input && preg_match( '/' . preg_quote( $state_value, '/' ) . '/i', $state ) )
+					( ! $match_from_state_input && preg_match( '/' . preg_quote( $wc_state_value, '/' ) . '/i', $state ) ) ||
+					( $match_from_state_input && preg_match( '/' . preg_quote( $state, '/' ) . '/i', $wc_state_value ) )
 				) {
-					return $state_abbr;
-					}
+					return $wc_state_abbr;
 				}
 			}
+		}
 
 		return $state;
 	}
@@ -1120,8 +1136,7 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// Normalizes billing and shipping state values.
-		$_POST['billing_state']  = $this->get_normalized_state( 'billing' );
-		$_POST['shipping_state'] = $this->get_normalized_state( 'shipping' );
+		$this->normalize_state();
 
 		WC()->checkout()->process_checkout();
 
@@ -1145,7 +1160,15 @@ class WC_Stripe_Payment_Request {
 		$address_2 = $address['address_2'];
 
 		// Normalizes state to calculate shipping zones.
-		$state = $this->get_normalized_state();
+		$state = $this->get_normalized_state( $state, $country );
+
+		/**
+		 * In some versions of Chrome, state can be a full name. So we need
+		 * to convert that to abbreviation as WC is expecting that.
+		 */
+		if ( 2 < strlen( $state ) && ! empty( $wc_states ) && ! isset( $wc_states[ $state ] ) ) {
+			$state = array_search( ucwords( strtolower( $state ) ), $wc_states, true );
+		}
 
 		WC()->shipping->reset_shipping();
 
