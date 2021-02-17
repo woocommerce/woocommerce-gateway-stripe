@@ -126,7 +126,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.9.0 - 2021-xx-xx
+= 4.9.0 - 2021-xx-xx =
 * Fix - Add fees as line items sent to Stripe to prevent Level 3 errors.
+* Fix - Adding a SEPA payment method doesn't work
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
