@@ -1162,14 +1162,6 @@ class WC_Stripe_Payment_Request {
 		// Normalizes state to calculate shipping zones.
 		$state = $this->get_normalized_state( $state, $country );
 
-		/**
-		 * In some versions of Chrome, state can be a full name. So we need
-		 * to convert that to abbreviation as WC is expecting that.
-		 */
-		if ( 2 < strlen( $state ) && ! empty( $wc_states ) && ! isset( $wc_states[ $state ] ) ) {
-			$state = array_search( ucwords( strtolower( $state ) ), $wc_states, true );
-		}
-
 		WC()->shipping->reset_shipping();
 
 		if ( $postcode && WC_Validation::is_postcode( $postcode, $country ) ) {
