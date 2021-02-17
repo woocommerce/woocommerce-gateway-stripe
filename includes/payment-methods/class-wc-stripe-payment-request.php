@@ -1047,40 +1047,61 @@ class WC_Stripe_Payment_Request {
 	 * what WC is expecting and throws an error. An example
 	 * for Ireland the county dropdown in Chrome shows "Co. Clare" format
 	 *
-	 * @since   4.0.0
-	 * @version 4.0.0
+	 * @since 4.9.0
+	 *
+	 * @param string $post_type (billing|shipping|null) address type.
+	 *
+	 * @return string Normalized state abbreviation.
 	 */
-	public function normalize_state() {
-		$billing_country  = ! empty( $_POST['billing_country'] ) ? wc_clean( wp_unslash( $_POST['billing_country'] ) ) : '';
-		$shipping_country = ! empty( $_POST['shipping_country'] ) ? wc_clean( wp_unslash( $_POST['shipping_country'] ) ) : '';
-		$billing_state    = ! empty( $_POST['billing_state'] ) ? wc_clean( wp_unslash( $_POST['billing_state'] ) ) : '';
-		$shipping_state   = ! empty( $_POST['shipping_state'] ) ? wc_clean( wp_unslash( $_POST['shipping_state'] ) ) : '';
+	public function get_normalized_state( $post_type = null ) {
+		$post_type = $post_type ? $post_type . '_' : '';
+		$country   = ! empty( $_POST[ $post_type . 'country' ] ) ? wc_clean( $_POST[ $post_type . 'country' ] ) : '';
+		$state     = ! empty( $_POST[ $post_type . 'state' ] ) ? wc_clean( $_POST[ $post_type . 'state' ] ) : '';
 
-		if ( $billing_state && $billing_country ) {
-			$valid_states = WC()->countries->get_states( $billing_country );
+		$valid_states = $country ? WC()->countries->get_states( $country ) : [];
 
-			// Valid states found for country.
-			if ( ! empty( $valid_states ) && is_array( $valid_states ) && count( $valid_states ) > 0 ) {
-				foreach ( $valid_states as $state_abbr => $state ) {
-					if ( preg_match( '/' . preg_quote( $state ) . '/i', $billing_state ) ) {
-						$_POST['billing_state'] = $state_abbr;
+		if ( $state && $country && is_array( $valid_states ) && sizeof( $valid_states ) > 0 ) {
+
+			// If it's already normalized, skip.
+			if ( in_array( $state, array_keys( $valid_states ) ) ) {
+				return $state;
+					}
+
+			$match_from_state_input = false;
+
+			// China - Adapt dropdown values from Chrome and accept manually typed values like 云南.
+			if ( 'CN' === $country ) {
+				$replace_map            = [
+					// Rename regions with different spelling.
+					'Macau'     => 'Macao',
+					'Neimenggu' => 'Inner Mongolia',
+					'Xizang'    => 'Tibet',
+					// Remove suffixes.
+					'Shi'             => '',
+					'Sheng'           => '',
+					'Zizhiqu'         => '',
+					'Huizuzizhiqu'    => '',
+					'Weiwuerzizhiqu'  => '',
+					'Zhuangzuzizhiqu' => '',
+				];
+				$state                  = trim( str_replace( array_keys( $replace_map ), array_values( $replace_map ), $state ) );
+				$match_from_state_input = true;
+		}
+
+			foreach ( $valid_states as $state_abbr => $state_value ) {
+				// - TODO: Match values regardless of accents.
+
+				// Match values based either on WC states or from the state input.
+				if (
+					( $match_from_state_input && preg_match( '/' . preg_quote( $state, '/' ) . '/i', $state_value ) ) ||
+					( ! $match_from_state_input && preg_match( '/' . preg_quote( $state_value, '/' ) . '/i', $state ) )
+				) {
+					return $state_abbr;
 					}
 				}
 			}
-		}
 
-		if ( $shipping_state && $shipping_country ) {
-			$valid_states = WC()->countries->get_states( $shipping_country );
-
-			// Valid states found for country.
-			if ( ! empty( $valid_states ) && is_array( $valid_states ) && count( $valid_states ) > 0 ) {
-				foreach ( $valid_states as $state_abbr => $state ) {
-					if ( preg_match( '/' . preg_quote( $state ) . '/i', $shipping_state ) ) {
-						$_POST['shipping_state'] = $state_abbr;
-					}
-				}
-			}
-		}
+		return $state;
 	}
 
 	/**
