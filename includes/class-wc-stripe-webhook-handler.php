@@ -562,7 +562,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				}
 
 				/* translators: 1) dollar amount 2) transaction id 3) refund message */
-				$refund_message = ( isset( $captured ) && 'yes' === $captured ) ? sprintf( __( 'Refunded %1$s - Refund ID: %2$s - %3$s', 'woocommerce-gateway-stripe' ), $amount, $notification->data->object->refunds->data[0]->id, $reason ) : __( 'Pre-Authorization Released via Stripe Dashboard', 'woocommerce-gateway-stripe' );
+				$refund_message = ( isset( $captured ) && 'yes' === $captured )
+					? sprintf( __( 'Refunded %1$s - Refund ID: %2$s - %3$s', 'woocommerce-gateway-stripe' ), $amount, $notification->data->object->refunds->data[0]->id, $reason )
+					: __( 'Pre-Authorization cancelled via Stripe Dashboard. The charge for this order was cancelled and no payment was received.', 'woocommerce-gateway-stripe' );
 
 				$order->add_order_note( $refund_message );
 			}

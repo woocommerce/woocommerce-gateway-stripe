@@ -914,7 +914,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 
 			/* translators: 1) dollar amount 2) transaction id 3) refund message */
-			$refund_message = ( isset( $captured ) && 'yes' === $captured ) ? sprintf( __( 'Refunded %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $amount, $response->id, $reason ) : __( 'Pre-Authorization Released', 'woocommerce-gateway-stripe' );
+			$refund_message = ( isset( $captured ) && 'yes' === $captured )
+				? sprintf( __( 'Refunded %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $amount, $response->id, $reason )
+				/* translators: transaction id */
+				: sprintf( __( 'The Stripe charge %s was not captured. The payment for this order has not been made.', 'woocommerce-gateway-stripe' ), $charge_id );
 
 			$order->add_order_note( $refund_message );
 			WC_Stripe_Logger::log( 'Success: ' . html_entity_decode( wp_strip_all_tags( $refund_message ) ) );
