@@ -1089,7 +1089,7 @@ class WC_Stripe_Payment_Request {
 
 			// China - Adapt dropdown values from Chrome and accept manually typed values like 云南.
 			if ( 'CN' === $country ) {
-				$replace_map            = [
+				$replace_map            = array(
 					// Rename regions with different spelling.
 					'Macau'     => 'Macao',
 					'Neimenggu' => 'Inner Mongolia',
@@ -1101,7 +1101,7 @@ class WC_Stripe_Payment_Request {
 					'Huizuzizhiqu'    => '',
 					'Weiwuerzizhiqu'  => '',
 					'Zhuangzuzizhiqu' => '',
-				];
+				);
 				$state                  = trim( str_replace( array_keys( $replace_map ), array_values( $replace_map ), $state ) );
 				$match_from_state_input = true;
 			}
