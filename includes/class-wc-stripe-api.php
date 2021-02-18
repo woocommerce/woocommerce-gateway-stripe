@@ -119,7 +119,7 @@ class WC_Stripe_API {
 			self::ENDPOINT . $api,
 			array(
 				'method'  => $method,
-				'headers' => $headers,
+				'headers' => apply_filters( 'woocommerce_stripe_request_header', $headers, ["api" => $api, "method" => $method]),
 				'body'    => apply_filters( 'woocommerce_stripe_request_body', $request, $api ),
 				'timeout' => 70,
 			)
