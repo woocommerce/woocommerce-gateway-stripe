@@ -31,7 +31,7 @@ require_once $_tests_dir . '/includes/functions.php';
  * Manually load the plugin being tested.
  */
 function _manually_load_plugin() {
-	// Load the WooCommerce plugin so we can use its classes in our WooCommerce Payments plugin.
+	// Load the WooCommerce plugin so we can use its classes in our WooCommerce Stripe Payment Gateway plugin.
 	require_once ABSPATH . '/wp-content/plugins/woocommerce/woocommerce.php';
 	require __DIR__ . '/setup.php';
 
@@ -43,10 +43,6 @@ tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 
 require $_tests_dir . '/includes/bootstrap.php';
 
-require_once( __DIR__ . '/helpers/class-wc-mock-session-handler.php' );
 require_once( __DIR__ . '/helpers/class-wc-helper-product.php' );
-require_once( __DIR__ . '/helpers/class-wc-helper-coupon.php' );
-require_once( __DIR__ . '/helpers/class-wc-helper-fee.php' );
 require_once( __DIR__ . '/helpers/class-wc-helper-shipping.php' );
-require_once( __DIR__ . '/helpers/class-wc-helper-customer.php' );
 require_once( __DIR__ . '/helpers/class-wc-helper-order.php' );
