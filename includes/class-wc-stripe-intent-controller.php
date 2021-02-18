@@ -170,6 +170,16 @@ class WC_Stripe_Intent_Controller {
 				throw new Exception( $source_object->get_error_message() );
 			}
 
+			// SEPA Direct Debit payments do not require any customer action after the source has been created.
+			// Once the customer has provided their IBAN details and accepted the mandate, no further action is needed and the resulting source is directly chargeable.
+			if ( 'sepa_debit' === $source_object->type ) {
+				$response = [
+					'status' => 'success',
+				];
+				echo wp_json_encode( $response );
+				return;
+			}
+
 			// 4. Generate the setup intent
 			$setup_intent = WC_Stripe_API::request(
 				[
@@ -180,7 +190,7 @@ class WC_Stripe_Intent_Controller {
 				'setup_intents'
 			);
 
-			if ( $setup_intent->error ) {
+			if ( ! empty( $setup_intent->error ) ) {
 				$error_response_message = print_r( $setup_intent, true );
 				WC_Stripe_Logger::log("Failed create Setup Intent while saving a card.");
 				WC_Stripe_Logger::log("Response: $error_response_message");

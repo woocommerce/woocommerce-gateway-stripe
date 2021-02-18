@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 5.5
 Requires PHP: 5.6
-Stable tag: 4.7.0
+Stable tag: 4.8.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -126,13 +126,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.7.0 - 2020-12-22 =
-* Fix - Updating subscription payment methods from the "My Account" page now adds a note to the subscription.
-* Fix - Link is now correctly formatted in readme.txt.
-* Fix - Using SCA cards for subscriptions renewal payments now works as intended.
-* Fix - Cards added under "My Account -> Payment Methods -> Add Payment Method" will now handle SCA properly.
-* Fix - Changing a payment method for a subscription in "My Account -> Subscriptions" will now handle SCA properly.
-* Fix - Missing space causing fatal errors for certain WooCommerce Inbox Note features.
+= 4.9.0 - 2021-xx-xx =
+
+* Fix - Add fees as line items sent to Stripe to prevent Level 3 errors.
+* Fix - Adding a SEPA payment method doesn't work.
+* Fix - Apple Pay domain verification with live secret key.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
-

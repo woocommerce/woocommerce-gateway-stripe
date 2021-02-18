@@ -451,19 +451,26 @@ class WC_Stripe_Helper {
 	/**
 	 * Sanitize statement descriptor text.
 	 *
-	 * Stripe requires max of 22 characters and no
-	 * special characters with ><"'.
+	 * Stripe requires max of 22 characters and no special characters.
 	 *
 	 * @since 4.0.0
 	 * @param string $statement_descriptor
 	 * @return string $statement_descriptor Sanitized statement descriptor
 	 */
 	public static function clean_statement_descriptor( $statement_descriptor = '' ) {
-		$disallowed_characters = array( '<', '>', '"', "'" );
+		$disallowed_characters = array( '<', '>', '\\', '*', '"', "'", '/', '(', ')', '{', '}' );
 
-		// Remove special characters.
+		// Strip any tags.
+		$statement_descriptor = strip_tags( $statement_descriptor );
+
+		// Strip any HTML entities.
+		// Props https://stackoverflow.com/questions/657643/how-to-remove-html-special-chars .
+		$statement_descriptor = preg_replace( "/&#?[a-z0-9]{2,8};/i", "", $statement_descriptor );
+
+		// Next, remove any remaining disallowed characters.
 		$statement_descriptor = str_replace( $disallowed_characters, '', $statement_descriptor );
 
+		// Trim any whitespace at the ends and limit to 22 characters.
 		$statement_descriptor = substr( trim( $statement_descriptor ), 0, 22 );
 
 		return $statement_descriptor;
