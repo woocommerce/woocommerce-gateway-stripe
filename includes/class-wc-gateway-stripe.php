@@ -738,7 +738,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			</td>
 			<td width="1%"></td>
 			<td class="total">
-				-&nbsp;<?php echo wc_price( $fee, array( 'currency' => $currency ) ); // wpcs: xss ok. ?>
+				-<?php echo wc_price( $fee, array( 'currency' => $currency ) ); // wpcs: xss ok. ?>
 			</td>
 		</tr>
 
