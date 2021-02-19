@@ -43,6 +43,8 @@ tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );
 
 require $_tests_dir . '/includes/bootstrap.php';
 
+# Import WooCommerce Helpers (https://github.com/woocommerce/woocommerce/tree/master/tests/legacy/framework/helpers)
+# To keep the plugin self-contained, copy any newly needed helper to the `helpers/` sub-folder and import form it there.
 require_once( __DIR__ . '/helpers/class-wc-helper-product.php' );
 require_once( __DIR__ . '/helpers/class-wc-helper-shipping.php' );
 require_once( __DIR__ . '/helpers/class-wc-helper-order.php' );
