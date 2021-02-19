@@ -509,7 +509,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Process webhook refund.
 	 *
 	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @version 4.9.0
 	 * @param object $notification
 	 */
 	public function process_webhook_refund( $notification ) {
@@ -527,14 +527,31 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$captured  = $order->get_meta( '_stripe_charge_captured', true );
 			$refund_id = $order->get_meta( '_stripe_refund_id', true );
 
+			$amount = wc_price( $notification->data->object->refunds->data[0]->amount / 100 );
+			if ( in_array( strtolower( $order->get_currency() ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
+				$amount = wc_price( $notification->data->object->refunds->data[0]->amount );
+			}
+
+			// If charge wasn't captured, skip creating a refund.
+			if ( 'yes' !== $captured ) {
+				// If the process was initiated from wp-admin,
+				// the order was already cancelled, so we don't need a new note.
+				if ( 'cancelled' !== $order->get_status() ) {
+					/* translators: dollar amount */
+					$order->add_order_note( sprintf( __( 'Pre-Authorization for %s voided from the Stripe Dashboard.', 'woocommerce-gateway-stripe' ), $amount ) );
+					$order->update_status( 'cancelled' );
+				}
+
+				return;
+			}
+
 			// If the refund ID matches, don't continue to prevent double refunding.
 			if ( $notification->data->object->refunds->data[0]->id === $refund_id ) {
 				return;
 			}
 
-			// Only refund captured charge.
 			if ( $charge ) {
-				$reason = ( isset( $captured ) && 'yes' === $captured ) ? __( 'Refunded via Stripe Dashboard', 'woocommerce-gateway-stripe' ) : __( 'Pre-Authorization Released via Stripe Dashboard', 'woocommerce-gateway-stripe' );
+				$reason = __( 'Refunded via Stripe Dashboard', 'woocommerce-gateway-stripe' );
 
 				// Create the refund.
 				$refund = wc_create_refund(
@@ -551,22 +568,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				$order->update_meta_data( '_stripe_refund_id', $notification->data->object->refunds->data[0]->id );
 
-				$amount = wc_price( $notification->data->object->refunds->data[0]->amount / 100 );
-
-				if ( in_array( strtolower( $order->get_currency() ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
-					$amount = wc_price( $notification->data->object->refunds->data[0]->amount );
-				}
-
 				if ( isset( $notification->data->object->refunds->data[0]->balance_transaction ) ) {
 					$this->update_fees( $order, $notification->data->object->refunds->data[0]->balance_transaction );
 				}
 
 				/* translators: 1) dollar amount 2) transaction id 3) refund message */
-				$refund_message = ( isset( $captured ) && 'yes' === $captured )
-					? sprintf( __( 'Refunded %1$s - Refund ID: %2$s - %3$s', 'woocommerce-gateway-stripe' ), $amount, $notification->data->object->refunds->data[0]->id, $reason )
-					: __( 'Pre-Authorization cancelled via Stripe Dashboard. The charge for this order was cancelled and no payment was received.', 'woocommerce-gateway-stripe' );
-
-				$order->add_order_note( $refund_message );
+				$order->add_order_note( sprintf( __( 'Refunded %1$s - Refund ID: %2$s - %3$s', 'woocommerce-gateway-stripe' ), $amount, $notification->data->object->refunds->data[0]->id, $reason ) );
 			}
 		}
 	}
