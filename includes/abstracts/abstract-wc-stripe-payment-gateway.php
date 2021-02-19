@@ -891,7 +891,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 		}
 
-		if ( ! $intent_cancelled ) {
+		if ( ! $intent_cancelled && 'yes' === $captured ) {
 			$response = WC_Stripe_API::request( $request, 'refunds' );
 		}
 
