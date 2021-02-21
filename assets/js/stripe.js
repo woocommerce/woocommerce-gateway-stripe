@@ -209,7 +209,7 @@ jQuery( function( $ ) {
 
 			$( 'form.woocommerce-checkout' )
 				.on(
-					'checkout_place_order_stripe checkout_place_order_stripe_bancontact checkout_place_order_stripe_sofort checkout_place_order_stripe_giropay checkout_place_order_stripe_ideal checkout_place_order_stripe_alipay checkout_place_order_stripe_sepa',
+					'checkout_place_order_stripe checkout_place_order_stripe_checkout checkout_place_order_stripe_bancontact checkout_place_order_stripe_sofort checkout_place_order_stripe_giropay checkout_place_order_stripe_ideal checkout_place_order_stripe_alipay checkout_place_order_stripe_sepa',
 					this.onSubmit
 				);
 
@@ -266,7 +266,7 @@ jQuery( function( $ ) {
 		 * @return {boolean}
 		 */
 		isStripeChosen: function() {
-			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_giropay, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa, #payment_method_stripe_eps, #payment_method_stripe_multibanco' ).is( ':checked' ) || ( $( '#payment_method_stripe' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() ) || ( $( '#payment_method_stripe_sepa' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() );
+			return $( '#payment_method_stripe, #payment_method_stripe_checkout, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_giropay, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa, #payment_method_stripe_eps, #payment_method_stripe_multibanco' ).is( ':checked' ) || ( $( '#payment_method_stripe' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() ) || ( $( '#payment_method_stripe_sepa' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() );
 		},
 
 		/**
@@ -293,6 +293,15 @@ jQuery( function( $ ) {
 		 */
 		isStripeCardChosen: function() {
 			return $( '#payment_method_stripe' ).is( ':checked' );
+		},
+
+		/**
+		 * Check if Stripe checkout is being used used.
+		 *
+		 * @return {boolean}
+		 */
+		isStripeCheckoutChosen: function() {
+			return $( '#payment_method_stripe_checkout' ).is( ':checked' );
 		},
 
 		/**
@@ -596,6 +605,48 @@ jQuery( function( $ ) {
 		onSubmit: function() {
 			if ( ! wc_stripe_form.isStripeChosen() ) {
 				return true;
+			}
+
+			// Stripe Checkout requires a client-side redirect, so we skip WooCommerce's checkout.js,
+			// but we will save the order before redirecting.
+			if ( wc_stripe_form.isStripeCheckoutChosen() ) {
+				$.post( {
+					url: 'http://localhost:8082/?wc-ajax=checkout', //wc_stripe_form.getAjaxURL( 'create_order' ),
+					dataType: 'json',
+					data : wc_stripe_form.form.serialize() + '&security=' + wc_stripe_payment_request_params.nonce.payment,
+					error: function() {
+						$( document.body ).trigger( 'stripeError', {
+							error: {
+								type: 'api_connection_error',
+							}
+						} );
+					}
+				} ).done( function( serverResponse ) {
+					if ( serverResponse.result === 'failure' ) {
+						$( document.body ).trigger( 'stripeError', {
+							error: {
+								type: 'invalid_request_error',
+								message: 'Error creating order'
+							}
+						} );
+						return;
+					}
+
+					stripe.redirectToCheckout( {
+						sessionId: serverResponse.session_id
+					} ).then( function ( result ) {
+						if ( result.error ) {
+							console.log( result.error.message );
+							$( document.body ).trigger( 'stripeError', {
+								error: {
+									type: 'api_connection_error',
+									message: result.error.message
+								}
+							} );
+						}
+					} );
+				} );
+				return false;
 			}
 
 			// If a source is already in place, submit the form as usual.

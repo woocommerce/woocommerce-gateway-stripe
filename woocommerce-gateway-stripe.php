@@ -146,6 +146,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-pre-orders-compat.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-bancontact.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-checkout.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sofort.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-giropay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-eps.php';
@@ -163,6 +164,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-tokens.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-intent-controller.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-session.php';
 				require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-inbox-notes.php';
 
 				if ( is_admin() ) {
@@ -265,6 +267,7 @@ function woocommerce_gateway_stripe() {
 					$methods[] = 'WC_Gateway_Stripe_Sepa';
 				}
 
+				$methods[] = 'WC_Gateway_Stripe_Checkout';
 				$methods[] = 'WC_Gateway_Stripe_Bancontact';
 				$methods[] = 'WC_Gateway_Stripe_Sofort';
 				$methods[] = 'WC_Gateway_Stripe_Giropay';
