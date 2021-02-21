@@ -141,12 +141,18 @@ class WC_Gateway_Stripe_Checkout extends WC_Stripe_Payment_Gateway {
 			// This will throw exception if not valid.
 			$this->validate_minimum_order_amount( $order );
 
-			// TODO: Get customer if exists
+			$stripe_customer_id = $this->get_stripe_customer_id( $order );
+			if ( empty( $stripe_customer_id ) ) {
+				$customer_id        = $order->get_customer_id();
+				$stripe_customer    = new WC_Stripe_Customer( $customer_id );
+				$stripe_customer_id = $stripe_customer->create_customer();
+			}
 
 			// Request session from stripe.
 			$stripe_session = new WC_Stripe_Session();
 			$result = $stripe_session->create_session( [
-				'success_url' => $this->get_return_url( $order ) . '&checkout_session_id={CHECKOUT_SESSION_ID}',
+				'customer'       => $stripe_customer_id,
+				'success_url'    => $this->get_return_url( $order ) . '&checkout_session_id={CHECKOUT_SESSION_ID}',
 			] );
 
 			$order->update_meta_data( '_stripe_session_id', $result->id );
@@ -154,7 +160,7 @@ class WC_Gateway_Stripe_Checkout extends WC_Stripe_Payment_Gateway {
 			$order->save();
 
 			return [
-				'result'   => 'success',
+				'result'     => 'success',
 				'session_id' => $stripe_session->get_id(),
 			];
 		} catch ( WC_Stripe_Exception $e ) {
