@@ -190,17 +190,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_icon() {
 		$icons = $this->payment_icons();
+		$supported_card_brands = WC_Stripe_Helper::get_supported_card_brands();
 
 		$icons_str = '';
 
-		$icons_str .= isset( $icons['visa'] ) ? $icons['visa'] : '';
-		$icons_str .= isset( $icons['amex'] ) ? $icons['amex'] : '';
-		$icons_str .= isset( $icons['mastercard'] ) ? $icons['mastercard'] : '';
-
-		if ( 'USD' === get_woocommerce_currency() ) {
-			$icons_str .= isset( $icons['discover'] ) ? $icons['discover'] : '';
-			$icons_str .= isset( $icons['jcb'] ) ? $icons['jcb'] : '';
-			$icons_str .= isset( $icons['diners'] ) ? $icons['diners'] : '';
+		foreach ( $supported_card_brands as $brand ) {
+			$icons_str .= isset( $icons[ $brand ] ) ? $icons[ $brand ] : ''; 
 		}
 
 		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
