@@ -90,7 +90,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
-		if ( ! empty( $request_headers['USER-AGENT'] ) && ! preg_match( '/Stripe/', $request_headers['USER-AGENT'] ) ) {
+		// Make sure the User Agent, if present, matches the expected format.
+		$user_agent_format = apply_filters('wc_stripe_webhook_user_agent_format', '/Stripe/');
+		if ( ! empty( $request_headers['USER-AGENT'] ) && ! preg_match( $user_agent_format, $request_headers['USER-AGENT'] ) ) {
 			return false;
 		}
 
