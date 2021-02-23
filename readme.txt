@@ -131,5 +131,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Add fees as line items sent to Stripe to prevent Level 3 errors.
 * Fix - Adding a SEPA payment method doesn't work.
 * Fix - Apple Pay domain verification with live secret key.
+* Add - Detailed notes and status to refunded order with charge authorization.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
