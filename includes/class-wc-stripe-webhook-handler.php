@@ -537,7 +537,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				// If the process was initiated from wp-admin,
 				// the order was already cancelled, so we don't need a new note.
 				if ( 'cancelled' !== $order->get_status() ) {
-					/* translators: dollar amount */
+					/* translators: amount (including currency symbol) */
 					$order->add_order_note( sprintf( __( 'Pre-Authorization for %s voided from the Stripe Dashboard.', 'woocommerce-gateway-stripe' ), $amount ) );
 					$order->update_status( 'cancelled' );
 				}
@@ -572,7 +572,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$this->update_fees( $order, $notification->data->object->refunds->data[0]->balance_transaction );
 				}
 
-				/* translators: 1) dollar amount 2) transaction id 3) refund message */
+				/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund message */
 				$order->add_order_note( sprintf( __( 'Refunded %1$s - Refund ID: %2$s - %3$s', 'woocommerce-gateway-stripe' ), $amount, $notification->data->object->refunds->data[0]->id, $reason ) );
 			}
 		}

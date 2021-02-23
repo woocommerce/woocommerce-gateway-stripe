@@ -242,7 +242,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function validate_minimum_order_amount( $order ) {
 		if ( $order->get_total() * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
-			/* translators: 1) dollar amount */
+			/* translators: 1) amount (including currency symbol) */
 			throw new WC_Stripe_Exception( 'Did not meet minimum amount', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) ) );
 		}
 	}
@@ -910,15 +910,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			// If charge wasn't captured, skip creating a refund and cancel order.
 			if ( 'yes' !== $captured ) {
-				/* translators: dollar amount */
+				/* translators: amount (including currency symbol) */
 				$order->add_order_note( sprintf( __( 'Pre-Authorization for %s voided.', 'woocommerce-gateway-stripe' ), $formatted_amount ) );
 				$order->update_status( 'cancelled' );
 				// If amount is set, that means this function was called from the manual refund form.
 				if ( ! is_null( $amount ) ) {
 					// Throw an exception to provide a custom message on why the refund failed.
 					throw new Exception( __( 'The authorization was voided and the order cancelled. Click okay to continue, then refresh the page.', 'woocommerce-gateway-stripe' ) );
-				}
-				else {
+				} else {
 					// If refund was initiaded by changing order status, prevent refund without errors.
 					return false;
 				}
@@ -930,7 +929,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$this->update_fees( $order, $response->balance_transaction );
 			}
 
-			/* translators: 1) dollar amount 2) transaction id 3) refund message */
+			/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund message */
 			$refund_message = sprintf( __( 'Refunded %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $formatted_amount, $response->id, $reason );
 
 			$order->add_order_note( $refund_message );
