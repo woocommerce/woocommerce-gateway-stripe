@@ -66,9 +66,7 @@ class WC_Stripe_Inbox_Notes {
 				$note    = WC_Admin_Notes::get_note( $note_id );
 				$note->delete();
 			}
-		} catch ( Exception $e ) {
-			return;
-		}
+		} catch ( Exception $e ) {} // @codingStandardsIgnoreLine
 
 		if ( $verification_complete ) {
 			if ( self::should_show_marketing_note() && ! wp_next_scheduled( self::POST_SETUP_SUCCESS_ACTION ) ) {
