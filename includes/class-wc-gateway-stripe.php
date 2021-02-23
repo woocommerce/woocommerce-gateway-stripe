@@ -185,7 +185,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Get_icon function.
 	 *
 	 * @since 1.0.0
-	 * @version 4.0.0
+	 * @version 4.9.0
 	 * @return string
 	 */
 	public function get_icon() {

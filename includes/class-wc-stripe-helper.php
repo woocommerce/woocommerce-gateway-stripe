@@ -319,28 +319,30 @@ class WC_Stripe_Helper {
 	 * Gets the supported card brands, taking the store's base country and currency into account.
 	 * For more information, please see: https://stripe.com/docs/payments/cards/supported-card-brands.
 	 *
+	 * @since 4.9.0
+	 * @version 4.9.0
 	 * @return array
 	 */
 	public static function get_supported_card_brands() {
 		$base_country = wc_get_base_location()['country'];
 		$base_currency = get_woocommerce_currency();
 
-		$supported_card_brands = [ 'visa', 'mastercard' ];
+		$supported_card_brands = array( 'visa', 'mastercard' );
 
 		// American Express is not supported in Brazil and Malaysia.
-		if ( ! in_array( $base_country, [ 'BR', 'MY' ] ) ) {
+		if ( ! in_array( $base_country, array( 'BR', 'MY' ) ) ) {
 			array_push( $supported_card_brands, 'amex' );
 		}
 
 		// Discover and Diners Club are only supported in the US and Canada. 
-		if ( in_array( $base_country, [ 'US', 'CA' ] ) && $base_currency === 'USD' ) {
+		if ( in_array( $base_country, array( 'US', 'CA' ) ) && $base_currency === 'USD' ) {
 			array_push( $supported_card_brands, 'discover', 'diners' );
 		}
 
 		// See: https://support.stripe.com/questions/accepting-japan-credit-bureau-(jcb)-payments.
 		if ( 'US' === $base_country && 'USD' === $base_currency ||
 			 'JP' === $base_country && 'JPY' === $base_currency ||
-			 in_array( ['CA', 'AU', 'NZ' ], $base_country ) 
+			 in_array( $base_country, array( 'CA', 'AU', 'NZ' ) ) 
 		) {
 			array_push( $supported_card_brands, 'jcb' );
 		}
