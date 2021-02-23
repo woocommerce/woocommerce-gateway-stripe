@@ -150,9 +150,9 @@ class WC_Stripe_Apple_Pay_Registration {
 					sprintf( __( 'To enable Apple Pay, domain association file must be hosted at %s.', 'woocommerce-payments' ), $url )
 				);
 			}
+		} else {
+			WC_Stripe_Logger::log( __( 'Domain association file updated.', 'woocommerce-payments' ) );
 		}
-
-		WC_Stripe_Logger::log( __( 'Domain association file updated.', 'woocommerce-payments' ) );
 	}
 
 	/**
