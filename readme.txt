@@ -131,5 +131,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Add fees as line items sent to Stripe to prevent Level 3 errors.
 * Fix - Adding a SEPA payment method doesn't work.
 * Fix - Apple Pay domain verification with live secret key.
+* Fix - Remove duplicate Apple Pay domain registration Inbox notes.
+* Add - Copy Apple Pay domain registration file and trigger domain registration on domain name change.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
