@@ -132,6 +132,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix    - Adding a SEPA payment method doesn't work.
 * Fix    - Apple Pay domain verification with live secret key.
 * Fix    - Display the correct accepted card branding depending on store currency and location.
+* Fix    - Remove duplicate Apple Pay domain registration Inbox notes.
+* Add    - Copy Apple Pay domain registration file and trigger domain registration on domain name change.
 * Update - Notes and status when refunding order with charge authorization.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
