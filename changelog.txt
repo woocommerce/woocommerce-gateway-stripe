@@ -3,6 +3,7 @@
 * Fix - Add fees as line items sent to Stripe to prevent Level 3 errors.
 * Fix - Adding a SEPA payment method doesn't work.
 * Fix - Apple Pay domain verification with live secret key.
+* Fix - Display the correct accepted card branding depending on store currency and location.
 
 = 4.8.0 - 2021-01-28 =
 * Fix   - Filter more disallowed characters from statement descriptors.
