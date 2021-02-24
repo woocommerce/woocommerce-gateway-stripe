@@ -78,21 +78,21 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 
 	public function statement_descriptor_sanitation_provider() {
 		return [
-			'removes \'' => [ 'Test\'s Store', 'Tests Store' ],
-			'removes "' => [ 'Test " Store', 'Test  Store' ],
-			'removes <' => [ 'Test < Store', 'Test  Store' ],
-			'removes >' => [ 'Test > Store', 'Test  Store' ],
-			'removes /' => [ 'Test / Store', 'Test  Store' ],
-			'removes (' => [ 'Test ( Store', 'Test  Store' ],
-			'removes )' => [ 'Test ) Store', 'Test  Store' ],
-			'removes {' => [ 'Test { Store', 'Test  Store' ],
-			'removes }' => [ 'Test } Store', 'Test  Store' ],
-			'removes \\' => [ 'Test \\ Store', 'Test  Store' ],
-			'removes *' => [ 'Test * Store', 'Test  Store' ],
+			'removes \''             => [ 'Test\'s Store', 'Tests Store' ],
+			'removes "'              => [ 'Test " Store', 'Test  Store' ],
+			'removes <'              => [ 'Test < Store', 'Test  Store' ],
+			'removes >'              => [ 'Test > Store', 'Test  Store' ],
+			'removes /'              => [ 'Test / Store', 'Test  Store' ],
+			'removes ('              => [ 'Test ( Store', 'Test  Store' ],
+			'removes )'              => [ 'Test ) Store', 'Test  Store' ],
+			'removes {'              => [ 'Test { Store', 'Test  Store' ],
+			'removes }'              => [ 'Test } Store', 'Test  Store' ],
+			'removes \\'             => [ 'Test \\ Store', 'Test  Store' ],
+			'removes *'              => [ 'Test * Store', 'Test  Store' ],
 			'keeps at most 22 chars' => [ 'Test\'s Store > Driving Course Range', 'Tests Store  Driving C' ],
 			'mixed length, \' and >' => [ 'Test\'s Store > Driving Course Range', 'Tests Store  Driving C' ],
 			'mixed length, \' and <' => [ 'Test\'s Store < Driving Course Range', 'Tests Store  Driving C' ],
-			'mixed length, \' and "' => [ 'Test\'s Store " Driving Course Range', 'Tests Store  Driving C' ]
+			'mixed length, \' and "' => [ 'Test\'s Store " Driving Course Range', 'Tests Store  Driving C' ],
 		];
 	}
 }

@@ -236,30 +236,30 @@ class WC_Stripe_Level3_Data_Test extends WP_UnitTestCase {
 	}
 
 	public function test_full_level3_data_with_fee() {
-		$expected_data = array(
+		$expected_data = [
 			'merchant_reference'   => '210',
 			'shipping_amount'      => 3800,
-			'line_items'           => array(
-				(object) array(
+			'line_items'           => [
+				(object) [
 					'product_code'        => 30,
 					'product_description' => 'Beanie with Logo',
 					'unit_cost'           => 1800,
 					'quantity'            => 1,
 					'tax_amount'          => 270,
 					'discount_amount'     => 0,
-				),
-				(object) array(
+				],
+				(object) [
 					'product_code'        => 'fee',
 					'product_description' => 'fee',
 					'unit_cost'           => 1000,
 					'quantity'            => 1,
 					'tax_amount'          => 150,
 					'discount_amount'     => 0,
-				),
-			),
+				],
+			],
 			'shipping_address_zip' => '98012',
 			'shipping_from_zip'    => '94110',
-		);
+		];
 
 		update_option( 'woocommerce_store_postcode', '94110' );
 

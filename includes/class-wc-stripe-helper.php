@@ -465,7 +465,7 @@ class WC_Stripe_Helper {
 
 		// Strip any HTML entities.
 		// Props https://stackoverflow.com/questions/657643/how-to-remove-html-special-chars .
-		$statement_descriptor = preg_replace( "/&#?[a-z0-9]{2,8};/i", "", $statement_descriptor );
+		$statement_descriptor = preg_replace( '/&#?[a-z0-9]{2,8};/i', '', $statement_descriptor );
 
 		// Next, remove any remaining disallowed characters.
 		$statement_descriptor = str_replace( $disallowed_characters, '', $statement_descriptor );
