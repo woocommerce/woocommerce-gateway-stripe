@@ -329,13 +329,13 @@ class WC_Stripe_Helper {
 
 		$supported_card_brands = array( 'visa', 'mastercard' );
 
-		// American Express is not supported in Brazil and Malaysia.
+		// American Express is not supported in Brazil and Malaysia (https://stripe.com/docs/payments/cards/supported-card-brands).
 		if ( ! in_array( $base_country, array( 'BR', 'MY' ) ) ) {
 			array_push( $supported_card_brands, 'amex' );
 		}
 
-		// Discover and Diners Club are only supported in the US and Canada. 
-		if ( in_array( $base_country, array( 'US', 'CA' ) ) && $base_currency === 'USD' ) {
+		// Discover and Diners Club are only supported in the US and Canada. If the store is in the US, USD must be used. (https://stripe.com/docs/currencies#presentment-currencies). 
+		if ( 'US' === $base_country && 'USD' === $base_currency || 'CA' === $base_country ) {
 			array_push( $supported_card_brands, 'discover', 'diners' );
 		}
 
