@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 5.6
 Requires PHP: 5.6
-Stable tag: 4.8.0
+Stable tag: 4.9.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -126,7 +126,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.9.0 - 2021-xx-xx =
+= 4.9.0 - 2021-02-24 =
 
 * Fix    - Add fees as line items sent to Stripe to prevent Level 3 errors.
 * Fix    - Adding a SEPA payment method doesn't work.
