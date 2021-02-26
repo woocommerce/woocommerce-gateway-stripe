@@ -146,12 +146,12 @@ class WC_Stripe_Apple_Pay_Registration {
 
 		if ( ! file_exists( $well_known_dir ) ) {
 			if ( ! @mkdir( $well_known_dir, 0755 ) ) { // @codingStandardsIgnoreLine
-				return __( 'Unable to create domain association folder to domain root.', 'woocommerce-payments' );
+				return __( 'Unable to create domain association folder to domain root.', 'woocommerce-gateway-stripe' );
 			}
 		}
 
 		if ( ! @copy( WC_STRIPE_PLUGIN_PATH . '/' . self::DOMAIN_ASSOCIATION_FILE_NAME, $fullpath ) ) { // @codingStandardsIgnoreLine
-			return __( 'Unable to copy domain association file to domain root.', 'woocommerce-payments' );
+			return __( 'Unable to copy domain association file to domain root.', 'woocommerce-gateway-stripe' );
 		}
 	}
 
@@ -173,10 +173,10 @@ class WC_Stripe_Apple_Pay_Registration {
 			WC_Stripe_Logger::log(
 				'Error: ' . $error_message . ' ' .
 				/* translators: expected domain association file URL */
-				sprintf( __( 'To enable Apple Pay, domain association file must be hosted at %s.', 'woocommerce-payments' ), $url )
+				sprintf( __( 'To enable Apple Pay, domain association file must be hosted at %s.', 'woocommerce-gateway-stripe' ), $url )
 			);
 		} else {
-			WC_Stripe_Logger::log( __( 'Domain association file updated.', 'woocommerce-payments' ) );
+			WC_Stripe_Logger::log( __( 'Domain association file updated.', 'woocommerce-gateway-stripe' ) );
 		}
 	}
 
