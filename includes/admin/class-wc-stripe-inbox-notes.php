@@ -57,28 +57,24 @@ class WC_Stripe_Inbox_Notes {
 			return;
 		}
 
+		try {
+			$data_store       = WC_Data_Store::load( 'admin-note' );
+			$failure_note_ids = $data_store->get_notes_with_name( self::FAILURE_NOTE_NAME );
+			// Delete all previously created, soft deleted and unactioned failure notes (Legacy).
+			while ( ! empty( $failure_note_ids ) ) {
+				$note_id = array_pop( $failure_note_ids );
+				$note    = WC_Admin_Notes::get_note( $note_id );
+				$note->delete();
+			}
+		} catch ( Exception $e ) {} // @codingStandardsIgnoreLine
+
 		if ( $verification_complete ) {
 			if ( self::should_show_marketing_note() && ! wp_next_scheduled( self::POST_SETUP_SUCCESS_ACTION ) ) {
 				wp_schedule_single_event( time() + DAY_IN_SECONDS, self::POST_SETUP_SUCCESS_ACTION );
 			}
-
-			// If the domain verification completed after failure note was created, make sure it's marked as actioned.
-			try {
-				$data_store       = WC_Data_Store::load( 'admin-note' );
-				$failure_note_ids = $data_store->get_notes_with_name( self::FAILURE_NOTE_NAME );
-				if ( ! empty( $failure_note_ids ) ) {
-					$note_id = array_pop( $failure_note_ids );
-					$note    = WC_Admin_Notes::get_note( $note_id );
-					if ( false !== $note && WC_Admin_Note::E_WC_ADMIN_NOTE_ACTIONED !== $note->get_status() ) {
-						$note->set_status( WC_Admin_Note::E_WC_ADMIN_NOTE_ACTIONED );
-						$note->save();
-					}
-				}
-			} catch ( Exception $e ) {}  // @codingStandardsIgnoreLine.
 		} else {
-			if ( empty( $failure_note_ids ) ) {
-				self::create_failure_note();
-			}
+			// Create new note if verification failed.
+			self::create_failure_note();
 		}
 	}
 

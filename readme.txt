@@ -2,9 +2,9 @@
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
 Requires at least: 4.4
-Tested up to: 5.5
+Tested up to: 5.6
 Requires PHP: 5.6
-Stable tag: 4.8.0
+Stable tag: 4.9.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -126,10 +126,14 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.9.0 - 2021-xx-xx =
+= 4.9.0 - 2021-02-24 =
 
-* Fix - Add fees as line items sent to Stripe to prevent Level 3 errors.
-* Fix - Adding a SEPA payment method doesn't work.
-* Fix - Apple Pay domain verification with live secret key.
+* Fix    - Add fees as line items sent to Stripe to prevent Level 3 errors.
+* Fix    - Adding a SEPA payment method doesn't work.
+* Fix    - Apple Pay domain verification with live secret key.
+* Fix    - Display the correct accepted card branding depending on store currency and location.
+* Fix    - Remove duplicate Apple Pay domain registration Inbox notes.
+* Add    - Copy Apple Pay domain registration file and trigger domain registration on domain name change.
+* Update - Notes and status when refunding order with charge authorization.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

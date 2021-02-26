@@ -10,6 +10,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class WC_Stripe_Apple_Pay_Registration {
+
+	const DOMAIN_ASSOCIATION_FILE_NAME = 'apple-developer-merchantid-domain-association';
+	const DOMAIN_ASSOCIATION_FILE_DIR  = '.well-known';
+
 	/**
 	 * Enabled.
 	 *
@@ -25,6 +29,13 @@ class WC_Stripe_Apple_Pay_Registration {
 	public $apple_pay_domain_set;
 
 	/**
+	 * Current domain name.
+	 *
+	 * @var bool
+	 */
+	private $domain_name;
+
+	/**
 	 * Stores Apple Pay domain verification issues.
 	 *
 	 * @var string
@@ -33,15 +44,17 @@ class WC_Stripe_Apple_Pay_Registration {
 
 	public function __construct() {
 		add_action( 'init', [ $this, 'add_domain_association_rewrite_rule' ] );
+		add_action( 'admin_init', [ $this, 'verify_domain_on_domain_name_change' ] );
+		add_action( 'admin_notices', [ $this, 'admin_notices' ] );
 		add_filter( 'query_vars', [ $this, 'whitelist_domain_association_query_param' ], 10, 1 );
 		add_action( 'parse_request', [ $this, 'parse_domain_association_request' ], 10, 1 );
 
 		add_action( 'woocommerce_stripe_updated', [ $this, 'verify_domain_if_configured' ] );
 		add_action( 'add_option_woocommerce_stripe_settings', [ $this, 'verify_domain_on_new_settings' ], 10, 2 );
 		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'verify_domain_on_updated_settings' ], 10, 2 );
-		add_action( 'admin_notices', [ $this, 'admin_notices' ] );
 
 		$this->stripe_settings         = get_option( 'woocommerce_stripe_settings', [] );
+		$this->domain_name             = isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : str_replace( array( 'https://', 'http://' ), '', get_site_url() ); // @codingStandardsIgnoreLine
 		$this->apple_pay_domain_set    = 'yes' === $this->get_option( 'apple_pay_domain_set', 'no' );
 		$this->apple_pay_verify_notice = '';
 	}
@@ -91,11 +104,88 @@ class WC_Stripe_Apple_Pay_Registration {
 	}
 
 	/**
+	 * Trigger Apple Pay registration upon domain name change.
+	 *
+	 * @since 4.9.0
+	 */
+	public function verify_domain_on_domain_name_change() {
+		if ( $this->domain_name !== $this->get_option( 'apple_pay_verified_domain' ) ) {
+			$this->verify_domain_if_configured();
+		}
+	}
+
+	/**
+	 * Vefifies if hosted domain association file is up to date
+	 * with the file from the plugin directory.
+	 *
+	 * @since 4.9.0
+	 * @return bool Wether file is up to date or not.
+	 */
+	private function verify_hosted_domain_association_file_is_up_to_date() {
+		// Contents of domain association file from plugin dir.
+		$new_contents = @file_get_contents( WC_STRIPE_PLUGIN_PATH . '/' . self::DOMAIN_ASSOCIATION_FILE_NAME ); // @codingStandardsIgnoreLine
+		// Get file contents from local path and remote URL and check if either of which matches.
+		$fullpath        = untrailingslashit( ABSPATH ) . '/' . self::DOMAIN_ASSOCIATION_FILE_DIR . '/' . self::DOMAIN_ASSOCIATION_FILE_NAME;
+		$local_contents  = @file_get_contents( $fullpath ); // @codingStandardsIgnoreLine
+		$url             = get_site_url() . '/' . self::DOMAIN_ASSOCIATION_FILE_DIR . '/' . self::DOMAIN_ASSOCIATION_FILE_NAME;
+		$response        = @wp_remote_get( $url ); // @codingStandardsIgnoreLine
+		$remote_contents = @wp_remote_retrieve_body( $response ); // @codingStandardsIgnoreLine
+
+		return $local_contents === $new_contents || $remote_contents === $new_contents;
+	}
+
+	/**
+	 * Copies and overwrites domain association file.
+	 *
+	 * @since 4.9.0
+	 * @return null|string Error message.
+	 */
+	private function copy_and_overwrite_domain_association_file() {
+		$well_known_dir = untrailingslashit( ABSPATH ) . '/' . self::DOMAIN_ASSOCIATION_FILE_DIR;
+		$fullpath       = $well_known_dir . '/' . self::DOMAIN_ASSOCIATION_FILE_NAME;
+
+		if ( ! file_exists( $well_known_dir ) ) {
+			if ( ! @mkdir( $well_known_dir, 0755 ) ) { // @codingStandardsIgnoreLine
+				return __( 'Unable to create domain association folder to domain root.', 'woocommerce-payments' );
+			}
+		}
+
+		if ( ! @copy( WC_STRIPE_PLUGIN_PATH . '/' . self::DOMAIN_ASSOCIATION_FILE_NAME, $fullpath ) ) { // @codingStandardsIgnoreLine
+			return __( 'Unable to copy domain association file to domain root.', 'woocommerce-payments' );
+		}
+	}
+
+	/**
+	 * Updates the Apple Pay domain association file.
+	 * Reports failure only if file isn't already being served properly.
+	 *
+	 * @since 4.9.0
+	 */
+	public function update_domain_association_file() {
+		if ( $this->verify_hosted_domain_association_file_is_up_to_date() ) {
+			return;
+		}
+
+		$error_message = $this->copy_and_overwrite_domain_association_file();
+
+		if ( isset( $error_message ) ) {
+			$url = get_site_url() . '/' . self::DOMAIN_ASSOCIATION_FILE_DIR . '/' . self::DOMAIN_ASSOCIATION_FILE_NAME;
+			WC_Stripe_Logger::log(
+				'Error: ' . $error_message . ' ' .
+				/* translators: expected domain association file URL */
+				sprintf( __( 'To enable Apple Pay, domain association file must be hosted at %s.', 'woocommerce-payments' ), $url )
+			);
+		} else {
+			WC_Stripe_Logger::log( __( 'Domain association file updated.', 'woocommerce-payments' ) );
+		}
+	}
+
+	/**
 	 * Adds a rewrite rule for serving the domain association file from the proper location.
 	 */
 	public function add_domain_association_rewrite_rule() {
-		$regex    = '^\.well-known\/apple-developer-merchantid-domain-association$';
-		$redirect = 'index.php?apple-developer-merchantid-domain-association=1';
+		$regex    = '^\\' . self::DOMAIN_ASSOCIATION_FILE_DIR . '\/' . self::DOMAIN_ASSOCIATION_FILE_NAME . '$';
+		$redirect = 'index.php?' . self::DOMAIN_ASSOCIATION_FILE_NAME . '=1';
 
 		add_rewrite_rule( $regex, $redirect, 'top' );
 	}
@@ -107,7 +197,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @return array Updated public query vars.
 	 */
 	public function whitelist_domain_association_query_param( $query_vars ) {
-		$query_vars[] = 'apple-developer-merchantid-domain-association';
+		$query_vars[] = self::DOMAIN_ASSOCIATION_FILE_NAME;
 		return $query_vars;
 	}
 
@@ -118,13 +208,13 @@ class WC_Stripe_Apple_Pay_Registration {
 	 */
 	public function parse_domain_association_request( $wp ) {
 		if (
-			! isset( $wp->query_vars['apple-developer-merchantid-domain-association'] ) ||
-			'1' !== $wp->query_vars['apple-developer-merchantid-domain-association']
+			! isset( $wp->query_vars[ self::DOMAIN_ASSOCIATION_FILE_NAME ] ) ||
+			'1' !== $wp->query_vars[ self::DOMAIN_ASSOCIATION_FILE_NAME ]
 		) {
 			return;
 		}
 
-		$path = WC_STRIPE_PLUGIN_PATH . '/apple-developer-merchantid-domain-association';
+		$path = WC_STRIPE_PLUGIN_PATH . '/' . self::DOMAIN_ASSOCIATION_FILE_NAME;
 		header( 'Content-Type: text/plain;charset=utf-8' );
 		echo esc_html( file_get_contents( $path ) );
 		exit;
@@ -145,7 +235,7 @@ class WC_Stripe_Apple_Pay_Registration {
 		$endpoint = 'https://api.stripe.com/v1/apple_pay/domains';
 
 		$data = [
-			'domain_name' => isset( $_SERVER['HTTP_HOST'] ) ? wc_clean( wp_unslash( $_SERVER['HTTP_HOST'] ) ) : '',
+			'domain_name' => $this->domain_name,
 		];
 
 		$headers = [
@@ -192,8 +282,9 @@ class WC_Stripe_Apple_Pay_Registration {
 			$this->make_domain_registration_request( $secret_key );
 
 			// No errors to this point, verification success!
-			$this->stripe_settings['apple_pay_domain_set'] = 'yes';
-			$this->apple_pay_domain_set                    = true;
+			$this->stripe_settings['apple_pay_verified_domain'] = $this->domain_name;
+			$this->stripe_settings['apple_pay_domain_set']      = 'yes';
+			$this->apple_pay_domain_set                         = true;
 
 			update_option( 'woocommerce_stripe_settings', $this->stripe_settings );
 
@@ -202,8 +293,9 @@ class WC_Stripe_Apple_Pay_Registration {
 			return true;
 
 		} catch ( Exception $e ) {
-			$this->stripe_settings['apple_pay_domain_set'] = 'no';
-			$this->apple_pay_domain_set                    = false;
+			$this->stripe_settings['apple_pay_verified_domain'] = $this->domain_name;
+			$this->stripe_settings['apple_pay_domain_set']      = 'no';
+			$this->apple_pay_domain_set                         = false;
 
 			update_option( 'woocommerce_stripe_settings', $this->stripe_settings );
 
@@ -217,7 +309,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * Process the Apple Pay domain verification if proper settings are configured.
 	 *
 	 * @since 4.5.4
-	 * @version 4.5.4
+	 * @version 4.9.0
 	 */
 	public function verify_domain_if_configured() {
 		$secret_key = $this->get_secret_key();
@@ -228,6 +320,10 @@ class WC_Stripe_Apple_Pay_Registration {
 
 		// Ensure that domain association file will be served.
 		flush_rewrite_rules();
+
+		// The rewrite rule method doesn't work if permalinks are set to Plain.
+		// Create/update domain association file by copying it from the plugin folder as a fallback.
+		$this->update_domain_association_file();
 
 		// Register the domain with Apple Pay.
 		$verification_complete = $this->register_domain_with_apple( $secret_key );

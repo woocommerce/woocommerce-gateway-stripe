@@ -1,8 +1,12 @@
 *** Changelog ***
-= 4.9.0 - 2021-xx-xx =
-* Fix - Add fees as line items sent to Stripe to prevent Level 3 errors.
-* Fix - Adding a SEPA payment method doesn't work.
-* Fix - Apple Pay domain verification with live secret key.
+= 4.9.0 - 2021-02-24 =
+* Fix    - Add fees as line items sent to Stripe to prevent Level 3 errors.
+* Fix    - Adding a SEPA payment method doesn't work.
+* Fix    - Apple Pay domain verification with live secret key.
+* Fix    - Display the correct accepted card branding depending on store currency and location.
+* Fix    - Remove duplicate Apple Pay domain registration Inbox notes.
+* Add    - Copy Apple Pay domain registration file and trigger domain registration on domain name change.
+* Update - Notes and status when refunding order with charge authorization.
 
 = 4.8.0 - 2021-01-28 =
 * Fix   - Filter more disallowed characters from statement descriptors.
