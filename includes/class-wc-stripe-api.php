@@ -81,15 +81,19 @@ class WC_Stripe_API {
 		$user_agent = self::get_user_agent();
 		$app_info   = $user_agent['application'];
 
-		return apply_filters(
+		$headers = apply_filters(
 			'woocommerce_stripe_request_headers',
 			[
-				'Authorization'              => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
-				'Stripe-Version'             => self::STRIPE_API_VERSION,
-				'User-Agent'                 => $app_info['name'] . '/' . $app_info['version'] . ' (' . $app_info['url'] . ')',
-				'X-Stripe-Client-User-Agent' => wp_json_encode( $user_agent ),
+				'Authorization'  => 'Basic ' . base64_encode( self::get_secret_key() . ':' ),
+				'Stripe-Version' => self::STRIPE_API_VERSION,
 			]
 		);
+
+		// These headers should not be overridden for this gateway.
+		$headers['User-Agent']                 = $app_info['name'] . '/' . $app_info['version'] . ' (' . $app_info['url'] . ')';
+		$headers['X-Stripe-Client-User-Agent'] = wp_json_encode( $user_agent );
+
+		return $headers;
 	}
 
 	/**
