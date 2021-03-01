@@ -128,7 +128,7 @@ function woocommerce_gateway_stripe() {
 			 * Init the plugin after plugins_loaded so environment variables are set.
 			 *
 			 * @since 1.0.0
-			 * @version 4.0.0
+			 * @version 5.0.0
 			 */
 			public function init() {
 				if ( is_admin() ) {

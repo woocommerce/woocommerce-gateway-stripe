@@ -35,7 +35,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Constructor.
 	 *
 	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @version 5.0.0
 	 */
 	public function __construct() {
 		$this->retry_interval = 2;
@@ -56,7 +56,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Check incoming requests for Stripe Webhook data and process them.
 	 *
 	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @version 5.0.0
 	 */
 	public function check_for_webhook() {
 		if ( ( 'POST' !== $_SERVER['REQUEST_METHOD'] )
@@ -93,7 +93,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * Verify the incoming webhook notification to make sure it is legit.
 	 *
 	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @version 5.0.0
 	 * @param string $request_headers The request headers from Stripe.
 	 * @param string $request_body The request body from Stripe.
 	 * @return string The validation result (e.g. self::VALIDATION_SUCCEEDED )

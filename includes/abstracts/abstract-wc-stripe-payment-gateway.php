@@ -17,6 +17,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Displays the admin settings webhook description.
 	 *
 	 * @since 4.1.0
+	 * @version 5.0.0
 	 * @return mixed
 	 */
 	public function display_admin_settings_webhook_description() {

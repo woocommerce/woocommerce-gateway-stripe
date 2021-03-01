@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Class WC_Stripe_Webhook_State.
  *
  * Tracks the most recent successful and unsuccessful webhooks in test and live modes.
- * @since 4.4.2
+ * @since 5.0.0
  */
 class WC_Stripe_Webhook_State {
 	const OPTION_LIVE_MONITORING_BEGAN_AT = 'wc_stripe_wh_monitor_began_at';
@@ -31,7 +31,7 @@ class WC_Stripe_Webhook_State {
 	/**
 	 * Gets whether Stripe is in test mode or not
 	 *
-	 * @since 4.4.2
+	 * @since 5.0.0
 	 * @return bool
 	 */
 	public static function get_testmode() {
@@ -43,7 +43,7 @@ class WC_Stripe_Webhook_State {
 	 * Gets (and sets, if unset) the timestamp the plugin first
 	 * started tracking webhook failure and successes.
 	 *
-	 * @since 4.4.2
+	 * @since 5.0.0
 	 * @return integer UTC seconds since 1970.
 	 */
 	public static function get_monitoring_began_at() {
@@ -66,7 +66,7 @@ class WC_Stripe_Webhook_State {
 	/**
 	 * Sets the timestamp of the last successfully processed webhook.
 	 *
-	 * @since 4.4.2
+	 * @since 5.0.0
 	 * @param integer UTC seconds since 1970.
 	 */
 	public static function set_last_webhook_success_at( $timestamp ) {
@@ -78,7 +78,7 @@ class WC_Stripe_Webhook_State {
 	 * Gets the timestamp of the last successfully processed webhook,
 	 * or returns 0 if no webhook has ever been successfully processed.
 	 *
-	 * @since 4.4.2
+	 * @since 5.0.0
 	 * @return integer UTC seconds since 1970 | 0.
 	 */
 	public static function get_last_webhook_success_at() {
@@ -89,7 +89,7 @@ class WC_Stripe_Webhook_State {
 	/**
 	 * Sets the timestamp of the last failed webhook.
 	 *
-	 * @since 4.4.2
+	 * @since 5.0.0
 	 * @param integer UTC seconds since 1970.
 	 */
 	public static function set_last_webhook_failure_at( $timestamp ) {
@@ -101,7 +101,7 @@ class WC_Stripe_Webhook_State {
 	 * Gets the timestamp of the last failed webhook,
 	 * or returns 0 if no webhook has ever failed to process.
 	 *
-	 * @since 4.4.2
+	 * @since 5.0.0
 	 * @return integer UTC seconds since 1970 | 0.
 	 */
 	public static function get_last_webhook_failure_at() {
@@ -112,7 +112,7 @@ class WC_Stripe_Webhook_State {
 	/**
 	 * Sets the reason for the last failed webhook.
 	 *
-	 * @since 4.4.2
+	 * @since 5.0.0
 	 * @param string Reason code.
 	 *
 	 */
@@ -124,7 +124,7 @@ class WC_Stripe_Webhook_State {
 	/**
 	 * Returns the localized reason the last webhook failed.
 	 *
-	 * @since 4.4.2
+	 * @since 5.0.0
 	 * @return string Reason the last webhook failed.
 	 */
 	public static function get_last_error_reason() {
@@ -165,7 +165,7 @@ class WC_Stripe_Webhook_State {
 	/**
 	 * Gets the state of webhook processing in a human readable format.
 	 *
-	 * @since 4.4.2
+	 * @since 5.0.0
 	 * @return string Details on recent webhook successes and failures.
 	 */
 	public static function get_webhook_status_message() {
