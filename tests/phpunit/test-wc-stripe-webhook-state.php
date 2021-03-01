@@ -73,7 +73,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	}
 
 	private function set_valid_request_data( $overwrite_timestamp = null ) {
-		$timestamp = $overwrite_timestamp ?? time();
+		$timestamp = $overwrite_timestamp ? $overwrite_timestamp : time();
 
 		// Body
 		$this->request_body = json_encode(
