@@ -1045,7 +1045,7 @@ class WC_Stripe_Payment_Request {
 	 * Normalizes billing and shipping state fields.
 	 *
 	 * @since 4.0.0
-	 * @version 4.9.0
+	 * @version 5.0.0
 	 */
 	public function normalize_state() {
 		$billing_country  = ! empty( $_POST['billing_country'] ) ? wc_clean( $_POST['billing_country'] ) : '';
@@ -1068,7 +1068,7 @@ class WC_Stripe_Payment_Request {
 	 * what WC is expecting and throws an error. An example
 	 * for Ireland the county dropdown in Chrome shows "Co. Clare" format.
 	 *
-	 * @since 4.9.0
+	 * @since 5.0.0
 	 *
 	 * @param string $state   Full state name or an already normalized abbreviation.
 	 * @param string $country Two-letter country code.
@@ -1150,7 +1150,7 @@ class WC_Stripe_Payment_Request {
 	 * @param array $address Shipping address.
 	 *
 	 * @since   3.1.0
-	 * @version 4.0.0
+	 * @version 5.0.0
 	 */
 	protected function calculate_shipping( $address = [] ) {
 		$country   = $address['country'];
