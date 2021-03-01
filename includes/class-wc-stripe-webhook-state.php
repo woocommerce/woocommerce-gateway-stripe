@@ -207,13 +207,17 @@ class WC_Stripe_Webhook_State {
 		if ( $last_success_at > 0 ) {
 			$message = sprintf(
 				$test_mode ?
-					/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC */
-					/* translators: 2) reason webhook failed */
-					/* translators: 3) date and time of last successful webhook e.g. 2020-05-28 10:30:50 UTC */
+					/*
+					 * translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
+					 * translators: 2) reason webhook failed
+					 * translators: 3) date and time of last successful webhook e.g. 2020-05-28 10:30:50 UTC
+					 */
 					__( 'Warning: The most recent test webhook, received at %s, could not be processed. Reason: %s. (The last test webhook to process successfully was timestamped %s.)', 'woocommerce-gateway-stripe' ) :
-					/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC */
-					/* translators: 2) reason webhook failed */
-					/* translators: 3) date and time of last successful webhook e.g. 2020-05-28 10:30:50 UTC */
+					/*
+					 * translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
+					 * translators: 2) reason webhook failed
+					 * translators: 3) date and time of last successful webhook e.g. 2020-05-28 10:30:50 UTC
+					 */
 					__( 'Warning: The most recent live webhook, received at %s, could not be processed. Reason: %s. (The last live webhook to process successfully was timestamped %s.)', 'woocommerce-gateway-stripe' ),
 				date( $date_format, $last_failure_at ),
 				$last_error,
@@ -225,13 +229,15 @@ class WC_Stripe_Webhook_State {
 		// Case 4: Failure with no prior success
 		$message = sprintf(
 			$test_mode ?
-				/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC */
-				/* translators: 2) reason webhook failed */
-				/* translators: 3) date and time webhook monitoring began e.g. 2020-05-28 10:30:50 UTC */
+				/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
+				 * translators: 2) reason webhook failed
+				 * translators: 3) date and time webhook monitoring began e.g. 2020-05-28 10:30:50 UTC
+				 */
 				__( 'Warning: The most recent test webhook, received at %s, could not be processed. Reason: %s. (No test webhooks have been processed successfully since monitoring began at %s.)', 'woocommerce-gateway-stripe' ) :
-				/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC */
-				/* translators: 2) reason webhook failed */
-				/* translators: 3) date and time webhook monitoring began e.g. 2020-05-28 10:30:50 UTC */
+				/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
+				 * translators: 2) reason webhook failed
+				 * translators: 3) date and time webhook monitoring began e.g. 2020-05-28 10:30:50 UTC
+				 */
 				__( 'Warning: The most recent live webhook, received at %s, could not be processed. Reason: %s. (No live webhooks have been processed successfully since monitoring began at %s.)', 'woocommerce-gateway-stripe' ),
 			date( $date_format, $last_failure_at ),
 			$last_error,
