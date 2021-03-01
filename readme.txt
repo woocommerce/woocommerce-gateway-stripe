@@ -129,5 +129,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 5.0.0 - 2021-xx-xx =
 
 * Add - Display time of last Stripe webhook in settings.
+* Fix - Payment Request Buttons for Chinese provinces in Chrome.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
