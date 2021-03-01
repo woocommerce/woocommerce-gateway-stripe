@@ -1088,6 +1088,7 @@ class WC_Stripe_Payment_Request {
 			$match_from_state_input = false;
 
 			// China - Adapt dropdown values from Chrome and accept manually typed values like 云南.
+			// WC states: https://github.com/woocommerce/woocommerce/blob/master/i18n/states.php
 			if ( 'CN' === $country ) {
 				$replace_map            = array(
 					// Rename regions with different spelling.
