@@ -1,4 +1,7 @@
 *** Changelog ***
+= 5.1.0 - 2021-xx-xx =
+* Fix - Don't attempt to submit level 3 data for non-US merchants.
+
 = 5.0.0 - 2021-03-17 =
 * Add - Display time of last Stripe webhook in settings.
 * Add - wc_stripe_webhook_validate_user_agent filter to customize webhook user-agent validation.
