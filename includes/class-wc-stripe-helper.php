@@ -37,7 +37,7 @@ class WC_Stripe_Helper {
 	 * @param object $order
 	 * @param string $currency
 	 */
-	public static function update_stripe_currency( $order = null, $currency ) {
+	public static function update_stripe_currency( $order, $currency ) {
 		if ( is_null( $order ) ) {
 			return false;
 		}
@@ -334,7 +334,7 @@ class WC_Stripe_Helper {
 			array_push( $supported_card_brands, 'amex' );
 		}
 
-		// Discover and Diners Club are only supported in the US and Canada. If the store is in the US, USD must be used. (https://stripe.com/docs/currencies#presentment-currencies). 
+		// Discover and Diners Club are only supported in the US and Canada. If the store is in the US, USD must be used. (https://stripe.com/docs/currencies#presentment-currencies).
 		if ( 'US' === $base_country && 'USD' === $base_currency || 'CA' === $base_country ) {
 			array_push( $supported_card_brands, 'discover', 'diners' );
 		}
@@ -342,7 +342,7 @@ class WC_Stripe_Helper {
 		// See: https://support.stripe.com/questions/accepting-japan-credit-bureau-(jcb)-payments.
 		if ( 'US' === $base_country && 'USD' === $base_currency ||
 			 'JP' === $base_country && 'JPY' === $base_currency ||
-			 in_array( $base_country, array( 'CA', 'AU', 'NZ' ) ) 
+			 in_array( $base_country, array( 'CA', 'AU', 'NZ' ) )
 		) {
 			array_push( $supported_card_brands, 'jcb' );
 		}
