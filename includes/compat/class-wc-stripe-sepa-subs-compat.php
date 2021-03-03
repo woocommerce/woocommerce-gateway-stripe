@@ -252,7 +252,7 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 			WC_Stripe_Logger::log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
 
 			/*
-			 If we're doing a retry and source is chargeable, we need to pass
+			 * If we're doing a retry and source is chargeable, we need to pass
 			 * a different idempotency key and retry for success.
 			 */
 			if ( is_object( $source_object ) && empty( $source_object->error ) && $this->need_update_idempotency_key( $source_object, $previous_error ) ) {

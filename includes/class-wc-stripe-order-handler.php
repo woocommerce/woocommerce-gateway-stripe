@@ -114,7 +114,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$source_object->status   = 'chargeable';
 
 			/*
-			 If we're doing a retry and source is chargeable, we need to pass
+			 * If we're doing a retry and source is chargeable, we need to pass
 			 * a different idempotency key and retry for success.
 			 */
 			if ( $this->need_update_idempotency_key( $source_object, $previous_error ) ) {
