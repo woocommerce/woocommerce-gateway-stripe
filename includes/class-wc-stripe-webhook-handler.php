@@ -123,9 +123,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				return WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH;
 			}
 
-			// Generate the expected signature.
-			$signed_payload     = $timestamp . '.' . $request_body;
-			$expected_signature = hash_hmac( 'sha256', $signed_payload, $this->secret );
+		// Generate the expected signature.
+		$signed_payload     = $timestamp . '.' . $request_body;
+		$expected_signature = hash_hmac( 'sha256', $signed_payload, $this->secret );
 
 			// Check if the expected signature is present.
 			if ( ! preg_match( '/,v\d+=' . preg_quote( $expected_signature, '/' ) . '/', $matches['signatures'] ) ) {
