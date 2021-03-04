@@ -266,7 +266,8 @@ class WC_Stripe_Customer {
 	 */
 	public function add_source( $source_id ) {
 		$response = $this->attach_source( $source_id );
-		if ( is_wp_error( $response ) ) {
+
+		if ( ! empty( $response->error ) || is_wp_error( $response ) ) {
 			return $response;
 		}
 
