@@ -7,6 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Class WC_Stripe_Webhook_State.
  *
  * Tracks the most recent successful and unsuccessful webhooks in test and live modes.
+ *
  * @since 5.0.0
  */
 class WC_Stripe_Webhook_State {
@@ -35,7 +36,7 @@ class WC_Stripe_Webhook_State {
 	 * @return bool
 	 */
 	public static function get_testmode() {
-		$stripe_settings = get_option( 'woocommerce_stripe_settings', array() );
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
 		return ( ! empty( $stripe_settings['testmode'] ) && 'yes' === $stripe_settings['testmode'] ) ? true : false;
 	}
 
@@ -47,10 +48,10 @@ class WC_Stripe_Webhook_State {
 	 * @return integer UTC seconds since 1970.
 	 */
 	public static function get_monitoring_began_at() {
-		$option = self::get_testmode() ? self::OPTION_TEST_MONITORING_BEGAN_AT : self::OPTION_LIVE_MONITORING_BEGAN_AT;
+		$option              = self::get_testmode() ? self::OPTION_TEST_MONITORING_BEGAN_AT : self::OPTION_LIVE_MONITORING_BEGAN_AT;
 		$monitoring_began_at = get_option( $option, 0 );
 		if ( 0 == $monitoring_began_at ) {
-			$monitoring_began_at = current_time( 'timestamp', true );
+			$monitoring_began_at = time();
 			update_option( $option, $monitoring_began_at );
 
 			// Enforce database consistency. This should only be needed if the user
@@ -114,7 +115,6 @@ class WC_Stripe_Webhook_State {
 	 *
 	 * @since 5.0.0
 	 * @param string Reason code.
-	 *
 	 */
 	public static function set_last_error_reason( $reason ) {
 		$option = self::get_testmode() ? self::OPTION_TEST_LAST_ERROR : self::OPTION_LIVE_LAST_ERROR;
@@ -128,7 +128,7 @@ class WC_Stripe_Webhook_State {
 	 * @return string Reason the last webhook failed.
 	 */
 	public static function get_last_error_reason() {
-		$option = self::get_testmode() ? self::OPTION_TEST_LAST_ERROR : self::OPTION_LIVE_LAST_ERROR;
+		$option     = self::get_testmode() ? self::OPTION_TEST_LAST_ERROR : self::OPTION_LIVE_LAST_ERROR;
 		$last_error = get_option( $option, false );
 
 		if ( self::VALIDATION_SUCCEEDED == $last_error ) {
@@ -185,7 +185,7 @@ class WC_Stripe_Webhook_State {
 					__( 'The most recent test webhook, timestamped %s, was processed successfully.', 'woocommerce-gateway-stripe' ) :
 					/* translators: 1) date and time of last webhook received, e.g. 2020-06-28 10:30:50 UTC */
 					__( 'The most recent live webhook, timestamped %s, was processed successfully.', 'woocommerce-gateway-stripe' ),
-				date( $date_format, $last_success_at )
+				gmdate( $date_format, $last_success_at )
 			);
 			return $message;
 		}
@@ -198,7 +198,7 @@ class WC_Stripe_Webhook_State {
 					__( 'No test webhooks have been received since monitoring began at %s.', 'woocommerce-gateway-stripe' ) :
 					/* translators: 1) date and time webhook monitoring began, e.g. 2020-06-28 10:30:50 UTC */
 					__( 'No live webhooks have been received since monitoring began at %s.', 'woocommerce-gateway-stripe' ),
-				date( $date_format, $monitoring_began_at )
+				gmdate( $date_format, $monitoring_began_at )
 			);
 			return $message;
 		}
@@ -212,16 +212,16 @@ class WC_Stripe_Webhook_State {
 					 * translators: 2) reason webhook failed
 					 * translators: 3) date and time of last successful webhook e.g. 2020-05-28 10:30:50 UTC
 					 */
-					__( 'Warning: The most recent test webhook, received at %s, could not be processed. Reason: %s. (The last test webhook to process successfully was timestamped %s.)', 'woocommerce-gateway-stripe' ) :
+					__( 'Warning: The most recent test webhook, received at %1$s, could not be processed. Reason: %2$s. (The last test webhook to process successfully was timestamped %3$s.)', 'woocommerce-gateway-stripe' ) :
 					/*
 					 * translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
 					 * translators: 2) reason webhook failed
 					 * translators: 3) date and time of last successful webhook e.g. 2020-05-28 10:30:50 UTC
 					 */
-					__( 'Warning: The most recent live webhook, received at %s, could not be processed. Reason: %s. (The last live webhook to process successfully was timestamped %s.)', 'woocommerce-gateway-stripe' ),
-				date( $date_format, $last_failure_at ),
+					__( 'Warning: The most recent live webhook, received at %1$s, could not be processed. Reason: %2$s. (The last live webhook to process successfully was timestamped %3$s.)', 'woocommerce-gateway-stripe' ),
+				gmdate( $date_format, $last_failure_at ),
 				$last_error,
-				date( $date_format, $last_success_at )
+				gmdate( $date_format, $last_success_at )
 			);
 			return $message;
 		}
@@ -233,15 +233,15 @@ class WC_Stripe_Webhook_State {
 				 * translators: 2) reason webhook failed
 				 * translators: 3) date and time webhook monitoring began e.g. 2020-05-28 10:30:50 UTC
 				 */
-				__( 'Warning: The most recent test webhook, received at %s, could not be processed. Reason: %s. (No test webhooks have been processed successfully since monitoring began at %s.)', 'woocommerce-gateway-stripe' ) :
+				__( 'Warning: The most recent test webhook, received at %1$s, could not be processed. Reason: %2$s. (No test webhooks have been processed successfully since monitoring began at %3$s.)', 'woocommerce-gateway-stripe' ) :
 				/* translators: 1) date and time of last failed webhook e.g. 2020-06-28 10:30:50 UTC
 				 * translators: 2) reason webhook failed
 				 * translators: 3) date and time webhook monitoring began e.g. 2020-05-28 10:30:50 UTC
 				 */
-				__( 'Warning: The most recent live webhook, received at %s, could not be processed. Reason: %s. (No live webhooks have been processed successfully since monitoring began at %s.)', 'woocommerce-gateway-stripe' ),
-			date( $date_format, $last_failure_at ),
+				__( 'Warning: The most recent live webhook, received at %1$s, could not be processed. Reason: %2$s. (No live webhooks have been processed successfully since monitoring began at %3$s.)', 'woocommerce-gateway-stripe' ),
+			gmdate( $date_format, $last_failure_at ),
 			$last_error,
-			date( $date_format, $monitoring_began_at )
+			gmdate( $date_format, $monitoring_began_at )
 		);
 		return $message;
 	}

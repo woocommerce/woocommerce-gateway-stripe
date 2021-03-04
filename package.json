@@ -63,7 +63,7 @@
     "test:grep": "cross-env NODE_CONFIG_DIR='./tests/e2e/config' BABEL_ENV=commonjs mocha \"tests/e2e\" --require babel-register --grep ",
     "test:single": "cross-env NODE_CONFIG_DIR='./tests/e2e/config' BABEL_ENV=commonjs mocha --require babel-register",
     "test:php": "./bin/run-tests.sh",
-    "lint:php": "./vendor/bin/phpcs --standard=phpcs.xml.dist $(git ls-files | grep .php$)",
+    "lint:php": "./vendor/bin/phpcs --standard=phpcs.xml.dist -n $(git ls-files | grep .php$)",
     "lint:php-fix": "./vendor/bin/phpcbf --standard=phpcs.xml.dist $(git ls-files | grep .php$)"
   },
   "engines": {
