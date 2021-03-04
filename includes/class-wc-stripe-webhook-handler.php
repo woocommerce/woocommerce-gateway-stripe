@@ -94,8 +94,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 5.0.0
-	 * @param string $request_headers The request headers from Stripe.
-	 * @param string $request_body The request body from Stripe.
+	 * @param array $request_headers The request headers from Stripe.
+	 * @param array $request_body    The request body from Stripe.
 	 * @return string The validation result (e.g. self::VALIDATION_SUCCEEDED )
 	 */
 	public function validate_request( $request_headers, $request_body ) {
@@ -139,7 +139,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 5.0.0
 	 * @version 5.0.0
-	 * @param string $request_headers The request headers from Stripe.
+	 * @param array $request_headers The request headers from Stripe.
 	 * @return string The validation result (e.g. self::VALIDATION_SUCCEEDED )
 	 */
 	private function validate_request_user_agent( $request_headers ) {
