@@ -126,14 +126,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 4.9.0 - 2021-02-24 =
+= 5.0.0 - 2021-xx-xx =
 
-* Fix    - Add fees as line items sent to Stripe to prevent Level 3 errors.
-* Fix    - Adding a SEPA payment method doesn't work.
-* Fix    - Apple Pay domain verification with live secret key.
-* Fix    - Display the correct accepted card branding depending on store currency and location.
-* Fix    - Remove duplicate Apple Pay domain registration Inbox notes.
-* Add    - Copy Apple Pay domain registration file and trigger domain registration on domain name change.
-* Update - Notes and status when refunding order with charge authorization.
+* Add - Display time of last Stripe webhook in settings.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
