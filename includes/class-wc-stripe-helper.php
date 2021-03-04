@@ -77,7 +77,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.1.0
 	 * @param object $order
-	 * @param float $amount
+	 * @param float  $amount
 	 */
 	public static function update_stripe_fee( $order = null, $amount = 0.0 ) {
 		if ( is_null( $order ) ) {
@@ -136,7 +136,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @since 4.1.0
 	 * @param object $order
-	 * @param float $amount
+	 * @param float  $amount
 	 */
 	public static function update_stripe_net( $order = null, $amount = 0.0 ) {
 		if ( is_null( $order ) ) {
@@ -193,7 +193,7 @@ class WC_Stripe_Helper {
 	public static function get_localized_messages() {
 		return apply_filters(
 			'wc_stripe_localized_messages',
-			array(
+			[
 				'invalid_number'           => __( 'The card number is not a valid credit card number.', 'woocommerce-gateway-stripe' ),
 				'invalid_expiry_month'     => __( 'The card\'s expiration month is invalid.', 'woocommerce-gateway-stripe' ),
 				'invalid_expiry_year'      => __( 'The card\'s expiration year is invalid.', 'woocommerce-gateway-stripe' ),
@@ -214,7 +214,7 @@ class WC_Stripe_Helper {
 				'invalid_request_error'    => is_add_payment_method_page()
 					? __( 'Unable to save this payment method, please try again or use alternative method.', 'woocommerce-gateway-stripe' )
 					: __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ),
-			)
+			]
 		);
 	}
 
@@ -225,7 +225,7 @@ class WC_Stripe_Helper {
 	 * @return array $currencies
 	 */
 	public static function no_decimal_currencies() {
-		return array(
+		return [
 			'bif', // Burundian Franc
 			'clp', // Chilean Peso
 			'djf', // Djiboutian Franc
@@ -242,7 +242,7 @@ class WC_Stripe_Helper {
 			'xaf', // Central African Cfa Franc
 			'xof', // West African Cfa Franc
 			'xpf', // Cfp Franc
-		);
+		];
 	}
 
 	/**
@@ -324,13 +324,13 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_supported_card_brands() {
-		$base_country = wc_get_base_location()['country'];
+		$base_country  = wc_get_base_location()['country'];
 		$base_currency = get_woocommerce_currency();
 
-		$supported_card_brands = array( 'visa', 'mastercard' );
+		$supported_card_brands = [ 'visa', 'mastercard' ];
 
 		// American Express is not supported in Brazil and Malaysia (https://stripe.com/docs/payments/cards/supported-card-brands).
-		if ( ! in_array( $base_country, array( 'BR', 'MY' ) ) ) {
+		if ( ! in_array( $base_country, [ 'BR', 'MY' ] ) ) {
 			array_push( $supported_card_brands, 'amex' );
 		}
 
@@ -342,7 +342,7 @@ class WC_Stripe_Helper {
 		// See: https://support.stripe.com/questions/accepting-japan-credit-bureau-(jcb)-payments.
 		if ( 'US' === $base_country && 'USD' === $base_currency ||
 			 'JP' === $base_country && 'JPY' === $base_currency ||
-			 in_array( $base_country, array( 'CA', 'AU', 'NZ' ) )
+			 in_array( $base_country, [ 'CA', 'AU', 'NZ' ] )
 		) {
 			array_push( $supported_card_brands, 'jcb' );
 		}
@@ -360,7 +360,7 @@ class WC_Stripe_Helper {
 	 * @param string $setting The name of the setting to get.
 	 */
 	public static function get_settings( $method = null, $setting = null ) {
-		$all_settings = null === $method ? get_option( 'woocommerce_stripe_settings', array() ) : get_option( 'woocommerce_stripe_' . $method . '_settings', array() );
+		$all_settings = null === $method ? get_option( 'woocommerce_stripe_settings', [] ) : get_option( 'woocommerce_stripe_' . $method . '_settings', [] );
 
 		if ( null === $setting ) {
 			return $all_settings;
@@ -493,14 +493,14 @@ class WC_Stripe_Helper {
 	 * @return string $statement_descriptor Sanitized statement descriptor
 	 */
 	public static function clean_statement_descriptor( $statement_descriptor = '' ) {
-		$disallowed_characters = array( '<', '>', '\\', '*', '"', "'", '/', '(', ')', '{', '}' );
+		$disallowed_characters = [ '<', '>', '\\', '*', '"', "'", '/', '(', ')', '{', '}' ];
 
 		// Strip any tags.
 		$statement_descriptor = strip_tags( $statement_descriptor );
 
 		// Strip any HTML entities.
 		// Props https://stackoverflow.com/questions/657643/how-to-remove-html-special-chars .
-		$statement_descriptor = preg_replace( "/&#?[a-z0-9]{2,8};/i", "", $statement_descriptor );
+		$statement_descriptor = preg_replace( '/&#?[a-z0-9]{2,8};/i', '', $statement_descriptor );
 
 		// Next, remove any remaining disallowed characters.
 		$statement_descriptor = str_replace( $disallowed_characters, '', $statement_descriptor );

@@ -43,17 +43,17 @@ class WC_Stripe_Apple_Pay_Registration {
 	public $apple_pay_verify_notice;
 
 	public function __construct() {
-		add_action( 'init', array( $this, 'add_domain_association_rewrite_rule' ) );
-		add_action( 'admin_init', array( $this, 'verify_domain_on_domain_name_change' ) );
-		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
-		add_filter( 'query_vars', array( $this, 'whitelist_domain_association_query_param' ), 10, 1 );
-		add_action( 'parse_request', array( $this, 'parse_domain_association_request' ), 10, 1 );
+		add_action( 'init', [ $this, 'add_domain_association_rewrite_rule' ] );
+		add_action( 'admin_init', [ $this, 'verify_domain_on_domain_name_change' ] );
+		add_action( 'admin_notices', [ $this, 'admin_notices' ] );
+		add_filter( 'query_vars', [ $this, 'whitelist_domain_association_query_param' ], 10, 1 );
+		add_action( 'parse_request', [ $this, 'parse_domain_association_request' ], 10, 1 );
 
-		add_action( 'woocommerce_stripe_updated', array( $this, 'verify_domain_if_configured' ) );
-		add_action( 'add_option_woocommerce_stripe_settings', array( $this, 'verify_domain_on_new_settings' ), 10, 2 );
-		add_action( 'update_option_woocommerce_stripe_settings', array( $this, 'verify_domain_on_updated_settings' ), 10, 2 );
+		add_action( 'woocommerce_stripe_updated', [ $this, 'verify_domain_if_configured' ] );
+		add_action( 'add_option_woocommerce_stripe_settings', [ $this, 'verify_domain_on_new_settings' ], 10, 2 );
+		add_action( 'update_option_woocommerce_stripe_settings', [ $this, 'verify_domain_on_updated_settings' ], 10, 2 );
 
-		$this->stripe_settings         = get_option( 'woocommerce_stripe_settings', array() );
+		$this->stripe_settings         = get_option( 'woocommerce_stripe_settings', [] );
 		$this->domain_name             = isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : str_replace( array( 'https://', 'http://' ), '', get_site_url() ); // @codingStandardsIgnoreLine
 		$this->apple_pay_domain_set    = 'yes' === $this->get_option( 'apple_pay_domain_set', 'no' );
 		$this->apple_pay_verify_notice = '';
@@ -63,7 +63,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * Gets the Stripe settings.
 	 *
 	 * @since 4.0.6
-	 * @param string $setting
+	 * @param string         $setting
 	 * @param string default
 	 * @return string $setting_value
 	 */
@@ -234,22 +234,22 @@ class WC_Stripe_Apple_Pay_Registration {
 
 		$endpoint = 'https://api.stripe.com/v1/apple_pay/domains';
 
-		$data = array(
+		$data = [
 			'domain_name' => $this->domain_name,
-		);
+		];
 
-		$headers = array(
+		$headers = [
 			'User-Agent'    => 'WooCommerce Stripe Apple Pay',
 			'Authorization' => 'Bearer ' . $secret_key,
-		);
+		];
 
 		$response = wp_remote_post(
 			$endpoint,
-			array(
+			[
 				'headers' => $headers,
 				'body'    => http_build_query( $data ),
 				'timeout' => 30,
-			)
+			]
 		);
 
 		if ( is_wp_error( $response ) ) {
@@ -339,7 +339,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * @version 4.5.4
 	 */
 	public function verify_domain_on_new_settings( $option, $settings ) {
-		$this->verify_domain_on_updated_settings( array(), $settings );
+		$this->verify_domain_on_updated_settings( [], $settings );
 	}
 
 	/**
@@ -385,12 +385,12 @@ class WC_Stripe_Apple_Pay_Registration {
 		 * when setting screen is displayed. So if domain verification is not set,
 		 * something went wrong so lets notify user.
 		 */
-		$allowed_html                      = array(
-			'a' => array(
-				'href'  => array(),
-				'title' => array(),
-			),
-		);
+		$allowed_html                      = [
+			'a' => [
+				'href'  => [],
+				'title' => [],
+			],
+		];
 		$verification_failed_without_error = __( 'Apple Pay domain verification failed.', 'woocommerce-gateway-stripe' );
 		$verification_failed_with_error    = __( 'Apple Pay domain verification failed with the following error:', 'woocommerce-gateway-stripe' );
 		$check_log_text                    = sprintf(

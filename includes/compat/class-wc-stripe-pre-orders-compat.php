@@ -5,7 +5,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Compatibility class for Pre-Orders.
- *
  */
 class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 	public $saved_cards;
@@ -16,7 +15,8 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Is $order_id a pre-order?
-	 * @param  int  $order_id
+	 *
+	 * @param  int $order_id
 	 * @return boolean
 	 */
 	public function is_pre_order( $order_id ) {
@@ -25,6 +25,7 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Remove order meta
+	 *
 	 * @param object $order
 	 */
 	public function remove_order_source_before_retry( $order ) {
@@ -35,6 +36,7 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Process the pre-order when pay upon release is used.
+	 *
 	 * @param int $order_id
 	 */
 	public function process_pre_order( $order_id ) {
@@ -52,10 +54,10 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 			}
 
 			// Setup the response early to allow later modifications.
-			$response = array(
+			$response = [
 				'result'   => 'success',
 				'redirect' => $this->get_return_url( $order ),
-			);
+			];
 
 			$this->save_source_to_order( $order, $prepared_source );
 
@@ -78,10 +80,10 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Pre Orders Error: ' . $e->getMessage() );
 
-			return array(
+			return [
 				'result'   => 'success',
 				'redirect' => $order->get_checkout_payment_url( true ),
-			);
+			];
 		}
 	}
 
@@ -89,7 +91,7 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 	 * Process a pre-order payment when the pre-order is released.
 	 *
 	 * @param WC_Order $order
-	 * @param bool $retry
+	 * @param bool     $retry
 	 *
 	 * @return void
 	 */
@@ -106,13 +108,14 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 				}
 				$this->remove_order_source_before_retry( $order );
 				$this->process_pre_order_release_payment( $order, false );
-			} else if ( $is_authentication_required ) {
+			} elseif ( $is_authentication_required ) {
 				$charge = end( $response->error->payment_intent->charges->data );
-				$id = $charge->id;
+				$id     = $charge->id;
 
 				$order->set_transaction_id( $id );
+				/* translators: %s is the charge Id */
 				$order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
-				if ( is_callable( array( $order, 'save' ) ) ) {
+				if ( is_callable( [ $order, 'save' ] ) ) {
 					$order->save();
 				}
 
@@ -126,7 +129,7 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 				$this->process_response( end( $response->charges->data ), $order );
 			}
 		} catch ( Exception $e ) {
-			$error_message = is_callable( array( $e, 'getLocalizedMessage' ) ) ? $e->getLocalizedMessage() : $e->getMessage();
+			$error_message = is_callable( [ $e, 'getLocalizedMessage' ] ) ? $e->getLocalizedMessage() : $e->getMessage();
 			/* translators: error message */
 			$order_note = sprintf( __( 'Stripe Transaction Failed (%s)', 'woocommerce-gateway-stripe' ), $error_message );
 

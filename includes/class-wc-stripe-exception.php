@@ -13,7 +13,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WC_Stripe_Exception extends Exception {
 
-	/** @var string sanitized/localized error message */
+	/**
+	 * String sanitized/localized error message.
+	 *
+	 * @var string */
 	protected $localized_message;
 
 	/**

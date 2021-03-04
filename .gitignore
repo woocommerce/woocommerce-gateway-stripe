@@ -10,6 +10,7 @@ Thumbs.db
 sftp-config.json
 /deploy/
 .vscode/
+.idea/
 vendor
 release/
 woocommerce-gateway-stripe.zip

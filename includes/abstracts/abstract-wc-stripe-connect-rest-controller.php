@@ -4,6 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.Files.FileName
+
 /**
  * Stripe Connect base REST controller class.
  */
@@ -42,13 +44,13 @@ abstract class WC_Stripe_Connect_REST_Controller extends WP_REST_Controller {
 			register_rest_route(
 				$this->namespace,
 				'/' . $this->rest_base,
-				array(
-					array(
+				[
+					[
 						'methods'             => 'GET',
-						'callback'            => array( $this, 'get_internal' ),
-						'permission_callback' => array( $this, 'check_permission' ),
-					),
-				)
+						'callback'            => [ $this, 'get_internal' ],
+						'permission_callback' => [ $this, 'check_permission' ],
+					],
+				]
 			);
 		}
 
@@ -56,13 +58,13 @@ abstract class WC_Stripe_Connect_REST_Controller extends WP_REST_Controller {
 			register_rest_route(
 				$this->namespace,
 				'/' . $this->rest_base,
-				array(
-					array(
+				[
+					[
 						'methods'             => 'POST',
-						'callback'            => array( $this, 'post_internal' ),
-						'permission_callback' => array( $this, 'check_permission' ),
-					),
-				)
+						'callback'            => [ $this, 'post_internal' ],
+						'permission_callback' => [ $this, 'check_permission' ],
+					],
+				]
 			);
 		}
 
@@ -70,13 +72,13 @@ abstract class WC_Stripe_Connect_REST_Controller extends WP_REST_Controller {
 			register_rest_route(
 				$this->namespace,
 				'/' . $this->rest_base,
-				array(
-					array(
+				[
+					[
 						'methods'             => 'DELETE',
-						'callback'            => array( $this, 'delete_internal' ),
-						'permission_callback' => array( $this, 'check_permission' ),
-					),
-				)
+						'callback'            => [ $this, 'delete_internal' ],
+						'permission_callback' => [ $this, 'check_permission' ],
+					],
+				]
 			);
 		}
 	}
@@ -145,7 +147,7 @@ abstract class WC_Stripe_Connect_REST_Controller extends WP_REST_Controller {
 		}
 
 		// Prevent our REST API endpoint responses from being added to browser cache.
-		add_filter( 'rest_post_dispatch', array( $this, 'send_nocache_header' ), PHP_INT_MAX, 2 );
+		add_filter( 'rest_post_dispatch', [ $this, 'send_nocache_header' ], PHP_INT_MAX, 2 );
 	}
 
 	/**

@@ -1,11 +1,11 @@
-name: Compatibility - WC, WP and PHP
+name: Compatibility (WC, WP, PHP)
 
 on:
   pull_request
 
 jobs:
   woocommerce-compatibility:
-    name:    WC compatibility
+    name:    Release
     runs-on: ubuntu-16.04
     strategy:
       fail-fast:    false
@@ -43,7 +43,7 @@ jobs:
 
   # a dedicated job, as allowed to fail
   compatibility-woocommerce-beta:
-    name:    Environment - WC beta
+    name:    Beta
     runs-on: ubuntu-16.04
     strategy:
       fail-fast: false

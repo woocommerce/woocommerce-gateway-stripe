@@ -19,13 +19,13 @@ class WC_Stripe_Inbox_Notes {
 	const CAMPAIGN_2020_CLEANUP_ACTION = 'wc_stripe_apple_pay_2020_cleanup';
 
 	public function __construct() {
-		add_action( self::POST_SETUP_SUCCESS_ACTION, array( self::class, 'create_marketing_note' ) );
-		add_action( self::CAMPAIGN_2020_CLEANUP_ACTION, array( self::class, 'cleanup_campaign_2020' ) );
+		add_action( self::POST_SETUP_SUCCESS_ACTION, [ self::class, 'create_marketing_note' ] );
+		add_action( self::CAMPAIGN_2020_CLEANUP_ACTION, [ self::class, 'cleanup_campaign_2020' ] );
 
 		// Schedule a 2020 holiday campaign cleanup action if needed.
 		// First, check to see if we are still before the cutoff.
 		// We don't need to (re)schedule this after the cutoff.
-		if ( current_time( 'timestamp', true ) < self::get_campaign_2020_cutoff() ) {
+		if ( time() < self::get_campaign_2020_cutoff() ) {
 			// If we don't have the clean up action scheduled, add it.
 			if ( ! wp_next_scheduled( self::CAMPAIGN_2020_CLEANUP_ACTION ) ) {
 				wp_schedule_single_event( self::get_campaign_2020_cutoff(), self::CAMPAIGN_2020_CLEANUP_ACTION );
@@ -38,7 +38,7 @@ class WC_Stripe_Inbox_Notes {
 	}
 
 	public static function get_success_title() {
-		if ( current_time( 'timestamp', true ) < self::get_campaign_2020_cutoff() ) {
+		if ( time() < self::get_campaign_2020_cutoff() ) {
 			return __( 'Boost sales this holiday season with Apple Pay!', 'woocommerce-gateway-stripe' );
 		}
 
@@ -89,7 +89,7 @@ class WC_Stripe_Inbox_Notes {
 		}
 
 		// Make sure Apple Pay is enabled and setup is successful.
-		$stripe_settings       = get_option( 'woocommerce_stripe_settings', array() );
+		$stripe_settings       = get_option( 'woocommerce_stripe_settings', [] );
 		$stripe_enabled        = isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
 		$button_enabled        = isset( $stripe_settings['payment_request'] ) && 'yes' === $stripe_settings['payment_request'];
 		$verification_complete = isset( $stripe_settings['apple_pay_domain_set'] ) && 'yes' === $stripe_settings['apple_pay_domain_set'];
@@ -162,7 +162,7 @@ class WC_Stripe_Inbox_Notes {
 	 * on/about 2020 Dec 22.
 	 */
 	public static function cleanup_campaign_2020() {
-		if ( ! class_exists( 'Automattic\WooCommerce\Admin\Notes\WC_Admin_Notes') ) {
+		if ( ! class_exists( 'Automattic\WooCommerce\Admin\Notes\WC_Admin_Notes' ) ) {
 			return;
 		}
 
@@ -170,7 +170,7 @@ class WC_Stripe_Inbox_Notes {
 			return;
 		}
 
-		$note_ids = array();
+		$note_ids = [];
 
 		try {
 			$data_store = WC_Data_Store::load( 'admin-note' );

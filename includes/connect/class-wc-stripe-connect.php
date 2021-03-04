@@ -27,7 +27,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		public function __construct( WC_Stripe_Connect_API $api ) {
 			$this->api = $api;
 
-			add_action( 'admin_init', array( $this, 'maybe_handle_redirect' ) );
+			add_action( 'admin_init', [ $this, 'maybe_handle_redirect' ] );
 		}
 
 		/**
@@ -86,24 +86,24 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			// redirect from oauth-init
 			if ( isset( $_GET['wcs_stripe_code'], $_GET['wcs_stripe_state'] ) ) {
 
-				$response = $this->connect_oauth( $_GET['wcs_stripe_state'], $_GET['wcs_stripe_code'] );
-				wp_safe_redirect( remove_query_arg( array( 'wcs_stripe_state', 'wcs_stripe_code' ) ) );
+				$response = $this->connect_oauth( wc_clean( wp_unslash( $_GET['wcs_stripe_state'] ) ), wc_clean( wp_unslash( $_GET['wcs_stripe_code'] ) ) );
+				wp_safe_redirect( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code' ] ) );
 				exit;
 
-			// redirect from credentials reset
+				// redirect from credentials reset
 			} elseif ( isset( $_GET['reset_stripe_api_credentials'], $_GET['_wpnonce'] ) ) {
 
-				if ( ! wp_verify_nonce( $_GET['_wpnonce'], 'reset_stripe_api_credentials' ) ) {
+				if ( ! wp_verify_nonce( wc_clean( wp_unslash( $_GET['_wpnonce'] ) ), 'reset_stripe_api_credentials' ) ) {
 					die( __( 'You are not authorized to clear Stripe account keys.', 'woocommerce-gateway-stripe' ) );
 				}
 
 				$this->clear_stripe_keys();
 				wp_safe_redirect(
 					remove_query_arg(
-						array(
+						[
 							'_wpnonce',
 							'reset_stripe_api_credentials',
-						)
+						]
 					)
 				);
 				exit;
@@ -127,7 +127,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$is_test                                = false !== strpos( $result->publishableKey, '_test_' ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			$prefix                                 = $is_test ? 'test_' : '';
 			$default_options                        = $this->get_default_stripe_config();
-			$options                                = array_merge( $default_options, get_option( self::SETTINGS_OPTION, array() ) );
+			$options                                = array_merge( $default_options, get_option( self::SETTINGS_OPTION, [] ) );
 			$options['enabled']                     = 'yes';
 			$options['testmode']                    = $is_test ? 'yes' : 'no';
 			$options[ $prefix . 'publishable_key' ] = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
@@ -148,7 +148,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 */
 		private function clear_stripe_keys() {
 
-			$options = get_option( self::SETTINGS_OPTION, array() );
+			$options = get_option( self::SETTINGS_OPTION, [] );
 
 			if ( 'yes' === $options['testmode'] ) {
 				$options['test_publishable_key'] = '';
@@ -171,7 +171,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		 */
 		private function get_default_stripe_config() {
 
-			$result = array();
+			$result  = [];
 			$gateway = new WC_Gateway_Stripe();
 			foreach ( $gateway->form_fields as $key => $value ) {
 				if ( isset( $value['default'] ) ) {
@@ -184,7 +184,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 		public function is_connected() {
 
-			$options = get_option( self::SETTINGS_OPTION, array() );
+			$options = get_option( self::SETTINGS_OPTION, [] );
 
 			if ( isset( $options['testmode'] ) && 'yes' === $options['testmode'] ) {
 				return isset( $options['test_publishable_key'], $options['test_secret_key'] ) && trim( $options['test_publishable_key'] ) && trim( $options['test_secret_key'] );

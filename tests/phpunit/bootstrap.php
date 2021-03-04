@@ -45,6 +45,6 @@ require $_tests_dir . '/includes/bootstrap.php';
 
 # Load WooCommerce Helpers (https://github.com/woocommerce/woocommerce/tree/master/tests/legacy/framework/helpers)
 # To keep the plugin self-contained, copy any needed helper to the `helpers/` sub-folder.
-require_once( __DIR__ . '/helpers/class-wc-helper-product.php' );
-require_once( __DIR__ . '/helpers/class-wc-helper-shipping.php' );
-require_once( __DIR__ . '/helpers/class-wc-helper-order.php' );
+require_once __DIR__ . '/helpers/class-wc-helper-product.php';
+require_once __DIR__ . '/helpers/class-wc-helper-shipping.php';
+require_once __DIR__ . '/helpers/class-wc-helper-order.php';

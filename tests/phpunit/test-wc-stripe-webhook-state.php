@@ -44,7 +44,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	public function setUp() {
 		parent::setUp();
 		$this->webhook_secret            = 'whsec_123';
-		$this->wc_stripe_webhook_handler = new WC_Stripe_Webhook_Handler;
+		$this->wc_stripe_webhook_handler = new WC_Stripe_Webhook_Handler();
 	}
 
 	/**
@@ -52,7 +52,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	 */
 	public function tearDown() {
 		parent::tearDown();
-		$stripe_settings = get_option( 'woocommerce_stripe_settings', array() );
+		$stripe_settings                        = get_option( 'woocommerce_stripe_settings', [] );
 		$stripe_settings['webhook_secret']      = $this->webhook_secret;
 		$stripe_settings['test_webhook_secret'] = $this->webhook_secret;
 		unset( $stripe_settings['testmode'] );
@@ -95,7 +95,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	}
 
 	private function set_testmode() {
-		$stripe_settings = get_option( 'woocommerce_stripe_settings', array() );
+		$stripe_settings             = get_option( 'woocommerce_stripe_settings', [] );
 		$stripe_settings['testmode'] = 'yes';
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 	}
@@ -113,7 +113,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 			$notification = json_decode( $this->request_body );
 			WC_Stripe_Webhook_State::set_last_webhook_success_at( $notification->created );
 		} else {
-			WC_Stripe_Webhook_State::set_last_webhook_failure_at( current_time( 'timestamp', true ) );
+			WC_Stripe_Webhook_State::set_last_webhook_failure_at( time() );
 			WC_Stripe_Webhook_State::set_last_error_reason( $validation_result );
 		}
 	}

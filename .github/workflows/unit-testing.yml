@@ -1,4 +1,4 @@
-name: PHP tests
+name: Unit testing
 
 on:
   pull_request

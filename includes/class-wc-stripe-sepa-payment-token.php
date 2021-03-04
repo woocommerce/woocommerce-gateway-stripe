@@ -4,6 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
+// phpcs:disable WordPress.Files.FileName
+
 /**
  * WooCommerce Stripe SEPA Direct Debit Payment Token.
  *
@@ -15,7 +17,11 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Payment_Token_SEPA extends WC_Payment_Token {
 
-	/** @protected string Token Type String. */
+	/**
+	 * Stores payment type.
+	 *
+	 * @protected string
+	 */
 	protected $type = 'sepa';
 
 	/**
@@ -23,9 +29,9 @@ class WC_Payment_Token_SEPA extends WC_Payment_Token {
 	 *
 	 * @var array
 	 */
-	protected $extra_data = array(
+	protected $extra_data = [
 		'last4' => '',
-	);
+	];
 
 	/**
 	 * Get type to display to user.
@@ -91,6 +97,7 @@ class WC_Payment_Token_SEPA extends WC_Payment_Token {
 
 	/**
 	 * Set the last four digits.
+	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
 	 * @param string $last4

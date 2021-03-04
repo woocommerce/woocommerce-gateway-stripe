@@ -14,7 +14,7 @@ class WC_Stripe_Email_Failed_Renewal_Authentication extends WC_Stripe_Email_Fail
 	 *
 	 * @param WC_Email[] $email_classes All existing instances of WooCommerce emails.
 	 */
-	public function __construct( $email_classes = array() ) {
+	public function __construct( $email_classes = [] ) {
 		$this->id             = 'failed_renewal_authentication';
 		$this->title          = __( 'Failed Subscription Renewal SCA Authentication', 'woocommerce-gateway-stripe' );
 		$this->description    = __( 'Sent to a customer when a renewal fails because the transaction requires an SCA verification. The email contains renewal order information and payment links.', 'woocommerce-gateway-stripe' );
@@ -25,7 +25,7 @@ class WC_Stripe_Email_Failed_Renewal_Authentication extends WC_Stripe_Email_Fail
 		$this->template_base  = plugin_dir_path( WC_STRIPE_MAIN_FILE ) . 'templates/';
 
 		// Triggers the email at the correct hook.
-		add_action( 'wc_gateway_stripe_process_payment_authentication_required', array( $this, 'trigger' ) );
+		add_action( 'wc_gateway_stripe_process_payment_authentication_required', [ $this, 'trigger' ] );
 
 		if ( isset( $email_classes['WCS_Email_Customer_Renewal_Invoice'] ) ) {
 			$this->original_email = $email_classes['WCS_Email_Customer_Renewal_Invoice'];
@@ -46,15 +46,15 @@ class WC_Stripe_Email_Failed_Renewal_Authentication extends WC_Stripe_Email_Fail
 
 			// Prevent the renewal email from WooCommerce Subscriptions from being sent.
 			if ( isset( $this->original_email ) ) {
-				remove_action( 'woocommerce_generated_manual_renewal_order_renewal_notification', array( $this->original_email, 'trigger' ) );
-				remove_action( 'woocommerce_order_status_failed_renewal_notification', array( $this->original_email, 'trigger' ) );
+				remove_action( 'woocommerce_generated_manual_renewal_order_renewal_notification', [ $this->original_email, 'trigger' ] );
+				remove_action( 'woocommerce_order_status_failed_renewal_notification', [ $this->original_email, 'trigger' ] );
 			}
 
 			// Prevent the retry email from WooCommerce Subscriptions from being sent.
-			add_filter( 'wcs_get_retry_rule_raw', array( $this, 'prevent_retry_notification_email' ), 100, 3 );
+			add_filter( 'wcs_get_retry_rule_raw', [ $this, 'prevent_retry_notification_email' ], 100, 3 );
 
 			// Send email to store owner indicating communication is happening with the customer to request authentication.
-			add_filter( 'wcs_get_retry_rule_raw', array( $this, 'set_store_owner_custom_email' ), 100, 3 );
+			add_filter( 'wcs_get_retry_rule_raw', [ $this, 'set_store_owner_custom_email' ], 100, 3 );
 		}
 	}
 

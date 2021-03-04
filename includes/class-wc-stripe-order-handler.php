@@ -23,12 +23,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		$this->retry_interval = 1;
 
-		add_action( 'wp', array( $this, 'maybe_process_redirect_order' ) );
-		add_action( 'woocommerce_order_status_processing', array( $this, 'capture_payment' ) );
-		add_action( 'woocommerce_order_status_completed', array( $this, 'capture_payment' ) );
-		add_action( 'woocommerce_order_status_cancelled', array( $this, 'cancel_payment' ) );
-		add_action( 'woocommerce_order_status_refunded', array( $this, 'cancel_payment' ) );
-		add_filter( 'woocommerce_tracks_event_properties', array( $this, 'woocommerce_tracks_event_properties' ), 10, 2 );
+		add_action( 'wp', [ $this, 'maybe_process_redirect_order' ] );
+		add_action( 'woocommerce_order_status_processing', [ $this, 'capture_payment' ] );
+		add_action( 'woocommerce_order_status_completed', [ $this, 'capture_payment' ] );
+		add_action( 'woocommerce_order_status_cancelled', [ $this, 'cancel_payment' ] );
+		add_action( 'woocommerce_order_status_refunded', [ $this, 'cancel_payment' ] );
+		add_filter( 'woocommerce_tracks_event_properties', [ $this, 'woocommerce_tracks_event_properties' ], 10, 2 );
 	}
 
 	/**
@@ -48,13 +48,13 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @since 4.1.8 Add $previous_error parameter.
-	 * @param int $order_id
+	 * @param int  $order_id
 	 * @param bool $retry
-	 * @param mix $previous_error Any error message from previous request.
+	 * @param mix  $previous_error Any error message from previous request.
 	 */
 	public function process_redirect_payment( $order_id, $retry = true, $previous_error = false ) {
 		try {
-			$source = wc_clean( $_GET['source'] );
+			$source = isset( $_GET['source'] ) ? wc_clean( wp_unslash( $_GET['source'] ) ) : '';
 
 			if ( empty( $source ) ) {
 				return;
@@ -70,7 +70,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 				return;
 			}
 
-			if ( $order->has_status( array( 'processing', 'completed', 'on-hold' ) ) ) {
+			if ( $order->has_status( [ 'processing', 'completed', 'on-hold' ] ) ) {
 				return;
 			}
 
@@ -113,11 +113,12 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			$source_object->source   = $source_info->id;
 			$source_object->status   = 'chargeable';
 
-			/* If we're doing a retry and source is chargeable, we need to pass
+			/*
+			 * If we're doing a retry and source is chargeable, we need to pass
 			 * a different idempotency key and retry for success.
 			 */
 			if ( $this->need_update_idempotency_key( $source_object, $previous_error ) ) {
-				add_filter( 'wc_stripe_idempotency_key', array( $this, 'change_idempotency_key' ), 10, 2 );
+				add_filter( 'wc_stripe_idempotency_key', [ $this, 'change_idempotency_key' ], 10, 2 );
 			}
 
 			// Make the request.
@@ -206,7 +207,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_id = wc_clean( $_GET['order_id'] );
+		$order_id = isset( $_GET['order_id'] ) ? wc_clean( wp_unslash( $_GET['order_id'] ) ) : '';
 
 		$this->process_redirect_payment( $order_id );
 	}
@@ -241,11 +242,11 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						$order->add_order_note( sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $intent->error->message ) );
 					} elseif ( 'requires_capture' === $intent->status ) {
 						$level3_data = $this->get_level3_data_from_order( $order );
-						$result = WC_Stripe_API::request_with_level3_data(
-							array(
+						$result      = WC_Stripe_API::request_with_level3_data(
+							[
 								'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
 								'expand[]' => 'charges.data.balance_transaction',
-							),
+							],
 							'payment_intents/' . $intent->id . '/capture',
 							$level3_data,
 							$order
@@ -256,7 +257,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 							$order->update_status( 'failed', sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
 						} else {
 							$is_stripe_captured = true;
-							$result = end( $result->charges->data );
+							$result             = end( $result->charges->data );
 						}
 					} elseif ( 'succeeded' === $intent->status ) {
 						$is_stripe_captured = true;
@@ -272,11 +273,11 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 						$order->add_order_note( sprintf( __( 'Unable to capture charge! %s', 'woocommerce-gateway-stripe' ), $result->error->message ) );
 					} elseif ( false === $result->captured ) {
 						$level3_data = $this->get_level3_data_from_order( $order );
-						$result = WC_Stripe_API::request_with_level3_data(
-							array(
+						$result      = WC_Stripe_API::request_with_level3_data(
+							[
 								'amount'   => WC_Stripe_Helper::get_stripe_amount( $order_total ),
 								'expand[]' => 'balance_transaction',
-							),
+							],
 							'charges/' . $charge . '/capture',
 							$level3_data,
 							$order
@@ -301,7 +302,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 					// Store other data such as fees
 					$order->set_transaction_id( $result->id );
 
-					if ( is_callable( array( $order, 'save' ) ) ) {
+					if ( is_callable( [ $order, 'save' ] ) ) {
 						$order->save();
 					}
 
@@ -360,21 +361,21 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Not stripe? Bail.
-		if ( 'stripe' != $properties[ 'payment_method' ] ) {
+		if ( 'stripe' != $properties['payment_method'] ) {
 			return $properties;
 		}
 
 		// Due diligence done. Collect the metadata.
 		$is_live         = true;
-		$stripe_settings = get_option( 'woocommerce_stripe_settings', array() );
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
 		if ( array_key_exists( 'testmode', $stripe_settings ) ) {
-			$is_live = 'no' === $stripe_settings[ 'testmode' ];
+			$is_live = 'no' === $stripe_settings['testmode'];
 		}
 
-		$properties[ 'admin_email' ]                        = get_option( 'admin_email' );
-		$properties[ 'is_live' ]                            = $is_live;
-		$properties[ 'woocommerce_gateway_stripe_version' ] = WC_STRIPE_VERSION;
-		$properties[ 'woocommerce_default_country' ]        = get_option( 'woocommerce_default_country' );
+		$properties['admin_email']                        = get_option( 'admin_email' );
+		$properties['is_live']                            = $is_live;
+		$properties['woocommerce_gateway_stripe_version'] = WC_STRIPE_VERSION;
+		$properties['woocommerce_default_country']        = get_option( 'woocommerce_default_country' );
 
 		return $properties;
 	}

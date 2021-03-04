@@ -20,17 +20,17 @@ class WC_Helper_Shipping {
 	 * @param float $cost Optional. Cost of flat rate method.
 	 */
 	public static function create_simple_flat_rate( $cost = 10 ) {
-		$flat_rate_settings = array(
+		$flat_rate_settings = [
 			'enabled'      => 'yes',
 			'title'        => 'Flat rate',
 			'availability' => 'all',
 			'countries'    => '',
 			'tax_status'   => 'taxable',
 			'cost'         => $cost,
-		);
+		];
 
 		update_option( 'woocommerce_flat_rate_settings', $flat_rate_settings );
-		update_option( 'woocommerce_flat_rate', array() );
+		update_option( 'woocommerce_flat_rate', [] );
 		WC_Cache_Helper::get_transient_version( 'shipping', true );
 		WC()->shipping()->load_shipping_methods();
 	}
@@ -39,9 +39,9 @@ class WC_Helper_Shipping {
 	 * Helper function to set customer address so that shipping can be calculated.
 	 */
 	public static function force_customer_us_address() {
-		add_filter( 'woocommerce_customer_get_shipping_country', array( self::class, 'force_customer_us_country' ) );
-		add_filter( 'woocommerce_customer_get_shipping_state', array( self::class, 'force_customer_us_state' ) );
-		add_filter( 'woocommerce_customer_get_shipping_postcode', array( self::class, 'force_customer_us_postcode' ) );
+		add_filter( 'woocommerce_customer_get_shipping_country', [ self::class, 'force_customer_us_country' ] );
+		add_filter( 'woocommerce_customer_get_shipping_state', [ self::class, 'force_customer_us_state' ] );
+		add_filter( 'woocommerce_customer_get_shipping_postcode', [ self::class, 'force_customer_us_postcode' ] );
 	}
 
 	/**

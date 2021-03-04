@@ -25,14 +25,14 @@ abstract class WC_Stripe_Email_Failed_Authentication extends WC_Email {
 		ob_start();
 		wc_get_template(
 			$this->template_html,
-			array(
+			[
 				'order'             => $this->object,
 				'email_heading'     => $this->get_heading(),
 				'sent_to_admin'     => false,
 				'plain_text'        => false,
 				'authorization_url' => $this->get_authorization_url( $this->object ),
 				'email'             => $this,
-			),
+			],
 			'',
 			$this->template_base
 		);
@@ -48,14 +48,14 @@ abstract class WC_Stripe_Email_Failed_Authentication extends WC_Email {
 		ob_start();
 		wc_get_template(
 			$this->template_plain,
-			array(
+			[
 				'order'             => $this->object,
 				'email_heading'     => $this->get_heading(),
 				'sent_to_admin'     => false,
 				'plain_text'        => true,
 				'authorization_url' => $this->get_authorization_url( $this->object ),
 				'email'             => $this,
-			),
+			],
 			'',
 			$this->template_base
 		);
@@ -79,18 +79,18 @@ abstract class WC_Stripe_Email_Failed_Authentication extends WC_Email {
 		parent::init_form_fields();
 		$base_fields = $this->form_fields;
 
-		$this->form_fields = array(
-			'enabled'    => array(
+		$this->form_fields = [
+			'enabled'    => [
 				'title'   => _x( 'Enable/Disable', 'an email notification', 'woocommerce-gateway-stripe' ),
 				'type'    => 'checkbox',
 				'label'   => __( 'Enable this email notification', 'woocommerce-gateway-stripe' ),
 				'default' => 'yes',
-			),
+			],
 
 			'subject'    => $base_fields['subject'],
 			'heading'    => $base_fields['heading'],
 			'email_type' => $base_fields['email_type'],
-		);
+		];
 	}
 
 	/**
