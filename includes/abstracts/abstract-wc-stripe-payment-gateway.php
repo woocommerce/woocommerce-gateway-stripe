@@ -595,6 +595,46 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Checks if the payment method is being saved in the current request.
+	 *
+	 * @param stdClass $source
+	 * @param WC_Stripe_Customer $customer
+	 * @param bool $force_save
+	 *
+	 * @return bool
+	 * @since 4.6.0
+	 */
+	public function should_save_payment_method( $source, $customer, $force_save ) {
+		if ( apply_filters( 'wc_stripe_force_save_source', $force_save, $customer ) ) {
+			return true;
+		}
+
+		// The customer has disabled "Saved cards" functionality.
+		if ( ! $this->saved_cards ) {
+			return false;
+		}
+
+		// The customer is not logged in.
+		if ( ! $customer->get_user_id() ) {
+			return false;
+		}
+
+		// The payment method in use is already saved.
+		if ( $this->is_using_saved_payment_method() ) {
+			return false;
+		}
+
+		// If the payment method is explicitly not reusable, dont try to save it.
+		if ( ! empty( $source ) && 'reusable' !== $source->usage ) {
+			return false;
+		}
+
+		// Lastly, check if the user has chosen to save the payment method.
+		$payment_method = isset( $_POST['payment_method'] ) ? wc_clean( $_POST['payment_method'] ) : 'stripe';
+		return isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
+	}
+
+	/**
 	 * Get payment source. This can be a new token/source or existing WC token.
 	 * If user is logged in and/or has WC account, create an account on Stripe.
 	 * This way we can attribute the payment to the user to better fight fraud.
@@ -613,37 +653,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$customer->set_id( $existing_customer_id );
 		}
 
-		$force_save_source = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
-		$source_object     = '';
-		$source_id         = '';
-		$wc_token_id       = false;
-		$payment_method    = isset( $_POST['payment_method'] ) ? wc_clean( $_POST['payment_method'] ) : 'stripe';
-		$is_token          = false;
+		$source_object = '';
+		$wc_token_id   = false;
 
-		// New CC info was entered and we have a new source to process.
-		if ( ! empty( $_POST['stripe_source'] ) ) {
-			$source_object = self::get_source_object( wc_clean( $_POST['stripe_source'] ) );
-			$source_id     = $source_object->id;
-
-			// This checks to see if customer opted to save the payment method to file.
-			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
-
-			/**
-			 * This is true if the user wants to store the card to their account.
-			 * Criteria to save to file is they are logged in, they opted to save or product requirements and the source is
-			 * actually reusable. Either that or force_save_source is true.
-			 */
-			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && 'reusable' === $source_object->usage ) || $force_save_source ) {
-				$response = $customer->add_source( $source_object->id );
-
-				if ( ! empty( $response->error ) ) {
-					throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
-				}
-			}
-		} elseif ( $this->is_using_saved_payment_method() ) {
+		if ( $this->is_using_saved_payment_method() ) {
 			// Use an existing token, and then process the payment.
-			$wc_token_id = wc_clean( $_POST[ 'wc-' . $payment_method . '-payment-token' ] );
-			$wc_token    = WC_Payment_Tokens::get( $wc_token_id );
+			$payment_method = isset( $_POST['payment_method'] ) ? wc_clean( $_POST['payment_method'] ) : 'stripe';
+			$wc_token_id    = wc_clean( $_POST[ 'wc-' . $payment_method . '-payment-token' ] );
+			$wc_token       = WC_Payment_Tokens::get( $wc_token_id );
 
 			if ( ! $wc_token || $wc_token->get_user_id() !== get_current_user_id() ) {
 				WC()->session->set( 'refresh_totals', true );
@@ -652,24 +669,29 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			$source_id = $wc_token->get_token();
 
-			if ( $this->is_type_legacy_card( $source_id ) ) {
-				$is_token = true;
+			if ( ! $this->is_type_legacy_card( $source_id ) ) {
+				$source_object = self::get_source_object( $source_id );
 			}
-		} elseif ( isset( $_POST['stripe_token'] ) && 'new' !== $_POST['stripe_token'] ) {
-			$stripe_token     = wc_clean( $_POST['stripe_token'] );
-			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
+		} else {
+			// New CC info was entered and we have a new source to process.
+			if ( ! empty( $_POST['stripe_source'] ) ) {
+				$source_object = self::get_source_object( wc_clean( $_POST['stripe_source'] ) );
+				$source_id     = $source_object->id;
+			} elseif ( isset( $_POST['stripe_token'] ) && 'new' !== $_POST['stripe_token'] ) {
+				$source_id = wc_clean( $_POST['stripe_token'] );
+			}
 
-			// This is true if the user wants to store the card to their account.
-			if ( ( $user_id && $this->saved_cards && $maybe_saved_card ) || $force_save_source ) {
-				$response = $customer->add_source( $stripe_token );
+			if ( $this->should_save_payment_method( $source_object, $customer, $force_save_source ) ) {
+				$response = $customer->add_source( $source_id );
 
 				if ( ! empty( $response->error ) ) {
-					throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
+					throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
 				}
-				$source_id    = $response;
-			} else {
-				$source_id    = $stripe_token;
-				$is_token     = true;
+
+				$source_id = $response;
+				if ( empty( $source_object ) ) {
+					$source_object = self::get_source_object( $source_id );
+				}
 			}
 		}
 
@@ -679,10 +701,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$customer_id = $customer->get_id();
 		} else {
 			$customer_id = $customer->update_customer();
-		}
-
-		if ( empty( $source_object ) && ! $is_token ) {
-			$source_object = self::get_source_object( $source_id );
 		}
 
 		return (object) array(
