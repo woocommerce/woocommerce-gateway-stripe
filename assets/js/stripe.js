@@ -531,6 +531,20 @@ jQuery( function( $ ) {
 				return;
 			}
 
+			if ( $( 'form#add_payment_method' ).length || $( 'form#order_review' ).length ) {
+				var delimiter = window.location.toString().indexOf( '?' ) === -1 ? '?' : '&';
+				return $.ajax( {
+					url: window.location + delimiter + 'is_ajax',
+					method: 'post',
+					data: wc_stripe_form.form.serialize(),
+					success: function( response ) {
+						if ( response.result === 'success' ) {
+							window.location = response.redirect;
+						}
+					},
+				} );
+			}
+
 			wc_stripe_form.form.trigger( 'submit' );
 		},
 
