@@ -143,11 +143,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @return string The validation result (e.g. self::VALIDATION_SUCCEEDED )
 	 */
 	private function validate_request_user_agent( $request_headers ) {
-		if ( ! empty( $request_headers['USER-AGENT'] ) && ! preg_match( '/Stripe/', $request_headers['USER-AGENT'] ) ) {
-			return WC_Stripe_Webhook_State::VALIDATION_FAILED_USER_AGENT_INVALID;
-		}
+		$ua_is_valid = empty( $request_headers['USER-AGENT'] ) || preg_match( '/Stripe/', $request_headers['USER-AGENT'] );
+		$ua_is_valid = apply_filters( 'wc_stripe_webhook_validate_user_agent', $ua_is_valid, $request_headers );
 
-		return WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED;
+		return $ua_is_valid ? WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED : WC_Stripe_Webhook_State::VALIDATION_FAILED_USER_AGENT_INVALID;
 	}
 
 	/**
