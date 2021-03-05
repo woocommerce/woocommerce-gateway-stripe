@@ -73,11 +73,11 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	}
 
 	private function cleanup_webhook_secret() {
-		$stripe_settings = get_option( 'woocommerce_stripe_settings', array() );
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
 		unset( $stripe_settings['webhook_secret'] );
 		unset( $stripe_settings['test_webhook_secret'] );
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
-		$this->wc_stripe_webhook_handler = new WC_Stripe_Webhook_Handler;
+		$this->wc_stripe_webhook_handler = new WC_Stripe_Webhook_Handler();
 	}
 
 	private function set_valid_request_data( $overwrite_timestamp = null ) {
@@ -225,7 +225,12 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	// Test custom user agent validator
 	public function test_get_error_custom_user_agent_validator() {
 		$this->cleanup_webhook_secret();
-		add_filter( 'wc_stripe_webhook_is_user_agent_valid', function() { return false; } );
+		add_filter(
+			'wc_stripe_webhook_is_user_agent_valid',
+			function() {
+				return false;
+			}
+		);
 
 		$this->set_valid_request_data();
 		$this->process_webhook();
@@ -235,7 +240,12 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	// Test user agent validation ignored
 	public function test_skip_user_agent_validation() {
 		// Run test without cleaning up webhook secret.
-		add_filter( 'wc_stripe_webhook_is_user_agent_valid', function() { return false; } );
+		add_filter(
+			'wc_stripe_webhook_is_user_agent_valid',
+			function() {
+				return false;
+			}
+		);
 
 		$this->set_valid_request_data();
 		$this->process_webhook();
