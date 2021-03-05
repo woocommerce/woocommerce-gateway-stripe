@@ -72,11 +72,10 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		delete_option( WC_Stripe_Webhook_State::OPTION_TEST_LAST_ERROR );
 	}
 
-	private function cleanup_webhook_secret () {
+	private function cleanup_webhook_secret() {
 		$stripe_settings = get_option( 'woocommerce_stripe_settings', array() );
 		unset( $stripe_settings['webhook_secret'] );
 		unset( $stripe_settings['test_webhook_secret'] );
-		unset( $stripe_settings['testmode'] );
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 		$this->wc_stripe_webhook_handler = new WC_Stripe_Webhook_Handler;
 	}
