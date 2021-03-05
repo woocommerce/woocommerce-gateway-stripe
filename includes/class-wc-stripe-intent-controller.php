@@ -165,6 +165,10 @@ class WC_Stripe_Intent_Controller {
 
 			// 3. Attach the source to the customer (Setup Intents require that).
 			$source_object = $customer->attach_source( $source_id );
+
+			if ( ! empty( $source_object->error ) ) {
+				throw new Exception( $source_object->error->message );
+			}
 			if ( is_wp_error( $source_object ) ) {
 				throw new Exception( $source_object->get_error_message() );
 			}
