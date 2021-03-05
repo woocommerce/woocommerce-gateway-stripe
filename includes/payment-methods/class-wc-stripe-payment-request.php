@@ -1042,13 +1042,10 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Normalizes the state/county field because in some
-	 * cases, the state/county field is formatted differently from
-	 * what WC is expecting and throws an error. An example
-	 * for Ireland the county dropdown in Chrome shows "Co. Clare" format
+	 * Normalizes billing and shipping state fields.
 	 *
-	 * @since   4.0.0
-	 * @version 4.0.0
+	 * @since 4.0.0
+	 * @version 5.0.0
 	 */
 	public function normalize_state() {
 		$billing_country  = ! empty( $_POST['billing_country'] ) ? wc_clean( wp_unslash( $_POST['billing_country'] ) ) : '';
@@ -1057,30 +1054,71 @@ class WC_Stripe_Payment_Request {
 		$shipping_state   = ! empty( $_POST['shipping_state'] ) ? wc_clean( wp_unslash( $_POST['shipping_state'] ) ) : '';
 
 		if ( $billing_state && $billing_country ) {
-			$valid_states = WC()->countries->get_states( $billing_country );
-
-			// Valid states found for country.
-			if ( ! empty( $valid_states ) && is_array( $valid_states ) && count( $valid_states ) > 0 ) {
-				foreach ( $valid_states as $state_abbr => $state ) {
-					if ( preg_match( '/' . preg_quote( $state ) . '/i', $billing_state ) ) {
-						$_POST['billing_state'] = $state_abbr;
-					}
-				}
-			}
+			$_POST['billing_state'] = $this->get_normalized_state( $billing_state, $billing_country );
 		}
 
 		if ( $shipping_state && $shipping_country ) {
-			$valid_states = WC()->countries->get_states( $shipping_country );
+			$_POST['shipping_state'] = $this->get_normalized_state( $shipping_state, $shipping_country );
+		}
+	}
 
-			// Valid states found for country.
-			if ( ! empty( $valid_states ) && is_array( $valid_states ) && count( $valid_states ) > 0 ) {
-				foreach ( $valid_states as $state_abbr => $state ) {
-					if ( preg_match( '/' . preg_quote( $state ) . '/i', $shipping_state ) ) {
-						$_POST['shipping_state'] = $state_abbr;
-					}
+	/**
+	 * Gets the normalized state/county field because in some
+	 * cases, the state/county field is formatted differently from
+	 * what WC is expecting and throws an error. An example
+	 * for Ireland the county dropdown in Chrome shows "Co. Clare" format.
+	 *
+	 * @since 5.0.0
+	 *
+	 * @param string $state   Full state name or an already normalized abbreviation.
+	 * @param string $country Two-letter country code.
+	 *
+	 * @return string Normalized state abbreviation.
+	 */
+	public function get_normalized_state( $state, $country ) {
+		$wc_valid_states = $country ? WC()->countries->get_states( $country ) : [];
+
+		if ( $state && $country && is_array( $wc_valid_states ) && count( $wc_valid_states ) > 0 ) {
+
+			// If it's already normalized, skip.
+			if ( in_array( $state, array_keys( $wc_valid_states ) ) ) {
+				return $state;
+			}
+
+			$match_from_state_input = false;
+
+			// China - Adapt dropdown values from Chrome and accept manually typed values like 云南.
+			// WC states: https://github.com/woocommerce/woocommerce/blob/master/i18n/states.php
+			if ( 'CN' === $country ) {
+				$replace_map            = [
+					// Rename regions with different spelling.
+					'Macau'           => 'Macao',
+					'Neimenggu'       => 'Inner Mongolia',
+					'Xizang'          => 'Tibet',
+					// Remove suffixes.
+					'Shi'             => '',
+					'Sheng'           => '',
+					'Zizhiqu'         => '',
+					'Huizuzizhiqu'    => '',
+					'Weiwuerzizhiqu'  => '',
+					'Zhuangzuzizhiqu' => '',
+				];
+				$state                  = trim( str_replace( array_keys( $replace_map ), array_values( $replace_map ), $state ) );
+				$match_from_state_input = true;
+			}
+
+			foreach ( $wc_valid_states as $wc_state_abbr => $wc_state_value ) {
+				// Match values either from WC states or from the state input.
+				if (
+					( ! $match_from_state_input && preg_match( '/' . preg_quote( $wc_state_value, '/' ) . '/i', $state ) ) ||
+					( $match_from_state_input && preg_match( '/' . preg_quote( $state, '/' ) . '/i', $wc_state_value ) )
+				) {
+					return $wc_state_abbr;
 				}
 			}
 		}
+
+		return $state;
 	}
 
 	/**
@@ -1098,6 +1136,7 @@ class WC_Stripe_Payment_Request {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
 		}
 
+		// Normalizes billing and shipping state values.
 		$this->normalize_state();
 
 		WC()->checkout()->process_checkout();
@@ -1111,7 +1150,7 @@ class WC_Stripe_Payment_Request {
 	 * @param array $address Shipping address.
 	 *
 	 * @since   3.1.0
-	 * @version 4.0.0
+	 * @version 5.0.0
 	 */
 	protected function calculate_shipping( $address = [] ) {
 		$country   = $address['country'];
@@ -1120,15 +1159,9 @@ class WC_Stripe_Payment_Request {
 		$city      = $address['city'];
 		$address_1 = $address['address'];
 		$address_2 = $address['address_2'];
-		$wc_states = WC()->countries->get_states( $country );
 
-		/**
-		 * In some versions of Chrome, state can be a full name. So we need
-		 * to convert that to abbreviation as WC is expecting that.
-		 */
-		if ( 2 < strlen( $state ) && ! empty( $wc_states ) && ! isset( $wc_states[ $state ] ) ) {
-			$state = array_search( ucwords( strtolower( $state ) ), $wc_states, true );
-		}
+		// Normalizes state to calculate shipping zones.
+		$state = $this->get_normalized_state( $state, $country );
 
 		WC()->shipping->reset_shipping();
 

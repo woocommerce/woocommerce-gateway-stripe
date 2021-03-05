@@ -1,6 +1,7 @@
 *** Changelog ***
 = 5.0.0 - 2021-xx-xx =
 * Add - Display time of last Stripe webhook in settings.
+* Fix - Payment Request Buttons for Chinese provinces in Chrome.
 
 = 4.9.0 - 2021-02-24 =
 * Fix    - Add fees as line items sent to Stripe to prevent Level 3 errors.
