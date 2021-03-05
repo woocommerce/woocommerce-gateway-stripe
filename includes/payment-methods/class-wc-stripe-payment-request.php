@@ -1048,10 +1048,10 @@ class WC_Stripe_Payment_Request {
 	 * @version 5.0.0
 	 */
 	public function normalize_state() {
-		$billing_country  = ! empty( $_POST['billing_country'] ) ? wc_clean( $_POST['billing_country'] ) : '';
-		$shipping_country = ! empty( $_POST['shipping_country'] ) ? wc_clean( $_POST['shipping_country'] ) : '';
-		$billing_state    = ! empty( $_POST['billing_state'] ) ? wc_clean( $_POST['billing_state'] ) : '';
-		$shipping_state   = ! empty( $_POST['shipping_state'] ) ? wc_clean( $_POST['shipping_state'] ) : '';
+		$billing_country  = ! empty( $_POST['billing_country'] ) ? wc_clean( wp_unslash( $_POST['billing_country'] ) ) : '';
+		$shipping_country = ! empty( $_POST['shipping_country'] ) ? wc_clean( wp_unslash( $_POST['shipping_country'] ) ) : '';
+		$billing_state    = ! empty( $_POST['billing_state'] ) ? wc_clean( wp_unslash( $_POST['billing_state'] ) ) : '';
+		$shipping_state   = ! empty( $_POST['shipping_state'] ) ? wc_clean( wp_unslash( $_POST['shipping_state'] ) ) : '';
 
 		if ( $billing_state && $billing_country ) {
 			$_POST['billing_state'] = $this->get_normalized_state( $billing_state, $billing_country );
@@ -1078,7 +1078,7 @@ class WC_Stripe_Payment_Request {
 	public function get_normalized_state( $state, $country ) {
 		$wc_valid_states = $country ? WC()->countries->get_states( $country ) : [];
 
-		if ( $state && $country && is_array( $wc_valid_states ) && sizeof( $wc_valid_states ) > 0 ) {
+		if ( $state && $country && is_array( $wc_valid_states ) && count( $wc_valid_states ) > 0 ) {
 
 			// If it's already normalized, skip.
 			if ( in_array( $state, array_keys( $wc_valid_states ) ) ) {
@@ -1090,11 +1090,11 @@ class WC_Stripe_Payment_Request {
 			// China - Adapt dropdown values from Chrome and accept manually typed values like 云南.
 			// WC states: https://github.com/woocommerce/woocommerce/blob/master/i18n/states.php
 			if ( 'CN' === $country ) {
-				$replace_map            = array(
+				$replace_map            = [
 					// Rename regions with different spelling.
-					'Macau'     => 'Macao',
-					'Neimenggu' => 'Inner Mongolia',
-					'Xizang'    => 'Tibet',
+					'Macau'           => 'Macao',
+					'Neimenggu'       => 'Inner Mongolia',
+					'Xizang'          => 'Tibet',
 					// Remove suffixes.
 					'Shi'             => '',
 					'Sheng'           => '',
@@ -1102,7 +1102,7 @@ class WC_Stripe_Payment_Request {
 					'Huizuzizhiqu'    => '',
 					'Weiwuerzizhiqu'  => '',
 					'Zhuangzuzizhiqu' => '',
-				);
+				];
 				$state                  = trim( str_replace( array_keys( $replace_map ), array_values( $replace_map ), $state ) );
 				$match_from_state_input = true;
 			}
