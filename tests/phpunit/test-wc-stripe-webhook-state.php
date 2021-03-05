@@ -226,7 +226,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	// Test custom user agent validator
 	public function test_get_error_custom_user_agent_validator() {
 		$this->cleanup_webhook_secret();
-		add_filter( 'wc_stripe_webhook_validate_user_agent', function() { return false; } );
+		add_filter( 'wc_stripe_webhook_is_user_agent_valid', function() { return false; } );
 
 		$this->set_valid_request_data();
 		$this->process_webhook();
@@ -236,7 +236,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	// Test user agent validation ignored
 	public function test_skip_user_agent_validation() {
 		// Run test without cleaning up webhook secret.
-		add_filter( 'wc_stripe_webhook_validate_user_agent', function() { return false; } );
+		add_filter( 'wc_stripe_webhook_is_user_agent_valid', function() { return false; } );
 
 		$this->set_valid_request_data();
 		$this->process_webhook();
