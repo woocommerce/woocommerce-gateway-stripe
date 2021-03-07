@@ -96,8 +96,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.0.0
 	 * @version 5.0.0
-	 * @param string $request_headers The request headers from Stripe.
-	 * @param string $request_body The request body from Stripe.
+	 * @param array $request_headers The request headers from Stripe.
+	 * @param array $request_body    The request body from Stripe.
 	 * @return string The validation result (e.g. self::VALIDATION_SUCCEEDED )
 	 */
 	public function validate_request( $request_headers, $request_body ) {
@@ -108,34 +108,47 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return WC_Stripe_Webhook_State::VALIDATION_FAILED_EMPTY_BODY;
 		}
 
-		if ( ! empty( $request_headers['USER-AGENT'] ) && ! preg_match( '/Stripe/', $request_headers['USER-AGENT'] ) ) {
-			return WC_Stripe_Webhook_State::VALIDATION_FAILED_USER_AGENT_INVALID;
+		if ( empty( $this->secret ) ) {
+			return $this->validate_request_user_agent( $request_headers );
 		}
 
-		if ( ! empty( $this->secret ) ) {
-			// Check for a valid signature.
-			$signature_format = '/^t=(?P<timestamp>\d+)(?P<signatures>(,v\d+=[a-z0-9]+){1,2})$/';
-			if ( empty( $request_headers['STRIPE-SIGNATURE'] ) || ! preg_match( $signature_format, $request_headers['STRIPE-SIGNATURE'], $matches ) ) {
-				return WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID;
-			}
+		// Check for a valid signature.
+		$signature_format = '/^t=(?P<timestamp>\d+)(?P<signatures>(,v\d+=[a-z0-9]+){1,2})$/';
+		if ( empty( $request_headers['STRIPE-SIGNATURE'] ) || ! preg_match( $signature_format, $request_headers['STRIPE-SIGNATURE'], $matches ) ) {
+			return WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_INVALID;
+		}
 
-			// Verify the timestamp.
-			$timestamp = intval( $matches['timestamp'] );
-			if ( abs( $timestamp - time() ) > 5 * MINUTE_IN_SECONDS ) {
-				return WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH;
-			}
+		// Verify the timestamp.
+		$timestamp = intval( $matches['timestamp'] );
+		if ( abs( $timestamp - time() ) > 5 * MINUTE_IN_SECONDS ) {
+			return WC_Stripe_Webhook_State::VALIDATION_FAILED_TIMESTAMP_MISMATCH;
+		}
 
-			// Generate the expected signature.
-			$signed_payload     = $timestamp . '.' . $request_body;
-			$expected_signature = hash_hmac( 'sha256', $signed_payload, $this->secret );
+		// Generate the expected signature.
+		$signed_payload     = $timestamp . '.' . $request_body;
+		$expected_signature = hash_hmac( 'sha256', $signed_payload, $this->secret );
 
-			// Check if the expected signature is present.
-			if ( ! preg_match( '/,v\d+=' . preg_quote( $expected_signature, '/' ) . '/', $matches['signatures'] ) ) {
-				return WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_MISMATCH;
-			}
+		// Check if the expected signature is present.
+		if ( ! preg_match( '/,v\d+=' . preg_quote( $expected_signature, '/' ) . '/', $matches['signatures'] ) ) {
+			return WC_Stripe_Webhook_State::VALIDATION_FAILED_SIGNATURE_MISMATCH;
 		}
 
 		return WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED;
+	}
+
+	/**
+	 * Verify User Agent of the incoming webhook notification. Used as fallback for the cases when webhook secret is missing.
+	 *
+	 * @since 5.0.0
+	 * @version 5.0.0
+	 * @param array $request_headers The request headers from Stripe.
+	 * @return string The validation result (e.g. self::VALIDATION_SUCCEEDED )
+	 */
+	private function validate_request_user_agent( $request_headers ) {
+		$ua_is_valid = empty( $request_headers['USER-AGENT'] ) || preg_match( '/Stripe/', $request_headers['USER-AGENT'] );
+		$ua_is_valid = apply_filters( 'wc_stripe_webhook_is_user_agent_valid', $ua_is_valid, $request_headers );
+
+		return $ua_is_valid ? WC_Stripe_Webhook_State::VALIDATION_SUCCEEDED : WC_Stripe_Webhook_State::VALIDATION_FAILED_USER_AGENT_INVALID;
 	}
 
 	/**
