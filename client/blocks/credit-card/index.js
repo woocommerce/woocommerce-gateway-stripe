@@ -9,11 +9,12 @@ import { useEffect, useState } from '@wordpress/element';
  */
 import { getStripeServerData, loadStripe } from '../stripe-utils';
 import { StripeCreditCard, getStripeCreditCardIcons } from './payment-method';
+import { SavedTokenHandler } from './saved-token-handler';
 import { PAYMENT_METHOD_NAME } from './constants';
 
 const stripePromise = loadStripe();
 
-const StripeComponent = ( props ) => {
+const StripeComponent = ( { RenderedComponent, ...props } ) => {
 	const [ errorMessage, setErrorMessage ] = useState( '' );
 
 	useEffect( () => {
@@ -30,7 +31,7 @@ const StripeComponent = ( props ) => {
 		}
 	}, [ errorMessage ] );
 
-	return <StripeCreditCard stripe={ stripePromise } { ...props } />;
+	return <RenderedComponent stripe={ stripePromise } { ...props } />;
 };
 
 const StripeLabel = ( props ) => {
@@ -47,8 +48,11 @@ const cardIcons = getStripeCreditCardIcons();
 const stripeCcPaymentMethod = {
 	name: PAYMENT_METHOD_NAME,
 	label: <StripeLabel />,
-	content: <StripeComponent />,
-	edit: <StripeComponent />,
+	content: <StripeComponent RenderedComponent={ StripeCreditCard } />,
+	edit: <StripeComponent RenderedComponent={ StripeCreditCard } />,
+	savedTokenComponent: (
+		<StripeComponent RenderedComponent={ SavedTokenHandler } />
+	),
 	icons: cardIcons,
 	canMakePayment: () => stripePromise,
 	ariaLabel: __(
