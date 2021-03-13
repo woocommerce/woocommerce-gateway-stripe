@@ -1092,6 +1092,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$request['shipping'] = $full_request['shipping'];
 		}
 
+		if ( isset( $full_request['receipt_email'] ) ) {
+			$request['receipt_email'] = $full_request['receipt_email'];
+		}
+
 		/**
 		 * Filter the return value of the WC_Payment_Gateway_CC::generate_create_intent_request.
 		 *
