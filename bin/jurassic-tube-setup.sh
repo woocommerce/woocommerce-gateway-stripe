@@ -31,11 +31,8 @@ echo
 read -p "Go to https://jurassic.tube/ in a browser, paste your public key which was printed above into the box, and click 'Add Public Key'. Press enter to continue"
 echo
 
-read -p "Go to https://jurassic.tube/ in a browser, add a subdomain using the desired name for your subdomain, and click 'Add Subdomain'. The subdomain name is what you will use to access WC Payments in a browser. When this is done, type the subdomain name here and press enter. Please just type in the subdomain, not the full URL: " subdomain
+read -p "Go to https://jurassic.tube/ in a browser, add a subdomain using the desired name for your subdomain, and click 'Add Subdomain'. The subdomain name is what you will use to access WooCommerce Stripe Payment Gateway in a browser. When this is done, type the subdomain name here and press enter. Please just type in the subdomain, not the full URL: " subdomain
 echo
-
-# npm run wp option update home https://${subdomain}.jurassic.tube/
-# npm run wp option update siteurl https://${subdomain}.jurassic.tube/
 
 read -p "Please enter your Automattic/WordPress.com username: " username
 echo
@@ -44,7 +41,5 @@ ${PWD}/docker/bin/jt/config.sh username ${username}
 ${PWD}/docker/bin/jt/config.sh subdomain ${subdomain}
 
 echo "Setup complete!"
-echo "Use the command: docker/bin/jt/tunnel.sh from the root directory of your WC Payments project to start running Jurassic Tube."
+echo "Use the command: 'npm run jt:start' from the root directory of your WooCommerce Stripe Payment Gateway project to start running Jurassic Tube."
 echo
-
-
