@@ -129,7 +129,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 5.0.0 - 2021-xx-xx =
 
 * Add - Display time of last Stripe webhook in settings.
+* Add - wc_stripe_webhook_validate_user_agent filter to customize webhook user-agent validation.
 * Fix - Payment Request Buttons for Chinese provinces in Chrome.
 * Fix - Enable wc_stripe_send_stripe_receipt filter to send Stripe emails.
+* Fix - Check for more errors when attaching sources to customers.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
