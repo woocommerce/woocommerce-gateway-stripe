@@ -18,7 +18,7 @@ echo
 # Download the installer (if it's not already present):
 if [ ! -f "${PWD}/docker/bin/jt/installer.sh" ]; then
     # Download the installer script:
-    curl "https://jurassic.tube/get-installer.php?env=wcpay" -o ${PWD}/docker/bin/jt/installer.sh && chmod +x ${PWD}/docker/bin/jt/installer.sh
+    curl "https://jurassic.tube/get-installer.php?env=wc-stripe" -o ${PWD}/docker/bin/jt/installer.sh && chmod +x ${PWD}/docker/bin/jt/installer.sh
 fi
 
 echo "Running the installation script..."
