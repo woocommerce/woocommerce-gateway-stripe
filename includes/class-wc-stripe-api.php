@@ -187,7 +187,7 @@ class WC_Stripe_API {
 	 * the payment to go through.
 	 *
 	 * @since 4.3.2
-	 * @version 5.0.0
+	 * @version 5.1.0
 	 *
 	 * @param array    $request     Array with request parameters.
 	 * @param string   $api         The API path for the request.
