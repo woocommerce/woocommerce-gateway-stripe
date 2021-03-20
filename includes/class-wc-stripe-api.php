@@ -187,7 +187,7 @@ class WC_Stripe_API {
 	 * the payment to go through.
 	 *
 	 * @since 4.3.2
-	 * @version 4.3.2
+	 * @version 5.1.0
 	 *
 	 * @param array    $request     Array with request parameters.
 	 * @param string   $api         The API path for the request.
@@ -197,17 +197,17 @@ class WC_Stripe_API {
 	 * @return stdClass|array The response
 	 */
 	public static function request_with_level3_data( $request, $api, $level3_data, $order ) {
-		// Do not add level3 data it's the array is empty.
-		if ( empty( $level3_data ) ) {
-			return self::request(
-				$request,
-				$api
-			);
-		}
-
-		// If there's a transient indicating that level3 data was not accepted by
-		// Stripe in the past for this account, do not try to add level3 data.
-		if ( get_transient( 'wc_stripe_level3_not_allowed' ) ) {
+		// 1. Do not add level3 data if the array is empty.
+		// 2. Do not add level3 data if there's a transient indicating that level3 was
+		// not accepted by Stripe in the past for this account.
+		// 3. Do not try to add level3 data if merchant is not based in the US.
+		// https://stripe.com/docs/level3#level-iii-usage-requirements
+		// (Needs to be authenticated with a level3 gated account to see above docs).
+		if (
+			empty( $level3_data ) ||
+			get_transient( 'wc_stripe_level3_not_allowed' ) ||
+			'US' !== WC()->countries->get_base_country()
+		) {
 			return self::request(
 				$request,
 				$api
