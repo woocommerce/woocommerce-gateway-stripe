@@ -101,7 +101,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	/**
 	 * Determine if store allows cards to be saved during checkout.
 	 *
-	 * @return bool True if merchant allows shopper to save card (payment method) during checkout).
+	 * @return bool True if merchant allows shopper to save card (payment method) during checkout.
 	 */
 	private function get_show_saved_cards() {
 		return isset( $this->settings['saved_cards'] ) ? 'yes' === $this->settings['saved_cards'] : false;
