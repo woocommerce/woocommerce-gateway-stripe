@@ -22,7 +22,7 @@ const Handler = ( { eventRegistration, emitResponse } ) => {
 	return null;
 };
 
-export const SavedTokenHandler = ( { stripe, ...props } ) => {
+export const ThreeDSecurePaymentHandler = ( { stripe, ...props } ) => {
 	return (
 		<Elements stripe={ stripe }>
 			<Handler { ...props } />
