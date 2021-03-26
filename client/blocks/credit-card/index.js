@@ -9,7 +9,7 @@ import { useEffect, useState } from '@wordpress/element';
  */
 import { getStripeServerData, loadStripe } from '../stripe-utils';
 import { StripeCreditCard, getStripeCreditCardIcons } from './payment-method';
-import { SavedTokenHandler } from './saved-token-handler';
+import { ThreeDSecurePaymentHandler } from '../three-d-secure';
 import { PAYMENT_METHOD_NAME } from './constants';
 
 const stripePromise = loadStripe();
@@ -51,7 +51,7 @@ const stripeCcPaymentMethod = {
 	content: <StripeComponent RenderedComponent={ StripeCreditCard } />,
 	edit: <StripeComponent RenderedComponent={ StripeCreditCard } />,
 	savedTokenComponent: (
-		<StripeComponent RenderedComponent={ SavedTokenHandler } />
+		<StripeComponent RenderedComponent={ ThreeDSecurePaymentHandler } />
 	),
 	icons: cardIcons,
 	canMakePayment: () => stripePromise,
