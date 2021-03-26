@@ -65,7 +65,7 @@
     "test:php": "./bin/run-tests.sh",
     "lint:php": "./vendor/bin/phpcs --standard=phpcs.xml.dist -n $(git ls-files | grep .php$)",
     "lint:php-fix": "./vendor/bin/phpcbf --standard=phpcs.xml.dist $(git ls-files | grep .php$)",
-    "jt:setup": "./bin/jurassic-tube-setup.sh",
+    "jt:setup": "npm run up && ./bin/jurassic-tube-setup.sh",
     "jt:start": "./docker/bin/jt/tunnel.sh",
     "jt:stop": "./docker/bin/jt/tunnel.sh break"
   },
