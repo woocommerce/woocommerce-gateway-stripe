@@ -26,6 +26,7 @@ deploy-to-wp-org.sh
 tests/e2e/config/local-*
 
 # Volumes mounted by Docker containers
+docker/bin/jt
 docker/data
 docker/wordpress
 docker/logs
