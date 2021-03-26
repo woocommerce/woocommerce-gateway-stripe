@@ -48,12 +48,12 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array
 	 */
 	public function get_payment_method_script_handles() {
-		$asset_path = WC_STRIPE_PLUGIN_PATH . '/build/index.asset.php';
-		$version = WC_STRIPE_VERSION;
+		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/index.asset.php';
+		$version      = WC_STRIPE_VERSION;
 		$dependencies = [];
 		if ( file_exists( $asset_path ) ) {
-			$asset = require $asset_path;
-			$version = is_array( $asset ) && isset( $asset['version'] )
+			$asset        = require $asset_path;
+			$version      = is_array( $asset ) && isset( $asset['version'] )
 				? $asset['version']
 				: $version;
 			$dependencies = is_array( $asset ) && isset( $asset['dependencies'] )
@@ -320,7 +320,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @param \WC_Order $order The order being processed.
 	 * @param string    $payment_request_type The payment request type used for payment.
 	 */
-	private function add_order_meta( \WC_Order $order, string $payment_request_type ) {
+	private function add_order_meta( \WC_Order $order, $payment_request_type ) {
 		if ( 'apple_pay' === $payment_request_type ) {
 			$order->set_payment_method_title( 'Apple Pay (Stripe)' );
 			$order->save();
@@ -339,6 +339,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 */
 	public function get_supported_features() {
 		$gateway = new WC_Gateway_Stripe();
-		return array_filter( $gateway->supports, array( $gateway, 'supports' ) );
+		return array_filter( $gateway->supports, [ $gateway, 'supports' ] );
 	}
 }

@@ -410,12 +410,12 @@ function woocommerce_blocks_support() {
 				$container->register(
 					WC_Stripe_Blocks_Support::class,
 					function() {
-						return new WC_Stripe_Blocks_Support;
+						return new WC_Stripe_Blocks_Support();
 					}
 				);
 				$payment_method_registry->register(
 					$container->get( WC_Stripe_Blocks_Support::class )
-				 );
+				);
 			},
 			5
 		);
