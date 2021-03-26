@@ -2,7 +2,6 @@
 use Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType;
 use Automattic\WooCommerce\Blocks\Payments\PaymentResult;
 use Automattic\WooCommerce\Blocks\Payments\PaymentContext;
-use Automattic\WooCommerce\Blocks\Payments\Api as PaymentMethodsAPI;
 
 defined( 'ABSPATH' ) || exit;
 
