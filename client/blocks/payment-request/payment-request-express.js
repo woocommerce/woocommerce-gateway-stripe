@@ -1,7 +1,11 @@
 /**
  * External dependencies
  */
-import { Elements, PaymentRequestButtonElement } from '@stripe/react-stripe-js';
+import {
+	Elements,
+	PaymentRequestButtonElement,
+	useStripe,
+} from '@stripe/react-stripe-js';
 
 /**
  * Internal dependencies
@@ -9,6 +13,7 @@ import { Elements, PaymentRequestButtonElement } from '@stripe/react-stripe-js';
 import { getStripeServerData } from '../stripe-utils';
 import { useInitialization } from './use-initialization';
 import { useCheckoutSubscriptions } from './use-checkout-subscriptions';
+import { usePaymentIntents } from '../credit-card/use-payment-intents';
 
 /**
  * @typedef {import('../stripe-utils/type-defs').Stripe} Stripe
@@ -97,6 +102,20 @@ const PaymentRequestExpressComponent = ( {
 	) : null;
 };
 
+const sourceIdNoop = () => void null;
+
+const Handler = ( { eventRegistration, emitResponse } ) => {
+	const stripe = useStripe();
+	const { onCheckoutAfterProcessingWithSuccess } = eventRegistration;
+	usePaymentIntents(
+		stripe,
+		onCheckoutAfterProcessingWithSuccess,
+		sourceIdNoop,
+		emitResponse
+	);
+	return null;
+};
+
 /**
  * PaymentRequestExpress with stripe provider
  *
@@ -108,6 +127,7 @@ export const PaymentRequestExpress = ( props ) => {
 	return (
 		<Elements stripe={ stripe } locale={ locale }>
 			<PaymentRequestExpressComponent { ...props } />
+			<Handler { ...props } />
 		</Elements>
 	);
 };
