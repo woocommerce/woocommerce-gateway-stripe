@@ -57,7 +57,7 @@ const getTotalPaymentItem = ( total ) => {
 	return {
 		label:
 			getStripeServerData().stripeTotalLabel ||
-			__( 'Total', 'woo-gutenberg-products-block' ),
+			__( 'Total', 'woocommerce-gateway-stripe' ),
 		amount: total.value,
 	};
 };
