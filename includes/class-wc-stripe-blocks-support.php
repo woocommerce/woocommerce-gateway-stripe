@@ -155,7 +155,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return string Title / label string
 	 */
 	private function get_title() {
-		return isset( $this->settings['title'] ) ? $this->settings['title'] : __( 'Credit / Debit Card', 'woo-gutenberg-products-block' );
+		return isset( $this->settings['title'] ) ? $this->settings['title'] : __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
 	}
 
 	/**
@@ -222,30 +222,30 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		$icons_src = [
 			'visa'       => [
 				'src' => WC_STRIPE_PLUGIN_URL . '/assets/images/visa.svg',
-				'alt' => __( 'Visa', 'woo-gutenberg-products-block' ),
+				'alt' => __( 'Visa', 'woocommerce-gateway-stripe' ),
 			],
 			'amex'       => [
 				'src' => WC_STRIPE_PLUGIN_URL . '/assets/images/amex.svg',
-				'alt' => __( 'American Express', 'woo-gutenberg-products-block' ),
+				'alt' => __( 'American Express', 'woocommerce-gateway-stripe' ),
 			],
 			'mastercard' => [
 				'src' => WC_STRIPE_PLUGIN_URL . '/assets/images/mastercard.svg',
-				'alt' => __( 'Mastercard', 'woo-gutenberg-products-block' ),
+				'alt' => __( 'Mastercard', 'woocommerce-gateway-stripe' ),
 			],
 		];
 
 		if ( 'USD' === get_woocommerce_currency() ) {
 			$icons_src['discover'] = [
 				'src' => WC_STRIPE_PLUGIN_URL . '/assets/images/discover.svg',
-				'alt' => __( 'Discover', 'woo-gutenberg-products-block' ),
+				'alt' => __( 'Discover', 'woocommerce-gateway-stripe' ),
 			];
 			$icons_src['jcb']      = [
 				'src' => WC_STRIPE_PLUGIN_URL . '/assets/images/jcb.svg',
-				'alt' => __( 'JCB', 'woo-gutenberg-products-block' ),
+				'alt' => __( 'JCB', 'woocommerce-gateway-stripe' ),
 			];
 			$icons_src['diners']   = [
 				'src' => WC_STRIPE_PLUGIN_URL . '/assets/images/diners.svg',
-				'alt' => __( 'Diners', 'woo-gutenberg-products-block' ),
+				'alt' => __( 'Diners', 'woocommerce-gateway-stripe' ),
 			];
 		}
 		return $icons_src;

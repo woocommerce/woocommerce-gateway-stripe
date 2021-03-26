@@ -57,7 +57,7 @@ export const InlineCard = ( {
 				<label htmlFor="wc-stripe-inline-card-element">
 					{ __(
 						'Credit Card Information',
-						'woo-gutenberg-products-block'
+						'woocommerce-gateway-stripe'
 					) }
 				</label>
 			</div>
