@@ -2,6 +2,7 @@
 = 5.1.0 - 2021-xx-xx =
 * Fix - Don't attempt to submit level 3 data for non-US merchants.
 * Fix - Hide Payment Request Buttons when guest checkout is disabled.
+* Fix - Match Payment Request states with WooCommerce states.
 
 = 5.0.0 - 2021-03-17 =
 * Add - Display time of last Stripe webhook in settings.
