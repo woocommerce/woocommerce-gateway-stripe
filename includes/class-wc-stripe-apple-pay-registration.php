@@ -119,7 +119,7 @@ class WC_Stripe_Apple_Pay_Registration {
 	 * with the file from the plugin directory.
 	 *
 	 * @since 4.9.0
-	 * @return bool Wether file is up to date or not.
+	 * @return bool Whether file is up to date or not.
 	 */
 	private function verify_hosted_domain_association_file_is_up_to_date() {
 		// Contents of domain association file from plugin dir.
