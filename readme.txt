@@ -129,5 +129,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 5.1.0 - 2021-xx-xx =
 
 * Fix - Don't attempt to submit level 3 data for non-US merchants.
+* Fix - Hide Payment Request Buttons when guest checkout is disabled.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
