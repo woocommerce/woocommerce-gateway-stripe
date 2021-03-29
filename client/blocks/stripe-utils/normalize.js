@@ -63,30 +63,23 @@ const normalizeShippingOptions = ( shippingOptions ) => {
  * the cart.
  */
 const normalizeShippingAddressForCheckout = ( shippingAddress ) => {
-	const address = {
-		first_name: shippingAddress.recipient
-			.split( ' ' )
-			.slice( 0, 1 )
-			.join( ' ' ),
-		last_name: shippingAddress.recipient
-			.split( ' ' )
-			.slice( 1 )
-			.join( ' ' ),
+	return {
+		first_name:
+			shippingAddress.recipient
+				?.split( ' ' )
+				?.slice( 0, 1 )
+				?.join( ' ' ) ?? '',
+		last_name:
+			shippingAddress.recipient?.split( ' ' )?.slice( 1 )?.join( ' ' ) ??
+			'',
 		company: '',
-		address_1:
-			typeof shippingAddress.addressLine[ 0 ] === 'undefined'
-				? ''
-				: shippingAddress.addressLine[ 0 ],
-		address_2:
-			typeof shippingAddress.addressLine[ 1 ] === 'undefined'
-				? ''
-				: shippingAddress.addressLine[ 1 ],
-		city: shippingAddress.city,
-		state: shippingAddress.region,
-		country: shippingAddress.country,
-		postcode: shippingAddress.postalCode.replace( ' ', '' ),
+		address_1: typeof shippingAddress.addressLine?.[ 0 ] ?? '',
+		address_2: typeof shippingAddress.addressLine?.[ 1 ] ?? '',
+		city: shippingAddress.city ?? '',
+		state: shippingAddress.region ?? '',
+		country: shippingAddress.country ?? '',
+		postcode: shippingAddress.postalCode?.replace( ' ', '' ) ?? '',
 	};
-	return address;
 };
 
 /**
