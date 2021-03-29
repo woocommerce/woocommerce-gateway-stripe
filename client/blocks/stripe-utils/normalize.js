@@ -106,23 +106,21 @@ const normalizeShippingOptionSelectionsForCheckout = ( shippingOption ) => {
  */
 const getBillingData = ( paymentResponse ) => {
 	const source = paymentResponse.source;
-	const name = source && source.owner.name;
-	const billing = source && source.owner.address;
-	const payerEmail = paymentResponse.payerEmail || '';
-	const payerPhone = paymentResponse.payerPhone || '';
+	const name = source?.owner?.name;
+	const billing = source?.owner?.address;
+	const payerEmail = paymentResponse.payerEmail ?? '';
+	const payerPhone = paymentResponse.payerPhone ?? '';
 	return {
-		first_name: name ? name.split( ' ' ).slice( 0, 1 ).join( ' ' ) : '',
-		last_name: name ? name.split( ' ' ).slice( 1 ).join( ' ' ) : '',
-		email: ( source && source.owner.email ) || payerEmail,
-		phone:
-			( source && source.owner.phone ) ||
-			payerPhone.replace( '/[() -]/g', '' ),
-		country: ( billing && billing.country ) || '',
-		address_1: ( billing && billing.line1 ) || '',
-		address_2: ( billing && billing.line2 ) || '',
-		city: ( billing && billing.city ) || '',
-		state: ( billing && billing.state ) || '',
-		postcode: ( billing && billing.postal_code ) || '',
+		first_name: name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
+		last_name: name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '',
+		email: source?.owner?.email ?? payerEmail,
+		phone: source?.owner?.phone ?? payerPhone.replace( '/[() -]/g', '' ),
+		country: billing?.country ?? '',
+		address_1: billing?.line1 ?? '',
+		address_2: billing?.line2 ?? '',
+		city: billing?.city ?? '',
+		state: billing?.state ?? '',
+		postcode: billing?.postal_code ?? '',
 		company: '',
 	};
 };
