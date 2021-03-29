@@ -139,9 +139,7 @@ const getBillingData = ( paymentResponse ) => {
 const getPaymentMethodData = ( paymentResponse, paymentRequestType ) => {
 	return {
 		payment_method: 'stripe',
-		stripe_source: paymentResponse.source
-			? paymentResponse.source.id
-			: null,
+		stripe_source: paymentResponse.source?.id,
 		payment_request_type: paymentRequestType,
 	};
 };
