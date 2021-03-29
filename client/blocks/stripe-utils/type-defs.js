@@ -24,15 +24,15 @@
 /**
  * @typedef {Object} StripeShippingAddress
  *
- * @property {string}  country             Two letter country code, capitalized
+ * @property {string}  [country]           Two letter country code, capitalized
  *                                         (ISO3166 alpha-2).
- * @property {Array}   addressLine         An array of address line items.
- * @property {string}  region              The most coarse subdivision of a
+ * @property {Array}   [addressLine]       An array of address line items.
+ * @property {string}  [region]            The most coarse subdivision of a
  *                                         country. (state etc)
- * @property {string}  city                The name of a city, town, village etc.
- * @property {string}  postalCode          The postal or ZIP code.
- * @property {string}  recipient           The name of the recipient.
- * @property {string}  phone               The phone number of the recipient.
+ * @property {string}  [city]              The name of a city, town, village etc.
+ * @property {string}  [postalCode]        The postal or ZIP code.
+ * @property {string}  [recipient]         The name of the recipient.
+ * @property {string}  [phone]             The phone number of the recipient.
  * @property {string}  [sortingCode]       The sorting code as used in France.
  *                                         Not present on Apple platforms.
  * @property {string}  [dependentLocality] A logical subdivision of a city.
@@ -42,20 +42,20 @@
 /**
  * @typedef {Object} StripeBillingDetails
  *
- * @property {Object} address             The billing address
- * @property {string} address.city        The billing address city
- * @property {string} address.country     The billing address country
- * @property {string} address.line1       The first line for the address
- * @property {string} address.line2       The second line fro the address
- * @property {string} address.postal_code The postal/zip code
- * @property {string} address.state       The state
- * @property {string} email               The billing email
- * @property {string} name                The billing name
- * @property {string} phone               The billing phone
- * @property {Object} [verified_address]  The verified address of the owner.
- * @property {string} [verified_email]    Provided by the payment provider.
- * @property {string} [verified_phone]    Provided by the payment provider.
- * @property {string} [verified_name]     Provided by the payment provider.
+ * @property {Object} [address]             The billing address
+ * @property {string} [address.city]        The billing address city
+ * @property {string} [address.country]     The billing address country
+ * @property {string} [address.line1]       The first line for the address
+ * @property {string} [address.line2]       The second line fro the address
+ * @property {string} [address.postal_code] The postal/zip code
+ * @property {string} [address.state]       The state
+ * @property {string} [email]               The billing email
+ * @property {string} [name]                The billing name
+ * @property {string} [phone]               The billing phone
+ * @property {Object} [verified_address]    The verified address of the owner.
+ * @property {string} [verified_email]      Provided by the payment provider.
+ * @property {string} [verified_phone]      Provided by the payment provider.
+ * @property {string} [verified_name]       Provided by the payment provider.
  */
 
 /**
@@ -148,7 +148,7 @@
  * @property {Object}               metadata              Arbitrary key-value
  *                                                        pairs that can be
  *                                                        attached.
- * @property {StripeBillingDetails} owner                 Information about the
+ * @property {StripeBillingDetails} [owner]               Information about the
  *                                                        owner of the payment
  *                                                        made.
  * @property {Object}               [redirect]            Information related to
@@ -196,10 +196,10 @@
 /**
  * @typedef {Object} StripePaymentResponse
  *
- * @property {Object}                 token             A stripe token object
- * @property {StripePaymentMethod}    paymentMethod     The stripe payment method
+ * @property {Object}                 [token]           A stripe token object
+ * @property {StripePaymentMethod}    [paymentMethod]   The stripe payment method
  *                                                      object
- * @property {?StripeSource}          source            Present if this was the
+ * @property {?StripeSource}          [source]          Present if this was the
  *                                                      result of a source event
  *                                                      listener
  * @property {Function}               complete          Call this when the token
