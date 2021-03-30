@@ -265,11 +265,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	public function add_payment_request_order_meta( PaymentContext $context, PaymentResult &$result ) {
 		$data = $context->payment_data;
 		if ( ! empty( $data['payment_request_type'] ) && 'stripe' === $context->payment_method ) {
-			// phpcs:ignore WordPress.Security.NonceVerification
-			$post_data = $_POST;
-			$_POST     = $context->payment_data;
 			$this->add_order_meta( $context->order, $data['payment_request_type'] );
-			$_POST = $post_data;
 		}
 
 		// hook into stripe error processing so that we can capture the error to
