@@ -409,9 +409,9 @@ register_activation_hook( __FILE__, 'add_woocommerce_inbox_variant' );
 
 // Hook in Blocks integration. This action is called in a callback on plugins loaded, so current Stripe plugin class
 // implementation is too late.
-add_action( 'woocommerce_blocks_loaded', 'woocommerce_blocks_support' );
+add_action( 'woocommerce_blocks_loaded', 'woocommerce_gateway_stripe_woocommerce_block_support' );
 
-function woocommerce_blocks_support() {
+function woocommerce_gateway_stripe_woocommerce_block_support() {
 	if ( class_exists( 'Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType' ) ) {
 		require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-blocks-support.php';
 		// priority is important here because this ensures this integration is
