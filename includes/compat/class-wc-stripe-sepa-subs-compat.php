@@ -482,15 +482,15 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 
 		$stripe_customer->set_id( $stripe_customer_id );
 
-		$sources                   = $stripe_customer->get_sources();
+		$payment_methods  = $stripe_customer->get_payment_methods( 'sepa_debit' );
 		$payment_method_to_display = __( 'N/A', 'woocommerce-gateway-stripe' );
 
-		if ( $sources ) {
-			foreach ( $sources as $source ) {
-				if ( $source->id === $stripe_source_id ) {
-					if ( $source->sepa_debit ) {
+		if ( $payment_methods ) {
+			foreach ( $payment_methods as $payment_method ) {
+				if ( $payment_method->id === $stripe_source_id ) {
+					if ( $payment_method->sepa_debit ) {
 						/* translators: 1) last 4 digits of SEPA Direct Debit */
-						$payment_method_to_display = sprintf( __( 'Via SEPA Direct Debit ending in %1$s', 'woocommerce-gateway-stripe' ), $source->sepa_debit->last4 );
+						$payment_method_to_display = sprintf( __( 'Via SEPA Direct Debit ending in %1$s', 'woocommerce-gateway-stripe' ), $payment_method->sepa_debit->last4 );
 					}
 
 					break;

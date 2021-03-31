@@ -357,42 +357,6 @@ class WC_Stripe_Customer {
 	}
 
 	/**
-	 * Get a customers saved sources using their Stripe ID.
-	 *
-	 * @param  string $customer_id
-	 * @return array
-	 */
-	public function get_sources() {
-		if ( ! $this->get_id() ) {
-			return [];
-		}
-
-		$sources = get_transient( 'stripe_sources_' . $this->get_id() );
-
-		if ( false === $sources ) {
-			$response = WC_Stripe_API::request(
-				[
-					'limit' => 100,
-				],
-				'customers/' . $this->get_id() . '/sources',
-				'GET'
-			);
-
-			if ( ! empty( $response->error ) ) {
-				return [];
-			}
-
-			if ( is_array( $response->data ) ) {
-				$sources = $response->data;
-			}
-
-			set_transient( 'stripe_sources_' . $this->get_id(), $sources, DAY_IN_SECONDS );
-		}
-
-		return empty( $sources ) ? [] : $sources;
-	}
-
-	/**
 	 * Delete a source from stripe.
 	 *
 	 * @param string $source_id
@@ -441,10 +405,51 @@ class WC_Stripe_Customer {
 	}
 
 	/**
+	 * Get the customer saved payment methods using their Stripe ID.
+	 *
+	 * @param string $type Type of Stripe PaymentMethods to return (card, sepa_debit, bacs_debit, etc)
+	 *
+	 * @return array List of saved payment methods for the customer
+	 * @throws WC_Stripe_Exception  An exception if the customer ID is not valid.
+	 */
+	public function get_payment_methods( $type ) {
+		if ( ! $this->get_id() ) {
+			return [];
+		}
+
+		$payment_methods = get_transient( 'stripe_payment_methods_' . $this->get_id() );
+
+		if ( false === $payment_methods ) {
+			$response = WC_Stripe_API::request(
+				[
+					'customer' => $this->get_id(),
+					'type' => $type,
+					'limit' => 100,
+				],
+				'payment_methods',
+				'GET'
+			);
+
+			if ( ! empty( $response->error ) ) {
+				return [];
+			}
+
+			if ( is_array( $response->data ) ) {
+				$payment_methods = $response->data;
+			}
+
+			set_transient( 'stripe_payment_methods_' . $this->get_id(), $payment_methods, DAY_IN_SECONDS );
+		}
+
+		return empty( $payment_methods ) ? [] : $payment_methods;
+	}
+
+	/**
 	 * Deletes caches for this users cards.
 	 */
 	public function clear_cache() {
 		delete_transient( 'stripe_sources_' . $this->get_id() );
+		delete_transient( 'stripe_payment_methods_' . $this->get_id() );
 		delete_transient( 'stripe_customer_' . $this->get_id() );
 		$this->customer_data = [];
 	}

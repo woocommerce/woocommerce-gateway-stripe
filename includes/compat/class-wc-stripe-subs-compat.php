@@ -594,20 +594,20 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 
 		$stripe_customer->set_id( $stripe_customer_id );
 
-		$sources                   = $stripe_customer->get_sources();
+		$payment_methods  = $stripe_customer->get_payment_methods( 'card' );
 		$payment_method_to_display = __( 'N/A', 'woocommerce-gateway-stripe' );
 
-		if ( $sources ) {
+		if ( $payment_methods ) {
 			$card = false;
 
-			foreach ( $sources as $source ) {
-				if ( isset( $source->type ) && 'card' === $source->type ) {
-					$card = $source->card;
-				} elseif ( isset( $source->object ) && 'card' === $source->object ) {
-					$card = $source;
+			foreach ( $payment_methods as $payment_method ) {
+				if ( isset( $payment_method->type ) && 'card' === $payment_method->type ) {
+					$card = $payment_method->card;
+				} elseif ( isset( $payment_method->object ) && 'card' === $payment_method->object ) {
+					$card = $payment_method;
 				}
 
-				if ( $source->id === $stripe_source_id ) {
+				if ( $payment_method->id === $stripe_source_id ) {
 					if ( $card ) {
 						/* translators: 1) card brand 2) last 4 digits */
 						$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
