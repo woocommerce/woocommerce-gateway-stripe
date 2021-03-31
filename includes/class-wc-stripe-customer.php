@@ -156,6 +156,8 @@ class WC_Stripe_Customer {
 			}
 		}
 
+		$defaults[ 'preferred_locales' ] = $this->get_customer_preferred_locale( $user );
+
 		$metadata             = [];
 		$defaults['metadata'] = apply_filters( 'wc_stripe_customer_metadata', $metadata, $user );
 
@@ -483,5 +485,59 @@ class WC_Stripe_Customer {
 	private function recreate_customer() {
 		$this->delete_id_from_meta();
 		return $this->create_customer();
+	}
+
+	/**
+	 * Get the customer's preferred locale based on the user or site setting.
+	 *
+	 * @param object $user The user being created/modified.
+	 * @return array The matched locale string wrapped in an array, or empty default.
+	 */
+	public function get_customer_preferred_locale( $user ) {
+		$locale = $this->get_customer_locale( $user );
+
+		// Options based on Stripe locales.
+		// https://support.stripe.com/questions/language-options-for-customer-emails
+		$stripe_locales = [
+			'ar'    => 'ar-AR',
+			'da_DK' => 'da-DK',
+			'de_DE' => 'de-DE',
+			'en'    => 'en-US',
+			'es_ES' => 'es-ES',
+			'es_CL' => 'es-419',
+			'es_AR' => 'es-419',
+			'es_CO' => 'es-419',
+			'es_PE' => 'es-419',
+			'es_UY' => 'es-419',
+			'es_PR' => 'es-419',
+			'es_GT' => 'es-419',
+			'es_EC' => 'es-419',
+			'es_MX' => 'es-419',
+			'es_VE' => 'es-419',
+			'es_CR' => 'es-419',
+			'fi'    => 'fi-FI',
+			'fr_FR' => 'fr-FR',
+			'he_IL' => 'he-IL',
+			'it_IT' => 'it-IT',
+			'ja'    => 'ja-JP',
+			'nl_NL' => 'nl-NL',
+			'nn_NO' => 'no-NO',
+			'pt_BR' => 'pt-BR',
+			'sv_SE' => 'sv-SE',
+		];
+
+		$preferred = isset( $stripe_locales[ $locale ] ) ? $stripe_locales[ $locale ] : '';
+		return [ $preferred ];
+	}
+
+	/**
+	 * Gets the customer's locale/language based on their setting or the site settings.
+	 *
+	 * @param object $user The user we're wanting to get the locale for.
+	 * @return string The locale/language set in the user profile or the site itself.
+	 */
+	public function  get_customer_locale( $user ) {
+		// If we have a user, get their locale with a site fallback.
+		return  ( $user ) ? get_user_locale( $user->ID ) : get_locale();
 	}
 }
