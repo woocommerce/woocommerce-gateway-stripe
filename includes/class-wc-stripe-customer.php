@@ -156,10 +156,9 @@ class WC_Stripe_Customer {
 			}
 		}
 
-		$defaults[ 'preferred_locales' ] = $this->get_customer_preferred_locale( $user );
-
-		$metadata             = [];
-		$defaults['metadata'] = apply_filters( 'wc_stripe_customer_metadata', $metadata, $user );
+		$metadata                      = [];
+		$defaults['metadata']          = apply_filters( 'wc_stripe_customer_metadata', $metadata, $user );
+		$defaults['preferred_locales'] = $this->get_customer_preferred_locale( $user );
 
 		return wp_parse_args( $args, $defaults );
 	}
@@ -536,8 +535,8 @@ class WC_Stripe_Customer {
 	 * @param object $user The user we're wanting to get the locale for.
 	 * @return string The locale/language set in the user profile or the site itself.
 	 */
-	public function  get_customer_locale( $user ) {
+	public function get_customer_locale( $user ) {
 		// If we have a user, get their locale with a site fallback.
-		return  ( $user ) ? get_user_locale( $user->ID ) : get_locale();
+		return ( $user ) ? get_user_locale( $user->ID ) : get_locale();
 	}
 }
