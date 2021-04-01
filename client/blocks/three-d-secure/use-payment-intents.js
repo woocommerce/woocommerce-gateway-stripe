@@ -87,7 +87,7 @@ export const usePaymentIntents = (
 				response.type === emitResponse.responseTypes.ERROR &&
 				response.retry
 			) {
-				setSourceId( '0' );
+				setSourceId( '' );
 			}
 
 			return response;
