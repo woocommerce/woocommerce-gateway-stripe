@@ -475,7 +475,6 @@ class WC_Stripe_Payment_Request {
 				'booking',
 				'bundle',
 				'composite',
-				'mix-and-match',
 			]
 		);
 	}
@@ -741,11 +740,6 @@ class WC_Stripe_Payment_Request {
 
 		// Composite products are not supported on the product page.
 		if ( class_exists( 'WC_Composite_Products' ) && function_exists( 'is_composite_product' ) && is_composite_product() ) {
-			return false;
-		}
-
-		// Mix and match products are not supported on the product page.
-		if ( class_exists( 'WC_Mix_and_Match' ) && $product->is_type( 'mix-and-match' ) ) {
 			return false;
 		}
 
