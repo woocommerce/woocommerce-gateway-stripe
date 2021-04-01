@@ -55,7 +55,7 @@ const CreditCardComponent = ( {
 		if ( paymentEvent.error ) {
 			onStripeError( paymentEvent );
 		}
-		setSourceId( '0' );
+		setSourceId( '' );
 	};
 	const cardIcons = getStripeCreditCardIcons();
 
