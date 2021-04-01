@@ -184,9 +184,12 @@ export const useInitialization = ( {
 			};
 
 			const sourceHandler = ( paymentMethod ) => {
+				// We retrieve `allowPrepaidCard` like this to ensure we default to false in the
+				// event `allowPrepaidCard` isn't present on the server data object.
+				const { allowPrepaidCard = false } = getStripeServerData();
 				if (
 					// eslint-disable-next-line no-undef
-					! getStripeServerData().allowPrepaidCard &&
+					! allowPrepaidCard &&
 					paymentMethod.source.card.funding
 				) {
 					setExpressPaymentError(
