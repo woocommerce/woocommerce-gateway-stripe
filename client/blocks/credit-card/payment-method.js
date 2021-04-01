@@ -81,7 +81,9 @@ const CreditCardComponent = ( {
 };
 
 export const StripeCreditCard = ( props ) => {
-	const { locale } = getStripeServerData().button;
+	// Make sure `locale` defaults to 'en_US' if it's not found in the server provided
+	// configuration.
+	const { locale = 'en_US' } = getStripeServerData().button;
 	const { stripe } = props;
 
 	return (

@@ -17,6 +17,8 @@ import { getStripeServerData } from './stripe-utils';
 registerPaymentMethod( stripeCcPaymentMethod );
 
 // Register Stripe Payment Request (Apple/Chrome Pay) if enabled.
-if ( getStripeServerData().allowPaymentRequest ) {
+// Make sure `allowPaymentRequest` defaults to false if it's missing from the server
+// provided configuration.
+if ( getStripeServerData().allowPaymentRequest ?? false ) {
 	registerExpressPaymentMethod( paymentRequestPaymentMethod );
 }

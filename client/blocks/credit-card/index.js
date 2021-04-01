@@ -60,8 +60,9 @@ const stripeCcPaymentMethod = {
 		'woocommerce-gateway-stripe'
 	),
 	supports: {
-		showSavedCards: getStripeServerData().showSavedCards,
-		showSaveOption: getStripeServerData().showSaveOption,
+		// Use `false` as fallback values in case server provided configuration is missing.
+		showSavedCards: getStripeServerData().showSavedCards ?? false,
+		showSaveOption: getStripeServerData().showSaveOption ?? false,
 		features: getStripeServerData()?.supports ?? [],
 	},
 };

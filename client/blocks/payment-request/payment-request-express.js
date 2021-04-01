@@ -75,7 +75,8 @@ const PaymentRequestExpressComponent = ( {
 	} );
 
 	// locale is not a valid value for the paymentRequestButton style.
-	const { theme } = getStripeServerData().button;
+	// Make sure `theme` defaults to 'dark' if it's not found in the server provided configuration.
+	const { theme = 'dark' } = getStripeServerData().button;
 
 	const paymentRequestButtonStyle = {
 		paymentRequestButton: {
@@ -104,7 +105,9 @@ const PaymentRequestExpressComponent = ( {
  * @param {StripeRegisteredPaymentMethodProps} props
  */
 export const PaymentRequestExpress = ( props ) => {
-	const { locale } = getStripeServerData().button;
+	// Make sure `locale` defaults to 'en_US' if it's not found in the server provided
+	// configuration.
+	const { locale = 'en_US' } = getStripeServerData().button;
 	const { stripe } = props;
 	return (
 		<Elements stripe={ stripe } locale={ locale }>
