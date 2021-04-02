@@ -265,8 +265,10 @@ class WC_Stripe_Customer {
 	 * @param string $source_id
 	 * @return WP_Error|int
 	 */
-	public function add_source( $source_id ) {
-		$response = $this->attach_source( $source_id );
+	public function add_source( $source_id, $source_object ) {
+		$response = $source_object;
+
+		WC_Stripe_Logger::log( 'add_source - $response:' . print_r( $response, true ) );
 
 		if ( ! empty( $response->error ) || is_wp_error( $response ) ) {
 			return $response;

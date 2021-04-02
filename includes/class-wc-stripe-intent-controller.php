@@ -101,6 +101,9 @@ class WC_Stripe_Intent_Controller {
 
 		try {
 			$gateway->verify_intent_after_checkout( $order );
+			$intent        = $gateway->get_intent_from_order( $order );
+			$source_object = WC_Stripe_API::retrieve( 'sources/' . $intent->source );
+			$gateway->save_payment_method( $source_object );
 
 			if ( ! isset( $_GET['is_ajax'] ) ) {
 				$redirect_url = isset( $_GET['redirect_to'] ) // wpcs: csrf ok.

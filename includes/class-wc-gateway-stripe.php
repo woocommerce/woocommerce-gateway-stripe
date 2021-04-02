@@ -627,6 +627,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$intent = $this->confirm_intent( $intent, $order, $prepared_source );
 			}
 
+			if ( 'succeeded' === $intent->status ) {
+				$this->save_payment_method( $prepared_source->source_object );
+			}
+
 			if ( ! empty( $intent->error ) ) {
 				$this->maybe_remove_non_existent_customer( $intent->error, $order );
 
@@ -700,6 +704,22 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				'result'   => 'fail',
 				'redirect' => '',
 			];
+		}
+	}
+
+	public function save_payment_method( $source ) {
+		$user_id  = get_current_user_id();
+		$customer = new WC_Stripe_Customer( $user_id );
+
+		if ( ( $user_id && 'reusable' === $source->usage ) ) {
+			$response = $customer->add_source( $source->id, $source );
+
+			if ( ! empty( $response->error ) ) {
+				throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
+			}
+			if ( is_wp_error( $response ) ) {
+				throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
+			}
 		}
 	}
 
