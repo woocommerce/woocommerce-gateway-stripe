@@ -238,9 +238,9 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$order->save();
 				}
 
-				if ( $this->is_no_such_token_error( $response->error ) && $prepared_source->token_id ) {
+				if ( $this->is_no_such_token_error( $response->error ) && $source_object->token_id ) {
 					// Source param wrong? The CARD may have been deleted on stripe's end. Remove token and show message.
-					$wc_token = WC_Payment_Tokens::get( $prepared_source->token_id );
+					$wc_token = WC_Payment_Tokens::get( $source_object->token_id );
 					$wc_token->delete();
 					$localized_message = __( 'This card is no longer available and has been removed.', 'woocommerce-gateway-stripe' );
 					$order->add_order_note( $localized_message );
