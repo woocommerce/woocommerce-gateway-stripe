@@ -73,8 +73,8 @@ const normalizeShippingAddressForCheckout = ( shippingAddress ) => {
 			shippingAddress.recipient?.split( ' ' )?.slice( 1 )?.join( ' ' ) ??
 			'',
 		company: '',
-		address_1: typeof shippingAddress.addressLine?.[ 0 ] ?? '',
-		address_2: typeof shippingAddress.addressLine?.[ 1 ] ?? '',
+		address_1: shippingAddress.addressLine?.[ 0 ] ?? '',
+		address_2: shippingAddress.addressLine?.[ 1 ] ?? '',
 		city: shippingAddress.city ?? '',
 		state: shippingAddress.region ?? '',
 		country: shippingAddress.country ?? '',
