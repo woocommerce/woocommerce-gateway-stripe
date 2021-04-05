@@ -188,6 +188,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		return parent::is_available();
 	}
 
+	public function maybe_save_payment_method() {
+		$payment_method = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : 'stripe';
+		return isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
+	}
+
 	/**
 	 * Checks if we need to process pre orders when
 	 * pre orders is in the cart.
@@ -1066,8 +1071,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'payment_method_types' => [
 				'card',
 			],
-			'setup_future_usage'   => 'off_session',
 		];
+
+		if ( $this->maybe_save_payment_method() ) {
+			$request['setup_future_usage'] = 'off_session';
+		}
 
 		if ( $prepared_source->customer ) {
 			$request['customer'] = $prepared_source->customer;

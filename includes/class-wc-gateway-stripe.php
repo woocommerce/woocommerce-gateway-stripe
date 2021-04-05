@@ -627,7 +627,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$intent = $this->confirm_intent( $intent, $order, $prepared_source );
 			}
 
-			if ( 'succeeded' === $intent->status ) {
+			if ( 'succeeded' === $intent->status && $this->maybe_save_payment_method() ) {
 				$this->save_payment_method( $prepared_source->source_object );
 			}
 
@@ -1033,14 +1033,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Put the final thank you page redirect into the verification URL.
-		$verification_url = add_query_arg(
-			[
-				'order'       => $order_id,
-				'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
-				'redirect_to' => rawurlencode( $result['redirect'] ),
-			],
-			WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
-		);
+		$query_params = [
+			'order'       => $order_id,
+			'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
+			'redirect_to' => rawurlencode( $result['redirect'] ),
+		];
+
+		if ( $this->maybe_save_payment_method() ) {
+			$query_params['save_payment_method'] = true;
+		}
+
+		$verification_url = add_query_arg( $query_params, WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' ) );
 
 		if ( isset( $result['payment_intent_secret'] ) ) {
 			$redirect = sprintf( '#confirm-pi-%s:%s', $result['payment_intent_secret'], rawurlencode( $verification_url ) );
