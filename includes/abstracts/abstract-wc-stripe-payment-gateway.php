@@ -189,8 +189,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	public function maybe_save_payment_method() {
-		$payment_method = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : 'stripe';
-		return isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
+		$payment_method    = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : 'stripe';
+		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->customer );
+
+		return isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) || $force_save_source;
 	}
 
 	/**
@@ -619,12 +621,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$customer->set_id( $existing_customer_id );
 		}
 
-		$force_save_source = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
-		$source_object     = '';
-		$source_id         = '';
-		$wc_token_id       = false;
-		$payment_method    = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : 'stripe';
-		$is_token          = false;
+		$source_object  = '';
+		$source_id      = '';
+		$wc_token_id    = false;
+		$payment_method = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : 'stripe';
+		$is_token       = false;
 
 		// New CC info was entered and we have a new source to process.
 		if ( ! empty( $_POST['stripe_source'] ) ) {
