@@ -11,6 +11,7 @@ import { useInitialization } from './use-initialization';
 import { useCheckoutSubscriptions } from './use-checkout-subscriptions';
 import { ThreeDSecurePaymentHandler } from '../three-d-secure';
 import { GooglePayButton, shouldUseGooglePayBrand } from './branded-buttons';
+import { CustomButton } from './custom-button';
 
 /**
  * @typedef {import('../stripe-utils/type-defs').Stripe} Stripe
@@ -91,9 +92,23 @@ const PaymentRequestExpressComponent = ( {
 	/* global wc_stripe_payment_request_params */
 	const isBranded = wc_stripe_payment_request_params.button.is_branded;
 	const brandedType = wc_stripe_payment_request_params.button.branded_type;
+	const isCustom = wc_stripe_payment_request_params.button.is_custom;
 
 	if ( ! canMakePayment || ! paymentRequest ) {
 		return null;
+	}
+
+	if ( isCustom ) {
+		return (
+			<CustomButton
+				onButtonClicked={ () => {
+					onButtonClick();
+					// Since we're using a custom button we must manually call
+					// `paymentRequest.show()`.
+					paymentRequest.show();
+				} }
+			/>
+		);
 	}
 
 	if ( isBranded && shouldUseGooglePayBrand() ) {
