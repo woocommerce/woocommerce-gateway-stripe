@@ -627,7 +627,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$intent = $this->confirm_intent( $intent, $order, $prepared_source );
 			}
 
-			if ( 'succeeded' === $intent->status && $this->maybe_save_payment_method() ) {
+			$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->source );
+
+			if ( 'succeeded' === $intent->status && ( $this->save_payment_method_requested() || $force_save_source ) ) {
 				$this->save_payment_method( $prepared_source->source_object );
 			}
 
@@ -707,12 +709,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 	}
 
-	public function save_payment_method( $source ) {
+	public function save_payment_method( $source_object ) {
 		$user_id  = get_current_user_id();
 		$customer = new WC_Stripe_Customer( $user_id );
 
-		if ( ( $user_id && 'reusable' === $source->usage ) ) {
-			$response = $customer->add_source( $source->id, $source );
+		if ( ( $user_id && 'reusable' === $source_object->usage ) ) {
+			$response = $customer->add_source( $source_object->id );
 
 			if ( ! empty( $response->error ) ) {
 				throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
@@ -1039,7 +1041,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			'redirect_to' => rawurlencode( $result['redirect'] ),
 		];
 
-		if ( $this->maybe_save_payment_method() ) {
+		if ( $this->save_payment_method_requested() ) {
 			$query_params['save_payment_method'] = true;
 		}
 

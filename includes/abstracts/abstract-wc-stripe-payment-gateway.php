@@ -188,11 +188,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		return parent::is_available();
 	}
 
-	public function maybe_save_payment_method() {
-		$payment_method    = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : 'stripe';
-		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->customer );
+	public function save_payment_method_requested() {
+		$payment_method = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : 'stripe';
 
-		return isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) || $force_save_source;
+		return isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
 	}
 
 	/**
@@ -647,7 +646,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$is_token = true;
 			}
 		} elseif ( isset( $_POST['stripe_token'] ) && 'new' !== $_POST['stripe_token'] ) {
-			$source_id	= wc_clean( wp_unslash( $_POST['stripe_token'] ) );
+			$source_id = wc_clean( wp_unslash( $_POST['stripe_token'] ) );
 			$is_token  = true;
 		}
 
@@ -1058,8 +1057,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			],
 		];
 
-		if ( $this->maybe_save_payment_method() ) {
-			$request['setup_future_usage'] = 'off_session';
+		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->source );
+
+		if ( $this->save_payment_method_requested() || $force_save_source ) {
+			$request['setup_future_usage']              = 'off_session';
+			$request['metadata']['save_payment_method'] = 'true';
 		}
 
 		if ( $prepared_source->customer ) {

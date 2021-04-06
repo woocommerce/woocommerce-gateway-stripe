@@ -105,7 +105,10 @@ class WC_Stripe_Intent_Controller {
 			if ( isset( $_GET['save_payment_method'] ) && ! empty( $_GET['save_payment_method'] ) ) {
 				$intent        = $gateway->get_intent_from_order( $order );
 				$source_object = WC_Stripe_API::retrieve( 'sources/' . $intent->source );
-				$gateway->save_payment_method( $source_object );
+
+				if ( 'true' === $intent->metadata->save_payment_method ) {
+					$gateway->save_payment_method( $source_object );
+				}
 			}
 
 			if ( ! isset( $_GET['is_ajax'] ) ) {
