@@ -10,6 +10,7 @@ import { getStripeServerData } from '../stripe-utils';
 import { useInitialization } from './use-initialization';
 import { useCheckoutSubscriptions } from './use-checkout-subscriptions';
 import { ThreeDSecurePaymentHandler } from '../three-d-secure';
+import { GooglePayButton, shouldUseGooglePayBrand } from './branded-buttons';
 
 /**
  * @typedef {import('../stripe-utils/type-defs').Stripe} Stripe
@@ -86,7 +87,37 @@ const PaymentRequestExpressComponent = ( {
 		},
 	};
 
-	return canMakePayment && paymentRequest ? (
+	// Use pre-blocks settings until we merge the two distinct settings objects.
+	/* global wc_stripe_payment_request_params */
+	const isBranded = wc_stripe_payment_request_params.button.is_branded;
+	const brandedType = wc_stripe_payment_request_params.button.branded_type;
+
+	if ( ! canMakePayment || ! paymentRequest ) {
+		return null;
+	}
+
+	if ( isBranded && shouldUseGooglePayBrand() ) {
+		return (
+			<GooglePayButton
+				onButtonClicked={ () => {
+					onButtonClick();
+					// Since we're using a custom button we must manually call
+					// `paymentRequest.show()`.
+					paymentRequest.show();
+				} }
+			/>
+		);
+	}
+
+	if ( isBranded ) {
+		// Not implemented branded buttons default to Stripe's button.
+		// Apple Pay buttons can also fall back to Stripe's button, as it's already branded.
+		// Set button type to default or buy, depending on branded type, to avoid issues with Stripe.
+		paymentRequestButtonStyle.paymentRequestButton.type =
+			brandedType === 'long' ? 'buy' : 'default';
+	}
+
+	return (
 		<PaymentRequestButtonElement
 			onClick={ onButtonClick }
 			options={ {
@@ -96,7 +127,7 @@ const PaymentRequestExpressComponent = ( {
 				paymentRequest,
 			} }
 		/>
-	) : null;
+	);
 };
 
 /**
