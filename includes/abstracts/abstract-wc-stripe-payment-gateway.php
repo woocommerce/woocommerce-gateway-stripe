@@ -647,24 +647,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$is_token = true;
 			}
 		} elseif ( isset( $_POST['stripe_token'] ) && 'new' !== $_POST['stripe_token'] ) {
-			$stripe_token     = wc_clean( wp_unslash( $_POST['stripe_token'] ) );
-			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
-
-			// This is true if the user wants to store the card to their account.
-			if ( ( $user_id && $this->saved_cards && $maybe_saved_card ) || $force_save_source ) {
-				$response = $customer->add_source( $stripe_token );
-
-				if ( ! empty( $response->error ) ) {
-					throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
-				}
-				if ( is_wp_error( $response ) ) {
-					throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
-				}
-				$source_id = $response;
-			} else {
-				$source_id = $stripe_token;
-				$is_token  = true;
-			}
+			$source_id	= wc_clean( wp_unslash( $_POST['stripe_token'] ) );
+			$is_token  = true;
 		}
 
 		$customer_id = $customer->get_id();
