@@ -1,4 +1,9 @@
 /**
+ * External dependencies
+ */
+import { getSetting } from '@woocommerce/settings';
+
+/**
  * @typedef {import('./type-defs').StripePaymentItem} StripePaymentItem
  * @typedef {import('./type-defs').StripeShippingOption} StripeShippingOption
  * @typedef {import('./type-defs').StripeShippingAddress} StripeShippingAddress
@@ -54,6 +59,89 @@ const normalizeShippingOptions = ( shippingOptions ) => {
 };
 
 /**
+ * Normalize the state provided with shipping address information.
+ *
+ * This is a mirror of `get_normalized_state()` in `class-wc-stripe-payment-request.php`.
+ *
+ * @param {string} country - The country as a string.
+ * @param {string} state   - The state as a string.
+ */
+const normalizeState = ( country, state ) => {
+	// We can't make any intelligent decisions if either state or country are not provided, so we
+	// just default to returning the provided state.
+	if ( state === '' || country === '' ) {
+		return state;
+	}
+
+	// This setting is called `allowedStates` on the checkout page and `shippingStates` on the
+	// cart page.
+	const allowedStates =
+		getSetting( 'allowedStates', null ) ??
+		getSetting( 'shippingStates', null );
+	const validStates = allowedStates?.[ country ] ?? [];
+
+	// If there are no valid states for the provided country, default to returning the provided
+	// state.
+	if ( validStates.length === 0 ) {
+		return state;
+	}
+
+	// If the provided state is already normalized, we can safely return it.
+	if ( Object.keys( validStates ).includes( state ) ) {
+		return state;
+	}
+
+	// China - Adapt dropdown values from Chrome and accept manually typed values like 云南.
+	// WC states: https://github.com/woocommerce/woocommerce/blob/master/i18n/states.php
+	if ( country === 'CN' ) {
+		const replacements = {
+			// Rename regions with different spelling.
+			Macau: 'Macao',
+			Neimenggu: 'Inner Mongolia',
+			Xizang: 'Tibet',
+			// Remove suffixes.
+			Shi: '',
+			Sheng: '',
+			Zizhiqu: '',
+			Huizuzizhiqu: '',
+			Weiwuerzizhiqu: '',
+			Zhuangzuzizhiqu: '',
+		};
+
+		// Replace all instances of text not found in the list of accepted WooCommerce states with
+		// acceptable alternatives.
+		for ( const [ key, value ] of Object.entries( replacements ) ) {
+			state = state.replaceAll( key, value );
+		}
+
+		// If we find the provided state in the list of valid state values we return the state
+		// abbreviation.
+		const regex = new RegExp( state, 'i' );
+		for ( const [ stateAbbreviation, stateValue ] of Object.entries(
+			validStates
+		) ) {
+			if ( regex.test( stateValue ) ) {
+				return stateAbbreviation;
+			}
+		}
+	} else {
+		// If we find any of the valid state values in the provided state we return the state
+		// abbreviation.
+		for ( const [ stateAbbreviation, stateValue ] of Object.entries(
+			validStates
+		) ) {
+			const regex = new RegExp( stateValue, 'i' );
+			if ( regex.test( state ) ) {
+				return stateAbbreviation;
+			}
+		}
+	}
+
+	// Return the provided state if no abbreviation exists.
+	return state;
+};
+
+/**
  * Normalize shipping address information from stripe's address object to
  * the cart shipping address object shape.
  *
@@ -76,7 +164,10 @@ const normalizeShippingAddressForCheckout = ( shippingAddress ) => {
 		address_1: shippingAddress.addressLine?.[ 0 ] ?? '',
 		address_2: shippingAddress.addressLine?.[ 1 ] ?? '',
 		city: shippingAddress.city ?? '',
-		state: shippingAddress.region ?? '',
+		state: normalizeState(
+			shippingAddress.country ?? '',
+			shippingAddress.region ?? ''
+		),
 		country: shippingAddress.country ?? '',
 		postcode: shippingAddress.postalCode?.replace( ' ', '' ) ?? '',
 	};
