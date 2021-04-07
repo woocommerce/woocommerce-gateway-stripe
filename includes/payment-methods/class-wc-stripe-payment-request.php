@@ -1103,7 +1103,7 @@ class WC_Stripe_Payment_Request {
 	 * Normalizes billing and shipping state fields.
 	 *
 	 * @since 4.0.0
-	 * @version 5.0.0
+	 * @version 5.1.0
 	 */
 	public function normalize_state() {
 		$billing_country  = ! empty( $_POST['billing_country'] ) ? wc_clean( wp_unslash( $_POST['billing_country'] ) ) : '';
@@ -1121,56 +1121,86 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Gets the normalized state/county field because in some
-	 * cases, the state/county field is formatted differently from
-	 * what WC is expecting and throws an error. An example
-	 * for Ireland the county dropdown in Chrome shows "Co. Clare" format.
+	 * Checks if given state is normalized.
 	 *
-	 * @since 5.0.0
+	 * @since 5.1.0
 	 *
-	 * @param string $state   Full state name or an already normalized abbreviation.
+	 * @param string $state State.
 	 * @param string $country Two-letter country code.
 	 *
-	 * @return string Normalized state abbreviation.
+	 * @return bool Whether state is normalized or not.
 	 */
-	public function get_normalized_state( $state, $country ) {
-		$wc_valid_states = $country ? WC()->countries->get_states( $country ) : [];
+	public function is_normalized_state( $state, $country ) {
+		$wc_states = WC()->countries->get_states( $country );
+		return (
+			is_array( $wc_states ) &&
+			in_array( $state, array_keys( $wc_states ), true )
+		);
+	}
 
-		if ( $state && $country && is_array( $wc_valid_states ) && count( $wc_valid_states ) > 0 ) {
+	/**
+	 * Sanitize string for comparison.
+	 *
+	 * @since 5.1.0
+	 *
+	 * @param string $string String to be sanitized.
+	 *
+	 * @return string The sanitized string.
+	 */
+	public function sanitize_string( $string ) {
+		return trim( wc_strtolower( remove_accents( $string ) ) );
+	}
 
-			// If it's already normalized, skip.
-			if ( in_array( $state, array_keys( $wc_valid_states ) ) ) {
-				return $state;
+	/**
+	 * Get normalized state from Payment Request API dropdown list of states.
+	 *
+	 * @since 5.1.0
+	 *
+	 * @param string $state   Full state name or state code.
+	 * @param string $country Two-letter country code.
+	 *
+	 * @return string Normalized state or original state input value.
+	 */
+	public function get_normalized_state_from_pr_states( $state, $country ) {
+		// Include Payment Request API State list for compatibility with WC countries/states.
+		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-payment-request-button-states.php';
+		$pr_states = WC_Stripe_Payment_Request_Button_States::STATES;
+
+		if ( ! isset( $pr_states[ $country ] ) ) {
+			return $state;
+		}
+
+		foreach ( $pr_states[ $country ] as $wc_state_abbr => $pr_state ) {
+			$sanitized_state_string = $this->sanitize_string( $state );
+			// Checks if input state matches with Payment Request state code (0), name (1) or localName (2).
+			if (
+				( ! empty( $pr_state[0] ) && $sanitized_state_string === $this->sanitize_string( $pr_state[0] ) ) ||
+				( ! empty( $pr_state[1] ) && $sanitized_state_string === $this->sanitize_string( $pr_state[1] ) ) ||
+				( ! empty( $pr_state[2] ) && $sanitized_state_string === $this->sanitize_string( $pr_state[2] ) )
+			) {
+				return $wc_state_abbr;
 			}
+		}
 
-			$match_from_state_input = false;
+		return $state;
+	}
 
-			// China - Adapt dropdown values from Chrome and accept manually typed values like 云南.
-			// WC states: https://github.com/woocommerce/woocommerce/blob/master/i18n/states.php
-			if ( 'CN' === $country ) {
-				$replace_map            = [
-					// Rename regions with different spelling.
-					'Macau'           => 'Macao',
-					'Neimenggu'       => 'Inner Mongolia',
-					'Xizang'          => 'Tibet',
-					// Remove suffixes.
-					'Shi'             => '',
-					'Sheng'           => '',
-					'Zizhiqu'         => '',
-					'Huizuzizhiqu'    => '',
-					'Weiwuerzizhiqu'  => '',
-					'Zhuangzuzizhiqu' => '',
-				];
-				$state                  = trim( str_replace( array_keys( $replace_map ), array_values( $replace_map ), $state ) );
-				$match_from_state_input = true;
-			}
+	/**
+	 * Get normalized state from WooCommerce list of translated states.
+	 *
+	 * @since 5.1.0
+	 *
+	 * @param string $state   Full state name or state code.
+	 * @param string $country Two-letter country code.
+	 *
+	 * @return string Normalized state or original state input value.
+	 */
+	public function get_normalized_state_from_wc_states( $state, $country ) {
+		$wc_states = WC()->countries->get_states( $country );
 
-			foreach ( $wc_valid_states as $wc_state_abbr => $wc_state_value ) {
-				// Match values either from WC states or from the state input.
-				if (
-					( ! $match_from_state_input && preg_match( '/' . preg_quote( $wc_state_value, '/' ) . '/i', $state ) ) ||
-					( $match_from_state_input && preg_match( '/' . preg_quote( $state, '/' ) . '/i', $wc_state_value ) )
-				) {
+		if ( is_array( $wc_states ) ) {
+			foreach ( $wc_states as $wc_state_abbr => $wc_state_value ) {
+				if ( preg_match( '/' . preg_quote( $wc_state_value, '/' ) . '/i', $state ) ) {
 					return $wc_state_abbr;
 				}
 			}
@@ -1180,10 +1210,79 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
+	 * Gets the normalized state/county field because in some
+	 * cases, the state/county field is formatted differently from
+	 * what WC is expecting and throws an error. An example
+	 * for Ireland, the county dropdown in Chrome shows "Co. Clare" format.
+	 *
+	 * @since 5.0.0
+	 * @version 5.1.0
+	 *
+	 * @param string $state   Full state name or an already normalized abbreviation.
+	 * @param string $country Two-letter country code.
+	 *
+	 * @return string Normalized state abbreviation.
+	 */
+	public function get_normalized_state( $state, $country ) {
+		// If it's empty or already normalized, skip.
+		if ( ! $state || $this->is_normalized_state( $state, $country ) ) {
+			return $state;
+		}
+
+		// Try to match state from the Payment Request API list of states.
+		$state = $this->get_normalized_state_from_pr_states( $state, $country );
+
+		// If it's normalized, return.
+		if ( $this->is_normalized_state( $state, $country ) ) {
+			return $state;
+		}
+
+		// If the above doesn't work, fallback to matching against the list of translated
+		// states from WooCommerce.
+		return $this->get_normalized_state_from_wc_states( $state, $country );
+	}
+
+	/**
+	 * The Payment Request API provides its own validation for the address form.
+	 * For some countries, it might not provide a state field, so we need to return a more descriptive
+	 * error message, indicating that the Payment Request button is not supported for that country.
+	 *
+	 * @since 5.1.0
+	 */
+	public function validate_state() {
+		$wc_checkout     = WC_Checkout::instance();
+		$posted_data     = $wc_checkout->get_posted_data();
+		$checkout_fields = $wc_checkout->get_checkout_fields();
+		$countries       = WC()->countries->get_countries();
+
+		$is_supported = true;
+		// Checks if billing state is missing and is required.
+		if ( ! empty( $checkout_fields['billing']['billing_state']['required'] ) && '' === $posted_data['billing_state'] ) {
+			$is_supported = false;
+		}
+
+		// Checks if shipping state is missing and is required.
+		if ( WC()->cart->needs_shipping_address() && ! empty( $checkout_fields['shipping']['shipping_state']['required'] ) && '' === $posted_data['shipping_state'] ) {
+			$is_supported = false;
+		}
+
+		if ( ! $is_supported ) {
+			wc_add_notice(
+				sprintf(
+					/* translators: %s: country. */
+					__( 'The Payment Request button is not supported in %s because some required fields couldn\'t be verified. Please proceed to the checkout page and try again.', 'woocommerce-gateway-stripe' ),
+					isset( $countries[ $posted_data['billing_country'] ] ) ? $countries[ $posted_data['billing_country'] ] : $posted_data['billing_country']
+				),
+				'error'
+			);
+		}
+	}
+
+	/**
 	 * Create order. Security is handled by WC.
 	 *
 	 * @since   3.1.0
-	 * @version 4.0.0
+	 * @version 5.1.0
 	 */
 	public function ajax_create_order() {
 		if ( WC()->cart->is_empty() ) {
@@ -1193,6 +1292,9 @@ class WC_Stripe_Payment_Request {
 		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
 		}
+
+		// In case the state is required, but is missing, add a more descriptive error notice.
+		$this->validate_state();
 
 		// Normalizes billing and shipping state values.
 		$this->normalize_state();
