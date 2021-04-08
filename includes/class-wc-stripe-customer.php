@@ -525,7 +525,7 @@ class WC_Stripe_Customer {
 			'sv_SE' => 'sv-SE',
 		];
 
-		$preferred = isset( $stripe_locales[ $locale ] ) ? $stripe_locales[ $locale ] : '';
+		$preferred = isset( $stripe_locales[ $locale ] ) ? $stripe_locales[ $locale ] : 'en-US';
 		return [ $preferred ];
 	}
 
