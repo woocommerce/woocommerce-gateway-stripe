@@ -31,7 +31,7 @@ const openIntentModal = ( {
 		! paymentDetails.setup_intent &&
 		! paymentDetails.payment_intent_secret
 	) {
-		return checkoutResponse;
+		return true;
 	}
 	const isSetupIntent = !! paymentDetails.setupIntent;
 	const verificationUrl = paymentDetails.verification_endpoint;
