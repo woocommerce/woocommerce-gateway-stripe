@@ -630,6 +630,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( ! empty( $_POST['stripe_source'] ) ) {
 			$source_object = self::get_source_object( wc_clean( wp_unslash( $_POST['stripe_source'] ) ) );
 			$source_id     = $source_object->id;
+
+			// This checks to see if customer opted to save the payment method to file.
+			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
+
+			/**
+			 * This is true if the user wants to store the card to their account.
+			 * Criteria to save to file is they are logged in, they opted to save or product requirements and the source is
+			 * actually reusable. Either that or force_save_source is true.
+			 */
+			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && 'reusable' === $source_object->usage ) || $force_save_source ) {
+				$customer->attach_source( $source_object->id );
+			}
 		} elseif ( $this->is_using_saved_payment_method() ) {
 			// Use an existing token, and then process the payment.
 			$wc_token_id = isset( $_POST[ 'wc-' . $payment_method . '-payment-token' ] ) ? wc_clean( wp_unslash( $_POST[ 'wc-' . $payment_method . '-payment-token' ] ) ) : '';
