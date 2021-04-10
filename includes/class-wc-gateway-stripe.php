@@ -709,6 +709,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 	}
 
+	/**
+	 * Saves payment method
+	 *
+	 * @param object $source_object
+	 * @throws WC_Stripe_Exception
+	 */
 	public function save_payment_method( $source_object ) {
 		$user_id  = get_current_user_id();
 		$customer = new WC_Stripe_Customer( $user_id );
