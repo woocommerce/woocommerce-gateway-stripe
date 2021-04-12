@@ -1047,7 +1047,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			'redirect_to' => rawurlencode( $result['redirect'] ),
 		];
 
-		if ( $this->save_payment_method_requested() ) {
+		$force_save_source_value = apply_filters( 'wc_stripe_force_save_source', false );
+
+		if ( $this->save_payment_method_requested() || $force_save_source_value ) {
 			$query_params['save_payment_method'] = true;
 		}
 
