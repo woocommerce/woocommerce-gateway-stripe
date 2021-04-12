@@ -99,6 +99,40 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
+	 * Checks whether authentication is required for checkout.
+	 *
+	 * @since 5.1.0
+	 *
+	 * @return bool
+	 */
+	public function is_authentication_required() {
+		// If guest checkout is disabled, authentication might be required.
+		if ( 'no' === get_option( 'woocommerce_enable_guest_checkout', 'yes' ) ) {
+			// If account creation is not possible, authentication is required.
+			return ! $this->is_account_creation_possible();
+		}
+
+		return false;
+	}
+
+	/**
+	 * Checks whether account creation is possible during checkout.
+	 *
+	 * @since 5.1.0
+	 *
+	 * @return bool
+	 */
+	public function is_account_creation_possible() {
+		// If automatically generate username/password are disabled, the Payment Request API
+		// can't include any of those fields, so account creation is not possible.
+		return (
+			'yes' === get_option( 'woocommerce_enable_signup_and_login_from_checkout', 'no' ) &&
+			'yes' === get_option( 'woocommerce_registration_generate_username', 'yes' ) &&
+			'yes' === get_option( 'woocommerce_registration_generate_password', 'yes' )
+		);
+	}
+
+	/**
 	 * Checks if keys are set and valid.
 	 *
 	 * @since  4.0.6
@@ -441,19 +475,23 @@ class WC_Stripe_Payment_Request {
 				'booking',
 				'bundle',
 				'composite',
-				'mix-and-match',
 			]
 		);
 	}
 
 	/**
-	 * Checks the cart to see if all items are allowed to used.
+	 * Checks the cart to see if all items are allowed to be used.
 	 *
 	 * @since   3.1.4
 	 * @version 4.0.0
 	 * @return  boolean
 	 */
 	public function allowed_items_in_cart() {
+		// Pre Orders compatibility where we don't support charge upon release.
+		if ( class_exists( 'WC_Pre_Orders_Cart' ) && WC_Pre_Orders_Cart::cart_contains_pre_order() && class_exists( 'WC_Pre_Orders_Product' ) && WC_Pre_Orders_Product::product_is_charged_upon_release( WC_Pre_Orders_Cart::get_pre_order_product() ) ) {
+			return false;
+		}
+
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 			$_product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
 
@@ -461,13 +499,13 @@ class WC_Stripe_Payment_Request {
 				return false;
 			}
 
-			// Trial subscriptions with shipping are not supported
-			if ( class_exists( 'WC_Subscriptions_Order' ) && WC_Subscriptions_Cart::cart_contains_subscription() && $_product->needs_shipping() && WC_Subscriptions_Product::get_trial_length( $_product ) > 0 ) {
+			// Not supported for subscription products when user is not authenticated and account creation is not possible.
+			if ( class_exists( 'WC_Subscriptions_Product' ) && WC_Subscriptions_Product::is_subscription( $_product ) && ! is_user_logged_in() && ! $this->is_account_creation_possible() ) {
 				return false;
 			}
 
-			// Pre Orders compatbility where we don't support charge upon release.
-			if ( class_exists( 'WC_Pre_Orders_Order' ) && WC_Pre_Orders_Cart::cart_contains_pre_order() && WC_Pre_Orders_Product::product_is_charged_upon_release( WC_Pre_Orders_Cart::get_pre_order_product() ) ) {
+			// Trial subscriptions with shipping are not supported.
+			if ( class_exists( 'WC_Subscriptions_Product' ) && WC_Subscriptions_Product::is_subscription( $_product ) && $_product->needs_shipping() && WC_Subscriptions_Product::get_trial_length( $_product ) > 0 ) {
 				return false;
 			}
 		}
@@ -645,9 +683,15 @@ class WC_Stripe_Payment_Request {
 	 * @return boolean
 	 */
 	private function should_show_payment_button_on_cart() {
+		// Not supported when user isn't authenticated and authentication is required.
+		if ( ! is_user_logged_in() && $this->is_authentication_required() ) {
+			return false;
+		}
+
 		if ( ! apply_filters( 'wc_stripe_show_payment_request_on_cart', true ) ) {
 			return false;
 		}
+
 		if ( ! $this->allowed_items_in_cart() ) {
 			WC_Stripe_Logger::log( 'Items in the cart has unsupported product type ( Payment Request button disabled )' );
 			return false;
@@ -674,14 +718,28 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
-		// Trial subscriptions with shipping are not supported
-		if ( class_exists( 'WC_Subscriptions_Order' ) && $product->needs_shipping() && WC_Subscriptions_Product::get_trial_length( $product ) > 0 ) {
+		// Not supported when user isn't authenticated and authentication is required.
+		if ( ! is_user_logged_in() && $this->is_authentication_required() ) {
+			return false;
+		}
+
+		// Not supported for subscription products when user is not authenticated and account creation is not possible.
+		if ( class_exists( 'WC_Subscriptions_Product' ) && WC_Subscriptions_Product::is_subscription( $product ) && ! is_user_logged_in() && ! $this->is_account_creation_possible() ) {
+			return false;
+		}
+
+		// Trial subscriptions with shipping are not supported.
+		if ( class_exists( 'WC_Subscriptions_Product' ) && $product->needs_shipping() && WC_Subscriptions_Product::get_trial_length( $product ) > 0 ) {
 			return false;
 		}
 
 		// Pre Orders charge upon release not supported.
-		if ( class_exists( 'WC_Pre_Orders_Order' ) && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
-			WC_Stripe_Logger::log( 'Pre Order charge upon release is not supported. ( Payment Request button disabled )' );
+		if ( class_exists( 'WC_Pre_Orders_Product' ) && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
+			return false;
+		}
+
+		// Composite products are not supported on the product page.
+		if ( class_exists( 'WC_Composite_Products' ) && function_exists( 'is_composite_product' ) && is_composite_product() ) {
 			return false;
 		}
 
@@ -1045,7 +1103,7 @@ class WC_Stripe_Payment_Request {
 	 * Normalizes billing and shipping state fields.
 	 *
 	 * @since 4.0.0
-	 * @version 5.0.0
+	 * @version 5.1.0
 	 */
 	public function normalize_state() {
 		$billing_country  = ! empty( $_POST['billing_country'] ) ? wc_clean( wp_unslash( $_POST['billing_country'] ) ) : '';
@@ -1063,56 +1121,86 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Gets the normalized state/county field because in some
-	 * cases, the state/county field is formatted differently from
-	 * what WC is expecting and throws an error. An example
-	 * for Ireland the county dropdown in Chrome shows "Co. Clare" format.
+	 * Checks if given state is normalized.
 	 *
-	 * @since 5.0.0
+	 * @since 5.1.0
 	 *
-	 * @param string $state   Full state name or an already normalized abbreviation.
+	 * @param string $state State.
 	 * @param string $country Two-letter country code.
 	 *
-	 * @return string Normalized state abbreviation.
+	 * @return bool Whether state is normalized or not.
 	 */
-	public function get_normalized_state( $state, $country ) {
-		$wc_valid_states = $country ? WC()->countries->get_states( $country ) : [];
+	public function is_normalized_state( $state, $country ) {
+		$wc_states = WC()->countries->get_states( $country );
+		return (
+			is_array( $wc_states ) &&
+			in_array( $state, array_keys( $wc_states ), true )
+		);
+	}
 
-		if ( $state && $country && is_array( $wc_valid_states ) && count( $wc_valid_states ) > 0 ) {
+	/**
+	 * Sanitize string for comparison.
+	 *
+	 * @since 5.1.0
+	 *
+	 * @param string $string String to be sanitized.
+	 *
+	 * @return string The sanitized string.
+	 */
+	public function sanitize_string( $string ) {
+		return trim( wc_strtolower( remove_accents( $string ) ) );
+	}
 
-			// If it's already normalized, skip.
-			if ( in_array( $state, array_keys( $wc_valid_states ) ) ) {
-				return $state;
+	/**
+	 * Get normalized state from Payment Request API dropdown list of states.
+	 *
+	 * @since 5.1.0
+	 *
+	 * @param string $state   Full state name or state code.
+	 * @param string $country Two-letter country code.
+	 *
+	 * @return string Normalized state or original state input value.
+	 */
+	public function get_normalized_state_from_pr_states( $state, $country ) {
+		// Include Payment Request API State list for compatibility with WC countries/states.
+		include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-payment-request-button-states.php';
+		$pr_states = WC_Stripe_Payment_Request_Button_States::STATES;
+
+		if ( ! isset( $pr_states[ $country ] ) ) {
+			return $state;
+		}
+
+		foreach ( $pr_states[ $country ] as $wc_state_abbr => $pr_state ) {
+			$sanitized_state_string = $this->sanitize_string( $state );
+			// Checks if input state matches with Payment Request state code (0), name (1) or localName (2).
+			if (
+				( ! empty( $pr_state[0] ) && $sanitized_state_string === $this->sanitize_string( $pr_state[0] ) ) ||
+				( ! empty( $pr_state[1] ) && $sanitized_state_string === $this->sanitize_string( $pr_state[1] ) ) ||
+				( ! empty( $pr_state[2] ) && $sanitized_state_string === $this->sanitize_string( $pr_state[2] ) )
+			) {
+				return $wc_state_abbr;
 			}
+		}
 
-			$match_from_state_input = false;
+		return $state;
+	}
 
-			// China - Adapt dropdown values from Chrome and accept manually typed values like 云南.
-			// WC states: https://github.com/woocommerce/woocommerce/blob/master/i18n/states.php
-			if ( 'CN' === $country ) {
-				$replace_map            = [
-					// Rename regions with different spelling.
-					'Macau'           => 'Macao',
-					'Neimenggu'       => 'Inner Mongolia',
-					'Xizang'          => 'Tibet',
-					// Remove suffixes.
-					'Shi'             => '',
-					'Sheng'           => '',
-					'Zizhiqu'         => '',
-					'Huizuzizhiqu'    => '',
-					'Weiwuerzizhiqu'  => '',
-					'Zhuangzuzizhiqu' => '',
-				];
-				$state                  = trim( str_replace( array_keys( $replace_map ), array_values( $replace_map ), $state ) );
-				$match_from_state_input = true;
-			}
+	/**
+	 * Get normalized state from WooCommerce list of translated states.
+	 *
+	 * @since 5.1.0
+	 *
+	 * @param string $state   Full state name or state code.
+	 * @param string $country Two-letter country code.
+	 *
+	 * @return string Normalized state or original state input value.
+	 */
+	public function get_normalized_state_from_wc_states( $state, $country ) {
+		$wc_states = WC()->countries->get_states( $country );
 
-			foreach ( $wc_valid_states as $wc_state_abbr => $wc_state_value ) {
-				// Match values either from WC states or from the state input.
-				if (
-					( ! $match_from_state_input && preg_match( '/' . preg_quote( $wc_state_value, '/' ) . '/i', $state ) ) ||
-					( $match_from_state_input && preg_match( '/' . preg_quote( $state, '/' ) . '/i', $wc_state_value ) )
-				) {
+		if ( is_array( $wc_states ) ) {
+			foreach ( $wc_states as $wc_state_abbr => $wc_state_value ) {
+				if ( preg_match( '/' . preg_quote( $wc_state_value, '/' ) . '/i', $state ) ) {
 					return $wc_state_abbr;
 				}
 			}
@@ -1122,10 +1210,79 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
+	 * Gets the normalized state/county field because in some
+	 * cases, the state/county field is formatted differently from
+	 * what WC is expecting and throws an error. An example
+	 * for Ireland, the county dropdown in Chrome shows "Co. Clare" format.
+	 *
+	 * @since 5.0.0
+	 * @version 5.1.0
+	 *
+	 * @param string $state   Full state name or an already normalized abbreviation.
+	 * @param string $country Two-letter country code.
+	 *
+	 * @return string Normalized state abbreviation.
+	 */
+	public function get_normalized_state( $state, $country ) {
+		// If it's empty or already normalized, skip.
+		if ( ! $state || $this->is_normalized_state( $state, $country ) ) {
+			return $state;
+		}
+
+		// Try to match state from the Payment Request API list of states.
+		$state = $this->get_normalized_state_from_pr_states( $state, $country );
+
+		// If it's normalized, return.
+		if ( $this->is_normalized_state( $state, $country ) ) {
+			return $state;
+		}
+
+		// If the above doesn't work, fallback to matching against the list of translated
+		// states from WooCommerce.
+		return $this->get_normalized_state_from_wc_states( $state, $country );
+	}
+
+	/**
+	 * The Payment Request API provides its own validation for the address form.
+	 * For some countries, it might not provide a state field, so we need to return a more descriptive
+	 * error message, indicating that the Payment Request button is not supported for that country.
+	 *
+	 * @since 5.1.0
+	 */
+	public function validate_state() {
+		$wc_checkout     = WC_Checkout::instance();
+		$posted_data     = $wc_checkout->get_posted_data();
+		$checkout_fields = $wc_checkout->get_checkout_fields();
+		$countries       = WC()->countries->get_countries();
+
+		$is_supported = true;
+		// Checks if billing state is missing and is required.
+		if ( ! empty( $checkout_fields['billing']['billing_state']['required'] ) && '' === $posted_data['billing_state'] ) {
+			$is_supported = false;
+		}
+
+		// Checks if shipping state is missing and is required.
+		if ( WC()->cart->needs_shipping_address() && ! empty( $checkout_fields['shipping']['shipping_state']['required'] ) && '' === $posted_data['shipping_state'] ) {
+			$is_supported = false;
+		}
+
+		if ( ! $is_supported ) {
+			wc_add_notice(
+				sprintf(
+					/* translators: %s: country. */
+					__( 'The Payment Request button is not supported in %s because some required fields couldn\'t be verified. Please proceed to the checkout page and try again.', 'woocommerce-gateway-stripe' ),
+					isset( $countries[ $posted_data['billing_country'] ] ) ? $countries[ $posted_data['billing_country'] ] : $posted_data['billing_country']
+				),
+				'error'
+			);
+		}
+	}
+
+	/**
 	 * Create order. Security is handled by WC.
 	 *
 	 * @since   3.1.0
-	 * @version 4.0.0
+	 * @version 5.1.0
 	 */
 	public function ajax_create_order() {
 		if ( WC()->cart->is_empty() ) {
@@ -1135,6 +1292,9 @@ class WC_Stripe_Payment_Request {
 		if ( ! defined( 'WOOCOMMERCE_CHECKOUT' ) ) {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
 		}
+
+		// In case the state is required, but is missing, add a more descriptive error notice.
+		$this->validate_state();
 
 		// Normalizes billing and shipping state values.
 		$this->normalize_state();
