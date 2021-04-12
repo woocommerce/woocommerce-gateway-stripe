@@ -476,10 +476,20 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
+	 * Checks if this page contains a cart or checkout block.
+	 *
+	 * @since 5.2.0
+	 * @return boolean
+	 */
+	public function is_block() {
+		return has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' );
+	}
+
+	/**
 	 * Load public scripts and styles.
 	 *
 	 * @since   3.1.0
-	 * @version 4.0.0
+	 * @version 5.2.0
 	 */
 	public function scripts() {
 		// If keys are not set bail.
@@ -494,11 +504,14 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		if ( ! is_product() && ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) {
+		// If page is not supported, bail.
+		if ( ! $this->is_block() && ! is_product() && ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) {
 			return;
 		}
 
 		if ( is_product() && ! $this->should_show_payment_button_on_product_page() ) {
+			return;
+		} elseif ( ! $this->should_show_payment_button_on_cart() ) {
 			return;
 		}
 
@@ -564,7 +577,7 @@ class WC_Stripe_Payment_Request {
 	 * Display the payment request button.
 	 *
 	 * @since   4.0.0
-	 * @version 4.0.0
+	 * @version 5.2.0
 	 */
 	public function display_payment_request_button_html() {
 		global $post;
@@ -580,12 +593,6 @@ class WC_Stripe_Payment_Request {
 		}
 
 		if ( is_checkout() && ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post ) ) {
-			return;
-		}
-
-		if ( is_product() && ! $this->should_show_payment_button_on_product_page() ) {
-			return;
-		} elseif ( ! $this->should_show_payment_button_on_cart() ) {
 			return;
 		}
 		?>
@@ -609,7 +616,7 @@ class WC_Stripe_Payment_Request {
 	 * Display payment request button separator.
 	 *
 	 * @since   4.0.0
-	 * @version 4.0.0
+	 * @version 5.2.0
 	 */
 	public function display_payment_request_button_separator_html() {
 		global $post;
@@ -625,12 +632,6 @@ class WC_Stripe_Payment_Request {
 		}
 
 		if ( is_checkout() && ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post ) ) {
-			return;
-		}
-
-		if ( is_product() && ! $this->should_show_payment_button_on_product_page() ) {
-			return;
-		} elseif ( ! $this->should_show_payment_button_on_cart() ) {
 			return;
 		}
 		?>
