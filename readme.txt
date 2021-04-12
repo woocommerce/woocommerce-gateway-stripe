@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 5.1.0 - 2021-04-07 =
 
 * Fix - Don't attempt to submit level 3 data for non-US merchants.
+* Fix - Pass customer language/locale to Stripe upon creation or modification.
 * Fix - Hide Payment Request Buttons when guest checkout is disabled.
 * Fix - Match Payment Request states with WooCommerce states.
 
