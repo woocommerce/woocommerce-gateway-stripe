@@ -131,10 +131,11 @@ class WC_Stripe_Payment_Request {
 	 * This is needed so nonces can be verified by AJAX Request.
 	 *
 	 * @since  4.0.0
+	 * @version 5.2.0
 	 * @return void
 	 */
 	public function set_session() {
-		if ( ! is_product() || ( isset( WC()->session ) && WC()->session->has_session() ) ) {
+		if ( ! $this->is_product() || ( isset( WC()->session ) && WC()->session->has_session() ) ) {
 			return;
 		}
 
@@ -267,17 +268,15 @@ class WC_Stripe_Payment_Request {
 	 * Gets the product data for the currently viewed page
 	 *
 	 * @since   4.0.0
-	 * @version 4.0.0
+	 * @version 5.2.0
 	 * @return  mixed Returns false if not on a product page, the product information otherwise.
 	 */
 	public function get_product_data() {
-		if ( ! is_product() ) {
+		if ( ! $this->is_product() ) {
 			return false;
 		}
 
-		global $post;
-
-		$product = wc_get_product( $post->ID );
+		$product = $this->get_product();
 
 		if ( 'variable' === $product->get_type() ) {
 			$attributes = wc_clean( wp_unslash( $_GET ) );
@@ -486,6 +485,41 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
+	 * Checks if this is a product page or content contains a product_page shortcode.
+	 *
+	 * @since 5.2.0
+	 * @return boolean
+	 */
+	public function is_product() {
+		return is_product() || wc_post_content_has_shortcode( 'product_page' );
+	}
+
+	/**
+	 * Get product from product page or product_page shortcode.
+	 *
+	 * @since 5.2.0
+	 * @return WC_Product Product object.
+	 */
+	public function get_product() {
+		global $post;
+
+		if ( is_product() ) {
+			return wc_get_product( $post->ID );
+		} elseif ( wc_post_content_has_shortcode( 'product_page' ) ) {
+			// Get id from product_page shortcode.
+			preg_match( '/\[product_page id="(?<id>\d+)"\]/', $post->post_content, $shortcode_match );
+
+			if ( ! isset( $shortcode_match['id'] ) ) {
+				return false;
+			}
+
+			return wc_get_product( $shortcode_match['id'] );
+		}
+
+		return false;
+	}
+
+	/**
 	 * Load public scripts and styles.
 	 *
 	 * @since   3.1.0
@@ -505,11 +539,11 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// If page is not supported, bail.
-		if ( ! $this->is_block() && ! is_product() && ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) {
+		if ( ! $this->is_block() && ! $this->is_product() && ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) {
 			return;
 		}
 
-		if ( is_product() && ! $this->should_show_payment_button_on_product_page() ) {
+		if ( $this->is_product() && ! $this->should_show_payment_button_on_product_page() ) {
 			return;
 		} elseif ( ! $this->should_show_payment_button_on_cart() ) {
 			return;
@@ -556,7 +590,7 @@ class WC_Stripe_Payment_Request {
 				'css_selector' => $this->custom_button_selector(),
 				'branded_type' => $this->get_button_branded_type(),
 			],
-			'is_product_page' => is_product(),
+			'is_product_page' => $this->is_product(),
 			'product'         => $this->get_product_data(),
 		];
 
@@ -588,7 +622,7 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		if ( ! is_cart() && ! is_checkout() && ! is_product() && ! isset( $_GET['pay_for_order'] ) ) {
+		if ( ! is_cart() && ! is_checkout() && ! $this->is_product() && ! isset( $_GET['pay_for_order'] ) ) {
 			return;
 		}
 
@@ -627,7 +661,7 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		if ( ! is_cart() && ! is_checkout() && ! is_product() && ! isset( $_GET['pay_for_order'] ) ) {
+		if ( ! is_cart() && ! is_checkout() && ! $this->is_product() && ! isset( $_GET['pay_for_order'] ) ) {
 			return;
 		}
 
@@ -660,16 +694,17 @@ class WC_Stripe_Payment_Request {
 	 * Whether payment button html should be rendered
 	 *
 	 * @since  4.3.2
+	 * @version 5.2.0
 	 * @return boolean
 	 */
 	private function should_show_payment_button_on_product_page() {
 		global $post;
 
-		$product = wc_get_product( $post->ID );
-
 		if ( apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post ) ) {
 			return false;
 		}
+
+		$product = $this->get_product();
 
 		if ( ! is_object( $product ) || ! in_array( $product->get_type(), $this->supported_product_types() ) ) {
 			return false;
