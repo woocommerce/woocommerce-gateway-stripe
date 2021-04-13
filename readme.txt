@@ -126,6 +126,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 5.x.x - 2021-xx-xx =
+* Fix - Orders won't transition to 'Refunded' state if refund can't be created.
+
 = 5.1.0 - 2021-04-07 =
 
 * Fix - Don't attempt to submit level 3 data for non-US merchants.
