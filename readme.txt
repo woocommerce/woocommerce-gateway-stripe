@@ -126,6 +126,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
+= 5.2.0 - 2021-xx-xx =
+
+* Fix - Use `get_parent` method to avoid accessing `order` subscription property directly.
+
 = 5.1.0 - 2021-04-07 =
 
 * Fix - Don't attempt to submit level 3 data for non-US merchants.
