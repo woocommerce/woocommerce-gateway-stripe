@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 5.2.0 - 2021-xx-xx =
 
 * Fix - Use `get_parent` method to avoid accessing `order` subscription property directly.
+* Fix - Orders won't transition to 'Refunded' state if refund can't be created.
 
 = 5.1.0 - 2021-04-07 =
 

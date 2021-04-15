@@ -912,7 +912,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( ! empty( $response->error ) ) {
 			WC_Stripe_Logger::log( 'Error: ' . $response->error->message );
 
-			return $response;
+			return new WP_Error(
+				'stripe_error',
+				sprintf(
+					/* translators: %1$s is a stripe error message */
+					__( 'There was a problem initiating a refund: %1$s', 'woocommerce-gateway-stripe' ),
+					$response->error->message
+				)
+			);
 
 		} elseif ( ! empty( $response->id ) ) {
 			$formatted_amount = wc_price( $response->amount / 100 );
