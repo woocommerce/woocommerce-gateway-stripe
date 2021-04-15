@@ -629,7 +629,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			$force_save_source_value = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $prepared_source->source );
 
-			if ( 'succeeded' === $intent->status && ( $this->save_payment_method_requested() || $force_save_source_value ) ) {
+			if ( 'succeeded' === $intent->status && ! $this->is_using_saved_payment_method() && ( $this->save_payment_method_requested() || $force_save_source_value ) ) {
 				$this->save_payment_method( $prepared_source->source_object );
 			}
 
