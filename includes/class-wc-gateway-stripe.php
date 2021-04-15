@@ -627,6 +627,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$intent = $this->confirm_intent( $intent, $order, $prepared_source );
 			}
 
+			$force_save_source_value = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $prepared_source->source );
+
+			if ( 'succeeded' === $intent->status && ! $this->is_using_saved_payment_method() && ( $this->save_payment_method_requested() || $force_save_source_value ) ) {
+				$this->save_payment_method( $prepared_source->source_object );
+			}
+
 			if ( ! empty( $intent->error ) ) {
 				$this->maybe_remove_non_existent_customer( $intent->error, $order );
 
@@ -700,6 +706,28 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				'result'   => 'fail',
 				'redirect' => '',
 			];
+		}
+	}
+
+	/**
+	 * Saves payment method
+	 *
+	 * @param object $source_object
+	 * @throws WC_Stripe_Exception
+	 */
+	public function save_payment_method( $source_object ) {
+		$user_id  = get_current_user_id();
+		$customer = new WC_Stripe_Customer( $user_id );
+
+		if ( ( $user_id && 'reusable' === $source_object->usage ) ) {
+			$response = $customer->add_source( $source_object->id );
+
+			if ( ! empty( $response->error ) ) {
+				throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
+			}
+			if ( is_wp_error( $response ) ) {
+				throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
+			}
 		}
 	}
 
@@ -1013,14 +1041,19 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Put the final thank you page redirect into the verification URL.
-		$verification_url = add_query_arg(
-			[
-				'order'       => $order_id,
-				'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
-				'redirect_to' => rawurlencode( $result['redirect'] ),
-			],
-			WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
-		);
+		$query_params = [
+			'order'       => $order_id,
+			'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
+			'redirect_to' => rawurlencode( $result['redirect'] ),
+		];
+
+		$force_save_source_value = apply_filters( 'wc_stripe_force_save_source', false );
+
+		if ( $this->save_payment_method_requested() || $force_save_source_value ) {
+			$query_params['save_payment_method'] = true;
+		}
+
+		$verification_url = add_query_arg( $query_params, WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' ) );
 
 		if ( isset( $result['payment_intent_secret'] ) ) {
 			$redirect = sprintf( '#confirm-pi-%s:%s', $result['payment_intent_secret'], rawurlencode( $verification_url ) );
