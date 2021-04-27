@@ -1,4 +1,9 @@
 /**
+ * External dependencies
+ */
+import { __ } from '@wordpress/i18n';
+
+/**
  * Internal dependencies
  */
 import { getStripeServerData } from '../stripe-utils';
@@ -7,7 +12,7 @@ export const CustomButton = ( { onButtonClicked } ) => {
 	const {
 		theme = 'dark',
 		height = '44',
-		customLabel = 'Buy now',
+		customLabel = __( 'Buy now', 'woocommerce-gateway-stripe' ),
 	} = getStripeServerData().button;
 	return (
 		<button
