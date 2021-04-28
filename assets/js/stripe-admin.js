@@ -129,22 +129,10 @@ jQuery( function( $ ) {
 			// server time is off from browser time by > 4 minutes.
 			var timeDifference = Date.now() / 1000 - wc_stripe_settings_params.time;
 			var isTimeOutOfSync = Math.abs( timeDifference ) > 4 * 60;
-			$( '#woocommerce_stripe_test_webhook_secret, #woocommerce_stripe_webhook_secret' )
-				.on( 'change input', function() {
-					var $td = $( this ).closest( 'td' );
-					var $warning = $td.find( '.webhook_secret_time_sync_warning' );
-					var hasWebhookSecretValue = $( this ).val().length > 0;
-
-					if ( hasWebhookSecretValue ){
-						var isWarningShown = $warning.length > 0;
-						if ( isTimeOutOfSync && ! isWarningShown ) {
-							$td.append( '<p class="webhook_secret_time_sync_warning">' + wc_stripe_settings_params.i18n_out_of_sync + '</p>' );
-						}
-					} else {
-						$warning.remove();
-					}
-				} )
-				.change();
+			if ( isTimeOutOfSync ) {
+				var $td = $( '#woocommerce_stripe_test_webhook_secret, #woocommerce_stripe_webhook_secret' ).closest( 'td' );
+				$td.append( '<p>' + wc_stripe_settings_params.i18n_out_of_sync + '</p>' );
+			}
 		}
 	};
 
