@@ -131,7 +131,7 @@ jQuery( function( $ ) {
 			var isTimeOutOfSync = Math.abs( timeDifference ) > 4 * 60;
 			if ( isTimeOutOfSync ) {
 				var $td = $( '#woocommerce_stripe_test_webhook_secret, #woocommerce_stripe_webhook_secret' ).closest( 'td' );
-				$td.append( '<p class="webhook_secret_time_sync_warning">' + wc_stripe_settings_params.i18n_out_of_sync + '</p>' );
+				$td.append( '<p>' + wc_stripe_settings_params.i18n_out_of_sync + '</p>' );
 			}
 		}
 	};
