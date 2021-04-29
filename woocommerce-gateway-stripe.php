@@ -214,6 +214,7 @@ function woocommerce_gateway_stripe() {
 						define( 'WC_STRIPE_INSTALLING', true );
 					}
 
+					add_wcpay_incetives_variant();
 					$this->update_plugin_version();
 				}
 			}
@@ -390,3 +391,18 @@ function woocommerce_gateway_stripe_init() {
 
 	woocommerce_gateway_stripe();
 }
+
+/**
+ * Add wcpay_incentives_variant option for WC Pay's store acquisition experiment v2
+ * P2 post can be found at https://wp.me/paJDYF-1uJ.
+ *
+ * This method can be removed when the experiement is finished.
+ */
+function add_wcpay_incetives_variant() {
+	$config_name = 'wcpay_incentives_variant';
+	if ( false === get_option( $config_name, false ) ) {
+		update_option( $config_name, mt_rand( 1, 5 ), false );
+	}
+}
+
+register_activation_hook( __FILE__, 'add_wcpay_incetives_variant' );
