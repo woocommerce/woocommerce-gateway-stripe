@@ -13,6 +13,7 @@ const releaseFolder = 'release';
 const targetFolder = 'release/' + pluginSlug;
 const filesToCopy = [
 	'assets',
+	'build',
 	'includes',
 	'languages',
 	'templates',
