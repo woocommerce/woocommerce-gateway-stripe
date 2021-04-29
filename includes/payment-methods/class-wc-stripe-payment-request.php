@@ -204,8 +204,6 @@ class WC_Stripe_Payment_Request {
 		add_action( 'wc_ajax_wc_stripe_log_errors', [ $this, 'ajax_log_errors' ] );
 
 		add_filter( 'woocommerce_gateway_title', [ $this, 'filter_gateway_title' ], 10, 2 );
-		add_filter( 'woocommerce_validate_postcode', [ $this, 'postal_code_validation' ], 10, 3 );
-
 		add_action( 'woocommerce_checkout_order_processed', [ $this, 'add_order_meta' ], 10, 2 );
 	}
 
@@ -394,35 +392,29 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Removes postal code validation from WC.
+	 * Normalizes postal code in case of redacted data from Apple Pay.
 	 *
-	 * @since   3.1.4
-	 * @version 4.0.0
+	 * @since 5.2.0
+	 *
+	 * @param string $postcode Postal code.
+	 * @param string $country Country.
 	 */
-	public function postal_code_validation( $valid, $postcode, $country ) {
-		$gateways = WC()->payment_gateways->get_available_payment_gateways();
-
-		if ( ! isset( $gateways['stripe'] ) ) {
-			return $valid;
-		}
-
-		$payment_request_type = isset( $_POST['payment_request_type'] ) ? wc_clean( wp_unslash( $_POST['payment_request_type'] ) ) : '';
-
-		if ( 'apple_pay' !== $payment_request_type ) {
-			return $valid;
-		}
-
+	public function get_normalized_postal_code( $postcode, $country ) {
 		/**
-		 * Currently Apple Pay truncates postal codes from UK and Canada to first 3 characters
+		 * Currently, Apple Pay truncates the UK and Canadian postal codes to the first 4 and 3 characters respectively
 		 * when passing it back from the shippingcontactselected object. This causes WC to invalidate
-		 * the order and not let it go through. The remedy for now is just to remove this validation.
-		 * Note that this only works with shipping providers that don't validate full postal codes.
+		 * the postal code and not calculate shipping zones correctly.
 		 */
-		if ( 'GB' === $country || 'CA' === $country ) {
-			return true;
+		if ( 'GB' === $country ) {
+			// Replaces a redacted string with something like LN10***.
+			return str_pad( preg_replace( '/\s+/', '', $postcode ), 7, '*' );
+		}
+		if ( 'CA' === $country ) {
+			// Replaces a redacted string with something like L4Y***.
+			return str_pad( preg_replace( '/\s+/', '', $postcode ), 6, '*' );
 		}
 
-		return $valid;
+		return $postcode;
 	}
 
 	/**
@@ -1322,6 +1314,9 @@ class WC_Stripe_Payment_Request {
 
 		// Normalizes state to calculate shipping zones.
 		$state = $this->get_normalized_state( $state, $country );
+
+		// Normalizes postal code in case of redacted data from Apple Pay.
+		$postcode = $this->get_normalized_postal_code( $postcode, $country );
 
 		WC()->shipping->reset_shipping();
 
