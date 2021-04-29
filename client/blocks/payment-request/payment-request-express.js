@@ -78,13 +78,17 @@ const PaymentRequestExpressComponent = ( {
 
 	// locale is not a valid value for the paymentRequestButton style.
 	// Make sure `theme` defaults to 'dark' if it's not found in the server provided configuration.
-	const { theme = 'dark' } = getStripeServerData().button;
+	const {
+		type = 'default',
+		theme = 'dark',
+		height = '48',
+	} = getStripeServerData().button;
 
 	const paymentRequestButtonStyle = {
 		paymentRequestButton: {
-			type: 'default',
+			type,
 			theme,
-			height: '48px',
+			height: `${ height }px`,
 		},
 	};
 
