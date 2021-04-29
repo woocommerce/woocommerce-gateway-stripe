@@ -214,7 +214,7 @@ function woocommerce_gateway_stripe() {
 						define( 'WC_STRIPE_INSTALLING', true );
 					}
 
-					add_wcpay_incetives_variant();
+					add_woocommerce_inbox_variant();
 					$this->update_plugin_version();
 				}
 			}
@@ -393,16 +393,16 @@ function woocommerce_gateway_stripe_init() {
 }
 
 /**
- * Add wcpay_incentives_variant option for WC Pay's store acquisition experiment v2
- * P2 post can be found at https://wp.me/paJDYF-1uJ.
+ * Add woocommerce_inbox_variant for the Remote Inbox Notification.
  *
- * This method can be removed when the experiement is finished.
+ * P2 post can be found at https://wp.me/paJDYF-1uJ.
  */
-function add_wcpay_incetives_variant() {
-	$config_name = 'wcpay_incentives_variant';
-	if ( false === get_option( $config_name, false ) ) {
-		update_option( $config_name, mt_rand( 1, 5 ), false );
+if ( ! function_exists( 'add_woocommerce_inbox_variant' ) ) {
+	function add_woocommerce_inbox_variant() {
+		$config_name = 'woocommerce_inbox_variant';
+		if ( false === get_option( $config_name, false ) ) {
+			update_option( $config_name, wp_rand( 1, 5 ), false );
+		}
 	}
 }
-
-register_activation_hook( __FILE__, 'add_wcpay_incetives_variant' );
+register_activation_hook( __FILE__, 'add_woocommerce_inbox_variant' );
