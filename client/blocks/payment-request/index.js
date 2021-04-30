@@ -22,11 +22,6 @@ let isStripeInitialized = false,
 // Initialise stripe API client and determine if payment method can be used
 // in current environment (e.g. geo + shopper has payment settings configured).
 function paymentRequestAvailable( { currencyCode, totalPrice } ) {
-	// Stripe only supports carts of greater value than 30 cents.
-	if ( totalPrice < 30 ) {
-		return false;
-	}
-
 	// If we've already initialised, return the cached results.
 	if ( isStripeInitialized ) {
 		return canPay;
