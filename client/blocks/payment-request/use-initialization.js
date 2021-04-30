@@ -113,17 +113,25 @@ export const useInitialization = ( {
 		billing.cartTotalItems,
 	] );
 
-	const abortPayment = useCallback( ( paymentMethod ) => {
-		paymentMethod.complete( 'fail' );
-		setIsProcessing( false );
-		setIsFinished( true );
-	}, [] );
+	const abortPayment = useCallback(
+		( paymentMethod ) => {
+			paymentMethod.complete( 'fail' );
+			setIsProcessing( false );
+			setIsFinished( true );
+			onClose();
+		},
+		[ onClose ]
+	);
 
-	const completePayment = useCallback( ( paymentMethod ) => {
-		paymentMethod.complete( 'success' );
-		setIsFinished( true );
-		setIsProcessing( false );
-	}, [] );
+	const completePayment = useCallback(
+		( paymentMethod ) => {
+			paymentMethod.complete( 'success' );
+			setIsProcessing( false );
+			setIsFinished( true );
+			onClose();
+		},
+		[ onClose ]
+	);
 
 	// whenever paymentRequest changes, hook in event listeners.
 	useEffect( () => {
