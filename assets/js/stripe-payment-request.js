@@ -542,7 +542,7 @@ jQuery( function( $ ) {
 		},
 
 		createGooglePayButton: function () {
-			var allowedThemes = [ 'dark', 'light' ];
+			var allowedThemes = [ 'dark', 'light', 'light-outline' ];
 			var allowedTypes = [ 'short', 'long' ];
 
 			var theme  = wc_stripe_payment_request_params.button.theme;
@@ -550,14 +550,15 @@ jQuery( function( $ ) {
 			var locale = wc_stripe_payment_request_params.button.locale;
 			var height = wc_stripe_payment_request_params.button.height;
 			theme = allowedThemes.includes( theme ) ? theme : 'light';
+			var gpaySvgTheme = 'dark' === theme ? 'dark' : 'light';
 			type = allowedTypes.includes( type ) ? type : 'long';
 
 			var button = $( '<button type="button" id="wc-stripe-branded-button" aria-label="Google Pay" class="gpay-button"></button>' );
 			button.css( 'height', height + 'px' );
 			button.addClass( theme + ' ' + type );
 			if ( 'long' === type ) {
-				var url = 'https://www.gstatic.com/instantbuy/svg/' + theme + '/' + locale + '.svg';
-				var fallbackUrl = 'https://www.gstatic.com/instantbuy/svg/' + theme + '/en.svg';
+				var url = 'https://www.gstatic.com/instantbuy/svg/' + gpaySvgTheme + '/' + locale + '.svg';
+				var fallbackUrl = 'https://www.gstatic.com/instantbuy/svg/' + gpaySvgTheme + '/en.svg';
 				// Check if locale GPay button exists, default to en if not
 				setBackgroundImageWithFallback( button, url, fallbackUrl );
 			}

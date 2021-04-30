@@ -184,10 +184,8 @@
 	background-position: center center;
 	background-repeat: no-repeat;
 	background-size: contain;
-	border: 0px;
+	border: 0;
 	border-radius: 4px;
-	box-shadow: rgba( 60, 64, 67, 0.3 ) 0px 1px 1px 0px,
-		rgba( 60, 64, 67, 0.15 ) 0px 1px 3px 1px;
 	cursor: pointer;
 	height: 40px;
 	min-height: 40px;
@@ -214,9 +212,32 @@
 		}
 	}
 
+	&.light-outline {
+		// account for button box-shadow when setting width
+		width: calc( 100% - 3px );
+		background-color: #fff;
+
+		// The box-shadow forms the outline and as such is always on.
+		box-shadow: rgba( 60, 64, 67, 0.3 ) 0px 1px 1px 0,
+			rgba( 60, 64, 67, 0.15 ) 0 1px 3px 1px;
+
+		// Add vertical margin to make box-shadow visible in blocks.
+		margin: 2px 0 3px 0;
+
+		&:active {
+			background-color: #fff;
+		}
+		&:hover {
+			background-color: #f8f8f8;
+		}
+		&:focus {
+			box-shadow: #e8e8e8 0 1px 1px 0, #e8e8e8 0 1px 3px;
+			outline: 0;
+		}
+	}
+
 	&.dark {
 		background-color: #000;
-		box-shadow: none;
 		padding: 12px 24px 10px;
 		&:active {
 			background-color: #5f6368;
@@ -231,7 +252,8 @@
 	}
 
 	&.short {
-		&.light {
+		&.light,
+		&.light-outline {
 			background-image: url( https://www.gstatic.com/instantbuy/svg/light_gpay.svg );
 		}
 		&.dark {
