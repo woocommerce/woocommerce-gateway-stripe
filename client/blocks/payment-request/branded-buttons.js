@@ -42,17 +42,19 @@ const useLocalizedGoogleSvg = ( type, theme, locale ) => {
 };
 
 export const GooglePayButton = ( { onButtonClicked } ) => {
-	const {
-		theme = 'dark',
-		locale = 'en',
-		height = '44',
-	} = getStripeServerData().button;
+	const { locale = 'en', height = '44' } = getStripeServerData().button;
 
 	const allowedTypes = [ 'short', 'long' ];
 	// Use pre-blocks settings until we merge the two distinct settings objects.
 	/* global wc_stripe_payment_request_params */
 	const { branded_type } = wc_stripe_payment_request_params.button; // eslint-disable-line camelcase
 	const type = allowedTypes.includes( branded_type ) ? branded_type : 'long'; // eslint-disable-line camelcase
+
+	// Allowed themes for Google Pay button image are 'dark' and 'light'.
+	// We may include 'light-outline' as a theme, so we ensure only 'dark' or 'light' are possible
+	// here.
+	const theme =
+		getStripeServerData()?.button?.theme === 'dark' ? 'dark' : 'light';
 
 	// Let's make sure the localized Google Pay button exists, otherwise we fall back to the
 	// english version. This test element is not used on purpose.
