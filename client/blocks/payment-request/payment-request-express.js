@@ -1,17 +1,28 @@
 /**
  * External dependencies
  */
-import { Elements, PaymentRequestButtonElement } from '@stripe/react-stripe-js';
+import {
+	Elements,
+	PaymentRequestButtonElement,
+	useStripe,
+} from '@stripe/react-stripe-js';
+import { useState, useEffect } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 
 /**
  * Internal dependencies
  */
 import { getStripeServerData } from '../stripe-utils';
-import { useInitialization } from './use-initialization';
-import { useCheckoutSubscriptions } from './use-checkout-subscriptions';
 import { ThreeDSecurePaymentHandler } from '../three-d-secure';
 import { GooglePayButton, shouldUseGooglePayBrand } from './branded-buttons';
 import { CustomButton } from './custom-button';
+import {
+	getCartDetails,
+	createPaymentRequest,
+	updateShippingOptions,
+	updateShippingDetails,
+	processSourceEvent,
+} from '../../api';
 
 /**
  * @typedef {import('../stripe-utils/type-defs').Stripe} Stripe
@@ -29,51 +40,175 @@ import { CustomButton } from './custom-button';
  * @typedef {RegisteredPaymentMethodProps & WithStripe} StripeRegisteredPaymentMethodProps
  */
 
+const usePaymentRequest = ( stripe ) => {
+	const [ paymentRequest, setPaymentRequest ] = useState( null );
+	const [ paymentRequestType, setPaymentRequestType ] = useState( null );
+	useEffect( () => {
+		// Do nothing if Stripe object isn't loaded or paymentRequest already exists.
+		if ( ! stripe || paymentRequest ) {
+			return;
+		}
+
+		getCartDetails().then( ( cart ) => {
+			const pr = createPaymentRequest( stripe, cart );
+
+			pr.canMakePayment().then( ( result ) => {
+				if ( result ) {
+					setPaymentRequest( pr );
+					setPaymentRequestType(
+						result.applePay ? 'apple_pay' : 'payment_request_api'
+					);
+				}
+			} );
+		} );
+	}, [ paymentRequest, stripe ] );
+	return [ paymentRequest, paymentRequestType ];
+};
+
+const useShippingAddressUpdateHandler = (
+	paymentRequest,
+	paymentRequestType
+) => {
+	useEffect( () => {
+		// Need to use `?.` here in case paymentRequest is null.
+		const shippingAddressUpdateHandler = paymentRequest?.on(
+			'shippingaddresschange',
+			( evt ) => {
+				const { shippingAddress } = evt;
+				updateShippingOptions(
+					shippingAddress,
+					paymentRequestType
+				).then( ( response ) => {
+					evt.updateWith( {
+						status: response.result,
+						shippingOptions: response.shipping_options,
+						total: response.total,
+						displayItems: response.displayItems,
+					} );
+				} );
+			}
+		);
+
+		return () => {
+			// Need to use `?.` here in case shippingAddressHandler is null.
+			shippingAddressUpdateHandler?.removeAllListeners();
+		};
+	}, [ paymentRequest, paymentRequestType ] );
+};
+
+const usePaymentMethodUpdateHandler = (
+	paymentRequest,
+	paymentRequestType,
+	{ onSubmit, setExpressPaymentError }
+) => {
+	useEffect( () => {
+		const paymentMethodUpdateHandler = paymentRequest?.on(
+			'source',
+			( evt ) => {
+				const allowPrepaidCards =
+					wc_stripe_payment_request_params?.stripe
+						?.allow_prepaid_card === 'yes';
+
+				// Check if we allow prepaid cards.
+				if (
+					! allowPrepaidCards &&
+					evt?.source?.card?.funding === 'prepaid'
+				) {
+					// TODO: Abort payment through blocks API somehow?
+					// TODO: use the message on the global settings object?
+					setExpressPaymentError(
+						__(
+							"Sorry, we're not accepting prepaid cards at this time.",
+							'woocommerce-gateway-stripe'
+						)
+					);
+					// wc_stripe_payment_request.abortPayment( evt, wc_stripe_payment_request.getErrorMessageHTML( wc_stripe_payment_request_params.i18n.no_prepaid_card ) );
+				} else {
+					processSourceEvent( evt, paymentRequestType ).then(
+						( response ) => {
+							if ( response.result === 'success' ) {
+								console.log( 'received response:', response );
+								evt.complete( 'success' ); // TODO: Is this the right place for this?
+								window.location = response.redirect;
+							} else {
+								// TODO: Abort payment through blocks API somehow?
+
+								evt.complete( 'fail' );
+								// TODO: Report error somehow?
+
+								// wc_stripe_payment_request.abortPayment(
+								// 	evt,
+								// 	response.messages
+								// );
+							}
+						}
+					);
+				}
+			}
+		);
+
+		return () => {
+			paymentMethodUpdateHandler?.removeAllListeners();
+		};
+	}, [
+		paymentRequest,
+		paymentRequestType,
+		onSubmit,
+		setExpressPaymentError,
+	] );
+};
+
+const useShippingOptionChangeHandler = (
+	paymentRequest,
+	paymentRequestType
+) => {
+	useEffect( () => {
+		const shippingOptionChangeHandler = paymentRequest?.on(
+			'shippingoptionchange',
+			( evt ) => {
+				const { shippingOption } = evt;
+				updateShippingDetails(
+					shippingOption,
+					paymentRequestType
+				).then( ( response ) => {
+					if ( response.result === 'success' ) {
+						evt.updateWith( {
+							status: 'success',
+							total: response.total,
+							displayItems: response.displayItems,
+						} );
+					}
+
+					if ( response.result === 'fail' ) {
+						evt.updateWith( { status: 'fail' } );
+					}
+				} );
+			}
+		);
+
+		return () => {
+			shippingOptionChangeHandler?.removeAllListeners();
+		};
+	}, [ paymentRequest, paymentRequestType ] );
+};
+
 /**
  * PaymentRequestExpressComponent
  *
  * @param {StripeRegisteredPaymentMethodProps} props Incoming props
  */
 const PaymentRequestExpressComponent = ( {
-	shippingData,
-	billing,
-	eventRegistration,
 	onSubmit,
 	setExpressPaymentError,
-	emitResponse,
-	onClick,
-	onClose,
 } ) => {
-	const {
-		paymentRequest,
-		paymentRequestEventHandlers,
-		clearPaymentRequestEventHandler,
-		isProcessing,
-		canMakePayment,
-		onButtonClick,
-		abortPayment,
-		completePayment,
-		paymentRequestType,
-	} = useInitialization( {
-		billing,
-		shippingData,
-		setExpressPaymentError,
-		onClick,
-		onClose,
+	const stripe = useStripe();
+
+	const [ pr, prt ] = usePaymentRequest( stripe );
+	useShippingAddressUpdateHandler( pr, prt );
+	useShippingOptionChangeHandler( pr, prt );
+	usePaymentMethodUpdateHandler( pr, prt, {
 		onSubmit,
-	} );
-	useCheckoutSubscriptions( {
-		canMakePayment,
-		isProcessing,
-		eventRegistration,
-		paymentRequestEventHandlers,
-		clearPaymentRequestEventHandler,
-		billing,
-		shippingData,
-		emitResponse,
-		paymentRequestType,
-		completePayment,
-		abortPayment,
+		setExpressPaymentError,
 	} );
 
 	// locale is not a valid value for the paymentRequestButton style.
@@ -98,7 +233,7 @@ const PaymentRequestExpressComponent = ( {
 	const brandedType = wc_stripe_payment_request_params.button.branded_type;
 	const isCustom = wc_stripe_payment_request_params.button.is_custom;
 
-	if ( ! canMakePayment || ! paymentRequest ) {
+	if ( /* ! canMakePayment || */ ! pr ) {
 		return null;
 	}
 
@@ -106,10 +241,10 @@ const PaymentRequestExpressComponent = ( {
 		return (
 			<CustomButton
 				onButtonClicked={ () => {
-					onButtonClick();
+					// onButtonClick();
 					// Since we're using a custom button we must manually call
 					// `paymentRequest.show()`.
-					paymentRequest.show();
+					pr.show();
 				} }
 			/>
 		);
@@ -119,10 +254,10 @@ const PaymentRequestExpressComponent = ( {
 		return (
 			<GooglePayButton
 				onButtonClicked={ () => {
-					onButtonClick();
+					// onButtonClick();
 					// Since we're using a custom button we must manually call
 					// `paymentRequest.show()`.
-					paymentRequest.show();
+					pr.show();
 				} }
 			/>
 		);
@@ -138,12 +273,12 @@ const PaymentRequestExpressComponent = ( {
 
 	return (
 		<PaymentRequestButtonElement
-			onClick={ onButtonClick }
+			onClick={ /*onButtonClick*/ () => {} }
 			options={ {
 				// @ts-ignore
 				style: paymentRequestButtonStyle,
 				// @ts-ignore
-				paymentRequest,
+				paymentRequest: pr,
 			} }
 		/>
 	);
