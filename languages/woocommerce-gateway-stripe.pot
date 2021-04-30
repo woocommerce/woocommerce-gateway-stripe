@@ -3,19 +3,13 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: WooCommerce Stripe Gateway 5.0.0\n"
-"Report-Msgid-Bugs-To: "
-"https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
-"POT-Creation-Date: 2021-03-01 20:45:39+00:00\n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2021-MO-DA HO:MI+ZONE\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/woocommerce-gateway-stripe\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2021-04-29T20:09:58+00:00\n"
+"POT-Creation-Date: 2021-04-30T23:22:35+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.4.0\n"
 "X-Domain: woocommerce-gateway-stripe\n"
@@ -748,7 +742,6 @@ msgid "Enter the custom text you would like the button to have."
 msgstr ""
 
 #: includes/admin/stripe-settings.php:202
-#: build/index.js:1209
 #: client/blocks/payment-request/custom-button.js:15
 msgid "Buy now"
 msgstr ""
@@ -837,13 +830,11 @@ msgid "Credit or debit card"
 msgstr ""
 
 #: includes/class-wc-gateway-stripe.php:300
-#: build/index.js:273
 #: client/blocks/credit-card/elements.js:124
 msgid "Card Number"
 msgstr ""
 
 #: includes/class-wc-gateway-stripe.php:311
-#: build/index.js:290
 #: client/blocks/credit-card/elements.js:141
 msgid "Expiry Date"
 msgstr ""
@@ -995,7 +986,6 @@ msgid "Please check the %1$slogs%2$s for more details on this issue. Logging mus
 msgstr ""
 
 #: includes/class-wc-stripe-blocks-support.php:163
-#: build/index.js:390
 msgid "Credit / Debit Card"
 msgstr ""
 
@@ -1042,7 +1032,6 @@ msgid "Unable to add payment source."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:197
-#: build/index.js:2651
 #: client/blocks/stripe-utils/utils.js:167
 msgid "The card number is not a valid credit card number."
 msgstr ""
@@ -1060,13 +1049,11 @@ msgid "The card's security code is invalid."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:201
-#: build/index.js:2651
 #: client/blocks/stripe-utils/utils.js:183
 msgid "The card number is incorrect."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:202
-#: build/index.js:2651
 #: client/blocks/stripe-utils/utils.js:187
 msgid "The card number is incomplete."
 msgstr ""
@@ -1080,7 +1067,6 @@ msgid "The card's expiration date is incomplete."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:205
-#: build/index.js:2651
 #: client/blocks/stripe-utils/utils.js:199
 msgid "The card has expired."
 msgstr ""
@@ -1098,19 +1084,16 @@ msgid "The card's expiration year is in the past"
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:209
-#: build/index.js:2651
 #: client/blocks/stripe-utils/utils.js:215
 msgid "The card was declined."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:210
-#: build/index.js:2651
 #: client/blocks/stripe-utils/utils.js:219
 msgid "There is no card on a customer that is being charged."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:211
-#: build/index.js:2651
 #: client/blocks/stripe-utils/utils.js:223
 msgid "An error occurred while processing the card."
 msgstr ""
@@ -1120,7 +1103,6 @@ msgid "The billing country is not accepted by SOFORT. Please try another country
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:213
-#: build/index.js:2660
 #: client/blocks/stripe-utils/utils.js:234
 msgid "Invalid email address, please correct and try again."
 msgstr ""
@@ -1131,7 +1113,6 @@ msgstr ""
 
 #: includes/class-wc-stripe-helper.php:216
 #: includes/class-wc-stripe-order-handler.php:96
-#: build/index.js:2663
 #: client/blocks/stripe-utils/utils.js:239
 msgid "Unable to process this payment, please try again or use alternative method."
 msgstr ""
@@ -1596,7 +1577,6 @@ msgid "Pending"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:571
-#: build/index.js:2004
 msgid "Sorry, we're not accepting prepaid cards at this time."
 msgstr ""
 
@@ -1707,61 +1687,46 @@ msgstr ""
 msgid "Support"
 msgstr ""
 
-#: build/index.js:198
 #: client/blocks/credit-card/elements.js:58
 msgid "Credit Card Information"
 msgstr ""
 
-#: build/index.js:307
 #: client/blocks/credit-card/elements.js:155
 msgid "CVV/CVC"
 msgstr ""
 
-#: build/index.js:413
-msgid "Stripe Credit Card payment method"
-msgstr ""
-
-#: build/index.js:2543
 #: client/blocks/stripe-utils/utils.js:60
 msgid "Total"
 msgstr ""
 
-#: build/index.js:2651
 #: client/blocks/stripe-utils/utils.js:171
 msgid "The card expiration month is invalid."
 msgstr ""
 
-#: build/index.js:2651
 #: client/blocks/stripe-utils/utils.js:175
 msgid "The card expiration year is invalid."
 msgstr ""
 
-#: build/index.js:2651
 #: client/blocks/stripe-utils/utils.js:179
 msgid "The card security code is invalid."
 msgstr ""
 
-#: build/index.js:2651
 #: client/blocks/stripe-utils/utils.js:191
 msgid "The card security code is incomplete."
 msgstr ""
 
-#: build/index.js:2651
 #: client/blocks/stripe-utils/utils.js:195
 msgid "The card expiration date is incomplete."
 msgstr ""
 
-#: build/index.js:2651
 #: client/blocks/stripe-utils/utils.js:203
 msgid "The card security code is incorrect."
 msgstr ""
 
-#: build/index.js:2651
 #: client/blocks/stripe-utils/utils.js:207
 msgid "The card zip code failed validation."
 msgstr ""
 
-#: build/index.js:2651
 #: client/blocks/stripe-utils/utils.js:211
 msgid "The card expiration year is in the past"
 msgstr ""
