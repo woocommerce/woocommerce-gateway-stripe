@@ -611,15 +611,15 @@ jQuery( function( $ ) {
 			});
 			
 			$( document.body ).on( 'wc_stripe_unblock_payment_request_button wc_stripe_enable_payment_request_button', function () {
-				wc_stripe_payment_request.unblockPaymentRequestButton( prButton );
+				wc_stripe_payment_request.unblockPaymentRequestButton();
 			} );
 			
 			$( document.body ).on( 'wc_stripe_block_payment_request_button', function () {
-				wc_stripe_payment_request.blockPaymentRequestButton( prButton, 'wc_request_button_is_blocked' );
+				wc_stripe_payment_request.blockPaymentRequestButton( 'wc_request_button_is_blocked' );
 			} );
 
 			$( document.body ).on( 'wc_stripe_disable_payment_request_button', function () {
-				wc_stripe_payment_request.blockPaymentRequestButton( prButton, 'wc_request_button_is_disabled' );
+				wc_stripe_payment_request.blockPaymentRequestButton( 'wc_request_button_is_disabled' );
 			} );
 
 			$( document.body ).on( 'woocommerce_variation_has_changed', function () {
@@ -690,7 +690,7 @@ jQuery( function( $ ) {
 			}
 		},
 
-		blockPaymentRequestButton: function( prButton, cssClassname ) {
+		blockPaymentRequestButton: function( cssClassname ) {
 			// check if element isn't already blocked before calling block() to avoid blinking overlay issues
 			// blockUI.isBlocked is either undefined or 0 when element is not blocked
 			if ( $( '#wc-stripe-payment-request-button' ).data( 'blockUI.isBlocked' ) ) {
@@ -702,7 +702,7 @@ jQuery( function( $ ) {
 				.block( { message: null } );
 		},
 
-		unblockPaymentRequestButton: function( prButton ) {
+		unblockPaymentRequestButton: function() {
 			$( '#wc-stripe-payment-request-button' )
 				.removeClass( ['wc_request_button_is_blocked', 'wc_request_button_is_disabled'] )
 				.unblock();
