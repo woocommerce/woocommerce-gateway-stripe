@@ -154,7 +154,7 @@ export const updateShippingDetails = ( shippingOption, paymentRequestType ) => {
 	} );
 };
 
-export const processSourceEvent = ( sourceEvent, paymentRequestType ) => {
+export const createOrder = ( sourceEvent, paymentRequestType ) => {
 	const data = getOrderDataFromSourceEvent( sourceEvent, paymentRequestType );
 
 	return $.ajax( {

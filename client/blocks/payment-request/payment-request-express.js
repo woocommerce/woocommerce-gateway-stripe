@@ -8,12 +8,12 @@ import {
 } from '@stripe/react-stripe-js';
 import { useState, useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
+import $ from 'jquery';
 
 /**
  * Internal dependencies
  */
 import { getStripeServerData } from '../stripe-utils';
-import { ThreeDSecurePaymentHandler } from '../three-d-secure';
 import { GooglePayButton, shouldUseGooglePayBrand } from './branded-buttons';
 import { CustomButton } from './custom-button';
 import {
@@ -21,7 +21,7 @@ import {
 	createPaymentRequest,
 	updateShippingOptions,
 	updateShippingDetails,
-	processSourceEvent,
+	createOrder,
 } from '../../api';
 
 /**
@@ -96,12 +96,105 @@ const useShippingAddressUpdateHandler = (
 	}, [ paymentRequest, paymentRequestType ] );
 };
 
-const usePaymentMethodUpdateHandler = (
+const useProcessPaymentHandler = (
+	stripe,
 	paymentRequest,
 	paymentRequestType,
-	{ onSubmit, setExpressPaymentError }
+	setExpressPaymentError
 ) => {
 	useEffect( () => {
+		const getRedirectUrlPartials = ( url ) => {
+			const partials = url.match( /^#?confirm-(pi|si)-([^:]+):(.+)$/ );
+
+			if ( ! partials || partials.length < 4 ) {
+				return undefined;
+			}
+
+			const type = partials[ 1 ];
+			const clientSecret = partials[ 2 ];
+			const redirectUrl = decodeURIComponent( partials[ 3 ] );
+
+			return {
+				type,
+				clientSecret,
+				redirectUrl,
+			};
+		};
+
+		const requestIntentConfirmation = ( intentType, clientSecret ) => {
+			const isSetupIntent = intentType === 'si';
+
+			if ( isSetupIntent ) {
+				return stripe.handleCardSetup( clientSecret );
+			}
+			return stripe.handleCardPayment( clientSecret );
+		};
+
+		const getIntentFromConfirmation = ( intent, intentType ) => {
+			const isSetupIntent = intentType === 'si';
+
+			if ( isSetupIntent ) {
+				return intent.setupIntent;
+			}
+			return intent.paymentIntent;
+		};
+
+		const doesIntentRequireCapture = ( intent ) => {
+			return intent.status === 'requires_capture';
+		};
+
+		const didIntentSucceed = ( intent ) => {
+			return intent.status === 'succeeded';
+		};
+
+		const handleIntentConfirmation = ( redirectUrl, intentType ) => (
+			confirmation
+		) => {
+			if ( confirmation.error ) {
+				throw confirmation.error;
+			}
+
+			const intent = getIntentFromConfirmation(
+				confirmation,
+				intentType
+			);
+			if (
+				doesIntentRequireCapture( intent ) ||
+				didIntentSucceed( intent )
+			) {
+				window.location = redirectUrl;
+			}
+		};
+
+		const performPayment = ( evt ) => ( createOrderResponse ) => {
+			if ( createOrderResponse.result === 'success' ) {
+				evt.complete( 'success' ); // TODO: Is this the right place for this?
+
+				const partials = getRedirectUrlPartials(
+					createOrderResponse.redirect
+				);
+
+				if ( ! partials || partials.length < 4 ) {
+					window.location = createOrderResponse.redirect;
+					return;
+				}
+
+				const { type, clientSecret, redirectUrl } = partials;
+
+				requestIntentConfirmation( type, clientSecret )
+					.then( handleIntentConfirmation( redirectUrl, type ) )
+					.catch( ( error ) => {
+						setExpressPaymentError( error.message );
+
+						// Report back to the server.
+						$.get( redirectUrl + '&is_ajax' );
+					} );
+			} else {
+				evt.complete( 'fail' );
+				setExpressPaymentError( createOrderResponse.messages );
+			}
+		};
+
 		const paymentMethodUpdateHandler = paymentRequest?.on(
 			'source',
 			( evt ) => {
@@ -114,34 +207,15 @@ const usePaymentMethodUpdateHandler = (
 					! allowPrepaidCards &&
 					evt?.source?.card?.funding === 'prepaid'
 				) {
-					// TODO: Abort payment through blocks API somehow?
-					// TODO: use the message on the global settings object?
 					setExpressPaymentError(
 						__(
 							"Sorry, we're not accepting prepaid cards at this time.",
 							'woocommerce-gateway-stripe'
 						)
 					);
-					// wc_stripe_payment_request.abortPayment( evt, wc_stripe_payment_request.getErrorMessageHTML( wc_stripe_payment_request_params.i18n.no_prepaid_card ) );
 				} else {
-					processSourceEvent( evt, paymentRequestType ).then(
-						( response ) => {
-							if ( response.result === 'success' ) {
-								console.log( 'received response:', response );
-								evt.complete( 'success' ); // TODO: Is this the right place for this?
-								window.location = response.redirect;
-							} else {
-								// TODO: Abort payment through blocks API somehow?
-
-								evt.complete( 'fail' );
-								// TODO: Report error somehow?
-
-								// wc_stripe_payment_request.abortPayment(
-								// 	evt,
-								// 	response.messages
-								// );
-							}
-						}
+					createOrder( evt, paymentRequestType ).then(
+						performPayment( evt )
 					);
 				}
 			}
@@ -150,12 +224,7 @@ const usePaymentMethodUpdateHandler = (
 		return () => {
 			paymentMethodUpdateHandler?.removeAllListeners();
 		};
-	}, [
-		paymentRequest,
-		paymentRequestType,
-		onSubmit,
-		setExpressPaymentError,
-	] );
+	}, [ stripe, paymentRequest, paymentRequestType, setExpressPaymentError ] );
 };
 
 const useShippingOptionChangeHandler = (
@@ -198,18 +267,16 @@ const useShippingOptionChangeHandler = (
  * @param {StripeRegisteredPaymentMethodProps} props Incoming props
  */
 const PaymentRequestExpressComponent = ( {
-	onSubmit,
+	onClick,
 	setExpressPaymentError,
 } ) => {
 	const stripe = useStripe();
 
+	/* Set up payment request and its event handlers. */
 	const [ pr, prt ] = usePaymentRequest( stripe );
 	useShippingAddressUpdateHandler( pr, prt );
 	useShippingOptionChangeHandler( pr, prt );
-	usePaymentMethodUpdateHandler( pr, prt, {
-		onSubmit,
-		setExpressPaymentError,
-	} );
+	useProcessPaymentHandler( stripe, pr, prt, setExpressPaymentError );
 
 	// locale is not a valid value for the paymentRequestButton style.
 	// Make sure `theme` defaults to 'dark' if it's not found in the server provided configuration.
@@ -244,6 +311,8 @@ const PaymentRequestExpressComponent = ( {
 					// onButtonClick();
 					// Since we're using a custom button we must manually call
 					// `paymentRequest.show()`.
+
+					onClick();
 					pr.show();
 				} }
 			/>
@@ -257,6 +326,8 @@ const PaymentRequestExpressComponent = ( {
 					// onButtonClick();
 					// Since we're using a custom button we must manually call
 					// `paymentRequest.show()`.
+
+					onClick();
 					pr.show();
 				} }
 			/>
@@ -273,7 +344,7 @@ const PaymentRequestExpressComponent = ( {
 
 	return (
 		<PaymentRequestButtonElement
-			onClick={ /*onButtonClick*/ () => {} }
+			onClick={ onClick }
 			options={ {
 				// @ts-ignore
 				style: paymentRequestButtonStyle,
@@ -294,7 +365,6 @@ export const PaymentRequestExpress = ( props ) => {
 	return (
 		<Elements stripe={ stripe }>
 			<PaymentRequestExpressComponent { ...props } />
-			<ThreeDSecurePaymentHandler { ...props } />
 		</Elements>
 	);
 };
