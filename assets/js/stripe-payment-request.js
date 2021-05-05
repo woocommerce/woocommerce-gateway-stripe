@@ -609,9 +609,17 @@ jQuery( function( $ ) {
 					paymentRequest.show();
 				}
 			});
-
-			$( document.body ).on( 'woocommerce_variation_has_changed', function () {
+			
+			$( document.body ).on( 'wc_stripe_unblock_payment_request_button', function () {
+				wc_stripe_payment_request.unblockPaymentRequestButton( prButton );
+			} );
+			
+			$( document.body ).on( 'wc_stripe_block_payment_request_button', function () {
 				wc_stripe_payment_request.blockPaymentRequestButton( prButton );
+			} );
+			
+			$( document.body ).on( 'woocommerce_variation_has_changed', function () {
+				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 
 				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
 					$.when(
@@ -620,7 +628,7 @@ jQuery( function( $ ) {
 							displayItems: response.displayItems,
 						} )
 					).then( function () {
-						wc_stripe_payment_request.unblockPaymentRequestButton( prButton );
+						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
 					} );
 				});
 			} );
@@ -628,17 +636,17 @@ jQuery( function( $ ) {
 			// Block the payment request button as soon as an "input" event is fired, to avoid sync issues
 			// when the customer clicks on the button before the debounced event is processed.
 			$( '.quantity' ).on( 'input', '.qty', function() {
-				wc_stripe_payment_request.blockPaymentRequestButton( prButton );
+				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 			} );
 
 			$( '.quantity' ).on( 'input', '.qty', wc_stripe_payment_request.debounce( 250, function() {
-				wc_stripe_payment_request.blockPaymentRequestButton( prButton );
+				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 				paymentRequestError = [];
 
 				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
 					if ( response.error ) {
 						paymentRequestError = [ response.error ];
-						wc_stripe_payment_request.unblockPaymentRequestButton( prButton );
+						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
 					} else {
 						$.when(
 							paymentRequest.update( {
@@ -646,7 +654,7 @@ jQuery( function( $ ) {
 								displayItems: response.displayItems,
 							} )
 						).then( function () {
-							wc_stripe_payment_request.unblockPaymentRequestButton( prButton );
+							$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
 						});
 					}
 				} );
