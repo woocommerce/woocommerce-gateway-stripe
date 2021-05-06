@@ -43,6 +43,7 @@ import {
  * @param {StripeRegisteredPaymentMethodProps} props Incoming props
  */
 const PaymentRequestExpressComponent = ( {
+	billing,
 	onClick,
 	setExpressPaymentError,
 } ) => {
@@ -54,8 +55,10 @@ const PaymentRequestExpressComponent = ( {
 	useShippingOptionChangeHandler( pr, prt );
 	useProcessPaymentHandler( stripe, pr, prt, setExpressPaymentError );
 	const onPaymentRequestButtonClick = useOnClickHandler(
+		pr,
 		setExpressPaymentError,
-		onClick
+		onClick,
+		billing
 	);
 
 	// locale is not a valid value for the paymentRequestButton style.

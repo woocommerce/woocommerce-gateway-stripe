@@ -17,6 +17,7 @@ import {
 	updateShippingDetails,
 	createOrder,
 } from '../../api';
+import { updatePaymentRequest } from '../stripe-utils';
 
 /**
  * This hook takes care of creating a payment request and making sure
@@ -319,20 +320,37 @@ export const useProcessPaymentHandler = (
 };
 
 /**
- * Returns an onClick handler for payment request buttons. Resets the error state and calls the
- * provided click handler.
+ * Returns an onClick handler for payment request buttons. Resets the error state, syncs the
+ * payment request with the block, and calls the provided click handler.
  *
+ * @param {Object}   paymentRequest - The Payment Request object.
  * @param {Function} setExpressPaymentError - Used to set the error state.
  * @param {Function} onClick - The onClick function that should be called on click.
+ * @param {Object}   billing - The billing data from the checkout or cart block.
  *
  * @return {Function} An onClick handler for the payment request buttons.
  */
-export const useOnClickHandler = ( setExpressPaymentError, onClick ) => {
+export const useOnClickHandler = (
+	paymentRequest,
+	setExpressPaymentError,
+	onClick,
+	billing
+) => {
 	return useCallback( () => {
 		// Reset any Payment Request errors.
 		setExpressPaymentError( '' );
 
+		// Update the payment request with new billing information.
+		if ( paymentRequest ) {
+			updatePaymentRequest( {
+				paymentRequest,
+				total: billing.cartTotal,
+				currencyCode: billing.currency.code.toLowerCase(),
+				cartTotalItems: billing.cartTotalItems,
+			} );
+		}
+
 		// Call the Blocks API `onClick` handler.
 		onClick();
-	}, [ setExpressPaymentError, onClick ] );
+	}, [ paymentRequest, setExpressPaymentError, onClick, billing ] );
 };
