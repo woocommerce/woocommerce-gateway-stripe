@@ -109,10 +109,13 @@ export const useShippingAddressUpdateHandler = (
  *
  * @param {Object} paymentRequest - The payment request object.
  * @param {string} paymentRequestType - The payment request type.
+ * @param {Function} setSelectedRates - A function used to set the selected shipping method in the
+ *                                      Block.
  */
 export const useShippingOptionChangeHandler = (
 	paymentRequest,
-	paymentRequestType
+	paymentRequestType,
+	setSelectedRates
 ) => {
 	useEffect( () => {
 		// Need to use `?.` here in case shippingAddressHandler is null.
@@ -120,6 +123,11 @@ export const useShippingOptionChangeHandler = (
 			'shippingoptionchange',
 			( evt ) => {
 				const { shippingOption } = evt;
+
+				// Update the selected rates in the cart or checkout block.
+				setSelectedRates( shippingOption?.id );
+
+				// Update the shipping rates for the order.
 				updateShippingDetails(
 					shippingOption,
 					paymentRequestType
@@ -143,7 +151,7 @@ export const useShippingOptionChangeHandler = (
 			// Need to use `?.` here in case shippingAddressHandler is null.
 			shippingOptionChangeHandler?.removeAllListeners();
 		};
-	}, [ paymentRequest, paymentRequestType ] );
+	}, [ paymentRequest, paymentRequestType, setSelectedRates ] );
 };
 
 /**

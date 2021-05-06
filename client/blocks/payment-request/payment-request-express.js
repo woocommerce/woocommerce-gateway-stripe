@@ -49,15 +49,12 @@ const PaymentRequestExpressComponent = ( {
 	setExpressPaymentError,
 } ) => {
 	const stripe = useStripe();
+	const { setShippingAddress, setSelectedRates } = shippingData;
 
 	/* Set up payment request and its event handlers. */
 	const [ pr, prt ] = usePaymentRequest( stripe );
-	useShippingAddressUpdateHandler(
-		pr,
-		prt,
-		shippingData?.setShippingAddress
-	);
-	useShippingOptionChangeHandler( pr, prt );
+	useShippingAddressUpdateHandler( pr, prt, setShippingAddress );
+	useShippingOptionChangeHandler( pr, prt, setSelectedRates );
 	useProcessPaymentHandler( stripe, pr, prt, setExpressPaymentError );
 	const onPaymentRequestButtonClick = useOnClickHandler(
 		pr,
