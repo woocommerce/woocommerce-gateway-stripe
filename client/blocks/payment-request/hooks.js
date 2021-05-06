@@ -376,3 +376,17 @@ export const useOnClickHandler = (
 		onClick();
 	}, [ paymentRequest, setExpressPaymentError, onClick, billing ] );
 };
+
+/**
+ * Adds a cancellation handler to the provided payment request.
+ *
+ * @param {Object} paymentRequest - The payment request object.
+ * @param {Function} onClose - A function from the Blocks API.
+ */
+export const useCancelHandler = ( paymentRequest, onClose ) => {
+	useEffect( () => {
+		paymentRequest?.on( 'cancel', () => {
+			onClose();
+		} );
+	}, [ paymentRequest, onClose ] );
+};

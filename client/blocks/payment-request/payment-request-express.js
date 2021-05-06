@@ -19,6 +19,7 @@ import {
 	useShippingAddressUpdateHandler,
 	useShippingOptionChangeHandler,
 	useOnClickHandler,
+	useCancelHandler,
 } from './hooks';
 
 /**
@@ -46,22 +47,37 @@ const PaymentRequestExpressComponent = ( {
 	billing,
 	shippingData,
 	onClick,
+	onClose,
 	setExpressPaymentError,
 } ) => {
 	const stripe = useStripe();
 	const { setShippingAddress, setSelectedRates } = shippingData;
 
 	/* Set up payment request and its event handlers. */
-	const [ pr, prt ] = usePaymentRequest( stripe );
-	useShippingAddressUpdateHandler( pr, prt, setShippingAddress );
-	useShippingOptionChangeHandler( pr, prt, setSelectedRates );
-	useProcessPaymentHandler( stripe, pr, prt, setExpressPaymentError );
+	const [ paymentRequest, paymentRequestType ] = usePaymentRequest( stripe );
+	useShippingAddressUpdateHandler(
+		paymentRequest,
+		paymentRequestType,
+		setShippingAddress
+	);
+	useShippingOptionChangeHandler(
+		paymentRequest,
+		paymentRequestType,
+		setSelectedRates
+	);
+	useProcessPaymentHandler(
+		stripe,
+		paymentRequest,
+		paymentRequestType,
+		setExpressPaymentError
+	);
 	const onPaymentRequestButtonClick = useOnClickHandler(
-		pr,
+		paymentRequest,
 		setExpressPaymentError,
 		onClick,
 		billing
 	);
+	useCancelHandler( paymentRequest, onClose );
 
 	// locale is not a valid value for the paymentRequestButton style.
 	// Make sure `theme` defaults to 'dark' if it's not found in the server provided configuration.
@@ -85,7 +101,7 @@ const PaymentRequestExpressComponent = ( {
 	const brandedType = wc_stripe_payment_request_params.button.branded_type;
 	const isCustom = wc_stripe_payment_request_params.button.is_custom;
 
-	if ( /* ! canMakePayment || */ ! pr ) {
+	if ( ! paymentRequest ) {
 		return null;
 	}
 
@@ -96,7 +112,7 @@ const PaymentRequestExpressComponent = ( {
 					onPaymentRequestButtonClick();
 					// Since we're using a custom button we must manually trigger the payment
 					// request dialog.
-					pr.show();
+					paymentRequest.show();
 				} }
 			/>
 		);
@@ -109,7 +125,7 @@ const PaymentRequestExpressComponent = ( {
 					onPaymentRequestButtonClick();
 					// Since we're using a custom button we must manually trigger the payment
 					// request dialog.
-					pr.show();
+					paymentRequest.show();
 				} }
 			/>
 		);
@@ -130,7 +146,7 @@ const PaymentRequestExpressComponent = ( {
 				// @ts-ignore
 				style: paymentRequestButtonStyle,
 				// @ts-ignore
-				paymentRequest: pr,
+				paymentRequest,
 			} }
 		/>
 	);
