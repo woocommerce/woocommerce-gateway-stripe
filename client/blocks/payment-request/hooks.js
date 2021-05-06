@@ -17,7 +17,10 @@ import {
 	updateShippingDetails,
 	createOrder,
 } from '../../api';
-import { updatePaymentRequest } from '../stripe-utils';
+import {
+	updatePaymentRequest,
+	normalizeShippingAddressForCheckout,
+} from '../stripe-utils';
 
 /**
  * This hook takes care of creating a payment request and making sure
@@ -54,14 +57,17 @@ export const usePaymentRequest = ( stripe ) => {
 };
 
 /**
- * Adds a shipping address change event handler to the provided payment request.
+ * Adds a shipping address change event handler to the provided payment request. Updates the
+ * order's shipping address when necessary.
  *
  * @param {Object} paymentRequest - The payment request object.
  * @param {string} paymentRequestType - The payment request type.
+ * @param {Function} setShippingAddress - Used to set the shippingaddress in the Block.
  */
 export const useShippingAddressUpdateHandler = (
 	paymentRequest,
-	paymentRequestType
+	paymentRequestType,
+	setShippingAddress
 ) => {
 	useEffect( () => {
 		// Need to use `?.` here in case paymentRequest is null.
@@ -69,6 +75,14 @@ export const useShippingAddressUpdateHandler = (
 			'shippingaddresschange',
 			( evt ) => {
 				const { shippingAddress } = evt;
+
+				// Update the block shipping address, just in case the payment request
+				// is cancelled.
+				setShippingAddress(
+					normalizeShippingAddressForCheckout( shippingAddress )
+				);
+
+				// Update the payment request shipping information address.
 				updateShippingOptions(
 					shippingAddress,
 					paymentRequestType
@@ -87,7 +101,7 @@ export const useShippingAddressUpdateHandler = (
 			// Need to use `?.` here in case shippingAddressHandler is null.
 			shippingAddressUpdateHandler?.removeAllListeners();
 		};
-	}, [ paymentRequest, paymentRequestType ] );
+	}, [ paymentRequest, paymentRequestType, setShippingAddress ] );
 };
 
 /**

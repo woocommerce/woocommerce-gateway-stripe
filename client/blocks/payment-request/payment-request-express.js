@@ -44,6 +44,7 @@ import {
  */
 const PaymentRequestExpressComponent = ( {
 	billing,
+	shippingData,
 	onClick,
 	setExpressPaymentError,
 } ) => {
@@ -51,7 +52,11 @@ const PaymentRequestExpressComponent = ( {
 
 	/* Set up payment request and its event handlers. */
 	const [ pr, prt ] = usePaymentRequest( stripe );
-	useShippingAddressUpdateHandler( pr, prt );
+	useShippingAddressUpdateHandler(
+		pr,
+		prt,
+		shippingData?.setShippingAddress
+	);
 	useShippingOptionChangeHandler( pr, prt );
 	useProcessPaymentHandler( stripe, pr, prt, setExpressPaymentError );
 	const onPaymentRequestButtonClick = useOnClickHandler(
