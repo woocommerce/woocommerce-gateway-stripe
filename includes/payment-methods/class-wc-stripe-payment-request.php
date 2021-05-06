@@ -312,7 +312,17 @@ class WC_Stripe_Payment_Request {
 		$product = wc_get_product( $post->ID );
 
 		if ( 'variable' === $product->get_type() ) {
-			$attributes = wc_clean( wp_unslash( $_GET ) );
+			$variation_attributes = $product->get_variation_attributes();
+			$attributes           = [];
+
+			foreach ( $variation_attributes as $attribute_name => $attribute_values ) {
+				$attribute_key = 'attribute_' . sanitize_title( $attribute_name );
+
+				// Passed value via GET takes precedence. Otherwise get the default value for given attribute
+				$attributes[ $attribute_key ] = isset( $_GET[ $attribute_key ] )
+					? wc_clean( wp_unslash( $_GET[ $attribute_key ] ) )
+					: $product->get_variation_default_attribute( $attribute_name );
+			}
 
 			$data_store   = WC_Data_Store::load( 'product' );
 			$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
