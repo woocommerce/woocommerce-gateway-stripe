@@ -18,6 +18,15 @@ import {
 	createOrder,
 } from '../../api';
 
+/**
+ * This hook takes care of creating a payment request and making sure
+ * you can pay through said payment request.
+ *
+ * @param {Object} stripe The stripe object used to create the payment request.
+ *
+ * @return {Array} An array; first element is the payment request; second element is the payment
+ *                 requests type.
+ */
 export const usePaymentRequest = ( stripe ) => {
 	const [ paymentRequest, setPaymentRequest ] = useState( null );
 	const [ paymentRequestType, setPaymentRequestType ] = useState( null );
@@ -43,6 +52,12 @@ export const usePaymentRequest = ( stripe ) => {
 	return [ paymentRequest, paymentRequestType ];
 };
 
+/**
+ * Adds a shipping address change event handler to the provided payment request.
+ *
+ * @param {Object} paymentRequest - The payment request object.
+ * @param {string} paymentRequestType - The payment request type.
+ */
 export const useShippingAddressUpdateHandler = (
 	paymentRequest,
 	paymentRequestType
@@ -74,6 +89,15 @@ export const useShippingAddressUpdateHandler = (
 	}, [ paymentRequest, paymentRequestType ] );
 };
 
+/**
+ * Adds a payment event handler to the provided payment request.
+ *
+ * @param {Object} stripe - The stripe object used to confirm and create a payment intent.
+ * @param {Object} paymentRequest - The payment request object.
+ * @param {string} paymentRequestType - The payment request type.
+ * @param {Function} setExpressPaymentError - A function used to expose an error message to show
+ *                                            the customer.
+ */
 export const useProcessPaymentHandler = (
 	stripe,
 	paymentRequest,
@@ -205,6 +229,12 @@ export const useProcessPaymentHandler = (
 	}, [ stripe, paymentRequest, paymentRequestType, setExpressPaymentError ] );
 };
 
+/**
+ * Adds a shipping option change event handler to the provided payment request.
+ *
+ * @param {Object} paymentRequest - The payment request object.
+ * @param {string} paymentRequestType - The payment request type.
+ */
 export const useShippingOptionChangeHandler = (
 	paymentRequest,
 	paymentRequestType
