@@ -90,6 +90,48 @@ export const useShippingAddressUpdateHandler = (
 };
 
 /**
+ * Adds a shipping option change event handler to the provided payment request.
+ *
+ * @param {Object} paymentRequest - The payment request object.
+ * @param {string} paymentRequestType - The payment request type.
+ */
+export const useShippingOptionChangeHandler = (
+	paymentRequest,
+	paymentRequestType
+) => {
+	useEffect( () => {
+		// Need to use `?.` here in case shippingAddressHandler is null.
+		const shippingOptionChangeHandler = paymentRequest?.on(
+			'shippingoptionchange',
+			( evt ) => {
+				const { shippingOption } = evt;
+				updateShippingDetails(
+					shippingOption,
+					paymentRequestType
+				).then( ( response ) => {
+					if ( response.result === 'success' ) {
+						evt.updateWith( {
+							status: 'success',
+							total: response.total,
+							displayItems: response.displayItems,
+						} );
+					}
+
+					if ( response.result === 'fail' ) {
+						evt.updateWith( { status: 'fail' } );
+					}
+				} );
+			}
+		);
+
+		return () => {
+			// Need to use `?.` here in case shippingAddressHandler is null.
+			shippingOptionChangeHandler?.removeAllListeners();
+		};
+	}, [ paymentRequest, paymentRequestType ] );
+};
+
+/**
  * Adds a payment event handler to the provided payment request.
  *
  * @param {Object} stripe - The stripe object used to confirm and create a payment intent.
@@ -105,6 +147,15 @@ export const useProcessPaymentHandler = (
 	setExpressPaymentError
 ) => {
 	useEffect( () => {
+		/**
+		 * Helper function. Returns payment intent information from the provided URL.
+		 * If no information is embedded in the URL this function returns `undefined`.
+		 *
+		 * @param {string} url - The url to check for partials.
+		 *
+		 * @return {Object|undefined} The object containing `type`, `clientSecret`, and
+		 *                            `redirectUrl`. Undefined if no partails embedded in the url.
+		 */
 		const getRedirectUrlPartials = ( url ) => {
 			const partials = url.match( /^#?confirm-(pi|si)-([^:]+):(.+)$/ );
 
@@ -123,6 +174,15 @@ export const useProcessPaymentHandler = (
 			};
 		};
 
+		/**
+		 * Helper function. Requests that the provided intent (identified by the secret) is be
+		 * handled by Stripe. Returns a promise from Stripe.
+		 *
+		 * @param {string} intentType - The type of intent. Either `pi` or `si`.
+		 * @param {string} clientSecret - Client secret returned from Stripe.
+		 *
+		 * @return {Promise} A promise from Stripe with the confirmed intent or an error.
+		 */
 		const requestIntentConfirmation = ( intentType, clientSecret ) => {
 			const isSetupIntent = intentType === 'si';
 
@@ -132,6 +192,14 @@ export const useProcessPaymentHandler = (
 			return stripe.handleCardPayment( clientSecret );
 		};
 
+		/**
+		 * Helper function. Returns the payment or setup intent from a given confirmed intent.
+		 *
+		 * @param {Object} intent - The confirmed intent.
+		 * @param {string} intentType - The payment intent's type. Either `pi` or `si`.
+		 *
+		 * @return {Object} The Stripe payment or setup intent.
+		 */
 		const getIntentFromConfirmation = ( intent, intentType ) => {
 			const isSetupIntent = intentType === 'si';
 
@@ -149,6 +217,14 @@ export const useProcessPaymentHandler = (
 			return intent.status === 'succeeded';
 		};
 
+		/**
+		 * Helper function; part of a promise chain.
+		 * Receives a possibly confirmed payment intent from Stripe and proceeds to charge the
+		 * payment method of the intent was confirmed successfully.
+		 *
+		 * @param {string} redirectUrl - The URL to redirect to after a successful payment.
+		 * @param {string} intentType - The type of the payment intent. Either `pi` or `si`.
+		 */
 		const handleIntentConfirmation = ( redirectUrl, intentType ) => (
 			confirmation
 		) => {
@@ -164,18 +240,29 @@ export const useProcessPaymentHandler = (
 				doesIntentRequireCapture( intent ) ||
 				didIntentSucceed( intent )
 			) {
+				// If the 3DS verification was successful we can proceed with checkout as usual.
 				window.location = redirectUrl;
 			}
 		};
 
+		/**
+		 * Helper function; part of a promise chain.
+		 * Receives the response from our server after we attempt to create an order through
+		 * our AJAX API, proceeds with payment if possible, otherwise attempts to confirm the
+		 * payment (i.e. 3DS verification) through Stripe.
+		 *
+		 * @param {Object} evt - The `source` event from the Stripe payment request button.
+		 */
 		const performPayment = ( evt ) => ( createOrderResponse ) => {
 			if ( createOrderResponse.result === 'success' ) {
-				evt.complete( 'success' ); // TODO: Is this the right place for this?
+				evt.complete( 'success' );
 
 				const partials = getRedirectUrlPartials(
 					createOrderResponse.redirect
 				);
 
+				// If no information is embedded in the URL that means the payment doesn't need
+				// verification and we can proceed as usual.
 				if ( ! partials || partials.length < 4 ) {
 					window.location = createOrderResponse.redirect;
 					return;
@@ -183,6 +270,7 @@ export const useProcessPaymentHandler = (
 
 				const { type, clientSecret, redirectUrl } = partials;
 
+				// The payment requires 3DS verification, so we try to take care of that here.
 				requestIntentConfirmation( type, clientSecret )
 					.then( handleIntentConfirmation( redirectUrl, type ) )
 					.catch( ( error ) => {
@@ -216,6 +304,7 @@ export const useProcessPaymentHandler = (
 						)
 					);
 				} else {
+					// Create the order and attempt to pay.
 					createOrder( evt, paymentRequestType ).then(
 						performPayment( evt )
 					);
@@ -227,44 +316,4 @@ export const useProcessPaymentHandler = (
 			paymentMethodUpdateHandler?.removeAllListeners();
 		};
 	}, [ stripe, paymentRequest, paymentRequestType, setExpressPaymentError ] );
-};
-
-/**
- * Adds a shipping option change event handler to the provided payment request.
- *
- * @param {Object} paymentRequest - The payment request object.
- * @param {string} paymentRequestType - The payment request type.
- */
-export const useShippingOptionChangeHandler = (
-	paymentRequest,
-	paymentRequestType
-) => {
-	useEffect( () => {
-		const shippingOptionChangeHandler = paymentRequest?.on(
-			'shippingoptionchange',
-			( evt ) => {
-				const { shippingOption } = evt;
-				updateShippingDetails(
-					shippingOption,
-					paymentRequestType
-				).then( ( response ) => {
-					if ( response.result === 'success' ) {
-						evt.updateWith( {
-							status: 'success',
-							total: response.total,
-							displayItems: response.displayItems,
-						} );
-					}
-
-					if ( response.result === 'fail' ) {
-						evt.updateWith( { status: 'fail' } );
-					}
-				} );
-			}
-		);
-
-		return () => {
-			shippingOptionChangeHandler?.removeAllListeners();
-		};
-	}, [ paymentRequest, paymentRequestType ] );
 };
