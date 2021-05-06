@@ -3,7 +3,7 @@
 /**
  * External dependencies
  */
-import { useState, useEffect } from '@wordpress/element';
+import { useState, useEffect, useCallback } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import $ from 'jquery';
 
@@ -316,4 +316,23 @@ export const useProcessPaymentHandler = (
 			paymentMethodUpdateHandler?.removeAllListeners();
 		};
 	}, [ stripe, paymentRequest, paymentRequestType, setExpressPaymentError ] );
+};
+
+/**
+ * Returns an onClick handler for payment request buttons. Resets the error state and calls the
+ * provided click handler.
+ *
+ * @param {Function} setExpressPaymentError - Used to set the error state.
+ * @param {Function} onClick - The onClick function that should be called on click.
+ *
+ * @return {Function} An onClick handler for the payment request buttons.
+ */
+export const useOnClickHandler = ( setExpressPaymentError, onClick ) => {
+	return useCallback( () => {
+		// Reset any Payment Request errors.
+		setExpressPaymentError( '' );
+
+		// Call the Blocks API `onClick` handler.
+		onClick();
+	}, [ setExpressPaymentError, onClick ] );
 };

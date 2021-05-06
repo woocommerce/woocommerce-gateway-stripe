@@ -18,6 +18,7 @@ import {
 	useProcessPaymentHandler,
 	useShippingAddressUpdateHandler,
 	useShippingOptionChangeHandler,
+	useOnClickHandler,
 } from './hooks';
 
 /**
@@ -52,6 +53,10 @@ const PaymentRequestExpressComponent = ( {
 	useShippingAddressUpdateHandler( pr, prt );
 	useShippingOptionChangeHandler( pr, prt );
 	useProcessPaymentHandler( stripe, pr, prt, setExpressPaymentError );
+	const onPaymentRequestButtonClick = useOnClickHandler(
+		setExpressPaymentError,
+		onClick
+	);
 
 	// locale is not a valid value for the paymentRequestButton style.
 	// Make sure `theme` defaults to 'dark' if it's not found in the server provided configuration.
@@ -83,11 +88,9 @@ const PaymentRequestExpressComponent = ( {
 		return (
 			<CustomButton
 				onButtonClicked={ () => {
-					// onButtonClick();
-					// Since we're using a custom button we must manually call
-					// `paymentRequest.show()`.
-
-					onClick();
+					onPaymentRequestButtonClick();
+					// Since we're using a custom button we must manually trigger the payment
+					// request dialog.
 					pr.show();
 				} }
 			/>
@@ -98,11 +101,9 @@ const PaymentRequestExpressComponent = ( {
 		return (
 			<GooglePayButton
 				onButtonClicked={ () => {
-					// onButtonClick();
-					// Since we're using a custom button we must manually call
-					// `paymentRequest.show()`.
-
-					onClick();
+					onPaymentRequestButtonClick();
+					// Since we're using a custom button we must manually trigger the payment
+					// request dialog.
 					pr.show();
 				} }
 			/>
@@ -119,7 +120,7 @@ const PaymentRequestExpressComponent = ( {
 
 	return (
 		<PaymentRequestButtonElement
-			onClick={ onClick }
+			onClick={ onPaymentRequestButtonClick }
 			options={ {
 				// @ts-ignore
 				style: paymentRequestButtonStyle,
