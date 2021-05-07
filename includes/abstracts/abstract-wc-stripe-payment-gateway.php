@@ -118,7 +118,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		return (
 			$error &&
 			'invalid_request_error' === $error->type &&
-			preg_match( '/(No such source|No such payment)/i', $error->message )
+			preg_match( '/No such (source|PaymentMethod)/i', $error->message )
 		);
 	}
 
