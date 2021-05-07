@@ -57,9 +57,10 @@ class WC_Stripe_API {
 	 */
 	public static function get_user_agent() {
 		$app_info = [
-			'name'    => 'WooCommerce Stripe Gateway',
-			'version' => WC_STRIPE_VERSION,
-			'url'     => 'https://woocommerce.com/products/stripe/',
+			'name'       => 'WooCommerce Stripe Gateway',
+			'version'    => WC_STRIPE_VERSION,
+			'url'        => 'https://woocommerce.com/products/stripe/',
+			'partner_id' => 'pp_partner_EYuSt9peR0WTMg',
 		];
 
 		return [
