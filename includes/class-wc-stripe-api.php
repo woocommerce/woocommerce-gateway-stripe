@@ -123,6 +123,8 @@ class WC_Stripe_API {
 			$headers['Idempotency-Key'] = $idempotency_key;
 		}
 
+		WC_Stripe_Logger::log( 'headers: ' . print_r( $headers, true ) );
+
 		$response = wp_safe_remote_post(
 			self::ENDPOINT . $api,
 			[
