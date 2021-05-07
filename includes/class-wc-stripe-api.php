@@ -112,6 +112,13 @@ class WC_Stripe_API {
 	public static function request( $request, $api = 'charges', $method = 'POST', $with_headers = false ) {
 		WC_Stripe_Logger::log( "{$api} request: " . print_r( $request, true ) );
 
+		add_filter( 'woocommerce_stripe_request_headers', function( $headers ) {
+			$headers['Custom-Header'] = 'test value';
+			$headers['User-Agent']    = 'custom user agent';
+			unset( $headers['X-Stripe-Client-User-Agent'] );
+			return $headers;
+		} );
+
 		$headers         = self::get_headers();
 		$idempotency_key = '';
 
