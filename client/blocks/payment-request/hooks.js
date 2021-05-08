@@ -4,7 +4,6 @@
  * External dependencies
  */
 import { useState, useEffect, useCallback } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
 import $ from 'jquery';
 
 /**
@@ -306,10 +305,7 @@ export const useProcessPaymentHandler = (
 					evt?.source?.card?.funding === 'prepaid'
 				) {
 					setExpressPaymentError(
-						__(
-							"Sorry, we're not accepting prepaid cards at this time.",
-							'woocommerce-gateway-stripe'
-						)
+						wc_stripe_payment_request_params?.i18n?.no_prepaid_card
 					);
 				} else {
 					// Create the order and attempt to pay.
