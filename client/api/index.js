@@ -25,7 +25,7 @@ const getOrderDataFromSourceEvent = ( sourceEvent, paymentRequestType ) => {
 			name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
 		billing_last_name: name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '',
 		billing_company: '',
-		billing_email: email ?? sourceEvent.payerEmail,
+		billing_email: email ?? sourceEvent?.payerEmail,
 		billing_phone:
 			phone ?? sourceEvent?.payerPhone?.replace( '/[() -]/g', '' ),
 		billing_country: billing?.country ?? '',
