@@ -17,10 +17,7 @@ import {
 	updateShippingDetails,
 	createOrder,
 } from '../../api';
-import {
-	updatePaymentRequest,
-	normalizeShippingAddressForCheckout,
-} from '../stripe-utils';
+import { updatePaymentRequest } from '../stripe-utils';
 
 /**
  * This hook takes care of creating a payment request and making sure
@@ -76,12 +73,6 @@ export const useShippingAddressUpdateHandler = (
 			( evt ) => {
 				const { shippingAddress } = evt;
 
-				// Update the block shipping address, just in case the payment request
-				// is cancelled.
-				setShippingAddress(
-					normalizeShippingAddressForCheckout( shippingAddress )
-				);
-
 				// Update the payment request shipping information address.
 				updateShippingOptions(
 					shippingAddress,
@@ -123,9 +114,6 @@ export const useShippingOptionChangeHandler = (
 			'shippingoptionchange',
 			( evt ) => {
 				const { shippingOption } = evt;
-
-				// Update the selected rates in the cart or checkout block.
-				setSelectedRates( shippingOption?.id );
 
 				// Update the shipping rates for the order.
 				updateShippingDetails(
