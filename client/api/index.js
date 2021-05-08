@@ -139,11 +139,10 @@ export const updateShippingOptions = ( address, paymentRequestType ) => {
 	} );
 };
 
-export const updateShippingDetails = ( shippingOption, paymentRequestType ) => {
+export const updateShippingDetails = ( shippingOption ) => {
 	const data = {
 		security: wc_stripe_payment_request_params.nonce.update_shipping,
 		shipping_method: [ shippingOption.id ],
-		payment_request_type: paymentRequestType,
 		is_product_page: wc_stripe_payment_request_params.is_product_page,
 	};
 

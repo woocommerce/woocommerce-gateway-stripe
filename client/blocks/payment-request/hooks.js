@@ -116,10 +116,7 @@ export const useShippingOptionChangeHandler = (
 				const { shippingOption } = evt;
 
 				// Update the shipping rates for the order.
-				updateShippingDetails(
-					shippingOption,
-					paymentRequestType
-				).then( ( response ) => {
+				updateShippingDetails( shippingOption ).then( ( response ) => {
 					if ( response.result === 'success' ) {
 						evt.updateWith( {
 							status: 'success',
