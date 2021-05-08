@@ -24,14 +24,20 @@ import {
  * This hook takes care of creating a payment request and making sure
  * you can pay through said payment request.
  *
- * @param {Object} stripe The stripe object used to create the payment request.
+ * @param {Object}  stripe The stripe object used to create the payment request.
+ * @param {boolean} needsShipping A value from the Block checkout that indicates whether shipping
+ *                                is required or not.
  *
  * @return {Array} An array; first element is the payment request; second element is the payment
  *                 requests type.
  */
-export const usePaymentRequest = ( stripe ) => {
+export const usePaymentRequest = ( stripe, needsShipping ) => {
 	const [ paymentRequest, setPaymentRequest ] = useState( null );
 	const [ paymentRequestType, setPaymentRequestType ] = useState( null );
+
+	// Create a payment request if:
+	//   a) Stripe object is loaded; and
+	//   b) There is no payment request created already.
 	useEffect( () => {
 		// Do nothing if Stripe object isn't loaded or paymentRequest already exists.
 		if ( ! stripe || paymentRequest ) {
@@ -51,6 +57,12 @@ export const usePaymentRequest = ( stripe ) => {
 			} );
 		} );
 	}, [ paymentRequest, stripe ] );
+
+	// Reset the payment request if the need for shipping changes.
+	useEffect( () => {
+		setPaymentRequest( null );
+	}, [ needsShipping ] );
+
 	return [ paymentRequest, paymentRequestType ];
 };
 
