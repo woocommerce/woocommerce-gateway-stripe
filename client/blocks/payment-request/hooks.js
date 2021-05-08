@@ -11,12 +11,14 @@ import $ from 'jquery';
  */
 import {
 	getCartDetails,
-	createPaymentRequest,
 	updateShippingOptions,
 	updateShippingDetails,
 	createOrder,
 } from '../../api';
-import { updatePaymentRequest } from '../stripe-utils';
+import {
+	createPaymentRequestUsingCart,
+	updatePaymentRequest,
+} from '../stripe-utils';
 
 /**
  * This hook takes care of creating a payment request and making sure
@@ -37,7 +39,7 @@ export const usePaymentRequest = ( stripe ) => {
 		}
 
 		getCartDetails().then( ( cart ) => {
-			const pr = createPaymentRequest( stripe, cart );
+			const pr = createPaymentRequestUsingCart( stripe, cart );
 
 			pr.canMakePayment().then( ( result ) => {
 				if ( result ) {
