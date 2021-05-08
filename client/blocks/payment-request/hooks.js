@@ -98,7 +98,7 @@ export const useShippingAddressUpdateHandler = (
 		);
 
 		return () => {
-			// Need to use `?.` here in case shippingAddressHandler is null.
+			// Need to use `?.` here in case shippingAddressUpdateHandler is null.
 			shippingAddressUpdateHandler?.removeAllListeners();
 		};
 	}, [ paymentRequest, paymentRequestType, setShippingAddress ] );
@@ -118,7 +118,7 @@ export const useShippingOptionChangeHandler = (
 	setSelectedRates
 ) => {
 	useEffect( () => {
-		// Need to use `?.` here in case shippingAddressHandler is null.
+		// Need to use `?.` here in case paymentRequest is null.
 		const shippingOptionChangeHandler = paymentRequest?.on(
 			'shippingoptionchange',
 			( evt ) => {
