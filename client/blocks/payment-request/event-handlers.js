@@ -180,7 +180,14 @@ const performPayment = ( stripe, evt, setExpressPaymentError ) => (
 			} );
 	} else {
 		evt.complete( 'fail' );
-		setExpressPaymentError( createOrderResponse.messages );
+
+		// WooCommerce returns a messege embedded in a notice via HTML here, so we need
+		// to extract the actual message from the notice.
+		const div = document.createElement( 'div' );
+		div.innerHTML = createOrderResponse.messages;
+		const errorMessage = div?.firstChild?.textContent ?? '';
+
+		setExpressPaymentError( errorMessage );
 	}
 };
 
