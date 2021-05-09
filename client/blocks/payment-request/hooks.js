@@ -47,9 +47,13 @@ export const usePaymentRequest = ( stripe, needsShipping ) => {
 			pr.canMakePayment().then( ( result ) => {
 				if ( result ) {
 					setPaymentRequest( pr );
-					setPaymentRequestType(
-						result.applePay ? 'apple_pay' : 'payment_request_api'
-					);
+					if ( result.applePay ) {
+						setPaymentRequestType( 'apple_pay' );
+					} else if ( result.googlePay ) {
+						setPaymentRequestType( 'google_pay' );
+					} else {
+						setPaymentRequestType( 'payment_request_api' );
+					}
 				}
 			} );
 		} );

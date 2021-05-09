@@ -325,10 +325,11 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		if ( 'apple_pay' === $payment_request_type ) {
 			$order->set_payment_method_title( 'Apple Pay (Stripe)' );
 			$order->save();
-		}
-
-		if ( 'payment_request_api' === $payment_request_type ) {
-			$order->set_payment_method_title( 'Chrome Payment Request (Stripe)' );
+		} elseif ( 'google_pay' === $payment_request_type ) {
+			$order->set_payment_method_title( 'Google Pay (Stripe)' );
+			$order->save();
+		} elseif ( 'payment_request_api' === $payment_request_type ) {
+			$order->set_payment_method_title( 'Payment Request (Stripe)' );
 			$order->save();
 		}
 	}
