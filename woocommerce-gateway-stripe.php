@@ -401,7 +401,7 @@ if ( ! function_exists( 'add_woocommerce_inbox_variant' ) ) {
 	function add_woocommerce_inbox_variant() {
 		$config_name = 'woocommerce_inbox_variant';
 		if ( false === get_option( $config_name, false ) ) {
-			update_option( $config_name, wp_rand( 1, 5 ), false );
+			update_option( $config_name, wp_rand( 1, 5 ) );
 		}
 	}
 }
