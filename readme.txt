@@ -131,6 +131,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Use `get_parent` method to avoid accessing `order` subscription property directly.
 * Fix - Orders won't transition to 'Refunded' state if refund can't be created.
 * Fix - Normalize United Kingdom and Canada postal codes for Apple Pay.
+* Fix - Subscription sign-up fees not included in total for Payment Request Button.
 
 = 5.1.0 - 2021-04-07 =
 
