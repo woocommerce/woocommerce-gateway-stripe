@@ -14,7 +14,7 @@ import {
 } from './event-handlers';
 import {
 	createPaymentRequestUsingCart,
-	updatePaymentRequest,
+	updatePaymentRequestWithCart,
 } from '../stripe-utils';
 
 /**
@@ -159,33 +159,44 @@ export const useProcessPaymentHandler = (
  * @param {Object}   paymentRequest - The Payment Request object.
  * @param {Function} setExpressPaymentError - Used to set the error state.
  * @param {Function} onClick - The onClick function that should be called on click.
- * @param {Object}   billing - The billing data from the checkout or cart block.
  *
  * @return {Function} An onClick handler for the payment request buttons.
  */
 export const useOnClickHandler = (
 	paymentRequest,
 	setExpressPaymentError,
-	onClick,
-	billing
+	onClick
 ) => {
-	return useCallback( () => {
-		// Reset any Payment Request errors.
-		setExpressPaymentError( '' );
+	return useCallback(
+		( clickEvent = undefined ) => {
+			// We update the payment request _after_ a network request, and the payment method
+			// interface _must_ be shown after the payment request is updated. Because of this we
+			// prevent the default behavior from Stripe, and instead show the payment request
+			// interface after we've sent the request and updated the payment request.
+			//
+			// Note: it's important to use `?.` to call `preventDefault()` because we also call
+			//       this click handler on our custom element with no event provided.
+			clickEvent?.preventDefault();
 
-		// Update the payment request with new billing information.
-		if ( paymentRequest ) {
-			updatePaymentRequest( {
-				paymentRequest,
-				total: billing.cartTotal,
-				currencyCode: billing.currency.code.toLowerCase(),
-				cartTotalItems: billing.cartTotalItems,
-			} );
-		}
+			// Reset any Payment Request errors.
+			setExpressPaymentError( '' );
 
-		// Call the Blocks API `onClick` handler.
-		onClick();
-	}, [ paymentRequest, setExpressPaymentError, onClick, billing ] );
+			// Update the payment request with new billing information.
+			if ( paymentRequest ) {
+				getCartDetails().then( ( cart ) => {
+					// Update the payment request.
+					updatePaymentRequestWithCart( paymentRequest, cart );
+
+					// Call the Blocks API `onClick` handler.
+					onClick();
+
+					// Trigger the payment request interface.
+					paymentRequest.show();
+				} );
+			}
+		},
+		[ paymentRequest, setExpressPaymentError, onClick ]
+	);
 };
 
 /**

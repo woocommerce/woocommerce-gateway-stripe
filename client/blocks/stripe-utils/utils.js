@@ -164,6 +164,21 @@ const updatePaymentRequest = ( {
 };
 
 /**
+ * Utility function for updating the Stripe Payment Request object using cart data form
+ * WooCommerce.
+ *
+ * @param {StripePaymentRequest} paymentRequest - The Stripe Payment Request object.
+ * @param {Object} cart - The cart data response from the store's AJAX API.
+ */
+const updatePaymentRequestWithCart = ( paymentRequest, cart ) => {
+	paymentRequest.update( {
+		total: cart.order_data.total,
+		currency: cart.order_data.currency,
+		displayItems: cart.order_data.displayItems,
+	} );
+};
+
+/**
  * Returns whether or not the current session can do apple pay.
  *
  * @param {StripePaymentRequest} paymentRequest A Stripe PaymentRequest instance.
@@ -305,6 +320,7 @@ export {
 	getTotalPaymentItem,
 	getPaymentRequest,
 	updatePaymentRequest,
+	updatePaymentRequestWithCart,
 	canDoPaymentRequest,
 	getErrorMessageForTypeAndCode,
 	pluckAddress,
