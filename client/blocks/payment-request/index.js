@@ -1,7 +1,4 @@
-/**
- * External dependencies
- */
-import { getSetting } from '@woocommerce/settings';
+/* global wc_stripe_payment_request_params */
 
 /**
  * Internal dependencies
@@ -13,55 +10,24 @@ import { getStripeServerData, loadStripe } from '../stripe-utils';
 
 const ApplePayPreview = () => <img src={ applePayImage } alt="" />;
 
-const canPayStripePromise = loadStripe();
 const componentStripePromise = loadStripe();
-
-let isStripeInitialized = false,
-	canPay = false;
-
-// Initialise stripe API client and determine if payment method can be used
-// in current environment (e.g. geo + shopper has payment settings configured).
-function paymentRequestAvailable( { currencyCode, totalPrice } ) {
-	// If we've already initialised, return the cached results.
-	if ( isStripeInitialized ) {
-		return canPay;
-	}
-
-	return canPayStripePromise.then( ( stripe ) => {
-		if ( stripe === null ) {
-			isStripeInitialized = true;
-			return canPay;
-		}
-		if ( stripe.error && stripe.error instanceof Error ) {
-			throw stripe.error;
-		}
-		// Do a test payment to confirm if payment method is available.
-		const paymentRequest = stripe.paymentRequest( {
-			total: {
-				label: 'Total',
-				amount: totalPrice,
-				pending: true,
-			},
-			country: getSetting( 'baseLocation', {} )?.country,
-			currency: currencyCode,
-		} );
-		return paymentRequest.canMakePayment().then( ( result ) => {
-			canPay = !! result;
-			isStripeInitialized = true;
-			return canPay;
-		} );
-	} );
-}
 
 const paymentRequestPaymentMethod = {
 	name: PAYMENT_METHOD_NAME,
 	content: <PaymentRequestExpress stripe={ componentStripePromise } />,
 	edit: <ApplePayPreview />,
-	canMakePayment: ( cartData ) =>
-		paymentRequestAvailable( {
-			currencyCode: cartData?.cartTotals?.currency_code?.toLowerCase(),
-			totalPrice: parseInt( cartData?.cartTotals?.total_price || 0, 10 ),
-		} ),
+	canMakePayment: () => {
+		// If the `wc_stripe_payment_request_params` object is not available we don't support
+		// payment requests.
+		// eslint-disable-next-line camelcase
+		if ( typeof wc_stripe_payment_request_params === 'undefined' ) {
+			return false;
+		}
+
+		return loadStripe().then( ( stripe ) => {
+			return stripe !== null;
+		} );
+	},
 	paymentMethodId: 'stripe',
 	supports: {
 		features: getStripeServerData()?.supports ?? [],
