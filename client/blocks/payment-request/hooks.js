@@ -12,10 +12,7 @@ import {
 	shippingOptionChangeHandler,
 	paymentProcessingHandler,
 } from './event-handlers';
-import {
-	createPaymentRequestUsingCart,
-	updatePaymentRequestWithCart,
-} from '../stripe-utils';
+import { createPaymentRequestUsingCart } from '../stripe-utils';
 
 /**
  * This hook takes care of creating a payment request and making sure
@@ -24,11 +21,12 @@ import {
  * @param {Object}  stripe The stripe object used to create the payment request.
  * @param {boolean} needsShipping A value from the Block checkout that indicates whether shipping
  *                                is required or not.
+ * @param {Object}  billing - The billing data from the checkout or cart block.
  *
  * @return {Array} An array; first element is the payment request; second element is the payment
  *                 requests type.
  */
-export const usePaymentRequest = ( stripe, needsShipping ) => {
+export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
 	const [ paymentRequest, setPaymentRequest ] = useState( null );
 	const [ paymentRequestType, setPaymentRequestType ] = useState( null );
 
@@ -62,7 +60,12 @@ export const usePaymentRequest = ( stripe, needsShipping ) => {
 	// Reset the payment request if the need for shipping changes.
 	useEffect( () => {
 		setPaymentRequest( null );
-	}, [ needsShipping ] );
+	}, [
+		needsShipping,
+		billing.cartTotal,
+		billing.cartTotalItems,
+		billing.currency.code,
+	] );
 
 	return [ paymentRequest, paymentRequestType ];
 };
@@ -156,47 +159,19 @@ export const useProcessPaymentHandler = (
  * Returns an onClick handler for payment request buttons. Resets the error state, syncs the
  * payment request with the block, and calls the provided click handler.
  *
- * @param {Object}   paymentRequest - The Payment Request object.
  * @param {Function} setExpressPaymentError - Used to set the error state.
  * @param {Function} onClick - The onClick function that should be called on click.
  *
  * @return {Function} An onClick handler for the payment request buttons.
  */
-export const useOnClickHandler = (
-	paymentRequest,
-	setExpressPaymentError,
-	onClick
-) => {
-	return useCallback(
-		( clickEvent = undefined ) => {
-			// We update the payment request _after_ a network request, and the payment method
-			// interface _must_ be shown after the payment request is updated. Because of this we
-			// prevent the default behavior from Stripe, and instead show the payment request
-			// interface after we've sent the request and updated the payment request.
-			//
-			// Note: it's important to use `?.` to call `preventDefault()` because we also call
-			//       this click handler on our custom element with no event provided.
-			clickEvent?.preventDefault();
+export const useOnClickHandler = ( setExpressPaymentError, onClick ) => {
+	return useCallback( () => {
+		// Reset any Payment Request errors.
+		setExpressPaymentError( '' );
 
-			// Reset any Payment Request errors.
-			setExpressPaymentError( '' );
-
-			// Update the payment request with new billing information.
-			if ( paymentRequest ) {
-				getCartDetails().then( ( cart ) => {
-					// Update the payment request.
-					updatePaymentRequestWithCart( paymentRequest, cart );
-
-					// Call the Blocks API `onClick` handler.
-					onClick();
-
-					// Trigger the payment request interface.
-					paymentRequest.show();
-				} );
-			}
-		},
-		[ paymentRequest, setExpressPaymentError, onClick ]
-	);
+		// Call the Blocks API `onClick` handler.
+		onClick();
+	}, [ setExpressPaymentError, onClick ] );
 };
 
 /**

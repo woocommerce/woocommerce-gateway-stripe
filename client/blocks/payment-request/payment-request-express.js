@@ -21,7 +21,6 @@ import {
 	useOnClickHandler,
 	useCancelHandler,
 } from './hooks';
-import { SHOW_PAYMENT_REQUEST_INTERFACE } from './constants';
 
 /**
  * @typedef {import('../stripe-utils/type-defs').Stripe} Stripe
@@ -45,6 +44,7 @@ import { SHOW_PAYMENT_REQUEST_INTERFACE } from './constants';
  * @param {StripeRegisteredPaymentMethodProps} props Incoming props
  */
 const PaymentRequestExpressComponent = ( {
+	billing,
 	shippingData,
 	onClick,
 	onClose,
@@ -60,7 +60,8 @@ const PaymentRequestExpressComponent = ( {
 	/* Set up payment request and its event handlers. */
 	const [ paymentRequest, paymentRequestType ] = usePaymentRequest(
 		stripe,
-		needsShipping
+		needsShipping,
+		billing
 	);
 	useShippingAddressUpdateHandler(
 		paymentRequest,
@@ -79,7 +80,6 @@ const PaymentRequestExpressComponent = ( {
 		setExpressPaymentError
 	);
 	const onPaymentRequestButtonClick = useOnClickHandler(
-		paymentRequest,
 		setExpressPaymentError,
 		onClick
 	);
@@ -111,13 +111,21 @@ const PaymentRequestExpressComponent = ( {
 		return null;
 	}
 
+	// Prepare the onClick handler for our custom made Payment Request buttons.
+	const customAndBrandedClickHandler = () => {
+		onPaymentRequestButtonClick();
+		paymentRequest.show();
+	};
+
 	if ( isCustom ) {
-		return <CustomButton onButtonClicked={ onPaymentRequestButtonClick } />;
+		return (
+			<CustomButton onButtonClicked={ customAndBrandedClickHandler } />
+		);
 	}
 
 	if ( isBranded && shouldUseGooglePayBrand() ) {
 		return (
-			<GooglePayButton onButtonClicked={ onPaymentRequestButtonClick } />
+			<GooglePayButton onButtonClicked={ customAndBrandedClickHandler } />
 		);
 	}
 
