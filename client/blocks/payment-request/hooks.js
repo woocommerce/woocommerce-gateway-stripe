@@ -76,12 +76,10 @@ export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
  *
  * @param {Object} paymentRequest - The payment request object.
  * @param {string} paymentRequestType - The payment request type.
- * @param {Function} setShippingAddress - Used to set the shippingaddress in the Block.
  */
 export const useShippingAddressUpdateHandler = (
 	paymentRequest,
-	paymentRequestType,
-	setShippingAddress
+	paymentRequestType
 ) => {
 	useEffect( () => {
 		// Need to use `?.` here in case paymentRequest is null.
@@ -94,7 +92,7 @@ export const useShippingAddressUpdateHandler = (
 			// Need to use `?.` here in case shippingAddressUpdateHandler is null.
 			shippingAddressUpdateHandler?.removeAllListeners();
 		};
-	}, [ paymentRequest, paymentRequestType, setShippingAddress ] );
+	}, [ paymentRequest, paymentRequestType ] );
 };
 
 /**
@@ -102,13 +100,10 @@ export const useShippingAddressUpdateHandler = (
  *
  * @param {Object} paymentRequest - The payment request object.
  * @param {string} paymentRequestType - The payment request type.
- * @param {Function} setSelectedRates - A function used to set the selected shipping method in the
- *                                      Block.
  */
 export const useShippingOptionChangeHandler = (
 	paymentRequest,
-	paymentRequestType,
-	setSelectedRates
+	paymentRequestType
 ) => {
 	useEffect( () => {
 		// Need to use `?.` here in case paymentRequest is null.
@@ -121,7 +116,7 @@ export const useShippingOptionChangeHandler = (
 			// Need to use `?.` here in case shippingAddressHandler is null.
 			sippingOptionHandler?.removeAllListeners();
 		};
-	}, [ paymentRequest, paymentRequestType, setSelectedRates ] );
+	}, [ paymentRequest, paymentRequestType ] );
 };
 
 /**

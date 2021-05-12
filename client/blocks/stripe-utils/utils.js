@@ -9,7 +9,6 @@ import { __ } from '@wordpress/i18n';
 /**
  * Internal dependencies
  */
-import { normalizeLineItems } from './normalize';
 import { errorTypes, errorCodes } from './constants';
 
 /**
@@ -49,63 +48,6 @@ const getApiKey = () => {
 };
 
 /**
- * The total PaymentItem object used for the stripe PaymentRequest object.
- *
- * @param {CartTotalItem} total  The total amount.
- *
- * @return {StripePaymentItem} The PaymentItem object used for stripe.
- */
-const getTotalPaymentItem = ( total ) => {
-	return {
-		label:
-			getStripeServerData().stripeTotalLabel ||
-			__( 'Total', 'woocommerce-gateway-stripe' ),
-		amount: total.value,
-	};
-};
-
-/**
- * Returns a stripe payment request object
- *
- * @param {Object}          config                  A configuration object for
- *                                                  getting the payment request.
- * @param {Object}          config.stripe           The stripe api.
- * @param {CartTotalItem}   config.total            The amount for the total
- *                                                  (in subunits) provided by
- *                                                  checkout/cart.
- * @param {string}          config.currencyCode     The currency code provided
- *                                                  by checkout/cart.
- * @param {string}          config.countryCode      The country code provided by
- *                                                  checkout/cart.
- * @param {boolean}         config.shippingRequired Whether or not shipping is
- *                                                  required.
- * @param {CartTotalItem[]} config.cartTotalItems   Array of line items provided
- *                                                  by checkout/cart.
- *
- * @return {StripePaymentRequest} A stripe payment request object
- */
-const getPaymentRequest = ( {
-	stripe,
-	total,
-	currencyCode,
-	countryCode,
-	shippingRequired,
-	cartTotalItems,
-} ) => {
-	const options = {
-		total: getTotalPaymentItem( total ),
-		currency: currencyCode,
-		country: countryCode || 'US',
-		requestPayerName: true,
-		requestPayerEmail: true,
-		requestPayerPhone: true,
-		requestShipping: shippingRequired,
-		displayItems: normalizeLineItems( cartTotalItems ),
-	};
-	return stripe.paymentRequest( options );
-};
-
-/**
  * Creates a payment request using cart data from WooCommerce.
  *
  * @param {Object} stripe - The Stripe JS object.
@@ -133,71 +75,6 @@ export const createPaymentRequestUsingCart = ( stripe, cart ) => {
 	}
 
 	return stripe.paymentRequest( options );
-};
-
-/**
- * Utility function for updating the Stripe PaymentRequest object
- *
- * @param {Object}               update                An object containing the
- *                                                     things needed for the
- *                                                     update
- * @param {StripePaymentRequest} update.paymentRequest A Stripe payment request
- *                                                     object
- * @param {CartTotalItem}        update.total          A total line item.
- * @param {string}               update.currencyCode   The currency code for the
- *                                                     amount provided.
- * @param {CartTotalItem[]}      update.cartTotalItems An array of line items
- *                                                     provided by the
- *                                                     cart/checkout.
- */
-const updatePaymentRequest = ( {
-	paymentRequest,
-	total,
-	currencyCode,
-	cartTotalItems,
-} ) => {
-	paymentRequest.update( {
-		total: getTotalPaymentItem( total ),
-		currency: currencyCode,
-		displayItems: normalizeLineItems( cartTotalItems ),
-	} );
-};
-
-/**
- * Utility function for updating the Stripe Payment Request object using cart data form
- * WooCommerce.
- *
- * @param {StripePaymentRequest} paymentRequest - The Stripe Payment Request object.
- * @param {Object} cart - The cart data response from the store's AJAX API.
- */
-const updatePaymentRequestWithCart = ( paymentRequest, cart ) => {
-	paymentRequest.update( {
-		total: cart.order_data.total,
-		currency: cart.order_data.currency,
-		displayItems: cart.order_data.displayItems,
-	} );
-};
-
-/**
- * Returns whether or not the current session can do apple pay.
- *
- * @param {StripePaymentRequest} paymentRequest A Stripe PaymentRequest instance.
- *
- * @return {Promise<Object>}  True means apple pay can be done.
- */
-const canDoPaymentRequest = ( paymentRequest ) => {
-	return new Promise( ( resolve ) => {
-		paymentRequest.canMakePayment().then( ( result ) => {
-			if ( result ) {
-				const paymentRequestType = result.applePay
-					? 'apple_pay'
-					: 'payment_request_api';
-				resolve( { canPay: true, requestType: paymentRequestType } );
-				return;
-			}
-			resolve( { canPay: false } );
-		} );
-	} );
 };
 
 const isNonFriendlyError = ( type ) =>
@@ -295,33 +172,4 @@ const getErrorMessageForTypeAndCode = ( type, code = '' ) => {
 	return null;
 };
 
-/**
- * pluckAddress takes a full address object and returns relevant fields for calculating
- * shipping, so we can track when one of them change to update rates.
- *
- * @param {Object} address          An object containing all address information
- * @param {string} address.country
- * @param {string} address.state
- * @param {string} address.city
- * @param {string} address.postcode
- *
- * @return {Object} pluckedAddress  An object containing shipping address that are needed to fetch an address.
- */
-const pluckAddress = ( { country, state, city, postcode } ) => ( {
-	country,
-	state,
-	city,
-	postcode: postcode.replace( ' ', '' ).toUpperCase(),
-} );
-
-export {
-	getStripeServerData,
-	getApiKey,
-	getTotalPaymentItem,
-	getPaymentRequest,
-	updatePaymentRequest,
-	updatePaymentRequestWithCart,
-	canDoPaymentRequest,
-	getErrorMessageForTypeAndCode,
-	pluckAddress,
-};
+export { getStripeServerData, getApiKey, getErrorMessageForTypeAndCode };
