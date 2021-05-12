@@ -8,7 +8,7 @@ import $ from 'jquery';
 /**
  * Internal dependencies
  */
-import { normalizeOrderData } from '../blocks/stripe-utils';
+import { normalizeOrderData, normalizeAddress } from '../blocks/stripe-utils';
 
 const getAjaxUrl = ( endpoint ) => {
 	return wc_stripe_payment_request_params.ajax_url
@@ -37,20 +37,9 @@ export const getCartDetails = () => {
 export const updateShippingOptions = ( address, paymentRequestType ) => {
 	const data = {
 		security: wc_stripe_payment_request_params.nonce.shipping,
-		country: address.country,
-		state: address.region,
-		postcode: address.postalCode,
-		city: address.city,
-		address:
-			typeof address.addressLine[ 0 ] === 'undefined'
-				? ''
-				: address.addressLine[ 0 ],
-		address_2:
-			typeof address.addressLine[ 1 ] === 'undefined'
-				? ''
-				: address.addressLine[ 1 ],
 		payment_request_type: paymentRequestType,
 		is_product_page: wc_stripe_payment_request_params.is_product_page,
+		...normalizeAddress( address ),
 	};
 
 	return $.ajax( {

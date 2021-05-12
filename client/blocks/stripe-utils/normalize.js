@@ -79,4 +79,27 @@ const normalizeOrderData = ( sourceEvent, paymentRequestType ) => {
 	return data;
 };
 
-export { normalizeOrderData };
+/**
+ * Normalizes an address received upon updating shipping options using the store's AJAX API.
+ *
+ * @param {Object} address - The address that needs to be normalized.
+ * @return {Object} The normalized address.
+ */
+const normalizeAddress = ( address ) => {
+	return {
+		country: address.country,
+		state: address.region,
+		postcode: address.postalCode,
+		city: address.city,
+		address:
+			typeof address.addressLine[ 0 ] === 'undefined'
+				? ''
+				: address.addressLine[ 0 ],
+		address_2:
+			typeof address.addressLine[ 1 ] === 'undefined'
+				? ''
+				: address.addressLine[ 1 ],
+	};
+};
+
+export { normalizeOrderData, normalizeAddress };
