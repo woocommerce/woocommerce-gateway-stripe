@@ -273,7 +273,7 @@ jQuery( function( $ ) {
 			var data = {
 				security: wc_stripe_payment_request_params.nonce.add_to_cart,
 				product_id: product_id,
-				qty: $( '.quantity .qty' ).val(),
+				qty: $( '.quantity .qty' ).last().val(),
 				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : []
 			};
 
@@ -293,6 +293,14 @@ jQuery( function( $ ) {
 					}
 				}
 			} );
+
+			// This wouldn't be necessary if inputs were named like `addon-input_name[]`
+			// so it could be added to `data` by the lines above.
+			if (wc_stripe_payment_request_params.product.product_type === 'mix-and-match') {
+				$('.mnm_child_products .mnm-quantity').each(function(_, input) {
+					data[input.name] = input.value;
+				})
+			}
 
 			return $.ajax( {
 				type: 'POST',
@@ -432,10 +440,16 @@ jQuery( function( $ ) {
 			var data = {
 				security: wc_stripe_payment_request_params.nonce.get_selected_product_data,
 				product_id: product_id,
-				qty: $( '.quantity .qty' ).val(),
+				qty: $( '.quantity .qty' ).last().val(),
 				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : [],
 				addon_value: addon_value,
 			};
+
+			if (wc_stripe_payment_request_params.product.product_type === 'mix-and-match') {
+				$('.mnm_child_products .mnm-quantity').each(function(_, input) {
+					data[input.name] = input.value;
+				})
+			}
 
 			return $.ajax( {
 				type: 'POST',

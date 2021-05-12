@@ -373,6 +373,7 @@ class WC_Stripe_Payment_Request {
 		$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
 		$data['currency']        = strtolower( get_woocommerce_currency() );
 		$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
+		$data['product_type']    = $product->get_type();
 
 		return apply_filters( 'wc_stripe_payment_request_product_data', $data, $product );
 	}
@@ -477,6 +478,7 @@ class WC_Stripe_Payment_Request {
 				'booking',
 				'bundle',
 				'composite',
+				'mix-and-match',
 			]
 		);
 	}
@@ -1086,6 +1088,10 @@ class WC_Stripe_Payment_Request {
 			$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
 
 			WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
+		}
+
+		if ( 'mix-and-match' === $product_type ) {
+			WC()->cart->add_to_cart( $product->get_id(), $qty );
 		}
 
 		if ( 'simple' === $product_type || 'subscription' === $product_type ) {
