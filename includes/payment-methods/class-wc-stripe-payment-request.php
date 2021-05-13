@@ -310,6 +310,7 @@ class WC_Stripe_Payment_Request {
 		global $post;
 
 		$product = wc_get_product( $post->ID );
+		$qty = ! isset( $_POST['quantity'] ) ? 1 : absint( $_POST['quantity'] );
 
 		if ( 'variable' === $product->get_type() ) {
 			$variation_attributes = $product->get_variation_attributes();
@@ -332,12 +333,13 @@ class WC_Stripe_Payment_Request {
 			}
 		}
 
+		$total = $qty * $product->get_price();
 		$data  = [];
 		$items = [];
 
 		$items[] = [
 			'label'  => $product->get_name(),
-			'amount' => WC_Stripe_Helper::get_stripe_amount( $product->get_price() ),
+			'amount' => WC_Stripe_Helper::get_stripe_amount( $total ),
 		];
 
 		if ( wc_tax_enabled() ) {
@@ -366,7 +368,7 @@ class WC_Stripe_Payment_Request {
 		$data['displayItems'] = $items;
 		$data['total']        = [
 			'label'   => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
-			'amount'  => WC_Stripe_Helper::get_stripe_amount( $product->get_price() ),
+			'amount'  => WC_Stripe_Helper::get_stripe_amount( $total ),
 			'pending' => true,
 		];
 
