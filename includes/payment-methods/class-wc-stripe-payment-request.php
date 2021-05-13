@@ -347,20 +347,21 @@ class WC_Stripe_Payment_Request {
 		$order        = wc_get_order( $post->ID );
 		$method_title = is_object( $order ) ? $order->get_payment_method_title() : '';
 
-		if ( 'stripe' === $id && ! empty( $method_title ) && 'Apple Pay (Stripe)' === $method_title ) {
-			return $method_title;
-		}
+		if ( 'stripe' === $id && ! empty( $method_title ) ) {
+			if ( 'Apple Pay (Stripe)' === $method_title
+				|| 'Google Pay (Stripe)' === $method_title
+				|| 'Payment Request (Stripe)' === $method_title
+			) {
+				return $method_title;
+			}
 
-		// We renamed 'Chrome Payment Request' to just 'Payment Request' since PRs are supported
-		// by other browsers besides Chrome. As such, we need to check for both to make sure older
-		// orders still reflect that they were paid via Payment Request Buttons.
-		if ( 'stripe' === $id && ! empty( $method_title ) && 'Payment Request (Stripe)' === $method_title ) {
-			return $method_title;
-		}
-
-		// For the older title we return the stripped 'Payment Request' version.
-		if ( 'stripe' === $id && ! empty( $method_title ) && 'Chrome Payment Request (Stripe)' === $method_title ) {
-			return 'Payment Request (Stripe)';
+			// We renamed 'Chrome Payment Request' to just 'Payment Request' since Payment Requests
+			// are supported by other browsers besides Chrome. As such, we need to check for the
+			// old title to make sure older orders still reflect that they were paid via Payment
+			// Request Buttons.
+			if ( 'Chrome Payment Request (Stripe)' === $method_title ) {
+				return 'Payment Request (Stripe)';
+			}
 		}
 
 		return $title;
