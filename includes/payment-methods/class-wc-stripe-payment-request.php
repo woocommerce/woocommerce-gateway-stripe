@@ -351,8 +351,16 @@ class WC_Stripe_Payment_Request {
 			return $method_title;
 		}
 
-		if ( 'stripe' === $id && ! empty( $method_title ) && 'Chrome Payment Request (Stripe)' === $method_title ) {
+		// We renamed 'Chrome Payment Request' to just 'Payment Request' since PRs are supported
+		// by other browsers besides Chrome. As such, we need to check for both to make sure older
+		// orders still reflect that they were paid via Payment Request Buttons.
+		if ( 'stripe' === $id && ! empty( $method_title ) && 'Payment Request (Stripe)' === $method_title ) {
 			return $method_title;
+		}
+
+		// For the older title we return the stripped 'Payment Request' version.
+		if ( 'stripe' === $id && ! empty( $method_title ) && 'Chrome Payment Request (Stripe)' === $method_title ) {
+			return 'Payment Request (Stripe)';
 		}
 
 		return $title;
