@@ -1,17 +1,26 @@
 /**
  * External dependencies
  */
-import { Elements, PaymentRequestButtonElement } from '@stripe/react-stripe-js';
+import {
+	Elements,
+	PaymentRequestButtonElement,
+	useStripe,
+} from '@stripe/react-stripe-js';
 
 /**
  * Internal dependencies
  */
 import { getStripeServerData } from '../stripe-utils';
-import { useInitialization } from './use-initialization';
-import { useCheckoutSubscriptions } from './use-checkout-subscriptions';
-import { ThreeDSecurePaymentHandler } from '../three-d-secure';
 import { GooglePayButton, shouldUseGooglePayBrand } from './branded-buttons';
 import { CustomButton } from './custom-button';
+import {
+	usePaymentRequest,
+	useProcessPaymentHandler,
+	useShippingAddressUpdateHandler,
+	useShippingOptionChangeHandler,
+	useOnClickHandler,
+	useCancelHandler,
+} from './hooks';
 
 /**
  * @typedef {import('../stripe-utils/type-defs').Stripe} Stripe
@@ -35,46 +44,34 @@ import { CustomButton } from './custom-button';
  * @param {StripeRegisteredPaymentMethodProps} props Incoming props
  */
 const PaymentRequestExpressComponent = ( {
-	shippingData,
 	billing,
-	eventRegistration,
-	onSubmit,
-	setExpressPaymentError,
-	emitResponse,
+	shippingData,
 	onClick,
 	onClose,
+	setExpressPaymentError,
 } ) => {
-	const {
+	const stripe = useStripe();
+	const { needsShipping } = shippingData;
+
+	/* Set up payment request and its event handlers. */
+	const [ paymentRequest, paymentRequestType ] = usePaymentRequest(
+		stripe,
+		needsShipping,
+		billing
+	);
+	useShippingAddressUpdateHandler( paymentRequest, paymentRequestType );
+	useShippingOptionChangeHandler( paymentRequest, paymentRequestType );
+	useProcessPaymentHandler(
+		stripe,
 		paymentRequest,
-		paymentRequestEventHandlers,
-		clearPaymentRequestEventHandler,
-		isProcessing,
-		canMakePayment,
-		onButtonClick,
-		abortPayment,
-		completePayment,
 		paymentRequestType,
-	} = useInitialization( {
-		billing,
-		shippingData,
+		setExpressPaymentError
+	);
+	const onPaymentRequestButtonClick = useOnClickHandler(
 		setExpressPaymentError,
-		onClick,
-		onClose,
-		onSubmit,
-	} );
-	useCheckoutSubscriptions( {
-		canMakePayment,
-		isProcessing,
-		eventRegistration,
-		paymentRequestEventHandlers,
-		clearPaymentRequestEventHandler,
-		billing,
-		shippingData,
-		emitResponse,
-		paymentRequestType,
-		completePayment,
-		abortPayment,
-	} );
+		onClick
+	);
+	useCancelHandler( paymentRequest, onClose );
 
 	// locale is not a valid value for the paymentRequestButton style.
 	// Make sure `theme` defaults to 'dark' if it's not found in the server provided configuration.
@@ -98,33 +95,25 @@ const PaymentRequestExpressComponent = ( {
 	const brandedType = wc_stripe_payment_request_params.button.branded_type;
 	const isCustom = wc_stripe_payment_request_params.button.is_custom;
 
-	if ( ! canMakePayment || ! paymentRequest ) {
+	if ( ! paymentRequest ) {
 		return null;
 	}
 
+	// Prepare the onClick handler for our custom made Payment Request buttons.
+	const customAndBrandedClickHandler = () => {
+		onPaymentRequestButtonClick();
+		paymentRequest.show();
+	};
+
 	if ( isCustom ) {
 		return (
-			<CustomButton
-				onButtonClicked={ () => {
-					onButtonClick();
-					// Since we're using a custom button we must manually call
-					// `paymentRequest.show()`.
-					paymentRequest.show();
-				} }
-			/>
+			<CustomButton onButtonClicked={ customAndBrandedClickHandler } />
 		);
 	}
 
 	if ( isBranded && shouldUseGooglePayBrand() ) {
 		return (
-			<GooglePayButton
-				onButtonClicked={ () => {
-					onButtonClick();
-					// Since we're using a custom button we must manually call
-					// `paymentRequest.show()`.
-					paymentRequest.show();
-				} }
-			/>
+			<GooglePayButton onButtonClicked={ customAndBrandedClickHandler } />
 		);
 	}
 
@@ -138,7 +127,7 @@ const PaymentRequestExpressComponent = ( {
 
 	return (
 		<PaymentRequestButtonElement
-			onClick={ onButtonClick }
+			onClick={ onPaymentRequestButtonClick }
 			options={ {
 				// @ts-ignore
 				style: paymentRequestButtonStyle,
@@ -159,7 +148,6 @@ export const PaymentRequestExpress = ( props ) => {
 	return (
 		<Elements stripe={ stripe }>
 			<PaymentRequestExpressComponent { ...props } />
-			<ThreeDSecurePaymentHandler { ...props } />
 		</Elements>
 	);
 };

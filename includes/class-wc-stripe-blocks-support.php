@@ -96,7 +96,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			'inline_cc_form'      => $this->get_inline_cc_form(),
 			'icons'               => $this->get_icons(),
 			'showSavedCards'      => $this->get_show_saved_cards(),
-			'allowPaymentRequest' => $this->get_allow_payment_request(),
 			'showSaveOption'      => $this->get_show_save_option(),
 			'supports'            => $this->get_supported_features(),
 		];
@@ -161,16 +160,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 */
 	private function get_title() {
 		return isset( $this->settings['title'] ) ? $this->settings['title'] : __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
-	}
-
-	/**
-	 * Determine if store allows Payment Request buttons - e.g. Apple Pay / Chrome Pay.
-	 *
-	 * @return bool True if merchant has opted into payment request.
-	 */
-	private function get_allow_payment_request() {
-		$option = isset( $this->settings['payment_request'] ) ? $this->settings['payment_request'] : false;
-		return filter_var( $option, FILTER_VALIDATE_BOOLEAN );
 	}
 
 	/**
@@ -325,10 +314,11 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		if ( 'apple_pay' === $payment_request_type ) {
 			$order->set_payment_method_title( 'Apple Pay (Stripe)' );
 			$order->save();
-		}
-
-		if ( 'payment_request_api' === $payment_request_type ) {
-			$order->set_payment_method_title( 'Chrome Payment Request (Stripe)' );
+		} elseif ( 'google_pay' === $payment_request_type ) {
+			$order->set_payment_method_title( 'Google Pay (Stripe)' );
+			$order->save();
+		} elseif ( 'payment_request_api' === $payment_request_type ) {
+			$order->set_payment_method_title( 'Payment Request (Stripe)' );
 			$order->save();
 		}
 	}
