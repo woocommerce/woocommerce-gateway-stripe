@@ -399,9 +399,9 @@ function woocommerce_gateway_stripe_init() {
  */
 if ( ! function_exists( 'add_woocommerce_inbox_variant' ) ) {
 	function add_woocommerce_inbox_variant() {
-		$config_name = 'woocommerce_inbox_variant_binary';
+		$config_name = 'woocommerce_inbox_variant_assignment';
 		if ( false === get_option( $config_name, false ) ) {
-			update_option( $config_name, wp_rand( 1, 2 ) );
+			update_option( $config_name, wp_rand( 1, 12 ) );
 		}
 	}
 }
