@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2021-04-30T23:22:35+00:00\n"
+"POT-Creation-Date: 2021-05-13T23:21:36+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.4.0\n"
 "X-Domain: woocommerce-gateway-stripe\n"
@@ -985,31 +985,31 @@ msgstr ""
 msgid "Please check the %1$slogs%2$s for more details on this issue. Logging must be enabled to see recorded logs."
 msgstr ""
 
-#: includes/class-wc-stripe-blocks-support.php:163
+#: includes/class-wc-stripe-blocks-support.php:162
 msgid "Credit / Debit Card"
 msgstr ""
 
-#: includes/class-wc-stripe-blocks-support.php:230
+#: includes/class-wc-stripe-blocks-support.php:219
 msgid "Visa"
 msgstr ""
 
-#: includes/class-wc-stripe-blocks-support.php:234
+#: includes/class-wc-stripe-blocks-support.php:223
 msgid "American Express"
 msgstr ""
 
-#: includes/class-wc-stripe-blocks-support.php:238
+#: includes/class-wc-stripe-blocks-support.php:227
 msgid "Mastercard"
 msgstr ""
 
-#: includes/class-wc-stripe-blocks-support.php:245
+#: includes/class-wc-stripe-blocks-support.php:234
 msgid "Discover"
 msgstr ""
 
-#: includes/class-wc-stripe-blocks-support.php:249
+#: includes/class-wc-stripe-blocks-support.php:238
 msgid "JCB"
 msgstr ""
 
-#: includes/class-wc-stripe-blocks-support.php:253
+#: includes/class-wc-stripe-blocks-support.php:242
 msgid "Diners"
 msgstr ""
 
@@ -1032,7 +1032,7 @@ msgid "Unable to add payment source."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:197
-#: client/blocks/stripe-utils/utils.js:167
+#: client/blocks/stripe-utils/utils.js:91
 msgid "The card number is not a valid credit card number."
 msgstr ""
 
@@ -1049,12 +1049,12 @@ msgid "The card's security code is invalid."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:201
-#: client/blocks/stripe-utils/utils.js:183
+#: client/blocks/stripe-utils/utils.js:107
 msgid "The card number is incorrect."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:202
-#: client/blocks/stripe-utils/utils.js:187
+#: client/blocks/stripe-utils/utils.js:111
 msgid "The card number is incomplete."
 msgstr ""
 
@@ -1067,7 +1067,7 @@ msgid "The card's expiration date is incomplete."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:205
-#: client/blocks/stripe-utils/utils.js:199
+#: client/blocks/stripe-utils/utils.js:123
 msgid "The card has expired."
 msgstr ""
 
@@ -1084,17 +1084,17 @@ msgid "The card's expiration year is in the past"
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:209
-#: client/blocks/stripe-utils/utils.js:215
+#: client/blocks/stripe-utils/utils.js:139
 msgid "The card was declined."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:210
-#: client/blocks/stripe-utils/utils.js:219
+#: client/blocks/stripe-utils/utils.js:143
 msgid "There is no card on a customer that is being charged."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:211
-#: client/blocks/stripe-utils/utils.js:223
+#: client/blocks/stripe-utils/utils.js:147
 msgid "An error occurred while processing the card."
 msgstr ""
 
@@ -1103,7 +1103,7 @@ msgid "The billing country is not accepted by SOFORT. Please try another country
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:213
-#: client/blocks/stripe-utils/utils.js:234
+#: client/blocks/stripe-utils/utils.js:158
 msgid "Invalid email address, please correct and try again."
 msgstr ""
 
@@ -1113,7 +1113,7 @@ msgstr ""
 
 #: includes/class-wc-stripe-helper.php:216
 #: includes/class-wc-stripe-order-handler.php:96
-#: client/blocks/stripe-utils/utils.js:239
+#: client/blocks/stripe-utils/utils.js:163
 msgid "Unable to process this payment, please try again or use alternative method."
 msgstr ""
 
@@ -1560,55 +1560,55 @@ msgid "Stripe SOFORT"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:302
-#: includes/payment-methods/class-wc-stripe-payment-request.php:996
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1321
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1006
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1331
 msgid "Tax"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:310
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1004
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1328
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1014
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1338
 msgid "Shipping"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:317
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1011
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1021
 msgid "Pending"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:571
+#: includes/payment-methods/class-wc-stripe-payment-request.php:581
 msgid "Sorry, we're not accepting prepaid cards at this time."
 msgstr ""
 
 #. translators: Do not translate the [option] placeholder
-#: includes/payment-methods/class-wc-stripe-payment-request.php:573
+#: includes/payment-methods/class-wc-stripe-payment-request.php:583
 msgid "Unknown shipping option \"[option]\"."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:672
+#: includes/payment-methods/class-wc-stripe-payment-request.php:682
 msgid "OR"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:845
-#: includes/payment-methods/class-wc-stripe-payment-request.php:858
+#: includes/payment-methods/class-wc-stripe-payment-request.php:855
+#: includes/payment-methods/class-wc-stripe-payment-request.php:868
 msgid "Unable to find shipping method for address."
 msgstr ""
 
 #. translators: %d is the product Id
-#: includes/payment-methods/class-wc-stripe-payment-request.php:958
+#: includes/payment-methods/class-wc-stripe-payment-request.php:968
 msgid "Product with the ID (%d) cannot be found."
 msgstr ""
 
 #. translators: 1: product name 2: quantity in stock
-#: includes/payment-methods/class-wc-stripe-payment-request.php:979
+#: includes/payment-methods/class-wc-stripe-payment-request.php:989
 msgid "You cannot add that amount of \"%1$s\"; to the cart because there is not enough stock (%2$s remaining)."
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1168
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1178
 msgid "Empty cart"
 msgstr ""
 
-#: includes/payment-methods/class-wc-stripe-payment-request.php:1335
+#: includes/payment-methods/class-wc-stripe-payment-request.php:1345
 msgid "Discount"
 msgstr ""
 
@@ -1695,38 +1695,34 @@ msgstr ""
 msgid "CVV/CVC"
 msgstr ""
 
-#: client/blocks/stripe-utils/utils.js:60
-msgid "Total"
-msgstr ""
-
-#: client/blocks/stripe-utils/utils.js:171
+#: client/blocks/stripe-utils/utils.js:95
 msgid "The card expiration month is invalid."
 msgstr ""
 
-#: client/blocks/stripe-utils/utils.js:175
+#: client/blocks/stripe-utils/utils.js:99
 msgid "The card expiration year is invalid."
 msgstr ""
 
-#: client/blocks/stripe-utils/utils.js:179
+#: client/blocks/stripe-utils/utils.js:103
 msgid "The card security code is invalid."
 msgstr ""
 
-#: client/blocks/stripe-utils/utils.js:191
+#: client/blocks/stripe-utils/utils.js:115
 msgid "The card security code is incomplete."
 msgstr ""
 
-#: client/blocks/stripe-utils/utils.js:195
+#: client/blocks/stripe-utils/utils.js:119
 msgid "The card expiration date is incomplete."
 msgstr ""
 
-#: client/blocks/stripe-utils/utils.js:203
+#: client/blocks/stripe-utils/utils.js:127
 msgid "The card security code is incorrect."
 msgstr ""
 
-#: client/blocks/stripe-utils/utils.js:207
+#: client/blocks/stripe-utils/utils.js:131
 msgid "The card zip code failed validation."
 msgstr ""
 
-#: client/blocks/stripe-utils/utils.js:211
+#: client/blocks/stripe-utils/utils.js:135
 msgid "The card expiration year is in the past"
 msgstr ""
