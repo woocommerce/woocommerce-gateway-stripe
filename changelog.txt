@@ -5,6 +5,7 @@
 * Fix - Orders won't transition to 'Refunded' state if refund can't be created.
 * Fix - Normalize United Kingdom and Canada postal codes for Apple Pay.
 * Fix - Subscription sign-up fees not included in total for Payment Request Button.
+* Fix - Reduce requests sent to server from stripe settings page.
 
 = 5.1.0 - 2021-04-07 =
 * Fix - Don't attempt to submit level 3 data for non-US merchants.
