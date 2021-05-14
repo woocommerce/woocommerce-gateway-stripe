@@ -510,4 +510,91 @@ class WC_Stripe_Helper {
 
 		return $statement_descriptor;
 	}
+
+	/**
+	 * Converts a WooCommerce locale to the closest supported by Stripe.js.
+	 *
+	 * Stripe.js supports only a subset of IETF language tags, if a country specific locale is not supported we use
+	 * the default for that language (https://stripe.com/docs/js/appendix/supported_locales).
+	 * If no match is found we return 'auto' so Stripe.js uses the browser locale.
+	 *
+	 * @param string $wc_locale The locale to convert.
+	 *
+	 * @return string Closest locale supported by Stripe ('auto' if NONE).
+	 */
+	public static function convert_wc_locale_to_stripe_locale( $wc_locale ) {
+		// List copied from: https://stripe.com/docs/js/appendix/supported_locales.
+		$supported = [
+			'ar',     // Arabic.
+			'bg',     // Bulgarian (Bulgaria).
+			'cs',     // Czech (Czech Republic).
+			'da',     // Danish.
+			'de',     // German (Germany).
+			'el',     // Greek (Greece).
+			'en',     // English.
+			'en-GB',  // English (United Kingdom).
+			'es',     // Spanish (Spain).
+			'es-419', // Spanish (Latin America).
+			'et',     // Estonian (Estonia).
+			'fi',     // Finnish (Finland).
+			'fr',     // French (France).
+			'fr-CA',  // French (Canada).
+			'he',     // Hebrew (Israel).
+			'hu',     // Hungarian (Hungary).
+			'id',     // Indonesian (Indonesia).
+			'it',     // Italian (Italy).
+			'ja',     // Japanese.
+			'lt',     // Lithuanian (Lithuania).
+			'lv',     // Latvian (Latvia).
+			'ms',     // Malay (Malaysia).
+			'mt',     // Maltese (Malta).
+			'nb',     // Norwegian Bokmål.
+			'nl',     // Dutch (Netherlands).
+			'pl',     // Polish (Poland).
+			'pt-BR',  // Portuguese (Brazil).
+			'pt',     // Portuguese (Brazil).
+			'ro',     // Romanian (Romania).
+			'ru',     // Russian (Russia).
+			'sk',     // Slovak (Slovakia).
+			'sl',     // Slovenian (Slovenia).
+			'sv',     // Swedish (Sweden).
+			'th',     // Thai.
+			'tr',     // Turkish (Turkey).
+			'zh',     // Chinese Simplified (China).
+			'zh-HK',  // Chinese Traditional (Hong Kong).
+			'zh-TW',  // Chinese Traditional (Taiwan).
+		];
+
+		// Stripe uses '-' instead of '_' (used in WordPress).
+		$locale = str_replace( '_', '-', $wc_locale );
+
+		if ( in_array( $locale, $supported, true ) ) {
+			return $locale;
+		}
+
+		// The plugin has been fully translated for Spanish (Ecuador), Spanish (Mexico), and
+		// Spanish(Venezuela), and partially (88% at 2021-05-14) for Spanish (Colombia).
+		// We need to map these locales to Stripe's Spanish (Latin America) 'es-419' locale.
+		// This list should be updated if more localized versions of Latin American Spanish are
+		// made available.
+		$lowercase_locale                  = strtolower( $wc_locale );
+		$translated_latin_american_locales = [
+			'es_co', // Spanish (Colombia).
+			'es_ec', // Spanish (Ecuador).
+			'es_mx', // Spanish (Mexico).
+			'es_ve', // Spanish (Venezuela).
+		];
+		if ( in_array( $lowercase_locale, $translated_latin_american_locales, true ) ) {
+			return 'es-419';
+		}
+
+		// Finally, we check if the "base locale" is available.
+		$base_locale = substr( $wc_locale, 0, 2 );
+		if ( in_array( $base_locale, $supported, true ) ) {
+			return $base_locale;
+		}
+
+		// Default to 'auto' so Stripe.js uses the browser locale.
+		return 'auto';
+	}
 }
