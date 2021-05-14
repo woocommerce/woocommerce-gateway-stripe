@@ -2,7 +2,9 @@
 jQuery( function( $ ) {
 	'use strict';
 
-	var stripe = Stripe( wc_stripe_payment_request_params.stripe.key ),
+	var stripe = Stripe( wc_stripe_payment_request_params.stripe.key, {
+		locale: wc_stripe_params.stripe_locale || 'auto',
+	} ),
 		paymentRequestType;
 
 	/**
@@ -610,11 +612,11 @@ jQuery( function( $ ) {
 					paymentRequest.show();
 				}
 			});
-			
+
 			$( document.body ).on( 'wc_stripe_unblock_payment_request_button wc_stripe_enable_payment_request_button', function () {
 				wc_stripe_payment_request.unblockPaymentRequestButton();
 			} );
-			
+
 			$( document.body ).on( 'wc_stripe_block_payment_request_button', function () {
 				wc_stripe_payment_request.blockPaymentRequestButton( 'wc_request_button_is_blocked' );
 			} );
