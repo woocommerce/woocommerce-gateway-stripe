@@ -659,24 +659,36 @@ jQuery( function( $ ) {
 
 			$( '.quantity' ).on( 'input', '.qty', wc_stripe_payment_request.debounce( 250, function() {
 				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
-				paymentRequestError = [];
-
-				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
-					if ( response.error ) {
-						paymentRequestError = [ response.error ];
-						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-					} else {
-						$.when(
+						$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
 							paymentRequest.update( {
 								total: response.total,
 								displayItems: response.displayItems,
-							} )
-						).then( function () {
+							} );
+
 							$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-						});
-					}
-				} );
+							$( document.body ).trigger( 'wc_stripe_after_get_selected_product_data' );
+					});
 			}));
+
+			if ( 'mix-and-match' === wc_stripe_payment_request_params.product.product_type ) {
+				var mnm_totals;
+
+				$( '.mnm_form' ).on( 'wc-mnm-form-updated', function ( e, wc_mnm_container ) {
+					// TODO: Check if we should use `.totals` or `.subtotals`
+					mnm_totals = wc_mnm_container.price_data.totals;
+				} );
+
+				$( document.body ).on( 'wc_stripe_after_get_selected_product_data', function() {
+					paymentRequest.update( {
+						total: {
+							amount: mnm_totals.price * 100,
+							label: " (via WooCommerce)", // TODO: Add prefix
+							pending: true,
+						},
+						displayItems: [],
+					} )
+				});
+			}
 		},
 
 		attachCartPageEventListeners: function ( prButton, paymentRequest ) {
