@@ -74,6 +74,11 @@
     "npm": ">=5.5.1"
   },
   "config": {
-    "wp_org_slug": "woocommerce-gateway-stripe"
+    "wp_org_slug": "woocommerce-gateway-stripe",
+    "version_replace_paths": [
+      "includes",
+      "templates",
+      "woocommerce-gateway-stripe.php"
+    ]
   }
 }
