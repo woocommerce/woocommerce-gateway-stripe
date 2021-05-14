@@ -333,7 +333,8 @@ class WC_Stripe_Payment_Request {
 			}
 		}
 
-		$total = $qty * $product->get_price();
+
+		$total = empty( $product->get_price() ) ? 0 : $qty * $product->get_price();
 		$data  = [];
 		$items = [];
 
