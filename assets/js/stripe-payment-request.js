@@ -685,7 +685,7 @@ jQuery( function( $ ) {
 					paymentRequest.update( {
 						total: {
 							amount: quantity * mnm_totals.price * 100,
-							label: " (via WooCommerce)", // TODO: Add prefix
+							label: wc_stripe_payment_request_params.product.total.label,
 							pending: true,
 						},
 						displayItems: [],
