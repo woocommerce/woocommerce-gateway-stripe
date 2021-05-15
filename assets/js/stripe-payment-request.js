@@ -671,7 +671,8 @@ jQuery( function( $ ) {
 			}));
 
 			if ( 'mix-and-match' === wc_stripe_payment_request_params.product.product_type ) {
-				var mnm_totals;
+				var script_id = $('.mnm_form').data( 'script_id' );
+				var mnm_totals = wc_mnm_scripts[script_id].price_data.totals;
 
 				$( '.mnm_form' ).on( 'wc-mnm-form-updated', function ( e, wc_mnm_container ) {
 					// TODO: Check if we should use `.totals` or `.subtotals`
@@ -679,15 +680,17 @@ jQuery( function( $ ) {
 				} );
 
 				$( document.body ).on( 'wc_stripe_after_get_selected_product_data', function() {
+					var quantity = Number.parseInt( $( '.quantity [name=quantity]' ).val() );
+
 					paymentRequest.update( {
 						total: {
-							amount: mnm_totals.price * 100,
+							amount: quantity * mnm_totals.price * 100,
 							label: " (via WooCommerce)", // TODO: Add prefix
 							pending: true,
 						},
 						displayItems: [],
 					} )
-				});
+				}).trigger('wc_stripe_after_get_selected_product_data');
 			}
 		},
 
