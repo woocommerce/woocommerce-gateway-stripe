@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2021-05-14T15:17:34+00:00\n"
+"POT-Creation-Date: 2021-05-17T01:20:11+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.4.0\n"
 "X-Domain: woocommerce-gateway-stripe\n"
@@ -78,7 +78,7 @@ msgid "Stripe charge complete (Charge ID: %s)"
 msgstr ""
 
 #: includes/abstracts/abstract-wc-stripe-payment-gateway.php:467
-#: includes/class-wc-gateway-stripe.php:503
+#: includes/class-wc-gateway-stripe.php:504
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:187
 msgid "Payment processing failed. Please retry."
 msgstr ""
@@ -863,44 +863,44 @@ msgstr ""
 msgid "Please fill in required checkout fields first"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:445
-#: includes/class-wc-gateway-stripe.php:490
+#: includes/class-wc-gateway-stripe.php:446
+#: includes/class-wc-gateway-stripe.php:491
 msgid "Sorry, we're not accepting prepaid cards at this time. Your credit card has not been charged. Please try with alternative payment method."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:446
+#: includes/class-wc-gateway-stripe.php:447
 msgid "Please enter your IBAN account name."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:447
+#: includes/class-wc-gateway-stripe.php:448
 msgid "Please enter your IBAN account number."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:448
+#: includes/class-wc-gateway-stripe.php:449
 msgid "We couldn't initiate the payment. Please try again."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:459
+#: includes/class-wc-gateway-stripe.php:460
 msgid "Billing First Name and Last Name are required."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:759
+#: includes/class-wc-gateway-stripe.php:760
 msgid "This represents the fee Stripe collects for the transaction."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:760
+#: includes/class-wc-gateway-stripe.php:761
 msgid "Stripe Fee:"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:796
+#: includes/class-wc-gateway-stripe.php:797
 msgid "This represents the net total that will be credited to your Stripe bank account. This may be in the currency that is set in your Stripe account."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:797
+#: includes/class-wc-gateway-stripe.php:798
 msgid "Stripe Payout:"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:860
+#: includes/class-wc-gateway-stripe.php:861
 #: includes/class-wc-stripe-order-handler.php:159
 #: includes/class-wc-stripe-webhook-handler.php:264
 #: includes/compat/class-wc-stripe-sepa-subs-compat.php:287
@@ -909,7 +909,7 @@ msgstr ""
 msgid "Sorry, we are unable to process your payment at this time. Please retry later."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:913
+#: includes/class-wc-gateway-stripe.php:914
 msgid ""
 "Almost there!\n"
 "\n"
@@ -917,34 +917,34 @@ msgid ""
 msgstr ""
 
 #. translators: %s is the order Id
-#: includes/class-wc-gateway-stripe.php:935
+#: includes/class-wc-gateway-stripe.php:936
 msgid "Payment Intent not found for order #%s"
 msgstr ""
 
 #. translators: 1) The error message that was received from Stripe.
-#: includes/class-wc-gateway-stripe.php:1166
+#: includes/class-wc-gateway-stripe.php:1167
 #: includes/class-wc-stripe-webhook-handler.php:768
 #: includes/class-wc-stripe-webhook-handler.php:813
 msgid "Stripe SCA authentication failed. Reason: %s"
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1167
+#: includes/class-wc-gateway-stripe.php:1168
 msgid "Stripe SCA authentication failed."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1224
+#: includes/class-wc-gateway-stripe.php:1225
 msgid "The \"Live Publishable Key\" should start with \"pk_live\", enter the correct key."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1232
+#: includes/class-wc-gateway-stripe.php:1233
 msgid "The \"Live Secret Key\" should start with \"sk_live\" or \"rk_live\", enter the correct key."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1240
+#: includes/class-wc-gateway-stripe.php:1241
 msgid "The \"Test Publishable Key\" should start with \"pk_test\", enter the correct key."
 msgstr ""
 
-#: includes/class-wc-gateway-stripe.php:1248
+#: includes/class-wc-gateway-stripe.php:1249
 msgid "The \"Test Secret Key\" should start with \"sk_test\" or \"rk_test\", enter the correct key."
 msgstr ""
 
@@ -1043,6 +1043,8 @@ msgstr ""
 #: includes/class-wc-stripe-helper.php:197
 #: build/index.js:1
 #: client/blocks/stripe-utils/utils.js:91
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/assets/js/payment-method-extensions/payment-methods/stripe/stripe-utils/utils.js:167
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/build/wc-payment-method-stripe.js:1
 msgid "The card number is not a valid credit card number."
 msgstr ""
 
@@ -1061,12 +1063,16 @@ msgstr ""
 #: includes/class-wc-stripe-helper.php:201
 #: build/index.js:1
 #: client/blocks/stripe-utils/utils.js:107
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/assets/js/payment-method-extensions/payment-methods/stripe/stripe-utils/utils.js:183
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/build/wc-payment-method-stripe.js:1
 msgid "The card number is incorrect."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:202
 #: build/index.js:1
 #: client/blocks/stripe-utils/utils.js:111
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/assets/js/payment-method-extensions/payment-methods/stripe/stripe-utils/utils.js:187
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/build/wc-payment-method-stripe.js:1
 msgid "The card number is incomplete."
 msgstr ""
 
@@ -1081,6 +1087,8 @@ msgstr ""
 #: includes/class-wc-stripe-helper.php:205
 #: build/index.js:1
 #: client/blocks/stripe-utils/utils.js:123
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/assets/js/payment-method-extensions/payment-methods/stripe/stripe-utils/utils.js:199
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/build/wc-payment-method-stripe.js:1
 msgid "The card has expired."
 msgstr ""
 
@@ -1099,18 +1107,24 @@ msgstr ""
 #: includes/class-wc-stripe-helper.php:209
 #: build/index.js:1
 #: client/blocks/stripe-utils/utils.js:139
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/assets/js/payment-method-extensions/payment-methods/stripe/stripe-utils/utils.js:215
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/build/wc-payment-method-stripe.js:1
 msgid "The card was declined."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:210
 #: build/index.js:1
 #: client/blocks/stripe-utils/utils.js:143
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/assets/js/payment-method-extensions/payment-methods/stripe/stripe-utils/utils.js:219
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/build/wc-payment-method-stripe.js:1
 msgid "There is no card on a customer that is being charged."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:211
 #: build/index.js:1
 #: client/blocks/stripe-utils/utils.js:147
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/assets/js/payment-method-extensions/payment-methods/stripe/stripe-utils/utils.js:223
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/build/wc-payment-method-stripe.js:1
 msgid "An error occurred while processing the card."
 msgstr ""
 
@@ -1472,7 +1486,7 @@ msgid "You are not authorized to clear Stripe account keys."
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-alipay.php:61
-#: woocommerce-gateway-stripe.php:305
+#: woocommerce-gateway-stripe.php:306
 msgid "Stripe Alipay"
 msgstr ""
 
@@ -1501,27 +1515,27 @@ msgid "Add Payment"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-bancontact.php:61
-#: woocommerce-gateway-stripe.php:299
+#: woocommerce-gateway-stripe.php:300
 msgid "Stripe Bancontact"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-eps.php:61
-#: woocommerce-gateway-stripe.php:302
+#: woocommerce-gateway-stripe.php:303
 msgid "Stripe EPS"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-giropay.php:61
-#: woocommerce-gateway-stripe.php:301
+#: woocommerce-gateway-stripe.php:302
 msgid "Stripe Giropay"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-ideal.php:61
-#: woocommerce-gateway-stripe.php:303
+#: woocommerce-gateway-stripe.php:304
 msgid "Stripe iDeal"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:61
-#: woocommerce-gateway-stripe.php:307
+#: woocommerce-gateway-stripe.php:308
 msgid "Stripe Multibanco"
 msgstr ""
 
@@ -1550,12 +1564,12 @@ msgid "Awaiting Multibanco payment"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-p24.php:61
-#: woocommerce-gateway-stripe.php:304
+#: woocommerce-gateway-stripe.php:305
 msgid "Stripe P24"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-sepa.php:76
-#: woocommerce-gateway-stripe.php:306
+#: woocommerce-gateway-stripe.php:307
 msgid "Stripe SEPA Direct Debit"
 msgstr ""
 
@@ -1573,7 +1587,7 @@ msgid "TEST MODE ENABLED. In test mode, you can use IBAN number DE89370400440532
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-sofort.php:61
-#: woocommerce-gateway-stripe.php:300
+#: woocommerce-gateway-stripe.php:301
 msgid "Stripe SOFORT"
 msgstr ""
 
@@ -1595,6 +1609,7 @@ msgid "Pending"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:639
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/build/wc-payment-method-stripe.js:1
 msgid "Sorry, we're not accepting prepaid cards at this time."
 msgstr ""
 
@@ -1690,63 +1705,79 @@ msgstr ""
 msgid "Stripe requires WooCommerce %1$s or greater to be installed and active. WooCommerce %2$s is no longer supported."
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:229
+#: woocommerce-gateway-stripe.php:230
 msgid "Settings"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:245
+#: woocommerce-gateway-stripe.php:246
 msgid "View Documentation"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:245
+#: woocommerce-gateway-stripe.php:246
 msgid "Docs"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:246
+#: woocommerce-gateway-stripe.php:247
 msgid "Open a support request at WooCommerce.com"
 msgstr ""
 
-#: woocommerce-gateway-stripe.php:246
+#: woocommerce-gateway-stripe.php:247
 msgid "Support"
 msgstr ""
 
 #: build/index.js:1
 #: client/blocks/stripe-utils/utils.js:95
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/assets/js/payment-method-extensions/payment-methods/stripe/stripe-utils/utils.js:171
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/build/wc-payment-method-stripe.js:1
 msgid "The card expiration month is invalid."
 msgstr ""
 
 #: build/index.js:1
 #: client/blocks/stripe-utils/utils.js:99
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/assets/js/payment-method-extensions/payment-methods/stripe/stripe-utils/utils.js:175
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/build/wc-payment-method-stripe.js:1
 msgid "The card expiration year is invalid."
 msgstr ""
 
 #: build/index.js:1
 #: client/blocks/stripe-utils/utils.js:103
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/assets/js/payment-method-extensions/payment-methods/stripe/stripe-utils/utils.js:179
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/build/wc-payment-method-stripe.js:1
 msgid "The card security code is invalid."
 msgstr ""
 
 #: build/index.js:1
 #: client/blocks/stripe-utils/utils.js:115
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/assets/js/payment-method-extensions/payment-methods/stripe/stripe-utils/utils.js:191
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/build/wc-payment-method-stripe.js:1
 msgid "The card security code is incomplete."
 msgstr ""
 
 #: build/index.js:1
 #: client/blocks/stripe-utils/utils.js:119
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/assets/js/payment-method-extensions/payment-methods/stripe/stripe-utils/utils.js:195
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/build/wc-payment-method-stripe.js:1
 msgid "The card expiration date is incomplete."
 msgstr ""
 
 #: build/index.js:1
 #: client/blocks/stripe-utils/utils.js:127
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/assets/js/payment-method-extensions/payment-methods/stripe/stripe-utils/utils.js:203
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/build/wc-payment-method-stripe.js:1
 msgid "The card security code is incorrect."
 msgstr ""
 
 #: build/index.js:1
 #: client/blocks/stripe-utils/utils.js:131
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/assets/js/payment-method-extensions/payment-methods/stripe/stripe-utils/utils.js:207
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/build/wc-payment-method-stripe.js:1
 msgid "The card zip code failed validation."
 msgstr ""
 
 #: build/index.js:1
 #: client/blocks/stripe-utils/utils.js:135
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/assets/js/payment-method-extensions/payment-methods/stripe/stripe-utils/utils.js:211
+#: docker/wordpress/wp-content/plugins/woocommerce/packages/woocommerce-blocks/build/wc-payment-method-stripe.js:1
 msgid "The card expiration year is in the past"
 msgstr ""
 
