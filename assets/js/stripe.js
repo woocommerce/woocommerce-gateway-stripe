@@ -4,7 +4,9 @@ jQuery( function( $ ) {
 	'use strict';
 
 	try {
-		var stripe = Stripe( wc_stripe_params.key );
+		var stripe = Stripe( wc_stripe_params.key, {
+			locale: wc_stripe_params.stripe_locale || 'auto',
+		} );
 	} catch( error ) {
 		console.log( error );
 		return;

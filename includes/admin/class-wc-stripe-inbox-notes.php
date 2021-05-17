@@ -1,10 +1,8 @@
 <?php
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
-use Automattic\WooCommerce\Admin\Notes\WC_Admin_Note;
-use Automattic\WooCommerce\Admin\Notes\WC_Admin_Notes;
 
 /**
  * Class that adds Inbox notifications.
@@ -49,11 +47,8 @@ class WC_Stripe_Inbox_Notes {
 	 * Manage notes to show after Apple Pay domain verification.
 	 */
 	public static function notify_on_apple_pay_domain_verification( $verification_complete ) {
-		if ( ! class_exists( 'Automattic\WooCommerce\Admin\Notes\WC_Admin_Notes' ) ) {
-			return;
-		}
-
-		if ( ! class_exists( 'WC_Data_Store' ) ) {
+		$admin_notes_class = WC_Stripe_Woo_Compat_Utils::get_notes_class();
+		if ( ! class_exists( $admin_notes_class ) || ! class_exists( 'WC_Data_Store' ) ) {
 			return;
 		}
 
@@ -63,7 +58,7 @@ class WC_Stripe_Inbox_Notes {
 			// Delete all previously created, soft deleted and unactioned failure notes (Legacy).
 			while ( ! empty( $failure_note_ids ) ) {
 				$note_id = array_pop( $failure_note_ids );
-				$note    = WC_Admin_Notes::get_note( $note_id );
+				$note    = $admin_notes_class::get_note( $note_id );
 				$note->delete();
 			}
 		} catch ( Exception $e ) {} // @codingStandardsIgnoreLine
@@ -121,10 +116,11 @@ class WC_Stripe_Inbox_Notes {
 		}
 
 		try {
-			$note = new WC_Admin_Note();
+			$admin_note_class = WC_Stripe_Woo_Compat_Utils::get_note_class();
+			$note             = new $admin_note_class();
 			$note->set_title( self::get_success_title() );
 			$note->set_content( __( 'Now that you accept Apple Pay® with Stripe, you can increase conversion rates by letting your customers know that Apple Pay is available. Here’s a marketing guide to help you get started.', 'woocommerce-gateway-stripe' ) );
-			$note->set_type( WC_Admin_Note::E_WC_ADMIN_NOTE_MARKETING );
+			$note->set_type( $admin_note_class::E_WC_ADMIN_NOTE_MARKETING );
 			$note->set_name( self::SUCCESS_NOTE_NAME );
 			$note->set_source( 'woocommerce-gateway-stripe' );
 			$note->add_action(
@@ -141,10 +137,11 @@ class WC_Stripe_Inbox_Notes {
 	 */
 	public static function create_failure_note() {
 		try {
-			$note = new WC_Admin_Note();
+			$admin_note_class = WC_Stripe_Woo_Compat_Utils::get_note_class();
+			$note             = new $admin_note_class();
 			$note->set_title( __( 'Apple Pay domain verification needed', 'woocommerce-gateway-stripe' ) );
 			$note->set_content( __( 'The WooCommerce Stripe Gateway extension attempted to perform domain verification on behalf of your store, but was unable to do so. This must be resolved before Apple Pay can be offered to your customers.', 'woocommerce-gateway-stripe' ) );
-			$note->set_type( WC_Admin_Note::E_WC_ADMIN_NOTE_INFORMATIONAL );
+			$note->set_type( $admin_note_class::E_WC_ADMIN_NOTE_INFORMATIONAL );
 			$note->set_name( self::FAILURE_NOTE_NAME );
 			$note->set_source( 'woocommerce-gateway-stripe' );
 			$note->add_action(
@@ -162,11 +159,8 @@ class WC_Stripe_Inbox_Notes {
 	 * on/about 2020 Dec 22.
 	 */
 	public static function cleanup_campaign_2020() {
-		if ( ! class_exists( 'Automattic\WooCommerce\Admin\Notes\WC_Admin_Notes' ) ) {
-			return;
-		}
-
-		if ( ! class_exists( 'WC_Data_Store' ) ) {
+		$admin_notes_class = WC_Stripe_Woo_Compat_Utils::get_notes_class();
+		if ( ! class_exists( $admin_notes_class ) || ! class_exists( 'WC_Data_Store' ) ) {
 			return;
 		}
 
@@ -184,10 +178,11 @@ class WC_Stripe_Inbox_Notes {
 
 		$deleted_an_unactioned_note = false;
 
+		$admin_note_class = WC_Stripe_Woo_Compat_Utils::get_note_class();
 		foreach ( (array) $note_ids as $note_id ) {
 			try {
-				$note = new WC_Admin_Note( $note_id );
-				if ( WC_Admin_Note::E_WC_ADMIN_NOTE_UNACTIONED == $note->get_status() ) {
+				$note = new $admin_note_class( $note_id );
+				if ( $admin_note_class::E_WC_ADMIN_NOTE_UNACTIONED == $note->get_status() ) {
 					$note->delete();
 					$deleted_an_unactioned_note = true;
 				}

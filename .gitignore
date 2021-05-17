@@ -13,6 +13,7 @@ sftp-config.json
 .idea/
 vendor
 release/
+build/
 woocommerce-gateway-stripe.zip
 
 # Ignore all log files except for .htaccess

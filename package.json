@@ -9,6 +9,9 @@
     "url": "git://github.com/woocommerce/woocommerce-gateway-stripe.git"
   },
   "devDependencies": {
+    "@woocommerce/dependency-extraction-webpack-plugin": "^1.4.0",
+    "@woocommerce/eslint-plugin": "^1.1.0",
+    "@wordpress/scripts": "^13.0.2",
     "archiver": "^5.0.0",
     "babel": "^6.5.2",
     "babel-cli": "^6.14.0",
@@ -23,15 +26,22 @@
     "colors": "^1.4.0",
     "config": "^1.24.0",
     "cross-env": "^5.1.6",
+    "jquery": "^3.6.0",
     "mocha": "^5.2.0",
     "node-sass": "^4.11.0",
     "node-wp-i18n": "~1.2.1",
+    "prettier": "npm:wp-prettier@^2.2.1-beta-1",
+    "rimraf": "^3.0.2",
     "shelljs": "^0.8.4",
     "stylelint": "^10.1.0",
     "uglify-js": "^3.1.3",
     "wait-on": "^5.0.0",
     "wc-e2e-page-objects": "0.10.0",
     "wp-e2e-webdriver": "0.15.0"
+  },
+  "dependencies": {
+    "@stripe/react-stripe-js": "1.2.2",
+    "@stripe/stripe-js": "1.11.0"
   },
   "assets": {
     "js": {
@@ -47,8 +57,10 @@
   "scripts": {
     "postinstall": "composer install",
     "prebuild": "npm install && composer install",
-    "build": "npm run uglify && npm run makepot && npm run sass && npm run build:release",
+    "build": "npm run uglify && npm run makepot && npm run sass && rimraf build/* && npm run build:webpack && npm run build:release",
     "build:release": "node tasks/release.js && mv release/woocommerce-gateway-stripe.zip .",
+    "build:webpack": "wp-scripts build client/blocks/index.js",
+    "start:webpack": "rimraf build/* && wp-scripts start client/blocks/index.js",
     "preuglify": "rm -f $npm_package_assets_js_min",
     "uglify": "for f in $npm_package_assets_js_js; do file=${f%.js}; node_modules/.bin/uglifyjs $f -c -m > $file.min.js; done",
     "up": "docker-compose up --build --force-recreate -d && ./bin/docker-setup.sh",
@@ -70,10 +82,15 @@
     "jt:stop": "./docker/bin/jt/tunnel.sh break"
   },
   "engines": {
-    "node": ">=8.9.3",
-    "npm": ">=5.5.1"
+    "node": ">=12.0.0",
+    "npm": ">=6.9.0"
   },
   "config": {
-    "wp_org_slug": "woocommerce-gateway-stripe"
+    "wp_org_slug": "woocommerce-gateway-stripe",
+    "version_replace_paths": [
+      "includes",
+      "templates",
+      "woocommerce-gateway-stripe.php"
+    ]
   }
 }
