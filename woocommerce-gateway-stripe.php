@@ -406,3 +406,34 @@ if ( ! function_exists( 'add_woocommerce_inbox_variant' ) ) {
 	}
 }
 register_activation_hook( __FILE__, 'add_woocommerce_inbox_variant' );
+
+// Hook in Blocks integration. This action is called in a callback on plugins loaded, so current Stripe plugin class
+// implementation is too late.
+add_action( 'woocommerce_blocks_loaded', 'woocommerce_gateway_stripe_woocommerce_block_support' );
+
+function woocommerce_gateway_stripe_woocommerce_block_support() {
+	if ( class_exists( 'Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType' ) ) {
+		require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-blocks-support.php';
+		// priority is important here because this ensures this integration is
+		// registered before the WooCommerce Blocks built-in Stripe registration.
+		// Blocks code has a check in place to only register if 'stripe' is not
+		// already registered.
+		add_action(
+			'woocommerce_blocks_payment_method_type_registration',
+			function( Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry ) {
+				$container = Automattic\WooCommerce\Blocks\Package::container();
+				// registers as shared instance.
+				$container->register(
+					WC_Stripe_Blocks_Support::class,
+					function() {
+						return new WC_Stripe_Blocks_Support();
+					}
+				);
+				$payment_method_registry->register(
+					$container->get( WC_Stripe_Blocks_Support::class )
+				);
+			},
+			5
+		);
+	}
+}

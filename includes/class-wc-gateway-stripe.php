@@ -442,6 +442,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			]
 		);
 
+		$stripe_params['stripe_locale']             = WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() );
 		$stripe_params['no_prepaid_card_msg']       = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charged. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
 		$stripe_params['no_sepa_owner_msg']         = __( 'Please enter your IBAN account name.', 'woocommerce-gateway-stripe' );
 		$stripe_params['no_sepa_iban_msg']          = __( 'Please enter your IBAN account number.', 'woocommerce-gateway-stripe' );
