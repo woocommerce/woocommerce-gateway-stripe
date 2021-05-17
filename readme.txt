@@ -132,6 +132,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Orders won't transition to 'Refunded' state if refund can't be created.
 * Fix - Normalize United Kingdom and Canada postal codes for Apple Pay.
 * Fix - Subscription sign-up fees not included in total for Payment Request Button.
+* Add - Support for Credit Card payments (incl. 3DS payments) via WooCommerce Blocks; limited to WooCommerce Core product types.
+* Add - Support for payments (incl. 3DS payments) paid via Payment Request Buttons in WooCommerce Blocks; limited to WooCommerce Core product types.
 
 = 5.1.0 - 2021-04-07 =
 
