@@ -3,7 +3,7 @@ jQuery( function( $ ) {
 	'use strict';
 
 	var stripe = Stripe( wc_stripe_payment_request_params.stripe.key, {
-		locale: wc_stripe_params.stripe_locale || 'auto',
+		locale: typeof wc_stripe_params !== 'undefined' ? wc_stripe_params.stripe_locale : 'auto',
 	} ),
 		paymentRequestType;
 
