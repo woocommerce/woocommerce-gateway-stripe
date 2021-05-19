@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 5.6
 Requires PHP: 5.6
-Stable tag: 5.1.0
+Stable tag: 5.2.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -126,7 +126,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.2.0 - 2021-xx-xx =
+= 5.2.0 - 2021-05-19 =
 
 * Fix - Use `get_parent` method to avoid accessing `order` subscription property directly.
 * Fix - Orders won't transition to 'Refunded' state if refund can't be created.
