@@ -98,6 +98,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			'showSavedCards'      => $this->get_show_saved_cards(),
 			'showSaveOption'      => $this->get_show_save_option(),
 			'supports'            => $this->get_supported_features(),
+			'stripeLocale'        => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+			'isAdmin'             => is_admin(),
 		];
 	}
 

@@ -22,6 +22,12 @@ const paymentRequestPaymentMethod = {
 	content: <PaymentRequestExpress stripe={ componentStripePromise } />,
 	edit: <ApplePayPreview />,
 	canMakePayment: ( cartData ) => {
+		// If in the editor context, always return true to display the `edit` prop preview.
+		// https://github.com/woocommerce/woocommerce-gutenberg-products-block/issues/4101.
+		if ( getStripeServerData()?.isAdmin ?? false ) {
+			return true;
+		}
+
 		// If the `wc_stripe_payment_request_params` object is not available we don't support
 		// payment requests.
 		// eslint-disable-next-line camelcase
