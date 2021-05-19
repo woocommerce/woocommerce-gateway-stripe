@@ -1301,4 +1301,38 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		return $value;
 	}
+
+	/**
+	 * Get required setting keys for setup.
+	 *
+	 * @return array Array of setting keys used for setup.
+	 */
+	public function get_required_settings_keys() {
+		return array( 'publishable_key', 'secret_key' );
+	}
+
+	/**
+	 * Get the oAuth connection URL.
+	 *
+	 * @return string Connection URL.
+	 */
+	public function get_oauth_connection_url( $return_url = '' ) {
+		$api     = new WC_Stripe_Connect_API();
+		$connect = new WC_Stripe_Connect( $api );
+
+		$url = $connect->get_oauth_url( $return_url );
+
+		return is_wp_error( $url ) ? null : $url;
+	}
+
+	/**
+	 * Get help text to display during quick setup.
+	 */
+	public function get_setup_help_text() {
+		return sprintf(
+			__( 'Your API details can be obtained from your <a href="%s">Stripe account</a>. Don’t have a Stripe account? <a href="%s">Create one.</a>', 'woocommerce-gateway-stripe' ),
+			'https://stripe.com/docs/keys',
+			'https://dashboard.stripe.com/register'
+		);
+	}
 }
