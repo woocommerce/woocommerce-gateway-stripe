@@ -142,11 +142,4 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - Support for custom and branded Payment Request Buttons when using the Cart and Checkout blocks.
 * Tweak - Should customer opt to save their card, the card is now saved after a payment has been confirmed.
 
-= 5.1.0 - 2021-04-07 =
-
-* Fix - Don't attempt to submit level 3 data for non-US merchants.
-* Fix - Pass customer language/locale to Stripe upon creation or modification.
-* Fix - Hide Payment Request Buttons when guest checkout is disabled.
-* Fix - Match Payment Request states with WooCommerce states.
-
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
