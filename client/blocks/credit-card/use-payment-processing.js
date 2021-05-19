@@ -133,6 +133,11 @@ export const usePaymentProcessing = (
 					meta: {
 						paymentMethodData: {
 							stripe_source: response.source.id,
+							// The billing information here is relevant to properly create the
+							// Stripe Customer object.
+							billing_email: ownerInfo.email,
+							billing_first_name: billingData?.first_name ?? '',
+							billing_last_name: billingData?.last_name ?? '',
 							paymentMethod: PAYMENT_METHOD_NAME,
 							paymentRequestType: 'cc',
 						},
