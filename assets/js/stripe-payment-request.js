@@ -585,10 +585,14 @@ jQuery( function( $ ) {
 
 		attachProductPageEventListeners: function( prButton, paymentRequest ) {
 			var paymentRequestError = [];
-			var addToCartButton = $( '.single_add_to_cart_button' );
 
 			prButton.on( 'click', function ( evt ) {
+				evt.preventDefault(); // Prevent showing payment request modal.
+
+				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
+
 				// First check if product can be added to cart.
+				var addToCartButton = $( '.single_add_to_cart_button' );
 				if ( addToCartButton.is( '.disabled' ) ) {
 					evt.preventDefault(); // Prevent showing payment request modal.
 					if ( addToCartButton.is( '.wc-variation-is-unavailable' ) ) {
@@ -605,12 +609,15 @@ jQuery( function( $ ) {
 					return;
 				}
 
-				wc_stripe_payment_request.addToCart();
-
-				if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) || wc_stripe_payment_request.isBrandedPaymentRequestButton( prButton ) ) {
-					evt.preventDefault();
+				wc_stripe_payment_request.addToCart().then(function (response) {
+					paymentRequest.update({
+						total: response.total,
+						displayItems: response.displayItems,
+					});
 					paymentRequest.show();
-				}
+				}).always(function() {
+					$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
+				});
 			});
 
 			$( document.body ).on( 'wc_stripe_unblock_payment_request_button wc_stripe_enable_payment_request_button', function () {
