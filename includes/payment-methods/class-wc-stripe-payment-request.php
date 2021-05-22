@@ -1059,35 +1059,48 @@ class WC_Stripe_Payment_Request {
 	public function ajax_add_to_cart() {
 		check_ajax_referer( 'wc-stripe-add-to-cart', 'security' );
 
-		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
-			define( 'WOOCOMMERCE_CART', true );
+		try {
+			if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
+				define( 'WOOCOMMERCE_CART', true );
+			}
+
+			$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+			$product      = wc_get_product( $product_id );
+
+			if ( ! is_a( $product, 'WC_Product' ) ) {
+				/* translators: %d is the product Id */
+				throw new Exception( sprintf( __( 'Product with the ID (%d) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
+			}
+
+			$qty          = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
+			$product_type = $product->get_type();
+
+			// Do we need to do this before emptying the cart?
+			WC()->shipping->reset_shipping();
+
+			// First empty the cart to prevent wrong calculation.
+			WC()->cart->empty_cart();
+
+			if ( ( 'variable' === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
+				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
+
+				$data_store   = WC_Data_Store::load( 'product' );
+				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
+
+				WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
+			}
+
+			if ( 'simple' === $product_type || 'subscription' === $product_type ) {
+				WC()->cart->add_to_cart( $product->get_id(), $qty );
+			}
+
+			$data = $this->build_response();
+			wp_send_json( $data );
+
+		} catch (Exception $e) {
+			wp_send_json( [ 'error' => wp_strip_all_tags( $e->getMessage() ) ] );
 		}
 
-		WC()->shipping->reset_shipping();
-
-		$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-		$qty          = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
-		$product      = wc_get_product( $product_id );
-		$product_type = $product->get_type();
-
-		// First empty the cart to prevent wrong calculation.
-		WC()->cart->empty_cart();
-
-		if ( ( 'variable' === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
-			$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
-
-			$data_store   = WC_Data_Store::load( 'product' );
-			$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
-
-			WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
-		}
-
-		if ( 'simple' === $product_type || 'subscription' === $product_type ) {
-			WC()->cart->add_to_cart( $product->get_id(), $qty );
-		}
-
-		$data = $this->build_response();
-		wp_send_json( $data );
 	}
 
 	/**
