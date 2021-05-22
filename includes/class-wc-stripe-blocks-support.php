@@ -82,24 +82,24 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 */
 	public function get_payment_method_data() {
 		return [
-			'stripeTotalLabel'    => $this->get_total_label(),
-			'publicKey'           => $this->get_publishable_key(),
-			'allowPrepaidCard'    => $this->get_allow_prepaid_card(),
-			'title'               => $this->get_title(),
-			'button'              => [
+			'stripeTotalLabel' => $this->get_total_label(),
+			'publicKey'        => $this->get_publishable_key(),
+			'allowPrepaidCard' => $this->get_allow_prepaid_card(),
+			'title'            => $this->get_title(),
+			'button'           => [
 				'type'        => $this->get_button_type(),
 				'theme'       => $this->get_button_theme(),
 				'height'      => $this->get_button_height(),
 				'locale'      => $this->get_button_locale(),
 				'customLabel' => isset( $this->settings['payment_request_button_label'] ) ? $this->settings['payment_request_button_label'] : 'Buy now',
 			],
-			'inline_cc_form'      => $this->get_inline_cc_form(),
-			'icons'               => $this->get_icons(),
-			'showSavedCards'      => $this->get_show_saved_cards(),
-			'showSaveOption'      => $this->get_show_save_option(),
-			'supports'            => $this->get_supported_features(),
-			'stripeLocale'        => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
-			'isAdmin'             => is_admin(),
+			'inline_cc_form'   => $this->get_inline_cc_form(),
+			'icons'            => $this->get_icons(),
+			'showSavedCards'   => $this->get_show_saved_cards(),
+			'showSaveOption'   => $this->get_show_save_option(),
+			'supports'         => $this->get_supported_features(),
+			'stripeLocale'     => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+			'isAdmin'          => is_admin(),
 		];
 	}
 
@@ -332,6 +332,31 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 */
 	public function get_supported_features() {
 		$gateway = new WC_Gateway_Stripe();
-		return array_filter( $gateway->supports, [ $gateway, 'supports' ] );
+
+		$supports = $gateway->supports;
+
+		// Blocks don't support pre-orders.
+		$supports = array_filter(
+			$supports,
+			function( $elem ) {
+				return 'pre-orders' !== $elem;
+			}
+		);
+
+		// Subscriptions support with WooCommerce Blocks requires WooCommerce Subscriptions v3.1.0.
+		if (
+			class_exists( 'WC_Subscriptions' )
+			&& version_compare( WC_Subscriptions::$version, '3.1.0', '<' )
+		) {
+			$supports = array_filter(
+				$supports,
+				function ( $elem ) {
+					return 0 !== strpos( $elem, 'subscription' )
+						&& 'multiple_subscriptions' !== $elem;
+				}
+			);
+		}
+
+		return array_filter( $supports, [ $gateway, 'supports' ] );
 	}
 }
