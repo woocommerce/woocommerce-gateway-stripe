@@ -1415,7 +1415,6 @@ class WC_Stripe_Payment_Request {
 			$qty = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', absint( $_POST['qty'] ), $product_id );
 			$addon_value = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
 
-			$total = $qty * $this->get_product_price( $product ) + $addon_value;
 			$quantity_label = 1 < $qty ? ' (x' . $qty . ')' : '';
 
 			if ( wc_shipping_enabled() && $product->needs_shipping() ) {
@@ -1428,16 +1427,13 @@ class WC_Stripe_Payment_Request {
 				];
 			}
 
-			WC()->cart->calculate_totals();
+			$totals = WC()->cart->get_totals();
 
 			$data['total']        = [
 				'label'   => $this->total_label,
-				'amount'  => WC_Stripe_Helper::get_stripe_amount( $total ),
+				'amount'  => WC_Stripe_Helper::get_stripe_amount( $totals['total'] ),
 				'pending' => true,
 			];
-
-			$cart = WC()->cart->get_cart();
-			WC_Stripe_Logger::log('$cart ' . print_r($cart, true));
 
 			$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
 			$data['currency']        = strtolower( get_woocommerce_currency() );
