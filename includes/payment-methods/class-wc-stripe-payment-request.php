@@ -1036,6 +1036,7 @@ class WC_Stripe_Payment_Request {
 
 		try {
 			$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+			$product      = wc_get_product( $product_id );
 
 			if ( ! is_a( $product, 'WC_Product' ) ) {
 				/* translators: %d is the product Id */
