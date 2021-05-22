@@ -1036,83 +1036,13 @@ class WC_Stripe_Payment_Request {
 
 		try {
 			$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-			$qty          = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', absint( $_POST['qty'] ), $product_id );
-			$addon_value  = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
-			$product      = wc_get_product( $product_id );
-			$variation_id = null;
 
 			if ( ! is_a( $product, 'WC_Product' ) ) {
 				/* translators: %d is the product Id */
 				throw new Exception( sprintf( __( 'Product with the ID (%d) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
 			}
 
-			if ( 'variable' === $product->get_type() && isset( $_POST['attributes'] ) ) {
-				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
-
-				$data_store   = WC_Data_Store::load( 'product' );
-				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
-
-				if ( ! empty( $variation_id ) ) {
-					$product = wc_get_product( $variation_id );
-				}
-			}
-
-			// Force quantity to 1 if sold individually and check for existing item in cart.
-			if ( $product->is_sold_individually() ) {
-				$qty = apply_filters( 'wc_stripe_payment_request_add_to_cart_sold_individually_quantity', 1, $qty, $product_id, $variation_id );
-			}
-
-			if ( ! $product->has_enough_stock( $qty ) ) {
-				/* translators: 1: product name 2: quantity in stock */
-				throw new Exception( sprintf( __( 'You cannot add that amount of "%1$s"; to the cart because there is not enough stock (%2$s remaining).', 'woocommerce-gateway-stripe' ), $product->get_name(), wc_format_stock_quantity_for_display( $product->get_stock_quantity(), $product ) ) );
-			}
-
-			$total = $qty * $this->get_product_price( $product ) + $addon_value;
-
-			$quantity_label = 1 < $qty ? ' (x' . $qty . ')' : '';
-
-			$data  = [];
-			$items = [];
-
-			$items[] = [
-				'label'  => $product->get_name() . $quantity_label,
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $total ),
-			];
-
-			if ( wc_tax_enabled() ) {
-				$items[] = [
-					'label'   => __( 'Tax', 'woocommerce-gateway-stripe' ),
-					'amount'  => 0,
-					'pending' => true,
-				];
-			}
-
-			if ( wc_shipping_enabled() && $product->needs_shipping() ) {
-				$items[] = [
-					'label'   => __( 'Shipping', 'woocommerce-gateway-stripe' ),
-					'amount'  => 0,
-					'pending' => true,
-				];
-
-				$data['shippingOptions'] = [
-					'id'     => 'pending',
-					'label'  => __( 'Pending', 'woocommerce-gateway-stripe' ),
-					'detail' => '',
-					'amount' => 0,
-				];
-			}
-
-			$data['displayItems'] = $items;
-			$data['total']        = [
-				'label'   => $this->total_label,
-				'amount'  => WC_Stripe_Helper::get_stripe_amount( $total ),
-				'pending' => true,
-			];
-
-			$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
-			$data['currency']        = strtolower( get_woocommerce_currency() );
-			$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
-
+			$data = $this->build_response();
 			wp_send_json( $data );
 		} catch ( Exception $e ) {
 			wp_send_json( [ 'error' => wp_strip_all_tags( $e->getMessage() ) ] );
@@ -1156,12 +1086,7 @@ class WC_Stripe_Payment_Request {
 			WC()->cart->add_to_cart( $product->get_id(), $qty );
 		}
 
-		WC()->cart->calculate_totals();
-
-		$data           = [];
-		$data          += $this->build_display_items();
-		$data['result'] = 'success';
-
+		$data = $this->build_response();
 		wp_send_json( $data );
 	}
 
@@ -1460,6 +1385,56 @@ class WC_Stripe_Payment_Request {
 		return $shipping;
 	}
 
+
+	/**
+	 * Builds the response object to pass to Payment Request
+	 *
+	 * @since 5.3.0
+	 * 
+	 * @return array Data object used to update Payment Request button on the client
+	 */
+	protected function build_response() {
+			$data = [];
+			$items = [];
+			$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+			$product      = wc_get_product( $product_id );
+			$qty = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', absint( $_POST['qty'] ), $product_id );
+			$addon_value = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
+
+			$total = $qty * $this->get_product_price( $product ) + $addon_value;
+			$quantity_label = 1 < $qty ? ' (x' . $qty . ')' : '';
+
+			if ( wc_shipping_enabled() && $product->needs_shipping() ) {
+				// Check if this is needed
+				$data['shippingOptions'] = [
+					'id'     => 'pending',
+					'label'  => __( 'Pending', 'woocommerce-gateway-stripe' ),
+					'detail' => '',
+					'amount' => 0,
+				];
+			}
+
+			WC()->cart->calculate_totals();
+
+			$data['total']        = [
+				'label'   => $this->total_label,
+				'amount'  => WC_Stripe_Helper::get_stripe_amount( $total ),
+				'pending' => true,
+			];
+
+			$cart = WC()->cart->get_cart();
+			WC_Stripe_Logger::log('$cart ' . print_r($cart, true));
+
+			$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
+			$data['currency']        = strtolower( get_woocommerce_currency() );
+			$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
+			$data['result'] = 'success';
+
+			$data += $this->build_display_items( true );
+
+			return $data;
+	}
+
 	/**
 	 * Builds the line items to pass to Payment Request
 	 *
@@ -1483,6 +1458,7 @@ class WC_Stripe_Payment_Request {
 				$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
 
 				$product_name = $cart_item['data']->get_name();
+				// $product_name = $product->get_name(); // which one should we use?
 
 				$item = [
 					'label'  => $product_name . $quantity_label,
@@ -1513,10 +1489,12 @@ class WC_Stripe_Payment_Request {
 			$items[] = [
 				'label'  => esc_html( __( 'Tax', 'woocommerce-gateway-stripe' ) ),
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $tax ),
+				'pending' => true,
 			];
 		}
 
-		if ( WC()->cart->needs_shipping() ) {
+		// if ( wc_shipping_enabled() && $product->needs_shipping() ) { // is this different for single products?
+		if ( wc_shipping_enabled() && WC()->cart->needs_shipping() ) {
 			$items[] = [
 				'label'  => esc_html( __( 'Shipping', 'woocommerce-gateway-stripe' ) ),
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $shipping ),
