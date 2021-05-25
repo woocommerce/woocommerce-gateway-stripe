@@ -3,8 +3,8 @@
 # Exit if any command fails.
 set -e
 
-WP_CONTAINER=${1-woocommerce_stripe_wordpress}
-SITE_URL=${WP_URL-"localhost:8082"}
+WP_CONTAINER=${1-woocommerce_stripe_wordpress_copy}
+SITE_URL=${WP_URL-"localhost:8084"}
 
 redirect_output() {
 	if [[ -z "$DEBUG" ]]; then

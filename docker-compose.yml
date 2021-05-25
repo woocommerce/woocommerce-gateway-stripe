@@ -4,14 +4,14 @@ services:
   wordpress:
     build: ./docker/wordpress_xdebug
     image: wordpress-xdebug
-    container_name: woocommerce_stripe_wordpress
+    container_name: woocommerce_stripe_wordpress_copy
     restart: always
     depends_on:
       - db
     links:
       - db:mysql
     ports:
-      - "8082:80"
+      - "8084:80"
     env_file:
       - default.env
     volumes:
@@ -21,18 +21,18 @@ services:
       - ./docker/dev-php.ini:/usr/local/etc/php/conf.d/dev-php.ini
       - ./docker/bin:/var/scripts
   db:
-    container_name: woocommerce_stripe_mysql
+    container_name: woocommerce_stripe_mysql_copy
     image: mysql:5.7
     ports:
-      - "5678:3306"
+      - "5679:3306"
     env_file:
       - default.env
     volumes:
       - ./docker/data:/var/lib/mysql
   phpMyAdmin:
-    container_name: woocommerce_stripe_phpmyadmin
+    container_name: woocommerce_stripe_phpmyadmin_copy
     image: phpmyadmin/phpmyadmin:latest
     ports:
-      - "8083:80"
+      - "8085:80"
     env_file:
       - default.env
