@@ -11,7 +11,11 @@ import { getSetting } from '@woocommerce/settings';
 import { PAYMENT_METHOD_NAME } from './constants';
 import { PaymentRequestExpress } from './payment-request-express';
 import { applePayImage } from './apple-pay-preview';
-import { getStripeServerData, loadStripe } from '../stripe-utils';
+import {
+	getStripeServerData,
+	loadStripe,
+	createPaymentRequestUsingCart,
+} from '../stripe-utils';
 
 const ApplePayPreview = () => <img src={ applePayImage } alt="" />;
 
@@ -39,18 +43,26 @@ const paymentRequestPaymentMethod = {
 			// Create a payment request and check if we can make a payment to determine whether to
 			// show the Payment Request Button or not. This is necessary because a browser might be
 			// able to load the Stripe JS object, but not support Payment Requests.
-			const paymentRequest = stripe.paymentRequest( {
-				total: {
-					label: 'Total',
-					amount: parseInt(
-						cartData?.cartTotals?.total_price ?? 0,
-						10
-					),
-					pending: true,
+			const fakeCart = {
+				order_data: {
+					total: {
+						label: 'Total',
+						amount: parseInt(
+							cartData?.cartTotals?.total_price ?? 0,
+							10
+						),
+						pending: true,
+					},
+					currency: cartData?.cartTotals?.currency_code?.toLowerCase(),
+					country_code: getSetting( 'baseLocation', {} )?.country,
+					displayItems: [],
 				},
-				country: getSetting( 'baseLocation', {} )?.country,
-				currency: cartData?.cartTotals?.currency_code?.toLowerCase(),
-			} );
+				shipping_required: false,
+			};
+			const paymentRequest = createPaymentRequestUsingCart(
+				stripe,
+				fakeCart
+			);
 
 			return paymentRequest.canMakePayment();
 		} );
