@@ -2,6 +2,8 @@
 use Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType;
 use Automattic\WooCommerce\Blocks\Payments\PaymentResult;
 use Automattic\WooCommerce\Blocks\Payments\PaymentContext;
+use Automattic\WooCommerce\Blocks\Package;
+use Automattic\WooCommerce\Blocks\Domain\Services\ExtendRestApi;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -19,11 +21,35 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	protected $name = 'stripe';
 
 	/**
+	 * Stores Rest Extending instance.
+	 *
+	 * @var ExtendRestApi
+	 */
+	private $extend;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_payment_request_order_meta' ], 8, 2 );
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_stripe_intents' ], 9999, 2 );
+
+		$this->extend = Package::container()->get( ExtendRestApi::class );
+
+		// Subscriptions support with WooCommerce Blocks requires WooCommerce Subscriptions v3.1.0.
+		// Subs < v3.1.0 don't declare subscriptions as a dependency so we must do so manually for
+		// the blocks to remove Stripe as a possible payment gateway.
+		if (
+			class_exists( 'WC_Subscriptions' )
+			&& version_compare( WC_Subscriptions::$version, '3.1.0', '<' )
+		) {
+
+			$this->extend->register_payment_requirements(
+				[
+					'data_callback' => [ $this, 'subscription_payment_requirements' ],
+				]
+			);
+		}
 	}
 
 	/**
@@ -31,6 +57,36 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 */
 	public function initialize() {
 		$this->settings = get_option( 'woocommerce_stripe_settings', [] );
+	}
+
+	/**
+	 * Check the content of the cart and add required payment methods for subscriptions.
+	 * Should only be called for Subscriptions < v3.1.0.
+	 *
+	 * @return array list of features required by cart items.
+	 */
+	public function subscription_payment_requirements() {
+		// No subscriptions in the cart, no need to add anything.
+		if (
+			! class_exists( 'WC_Subscriptions' )
+			|| ! class_exists( 'WC_Subscriptions_Admin' )
+			|| ! WC_Subscriptions_Cart::cart_contains_subscription()
+		) {
+			return [];
+		}
+
+		// Manual renewals are accepted - all payment gateways are suitable.
+		if ( 'no' !== get_option( WC_Subscriptions_Admin::$option_prefix . '_accept_manual_renewals', 'no' ) ) {
+			return [];
+		}
+
+		$subscriptions_in_cart = is_array( WC()->cart->recurring_carts ) ? count( WC()->cart->recurring_carts ) : 0;
+
+		if ( $subscriptions_in_cart > 1 ) {
+			return [ 'multiple_subscriptions' ];
+		} else {
+			return [ 'subscriptions' ];
+		}
 	}
 
 	/**
