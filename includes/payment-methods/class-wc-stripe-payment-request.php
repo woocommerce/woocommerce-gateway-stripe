@@ -372,6 +372,7 @@ class WC_Stripe_Payment_Request {
 				'pending' => true,
 			];
 
+			// TODO: Confirm this is still needed, doesn't seems to be used anywhere
 			$data['shippingOptions'] = [
 				'id'     => 'pending',
 				'label'  => __( 'Pending', 'woocommerce-gateway-stripe' ),
@@ -900,10 +901,17 @@ class WC_Stripe_Payment_Request {
 				'address_2' => FILTER_SANITIZE_STRING,
 			]
 		);
-		$product_view_options      = filter_input_array( INPUT_POST, [ 'is_product_page' => FILTER_SANITIZE_STRING ] );
+		$product_view_options      = filter_input_array(
+			INPUT_POST,
+			[
+				'is_product_page'  => FILTER_SANITIZE_STRING,
+				'shipping_pending' => FILTER_VALIDATE_BOOLEAN,
+			]
+		);
 		$should_show_itemized_view = ! isset( $product_view_options['is_product_page'] ) ? true : filter_var( $product_view_options['is_product_page'], FILTER_VALIDATE_BOOLEAN );
+		$shipping_pending          = $product_view_options['shipping_pending'];
 
-		$data = $this->get_shipping_options( $shipping_address, $should_show_itemized_view );
+		$data = $this->get_shipping_options( $shipping_address, $should_show_itemized_view, $shipping_pending );
 		wp_send_json( $data );
 	}
 
@@ -972,10 +980,10 @@ class WC_Stripe_Payment_Request {
 
 			WC()->cart->calculate_totals();
 
-			$data          += $this->build_display_items( $itemized_display_items );
+			$data          += $this->build_display_items( $itemized_display_items, false );
 			$data['result'] = 'success';
 		} catch ( Exception $e ) {
-			$data          += $this->build_display_items( $itemized_display_items );
+			$data          += $this->build_display_items( $itemized_display_items, false );
 			$data['result'] = 'invalid_shipping_address';
 		}
 
@@ -1405,9 +1413,11 @@ class WC_Stripe_Payment_Request {
 	 *
 	 * @since 5.3.0
 	 *
-	 * @return array Data object used to update Payment Request button on the client
+	 * @param bool $shipping_pending True is the user hasn't defined yet a shipping address.
+	 *
+	 * @return array Data object used to update Payment Request button on the client.
 	 */
-	protected function build_response() {
+	protected function build_response( $shipping_pending = true ) {
 			$data        = [];
 			$items       = [];
 			$product_id  = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
@@ -1450,8 +1460,11 @@ class WC_Stripe_Payment_Request {
 	 *
 	 * @since   3.1.0
 	 * @version 4.0.0
+	 *
+	 * @param  bool $itemized_display_items Wether to return an array of items with its details or not.
+	 * @param  bool $shipping_pending           True is the user hasn't defined yet a shipping address. @since 5.3.0
 	 */
-	protected function build_display_items( $itemized_display_items = false ) {
+	protected function build_display_items( $itemized_display_items = false, $shipping_pending = true ) {
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
 			define( 'WOOCOMMERCE_CART', true );
 		}
@@ -1503,8 +1516,13 @@ class WC_Stripe_Payment_Request {
 			];
 		}
 
-		// if ( wc_shipping_enabled() && $product->needs_shipping() ) { // is this different for single products?
-		if ( wc_shipping_enabled() && WC()->cart->needs_shipping() ) {
+		if ( $shipping_pending ) {
+			$items[] = [
+				'label'   => esc_html( __( 'Shipping', 'woocommerce-gateway-stripe' ) ),
+				'amount'  => 0,
+				'pending' => true,
+			];
+		} elseif ( wc_shipping_enabled() && WC()->cart->needs_shipping() ) {
 			$items[] = [
 				'label'  => esc_html( __( 'Shipping', 'woocommerce-gateway-stripe' ) ),
 				'amount' => WC_Stripe_Helper::get_stripe_amount( $shipping ),

@@ -11,6 +11,7 @@ jQuery( function( $ ) {
 	 * Object to handle Stripe payment forms.
 	 */
 	var wc_stripe_payment_request = {
+		shippingPending: true,
 		/**
 		 * Get WC AJAX endpoint URL.
 		 *
@@ -230,6 +231,7 @@ jQuery( function( $ ) {
 				address_2: typeof address.addressLine[1] === 'undefined' ? '' : address.addressLine[1],
 				payment_request_type: paymentRequestType,
 				is_product_page: wc_stripe_payment_request_params.is_product_page,
+				shipping_pending: wc_stripe_payment_request.shippingPending,
 			};
 
 			return $.ajax( {
@@ -383,6 +385,9 @@ jQuery( function( $ ) {
 
 				// Possible statuses success, fail, invalid_payer_name, invalid_payer_email, invalid_payer_phone, invalid_shipping_address.
 				paymentRequest.on( 'shippingaddresschange', function( evt ) {
+					wc_stripe_payment_request.shippingPending = false;
+
+					// This probably will no longer necessary since we will make the call to `wc_stripe_add_to_cart` anyways
 					$.when( wc_stripe_payment_request.updateShippingOptions( paymentDetails, evt.shippingAddress ) ).then( function( response ) {
 						evt.updateWith( { status: response.result, shippingOptions: response.shipping_options, total: response.total, displayItems: response.displayItems } );
 					} );
