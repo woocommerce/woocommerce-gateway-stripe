@@ -980,10 +980,10 @@ class WC_Stripe_Payment_Request {
 
 			WC()->cart->calculate_totals();
 
-			$data          += $this->build_display_items( $itemized_display_items, false );
-			$data['result'] = 'success';
+			$data += $this->build_response( false );
 		} catch ( Exception $e ) {
-			$data          += $this->build_display_items( $itemized_display_items, false );
+			// TODO: Check this case
+			$data          += $this->build_response( $itemized_display_items, false );
 			$data['result'] = 'invalid_shipping_address';
 		}
 
@@ -1073,8 +1073,10 @@ class WC_Stripe_Payment_Request {
 				define( 'WOOCOMMERCE_CART', true );
 			}
 
-			$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-			$product    = wc_get_product( $product_id );
+			$product_id       = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+			$product          = wc_get_product( $product_id );
+			$post_input       = filter_input_array( INPUT_POST, [ 'shipping_pending' => FILTER_VALIDATE_BOOLEAN ] );
+			$shipping_pending = $post_input['shipping_pending'];
 
 			if ( ! is_a( $product, 'WC_Product' ) ) {
 				/* translators: %d is the product Id */
@@ -1103,7 +1105,7 @@ class WC_Stripe_Payment_Request {
 				WC()->cart->add_to_cart( $product->get_id(), $qty );
 			}
 
-			$data = $this->build_response();
+			$data = $this->build_response( $shipping_pending );
 			wp_send_json( $data );
 
 		} catch ( Exception $e ) {
@@ -1417,42 +1419,58 @@ class WC_Stripe_Payment_Request {
 	 *
 	 * @return array Data object used to update Payment Request button on the client.
 	 */
-	protected function build_response( $shipping_pending = true ) {
-			$data        = [];
-			$items       = [];
-			$product_id  = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-			$product     = wc_get_product( $product_id );
-			$qty         = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', absint( $_POST['qty'] ), $product_id );
-			$addon_value = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
+	protected function build_response( $shipping_pending = true, $success = true ) {
+		$data                 = [];
+		$data['currency']     = strtolower( get_woocommerce_currency() );
+		$data['country_code'] = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
 
-			$quantity_label = 1 < $qty ? ' (x' . $qty . ')' : '';
-
-		if ( wc_shipping_enabled() && $product->needs_shipping() ) {
-			// Check if this is needed
-			$data['shippingOptions'] = [
-				'id'     => 'pending',
-				'label'  => __( 'Pending', 'woocommerce-gateway-stripe' ),
-				'detail' => '',
-				'amount' => 0,
-			];
+		if ( $success ) {
+			$data['result'] = 'success';
 		}
 
-			$totals = WC()->cart->get_totals();
+		// Shipping
+		$shipping           = wc_format_decimal( WC()->cart->get_shipping_total(), WC()->cart->dp );
+		$shipping_to_remove = 0;
 
-			$data['total'] = [
-				'label'   => $this->total_label,
-				'amount'  => WC_Stripe_Helper::get_stripe_amount( $totals['total'] ),
-				'pending' => true,
-			];
+		if ( $shipping_pending ) {
+			$shipping_to_remove = $shipping;
+			$shipping           = 0;
+		}
 
-			$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
-			$data['currency']        = strtolower( get_woocommerce_currency() );
-			$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
-			$data['result']          = 'success';
+		// Discounts
+		$discounts = 0;
 
-			$data += $this->build_display_items( true );
+		if ( version_compare( WC_VERSION, '3.2', '<' ) ) {
+			$discounts = wc_format_decimal( WC()->cart->get_cart_discount_total(), WC()->cart->dp );
+		} else {
+			$applied_coupons = array_values( WC()->cart->get_coupon_discount_totals() );
 
-			return $data;
+			foreach ( $applied_coupons as $amount ) {
+				$discounts += (float) $amount;
+			}
+		}
+
+		$discounts = wc_format_decimal( $discounts, WC()->cart->dp );
+
+		// Order total
+		if ( version_compare( WC_VERSION, '3.2', '<' ) ) {
+			$items_total = wc_format_decimal( WC()->cart->cart_contents_total, WC()->cart->dp ) + $discounts;
+			$order_total = wc_format_decimal( $items_total + $tax + $shipping - $discounts, WC()->cart->dp );
+		} else {
+			// Getting the total amount from the cart automatically adds a shipping cost to it
+			// We need to remove it if the user hasn't picked a shipping addres yet
+			$order_total = WC()->cart->get_total( false ) - $shipping_to_remove;
+		}
+
+		$data['total'] = [
+			'label'   => $this->total_label,
+			'amount'  => max( 0, apply_filters( 'woocommerce_stripe_calculated_total', WC_Stripe_Helper::get_stripe_amount( $order_total ), $order_total, WC()->cart ) ),
+			'pending' => true, // TODO: Check when this should be false
+		];
+
+		$data['displayItems'] = $this->build_display_items( true, $shipping_pending, $shipping );
+
+		return $data;
 	}
 
 	/**
@@ -1462,16 +1480,16 @@ class WC_Stripe_Payment_Request {
 	 * @version 4.0.0
 	 *
 	 * @param  bool $itemized_display_items Wether to return an array of items with its details or not.
-	 * @param  bool $shipping_pending           True is the user hasn't defined yet a shipping address. @since 5.3.0
+	 * @param  bool $shipping_pending       True is the user hasn't defined yet a shipping address. @since 5.3.0
+	 * @param  bool $shipping               Total shipping cost. @since 5.3.0
 	 */
-	protected function build_display_items( $itemized_display_items = false, $shipping_pending = true ) {
+	protected function build_display_items( $itemized_display_items = false, $shipping_pending = true, $shipping = 0 ) {
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
-		$items     = [];
-		$subtotal  = 0;
-		$discounts = 0;
+		$items    = [];
+		$subtotal = 0;
 
 		// Default show only subtotal instead of itemization.
 		if ( ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items ) {
@@ -1492,21 +1510,7 @@ class WC_Stripe_Payment_Request {
 			}
 		}
 
-		if ( version_compare( WC_VERSION, '3.2', '<' ) ) {
-			$discounts = wc_format_decimal( WC()->cart->get_cart_discount_total(), WC()->cart->dp );
-		} else {
-			$applied_coupons = array_values( WC()->cart->get_coupon_discount_totals() );
-
-			foreach ( $applied_coupons as $amount ) {
-				$discounts += (float) $amount;
-			}
-		}
-
-		$discounts   = wc_format_decimal( $discounts, WC()->cart->dp );
-		$tax         = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
-		$shipping    = wc_format_decimal( WC()->cart->shipping_total, WC()->cart->dp );
-		$items_total = wc_format_decimal( WC()->cart->cart_contents_total, WC()->cart->dp ) + $discounts;
-		$order_total = version_compare( WC_VERSION, '3.2', '<' ) ? wc_format_decimal( $items_total + $tax + $shipping - $discounts, WC()->cart->dp ) : WC()->cart->get_total( false );
+		$tax = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
 
 		if ( wc_tax_enabled() ) {
 			$items[] = [
@@ -1550,14 +1554,7 @@ class WC_Stripe_Payment_Request {
 			];
 		}
 
-		return [
-			'displayItems' => $items,
-			'total'        => [
-				'label'   => $this->total_label,
-				'amount'  => max( 0, apply_filters( 'woocommerce_stripe_calculated_total', WC_Stripe_Helper::get_stripe_amount( $order_total ), $order_total, WC()->cart ) ),
-				'pending' => false,
-			],
-		];
+		return $items;
 	}
 }
 

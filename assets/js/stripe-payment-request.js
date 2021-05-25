@@ -278,7 +278,8 @@ jQuery( function( $ ) {
 				security: wc_stripe_payment_request_params.nonce.add_to_cart,
 				product_id: product_id,
 				qty: $( '.quantity .qty' ).val(),
-				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : []
+				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : [],
+				shipping_pending: wc_stripe_payment_request.shippingPending,
 			};
 
 			// add addons data to the POST body
