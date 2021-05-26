@@ -663,6 +663,8 @@ jQuery( function( $ ) {
 				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 				paymentRequestError = [];
 
+				// TODO: This request seems unnecesary since we will add the product(s) to the cart when the user clicks the PRB.
+				// Let's remove it after confirm removing it is accepted behavior.
 				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
 					if ( response.error ) {
 						paymentRequestError = [ response.error ];
