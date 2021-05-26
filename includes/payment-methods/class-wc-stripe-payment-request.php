@@ -388,7 +388,7 @@ class WC_Stripe_Payment_Request {
 			'pending' => true,
 		];
 
-		$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
+		$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() ); // TODO: This seems no longer needed
 		$data['currency']        = strtolower( get_woocommerce_currency() );
 		$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
 
@@ -1520,17 +1520,20 @@ class WC_Stripe_Payment_Request {
 			];
 		}
 
-		if ( $shipping_pending ) {
-			$items[] = [
-				'label'   => esc_html( __( 'Shipping', 'woocommerce-gateway-stripe' ) ),
-				'amount'  => 0,
-				'pending' => true,
-			];
-		} elseif ( wc_shipping_enabled() && WC()->cart->needs_shipping() ) {
-			$items[] = [
-				'label'  => esc_html( __( 'Shipping', 'woocommerce-gateway-stripe' ) ),
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $shipping ),
-			];
+		// Shipping
+		if ( WC()->cart->needs_shipping() ) {
+			if ( $shipping_pending ) {
+				$items[] = [
+					'label'   => esc_html( __( 'Shipping', 'woocommerce-gateway-stripe' ) ),
+					'amount'  => 0,
+					'pending' => true,
+				];
+			} elseif ( wc_shipping_enabled() ) {
+				$items[] = [
+					'label'  => esc_html( __( 'Shipping', 'woocommerce-gateway-stripe' ) ),
+					'amount' => WC_Stripe_Helper::get_stripe_amount( $shipping ),
+				];
+			}
 		}
 
 		if ( WC()->cart->has_discount() ) {
