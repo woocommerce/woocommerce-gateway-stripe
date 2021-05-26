@@ -1035,8 +1035,8 @@ class WC_Stripe_Payment_Request {
 		check_ajax_referer( 'wc-stripe-get-selected-product-data', 'security' );
 
 		try {
-			$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-			$product      = wc_get_product( $product_id );
+			$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+			$product    = wc_get_product( $product_id );
 
 			if ( ! is_a( $product, 'WC_Product' ) ) {
 				/* translators: %d is the product Id */
@@ -1065,8 +1065,8 @@ class WC_Stripe_Payment_Request {
 				define( 'WOOCOMMERCE_CART', true );
 			}
 
-			$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-			$product      = wc_get_product( $product_id );
+			$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+			$product    = wc_get_product( $product_id );
 
 			if ( ! is_a( $product, 'WC_Product' ) ) {
 				/* translators: %d is the product Id */
@@ -1098,7 +1098,7 @@ class WC_Stripe_Payment_Request {
 			$data = $this->build_response();
 			wp_send_json( $data );
 
-		} catch (Exception $e) {
+		} catch ( Exception $e ) {
 			wp_send_json( [ 'error' => wp_strip_all_tags( $e->getMessage() ) ] );
 		}
 
@@ -1404,32 +1404,32 @@ class WC_Stripe_Payment_Request {
 	 * Builds the response object to pass to Payment Request
 	 *
 	 * @since 5.3.0
-	 * 
+	 *
 	 * @return array Data object used to update Payment Request button on the client
 	 */
 	protected function build_response() {
-			$data = [];
-			$items = [];
-			$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-			$product      = wc_get_product( $product_id );
-			$qty = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', absint( $_POST['qty'] ), $product_id );
+			$data        = [];
+			$items       = [];
+			$product_id  = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+			$product     = wc_get_product( $product_id );
+			$qty         = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', absint( $_POST['qty'] ), $product_id );
 			$addon_value = isset( $_POST['addon_value'] ) ? max( floatval( $_POST['addon_value'] ), 0 ) : 0;
 
 			$quantity_label = 1 < $qty ? ' (x' . $qty . ')' : '';
 
-			if ( wc_shipping_enabled() && $product->needs_shipping() ) {
-				// Check if this is needed
-				$data['shippingOptions'] = [
-					'id'     => 'pending',
-					'label'  => __( 'Pending', 'woocommerce-gateway-stripe' ),
-					'detail' => '',
-					'amount' => 0,
-				];
-			}
+		if ( wc_shipping_enabled() && $product->needs_shipping() ) {
+			// Check if this is needed
+			$data['shippingOptions'] = [
+				'id'     => 'pending',
+				'label'  => __( 'Pending', 'woocommerce-gateway-stripe' ),
+				'detail' => '',
+				'amount' => 0,
+			];
+		}
 
 			$totals = WC()->cart->get_totals();
 
-			$data['total']        = [
+			$data['total'] = [
 				'label'   => $this->total_label,
 				'amount'  => WC_Stripe_Helper::get_stripe_amount( $totals['total'] ),
 				'pending' => true,
@@ -1438,7 +1438,7 @@ class WC_Stripe_Payment_Request {
 			$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
 			$data['currency']        = strtolower( get_woocommerce_currency() );
 			$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
-			$data['result'] = 'success';
+			$data['result']          = 'success';
 
 			$data += $this->build_display_items( true );
 
@@ -1497,8 +1497,8 @@ class WC_Stripe_Payment_Request {
 
 		if ( wc_tax_enabled() ) {
 			$items[] = [
-				'label'  => esc_html( __( 'Tax', 'woocommerce-gateway-stripe' ) ),
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $tax ),
+				'label'   => esc_html( __( 'Tax', 'woocommerce-gateway-stripe' ) ),
+				'amount'  => WC_Stripe_Helper::get_stripe_amount( $tax ),
 				'pending' => true,
 			];
 		}
