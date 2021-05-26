@@ -597,6 +597,7 @@ jQuery( function( $ ) {
 
 				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 
+				// TODO: Check if this block still relevant.
 				// First check if product can be added to cart.
 				var addToCartButton = $( '.single_add_to_cart_button' );
 				if ( addToCartButton.is( '.disabled' ) ) {
@@ -612,10 +613,17 @@ jQuery( function( $ ) {
 				if ( 0 < paymentRequestError.length ) {
 					evt.preventDefault();
 					window.alert( paymentRequestError );
+					$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
 					return;
 				}
 
 				wc_stripe_payment_request.addToCart().then(function (response) {
+					if ( response.error ) {
+						window.alert( response.error );
+						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
+						return;
+					}
+
 					paymentRequest.update({
 						total: response.total,
 						displayItems: response.displayItems,
