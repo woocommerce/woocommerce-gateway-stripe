@@ -59,17 +59,18 @@ const CreditCardComponent = ( {
 	};
 	const cardIcons = getStripeCreditCardIcons();
 
-	const renderedCardElement = getStripeServerData().inline_cc_form ? (
-		<InlineCard
-			onChange={ onChange }
-			inputErrorComponent={ ValidationInputError }
-		/>
-	) : (
-		<CardElements
-			onChange={ onChange }
-			inputErrorComponent={ ValidationInputError }
-		/>
-	);
+	const renderedCardElement =
+		getStripeServerData().inline_cc_form === 'yes' ? (
+			<InlineCard
+				onChange={ onChange }
+				inputErrorComponent={ ValidationInputError }
+			/>
+		) : (
+			<CardElements
+				onChange={ onChange }
+				inputErrorComponent={ ValidationInputError }
+			/>
+		);
 	return (
 		<>
 			{ renderedCardElement }

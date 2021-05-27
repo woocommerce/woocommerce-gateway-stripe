@@ -59,9 +59,10 @@ export const usePaymentProcessing = (
 	// hook into and register callbacks for events
 	useEffect( () => {
 		const createSource = async ( ownerInfo ) => {
-			const elementToGet = getStripeServerData().inline_cc_form
-				? CardElement
-				: CardNumberElement;
+			const elementToGet =
+				getStripeServerData().inline_cc_form === 'yes'
+					? CardElement
+					: CardNumberElement;
 			return await stripe.createSource(
 				// @ts-ignore
 				elements?.getElement( elementToGet ),

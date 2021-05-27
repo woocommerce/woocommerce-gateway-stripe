@@ -291,9 +291,9 @@
  *                                                              the button.
  * @property {string}                      button.locale        The locale to use for stripe
  *                                                              elements.
- * @property {boolean}                     inline_cc_form       Whether stripe cc should use
- *                                                              inline cc
- *                                                              form or separate inputs.
+ * @property {string}                      inline_cc_form       Whether stripe cc should use
+ *                                                              inline cc form or separate inputs.
+ *                                                              Either 'yes' or 'no'.
  * @property {{[k:string]:CreditCardIcon}} icons                Contains supported cc icons.
  * @property {boolean}                     showSavedCards       Used to indicate whether saved cards
  *                                                              can be used.
