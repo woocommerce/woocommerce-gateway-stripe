@@ -363,13 +363,20 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Returns the JavaScript configuration object used on the product, cart, and checkout pages.
 	 *
+	 * @param array $gateway_settings The Payment Gateway settings array.
+	 * @param string $return_url The URL to return to on a successful checkout (thank you page).
+	 *
 	 * @return array  The configuration object to be loaded to JS.
 	 */
-	public function javascript_configuration_object() {
+	public static function javascript_configuration_object( $gateway_settings, $return_url = '' ) {
 		global $wp;
+		$testmode             = 'yes' === $gateway_settings['testmode'];
+		$publishable_key      = $testmode ? $gateway_settings['test_publishable_key'] : $gateway_settings['publishable_key'];
+		$inline_cc_form       = 'yes' === $gateway_settings['inline_cc_form'];
+		$statement_descriptor = WC_Stripe_Helper::clean_statement_descriptor( $gateway_settings['statement_descriptor'] );
 
 		$stripe_params = [
-			'key'                  => $this->publishable_key,
+			'key'                  => $publishable_key,
 			'i18n_terms'           => __( 'Please accept the terms and conditions first', 'woocommerce-gateway-stripe' ),
 			'i18n_required_fields' => __( 'Please fill in required checkout fields first', 'woocommerce-gateway-stripe' ),
 		];
@@ -407,12 +414,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$stripe_params['payment_intent_error']      = __( 'We couldn\'t initiate the payment. Please try again.', 'woocommerce-gateway-stripe' );
 		$stripe_params['sepa_mandate_notification'] = apply_filters( 'wc_stripe_sepa_mandate_notification', 'email' );
 		$stripe_params['allow_prepaid_card']        = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
-		$stripe_params['inline_cc_form']            = $this->inline_cc_form ? 'yes' : 'no';
+		$stripe_params['inline_cc_form']            = $inline_cc_form ? 'yes' : 'no';
 		$stripe_params['is_checkout']               = ( is_checkout() && empty( $_GET['pay_for_order'] ) ) ? 'yes' : 'no'; // wpcs: csrf ok.
-		$stripe_params['return_url']                = $this->get_stripe_return_url();
+		$stripe_params['return_url']                = $return_url;
 		$stripe_params['ajaxurl']                   = WC_AJAX::get_endpoint( '%%endpoint%%' );
 		$stripe_params['stripe_nonce']              = wp_create_nonce( '_wc_stripe_nonce' );
-		$stripe_params['statement_descriptor']      = $this->statement_descriptor;
+		$stripe_params['statement_descriptor']      = $statement_descriptor;
 		$stripe_params['elements_options']          = apply_filters( 'wc_stripe_elements_options', [] );
 		$stripe_params['sepa_elements_options']     = $sepa_elements_options;
 		$stripe_params['invalid_owner_name']        = __( 'Billing First Name and Last Name are required.', 'woocommerce-gateway-stripe' );
@@ -479,7 +486,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		wp_localize_script(
 			'woocommerce_stripe',
 			'wc_stripe_params',
-			apply_filters( 'wc_stripe_params', $this->javascript_configuration_object() )
+			apply_filters(
+				'wc_stripe_params',
+				self::javascript_configuration_object( $this->settings, $this->get_stripe_return_url() )
+			)
 		);
 
 		$this->tokenization_script();
