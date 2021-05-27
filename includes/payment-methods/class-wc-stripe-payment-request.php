@@ -862,6 +862,8 @@ class WC_Stripe_Payment_Request {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
+		$page_options      = filter_input_array( INPUT_POST, [ 'shipping_pending' => FILTER_VALIDATE_BOOLEAN ] );
+
 		WC()->cart->calculate_totals();
 
 		$currency = get_woocommerce_currency();
@@ -875,8 +877,8 @@ class WC_Stripe_Payment_Request {
 			],
 		];
 
-		$data['order_data'] += $this->build_display_items();
-
+		$shipping_pending = $page_options['shipping_pending'];
+		$data['order_data'] += $this->build_response($shipping_pending, 'cart_page');
 		wp_send_json( $data );
 	}
 
@@ -904,14 +906,23 @@ class WC_Stripe_Payment_Request {
 		$product_view_options      = filter_input_array(
 			INPUT_POST,
 			[
-				'is_product_page'  => FILTER_SANITIZE_STRING,
+				'is_product_page'  => FILTER_VALIDATE_BOOLEAN,
 				'shipping_pending' => FILTER_VALIDATE_BOOLEAN,
 			]
 		);
-		$should_show_itemized_view = ! isset( $product_view_options['is_product_page'] ) ? true : filter_var( $product_view_options['is_product_page'], FILTER_VALIDATE_BOOLEAN );
-		$shipping_pending          = $product_view_options['shipping_pending'];
 
-		$data = $this->get_shipping_options( $shipping_address, $should_show_itemized_view, $shipping_pending );
+		if ($product_view_options['is_product_page']) {
+			$page = 'product_page';
+		} else {
+			$page = 'cart_page';
+		}
+
+		WC_Stripe_Logger::log( '$page ' . print_r($page, true) );
+
+
+		$shipping_pending       = $product_view_options['shipping_pending'];
+
+		$data = $this->get_shipping_options($shipping_address, $shipping_pending, $page);
 		wp_send_json( $data );
 	}
 
@@ -924,7 +935,7 @@ class WC_Stripe_Payment_Request {
 	 * @return array Shipping options data.
 	 * phpcs:ignore Squiz.Commenting.FunctionCommentThrowTag
 	 */
-	public function get_shipping_options( $shipping_address, $itemized_display_items = false ) {
+	public function get_shipping_options( $shipping_address, $shipping_pending, $page = 'product_page' ) {
 		try {
 			// Set the shipping options.
 			$data = [];
@@ -980,10 +991,11 @@ class WC_Stripe_Payment_Request {
 
 			WC()->cart->calculate_totals();
 
-			$data += $this->build_response( false );
+			$data 				  += $this->build_response( $shipping_pending, $page );
+			$data['result']  = 'success';
 		} catch ( Exception $e ) {
 			// TODO: Check this case
-			$data          += $this->build_response( $itemized_display_items, false );
+			$data          += $this->build_response( $shipping_pending, $page );
 			$data['result'] = 'invalid_shipping_address';
 		}
 
@@ -1431,14 +1443,17 @@ class WC_Stripe_Payment_Request {
 	 *
 	 * @return array Data object used to update Payment Request button on the client.
 	 */
-	protected function build_response( $shipping_pending = true, $success = true ) {
+	protected function build_response( $shipping_pending = true, $page = 'product_page' ) {
+		if ($page == 'product_page') {
+			$itemized_display_items = true;
+		} elseif($page == 'cart_page') {
+			$itemized_display_items = false;
+		}
+
 		$data                 = [];
 		$data['currency']     = strtolower( get_woocommerce_currency() );
 		$data['country_code'] = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
 
-		if ( $success ) {
-			$data['result'] = 'success';
-		}
 
 		// Taxes
 		$taxes            = WC()->cart->tax_total + WC()->cart->shipping_tax_total;
@@ -1498,7 +1513,7 @@ class WC_Stripe_Payment_Request {
 			'pending' => true, // TODO: Check when this should be false
 		];
 
-		$data['displayItems'] = $this->build_display_items( true, $shipping_pending, $shipping );
+		$data['displayItems'] = $this->build_display_items( $itemized_display_items, $shipping_pending, $shipping, $page );
 
 		return $data;
 	}

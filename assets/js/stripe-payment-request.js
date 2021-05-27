@@ -26,7 +26,8 @@ jQuery( function( $ ) {
 
 		getCartDetails: function() {
 			var data = {
-				security: wc_stripe_payment_request_params.nonce.payment
+				security: wc_stripe_payment_request_params.nonce.payment,
+				shipping_pending: wc_stripe_payment_request.shippingPending,
 			};
 
 			$.ajax( {
@@ -353,8 +354,8 @@ jQuery( function( $ ) {
 					country: cart.order_data.country_code,
 					requestPayerName: true,
 					requestPayerEmail: true,
-					requestPayerPhone: wc_stripe_payment_request_params.checkout.needs_payer_phone,
-					requestShipping: cart.shipping_required ? true : false,
+					requestPayerPhone: wc_stripe_payment_request_params.checkout.needs_payer_phone, // TODO: This can be moved to the ajax request
+					requestShipping: cart.shipping_required ? true : false, // TODO: This can also be move to the ajax request
 					displayItems: cart.order_data.displayItems
 				};
 
