@@ -1440,13 +1440,31 @@ class WC_Stripe_Payment_Request {
 			$data['result'] = 'success';
 		}
 
+		// Taxes
+		$taxes            = WC()->cart->tax_total + WC()->cart->shipping_tax_total;
+		$tax_to_substract = 0;
+
+		if ( wc_tax_enabled() ) {
+			if ( $shipping_pending ) {
+				$tax_to_substract = $taxes;
+				$tax              = 0;
+			}
+		}
+
 		// Shipping
 		$shipping           = wc_format_decimal( WC()->cart->get_shipping_total(), WC()->cart->dp );
 		$shipping_to_remove = 0;
 
-		if ( $shipping_pending ) {
+		if ( wc_shipping_enabled() && WC()->cart->needs_shipping() && $shipping_pending ) {
 			$shipping_to_remove = $shipping;
 			$shipping           = 0;
+
+			$data['shippingOptions'] = [
+				'id'     => 'pending',
+				'label'  => __( 'Pending', 'woocommerce-gateway-stripe' ),
+				'detail' => '',
+				'amount' => 0,
+			];
 		}
 
 		// Discounts
@@ -1471,7 +1489,7 @@ class WC_Stripe_Payment_Request {
 		} else {
 			// Getting the total amount from the cart automatically adds a shipping cost to it
 			// We need to remove it if the user hasn't picked a shipping addres yet
-			$order_total = WC()->cart->get_total( false ) - $shipping_to_remove;
+			$order_total = WC()->cart->get_total( false ) - $tax_to_substract - $shipping_to_remove;
 		}
 
 		$data['total'] = [
@@ -1524,23 +1542,31 @@ class WC_Stripe_Payment_Request {
 
 		$tax = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
 
+		// Taxes
 		if ( wc_tax_enabled() ) {
-			$items[] = [
-				'label'   => esc_html( __( 'Tax', 'woocommerce-gateway-stripe' ) ),
-				'amount'  => WC_Stripe_Helper::get_stripe_amount( $tax ),
-				'pending' => true,
-			];
+			if ( $shipping_pending ) {
+				$items[] = [
+					'label'   => esc_html( __( 'Tax', 'woocommerce-gateway-stripe' ) ),
+					'amount'  => 0,
+					'pending' => true,
+				];
+			} else {
+				$items[] = [
+					'label'  => esc_html( __( 'Tax', 'woocommerce-gateway-stripe' ) ),
+					'amount' => WC_Stripe_Helper::get_stripe_amount( $tax ),
+				];
+			}
 		}
 
 		// Shipping
-		if ( WC()->cart->needs_shipping() ) {
+		if ( wc_shipping_enabled() && WC()->cart->needs_shipping() ) {
 			if ( $shipping_pending ) {
 				$items[] = [
 					'label'   => esc_html( __( 'Shipping', 'woocommerce-gateway-stripe' ) ),
 					'amount'  => 0,
 					'pending' => true,
 				];
-			} elseif ( wc_shipping_enabled() ) {
+			} else {
 				$items[] = [
 					'label'  => esc_html( __( 'Shipping', 'woocommerce-gateway-stripe' ) ),
 					'amount' => WC_Stripe_Helper::get_stripe_amount( $shipping ),
@@ -1548,6 +1574,7 @@ class WC_Stripe_Payment_Request {
 			}
 		}
 
+		// Discounts
 		if ( WC()->cart->has_discount() ) {
 			$items[] = [
 				'label'  => esc_html( __( 'Discount', 'woocommerce-gateway-stripe' ) ),
