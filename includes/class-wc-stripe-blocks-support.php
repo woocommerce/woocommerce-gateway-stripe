@@ -84,7 +84,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		$configuration = array_merge(
 			apply_filters(
 				'wc_stripe_params',
-				WC_Gateway_Stripe::javascript_configuration_object( $this->settings )
+				WC_Gateway_Stripe::javascript_configuration( $this->settings )
 			),
 			apply_filters(
 				'wc_stripe_payment_request_params',

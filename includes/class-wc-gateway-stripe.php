@@ -368,7 +368,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return array  The configuration object to be loaded to JS.
 	 */
-	public static function javascript_configuration_object( $gateway_settings, $return_url = '' ) {
+	public static function javascript_configuration( $gateway_settings, $return_url = '' ) {
 		global $wp;
 		$testmode             = 'yes' === $gateway_settings['testmode'];
 		$publishable_key      = $testmode ? $gateway_settings['test_publishable_key'] : $gateway_settings['publishable_key'];
@@ -488,7 +488,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			'wc_stripe_params',
 			apply_filters(
 				'wc_stripe_params',
-				self::javascript_configuration_object( $this->settings, $this->get_stripe_return_url() )
+				self::javascript_configuration( $this->settings, $this->get_stripe_return_url() )
 			)
 		);
 
