@@ -1327,6 +1327,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Get help text to display during quick setup.
+	 *
+	 * @return string
 	 */
 	public function get_setup_help_text() {
 		return sprintf(
