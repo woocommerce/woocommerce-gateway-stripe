@@ -361,54 +361,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Payment_scripts function.
+	 * Returns the JavaScript configuration object used on the product, cart, and checkout pages.
 	 *
-	 * Outputs scripts used for stripe payment
-	 *
-	 * @since 3.1.0
-	 * @version 4.0.0
+	 * @return array  The configuration object to be loaded to JS.
 	 */
-	public function payment_scripts() {
+	public function javascript_configuration_object() {
 		global $wp;
-		if (
-			! is_product()
-			&& ! is_cart()
-			&& ! is_checkout()
-			&& ! isset( $_GET['pay_for_order'] ) // wpcs: csrf ok.
-			&& ! is_add_payment_method_page()
-			&& ! isset( $_GET['change_payment_method'] ) // wpcs: csrf ok.
-			&& ! ( ! empty( get_query_var( 'view-subscription' ) ) && is_callable( 'WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled' ) && WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled() )
-			|| ( is_order_received_page() )
-		) {
-			return;
-		}
-
-		// If Stripe is not enabled bail.
-		if ( 'no' === $this->enabled ) {
-			return;
-		}
-
-		// If keys are not set bail.
-		if ( ! $this->are_keys_set() ) {
-			WC_Stripe_Logger::log( 'Keys are not set correctly.' );
-			return;
-		}
-
-		// If no SSL bail.
-		if ( ! $this->testmode && ! is_ssl() ) {
-			WC_Stripe_Logger::log( 'Stripe live mode requires SSL.' );
-			return;
-		}
-
-		$current_theme = wp_get_theme();
-
-		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
-
-		wp_register_style( 'stripe_styles', plugins_url( 'assets/css/stripe-styles.css', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );
-		wp_enqueue_style( 'stripe_styles' );
-
-		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
-		wp_register_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [ 'jquery-payment', 'stripe' ], WC_STRIPE_VERSION, true );
 
 		$stripe_params = [
 			'key'                  => $this->publishable_key,
@@ -468,7 +426,61 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		// Merge localized messages to be use in JS.
 		$stripe_params = array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
 
-		wp_localize_script( 'woocommerce_stripe', 'wc_stripe_params', apply_filters( 'wc_stripe_params', $stripe_params ) );
+		return $stripe_params;
+	}
+
+	/**
+	 * Payment_scripts function.
+	 *
+	 * Outputs scripts used for stripe payment
+	 *
+	 * @since 3.1.0
+	 * @version 4.0.0
+	 */
+	public function payment_scripts() {
+		if (
+			! is_product()
+			&& ! is_cart()
+			&& ! is_checkout()
+			&& ! isset( $_GET['pay_for_order'] ) // wpcs: csrf ok.
+			&& ! is_add_payment_method_page()
+			&& ! isset( $_GET['change_payment_method'] ) // wpcs: csrf ok.
+			&& ! ( ! empty( get_query_var( 'view-subscription' ) ) && is_callable( 'WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled' ) && WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled() )
+			|| ( is_order_received_page() )
+		) {
+			return;
+		}
+
+		// If Stripe is not enabled bail.
+		if ( 'no' === $this->enabled ) {
+			return;
+		}
+
+		// If keys are not set bail.
+		if ( ! $this->are_keys_set() ) {
+			WC_Stripe_Logger::log( 'Keys are not set correctly.' );
+			return;
+		}
+
+		// If no SSL bail.
+		if ( ! $this->testmode && ! is_ssl() ) {
+			WC_Stripe_Logger::log( 'Stripe live mode requires SSL.' );
+			return;
+		}
+
+		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+
+		wp_register_style( 'stripe_styles', plugins_url( 'assets/css/stripe-styles.css', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );
+		wp_enqueue_style( 'stripe_styles' );
+
+		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
+		wp_register_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [ 'jquery-payment', 'stripe' ], WC_STRIPE_VERSION, true );
+
+		wp_localize_script(
+			'woocommerce_stripe',
+			'wc_stripe_params',
+			apply_filters( 'wc_stripe_params', $this->javascript_configuration_object() )
+		);
 
 		$this->tokenization_script();
 		wp_enqueue_script( 'woocommerce_stripe' );
