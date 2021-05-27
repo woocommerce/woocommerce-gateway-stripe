@@ -386,9 +386,9 @@ jQuery( function( $ ) {
 
 				// Possible statuses success, fail, invalid_payer_name, invalid_payer_email, invalid_payer_phone, invalid_shipping_address.
 				paymentRequest.on( 'shippingaddresschange', function( evt ) {
+					// TODO: Check if this is needed
 					wc_stripe_payment_request.shippingPending = false;
 
-					// This probably will no longer necessary since we will make the call to `wc_stripe_add_to_cart` anyways
 					$.when( wc_stripe_payment_request.updateShippingOptions( paymentDetails, evt.shippingAddress ) ).then( function( response ) {
 						evt.updateWith( { status: response.result, shippingOptions: response.shipping_options, total: response.total, displayItems: response.displayItems } );
 					} );
