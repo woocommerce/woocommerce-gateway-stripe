@@ -123,6 +123,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'set_logged_in_cookie', [ $this, 'set_cookie_on_current_request' ] );
 		add_filter( 'woocommerce_get_checkout_payment_url', [ $this, 'get_checkout_payment_url' ], 10, 2 );
 		add_filter( 'woocommerce_settings_api_sanitized_fields_' . $this->id, [ $this, 'settings_api_sanitized_fields' ] );
+		add_filter( 'woocommerce_gateway_' . $this->id . '_settings_values', array( $this, 'update_onboarding_settings' ) );
 
 		// Note: display error is in the parent class.
 		add_action( 'admin_notices', [ $this, 'display_errors' ], 9999 );
@@ -1345,5 +1346,26 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function needs_setup() {
 		return ! $this->publishable_key || ! $this->secret_key;
+	}
+
+	/**
+	 * Updates the test mode based on keys provided when setting up the gateway via onboarding.
+	 *
+	 * @return array
+	 */
+	public function update_onboarding_settings( $settings ) {
+		if ( ! empty( $settings['publishable_key'] ) && ! empty( $settings['secret_key'] ) ) {
+			if ( strpos( $settings['publishable_key'], 'test_' ) === 0 || strpos( $settings['secret_key'], 'test_' ) === 0 ) {
+				$settings['test_publishable_key'] = $settings['publishable_key'];
+				$settings['test_secret_key'] = $settings['secret_key'];
+				unset( $settings['publishable_key'] );
+				unset( $settings['secret_key'] );
+				$settings['testmode'] = 'yes';
+			} else {
+				$settings['testmode'] = 'no';
+			}
+		}
+
+		return $settings;
 	}
 }
