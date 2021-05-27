@@ -280,11 +280,9 @@
 /**
  * @typedef {Object} StripeServerData
  *
- * @property {string}                      stripeTotalLabel     The string used for payment
- *                                                              descriptor.
- * @property {string}                      publicKey            The public api key for stripe
+ * @property {string}                      key                  The public api key for stripe
  *                                                              requests.
- * @property {boolean}                     allowPrepaidCard     True means that prepaid cards
+ * @property {boolean}                     allow_prepaid_card   True means that prepaid cards
  *                                                              can be used for payment.
  * @property {Object}                      button               Contains button styles
  * @property {string}                      button.type          The type of button.

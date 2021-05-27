@@ -18,7 +18,7 @@ import { InlineCard, CardElements } from './elements';
  */
 
 export const getStripeCreditCardIcons = () => {
-	return Object.entries( getStripeServerData().icons ).map(
+	return Object.entries( getStripeServerData()?.icons ).map(
 		( [ id, { src, alt } ] ) => {
 			return {
 				id,

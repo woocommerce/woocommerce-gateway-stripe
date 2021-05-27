@@ -81,26 +81,43 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array
 	 */
 	public function get_payment_method_data() {
-		return [
-			'stripeTotalLabel'    => $this->get_total_label(),
-			'publicKey'           => $this->get_publishable_key(),
-			'allowPrepaidCard'    => $this->get_allow_prepaid_card(),
-			'title'               => $this->get_title(),
-			'button'              => [
-				'type'        => $this->get_button_type(),
-				'theme'       => $this->get_button_theme(),
-				'height'      => $this->get_button_height(),
-				'locale'      => $this->get_button_locale(),
-				'customLabel' => isset( $this->settings['payment_request_button_label'] ) ? $this->settings['payment_request_button_label'] : 'Buy now',
-			],
-			'inline_cc_form'      => $this->get_inline_cc_form(),
-			'icons'               => $this->get_icons(),
-			'showSavedCards'      => $this->get_show_saved_cards(),
-			'showSaveOption'      => $this->get_show_save_option(),
-			'supports'            => $this->get_supported_features(),
-			'stripeLocale'        => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
-			'isAdmin'             => is_admin(),
-		];
+		$configuration = array_merge(
+			apply_filters(
+				'wc_stripe_params',
+				WC_Gateway_Stripe::javascript_configuration_object( $this->settings )
+			),
+			apply_filters(
+				'wc_stripe_payment_request_params',
+				WC_Stripe_Payment_Request::javascript_configuration( $this->settings )
+			),
+			// Blocks-specific options
+			[
+				'title'          => $this->get_title(),
+				'icons'          => $this->get_icons(),
+				'supports'       => $this->get_supported_features(),
+				'showSavedCards' => $this->get_show_saved_cards(),
+				'showSaveOption' => $this->get_show_save_option(),
+				'isAdmin'        => is_admin(),
+			]
+		);
+
+		// Blocks-specific that's nested in pre-existing Payment Request Button configuration, so
+		// we have to assign it like this to avoid overriding the rest of the 'button' configuration
+		// when merging the arrays.
+		$configuration['button']['customLabel'] = $this->get_custom_payment_request_button_label();
+
+		return $configuration;
+	}
+
+	/**
+	 * Get the custom label displayed on custom payment request buttons.
+	 *
+	 * @return string  The custom label.
+	 */
+	private function get_custom_payment_request_button_label() {
+		return isset( $this->settings['payment_request_button_label'] )
+			? $this->settings['payment_request_button_label']
+			: 'Buy now';
 	}
 
 	/**

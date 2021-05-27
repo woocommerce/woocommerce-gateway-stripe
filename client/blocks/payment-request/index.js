@@ -35,7 +35,7 @@ const paymentRequestPaymentMethod = {
 		// If the `wc_stripe_payment_request_params` object is not available we don't support
 		// payment requests.
 		// eslint-disable-next-line camelcase
-		if ( typeof wc_stripe_payment_request_params === 'undefined' ) {
+		if ( getStripeServerData() === undefined ) {
 			return false;
 		}
 
