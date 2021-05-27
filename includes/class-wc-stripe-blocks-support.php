@@ -101,9 +101,9 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			]
 		);
 
-		// Blocks-specific that's nested in pre-existing Payment Request Button configuration, so
-		// we have to assign it like this to avoid overriding the rest of the 'button' configuration
-		// when merging the arrays.
+		// Blocks-specific option that's nested in pre-existing Payment Request Button
+		// configuration, so we have to assign it like this to avoid overriding the rest of the
+		// 'button' configuration when merging the arrays.
 		$configuration['button']['customLabel'] = $this->get_custom_payment_request_button_label();
 
 		return $configuration;
