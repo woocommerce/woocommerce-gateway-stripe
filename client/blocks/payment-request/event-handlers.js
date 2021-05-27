@@ -1,5 +1,3 @@
-/* global wc_stripe_payment_request_params */
-
 /**
  * External dependencies
  */
@@ -202,9 +200,7 @@ const paymentProcessingHandler = (
 
 	// Check if we allow prepaid cards.
 	if ( ! allowPrepaidCards && evt?.source?.card?.funding === 'prepaid' ) {
-		setExpressPaymentError(
-			wc_stripe_payment_request_params?.i18n?.no_prepaid_card
-		);
+		setExpressPaymentError( getStripeServerData()?.i18n?.no_prepaid_card );
 	} else {
 		// Create the order and attempt to pay.
 		createOrder( evt, paymentRequestType ).then(

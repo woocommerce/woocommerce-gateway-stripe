@@ -1,5 +1,3 @@
-/* global wc_stripe_payment_request_params */
-
 /**
  * @typedef {import('./type-defs').StripePaymentItem} StripePaymentItem
  * @typedef {import('./type-defs').StripeShippingOption} StripeShippingOption
@@ -10,6 +8,11 @@
  * @typedef {import('@woocommerce/type-defs/shipping').ShippingAddress} CartShippingAddress
  * @typedef {import('@woocommerce/type-defs/billing').BillingData} CartBillingAddress
  */
+
+/**
+ * Internal dependencies
+ */
+import { getStripeServerData } from '../stripe-utils';
 
 /**
  * Normalizes order data received upon creating an order using the store's AJAX API.
@@ -26,7 +29,7 @@ const normalizeOrderData = ( sourceEvent, paymentRequestType ) => {
 	const shipping = sourceEvent?.shippingAddress;
 
 	const data = {
-		_wpnonce: wc_stripe_payment_request_params.nonce.checkout,
+		_wpnonce: getStripeServerData()?.nonce?.checkout,
 		billing_first_name:
 			name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
 		billing_last_name: name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '',

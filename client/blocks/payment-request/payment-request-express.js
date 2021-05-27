@@ -89,11 +89,9 @@ const PaymentRequestExpressComponent = ( {
 		},
 	};
 
-	// Use pre-blocks settings until we merge the two distinct settings objects.
-	/* global wc_stripe_payment_request_params */
-	const isBranded = wc_stripe_payment_request_params.button.is_branded;
-	const brandedType = wc_stripe_payment_request_params.button.branded_type;
-	const isCustom = wc_stripe_payment_request_params.button.is_custom;
+	const isBranded = getStripeServerData()?.button?.is_branded;
+	const brandedType = getStripeServerData()?.button?.branded_type;
+	const isCustom = getStripeServerData()?.button?.is_custom;
 
 	if ( ! paymentRequest ) {
 		return null;

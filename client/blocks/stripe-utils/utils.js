@@ -1,5 +1,3 @@
-/* global wc_stripe_payment_request_params */
-
 /**
  * External dependencies
  */
@@ -62,8 +60,7 @@ export const createPaymentRequestUsingCart = ( stripe, cart ) => {
 		country: cart.order_data.country_code,
 		requestPayerName: true,
 		requestPayerEmail: true,
-		requestPayerPhone:
-			wc_stripe_payment_request_params.checkout.needs_payer_phone,
+		requestPayerPhone: getStripeServerData()?.checkout?.needs_payer_phone,
 		requestShipping: cart.shipping_required ? true : false,
 		displayItems: cart.order_data.displayItems,
 	};

@@ -1,5 +1,3 @@
-/* global wc_stripe_payment_request_params */
-
 /**
  * External dependencies
  */
@@ -32,10 +30,9 @@ const paymentRequestPaymentMethod = {
 			return true;
 		}
 
-		// If the `wc_stripe_payment_request_params` object is not available we don't support
-		// payment requests.
-		// eslint-disable-next-line camelcase
-		if ( getStripeServerData() === undefined ) {
+		// If the JS Payment Request Button configuration object loaded from PHP is not available
+		// we don't support payment requests.
+		if ( ! getStripeServerData()?.button ) {
 			return false;
 		}
 
