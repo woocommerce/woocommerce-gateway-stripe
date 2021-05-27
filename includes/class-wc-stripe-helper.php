@@ -597,4 +597,14 @@ class WC_Stripe_Helper {
 		// Default to 'auto' so Stripe.js uses the browser locale.
 		return 'auto';
 	}
+
+	/**
+	 * Checks if this page contains a cart or checkout block.
+	 *
+	 * @since 5.2.1
+	 * @return boolean
+	 */
+	public static function has_cart_or_checkout_block_on_current_page() {
+		return has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' );
+	}
 }

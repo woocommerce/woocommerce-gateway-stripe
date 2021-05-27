@@ -557,16 +557,6 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Checks if this page contains a cart or checkout block.
-	 *
-	 * @since 5.2.0
-	 * @return boolean
-	 */
-	public function is_block() {
-		return has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' );
-	}
-
-	/**
 	 * Checks if this is a product page or content contains a product_page shortcode.
 	 *
 	 * @since 5.2.0
@@ -687,7 +677,9 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// If page is not supported, bail.
-		if ( ! $this->is_block() && ! $this->is_product() && ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) {
+		if ( ! $this->is_product() && ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) {
+			return;
+		} elseif ( WC_Stripe_Helper::has_cart_or_checkout_block_on_current_page() ) {
 			return;
 		}
 

@@ -458,6 +458,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		// If we're loading the cart or checkout block the scripts here should not be loaded.
+		if ( WC_Stripe_Helper::has_cart_or_checkout_block_on_current_page() ) {
+			return;
+		}
+
 		// If Stripe is not enabled bail.
 		if ( 'no' === $this->enabled ) {
 			return;
