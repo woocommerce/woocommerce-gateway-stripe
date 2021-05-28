@@ -1513,7 +1513,7 @@ class WC_Stripe_Payment_Request {
 			'pending' => true, // TODO: Check when this should be false
 		];
 
-		$data['displayItems'] = $this->build_display_items( $itemized_display_items, $shipping_pending, $shipping, $page );
+		$data['displayItems'] = $this->build_display_items( $itemized_display_items, $shipping_pending, $shipping, $discounts );
 
 		return $data;
 	}
@@ -1528,7 +1528,7 @@ class WC_Stripe_Payment_Request {
 	 * @param  bool $shipping_pending       True is the user hasn't defined yet a shipping address. @since 5.3.0
 	 * @param  bool $shipping               Total shipping cost. @since 5.3.0
 	 */
-	protected function build_display_items( $itemized_display_items = false, $shipping_pending = true, $shipping = 0 ) {
+	protected function build_display_items( $itemized_display_items = false, $shipping_pending = true, $shipping = 0, $discounts = 0 ) {
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
 			define( 'WOOCOMMERCE_CART', true );
 		}
