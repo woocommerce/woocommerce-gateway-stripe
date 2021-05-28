@@ -669,7 +669,6 @@ jQuery( function( $ ) {
 			} );
 
 			$( '.quantity' ).on( 'input', '.qty', wc_stripe_payment_request.debounce( 250, function() {
-				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 				paymentRequestError = [];
 
 				// TODO: This request seems unnecesary since we will add the product(s) to the cart when the user clicks the PRB.
