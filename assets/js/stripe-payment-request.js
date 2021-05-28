@@ -453,7 +453,6 @@ jQuery( function( $ ) {
 			} );
 		},
 
-
 		/**
 		 * Creates a wrapper around a function that ensures a function can not
 		 * called in rappid succesion. The function can only be executed once and then agin after
@@ -742,7 +741,7 @@ jQuery( function( $ ) {
 		 */
 		init: function() {
 			if ( wc_stripe_payment_request_params.is_product_page ) {
-				wc_stripe_payment_request.startPaymentRequest( '' );
+				wc_stripe_payment_request.startPaymentRequest();
 			} else {
 				wc_stripe_payment_request.getCartDetails();
 			}
