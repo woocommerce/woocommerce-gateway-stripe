@@ -381,14 +381,12 @@ class WC_Stripe_Payment_Request {
 			];
 		}
 
-		$data['displayItems'] = $items;
 		$data['total']        = [
 			'label'   => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
 			'amount'  => WC_Stripe_Helper::get_stripe_amount( $this->get_product_price( $product ) ),
 			'pending' => true,
 		];
 
-		$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() ); // TODO: This seems no longer needed
 		$data['currency']        = strtolower( get_woocommerce_currency() );
 		$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
 
@@ -1470,16 +1468,20 @@ class WC_Stripe_Payment_Request {
 		$shipping           = wc_format_decimal( WC()->cart->get_shipping_total(), WC()->cart->dp );
 		$shipping_to_remove = 0;
 
-		if ( wc_shipping_enabled() && WC()->cart->needs_shipping() && $shipping_pending ) {
-			$shipping_to_remove = $shipping;
-			$shipping           = 0;
+		if ( wc_shipping_enabled() && WC()->cart->needs_shipping() ) {
+			$data['requestShipping'] = ( wc_shipping_enabled() && WC()->cart->needs_shipping() );
 
-			$data['shippingOptions'] = [
-				'id'     => 'pending',
-				'label'  => __( 'Pending', 'woocommerce-gateway-stripe' ),
-				'detail' => '',
-				'amount' => 0,
-			];
+			if ( $shipping_pending ) {
+				$shipping_to_remove = $shipping;
+				$shipping           = 0;
+
+				$data['shippingOptions'] = [
+					'id'     => 'pending',
+					'label'  => __( 'Pending', 'woocommerce-gateway-stripe' ),
+					'detail' => '',
+					'amount' => 0,
+				];
+			}
 		}
 
 		// Discounts

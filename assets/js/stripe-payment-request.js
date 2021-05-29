@@ -328,8 +328,6 @@ jQuery( function( $ ) {
 				requestPayerName: true,
 				requestPayerEmail: true,
 				requestPayerPhone: wc_stripe_payment_request_params.checkout.needs_payer_phone,
-				requestShipping: wc_stripe_payment_request_params.product.requestShipping,
-				displayItems: wc_stripe_payment_request_params.product.displayItems
 			};
 		},
 
