@@ -11,7 +11,14 @@ jQuery( function( $ ) {
 	 * Object to handle Stripe payment forms.
 	 */
 	var wc_stripe_payment_request = {
+		/**
+		 * Indicates wether the user needs to pick or enter a shipping address on the payment dialog.
+		 *
+		 * @since 5.3.0
+		 * @type {boolean}
+		 */
 		shippingPending: true,
+
 		/**
 		 * Get WC AJAX endpoint URL.
 		 *
