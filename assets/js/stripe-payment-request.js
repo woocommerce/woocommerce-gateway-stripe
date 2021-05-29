@@ -359,7 +359,7 @@ jQuery( function( $ ) {
 					country: cart.order_data.country_code,
 					requestPayerName: true,
 					requestPayerEmail: true,
-					requestPayerPhone: wc_stripe_payment_request_params.checkout.needs_payer_phone, // TODO: This can be moved to the ajax request
+					requestPayerPhone: cart.needs_payer_phone,
 					requestShipping: cart.shipping_required ? true : false, // TODO: This can also be move to the ajax request
 					displayItems: cart.order_data.displayItems
 				};

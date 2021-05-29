@@ -869,6 +869,7 @@ class WC_Stripe_Payment_Request {
 		// Set mandatory payment details.
 		$data = [
 			'shipping_required' => WC()->cart->needs_shipping(),
+			'needs_payer_phone' => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
 			'order_data'        => [
 				'currency'     => strtolower( $currency ),
 				'country_code' => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
