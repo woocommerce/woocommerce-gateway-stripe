@@ -552,6 +552,7 @@ jQuery( function( $ ) {
 					} else if ( addToCartButton.is( '.wc-variation-selection-needed' ) ) {
 						window.alert( wc_add_to_cart_variation_params.i18n_make_a_selection_text );
 					}
+					$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
 					return;
 				}
 
