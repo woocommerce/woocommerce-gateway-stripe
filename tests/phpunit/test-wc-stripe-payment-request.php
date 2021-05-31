@@ -133,7 +133,7 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 
 
 	public function test_get_shipping_options_returns_shipping_options() {
-		$data = $this->pr->get_shipping_options( self::SHIPPING_ADDRESS );
+		$data = $this->pr->get_shipping_options( self::SHIPPING_ADDRESS, false );
 
 		$expected_shipping_options = array_map(
 			'self::get_shipping_option',
@@ -145,10 +145,14 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 	}
 
 	public function test_get_shipping_options_returns_chosen_option() {
-		$data = $this->pr->get_shipping_options( self::SHIPPING_ADDRESS );
+		$data = $this->pr->get_shipping_options( self::SHIPPING_ADDRESS, false );
 
 		$flat_rate              = $this->get_shipping_option( $this->flat_rate_id );
 		$expected_display_items = [
+			[
+				'label' => 'Dummy Product',
+				'amount' => 1000,
+			],
 			[
 				'label'  => 'Shipping',
 				'amount' => $flat_rate['amount'],
@@ -163,7 +167,7 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 		$method_id = self::get_shipping_option_rate_id( $this->local_pickup_id );
 		$this->pr->update_shipping_method( [ $method_id ] );
 
-		$data = $this->pr->get_shipping_options( self::SHIPPING_ADDRESS );
+		$data = $this->pr->get_shipping_options( self::SHIPPING_ADDRESS, false );
 
 		$expected_shipping_options = array_map(
 			'self::get_shipping_option',
