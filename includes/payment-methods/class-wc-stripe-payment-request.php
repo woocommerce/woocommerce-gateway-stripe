@@ -1464,13 +1464,13 @@ class WC_Stripe_Payment_Request {
 
 		// Shipping
 		$shipping           = wc_format_decimal( WC()->cart->get_shipping_total(), WC()->cart->dp );
-		$shipping_to_remove = 0;
+		$shipping_to_substract = 0;
 
 		if ( wc_shipping_enabled() && WC()->cart->needs_shipping() ) {
 			$data['requestShipping'] = ( wc_shipping_enabled() && WC()->cart->needs_shipping() );
 
 			if ( $shipping_pending ) {
-				$shipping_to_remove = $shipping;
+				$shipping_to_substract = $shipping;
 				$shipping           = 0;
 
 				$data['shippingOptions'] = [
@@ -1504,7 +1504,7 @@ class WC_Stripe_Payment_Request {
 		} else {
 			// Getting the total amount from the cart automatically adds a shipping cost to it
 			// We need to remove it if the user hasn't picked a shipping addres yet
-			$order_total = WC()->cart->get_total( false ) - $tax_to_substract - $shipping_to_remove;
+			$order_total = WC()->cart->get_total( false ) - $tax_to_substract - $shipping_to_substract;
 		}
 
 		$data['total'] = [
