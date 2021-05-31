@@ -12,7 +12,7 @@ jQuery( function( $ ) {
 	 */
 	var wc_stripe_payment_request = {
 		/**
-		 * Indicates wether the user needs to pick or enter a shipping address on the payment dialog.
+		 * Indicates if the user has not picked or entered a shipping address on the payment dialog yet.
 		 *
 		 * @since 5.3.0
 		 * @type {boolean}
@@ -335,6 +335,7 @@ jQuery( function( $ ) {
 				requestPayerName: true,
 				requestPayerEmail: true,
 				requestPayerPhone: wc_stripe_payment_request_params.checkout.needs_payer_phone,
+				requestShipping: wc_stripe_payment_request_params.product.requestShipping,
 			};
 		},
 
@@ -360,7 +361,7 @@ jQuery( function( $ ) {
 					requestPayerName: true,
 					requestPayerEmail: true,
 					requestPayerPhone: cart.needs_payer_phone,
-					requestShipping: cart.shipping_required ? true : false, // TODO: This can also be move to the ajax request
+					requestShipping: cart.order_data.requestShipping,
 					displayItems: cart.order_data.displayItems
 				};
 
@@ -392,7 +393,6 @@ jQuery( function( $ ) {
 
 				// Possible statuses success, fail, invalid_payer_name, invalid_payer_email, invalid_payer_phone, invalid_shipping_address.
 				paymentRequest.on( 'shippingaddresschange', function( evt ) {
-					// TODO: Check if this is needed
 					wc_stripe_payment_request.shippingPending = false;
 
 					$.when( wc_stripe_payment_request.updateShippingOptions( paymentDetails, evt.shippingAddress ) ).then( function( response ) {
@@ -456,33 +456,6 @@ jQuery( function( $ ) {
 				data: data,
 				url:  wc_stripe_payment_request.getAjaxURL( 'get_selected_product_data' )
 			} );
-		},
-
-		/**
-		 * Creates a wrapper around a function that ensures a function can not
-		 * called in rappid succesion. The function can only be executed once and then agin after
-		 * the wait time has expired.  Even if the wrapper is called multiple times, the wrapped
-		 * function only excecutes once and then blocks until the wait time expires.
-		 *
-		 * @param {int} wait       Milliseconds wait for the next time a function can be executed.
-		 * @param {function} func       The function to be wrapped.
-		 * @param {bool} immediate Overriding the wait time, will force the function to fire everytime.
-		 *
-		 * @return {function} A wrapped function with execution limited by the wait time.
-		 */
-		debounce: function( wait, func, immediate ) {
-			var timeout;
-			return function() {
-				var context = this, args = arguments;
-				var later = function() {
-					timeout = null;
-					if (!immediate) func.apply(context, args);
-				};
-				var callNow = immediate && !timeout;
-				clearTimeout(timeout);
-				timeout = setTimeout(later, wait);
-				if (callNow) func.apply(context, args);
-			};
 		},
 
 		/**
@@ -602,7 +575,6 @@ jQuery( function( $ ) {
 
 				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 
-				// TODO: Check if this block still relevant.
 				// First check if product can be added to cart.
 				var addToCartButton = $( '.single_add_to_cart_button' );
 				if ( addToCartButton.is( '.disabled' ) ) {
@@ -665,34 +637,6 @@ jQuery( function( $ ) {
 					} );
 				});
 			} );
-
-			// Block the payment request button as soon as an "input" event is fired, to avoid sync issues
-			// when the customer clicks on the button before the debounced event is processed.
-			$( '.quantity' ).on( 'input', '.qty', function() {
-				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
-			} );
-
-			$( '.quantity' ).on( 'input', '.qty', wc_stripe_payment_request.debounce( 250, function() {
-				paymentRequestError = [];
-
-				// TODO: This request seems unnecesary since we will add the product(s) to the cart when the user clicks the PRB.
-				// Let's remove it after confirm removing it is accepted behavior.
-				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
-					if ( response.error ) {
-						paymentRequestError = [ response.error ];
-						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-					} else {
-						$.when(
-							paymentRequest.update( {
-								total: response.total,
-								displayItems: response.displayItems,
-							} )
-						).then( function () {
-							$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-						});
-					}
-				} );
-			}));
 		},
 
 		attachCartPageEventListeners: function ( prButton, paymentRequest ) {

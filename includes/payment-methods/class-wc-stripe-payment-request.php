@@ -372,7 +372,6 @@ class WC_Stripe_Payment_Request {
 				'pending' => true,
 			];
 
-			// TODO: Confirm this is still needed, doesn't seems to be used anywhere
 			$data['shippingOptions'] = [
 				'id'     => 'pending',
 				'label'  => __( 'Pending', 'woocommerce-gateway-stripe' ),
@@ -381,12 +380,13 @@ class WC_Stripe_Payment_Request {
 			];
 		}
 
-		$data['total']        = [
+		$data['total'] = [
 			'label'   => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
 			'amount'  => WC_Stripe_Helper::get_stripe_amount( $this->get_product_price( $product ) ),
 			'pending' => true,
 		];
 
+		$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
 		$data['currency']        = strtolower( get_woocommerce_currency() );
 		$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
 
@@ -860,7 +860,7 @@ class WC_Stripe_Payment_Request {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
-		$page_options      = filter_input_array( INPUT_POST, [ 'shipping_pending' => FILTER_VALIDATE_BOOLEAN ] );
+		$page_options = filter_input_array( INPUT_POST, [ 'shipping_pending' => FILTER_VALIDATE_BOOLEAN ] );
 
 		WC()->cart->calculate_totals();
 
@@ -868,7 +868,6 @@ class WC_Stripe_Payment_Request {
 
 		// Set mandatory payment details.
 		$data = [
-			'shipping_required' => WC()->cart->needs_shipping(),
 			'needs_payer_phone' => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
 			'order_data'        => [
 				'currency'     => strtolower( $currency ),
@@ -876,8 +875,8 @@ class WC_Stripe_Payment_Request {
 			],
 		];
 
-		$shipping_pending = $page_options['shipping_pending'];
-		$data['order_data'] += $this->build_response($shipping_pending, 'cart_page');
+		$shipping_pending    = $page_options['shipping_pending'];
+		$data['order_data'] += $this->build_response( $shipping_pending, 'cart_page' );
 		wp_send_json( $data );
 	}
 
@@ -891,7 +890,7 @@ class WC_Stripe_Payment_Request {
 	public function ajax_get_shipping_options() {
 		check_ajax_referer( 'wc-stripe-payment-request-shipping', 'security' );
 
-		$shipping_address          = filter_input_array(
+		$shipping_address = filter_input_array(
 			INPUT_POST,
 			[
 				'country'   => FILTER_SANITIZE_STRING,
@@ -902,7 +901,8 @@ class WC_Stripe_Payment_Request {
 				'address_2' => FILTER_SANITIZE_STRING,
 			]
 		);
-		$product_view_options      = filter_input_array(
+
+		$product_view_options = filter_input_array(
 			INPUT_POST,
 			[
 				'is_product_page'  => FILTER_VALIDATE_BOOLEAN,
@@ -910,31 +910,29 @@ class WC_Stripe_Payment_Request {
 			]
 		);
 
-		if ($product_view_options['is_product_page']) {
+		if ( $product_view_options['is_product_page'] ) {
 			$page = 'product_page';
 		} else {
 			$page = 'cart_page';
 		}
 
-		WC_Stripe_Logger::log( '$page ' . print_r($page, true) );
+		$shipping_pending = $product_view_options['shipping_pending'];
 
-
-		$shipping_pending       = $product_view_options['shipping_pending'];
-
-		$data = $this->get_shipping_options($shipping_address, $shipping_pending, $page);
+		$data = $this->get_shipping_options( $shipping_address, $shipping_pending, $page );
 		wp_send_json( $data );
 	}
 
 	/**
 	 * Gets shipping options available for specified shipping address
 	 *
-	 * @param array   $shipping_address       Shipping address.
-	 * @param boolean $itemized_display_items Indicates whether to show subtotals or itemized views.
+	 * @param array  $shipping_address Shipping address.
+	 * @param bool   $shipping_pending True is the user hasn't defined yet a shipping address.
+	 * @param string $page             Page where the request was made. It can be `product_page` or `cart_page`.
 	 *
 	 * @return array Shipping options data.
 	 * phpcs:ignore Squiz.Commenting.FunctionCommentThrowTag
 	 */
-	public function get_shipping_options( $shipping_address, $shipping_pending, $page = 'product_page' ) {
+	public function get_shipping_options( $shipping_address, $shipping_pending = true, $page = 'product_page' ) {
 		try {
 			// Set the shipping options.
 			$data = [];
@@ -990,10 +988,9 @@ class WC_Stripe_Payment_Request {
 
 			WC()->cart->calculate_totals();
 
-			$data 				  += $this->build_response( $shipping_pending, $page );
-			$data['result']  = 'success';
+			$data          += $this->build_response( $shipping_pending, $page );
+			$data['result'] = 'success';
 		} catch ( Exception $e ) {
-			// TODO: Check this case
 			$data          += $this->build_response( $shipping_pending, $page );
 			$data['result'] = 'invalid_shipping_address';
 		}
@@ -1063,7 +1060,7 @@ class WC_Stripe_Payment_Request {
 				throw new Exception( sprintf( __( 'Product with the ID (%d) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
 			}
 
-			// TODO: Added the same check in `ajax_add_to_cart` just in case we remove this (`ajax_get_selected_product_data`) method
+			// TODO: Added the same check in `ajax_add_to_cart` just in case we remove this (`ajax_get_selected_product_data`) method. Do not remove before checking with Variable products
 			if ( ! $product->has_enough_stock( $qty ) ) {
 				/* translators: 1: product name 2: quantity in stock */
 				throw new Exception( sprintf( __( 'You cannot add that amount of "%1$s"; to the cart because there is not enough stock (%2$s remaining).', 'woocommerce-gateway-stripe' ), $product->get_name(), wc_format_stock_quantity_for_display( $product->get_stock_quantity(), $product ) ) );
@@ -1438,21 +1435,21 @@ class WC_Stripe_Payment_Request {
 	 *
 	 * @since 5.3.0
 	 *
-	 * @param bool $shipping_pending True is the user hasn't defined yet a shipping address.
+	 * @param bool   $shipping_pending True is the user hasn't defined yet a shipping address.
+	 * @param string $page             Page where the request was made. It can be `product_page` or `cart_page`.
 	 *
 	 * @return array Data object used to update Payment Request button on the client.
 	 */
 	protected function build_response( $shipping_pending = true, $page = 'product_page' ) {
-		if ($page == 'product_page') {
+		if ( 'product_page' == $page ) {
 			$itemized_display_items = true;
-		} elseif($page == 'cart_page') {
+		} elseif ( 'cart_page' == $page ) {
 			$itemized_display_items = false;
 		}
 
 		$data                 = [];
 		$data['currency']     = strtolower( get_woocommerce_currency() );
 		$data['country_code'] = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
-
 
 		// Taxes
 		$taxes            = WC()->cart->tax_total + WC()->cart->shipping_tax_total;
@@ -1513,7 +1510,7 @@ class WC_Stripe_Payment_Request {
 		$data['total'] = [
 			'label'   => $this->total_label,
 			'amount'  => max( 0, apply_filters( 'woocommerce_stripe_calculated_total', WC_Stripe_Helper::get_stripe_amount( $order_total ), $order_total, WC()->cart ) ),
-			'pending' => true, // TODO: Check when this should be false
+			'pending' => true,
 		];
 
 		$data['displayItems'] = $this->build_display_items( $itemized_display_items, $shipping_pending, $shipping, $discounts );
