@@ -403,32 +403,6 @@ jQuery( function( $ ) {
 			}
 		},
 
-		getSelectedProductData: function() {
-			var product_id = $( '.single_add_to_cart_button' ).val();
-
-			// Check if product is a variable product.
-			if ( $( '.single_variation_wrap' ).length ) {
-				product_id = $( '.single_variation_wrap' ).find( 'input[name="product_id"]' ).val();
-			}
-
-			var addons = $( '#product-addons-total' ).data('price_data') || [];
-			var addon_value = addons.reduce( function ( sum, addon ) { return sum + addon.cost; }, 0 );
-
-			var data = {
-				security: wc_stripe_payment_request_params.nonce.get_selected_product_data,
-				product_id: product_id,
-				qty: $( '.quantity .qty' ).val(),
-				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : [],
-				addon_value: addon_value,
-			};
-
-			return $.ajax( {
-				type: 'POST',
-				data: data,
-				url:  wc_stripe_payment_request.getAjaxURL( 'get_selected_product_data' )
-			} );
-		},
-
 		/**
 		 * Creates stripe paymentRequest element or connects to custom button
 		 *
@@ -582,21 +556,6 @@ jQuery( function( $ ) {
 
 			$( document.body ).on( 'wc_stripe_disable_payment_request_button', function () {
 				wc_stripe_payment_request.blockPaymentRequestButton( 'wc_request_button_is_disabled' );
-			} );
-
-			$( document.body ).on( 'woocommerce_variation_has_changed', function () {
-				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
-
-				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
-					$.when(
-						paymentRequest.update( {
-							total: response.total,
-							displayItems: response.displayItems,
-						} )
-					).then( function () {
-						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-					} );
-				});
 			} );
 		},
 
