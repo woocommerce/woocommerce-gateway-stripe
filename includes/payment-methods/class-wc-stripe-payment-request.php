@@ -1560,5 +1560,3 @@ class WC_Stripe_Payment_Request {
 		];
 	}
 }
-
-new WC_Stripe_Payment_Request();
