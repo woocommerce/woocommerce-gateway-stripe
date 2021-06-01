@@ -11,7 +11,6 @@ import {
 	updateShippingDetails,
 	createOrder,
 } from '../../api';
-import { getStripeServerData } from '../stripe-utils';
 
 const shippingAddressChangeHandler = ( paymentRequestType ) => ( evt ) => {
 	const { shippingAddress } = evt;
@@ -196,7 +195,7 @@ const paymentProcessingHandler = (
 	setExpressPaymentError
 ) => ( evt ) => {
 	const allowPrepaidCards =
-		getStripeServerData()?.allow_prepaid_card === 'yes';
+		wc_stripe_payment_request_params?.stripe?.allow_prepaid_card === 'yes';
 
 	// Check if we allow prepaid cards.
 	if ( ! allowPrepaidCards && evt?.source?.card?.funding === 'prepaid' ) {
