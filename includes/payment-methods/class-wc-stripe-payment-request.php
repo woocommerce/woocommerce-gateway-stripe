@@ -607,12 +607,6 @@ class WC_Stripe_Payment_Request {
 			$publishable_key = ! empty( $gateway_settings['test_publishable_key'] ) ? $gateway_settings['test_publishable_key'] : '';
 		}
 
-		$needs_shipping = false;
-		$cart           = WC()->cart;
-		if ( $cart && method_exists( $cart, 'needs_shipping' ) ) {
-			$needs_shipping = $cart->needs_shipping();
-		}
-
 		return [
 			'ajax_url'        => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'          => [
@@ -638,7 +632,7 @@ class WC_Stripe_Payment_Request {
 				'url'               => wc_get_checkout_url(),
 				'currency_code'     => strtolower( get_woocommerce_currency() ),
 				'country_code'      => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
-				'needs_shipping'    => $needs_shipping ? 'yes' : 'no',
+				'needs_shipping'    => WC()->cart->needs_shipping() ? 'yes' : 'no',
 				// Defaults to 'required' to match how core initializes this option.
 				'needs_payer_phone' => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
 			],
