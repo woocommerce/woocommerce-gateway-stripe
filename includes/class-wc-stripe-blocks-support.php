@@ -19,11 +19,20 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	protected $name = 'stripe';
 
 	/**
+	 * The Payment Request configuration class used for Shortcode PRBs. We use it here to retrieve
+	 * the same configurations.
+	 *
+	 * @var WC_Stripe_Payment_Request
+	 */
+	private $payment_request_configuration;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_payment_request_order_meta' ], 8, 2 );
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_stripe_intents' ], 9999, 2 );
+		$this->payment_request_configuration = new WC_Stripe_Payment_Request();
 	}
 
 	/**
@@ -95,7 +104,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				'showSaveOption' => $this->get_show_save_option(),
 				'isAdmin'        => is_admin(),
 				'button'         => [
-					'customLabel' => $this->get_custom_payment_request_button_label(),
+					'customLabel' => $this->payment_request_configuration->get_button_label(),
 				],
 			]
 		);
@@ -126,22 +135,10 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array  the JS configuration for Stripe Payment Requests.
 	 */
 	private function get_payment_request_javascript_configuration() {
-		$pr = new WC_Stripe_Payment_Request();
 		return apply_filters(
 			'wc_stripe_payment_request_params',
-			$pr->javascript_configuration()
+			$this->payment_request_configuration->javascript_configuration()
 		);
-	}
-
-	/**
-	 * Get the custom label displayed on custom payment request buttons.
-	 *
-	 * @return string  The custom label.
-	 */
-	private function get_custom_payment_request_button_label() {
-		return isset( $this->settings['payment_request_button_label'] )
-			? $this->settings['payment_request_button_label']
-			: 'Buy now';
 	}
 
 	/**
