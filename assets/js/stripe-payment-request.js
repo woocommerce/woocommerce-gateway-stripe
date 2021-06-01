@@ -34,7 +34,8 @@ jQuery( function( $ ) {
 		getCartDetails: function() {
 			var data = {
 				security: wc_stripe_payment_request_params.nonce.payment,
-				shipping_pending: wc_stripe_payment_request.shippingPending,
+				// In the cart page a shipping amount is always returned. This keeps previous behavior.
+				shipping_pending: false,
 			};
 
 			$.ajax( {
