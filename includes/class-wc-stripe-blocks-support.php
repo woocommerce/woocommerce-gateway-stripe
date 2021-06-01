@@ -81,15 +81,11 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array
 	 */
 	public function get_payment_method_data() {
-		$configuration = array_merge(
-			apply_filters(
-				'wc_stripe_params',
-				[]
-			),
-			apply_filters(
-				'wc_stripe_payment_request_params',
-				[]
-			),
+		// We need to call array_merge_recursive so the blocks 'button' setting doesn't overwrite
+		// what's provided from the gateway or payment request configuration.
+		return array_merge_recursive(
+			$this->get_gateway_javascript_configuration(),
+			$this->get_payment_request_javascript_configuration(),
 			// Blocks-specific options
 			[
 				'title'          => $this->get_title(),
@@ -98,15 +94,43 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				'showSavedCards' => $this->get_show_saved_cards(),
 				'showSaveOption' => $this->get_show_save_option(),
 				'isAdmin'        => is_admin(),
+				'button'         => [
+					'customLabel' => $this->get_custom_payment_request_button_label(),
+				],
 			]
 		);
+	}
 
-		// Blocks-specific option that's nested in pre-existing Payment Request Button
-		// configuration, so we have to assign it like this to avoid overriding the rest of the
-		// 'button' configuration when merging the arrays.
-		$configuration['button']['customLabel'] = $this->get_custom_payment_request_button_label();
+	/**
+	 * Returns the Stripe Payment Gateway JavaScript configuration object.
+	 *
+	 * @return array  the JS configuration from the Stripe Payment Gateway.
+	 */
+	private function get_gateway_javascript_configuration() {
+		$js_configuration = [];
 
-		return $configuration;
+		$gateways = WC()->payment_gateways->get_available_payment_gateways();
+		if ( isset( $gateways['stripe'] ) ) {
+			$js_configuration = $gateways['stripe']->javascript_configuration();
+		}
+
+		return apply_filters(
+			'wc_stripe_params',
+			$js_configuration
+		);
+	}
+
+	/**
+	 * Returns the Stripe Payment Request JavaScript configuration object.
+	 *
+	 * @return array  the JS configuration for Stripe Payment Requests.
+	 */
+	private function get_payment_request_javascript_configuration() {
+		$pr = new WC_Stripe_Payment_Request();
+		return apply_filters(
+			'wc_stripe_payment_request_params',
+			$pr->javascript_configuration()
+		);
 	}
 
 	/**
