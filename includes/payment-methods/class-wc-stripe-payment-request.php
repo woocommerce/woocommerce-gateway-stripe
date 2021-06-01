@@ -578,40 +578,12 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Load public scripts and styles.
+	 * Returns the JavaScript configuration object used for any pages with a payment request button.
 	 *
-	 * @since   3.1.0
-	 * @version 5.2.0
+	 * @return array  The settings used for the payment request button in JavaScript.
 	 */
-	public function scripts() {
-		// If keys are not set bail.
-		if ( ! $this->are_keys_set() ) {
-			WC_Stripe_Logger::log( 'Keys are not set correctly.' );
-			return;
-		}
-
-		// If no SSL bail.
-		if ( ! $this->testmode && ! is_ssl() ) {
-			WC_Stripe_Logger::log( 'Stripe Payment Request live mode requires SSL.' );
-			return;
-		}
-
-		// If page is not supported, bail.
-		if ( ! $this->is_product() && ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) {
-			return;
-		} elseif ( WC_Stripe_Helper::has_cart_or_checkout_block_on_current_page() ) {
-			return;
-		}
-
-		if ( $this->is_product() && ! $this->should_show_payment_button_on_product_page() ) {
-			return;
-		} elseif ( ! $this->should_show_payment_button_on_cart() ) {
-			return;
-		}
-
-		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
-
-		$stripe_params = [
+	public function javascript_configuration() {
+		return [
 			'ajax_url'        => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'          => [
 				'key'                => $this->publishable_key,
@@ -653,11 +625,53 @@ class WC_Stripe_Payment_Request {
 			'is_product_page' => $this->is_product(),
 			'product'         => $this->get_product_data(),
 		];
+	}
+
+	/**
+	 * Load public scripts and styles.
+	 *
+	 * @since   3.1.0
+	 * @version 5.2.0
+	 */
+	public function scripts() {
+		// If keys are not set bail.
+		if ( ! $this->are_keys_set() ) {
+			WC_Stripe_Logger::log( 'Keys are not set correctly.' );
+			return;
+		}
+
+		// If no SSL bail.
+		if ( ! $this->testmode && ! is_ssl() ) {
+			WC_Stripe_Logger::log( 'Stripe Payment Request live mode requires SSL.' );
+			return;
+		}
+
+		// If page is not supported, bail.
+		if ( ! $this->is_product() && ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) {
+			return;
+		} elseif ( WC_Stripe_Helper::has_cart_or_checkout_block_on_current_page() ) {
+			return;
+		}
+
+		if ( $this->is_product() && ! $this->should_show_payment_button_on_product_page() ) {
+			return;
+		} elseif ( ! $this->should_show_payment_button_on_cart() ) {
+			return;
+		}
+
+		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
 		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
 		wp_register_script( 'wc_stripe_payment_request', plugins_url( 'assets/js/stripe-payment-request' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [ 'jquery', 'stripe' ], WC_STRIPE_VERSION, true );
 
-		wp_localize_script( 'wc_stripe_payment_request', 'wc_stripe_payment_request_params', apply_filters( 'wc_stripe_payment_request_params', $stripe_params ) );
+		wp_localize_script(
+			'wc_stripe_payment_request',
+			'wc_stripe_payment_request_params',
+			apply_filters(
+				'wc_stripe_payment_request_params',
+				$this->javascript_configuration()
+			)
+		);
 
 		wp_enqueue_script( 'wc_stripe_payment_request' );
 
