@@ -211,92 +211,78 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Gets the button type.
 	 *
-	 * @param array $gateway_settings The Payment Gateway settings array.
-	 *
 	 * @since   4.0.0
-	 * @version 5.2.1
+	 * @version 4.0.0
 	 * @return  string
 	 */
-	public static function get_button_type( $gateway_settings ) {
-		return isset( $gateway_settings['payment_request_button_type'] ) ? $gateway_settings['payment_request_button_type'] : 'default';
+	public function get_button_type() {
+		return isset( $this->stripe_settings['payment_request_button_type'] ) ? $this->stripe_settings['payment_request_button_type'] : 'default';
 	}
 
 	/**
 	 * Gets the button theme.
 	 *
-	 * @param array $gateway_settings The Payment Gateway settings array.
-	 *
 	 * @since   4.0.0
-	 * @version 5.2.1
+	 * @version 4.0.0
 	 * @return  string
 	 */
-	public static function get_button_theme( $gateway_settings ) {
-		return isset( $gateway_settings['payment_request_button_theme'] ) ? $gateway_settings['payment_request_button_theme'] : 'dark';
+	public function get_button_theme() {
+		return isset( $this->stripe_settings['payment_request_button_theme'] ) ? $this->stripe_settings['payment_request_button_theme'] : 'dark';
 	}
 
 	/**
 	 * Gets the button height.
 	 *
-	 * @param array $gateway_settings The Payment Gateway settings array.
-	 *
 	 * @since   4.0.0
-	 * @version 5.2.1
+	 * @version 4.0.0
 	 * @return  string
 	 */
-	public static function get_button_height( $gateway_settings ) {
-		return isset( $gateway_settings['payment_request_button_height'] ) ? str_replace( 'px', '', $gateway_settings['payment_request_button_height'] ) : '64';
+	public function get_button_height() {
+		return isset( $this->stripe_settings['payment_request_button_height'] ) ? str_replace( 'px', '', $this->stripe_settings['payment_request_button_height'] ) : '64';
 	}
 
 	/**
 	 * Checks if the button is branded.
 	 *
-	 * @param array $gateway_settings The Payment Gateway settings array.
-	 *
 	 * @since   4.4.0
-	 * @version 5.2.1
+	 * @version 4.4.0
 	 * @return  boolean
 	 */
-	public static function is_branded_button( $gateway_settings ) {
-		return 'branded' === self::get_button_type( $gateway_settings );
+	public function is_branded_button() {
+		return 'branded' === $this->get_button_type();
 	}
 
 	/**
 	 * Gets the branded button type.
 	 *
-	 * @param array $gateway_settings The Payment Gateway settings array.
-	 *
 	 * @since   4.4.0
-	 * @version 5.2.1
+	 * @version 4.4.0
 	 * @return  string
 	 */
-	public static function get_button_branded_type( $gateway_settings ) {
-		return isset( $gateway_settings['payment_request_button_branded_type'] ) ? $gateway_settings['payment_request_button_branded_type'] : 'default';
+	public function get_button_branded_type() {
+		return isset( $this->stripe_settings['payment_request_button_branded_type'] ) ? $this->stripe_settings['payment_request_button_branded_type'] : 'default';
 	}
 
 	/**
 	 * Checks if the button is custom.
 	 *
-	 * @param array $gateway_settings The Payment Gateway settings array.
-	 *
 	 * @since   4.4.0
-	 * @version 5.2.1
+	 * @version 4.4.0
 	 * @return  boolean
 	 */
-	public static function is_custom_button( $gateway_settings ) {
-		return 'custom' === self::get_button_type( $gateway_settings );
+	public function is_custom_button() {
+		return 'custom' === $this->get_button_type();
 	}
 
 	/**
 	 * Returns custom button css selector.
 	 *
-	 * @param array $gateway_settings The Payment Gateway settings array.
-	 *
 	 * @since   4.4.0
 	 * @version 4.4.0
 	 * @return  string
 	 */
-	public static function custom_button_selector( $gateway_settings ) {
-		return self::is_custom_button( $gateway_settings ) ? '#wc-stripe-custom-button' : '';
+	public function custom_button_selector() {
+		return $this->is_custom_button() ? '#wc-stripe-custom-button' : '';
 	}
 
 	/**
@@ -592,66 +578,6 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Returns the JavaScript configuration object used for any pages with a payment request button.
-	 *
-	 * @param array $gateway_settings The Payment Gateway settings array.
-	 * @param bool $is_product_page Indicates whether the current page is a product's page.
-	 * @param WC_Product|bool $product A WC_Product if on a product page, false otherwise.
-	 *
-	 * @return array  The settings used for the payment request button in JavaScript.
-	 */
-	public static function javascript_configuration( $gateway_settings, $is_product_page = false, $product = false ) {
-		$testmode        = ( ! empty( $gateway_settings['testmode'] ) && 'yes' === $gateway_settings['testmode'] ) ? true : false;
-		$publishable_key = ! empty( $gateway_settings['publishable_key'] ) ? $gateway_settings['publishable_key'] : '';
-		if ( $testmode ) {
-			$publishable_key = ! empty( $gateway_settings['test_publishable_key'] ) ? $gateway_settings['test_publishable_key'] : '';
-		}
-
-		return [
-			'ajax_url'        => WC_AJAX::get_endpoint( '%%endpoint%%' ),
-			'stripe'          => [
-				'key'                => $publishable_key,
-				'allow_prepaid_card' => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
-			],
-			'nonce'           => [
-				'payment'                   => wp_create_nonce( 'wc-stripe-payment-request' ),
-				'shipping'                  => wp_create_nonce( 'wc-stripe-payment-request-shipping' ),
-				'update_shipping'           => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
-				'checkout'                  => wp_create_nonce( 'woocommerce-process_checkout' ),
-				'add_to_cart'               => wp_create_nonce( 'wc-stripe-add-to-cart' ),
-				'get_selected_product_data' => wp_create_nonce( 'wc-stripe-get-selected-product-data' ),
-				'log_errors'                => wp_create_nonce( 'wc-stripe-log-errors' ),
-				'clear_cart'                => wp_create_nonce( 'wc-stripe-clear-cart' ),
-			],
-			'i18n'            => [
-				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
-				/* translators: Do not translate the [option] placeholder */
-				'unknown_shipping' => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' ),
-			],
-			'checkout'        => [
-				'url'               => wc_get_checkout_url(),
-				'currency_code'     => strtolower( get_woocommerce_currency() ),
-				'country_code'      => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
-				'needs_shipping'    => WC()->cart->needs_shipping() ? 'yes' : 'no',
-				// Defaults to 'required' to match how core initializes this option.
-				'needs_payer_phone' => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
-			],
-			'button'          => [
-				'type'         => self::get_button_type( $gateway_settings ),
-				'theme'        => self::get_button_theme( $gateway_settings ),
-				'height'       => self::get_button_height( $gateway_settings ),
-				'locale'       => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ), // Default format is en_US.
-				'is_custom'    => self::is_custom_button( $gateway_settings ),
-				'is_branded'   => self::is_branded_button( $gateway_settings ),
-				'css_selector' => self::custom_button_selector( $gateway_settings ),
-				'branded_type' => self::get_button_branded_type( $gateway_settings ),
-			],
-			'is_product_page' => $is_product_page,
-			'product'         => $product,
-		];
-	}
-
-	/**
 	 * Load public scripts and styles.
 	 *
 	 * @since   3.1.0
@@ -685,19 +611,53 @@ class WC_Stripe_Payment_Request {
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
+		$stripe_params = [
+			'ajax_url'        => WC_AJAX::get_endpoint( '%%endpoint%%' ),
+			'stripe'          => [
+				'key'                => $this->publishable_key,
+				'allow_prepaid_card' => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
+			],
+			'nonce'           => [
+				'payment'                   => wp_create_nonce( 'wc-stripe-payment-request' ),
+				'shipping'                  => wp_create_nonce( 'wc-stripe-payment-request-shipping' ),
+				'update_shipping'           => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
+				'checkout'                  => wp_create_nonce( 'woocommerce-process_checkout' ),
+				'add_to_cart'               => wp_create_nonce( 'wc-stripe-add-to-cart' ),
+				'get_selected_product_data' => wp_create_nonce( 'wc-stripe-get-selected-product-data' ),
+				'log_errors'                => wp_create_nonce( 'wc-stripe-log-errors' ),
+				'clear_cart'                => wp_create_nonce( 'wc-stripe-clear-cart' ),
+			],
+			'i18n'            => [
+				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
+				/* translators: Do not translate the [option] placeholder */
+				'unknown_shipping' => __( 'Unknown shipping option "[option]".', 'woocommerce-gateway-stripe' ),
+			],
+			'checkout'        => [
+				'url'               => wc_get_checkout_url(),
+				'currency_code'     => strtolower( get_woocommerce_currency() ),
+				'country_code'      => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
+				'needs_shipping'    => WC()->cart->needs_shipping() ? 'yes' : 'no',
+				// Defaults to 'required' to match how core initializes this option.
+				'needs_payer_phone' => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
+			],
+			'button'          => [
+				'type'         => $this->get_button_type(),
+				'theme'        => $this->get_button_theme(),
+				'height'       => $this->get_button_height(),
+				'locale'       => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ), // Default format is en_US.
+				'is_custom'    => $this->is_custom_button(),
+				'is_branded'   => $this->is_branded_button(),
+				'css_selector' => $this->custom_button_selector(),
+				'branded_type' => $this->get_button_branded_type(),
+			],
+			'is_product_page' => $this->is_product(),
+			'product'         => $this->get_product_data(),
+		];
+
 		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
 		wp_register_script( 'wc_stripe_payment_request', plugins_url( 'assets/js/stripe-payment-request' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [ 'jquery', 'stripe' ], WC_STRIPE_VERSION, true );
 
-		$stripe_params = self::javascript_configuration(
-			$this->stripe_settings,
-			$this->is_product(),
-			$this->get_product_data()
-		);
-		wp_localize_script(
-			'wc_stripe_payment_request',
-			'wc_stripe_payment_request_params',
-			apply_filters( 'wc_stripe_payment_request_params', $stripe_params )
-		);
+		wp_localize_script( 'wc_stripe_payment_request', 'wc_stripe_payment_request_params', apply_filters( 'wc_stripe_payment_request_params', $stripe_params ) );
 
 		wp_enqueue_script( 'wc_stripe_payment_request' );
 
@@ -733,10 +693,10 @@ class WC_Stripe_Payment_Request {
 		<div id="wc-stripe-payment-request-wrapper" style="clear:both;padding-top:1.5em;display:none;">
 			<div id="wc-stripe-payment-request-button">
 				<?php
-				if ( self::is_custom_button( $this->stripe_settings ) ) {
+				if ( $this->is_custom_button() ) {
 					$label      = esc_html( $this->get_button_label() );
-					$class_name = esc_attr( 'button ' . self::get_button_theme( $this->stripe_settings ) );
-					$style      = esc_attr( 'height:' . self::get_button_height( $this->stripe_settings ) . 'px;' );
+					$class_name = esc_attr( 'button ' . $this->get_button_theme() );
+					$style      = esc_attr( 'height:' . $this->get_button_height() . 'px;' );
 					echo "<button id=\"wc-stripe-custom-button\" class=\"$class_name\" style=\"$style\"> $label </button>";
 				}
 				?>
