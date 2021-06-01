@@ -150,7 +150,7 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 		$flat_rate              = $this->get_shipping_option( $this->flat_rate_id );
 		$expected_display_items = [
 			[
-				'label' => 'Dummy Product',
+				'label'  => 'Dummy Product',
 				'amount' => 1000,
 			],
 			[

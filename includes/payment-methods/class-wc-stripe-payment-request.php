@@ -1452,18 +1452,18 @@ class WC_Stripe_Payment_Request {
 		$data['country_code'] = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
 
 		// Taxes
-		$taxes            = WC()->cart->tax_total + WC()->cart->shipping_tax_total;
+		$tax              = WC()->cart->tax_total + WC()->cart->shipping_tax_total;
 		$tax_to_substract = 0;
 
 		if ( wc_tax_enabled() ) {
 			if ( $shipping_pending ) {
-				$tax_to_substract = $taxes;
+				$tax_to_substract = $tax;
 				$tax              = 0;
 			}
 		}
 
 		// Shipping
-		$shipping           = wc_format_decimal( WC()->cart->get_shipping_total(), WC()->cart->dp );
+		$shipping              = wc_format_decimal( WC()->cart->get_shipping_total(), WC()->cart->dp );
 		$shipping_to_substract = 0;
 
 		if ( wc_shipping_enabled() && WC()->cart->needs_shipping() ) {
@@ -1471,7 +1471,7 @@ class WC_Stripe_Payment_Request {
 
 			if ( $shipping_pending ) {
 				$shipping_to_substract = $shipping;
-				$shipping           = 0;
+				$shipping              = 0;
 
 				$data['shippingOptions'] = [
 					'id'     => 'pending',
