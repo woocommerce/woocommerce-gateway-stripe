@@ -20,7 +20,7 @@ We're unable to use the framework provided by WooCommerce Blocks during checkout
 More specifically:
 
 -   We have to manually make the UI react to user input, and it's simply impossible for us to make that happen some parts of the blocks.
-    -   This refers to things like blocking the UI during the payment process, starting and stopping loading indicators, and general UX improvements in that vein.
+    -   This refers to current and future improvements to the UX; things like blocking the UI during the payment process, starting and stopping loading indicators, and general improvements in that vein.
 -   The checkout process requires many more network requests, slowing the checkout process down a significant amount.
 -   Some errors returned from our AJAX API are HTML notices. That HTML is not displayed correctly when the error is shown in the Cart or Checkout blocks.
 
