@@ -36,4 +36,4 @@ There are several benefits to using our pre-existing AJAX APIs:
     -   The WooCommerce Blocks API has been improved significantly since we started developing this integration, so this is no longer as big of a deal as it was.
 -   We get more direct control over how the Payment Request flow is managed.
 
-Another factor in this decision was that during development some parts of the WooCommerce Blocks API were unable to properly handle the required flow for the Payment Request Buttons properly, especially when it came to 3DS payments. This has since been fixed, and anyone else should consider using the WooCommerce Blocks APIs.
+Another factor in this decision was that, during development, some parts of the WooCommerce Blocks API were unable to properly handle the required flow for the Payment Request Buttons, especially when it came to 3DS payments. This has since been fixed, and anyone else should consider using the WooCommerce Blocks APIs.
