@@ -1313,11 +1313,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Get the oAuth connection URL.
+	 * Get the connection URL.
 	 *
 	 * @return string Connection URL.
 	 */
-	public function get_oauth_connection_url( $return_url = '' ) {
+	public function get_connection_url( $return_url = '' ) {
 		$api     = new WC_Stripe_Connect_API();
 		$connect = new WC_Stripe_Connect( $api );
 
