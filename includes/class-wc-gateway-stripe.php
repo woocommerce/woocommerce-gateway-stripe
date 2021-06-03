@@ -440,19 +440,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public function payment_scripts() {
 		if (
 			! is_product()
-			&& ! is_cart()
-			&& ! is_checkout()
+			&& ! WC_Stripe_Helper::has_cart_or_checkout_shortcode_on_current_page()
 			&& ! isset( $_GET['pay_for_order'] ) // wpcs: csrf ok.
 			&& ! is_add_payment_method_page()
 			&& ! isset( $_GET['change_payment_method'] ) // wpcs: csrf ok.
 			&& ! ( ! empty( get_query_var( 'view-subscription' ) ) && is_callable( 'WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled' ) && WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled() )
 			|| ( is_order_received_page() )
 		) {
-			return;
-		}
-
-		// If we're loading the cart or checkout block the scripts here should not be loaded.
-		if ( WC_Stripe_Helper::has_cart_or_checkout_block_on_current_page() ) {
 			return;
 		}
 
