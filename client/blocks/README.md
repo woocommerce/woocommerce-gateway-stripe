@@ -10,6 +10,7 @@ This file is meant to document why we chose to forego the Blocks API at the time
 
 -   3DS payments didn't work with saved cards and Payment Requests because some scripts weren't loaded in those contexts.
 -   The Payment Request Dialog [didn't close during 3DS validation](https://github.com/woocommerce/woocommerce-gateway-stripe/pull/1467#discussion_r623877272).
+-   State and zip code normalisation [didn't work](https://github.com/woocommerce/woocommerce-gateway-stripe/issues/1518) because we were missing some crucial normalisation functionality.
 
 Both of these have since been addressed in WooCommerce Blocks.
 
@@ -31,6 +32,8 @@ There are several benefits to using our pre-existing AJAX APIs:
 -   Backwards compatibility with older version of WooCommerce Blocks that were lacking support for crucial features related to Payment Requests.
     -   This is no longer true as of WooCommerce Blocks v3.0.0.
 -   Code re-use; we already have well tested code in the AJAX API that's quite complicated to test, e.g. numerous normalisation functions.
+    -   A good example of this is how we can use the same normalisation functions for the Shortcode and Block-based code.
+    -   Another example is consistency in the UI; by using the AJAX API we use the same payment request information for Payment Requests started from the Blocks integration and the Shortcode flow.
     -   Another aspect to this point is that the Shortcode flow in `assets/js` is currently not built in the same system as the blocks integration; to maximise code re-use between the Shortcode and Block-based checkout we'd have to make some changes to the Shortcode checkout, making the changes required that much bigger.
 -   We don't need to re-implement the payment flow using the Blocks API.
     -   The WooCommerce Blocks API has been improved significantly since we started developing this integration, so this is no longer as big of a deal as it was.
