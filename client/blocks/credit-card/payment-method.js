@@ -18,7 +18,7 @@ import { InlineCard, CardElements } from './elements';
  */
 
 export const getStripeCreditCardIcons = () => {
-	return Object.entries( getStripeServerData().icons ).map(
+	return Object.entries( getStripeServerData()?.icons ).map(
 		( [ id, { src, alt } ] ) => {
 			return {
 				id,
@@ -60,7 +60,7 @@ const CreditCardComponent = ( {
 	const cardIcons = getStripeCreditCardIcons();
 
 	const renderedCardElement =
-		getStripeServerData().inline_cc_form === 'yes' ? (
+		getStripeServerData()?.inline_cc_form === 'yes' ? (
 			<InlineCard
 				onChange={ onChange }
 				inputErrorComponent={ ValidationInputError }
