@@ -588,7 +588,6 @@ jQuery( function( $ ) {
 				wc_stripe_payment_request.addToCart().then(function (response) {
 					if ( response.error ) {
 						window.alert( response.error );
-						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
 						return;
 					}
 
