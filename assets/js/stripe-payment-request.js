@@ -569,8 +569,6 @@ jQuery( function( $ ) {
 		},
 
 		attachProductPageEventListeners: function( prButton, paymentRequest ) {
-			var paymentRequestError = [];
-
 			prButton.on( 'click', function ( evt ) {
 				evt.preventDefault(); // Prevent showing payment request modal.
 
@@ -584,12 +582,6 @@ jQuery( function( $ ) {
 					} else if ( addToCartButton.is( '.wc-variation-selection-needed' ) ) {
 						window.alert( wc_add_to_cart_variation_params.i18n_make_a_selection_text );
 					}
-					return;
-				}
-
-				if ( 0 < paymentRequestError.length ) {
-					window.alert( paymentRequestError );
-					$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
 					return;
 				}
 
