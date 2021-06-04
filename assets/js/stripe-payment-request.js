@@ -585,20 +585,20 @@ jQuery( function( $ ) {
 					return;
 				}
 
-				wc_stripe_payment_request.addToCart().then(function (response) {
+				wc_stripe_payment_request.addToCart().then( function( response ) {
 					if ( response.error ) {
 						window.alert( response.error );
 						return;
 					}
 
-					paymentRequest.update({
+					paymentRequest.update( {
 						total: response.total,
 						displayItems: response.displayItems,
-					});
+					} );
 					paymentRequest.show();
-				}).always(function() {
+				} ).always( function() {
 					$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-				});
+				} );
 			});
 
 			$( document.body ).on( 'wc_stripe_unblock_payment_request_button wc_stripe_enable_payment_request_button', function () {
