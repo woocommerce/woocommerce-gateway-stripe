@@ -539,6 +539,13 @@ class WC_Stripe_Payment_Request {
 			}
 		}
 
+		// We don't support multiple packages with Payment Request Buttons because we can't offer
+		// a good UX.
+		$packages = WC()->cart->get_shipping_packages();
+		if ( 1 < count( $packages ) ) {
+			return false;
+		}
+
 		return true;
 	}
 
@@ -760,7 +767,7 @@ class WC_Stripe_Payment_Request {
 	 * @since  4.4.1
 	 * @return boolean
 	 */
-	private function should_show_payment_button_on_cart() {
+	public function should_show_payment_button_on_cart() {
 		// Not supported when user isn't authenticated and authentication is required.
 		if ( ! is_user_logged_in() && $this->is_authentication_required() ) {
 			return false;

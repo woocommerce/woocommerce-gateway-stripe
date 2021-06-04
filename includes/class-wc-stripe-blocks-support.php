@@ -100,15 +100,16 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			$this->get_payment_request_javascript_params(),
 			// Blocks-specific options
 			[
-				'title'          => $this->get_title(),
-				'icons'          => $this->get_icons(),
-				'supports'       => $this->get_supported_features(),
-				'showSavedCards' => $this->get_show_saved_cards(),
-				'showSaveOption' => $this->get_show_save_option(),
-				'isAdmin'        => is_admin(),
-				'button'         => [
+				'title'                          => $this->get_title(),
+				'icons'                          => $this->get_icons(),
+				'supports'                       => $this->get_supported_features(),
+				'showSavedCards'                 => $this->get_show_saved_cards(),
+				'showSaveOption'                 => $this->get_show_save_option(),
+				'isAdmin'                        => is_admin(),
+				'button'                         => [
 					'customLabel' => $this->payment_request_configuration->get_button_label(),
 				],
+				'shouldShowPaymentRequestButton' => $this->payment_request_configuration->should_show_payment_button_on_cart(),
 			]
 		);
 	}
