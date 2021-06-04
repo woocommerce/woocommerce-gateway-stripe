@@ -10,9 +10,10 @@ This file is meant to document why we chose to forego the Blocks API at the time
 
 -   3DS payments didn't work with saved cards and Payment Requests because some scripts weren't loaded in those contexts.
 -   The Payment Request Dialog [didn't close during 3DS validation](https://github.com/woocommerce/woocommerce-gateway-stripe/pull/1467#discussion_r623877272).
--   State and zip code normalization [didn't work](https://github.com/woocommerce/woocommerce-gateway-stripe/issues/1518) because we were missing some crucial normalization functionality.
 
 Both of these have since been addressed in WooCommerce Blocks.
+
+We also encountered an issue where state and zip code normalization [didn't work](https://github.com/woocommerce/woocommerce-gateway-stripe/issues/1518) because we were missing some crucial normalization functionality.
 
 ## The Downsides of Using the AJAX API
 
