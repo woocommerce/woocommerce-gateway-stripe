@@ -1116,7 +1116,6 @@ class WC_Stripe_Payment_Request {
 				throw new Exception( sprintf( __( 'You cannot add that amount of "%1$s"; to the cart because there is not enough stock (%2$s remaining).', 'woocommerce-gateway-stripe' ), $product->get_name(), wc_format_stock_quantity_for_display( $product->get_stock_quantity(), $product ) ) );
 			}
 
-			// Do we need to do this before emptying the cart?
 			WC()->shipping->reset_shipping();
 
 			// First empty the cart to prevent wrong calculation.
