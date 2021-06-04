@@ -1476,7 +1476,7 @@ class WC_Stripe_Payment_Request {
 		$shipping_to_substract = 0;
 
 		if ( wc_shipping_enabled() && WC()->cart->needs_shipping() ) {
-			$data['requestShipping'] = ( wc_shipping_enabled() && WC()->cart->needs_shipping() );
+			$data['requestShipping'] = true;
 
 			if ( $shipping_pending ) {
 				$shipping_to_substract = $shipping;
