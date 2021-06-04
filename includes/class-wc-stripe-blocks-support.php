@@ -96,8 +96,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		// We need to call array_merge_recursive so the blocks 'button' setting doesn't overwrite
 		// what's provided from the gateway or payment request configuration.
 		return array_merge_recursive(
-			$this->get_gateway_javascript_configuration(),
-			$this->get_payment_request_javascript_configuration(),
+			$this->get_gateway_javascript_params(),
+			$this->get_payment_request_javascript_params(),
 			// Blocks-specific options
 			[
 				'title'          => $this->get_title(),
@@ -118,12 +118,12 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 *
 	 * @return array  the JS configuration from the Stripe Payment Gateway.
 	 */
-	private function get_gateway_javascript_configuration() {
+	private function get_gateway_javascript_params() {
 		$js_configuration = [];
 
 		$gateways = WC()->payment_gateways->get_available_payment_gateways();
 		if ( isset( $gateways['stripe'] ) ) {
-			$js_configuration = $gateways['stripe']->javascript_configuration();
+			$js_configuration = $gateways['stripe']->javascript_params();
 		}
 
 		return apply_filters(
@@ -137,10 +137,10 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 *
 	 * @return array  the JS configuration for Stripe Payment Requests.
 	 */
-	private function get_payment_request_javascript_configuration() {
+	private function get_payment_request_javascript_params() {
 		return apply_filters(
 			'wc_stripe_payment_request_params',
-			$this->payment_request_configuration->javascript_configuration()
+			$this->payment_request_configuration->javascript_params()
 		);
 	}
 

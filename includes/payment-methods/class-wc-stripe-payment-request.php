@@ -582,7 +582,7 @@ class WC_Stripe_Payment_Request {
 	 *
 	 * @return array  The settings used for the payment request button in JavaScript.
 	 */
-	public function javascript_configuration() {
+	public function javascript_params() {
 		return [
 			'ajax_url'        => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'          => [
@@ -671,7 +671,7 @@ class WC_Stripe_Payment_Request {
 			'wc_stripe_payment_request_params',
 			apply_filters(
 				'wc_stripe_payment_request_params',
-				$this->javascript_configuration()
+				$this->javascript_params()
 			)
 		);
 

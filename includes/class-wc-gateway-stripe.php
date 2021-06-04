@@ -365,7 +365,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return array  The configuration object to be loaded to JS.
 	 */
-	public function javascript_configuration() {
+	public function javascript_params() {
 		global $wp;
 
 		$stripe_params = [
@@ -478,7 +478,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		wp_localize_script(
 			'woocommerce_stripe',
 			'wc_stripe_params',
-			apply_filters( 'wc_stripe_params', $this->javascript_configuration() )
+			apply_filters( 'wc_stripe_params', $this->javascript_params() )
 		);
 
 		$this->tokenization_script();
