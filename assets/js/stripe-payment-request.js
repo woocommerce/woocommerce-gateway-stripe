@@ -315,19 +315,6 @@ jQuery( function( $ ) {
 			} );
 		},
 
-		clearCart: function() {
-			var data = {
-					'security': wc_stripe_payment_request_params.nonce.clear_cart
-				};
-
-			return $.ajax( {
-				type:    'POST',
-				data:    data,
-				url:     wc_stripe_payment_request.getAjaxURL( 'clear_cart' ),
-				success: function( response ) {}
-			} );
-		},
-
 		getRequestOptionsFromLocal: function() {
 			return {
 				total: wc_stripe_payment_request_params.product.total,

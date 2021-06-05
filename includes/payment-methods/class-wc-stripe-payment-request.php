@@ -201,7 +201,6 @@ class WC_Stripe_Payment_Request {
 		add_action( 'wc_ajax_wc_stripe_create_order', [ $this, 'ajax_create_order' ] );
 		add_action( 'wc_ajax_wc_stripe_add_to_cart', [ $this, 'ajax_add_to_cart' ] );
 		add_action( 'wc_ajax_wc_stripe_get_selected_product_data', [ $this, 'ajax_get_selected_product_data' ] );
-		add_action( 'wc_ajax_wc_stripe_clear_cart', [ $this, 'ajax_clear_cart' ] );
 		add_action( 'wc_ajax_wc_stripe_log_errors', [ $this, 'ajax_log_errors' ] );
 
 		add_filter( 'woocommerce_gateway_title', [ $this, 'filter_gateway_title' ], 10, 2 );
@@ -632,7 +631,6 @@ class WC_Stripe_Payment_Request {
 				'add_to_cart'               => wp_create_nonce( 'wc-stripe-add-to-cart' ),
 				'get_selected_product_data' => wp_create_nonce( 'wc-stripe-get-selected-product-data' ),
 				'log_errors'                => wp_create_nonce( 'wc-stripe-log-errors' ),
-				'clear_cart'                => wp_create_nonce( 'wc-stripe-clear-cart' ),
 			],
 			'i18n'            => [
 				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
@@ -834,19 +832,6 @@ class WC_Stripe_Payment_Request {
 
 		WC_Stripe_Logger::log( $errors );
 
-		exit;
-	}
-
-	/**
-	 * Clears cart.
-	 *
-	 * @since   3.1.4
-	 * @version 4.0.0
-	 */
-	public function ajax_clear_cart() {
-		check_ajax_referer( 'wc-stripe-clear-cart', 'security' );
-
-		WC()->cart->empty_cart();
 		exit;
 	}
 
