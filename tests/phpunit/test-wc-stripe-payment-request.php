@@ -154,8 +154,8 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 				'amount' => 1000,
 			],
 			[
-				'label'  => 'Shipping',
-				'amount' => $flat_rate['amount'],
+				'label'   => 'Shipping',
+				'amount'  => $flat_rate['amount'],
 				'pending' => true,
 			],
 		];

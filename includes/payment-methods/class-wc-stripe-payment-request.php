@@ -1048,13 +1048,12 @@ class WC_Stripe_Payment_Request {
 
 			$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 			$product    = wc_get_product( $product_id );
+			$qty        = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
 
 			if ( ! is_a( $product, 'WC_Product' ) ) {
 				/* translators: %d is the product Id */
 				throw new Exception( sprintf( __( 'Product with the ID (%d) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
 			}
-
-			$qty = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
 
 			if ( ! $product->has_enough_stock( $qty ) ) {
 				/* translators: 1: product name 2: quantity in stock */
