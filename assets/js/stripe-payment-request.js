@@ -12,12 +12,12 @@ jQuery( function( $ ) {
 	 */
 	var wc_stripe_payment_request = {
 		/**
-		 * Indicates if the user has not picked or entered a shipping address on the payment dialog yet.
+		 * Indicates if the user has picked or entered a shipping address on the payment dialog.
 		 *
 		 * @since 5.3.0
 		 * @type {boolean}
 		 */
-		shippingPending: true,
+		hasShippingAddress: false,
 
 		/**
 		 * Get WC AJAX endpoint URL.
@@ -34,8 +34,6 @@ jQuery( function( $ ) {
 		getCartDetails: function() {
 			var data = {
 				security: wc_stripe_payment_request_params.nonce.payment,
-				// In the cart page a shipping amount is always returned. This keeps previous behavior.
-				shipping_pending: false,
 			};
 
 			$.ajax( {
@@ -229,7 +227,7 @@ jQuery( function( $ ) {
 		 * @param {Object}         details Payment details.
 		 * @param {PaymentAddress} address Shipping address.
 		 */
-		updateShippingOptions: function( details, address ) {
+		updateShippingOptions: function( address ) {
 			var data = {
 				security:  wc_stripe_payment_request_params.nonce.shipping,
 				country:   address.country,
@@ -240,7 +238,6 @@ jQuery( function( $ ) {
 				address_2: typeof address.addressLine[1] === 'undefined' ? '' : address.addressLine[1],
 				payment_request_type: paymentRequestType,
 				is_product_page: wc_stripe_payment_request_params.is_product_page,
-				shipping_pending: wc_stripe_payment_request.shippingPending,
 			};
 
 			return $.ajax( {
@@ -288,7 +285,7 @@ jQuery( function( $ ) {
 				product_id: product_id,
 				qty: $( '.quantity .qty' ).val(),
 				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : [],
-				shipping_pending: wc_stripe_payment_request.shippingPending,
+				has_shipping_address: wc_stripe_payment_request.hasShippingAddress,
 			};
 
 			// add addons data to the POST body
@@ -343,14 +340,14 @@ jQuery( function( $ ) {
 				paymentDetails = options;
 			} else {
 				options = {
-					total: cart.order_data.total,
-					currency: cart.order_data.currency,
-					country: cart.order_data.country_code,
+					total: cart.total,
+					currency: cart.currency,
+					country: cart.country_code,
 					requestPayerName: true,
 					requestPayerEmail: true,
 					requestPayerPhone: cart.needs_payer_phone,
-					requestShipping: cart.order_data.requestShipping,
-					displayItems: cart.order_data.displayItems
+					requestShipping: cart.requestShipping,
+					displayItems: cart.displayItems
 				};
 
 				paymentDetails = cart.order_data;
@@ -381,9 +378,9 @@ jQuery( function( $ ) {
 
 				// Possible statuses success, fail, invalid_payer_name, invalid_payer_email, invalid_payer_phone, invalid_shipping_address.
 				paymentRequest.on( 'shippingaddresschange', function( evt ) {
-					wc_stripe_payment_request.shippingPending = false;
+					wc_stripe_payment_request.hasShippingAddress = true;
 
-					$.when( wc_stripe_payment_request.updateShippingOptions( paymentDetails, evt.shippingAddress ) ).then( function( response ) {
+					$.when( wc_stripe_payment_request.updateShippingOptions( evt.shippingAddress ) ).then( function( response ) {
 						evt.updateWith( { status: response.result, shippingOptions: response.shipping_options, total: response.total, displayItems: response.displayItems } );
 					} );
 				} );

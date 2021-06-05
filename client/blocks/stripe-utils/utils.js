@@ -57,14 +57,14 @@ const getApiKey = () => {
  */
 export const createPaymentRequestUsingCart = ( stripe, cart ) => {
 	const options = {
-		total: cart.order_data.total,
-		currency: cart.order_data.currency,
-		country: cart.order_data.country_code,
+		total: cart.total,
+		currency: cart.currency,
+		country: cart.country_code,
 		requestPayerName: true,
 		requestPayerEmail: true,
 		requestPayerPhone: cart.needs_payer_phone,
-		requestShipping: cart.order_data.requestShipping,
-		displayItems: cart.order_data.displayItems,
+		requestShipping: cart.requestShipping,
+		displayItems: cart.displayItems,
 	};
 
 	// Puerto Rico (PR) is the only US territory/possession that's supported by Stripe.
