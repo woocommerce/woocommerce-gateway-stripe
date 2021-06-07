@@ -30,6 +30,10 @@ const paymentRequestPaymentMethod = {
 			return true;
 		}
 
+		if ( ! getStripeServerData()?.shouldShowPaymentRequestButton ) {
+			return false;
+		}
+
 		return loadStripe().then( ( stripe ) => {
 			// Create a payment request and check if we can make a payment to determine whether to
 			// show the Payment Request Button or not. This is necessary because a browser might be
