@@ -282,8 +282,9 @@
  *
  * @property {string}                      key                  The public api key for stripe
  *                                                              requests.
- * @property {boolean}                     allow_prepaid_card   True means that prepaid cards
- *                                                              can be used for payment.
+ * @property {string}                      allow_prepaid_card   'yes' if prepaid cards
+ *                                                              can be used for payment,
+ *                                                              'no' otherwise.
  * @property {Object}                      button               Contains button styles
  * @property {string}                      button.type          The type of button.
  * @property {string}                      button.theme         The theme for the button.
