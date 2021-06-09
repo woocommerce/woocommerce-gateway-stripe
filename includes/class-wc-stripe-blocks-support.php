@@ -298,7 +298,11 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return string[]
 	 */
 	public function get_supported_features() {
-		$gateway = new WC_Gateway_Stripe();
-		return array_filter( $gateway->supports, [ $gateway, 'supports' ] );
+		$gateways = WC()->payment_gateways->get_available_payment_gateways();
+		if ( isset( $gateways['stripe'] ) ) {
+			$gateway = $gateways['stripe'];
+			return array_filter( $gateway->supports, [ $gateway, 'supports' ] );
+		}
+		return [];
 	}
 }
