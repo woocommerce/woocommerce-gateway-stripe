@@ -125,48 +125,24 @@ export const useShippingOptionChangeHandler = (
  * @param {Object} stripe - The stripe object used to confirm and create a payment intent.
  * @param {Object} paymentRequest - The payment request object.
  * @param {string} paymentRequestType - The payment request type.
- * @param {Function} setExpressPaymentError - A function used to expose an error message to show
- *                                            the customer.
+ * @param {Function} onError - A function used to expose an error message to show the customer.
  */
 export const useProcessPaymentHandler = (
 	stripe,
 	paymentRequest,
 	paymentRequestType,
-	setExpressPaymentError
+	onError
 ) => {
 	useEffect( () => {
 		const paymentMethodUpdateHandler = paymentRequest?.on(
 			'source',
-			paymentProcessingHandler(
-				stripe,
-				paymentRequestType,
-				setExpressPaymentError
-			)
+			paymentProcessingHandler( stripe, paymentRequestType, onError )
 		);
 
 		return () => {
 			paymentMethodUpdateHandler?.removeAllListeners();
 		};
-	}, [ stripe, paymentRequest, paymentRequestType, setExpressPaymentError ] );
-};
-
-/**
- * Returns an onClick handler for payment request buttons. Resets the error state, syncs the
- * payment request with the block, and calls the provided click handler.
- *
- * @param {Function} setExpressPaymentError - Used to set the error state.
- * @param {Function} onClick - The onClick function that should be called on click.
- *
- * @return {Function} An onClick handler for the payment request buttons.
- */
-export const useOnClickHandler = ( setExpressPaymentError, onClick ) => {
-	return useCallback( () => {
-		// Reset any Payment Request errors.
-		setExpressPaymentError( '' );
-
-		// Call the Blocks API `onClick` handler.
-		onClick();
-	}, [ setExpressPaymentError, onClick ] );
+	}, [ stripe, paymentRequest, paymentRequestType, onError ] );
 };
 
 /**
@@ -176,9 +152,8 @@ export const useOnClickHandler = ( setExpressPaymentError, onClick ) => {
  * @param {Function} onClose - A function from the Blocks API.
  */
 export const useCancelHandler = ( paymentRequest, onClose ) => {
-	useEffect( () => {
-		paymentRequest?.on( 'cancel', () => {
-			onClose();
-		} );
-	}, [ paymentRequest, onClose ] );
+	paymentRequest?.on( 'cancel', () => {
+		console.log( 'cancel' );
+		onClose();
+	} );
 };

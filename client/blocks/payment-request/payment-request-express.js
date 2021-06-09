@@ -18,7 +18,6 @@ import {
 	useProcessPaymentHandler,
 	useShippingAddressUpdateHandler,
 	useShippingOptionChangeHandler,
-	useOnClickHandler,
 	useCancelHandler,
 } from './hooks';
 
@@ -48,7 +47,7 @@ const PaymentRequestExpressComponent = ( {
 	shippingData,
 	onClick,
 	onClose,
-	setExpressPaymentError,
+	onError,
 } ) => {
 	const stripe = useStripe();
 	const { needsShipping } = shippingData;
@@ -65,11 +64,7 @@ const PaymentRequestExpressComponent = ( {
 		stripe,
 		paymentRequest,
 		paymentRequestType,
-		setExpressPaymentError
-	);
-	const onPaymentRequestButtonClick = useOnClickHandler(
-		setExpressPaymentError,
-		onClick
+		onError
 	);
 	useCancelHandler( paymentRequest, onClose );
 
@@ -101,7 +96,7 @@ const PaymentRequestExpressComponent = ( {
 
 	// Prepare the onClick handler for our custom made Payment Request buttons.
 	const customAndBrandedClickHandler = () => {
-		onPaymentRequestButtonClick();
+		onClick();
 		paymentRequest.show();
 	};
 
@@ -127,7 +122,7 @@ const PaymentRequestExpressComponent = ( {
 
 	return (
 		<PaymentRequestButtonElement
-			onClick={ onPaymentRequestButtonClick }
+			onClick={ onClick }
 			options={ {
 				// @ts-ignore
 				style: paymentRequestButtonStyle,

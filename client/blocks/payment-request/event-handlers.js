@@ -150,11 +150,9 @@ const handleIntentConfirmation = ( redirectUrl, intentType ) => (
  *
  * @param {Object} stripe - The Stripe JS object.
  * @param {Object} evt - The `source` event from the Stripe payment request button.
- * @param {Function} setExpressPaymentError - Used to show error messages to the customer.
+ * @param {Function} onError - Used to show error messages to the customer.
  */
-const performPayment = ( stripe, evt, setExpressPaymentError ) => (
-	createOrderResponse
-) => {
+const performPayment = ( stripe, evt, onError ) => ( createOrderResponse ) => {
 	if ( createOrderResponse.result === 'success' ) {
 		evt.complete( 'success' );
 
@@ -173,7 +171,7 @@ const performPayment = ( stripe, evt, setExpressPaymentError ) => (
 		requestIntentConfirmation( stripe, type, clientSecret )
 			.then( handleIntentConfirmation( redirectUrl, type ) )
 			.catch( ( error ) => {
-				setExpressPaymentError( error.message );
+				onError( error.message );
 
 				// Report back to the server.
 				$.get( redirectUrl + '&is_ajax' );
@@ -187,27 +185,23 @@ const performPayment = ( stripe, evt, setExpressPaymentError ) => (
 		div.innerHTML = createOrderResponse.messages;
 		const errorMessage = div?.firstChild?.textContent ?? '';
 
-		setExpressPaymentError( errorMessage );
+		onError( errorMessage );
 	}
 };
 
-const paymentProcessingHandler = (
-	stripe,
-	paymentRequestType,
-	setExpressPaymentError
-) => ( evt ) => {
+const paymentProcessingHandler = ( stripe, paymentRequestType, onError ) => (
+	evt
+) => {
 	const allowPrepaidCards =
 		wc_stripe_payment_request_params?.stripe?.allow_prepaid_card === 'yes';
 
 	// Check if we allow prepaid cards.
 	if ( ! allowPrepaidCards && evt?.source?.card?.funding === 'prepaid' ) {
-		setExpressPaymentError(
-			wc_stripe_payment_request_params?.i18n?.no_prepaid_card
-		);
+		onError( wc_stripe_payment_request_params?.i18n?.no_prepaid_card );
 	} else {
 		// Create the order and attempt to pay.
 		createOrder( evt, paymentRequestType ).then(
-			performPayment( stripe, evt, setExpressPaymentError )
+			performPayment( stripe, evt, onError )
 		);
 	}
 };
