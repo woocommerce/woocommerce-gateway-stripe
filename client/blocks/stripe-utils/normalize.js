@@ -12,7 +12,7 @@
 /**
  * Internal dependencies
  */
-import { getStripeServerData } from '../stripe-utils';
+import { getStripeServerData } from './utils';
 
 /**
  * Normalizes order data received upon creating an order using the store's AJAX API.
