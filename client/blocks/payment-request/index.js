@@ -30,12 +30,6 @@ const paymentRequestPaymentMethod = {
 			return true;
 		}
 
-		// If the JS Payment Request Button configuration object loaded from PHP is not available
-		// we don't support payment requests.
-		if ( ! getStripeServerData()?.button ) {
-			return false;
-		}
-
 		return loadStripe().then( ( stripe ) => {
 			// Create a payment request and check if we can make a payment to determine whether to
 			// show the Payment Request Button or not. This is necessary because a browser might be
