@@ -1397,12 +1397,10 @@ class WC_Stripe_Payment_Request {
 				$amount         = $cart_item['line_subtotal'];
 				$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
 
-				$item = [
+				$items[] = [
 					'label'  => $cart_item['data']->get_name() . $quantity_label,
 					'amount' => WC_Stripe_Helper::get_stripe_amount( $amount ),
 				];
-
-				$items[] = $item;
 			}
 		}
 
