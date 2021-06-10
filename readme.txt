@@ -126,8 +126,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.2.1 - 2021-06-10 =
+= 5.2.2 - 2021-xx-xx =
 
-* Fix - Remove calls to `has_block()` since it breaks compatibility with older versions of WordPress.
-* Tweak - Use the same JavaScript configurations for the Block-based and Shortcode-based checkout flows.
+* Fix - The absence of a cart causing fatal errors when rendering the Cart or Checkout block.
 
