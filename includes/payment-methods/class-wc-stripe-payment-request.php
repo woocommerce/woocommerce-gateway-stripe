@@ -1407,7 +1407,7 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// Tax
-		$tax              = WC()->cart->tax_total + WC()->cart->shipping_tax_total;
+		$tax              = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
 		$tax_to_substract = 0;
 
 		if ( wc_tax_enabled() ) {
@@ -1424,7 +1424,7 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// Shipping
-		$shipping              = WC()->cart->get_shipping_total();
+		$shipping              = wc_format_decimal( WC()->cart->shipping_total, WC()->cart->dp );
 		$shipping_to_substract = 0;
 
 		if ( wc_shipping_enabled() && WC()->cart->needs_shipping() ) {
@@ -1446,13 +1446,15 @@ class WC_Stripe_Payment_Request {
 		$discounts = 0;
 
 		if ( version_compare( WC_VERSION, '3.2', '<' ) ) {
-			$discounts = WC()->cart->get_cart_discount_total();
+			$discounts = wc_format_decimal( WC()->cart->get_cart_discount_total(), WC()->cart->dp );
 		} else {
 			$applied_coupons = array_values( WC()->cart->get_coupon_discount_totals() );
 
 			foreach ( $applied_coupons as $amount ) {
 				$discounts += (float) $amount;
 			}
+
+			$discounts = wc_format_decimal( $discounts, WC()->cart->dp );
 		}
 
 		if ( WC()->cart->has_discount() ) {
