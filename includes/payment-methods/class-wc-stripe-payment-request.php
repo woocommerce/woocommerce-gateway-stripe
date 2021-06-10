@@ -1390,13 +1390,11 @@ class WC_Stripe_Payment_Request {
 		$data['currency']     = strtolower( get_woocommerce_currency() );
 		$data['country_code'] = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
 		$items                = [];
-		$subtotal             = 0;
 
 		// Default show only subtotal instead of itemization.
 		if ( ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items ) {
 			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 				$amount         = $cart_item['line_subtotal'];
-				$subtotal      += $cart_item['line_subtotal'];
 				$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
 
 				$item = [
