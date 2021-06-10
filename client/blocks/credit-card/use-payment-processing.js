@@ -60,7 +60,7 @@ export const usePaymentProcessing = (
 	useEffect( () => {
 		const createSource = async ( ownerInfo ) => {
 			const elementToGet =
-				getStripeServerData().inline_cc_form === 'yes'
+				getStripeServerData()?.inline_cc_form === 'yes'
 					? CardElement
 					: CardNumberElement;
 			return await stripe.createSource(

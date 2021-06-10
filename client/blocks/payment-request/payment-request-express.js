@@ -79,7 +79,7 @@ const PaymentRequestExpressComponent = ( {
 		type = 'default',
 		theme = 'dark',
 		height = '48',
-	} = getStripeServerData().button;
+	} = getStripeServerData()?.button;
 
 	const paymentRequestButtonStyle = {
 		paymentRequestButton: {

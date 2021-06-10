@@ -14,8 +14,8 @@ import {
 
 const getAjaxUrl = ( endpoint ) => {
 	return getStripeServerData()
-		?.ajax_url.toString()
-		.replace( '%%endpoint%%', 'wc_stripe_' + endpoint );
+		?.ajax_url?.toString()
+		?.replace( '%%endpoint%%', 'wc_stripe_' + endpoint );
 };
 
 export const getCartDetails = () => {

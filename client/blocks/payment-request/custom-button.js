@@ -13,7 +13,7 @@ export const CustomButton = ( { onButtonClicked } ) => {
 		theme = 'dark',
 		height = '44',
 		customLabel = __( 'Buy now', 'woocommerce-gateway-stripe' ),
-	} = getStripeServerData().button;
+	} = getStripeServerData()?.button;
 	return (
 		<button
 			type={ 'button' }

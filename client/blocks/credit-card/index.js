@@ -37,9 +37,9 @@ const StripeComponent = ( { RenderedComponent, ...props } ) => {
 const StripeLabel = ( props ) => {
 	const { PaymentMethodLabel } = props.components;
 
-	const labelText = getStripeServerData().title
-		? getStripeServerData().title
-		: __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
+	const labelText =
+		getStripeServerData()?.title ??
+		__( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
 
 	return <PaymentMethodLabel text={ labelText } />;
 };
@@ -61,8 +61,8 @@ const stripeCcPaymentMethod = {
 	),
 	supports: {
 		// Use `false` as fallback values in case server provided configuration is missing.
-		showSavedCards: getStripeServerData().showSavedCards ?? false,
-		showSaveOption: getStripeServerData().showSaveOption ?? false,
+		showSavedCards: getStripeServerData()?.showSavedCards ?? false,
+		showSaveOption: getStripeServerData()?.showSaveOption ?? false,
 		features: getStripeServerData()?.supports ?? [],
 	},
 };
