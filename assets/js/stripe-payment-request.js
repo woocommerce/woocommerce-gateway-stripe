@@ -216,7 +216,6 @@ jQuery( function( $ ) {
 		/**
 		 * Update shipping options.
 		 *
-		 * @param {Object}         details Payment details.
 		 * @param {PaymentAddress} address Shipping address.
 		 */
 		updateShippingOptions: function( address ) {
@@ -242,10 +241,9 @@ jQuery( function( $ ) {
 		/**
 		 * Updates the shipping price and the total based on the shipping option.
 		 *
-		 * @param {Object}   details        The line items and shipping options.
 		 * @param {String}   shippingOption User's preferred shipping option to use for shipping price calculations.
 		 */
-		updateShippingDetails: function( details, shippingOption ) {
+		updateShippingDetails: function( shippingOption ) {
 			var data = {
 				security: wc_stripe_payment_request_params.nonce.update_shipping,
 				shipping_method: [ shippingOption.id ],
