@@ -583,6 +583,11 @@ class WC_Stripe_Payment_Request {
 	 * @return array  The settings used for the payment request button in JavaScript.
 	 */
 	public function javascript_params() {
+		$needs_shipping = 'no';
+		if ( ! is_null( WC()->cart ) && WC()->cart->needs_shipping() ) {
+			$needs_shipping = 'yes';
+		}
+
 		return [
 			'ajax_url'        => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'          => [
@@ -608,7 +613,7 @@ class WC_Stripe_Payment_Request {
 				'url'               => wc_get_checkout_url(),
 				'currency_code'     => strtolower( get_woocommerce_currency() ),
 				'country_code'      => substr( get_option( 'woocommerce_default_country' ), 0, 2 ),
-				'needs_shipping'    => WC()->cart->needs_shipping() ? 'yes' : 'no',
+				'needs_shipping'    => $needs_shipping,
 				// Defaults to 'required' to match how core initializes this option.
 				'needs_payer_phone' => 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' ),
 			],
