@@ -25,7 +25,7 @@ jQuery( function( $ ) {
 
 		getCartDetails: function() {
 			var data = {
-				security: wc_stripe_payment_request_params.nonce.payment,
+				security: wc_stripe_payment_request_params.nonce.payment
 			};
 
 			$.ajax( {

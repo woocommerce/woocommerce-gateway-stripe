@@ -317,7 +317,7 @@ class WC_Stripe_Payment_Request {
 	 * Gets the product data for the currently viewed page
 	 *
 	 * @since   4.0.0
-	 * @version 5.2.0
+	 * @version x.x.x
 	 * @return  mixed Returns false if not on a product page, the product information otherwise.
 	 */
 	public function get_product_data() {
@@ -348,7 +348,7 @@ class WC_Stripe_Payment_Request {
 			}
 		}
 
-		$data  = [];
+		$data = [];
 
 		if ( wc_shipping_enabled() && $product->needs_shipping() ) {
 			$data['shippingOptions'] = [
@@ -567,7 +567,7 @@ class WC_Stripe_Payment_Request {
 	 * Load public scripts and styles.
 	 *
 	 * @since   3.1.0
-	 * @version 5.2.0
+	 * @version x.x.x
 	 */
 	public function scripts() {
 		// If keys are not set bail.
@@ -815,6 +815,8 @@ class WC_Stripe_Payment_Request {
 
 	/**
 	 * Get cart details.
+	 *
+	 * @version x.x.x
 	 */
 	public function ajax_get_cart_details() {
 		check_ajax_referer( 'wc-stripe-payment-request', 'security' );
@@ -834,6 +836,8 @@ class WC_Stripe_Payment_Request {
 
 	/**
 	 * Get shipping options.
+	 *
+	 * @version x.x.x
 	 *
 	 * @see WC_Cart::get_shipping_packages().
 	 * @see WC_Shipping::calculate_shipping().
@@ -863,6 +867,8 @@ class WC_Stripe_Payment_Request {
 
 	/**
 	 * Gets shipping options available for specified shipping address
+	 *
+	 * @version x.x.x
 	 *
 	 * @param array  $shipping_address Shipping address.
 	 * @param boolean $itemized_display_items Indicates whether to show subtotals or itemized views.
@@ -941,6 +947,8 @@ class WC_Stripe_Payment_Request {
 
 	/**
 	 * Update shipping method.
+	 *
+	 * @version x.x.x
 	 */
 	public function ajax_update_shipping_method() {
 		check_ajax_referer( 'wc-stripe-update-shipping-method', 'security' );
@@ -983,7 +991,7 @@ class WC_Stripe_Payment_Request {
 	 * Gets the selected product data.
 	 *
 	 * @since   4.0.0
-	 * @version 4.0.0
+	 * @version x.x.x
 	 * @return  array $data
 	 */
 	public function ajax_get_selected_product_data() {
@@ -1016,7 +1024,7 @@ class WC_Stripe_Payment_Request {
 	 * Adds the current product to the cart. Used on product detail page.
 	 *
 	 * @since   4.0.0
-	 * @version 4.0.0
+	 * @version x.x.x
 	 * @return  array $data
 	 */
 	public function ajax_add_to_cart() {
@@ -1368,8 +1376,7 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Builds response to pass to the Payment Request
 	 *
-	 * @since   3.1.0
-	 * @version 4.0.0
+	 * @since   x.x.x
 	 *
 	 * @param bool $itemized_display_items Wether to return an array of items with its details or not.
 	 * @param bool $has_shipping_address True is the user has picked or entered a shipping address on the payment dialog.
