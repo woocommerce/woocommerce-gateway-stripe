@@ -1069,7 +1069,9 @@ class WC_Stripe_Payment_Request {
 				WC()->cart->add_to_cart( $product->get_id(), $qty );
 			}
 
-			$data = $this->build_response( $itemized_display_items, true ); // This method is called from the product page only. Always display itemized items.
+			$itemized_display_items = true; // This method is called from the product page only. Always display itemized items.
+
+			$data = $this->build_response( $itemized_display_items, true );
 			wp_send_json( $data );
 		} catch ( Exception $e ) {
 			wp_send_json( [ 'error' => wp_strip_all_tags( $e->getMessage() ) ] );
