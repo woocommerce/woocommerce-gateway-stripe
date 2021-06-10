@@ -274,7 +274,7 @@ jQuery( function( $ ) {
 			var data = {
 				security: wc_stripe_payment_request_params.nonce.add_to_cart,
 				product_id: product_id,
-				qty: $( '.quantity .qty' ).val(),
+				quantity: $( '.quantity .qty' ).val(),
 				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : [],
 				has_shipping_address: hasShippingAddress,
 			};

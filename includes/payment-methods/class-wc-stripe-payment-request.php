@@ -1001,8 +1001,8 @@ class WC_Stripe_Payment_Request {
 
 			$product_id       = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 			$product          = wc_get_product( $product_id );
-			$qty              = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
-			$has_enough_stock = $product->has_enough_stock( $qty );
+			$quantity         = ! isset( $_POST['quantity'] ) ? 1 : absint( $_POST['quantity'] );
+			$has_enough_stock = $product->has_enough_stock( $quantity );
 			$product_type     = $product->get_type();
 			$variation_id     = 0;
 			$attributes       = [];
@@ -1027,7 +1027,7 @@ class WC_Stripe_Payment_Request {
 
 				if ( ! empty( $variation_id ) ) {
 					$variation        = wc_get_product( $variation_id );
-					$has_enough_stock = $variation->has_enough_stock( $qty );
+					$has_enough_stock = $variation->has_enough_stock( $quantity );
 				}
 			}
 
@@ -1036,7 +1036,7 @@ class WC_Stripe_Payment_Request {
 				throw new Exception( sprintf( __( 'You cannot add that amount of "%1$s"; to the cart because there is not enough stock (%2$s remaining).', 'woocommerce-gateway-stripe' ), $product->get_name(), wc_format_stock_quantity_for_display( $product->get_stock_quantity(), $product ) ) );
 			}
 
-			WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
+			WC()->cart->add_to_cart( $product->get_id(), $quantity, $variation_id, $attributes );
 
 			// This method is called from the product page only. Always display itemized items.
 			$itemized_display_items = true;
