@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.4
 Tested up to: 5.6
 Requires PHP: 5.6
-Stable tag: 5.2.0
+Stable tag: 5.2.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -126,7 +126,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.2.1 - 2021-xx-xx =
+= 5.2.1 - 2021-06-10 =
 
 * Fix - Remove calls to `has_block()` since it breaks compatibility with older versions of WordPress.
 * Tweak - Use the same JavaScript configurations for the Block-based and Shortcode-based checkout flows.
