@@ -597,4 +597,15 @@ class WC_Stripe_Helper {
 		// Default to 'auto' so Stripe.js uses the browser locale.
 		return 'auto';
 	}
+
+	/**
+	 * Checks if this page contains a cart or checkout shortcode.
+	 *
+	 * @since 5.3.0
+	 * @return boolean
+	 */
+	public static function has_cart_or_checkout_shortcode_on_current_page() {
+		return wc_post_content_has_shortcode( 'woocommerce_cart' )
+			|| wc_post_content_has_shortcode( 'woocommerce_checkout' );
+	}
 }

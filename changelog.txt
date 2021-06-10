@@ -1,5 +1,9 @@
 *** Changelog ***
 
+= 5.2.1 - 2021-xx-xx =
+* Fix - Remove calls to `has_block()` since it breaks compatibility with older versions of WordPress.
+* Tweak - Use the same JavaScript configurations for the Block-based and Shortcode-based checkout flows.
+
 = 5.2.0 - 2021-05-19 =
 * Fix - Use `get_parent` method to avoid accessing `order` subscription property directly.
 * Fix - Orders won't transition to 'Refunded' state if refund can't be created.

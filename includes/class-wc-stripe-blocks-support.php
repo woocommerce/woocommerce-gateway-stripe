@@ -19,11 +19,23 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	protected $name = 'stripe';
 
 	/**
-	 * Constructor
+	 * The Payment Request configuration class used for Shortcode PRBs. We use it here to retrieve
+	 * the same configurations.
+	 *
+	 * @var WC_Stripe_Payment_Request
 	 */
-	public function __construct() {
+	private $payment_request_configuration;
+
+	/**
+	 * Constructor
+	 *
+	 * @param WC_Stripe_Payment_Request  The Stripe Payment Request configuration used for Payment
+	 *                                   Request buttons.
+	 */
+	public function __construct( $payment_request_configuration = null ) {
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_payment_request_order_meta' ], 8, 2 );
 		add_action( 'woocommerce_rest_checkout_process_payment_with_context', [ $this, 'add_stripe_intents' ], 9999, 2 );
+		$this->payment_request_configuration = null !== $payment_request_configuration ? $payment_request_configuration : new WC_Stripe_Payment_Request();
 	}
 
 	/**
@@ -81,26 +93,55 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array
 	 */
 	public function get_payment_method_data() {
-		return [
-			'stripeTotalLabel'    => $this->get_total_label(),
-			'publicKey'           => $this->get_publishable_key(),
-			'allowPrepaidCard'    => $this->get_allow_prepaid_card(),
-			'title'               => $this->get_title(),
-			'button'              => [
-				'type'        => $this->get_button_type(),
-				'theme'       => $this->get_button_theme(),
-				'height'      => $this->get_button_height(),
-				'locale'      => $this->get_button_locale(),
-				'customLabel' => isset( $this->settings['payment_request_button_label'] ) ? $this->settings['payment_request_button_label'] : 'Buy now',
-			],
-			'inline_cc_form'      => $this->get_inline_cc_form(),
-			'icons'               => $this->get_icons(),
-			'showSavedCards'      => $this->get_show_saved_cards(),
-			'showSaveOption'      => $this->get_show_save_option(),
-			'supports'            => $this->get_supported_features(),
-			'stripeLocale'        => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
-			'isAdmin'             => is_admin(),
-		];
+		// We need to call array_merge_recursive so the blocks 'button' setting doesn't overwrite
+		// what's provided from the gateway or payment request configuration.
+		return array_merge_recursive(
+			$this->get_gateway_javascript_params(),
+			$this->get_payment_request_javascript_params(),
+			// Blocks-specific options
+			[
+				'title'          => $this->get_title(),
+				'icons'          => $this->get_icons(),
+				'supports'       => $this->get_supported_features(),
+				'showSavedCards' => $this->get_show_saved_cards(),
+				'showSaveOption' => $this->get_show_save_option(),
+				'isAdmin'        => is_admin(),
+				'button'         => [
+					'customLabel' => $this->payment_request_configuration->get_button_label(),
+				],
+			]
+		);
+	}
+
+	/**
+	 * Returns the Stripe Payment Gateway JavaScript configuration object.
+	 *
+	 * @return array  the JS configuration from the Stripe Payment Gateway.
+	 */
+	private function get_gateway_javascript_params() {
+		$js_configuration = [];
+
+		$gateways = WC()->payment_gateways->get_available_payment_gateways();
+		if ( isset( $gateways['stripe'] ) ) {
+			$js_configuration = $gateways['stripe']->javascript_params();
+		}
+
+		return apply_filters(
+			'wc_stripe_params',
+			$js_configuration
+		);
+	}
+
+	/**
+	 * Returns the Stripe Payment Request JavaScript configuration object.
+	 *
+	 * @return array  the JS configuration for Stripe Payment Requests.
+	 */
+	private function get_payment_request_javascript_params() {
+		return apply_filters(
+			'wc_stripe_payment_request_params',
+			$this->payment_request_configuration->javascript_params()
+		);
 	}
 
 	/**
@@ -127,86 +168,12 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	}
 
 	/**
-	 * Returns the label to use accompanying the total in the stripe statement.
-	 *
-	 * @return string Statement descriptor.
-	 */
-	private function get_total_label() {
-		return ! empty( $this->settings['statement_descriptor'] ) ? WC_Stripe_Helper::clean_statement_descriptor( $this->settings['statement_descriptor'] ) : '';
-	}
-
-	/**
-	 * Returns the publishable api key for the Stripe service.
-	 *
-	 * @return string Public api key.
-	 */
-	private function get_publishable_key() {
-		$test_mode   = ( ! empty( $this->settings['testmode'] ) && 'yes' === $this->settings['testmode'] );
-		$setting_key = $test_mode ? 'test_publishable_key' : 'publishable_key';
-		return ! empty( $this->settings[ $setting_key ] ) ? $this->settings[ $setting_key ] : '';
-	}
-
-	/**
-	 * Returns whether to allow prepaid cards for payments.
-	 *
-	 * @return bool True means to allow prepaid card (default).
-	 */
-	private function get_allow_prepaid_card() {
-		return apply_filters( 'wc_stripe_allow_prepaid_card', true );
-	}
-
-	/**
 	 * Returns the title string to use in the UI (customisable via admin settings screen).
 	 *
 	 * @return string Title / label string
 	 */
 	private function get_title() {
 		return isset( $this->settings['title'] ) ? $this->settings['title'] : __( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
-	}
-
-	/**
-	 * Return the button type for the payment button.
-	 *
-	 * @return string Defaults to 'default'.
-	 */
-	private function get_button_type() {
-		return isset( $this->settings['payment_request_button_type'] ) ? $this->settings['payment_request_button_type'] : 'default';
-	}
-
-	/**
-	 * Return the theme to use for the payment button.
-	 *
-	 * @return string Defaults to 'dark'.
-	 */
-	private function get_button_theme() {
-		return isset( $this->settings['payment_request_button_theme'] ) ? $this->settings['payment_request_button_theme'] : 'dark';
-	}
-
-	/**
-	 * Return the height for the payment button.
-	 *
-	 * @return string A pixel value for the height (defaults to '64').
-	 */
-	private function get_button_height() {
-		return isset( $this->settings['payment_request_button_height'] ) ? str_replace( 'px', '', $this->settings['payment_request_button_height'] ) : '64';
-	}
-
-	/**
-	 * Return the inline cc option.
-	 *
-	 * @return boolean True if the inline CC form option is enabled.
-	 */
-	private function get_inline_cc_form() {
-		return isset( $this->settings['inline_cc_form'] ) && 'yes' === $this->settings['inline_cc_form'];
-	}
-
-	/**
-	 * Return the locale for the payment button.
-	 *
-	 * @return string Defaults to en_US.
-	 */
-	private function get_button_locale() {
-		return apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) );
 	}
 
 	/**
@@ -331,7 +298,11 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return string[]
 	 */
 	public function get_supported_features() {
-		$gateway = new WC_Gateway_Stripe();
-		return array_filter( $gateway->supports, [ $gateway, 'supports' ] );
+		$gateways = WC()->payment_gateways->get_available_payment_gateways();
+		if ( isset( $gateways['stripe'] ) ) {
+			$gateway = $gateways['stripe'];
+			return array_filter( $gateway->supports, [ $gateway, 'supports' ] );
+		}
+		return [];
 	}
 }

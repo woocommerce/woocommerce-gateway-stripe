@@ -49,9 +49,7 @@ export const GooglePayButton = ( { onButtonClicked } ) => {
 	} = getStripeServerData()?.button;
 
 	const allowedTypes = [ 'short', 'long' ];
-	// Use pre-blocks settings until we merge the two distinct settings objects.
-	/* global wc_stripe_payment_request_params */
-	const { branded_type } = wc_stripe_payment_request_params.button; // eslint-disable-line camelcase
+	const { branded_type } = getStripeServerData()?.button; // eslint-disable-line camelcase
 	const type = allowedTypes.includes( branded_type ) ? branded_type : 'long'; // eslint-disable-line camelcase
 
 	// Allowed themes for Google Pay button image are 'dark' and 'light'.

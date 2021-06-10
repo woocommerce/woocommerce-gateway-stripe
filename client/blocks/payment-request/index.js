@@ -1,5 +1,3 @@
-/* global wc_stripe_payment_request_params */
-
 /**
  * External dependencies
  */
@@ -30,13 +28,6 @@ const paymentRequestPaymentMethod = {
 		// https://github.com/woocommerce/woocommerce-gutenberg-products-block/issues/4101.
 		if ( getStripeServerData()?.isAdmin ?? false ) {
 			return true;
-		}
-
-		// If the `wc_stripe_payment_request_params` object is not available we don't support
-		// payment requests.
-		// eslint-disable-next-line camelcase
-		if ( typeof wc_stripe_payment_request_params === 'undefined' ) {
-			return false;
 		}
 
 		return loadStripe().then( ( stripe ) => {

@@ -1,5 +1,3 @@
-/* global wc_stripe_payment_request_params */
-
 /**
  * External dependencies
  */
@@ -8,17 +6,21 @@ import $ from 'jquery';
 /**
  * Internal dependencies
  */
-import { normalizeOrderData, normalizeAddress } from '../blocks/stripe-utils';
+import {
+	normalizeOrderData,
+	normalizeAddress,
+	getStripeServerData,
+} from '../blocks/stripe-utils';
 
 const getAjaxUrl = ( endpoint ) => {
-	return wc_stripe_payment_request_params.ajax_url
-		.toString()
-		.replace( '%%endpoint%%', 'wc_stripe_' + endpoint );
+	return getStripeServerData()
+		?.ajax_url?.toString()
+		?.replace( '%%endpoint%%', 'wc_stripe_' + endpoint );
 };
 
 export const getCartDetails = () => {
 	const data = {
-		security: wc_stripe_payment_request_params.nonce.payment,
+		security: getStripeServerData()?.nonce?.payment,
 	};
 
 	return $.ajax( {
@@ -36,9 +38,9 @@ export const getCartDetails = () => {
  */
 export const updateShippingOptions = ( address, paymentRequestType ) => {
 	const data = {
-		security: wc_stripe_payment_request_params.nonce.shipping,
+		security: getStripeServerData()?.nonce?.shipping,
 		payment_request_type: paymentRequestType,
-		is_product_page: wc_stripe_payment_request_params.is_product_page,
+		is_product_page: getStripeServerData()?.is_product_page,
 		...normalizeAddress( address ),
 	};
 
@@ -51,9 +53,9 @@ export const updateShippingOptions = ( address, paymentRequestType ) => {
 
 export const updateShippingDetails = ( shippingOption ) => {
 	const data = {
-		security: wc_stripe_payment_request_params.nonce.update_shipping,
+		security: getStripeServerData()?.nonce?.update_shipping,
 		shipping_method: [ shippingOption.id ],
-		is_product_page: wc_stripe_payment_request_params.is_product_page,
+		is_product_page: getStripeServerData()?.is_product_page,
 	};
 
 	return $.ajax( {

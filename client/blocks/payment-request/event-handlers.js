@@ -1,5 +1,3 @@
-/* global wc_stripe_payment_request_params */
-
 /**
  * External dependencies
  */
@@ -13,6 +11,7 @@ import {
 	updateShippingDetails,
 	createOrder,
 } from '../../api';
+import { getStripeServerData } from '../stripe-utils';
 
 const shippingAddressChangeHandler = ( paymentRequestType ) => ( evt ) => {
 	const { shippingAddress } = evt;
@@ -197,13 +196,11 @@ const paymentProcessingHandler = (
 	setExpressPaymentError
 ) => ( evt ) => {
 	const allowPrepaidCards =
-		wc_stripe_payment_request_params?.stripe?.allow_prepaid_card === 'yes';
+		getStripeServerData()?.stripe?.allow_prepaid_card === 'yes';
 
 	// Check if we allow prepaid cards.
 	if ( ! allowPrepaidCards && evt?.source?.card?.funding === 'prepaid' ) {
-		setExpressPaymentError(
-			wc_stripe_payment_request_params?.i18n?.no_prepaid_card
-		);
+		setExpressPaymentError( getStripeServerData()?.i18n?.no_prepaid_card );
 	} else {
 		// Create the order and attempt to pay.
 		createOrder( evt, paymentRequestType ).then(
