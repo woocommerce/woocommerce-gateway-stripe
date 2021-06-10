@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 5.2.2 - 2021-xx-xx =
+= 5.2.2 - 2021-06-10 =
 * Fix - The absence of a cart causing fatal errors when rendering the Cart or Checkout block.
 
 = 5.2.1 - 2021-06-10 =
