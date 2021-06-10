@@ -349,28 +349,8 @@ class WC_Stripe_Payment_Request {
 		}
 
 		$data  = [];
-		$items = [];
-
-		$items[] = [
-			'label'  => $product->get_name(),
-			'amount' => WC_Stripe_Helper::get_stripe_amount( $this->get_product_price( $product ) ),
-		];
-
-		if ( wc_tax_enabled() ) {
-			$items[] = [
-				'label'   => __( 'Tax', 'woocommerce-gateway-stripe' ),
-				'amount'  => 0,
-				'pending' => true,
-			];
-		}
 
 		if ( wc_shipping_enabled() && $product->needs_shipping() ) {
-			$items[] = [
-				'label'   => __( 'Shipping', 'woocommerce-gateway-stripe' ),
-				'amount'  => 0,
-				'pending' => true,
-			];
-
 			$data['shippingOptions'] = [
 				'id'     => 'pending',
 				'label'  => __( 'Pending', 'woocommerce-gateway-stripe' ),
@@ -386,8 +366,6 @@ class WC_Stripe_Payment_Request {
 		];
 
 		$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
-		$data['currency']        = strtolower( get_woocommerce_currency() );
-		$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
 
 		return apply_filters( 'wc_stripe_payment_request_product_data', $data, $product );
 	}
