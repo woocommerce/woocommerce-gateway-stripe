@@ -999,18 +999,19 @@ class WC_Stripe_Payment_Request {
 				define( 'WOOCOMMERCE_CART', true );
 			}
 
-			$product_id       = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-			$product          = wc_get_product( $product_id );
-			$quantity         = ! isset( $_POST['quantity'] ) ? 1 : absint( $_POST['quantity'] );
-			$has_enough_stock = $product->has_enough_stock( $quantity );
-			$product_type     = $product->get_type();
-			$variation_id     = 0;
-			$attributes       = [];
+			$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
+			$product    = wc_get_product( $product_id );
 
 			if ( ! is_a( $product, 'WC_Product' ) ) {
 				/* translators: %d is the product Id */
 				throw new Exception( sprintf( __( 'Product with the ID (%d) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
 			}
+
+			$quantity         = ! isset( $_POST['quantity'] ) ? 1 : absint( $_POST['quantity'] );
+			$has_enough_stock = $product->has_enough_stock( $quantity );
+			$product_type     = $product->get_type();
+			$variation_id     = 0;
+			$attributes       = [];
 
 			WC()->shipping->reset_shipping();
 
