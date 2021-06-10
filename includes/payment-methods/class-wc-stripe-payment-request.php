@@ -1481,8 +1481,8 @@ class WC_Stripe_Payment_Request {
 
 		// Order total
 		if ( version_compare( WC_VERSION, '3.2', '<' ) ) {
-			$items_total = wc_format_decimal( WC()->cart->cart_contents_total, WC()->cart->dp ) + $discounts;
-			$order_total = wc_format_decimal( $items_total + $tax + $shipping - $discounts, WC()->cart->dp );
+			$items_total = wc_format_decimal( WC()->cart->cart_contents_total, WC()->cart->dp );
+			$order_total = wc_format_decimal( $items_total + $tax + $shipping, WC()->cart->dp );
 		} else {
 			// Getting the total amount from the cart automatically adds a shipping cost to it
 			// We need to remove it if the user hasn't picked a shipping address yet
