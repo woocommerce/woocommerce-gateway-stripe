@@ -601,7 +601,7 @@ class WC_Stripe_Helper {
 	/**
 	 * Checks if this page contains a cart or checkout shortcode.
 	 *
-	 * @since 5.3.0
+	 * @since 5.2.1
 	 * @return boolean
 	 */
 	public static function has_cart_or_checkout_shortcode_on_current_page() {
