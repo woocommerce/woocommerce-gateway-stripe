@@ -893,6 +893,9 @@ class WC_Stripe_Payment_Request {
 	 * phpcs:ignore Squiz.Commenting.FunctionCommentThrowTag
 	 */
 	public function get_shipping_options( $shipping_address, $itemized_display_items = false ) {
+		// This method is only called when the user has selected a Shipping address
+		$has_shipping_address = true;
+
 		try {
 			// Set the shipping options.
 			$data = [];
@@ -948,10 +951,10 @@ class WC_Stripe_Payment_Request {
 
 			WC()->cart->calculate_totals();
 
-			$data          += $this->build_response( $itemized_display_items, true );
+			$data          += $this->build_response( $itemized_display_items, $has_shipping_address );
 			$data['result'] = 'success';
 		} catch ( Exception $e ) {
-			$data          += $this->build_response( $itemized_display_items, true );
+			$data          += $this->build_response( $itemized_display_items, $has_shipping_address );
 			$data['result'] = 'invalid_shipping_address';
 		}
 
@@ -1080,17 +1083,7 @@ class WC_Stripe_Payment_Request {
 				WC()->cart->add_to_cart( $product->get_id(), $qty );
 			}
 
-			$post_input = filter_input_array(
-				INPUT_POST,
-				[
-					'has_shipping_address' => FILTER_VALIDATE_BOOLEAN,
-				]
-			);
-
-			$has_shipping_address   = $post_input['has_shipping_address'];
-			$itemized_display_items = true; // This method is called from the product page only. Always display itemized items.
-
-			$data = $this->build_response( $itemized_display_items, $has_shipping_address );
+			$data = $this->build_response( $itemized_display_items, true ); // This method is called from the product page only. Always display itemized items.
 			wp_send_json( $data );
 		} catch ( Exception $e ) {
 			wp_send_json( [ 'error' => wp_strip_all_tags( $e->getMessage() ) ] );
