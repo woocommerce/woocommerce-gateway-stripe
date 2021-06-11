@@ -129,3 +129,5 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 5.2.3 - 2021-xx-xx =
 
 * Fix - Credit card icons and credit card input on custom shortcode checkout pages.
+
+[See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
