@@ -654,7 +654,7 @@ class WC_Stripe_Payment_Request {
 		// If page is not supported, bail.
 		if (
 			! $this->is_product()
-			&& ! WC_Stripe_Helper::has_cart_or_checkout_shortcode_on_current_page()
+			&& ! WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
 			&& ! isset( $_GET['pay_for_order'] )
 		) {
 			return;
