@@ -689,7 +689,9 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Returns true if the current page supports Payment Request Buttons, false otherwise.
 	 *
-	 * @return boolean  True if the current page is supported, false otherwise.
+	 * @since   5.3.0
+	 * @version 5.3.0
+	 * @return  boolean  True if the current page is supported, false otherwise.
 	 */
 	private function is_page_supported() {
 		return $this->is_product()
