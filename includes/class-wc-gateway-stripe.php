@@ -440,7 +440,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public function payment_scripts() {
 		if (
 			! is_product()
-			&& ! WC_Stripe_Helper::has_cart_or_checkout_shortcode_on_current_page()
+			&& ! WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
 			&& ! isset( $_GET['pay_for_order'] ) // wpcs: csrf ok.
 			&& ! is_add_payment_method_page()
 			&& ! isset( $_GET['change_payment_method'] ) // wpcs: csrf ok.
