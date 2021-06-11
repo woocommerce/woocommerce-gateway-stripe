@@ -126,7 +126,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.2.2 - 2021-06-10 =
+= 5.2.3 - 2021-xx-xx =
 
-* Fix - The absence of a cart causing fatal errors when rendering the Cart or Checkout block.
-
+* Fix - Credit card icons and credit card input on custom shortcode checkout pages.
