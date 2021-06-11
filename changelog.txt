@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 5.2.3 - 2021-xx-xx =
+= 5.2.3 - 2021-06-11 =
 * Fix - Credit card icons and credit card input on custom shortcode checkout pages.
 
 = 5.2.2 - 2021-06-10 =
