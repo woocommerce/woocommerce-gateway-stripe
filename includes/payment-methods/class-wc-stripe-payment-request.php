@@ -521,6 +521,12 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
+		// If the cart is not available we don't have any unsupported prodcuts in the cart, so we
+		// return true. This can happen e.g. when loading the cart or checkout blocks in Gutenberg.
+		if ( is_null( WC()->cart ) ) {
+			return true;
+		}
+
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 			$_product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
 
@@ -667,9 +673,7 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		if ( $this->is_product() && ! $this->should_show_payment_button_on_product_page() ) {
-			return;
-		} elseif ( ! $this->should_show_payment_button_on_cart() ) {
+		if ( ! $this->should_show_payment_request_button() ) {
 			return;
 		}
 
@@ -762,50 +766,61 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Whether payment button html should be rendered on the Cart
+	 * Returns true if Payment Request Buttons are supported on the current page, false
+	 * otherwise.
 	 *
-	 * @since  4.4.1
-	 * @return boolean
+	 * @since   5.3.0
+	 * @version 5.3.0
+	 * @return  boolean  True if PRBs are supported on current page, false otherwise
 	 */
-	public function should_show_payment_button_on_cart() {
+	public function should_show_payment_request_button() {
 		// Not supported when user isn't authenticated and authentication is required.
 		if ( ! is_user_logged_in() && $this->is_authentication_required() ) {
 			return false;
 		}
 
-		if ( ! apply_filters( 'wc_stripe_show_payment_request_on_cart', true ) ) {
+		// Don't show on cart if disabled.
+		if ( is_cart() && ! apply_filters( 'wc_stripe_show_payment_request_on_cart', true ) ) {
 			return false;
 		}
 
-		if ( ! $this->allowed_items_in_cart() ) {
-			WC_Stripe_Logger::log( 'Items in the cart has unsupported product type ( Payment Request button disabled )' );
+		// Don't show if on the cart or checkout page, or if page contains the cart or checkout
+		// shortcodes, with items in the cart that aren't supported.
+		if (
+			( is_cart() || is_checkout() || WC_Stripe_Helper::has_cart_or_checkout_shortcode_on_current_page() )
+			&& ! $this->allowed_items_in_cart()
+		) {
 			return false;
 		}
+
+		// Don't show if product page PRB is disabled.
+		global $post;
+		if (
+			$this->is_product()
+			&& apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post )
+		) {
+			return false;
+		}
+
+		// Don't show if product on current page is not supported.
+		if ( $this->is_product() && ! $this->is_product_supported( $this->get_product() ) ) {
+			return false;
+		}
+
 		return true;
 	}
 
 	/**
-	 * Whether payment button html should be rendered
+	 * Returns true if a the provided product is supported, false otherwise.
 	 *
-	 * @since  4.3.2
-	 * @version 5.2.0
-	 * @return boolean
+	 * @param WC_Product $param  The product that's being checked for support.
+	 *
+	 * @since   5.3.0
+	 * @version 5.3.0
+	 * @return boolean  True if the provided product is supported, false otherwise.
 	 */
-	private function should_show_payment_button_on_product_page() {
-		global $post;
-
-		if ( apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post ) ) {
-			return false;
-		}
-
-		$product = $this->get_product();
-
+	private function is_product_supported( $product ) {
 		if ( ! is_object( $product ) || ! in_array( $product->get_type(), $this->supported_product_types() ) ) {
-			return false;
-		}
-
-		// Not supported when user isn't authenticated and authentication is required.
-		if ( ! is_user_logged_in() && $this->is_authentication_required() ) {
 			return false;
 		}
 
