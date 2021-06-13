@@ -275,6 +275,7 @@ jQuery( function( $ ) {
 				product_id: product_id,
 				qty: $( '.quantity .qty' ).val(),
 				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : [],
+				has_shipping_address: wc_stripe_payment_request.hasShippingAddress,
 			};
 
 			// add addons data to the POST body
