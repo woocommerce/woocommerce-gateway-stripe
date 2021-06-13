@@ -12,6 +12,14 @@ jQuery( function( $ ) {
 	 */
 	var wc_stripe_payment_request = {
 		/**
+		 * Indicates if the user has picked or entered a shipping address on the payment dialog.
+		 *
+		 * @since 5.3.0
+		 * @type {boolean}
+		 */
+		hasShippingAddress: false,
+
+		/**
 		 * Get WC AJAX endpoint URL.
 		 *
 		 * @param  {String} endpoint Endpoint.
@@ -368,6 +376,8 @@ jQuery( function( $ ) {
 
 				// Possible statuses success, fail, invalid_payer_name, invalid_payer_email, invalid_payer_phone, invalid_shipping_address.
 				paymentRequest.on( 'shippingaddresschange', function( evt ) {
+					wc_stripe_payment_request.hasShippingAddress = true;
+
 					$.when( wc_stripe_payment_request.updateShippingOptions( evt.shippingAddress ) ).then( function( response ) {
 						evt.updateWith( { status: response.result, shippingOptions: response.shipping_options, total: response.total, displayItems: response.displayItems } );
 					} );

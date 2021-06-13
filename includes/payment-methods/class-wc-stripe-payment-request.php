@@ -1069,9 +1069,16 @@ class WC_Stripe_Payment_Request {
 				WC()->cart->add_to_cart( $product->get_id(), $qty );
 			}
 
-			$itemized_display_items = true; // This method is called from the product page only. Always display itemized items.
+			// This method is called from the product page only. Always display itemized items.
+			$itemized_display_items = true;
 
-			$data = $this->build_response( $itemized_display_items, true );
+			// We need to pass `has_shipping_address` from the frontend to fix an unwanted behavior with Google Pay
+			// when canceling the payment the shipping amount was reset to `0`.
+			// It happened because the browser remembers the shipping address and shipping method allowing the user
+			// to submit the payment without paying for shipping.
+			$has_shipping_address = filter_input( INPUT_POST, 'has_shipping_address', FILTER_VALIDATE_BOOLEAN );
+
+			$data = $this->build_response( $itemized_display_items, $has_shipping_address );
 			wp_send_json( $data );
 		} catch ( Exception $e ) {
 			wp_send_json( [ 'error' => wp_strip_all_tags( $e->getMessage() ) ] );
@@ -1411,10 +1418,7 @@ class WC_Stripe_Payment_Request {
 		$tax_to_substract = 0;
 
 		if ( wc_tax_enabled() ) {
-			if ( ! $has_shipping_address ) {
-				$tax_to_substract = $tax;
-				$tax              = 0;
-			}
+			$tax_to_substract = $tax;
 
 			$items[] = [
 				'label'   => esc_html( __( 'Tax', 'woocommerce-gateway-stripe' ) ),
