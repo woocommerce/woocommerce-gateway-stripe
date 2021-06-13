@@ -373,7 +373,7 @@ jQuery( function( $ ) {
 				} );
 
 				paymentRequest.on( 'shippingoptionchange', function( evt ) {
-					$.when( wc_stripe_payment_request.updateShippingDetails( paymentDetails, evt.shippingOption ) ).then( function( response ) {
+					$.when( wc_stripe_payment_request.updateShippingDetails( evt.shippingOption ) ).then( function( response ) {
 						if ( 'success' === response.result ) {
 							evt.updateWith( { status: 'success', total: response.total, displayItems: response.displayItems } );
 						}
