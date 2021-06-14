@@ -816,10 +816,7 @@ class WC_Stripe_Payment_Request {
 
 		WC()->cart->calculate_totals();
 
-		// In the cart page a shipping amount is always returned. This keeps current behavior.
-		$has_shipping_address = true;
-
-		$data = $this->build_response( false, $has_shipping_address );
+		$data = $this->build_response( false, true );
 		wp_send_json( $data );
 	}
 
@@ -953,7 +950,7 @@ class WC_Stripe_Payment_Request {
 
 		$itemized_display_items = filter_input( INPUT_POST, 'is_product_page', FILTER_VALIDATE_BOOLEAN );
 
-		$data           = $this->build_response( $itemized_display_items, true ); // `ajax_update_shipping_method` is called only when the user has added a shipping address
+		$data           = $this->build_response( $itemized_display_items, true );
 		$data['result'] = 'success';
 
 		wp_send_json( $data );
@@ -1372,12 +1369,12 @@ class WC_Stripe_Payment_Request {
 
 
 	/**
-	 * Builds response to pass to the Payment Request
+	 * Builds response to pass to the Payment Request.
 	 *
 	 * @since   x.x.x
 	 *
 	 * @param bool $itemized_display_items Wether to return an array of items with its details or not.
-	 * @param bool $has_shipping_address True is the user has picked or entered a shipping address on the payment dialog.
+	 * @param bool $has_shipping_address Indicates if user has selected a shipping address on the payment dialog.
 	 */
 	protected function build_response( $itemized_display_items = false, $has_shipping_address = false ) {
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
