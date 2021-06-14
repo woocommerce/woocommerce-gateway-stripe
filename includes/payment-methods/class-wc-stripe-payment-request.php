@@ -1480,7 +1480,7 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// Mandatory payment details.
-		$data['needs_payer_phone'] = 'required' == get_option( 'woocommerce_checkout_phone_field', 'required' );
+		$data['needs_payer_phone'] = 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' );
 		$data['currency']          = strtolower( get_woocommerce_currency() );
 		$data['country_code']      = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
 
