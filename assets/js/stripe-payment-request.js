@@ -322,13 +322,10 @@ jQuery( function( $ ) {
 		 * @version 4.8.0
 		 */
 		startPaymentRequest: function( cart ) {
-			var paymentDetails,
-				options;
+			var options;
 
 			if ( wc_stripe_payment_request_params.is_product_page ) {
 				options = wc_stripe_payment_request.getRequestOptionsFromLocal();
-
-				paymentDetails = options;
 			} else {
 				options = {
 					total: cart.total,
@@ -340,8 +337,6 @@ jQuery( function( $ ) {
 					requestShipping: cart.requestShipping,
 					displayItems: cart.displayItems
 				};
-
-				paymentDetails = cart.order_data;
 			}
 
 			// Puerto Rico (PR) is the only US territory/possession that's supported by Stripe.
