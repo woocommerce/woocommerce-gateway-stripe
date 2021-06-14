@@ -1414,11 +1414,8 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// Tax
-		$tax              = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
-		$tax_to_substract = 0;
-
 		if ( wc_tax_enabled() ) {
-			$tax_to_substract = $tax;
+			$tax = wc_format_decimal( WC()->cart->tax_total + WC()->cart->shipping_tax_total, WC()->cart->dp );
 
 			$items[] = [
 				'label'   => esc_html( __( 'Tax', 'woocommerce-gateway-stripe' ) ),
@@ -1428,13 +1425,16 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// Shipping
-		$shipping              = wc_format_decimal( WC()->cart->shipping_total, WC()->cart->dp );
 		$shipping_to_substract = 0;
 
 		if ( wc_shipping_enabled() && WC()->cart->needs_shipping() ) {
 			$data['requestShipping'] = true;
+			$shipping                = wc_format_decimal( WC()->cart->shipping_total, WC()->cart->dp );
 
 			if ( ! $has_shipping_address ) {
+				// If the frontend says we don't have a shipping address but
+				// there's an amount for shipping it means a shipping address is on the session
+				// and we should remove that amount from the cart's total.
 				$shipping_to_substract = $shipping;
 				$shipping              = 0;
 			}
@@ -1490,7 +1490,7 @@ class WC_Stripe_Payment_Request {
 		} else {
 			// Getting the total amount from the cart automatically adds a shipping cost to it
 			// We need to remove it if the user hasn't picked a shipping address yet
-			$order_total = WC()->cart->get_total( false ) - $tax_to_substract - $shipping_to_substract;
+			$order_total = WC()->cart->get_total( false ) - $shipping_to_substract;
 		}
 
 		// Mandatory payment details.
