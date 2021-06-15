@@ -689,8 +689,8 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Returns true if the current page supports Payment Request Buttons, false otherwise.
 	 *
-	 * @since   5.3.0
-	 * @version 5.3.0
+	 * @since   x.x.x
+	 * @version x.x.x
 	 * @return  boolean  True if the current page is supported, false otherwise.
 	 */
 	private function is_page_supported() {
@@ -770,8 +770,8 @@ class WC_Stripe_Payment_Request {
 	 * Returns true if Payment Request Buttons are supported on the current page, false
 	 * otherwise.
 	 *
-	 * @since   5.3.0
-	 * @version 5.3.0
+	 * @since   x.x.x
+	 * @version x.x.x
 	 * @return  boolean  True if PRBs are supported on current page, false otherwise
 	 */
 	public function should_show_payment_request_button() {
@@ -834,8 +834,8 @@ class WC_Stripe_Payment_Request {
 	 *
 	 * @param WC_Product $param  The product that's being checked for support.
 	 *
-	 * @since   5.3.0
-	 * @version 5.3.0
+	 * @since   x.x.x
+	 * @version x.x.x
 	 * @return boolean  True if the provided product is supported, false otherwise.
 	 */
 	private function is_product_supported( $product ) {
