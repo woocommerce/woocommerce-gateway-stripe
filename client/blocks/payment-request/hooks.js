@@ -18,6 +18,8 @@ import {
 	createPaymentRequestUsingCart,
 } from '../stripe-utils';
 
+const noop = { removeEventListener: ( event ) => void event };
+
 /**
  * This hook takes care of creating a payment request and making sure
  * you can pay through said payment request.
@@ -38,33 +40,31 @@ export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
 	//   a) Stripe object is loaded; and
 	//   b) There is no payment request created already.
 	useEffect( () => {
-		// Do nothing if Stripe object isn't loaded or paymentRequest already exists.
-		if ( ! stripe || paymentRequest ) {
+		if ( ! stripe ) {
 			return;
 		}
-
-		getCartDetails().then( ( cart ) => {
+		const getPaymentRequest = async () => {
+			const cart = await getCartDetails();
 			const pr = createPaymentRequestUsingCart( stripe, cart );
+			const result = await pr.canMakePayment();
 
-			pr.canMakePayment().then( ( result ) => {
-				if ( result ) {
-					setPaymentRequest( pr );
+			if ( result ) {
+				setPaymentRequest( pr );
+				setPaymentRequestType( () => {
 					if ( result.applePay ) {
-						setPaymentRequestType( 'apple_pay' );
-					} else if ( result.googlePay ) {
-						setPaymentRequestType( 'google_pay' );
-					} else {
-						setPaymentRequestType( 'payment_request_api' );
+						return 'apple_pay';
 					}
-				}
-			} );
-		} );
-	}, [ paymentRequest, stripe ] );
-
-	// Reset the payment request if the need for shipping changes.
-	useEffect( () => {
+					if ( result.googlePay ) {
+						return 'google_pay';
+					}
+					return 'payment_request_api';
+				} );
+			}
+		};
 		setPaymentRequest( null );
+		getPaymentRequest();
 	}, [
+		stripe,
 		needsShipping,
 		billing.cartTotal,
 		billing.cartTotalItems,
@@ -72,86 +72,6 @@ export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
 	] );
 
 	return [ paymentRequest, paymentRequestType ];
-};
-
-/**
- * Adds a shipping address change event handler to the provided payment request. Updates the
- * order's shipping address when necessary.
- *
- * @param {Object} paymentRequest - The payment request object.
- * @param {string} paymentRequestType - The payment request type.
- */
-export const useShippingAddressUpdateHandler = (
-	paymentRequest,
-	paymentRequestType
-) => {
-	useEffect( () => {
-		// Need to use `?.` here in case paymentRequest is null.
-		const shippingAddressUpdateHandler = paymentRequest?.on(
-			'shippingaddresschange',
-			shippingAddressChangeHandler( paymentRequestType )
-		);
-
-		return () => {
-			// Need to use `?.` here in case shippingAddressUpdateHandler is null.
-			shippingAddressUpdateHandler?.removeAllListeners();
-		};
-	}, [ paymentRequest, paymentRequestType ] );
-};
-
-/**
- * Adds a shipping option change event handler to the provided payment request.
- *
- * @param {Object} paymentRequest - The payment request object.
- * @param {string} paymentRequestType - The payment request type.
- */
-export const useShippingOptionChangeHandler = (
-	paymentRequest,
-	paymentRequestType
-) => {
-	useEffect( () => {
-		// Need to use `?.` here in case paymentRequest is null.
-		const sippingOptionHandler = paymentRequest?.on(
-			'shippingoptionchange',
-			shippingOptionChangeHandler
-		);
-
-		return () => {
-			// Need to use `?.` here in case shippingAddressHandler is null.
-			sippingOptionHandler?.removeAllListeners();
-		};
-	}, [ paymentRequest, paymentRequestType ] );
-};
-
-/**
- * Adds a payment event handler to the provided payment request.
- *
- * @param {Object} stripe - The stripe object used to confirm and create a payment intent.
- * @param {Object} paymentRequest - The payment request object.
- * @param {string} paymentRequestType - The payment request type.
- * @param {Function} setExpressPaymentError - A function used to expose an error message to show
- *                                            the customer.
- */
-export const useProcessPaymentHandler = (
-	stripe,
-	paymentRequest,
-	paymentRequestType,
-	setExpressPaymentError
-) => {
-	useEffect( () => {
-		const paymentMethodUpdateHandler = paymentRequest?.on(
-			'source',
-			paymentProcessingHandler(
-				stripe,
-				paymentRequestType,
-				setExpressPaymentError
-			)
-		);
-
-		return () => {
-			paymentMethodUpdateHandler?.removeAllListeners();
-		};
-	}, [ stripe, paymentRequest, paymentRequestType, setExpressPaymentError ] );
 };
 
 /**
@@ -164,7 +84,7 @@ export const useProcessPaymentHandler = (
  *
  * @return {Function} An onClick handler for the payment request buttons.
  */
-export const useOnClickHandler = (
+ export const useOnClickHandler = (
 	paymentRequestType,
 	setExpressPaymentError,
 	onClick
@@ -194,6 +114,100 @@ export const useOnClickHandler = (
 };
 
 /**
+ * Adds a shipping address change event handler to the provided payment request. Updates the
+ * order's shipping address when necessary.
+ *
+ * @param {Object} paymentRequest - The payment request object.
+ * @param {string} paymentRequestType - The payment request type.
+ */
+export const useShippingAddressUpdateHandler = (
+	paymentRequest,
+	paymentRequestType
+) => {
+	useEffect( () => {
+		let handler = noop;
+
+		if ( paymentRequest ) {
+			handler = paymentRequest.on(
+				'shippingaddresschange',
+				shippingAddressChangeHandler( paymentRequestType )
+			);
+		}
+
+		return () => {
+			if ( paymentRequest ) {
+				handler.removeEventListener( 'shippingaddresschange' );
+			}
+		};
+	}, [ paymentRequest, paymentRequestType ] );
+};
+
+/**
+ * Adds a shipping option change event handler to the provided payment request.
+ *
+ * @param {Object} paymentRequest - The payment request object.
+ * @param {string} paymentRequestType - The payment request type.
+ */
+export const useShippingOptionChangeHandler = (
+	paymentRequest,
+	paymentRequestType
+) => {
+	useEffect( () => {
+		let handler = noop;
+
+		if ( paymentRequest ) {
+			handler = paymentRequest.on(
+				'shippingoptionchange',
+				shippingOptionChangeHandler
+			);
+		}
+
+		return () => {
+			if ( paymentRequest ) {
+				handler.removeEventListener( 'shippingoptionchange' );
+			}
+		};
+	}, [ paymentRequest, paymentRequestType ] );
+};
+
+/**
+ * Adds a payment event handler to the provided payment request.
+ *
+ * @param {Object} stripe - The stripe object used to confirm and create a payment intent.
+ * @param {Object} paymentRequest - The payment request object.
+ * @param {string} paymentRequestType - The payment request type.
+ * @param {Function} setExpressPaymentError - A function used to expose an error message to show
+ *                                            the customer.
+ */
+export const useProcessPaymentHandler = (
+	stripe,
+	paymentRequest,
+	paymentRequestType,
+	setExpressPaymentError
+) => {
+	useEffect( () => {
+		let handler = noop;
+
+		if ( paymentRequest ) {
+			handler = paymentRequest.on(
+				'source',
+				paymentProcessingHandler(
+					stripe,
+					paymentRequestType,
+					setExpressPaymentError
+				)
+			);
+		}
+
+		return () => {
+			if ( paymentRequest ) {
+				handler.removeEventListener( 'source' );
+			}
+		};
+	}, [ stripe, paymentRequest, paymentRequestType, setExpressPaymentError ] );
+};
+
+/**
  * Adds a cancellation handler to the provided payment request.
  *
  * @param {Object} paymentRequest - The payment request object.
@@ -201,8 +215,16 @@ export const useOnClickHandler = (
  */
 export const useCancelHandler = ( paymentRequest, onClose ) => {
 	useEffect( () => {
-		paymentRequest?.on( 'cancel', () => {
-			onClose();
-		} );
+		let handler = noop;
+
+		if ( paymentRequest ) {
+			handler = paymentRequest.on( 'cancel', onClose );
+		}
+
+		return () => {
+			if ( paymentRequest ) {
+				handler.removeEventListener( 'cancel' );
+			}
+		};
 	}, [ paymentRequest, onClose ] );
 };
