@@ -695,9 +695,7 @@ class WC_Stripe_Payment_Request {
 	 */
 	private function is_page_supported() {
 		return $this->is_product()
-			|| is_checkout()
-			|| is_cart()
-			|| WC_Stripe_Helper::has_cart_or_checkout_shortcode_on_current_page()
+			|| WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
 			|| isset( $_GET['pay_for_order'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	}
 
@@ -797,7 +795,7 @@ class WC_Stripe_Payment_Request {
 		// Don't show if on the cart or checkout page, or if page contains the cart or checkout
 		// shortcodes, with items in the cart that aren't supported.
 		if (
-			( is_cart() || is_checkout() || WC_Stripe_Helper::has_cart_or_checkout_shortcode_on_current_page() )
+			WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
 			&& ! $this->allowed_items_in_cart()
 		) {
 			return false;
