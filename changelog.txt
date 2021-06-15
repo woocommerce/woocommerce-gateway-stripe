@@ -1,7 +1,7 @@
 *** Changelog ***
 
 = 5.x.x - 2021-xx-xx =
-* Fix - Disabled Payment Request Buttons when order has to be split into multiple packages because Payment Requests do not support that use case.
+* Fix - Disable Payment Request Buttons when order has to be split into multiple packages because Payment Requests do not support that use case.
 
 = 5.2.3 - 2021-06-11 =
 * Fix - Credit card icons and credit card input on custom shortcode checkout pages.
