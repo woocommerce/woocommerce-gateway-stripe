@@ -1122,6 +1122,7 @@ class WC_Stripe_Payment_Request {
 			$product_type     = $product->get_type();
 			$variation_id     = 0;
 			$attributes       = [];
+			$is_in_stock      = $product->is_in_stock();
 
 			WC()->shipping->reset_shipping();
 
@@ -1137,7 +1138,12 @@ class WC_Stripe_Payment_Request {
 				if ( ! empty( $variation_id ) ) {
 					$variation        = wc_get_product( $variation_id );
 					$has_enough_stock = $variation->has_enough_stock( $quantity );
+					$is_in_stock      = $variation->is_in_stock();
 				}
+			}
+
+			if ( ! $is_in_stock ) {
+				throw new Exception( sprintf( __( 'Sorry, this product is unavailable. Please choose a different combination.', 'woocommerce-gateway-stripe' ) ) );
 			}
 
 			if ( ! $has_enough_stock ) {
