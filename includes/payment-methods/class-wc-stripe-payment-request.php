@@ -977,7 +977,8 @@ class WC_Stripe_Payment_Request {
 			$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods' );
 			$this->calculate_shipping( apply_filters( 'wc_stripe_payment_request_shipping_posted_values', $shipping_address ) );
 
-			$packages = WC()->shipping->get_packages();
+			$packages          = WC()->shipping->get_packages();
+			$shipping_rate_ids = [];
 
 			if ( ! empty( $packages ) && WC()->customer->has_calculated_shipping() ) {
 				foreach ( $packages as $package_key => $package ) {
@@ -986,6 +987,11 @@ class WC_Stripe_Payment_Request {
 					}
 
 					foreach ( $package['rates'] as $key => $rate ) {
+						if ( in_array( $rate->id, $shipping_rate_ids, true ) ) {
+							// Payment requests throw a fit if there are duplicate IDs.
+							throw new Exception( __( 'Unable to provide shipping options for Payment Requests.', 'woocommerce-gateway-stripe' ) );
+						}
+						$shipping_rate_ids[]        = $rate->id;
 						$data['shipping_options'][] = [
 							'id'     => $rate->id,
 							'label'  => $rate->label,
