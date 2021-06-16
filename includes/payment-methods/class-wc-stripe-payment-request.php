@@ -325,24 +325,6 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Gets the product total price.
-	 *
-	 * @since 5.2.0
-	 *
-	 * @param object $product WC_Product_* object.
-	 * @return integer Total price.
-	 */
-	public function get_product_price( $product ) {
-		$product_price = $product->get_price();
-		// Add subscription sign-up fees to product price.
-		if ( 'subscription' === $product->get_type() && class_exists( 'WC_Subscriptions_Product' ) ) {
-			$product_price = $product->get_price() + WC_Subscriptions_Product::get_sign_up_fee( $product );
-		}
-
-		return $product_price;
-	}
-
-	/**
 	 * Gets the product data for the currently viewed page
 	 *
 	 * @since   4.0.0
@@ -380,7 +362,7 @@ class WC_Stripe_Payment_Request {
 		$data                    = [];
 		$data['total']           = [
 			'label'   => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
-			'amount'  => WC_Stripe_Helper::get_stripe_amount( $this->get_product_price( $product ) ),
+			'amount'  => WC_Stripe_Helper::get_stripe_amount( $product->get_price() ),
 			'pending' => true,
 		];
 		$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
