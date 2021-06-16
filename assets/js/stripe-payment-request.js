@@ -532,13 +532,8 @@ jQuery( function( $ ) {
 				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 
 				// First check if product can be added to cart.
-				var addToCartButton = $( '.single_add_to_cart_button' );
-				if ( addToCartButton.is( '.disabled' ) ) {
-					if ( addToCartButton.is( '.wc-variation-is-unavailable' ) ) {
-						window.alert( wc_add_to_cart_variation_params.i18n_unavailable_text );
-					} else if ( addToCartButton.is( '.wc-variation-selection-needed' ) ) {
-						window.alert( wc_add_to_cart_variation_params.i18n_make_a_selection_text );
-					}
+				if ( $( '.single_add_to_cart_button' ).is( '.wc-variation-selection-needed' ) ) {
+					window.alert( wc_add_to_cart_variation_params.i18n_make_a_selection_text );
 					$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
 					return;
 				}
