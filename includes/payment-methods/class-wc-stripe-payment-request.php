@@ -988,7 +988,8 @@ class WC_Stripe_Payment_Request {
 
 					foreach ( $package['rates'] as $key => $rate ) {
 						if ( in_array( $rate->id, $shipping_rate_ids, true ) ) {
-							// Payment requests throw a fit if there are duplicate IDs.
+							// The Payment Requests will try to load indefinitely if there are duplicate shipping
+							// option IDs.
 							throw new Exception( __( 'Unable to provide shipping options for Payment Requests.', 'woocommerce-gateway-stripe' ) );
 						}
 						$shipping_rate_ids[]        = $rate->id;
