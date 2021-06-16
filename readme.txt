@@ -126,8 +126,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.2.3 - 2021-06-11 =
-
-* Fix - Credit card icons and credit card input on custom shortcode checkout pages.
+= 5.x.x - 2021-xx-xx =
+* Fix - Disable Payment Request Buttons when order has to be split into multiple packages because Payment Requests do not support that use case.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
