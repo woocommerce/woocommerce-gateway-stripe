@@ -100,17 +100,66 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			$this->get_payment_request_javascript_params(),
 			// Blocks-specific options
 			[
-				'title'          => $this->get_title(),
-				'icons'          => $this->get_icons(),
-				'supports'       => $this->get_supported_features(),
-				'showSavedCards' => $this->get_show_saved_cards(),
-				'showSaveOption' => $this->get_show_save_option(),
-				'isAdmin'        => is_admin(),
-				'button'         => [
+				'title'                          => $this->get_title(),
+				'icons'                          => $this->get_icons(),
+				'supports'                       => $this->get_supported_features(),
+				'showSavedCards'                 => $this->get_show_saved_cards(),
+				'showSaveOption'                 => $this->get_show_save_option(),
+				'isAdmin'                        => is_admin(),
+				'shouldShowPaymentRequestButton' => $this->should_show_payment_request_button(),
+				'button'                         => [
 					'customLabel' => $this->payment_request_configuration->get_button_label(),
 				],
 			]
 		);
+	}
+
+	/**
+	 * Returns true if the PRB should be shown on the current page, false otherwise.
+	 *
+	 * Note: We use `has_block()` in this function, which isn't supported until WP 5.0. However,
+	 * WooCommerce Blocks hasn't supported a WP version lower than 5.0 since 2019. Since this
+	 * function is only called when the WooCommerce Blocks extension is available, it should be
+	 * safe to call `has_block()` here.
+	 * That said, we only run those checks if the `has_block()` function exists, just in case.
+	 *
+	 * @return boolean  True if PRBs should be displayed, false otherwise
+	 */
+	private function should_show_payment_request_button() {
+		// TODO: Remove the `function_exists()` check once the minimum WP version has been bumped
+		//       to version 5.0.
+		if ( function_exists( 'has_block' ) ) {
+			global $post;
+
+			// Don't show if PRBs are supposed to be hidden on the cart page.
+			// Note: The cart block has the PRB enabled by default.
+			if (
+				has_block( 'woocommerce/cart' )
+				&& ! apply_filters( 'wc_stripe_show_payment_request_on_cart', true )
+			) {
+				return false;
+			}
+
+			// Don't show if PRBs are supposed to be hidden on the checkout page.
+			// Note: The checkout block has the PRB enabled by default. This differs from the shortcode
+			//       checkout where the PRB is disabled by default.
+			if (
+				has_block( 'woocommerce/checkout' )
+				&& ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', true, $post )
+			) {
+				return false;
+			}
+
+			// Don't show PRB if there are unsupported products in the cart.
+			if (
+				( has_block( 'woocommerce/checkout' ) || has_block( 'woocommerce/cart' ) )
+				&& ! $this->payment_request_configuration->allowed_items_in_cart()
+			) {
+				return false;
+			}
+		}
+
+		return $this->payment_request_configuration->should_show_payment_request_button();
 	}
 
 	/**

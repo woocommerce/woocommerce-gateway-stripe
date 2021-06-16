@@ -521,6 +521,12 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
+		// If the cart is not available we don't have any unsupported products in the cart, so we
+		// return true. This can happen e.g. when loading the cart or checkout blocks in Gutenberg.
+		if ( is_null( WC()->cart ) ) {
+			return true;
+		}
+
 		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 			$_product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
 
@@ -537,6 +543,13 @@ class WC_Stripe_Payment_Request {
 			if ( class_exists( 'WC_Subscriptions_Product' ) && WC_Subscriptions_Product::is_subscription( $_product ) && $_product->needs_shipping() && WC_Subscriptions_Product::get_trial_length( $_product ) > 0 ) {
 				return false;
 			}
+		}
+
+		// We don't support multiple packages with Payment Request Buttons because we can't offer
+		// a good UX.
+		$packages = WC()->cart->get_shipping_packages();
+		if ( 1 < count( $packages ) ) {
+			return false;
 		}
 
 		return true;
@@ -639,30 +652,15 @@ class WC_Stripe_Payment_Request {
 	 * @version 5.2.0
 	 */
 	public function scripts() {
-		// If keys are not set bail.
-		if ( ! $this->are_keys_set() ) {
-			WC_Stripe_Logger::log( 'Keys are not set correctly.' );
-			return;
-		}
-
-		// If no SSL bail.
-		if ( ! $this->testmode && ! is_ssl() ) {
-			WC_Stripe_Logger::log( 'Stripe Payment Request live mode requires SSL.' );
-			return;
-		}
-
 		// If page is not supported, bail.
-		if (
-			! $this->is_product()
-			&& ! WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
-			&& ! isset( $_GET['pay_for_order'] )
-		) {
+		// Note: This check is not in `should_show_payment_request_button()` because that function is
+		//       also called by the blocks support class, and this check would fail *incorrectly* when
+		//       called from there.
+		if ( ! $this->is_page_supported() ) {
 			return;
 		}
 
-		if ( $this->is_product() && ! $this->should_show_payment_button_on_product_page() ) {
-			return;
-		} elseif ( ! $this->should_show_payment_button_on_cart() ) {
+		if ( ! $this->should_show_payment_request_button() ) {
 			return;
 		}
 
@@ -689,27 +687,39 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
+	 * Returns true if the current page supports Payment Request Buttons, false otherwise.
+	 *
+	 * @since   x.x.x
+	 * @version x.x.x
+	 * @return  boolean  True if the current page is supported, false otherwise.
+	 */
+	private function is_page_supported() {
+		return $this->is_product()
+			|| WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
+			|| isset( $_GET['pay_for_order'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	}
+
+	/**
 	 * Display the payment request button.
 	 *
 	 * @since   4.0.0
 	 * @version 5.2.0
 	 */
 	public function display_payment_request_button_html() {
-		global $post;
-
 		$gateways = WC()->payment_gateways->get_available_payment_gateways();
 
 		if ( ! isset( $gateways['stripe'] ) ) {
 			return;
 		}
 
-		if ( ! is_cart() && ! is_checkout() && ! $this->is_product() && ! isset( $_GET['pay_for_order'] ) ) {
+		if ( ! $this->is_page_supported() ) {
 			return;
 		}
 
-		if ( is_checkout() && ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post ) ) {
+		if ( ! $this->should_show_payment_request_button() ) {
 			return;
 		}
+
 		?>
 		<div id="wc-stripe-payment-request-wrapper" style="clear:both;padding-top:1.5em;display:none;">
 			<div id="wc-stripe-payment-request-button">
@@ -755,50 +765,79 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Whether payment button html should be rendered on the Cart
+	 * Returns true if Payment Request Buttons are supported on the current page, false
+	 * otherwise.
 	 *
-	 * @since  4.4.1
-	 * @return boolean
+	 * @since   x.x.x
+	 * @version x.x.x
+	 * @return  boolean  True if PRBs are supported on current page, false otherwise
 	 */
-	private function should_show_payment_button_on_cart() {
+	public function should_show_payment_request_button() {
+		global $post;
+
+		// If keys are not set bail.
+		if ( ! $this->are_keys_set() ) {
+			WC_Stripe_Logger::log( 'Keys are not set correctly.' );
+			return false;
+		}
+
+		// If no SSL bail.
+		if ( ! $this->testmode && ! is_ssl() ) {
+			WC_Stripe_Logger::log( 'Stripe Payment Request live mode requires SSL.' );
+			return false;
+		}
+
 		// Not supported when user isn't authenticated and authentication is required.
 		if ( ! is_user_logged_in() && $this->is_authentication_required() ) {
 			return false;
 		}
 
-		if ( ! apply_filters( 'wc_stripe_show_payment_request_on_cart', true ) ) {
+		// Don't show if on the cart or checkout page, or if page contains the cart or checkout
+		// shortcodes, with items in the cart that aren't supported.
+		if (
+			WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
+			&& ! $this->allowed_items_in_cart()
+		) {
 			return false;
 		}
 
-		if ( ! $this->allowed_items_in_cart() ) {
-			WC_Stripe_Logger::log( 'Items in the cart has unsupported product type ( Payment Request button disabled )' );
+		// Don't show on cart if disabled.
+		if ( is_cart() && ! apply_filters( 'wc_stripe_show_payment_request_on_cart', true ) ) {
 			return false;
 		}
+
+		// Don't show on checkout if disabled.
+		if ( is_checkout() && ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post ) ) {
+			return false;
+		}
+
+		// Don't show if product page PRB is disabled.
+		if (
+			$this->is_product()
+			&& apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post )
+		) {
+			return false;
+		}
+
+		// Don't show if product on current page is not supported.
+		if ( $this->is_product() && ! $this->is_product_supported( $this->get_product() ) ) {
+			return false;
+		}
+
 		return true;
 	}
 
 	/**
-	 * Whether payment button html should be rendered
+	 * Returns true if a the provided product is supported, false otherwise.
 	 *
-	 * @since  4.3.2
-	 * @version 5.2.0
-	 * @return boolean
+	 * @param WC_Product $param  The product that's being checked for support.
+	 *
+	 * @since   x.x.x
+	 * @version x.x.x
+	 * @return boolean  True if the provided product is supported, false otherwise.
 	 */
-	private function should_show_payment_button_on_product_page() {
-		global $post;
-
-		if ( apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post ) ) {
-			return false;
-		}
-
-		$product = $this->get_product();
-
+	private function is_product_supported( $product ) {
 		if ( ! is_object( $product ) || ! in_array( $product->get_type(), $this->supported_product_types() ) ) {
-			return false;
-		}
-
-		// Not supported when user isn't authenticated and authentication is required.
-		if ( ! is_user_logged_in() && $this->is_authentication_required() ) {
 			return false;
 		}
 
@@ -938,7 +977,8 @@ class WC_Stripe_Payment_Request {
 			$chosen_shipping_methods = WC()->session->get( 'chosen_shipping_methods' );
 			$this->calculate_shipping( apply_filters( 'wc_stripe_payment_request_shipping_posted_values', $shipping_address ) );
 
-			$packages = WC()->shipping->get_packages();
+			$packages          = WC()->shipping->get_packages();
+			$shipping_rate_ids = [];
 
 			if ( ! empty( $packages ) && WC()->customer->has_calculated_shipping() ) {
 				foreach ( $packages as $package_key => $package ) {
@@ -947,6 +987,12 @@ class WC_Stripe_Payment_Request {
 					}
 
 					foreach ( $package['rates'] as $key => $rate ) {
+						if ( in_array( $rate->id, $shipping_rate_ids, true ) ) {
+							// The Payment Requests will try to load indefinitely if there are duplicate shipping
+							// option IDs.
+							throw new Exception( __( 'Unable to provide shipping options for Payment Requests.', 'woocommerce-gateway-stripe' ) );
+						}
+						$shipping_rate_ids[]        = $rate->id;
 						$data['shipping_options'][] = [
 							'id'     => $rate->id,
 							'label'  => $rate->label,
