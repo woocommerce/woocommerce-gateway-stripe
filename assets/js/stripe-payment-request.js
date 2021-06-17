@@ -2,7 +2,9 @@
 jQuery( function( $ ) {
 	'use strict';
 
-	var stripe = Stripe( wc_stripe_payment_request_params.stripe.key ),
+	var stripe = Stripe( wc_stripe_payment_request_params.stripe.key, {
+		locale: typeof wc_stripe_params !== 'undefined' ? wc_stripe_params.stripe_locale : 'auto',
+	} ),
 		paymentRequestType;
 
 	/**
@@ -542,7 +544,7 @@ jQuery( function( $ ) {
 		},
 
 		createGooglePayButton: function () {
-			var allowedThemes = [ 'dark', 'light' ];
+			var allowedThemes = [ 'dark', 'light', 'light-outline' ];
 			var allowedTypes = [ 'short', 'long' ];
 
 			var theme  = wc_stripe_payment_request_params.button.theme;
@@ -550,14 +552,15 @@ jQuery( function( $ ) {
 			var locale = wc_stripe_payment_request_params.button.locale;
 			var height = wc_stripe_payment_request_params.button.height;
 			theme = allowedThemes.includes( theme ) ? theme : 'light';
+			var gpaySvgTheme = 'dark' === theme ? 'dark' : 'light';
 			type = allowedTypes.includes( type ) ? type : 'long';
 
 			var button = $( '<button type="button" id="wc-stripe-branded-button" aria-label="Google Pay" class="gpay-button"></button>' );
 			button.css( 'height', height + 'px' );
 			button.addClass( theme + ' ' + type );
 			if ( 'long' === type ) {
-				var url = 'https://www.gstatic.com/instantbuy/svg/' + theme + '/' + locale + '.svg';
-				var fallbackUrl = 'https://www.gstatic.com/instantbuy/svg/' + theme + '/en.svg';
+				var url = 'https://www.gstatic.com/instantbuy/svg/' + gpaySvgTheme + '/' + locale + '.svg';
+				var fallbackUrl = 'https://www.gstatic.com/instantbuy/svg/' + gpaySvgTheme + '/en.svg';
 				// Check if locale GPay button exists, default to en if not
 				setBackgroundImageWithFallback( button, url, fallbackUrl );
 			}
@@ -610,8 +613,20 @@ jQuery( function( $ ) {
 				}
 			});
 
+			$( document.body ).on( 'wc_stripe_unblock_payment_request_button wc_stripe_enable_payment_request_button', function () {
+				wc_stripe_payment_request.unblockPaymentRequestButton();
+			} );
+
+			$( document.body ).on( 'wc_stripe_block_payment_request_button', function () {
+				wc_stripe_payment_request.blockPaymentRequestButton( 'wc_request_button_is_blocked' );
+			} );
+
+			$( document.body ).on( 'wc_stripe_disable_payment_request_button', function () {
+				wc_stripe_payment_request.blockPaymentRequestButton( 'wc_request_button_is_disabled' );
+			} );
+
 			$( document.body ).on( 'woocommerce_variation_has_changed', function () {
-				wc_stripe_payment_request.blockPaymentRequestButton( prButton );
+				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 
 				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
 					$.when(
@@ -620,7 +635,7 @@ jQuery( function( $ ) {
 							displayItems: response.displayItems,
 						} )
 					).then( function () {
-						wc_stripe_payment_request.unblockPaymentRequestButton( prButton );
+						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
 					} );
 				});
 			} );
@@ -628,17 +643,17 @@ jQuery( function( $ ) {
 			// Block the payment request button as soon as an "input" event is fired, to avoid sync issues
 			// when the customer clicks on the button before the debounced event is processed.
 			$( '.quantity' ).on( 'input', '.qty', function() {
-				wc_stripe_payment_request.blockPaymentRequestButton( prButton );
+				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 			} );
 
 			$( '.quantity' ).on( 'input', '.qty', wc_stripe_payment_request.debounce( 250, function() {
-				wc_stripe_payment_request.blockPaymentRequestButton( prButton );
+				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 				paymentRequestError = [];
 
 				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
 					if ( response.error ) {
 						paymentRequestError = [ response.error ];
-						wc_stripe_payment_request.unblockPaymentRequestButton( prButton );
+						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
 					} else {
 						$.when(
 							paymentRequest.update( {
@@ -646,7 +661,7 @@ jQuery( function( $ ) {
 								displayItems: response.displayItems,
 							} )
 						).then( function () {
-							wc_stripe_payment_request.unblockPaymentRequestButton( prButton );
+							$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
 						});
 					}
 				} );
@@ -678,24 +693,22 @@ jQuery( function( $ ) {
 			}
 		},
 
-		blockPaymentRequestButton: function( prButton ) {
+		blockPaymentRequestButton: function( cssClassname ) {
 			// check if element isn't already blocked before calling block() to avoid blinking overlay issues
 			// blockUI.isBlocked is either undefined or 0 when element is not blocked
 			if ( $( '#wc-stripe-payment-request-button' ).data( 'blockUI.isBlocked' ) ) {
 				return;
 			}
 
-			$( '#wc-stripe-payment-request-button' ).block( { message: null } );
-			if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
-				prButton.addClass( 'is-blocked' );
-			}
+			$( '#wc-stripe-payment-request-button' )
+				.addClass( cssClassname )
+				.block( { message: null } );
 		},
 
-		unblockPaymentRequestButton: function( prButton ) {
-			$( '#wc-stripe-payment-request-button' ).unblock();
-			if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) ) {
-				prButton.removeClass( 'is-blocked' );
-			}
+		unblockPaymentRequestButton: function() {
+			$( '#wc-stripe-payment-request-button' )
+				.removeClass( ['wc_request_button_is_blocked', 'wc_request_button_is_disabled'] )
+				.unblock();
 		},
 
 		/**

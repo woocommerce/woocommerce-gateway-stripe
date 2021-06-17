@@ -467,7 +467,7 @@ class WC_Stripe_Sepa_Subs_Compat extends WC_Gateway_Stripe_Sepa {
 		}
 
 		// If we couldn't find a Stripe customer linked to the account, fallback to the order meta data.
-		if ( ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) && false !== $subscription->order ) {
+		if ( ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) && false !== $subscription->get_parent() ) {
 			$stripe_customer_id = get_post_meta( $subscription->get_parent_id(), '_stripe_customer_id', true );
 			$stripe_source_id   = get_post_meta( $subscription->get_parent_id(), '_stripe_source_id', true );
 

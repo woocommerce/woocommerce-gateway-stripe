@@ -102,6 +102,23 @@ class WC_Stripe_Intent_Controller {
 		try {
 			$gateway->verify_intent_after_checkout( $order );
 
+			if ( isset( $_GET['save_payment_method'] ) && ! empty( $_GET['save_payment_method'] ) ) {
+				$intent = $gateway->get_intent_from_order( $order );
+				if ( isset( $intent->last_payment_error ) ) {
+					// Currently, Stripe saves the payment method even if the authentication fails for 3DS cards.
+					// Although, the card is not stored in DB we need to remove the source from the customer on Stripe
+					// in order to keep the sources in sync with the data in DB.
+					$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+					$customer->delete_source( $intent->last_payment_error->source->id );
+				} else {
+					$metadata = $intent->metadata;
+					if ( isset( $metadata->save_payment_method ) && 'true' === $metadata->save_payment_method ) {
+						$source_object = WC_Stripe_API::retrieve( 'sources/' . $intent->source );
+						$gateway->save_payment_method( $source_object );
+					}
+				}
+			}
+
 			if ( ! isset( $_GET['is_ajax'] ) ) {
 				$redirect_url = isset( $_GET['redirect_to'] ) // wpcs: csrf ok.
 					? esc_url_raw( wp_unslash( $_GET['redirect_to'] ) ) // wpcs: csrf ok.

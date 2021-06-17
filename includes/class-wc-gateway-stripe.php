@@ -361,54 +361,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Payment_scripts function.
+	 * Returns the JavaScript configuration object used on the product, cart, and checkout pages.
 	 *
-	 * Outputs scripts used for stripe payment
-	 *
-	 * @since 3.1.0
-	 * @version 4.0.0
+	 * @return array  The configuration object to be loaded to JS.
 	 */
-	public function payment_scripts() {
+	public function javascript_params() {
 		global $wp;
-		if (
-			! is_product()
-			&& ! is_cart()
-			&& ! is_checkout()
-			&& ! isset( $_GET['pay_for_order'] ) // wpcs: csrf ok.
-			&& ! is_add_payment_method_page()
-			&& ! isset( $_GET['change_payment_method'] ) // wpcs: csrf ok.
-			&& ! ( ! empty( get_query_var( 'view-subscription' ) ) && is_callable( 'WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled' ) && WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled() )
-			|| ( is_order_received_page() )
-		) {
-			return;
-		}
-
-		// If Stripe is not enabled bail.
-		if ( 'no' === $this->enabled ) {
-			return;
-		}
-
-		// If keys are not set bail.
-		if ( ! $this->are_keys_set() ) {
-			WC_Stripe_Logger::log( 'Keys are not set correctly.' );
-			return;
-		}
-
-		// If no SSL bail.
-		if ( ! $this->testmode && ! is_ssl() ) {
-			WC_Stripe_Logger::log( 'Stripe live mode requires SSL.' );
-			return;
-		}
-
-		$current_theme = wp_get_theme();
-
-		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
-
-		wp_register_style( 'stripe_styles', plugins_url( 'assets/css/stripe-styles.css', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );
-		wp_enqueue_style( 'stripe_styles' );
-
-		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
-		wp_register_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [ 'jquery-payment', 'stripe' ], WC_STRIPE_VERSION, true );
 
 		$stripe_params = [
 			'key'                  => $this->publishable_key,
@@ -442,6 +400,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			]
 		);
 
+		$stripe_params['stripe_locale']             = WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() );
 		$stripe_params['no_prepaid_card_msg']       = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charged. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
 		$stripe_params['no_sepa_owner_msg']         = __( 'Please enter your IBAN account name.', 'woocommerce-gateway-stripe' );
 		$stripe_params['no_sepa_iban_msg']          = __( 'Please enter your IBAN account number.', 'woocommerce-gateway-stripe' );
@@ -467,7 +426,60 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		// Merge localized messages to be use in JS.
 		$stripe_params = array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
 
-		wp_localize_script( 'woocommerce_stripe', 'wc_stripe_params', apply_filters( 'wc_stripe_params', $stripe_params ) );
+		return $stripe_params;
+	}
+
+	/**
+	 * Payment_scripts function.
+	 *
+	 * Outputs scripts used for stripe payment
+	 *
+	 * @since 3.1.0
+	 * @version 4.0.0
+	 */
+	public function payment_scripts() {
+		if (
+			! is_product()
+			&& ! WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
+			&& ! isset( $_GET['pay_for_order'] ) // wpcs: csrf ok.
+			&& ! is_add_payment_method_page()
+			&& ! isset( $_GET['change_payment_method'] ) // wpcs: csrf ok.
+			&& ! ( ! empty( get_query_var( 'view-subscription' ) ) && is_callable( 'WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled' ) && WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled() )
+			|| ( is_order_received_page() )
+		) {
+			return;
+		}
+
+		// If Stripe is not enabled bail.
+		if ( 'no' === $this->enabled ) {
+			return;
+		}
+
+		// If keys are not set bail.
+		if ( ! $this->are_keys_set() ) {
+			WC_Stripe_Logger::log( 'Keys are not set correctly.' );
+			return;
+		}
+
+		// If no SSL bail.
+		if ( ! $this->testmode && ! is_ssl() ) {
+			WC_Stripe_Logger::log( 'Stripe live mode requires SSL.' );
+			return;
+		}
+
+		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+
+		wp_register_style( 'stripe_styles', plugins_url( 'assets/css/stripe-styles.css', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );
+		wp_enqueue_style( 'stripe_styles' );
+
+		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
+		wp_register_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [ 'jquery-payment', 'stripe' ], WC_STRIPE_VERSION, true );
+
+		wp_localize_script(
+			'woocommerce_stripe',
+			'wc_stripe_params',
+			apply_filters( 'wc_stripe_params', $this->javascript_params() )
+		);
 
 		$this->tokenization_script();
 		wp_enqueue_script( 'woocommerce_stripe' );
@@ -627,6 +639,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$intent = $this->confirm_intent( $intent, $order, $prepared_source );
 			}
 
+			$force_save_source_value = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $prepared_source->source );
+
+			if ( 'succeeded' === $intent->status && ! $this->is_using_saved_payment_method() && ( $this->save_payment_method_requested() || $force_save_source_value ) ) {
+				$this->save_payment_method( $prepared_source->source_object );
+			}
+
 			if ( ! empty( $intent->error ) ) {
 				$this->maybe_remove_non_existent_customer( $intent->error, $order );
 
@@ -700,6 +718,28 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				'result'   => 'fail',
 				'redirect' => '',
 			];
+		}
+	}
+
+	/**
+	 * Saves payment method
+	 *
+	 * @param object $source_object
+	 * @throws WC_Stripe_Exception
+	 */
+	public function save_payment_method( $source_object ) {
+		$user_id  = get_current_user_id();
+		$customer = new WC_Stripe_Customer( $user_id );
+
+		if ( ( $user_id && 'reusable' === $source_object->usage ) ) {
+			$response = $customer->add_source( $source_object->id );
+
+			if ( ! empty( $response->error ) ) {
+				throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
+			}
+			if ( is_wp_error( $response ) ) {
+				throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
+			}
 		}
 	}
 
@@ -1013,14 +1053,19 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Put the final thank you page redirect into the verification URL.
-		$verification_url = add_query_arg(
-			[
-				'order'       => $order_id,
-				'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
-				'redirect_to' => rawurlencode( $result['redirect'] ),
-			],
-			WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
-		);
+		$query_params = [
+			'order'       => $order_id,
+			'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
+			'redirect_to' => rawurlencode( $result['redirect'] ),
+		];
+
+		$force_save_source_value = apply_filters( 'wc_stripe_force_save_source', false );
+
+		if ( $this->save_payment_method_requested() || $force_save_source_value ) {
+			$query_params['save_payment_method'] = true;
+		}
+
+		$verification_url = add_query_arg( $query_params, WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' ) );
 
 		if ( isset( $result['payment_intent_secret'] ) ) {
 			$redirect = sprintf( '#confirm-pi-%s:%s', $result['payment_intent_secret'], rawurlencode( $verification_url ) );
@@ -1231,5 +1276,49 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			}
 		}
 		return $settings;
+	}
+
+	/**
+	 * This is overloading the title type so the oauth url is only fetched if we are on the settings page.
+	 *
+	 * @param string $key Field key.
+	 * @param array  $data Field data.
+	 * @return string
+	 */
+	public function generate_stripe_account_keys_html( $key, $data ) {
+		if ( woocommerce_gateway_stripe()->connect->is_connected() ) {
+			$reset_link = add_query_arg(
+				[
+					'_wpnonce'                     => wp_create_nonce( 'reset_stripe_api_credentials' ),
+					'reset_stripe_api_credentials' => true,
+				],
+				admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' )
+			);
+
+			$api_credentials_text = sprintf(
+			/* translators: %1, %2, %3, and %4 are all HTML markup tags */
+				__( '%1$sClear all Stripe account keys.%2$s %3$sThis will disable any connection to Stripe.%4$s', 'woocommerce-gateway-stripe' ),
+				'<a id="wc_stripe_connect_button" href="' . $reset_link . '" class="button button-secondary">',
+				'</a>',
+				'<span style="color:red;">',
+				'</span>'
+			);
+		} else {
+			$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url();
+
+			if ( ! is_wp_error( $oauth_url ) ) {
+				$api_credentials_text = sprintf(
+				/* translators: %1, %2 and %3 are all HTML markup tags */
+					__( '%1$sSetup or link an existing Stripe account.%2$s By clicking this button you agree to the %3$sTerms of Service%2$s. Or, manually enter Stripe account keys below.', 'woocommerce-gateway-stripe' ),
+					'<a id="wc_stripe_connect_button" href="' . $oauth_url . '" class="button button-primary">',
+					'</a>',
+					'<a href="https://wordpress.com/tos">'
+				);
+			} else {
+				$api_credentials_text = __( 'Manually enter Stripe keys below.', 'woocommerce-gateway-stripe' );
+			}
+		}
+		$data['description'] = $api_credentials_text;
+		return $this->generate_title_html( $key, $data );
 	}
 }

@@ -118,7 +118,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		return (
 			$error &&
 			'invalid_request_error' === $error->type &&
-			preg_match( '/No such source/i', $error->message )
+			preg_match( '/No such (source|PaymentMethod)/i', $error->message )
 		);
 	}
 
@@ -186,6 +186,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		return parent::is_available();
+	}
+
+	public function save_payment_method_requested() {
+		$payment_method = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : 'stripe';
+
+		return isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
 	}
 
 	/**
@@ -635,7 +641,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			 * actually reusable. Either that or force_save_source is true.
 			 */
 			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && 'reusable' === $source_object->usage ) || $force_save_source ) {
-				$response = $customer->add_source( $source_object->id );
+				$response = $customer->attach_source( $source_object->id );
 
 				if ( ! empty( $response->error ) ) {
 					throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
@@ -665,7 +671,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			// This is true if the user wants to store the card to their account.
 			if ( ( $user_id && $this->saved_cards && $maybe_saved_card ) || $force_save_source ) {
-				$response = $customer->add_source( $stripe_token );
+				$response = $customer->attach_source( $stripe_token );
 
 				if ( ! empty( $response->error ) ) {
 					throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
@@ -673,7 +679,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				if ( is_wp_error( $response ) ) {
 					throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
 				}
-				$source_id = $response;
+				$source_id = $response->id;
 			} else {
 				$source_id = $stripe_token;
 				$is_token  = true;
@@ -912,7 +918,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( ! empty( $response->error ) ) {
 			WC_Stripe_Logger::log( 'Error: ' . $response->error->message );
 
-			return $response;
+			return new WP_Error(
+				'stripe_error',
+				sprintf(
+					/* translators: %1$s is a stripe error message */
+					__( 'There was a problem initiating a refund: %1$s', 'woocommerce-gateway-stripe' ),
+					$response->error->message
+				)
+			);
 
 		} elseif ( ! empty( $response->id ) ) {
 			$formatted_amount = wc_price( $response->amount / 100 );
@@ -1079,6 +1092,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				'card',
 			],
 		];
+
+		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->source );
+
+		if ( $this->save_payment_method_requested() || $force_save_source ) {
+			$request['setup_future_usage']              = 'off_session';
+			$request['metadata']['save_payment_method'] = 'true';
+		}
 
 		if ( $prepared_source->customer ) {
 			$request['customer'] = $prepared_source->customer;

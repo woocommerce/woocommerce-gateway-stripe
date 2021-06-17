@@ -5,11 +5,11 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 5.0.0
+ * Version: 5.2.3
  * Requires at least: 4.4
- * Tested up to: 5.6
+ * Tested up to: 5.7
  * WC requires at least: 3.0
- * WC tested up to: 5.0
+ * WC tested up to: 5.4
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '5.0.0' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '5.2.3' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '3.0' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '3.3' );
@@ -93,6 +93,13 @@ function woocommerce_gateway_stripe() {
 			public $connect;
 
 			/**
+			 * Stripe Payment Request configurations.
+			 *
+			 * @var WC_Stripe_Payment_Request
+			 */
+			public $payment_request_configuration;
+
+			/**
 			 * Private clone method to prevent cloning of the instance of the
 			 * *Singleton* instance.
 			 *
@@ -117,8 +124,9 @@ function woocommerce_gateway_stripe() {
 
 				$this->init();
 
-				$this->api     = new WC_Stripe_Connect_API();
-				$this->connect = new WC_Stripe_Connect( $this->api );
+				$this->api                           = new WC_Stripe_Connect_API();
+				$this->connect                       = new WC_Stripe_Connect( $this->api );
+				$this->payment_request_configuration = new WC_Stripe_Payment_Request();
 
 				add_action( 'rest_api_init', [ $this, 'register_connect_routes' ] );
 			}
@@ -156,6 +164,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-multibanco.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-payment-request.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-subs-compat.php';
+				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-woo-compat-utils.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-sepa-subs-compat.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect-api.php';
@@ -214,6 +223,7 @@ function woocommerce_gateway_stripe() {
 						define( 'WC_STRIPE_INSTALLING', true );
 					}
 
+					add_woocommerce_inbox_variant();
 					$this->update_plugin_version();
 				}
 			}
@@ -389,4 +399,54 @@ function woocommerce_gateway_stripe_init() {
 	}
 
 	woocommerce_gateway_stripe();
+}
+
+/**
+ * Add woocommerce_inbox_variant for the Remote Inbox Notification.
+ *
+ * P2 post can be found at https://wp.me/paJDYF-1uJ.
+ */
+if ( ! function_exists( 'add_woocommerce_inbox_variant' ) ) {
+	function add_woocommerce_inbox_variant() {
+		$config_name = 'woocommerce_inbox_variant_assignment';
+		if ( false === get_option( $config_name, false ) ) {
+			update_option( $config_name, wp_rand( 1, 12 ) );
+		}
+	}
+}
+register_activation_hook( __FILE__, 'add_woocommerce_inbox_variant' );
+
+// Hook in Blocks integration. This action is called in a callback on plugins loaded, so current Stripe plugin class
+// implementation is too late.
+add_action( 'woocommerce_blocks_loaded', 'woocommerce_gateway_stripe_woocommerce_block_support' );
+
+function woocommerce_gateway_stripe_woocommerce_block_support() {
+	if ( class_exists( 'Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType' ) ) {
+		require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-blocks-support.php';
+		// priority is important here because this ensures this integration is
+		// registered before the WooCommerce Blocks built-in Stripe registration.
+		// Blocks code has a check in place to only register if 'stripe' is not
+		// already registered.
+		add_action(
+			'woocommerce_blocks_payment_method_type_registration',
+			function( Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry ) {
+				$container = Automattic\WooCommerce\Blocks\Package::container();
+				// registers as shared instance.
+				$container->register(
+					WC_Stripe_Blocks_Support::class,
+					function() {
+						if ( class_exists( 'WC_Stripe' ) ) {
+							return new WC_Stripe_Blocks_Support( WC_Stripe::get_instance()->payment_request_configuration );
+						} else {
+							return new WC_Stripe_Blocks_Support();
+						}
+					}
+				);
+				$payment_method_registry->register(
+					$container->get( WC_Stripe_Blocks_Support::class )
+				);
+			},
+			5
+		);
+	}
 }
