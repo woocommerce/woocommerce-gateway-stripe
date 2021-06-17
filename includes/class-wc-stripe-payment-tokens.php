@@ -104,19 +104,17 @@ class WC_Stripe_Payment_Tokens {
 				$payment_methods = $stripe_customer->get_payment_methods( 'card' );
 
 				foreach ( $payment_methods as $payment_method ) {
-					if ( isset( $payment_method->type ) && 'card' === $payment_method->type ) {
-						if ( ! in_array( $payment_method->id, $stored_tokens, true ) ) {
-							$token = new WC_Payment_Token_CC();
-							$token->set_token( $payment_method->id );
-							$token->set_gateway_id( 'stripe' );
-							$token->set_card_type( strtolower( $payment_method->card->brand ) );
-							$token->set_last4( $payment_method->card->last4 );
-							$token->set_expiry_month( $payment_method->card->exp_month );
-							$token->set_expiry_year( $payment_method->card->exp_year );
-							$token->set_user_id( $customer_id );
-							$token->save();
-							$tokens[ $token->get_id() ] = $token;
-						}
+					if ( ! in_array( $payment_method->id, $stored_tokens, true ) ) {
+						$token = new WC_Payment_Token_CC();
+						$token->set_token( $payment_method->id );
+						$token->set_gateway_id( 'stripe' );
+						$token->set_card_type( strtolower( $payment_method->card->brand ) );
+						$token->set_last4( $payment_method->card->last4 );
+						$token->set_expiry_month( $payment_method->card->exp_month );
+						$token->set_expiry_year( $payment_method->card->exp_year );
+						$token->set_user_id( $customer_id );
+						$token->save();
+						$tokens[ $token->get_id() ] = $token;
 					}
 				}
 			}
@@ -125,16 +123,14 @@ class WC_Stripe_Payment_Tokens {
 				$payment_methods = $stripe_customer->get_payment_methods( 'sepa_debit' );
 
 				foreach ( $payment_methods as $payment_method ) {
-					if ( isset( $payment_method->type ) && 'sepa_debit' === $payment_method->type ) {
-						if ( ! in_array( $payment_method->id, $stored_tokens, true ) ) {
-							$token = new WC_Payment_Token_SEPA();
-							$token->set_token( $payment_method->id );
-							$token->set_gateway_id( 'stripe_sepa' );
-							$token->set_last4( $payment_method->sepa_debit->last4 );
-							$token->set_user_id( $customer_id );
-							$token->save();
-							$tokens[ $token->get_id() ] = $token;
-						}
+					if ( ! in_array( $payment_method->id, $stored_tokens, true ) ) {
+						$token = new WC_Payment_Token_SEPA();
+						$token->set_token( $payment_method->id );
+						$token->set_gateway_id( 'stripe_sepa' );
+						$token->set_last4( $payment_method->sepa_debit->last4 );
+						$token->set_user_id( $customer_id );
+						$token->save();
+						$tokens[ $token->get_id() ] = $token;
 					}
 				}
 			}

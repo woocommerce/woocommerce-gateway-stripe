@@ -451,7 +451,6 @@ class WC_Stripe_Customer {
 	 * Deletes caches for this users cards.
 	 */
 	public function clear_cache() {
-		delete_transient( 'stripe_sources_' . $this->get_id() );
 		delete_transient( 'stripe_payment_methods_' . $this->get_id() );
 		delete_transient( 'stripe_customer_' . $this->get_id() );
 		$this->customer_data = [];
