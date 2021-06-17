@@ -86,7 +86,7 @@ class WC_Stripe_Payment_Tokens {
 	 * Gets saved tokens from API if they don't already exist in WooCommerce.
 	 *
 	 * @since 3.1.0
-	 * @version 4.0.0
+	 * @version 5.x.x
 	 * @param array $tokens
 	 * @return array
 	 */

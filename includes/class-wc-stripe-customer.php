@@ -408,7 +408,7 @@ class WC_Stripe_Customer {
 	/**
 	 * Get the customer saved payment methods using their Stripe ID.
 	 *
-	 * @since 5.1.0
+	 * @since 5.x.x
 	 *
 	 * @param string $type Type of Stripe PaymentMethods to return (card, sepa_debit, bacs_debit, etc)
 	 *
