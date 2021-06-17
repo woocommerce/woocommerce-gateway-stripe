@@ -101,11 +101,11 @@ class WC_Stripe_Payment_Tokens {
 			$stripe_customer = new WC_Stripe_Customer( $customer_id );
 
 			if ( 'stripe' === $gateway_id ) {
-				$payment_methods  = $stripe_customer->get_payment_methods( 'card' );
+				$payment_methods = $stripe_customer->get_payment_methods( 'card' );
 
 				foreach ( $payment_methods as $payment_method ) {
 					if ( isset( $payment_method->type ) && 'card' === $payment_method->type ) {
-						if ( ! in_array( $payment_method->id, $stored_tokens ) ) {
+						if ( ! in_array( $payment_method->id, $stored_tokens, true ) ) {
 							$token = new WC_Payment_Token_CC();
 							$token->set_token( $payment_method->id );
 							$token->set_gateway_id( 'stripe' );
@@ -122,11 +122,11 @@ class WC_Stripe_Payment_Tokens {
 			}
 
 			if ( 'stripe_sepa' === $gateway_id ) {
-				$payment_methods  = $stripe_customer->get_payment_methods( 'sepa_debit' );
+				$payment_methods = $stripe_customer->get_payment_methods( 'sepa_debit' );
 
 				foreach ( $payment_methods as $payment_method ) {
 					if ( isset( $payment_method->type ) && 'sepa_debit' === $payment_method->type ) {
-						if ( ! in_array( $payment_method->id, $stored_tokens ) ) {
+						if ( ! in_array( $payment_method->id, $stored_tokens, true ) ) {
 							$token = new WC_Payment_Token_SEPA();
 							$token->set_token( $payment_method->id );
 							$token->set_gateway_id( 'stripe_sepa' );
