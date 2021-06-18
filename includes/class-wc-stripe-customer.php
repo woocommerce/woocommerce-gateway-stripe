@@ -420,7 +420,10 @@ class WC_Stripe_Customer {
 			return [];
 		}
 
-		$payment_methods = get_transient( 'stripe_payment_methods_' . $this->get_id() );
+		$payment_methods = false;
+		if ( 'card' === $type || 'sepa_debit' === $type ) {
+			$payment_methods = get_transient( "stripe_payment_methods_{$type}_{$this->get_id()}" );
+		}
 
 		if ( false === $payment_methods ) {
 			$response = WC_Stripe_API::request(
@@ -441,7 +444,9 @@ class WC_Stripe_Customer {
 				$payment_methods = $response->data;
 			}
 
-			set_transient( 'stripe_payment_methods_' . $this->get_id(), $payment_methods, DAY_IN_SECONDS );
+			if ( 'card' === $type || 'sepa_debit' === $type ) {
+				set_transient( "stripe_payment_methods_{$type}_{$this->get_id()}", $payment_methods, DAY_IN_SECONDS );
+			}
 		}
 
 		return empty( $payment_methods ) ? [] : $payment_methods;
@@ -451,7 +456,8 @@ class WC_Stripe_Customer {
 	 * Deletes caches for this users cards.
 	 */
 	public function clear_cache() {
-		delete_transient( 'stripe_payment_methods_' . $this->get_id() );
+		delete_transient( 'stripe_payment_methods_card' . $this->get_id() );
+		delete_transient( 'stripe_payment_methods_sepa_debit' . $this->get_id() );
 		delete_transient( 'stripe_customer_' . $this->get_id() );
 		$this->customer_data = [];
 	}
