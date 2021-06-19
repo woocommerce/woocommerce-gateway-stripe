@@ -897,11 +897,6 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
-		// Composite products are not supported on the product page.
-		if ( class_exists( 'WC_Composite_Products' ) && function_exists( 'is_composite_product' ) && is_composite_product() ) {
-			return false;
-		}
-
 		// File upload addon not supported
 		if ( class_exists( 'WC_Product_Addons_Helper' ) ) {
 			$product_addons = WC_Product_Addons_Helper::get_product_addons( $product->get_id() );

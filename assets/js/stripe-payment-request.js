@@ -279,8 +279,10 @@ jQuery( function( $ ) {
 				has_shipping_address: hasShippingAddress,
 			};
 
+			var $form = $( 'form.cart' );
+			var formData = $form.serializeArray();
+
 			// add addons data to the POST body
-			var formData = $( 'form.cart' ).serializeArray();
 			$.each( formData, function( i, field ) {
 				if ( /^addon-/.test( field.name ) ) {
 					if ( /\[\]$/.test( field.name ) ) {
@@ -295,6 +297,13 @@ jQuery( function( $ ) {
 					}
 				}
 			} );
+
+			// Add Composite data required by Composite plugin
+			if ( $form.is( '.composite_form' ) ) {
+				$form.find( '[name^="wccp_component_"]' ).each( function ( i, el ) {
+					data[ el.name ] = el.value;
+				} );
+			}
 
 			return $.ajax( {
 				type: 'POST',
