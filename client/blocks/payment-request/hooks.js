@@ -136,9 +136,7 @@ export const useShippingAddressUpdateHandler = (
 		}
 
 		return () => {
-			if ( paymentRequest ) {
-				handler.removeEventListener( 'shippingaddresschange' );
-			}
+			handler.removeEventListener( 'shippingaddresschange' );
 		};
 	}, [ paymentRequest, paymentRequestType ] );
 };
@@ -164,9 +162,7 @@ export const useShippingOptionChangeHandler = (
 		}
 
 		return () => {
-			if ( paymentRequest ) {
-				handler.removeEventListener( 'shippingoptionchange' );
-			}
+			handler.removeEventListener( 'shippingoptionchange' );
 		};
 	}, [ paymentRequest, paymentRequestType ] );
 };
@@ -201,9 +197,7 @@ export const useProcessPaymentHandler = (
 		}
 
 		return () => {
-			if ( paymentRequest ) {
-				handler.removeEventListener( 'source' );
-			}
+			handler.removeEventListener( 'source' );
 		};
 	}, [ stripe, paymentRequest, paymentRequestType, setExpressPaymentError ] );
 };
@@ -223,9 +217,7 @@ export const useCancelHandler = ( paymentRequest, onClose ) => {
 		}
 
 		return () => {
-			if ( paymentRequest ) {
-				handler.removeEventListener( 'cancel' );
-			}
+			handler.removeEventListener( 'cancel' );
 		};
 	}, [ paymentRequest, onClose ] );
 };
