@@ -596,7 +596,7 @@ class WC_Stripe_Payment_Request {
 			if ( WC_Subscriptions_Product::is_subscription( $product ) ) {
 				return true;
 			}
-		} elseif ( $this->is_checkout() || $this->is_cart() ) {
+		} elseif ( WC_Stripe_Helper::has_cart_or_checkout_on_current_page() ) {
 			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
 				$_product = apply_filters( 'woocommerce_cart_item_product', $cart_item['data'], $cart_item, $cart_item_key );
 				if ( WC_Subscriptions_Product::is_subscription( $_product ) ) {
