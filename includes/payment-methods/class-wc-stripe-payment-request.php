@@ -498,6 +498,7 @@ class WC_Stripe_Payment_Request {
 				'booking',
 				'bundle',
 				'composite',
+				'mix-and-match',
 			]
 		);
 	}
