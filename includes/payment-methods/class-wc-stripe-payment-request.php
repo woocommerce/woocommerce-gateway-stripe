@@ -1127,7 +1127,7 @@ class WC_Stripe_Payment_Request {
 			}
 
 			if ( ! $is_in_stock ) {
-				throw new Exception( sprintf( __( 'Sorry, this product is unavailable. Please choose a different combination.', 'woocommerce-gateway-stripe' ) ) );
+				throw new Exception( __( 'Sorry, this product is unavailable. Please choose a different combination.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			if ( ! $has_enough_stock ) {
