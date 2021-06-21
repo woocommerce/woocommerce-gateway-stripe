@@ -106,11 +106,11 @@ class WC_Stripe_Payment_Request {
 	 * @return bool
 	 */
 	public function is_authentication_required() {
-		// If guest checkout is disabled and account creation is not possible, authentication is required.
+		// If guest checkout is disabled and account creation upon checkout is not possible, authentication is required.
 		if ( 'no' === get_option( 'woocommerce_enable_guest_checkout', 'yes' ) && ! $this->is_account_creation_possible() ) {
 			return true;
 		}
-		// If cart contains subscription and account creation is not posible, authentication is required.
+		// If cart contains subscription and account creation upon checkout is not posible, authentication is required.
 		if ( $this->has_subscription_product() && ! $this->is_account_creation_possible() ) {
 			return true;
 		}
@@ -119,7 +119,7 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Checks whether account creation is possible during checkout.
+	 * Checks whether account creation is possible upon checkout.
 	 *
 	 * @since 5.1.0
 	 *
