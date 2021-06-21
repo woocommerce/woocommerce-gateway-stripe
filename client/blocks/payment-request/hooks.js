@@ -12,7 +12,11 @@ import {
 	shippingOptionChangeHandler,
 	paymentProcessingHandler,
 } from './event-handlers';
-import { createPaymentRequestUsingCart } from '../stripe-utils';
+import { displayLoginConfirmation } from './login-confirmation';
+import {
+	getStripeServerData,
+	createPaymentRequestUsingCart,
+} from '../stripe-utils';
 
 /**
  * This hook takes care of creating a payment request and making sure
@@ -151,22 +155,42 @@ export const useProcessPaymentHandler = (
 };
 
 /**
- * Returns an onClick handler for payment request buttons. Resets the error state, syncs the
- * payment request with the block, and calls the provided click handler.
+ * Returns an onClick handler for payment request buttons. Checks if login is required, resets
+ * the error state, syncs the payment request with the block, and calls the provided click handler.
  *
+ * @param {string} paymentRequestType - The payment request type.
  * @param {Function} setExpressPaymentError - Used to set the error state.
  * @param {Function} onClick - The onClick function that should be called on click.
  *
  * @return {Function} An onClick handler for the payment request buttons.
  */
-export const useOnClickHandler = ( setExpressPaymentError, onClick ) => {
-	return useCallback( () => {
-		// Reset any Payment Request errors.
-		setExpressPaymentError( '' );
+export const useOnClickHandler = (
+	paymentRequestType,
+	setExpressPaymentError,
+	onClick
+) => {
+	return useCallback(
+		( evt, pr ) => {
+			// If login is required, display redirect confirmation dialog.
+			if ( getStripeServerData()?.login_confirmation ) {
+				evt.preventDefault();
+				displayLoginConfirmation( paymentRequestType );
+				return;
+			}
 
-		// Call the Blocks API `onClick` handler.
-		onClick();
-	}, [ setExpressPaymentError, onClick ] );
+			// Reset any Payment Request errors.
+			setExpressPaymentError( '' );
+
+			// Call the Blocks API `onClick` handler.
+			onClick();
+
+			// We must manually call payment request `show()` for custom buttons.
+			if ( pr ) {
+				pr.show();
+			}
+		},
+		[ paymentRequestType, setExpressPaymentError, onClick ]
+	);
 };
 
 /**

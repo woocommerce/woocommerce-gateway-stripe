@@ -68,6 +68,7 @@ const PaymentRequestExpressComponent = ( {
 		setExpressPaymentError
 	);
 	const onPaymentRequestButtonClick = useOnClickHandler(
+		paymentRequestType,
 		setExpressPaymentError,
 		onClick
 	);
@@ -97,21 +98,23 @@ const PaymentRequestExpressComponent = ( {
 		return null;
 	}
 
-	// Prepare the onClick handler for our custom made Payment Request buttons.
-	const customAndBrandedClickHandler = () => {
-		onPaymentRequestButtonClick();
-		paymentRequest.show();
-	};
-
 	if ( isCustom ) {
 		return (
-			<CustomButton onButtonClicked={ customAndBrandedClickHandler } />
+			<CustomButton
+				onButtonClicked={ ( evt ) => {
+					onPaymentRequestButtonClick( evt, paymentRequest );
+				} }
+			/>
 		);
 	}
 
 	if ( isBranded && shouldUseGooglePayBrand() ) {
 		return (
-			<GooglePayButton onButtonClicked={ customAndBrandedClickHandler } />
+			<GooglePayButton
+				onButtonClicked={ ( evt ) => {
+					onPaymentRequestButtonClick( evt, paymentRequest );
+				} }
+			/>
 		);
 	}
 
