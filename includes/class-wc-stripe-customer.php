@@ -408,7 +408,7 @@ class WC_Stripe_Customer {
 	/**
 	 * Get the customer saved payment methods using their Stripe ID.
 	 *
-	 * @since 5.x.x
+	 * @since x.x.x
 	 *
 	 * @param string $type Type of Stripe PaymentMethods to return (card, sepa_debit, bacs_debit, etc)
 	 *
@@ -456,8 +456,8 @@ class WC_Stripe_Customer {
 	 * Deletes caches for this users cards.
 	 */
 	public function clear_cache() {
-		delete_transient( 'stripe_payment_methods_card' . $this->get_id() );
-		delete_transient( 'stripe_payment_methods_sepa_debit' . $this->get_id() );
+		delete_transient( 'stripe_payment_methods_card_' . $this->get_id() );
+		delete_transient( 'stripe_payment_methods_sepa_debit_' . $this->get_id() );
 		delete_transient( 'stripe_customer_' . $this->get_id() );
 		$this->customer_data = [];
 	}
