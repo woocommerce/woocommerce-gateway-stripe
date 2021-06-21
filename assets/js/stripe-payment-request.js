@@ -781,7 +781,7 @@ jQuery( function( $ ) {
 			return;
 		}
 
-		let message = wc_stripe_payment_request_params.login_confirmation?.message;
+		var message = wc_stripe_payment_request_params.login_confirmation.message;
 
 		// Replace dialog text with specific payment request type "Apple Pay" or "Google Pay".
 		if ( 'payment_request_api' !== paymentRequestType ) {
@@ -796,7 +796,7 @@ jQuery( function( $ ) {
 
 		if ( confirm( message ) ) {
 			// Redirect to my account page.
-			window.location.href = wc_stripe_payment_request_params.login_confirmation?.redirect_url;
+			window.location.href = wc_stripe_payment_request_params.login_confirmation.redirect_url;
 		}
 	}
 } );
