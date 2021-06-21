@@ -43,7 +43,7 @@ export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
 		if ( ! stripe ) {
 			return;
 		}
-		const getPaymentRequest = async () => {
+		const createPaymentRequest = async () => {
 			const cart = await getCartDetails();
 			const pr = createPaymentRequestUsingCart( stripe, cart );
 			const result = await pr.canMakePayment();
@@ -59,10 +59,11 @@ export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
 					}
 					return 'payment_request_api';
 				} );
+			} else {
+				setPaymentRequest( null );
 			}
 		};
-		setPaymentRequest( null );
-		getPaymentRequest();
+		createPaymentRequest();
 	}, [
 		stripe,
 		needsShipping,
