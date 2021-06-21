@@ -196,6 +196,7 @@ class WC_Stripe_Payment_Request {
 			wc_setcookie( 'wc_stripe_payment_request_redirect_url', $url, time() + MINUTE_IN_SECONDS * 10 );
 			// Redirects to "my-account" page.
 			wp_safe_redirect( get_permalink( get_option( 'woocommerce_myaccount_page_id' ) ) );
+			exit;
 		}
 	}
 
