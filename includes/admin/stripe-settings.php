@@ -28,8 +28,8 @@ return apply_filters(
 			'desc_tip'    => true,
 		],
 		'api_credentials'                     => [
-			'title'       => __( 'Stripe Account Keys', 'woocommerce-gateway-stripe' ),
-			'type'        => 'stripe_account_keys',
+			'title' => __( 'Stripe Account Keys', 'woocommerce-gateway-stripe' ),
+			'type'  => 'stripe_account_keys',
 		],
 		'testmode'                            => [
 			'title'       => __( 'Test mode', 'woocommerce-gateway-stripe' ),
