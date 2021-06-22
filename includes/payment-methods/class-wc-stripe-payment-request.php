@@ -734,6 +734,25 @@ class WC_Stripe_Payment_Request {
 			}
 		}
 
+		if ( class_exists( 'WC_Product_Composite' ) && is_a( $product, 'WC_Product_Composite' ) ) {
+
+			// If composite type is unassembled we need to check if at least one item needs shipping
+			if ( $product->is_virtual() ) {
+				foreach ( $product->get_components() as $component ) {
+					foreach ( $component->get_options() as $product_id ) {
+						if ( $component->get_option( $product_id )->get_product()->needs_shipping() ) {
+							$needs_shipping = true;
+							break;
+						}
+					}
+
+					if ( $needs_shipping ) {
+						break;
+					}
+				}
+			}
+		}
+
 		return $needs_shipping;
 	}
 
@@ -894,11 +913,6 @@ class WC_Stripe_Payment_Request {
 
 		// Pre Orders charge upon release not supported.
 		if ( class_exists( 'WC_Pre_Orders_Product' ) && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
-			return false;
-		}
-
-		// Composite products are not supported on the product page.
-		if ( class_exists( 'WC_Composite_Products' ) && function_exists( 'is_composite_product' ) && is_composite_product() ) {
 			return false;
 		}
 
@@ -1504,8 +1518,12 @@ class WC_Stripe_Payment_Request {
 		// Default show only subtotal instead of itemization.
 		if ( ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items ) {
 			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
-				// Exclude bundled items to avoid making the list too big
-				if ( function_exists( 'wc_pb_is_bundled_cart_item' ) && wc_pb_is_bundled_cart_item( $cart_item ) ) {
+
+				// Exclude child items to avoid making the list too big
+				$is_bundled_item    = function_exists( 'wc_pb_is_bundled_cart_item' ) && wc_pb_is_bundled_cart_item( $cart_item );
+				$is_composited_item = function_exists( 'wc_cp_is_composited_cart_item' ) && wc_cp_is_composited_cart_item( $cart_item );
+
+				if ( $is_bundled_item || $is_composited_item ) {
 					continue;
 				}
 
