@@ -1499,8 +1499,12 @@ class WC_Stripe_Payment_Request {
 		// Default show only subtotal instead of itemization.
 		if ( ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items ) {
 			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
-				// Exclude bundled items to avoid making the list too big
-				if ( function_exists( 'wc_pb_is_bundled_cart_item' ) && wc_pb_is_bundled_cart_item( $cart_item ) ) {
+
+				// Exclude child items to avoid making the list too big
+				$is_bundled_item    = function_exists( 'wc_pb_is_bundled_cart_item' ) && wc_pb_is_bundled_cart_item( $cart_item );
+				$is_composited_item = function_exists( 'wc_cp_is_composited_cart_item' ) && wc_cp_is_composited_cart_item( $cart_item );
+
+				if ( $is_bundled_item || $is_composited_item ) {
 					continue;
 				}
 
