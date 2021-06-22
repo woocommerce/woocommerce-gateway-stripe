@@ -228,7 +228,6 @@ class WC_Stripe_Payment_Request {
 		add_action( 'wc_ajax_wc_stripe_update_shipping_method', [ $this, 'ajax_update_shipping_method' ] );
 		add_action( 'wc_ajax_wc_stripe_create_order', [ $this, 'ajax_create_order' ] );
 		add_action( 'wc_ajax_wc_stripe_add_to_cart', [ $this, 'ajax_add_to_cart' ] );
-		add_action( 'wc_ajax_wc_stripe_get_selected_product_data', [ $this, 'ajax_get_selected_product_data' ] );
 		add_action( 'wc_ajax_wc_stripe_log_errors', [ $this, 'ajax_log_errors' ] );
 
 		add_filter( 'woocommerce_gateway_title', [ $this, 'filter_gateway_title' ], 10, 2 );
@@ -646,13 +645,12 @@ class WC_Stripe_Payment_Request {
 				'allow_prepaid_card' => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 			],
 			'nonce'              => [
-				'payment'                   => wp_create_nonce( 'wc-stripe-payment-request' ),
-				'shipping'                  => wp_create_nonce( 'wc-stripe-payment-request-shipping' ),
-				'update_shipping'           => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
-				'checkout'                  => wp_create_nonce( 'woocommerce-process_checkout' ),
-				'add_to_cart'               => wp_create_nonce( 'wc-stripe-add-to-cart' ),
-				'get_selected_product_data' => wp_create_nonce( 'wc-stripe-get-selected-product-data' ),
-				'log_errors'                => wp_create_nonce( 'wc-stripe-log-errors' ),
+				'payment'         => wp_create_nonce( 'wc-stripe-payment-request' ),
+				'shipping'        => wp_create_nonce( 'wc-stripe-payment-request-shipping' ),
+				'update_shipping' => wp_create_nonce( 'wc-stripe-update-shipping-method' ),
+				'checkout'        => wp_create_nonce( 'woocommerce-process_checkout' ),
+				'add_to_cart'     => wp_create_nonce( 'wc-stripe-add-to-cart' ),
+				'log_errors'      => wp_create_nonce( 'wc-stripe-log-errors' ),
 			],
 			'i18n'               => [
 				'no_prepaid_card'  => __( 'Sorry, we\'re not accepting prepaid cards at this time.', 'woocommerce-gateway-stripe' ),
@@ -1097,39 +1095,6 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Gets the selected product data.
-	 *
-	 * @since   4.0.0
-	 * @version x.x.x
-	 * @return  array $data
-	 */
-	public function ajax_get_selected_product_data() {
-		check_ajax_referer( 'wc-stripe-get-selected-product-data', 'security' );
-
-		try {
-			$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
-			$product    = wc_get_product( $product_id );
-			$qty        = ! isset( $_POST['qty'] ) ? 1 : apply_filters( 'woocommerce_add_to_cart_quantity', absint( $_POST['qty'] ), $product_id );
-
-			if ( ! is_a( $product, 'WC_Product' ) ) {
-				/* translators: %d is the product Id */
-				throw new Exception( sprintf( __( 'Product with the ID (%d) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
-			}
-
-			// TODO: Added the same check in `ajax_add_to_cart` just in case we remove this (`ajax_get_selected_product_data`) method. Do not remove before checking with Variable products
-			if ( ! $product->has_enough_stock( $qty ) ) {
-				/* translators: 1: product name 2: quantity in stock */
-				throw new Exception( sprintf( __( 'You cannot add that amount of "%1$s"; to the cart because there is not enough stock (%2$s remaining).', 'woocommerce-gateway-stripe' ), $product->get_name(), wc_format_stock_quantity_for_display( $product->get_stock_quantity(), $product ) ) );
-			}
-
-			$data = $this->build_response();
-			wp_send_json( $data );
-		} catch ( Exception $e ) {
-			wp_send_json( [ 'error' => wp_strip_all_tags( $e->getMessage() ) ] );
-		}
-	}
-
-	/**
 	 * Adds the current product to the cart. Used on product detail page.
 	 *
 	 * @since   4.0.0
@@ -1146,17 +1111,17 @@ class WC_Stripe_Payment_Request {
 
 			$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 			$product    = wc_get_product( $product_id );
-			$qty        = ! isset( $_POST['qty'] ) ? 1 : absint( $_POST['qty'] );
 
 			if ( ! is_a( $product, 'WC_Product' ) ) {
 				/* translators: %d is the product Id */
 				throw new Exception( sprintf( __( 'Product with the ID (%d) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
 			}
 
-			if ( ! $product->has_enough_stock( $qty ) ) {
-				/* translators: 1: product name 2: quantity in stock */
-				throw new Exception( sprintf( __( 'You cannot add that amount of "%1$s"; to the cart because there is not enough stock (%2$s remaining).', 'woocommerce-gateway-stripe' ), $product->get_name(), wc_format_stock_quantity_for_display( $product->get_stock_quantity(), $product ) ) );
-			}
+			$quantity         = ! isset( $_POST['quantity'] ) ? 1 : absint( $_POST['quantity'] );
+			$has_enough_stock = $product->has_enough_stock( $quantity );
+			$product_type     = $product->get_type();
+			$variation_id     = 0;
+			$attributes       = [];
 
 			WC()->shipping->reset_shipping();
 
@@ -1171,12 +1136,18 @@ class WC_Stripe_Payment_Request {
 				$data_store   = WC_Data_Store::load( 'product' );
 				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
 
-				WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
+				if ( ! empty( $variation_id ) ) {
+					$variation        = wc_get_product( $variation_id );
+					$has_enough_stock = $variation->has_enough_stock( $quantity );
+				}
 			}
 
-			if ( 'simple' === $product_type || 'subscription' === $product_type ) {
-				WC()->cart->add_to_cart( $product->get_id(), $qty );
+			if ( ! $has_enough_stock ) {
+				/* translators: 1: product name 2: quantity in stock */
+				throw new Exception( sprintf( __( 'You cannot add that amount of "%1$s"; to the cart because there is not enough stock (%2$s remaining).', 'woocommerce-gateway-stripe' ), $product->get_name(), wc_format_stock_quantity_for_display( $product->get_stock_quantity(), $product ) ) );
 			}
+
+			WC()->cart->add_to_cart( $product->get_id(), $quantity, $variation_id, $attributes );
 
 			// This method is called from the product page only. Always display itemized items.
 			$itemized_display_items = true;
