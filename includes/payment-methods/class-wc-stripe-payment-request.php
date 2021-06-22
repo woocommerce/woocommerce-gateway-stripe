@@ -734,6 +734,25 @@ class WC_Stripe_Payment_Request {
 			}
 		}
 
+		if ( class_exists( 'WC_Product_Composite' ) && is_a( $product, 'WC_Product_Composite' ) ) {
+
+			// If composite type is unassembled we need to check if at least one item needs shipping
+			if ( $product->is_virtual() ) {
+				foreach ( $product->get_components() as $component ) {
+					foreach ( $component->get_options() as $product_id ) {
+						if ( $component->get_option( $product_id )->get_product()->needs_shipping() ) {
+							$needs_shipping = true;
+							break;
+						}
+					}
+
+					if ( $needs_shipping ) {
+						break;
+					}
+				}
+			}
+		}
+
 		return $needs_shipping;
 	}
 
