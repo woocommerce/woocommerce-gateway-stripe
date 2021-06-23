@@ -18,8 +18,6 @@ import {
 	createPaymentRequestUsingCart,
 } from '../stripe-utils';
 
-const noop = { removeEventListener: ( event ) => void event };
-
 /**
  * This hook takes care of creating a payment request and making sure
  * you can pay through said payment request.
@@ -126,17 +124,14 @@ export const useShippingAddressUpdateHandler = (
 	paymentRequestType
 ) => {
 	useEffect( () => {
-		let handler = noop;
-
-		if ( paymentRequest ) {
-			handler = paymentRequest.on(
-				'shippingaddresschange',
-				shippingAddressChangeHandler( paymentRequestType )
-			);
-		}
+		const handler = paymentRequest?.on(
+			'shippingaddresschange',
+			shippingAddressChangeHandler( paymentRequestType )
+		);
 
 		return () => {
-			handler.removeEventListener( 'shippingaddresschange' );
+			// Need to use `?.` here in case paymentRequest is null.
+			handler?.removeEventListener( 'shippingaddresschange' );
 		};
 	}, [ paymentRequest, paymentRequestType ] );
 };
@@ -152,17 +147,14 @@ export const useShippingOptionChangeHandler = (
 	paymentRequestType
 ) => {
 	useEffect( () => {
-		let handler = noop;
-
-		if ( paymentRequest ) {
-			handler = paymentRequest.on(
-				'shippingoptionchange',
-				shippingOptionChangeHandler
-			);
-		}
+		const handler = paymentRequest?.on(
+			'shippingoptionchange',
+			shippingOptionChangeHandler
+		);
 
 		return () => {
-			handler.removeEventListener( 'shippingoptionchange' );
+			// Need to use `?.` here in case paymentRequest is null.
+			handler?.removeEventListener( 'shippingoptionchange' );
 		};
 	}, [ paymentRequest, paymentRequestType ] );
 };
@@ -183,21 +175,18 @@ export const useProcessPaymentHandler = (
 	setExpressPaymentError
 ) => {
 	useEffect( () => {
-		let handler = noop;
-
-		if ( paymentRequest ) {
-			handler = paymentRequest.on(
-				'source',
-				paymentProcessingHandler(
-					stripe,
-					paymentRequestType,
-					setExpressPaymentError
-				)
-			);
-		}
+		const handler = paymentRequest?.on(
+			'source',
+			paymentProcessingHandler(
+				stripe,
+				paymentRequestType,
+				setExpressPaymentError
+			)
+		);
 
 		return () => {
-			handler.removeEventListener( 'source' );
+			// Need to use `?.` here in case paymentRequest is null.
+			handler?.removeEventListener( 'source' );
 		};
 	}, [ stripe, paymentRequest, paymentRequestType, setExpressPaymentError ] );
 };
@@ -210,14 +199,11 @@ export const useProcessPaymentHandler = (
  */
 export const useCancelHandler = ( paymentRequest, onClose ) => {
 	useEffect( () => {
-		let handler = noop;
-
-		if ( paymentRequest ) {
-			handler = paymentRequest.on( 'cancel', onClose );
-		}
+		const handler = paymentRequest?.on( 'cancel', onClose );
 
 		return () => {
-			handler.removeEventListener( 'cancel' );
+			// Need to use `?.` here in case paymentRequest is null.
+			handler?.removeEventListener( 'cancel' );
 		};
 	}, [ paymentRequest, onClose ] );
 };
