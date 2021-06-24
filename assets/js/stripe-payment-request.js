@@ -264,23 +264,18 @@ jQuery( function( $ ) {
 		 *
 		 */
 		addToCart: function() {
-			var product_id = $( '.single_add_to_cart_button' ).val();
-
-			// Check if product is a variable product.
-			if ( $( '.single_variation_wrap' ).length ) {
-				product_id = $( '.single_variation_wrap' ).find( 'input[name="product_id"]' ).val();
-			}
-
 			var data = {
 				security: wc_stripe_payment_request_params.nonce.add_to_cart,
-				product_id: product_id,
-				quantity: $( '.quantity .qty' ).val(),
+				product_id: $( '[name="add-to-cart"], .single_add_to_cart_button' ).val(),
+				quantity: $( '.quantity .qty' ).last().val(),
 				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : [],
 				has_shipping_address: hasShippingAddress,
 			};
 
+			var $form = $( 'form.cart' );
+			var formData = $form.serializeArray();
+
 			// add addons data to the POST body
-			var formData = $( 'form.cart' ).serializeArray();
 			$.each( formData, function( i, field ) {
 				if ( /^addon-/.test( field.name ) ) {
 					if ( /\[\]$/.test( field.name ) ) {
@@ -295,6 +290,13 @@ jQuery( function( $ ) {
 					}
 				}
 			} );
+
+			// Add Mix and Match data to payload
+			if ( $form.is( '.mnm_form' ) ) {
+				$('.mnm_child_products .mnm-quantity').each(function( i, el ) {
+					data[ el.name ] = el.value;
+				})
+			}
 
 			return $.ajax( {
 				type: 'POST',
