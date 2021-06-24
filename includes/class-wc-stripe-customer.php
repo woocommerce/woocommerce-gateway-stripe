@@ -429,8 +429,8 @@ class WC_Stripe_Customer {
 			$response = WC_Stripe_API::request(
 				[
 					'customer' => $this->get_id(),
-					'type' => $type,
-					'limit' => 100,
+					'type'     => $type,
+					'limit'    => 100,
 				],
 				'payment_methods',
 				'GET'
