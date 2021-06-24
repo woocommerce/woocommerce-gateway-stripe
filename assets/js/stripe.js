@@ -253,7 +253,11 @@ jQuery( function( $ ) {
 			);
 
 			// Subscription early renewals modal.
-			$( '#early_renewal_modal_submit' ).on( 'click', this.onEarlyRenewalSubmit );
+			if ($('#early_renewal_modal_submit[data-payment-method]').length) {
+				$('#early_renewal_modal_submit[data-payment-method=stripe]').on('click', this.onEarlyRenewalSubmit);
+			} else {
+				$('#early_renewal_modal_submit').on('click', this.onEarlyRenewalSubmit);
+			}
 
 			wc_stripe_form.createElements();
 
