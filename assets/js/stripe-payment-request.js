@@ -264,16 +264,9 @@ jQuery( function( $ ) {
 		 *
 		 */
 		addToCart: function() {
-			var product_id = $( '.single_add_to_cart_button' ).val();
-
-			// Check if product is a variable product.
-			if ( $( '.single_variation_wrap' ).length ) {
-				product_id = $( '.single_variation_wrap' ).find( 'input[name="product_id"]' ).val();
-			}
-
 			var data = {
 				security: wc_stripe_payment_request_params.nonce.add_to_cart,
-				product_id: product_id,
+				product_id: $( '[name="add-to-cart"], .single_add_to_cart_button' ).val(),
 				quantity: $( '.quantity .qty' ).last().val(),
 				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : [],
 				has_shipping_address: hasShippingAddress,
