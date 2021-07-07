@@ -667,7 +667,7 @@ class WC_Stripe_Payment_Request {
 	 * Load public scripts and styles.
 	 *
 	 * @since   3.1.0
-	 * @version x.x.x
+	 * @version 5.2.0
 	 */
 	public function scripts() {
 		// If page is not supported, bail.
