@@ -365,7 +365,9 @@ class WC_Stripe_Payment_Request {
 			'amount'  => WC_Stripe_Helper::get_stripe_amount( $product->get_price() ),
 			'pending' => true,
 		];
-		$data['requestShipping'] = false; // ( wc_shipping_enabled() && $product->needs_shipping() );
+
+		// This value won't be user anymore. Leaving it for just to be able to create the PR button on page load.
+		$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
 
 		return apply_filters( 'wc_stripe_payment_request_product_data', $data, $product );
 	}
