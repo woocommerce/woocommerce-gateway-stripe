@@ -649,8 +649,9 @@ jQuery( function( $ ) {
 		 */
 		init: function() {
 			if ( wc_stripe_payment_request_params.is_product_page ) {
-				const options = wc_stripe_payment_request.getRequestOptionsFromLocal();
-				wc_stripe_payment_request.startPaymentRequest( options );
+				const paymentRequestOptions = wc_stripe_payment_request.getRequestOptionsFromLocal();
+				wc_stripe_payment_request.startPaymentRequest( paymentRequestOptions );
+				currentPaymentRequestOptions = paymentRequestOptions;
 			} else {
 				wc_stripe_payment_request.getCartDetails();
 			}
