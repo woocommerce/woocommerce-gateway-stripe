@@ -325,24 +325,6 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Gets the product total price.
-	 *
-	 * @since 5.2.0
-	 *
-	 * @param object $product WC_Product_* object.
-	 * @return integer Total price.
-	 */
-	public function get_product_price( $product ) {
-		$product_price = $product->get_price();
-		// Add subscription sign-up fees to product price.
-		if ( 'subscription' === $product->get_type() && class_exists( 'WC_Subscriptions_Product' ) ) {
-			$product_price = $product->get_price() + WC_Subscriptions_Product::get_sign_up_fee( $product );
-		}
-
-		return $product_price;
-	}
-
-	/**
 	 * Gets the product data for the currently viewed page
 	 *
 	 * @since   4.0.0
@@ -380,7 +362,7 @@ class WC_Stripe_Payment_Request {
 		$data                    = [];
 		$data['total']           = [
 			'label'   => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
-			'amount'  => WC_Stripe_Helper::get_stripe_amount( $this->get_product_price( $product ) ),
+			'amount'  => WC_Stripe_Helper::get_stripe_amount( $product->get_price() ),
 			'pending' => true,
 		];
 		$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
@@ -1117,18 +1099,18 @@ class WC_Stripe_Payment_Request {
 				throw new Exception( sprintf( __( 'Product with the ID (%d) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
 			}
 
-			$quantity         = ! isset( $_POST['quantity'] ) ? 1 : absint( $_POST['quantity'] );
-			$has_enough_stock = $product->has_enough_stock( $quantity );
-			$product_type     = $product->get_type();
-			$variation_id     = 0;
-			$attributes       = [];
+			$quantity              = ! isset( $_POST['quantity'] ) ? 1 : absint( $_POST['quantity'] );
+			$has_enough_stock      = $product->has_enough_stock( $quantity );
+			$product_type          = $product->get_type();
+			$variation_id          = 0;
+			$attributes            = [];
+			$is_in_stock           = $product->is_in_stock();
+			$stock_qty_for_display = wc_format_stock_quantity_for_display( $product->get_stock_quantity(), $product );
 
 			WC()->shipping->reset_shipping();
 
 			// First empty the cart to prevent wrong calculation.
 			WC()->cart->empty_cart();
-
-			$product_type = $product->get_type();
 
 			if ( ( 'variable' === $product_type || 'variable-subscription' === $product_type ) && isset( $_POST['attributes'] ) ) {
 				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
@@ -1137,14 +1119,20 @@ class WC_Stripe_Payment_Request {
 				$variation_id = $data_store->find_matching_product_variation( $product, $attributes );
 
 				if ( ! empty( $variation_id ) ) {
-					$variation        = wc_get_product( $variation_id );
-					$has_enough_stock = $variation->has_enough_stock( $quantity );
+					$variation             = wc_get_product( $variation_id );
+					$has_enough_stock      = $variation->has_enough_stock( $quantity );
+					$is_in_stock           = $variation->is_in_stock();
+					$stock_qty_for_display = wc_format_stock_quantity_for_display( $variation->get_stock_quantity(), $variation );
 				}
+			}
+
+			if ( ! $is_in_stock ) {
+				throw new Exception( __( 'Sorry, this product is unavailable. Please choose a different combination.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			if ( ! $has_enough_stock ) {
 				/* translators: 1: product name 2: quantity in stock */
-				throw new Exception( sprintf( __( 'You cannot add that amount of "%1$s"; to the cart because there is not enough stock (%2$s remaining).', 'woocommerce-gateway-stripe' ), $product->get_name(), wc_format_stock_quantity_for_display( $product->get_stock_quantity(), $product ) ) );
+				throw new Exception( sprintf( __( 'You cannot add that amount of "%1$s"; to the cart because there is not enough stock (%2$s remaining).', 'woocommerce-gateway-stripe' ), $product->get_name(), $stock_qty_for_display ) );
 			}
 
 			WC()->cart->add_to_cart( $product->get_id(), $quantity, $variation_id, $attributes );
