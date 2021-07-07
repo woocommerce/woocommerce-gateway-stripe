@@ -536,39 +536,30 @@ jQuery( function( $ ) {
 				}
 
 				wc_stripe_payment_request.addToCart().then( function( response ) {
-					if ( response.error ) {
-						window.alert( response.error );
+					const { error, ...paymentRequestOptions } = response;
+
+					if ( error ) {
+						window.alert( error );
 						return;
 					}
 
+					if ( wc_stripe_payment_request.shouldTogglePaymentRequest( paymentRequestOptions ) ) {
+						const paymentRequest = wc_stripe_payment_request.togglePaymentRequest( prButton, paymentRequestOptions );
 
-					if ( wc_stripe_payment_request.shouldTogglePaymentRequestButton( response ) ) {
-						const options = {
-							country: response.country_code,
-							currency: response.currency,
-							displayItems: response.displayItems,
-							requestPayerEmail: true,
-							requestPayerName: true,
-							requestPayerPhone: response.needs_payer_phone,
-							requestShipping: response.requestShipping,
-							total: response.total,
-						};
-						const paymentRequest = wc_stripe_payment_request.togglePaymentRequestButton( prButton, options );
-
-						// We need to wait for next tick to open the dialog.
+						// We need to wait for next tick to be able to open the payment dialog.
 						setTimeout(function() {
 							paymentRequest.show();
 						}, 0);
 					} else {
 						paymentRequest.update( {
-							total: response.total,
-							displayItems: response.displayItems,
+							total: paymentRequestOptions.total,
+							displayItems: paymentRequestOptions.displayItems,
 						} );
+
 						paymentRequest.show();
 					}
 
-					currentPaymentRequestOptions = response;
-
+					currentPaymentRequestOptions = paymentRequestOptions;
 				} ).always( function() {
 					$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
 				} );
@@ -641,11 +632,11 @@ jQuery( function( $ ) {
 				.unblock();
 		},
 
-		shouldTogglePaymentRequestButton: function ( prConfig ) {
-			return prConfig.requestShipping !== currentPaymentRequestOptions.requestShipping;
+		shouldTogglePaymentRequest: function ( paymentRequestOptions ) {
+			return paymentRequestOptions.requestShipping !== currentPaymentRequestOptions.requestShipping;
 		},
 
-		togglePaymentRequestButton: function ( prButton, options ) {
+		togglePaymentRequest: function ( prButton, options ) {
 			prButton.destroy(); // TODO: should we use unmount maybe?
 			return wc_stripe_payment_request.startPaymentRequest( options );
 		},

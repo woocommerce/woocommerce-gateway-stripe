@@ -1463,10 +1463,8 @@ class WC_Stripe_Payment_Request {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
-		$data                 = [];
-		$data['currency']     = strtolower( get_woocommerce_currency() );
-		$data['country_code'] = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
-		$items                = [];
+		$data  = [];
+		$items = [];
 
 		// Default show only subtotal instead of itemization.
 		if ( ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items ) {
@@ -1562,9 +1560,11 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// Mandatory payment details.
-		$data['needs_payer_phone'] = 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' );
+		$data['requestPayerPhone'] = 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' );
 		$data['currency']          = strtolower( get_woocommerce_currency() );
-		$data['country_code']      = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
+		$data['country']           = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
+		$data['requestPayerEmail'] = true;
+		$data['requestPayerName']  = true;
 
 		$data['displayItems'] = $items;
 
