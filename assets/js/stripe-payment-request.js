@@ -6,7 +6,8 @@ jQuery( function( $ ) {
 		locale: typeof wc_stripe_params !== 'undefined' ? wc_stripe_params.stripe_locale : 'auto',
 	} ),
 		paymentRequestType,
-		hasShippingAddress = false;
+		hasShippingAddress = false,
+		currentPaymentRequestOptions = {};
 
 	/**
 	 * Object to handle Stripe payment forms.
@@ -33,8 +34,19 @@ jQuery( function( $ ) {
 				type:    'POST',
 				data:    data,
 				url:     wc_stripe_payment_request.getAjaxURL( 'get_cart_details' ),
-				success: function( response ) {
-					wc_stripe_payment_request.startPaymentRequest( response );
+				success: function( cart ) {
+					const options = {
+						total: cart.total,
+						currency: cart.currency,
+						country: cart.country_code,
+						requestPayerName: true,
+						requestPayerEmail: true,
+						requestPayerPhone: cart.needs_payer_phone,
+						requestShipping: cart.requestShipping,
+						displayItems: cart.displayItems
+					};
+
+					wc_stripe_payment_request.startPaymentRequest( options );
 				}
 			} );
 		},
@@ -321,33 +333,16 @@ jQuery( function( $ ) {
 		 * @since 4.0.0
 		 * @version 4.8.0
 		 */
-		startPaymentRequest: function( cart ) {
-			var options;
-
-			if ( wc_stripe_payment_request_params.is_product_page ) {
-				options = wc_stripe_payment_request.getRequestOptionsFromLocal();
-			} else {
-				options = {
-					total: cart.total,
-					currency: cart.currency,
-					country: cart.country_code,
-					requestPayerName: true,
-					requestPayerEmail: true,
-					requestPayerPhone: cart.needs_payer_phone,
-					requestShipping: cart.requestShipping,
-					displayItems: cart.displayItems
-				};
-			}
-
+		startPaymentRequest: function( paymentRequestOptions ) {
 			// Puerto Rico (PR) is the only US territory/possession that's supported by Stripe.
 			// Since it's considered a US state by Stripe, we need to do some special mapping.
-			if ( 'PR' === options.country ) {
-				options.country = 'US';
+			if ( 'PR' === paymentRequestOptions.country ) {
+				paymentRequestOptions.country = 'US';
 			}
 
 			// Handle errors thrown by Stripe, so we don't break the product page
 			try {
-				var paymentRequest = stripe.paymentRequest( options );
+				var paymentRequest = stripe.paymentRequest( paymentRequestOptions );
 
 				var elements = stripe.elements( { locale: wc_stripe_payment_request_params.button.locale } );
 				var prButton = wc_stripe_payment_request.createPaymentRequestButton( elements, paymentRequest );
@@ -408,6 +403,8 @@ jQuery( function( $ ) {
 				// Leave for troubleshooting
 				console.error( e );
 			}
+
+			return paymentRequest;
 		},
 
 		/**
@@ -544,11 +541,34 @@ jQuery( function( $ ) {
 						return;
 					}
 
-					paymentRequest.update( {
-						total: response.total,
-						displayItems: response.displayItems,
-					} );
-					paymentRequest.show();
+
+					if ( wc_stripe_payment_request.shouldTogglePaymentRequestButton( response ) ) {
+						const options = {
+							country: response.country_code,
+							currency: response.currency,
+							displayItems: response.displayItems,
+							requestPayerEmail: true,
+							requestPayerName: true,
+							requestPayerPhone: response.needs_payer_phone,
+							requestShipping: response.requestShipping,
+							total: response.total,
+						};
+						const paymentRequest = wc_stripe_payment_request.togglePaymentRequestButton( prButton, options );
+
+						// We need to wait for next tick to open the dialog.
+						setTimeout(function() {
+							paymentRequest.show();
+						}, 0);
+					} else {
+						paymentRequest.update( {
+							total: response.total,
+							displayItems: response.displayItems,
+						} );
+						paymentRequest.show();
+					}
+
+					currentPaymentRequestOptions = response;
+
 				} ).always( function() {
 					$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
 				} );
@@ -621,6 +641,15 @@ jQuery( function( $ ) {
 				.unblock();
 		},
 
+		shouldTogglePaymentRequestButton: function ( prConfig ) {
+			return prConfig.requestShipping !== currentPaymentRequestOptions.requestShipping;
+		},
+
+		togglePaymentRequestButton: function ( prButton, options ) {
+			prButton.destroy(); // TODO: should we use unmount maybe?
+			return wc_stripe_payment_request.startPaymentRequest( options );
+		},
+
 		/**
 		 * Initialize event handlers and UI state
 		 *
@@ -629,7 +658,8 @@ jQuery( function( $ ) {
 		 */
 		init: function() {
 			if ( wc_stripe_payment_request_params.is_product_page ) {
-				wc_stripe_payment_request.startPaymentRequest();
+				const options = wc_stripe_payment_request.getRequestOptionsFromLocal();
+				wc_stripe_payment_request.startPaymentRequest( options );
 			} else {
 				wc_stripe_payment_request.getCartDetails();
 			}
