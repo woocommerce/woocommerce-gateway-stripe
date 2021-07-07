@@ -34,19 +34,8 @@ jQuery( function( $ ) {
 				type:    'POST',
 				data:    data,
 				url:     wc_stripe_payment_request.getAjaxURL( 'get_cart_details' ),
-				success: function( cart ) {
-					const options = {
-						total: cart.total,
-						currency: cart.currency,
-						country: cart.country_code,
-						requestPayerName: true,
-						requestPayerEmail: true,
-						requestPayerPhone: cart.needs_payer_phone,
-						requestShipping: cart.requestShipping,
-						displayItems: cart.displayItems
-					};
-
-					wc_stripe_payment_request.startPaymentRequest( options );
+				success: function( paymentRequestOptions ) {
+					wc_stripe_payment_request.startPaymentRequest( paymentRequestOptions );
 				}
 			} );
 		},
