@@ -320,7 +320,9 @@ jQuery( function( $ ) {
 		 * Starts the payment request
 		 *
 		 * @since 4.0.0
-		 * @version 4.8.0
+		 * @version x.x.x
+		 *
+		 * @return {Object} Payment Request object
 		 */
 		startPaymentRequest: function( paymentRequestOptions ) {
 			// Puerto Rico (PR) is the only US territory/possession that's supported by Stripe.
@@ -621,10 +623,25 @@ jQuery( function( $ ) {
 				.unblock();
 		},
 
+
+		/**
+		 * Checks if we should reset the current Payment Request button based on passed options.
+		 *
+		 * @since x.x.x
+		 *
+		 * @return {boolean}
+		 */
 		shouldResetPaymentRequest: function ( paymentRequestOptions ) {
 			return paymentRequestOptions.requestShipping !== currentPaymentRequestOptions.requestShipping;
 		},
 
+		/**
+		 * Destroys given Payment Request button and creates a new one based on passed options
+		 *
+		 * @since x.x.x
+		 *
+		 * @return {Object} Payment Request object
+		 */
 		resetPaymentRequest: function ( prButton, options ) {
 			prButton.destroy();
 			return wc_stripe_payment_request.startPaymentRequest( options );
