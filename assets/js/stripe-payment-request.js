@@ -532,8 +532,8 @@ jQuery( function( $ ) {
 						return;
 					}
 
-					if ( wc_stripe_payment_request.shouldTogglePaymentRequest( paymentRequestOptions ) ) {
-						const paymentRequest = wc_stripe_payment_request.togglePaymentRequest( prButton, paymentRequestOptions );
+					if ( wc_stripe_payment_request.shouldResetPaymentRequest( paymentRequestOptions ) ) {
+						const paymentRequest = wc_stripe_payment_request.resetPaymentRequest( prButton, paymentRequestOptions );
 
 						// We need to wait for next tick to be able to open the payment dialog.
 						setTimeout(function() {
@@ -621,12 +621,12 @@ jQuery( function( $ ) {
 				.unblock();
 		},
 
-		shouldTogglePaymentRequest: function ( paymentRequestOptions ) {
+		shouldResetPaymentRequest: function ( paymentRequestOptions ) {
 			return paymentRequestOptions.requestShipping !== currentPaymentRequestOptions.requestShipping;
 		},
 
-		togglePaymentRequest: function ( prButton, options ) {
-			prButton.destroy(); // TODO: should we use unmount maybe?
+		resetPaymentRequest: function ( prButton, options ) {
+			prButton.destroy();
 			return wc_stripe_payment_request.startPaymentRequest( options );
 		},
 
