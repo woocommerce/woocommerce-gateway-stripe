@@ -7,7 +7,8 @@ jQuery( function( $ ) {
 	} ),
 		paymentRequestType,
 		hasShippingAddress = false,
-		currentPaymentRequestOptions = {};
+		currentPaymentRequestOptions = {},
+		currentPrButton;
 
 	/**
 	 * Object to handle Stripe payment forms.
@@ -336,8 +337,8 @@ jQuery( function( $ ) {
 				var paymentRequest = stripe.paymentRequest( paymentRequestOptions );
 
 				var elements = stripe.elements( { locale: wc_stripe_payment_request_params.button.locale } );
-				var prButton = wc_stripe_payment_request.createPaymentRequestButton( elements, paymentRequest );
-
+				currentPrButton = wc_stripe_payment_request.createPaymentRequestButton( elements, paymentRequest );
+				
 				// Check the availability of the Payment Request API first.
 				paymentRequest.canMakePayment().then( function( result ) {
 					if ( ! result ) {
@@ -351,8 +352,8 @@ jQuery( function( $ ) {
 						paymentRequestType = 'payment_request_api';
 					}
 
-					wc_stripe_payment_request.attachPaymentRequestButtonEventListeners( prButton, paymentRequest );
-					wc_stripe_payment_request.showPaymentRequestButton( prButton );
+					wc_stripe_payment_request.attachPaymentRequestButtonEventListeners( currentPrButton, paymentRequest );
+					wc_stripe_payment_request.showPaymentRequestButton( currentPrButton );
 				} );
 
 				// Possible statuses success, fail, invalid_payer_name, invalid_payer_email, invalid_payer_phone, invalid_shipping_address.
@@ -509,51 +510,11 @@ jQuery( function( $ ) {
 
 		attachProductPageEventListeners: function( prButton, paymentRequest ) {
 			prButton.on( 'click', function ( evt ) {
-				evt.preventDefault(); // Prevent showing payment request modal.
-
 				// If login is required for checkout, display redirect confirmation dialog.
 				if ( wc_stripe_payment_request_params.login_confirmation ) {
 					displayLoginConfirmation( paymentRequestType );
 					return;
 				}
-
-				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
-
-				// First check if product can be added to cart.
-				if ( $( '.single_add_to_cart_button' ).is( '.wc-variation-selection-needed' ) ) {
-					window.alert( wc_add_to_cart_variation_params.i18n_make_a_selection_text );
-					$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-					return;
-				}
-
-				wc_stripe_payment_request.addToCart().then( function( response ) {
-					const { error, ...paymentRequestOptions } = response;
-
-					if ( error ) {
-						window.alert( error );
-						return;
-					}
-
-					if ( wc_stripe_payment_request.shouldResetPaymentRequest( paymentRequestOptions ) ) {
-						const paymentRequest = wc_stripe_payment_request.resetPaymentRequest( prButton, paymentRequestOptions );
-
-						// We need to wait for next tick to be able to open the payment dialog.
-						setTimeout(function() {
-							paymentRequest.show();
-						}, 0);
-					} else {
-						paymentRequest.update( {
-							total: paymentRequestOptions.total,
-							displayItems: paymentRequestOptions.displayItems,
-						} );
-
-						paymentRequest.show();
-					}
-
-					currentPaymentRequestOptions = paymentRequestOptions;
-				} ).always( function() {
-					$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-				} );
 			});
 
 			$( document.body ).on( 'wc_stripe_unblock_payment_request_button wc_stripe_enable_payment_request_button', function () {
@@ -639,12 +600,22 @@ jQuery( function( $ ) {
 		 * Destroys given Payment Request button and creates a new one based on passed options
 		 *
 		 * @since x.x.x
-		 *
-		 * @return {Object} Payment Request object
 		 */
-		resetPaymentRequest: function ( prButton, options ) {
-			prButton.destroy();
-			return wc_stripe_payment_request.startPaymentRequest( options );
+		resetPaymentRequest: function () {
+			currentPrButton.destroy();
+
+			return wc_stripe_payment_request.addToCart().then( function( response ) {
+				const { error, ...paymentRequestOptions } = response;
+
+				if ( error ) {
+					window.alert( error );
+					return;
+				}
+
+				wc_stripe_payment_request.startPaymentRequest(paymentRequestOptions);
+
+				return response;
+			});
 		},
 
 		/**
@@ -675,6 +646,27 @@ jQuery( function( $ ) {
 	// We need to refresh payment request data when total is updated.
 	$( document.body ).on( 'updated_checkout', function() {
 		wc_stripe_payment_request.init();
+	} );
+
+	// TODO: debounce calls
+	let working = false;
+	$('.cart #size, .cart .quantity .qty').on('change', function (e) {
+		// prevent consecutive calls
+		if (working) {
+			return;
+		}
+				working = true;
+
+		wc_stripe_payment_request
+			.resetPaymentRequest()
+			.always( function () {
+				working = false;
+			} );
+	});
+
+	// TODO: debounce calls
+	$( document.body ).on( 'update_payment_request_button', function (e) {
+		wc_stripe_payment_request.resetPaymentRequest();
 	} );
 
 	function setBackgroundImageWithFallback( element, background, fallback ) {
@@ -712,4 +704,13 @@ jQuery( function( $ ) {
 			window.location.href = wc_stripe_payment_request_params.login_confirmation.redirect_url;
 		}
 	}
+} );
+
+// Assume third party plugin code
+jQuery( function ($) {
+
+	$('#trigger_event_from_plugin').on('click', function (e) {
+		e.preventDefault();
+		$( document.body ).trigger('update_payment_request_button');
+	} );
 } );
