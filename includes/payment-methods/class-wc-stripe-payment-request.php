@@ -365,6 +365,8 @@ class WC_Stripe_Payment_Request {
 			'amount'  => WC_Stripe_Helper::get_stripe_amount( $product->get_price() ),
 			'pending' => true,
 		];
+
+		// This value won't be used anymore. Leaving it for just to be able to create the PR button on page load.
 		$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
 
 		return apply_filters( 'wc_stripe_payment_request_product_data', $data, $product );
@@ -1463,10 +1465,8 @@ class WC_Stripe_Payment_Request {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
-		$data                 = [];
-		$data['currency']     = strtolower( get_woocommerce_currency() );
-		$data['country_code'] = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
-		$items                = [];
+		$data  = [];
+		$items = [];
 
 		// Default show only subtotal instead of itemization.
 		if ( ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items ) {
@@ -1562,9 +1562,11 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// Mandatory payment details.
-		$data['needs_payer_phone'] = 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' );
+		$data['requestPayerPhone'] = 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' );
 		$data['currency']          = strtolower( get_woocommerce_currency() );
-		$data['country_code']      = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
+		$data['country']           = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
+		$data['requestPayerEmail'] = true;
+		$data['requestPayerName']  = true;
 
 		$data['displayItems'] = $items;
 

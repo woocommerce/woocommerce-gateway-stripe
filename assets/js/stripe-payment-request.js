@@ -6,7 +6,8 @@ jQuery( function( $ ) {
 		locale: typeof wc_stripe_params !== 'undefined' ? wc_stripe_params.stripe_locale : 'auto',
 	} ),
 		paymentRequestType,
-		hasShippingAddress = false;
+		hasShippingAddress = false,
+		currentPaymentRequestOptions = {};
 
 	/**
 	 * Object to handle Stripe payment forms.
@@ -33,8 +34,8 @@ jQuery( function( $ ) {
 				type:    'POST',
 				data:    data,
 				url:     wc_stripe_payment_request.getAjaxURL( 'get_cart_details' ),
-				success: function( response ) {
-					wc_stripe_payment_request.startPaymentRequest( response );
+				success: function( paymentRequestOptions ) {
+					wc_stripe_payment_request.startPaymentRequest( paymentRequestOptions );
 				}
 			} );
 		},
@@ -319,35 +320,20 @@ jQuery( function( $ ) {
 		 * Starts the payment request
 		 *
 		 * @since 4.0.0
-		 * @version 4.8.0
+		 * @version x.x.x
+		 *
+		 * @return {Object} Payment Request object
 		 */
-		startPaymentRequest: function( cart ) {
-			var options;
-
-			if ( wc_stripe_payment_request_params.is_product_page ) {
-				options = wc_stripe_payment_request.getRequestOptionsFromLocal();
-			} else {
-				options = {
-					total: cart.total,
-					currency: cart.currency,
-					country: cart.country_code,
-					requestPayerName: true,
-					requestPayerEmail: true,
-					requestPayerPhone: cart.needs_payer_phone,
-					requestShipping: cart.requestShipping,
-					displayItems: cart.displayItems
-				};
-			}
-
+		startPaymentRequest: function( paymentRequestOptions ) {
 			// Puerto Rico (PR) is the only US territory/possession that's supported by Stripe.
 			// Since it's considered a US state by Stripe, we need to do some special mapping.
-			if ( 'PR' === options.country ) {
-				options.country = 'US';
+			if ( 'PR' === paymentRequestOptions.country ) {
+				paymentRequestOptions.country = 'US';
 			}
 
 			// Handle errors thrown by Stripe, so we don't break the product page
 			try {
-				var paymentRequest = stripe.paymentRequest( options );
+				var paymentRequest = stripe.paymentRequest( paymentRequestOptions );
 
 				var elements = stripe.elements( { locale: wc_stripe_payment_request_params.button.locale } );
 				var prButton = wc_stripe_payment_request.createPaymentRequestButton( elements, paymentRequest );
@@ -408,6 +394,8 @@ jQuery( function( $ ) {
 				// Leave for troubleshooting
 				console.error( e );
 			}
+
+			return paymentRequest;
 		},
 
 		/**
@@ -539,16 +527,30 @@ jQuery( function( $ ) {
 				}
 
 				wc_stripe_payment_request.addToCart().then( function( response ) {
-					if ( response.error ) {
-						window.alert( response.error );
+					const { error, ...paymentRequestOptions } = response;
+
+					if ( error ) {
+						window.alert( error );
 						return;
 					}
 
-					paymentRequest.update( {
-						total: response.total,
-						displayItems: response.displayItems,
-					} );
-					paymentRequest.show();
+					if ( wc_stripe_payment_request.shouldResetPaymentRequest( paymentRequestOptions ) ) {
+						const paymentRequest = wc_stripe_payment_request.resetPaymentRequest( prButton, paymentRequestOptions );
+
+						// We need to wait for next tick to be able to open the payment dialog.
+						setTimeout(function() {
+							paymentRequest.show();
+						}, 0);
+					} else {
+						paymentRequest.update( {
+							total: paymentRequestOptions.total,
+							displayItems: paymentRequestOptions.displayItems,
+						} );
+
+						paymentRequest.show();
+					}
+
+					currentPaymentRequestOptions = paymentRequestOptions;
 				} ).always( function() {
 					$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
 				} );
@@ -621,6 +623,30 @@ jQuery( function( $ ) {
 				.unblock();
 		},
 
+
+		/**
+		 * Checks if we should reset the current Payment Request button based on passed options.
+		 *
+		 * @since x.x.x
+		 *
+		 * @return {boolean}
+		 */
+		shouldResetPaymentRequest: function ( paymentRequestOptions ) {
+			return paymentRequestOptions.requestShipping !== currentPaymentRequestOptions.requestShipping;
+		},
+
+		/**
+		 * Destroys given Payment Request button and creates a new one based on passed options
+		 *
+		 * @since x.x.x
+		 *
+		 * @return {Object} Payment Request object
+		 */
+		resetPaymentRequest: function ( prButton, options ) {
+			prButton.destroy();
+			return wc_stripe_payment_request.startPaymentRequest( options );
+		},
+
 		/**
 		 * Initialize event handlers and UI state
 		 *
@@ -629,7 +655,9 @@ jQuery( function( $ ) {
 		 */
 		init: function() {
 			if ( wc_stripe_payment_request_params.is_product_page ) {
-				wc_stripe_payment_request.startPaymentRequest();
+				const paymentRequestOptions = wc_stripe_payment_request.getRequestOptionsFromLocal();
+				wc_stripe_payment_request.startPaymentRequest( paymentRequestOptions );
+				currentPaymentRequestOptions = paymentRequestOptions;
 			} else {
 				wc_stripe_payment_request.getCartDetails();
 			}
