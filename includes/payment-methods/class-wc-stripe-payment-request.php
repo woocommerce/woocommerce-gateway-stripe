@@ -742,6 +742,9 @@ class WC_Stripe_Payment_Request {
 
 		?>
 		<div id="wc-stripe-payment-request-wrapper" style="clear:both;padding-top:1.5em;display:none;">
+			<p>
+				<a id="trigger_event_from_plugin" href="#">Simulate event triggered by 3rd party plugin</a>
+			</p>
 			<div id="wc-stripe-payment-request-button">
 				<?php
 				if ( $this->is_custom_button() ) {
@@ -1488,12 +1491,13 @@ class WC_Stripe_Payment_Request {
 			$items[] = [
 				'label'   => esc_html( __( 'Tax', 'woocommerce-gateway-stripe' ) ),
 				'amount'  => WC_Stripe_Helper::get_stripe_amount( $tax ),
-				'pending' => true,
+				'pending' => false, // This is used on Safari. We need to set this value accordingly
 			];
 		}
 
 		// Shipping
 		$shipping_to_substract = 0;
+		$data['requestShipping'] = false;
 
 		if ( wc_shipping_enabled() && WC()->cart->needs_shipping() ) {
 			$data['requestShipping'] = true;
@@ -1510,7 +1514,7 @@ class WC_Stripe_Payment_Request {
 			$items[] = [
 				'label'   => esc_html( __( 'Shipping', 'woocommerce-gateway-stripe' ) ),
 				'amount'  => WC_Stripe_Helper::get_stripe_amount( $shipping ),
-				'pending' => true,
+				'pending' => false, // This is used on Safari. We need to set this value accordingly
 			];
 		}
 
