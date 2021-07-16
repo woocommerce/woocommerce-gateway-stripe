@@ -126,7 +126,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.x.x - 2021-xx-xx =
+= 5.3.0 - 2021-xx-xx =
 * Fix - Disable Payment Request Buttons when order has to be split into multiple packages because Payment Requests do not support that use case.
 * Tweak - Payment request button should guide users to login when necessary.
 
