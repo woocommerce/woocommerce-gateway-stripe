@@ -1354,8 +1354,24 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return array
 	 */
 	public function update_onboarding_settings( $settings ) {
+		if ( ! isset( $_SERVER['HTTP_REFERER'] ) ) {
+			return;
+		}
+
+		parse_str( wp_parse_url( $_SERVER['HTTP_REFERER'], PHP_URL_QUERY ), $queries );
+
+		if (
+			! isset( $queries ) ||
+			! isset( $queries['page'] ) ||
+			! isset( $queries['task'] ) ||
+			$queries['page'] !== 'wc-admin' ||
+			$queries['task'] !== 'payments'
+		) {
+			return;
+		}
+
 		if ( ! empty( $settings['publishable_key'] ) && ! empty( $settings['secret_key'] ) ) {
-			if ( strpos( $settings['publishable_key'], 'test_' ) === 0 || strpos( $settings['secret_key'], 'test_' ) === 0 ) {
+			if ( strpos( $settings['publishable_key'], 'pk_test_' ) === 0 || strpos( $settings['secret_key'], 'sk_test_' ) === 0 ) {
 				$settings['test_publishable_key'] = $settings['publishable_key'];
 				$settings['test_secret_key'] = $settings['secret_key'];
 				unset( $settings['publishable_key'] );
