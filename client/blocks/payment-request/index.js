@@ -39,17 +39,19 @@ const paymentRequestPaymentMethod = {
 			// show the Payment Request Button or not. This is necessary because a browser might be
 			// able to load the Stripe JS object, but not support Payment Requests.
 			const fakeCart = {
-				total: {
-					label: 'Total',
-					amount: parseInt(
-						cartData?.cartTotals?.total_price ?? 0,
-						10
-					),
-					pending: true,
+				order_data: {
+					total: {
+						label: 'Total',
+						amount: parseInt(
+							cartData?.cartTotals?.total_price ?? 0,
+							10
+						),
+						pending: true,
+					},
+					currency: cartData?.cartTotals?.currency_code?.toLowerCase(),
+					country_code: getSetting( 'baseLocation', {} )?.country,
+					displayItems: [],
 				},
-				currency: cartData?.cartTotals?.currency_code?.toLowerCase(),
-				country_code: getSetting( 'baseLocation', {} )?.country,
-				displayItems: [],
 				shipping_required: false,
 			};
 			const paymentRequest = createPaymentRequestUsingCart(
