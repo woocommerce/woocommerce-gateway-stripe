@@ -365,7 +365,7 @@ class WC_Stripe_Payment_Request {
 			'amount'  => WC_Stripe_Helper::get_stripe_amount( $product->get_price() ),
 			'pending' => true,
 		];
-		$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
+		$data['requestShipping'] = $this->product_needs_shipping( $product );
 
 		return apply_filters( 'wc_stripe_payment_request_product_data', $data, $product );
 	}
@@ -702,6 +702,39 @@ class WC_Stripe_Payment_Request {
 		if ( isset( $gateways['stripe'] ) ) {
 			$gateways['stripe']->payment_scripts();
 		}
+	}
+
+	/**
+	 * Returns true if given product needs shipping. For bundled products it will return true if bundle is not virtual (assembled)
+	 * otherwise if it's virtual bundle it will check if at least one bundled item needs shipping in order to return true.
+	 *
+	 * @since   x.x.x
+	 * @version x.x.x
+	 * @return  boolean True if product needs shipping.
+	 */
+	private function product_needs_shipping( $product ) {
+		if ( ! wc_shipping_enabled() ) {
+			return false;
+		}
+
+		$needs_shipping = $product->needs_shipping();
+
+		if ( class_exists( 'WC_Product_Bundle' ) && is_a( $product, 'WC_Product_Bundle' ) ) {
+
+			// If bundle is unassembled we need to check if at least one item needs shipping
+			if ( $product->is_virtual() ) {
+				$bundled_items = $product->get_bundled_items();
+
+				foreach ( $bundled_items as $bundled_item ) {
+					if ( $bundled_item->get_product()->needs_shipping() ) {
+						$needs_shipping = true;
+						break;
+					}
+				}
+			}
+		}
+
+		return $needs_shipping;
 	}
 
 	/**
@@ -1471,6 +1504,11 @@ class WC_Stripe_Payment_Request {
 		// Default show only subtotal instead of itemization.
 		if ( ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items ) {
 			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+				// Exclude bundled items to avoid making the list too big
+				if ( function_exists( 'wc_pb_is_bundled_cart_item' ) && wc_pb_is_bundled_cart_item( $cart_item ) ) {
+					continue;
+				}
+
 				$amount         = $cart_item['line_subtotal'];
 				$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
 
