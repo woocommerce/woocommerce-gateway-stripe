@@ -28,15 +28,15 @@ const openIntentModal = ( {
 } ) => {
 	const checkoutResponse = { type: successType };
 	if (
-		! paymentDetails.setup_intent &&
+		! paymentDetails.setup_intent_secret &&
 		! paymentDetails.payment_intent_secret
 	) {
 		return true;
 	}
-	const isSetupIntent = !! paymentDetails.setupIntent;
+	const isSetupIntent = !! paymentDetails.setup_intent_secret;
 	const verificationUrl = paymentDetails.verification_endpoint;
 	const intentSecret = isSetupIntent
-		? paymentDetails.setup_intent
+		? paymentDetails.setup_intent_secret
 		: paymentDetails.payment_intent_secret;
 	return stripe[ isSetupIntent ? 'confirmCardSetup' : 'confirmCardPayment' ](
 		intentSecret
