@@ -101,7 +101,7 @@ class WC_Stripe_Payment_Request {
 	 * Checks whether authentication is required for checkout.
 	 *
 	 * @since   5.1.0
-	 * @version x.x.x
+	 * @version 5.3.0
 	 *
 	 * @return bool
 	 */
@@ -182,7 +182,7 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Handles payment request redirect when the redirect dialog "Continue" button is clicked.
 	 *
-	 * @since x.x.x
+	 * @since 5.3.0
 	 */
 	public function handle_payment_request_redirect() {
 		if (
@@ -204,7 +204,7 @@ class WC_Stripe_Payment_Request {
 	 * Initialize hooks.
 	 *
 	 * @since   4.0.0
-	 * @version x.x.x
+	 * @version 5.3.0
 	 * @return  void
 	 */
 	public function init() {
@@ -583,8 +583,8 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Checks whether cart contains a subscription product or this is a subscription product page.
 	 *
-	 * @since   x.x.x
-	 * @version x.x.x
+	 * @since   5.3.0
+	 * @version 5.3.0
 	 * @return boolean
 	 */
 	public function has_subscription_product() {
@@ -647,7 +647,7 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Returns the login redirect URL.
 	 *
-	 * @since x.x.x
+	 * @since 5.3.0
 	 *
 	 * @param string $redirect Default redirect URL.
 	 * @return string Redirect URL.
@@ -763,8 +763,8 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Returns true if the current page supports Payment Request Buttons, false otherwise.
 	 *
-	 * @since   x.x.x
-	 * @version x.x.x
+	 * @since   5.3.0
+	 * @version 5.3.0
 	 * @return  boolean  True if the current page is supported, false otherwise.
 	 */
 	private function is_page_supported() {
@@ -842,8 +842,8 @@ class WC_Stripe_Payment_Request {
 	 * Returns true if Payment Request Buttons are supported on the current page, false
 	 * otherwise.
 	 *
-	 * @since   x.x.x
-	 * @version x.x.x
+	 * @since   5.3.0
+	 * @version 5.3.0
 	 * @return  boolean  True if PRBs are supported on current page, false otherwise
 	 */
 	public function should_show_payment_request_button() {
@@ -901,8 +901,8 @@ class WC_Stripe_Payment_Request {
 	 *
 	 * @param WC_Product $param  The product that's being checked for support.
 	 *
-	 * @since   x.x.x
-	 * @version x.x.x
+	 * @since   5.3.0
+	 * @version 5.3.0
 	 * @return boolean  True if the provided product is supported, false otherwise.
 	 */
 	private function is_product_supported( $product ) {
@@ -1680,8 +1680,8 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Settings array for the user authentication dialog and redirection.
 	 *
-	 * @since   x.x.x
-	 * @version x.x.x
+	 * @since   5.3.0
+	 * @version 5.3.0
 	 *
 	 * @return array
 	 */
