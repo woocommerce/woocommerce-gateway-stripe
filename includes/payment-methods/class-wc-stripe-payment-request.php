@@ -1307,6 +1307,17 @@ class WC_Stripe_Payment_Request {
 		if ( $shipping_state && $shipping_country ) {
 			$_POST['shipping_state'] = $this->get_normalized_state( $shipping_state, $shipping_country );
 		}
+
+		// The "Region" part of an Apple Pay Hong Kong address becomes `shipping_postcode`, so we
+		// need some special case handling for that.
+		$billing_postcode = ! empty( $_POST['billing_postcode'] ) ? wc_clean( wp_unslash( $_POST['billing_postcode'] ) ) : '';
+		if ( 'HK' === $billing_country && $billing_postcode ) {
+			$_POST['billing_state']    = $this->get_normalized_state( $billing_postcode, $billing_country );
+		}
+		$shipping_postcode = ! empty( $_POST['shipping_postcode'] ) ? wc_clean( wp_unslash( $_POST['shipping_postcode'] ) ) : '';
+		if ( 'HK' === $shipping_country && $shipping_postcode ) {
+			$_POST['shipping_state']    = $this->get_normalized_state( $shipping_postcode, $shipping_country );
+		}
 	}
 
 	/**
@@ -1482,11 +1493,11 @@ class WC_Stripe_Payment_Request {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
 		}
 
-		// In case the state is required, but is missing, add a more descriptive error notice.
-		$this->validate_state();
-
 		// Normalizes billing and shipping state values.
 		$this->normalize_state();
+
+		// In case the state is required, but is missing, add a more descriptive error notice.
+		$this->validate_state();
 
 		WC()->checkout()->process_checkout();
 
