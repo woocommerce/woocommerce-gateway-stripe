@@ -31,3 +31,6 @@ docker/bin/jt
 docker/data
 docker/wordpress
 docker/logs
+
+# Ignore cache files
+.cache/
