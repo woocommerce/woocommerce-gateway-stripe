@@ -278,8 +278,8 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 	abort
 fi
 
-# Create the 'release/VERSION' branch if necessary
-if $CREATE_LOCAL_BRANCH || $CREATE_REMOTE_BRANCH; then
+# Create the remote 'release/VERSION' branch if necessary
+if $CREATE_REMOTE_BRANCH; then
 	create_git_branch
 fi
 
