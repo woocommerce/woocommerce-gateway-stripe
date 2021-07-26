@@ -1,12 +1,10 @@
-/* global jQuery, wc_stripe_upe_params */
+/* global jQuery, Stripe, wc_stripe_upe_params */
 
 /**
  * Internal dependencies
  */
 import './style.scss';
 import { getConfig } from './config.js';
-// import WCPayAPI from '../api';
-// import enqueueFraudScripts from 'fraud-scripts';
 import { getFontRulesFromPage, getAppearance } from '../upe-styles';
 
 const PAYMENT_METHOD_NAME_CARD = 'stripe';
