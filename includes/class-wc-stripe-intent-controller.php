@@ -25,6 +25,8 @@ class WC_Stripe_Intent_Controller {
 	public function __construct() {
 		add_action( 'wc_ajax_wc_stripe_verify_intent', [ $this, 'verify_intent' ] );
 		add_action( 'wc_ajax_wc_stripe_create_setup_intent', [ $this, 'create_setup_intent' ] );
+
+		add_action( 'wc_ajax_wc_stripe_create_payment_intent', [ $this, 'create_payment_intent_ajax' ] );
 	}
 
 	/**
@@ -254,6 +256,68 @@ class WC_Stripe_Intent_Controller {
 		echo wp_json_encode( $response );
 		exit;
 	}
+
+	/**
+	 * Handle AJAX request for creating a payment intent for Stripe UPE.
+	 *
+	 * @throws Process_Payment_Exception - If nonce or setup intent is invalid.
+	 */
+	public function create_payment_intent_ajax() {
+		try {
+			$is_nonce_valid = check_ajax_referer( '_wc_stripe_nonce', false, false );
+			if ( ! $is_nonce_valid ) {
+				throw new Process_Payment_Exception(
+					__( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ),
+					'wc_stripe_upe_intent_error'
+				);
+			}
+
+			// If paying from order, we need to get the total from the order instead of the cart.
+			$order_id = isset( $_POST['stripe_order_id'] ) ? absint( $_POST['stripe_order_id'] ) : null;
+
+			wp_send_json_success( $this->create_payment_intent( $order_id ), 200 );
+		} catch ( Exception $e ) {
+			// Send back error so it can be displayed to the customer.
+			wp_send_json_error(
+				[
+					'error' => [
+						'message' => $e->getMessage(),
+					],
+				]
+			);
+		}
+	}
+
+	/**
+	 * Creates payment intent using current cart or order and store details.
+	 *
+	 * @param {int} $order_id The id of the order if intent created from Order.
+	 *
+	 * @return array
+	 */
+	public function create_payment_intent( $order_id = null ) {
+		$amount = WC()->cart->get_total( false );
+		$order  = wc_get_order( $order_id );
+		if ( is_a( $order, 'WC_Order' ) ) {
+			$amount = $order->get_total();
+		}
+
+		$currency         = get_woocommerce_currency();
+		$payment_intent = WC_Stripe_API::request(
+			[
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
+				'currency' => strtolower( $currency ),
+				'payment_method_types' => ['card'],
+			],
+			'payment_intents'
+		);
+
+		return [
+			'id'            => $payment_intent->id,
+			'client_secret' => $payment_intent->client_secret,
+		];
+	}
+
 }
 
 new WC_Stripe_Intent_Controller();
