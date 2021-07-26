@@ -270,26 +270,39 @@ function woocommerce_gateway_stripe() {
 			 * @version 4.0.0
 			 */
 			public function add_gateways( $methods ) {
-				$methods[] = 'WC_Stripe_UPE_Payment_Gateway';
 
-				if ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) {
-					$methods[] = 'WC_Stripe_Subs_Compat';
-					$methods[] = 'WC_Stripe_Sepa_Subs_Compat';
+				if ( $this->is_upe_enabled() ) {
+					$methods[] = 'WC_Stripe_UPE_Payment_Gateway';
 				} else {
-					$methods[] = 'WC_Gateway_Stripe';
-					$methods[] = 'WC_Gateway_Stripe_Sepa';
-				}
+					if ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) {
+						$methods[] = 'WC_Stripe_Subs_Compat';
+						$methods[] = 'WC_Stripe_Sepa_Subs_Compat';
+					} else {
+						$methods[] = 'WC_Gateway_Stripe';
+						$methods[] = 'WC_Gateway_Stripe_Sepa';
+					}
 
-				$methods[] = 'WC_Gateway_Stripe_Bancontact';
-				$methods[] = 'WC_Gateway_Stripe_Sofort';
-				$methods[] = 'WC_Gateway_Stripe_Giropay';
-				$methods[] = 'WC_Gateway_Stripe_Eps';
-				$methods[] = 'WC_Gateway_Stripe_Ideal';
-				$methods[] = 'WC_Gateway_Stripe_P24';
-				$methods[] = 'WC_Gateway_Stripe_Alipay';
+					$methods[] = 'WC_Gateway_Stripe_Bancontact';
+					$methods[] = 'WC_Gateway_Stripe_Sofort';
+					$methods[] = 'WC_Gateway_Stripe_Giropay';
+					$methods[] = 'WC_Gateway_Stripe_Eps';
+					$methods[] = 'WC_Gateway_Stripe_Ideal';
+					$methods[] = 'WC_Gateway_Stripe_P24';
+					$methods[] = 'WC_Gateway_Stripe_Alipay';
+				}
 				$methods[] = 'WC_Gateway_Stripe_Multibanco';
 
 				return $methods;
+			}
+
+			/**
+			 * Check if UPE is enabled.
+			 *
+			 * @return bool True if UPE is enabled, false if it is not.
+			 */
+			public function is_upe_enabled() {
+				$stripe_settings = get_option( 'woocommerce_stripe_settings', null );
+				return ! empty( $stripe_settings['upe_checkout_experience_enabled'] ) && 'yes' === $stripe_settings['upe_checkout_experience_enabled'];
 			}
 
 			/**

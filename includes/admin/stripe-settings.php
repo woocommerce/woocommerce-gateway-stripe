@@ -27,6 +27,14 @@ return apply_filters(
 			'default'     => __( 'Pay with your credit card via Stripe.', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		],
+		'upe_checkout_experience_enabled'     => [
+			'title'       => __( 'Enable/Disable', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Enable new checkout experience', 'woocommerce-gateway-stripe' ),
+			'type'        => 'checkbox',
+			'description' => __( 'If enabled, users will... TBD', 'woocommerce-gateway-stripe' ),
+			'default'     => 'yes',
+			'desc_tip'    => true,
+		],
 		'api_credentials'                     => [
 			'title' => __( 'Stripe Account Keys', 'woocommerce-gateway-stripe' ),
 			'type'  => 'stripe_account_keys',

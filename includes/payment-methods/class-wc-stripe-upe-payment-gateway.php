@@ -60,7 +60,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->id           = 'stripe_upe';
+		$this->id           = 'stripe';
 		$this->method_title = __( 'Stripe UPE', 'woocommerce-gateway-stripe' );
 		/* translators: link */
 		$this->method_description = __( 'Accept debit and credit cards in 135+ currencies, methods such as Alipay, and one-touch checkout with Apple Pay.', 'woocommerce-gateway-stripe' );
@@ -107,7 +107,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Initialize Gateway Settings Form Fields.
 	 */
 	public function init_form_fields() {
-		$this->form_fields = require WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-upe-settings.php';
+		$base_stripe_fields = require WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-settings.php';
+		unset( $base_stripe_fields['inline_cc_form'] );
+		$this->form_fields = array_merge_recursive( $base_stripe_fields, require WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-upe-settings.php' );
 	}
 
 	/**
@@ -253,6 +255,52 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				</tr>
 			</tbody>
 		</table>';
+		return $this->generate_title_html( $key, $data );
+	}
+
+	/**
+	 * This is overloading the title type so the oauth url is only fetched if we are on the settings page.
+	 *
+	 * TODO: This is duplicate code from WC_Gateway_Stripe.
+	 *
+	 * @param string $key Field key.
+	 * @param array  $data Field data.
+	 * @return string
+	 */
+	public function generate_stripe_account_keys_html( $key, $data ) {
+		if ( woocommerce_gateway_stripe()->connect->is_connected() ) {
+			$reset_link = add_query_arg(
+				[
+					'_wpnonce'                     => wp_create_nonce( 'reset_stripe_api_credentials' ),
+					'reset_stripe_api_credentials' => true,
+				],
+				admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' )
+			);
+
+			$api_credentials_text = sprintf(
+			/* translators: %1, %2, %3, and %4 are all HTML markup tags */
+				__( '%1$sClear all Stripe account keys.%2$s %3$sThis will disable any connection to Stripe.%4$s', 'woocommerce-gateway-stripe' ),
+				'<a id="wc_stripe_connect_button" href="' . $reset_link . '" class="button button-secondary">',
+				'</a>',
+				'<span style="color:red;">',
+				'</span>'
+			);
+		} else {
+			$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url();
+
+			if ( ! is_wp_error( $oauth_url ) ) {
+				$api_credentials_text = sprintf(
+				/* translators: %1, %2 and %3 are all HTML markup tags */
+					__( '%1$sSetup or link an existing Stripe account.%2$s By clicking this button you agree to the %3$sTerms of Service%2$s. Or, manually enter Stripe account keys below.', 'woocommerce-gateway-stripe' ),
+					'<a id="wc_stripe_connect_button" href="' . $oauth_url . '" class="button button-primary">',
+					'</a>',
+					'<a href="https://wordpress.com/tos">'
+				);
+			} else {
+				$api_credentials_text = __( 'Manually enter Stripe keys below.', 'woocommerce-gateway-stripe' );
+			}
+		}
+		$data['description'] = $api_credentials_text;
 		return $this->generate_title_html( $key, $data );
 	}
 }
