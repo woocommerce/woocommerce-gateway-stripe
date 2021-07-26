@@ -5,7 +5,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Class CC_Payment_Method
- *
  */
 
 /**
@@ -39,15 +38,15 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 
 		$details       = $payment_details[ $this->stripe_id ];
 		$funding_types = [
-			'credit'  => __( 'credit', 'woocommerce-payments' ),
-			'debit'   => __( 'debit', 'woocommerce-payments' ),
-			'prepaid' => __( 'prepaid', 'woocommerce-payments' ),
-			'unknown' => __( 'unknown', 'woocommerce-payments' ),
+			'credit'  => __( 'credit', 'woocommerce-gateway-stripe' ),
+			'debit'   => __( 'debit', 'woocommerce-gateway-stripe' ),
+			'prepaid' => __( 'prepaid', 'woocommerce-gateway-stripe' ),
+			'unknown' => __( 'unknown', 'woocommerce-gateway-stripe' ),
 		];
 
 		$payment_method_title = sprintf(
 		// Translators: %1$s card brand, %2$s card funding (prepaid, credit, etc.).
-			__( '%1$s %2$s card', 'woocommerce-payments' ),
+			__( '%1$s %2$s card', 'woocommerce-gateway-stripe' ),
 			ucfirst( $details['network'] ),
 			$funding_types[ $details['funding'] ]
 		);

@@ -302,12 +302,12 @@ class WC_Stripe_Intent_Controller {
 			$amount = $order->get_total();
 		}
 
-		$currency         = get_woocommerce_currency();
+		$currency       = get_woocommerce_currency();
 		$payment_intent = WC_Stripe_API::request(
 			[
-				'amount' => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
-				'currency' => strtolower( $currency ),
-				'payment_method_types' => ['card'],
+				'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
+				'currency'             => strtolower( $currency ),
+				'payment_method_types' => [ 'card' ],
 			],
 			'payment_intents'
 		);

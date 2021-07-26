@@ -7,7 +7,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Abstract UPE Payment Method class
  *
  * Handles general functionality for UPE payment methods
- *
  */
 
 
@@ -50,7 +49,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 * @param WC_Payments_Token_Service $token_service Instance of WC_Payments_Token_Service.
 	 */
 	public function __construct( $token_service ) {
-//		$this->token_service = $token_service;
+		//      $this->token_service = $token_service;
 	}
 
 	/**
@@ -105,7 +104,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 * @return WC_Payment_Token_CC|WC_Payment_Token_WCPay_SEPA WC object for payment token.
 	 */
 	public function get_payment_token_for_user( $user, $payment_method_id ) {
-//		return $this->token_service->add_payment_method_to_user( $payment_method_id, $user );
+		//      return $this->token_service->add_payment_method_to_user( $payment_method_id, $user );
 	}
 
 	/**

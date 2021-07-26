@@ -60,8 +60,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->id             = 'stripe_upe';
-		$this->method_title   = __( 'Stripe UPE', 'woocommerce-gateway-stripe' );
+		$this->id           = 'stripe_upe';
+		$this->method_title = __( 'Stripe UPE', 'woocommerce-gateway-stripe' );
 		/* translators: link */
 		$this->method_description = __( 'Accept debit and credit cards in 135+ currencies, methods such as Alipay, and one-touch checkout with Apple Pay.', 'woocommerce-gateway-stripe' );
 		$this->has_fields         = true;
@@ -90,13 +90,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$this->secret_key      = ! empty( $main_settings['test_secret_key'] ) ? $main_settings['test_secret_key'] : '';
 		}
 
-		$this->payment_methods = [];
+		$this->payment_methods  = [];
 		$payment_method_classes = [
 			WC_Stripe_UPE_Payment_Method_CC::class,
 		];
-		foreach ($payment_method_classes as $payment_method_class) {
-			$payment_method = new $payment_method_class( null );
-			$this->payment_methods[$payment_method->get_id()] = $payment_method;
+		foreach ( $payment_method_classes as $payment_method_class ) {
+			$payment_method                                     = new $payment_method_class( null );
+			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
 		}
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
@@ -139,14 +139,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		global $wp;
 
 		$stripe_params = [
-			'publishableKey'         => $this->publishable_key,
-			'isUPEEnabled'           => true,
-			'locale'                 => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() )
+			'publishableKey' => $this->publishable_key,
+			'isUPEEnabled'   => true,
+			'locale'         => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 		];
 
 		// If we're on the pay page we need to pass stripe.js the address of the order.
 		if ( isset( $_GET['pay_for_order'] ) && 'true' === $_GET['pay_for_order'] ) { // wpcs: csrf ok.
-			$order_id = wc_clean( $wp->query_vars['order-pay'] ); // wpcs: csrf ok, sanitization ok, xss ok.
+			$order_id                 = wc_clean( $wp->query_vars['order-pay'] ); // wpcs: csrf ok, sanitization ok, xss ok.
 			$stripe_params['orderId'] = $order_id;
 		}
 
@@ -185,9 +185,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	public function payment_fields() {
 		?>
 		<form id="payment-form">
-  			<div id="wc-stripe-upe-element">
-    			<!-- Elements will create form elements here -->
-  			</div>
+			  <div id="wc-stripe-upe-element">
+				<!-- Elements will create form elements here -->
+			  </div>
 		</form>
 		<?php
 	}
