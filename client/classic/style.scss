@@ -1,0 +1,41 @@
+#payment
+	.payment_methods
+	li
+	.payment_box.payment_method_woocommerce_payments
+	fieldset {
+	padding: 0;
+}
+
+#payment .payment_method_woocommerce_payments > fieldset > legend {
+	padding-top: 0;
+}
+
+#payment .payment_method_woocommerce_payments .testmode-info {
+	margin-bottom: 0.5em;
+}
+
+#payment .payment_method_woocommerce_payments .woocommerce-error {
+	margin: 1em 0 0;
+}
+
+#wcpay-card-element,
+#wcpay-sepa-element {
+	border: 1px solid #ddd;
+	padding: 5px 7px;
+	min-height: 29px;
+}
+
+#wcpay-upe-element {
+	padding: 7px 7px;
+	margin-bottom: 0.5em;
+
+	&.processing {
+		min-height: 70px;
+	}
+}
+
+.wcpay-card-mounted,
+.wcpay-upe-mounted,
+.wcpay-sepa-mounted {
+	background-color: #fff;
+}

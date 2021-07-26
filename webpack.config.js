@@ -10,4 +10,8 @@ module.exports = {
 		),
 		new DependencyExtractionWebpackPlugin(),
 	],
+	entry: {
+		index: './client/blocks/index.js',
+		upe_classic: './client/classic/upe.js',
+	}
 };

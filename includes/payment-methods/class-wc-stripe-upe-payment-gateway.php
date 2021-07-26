@@ -61,14 +61,22 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function __construct() {
 		$this->id           = 'stripe_upe';
-		$this->method_title = __( 'Stripe UPE', 'woocommerce-gateway-stripe' );
-		/* translators: link */
+		$this->method_title = __( 'Stripe - UPE', 'woocommerce-gateway-stripe' );
 		$this->method_description = __( 'Accept debit and credit cards in 135+ currencies, methods such as Alipay, and one-touch checkout with Apple Pay.', 'woocommerce-gateway-stripe' );
 		$this->has_fields         = true;
 		$this->supports           = [
 			'products',
 			'refunds',
 		];
+		$this->payment_methods  = [];
+
+		$payment_method_classes = [
+			WC_Stripe_UPE_Payment_Method_CC::class,
+		];
+		foreach ( $payment_method_classes as $payment_method_class ) {
+			$payment_method                                     = new $payment_method_class( WC_Stripe_Payment_Tokens::get_instance() );
+			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
+		}
 
 		// Load the form fields.
 		$this->init_form_fields();
@@ -90,15 +98,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$this->secret_key      = ! empty( $main_settings['test_secret_key'] ) ? $main_settings['test_secret_key'] : '';
 		}
 
-		$this->payment_methods  = [];
-		$payment_method_classes = [
-			WC_Stripe_UPE_Payment_Method_CC::class,
-		];
-		foreach ( $payment_method_classes as $payment_method_class ) {
-			$payment_method                                     = new $payment_method_class( null );
-			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
-		}
-
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
 	}
@@ -118,16 +117,38 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
-		wp_register_script( 'woocommerce_stripe_upe', plugins_url( 'assets/js/stripe-upe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [ 'jquery-payment', 'stripe' ], WC_STRIPE_VERSION, true );
+		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/checkout_upe.asset.php';
+		$version      = WC_STRIPE_VERSION;
+		$dependencies = [];
+		if ( file_exists( $asset_path ) ) {
+			$asset        = require $asset_path;
+			$version      = is_array( $asset ) && isset( $asset['version'] )
+				? $asset['version']
+				: $version;
+			$dependencies = is_array( $asset ) && isset( $asset['dependencies'] )
+				? $asset['dependencies']
+				: $dependencies;
+		}
+
+		wp_register_script(
+			'wc-stripe-upe-classic',
+			WC_STRIPE_PLUGIN_URL . '/build/upe_classic.js',
+			$dependencies,
+			$version,
+			true
+		);
+		wp_set_script_translations(
+			'wc-stripe-upe-classic',
+			'woocommerce-gateway-stripe'
+		);
 
 		wp_localize_script(
-			'woocommerce_stripe_upe',
+			'wc-stripe-upe-classic',
 			'wc_stripe_upe_params',
 			apply_filters( 'wc_stripe_upe_params', $this->javascript_params() )
 		);
 
-		wp_enqueue_script( 'woocommerce_stripe_upe' );
+		wp_enqueue_script( 'wc-stripe-upe-classic' );
 	}
 
 	/**
@@ -157,6 +178,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['createPaymentIntentNonce'] = wp_create_nonce( '_wc_stripe_nonce' );
 		$stripe_params['upeAppeareance']           = get_transient( self::UPE_APPEARANCE_TRANSIENT );
 		$stripe_params['paymentMethodsConfig']     = $this->get_enabled_payment_method_config();
+		$stripe_params['accountDescriptor']        = 'accountDescriptor'; // TODO: this should be added to the Stripe settings page or remove it from here.
 
 		return $stripe_params;
 	}
@@ -168,7 +190,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	private function get_enabled_payment_method_config() {
 		$settings                = [];
-		$enabled_payment_methods = $this->get_upe_enabled_payment_method_ids(); //array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_at_checkout' ] );
+		$enabled_payment_methods = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_at_checkout' ] );
 
 		foreach ( $enabled_payment_methods as $payment_method ) {
 			$settings[ $payment_method ] = [

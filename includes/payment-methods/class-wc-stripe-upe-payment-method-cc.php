@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class CC_Payment_Method
+ * Class WC_Stripe_UPE_Payment_Method_CC
  */
 
 /**
@@ -15,7 +15,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Constructor for card payment method
 	 *
-	 * @param WC_Payments_Token_Service $token_service Token class instance.
+	 * @param WC_Stripe_Payment_Tokens $token_service Token class instance.
 	 */
 	public function __construct( $token_service ) {
 		parent::__construct( $token_service );
