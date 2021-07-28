@@ -4,7 +4,8 @@
  * Internal dependencies
  */
 import './style.scss';
-import { getConfig } from './config.js';
+import { getConfig } from '../utils';
+import WCStripeAPI from './api';
 import { getFontRulesFromPage, getAppearance } from '../upe-styles';
 
 const PAYMENT_METHOD_NAME_CARD = 'stripe';
@@ -23,96 +24,19 @@ jQuery( function ( $ ) {
 	}
 
 	// Create an API object, which will be used throughout the checkout.
-	// const api = new WCPayAPI(
-	// 	{
-	// 		publishableKey,
-	// 		accountId: getConfig( 'accountId' ),
-	// 		forceNetworkSavedCards: getConfig( 'forceNetworkSavedCards' ),
-	// 		locale: getConfig( 'locale' ),
-	// 		isUPEEnabled,
-	// 	},
-	// 	// A promise-based interface to jQuery.post.
-	// 	( url, args ) => {
-	// 		return new Promise( ( resolve, reject ) => {
-	// 			jQuery.post( url, args ).then( resolve ).fail( reject );
-	// 		} );
-	// 	}
-	// );
-	const api = {
-		stripe: new Stripe( publishableKey, {
-			betas: [ 'payment_element_beta_1' ],
+	const api = new WCStripeAPI(
+		{
+			publishableKey,
 			locale: getConfig( 'locale' ),
-		} ),
-
-		/**
-		 * Build WC AJAX endpoint URL.
-		 *
-		 * @param  {String} endpoint Endpoint.
-		 * @return {String}
-		 */
-		buildAjaxURL: function( endpoint ) {
-			return getConfig( 'ajaxurl' )
-				.toString()
-				.replace( '%%endpoint%%', 'wc_stripe_' + endpoint );
+			isUPEEnabled,
 		},
-
 		// A promise-based interface to jQuery.post.
-		request: function( url, args ) {
+		( url, args ) => {
 			return new Promise( ( resolve, reject ) => {
 				jQuery.post( url, args ).then( resolve ).fail( reject );
 			} );
-		},
-
-		getStripe: function() {
-			return this.stripe;
-		},
-
-		initSetupIntent: function() {
-			console.error( 'TODO: Not implemented yet: initSetupIntent' );
-		},
-
-		/**
-		 * Creates an intent based on a payment method.
-		 *
-		 * @param {int} orderId The id of the order if creating the intent on Order Pay page.
-		 *
-		 * @return {Promise} The final promise for the request to the server.
-		 */
-		createIntent: function ( orderId ) {
-			return this.request(
-				this.buildAjaxURL( 'create_payment_intent' ),
-				{
-					stripe_order_id: orderId,
-					_ajax_nonce: getConfig( 'createPaymentIntentNonce' ),
-				}
-			)
-				.then( ( response ) => {
-					console.error( response );
-
-					if ( ! response.success ) {
-						throw response.data.error;
-					}
-					return response.data;
-				} )
-				.catch( ( error ) => {
-					if ( error.message ) {
-						throw error;
-					} else {
-						// Covers the case of error on the Ajax request.
-						throw new Error( error.statusText );
-					}
-				} );
-		},
-
-		confirmIntent: function( url, savePaymentMethod ) {
-			console.error( 'TODO: Not implemented yet: confirmIntent' );
-			return true;
-		},
-
-		saveUPEAppearance: function( appearance ) {
-			console.error( 'TODO: Not implemented yet: saveUPEAppearance' );
 		}
-	}
+	);
 
 	// Object to add hidden elements to compute focus and invalid states for UPE.
 	const hiddenElementsForUPE = {
@@ -376,8 +300,6 @@ jQuery( function ( $ ) {
 				} );
 			} )
 			.catch( ( error ) => {
-				console.error ( error );
-
 				unblockUI( $upeContainer );
 				showError( error.message );
 				const gatewayErrorMessage =
@@ -457,6 +379,7 @@ jQuery( function ( $ ) {
 		}
 		return true;
 	};
+
 	/**
 	 * Submits the confirmation of the intent to Stripe on Pay for Order page.
 	 * Stripe redirects to Order Thank you page on sucess.
