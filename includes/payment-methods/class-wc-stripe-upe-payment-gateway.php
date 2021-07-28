@@ -174,7 +174,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['isCheckout']               = ( is_checkout() && empty( $_GET['pay_for_order'] ) ) ? 'yes' : 'no'; // wpcs: csrf ok.
 		$stripe_params['isOrderPay']               = is_wc_endpoint_url( 'order-pay' ) ? 'yes' : 'no';
 		$stripe_params['return_url']               = $this->get_stripe_return_url();
-		$stripe_params['ajaxurl']                  = WC_AJAX::get_endpoint( '%%endpoint%%' );
+		$stripe_params['ajaxUrl']                  = WC_AJAX::get_endpoint( '%%endpoint%%' );
 		$stripe_params['createPaymentIntentNonce'] = wp_create_nonce( '_wc_stripe_nonce' );
 		$stripe_params['upeAppeareance']           = get_transient( self::UPE_APPEARANCE_TRANSIENT );
 		$stripe_params['paymentMethodsConfig']     = $this->get_enabled_payment_method_config();
