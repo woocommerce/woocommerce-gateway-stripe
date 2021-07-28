@@ -1309,7 +1309,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			if ( ! is_wp_error( $oauth_url ) ) {
 				$api_credentials_text = sprintf(
 				/* translators: %1, %2 and %3 are all HTML markup tags */
-					__( '%1$sSetup or link an existing Stripe account.%2$s By clicking this button you agree to the %3$sTerms of Service%2$s. Or, manually enter Stripe account keys below.', 'woocommerce-gateway-stripe' ),
+					__( '%1$sSet up or link an existing Stripe account.%2$s By clicking this button you agree to the %3$sTerms of Service%2$s. Or, manually enter Stripe account keys below.', 'woocommerce-gateway-stripe' ),
 					'<a id="wc_stripe_connect_button" href="' . $oauth_url . '" class="button button-primary">',
 					'</a>',
 					'<a href="https://wordpress.com/tos">'
