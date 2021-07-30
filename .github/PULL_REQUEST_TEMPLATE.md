@@ -14,7 +14,7 @@ Testing instructions: How should this be tested and how can a reviewer test the 
 
 (remove me) Please follow the following guidelines when writing testing instructions:
 
-- If there is no similar flow in the [Critical flows](https://github.com/woocommerce/woocommerce-gateway-stripe/wiki/Critical-flows) include screenshots.
+- Include screenshots if there is no similar flow in the [Critical flows](https://github.com/woocommerce/woocommerce-gateway-stripe/wiki/Critical-flows).
 - Assume instructions will be copied over to the [Release Testing Instructions wiki page](https://github.com/woocommerce/woocommerce-gateway-stripe/wiki/Release-Testing-Instructions).
 - Assume instructions will be followed by external testers.
 - Assume tester does not have intimate knowledge of Stripe.
