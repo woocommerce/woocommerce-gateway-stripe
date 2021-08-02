@@ -100,6 +100,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
+		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
 	}
 
@@ -182,6 +183,32 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Returns the list of enabled payment method types for UPE.
+	 *
+	 * @return string[]
+	 */
+	public function get_upe_enabled_payment_method_ids() {
+		return $this->get_option(
+			'upe_checkout_experience_accepted_payments',
+			[
+				'card',
+			]
+		);
+	}
+
+	/**
+	 * Returns the list of available payment method types for UPE.
+	 * See https://stripe.com/docs/stripe-js/payment-element#web-create-payment-intent for a complete list.
+	 *
+	 * @return string[]
+	 */
+	public function get_upe_available_payment_methods() {
+		return [
+			'card',
+		];
+	}
+
+	/**
 	 * Payment form on checkout page
 	 */
 	public function payment_fields() {
@@ -224,6 +251,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		return $this->payment_methods[ $payment_method_id ]->is_reusable();
 	}
 
+	// TODO: Actually validate.
+	public function validate_upe_checkout_experience_accepted_payments_field( $key, $value ) {
+		return $value;
+	}
+
 	/**
 	 * This is overloading the upe checkout experience type on the settings page.
 	 *
@@ -233,6 +265,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function generate_upe_checkout_experience_accepted_payments_html( $key, $data ) {
 		// TODO: This is just a placeholder for now
+		$sepa_enabled = in_array( 'sepa', $this->get_upe_enabled_payment_method_ids(), true ) ? 'enabled' : 'disabled';
+		$card_enabled = in_array( 'card', $this->get_upe_enabled_payment_method_ids(), true ) ? 'enabled' : 'disabled';
+
 		$data['description'] = '<p><strong>Payments accepted on checkout</strong></p>
 			<table class="wc_gateways widefat" cellspacing="0" aria-describedby="payment_gateways_options-description">
 			<thead>
@@ -243,18 +278,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				</tr>
 			</thead>
 			<tbody>
-				<tr data-gateway_id="stripe">
+				<tr data-upe_method_id="card">
 					<td class="name" width=""><a href="#" class="wc-payment-gateway-method-title">Credit card / debit card</a><span class="wc-payment-gateway-method-name">&nbsp;–&nbsp;Cards</span></td>
-					<td class="status" width="1%"><a class="wc-payment-gateway-method-toggle-enabled" href="#"><span class="woocommerce-input-toggle woocommerce-input-toggle--enabled" aria-label="The &quot;Stripe&quot; payment method is currently enabled">Yes</span></a></td>
+					<td class="status" width="1%"><a class="wc-payment-upe-method-toggle-' . $card_enabled . '" href="#"><span class="woocommerce-input-toggle woocommerce-input-toggle--' . $card_enabled . '" aria-label="The &quot;Stripe&quot; payment method is currently enabled">Yes</span></a></td>
 					<td class="description" width="">Offer checkout with major credit and debit cards without leaving your store.</td>
 				</tr>
-				<tr data-gateway_id="stripe_sepa">
+				<tr data-upe_method_id="sepa">
 					<td class="name" width=""><a href="#" class="wc-payment-gateway-method-title">SEPA Direct Debit</a><span class="wc-payment-gateway-method-name">&nbsp;–&nbsp;SEPA Direct Debit</span></td>
-					<td class="status" width="1%"><a class="wc-payment-gateway-method-toggle-enabled" href="#"><span class="woocommerce-input-toggle woocommerce-input-toggle--enabled" aria-label="The &quot;Stripe SEPA Direct Debit&quot; payment method is currently enabled">Yes</span></a></td>
+					<td class="status" width="1%"><a class="wc-payment-upe-method-toggle-' . $sepa_enabled . '" href="#"><span class="woocommerce-input-toggle woocommerce-input-toggle--' . $sepa_enabled . '" aria-label="The &quot;Stripe&quot; payment method is currently enabled">Yes</span></a></td>
 					<td class="description" width="">Reach 500 million customers and over 20 million businesses across the European Union.</td>
 				</tr>
 			</tbody>
-		</table>';
+			</table>
+			<span id="wc_stripe_upe_change_notice" class="hidden">You must save your changes.</span>';
 		return $this->generate_title_html( $key, $data );
 	}
 

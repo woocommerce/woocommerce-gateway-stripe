@@ -14,6 +14,33 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
+	 * Load admin scripts.
+	 *
+	 * @since x.x.x
+	 * @version x.x.x
+	 */
+	public function admin_scripts() {
+		if ( 'woocommerce_page_wc-settings' !== get_current_screen()->id ) {
+			return;
+		}
+
+		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+
+		wp_register_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION, true );
+
+		$params = [
+			'time'             => time(),
+			'i18n_out_of_sync' => wp_kses(
+				__( '<strong>Warning:</strong> your site\'s time does not match the time on your browser and may be incorrect. Some payment methods depend on webhook verification and verifying webhooks with a signing secret depends on your site\'s time being correct, so please check your site\'s time before setting a webhook secret. You may need to contact your site\'s hosting provider to correct the site\'s time.', 'woocommerce-gateway-stripe' ),
+				[ 'strong' => [] ]
+			),
+		];
+		wp_localize_script( 'woocommerce_stripe_admin', 'wc_stripe_settings_params', $params );
+
+		wp_enqueue_script( 'woocommerce_stripe_admin' );
+	}
+
+	/**
 	 * Displays the admin settings webhook description.
 	 *
 	 * @since 4.1.0
@@ -1545,31 +1572,5 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function is_valid_us_zip_code( $zip ) {
 		return ! empty( $zip ) && preg_match( '/^\d{5,5}(-\d{4,4})?$/', $zip );
-	}
-
-	/**
-	 * Returns the list of enabled payment method types for UPE.
-	 *
-	 * @return string[]
-	 */
-	public function get_upe_enabled_payment_method_ids() {
-		return $this->get_option(
-			'upe_enabled_payment_method_ids',
-			[
-				'card',
-			]
-		);
-	}
-
-	/**
-	 * Returns the list of available payment method types for UPE.
-	 * See https://stripe.com/docs/stripe-js/payment-element#web-create-payment-intent for a complete list.
-	 *
-	 * @return string[]
-	 */
-	public function get_upe_available_payment_methods() {
-		return [
-			'card',
-		];
 	}
 }
