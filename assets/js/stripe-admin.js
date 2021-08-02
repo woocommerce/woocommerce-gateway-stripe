@@ -135,13 +135,11 @@ jQuery( function( $ ) {
 			});
 
 			$( '#mainform' ).submit( function() {
-				var $form = $(this);
+				var $form = $( this );
 				$( '.wc_gateways .wc-payment-upe-method-toggle-enabled').each( function() {
 					$form.append( '<input type="hidden" name="woocommerce_stripe_upe_checkout_experience_accepted_payments[]" value="' + $( this ).closest( 'tr' ).data( 'upe_method_id' ) + '" />' );
 				});
 			});
-
-
 
 			// Webhook verification checks for timestamp within 5 minutes so warn if
 			// server time is off from browser time by > 4 minutes.
