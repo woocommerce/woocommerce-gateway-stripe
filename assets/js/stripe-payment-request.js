@@ -5,7 +5,10 @@ jQuery( function( $ ) {
 	var stripe = Stripe( wc_stripe_payment_request_params.stripe.key, {
 		locale: typeof wc_stripe_params !== 'undefined' ? wc_stripe_params.stripe_locale : 'auto',
 	} ),
-		paymentRequestType;
+		paymentRequestType,
+		currentPaymentRequestOptions = {},
+		currentPrButton,
+		lastCart;
 
 	/**
 	 * Object to handle Stripe payment forms.
@@ -216,10 +219,9 @@ jQuery( function( $ ) {
 		/**
 		 * Update shipping options.
 		 *
-		 * @param {Object}         details Payment details.
 		 * @param {PaymentAddress} address Shipping address.
 		 */
-		updateShippingOptions: function( details, address ) {
+		updateShippingOptions: function( address ) {
 			var data = {
 				security:  wc_stripe_payment_request_params.nonce.shipping,
 				country:   address.country,
@@ -242,10 +244,9 @@ jQuery( function( $ ) {
 		/**
 		 * Updates the shipping price and the total based on the shipping option.
 		 *
-		 * @param {Object}   details        The line items and shipping options.
 		 * @param {String}   shippingOption User's preferred shipping option to use for shipping price calculations.
 		 */
-		updateShippingDetails: function( details, shippingOption ) {
+		updateShippingDetails: function( shippingOption ) {
 			var data = {
 				security: wc_stripe_payment_request_params.nonce.update_shipping,
 				shipping_method: [ shippingOption.id ],
@@ -335,29 +336,8 @@ jQuery( function( $ ) {
 		 * @since 4.0.0
 		 * @version 4.8.0
 		 */
-		startPaymentRequest: function( cart ) {
-			var paymentDetails,
-				options;
-
-			if ( wc_stripe_payment_request_params.is_product_page ) {
-				options = wc_stripe_payment_request.getRequestOptionsFromLocal();
-
-				paymentDetails = options;
-			} else {
-				options = {
-					total: cart.order_data.total,
-					currency: cart.order_data.currency,
-					country: cart.order_data.country_code,
-					requestPayerName: true,
-					requestPayerEmail: true,
-					requestPayerPhone: wc_stripe_payment_request_params.checkout.needs_payer_phone,
-					requestShipping: cart.shipping_required ? true : false,
-					displayItems: cart.order_data.displayItems
-				};
-
-				paymentDetails = cart.order_data;
-			}
-
+		startPaymentRequest: function( options ) {
+			console.log('options –>',options);
 			// Puerto Rico (PR) is the only US territory/possession that's supported by Stripe.
 			// Since it's considered a US state by Stripe, we need to do some special mapping.
 			if ( 'PR' === options.country ) {
@@ -369,7 +349,7 @@ jQuery( function( $ ) {
 				var paymentRequest = stripe.paymentRequest( options );
 
 				var elements = stripe.elements( { locale: wc_stripe_payment_request_params.button.locale } );
-				var prButton = wc_stripe_payment_request.createPaymentRequestButton( elements, paymentRequest );
+				currentPrButton = wc_stripe_payment_request.createPaymentRequestButton( elements, paymentRequest );
 
 				// Check the availability of the Payment Request API first.
 				paymentRequest.canMakePayment().then( function( result ) {
@@ -384,19 +364,30 @@ jQuery( function( $ ) {
 						paymentRequestType = 'payment_request_api';
 					}
 
-					wc_stripe_payment_request.attachPaymentRequestButtonEventListeners( prButton, paymentRequest );
-					wc_stripe_payment_request.showPaymentRequestButton( prButton );
+					wc_stripe_payment_request.attachPaymentRequestButtonEventListeners( currentPrButton, paymentRequest );
+					wc_stripe_payment_request.showPaymentRequestButton( currentPrButton );
 				} );
 
 				// Possible statuses success, fail, invalid_payer_name, invalid_payer_email, invalid_payer_phone, invalid_shipping_address.
 				paymentRequest.on( 'shippingaddresschange', function( evt ) {
-					$.when( wc_stripe_payment_request.updateShippingOptions( paymentDetails, evt.shippingAddress ) ).then( function( response ) {
-						evt.updateWith( { status: response.result, shippingOptions: response.shipping_options, total: response.total, displayItems: response.displayItems } );
-					} );
+					console.log('shippingaddresschange –>');
+			 		$.ajax('/wp-json/wc/store/cart/minicart-shipping-options', {
+			 			method: 'POST',
+			 		}).then(function (response) {
+			 			console.log('response shipping options–>',response);
+
+			 			evt.updateWith( {
+			 				status: response.result,
+			 				shippingOptions: response.shipping_options,
+			 				total: response.total,
+			 				displayItems: response.displayItems
+			 			} );
+			 		});
+
 				} );
 
 				paymentRequest.on( 'shippingoptionchange', function( evt ) {
-					$.when( wc_stripe_payment_request.updateShippingDetails( paymentDetails, evt.shippingOption ) ).then( function( response ) {
+					$.when( wc_stripe_payment_request.updateShippingDetails( evt.shippingOption ) ).then( function( response ) {
 						if ( 'success' === response.result ) {
 							evt.updateWith( { status: 'success', total: response.total, displayItems: response.displayItems } );
 						}
@@ -425,6 +416,8 @@ jQuery( function( $ ) {
 				// Leave for troubleshooting
 				console.error( e );
 			}
+
+			return paymentRequest;
 		},
 
 		getSelectedProductData: function() {
@@ -656,30 +649,30 @@ jQuery( function( $ ) {
 
 			// Block the payment request button as soon as an "input" event is fired, to avoid sync issues
 			// when the customer clicks on the button before the debounced event is processed.
-			$( '.quantity' ).on( 'input', '.qty', function() {
-				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
-			} );
+			// $( '.quantity' ).on( 'input', '.qty', function() {
+			// 	$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
+			// } );
 
-			$( '.quantity' ).on( 'input', '.qty', wc_stripe_payment_request.debounce( 250, function() {
-				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
-				paymentRequestError = [];
+			// $( '.quantity' ).on( 'input', '.qty', wc_stripe_payment_request.debounce( 250, function() {
+			// 	$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
+			// 	paymentRequestError = [];
 
-				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
-					if ( response.error ) {
-						paymentRequestError = [ response.error ];
-						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-					} else {
-						$.when(
-							paymentRequest.update( {
-								total: response.total,
-								displayItems: response.displayItems,
-							} )
-						).then( function () {
-							$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-						});
-					}
-				} );
-			}));
+			// 	$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
+			// 		if ( response.error ) {
+			// 			paymentRequestError = [ response.error ];
+			// 			$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
+			// 		} else {
+			// 			$.when(
+			// 				paymentRequest.update( {
+			// 					total: response.total,
+			// 					displayItems: response.displayItems,
+			// 				} )
+			// 			).then( function () {
+			// 				$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
+			// 			});
+			// 		}
+			// 	} );
+			// }));
 		},
 
 		attachCartPageEventListeners: function ( prButton, paymentRequest ) {
@@ -736,6 +729,12 @@ jQuery( function( $ ) {
 				.unblock();
 		},
 
+		resetPaymentRequest: function (newOptions) {
+			currentPrButton.destroy();
+
+			wc_stripe_payment_request.startPaymentRequest(newOptions);
+		},
+
 		/**
 		 * Initialize event handlers and UI state
 		 *
@@ -744,11 +743,12 @@ jQuery( function( $ ) {
 		 */
 		init: function() {
 			if ( wc_stripe_payment_request_params.is_product_page ) {
-				wc_stripe_payment_request.startPaymentRequest( '' );
+				const paymentRequestOptions = wc_stripe_payment_request.getRequestOptionsFromLocal();
+				wc_stripe_payment_request.startPaymentRequest( paymentRequestOptions )
+				currentPaymentRequestOptions = paymentRequestOptions;
 			} else {
 				wc_stripe_payment_request.getCartDetails();
 			}
-
 		},
 	};
 
@@ -763,6 +763,131 @@ jQuery( function( $ ) {
 	$( document.body ).on( 'updated_checkout', function() {
 		wc_stripe_payment_request.init();
 	} );
+
+	// Demo
+	$('.get_cart').on('click', function (e) {
+		e.preventDefault();
+		$.ajax('/wp-json/wc/store/cart').then(function (response) {
+			console.log('response –>',response);
+			lastCart = response;
+		});
+	});
+
+	$('.add_to_cart').on('click', function (e) {
+		e.preventDefault();
+		$.ajax('/wp-json/wc/store/cart/add-item', {
+			method: 'POST',
+			// headers: {
+			// 	'X-WC-Store-API-Nonce': wc_store_api_none
+			// },
+			data: {
+				id: $('.single_add_to_cart_button').val(),
+				quantity: $('.qty').val()
+			}
+		}).then(function (response) {
+			console.log('response –>',response);
+			lastCart = response;
+		});
+	});
+
+	$('.update_prb').on('click', function(e) {
+		e.preventDefault();
+		// {
+		//     "total": {
+		//         "label": "MyStore (via WooCommerce)",
+		//         "amount": 10000,
+		//         "pending": true
+		//     },
+		//     "currency": "usd",
+		//     "country": "CA",
+		//     "requestPayerName": true,
+		//     "requestPayerEmail": true,
+		//     "requestPayerPhone": true,
+		//     "requestShipping": true,
+		//     "displayItems": [
+		//         {
+		//             "label": "simple 1",
+		//             "amount": 10000
+		//         },
+		//         {
+		//             "label": "Tax",
+		//             "amount": 0,
+		//             "pending": true
+		//         },
+		//         {
+		//             "label": "Shipping",
+		//             "amount": 0,
+		//             "pending": true
+		//         }
+		//     ]
+		// }
+		const options = {
+			total: {
+				label: "Foo Bar (via WooCommerce)",
+				amount: Number.parseInt(lastCart.totals.total_price),
+				pending: false, // should be true when Shipping Address is needed.
+			},
+			currency: lastCart.totals.currency_code.toLowerCase(), // we could also use get_woocommerce_currency() directly
+			country: "CA",  // substr( get_option( 'woocommerce_default_country' ), 0, 2 )
+			requestPayerName: true,
+			requestPayerEmail: true,
+			requestPayerPhone: true, // 'required' === get_option( 'woocommerce_checkout_phone_field', 'required' )
+			requestShipping: lastCart.needs_shipping,
+			displayItems: getDisplayItems()
+		}
+
+		wc_stripe_payment_request.resetPaymentRequest(options);
+ 	});
+
+ 	$('.test_minicart').on('click', function(e) {
+ 		e.preventDefault();
+
+ 		$.ajax('/wp-json/wc/store/cart/minicart-add-item', {
+ 			method: 'POST',
+			data: {
+				id: $('.single_add_to_cart_button').val(),
+				quantity: $('.qty').val()
+			}
+ 		}).then(function (response) {
+ 			console.log('response –>',response);
+ 		});
+ 	});
+
+ 	$('.add_to_minicart').on('click', function (e) {
+ 		e.preventDefault();
+
+ 		$.ajax('/wp-json/wc/store/cart/minicart-add-item', {
+ 			method: 'POST',
+			data: {
+				id: $('.single_add_to_cart_button').val(),
+				quantity: $('.qty').val()
+			}
+ 		}).then(function (options) {
+ 			console.log('options –>',options);
+			wc_stripe_payment_request.resetPaymentRequest(options);
+ 		});
+ 	});
+
+	function getDisplayItems() {
+		const items = lastCart.items.map(function (item) {
+			return {
+				label: item.name,
+				amount: Number.parseInt(item.prices.sale_price) // could also be item.prices.sale_price. which one is better?
+			}
+		});
+
+		items.push({
+			label: "tax",
+			amount: Number.parseInt(lastCart.totals.total_tax),
+		});
+
+		items.push({
+			label: "Shipping",
+			amount: Number.parseInt(lastCart.totals.total_shipping),
+		});
+
+		return items;
+	}
 
 	function setBackgroundImageWithFallback( element, background, fallback ) {
 		element.css( 'background-image', 'url(' + background + ')' );

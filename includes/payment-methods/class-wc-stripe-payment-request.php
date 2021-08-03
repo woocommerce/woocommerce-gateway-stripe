@@ -228,6 +228,7 @@ class WC_Stripe_Payment_Request {
 		add_action( 'wc_ajax_wc_stripe_update_shipping_method', [ $this, 'ajax_update_shipping_method' ] );
 		add_action( 'wc_ajax_wc_stripe_create_order', [ $this, 'ajax_create_order' ] );
 		add_action( 'wc_ajax_wc_stripe_add_to_cart', [ $this, 'ajax_add_to_cart' ] );
+		add_action( 'wc_ajax_wc_stripe_add_to_minicart', [ $this, 'ajax_add_to_minicart' ] );
 		add_action( 'wc_ajax_wc_stripe_get_selected_product_data', [ $this, 'ajax_get_selected_product_data' ] );
 		add_action( 'wc_ajax_wc_stripe_clear_cart', [ $this, 'ajax_clear_cart' ] );
 		add_action( 'wc_ajax_wc_stripe_log_errors', [ $this, 'ajax_log_errors' ] );
@@ -1284,6 +1285,14 @@ class WC_Stripe_Payment_Request {
 		$data           = [];
 		$data          += $this->build_display_items();
 		$data['result'] = 'success';
+
+		wp_send_json( $data );
+	}
+
+	public function ajax_add_to_minicart() {
+		$data = [
+			"hello" => "world"
+		];
 
 		wp_send_json( $data );
 	}
