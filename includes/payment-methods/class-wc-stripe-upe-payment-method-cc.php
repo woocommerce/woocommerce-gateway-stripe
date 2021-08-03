@@ -12,6 +12,10 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 
+	const STRIPE_ID = 'card';
+
+	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe::class;
+
 	/**
 	 * Constructor for card payment method
 	 *
@@ -19,7 +23,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function __construct( $token_service ) {
 		parent::__construct( $token_service );
-		$this->stripe_id   = 'card';
+		$this->stripe_id   = self::STRIPE_ID;
 		$this->title       = 'Credit card / debit card';
 		$this->is_reusable = true;
 	}

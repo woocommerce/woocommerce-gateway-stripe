@@ -12,6 +12,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 */
 class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
+	const ID = 'stripe';
+
+	const UPE_AVAILABLE_METHODS = [
+		WC_Stripe_UPE_Payment_Method_CC::class,
+		WC_Stripe_UPE_Payment_Method_Giropay::class,
+		WC_Stripe_UPE_Payment_Method_Eps::class,
+		WC_Stripe_UPE_Payment_Method_Bancontact::class,
+		WC_Stripe_UPE_Payment_Method_Ideal::class,
+	];
+
 	const UPE_APPEARANCE_TRANSIENT = 'wc_stripe_upe_appearance';
 
 	/**
@@ -60,7 +70,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->id           = 'stripe';
+		$this->id           = self::ID;
 		$this->method_title = __( 'Stripe UPE', 'woocommerce-gateway-stripe' );
 		/* translators: link */
 		$this->method_description = __( 'Accept debit and credit cards in 135+ currencies, methods such as Alipay, and one-touch checkout with Apple Pay.', 'woocommerce-gateway-stripe' );
@@ -90,11 +100,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$this->secret_key      = ! empty( $main_settings['test_secret_key'] ) ? $main_settings['test_secret_key'] : '';
 		}
 
-		$this->payment_methods  = [];
-		$payment_method_classes = [
-			WC_Stripe_UPE_Payment_Method_CC::class,
-		];
-		foreach ( $payment_method_classes as $payment_method_class ) {
+		$this->payment_methods = [];
+		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
 			$payment_method                                     = new $payment_method_class( null );
 			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
 		}
@@ -111,6 +118,33 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$base_stripe_fields = require WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-settings.php';
 		unset( $base_stripe_fields['inline_cc_form'] );
 		$this->form_fields = array_merge_recursive( $base_stripe_fields, require WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-upe-settings.php' );
+	}
+
+	/**
+	 * Load admin scripts.
+	 *
+	 * @since x.x.x
+	 * @version x.x.x
+	 */
+	public function admin_scripts() {
+		if ( 'woocommerce_page_wc-settings' !== get_current_screen()->id ) {
+			return;
+		}
+
+		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+
+		wp_register_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION, true );
+
+		$params = [
+			'time'             => time(),
+			'i18n_out_of_sync' => wp_kses(
+				__( '<strong>Warning:</strong> your site\'s time does not match the time on your browser and may be incorrect. Some payment methods depend on webhook verification and verifying webhooks with a signing secret depends on your site\'s time being correct, so please check your site\'s time before setting a webhook secret. You may need to contact your site\'s hosting provider to correct the site\'s time.', 'woocommerce-gateway-stripe' ),
+				[ 'strong' => [] ]
+			),
+		];
+		wp_localize_script( 'woocommerce_stripe_admin', 'wc_stripe_settings_params', $params );
+
+		wp_enqueue_script( 'woocommerce_stripe_admin' );
 	}
 
 	/**
@@ -264,10 +298,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return string
 	 */
 	public function generate_upe_checkout_experience_accepted_payments_html( $key, $data ) {
-		// TODO: This is just a placeholder for now
-		$sepa_enabled = in_array( 'sepa', $this->get_upe_enabled_payment_method_ids(), true ) ? 'enabled' : 'disabled';
-		$card_enabled = in_array( 'card', $this->get_upe_enabled_payment_method_ids(), true ) ? 'enabled' : 'disabled';
-
 		$data['description'] = '<p><strong>Payments accepted on checkout</strong></p>
 			<table class="wc_gateways widefat" cellspacing="0" aria-describedby="payment_gateways_options-description">
 			<thead>
@@ -277,20 +307,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					<th class="description">Description</th>
 				</tr>
 			</thead>
-			<tbody>
-				<tr data-upe_method_id="card">
-					<td class="name" width=""><a href="#" class="wc-payment-gateway-method-title">Credit card / debit card</a><span class="wc-payment-gateway-method-name">&nbsp;–&nbsp;Cards</span></td>
-					<td class="status" width="1%"><a class="wc-payment-upe-method-toggle-' . $card_enabled . '" href="#"><span class="woocommerce-input-toggle woocommerce-input-toggle--' . $card_enabled . '" aria-label="The &quot;Stripe&quot; payment method is currently enabled">Yes</span></a></td>
-					<td class="description" width="">Offer checkout with major credit and debit cards without leaving your store.</td>
-				</tr>
-				<tr data-upe_method_id="sepa">
-					<td class="name" width=""><a href="#" class="wc-payment-gateway-method-title">SEPA Direct Debit</a><span class="wc-payment-gateway-method-name">&nbsp;–&nbsp;SEPA Direct Debit</span></td>
-					<td class="status" width="1%"><a class="wc-payment-upe-method-toggle-' . $sepa_enabled . '" href="#"><span class="woocommerce-input-toggle woocommerce-input-toggle--' . $sepa_enabled . '" aria-label="The &quot;Stripe&quot; payment method is currently enabled">Yes</span></a></td>
-					<td class="description" width="">Reach 500 million customers and over 20 million businesses across the European Union.</td>
-				</tr>
-			</tbody>
+			<tbody>';
+
+		foreach ( $this->payment_methods as $method_id => $method ) {
+			$method_enabled       = in_array( $method_id, $this->get_upe_enabled_payment_method_ids(), true ) ? 'enabled' : 'disabled';
+			$data['description'] .= '<tr data-upe_method_id="' . $method_id . '">
+					<td class="name" width=""><a href="#" class="wc-payment-gateway-method-title">' . $method_id . '</a><span class="wc-payment-gateway-method-name">&nbsp;–&nbsp;Subtext goes here.</span></td>
+					<td class="status" width="1%"><a class="wc-payment-upe-method-toggle-' . $method_enabled . '" href="#"><span class="woocommerce-input-toggle woocommerce-input-toggle--' . $method_enabled . '" aria-label="The &quot;' . $method_id . '&quot; payment method is currently ' . $method_enabled . '">' . ( 'enabled' === $method_enabled ? 'Yes' : 'No' ) . '</span></a></td>
+					<td class="description" width="">Long description text goes here.</td>
+				</tr>';
+		}
+
+		$data['description'] .= '</tbody>
 			</table>
-			<span id="wc_stripe_upe_change_notice" class="hidden">You must save your changes.</span>';
+			<span id="wc_stripe_upe_change_notice" class="hidden">' . __( 'You must save your changes.', 'woocommerce-gateway-stripe' ) . '</span>';
+
 		return $this->generate_title_html( $key, $data );
 	}
 

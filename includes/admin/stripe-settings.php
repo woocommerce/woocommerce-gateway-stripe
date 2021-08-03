@@ -32,7 +32,7 @@ return apply_filters(
 			'label'       => __( 'Enable new checkout experience', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
 			'description' => __( 'If enabled, users will... TBD', 'woocommerce-gateway-stripe' ),
-			'default'     => 'yes',
+			'default'     => 'no',
 			'desc_tip'    => true,
 		],
 		'api_credentials'                     => [
