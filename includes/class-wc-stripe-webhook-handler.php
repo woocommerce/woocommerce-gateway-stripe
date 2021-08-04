@@ -742,7 +742,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( ! $order->has_status( [ 'pending', 'failed' ] ) ) {
+		if ( ! $order->has_status(
+			apply_filters(
+				'wc_stripe_allowed_payment_processing_statuses',
+				[ 'pending', 'failed' ]
+			)
+		) ) {
 			return;
 		}
 
@@ -789,7 +794,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( ! $order->has_status( [ 'pending', 'failed' ] ) ) {
+		if ( ! $order->has_status(
+			apply_filters(
+				'wc_gateway_stripe_allowed_payment_processing_statuses',
+				[ 'pending', 'failed' ]
+			)
+		) ) {
 			return;
 		}
 

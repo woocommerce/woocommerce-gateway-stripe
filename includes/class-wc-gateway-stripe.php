@@ -1110,7 +1110,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		clean_post_cache( $order->get_id() );
 		$order = wc_get_order( $order->get_id() );
 
-		if ( ! $order->has_status( [ 'pending', 'failed' ] ) ) {
+		if ( ! $order->has_status(
+			apply_filters(
+				'wc_stripe_allowed_payment_processing_statuses',
+				[ 'pending', 'failed' ]
+			)
+		) ) {
 			// If payment has already been completed, this function is redundant.
 			return;
 		}
