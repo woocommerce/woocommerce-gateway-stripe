@@ -15,13 +15,13 @@ const PAYMENT_METHOD_NAME_CARD = 'stripe';
 const PAYMENT_METHOD_NAME_UPE = 'stripe_upe';
 
 jQuery( function ( $ ) {
-	// enqueueFraudScripts( getConfig( 'fraudServices' ) );
+	// enqueueFraudScripts( getStripeServerData()?.fraudServices );
 
-	const publishableKey = getStripeServerData()?.key;
+	const key = getStripeServerData()?.key;
 	const isUPEEnabled = getStripeServerData()?.isUPEEnabled;
 	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
 
-	if ( ! publishableKey ) {
+	if ( ! key ) {
 		// If no configuration is present, probably this is not the checkout page.
 		return;
 	}
@@ -29,7 +29,7 @@ jQuery( function ( $ ) {
 	// Create an API object, which will be used throughout the checkout.
 	const api = new WCStripeAPI(
 		{
-			publishableKey,
+			key,
 			locale: getStripeServerData()?.locale,
 			isUPEEnabled,
 		},
@@ -243,11 +243,11 @@ jQuery( function ( $ ) {
 		}
 
 		// If paying from order, we need to create Payment Intent from order not cart.
-		const isOrderPay = getConfig( 'isOrderPay' );
-		const isCheckout = getConfig( 'isCheckout' );
+		const isOrderPay = getStripeServerData()?.isOrderPay;
+		const isCheckout = getStripeServerData()?.isCheckout;
 		let orderId;
 		if ( isOrderPay ) {
-			orderId = getConfig( 'orderId' );
+			orderId = getStripeServerData()?.orderId;
 		}
 
 		const intentAction = isSetupIntent
@@ -268,7 +268,7 @@ jQuery( function ( $ ) {
 				const { client_secret: clientSecret, id: id } = response;
 				paymentIntentId = id;
 
-				let appearance = getConfig( 'upeAppeareance' );
+				let appearance = getStripeServerData()?.upeAppeareance;
 
 				if ( ! appearance ) {
 					hiddenElementsForUPE.init();
@@ -277,7 +277,7 @@ jQuery( function ( $ ) {
 					api.saveUPEAppearance( appearance );
 				}
 
-				const businessName = getConfig( 'accountDescriptor' );
+				const businessName = getStripeServerData()?.accountDescriptor;
 				const upeSettings = {
 					clientSecret,
 					appearance,
@@ -339,17 +339,17 @@ jQuery( function ( $ ) {
 			isUPEEnabled &&
 			! upeElement
 		) {
-			const isChangingPayment = getConfig( 'isChangingPayment' );
+			const isChangingPayment = getStripeServerData()?.isChangingPayment;
 
 			// We use a setup intent if we are on the screens to add a new payment method or to change a subscription payment.
 			const useSetUpIntent =
 				$( 'form#add_payment_method' ).length || isChangingPayment;
 
-			if ( isChangingPayment && getConfig( 'newTokenFormId' ) ) {
+			if ( isChangingPayment && getStripeServerData()?.newTokenFormId ) {
 				// Changing the method for a subscription takes two steps:
 				// 1. Create the new payment method that will redirect back.
 				// 2. Select the new payment method and resubmit the form to update the subscription.
-				const token = getConfig( 'newTokenFormId' );
+				const token = getStripeServerData()?.newTokenFormId;
 				$( token ).prop( 'selected', true ).trigger( 'click' );
 				$( 'form#order_review' ).submit();
 			}
@@ -404,10 +404,10 @@ jQuery( function ( $ ) {
 			const savePaymentMethod = isSavingPaymentMethod ? 'yes' : 'no';
 
 			const returnUrl =
-				getConfig( 'orderReturnURL' ) +
+				getStripeServerData()?.orderReturnURL +
 				`&save_payment_method=${ savePaymentMethod }`;
 
-			const orderId = getConfig( 'orderId' );
+			const orderId = getStripeServerData()?.orderId;
 
 			// Update payment intent with level3 data, customer and maybe setup for future use.
 			await api.updateIntent(
@@ -448,7 +448,7 @@ jQuery( function ( $ ) {
 		blockUI( $form );
 
 		try {
-			const returnUrl = getConfig( 'addPaymentReturnURL' );
+			const returnUrl = getStripeServerData()?.addPaymentReturnURL;
 
 			const { error } = await api.getStripe().confirmSetup( {
 				element: upeElement,
@@ -564,7 +564,7 @@ jQuery( function ( $ ) {
 				// If this is a generic error, we probably don't want to display the error message to the user,
 				// so display a generic message instead.
 				if ( error instanceof Error ) {
-					errorMessage = getConfig( 'genericErrorMessage' );
+					errorMessage = getStripeServerData()?.genericErrorMessage;
 				}
 
 				showError( errorMessage );
@@ -613,7 +613,7 @@ jQuery( function ( $ ) {
 	// Handle the Pay for Order form if WooCommerce Payments is chosen.
 	$( '#order_review' ).on( 'submit', () => {
 		if ( ! isUsingSavedPaymentMethod() ) {
-			if ( getConfig( 'isChangingPayment' ) ) {
+			if ( getStripeServerData()?.isChangingPayment ) {
 				handleUPEAddPayment( $( '#order_review' ) );
 				return false;
 			}
