@@ -164,20 +164,20 @@ export default class WCStripeAPI {
 				_ajax_nonce: getStripeServerData()?.createPaymentIntentNonce,
 			}
 		)
-			.then( ( response ) => {
-				if ( ! response.success ) {
-					throw response.data.error;
-				}
-				return response.data;
-			} )
-			.catch( ( error ) => {
-				if ( error.message ) {
-					throw error;
-				} else {
-					// Covers the case of error on the Ajax request.
-					throw new Error( error.statusText );
-				}
-			} );
+		.then( ( response ) => {
+			if ( ! response.success ) {
+				throw response.data.error;
+			}
+			return response.data;
+		} )
+		.catch( ( error ) => {
+			if ( error.message ) {
+				throw error;
+			} else {
+				// Covers the case of error on the Ajax request.
+				throw new Error( error.statusText );
+			}
+		} );
 	}
 
 	confirmIntent( url, savePaymentMethod ) {
