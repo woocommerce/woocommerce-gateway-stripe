@@ -86,7 +86,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Webhook_State::set_last_webhook_failure_at( time() );
 			WC_Stripe_Webhook_State::set_last_error_reason( $validation_result );
 
-			status_header( 400 );
+			// A webhook endpoint must return a 2xx HTTP status code to prevent future webhook
+			// delivery failures.
+			// @see https://stripe.com/docs/webhooks/build#acknowledge-events-immediately
+			status_header( 204 );
 			exit;
 		}
 	}
