@@ -1,11 +1,14 @@
-/* global jQuery, Stripe, wc_stripe_upe_params */
+/**
+ * External dependencies
+ */
+import jQuery from 'jquery';
 
 /**
  * Internal dependencies
  */
 import './style.scss';
-import { getConfig } from '../utils';
-import WCStripeAPI from './api';
+import WCStripeAPI from '../api';
+import { getStripeServerData } from "../stripe-utils";
 import { getFontRulesFromPage, getAppearance } from '../upe-styles';
 
 const PAYMENT_METHOD_NAME_CARD = 'stripe';
@@ -14,9 +17,9 @@ const PAYMENT_METHOD_NAME_UPE = 'stripe_upe';
 jQuery( function ( $ ) {
 	// enqueueFraudScripts( getConfig( 'fraudServices' ) );
 
-	const publishableKey = getConfig( 'publishableKey' );
-	const isUPEEnabled = getConfig( 'isUPEEnabled' );
-	const paymentMethodsConfig = getConfig( 'paymentMethodsConfig' );
+	const publishableKey = getStripeServerData()?.key;
+	const isUPEEnabled = getStripeServerData()?.isUPEEnabled;
+	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
 
 	if ( ! publishableKey ) {
 		// If no configuration is present, probably this is not the checkout page.
@@ -27,7 +30,7 @@ jQuery( function ( $ ) {
 	const api = new WCStripeAPI(
 		{
 			publishableKey,
-			locale: getConfig( 'locale' ),
+			locale: getStripeServerData()?.locale,
 			isUPEEnabled,
 		},
 		// A promise-based interface to jQuery.post.

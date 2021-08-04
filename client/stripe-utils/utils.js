@@ -1,7 +1,8 @@
+/* global wc_stripe_upe_params, wc */
+
 /**
  * External dependencies
  */
-import { getSetting } from '@woocommerce/settings';
 import { __ } from '@wordpress/i18n';
 
 /**
@@ -22,7 +23,11 @@ import { errorTypes, errorCodes } from './constants';
  * @return  {StripeServerData} Stripe server data.
  */
 const getStripeServerData = () => {
-	const stripeServerData = getSetting( 'stripe_data', null );
+	// Classic checkout or blocks-based one.
+	const stripeServerData =
+		'undefined' !== typeof wc_stripe_upe_params
+			? wc_stripe_upe_params
+			: wc.wcSettings.getSetting( 'stripe_data', null );
 	if ( ! stripeServerData ) {
 		throw new Error( 'Stripe initialization data is not available' );
 	}

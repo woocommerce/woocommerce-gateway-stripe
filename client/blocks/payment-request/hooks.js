@@ -16,7 +16,7 @@ import { displayLoginConfirmation } from './login-confirmation';
 import {
 	getStripeServerData,
 	createPaymentRequestUsingCart,
-} from '../stripe-utils';
+} from '../../stripe-utils';
 
 /**
  * This hook takes care of creating a payment request and making sure

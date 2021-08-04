@@ -60,15 +60,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->id           = 'stripe_upe';
-		$this->method_title = __( 'Stripe - UPE', 'woocommerce-gateway-stripe' );
+		$this->id                 = 'stripe_upe';
+		$this->method_title       = __( 'Stripe - UPE', 'woocommerce-gateway-stripe' );
 		$this->method_description = __( 'Accept debit and credit cards in 135+ currencies, methods such as Alipay, and one-touch checkout with Apple Pay.', 'woocommerce-gateway-stripe' );
 		$this->has_fields         = true;
 		$this->supports           = [
 			'products',
 			'refunds',
 		];
-		$this->payment_methods  = [];
+		$this->payment_methods    = [];
 
 		$payment_method_classes = [
 			WC_Stripe_UPE_Payment_Method_CC::class,
@@ -160,8 +160,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		global $wp;
 
 		$stripe_params = [
-			'publishableKey' => $this->publishable_key,
 			'isUPEEnabled'   => true,
+			'key'            => $this->publishable_key,
 			'locale'         => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 		];
 
@@ -174,7 +174,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['isCheckout']               = ( is_checkout() && empty( $_GET['pay_for_order'] ) ) ? 'yes' : 'no'; // wpcs: csrf ok.
 		$stripe_params['isOrderPay']               = is_wc_endpoint_url( 'order-pay' ) ? 'yes' : 'no';
 		$stripe_params['return_url']               = $this->get_stripe_return_url();
-		$stripe_params['ajaxUrl']                  = WC_AJAX::get_endpoint( '%%endpoint%%' );
+		$stripe_params['ajax_url']                 = WC_AJAX::get_endpoint( '%%endpoint%%' );
 		$stripe_params['createPaymentIntentNonce'] = wp_create_nonce( '_wc_stripe_nonce' );
 		$stripe_params['upeAppeareance']           = get_transient( self::UPE_APPEARANCE_TRANSIENT );
 		$stripe_params['paymentMethodsConfig']     = $this->get_enabled_payment_method_config();

@@ -15,8 +15,8 @@ import { PAYMENT_METHOD_NAME } from './constants';
 import {
 	getStripeServerData,
 	getErrorMessageForTypeAndCode,
-} from '../stripe-utils';
-import { errorTypes } from '../stripe-utils/constants';
+} from '../../stripe-utils';
+import { errorTypes } from '../../stripe-utils/constants';
 
 /**
  * @typedef {import('@stripe/stripe-js').Stripe} Stripe
