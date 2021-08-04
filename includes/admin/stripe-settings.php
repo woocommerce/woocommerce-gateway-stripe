@@ -3,6 +3,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Define which setting to insert the UPE method selection after.
+ */
+if ( ! defined( 'INSERT_UPE_SETTINGS_AFTER' ) ) {
+	define( 'INSERT_UPE_SETTINGS_AFTER', 'upe_checkout_experience_enabled' );
+}
+
 return apply_filters(
 	'wc_stripe_settings',
 	[
@@ -27,6 +34,10 @@ return apply_filters(
 			'default'     => __( 'Pay with your credit card via Stripe.', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		],
+		'upe_checkout_experience'                   => [
+			'title' => __( 'Checkout experience', 'woocommerce-gateway-stripe' ),
+			'type'  => 'title',
+		],
 		'upe_checkout_experience_enabled'     => [
 			'title'       => __( 'Enable/Disable', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Enable new checkout experience', 'woocommerce-gateway-stripe' ),
@@ -35,6 +46,9 @@ return apply_filters(
 			'default'     => 'no',
 			'desc_tip'    => true,
 		],
+		/**
+		 * UPE method selection will be inserted here.
+		 */
 		'api_credentials'                     => [
 			'title' => __( 'Stripe Account Keys', 'woocommerce-gateway-stripe' ),
 			'type'  => 'stripe_account_keys',

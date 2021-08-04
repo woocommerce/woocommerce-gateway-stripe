@@ -116,8 +116,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function init_form_fields() {
 		$base_stripe_fields = require WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-settings.php';
-		unset( $base_stripe_fields['inline_cc_form'] );
-		$this->form_fields = array_merge_recursive( $base_stripe_fields, require WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-upe-settings.php' );
+		$upe_config_fields  = require WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-upe-settings.php';
+		$this->form_fields  = array_merge( array_splice( $base_stripe_fields, 0, array_search( INSERT_UPE_SETTINGS_AFTER, array_keys( $base_stripe_fields ), true ) + 1 ), $upe_config_fields, $base_stripe_fields );
+		unset( $this->form_fields['inline_cc_form'] );
 	}
 
 	/**
@@ -298,8 +299,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return string
 	 */
 	public function generate_upe_checkout_experience_accepted_payments_html( $key, $data ) {
-		$data['description'] = '<p><strong>Payments accepted on checkout</strong></p>
-			<table class="wc_gateways widefat" cellspacing="0" aria-describedby="payment_gateways_options-description">
+		$data['description'] = '<div id="wc_stripe_upe_method_selection"><p><strong>Payments accepted on checkout</strong></p></div>
+			<table class="wc_gateways widefat form-table" cellspacing="0" aria-describedby="wc_stripe_upe_method_selection">
 			<thead>
 				<tr>
 					<th class="name">Method</th>
