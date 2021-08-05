@@ -1,4 +1,5 @@
 <?php
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -12,6 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 */
 class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
+	const GATEWAY_ID               = 'stripe_upe';
 	const UPE_APPEARANCE_TRANSIENT = 'wc_stripe_upe_appearance';
 
 	/**
@@ -160,9 +162,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		global $wp;
 
 		$stripe_params = [
-			'isUPEEnabled'   => true,
-			'key'            => $this->publishable_key,
-			'locale'         => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+			'isUPEEnabled' => true,
+			'key'          => $this->publishable_key,
+			'locale'       => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 		];
 
 		// If we're on the pay page we need to pass stripe.js the address of the order.
@@ -202,16 +204,133 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Payment form on checkout page
+	 * Renders the UPE input fields needed to get the user's payment information on the checkout page.
 	 */
 	public function payment_fields() {
-		?>
-		<form id="payment-form">
-			  <div id="wc-stripe-upe-element">
-				<!-- Elements will create form elements here -->
-			  </div>
-		</form>
-		<?php
+		try {
+			$display_tokenization = $this->supports( 'tokenization' ) && is_checkout();
+
+			// Output the form HTML.
+			?>
+			<?php if ( ! empty( $this->get_description() ) ) : ?>
+				<p><?php echo wp_kses_post( $this->get_description() ); ?></p>
+			<?php endif; ?>
+
+			<?php if ( $this->testmode ) : ?>
+				<p class="testmode-info">
+					<?php
+					echo sprintf(
+						/* translators: link to Stripe testing page */
+						__( '<strong>Test mode:</strong> use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="%s" target="_blank">here</a>.', 'woocommerce-gateway-stripe' ),
+						'https://stripe.com/docs/testing'
+					);
+					?>
+				</p>
+			<?php endif; ?>
+
+			<?php
+			if ( $display_tokenization ) {
+				$this->tokenization_script();
+				$this->saved_payment_methods();
+			}
+			?>
+
+			<fieldset id="wc-stripe-upe-form" class="wc-upe-form wc-payment-form">
+				<div id="wc-stripe-upe-element"></div>
+				<div id="wc-stripe-upe-errors" role="alert"></div>
+				<input id="wc-stripe_upe-payment-method-upe" type="hidden" name="wc-stripe_upe-payment-method-upe" />
+				<input id="wc_stripe_upe_selected_upe_payment_type" type="hidden" name="wc_stripe_upe_selected_upe_payment_type" />
+
+				<?php
+				$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
+				if ( $this->is_saved_cards_enabled() && ! empty( $methods_enabled_for_saved_payments ) ) {
+					if ( is_user_logged_in() ) {
+						$this->save_payment_method_checkbox();
+					}
+				}
+				?>
+
+			</fieldset>
+			<?php
+		} catch ( Exception $e ) {
+			// Output the error message.
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			?>
+			<div>
+				<?php
+				echo esc_html__( 'An error was encountered when preparing the payment form. Please try again later.', 'woocommerce-gateway-stripe' );
+				?>
+			</div>
+			<?php
+		}
+	}
+
+
+	/**
+	 * Process the payment for a given order.
+	 *
+	 * @param int $order_id Order ID to process the payment for.
+	 *
+	 * @return array|null An array with result of payment and redirect URL, or nothing.
+	 */
+	public function process_payment( $order_id ) {
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-payment-information.php';
+
+		$payment_intent_id         = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$order                     = wc_get_order( $order_id );
+		$amount                    = $order->get_total();
+		$currency                  = $order->get_currency();
+		$converted_amount          = WC_Stripe_Helper::get_stripe_amount( $amount, $currency );
+		$payment_needed            = 0 < $converted_amount;
+		$save_payment_method       = ! empty( $_POST[ 'wc-' . static::GATEWAY_ID . '-new-payment-method' ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$token                     = WC_Stripe_Payment_Information::get_token_from_request( $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$selected_upe_payment_type = ! empty( $_POST['wc_stripe_selected_upe_payment_type'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+		if ( $payment_intent_id ) {
+			if ( $payment_needed ) {
+				// The payment intent was created client side, override amount and currency with those from the order.
+				$request = [
+					'amount'   => $converted_amount * 2,
+					'currency' => $currency,
+				];
+
+				if ( '' !== $selected_upe_payment_type ) {
+					// Only update the payment_method_types if we have a reference to the payment type the customer selected.
+					$request['payment_method_types'] = [ $selected_upe_payment_type ];
+				}
+
+				if ( $save_payment_method ) {
+					$request['setup_future_usage'] = 'off_session';
+				}
+
+				WC_Stripe_API::request_with_level3_data(
+					$request,
+					"payment_intents/$payment_intent_id",
+					$this->get_level3_data_from_order( $order ),
+					$order
+				);
+			}
+			//} elseif ( $token ) {
+			//	return $this->process_payment_using_saved_method( $order_id );
+		}
+
+		return [
+			'result'         => 'success',
+			'payment_needed' => $payment_needed,
+			'redirect_url'   => wp_sanitize_redirect(
+				esc_url_raw(
+					add_query_arg(
+						[
+							'order_id'            => $order_id,
+							'wc_payment_method'   => self::GATEWAY_ID,
+							'_wpnonce'            => wp_create_nonce( 'wcpay_process_redirect_order_nonce' ),
+							'save_payment_method' => $save_payment_method ? 'yes' : 'no',
+						],
+						$this->get_return_url( $order )
+					)
+				)
+			),
+		];
 	}
 
 	/**
@@ -242,6 +361,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 		return $this->payment_methods[ $payment_method_id ]->is_reusable();
+	}
+
+	/**
+	 * Checks if the setting to allow the user to save cards is enabled.
+	 *
+	 * @return bool Whether the setting to allow saved cards is enabled or not.
+	 */
+	public function is_saved_cards_enabled() {
+		return 'yes' === $this->get_option( 'saved_cards' );
 	}
 
 	/**

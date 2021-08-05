@@ -45,7 +45,7 @@ jQuery( function ( $ ) {
 	const hiddenElementsForUPE = {
 		getHiddenContainer: function () {
 			const hiddenDiv = document.createElement( 'div' );
-			hiddenDiv.setAttribute( 'id', 'wc-stripe-hidden-div' );
+			hiddenDiv.setAttribute( 'id', 'wc-stripe_upe-hidden-div' );
 			hiddenDiv.style.border = 0;
 			hiddenDiv.style.clip = 'rect(0 0 0 0)';
 			hiddenDiv.style.height = '1px';
@@ -83,24 +83,24 @@ jQuery( function ( $ ) {
 			this.appendHiddenClone(
 				hiddenDiv,
 				'#billing_first_name',
-				'wc-stripe-hidden-input'
+				'wc-stripe_upe-hidden-input'
 			);
-			$( '#wc-stripe-hidden-input' ).trigger( 'focus' );
+			$( '#wc-stripe_upe-hidden-input' ).trigger( 'focus' );
 
 			// Hidden invalid element.
 			const hiddenInvalidRow = this.getHiddenInvalidRow();
 			this.appendHiddenClone(
 				hiddenInvalidRow,
 				'#billing_first_name',
-				'wc-stripe-hidden-invalid-input'
+				'wc-stripe_upe-hidden-invalid-input'
 			);
 			hiddenDiv.appendChild( hiddenInvalidRow );
 
 			// Remove transitions.
-			$( '#wc-stripe-hidden-input' ).css( 'transition', 'none' );
+			$( '#wc-stripe_upe-hidden-input' ).css( 'transition', 'none' );
 		},
 		cleanup: function () {
-			$( '#wc-stripe-hidden-div' ).remove();
+			$( '#wc-stripe_upe-hidden-div' ).remove();
 		},
 	};
 
@@ -197,7 +197,7 @@ jQuery( function ( $ ) {
 			$( '.woocommerce-SavedPaymentMethods-saveNew' ).show();
 		} else {
 			$( '.woocommerce-SavedPaymentMethods-saveNew' ).hide();
-			$( 'input#wc-woocommerce_payments-new-payment-method' ).prop(
+			$( 'input#wc-stripe_upe-new-payment-method' ).prop(
 				'checked',
 				false
 			);
@@ -399,7 +399,7 @@ jQuery( function ( $ ) {
 
 		try {
 			const isSavingPaymentMethod = $(
-				'#wc-woocommerce_payments-new-payment-method'
+				'#wc-stripe_upe-new-payment-method'
 			).is( ':checked' );
 			const savePaymentMethod = isSavingPaymentMethod ? 'yes' : 'no';
 
@@ -520,10 +520,10 @@ jQuery( function ( $ ) {
 	 * Displays the authentication modal to the user if needed.
 	 */
 	const maybeShowAuthenticationModal = () => {
-		const paymentMethodId = $( '#wc-stripe-payment-method' ).val();
+		const paymentMethodId = $( '#wc-stripe_upe-payment-method' ).val();
 
 		const savePaymentMethod = $(
-			'#wc-woocommerce_payments-new-payment-method'
+			'#wc-stripe_upe-new-payment-method'
 		).is( ':checked' );
 		const confirmation = api.confirmIntent(
 			window.location.href,
@@ -578,8 +578,8 @@ jQuery( function ( $ ) {
 	 */
 	function isUsingSavedPaymentMethod() {
 		return (
-			$( '#wc-woocommerce_payments-payment-token-new' ).length &&
-			! $( '#wc-woocommerce_payments-payment-token-new' ).is( ':checked' )
+			$( '#wc-stripe_upe-payment-token-new' ).length &&
+			! $( '#wc-stripe_upe-payment-token-new' ).is( ':checked' )
 		);
 	}
 
@@ -602,7 +602,7 @@ jQuery( function ( $ ) {
 
 	// Handle the add payment method form for WooCommerce Payments.
 	$( 'form#add_payment_method' ).on( 'submit', function () {
-		if ( ! $( '#wc-stripe-setup-intent' ).val() ) {
+		if ( ! $( '#wc-stripe_upe-setup-intent' ).val() ) {
 			if ( isUPEEnabled && paymentIntentId ) {
 				handleUPEAddPayment( $( this ) );
 				return false;
