@@ -153,6 +153,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-apple-pay-registration.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-pre-orders-compat.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-features.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
@@ -275,6 +276,19 @@ function woocommerce_gateway_stripe() {
 			 * @version 4.0.0
 			 */
 			public function add_gateways( $methods ) {
+				if ( ! WC_Stripe_Features::is_upe_enabled() ) {
+					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Subs_Compat::class : WC_Gateway_Stripe::class;
+					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Sepa_Subs_Compat::class : WC_Gateway_Stripe_Sepa::class;
+					$methods[] = WC_Gateway_Stripe_Bancontact::class;
+					$methods[] = WC_Gateway_Stripe_Sofort::class;
+					$methods[] = WC_Gateway_Stripe_Giropay::class;
+					$methods[] = WC_Gateway_Stripe_Eps::class;
+					$methods[] = WC_Gateway_Stripe_Ideal::class;
+					$methods[] = WC_Gateway_Stripe_P24::class;
+					$methods[] = WC_Gateway_Stripe_Alipay::class;
+					$methods[] = WC_Gateway_Stripe_Multibanco::class;
+					return $methods;
+				}
 
 				if ( $this->is_upe_enabled() ) {
 					$methods[] = WC_Stripe_UPE_Payment_Gateway::class;

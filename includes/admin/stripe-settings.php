@@ -10,7 +10,7 @@ if ( ! defined( 'INSERT_UPE_SETTINGS_AFTER' ) ) {
 	define( 'INSERT_UPE_SETTINGS_AFTER', 'upe_checkout_experience_enabled' );
 }
 
-return apply_filters(
+$stripe_settings = apply_filters(
 	'wc_stripe_settings',
 	[
 		'enabled'                             => [
@@ -34,21 +34,6 @@ return apply_filters(
 			'default'     => __( 'Pay with your credit card via Stripe.', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		],
-		'upe_checkout_experience'                   => [
-			'title' => __( 'Checkout experience', 'woocommerce-gateway-stripe' ),
-			'type'  => 'title',
-		],
-		'upe_checkout_experience_enabled'     => [
-			'title'       => __( 'Enable/Disable', 'woocommerce-gateway-stripe' ),
-			'label'       => __( 'Enable new checkout experience', 'woocommerce-gateway-stripe' ),
-			'type'        => 'checkbox',
-			'description' => __( 'If enabled, users will... TBD', 'woocommerce-gateway-stripe' ),
-			'default'     => 'no',
-			'desc_tip'    => true,
-		],
-		/**
-		 * UPE method selection will be inserted here.
-		 */
 		'api_credentials'                     => [
 			'title' => __( 'Stripe Account Keys', 'woocommerce-gateway-stripe' ),
 			'type'  => 'stripe_account_keys',
@@ -220,3 +205,23 @@ return apply_filters(
 		],
 	]
 );
+
+if ( WC_Stripe_Features::is_upe_enabled() ) {
+	$upe_settings    = [
+		'upe_checkout_experience'         => [
+			'title' => __( 'Checkout experience', 'woocommerce-gateway-stripe' ),
+			'type'  => 'title',
+		],
+		'upe_checkout_experience_enabled' => [
+			'title'       => __( 'Enable/Disable', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Enable new checkout experience', 'woocommerce-gateway-stripe' ),
+			'type'        => 'checkbox',
+			'description' => __( 'If enabled, users will... TBD', 'woocommerce-gateway-stripe' ),
+			'default'     => 'no',
+			'desc_tip'    => true,
+		],
+	];
+	$stripe_settings = array_merge( array_splice( $stripe_settings, 0, array_search( 'description', array_keys( $stripe_settings ), true ) + 1 ), $upe_settings, $stripe_settings );
+}
+
+return $stripe_settings;
