@@ -3,13 +3,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Define which setting to insert the UPE method selection after.
- */
-if ( ! defined( 'INSERT_UPE_SETTINGS_AFTER' ) ) {
-	define( 'INSERT_UPE_SETTINGS_AFTER', 'upe_checkout_experience_enabled' );
-}
-
 $stripe_settings = apply_filters(
 	'wc_stripe_settings',
 	[
