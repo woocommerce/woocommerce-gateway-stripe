@@ -107,22 +107,19 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			// Prep source object.
-			$source_object           = new stdClass();
-			$source_object->token_id = '';
-			$source_object->customer = $this->get_stripe_customer_id( $order );
-			$source_object->source   = $source_info->id;
-			$source_object->status   = 'chargeable';
+			$prepared_source         = $this->prepare_order_source( $order );
+			$prepared_source->status = 'chargeable';
 
 			/*
 			 * If we're doing a retry and source is chargeable, we need to pass
 			 * a different idempotency key and retry for success.
 			 */
-			if ( $this->need_update_idempotency_key( $source_object, $previous_error ) ) {
+			if ( $this->need_update_idempotency_key( $prepared_source, $previous_error ) ) {
 				add_filter( 'wc_stripe_idempotency_key', [ $this, 'change_idempotency_key' ], 10, 2 );
 			}
 
 			// Make the request.
-			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source_object ), 'charges', 'POST', true );
+			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $prepared_source ), 'charges', 'POST', true );
 			$headers  = $response['headers'];
 			$response = $response['body'];
 

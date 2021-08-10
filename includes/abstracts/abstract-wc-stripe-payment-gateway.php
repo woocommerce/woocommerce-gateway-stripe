@@ -728,7 +728,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( $order ) {
 			$order_id = $order->get_id();
 
-			$stripe_customer_id = get_post_meta( $order_id, '_stripe_customer_id', true );
+			$stripe_customer_id = $this->get_stripe_customer_id( $order );
 
 			if ( $stripe_customer_id ) {
 				$stripe_customer->set_id( $stripe_customer_id );
