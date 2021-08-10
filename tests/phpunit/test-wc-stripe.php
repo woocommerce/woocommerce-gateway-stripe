@@ -162,6 +162,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	 * @preserveGlobalState disabled
 	 */
 	public function test_turning_on_upe_enables_the_correct_upe_methods_based_on_which_legacy_payment_methods_were_enabled_and_vice_versa() {
+		// Force the UPE feature flag on.
 		add_filter( 'pre_option__wcstripe_feature_upe', function() {
 			return '1';
 		});
@@ -194,9 +195,10 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		$stripe_settings['upe_checkout_experience_enabled'] = 'no';
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 
-		// Check that the correct LPMs were re-enabled.
+		// Check that the main 'stripe' gateway was disabled because the 'card' UPE method was not enabled.
 		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
 		$this->assertEquals( 'no', $stripe_settings['enabled'] );
+		// Check that the correct LPMs were re-enabled.
 		$giropay_settings = get_option( 'woocommerce_stripe_giropay_settings' );
 		$this->assertEquals( 'yes', $giropay_settings['enabled'] );
 		$ideal_settings = get_option( 'woocommerce_stripe_ideal_settings' );
