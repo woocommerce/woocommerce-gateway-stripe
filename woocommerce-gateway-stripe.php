@@ -365,15 +365,14 @@ function woocommerce_gateway_stripe() {
 			 * @return array New value but with defaults initially filled in for missing settings.
 			 */
 			public function gateway_settings_update( $settings, $old_settings ) {
-				$settings = $this->toggle_upe( $settings, $old_settings );
-
 				if ( false === $old_settings ) {
-					$gateway  = new WC_Gateway_Stripe();
-					$fields   = $gateway->get_form_fields();
-					$defaults = array_merge( array_fill_keys( array_keys( $fields ), '' ), wp_list_pluck( $fields, 'default' ) );
-					return array_merge( $defaults, $settings );
+					$gateway      = new WC_Gateway_Stripe();
+					$fields       = $gateway->get_form_fields();
+					$old_settings = array_merge( array_fill_keys( array_keys( $fields ), '' ), wp_list_pluck( $fields, 'default' ) );
+					$settings     = array_merge( $old_settings, $settings );
 				}
-				return $settings;
+
+				return $this->toggle_upe( $settings, $old_settings );
 			}
 
 			/**
@@ -388,13 +387,14 @@ function woocommerce_gateway_stripe() {
 			 * @return array New value but with defaults initially filled in for missing settings.
 			 */
 			protected function toggle_upe( $settings, $old_settings ) {
-				if ( false === $old_settings || ! isset( $settings['upe_checkout_experience_enabled'] ) || $settings['upe_checkout_experience_enabled'] === $old_settings['upe_checkout_experience_enabled'] ) {
+				if ( ! isset( $settings['upe_checkout_experience_enabled'] ) || $settings['upe_checkout_experience_enabled'] === $old_settings['upe_checkout_experience_enabled'] ) {
 					return $settings;
 				}
 
 				if ( 'no' === $old_settings['upe_checkout_experience_enabled'] && 'yes' === $settings['upe_checkout_experience_enabled'] ) {
 					return $this->enable_upe( $settings );
 				}
+
 				return $this->disable_upe( $settings );
 			}
 
@@ -417,9 +417,11 @@ function woocommerce_gateway_stripe() {
 				}
 				if ( empty( $settings['upe_checkout_experience_accepted_payments'] ) ) {
 					$settings['upe_checkout_experience_accepted_payments'] = [ 'card' ];
+				} else {
+					// The 'stripe' gateway must be enabled for UPE if any LPMs were enabled.
+					$settings['enabled'] = 'yes';
 				}
-				// The 'stripe' gateway must be enabled for UPE.
-				$settings['enabled'] = 'yes';
+
 				return $settings;
 			}
 
