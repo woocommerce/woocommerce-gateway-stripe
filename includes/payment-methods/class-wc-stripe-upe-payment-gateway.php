@@ -238,9 +238,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return string[]
 	 */
 	public function get_upe_available_payment_methods() {
-		return [
-			'card',
-		];
+		$available_payment_methods = [];
+
+		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+			$available_payment_methods[] = $payment_method_class::STRIPE_ID;
+		}
+
+		return $available_payment_methods;
 	}
 
 	/**
