@@ -181,16 +181,20 @@ return apply_filters(
 			],
 		],
 		'payment_request_locations'           => [
-			'title'       => __( 'Payment Request Button Locations', 'woocommerce-gateway-stripe' ),
-			'type'        => 'multiselect',
-			'description' => __( 'Select where you would like Payment Request Buttons to be displayed', 'woocommerce-gateway-stripe' ),
-			'desc_tip'    => true,
-			'options'     => [
-				'product'  => __( 'Product pages', 'woocommerce-gateway-stripe' ),
-				'cart'     => __( 'Cart page', 'woocommerce-gateway-stripe' ),
-				'checkout' => __( 'Checkout page', 'woocommerce-gateway-stripe' ),
+			'title'             => __( 'Payment Request Button Locations', 'woocommerce-gateway-stripe' ),
+			'type'              => 'multiselect',
+			'description'       => __( 'Select where you would like Payment Request Buttons to be displayed', 'woocommerce-gateway-stripe' ),
+			'desc_tip'          => true,
+			'class'             => 'wc-enhanced-select',
+			'options'           => [
+				'product'  => __( 'Product', 'woocommerce-gateway-stripe' ),
+				'cart'     => __( 'Cart', 'woocommerce-gateway-stripe' ),
+				'checkout' => __( 'Checkout', 'woocommerce-gateway-stripe' ),
 			],
-			'default'     => [ 'product', 'cart' ],
+			'default'           => [ 'product', 'cart' ],
+			'custom_attributes' => [
+				'data-placeholder' => __( 'Select pages', 'woocommerce-gateway-stripe' ),
+			],
 		],
 		'saved_cards'                         => [
 			'title'       => __( 'Saved Cards', 'woocommerce-gateway-stripe' ),
