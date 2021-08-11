@@ -129,13 +129,14 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		// TODO: Remove the `function_exists()` check once the minimum WP version has been bumped
 		//       to version 5.0.
 		if ( function_exists( 'has_block' ) ) {
-			global $post;
+			$prb_locations = empty( $this->settings['payment_request_locations'] )
+				? [] : $this->settings['payment_request_locations'];
 
 			// Don't show if PRBs are supposed to be hidden on the cart page.
 			// Note: The cart block has the PRB enabled by default.
 			if (
 				has_block( 'woocommerce/cart' )
-				&& ! apply_filters( 'wc_stripe_show_payment_request_on_cart', true )
+				&& ! in_array( 'cart', $prb_locations, true )
 			) {
 				return false;
 			}
@@ -145,7 +146,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			//       checkout where the PRB is disabled by default.
 			if (
 				has_block( 'woocommerce/checkout' )
-				&& ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', true, $post )
+				&& ! in_array( 'checkout', $prb_locations, true )
 			) {
 				return false;
 			}

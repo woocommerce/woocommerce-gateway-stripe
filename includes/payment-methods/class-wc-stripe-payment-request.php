@@ -818,8 +818,6 @@ class WC_Stripe_Payment_Request {
 	 * @version 5.2.0
 	 */
 	public function display_payment_request_button_separator_html() {
-		global $post;
-
 		$gateways = WC()->payment_gateways->get_available_payment_gateways();
 
 		if ( ! isset( $gateways['stripe'] ) ) {
@@ -830,7 +828,10 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		if ( is_checkout() && ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post ) ) {
+		$prb_locations = empty( $this->stripe_settings['payment_request_locations'] )
+			? [] : $this->stripe_settings['payment_request_locations'];
+
+		if ( is_checkout() && ! in_array( 'checkout', $prb_locations, true ) ) {
 			return;
 		}
 		?>
@@ -847,8 +848,6 @@ class WC_Stripe_Payment_Request {
 	 * @return  boolean  True if PRBs are supported on current page, false otherwise
 	 */
 	public function should_show_payment_request_button() {
-		global $post;
-
 		// If keys are not set bail.
 		if ( ! $this->are_keys_set() ) {
 			WC_Stripe_Logger::log( 'Keys are not set correctly.' );
@@ -870,20 +869,23 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
+		$prb_locations = empty( $this->stripe_settings['payment_request_locations'] )
+			? [] : $this->stripe_settings['payment_request_locations'];
+
 		// Don't show on cart if disabled.
-		if ( is_cart() && ! apply_filters( 'wc_stripe_show_payment_request_on_cart', true ) ) {
+		if ( is_cart() && ! in_array( 'cart', $prb_locations, true ) ) {
 			return false;
 		}
 
 		// Don't show on checkout if disabled.
-		if ( is_checkout() && ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post ) ) {
+		if ( is_checkout() && ! in_array( 'checkout', $prb_locations, true ) ) {
 			return false;
 		}
 
 		// Don't show if product page PRB is disabled.
 		if (
 			$this->is_product()
-			&& apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post )
+			&& ! in_array( 'product', $prb_locations, true )
 		) {
 			return false;
 		}
