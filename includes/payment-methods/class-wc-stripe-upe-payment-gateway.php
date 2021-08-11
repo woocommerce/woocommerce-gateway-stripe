@@ -12,6 +12,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 */
 class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
+	const ID = 'stripe';
+
+	const UPE_AVAILABLE_METHODS = [
+		WC_Stripe_UPE_Payment_Method_CC::class,
+		WC_Stripe_UPE_Payment_Method_Giropay::class,
+		WC_Stripe_UPE_Payment_Method_Eps::class,
+		WC_Stripe_UPE_Payment_Method_Bancontact::class,
+		WC_Stripe_UPE_Payment_Method_Ideal::class,
+	];
+
 	const UPE_APPEARANCE_TRANSIENT = 'wc_stripe_upe_appearance';
 
 	/**
@@ -60,7 +70,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->id           = 'stripe_upe';
+		$this->id           = self::ID;
 		$this->method_title = __( 'Stripe UPE', 'woocommerce-gateway-stripe' );
 		/* translators: link */
 		$this->method_description = __( 'Accept debit and credit cards in 135+ currencies, methods such as Alipay, and one-touch checkout with Apple Pay.', 'woocommerce-gateway-stripe' );
@@ -90,16 +100,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$this->secret_key      = ! empty( $main_settings['test_secret_key'] ) ? $main_settings['test_secret_key'] : '';
 		}
 
-		$this->payment_methods  = [];
-		$payment_method_classes = [
-			WC_Stripe_UPE_Payment_Method_CC::class,
-		];
-		foreach ( $payment_method_classes as $payment_method_class ) {
+		$this->payment_methods = [];
+		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
 			$payment_method                                     = new $payment_method_class( null );
 			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
 		}
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
+		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
 	}
 
@@ -107,7 +115,35 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Initialize Gateway Settings Form Fields.
 	 */
 	public function init_form_fields() {
-		$this->form_fields = require WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-upe-settings.php';
+		$this->form_fields = require WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-settings.php';
+		unset( $this->form_fields['inline_cc_form'] );
+	}
+
+	/**
+	 * Load admin scripts.
+	 *
+	 * @since x.x.x
+	 * @version x.x.x
+	 */
+	public function admin_scripts() {
+		if ( 'woocommerce_page_wc-settings' !== get_current_screen()->id ) {
+			return;
+		}
+
+		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+
+		wp_register_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION, true );
+
+		$params = [
+			'time'             => time(),
+			'i18n_out_of_sync' => wp_kses(
+				__( '<strong>Warning:</strong> your site\'s time does not match the time on your browser and may be incorrect. Some payment methods depend on webhook verification and verifying webhooks with a signing secret depends on your site\'s time being correct, so please check your site\'s time before setting a webhook secret. You may need to contact your site\'s hosting provider to correct the site\'s time.', 'woocommerce-gateway-stripe' ),
+				[ 'strong' => [] ]
+			),
+		];
+		wp_localize_script( 'woocommerce_stripe_admin', 'wc_stripe_settings_params', $params );
+
+		wp_enqueue_script( 'woocommerce_stripe_admin' );
 	}
 
 	/**
@@ -180,6 +216,36 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Returns the list of enabled payment method types for UPE.
+	 *
+	 * @return string[]
+	 */
+	public function get_upe_enabled_payment_method_ids() {
+		return $this->get_option(
+			'upe_checkout_experience_accepted_payments',
+			[
+				'card',
+			]
+		);
+	}
+
+	/**
+	 * Returns the list of available payment method types for UPE.
+	 * See https://stripe.com/docs/stripe-js/payment-element#web-create-payment-intent for a complete list.
+	 *
+	 * @return string[]
+	 */
+	public function get_upe_available_payment_methods() {
+		$available_payment_methods = [];
+
+		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+			$available_payment_methods[] = $payment_method_class::STRIPE_ID;
+		}
+
+		return $available_payment_methods;
+	}
+
+	/**
 	 * Payment form on checkout page
 	 */
 	public function payment_fields() {
@@ -222,6 +288,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		return $this->payment_methods[ $payment_method_id ]->is_reusable();
 	}
 
+	// TODO: Actually validate.
+	public function validate_upe_checkout_experience_accepted_payments_field( $key, $value ) {
+		return $value;
+	}
+
 	/**
 	 * This is overloading the upe checkout experience type on the settings page.
 	 *
@@ -230,9 +301,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return string
 	 */
 	public function generate_upe_checkout_experience_accepted_payments_html( $key, $data ) {
-		// TODO: This is just a placeholder for now
-		$data['description'] = '<p><strong>Payments accepted on checkout</strong></p>
-			<table class="wc_gateways widefat" cellspacing="0" aria-describedby="payment_gateways_options-description">
+		$data['description'] = '<div id="wc_stripe_upe_method_selection"><p><strong>Payments accepted on checkout</strong></p></div>
+			<table class="wc_gateways widefat form-table" cellspacing="0" aria-describedby="wc_stripe_upe_method_selection">
 			<thead>
 				<tr>
 					<th class="name">Method</th>
@@ -240,19 +310,67 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					<th class="description">Description</th>
 				</tr>
 			</thead>
-			<tbody>
-				<tr data-gateway_id="stripe">
-					<td class="name" width=""><a href="#" class="wc-payment-gateway-method-title">Credit card / debit card</a><span class="wc-payment-gateway-method-name">&nbsp;–&nbsp;Cards</span></td>
-					<td class="status" width="1%"><a class="wc-payment-gateway-method-toggle-enabled" href="#"><span class="woocommerce-input-toggle woocommerce-input-toggle--enabled" aria-label="The &quot;Stripe&quot; payment method is currently enabled">Yes</span></a></td>
-					<td class="description" width="">Offer checkout with major credit and debit cards without leaving your store.</td>
-				</tr>
-				<tr data-gateway_id="stripe_sepa">
-					<td class="name" width=""><a href="#" class="wc-payment-gateway-method-title">SEPA Direct Debit</a><span class="wc-payment-gateway-method-name">&nbsp;–&nbsp;SEPA Direct Debit</span></td>
-					<td class="status" width="1%"><a class="wc-payment-gateway-method-toggle-enabled" href="#"><span class="woocommerce-input-toggle woocommerce-input-toggle--enabled" aria-label="The &quot;Stripe SEPA Direct Debit&quot; payment method is currently enabled">Yes</span></a></td>
-					<td class="description" width="">Reach 500 million customers and over 20 million businesses across the European Union.</td>
-				</tr>
-			</tbody>
-		</table>';
+			<tbody>';
+
+		foreach ( $this->payment_methods as $method_id => $method ) {
+			$method_enabled       = in_array( $method_id, $this->get_upe_enabled_payment_method_ids(), true ) ? 'enabled' : 'disabled';
+			$data['description'] .= '<tr data-upe_method_id="' . $method_id . '">
+					<td class="name" width=""><a href="#" class="wc-payment-gateway-method-title">' . $method_id . '</a><span class="wc-payment-gateway-method-name">&nbsp;–&nbsp;Subtext goes here.</span></td>
+					<td class="status" width="1%"><a class="wc-payment-upe-method-toggle-' . $method_enabled . '" href="#"><span class="woocommerce-input-toggle woocommerce-input-toggle--' . $method_enabled . '" aria-label="The &quot;' . $method_id . '&quot; payment method is currently ' . $method_enabled . '">' . ( 'enabled' === $method_enabled ? 'Yes' : 'No' ) . '</span></a></td>
+					<td class="description" width="">Long description text goes here.</td>
+				</tr>';
+		}
+
+		$data['description'] .= '</tbody>
+			</table>
+			<span id="wc_stripe_upe_change_notice" class="hidden">' . __( 'You must save your changes.', 'woocommerce-gateway-stripe' ) . '</span>';
+
+		return $this->generate_title_html( $key, $data );
+	}
+
+	/**
+	 * This is overloading the title type so the oauth url is only fetched if we are on the settings page.
+	 *
+	 * TODO: This is duplicate code from WC_Gateway_Stripe.
+	 *
+	 * @param string $key Field key.
+	 * @param array  $data Field data.
+	 * @return string
+	 */
+	public function generate_stripe_account_keys_html( $key, $data ) {
+		if ( woocommerce_gateway_stripe()->connect->is_connected() ) {
+			$reset_link = add_query_arg(
+				[
+					'_wpnonce'                     => wp_create_nonce( 'reset_stripe_api_credentials' ),
+					'reset_stripe_api_credentials' => true,
+				],
+				admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' )
+			);
+
+			$api_credentials_text = sprintf(
+			/* translators: %1, %2, %3, and %4 are all HTML markup tags */
+				__( '%1$sClear all Stripe account keys.%2$s %3$sThis will disable any connection to Stripe.%4$s', 'woocommerce-gateway-stripe' ),
+				'<a id="wc_stripe_connect_button" href="' . $reset_link . '" class="button button-secondary">',
+				'</a>',
+				'<span style="color:red;">',
+				'</span>'
+			);
+		} else {
+			$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url();
+
+			if ( ! is_wp_error( $oauth_url ) ) {
+				$api_credentials_text = sprintf(
+				/* translators: %1, %2 and %3 are all HTML markup tags */
+					__( '%1$sSetup or link an existing Stripe account.%2$s By clicking this button you agree to the %3$sTerms of Service%2$s. Or, manually enter Stripe account keys below.', 'woocommerce-gateway-stripe' ),
+					'<a id="wc_stripe_connect_button" href="' . $oauth_url . '" class="button button-primary">',
+					'</a>',
+					'<a href="https://wordpress.com/tos">'
+				);
+			} else {
+				$api_credentials_text = __( 'Manually enter Stripe keys below.', 'woocommerce-gateway-stripe' );
+			}
+		}
+		$data['description'] = $api_credentials_text;
 		return $this->generate_title_html( $key, $data );
 	}
 }

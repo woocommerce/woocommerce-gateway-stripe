@@ -125,6 +125,22 @@ jQuery( function( $ ) {
 				$( 'form' ).find( 'input, select' ).off( 'change input', disableConnect );
 			} );
 
+			// Toggle UPE methods on/off.
+			$( '.wc_gateways' ).on( 'click', '.wc-payment-upe-method-toggle-enabled, .wc-payment-upe-method-toggle-disabled', function() {
+				var $toggle = $( this ).find( '.woocommerce-input-toggle' );
+				$toggle.toggleClass( 'woocommerce-input-toggle--enabled  woocommerce-input-toggle--disabled' );
+				$toggle.parent().toggleClass( 'wc-payment-upe-method-toggle-enabled  wc-payment-upe-method-toggle-disabled' );
+				$( '#wc_stripe_upe_change_notice' ).removeClass( 'hidden' );
+				return false;
+			});
+
+			$( '#mainform' ).submit( function() {
+				var $form = $( this );
+				$( '.wc_gateways .wc-payment-upe-method-toggle-enabled').each( function() {
+					$form.append( '<input type="hidden" name="woocommerce_stripe_upe_checkout_experience_accepted_payments[]" value="' + $( this ).closest( 'tr' ).data( 'upe_method_id' ) + '" />' );
+				});
+			});
+
 			// Webhook verification checks for timestamp within 5 minutes so warn if
 			// server time is off from browser time by > 4 minutes.
 			var timeDifference = Date.now() / 1000 - wc_stripe_settings_params.time;
