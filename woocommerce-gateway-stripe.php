@@ -225,6 +225,52 @@ function woocommerce_gateway_stripe() {
 
 					add_woocommerce_inbox_variant();
 					$this->update_plugin_version();
+
+					// TODO: Remove this when we're reasonably sure most merchants have had their
+					// settings updated like this. ~80% of merchants is a good threshold.
+					// - @reykjalin
+					$this->update_prb_location_settings();
+				}
+			}
+
+			/**
+			 * Updates the PRB location settings based on deprecated filters.
+			 *
+			 * The filters were removed in favor of plugin settings. This function can, and should,
+			 * be removed when we're reasonably sure most merchants have had their settings updated
+			 * through this function. Maybe ~80% of merchants is a good threshold?
+			 *
+			 * @since x.x.x
+			 * @version x.x.x
+			 */
+			public function update_prb_location_settings() {
+				$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+				$prb_locations   = isset( $stripe_settings['payment_request_locations'] )
+					? $stripe_settings['payment_request_locations']
+					: [];
+				if ( ! empty( $stripe_settings ) && empty( $prb_locations ) ) {
+					global $post;
+
+					$should_show_on_product_page  = ! apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false );
+					$should_show_on_cart_page     = apply_filters( 'wc_stripe_show_payment_request_on_cart', true );
+					$should_show_on_checkout_page = apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post );
+
+					$new_prb_locations = [];
+
+					if ( $should_show_on_product_page ) {
+						$new_prb_locations[] = 'product';
+					}
+
+					if ( $should_show_on_cart_page ) {
+						$new_prb_locations[] = 'cart';
+					}
+
+					if ( $should_show_on_checkout_page ) {
+						$new_prb_locations[] = 'checkout';
+					}
+
+					$stripe_settings['payment_request_locations'] = $new_prb_locations;
+					update_option( 'woocommerce_stripe_settings', $stripe_settings );
 				}
 			}
 
