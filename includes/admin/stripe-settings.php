@@ -180,6 +180,18 @@ return apply_filters(
 				'long'  => __( 'Text and logo', 'woocommerce-gateway-stripe' ),
 			],
 		],
+		'payment_request_locations'           => [
+			'title'       => __( 'Payment Request Button Locations', 'woocommerce-gateway-stripe' ),
+			'type'        => 'multiselect',
+			'description' => __( 'Select where you would like Payment Request Buttons to be displayed', 'woocommerce-gateway-stripe' ),
+			'desc_tip'    => true,
+			'options'     => [
+				'product'  => __( 'Product pages', 'woocommerce-gateway-stripe' ),
+				'cart'     => __( 'Cart page', 'woocommerce-gateway-stripe' ),
+				'checkout' => __( 'Checkout page', 'woocommerce-gateway-stripe' ),
+			],
+			'default'     => [ 'product', 'cart' ],
+		],
 		'saved_cards'                         => [
 			'title'       => __( 'Saved Cards', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Enable Payment via Saved Cards', 'woocommerce-gateway-stripe' ),
