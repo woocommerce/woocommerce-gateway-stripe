@@ -16,7 +16,7 @@ import { displayLoginConfirmation } from './login-confirmation';
 import {
 	getStripeServerData,
 	createPaymentRequestUsingCart,
-} from '../stripe-utils';
+} from '../../stripe-utils';
 
 /**
  * This hook takes care of creating a payment request and making sure
@@ -83,7 +83,7 @@ export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
  *
  * @return {Function} An onClick handler for the payment request buttons.
  */
- export const useOnClickHandler = (
+export const useOnClickHandler = (
 	paymentRequestType,
 	setExpressPaymentError,
 	onClick

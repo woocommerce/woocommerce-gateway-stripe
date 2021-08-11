@@ -266,10 +266,7 @@ class WC_Stripe_Intent_Controller {
 		try {
 			$is_nonce_valid = check_ajax_referer( '_wc_stripe_nonce', false, false );
 			if ( ! $is_nonce_valid ) {
-				throw new Process_Payment_Exception(
-					__( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ),
-					'wc_stripe_upe_intent_error'
-				);
+				throw new Exception( __( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
 
 			// If paying from order, we need to get the total from the order instead of the cart.

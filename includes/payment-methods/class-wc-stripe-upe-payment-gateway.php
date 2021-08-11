@@ -80,6 +80,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'refunds',
 		];
 
+		$this->payment_methods = [];
+		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+			$payment_method                                     = new $payment_method_class( null );
+			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
+		}
+
 		// Load the form fields.
 		$this->init_form_fields();
 
@@ -98,12 +104,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( $this->testmode ) {
 			$this->publishable_key = ! empty( $main_settings['test_publishable_key'] ) ? $main_settings['test_publishable_key'] : '';
 			$this->secret_key      = ! empty( $main_settings['test_secret_key'] ) ? $main_settings['test_secret_key'] : '';
-		}
-
-		$this->payment_methods = [];
-		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-			$payment_method                                     = new $payment_method_class( null );
-			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
 		}
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
@@ -154,16 +154,46 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
-		wp_register_script( 'woocommerce_stripe_upe', plugins_url( 'assets/js/stripe-upe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [ 'jquery-payment', 'stripe' ], WC_STRIPE_VERSION, true );
+		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/checkout_upe.asset.php';
+		$version      = WC_STRIPE_VERSION;
+		$dependencies = [];
+		if ( file_exists( $asset_path ) ) {
+			$asset        = require $asset_path;
+			$version      = is_array( $asset ) && isset( $asset['version'] )
+				? $asset['version']
+				: $version;
+			$dependencies = is_array( $asset ) && isset( $asset['dependencies'] )
+				? $asset['dependencies']
+				: $dependencies;
+		}
+
+		wp_register_script(
+			'stripe',
+			'https://js.stripe.com/v3/',
+			[],
+			'3.0',
+			true
+		);
+
+		wp_register_script(
+			'wc-stripe-upe-classic',
+			WC_STRIPE_PLUGIN_URL . '/build/upe_classic.js',
+			array_merge( [ 'stripe', 'wc-checkout' ], $dependencies ),
+			$version,
+			true
+		);
+		wp_set_script_translations(
+			'wc-stripe-upe-classic',
+			'woocommerce-gateway-stripe'
+		);
 
 		wp_localize_script(
-			'woocommerce_stripe_upe',
+			'wc-stripe-upe-classic',
 			'wc_stripe_upe_params',
 			apply_filters( 'wc_stripe_upe_params', $this->javascript_params() )
 		);
 
-		wp_enqueue_script( 'woocommerce_stripe_upe' );
+		wp_enqueue_script( 'wc-stripe-upe-classic' );
 	}
 
 	/**
@@ -175,9 +205,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		global $wp;
 
 		$stripe_params = [
-			'publishableKey' => $this->publishable_key,
-			'isUPEEnabled'   => true,
-			'locale'         => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+			'isUPEEnabled' => true,
+			'key'          => $this->publishable_key,
+			'locale'       => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 		];
 
 		// If we're on the pay page we need to pass stripe.js the address of the order.
@@ -189,10 +219,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['isCheckout']               = ( is_checkout() && empty( $_GET['pay_for_order'] ) ) ? 'yes' : 'no'; // wpcs: csrf ok.
 		$stripe_params['isOrderPay']               = is_wc_endpoint_url( 'order-pay' ) ? 'yes' : 'no';
 		$stripe_params['return_url']               = $this->get_stripe_return_url();
-		$stripe_params['ajaxurl']                  = WC_AJAX::get_endpoint( '%%endpoint%%' );
+		$stripe_params['ajax_url']                 = WC_AJAX::get_endpoint( '%%endpoint%%' );
 		$stripe_params['createPaymentIntentNonce'] = wp_create_nonce( '_wc_stripe_nonce' );
 		$stripe_params['upeAppeareance']           = get_transient( self::UPE_APPEARANCE_TRANSIENT );
 		$stripe_params['paymentMethodsConfig']     = $this->get_enabled_payment_method_config();
+		$stripe_params['accountDescriptor']        = 'accountDescriptor'; // TODO: this should be added to the Stripe settings page or remove it from here.
 
 		return $stripe_params;
 	}
@@ -204,7 +235,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	private function get_enabled_payment_method_config() {
 		$settings                = [];
-		$enabled_payment_methods = $this->get_upe_enabled_payment_method_ids(); //array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_at_checkout' ] );
+		$enabled_payment_methods = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_at_checkout' ] );
 
 		foreach ( $enabled_payment_methods as $payment_method ) {
 			$settings[ $payment_method ] = [

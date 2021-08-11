@@ -1,129 +1,49 @@
-/* global jQuery, Stripe, wc_stripe_upe_params */
+/**
+ * External dependencies
+ */
+import jQuery from 'jquery';
 
 /**
  * Internal dependencies
  */
-// import './style.scss';
-// import {
-// 	PAYMENT_METHOD_NAME_CARD,
-// 	PAYMENT_METHOD_NAME_UPE,
-// } from '../constants.js';
-// import { getConfig } from 'utils/checkout';
-// import WCPayAPI from '../api';
-// import enqueueFraudScripts from 'fraud-scripts';
-// import { getFontRulesFromPage, getAppearance } from '../upe-styles';
+import './style.scss';
+import WCStripeAPI from '../../api';
+import { getStripeServerData } from '../../stripe-utils';
+import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
+
+const PAYMENT_METHOD_NAME_CARD = 'stripe';
+const PAYMENT_METHOD_NAME_UPE = 'stripe_upe';
 
 jQuery( function ( $ ) {
-	// enqueueFraudScripts( getConfig( 'fraudServices' ) );
+	const key = getStripeServerData()?.key;
+	const isUPEEnabled = getStripeServerData()?.isUPEEnabled;
+	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
 
-	const PAYMENT_METHOD_NAME_CARD = 'stripe';
-	const PAYMENT_METHOD_NAME_UPE = 'stripe_upe';
-
-	const publishableKey = wc_stripe_upe_params.publishableKey;
-	const isUPEEnabled = wc_stripe_upe_params.isUPEEnabled;
-	const paymentMethodsConfig = wc_stripe_upe_params.paymentMethodsConfig;
-	const locale = wc_stripe_upe_params.locale;
-
-	if ( ! publishableKey ) {
+	if ( ! key ) {
 		// If no configuration is present, probably this is not the checkout page.
 		return;
 	}
 
-	// // Create an API object, which will be used throughout the checkout.
-	// const api = new WCPayAPI(
-	// 	{
-	// 		publishableKey,
-	// 		accountId: wc_stripe_upe_params.accountId,
-	// 		forceNetworkSavedCards: wc_stripe_upe_params.forceNetworkSavedCards,
-	// 		locale: wc_stripe_upe_params.locale,
-	// 		isUPEEnabled,
-	// 	},
-	// 	// A promise-based interface to jQuery.post.
-	// 	( url, args ) => {
-	// 		return new Promise( ( resolve, reject ) => {
-	// 			jQuery.post( url, args ).then( resolve ).fail( reject );
-	// 		} );
-	// 	}
-	// );
-	const api = {
-		stripe: new Stripe( publishableKey, {
-			betas: [ 'payment_element_beta_1' ],
-			locale,
-		} ),
-
-		/**
-		 * Build WC AJAX endpoint URL.
-		 *
-		 * @param  {String} endpoint Endpoint.
-		 * @return {String}
-		 */
-		buildAjaxURL: function( endpoint ) {
-			return wc_stripe_upe_params.ajaxurl
-				.toString()
-				.replace( '%%endpoint%%', 'wc_stripe_' + endpoint );
+	// Create an API object, which will be used throughout the checkout.
+	const api = new WCStripeAPI(
+		{
+			key,
+			locale: getStripeServerData()?.locale,
+			isUPEEnabled,
 		},
-
 		// A promise-based interface to jQuery.post.
-		request: function( url, args ) {
+		( url, args ) => {
 			return new Promise( ( resolve, reject ) => {
 				jQuery.post( url, args ).then( resolve ).fail( reject );
 			} );
-		},
-
-		getStripe: function() {
-			return this.stripe;
-		},
-
-		initSetupIntent: function() {
-			console.error( 'TODO: Not implemented yet: initSetupIntent' );
-		},
-
-		/**
-		 * Creates an intent based on a payment method.
-		 *
-		 * @param {int} orderId The id of the order if creating the intent on Order Pay page.
-		 *
-		 * @return {Promise} The final promise for the request to the server.
-		 */
-		createIntent( orderId ) {
-			return this.request(
-				this.buildAjaxURL( 'create_payment_intent' ),
-				{
-					stripe_order_id: orderId,
-					_ajax_nonce: wc_stripe_upe_params.createPaymentIntentNonce,
-				}
-			)
-			.then( ( response ) => {
-				if ( ! response.success ) {
-					throw response.data.error;
-				}
-				return response.data;
-			} )
-			.catch( ( error ) => {
-				if ( error.message ) {
-					throw error;
-				} else {
-					// Covers the case of error on the Ajax request.
-					throw new Error( error.statusText );
-				}
-			} );
-		},
-
-		confirmIntent: function( url, savePaymentMethod ) {
-			console.error( 'TODO: Not implemented yet: confirmIntent' );
-			return true;
-		},
-
-		saveUPEAppearance: function( appearance ) {
-			console.error( 'TODO: Not implemented yet: saveUPEAppearance' );
 		}
-	}
+	);
 
 	// Object to add hidden elements to compute focus and invalid states for UPE.
 	const hiddenElementsForUPE = {
-		getHiddenContainer: function () {
+		getHiddenContainer() {
 			const hiddenDiv = document.createElement( 'div' );
-			hiddenDiv.setAttribute( 'id', 'wcpay-hidden-div' );
+			hiddenDiv.setAttribute( 'id', 'wc-stripe-hidden-div' );
 			hiddenDiv.style.border = 0;
 			hiddenDiv.style.clip = 'rect(0 0 0 0)';
 			hiddenDiv.style.height = '1px';
@@ -134,7 +54,7 @@ jQuery( function ( $ ) {
 			hiddenDiv.style.width = '1px';
 			return hiddenDiv;
 		},
-		getHiddenInvalidRow: function () {
+		getHiddenInvalidRow() {
 			const hiddenInvalidRow = document.createElement( 'p' );
 			hiddenInvalidRow.classList.add(
 				'form-row',
@@ -143,14 +63,14 @@ jQuery( function ( $ ) {
 			);
 			return hiddenInvalidRow;
 		},
-		appendHiddenClone: function ( container, idToClone, hiddenCloneId ) {
+		appendHiddenClone( container, idToClone, hiddenCloneId ) {
 			const hiddenInput = jQuery( idToClone )
 				.clone()
 				.prop( 'id', hiddenCloneId );
 			container.appendChild( hiddenInput.get( 0 ) );
 			return hiddenInput;
 		},
-		init: function () {
+		init() {
 			if ( ! $( ' #billing_first_name' ).length ) {
 				return;
 			}
@@ -161,24 +81,24 @@ jQuery( function ( $ ) {
 			this.appendHiddenClone(
 				hiddenDiv,
 				'#billing_first_name',
-				'wcpay-hidden-input'
+				'wc-stripe-hidden-input'
 			);
-			$( '#wcpay-hidden-input' ).trigger( 'focus' );
+			$( '#wc-stripe-hidden-input' ).trigger( 'focus' );
 
 			// Hidden invalid element.
 			const hiddenInvalidRow = this.getHiddenInvalidRow();
 			this.appendHiddenClone(
 				hiddenInvalidRow,
 				'#billing_first_name',
-				'wcpay-hidden-invalid-input'
+				'wc-stripe-hidden-invalid-input'
 			);
 			hiddenDiv.appendChild( hiddenInvalidRow );
 
 			// Remove transitions.
-			$( '#wcpay-hidden-input' ).css( 'transition', 'none' );
+			$( '#wc-stripe-hidden-input' ).css( 'transition', 'none' );
 		},
-		cleanup: function () {
-			$( '#wcpay-hidden-div' ).remove();
+		cleanup() {
+			$( '#wc-stripe-hidden-div' ).remove();
 		},
 	};
 
@@ -252,8 +172,8 @@ jQuery( function ( $ ) {
 		).remove();
 		$container.prepend(
 			'<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout">' +
-			messageWrapper +
-			'</div>'
+				messageWrapper +
+				'</div>'
 		);
 		$container
 			.find( '.input-text, select, input:checkbox' )
@@ -284,7 +204,7 @@ jQuery( function ( $ ) {
 
 	// Set the selected UPE payment type field
 	const setSelectedUPEPaymentType = ( paymentType ) => {
-		$( '#wcpay_selected_upe_payment_type' ).val( paymentType );
+		$( '#wc_stripe_selected_upe_payment_type' ).val( paymentType );
 	};
 
 	/**
@@ -321,11 +241,11 @@ jQuery( function ( $ ) {
 		}
 
 		// If paying from order, we need to create Payment Intent from order not cart.
-		const isOrderPay = wc_stripe_upe_params.isOrderPay;
-		const isCheckout = wc_stripe_upe_params.isCheckout;
+		const isOrderPay = getStripeServerData()?.isOrderPay;
+		const isCheckout = getStripeServerData()?.isCheckout;
 		let orderId;
 		if ( isOrderPay ) {
-			orderId = wc_stripe_upe_params.orderId;
+			orderId = getStripeServerData()?.orderId;
 		}
 
 		const intentAction = isSetupIntent
@@ -346,7 +266,7 @@ jQuery( function ( $ ) {
 				const { client_secret: clientSecret, id: id } = response;
 				paymentIntentId = id;
 
-				let appearance = wc_stripe_upe_params.upeAppeareance;
+				let appearance = getStripeServerData()?.upeAppeareance;
 
 				if ( ! appearance ) {
 					hiddenElementsForUPE.init();
@@ -355,12 +275,11 @@ jQuery( function ( $ ) {
 					api.saveUPEAppearance( appearance );
 				}
 
-				// console.log( "const businessName = getConfig( 'accountDescriptor' )" );
-				// const businessName = getConfig( 'accountDescriptor' );
+				const businessName = getStripeServerData()?.accountDescriptor;
 				const upeSettings = {
 					clientSecret,
 					appearance,
-					// business: { name: businessName },
+					business: { name: businessName },
 				};
 				if ( isCheckout && ! isOrderPay ) {
 					upeSettings.fields = {
@@ -418,17 +337,17 @@ jQuery( function ( $ ) {
 			isUPEEnabled &&
 			! upeElement
 		) {
-			const isChangingPayment = getConfig( 'isChangingPayment' );
+			const isChangingPayment = getStripeServerData()?.isChangingPayment;
 
 			// We use a setup intent if we are on the screens to add a new payment method or to change a subscription payment.
 			const useSetUpIntent =
 				$( 'form#add_payment_method' ).length || isChangingPayment;
 
-			if ( isChangingPayment && getConfig( 'newTokenFormId' ) ) {
+			if ( isChangingPayment && getStripeServerData()?.newTokenFormId ) {
 				// Changing the method for a subscription takes two steps:
 				// 1. Create the new payment method that will redirect back.
 				// 2. Select the new payment method and resubmit the form to update the subscription.
-				const token = getConfig( 'newTokenFormId' );
+				const token = getStripeServerData()?.newTokenFormId;
 				$( token ).prop( 'selected', true ).trigger( 'click' );
 				$( 'form#order_review' ).submit();
 			}
@@ -461,6 +380,7 @@ jQuery( function ( $ ) {
 		}
 		return true;
 	};
+
 	/**
 	 * Submits the confirmation of the intent to Stripe on Pay for Order page.
 	 * Stripe redirects to Order Thank you page on sucess.
@@ -482,17 +402,17 @@ jQuery( function ( $ ) {
 			const savePaymentMethod = isSavingPaymentMethod ? 'yes' : 'no';
 
 			const returnUrl =
-				getConfig( 'orderReturnURL' ) +
+				getStripeServerData()?.orderReturnURL +
 				`&save_payment_method=${ savePaymentMethod }`;
 
-			const orderId = getConfig( 'orderId' );
+			const orderId = getStripeServerData()?.orderId;
 
 			// Update payment intent with level3 data, customer and maybe setup for future use.
 			await api.updateIntent(
 				paymentIntentId,
 				orderId,
 				savePaymentMethod,
-				$( '#wcpay_selected_upe_payment_type' ).val()
+				$( '#wc_stripe_selected_upe_payment_type' ).val()
 			);
 
 			const { error } = await api.getStripe().confirmPayment( {
@@ -526,7 +446,7 @@ jQuery( function ( $ ) {
 		blockUI( $form );
 
 		try {
-			const returnUrl = getConfig( 'addPaymentReturnURL' );
+			const returnUrl = getStripeServerData()?.addPaymentReturnURL;
 
 			const { error } = await api.getStripe().confirmSetup( {
 				element: upeElement,
@@ -598,7 +518,7 @@ jQuery( function ( $ ) {
 	 * Displays the authentication modal to the user if needed.
 	 */
 	const maybeShowAuthenticationModal = () => {
-		const paymentMethodId = $( '#wcpay-payment-method' ).val();
+		const paymentMethodId = $( '#wc-stripe-payment-method' ).val();
 
 		const savePaymentMethod = $(
 			'#wc-woocommerce_payments-new-payment-method'
@@ -609,7 +529,7 @@ jQuery( function ( $ ) {
 		);
 
 		// Boolean `true` means that there is nothing to confirm.
-		if ( true === confirmation ) {
+		if ( confirmation === true ) {
 			return;
 		}
 
@@ -622,6 +542,7 @@ jQuery( function ( $ ) {
 
 		// Cleanup the URL.
 		// https://stackoverflow.com/a/5298684
+		// eslint-disable-next-line no-undef
 		history.replaceState(
 			'',
 			document.title,
@@ -642,7 +563,7 @@ jQuery( function ( $ ) {
 				// If this is a generic error, we probably don't want to display the error message to the user,
 				// so display a generic message instead.
 				if ( error instanceof Error ) {
-					errorMessage = getConfig( 'genericErrorMessage' );
+					errorMessage = getStripeServerData()?.genericErrorMessage;
 				}
 
 				showError( errorMessage );
@@ -662,11 +583,11 @@ jQuery( function ( $ ) {
 	}
 
 	// Handle the checkout form when WooCommerce Payments is chosen.
-	const wcpayPaymentMethods = [
+	const wcStripePaymentMethods = [
 		PAYMENT_METHOD_NAME_CARD,
 		PAYMENT_METHOD_NAME_UPE,
 	];
-	const checkoutEvents = wcpayPaymentMethods
+	const checkoutEvents = wcStripePaymentMethods
 		.map( ( method ) => `checkout_place_order_${ method }` )
 		.join( ' ' );
 	$( 'form.checkout' ).on( checkoutEvents, function () {
@@ -680,7 +601,7 @@ jQuery( function ( $ ) {
 
 	// Handle the add payment method form for WooCommerce Payments.
 	$( 'form#add_payment_method' ).on( 'submit', function () {
-		if ( ! $( '#wcpay-setup-intent' ).val() ) {
+		if ( ! $( '#wc-stripe-setup-intent' ).val() ) {
 			if ( isUPEEnabled && paymentIntentId ) {
 				handleUPEAddPayment( $( this ) );
 				return false;
@@ -691,7 +612,7 @@ jQuery( function ( $ ) {
 	// Handle the Pay for Order form if WooCommerce Payments is chosen.
 	$( '#order_review' ).on( 'submit', () => {
 		if ( ! isUsingSavedPaymentMethod() ) {
-			if ( getConfig( 'isChangingPayment' ) ) {
+			if ( getStripeServerData()?.isChangingPayment ) {
 				handleUPEAddPayment( $( '#order_review' ) );
 				return false;
 			}
@@ -706,39 +627,8 @@ jQuery( function ( $ ) {
 
 	// Handle hash change - used when authenticating payment with SCA on checkout page.
 	window.addEventListener( 'hashchange', () => {
-		if ( window.location.hash.startsWith( '#wcpay-confirm-' ) ) {
+		if ( window.location.hash.startsWith( '#wc-stripe-confirm-' ) ) {
 			maybeShowAuthenticationModal();
 		}
 	} );
-
-	// -- TODO: Extract this to a common file
-
-	function getFontRulesFromPage() {
-		const fontRules = [],
-			sheets = document.styleSheets,
-			fontDomains = [
-				'fonts.googleapis.com',
-				'fonts.gstatic.com',
-				'fast.fonts.com',
-				'use.typekit.net',
-			];
-		for ( let i = 0; i < sheets.length; i++ ) {
-			if ( ! sheets[ i ].href ) {
-				continue;
-			}
-			const url = new URL( sheets[ i ].href );
-			if ( -1 !== fontDomains.indexOf( url.hostname ) ) {
-				fontRules.push( {
-					cssSrc: sheets[ i ].href,
-				} );
-			}
-		}
-
-		return fontRules;
-	};
-
-	function getAppearance() {
-		return {};
-	};
-
 } );

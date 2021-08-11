@@ -7,7 +7,7 @@ import { useState } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import { getStripeServerData } from '../stripe-utils';
+import { getStripeServerData } from '../../stripe-utils';
 import { useCheckoutSubscriptions } from './use-checkout-subscriptions';
 import { InlineCard, CardElements } from './elements';
 
