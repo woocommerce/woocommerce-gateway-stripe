@@ -683,6 +683,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 							'result'                => 'success',
 							'redirect'              => $this->get_return_url( $order ),
 							'payment_intent_secret' => $intent->client_secret,
+							'save_payment_method'   => $this->save_payment_method_requested(),
 						];
 					}
 				}
