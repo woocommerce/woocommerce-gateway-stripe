@@ -32,13 +32,13 @@ export const getFieldStyles = ( selector, upeElement ) => {
 		}
 	}
 
-	if ( '.Input' === upeElement ) {
+	if ( upeElement === '.Input' ) {
 		const outline = generateOutlineStyle(
 			filteredStyles.outlineWidth,
 			filteredStyles.outlineStyle,
 			filteredStyles.outlineColor
 		);
-		if ( '' !== outline ) {
+		if ( outline !== '' ) {
 			filteredStyles.outline = outline;
 		}
 		delete filteredStyles.outlineWidth;
@@ -63,7 +63,7 @@ export const getFontRulesFromPage = () => {
 			continue;
 		}
 		const url = new URL( sheets[ i ].href );
-		if ( -1 !== fontDomains.indexOf( url.hostname ) ) {
+		if ( fontDomains.indexOf( url.hostname ) !== -1 ) {
 			fontRules.push( {
 				cssSrc: sheets[ i ].href,
 			} );

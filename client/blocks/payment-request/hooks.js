@@ -83,7 +83,7 @@ export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
  *
  * @return {Function} An onClick handler for the payment request buttons.
  */
- export const useOnClickHandler = (
+export const useOnClickHandler = (
 	paymentRequestType,
 	setExpressPaymentError,
 	onClick

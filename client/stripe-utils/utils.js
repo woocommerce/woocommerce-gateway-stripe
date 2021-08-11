@@ -25,8 +25,8 @@ import { errorTypes, errorCodes } from './constants';
 const getStripeServerData = () => {
 	// Classic checkout or blocks-based one.
 	const stripeServerData =
-		'undefined' !== typeof wc_stripe_upe_params
-			? wc_stripe_upe_params
+		typeof wc_stripe_upe_params !== 'undefined' // eslint-disable-line camelcase
+			? wc_stripe_upe_params // eslint-disable-line camelcase
 			: wc?.wcSettings?.getSetting( 'stripe_data', null );
 	if ( ! stripeServerData ) {
 		throw new Error( 'Stripe initialization data is not available' );
