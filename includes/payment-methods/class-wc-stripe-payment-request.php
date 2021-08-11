@@ -828,10 +828,7 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		$prb_locations = empty( $this->stripe_settings['payment_request_locations'] )
-			? [] : $this->stripe_settings['payment_request_locations'];
-
-		if ( is_checkout() && ! in_array( 'checkout', $prb_locations, true ) ) {
+		if ( is_checkout() && ! in_array( 'checkout', $this->get_button_locations(), true ) ) {
 			return;
 		}
 		?>
@@ -869,23 +866,20 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
-		$prb_locations = empty( $this->stripe_settings['payment_request_locations'] )
-			? [] : $this->stripe_settings['payment_request_locations'];
-
 		// Don't show on cart if disabled.
-		if ( is_cart() && ! in_array( 'cart', $prb_locations, true ) ) {
+		if ( is_cart() && ! in_array( 'cart', $this->get_button_locations(), true ) ) {
 			return false;
 		}
 
 		// Don't show on checkout if disabled.
-		if ( is_checkout() && ! in_array( 'checkout', $prb_locations, true ) ) {
+		if ( is_checkout() && ! in_array( 'checkout', $this->get_button_locations(), true ) ) {
 			return false;
 		}
 
 		// Don't show if product page PRB is disabled.
 		if (
 			$this->is_product()
-			&& ! in_array( 'product', $prb_locations, true )
+			&& ! in_array( 'product', $this->get_button_locations(), true )
 		) {
 			return false;
 		}
@@ -1706,5 +1700,12 @@ class WC_Stripe_Payment_Request {
 			'message'      => $message,
 			'redirect_url' => $redirect_url,
 		];
+	}
+
+	public function get_button_locations() {
+		if ( ! isset( $this->stripe_settings['payment_request_locations'] ) ) {
+			return [ 'product', 'cart' ];
+		}
+		return $this->stripe_settings['payment_request_locations'];
 	}
 }
