@@ -321,7 +321,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			if ( isset( $payment_details['save_payment_method'] ) && ! empty( $payment_details['save_payment_method'] ) ) {
 				$verification_endpoint = add_query_arg(
 					[ 'save_payment_method' => true ],
-					$verification_endpoint,
+					$verification_endpoint
 				);
 			}
 
