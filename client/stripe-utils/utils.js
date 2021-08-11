@@ -27,7 +27,7 @@ const getStripeServerData = () => {
 	const stripeServerData =
 		'undefined' !== typeof wc_stripe_upe_params
 			? wc_stripe_upe_params
-			: wc.wcSettings.getSetting( 'stripe_data', null );
+			: wc?.wcSettings?.getSetting( 'stripe_data', null );
 	if ( ! stripeServerData ) {
 		throw new Error( 'Stripe initialization data is not available' );
 	}
