@@ -115,9 +115,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * Initialize Gateway Settings Form Fields.
 	 */
 	public function init_form_fields() {
-		$base_stripe_fields = require WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-settings.php';
-		$upe_config_fields  = require WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-upe-settings.php';
-		$this->form_fields  = array_merge( array_splice( $base_stripe_fields, 0, array_search( 'upe_checkout_experience_enabled', array_keys( $base_stripe_fields ), true ) + 1 ), $upe_config_fields, $base_stripe_fields );
+		$this->form_fields = require WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-settings.php';
 		unset( $this->form_fields['inline_cc_form'] );
 	}
 

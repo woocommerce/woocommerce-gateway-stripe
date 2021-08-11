@@ -387,6 +387,9 @@ function woocommerce_gateway_stripe() {
 			 * @return array New value but with defaults initially filled in for missing settings.
 			 */
 			protected function toggle_upe( $settings, $old_settings ) {
+				if ( false === $old_settings ) {
+					$old_settings = [ 'upe_checkout_experience_enabled' => 'no' ];
+				}
 				if ( ! isset( $settings['upe_checkout_experience_enabled'] ) || $settings['upe_checkout_experience_enabled'] === $old_settings['upe_checkout_experience_enabled'] ) {
 					return $settings;
 				}
