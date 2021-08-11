@@ -308,8 +308,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				|| ! empty( $result->payment_details['setup_intent_secret'] )
 			)
 		) {
-			$payment_details                          = $result->payment_details;
-			$payment_details['verification_endpoint'] = add_query_arg(
+			$payment_details       = $result->payment_details;
+			$verification_endpoint = add_query_arg(
 				[
 					'order'       => $context->order->get_id(),
 					'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
@@ -317,6 +317,15 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				],
 				home_url() . \WC_Ajax::get_endpoint( 'wc_stripe_verify_intent' )
 			);
+
+			if ( isset( $payment_details['save_payment_method'] ) && ! empty( $payment_details['save_payment_method'] ) ) {
+				$verification_endpoint = add_query_arg(
+					[ 'save_payment_method' => true ],
+					$verification_endpoint,
+				);
+			}
+
+			$payment_details['verification_endpoint'] = $verification_endpoint;
 			$result->set_payment_details( $payment_details );
 			$result->set_status( 'success' );
 		}
