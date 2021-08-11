@@ -8,15 +8,13 @@ import jQuery from 'jquery';
  */
 import './style.scss';
 import WCStripeAPI from '../api';
-import { getStripeServerData } from "../stripe-utils";
+import { getStripeServerData } from '../stripe-utils';
 import { getFontRulesFromPage, getAppearance } from '../upe-styles';
 
 const PAYMENT_METHOD_NAME_CARD = 'stripe';
 const PAYMENT_METHOD_NAME_UPE = 'stripe_upe';
 
 jQuery( function ( $ ) {
-	// enqueueFraudScripts( getStripeServerData()?.fraudServices );
-
 	const key = getStripeServerData()?.key;
 	const isUPEEnabled = getStripeServerData()?.isUPEEnabled;
 	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
@@ -43,7 +41,7 @@ jQuery( function ( $ ) {
 
 	// Object to add hidden elements to compute focus and invalid states for UPE.
 	const hiddenElementsForUPE = {
-		getHiddenContainer: function () {
+		getHiddenContainer() {
 			const hiddenDiv = document.createElement( 'div' );
 			hiddenDiv.setAttribute( 'id', 'wc-stripe-hidden-div' );
 			hiddenDiv.style.border = 0;
@@ -56,7 +54,7 @@ jQuery( function ( $ ) {
 			hiddenDiv.style.width = '1px';
 			return hiddenDiv;
 		},
-		getHiddenInvalidRow: function () {
+		getHiddenInvalidRow() {
 			const hiddenInvalidRow = document.createElement( 'p' );
 			hiddenInvalidRow.classList.add(
 				'form-row',
@@ -65,14 +63,14 @@ jQuery( function ( $ ) {
 			);
 			return hiddenInvalidRow;
 		},
-		appendHiddenClone: function ( container, idToClone, hiddenCloneId ) {
+		appendHiddenClone( container, idToClone, hiddenCloneId ) {
 			const hiddenInput = jQuery( idToClone )
 				.clone()
 				.prop( 'id', hiddenCloneId );
 			container.appendChild( hiddenInput.get( 0 ) );
 			return hiddenInput;
 		},
-		init: function () {
+		init() {
 			if ( ! $( ' #billing_first_name' ).length ) {
 				return;
 			}
@@ -99,7 +97,7 @@ jQuery( function ( $ ) {
 			// Remove transitions.
 			$( '#wc-stripe-hidden-input' ).css( 'transition', 'none' );
 		},
-		cleanup: function () {
+		cleanup() {
 			$( '#wc-stripe-hidden-div' ).remove();
 		},
 	};
@@ -174,8 +172,8 @@ jQuery( function ( $ ) {
 		).remove();
 		$container.prepend(
 			'<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout">' +
-			messageWrapper +
-			'</div>'
+				messageWrapper +
+				'</div>'
 		);
 		$container
 			.find( '.input-text, select, input:checkbox' )
@@ -531,7 +529,7 @@ jQuery( function ( $ ) {
 		);
 
 		// Boolean `true` means that there is nothing to confirm.
-		if ( true === confirmation ) {
+		if ( confirmation === true ) {
 			return;
 		}
 
@@ -544,6 +542,7 @@ jQuery( function ( $ ) {
 
 		// Cleanup the URL.
 		// https://stackoverflow.com/a/5298684
+		// eslint-disable-next-line no-undef
 		history.replaceState(
 			'',
 			document.title,
