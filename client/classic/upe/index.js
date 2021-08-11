@@ -7,9 +7,9 @@ import jQuery from 'jquery';
  * Internal dependencies
  */
 import './style.scss';
-import WCStripeAPI from '../api';
-import { getStripeServerData } from '../stripe-utils';
-import { getFontRulesFromPage, getAppearance } from '../upe-styles';
+import WCStripeAPI from '../../api';
+import { getStripeServerData } from '../../stripe-utils';
+import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
 
 const PAYMENT_METHOD_NAME_CARD = 'stripe';
 const PAYMENT_METHOD_NAME_UPE = 'stripe_upe';
