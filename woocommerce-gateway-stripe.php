@@ -6,9 +6,9 @@
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
  * Version: 5.3.0
- * Requires at least: 4.4
+ * Requires at least: 4.6
  * Tested up to: 5.7
- * WC requires at least: 3.0
+ * WC requires at least: 3.3
  * WC tested up to: 5.4
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
