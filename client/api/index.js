@@ -1,4 +1,4 @@
-/* global Stripe, wc_stripe_upe_params */
+/* global Stripe */
 
 /**
  * External dependencies
@@ -18,6 +18,7 @@ import {
  * Construct WC AJAX endpoint URL.
  *
  * @param {string} endpoint Request endpoint URL.
+ * @param {string} prefix Endpoint URI prefix (default: 'wc_stripe_').
  * @return {string} URL with interpolated endpoint.
  */
 const getAjaxUrl = ( endpoint, prefix = 'wc_stripe_' ) => {
@@ -88,14 +89,13 @@ export const createOrder = ( sourceEvent, paymentRequestType ) => {
  * Handles generic connections to the server and Stripe.
  */
 export default class WCStripeAPI {
-
 	/**
 	 * Prepares the API.
 	 *
 	 * @param {Object}   options Options for the initialization.
 	 * @param {Function} request A function to use for AJAX requests.
 	 */
-	constructor(options, request) {
+	constructor( options, request ) {
 		this.stripe = null;
 		this.options = options;
 		this.request = request;
@@ -107,11 +107,7 @@ export default class WCStripeAPI {
 	 * @return {Object} The Stripe Object.
 	 */
 	getStripe() {
-		const {
-			key,
-			locale,
-			isUPEEnabled,
-		} = this.options;
+		const { key, locale, isUPEEnabled } = this.options;
 
 		if ( ! this.stripe ) {
 			if ( isUPEEnabled ) {
@@ -152,32 +148,29 @@ export default class WCStripeAPI {
 	/**
 	 * Creates an intent based on a payment method.
 	 *
-	 * @param {int} orderId The id of the order if creating the intent on Order Pay page.
+	 * @param {number} orderId The id of the order if creating the intent on Order Pay page.
 	 *
 	 * @return {Promise} The final promise for the request to the server.
 	 */
 	createIntent( orderId ) {
-		return this.request(
-			getAjaxUrl( 'create_payment_intent' ),
-			{
-				stripe_order_id: orderId,
-				_ajax_nonce: getStripeServerData()?.createPaymentIntentNonce,
-			}
-		)
-		.then( ( response ) => {
-			if ( ! response.success ) {
-				throw response.data.error;
-			}
-			return response.data;
+		return this.request( getAjaxUrl( 'create_payment_intent' ), {
+			stripe_order_id: orderId,
+			_ajax_nonce: getStripeServerData()?.createPaymentIntentNonce,
 		} )
-		.catch( ( error ) => {
-			if ( error.message ) {
-				throw error;
-			} else {
-				// Covers the case of error on the Ajax request.
-				throw new Error( error.statusText );
-			}
-		} );
+			.then( ( response ) => {
+				if ( ! response.success ) {
+					throw response.data.error;
+				}
+				return response.data;
+			} )
+			.catch( ( error ) => {
+				if ( error.message ) {
+					throw error;
+				} else {
+					// Covers the case of error on the Ajax request.
+					throw new Error( error.statusText );
+				}
+			} );
 	}
 
 	/**
@@ -186,7 +179,7 @@ export default class WCStripeAPI {
 	 *
 	 * @param {string} redirectUrl The redirect URL, returned from the server.
 	 * @param {string} paymentMethodToSave The ID of a Payment Method if it should be saved (optional).
-	 * @return {mixed} A redirect URL on success, or `true` if no confirmation is needed.
+	 * @return {string|boolean} A redirect URL on success, or `true` if no confirmation is needed.
 	 */
 	confirmIntent( redirectUrl, paymentMethodToSave ) {
 		console.error( 'TODO: Not implemented yet: confirmIntent' );
@@ -202,6 +195,7 @@ export default class WCStripeAPI {
 	 */
 	saveUPEAppearance( appearance ) {
 		console.error( 'TODO: Not implemented yet: saveUPEAppearance' );
+		return null;
 	}
 
 	/**
@@ -212,15 +206,12 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise containing redirect URL for UPE element.
 	 */
 	processCheckout( paymentIntentId, fields ) {
-		return this.request(
-			getAjaxUrl( 'checkout', '' ),
-			{
-				...fields,
-				wc_payment_intent_id: paymentIntentId,
-			}
-		)
+		return this.request( getAjaxUrl( 'checkout', '' ), {
+			...fields,
+			wc_payment_intent_id: paymentIntentId,
+		} )
 			.then( ( response ) => {
-				if ( 'failure' === response.result ) {
+				if ( response.result === 'failure' ) {
 					throw new Error( response.messages );
 				}
 				return response;
@@ -229,7 +220,7 @@ export default class WCStripeAPI {
 				if ( error.message ) {
 					throw error;
 				} else {
-					// Covers the case of error on the Ajaxrequest.
+					// Covers the case of error on the Ajax request.
 					throw new Error( error.statusText );
 				}
 			} );

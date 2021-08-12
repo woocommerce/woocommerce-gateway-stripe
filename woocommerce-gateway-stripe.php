@@ -153,9 +153,14 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-apple-pay-registration.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-pre-orders-compat.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-features.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-giropay.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-eps.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-bancontact.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sofort.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-giropay.php';
@@ -270,26 +275,49 @@ function woocommerce_gateway_stripe() {
 			 * @version 4.0.0
 			 */
 			public function add_gateways( $methods ) {
-				$methods[] = 'WC_Stripe_UPE_Payment_Gateway';
-
-				if ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) {
-					$methods[] = 'WC_Stripe_Subs_Compat';
-					$methods[] = 'WC_Stripe_Sepa_Subs_Compat';
-				} else {
-					$methods[] = 'WC_Gateway_Stripe';
-					$methods[] = 'WC_Gateway_Stripe_Sepa';
+				if ( ! WC_Stripe_Features::is_upe_enabled() ) {
+					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Subs_Compat::class : WC_Gateway_Stripe::class;
+					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Sepa_Subs_Compat::class : WC_Gateway_Stripe_Sepa::class;
+					$methods[] = WC_Gateway_Stripe_Bancontact::class;
+					$methods[] = WC_Gateway_Stripe_Sofort::class;
+					$methods[] = WC_Gateway_Stripe_Giropay::class;
+					$methods[] = WC_Gateway_Stripe_Eps::class;
+					$methods[] = WC_Gateway_Stripe_Ideal::class;
+					$methods[] = WC_Gateway_Stripe_P24::class;
+					$methods[] = WC_Gateway_Stripe_Alipay::class;
+					$methods[] = WC_Gateway_Stripe_Multibanco::class;
+					return $methods;
 				}
 
-				$methods[] = 'WC_Gateway_Stripe_Bancontact';
-				$methods[] = 'WC_Gateway_Stripe_Sofort';
-				$methods[] = 'WC_Gateway_Stripe_Giropay';
-				$methods[] = 'WC_Gateway_Stripe_Eps';
-				$methods[] = 'WC_Gateway_Stripe_Ideal';
-				$methods[] = 'WC_Gateway_Stripe_P24';
-				$methods[] = 'WC_Gateway_Stripe_Alipay';
-				$methods[] = 'WC_Gateway_Stripe_Multibanco';
+				if ( $this->is_upe_enabled() ) {
+					$methods[] = WC_Stripe_UPE_Payment_Gateway::class;
+				} else {
+					// These payment gateways will be hidden when UPE is enabled:
+					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Subs_Compat::class : WC_Gateway_Stripe::class;
+					$methods[] = WC_Gateway_Stripe_Giropay::class;
+					$methods[] = WC_Gateway_Stripe_Ideal::class;
+					$methods[] = WC_Gateway_Stripe_Bancontact::class;
+					$methods[] = WC_Gateway_Stripe_Eps::class;
+				}
+
+				// These payment gateways will always be visible, regardless if UPE is enabled or disabled:
+				$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Sepa_Subs_Compat::class : WC_Gateway_Stripe_Sepa::class;
+				$methods[] = WC_Gateway_Stripe_Sofort::class;
+				$methods[] = WC_Gateway_Stripe_P24::class;
+				$methods[] = WC_Gateway_Stripe_Alipay::class;
+				$methods[] = WC_Gateway_Stripe_Multibanco::class;
 
 				return $methods;
+			}
+
+			/**
+			 * Check if UPE is enabled.
+			 *
+			 * @return bool True if UPE is enabled, false if it is not.
+			 */
+			public function is_upe_enabled() {
+				$stripe_settings = get_option( 'woocommerce_stripe_settings', null );
+				return ! empty( $stripe_settings['upe_checkout_experience_enabled'] ) && 'yes' === $stripe_settings['upe_checkout_experience_enabled'];
 			}
 
 			/**
@@ -338,11 +366,106 @@ function woocommerce_gateway_stripe() {
 			 */
 			public function gateway_settings_update( $settings, $old_settings ) {
 				if ( false === $old_settings ) {
-					$gateway  = new WC_Gateway_Stripe();
-					$fields   = $gateway->get_form_fields();
-					$defaults = array_merge( array_fill_keys( array_keys( $fields ), '' ), wp_list_pluck( $fields, 'default' ) );
-					return array_merge( $defaults, $settings );
+					$gateway      = new WC_Gateway_Stripe();
+					$fields       = $gateway->get_form_fields();
+					$old_settings = array_merge( array_fill_keys( array_keys( $fields ), '' ), wp_list_pluck( $fields, 'default' ) );
+					$settings     = array_merge( $old_settings, $settings );
 				}
+
+				return $this->toggle_upe( $settings, $old_settings );
+			}
+
+			/**
+			 * Enable or disable UPE.
+			 *
+			 * When enabling UPE: For each currently enabled Stripe LPM, the corresponding UPE method is enabled.
+			 *
+			 * When disabling UPE: For each currently enabled UPE method, the corresponding LPM is enabled.
+			 *
+			 * @param array      $settings New settings to save.
+			 * @param array|bool $old_settings Existing settings, if any.
+			 * @return array New value but with defaults initially filled in for missing settings.
+			 */
+			protected function toggle_upe( $settings, $old_settings ) {
+				if ( false === $old_settings ) {
+					$old_settings = [ 'upe_checkout_experience_enabled' => 'no' ];
+				}
+				if ( ! isset( $settings['upe_checkout_experience_enabled'] ) || $settings['upe_checkout_experience_enabled'] === $old_settings['upe_checkout_experience_enabled'] ) {
+					return $settings;
+				}
+
+				if ( 'no' === $old_settings['upe_checkout_experience_enabled'] && 'yes' === $settings['upe_checkout_experience_enabled'] ) {
+					return $this->enable_upe( $settings );
+				}
+
+				return $this->disable_upe( $settings );
+			}
+
+			protected function enable_upe( $settings ) {
+				$payment_gateways = WC()->payment_gateways->payment_gateways();
+				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
+					$lpm_gateway_id = constant( $method_class::LPM_GATEWAY_CLASS . '::ID' );
+					if ( isset( $payment_gateways[ $lpm_gateway_id ] ) && 'yes' === $payment_gateways[ $lpm_gateway_id ]->enabled ) {
+						// DISABLE LPM
+						if ( 'stripe' !== $lpm_gateway_id ) {
+							/**
+							 * TODO: This can be replaced with:
+							 *
+							 *   $payment_gateways[ $lpm_gateway_id ]->update_option( 'enabled', 'no' );
+							 *   $payment_gateways[ $lpm_gateway_id ]->enabled = 'no';
+							 *
+							 * ...once the minimum WC version is 3.4.0.
+							 */
+							$payment_gateways[ $lpm_gateway_id ]->settings['enabled'] = 'no';
+							update_option(
+								$payment_gateways[ $lpm_gateway_id ]->get_option_key(),
+								apply_filters( 'woocommerce_settings_api_sanitized_fields_' . $payment_gateways[ $lpm_gateway_id ]::ID, $payment_gateways[ $lpm_gateway_id ]->settings ),
+								'yes'
+							);
+						}
+						// ENABLE UPE METHOD
+						if ( ! isset( $settings['upe_checkout_experience_accepted_payments'] ) ) {
+							$settings['upe_checkout_experience_accepted_payments'] = [];
+						}
+						$settings['upe_checkout_experience_accepted_payments'][] = $method_class::STRIPE_ID;
+					}
+				}
+				if ( empty( $settings['upe_checkout_experience_accepted_payments'] ) ) {
+					$settings['upe_checkout_experience_accepted_payments'] = [ 'card' ];
+				} else {
+					// The 'stripe' gateway must be enabled for UPE if any LPMs were enabled.
+					$settings['enabled'] = 'yes';
+				}
+
+				return $settings;
+			}
+
+			protected function disable_upe( $settings ) {
+				$upe_gateway            = new WC_Stripe_UPE_Payment_Gateway();
+				$upe_enabled_method_ids = $upe_gateway->get_upe_enabled_payment_method_ids();
+				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
+					if ( ! defined( "$method_class::LPM_GATEWAY_CLASS" ) || ! in_array( $method_class::STRIPE_ID, $upe_enabled_method_ids, true ) ) {
+						continue;
+					}
+					// ENABLE LPM
+					$gateway_class = $method_class::LPM_GATEWAY_CLASS;
+					$gateway       = new $gateway_class();
+					/**
+					 * TODO: This can be replaced with:
+					 *
+					 *   $gateway->update_option( 'enabled', 'yes' );
+					 *
+					 * ...once the minimum WC version is 3.4.0.
+					 */
+					$gateway->settings['enabled'] = 'yes';
+					update_option( $gateway->get_option_key(), apply_filters( 'woocommerce_settings_api_sanitized_fields_' . $gateway::ID, $gateway->settings ), 'yes' );
+				}
+				// Disable main Stripe/card LPM if 'card' UPE method wasn't enabled.
+				if ( ! in_array( 'card', $upe_enabled_method_ids, true ) ) {
+					$settings['enabled'] = 'no';
+				}
+				// DISABLE ALL UPE METHODS
+				$settings['upe_checkout_experience_accepted_payments'] = [];
 				return $settings;
 			}
 

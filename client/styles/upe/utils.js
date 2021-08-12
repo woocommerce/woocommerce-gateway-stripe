@@ -29,7 +29,7 @@ export const generateHoverColors = ( backgroundColor, color ) => {
 
 	// Darken if brightness > 50 (Storefront Button 51 ), else lighten
 	const newBackgroundColor =
-		50 < tinyBackgroundColor.getBrightness()
+		tinyBackgroundColor.getBrightness() > 50
 			? tinycolor( tinyBackgroundColor ).darken( 7 )
 			: tinycolor( tinyBackgroundColor ).lighten( 7 );
 
@@ -53,8 +53,6 @@ export const generateHoverColors = ( backgroundColor, color ) => {
  * @return {Object} Object with generated hover rules.
  */
 export const generateHoverRules = ( baseRules ) => {
-	const hoverRules = Object.assign( {}, baseRules );
-
 	// If there are no colors, return the same rules as we can not generate hover colors.
 	if ( ! baseRules.backgroundColor || ! baseRules.color ) {
 		return baseRules;
@@ -64,6 +62,8 @@ export const generateHoverRules = ( baseRules ) => {
 		baseRules.backgroundColor,
 		baseRules.color
 	);
+
+	const hoverRules = Object.assign( {}, baseRules );
 
 	hoverRules.backgroundColor = hoverColors.backgroundColor;
 	hoverRules.color = hoverColors.color;

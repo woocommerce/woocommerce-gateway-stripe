@@ -7,16 +7,13 @@ import jQuery from 'jquery';
  * Internal dependencies
  */
 import './style.scss';
-import WCStripeAPI from '../api';
-import { getStripeServerData } from "../stripe-utils";
-import { getFontRulesFromPage, getAppearance } from '../upe-styles';
+import WCStripeAPI from '../../api';
+import { getStripeServerData } from '../../stripe-utils';
+import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
 
 const PAYMENT_METHOD_NAME_CARD = 'stripe';
-const PAYMENT_METHOD_NAME_UPE = 'stripe_upe';
 
 jQuery( function ( $ ) {
-	// enqueueFraudScripts( getStripeServerData()?.fraudServices );
-
 	const key = getStripeServerData()?.key;
 	const isUPEEnabled = getStripeServerData()?.isUPEEnabled;
 	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
@@ -43,9 +40,9 @@ jQuery( function ( $ ) {
 
 	// Object to add hidden elements to compute focus and invalid states for UPE.
 	const hiddenElementsForUPE = {
-		getHiddenContainer: function () {
+		getHiddenContainer() {
 			const hiddenDiv = document.createElement( 'div' );
-			hiddenDiv.setAttribute( 'id', 'wc-stripe_upe-hidden-div' );
+			hiddenDiv.setAttribute( 'id', 'wc-stripe-hidden-div' );
 			hiddenDiv.style.border = 0;
 			hiddenDiv.style.clip = 'rect(0 0 0 0)';
 			hiddenDiv.style.height = '1px';
@@ -56,7 +53,7 @@ jQuery( function ( $ ) {
 			hiddenDiv.style.width = '1px';
 			return hiddenDiv;
 		},
-		getHiddenInvalidRow: function () {
+		getHiddenInvalidRow() {
 			const hiddenInvalidRow = document.createElement( 'p' );
 			hiddenInvalidRow.classList.add(
 				'form-row',
@@ -65,14 +62,14 @@ jQuery( function ( $ ) {
 			);
 			return hiddenInvalidRow;
 		},
-		appendHiddenClone: function ( container, idToClone, hiddenCloneId ) {
+		appendHiddenClone( container, idToClone, hiddenCloneId ) {
 			const hiddenInput = jQuery( idToClone )
 				.clone()
 				.prop( 'id', hiddenCloneId );
 			container.appendChild( hiddenInput.get( 0 ) );
 			return hiddenInput;
 		},
-		init: function () {
+		init() {
 			if ( ! $( ' #billing_first_name' ).length ) {
 				return;
 			}
@@ -83,24 +80,24 @@ jQuery( function ( $ ) {
 			this.appendHiddenClone(
 				hiddenDiv,
 				'#billing_first_name',
-				'wc-stripe_upe-hidden-input'
+				'wc-stripe-hidden-input'
 			);
-			$( '#wc-stripe_upe-hidden-input' ).trigger( 'focus' );
+			$( '#wc-stripe-hidden-input' ).trigger( 'focus' );
 
 			// Hidden invalid element.
 			const hiddenInvalidRow = this.getHiddenInvalidRow();
 			this.appendHiddenClone(
 				hiddenInvalidRow,
 				'#billing_first_name',
-				'wc-stripe_upe-hidden-invalid-input'
+				'wc-stripe-hidden-invalid-input'
 			);
 			hiddenDiv.appendChild( hiddenInvalidRow );
 
 			// Remove transitions.
-			$( '#wc-stripe_upe-hidden-input' ).css( 'transition', 'none' );
+			$( '#wc-stripe-hidden-input' ).css( 'transition', 'none' );
 		},
-		cleanup: function () {
-			$( '#wc-stripe_upe-hidden-div' ).remove();
+		cleanup() {
+			$( '#wc-stripe-hidden-div' ).remove();
 		},
 	};
 
@@ -174,8 +171,8 @@ jQuery( function ( $ ) {
 		).remove();
 		$container.prepend(
 			'<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout">' +
-			messageWrapper +
-			'</div>'
+				messageWrapper +
+				'</div>'
 		);
 		$container
 			.find( '.input-text, select, input:checkbox' )
@@ -197,10 +194,7 @@ jQuery( function ( $ ) {
 			$( '.woocommerce-SavedPaymentMethods-saveNew' ).show();
 		} else {
 			$( '.woocommerce-SavedPaymentMethods-saveNew' ).hide();
-			$( 'input#wc-stripe_upe-new-payment-method' ).prop(
-				'checked',
-				false
-			);
+			$( 'input#wc-stripe-new-payment-method' ).prop( 'checked', false );
 		}
 	};
 
@@ -399,7 +393,7 @@ jQuery( function ( $ ) {
 
 		try {
 			const isSavingPaymentMethod = $(
-				'#wc-stripe_upe-new-payment-method'
+				'#wc-stripe-new-payment-method'
 			).is( ':checked' );
 			const savePaymentMethod = isSavingPaymentMethod ? 'yes' : 'no';
 
@@ -520,18 +514,18 @@ jQuery( function ( $ ) {
 	 * Displays the authentication modal to the user if needed.
 	 */
 	const maybeShowAuthenticationModal = () => {
-		const paymentMethodId = $( '#wc-stripe_upe-payment-method' ).val();
+		const paymentMethodId = $( '#wc-stripe-payment-method' ).val();
 
-		const savePaymentMethod = $(
-			'#wc-stripe_upe-new-payment-method'
-		).is( ':checked' );
+		const savePaymentMethod = $( '#wc-stripe-new-payment-method' ).is(
+			':checked'
+		);
 		const confirmation = api.confirmIntent(
 			window.location.href,
 			savePaymentMethod ? paymentMethodId : null
 		);
 
 		// Boolean `true` means that there is nothing to confirm.
-		if ( true === confirmation ) {
+		if ( confirmation === true ) {
 			return;
 		}
 
@@ -544,6 +538,7 @@ jQuery( function ( $ ) {
 
 		// Cleanup the URL.
 		// https://stackoverflow.com/a/5298684
+		// eslint-disable-next-line no-undef
 		history.replaceState(
 			'',
 			document.title,
@@ -578,16 +573,13 @@ jQuery( function ( $ ) {
 	 */
 	function isUsingSavedPaymentMethod() {
 		return (
-			$( '#wc-stripe_upe-payment-token-new' ).length &&
-			! $( '#wc-stripe_upe-payment-token-new' ).is( ':checked' )
+			$( '#wc-stripe-payment-token-new' ).length &&
+			! $( '#wc-stripe-payment-token-new' ).is( ':checked' )
 		);
 	}
 
 	// Handle the checkout form when WooCommerce Payments is chosen.
-	const wcStripePaymentMethods = [
-		PAYMENT_METHOD_NAME_CARD,
-		PAYMENT_METHOD_NAME_UPE,
-	];
+	const wcStripePaymentMethods = [ PAYMENT_METHOD_NAME_CARD ];
 	const checkoutEvents = wcStripePaymentMethods
 		.map( ( method ) => `checkout_place_order_${ method }` )
 		.join( ' ' );
@@ -602,7 +594,7 @@ jQuery( function ( $ ) {
 
 	// Handle the add payment method form for WooCommerce Payments.
 	$( 'form#add_payment_method' ).on( 'submit', function () {
-		if ( ! $( '#wc-stripe_upe-setup-intent' ).val() ) {
+		if ( ! $( '#wc-stripe-setup-intent' ).val() ) {
 			if ( isUPEEnabled && paymentIntentId ) {
 				handleUPEAddPayment( $( this ) );
 				return false;
