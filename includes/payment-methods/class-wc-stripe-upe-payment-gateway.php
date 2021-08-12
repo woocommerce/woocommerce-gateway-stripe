@@ -363,7 +363,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( $payment_intent_id ) {
 			if ( $payment_needed ) {
 				$request = [
-					'amount'   => $converted_amount * 2,
+					'amount'   => $converted_amount,
 					'currency' => $currency,
 				];
 

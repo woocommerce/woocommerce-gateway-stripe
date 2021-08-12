@@ -299,12 +299,14 @@ class WC_Stripe_Intent_Controller {
 			$amount = $order->get_total();
 		}
 
+		$gateway = new WC_Stripe_UPE_Payment_Gateway();
+
 		$currency       = get_woocommerce_currency();
 		$payment_intent = WC_Stripe_API::request(
 			[
 				'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
 				'currency'             => strtolower( $currency ),
-				'payment_method_types' => [ 'card' ],
+				'payment_method_types' => $gateway->get_upe_enabled_payment_method_ids(),
 			],
 			'payment_intents'
 		);
