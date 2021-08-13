@@ -318,7 +318,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				home_url() . \WC_Ajax::get_endpoint( 'wc_stripe_verify_intent' )
 			);
 
-			if ( isset( $payment_details['save_payment_method'] ) && ! empty( $payment_details['save_payment_method'] ) ) {
+			if ( ! empty( $payment_details['save_payment_method'] ) ) {
 				$verification_endpoint = add_query_arg(
 					[ 'save_payment_method' => true ],
 					$verification_endpoint
