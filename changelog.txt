@@ -3,6 +3,7 @@
 = 5.x.x - 2021-xx-xx =
 * Fix - Do not ask for a Shipping Address if no Shipping Zone is defined.
 * Fix - Return HTTP 204 when webhook validation fails so Stripe won't stop sending certain webhook events after too many failed validations.
+* Fix - Save payment method during 3D Secure flow for Block-based checkout.
 * Fix - Possible use of an undefined variable `prepared_source`.
 * Add - 'wc_stripe_allowed_payment_processing_statuses' filter to customize order statuses that allow payment processing in the context of 3DS payments.
 
