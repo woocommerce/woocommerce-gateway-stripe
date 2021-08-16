@@ -407,6 +407,82 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Processes UPE redirect payments.
+	 *
+	 * @param int    $order_id The order ID being processed.
+	 * @param string $intent_id The Stripe setup/payment intent ID for the order payment.
+	 * @param bool   $save_payment_method Boolean representing whether payment method for order should be saved.
+	 *
+	 * @since x.x.x
+	 * @version x.x.x
+	 */
+	public function process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method ) {
+		$order = wc_get_order( $order_id );
+
+		if ( ! is_object( $order ) ) {
+			return;
+		}
+
+		if ( $order->has_status( [ 'processing', 'completed', 'on-hold' ] ) ) {
+			return;
+		}
+
+		WC_Stripe_Logger::log( "Begin processing UPE redirect payment for order $order_id for the amount of {$order->get_total()}" );
+
+		try {
+			// Get user/customer for order.
+			$customer_id = $this->get_stripe_customer_id( $order );
+
+			$payment_needed = 0 < $order->get_total();
+
+			// Get payment intent to confirm status.
+			if ( $payment_needed ) {
+				$intent                 = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=payment_method' ); //$this->payments_api_client->get_intent( $intent_id );
+				$charge                 = 0 < $intent->charges->total_count ? end( $intent->charges->data ) : null;
+				$payment_method_details = (array) $charge->payment_method_details;
+				$payment_method_type    = $payment_method_details['type'];
+				$error                  = $intent->last_payment_error;
+			} else {
+				$intent                 = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id ); // $this->payments_api_client->get_setup_intent( $intent_id );
+				$payment_method_details = false;
+				$payment_method_options = array_keys( $intent->payment_method_options );
+				$payment_method_type    = $payment_method_options[0];
+				$error                  = $intent->last_setup_error;
+			}
+
+			if ( ! empty( $error ) ) {
+				WC_Stripe_Logger::log( 'Error when processing payment: ' . $error['message'] );
+				throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			if ( ! isset( $this->payment_methods[ $payment_method_type ] ) ) {
+				return;
+			}
+			$payment_method = $this->payment_methods[ $payment_method_type ];
+
+			// TODO: save the payment method
+			// if ( $save_payment_method && $payment_method->is_reusable() ) {
+			//     See: https://github.com/Automattic/woocommerce-payments/blob/b69532e92a381cf054f515896c56cc365e3904d4/includes/payment-methods/class-upe-payment-gateway.php#L493
+			// }
+
+			$intent->captured = 'yes'; // TODO: this is to re-use the parent logic, maybe re-implement it to not use charges?, see: https://github.com/Automattic/woocommerce-payments/blob/b69532e92a381cf054f515896c56cc365e3904d4/includes/class-wc-payment-gateway-wcpay.php#L1125
+			$this->process_response( $intent, $order );
+
+			$this->set_payment_method_title_for_order( $order, $payment_method_type, $payment_method_details );
+
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+			/* translators: localized exception message */
+			$order->update_status( 'failed', sprintf( __( 'UPE payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+
+			wc_add_notice( $e->getMessage(), 'error' );
+			wp_safe_redirect( wc_get_checkout_url() );
+			exit;
+		}
+	}
+
+	/**
 	 * Function to be used with array_filter
 	 * to filter UPE payment methods supported with current checkout
 	 *
@@ -448,6 +524,28 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function is_saved_cards_enabled() {
 		return 'yes' === $this->get_option( 'saved_cards' );
+	}
+
+	/**
+	 * Set formatted readable payment method title for order,
+	 * using payment method details from accompanying charge.
+	 *
+	 * @param WC_Order   $order WC Order being processed.
+	 * @param string     $payment_method_type Stripe payment method key.
+	 * @param array|bool $payment_method_details Array of payment method details from charge or false.
+	 *
+	 * @since x.x.x
+	 * @version x.x.x
+	 */
+	public function set_payment_method_title_for_order( $order, $payment_method_type, $payment_method_details ) {
+		if ( ! isset( $this->payment_methods[ $payment_method_type ] ) ) {
+			return;
+		}
+
+		$payment_method_title = $this->payment_methods[ $payment_method_type ]->get_title( $payment_method_details );
+
+		$order->set_payment_method_title( $payment_method_title );
+		$order->save();
 	}
 
 	/**
