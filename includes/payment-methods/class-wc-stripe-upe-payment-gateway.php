@@ -437,13 +437,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			// Get payment intent to confirm status.
 			if ( $payment_needed ) {
-				$intent                 = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=payment_method' ); //$this->payments_api_client->get_intent( $intent_id );
+				$intent                 = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
 				$charge                 = 0 < $intent->charges->total_count ? end( $intent->charges->data ) : null;
 				$payment_method_details = (array) $charge->payment_method_details;
 				$payment_method_type    = $payment_method_details['type'];
 				$error                  = $intent->last_payment_error;
 			} else {
-				$intent                 = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id ); // $this->payments_api_client->get_setup_intent( $intent_id );
+				$intent                 = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id );
 				$payment_method_details = false;
 				$payment_method_options = array_keys( $intent->payment_method_options );
 				$payment_method_type    = $payment_method_options[0];
