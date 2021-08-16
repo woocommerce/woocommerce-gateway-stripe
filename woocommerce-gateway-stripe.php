@@ -328,7 +328,9 @@ function woocommerce_gateway_stripe() {
 			 */
 			public function filter_gateway_order_admin( $sections ) {
 				unset( $sections['stripe'] );
-				unset( $sections['stripe_upe'] );
+				if ( WC_Stripe_Features::is_upe_enabled() ) {
+					unset( $sections['stripe_upe'] );
+				}
 				unset( $sections['stripe_bancontact'] );
 				unset( $sections['stripe_sofort'] );
 				unset( $sections['stripe_giropay'] );
@@ -339,8 +341,10 @@ function woocommerce_gateway_stripe() {
 				unset( $sections['stripe_sepa'] );
 				unset( $sections['stripe_multibanco'] );
 
-				$sections['stripe']            = 'Stripe';
-				$sections['stripe_upe']        = 'Stripe checkout experience';
+				$sections['stripe'] = 'Stripe';
+				if ( WC_Stripe_Features::is_upe_enabled() ) {
+					$sections['stripe_upe'] = 'Stripe checkout experience';
+				}
 				$sections['stripe_bancontact'] = __( 'Stripe Bancontact', 'woocommerce-gateway-stripe' );
 				$sections['stripe_sofort']     = __( 'Stripe SOFORT', 'woocommerce-gateway-stripe' );
 				$sections['stripe_giropay']    = __( 'Stripe Giropay', 'woocommerce-gateway-stripe' );
@@ -370,6 +374,10 @@ function woocommerce_gateway_stripe() {
 					$fields       = $gateway->get_form_fields();
 					$old_settings = array_merge( array_fill_keys( array_keys( $fields ), '' ), wp_list_pluck( $fields, 'default' ) );
 					$settings     = array_merge( $old_settings, $settings );
+				}
+
+				if ( ! WC_Stripe_Features::is_upe_enabled() ) {
+					return $settings;
 				}
 
 				return $this->toggle_upe( $settings, $old_settings );
