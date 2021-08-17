@@ -7,7 +7,7 @@
 * Fix - Possible use of an undefined variable `prepared_source`.
 * Add - 'wc_stripe_allowed_payment_processing_statuses' filter to customize order statuses that allow payment processing in the context of 3DS payments.
 * Add - Settings to control Payment Request Button locations in the Stripe plugin settings. Persists changes made through pre-existing filters, or defaults to the Cart and Product pages if no filters are in use.
-* Tweak - Removed the 'wc_stripe_hide_payment_request_on_product_page', 'wc_stripe_show_payment_request_on_checkout', and 'wc_stripe_show_payment_request_on_cart' filters in favor of the UI-driven approach in the plugin settings.
+* Tweak - Deprecated the 'wc_stripe_hide_payment_request_on_product_page', 'wc_stripe_show_payment_request_on_checkout', and 'wc_stripe_show_payment_request_on_cart' filters in favor of the UI-driven approach in the plugin settings.
 
 = 5.3.0 - 2021-07-21 =
 * Fix - Disable Payment Request Buttons when order has to be split into multiple packages because Payment Requests do not support that use case.
