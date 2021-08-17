@@ -50,6 +50,42 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		}
 	}
 
+	public function test_currency_notice_is_shown_for_upe_methods() {
+		add_filter(
+			'pre_option__wcstripe_feature_upe',
+			function() {
+				return '1';
+			}
+		);
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'enabled'                         => 'yes',
+				'testmode'                        => 'no',
+				'publishable_key'                 => 'pk_live_valid_test_key',
+				'secret_key'                      => 'sk_live_valid_test_key',
+				'upe_checkout_experience_enabled' => 'yes',
+				'upe_checkout_experience_accepted_payments' => [
+					'giropay',
+					'bancontact',
+					'eps',
+				],
+			]
+		);
+		update_option( 'wc_stripe_show_style_notice', 'no' );
+		update_option( 'home', 'https://...' );
+		update_option( 'wc_stripe_show_sca_notice', 'no' );
+		$notices = new WC_Stripe_Admin_Notices();
+		ob_start();
+		$notices->admin_notices();
+		ob_end_clean();
+		$this->assertCount( 3, $notices->notices );
+		$this->assertArrayHasKey( 'giropay_upe', $notices->notices );
+		$this->assertArrayHasKey( 'bancontact_upe', $notices->notices );
+		$this->assertArrayHasKey( 'eps_upe', $notices->notices );
+	}
+
 	public function options_to_notices_map() {
 		return [
 			[

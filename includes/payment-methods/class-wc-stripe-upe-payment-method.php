@@ -44,12 +44,29 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	protected $token_service;
 
 	/**
+	 * Array of currencies supported by this UPE method
+	 *
+	 * @var array
+	 */
+	protected $supported_currencies;
+
+	/**
+	 * Wether this UPE method is enabled
+	 *
+	 * @var bool
+	 */
+	protected $enabled;
+
+	/**
 	 * Create instance of payment method
 	 *
 	 * @param WC_Payments_Token_Service $token_service Instance of WC_Payments_Token_Service.
 	 */
 	public function __construct( $token_service ) {
-		//      $this->token_service = $token_service;
+		$main_settings       = get_option( 'woocommerce_stripe_settings' );
+		$enabled_upe_methods = $main_settings['upe_checkout_experience_accepted_payments'];
+		$this->enabled       = in_array( static::STRIPE_ID, $enabled_upe_methods );
+		// $this->token_service = $token_service;
 	}
 
 	/**
@@ -59,6 +76,15 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 */
 	public function get_id() {
 		return $this->stripe_id;
+	}
+
+	/**
+	 * Returns true if the UPE method is enabled.
+	 *
+	 * @return bool
+	 */
+	public function is_enabled() {
+		return $this->enabled;
 	}
 
 	/**
@@ -118,5 +144,17 @@ abstract class WC_Stripe_UPE_Payment_Method {
 			return WC_Subscriptions_Cart::cart_contains_subscription() || 0 < count( wcs_get_order_type_cart_items( 'renewal' ) );
 		}
 		return false;
+	}
+
+	/**
+	 * Returns the currencies this UPE method supports.
+	 *
+	 * @return array|null
+	 */
+	public function get_supported_currencies() {
+		return apply_filters(
+			'wc_stripe_' . static::STRIPE_ID . '_upe_supported_currencies',
+			$this->supported_currencies
+		);
 	}
 }
