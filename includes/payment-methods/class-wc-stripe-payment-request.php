@@ -1779,17 +1779,17 @@ class WC_Stripe_Payment_Request {
 
 	public function get_button_locations() {
 		// If the locations have not been set return the default setting.
-		if ( ! isset( $this->stripe_settings['payment_request_locations'] ) ) {
+		if ( ! isset( $this->stripe_settings['payment_request_button_locations'] ) ) {
 			return [ 'product', 'cart' ];
 		}
 
 		// If all locations are removed through the settings UI the location config will be set to
 		// an empty string "". If that's the case (and if the settings are not an array for any
 		// other reason) we should return an empty array.
-		if ( ! is_array( $this->stripe_settings['payment_request_locations'] ) ) {
+		if ( ! is_array( $this->stripe_settings['payment_request_button_locations'] ) ) {
 			return [];
 		}
 
-		return $this->stripe_settings['payment_request_locations'];
+		return $this->stripe_settings['payment_request_button_locations'];
 	}
 }
