@@ -307,6 +307,25 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 					'wc_stripe_show_sca_notice'   => 'no',
 				],
 			],
+			[
+				[
+					'woocommerce_stripe_settings'         => [
+						'enabled'         => 'yes',
+						'testmode'        => 'no',
+						'publishable_key' => 'pk_live_valid_test_key',
+						'secret_key'      => 'sk_live_valid_test_key',
+					],
+					'wc_stripe_show_style_notice'         => 'no',
+					'home'                                => 'https://...',
+					'wc_stripe_show_sca_notice'           => 'no',
+					'woocommerce_stripe_giropay_settings' => [
+						'enabled' => 'yes',
+					],
+				],
+				[
+					'Giropay',
+				],
+			],
 		];
 	}
 }
