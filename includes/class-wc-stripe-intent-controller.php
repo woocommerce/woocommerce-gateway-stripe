@@ -295,7 +295,7 @@ class WC_Stripe_Intent_Controller {
 	public function create_payment_intent( $order_id = null ) {
 		$amount = WC()->cart->get_total( false );
 		$order  = wc_get_order( $order_id );
-		if ( is_a( $order, 'WC_Order' ) ) {
+		if ( method_exists( $order, 'get_total' ) ) {
 			$amount = $order->get_total();
 		}
 
