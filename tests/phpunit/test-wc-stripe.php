@@ -115,7 +115,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 
 	public function test_legacy_payment_methods_supported_by_upe_are_not_loaded_when_upe_is_enabled() {
 		$this->enableUpeFeatureFlag();
-		$this->assertTrue( WC_Stripe_Features::is_upe_enabled() );
+		$this->assertTrue( WC_Stripe_Feature_Flags::is_upe_enabled() );
 
 		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
 		$this->reloadPaymentGateways();

@@ -199,7 +199,7 @@ $stripe_settings = apply_filters(
 	]
 );
 
-if ( WC_Stripe_Features::is_upe_enabled() ) {
+if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
 	$upe_settings = [
 		'upe_checkout_experience'         => [
 			'title' => __( 'Checkout experience', 'woocommerce-gateway-stripe' ),

@@ -153,7 +153,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-apple-pay-registration.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-pre-orders-compat.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php';
-				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-features.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-feature-flags.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
@@ -275,7 +275,7 @@ function woocommerce_gateway_stripe() {
 			 * @version 4.0.0
 			 */
 			public function add_gateways( $methods ) {
-				if ( ! WC_Stripe_Features::is_upe_enabled() ) {
+				if ( ! WC_Stripe_Feature_Flags::is_upe_enabled() ) {
 					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Subs_Compat::class : WC_Gateway_Stripe::class;
 					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Sepa_Subs_Compat::class : WC_Gateway_Stripe_Sepa::class;
 					$methods[] = WC_Gateway_Stripe_Bancontact::class;
@@ -328,7 +328,7 @@ function woocommerce_gateway_stripe() {
 			 */
 			public function filter_gateway_order_admin( $sections ) {
 				unset( $sections['stripe'] );
-				if ( WC_Stripe_Features::is_upe_enabled() ) {
+				if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
 					unset( $sections['stripe_upe'] );
 				}
 				unset( $sections['stripe_bancontact'] );
@@ -342,7 +342,7 @@ function woocommerce_gateway_stripe() {
 				unset( $sections['stripe_multibanco'] );
 
 				$sections['stripe'] = 'Stripe';
-				if ( WC_Stripe_Features::is_upe_enabled() ) {
+				if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
 					$sections['stripe_upe'] = 'Stripe checkout experience';
 				}
 				$sections['stripe_bancontact'] = __( 'Stripe Bancontact', 'woocommerce-gateway-stripe' );
@@ -376,7 +376,7 @@ function woocommerce_gateway_stripe() {
 					$settings     = array_merge( $old_settings, $settings );
 				}
 
-				if ( ! WC_Stripe_Features::is_upe_enabled() ) {
+				if ( ! WC_Stripe_Feature_Flags::is_upe_enabled() ) {
 					return $settings;
 				}
 
