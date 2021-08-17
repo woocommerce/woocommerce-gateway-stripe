@@ -11,8 +11,6 @@ defined( 'ABSPATH' ) || exit;
  * REST controller for UPE feature flag.
  */
 class WC_REST_UPE_Flag_Toggle_Controller extends WP_REST_Controller {
-	const UPE_FLAG_NAME = '_wcpay_feature_upe';
-
 	/**
 	 * Endpoint namespace.
 	 *
@@ -70,10 +68,12 @@ class WC_REST_UPE_Flag_Toggle_Controller extends WP_REST_Controller {
 	 *
 	 * @return WP_REST_Response
 	 */
-	public function get_flag(): WP_REST_Response {
+	public function get_flag() {
+		$settings = get_option( 'woocommerce_stripe_settings' );
+
 		return new WP_REST_Response(
 			[
-				'is_upe_enabled' =>  '1' === get_option( self::UPE_FLAG_NAME, '0' )
+				'is_upe_enabled' => empty( $settings['upe_checkout_experience_enabled'] ) ? 'no' : $settings['upe_checkout_experience_enabled'],
 			]
 		);
 	}
@@ -88,13 +88,16 @@ class WC_REST_UPE_Flag_Toggle_Controller extends WP_REST_Controller {
 			return new WP_REST_Response( [ 'result' => 'bad_request' ], 400 );
 		}
 
+		$settings       = get_option( 'woocommerce_stripe_settings' );
 		$is_upe_enabled = $request->get_param( 'is_upe_enabled' );
 
 		if ( $is_upe_enabled ) {
-			update_option( self::UPE_FLAG_NAME, '1' );
+			$settings['upe_checkout_experience_enabled'] = 'yes';
 		} else {
-			update_option( self::UPE_FLAG_NAME, '0' );
+			$settings['upe_checkout_experience_enabled'] = 'no';
 		}
+
+		update_option( 'woocommerce_stripe_settings', $settings );
 
 		return new WP_REST_Response( [ 'result' => 'success' ], 200 );
 	}
