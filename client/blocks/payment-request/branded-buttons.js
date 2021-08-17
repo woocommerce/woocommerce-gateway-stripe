@@ -6,7 +6,7 @@ import { useState, useEffect } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import { getStripeServerData } from '../stripe-utils';
+import { getStripeServerData } from '../../stripe-utils';
 
 export const shouldUseGooglePayBrand = () => {
 	const ua = window.navigator.userAgent.toLowerCase();

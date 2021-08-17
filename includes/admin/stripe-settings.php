@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-return apply_filters(
+$stripe_settings = apply_filters(
 	'wc_stripe_settings',
 	[
 		'enabled'                             => [
@@ -197,4 +197,34 @@ return apply_filters(
 			'desc_tip'    => true,
 		],
 	]
+);
+
+if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
+	$upe_settings = [
+		'upe_checkout_experience'         => [
+			'title' => __( 'Checkout experience', 'woocommerce-gateway-stripe' ),
+			'type'  => 'title',
+		],
+		'upe_checkout_experience_enabled' => [
+			'title'       => __( 'Enable/Disable', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Enable new checkout experience', 'woocommerce-gateway-stripe' ),
+			'type'        => 'checkbox',
+			'description' => __( 'If enabled, users will... TBD', 'woocommerce-gateway-stripe' ),
+			'default'     => 'no',
+			'desc_tip'    => true,
+		],
+	];
+	if ( WC_Stripe::get_instance()->is_upe_enabled() ) {
+		$upe_settings['upe_checkout_experience_accepted_payments'] = [
+			'type'    => 'upe_checkout_experience_accepted_payments',
+			'default' => [ 'card' ],
+		];
+	}
+	// Insert UPE options below the 'description' setting.
+	$stripe_settings = array_merge( array_splice( $stripe_settings, 0, array_search( 'description', array_keys( $stripe_settings ), true ) + 1 ), $upe_settings, $stripe_settings );
+}
+
+return apply_filters(
+	'wc_stripe_settings',
+	$stripe_settings
 );

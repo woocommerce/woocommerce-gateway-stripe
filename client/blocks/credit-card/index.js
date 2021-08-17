@@ -7,7 +7,7 @@ import { useEffect, useState } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import { getStripeServerData, loadStripe } from '../stripe-utils';
+import { getStripeServerData, loadStripe } from '../../stripe-utils';
 import { StripeCreditCard, getStripeCreditCardIcons } from './payment-method';
 import { ThreeDSecurePaymentHandler } from '../three-d-secure';
 import { PAYMENT_METHOD_NAME } from './constants';

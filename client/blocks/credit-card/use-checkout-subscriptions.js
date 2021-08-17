@@ -6,7 +6,7 @@ import { useEffect, useCallback, useState } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import { getErrorMessageForTypeAndCode } from '../stripe-utils';
+import { getErrorMessageForTypeAndCode } from '../../stripe-utils';
 import { usePaymentIntents } from '../three-d-secure';
 import { usePaymentProcessing } from './use-payment-processing';
 

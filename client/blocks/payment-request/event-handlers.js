@@ -11,7 +11,7 @@ import {
 	updateShippingDetails,
 	createOrder,
 } from '../../api';
-import { getStripeServerData } from '../stripe-utils';
+import { getStripeServerData } from '../../stripe-utils';
 
 const shippingAddressChangeHandler = ( paymentRequestType ) => ( evt ) => {
 	const { shippingAddress } = evt;
