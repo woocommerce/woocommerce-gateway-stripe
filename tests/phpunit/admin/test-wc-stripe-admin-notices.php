@@ -41,7 +41,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		ob_start();
 		$notices->admin_notices();
 		if ( $expected_output ) {
-			$this->assertStringContainsString( $expected_output, ob_get_contents() );
+			$this->assertRegexp( $expected_output, ob_get_contents() );
 		}
 		ob_end_clean();
 		$this->assertCount( count( $expected_notices ), $notices->notices );
@@ -115,7 +115,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 				[
 					'keys',
 				],
-				'set your Stripe account keys',
+				'/set your Stripe account keys/',
 			],
 			[
 				[
@@ -132,7 +132,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 				[
 					'keys',
 				],
-				'your test keys may not be valid',
+				'/your test keys may not be valid/',
 			],
 			[
 				[
@@ -162,7 +162,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 				[
 					'keys',
 				],
-				'your live keys may not be valid',
+				'/your live keys may not be valid/',
 			],
 			[
 				[
@@ -224,7 +224,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 					'sca',
 					'changed_keys',
 				],
-				'set your Stripe account keys',
+				'/set your Stripe account keys/',
 			],
 			[
 				[
@@ -241,7 +241,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 					'sca',
 					'changed_keys',
 				],
-				'set your Stripe account keys',
+				'/set your Stripe account keys/',
 			],
 			[
 				[
