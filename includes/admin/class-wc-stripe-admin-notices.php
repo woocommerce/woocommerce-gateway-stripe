@@ -145,6 +145,7 @@ class WC_Stripe_Admin_Notices {
 				return;
 			}
 
+			// @codeCoverageIgnoreStart
 			if ( empty( $show_phpver_notice ) ) {
 				if ( version_compare( phpversion(), WC_STRIPE_MIN_PHP_VER, '<' ) ) {
 					/* translators: 1) int version 2) int version */
@@ -169,6 +170,7 @@ class WC_Stripe_Admin_Notices {
 					$this->add_admin_notice( 'curl', 'notice notice-warning', __( 'WooCommerce Stripe - cURL is not installed.', 'woocommerce-gateway-stripe' ), true );
 				}
 			}
+			// @codeCoverageIgnoreEnd
 
 			if ( empty( $show_keys_notice ) ) {
 				$secret = WC_Stripe_API::get_secret_key();
