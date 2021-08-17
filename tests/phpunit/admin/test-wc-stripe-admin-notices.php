@@ -29,7 +29,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 	/**
 	 * @dataProvider options_to_notices_map
 	 */
-	public function test_correct_stripe_notices_are_shown_in_all_scenarios( $options_to_set, $expected_notices = [], $expected_output = false, $query_params = []) {
+	public function test_correct_stripe_notices_are_shown_in_all_scenarios( $options_to_set, $expected_notices = [], $expected_output = false, $query_params = [] ) {
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
 		foreach ( $query_params as $param => $value ) {
 			$_GET[ $param ] = $value;
