@@ -208,7 +208,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Initialise Gateway Settings Form Fields
 	 */
 	public function init_form_fields() {
-		$this->form_fields = require dirname( __FILE__ ) . '/admin/stripe-settings.php';
+		if ( WC_Stripe_Features::is_upe_enabled() ) {
+			echo '<div id="wc-stripe-account-settings-container"></div>';
+		} else {
+			$this->form_fields = require dirname( __FILE__ ) . '/admin/stripe-settings.php';
+		}
 	}
 
 	/**
@@ -349,7 +353,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
-		wp_register_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION, true );
+		// Webpack generates an assets file containing a dependencies array for our built JS file.
+		$deps_file = plugins_url( 'build/upe_settings.asset.php', WC_STRIPE_MAIN_FILE );
+		$script_asset = file_exists( $deps_file ) ? require_once $deps_file : [ 'dependencies' => [] ];
+
+		if ( WC_Stripe_Features::is_upe_enabled() ) {
+			wp_register_script( 'woocommerce_stripe_admin', plugins_url( 'build/upe_settings.js', WC_STRIPE_MAIN_FILE ), $script_asset['dependencies'], null, true );
+		} else {
+			wp_register_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION, true );
+		}
 
 		$params = [
 			'time'             => time(),
