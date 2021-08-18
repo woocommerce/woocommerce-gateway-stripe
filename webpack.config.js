@@ -1,3 +1,4 @@
+const path = require('path')
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 const DependencyExtractionWebpackPlugin = require( '@woocommerce/dependency-extraction-webpack-plugin' );
 
@@ -10,6 +11,13 @@ module.exports = {
 		),
 		new DependencyExtractionWebpackPlugin(),
 	],
+	resolve: {
+		extensions: [ '.json', '.js', '.jsx' ],
+		modules: [ path.join( __dirname, 'client' ), 'node_modules' ],
+		alias: {
+			wcstripe: path.resolve( __dirname, 'client' ),
+		},
+	},
 	entry: {
 		index: './client/blocks/index.js',
 		upe_classic: './client/classic/upe/index.js',
