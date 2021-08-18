@@ -1,8 +1,6 @@
 <?php
 /**
  * Class WC_REST_UPE_Flag_Toggle_Controller
- *
- * @package WooCommerce\Payments\Admin
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -11,6 +9,8 @@ defined( 'ABSPATH' ) || exit;
  * REST controller for UPE feature flag.
  */
 class WC_REST_UPE_Flag_Toggle_Controller extends WP_REST_Controller {
+	const UPE_CHECKOUT_EXPERIENCE_FLAG = 'upe_checkout_experience_enabled';
+
 	/**
 	 * Endpoint namespace.
 	 *
@@ -73,7 +73,7 @@ class WC_REST_UPE_Flag_Toggle_Controller extends WP_REST_Controller {
 
 		return new WP_REST_Response(
 			[
-				'is_upe_enabled' => empty( $settings['upe_checkout_experience_enabled'] ) ? 'no' : $settings['upe_checkout_experience_enabled'],
+				'is_upe_enabled' => empty( $settings[ self::UPE_CHECKOUT_EXPERIENCE_FLAG ] ) ? 'no' : $settings[ self::UPE_CHECKOUT_EXPERIENCE_FLAG ],
 			]
 		);
 	}
@@ -93,9 +93,9 @@ class WC_REST_UPE_Flag_Toggle_Controller extends WP_REST_Controller {
 		$settings = get_option( 'woocommerce_stripe_settings' );
 
 		if ( $is_upe_enabled ) {
-			$settings['upe_checkout_experience_enabled'] = 'yes';
+			$settings[ self::UPE_CHECKOUT_EXPERIENCE_FLAG ] = 'yes';
 		} else {
-			$settings['upe_checkout_experience_enabled'] = 'no';
+			$settings[ self::UPE_CHECKOUT_EXPERIENCE_FLAG ] = 'no';
 		}
 
 		update_option( 'woocommerce_stripe_settings', $settings );
