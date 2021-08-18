@@ -11,6 +11,7 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^12.0.0",
+    "@testing-library/user-event": "^13.2.1",
     "@woocommerce/dependency-extraction-webpack-plugin": "^1.4.0",
     "@woocommerce/eslint-plugin": "^1.1.0",
     "@wordpress/babel-plugin-makepot": "^4.2.0",
@@ -87,6 +88,7 @@
     "test:single": "cross-env NODE_CONFIG_DIR='./tests/e2e/config' BABEL_ENV=commonjs mocha --require babel-register",
     "test:php": "./bin/run-tests.sh",
     "test:js": "wp-scripts test-unit-js --config tests/js/jest.config.js",
+    "test:js:watch": "npm run test:js --watch",
     "lint:php": "./vendor/bin/phpcs --standard=phpcs.xml.dist -n $(git ls-files | grep .php$)",
     "lint:php-fix": "./vendor/bin/phpcbf --standard=phpcs.xml.dist $(git ls-files | grep .php$)",
     "jt:setup": "npm run up && ./bin/jurassic-tube-setup.sh",

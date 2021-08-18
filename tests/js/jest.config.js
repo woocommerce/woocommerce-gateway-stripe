@@ -32,6 +32,6 @@ module.exports = {
 		'<rootDir>/.*/build/',
 		'<rootDir>/.*/build-module/',
 		'<rootDir>/docker/',
-		'<rootDir>/tests/e2e',
+		'<rootDir>/tests',
 	],
 }
