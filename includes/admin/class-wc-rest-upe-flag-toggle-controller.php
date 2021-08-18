@@ -86,11 +86,11 @@ class WC_REST_UPE_Flag_Toggle_Controller extends WP_REST_Controller {
 	public function set_flag( WP_REST_Request $request ) {
 		$is_upe_enabled = $request->get_param( 'is_upe_enabled' );
 
-		if ( $is_upe_enabled === null ) {
+		if ( null === $is_upe_enabled ) {
 			return new WP_REST_Response( [ 'result' => 'bad_request' ], 400 );
 		}
 
-		$settings       = get_option( 'woocommerce_stripe_settings' );
+		$settings = get_option( 'woocommerce_stripe_settings' );
 
 		if ( $is_upe_enabled ) {
 			$settings['upe_checkout_experience_enabled'] = 'yes';
