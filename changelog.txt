@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 5.x.x - 2021-xx-xx =
+= 5.4.0 - 2021-08-18 =
 * Fix - Do not ask for a Shipping Address if no Shipping Zone is defined.
 * Fix - Return HTTP 204 when webhook validation fails so Stripe won't stop sending certain webhook events after too many failed validations.
 * Fix - Save payment method during 3D Secure flow for Block-based checkout.
