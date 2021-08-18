@@ -126,7 +126,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.4.0 - 2021-xx-xx =
+= 5.4.0 - 2021-08-18 =
 * Fix - Do not ask for a Shipping Address if no Shipping Zone is defined.
 * Fix - Return HTTP 204 when webhook validation fails so Stripe won't stop sending certain webhook events after too many failed validations.
 * Fix - Possible use of an undefined variable `prepared_source`.
