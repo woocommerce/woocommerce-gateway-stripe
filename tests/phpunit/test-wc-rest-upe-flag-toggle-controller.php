@@ -77,4 +77,16 @@ class WC_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'no', $settings['upe_checkout_experience_enabled'] );
 	}
+
+	public function test_set_flag_missing_request_returns_status_code_400() {
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+
+		$response = $this->controller->set_flag( $request );
+		$expected = [
+			'result' => 'bad_request',
+		];
+
+		$this->assertEquals( 400, $response->get_status() );
+		$this->assertEquals( $expected, $response->get_data() );
+	}
 }
