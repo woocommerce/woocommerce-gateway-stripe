@@ -83,6 +83,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public $pre_orders;
 
 	/**
+	 * Set of parameters to build the URL to the gateway's settings page.
+	 *
+	 * @var string[]
+	 */
+	private static $settings_url_params = [
+		'page'    => 'wc-settings',
+		'tab'     => 'checkout',
+		'section' => self::ID,
+	];
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -208,11 +219,25 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Initialise Gateway Settings Form Fields
 	 */
 	public function init_form_fields() {
-		if ( WC_Stripe_Features::is_upe_enabled() ) {
-			echo '<div id="wc-stripe-account-settings-container"></div>';
-		} else {
-			$this->form_fields = require dirname( __FILE__ ) . '/admin/stripe-settings.php';
-		}
+		$this->form_fields = require dirname( __FILE__ ) . '/admin/stripe-settings.php';
+	}
+
+	/**
+	 * Output the React Settings page wrapper
+	 */
+	private function output_settings_page_wrapper() {
+		global $hide_save_button;
+		$hide_save_button = true;
+		?>
+		<div>
+			<ul class="subsubsub" style="float:none;">
+				<li><a href="<?php echo esc_html( self::get_settings_url() ); ?>" class="current"><?php echo esc_html( $this->get_method_title() ); ?></a></li>
+				<li>|</li>
+				<li><a href="<?php echo esc_html( admin_url( 'admin.php?page=wc-settings&tab=checkout' ) ); ?>"><?php echo esc_html( __( 'All payment methods', 'woocommerce-gateway-stripe' ) ); ?></a></li>
+			</ul>
+		</div>
+		<div id="wc-stripe-account-settings-container"></div>
+		<?php
 	}
 
 	/**
@@ -341,9 +366,29 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Returns the URL of the configuration screen for this gateway, for use in internal links.
+	 *
+	 * @return string URL of the configuration screen for this gateway
+	 */
+	public static function get_settings_url() {
+		return admin_url( add_query_arg( self::$settings_url_params, 'admin.php' ) );
+	}
+
+	/**
+	 * Maybe override the parent admin_options method.
+	 */
+	public function admin_options() {
+		if ( ! WC_Stripe_Features::is_upe_enabled() ) {
+			parent::admin_options();
+			return;
+		}
+		$this->output_settings_page_wrapper();
+	}
+
+	/**
 	 * Load admin scripts.
 	 *
-	 * @since 3.1.0
+	 * @since   3.1.0
 	 * @version 3.1.0
 	 */
 	public function admin_scripts() {
@@ -354,11 +399,21 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
 		// Webpack generates an assets file containing a dependencies array for our built JS file.
-		$deps_file = plugins_url( 'build/upe_settings.asset.php', WC_STRIPE_MAIN_FILE );
-		$script_asset = file_exists( $deps_file ) ? require_once $deps_file : [ 'dependencies' => [] ];
+		$script_path       = 'build/upe_settings.js';
+		$script_asset_path = 'build/upe_settings.asset.php';
+		$script_url        = plugins_url( $script_path, WC_STRIPE_MAIN_FILE );
+		$script_asset      = file_exists( $script_asset_path )
+		? require( $script_asset_path )
+		: [ 'dependencies' => [], 'version' => filemtime( $script_path ) ];
 
 		if ( WC_Stripe_Features::is_upe_enabled() ) {
-			wp_register_script( 'woocommerce_stripe_admin', plugins_url( 'build/upe_settings.js', WC_STRIPE_MAIN_FILE ), $script_asset['dependencies'], null, true );
+			wp_register_script(
+				'woocommerce_stripe_admin',
+				$script_url,
+				[],
+				$script_asset['version'],
+				true
+			);
 		} else {
 			wp_register_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION, true );
 		}
