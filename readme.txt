@@ -1,10 +1,10 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
-Requires at least: 4.4
+Requires at least: 4.6
 Tested up to: 5.7
 Requires PHP: 5.6
-Stable tag: 5.3.0
+Stable tag: 5.4.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -126,8 +126,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.3.0 - 2021-07-21 =
-* Fix - Disable Payment Request Buttons when order has to be split into multiple packages because Payment Requests do not support that use case.
-* Tweak - Payment request button should guide users to login when necessary.
+= 5.4.0 - 2021-08-18 =
+* Fix - Do not ask for a Shipping Address if no Shipping Zone is defined.
+* Fix - Return HTTP 204 when webhook validation fails so Stripe won't stop sending certain webhook events after too many failed validations.
+* Fix - Possible use of an undefined variable `prepared_source`.
+* Add - 'wc_stripe_allowed_payment_processing_statuses' filter to customize order statuses that allow payment processing in the context of 3DS payments.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -1,5 +1,11 @@
 *** Changelog ***
 
+= 5.4.0 - 2021-08-18 =
+* Fix - Do not ask for a Shipping Address if no Shipping Zone is defined.
+* Fix - Return HTTP 204 when webhook validation fails so Stripe won't stop sending certain webhook events after too many failed validations.
+* Fix - Possible use of an undefined variable `prepared_source`.
+* Add - 'wc_stripe_allowed_payment_processing_statuses' filter to customize order statuses that allow payment processing in the context of 3DS payments.
+
 = 5.3.0 - 2021-07-21 =
 * Fix - Disable Payment Request Buttons when order has to be split into multiple packages because Payment Requests do not support that use case.
 * Tweak - Payment request button should guide users to login when necessary.
