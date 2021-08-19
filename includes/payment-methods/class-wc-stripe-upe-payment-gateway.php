@@ -128,7 +128,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		do_action('wc_stripe_gateway_admin_options_wrapper', $this);
+		do_action( 'wc_stripe_gateway_admin_options_wrapper', $this );
 	}
 
 	/**

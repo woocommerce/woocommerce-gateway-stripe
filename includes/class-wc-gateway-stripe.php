@@ -345,7 +345,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		do_action('wc_stripe_gateway_admin_options_wrapper', $this);
+		do_action( 'wc_stripe_gateway_admin_options_wrapper', $this );
 	}
 
 	/**
