@@ -387,8 +387,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			// Webpack generates an assets file containing a dependencies array for our built JS file.
 			$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe_settings.asset.php';
 			$script_asset      = file_exists( $script_asset_path )
-				? require( $script_asset_path )
-				: [ 'dependencies' => [], 'version' => WC_STRIPE_VERSION ];
+				? require $script_asset_path
+				: [
+					'dependencies' => [],
+					'version'      => WC_STRIPE_VERSION,
+				];
 
 			wp_register_script(
 				'woocommerce_stripe_admin',
