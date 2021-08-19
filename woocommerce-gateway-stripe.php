@@ -553,21 +553,17 @@ function woocommerce_gateway_stripe() {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-connect-rest-controller.php';
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-rest-oauth-init-controller.php';
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-rest-oauth-connect-controller.php';
-				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-upe-flag-toggle-controller.php';
 
-				$controllers = [
-					'WC_Stripe_Connect_REST_Oauth_Init_Controller' => [ $this->connect, $this->api ],
-					'WC_Stripe_Connect_REST_Oauth_Connect_Controller' => [ $this->connect, $this->api ],
-					'WC_REST_UPE_Flag_Toggle_Controller' => null,
-				];
+				$oauth_init    = new WC_Stripe_Connect_REST_Oauth_Init_Controller( $this->connect, $this->api );
+				$oauth_connect = new WC_Stripe_Connect_REST_Oauth_Connect_Controller( $this->connect, $this->api );
 
-				foreach ( $controllers as $controller_name => $controller_params ) {
-					if ( empty( $controller_params ) ) {
-						$controller_instance = new $controller_name();
-					} else {
-						$controller_instance = new $controller_name( ...$controller_params );
-					}
-					$controller_instance->register_routes();
+				$oauth_init->register_routes();
+				$oauth_connect->register_routes();
+
+				if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
+					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-upe-flag-toggle-controller.php';
+					$upe_flag_toggle_controller = new WC_REST_UPE_Flag_Toggle_Controller();
+					$upe_flag_toggle_controller->register_routes();
 				}
 			}
 		}
