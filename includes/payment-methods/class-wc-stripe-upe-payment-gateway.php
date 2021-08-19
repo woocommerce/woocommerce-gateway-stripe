@@ -508,7 +508,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return bool
 	 */
-	private function is_enabled_for_saved_payments( $payment_method_id ) {
+	public function is_enabled_for_saved_payments( $payment_method_id ) {
 		if ( ! isset( $this->payment_methods[ $payment_method_id ] ) ) {
 			return false;
 		}

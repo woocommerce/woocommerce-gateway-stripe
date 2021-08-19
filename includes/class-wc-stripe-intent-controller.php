@@ -27,6 +27,7 @@ class WC_Stripe_Intent_Controller {
 		add_action( 'wc_ajax_wc_stripe_create_setup_intent', [ $this, 'create_setup_intent' ] );
 
 		add_action( 'wc_ajax_wc_stripe_create_payment_intent', [ $this, 'create_payment_intent_ajax' ] );
+		add_action( 'wc_ajax_wc_stripe_init_setup_intent', [ $this, 'init_setup_intent_ajax' ] );
 	}
 
 	/**
@@ -258,13 +259,11 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
-	 * Handle AJAX request for creating a payment intent for Stripe UPE.
-	 *
-	 * @throws Process_Payment_Exception - If nonce or setup intent is invalid.
+	 * Handle AJAX requests for creating a payment intent for Stripe UPE.
 	 */
 	public function create_payment_intent_ajax() {
 		try {
-			$is_nonce_valid = check_ajax_referer( '_wc_stripe_nonce', false, false );
+			$is_nonce_valid = check_ajax_referer( '_wc_stripe_create_payment_intent_nonce', false, false );
 			if ( ! $is_nonce_valid ) {
 				throw new Exception( __( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
@@ -317,6 +316,59 @@ class WC_Stripe_Intent_Controller {
 		];
 	}
 
+	/**
+	 * Handle AJAX requests for creating a setup intent without confirmation for Stripe UPE.
+	 */
+	public function init_setup_intent_ajax() {
+		try {
+			$is_nonce_valid = check_ajax_referer( '_wc_stripe_create_setup_intent_nonce', false, false );
+			if ( ! $is_nonce_valid ) {
+				throw new Exception( __( "We're not able to add this payment method. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			wp_send_json_success( $this->init_setup_intent(), 200 );
+		} catch ( Exception $e ) {
+			// Send back error, so it can be displayed to the customer.
+			wp_send_json_error(
+				[
+					'error' => [
+						'message' => $e->getMessage(),
+					],
+				]
+			);
+		}
+	}
+
+	/**
+	 * Creates a setup intent without confirmation.
+	 *
+	 * @return array
+	 */
+	public function init_setup_intent() {
+		// Determine the customer managing the payment methods, create one if we don't have one already.
+		$user     = wp_get_current_user();
+		$customer = new WC_Stripe_Customer( $user->ID );
+		if ( null === $customer->get_id() ) {
+//			$customer_data = WC_Payments_Customer_Service::map_customer_data( null, new \WC_Customer( $user->ID ) );
+//			$customer_id   = $this->customer_service->create_customer_for_user( $user, $customer_data );
+		}
+
+		$gateway = new WC_Stripe_UPE_Payment_Gateway();
+		$payment_method_types = array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] );
+
+		$setup_intent = WC_Stripe_API::request(
+			[
+				'customer'               => $customer->get_id(),
+				'payment_method_types' => $payment_method_types,
+			],
+			'setup_intents'
+		);
+
+		return [
+			'id'            => $setup_intent->id,
+			'client_secret' => $setup_intent->client_secret,
+		];
+	}
 }
 
 new WC_Stripe_Intent_Controller();
