@@ -223,24 +223,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Output the React Settings page wrapper
-	 */
-	private function output_settings_page_wrapper() {
-		global $hide_save_button;
-		$hide_save_button = true;
-		?>
-		<div>
-			<ul class="subsubsub" style="float:none;">
-				<li><a href="<?php echo esc_html( self::get_settings_url() ); ?>" class="current"><?php echo esc_html( $this->get_method_title() ); ?></a></li>
-				<li>|</li>
-				<li><a href="<?php echo esc_html( admin_url( 'admin.php?page=wc-settings&tab=checkout' ) ); ?>"><?php echo esc_html( __( 'All payment methods', 'woocommerce-gateway-stripe' ) ); ?></a></li>
-			</ul>
-		</div>
-		<div id="wc-stripe-account-settings-container"></div>
-		<?php
-	}
-
-	/**
 	 * Payment form on checkout page
 	 */
 	public function payment_fields() {
@@ -372,6 +354,24 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public static function get_settings_url() {
 		return admin_url( add_query_arg( self::$settings_url_params, 'admin.php' ) );
+	}
+
+	/**
+	 * Output the React Settings page wrapper
+	 */
+	private function output_settings_page_wrapper() {
+		global $hide_save_button;
+		$hide_save_button = true;
+		?>
+		<div>
+			<ul class="subsubsub">
+				<li><a href="<?php echo esc_html( self::get_settings_url() ); ?>" class="current"><?php echo esc_html( $this->get_method_title() ); ?></a></li>
+				<li>|</li>
+				<li><a href="<?php echo esc_html( admin_url( 'admin.php?page=wc-settings&tab=checkout' ) ); ?>"><?php echo esc_html( __( 'All payment methods', 'woocommerce-gateway-stripe' ) ); ?></a></li>
+			</ul>
+		</div>
+		<div id="wc-stripe-account-settings-container"></div>
+		<?php
 	}
 
 	/**
