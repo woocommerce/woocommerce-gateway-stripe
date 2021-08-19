@@ -960,7 +960,7 @@ class WC_Stripe_Payment_Request {
 		// Note the negation because if the filter returns `true` that means we should hide the PRB.
 		return ! apply_filters_deprecated(
 			'wc_stripe_hide_payment_request_on_product_page',
-			[ $should_show_on_product_page ],
+			[ ! $should_show_on_product_page ],
 			'5.5.0',
 			'', // There is no replacement.
 			$deprecation_message
