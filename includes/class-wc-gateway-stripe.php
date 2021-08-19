@@ -362,23 +362,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	private function output_settings_page_wrapper() {
 		global $hide_save_button;
 		$hide_save_button = true;
-		?>
-		<div>
-			<ul class="subsubsub">
-				<li><a href="<?php echo esc_html( self::get_settings_url() ); ?>" class="current"><?php echo esc_html( $this->get_method_title() ); ?></a></li>
-				<li>|</li>
-				<li><a href="<?php echo esc_html( admin_url( 'admin.php?page=wc-settings&tab=checkout' ) ); ?>"><?php echo esc_html( __( 'All payment methods', 'woocommerce-gateway-stripe' ) ); ?></a></li>
-			</ul>
-		</div>
-		<div id="wc-stripe-account-settings-container"></div>
-		<?php
+		echo '<h2>' . esc_html( $this->get_method_title() );
+		wc_back_link( __( 'Return to payments', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ) );
+		echo '</h2>';
+		echo '<div id="wc-stripe-account-settings-container"></div>';
 	}
 
 	/**
 	 * Maybe override the parent admin_options method.
 	 */
 	public function admin_options() {
-		if ( ! WC_Stripe_Features::is_upe_enabled() ) {
+		if ( ! WC_Stripe_Feature_Flags::is_upe_enabled() ) {
 			parent::admin_options();
 			return;
 		}
@@ -398,15 +392,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
-		// Webpack generates an assets file containing a dependencies array for our built JS file.
-		$script_path       = 'build/upe_settings.js';
-		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe_settings.asset.php';
-		$script_url        = plugins_url( $script_path, WC_STRIPE_MAIN_FILE );
-		$script_asset      = file_exists( $script_asset_path )
-		? require( $script_asset_path )
-		: [ 'dependencies' => [] ];
+		if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
+			// Webpack generates an assets file containing a dependencies array for our built JS file.
+			$script_path       = 'build/upe_settings.js';
+			$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe_settings.asset.php';
+			$script_url        = plugins_url( $script_path, WC_STRIPE_MAIN_FILE );
+			$script_asset      = file_exists( $script_asset_path )
+			? require( $script_asset_path )
+			: [ 'dependencies' => [] ];
 
-		if ( WC_Stripe_Features::is_upe_enabled() ) {
 			wp_register_script( // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
 				'woocommerce_stripe_admin',
 				$script_url,

@@ -9,8 +9,8 @@
     "url": "git://github.com/woocommerce/woocommerce-gateway-stripe.git"
   },
   "devDependencies": {
-    "@types/react": "17.0.2",
-    "@types/react-dom": "17.0.1",
+    "@types/react": "16.9.56",
+    "@types/react-dom": "16.9.9",
     "@woocommerce/dependency-extraction-webpack-plugin": "^1.4.0",
     "@woocommerce/eslint-plugin": "^1.1.0",
     "@wordpress/scripts": "^13.0.2",
@@ -35,8 +35,8 @@
     "node-sass": "^4.11.0",
     "node-wp-i18n": "~1.2.1",
     "prettier": "npm:wp-prettier@^2.2.1-beta-1",
-    "react": "17.0.1",
-    "react-dom": "17.0.1",
+    "react": "16.13.1",
+    "react-dom": "16.13.1",
     "rimraf": "^3.0.2",
     "shelljs": "^0.8.4",
     "stylelint": "^10.1.0",
