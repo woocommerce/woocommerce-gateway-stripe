@@ -46,7 +46,7 @@ class WC_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
 
 	public function test_set_flag_enabled_request_returns_status_code_200() {
 		$request = new WP_REST_Request( 'POST', self::ROUTE );
-		$request->set_param( 'is_upe_enabled', true );
+		$request->set_param( 'is_upe_enabled', 'yes' );
 
 		$response = $this->controller->set_flag( $request );
 		$expected = [
@@ -63,7 +63,7 @@ class WC_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
 
 	public function test_set_flag_disabled_request_returns_status_code_200() {
 		$request = new WP_REST_Request( 'POST', self::ROUTE );
-		$request->set_param( 'is_upe_enabled', false );
+		$request->set_param( 'is_upe_enabled', 'no' );
 
 		$response = $this->controller->set_flag( $request );
 		$expected = [

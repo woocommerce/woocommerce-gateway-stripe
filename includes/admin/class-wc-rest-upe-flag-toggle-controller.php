@@ -55,7 +55,8 @@ class WC_REST_UPE_Flag_Toggle_Controller extends WP_REST_Controller {
 				'args'                => [
 					'is_upe_enabled' => [
 						'description'       => __( 'Determines if the UPE feature flag is enabled.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'boolean',
+						'type'              => 'string',
+						'enum'              => [ 'yes', 'no' ],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 				],
@@ -69,11 +70,16 @@ class WC_REST_UPE_Flag_Toggle_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response
 	 */
 	public function get_flag() {
-		$settings = get_option( 'woocommerce_stripe_settings' );
+		$settings       = get_option( 'woocommerce_stripe_settings' );
+		$is_upe_enabled = 'no';
+
+		if ( ! empty( $settings[ self::UPE_CHECKOUT_EXPERIENCE_FLAG ] ) ) {
+			$is_upe_enabled = $settings[ self::UPE_CHECKOUT_EXPERIENCE_FLAG ];
+		}
 
 		return new WP_REST_Response(
 			[
-				'is_upe_enabled' => empty( $settings[ self::UPE_CHECKOUT_EXPERIENCE_FLAG ] ) ? 'no' : $settings[ self::UPE_CHECKOUT_EXPERIENCE_FLAG ],
+				'is_upe_enabled' => $is_upe_enabled,
 			]
 		);
 	}
@@ -92,7 +98,7 @@ class WC_REST_UPE_Flag_Toggle_Controller extends WP_REST_Controller {
 
 		$settings = get_option( 'woocommerce_stripe_settings' );
 
-		if ( $is_upe_enabled ) {
+		if ( 'yes' === $is_upe_enabled ) {
 			$settings[ self::UPE_CHECKOUT_EXPERIENCE_FLAG ] = 'yes';
 		} else {
 			$settings[ self::UPE_CHECKOUT_EXPERIENCE_FLAG ] = 'no';
