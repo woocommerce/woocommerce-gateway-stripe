@@ -400,18 +400,18 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// Webpack generates an assets file containing a dependencies array for our built JS file.
 		$script_path       = 'build/upe_settings.js';
-		$script_asset_path = 'build/upe_settings.asset.php';
+		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe_settings.asset.php';
 		$script_url        = plugins_url( $script_path, WC_STRIPE_MAIN_FILE );
 		$script_asset      = file_exists( $script_asset_path )
 		? require( $script_asset_path )
-		: [ 'dependencies' => [], 'version' => filemtime( $script_path ) ];
+		: [ 'dependencies' => [] ];
 
 		if ( WC_Stripe_Features::is_upe_enabled() ) {
 			wp_register_script(
 				'woocommerce_stripe_admin',
 				$script_url,
-				[],
-				$script_asset['version'],
+				$script_asset['dependencies'],
+				null,
 				true
 			);
 		} else {

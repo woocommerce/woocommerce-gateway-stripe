@@ -9,7 +9,9 @@ module.exports = {
 			( plugin ) =>
 				plugin.constructor.name !== 'DependencyExtractionWebpackPlugin'
 		),
-		new DependencyExtractionWebpackPlugin(),
+		new DependencyExtractionWebpackPlugin( {
+			injectPolyfill: true,
+		} ),
 	],
 	resolve: {
 		extensions: [ '.ts', '.tsx', '.json', '.js', '.jsx' ],

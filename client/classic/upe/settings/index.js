@@ -15,5 +15,4 @@ const settingsContainer = document.getElementById(
 
 if ( settingsContainer ) {
 	ReactDOM.render( <SettingsManager />, settingsContainer );
-	console.log('rendered!')
 }

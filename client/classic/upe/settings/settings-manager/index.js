@@ -1,9 +1,5 @@
 const SettingsManager = () => {
-	return (
-		<div>
-			<h3>Welcome to Stripe!!!</h3>
-		</div>
-	);
+	return <div></div>;
 };
 
 export default SettingsManager;
