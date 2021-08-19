@@ -385,20 +385,25 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
 			// Webpack generates an assets file containing a dependencies array for our built JS file.
-			$script_path       = 'build/upe_settings.js';
 			$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe_settings.asset.php';
-			$script_url        = plugins_url( $script_path, WC_STRIPE_MAIN_FILE );
 			$script_asset      = file_exists( $script_asset_path )
-			? require( $script_asset_path )
-			: [ 'dependencies' => [] ];
+				? require( $script_asset_path )
+				: [ 'dependencies' => [], 'version' => WC_STRIPE_VERSION ];
 
-			wp_register_script( // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+			wp_register_script(
 				'woocommerce_stripe_admin',
-				$script_url,
+				plugins_url( 'build/upe_settings.js', WC_STRIPE_MAIN_FILE ),
 				$script_asset['dependencies'],
-				null,
+				$script_asset['version'],
 				true
 			);
+			wp_register_style(
+				'woocommerce_stripe_admin',
+				plugins_url( 'build/style-upe_settings.css', WC_STRIPE_MAIN_FILE ),
+				[ 'wc-components' ],
+				$script_asset['version']
+			);
+			wp_enqueue_style( 'woocommerce_stripe_admin' );
 		} else {
 			wp_register_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION, true );
 		}
