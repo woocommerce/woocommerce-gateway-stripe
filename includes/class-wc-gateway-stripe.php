@@ -407,7 +407,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		: [ 'dependencies' => [] ];
 
 		if ( WC_Stripe_Features::is_upe_enabled() ) {
-			wp_register_script(
+			wp_register_script( // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
 				'woocommerce_stripe_admin',
 				$script_url,
 				$script_asset['dependencies'],
