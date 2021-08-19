@@ -184,6 +184,9 @@ function woocommerce_gateway_stripe() {
 
 				if ( is_admin() ) {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
+					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-settings-controller.php';
+
+					new WC_Stripe_Settings_Controller();
 				}
 
 				// REMOVE IN THE FUTURE.
@@ -200,6 +203,7 @@ function woocommerce_gateway_stripe() {
 				if ( version_compare( WC_VERSION, '3.4', '<' ) ) {
 					add_filter( 'woocommerce_get_sections_checkout', [ $this, 'filter_gateway_order_admin' ] );
 				}
+
 			}
 
 			/**
