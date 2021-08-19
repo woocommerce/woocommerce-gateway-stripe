@@ -129,23 +129,18 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		// TODO: Remove the `function_exists()` check once the minimum WP version has been bumped
 		//       to version 5.0.
 		if ( function_exists( 'has_block' ) ) {
-			global $post;
-
 			// Don't show if PRBs are supposed to be hidden on the cart page.
-			// Note: The cart block has the PRB enabled by default.
 			if (
 				has_block( 'woocommerce/cart' )
-				&& ! apply_filters( 'wc_stripe_show_payment_request_on_cart', true )
+				&& ! $this->payment_request_configuration->should_show_prb_on_cart_page()
 			) {
 				return false;
 			}
 
 			// Don't show if PRBs are supposed to be hidden on the checkout page.
-			// Note: The checkout block has the PRB enabled by default. This differs from the shortcode
-			//       checkout where the PRB is disabled by default.
 			if (
 				has_block( 'woocommerce/checkout' )
-				&& ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', true, $post )
+				&& ! $this->payment_request_configuration->should_show_prb_on_checkout_page()
 			) {
 				return false;
 			}
@@ -308,8 +303,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				|| ! empty( $result->payment_details['setup_intent_secret'] )
 			)
 		) {
-			$payment_details                          = $result->payment_details;
-			$payment_details['verification_endpoint'] = add_query_arg(
+			$payment_details       = $result->payment_details;
+			$verification_endpoint = add_query_arg(
 				[
 					'order'       => $context->order->get_id(),
 					'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
@@ -317,6 +312,15 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				],
 				home_url() . \WC_Ajax::get_endpoint( 'wc_stripe_verify_intent' )
 			);
+
+			if ( ! empty( $payment_details['save_payment_method'] ) ) {
+				$verification_endpoint = add_query_arg(
+					[ 'save_payment_method' => true ],
+					$verification_endpoint
+				);
+			}
+
+			$payment_details['verification_endpoint'] = $verification_endpoint;
 			$result->set_payment_details( $payment_details );
 			$result->set_status( 'success' );
 		}
