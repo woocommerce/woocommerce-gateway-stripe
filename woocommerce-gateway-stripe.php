@@ -5,10 +5,10 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 5.3.0
- * Requires at least: 4.4
+ * Version: 5.4.0
+ * Requires at least: 4.6
  * Tested up to: 5.7
- * WC requires at least: 3.0
+ * WC requires at least: 3.3
  * WC tested up to: 5.4
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '5.3.0' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '5.4.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '3.0' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '3.3' );
@@ -153,7 +153,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-apple-pay-registration.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-pre-orders-compat.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php';
-				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-features.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-feature-flags.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
@@ -233,6 +233,52 @@ function woocommerce_gateway_stripe() {
 
 					add_woocommerce_inbox_variant();
 					$this->update_plugin_version();
+
+					// TODO: Remove this when we're reasonably sure most merchants have had their
+					// settings updated like this. ~80% of merchants is a good threshold.
+					// - @reykjalin
+					$this->update_prb_location_settings();
+				}
+			}
+
+			/**
+			 * Updates the PRB location settings based on deprecated filters.
+			 *
+			 * The filters were removed in favor of plugin settings. This function can, and should,
+			 * be removed when we're reasonably sure most merchants have had their settings updated
+			 * through this function. Maybe ~80% of merchants is a good threshold?
+			 *
+			 * @since x.x.x
+			 * @version x.x.x
+			 */
+			public function update_prb_location_settings() {
+				$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+				$prb_locations   = isset( $stripe_settings['payment_request_button_locations'] )
+					? $stripe_settings['payment_request_button_locations']
+					: [];
+				if ( ! empty( $stripe_settings ) && empty( $prb_locations ) ) {
+					global $post;
+
+					$should_show_on_product_page  = ! apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false );
+					$should_show_on_cart_page     = apply_filters( 'wc_stripe_show_payment_request_on_cart', true );
+					$should_show_on_checkout_page = apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post );
+
+					$new_prb_locations = [];
+
+					if ( $should_show_on_product_page ) {
+						$new_prb_locations[] = 'product';
+					}
+
+					if ( $should_show_on_cart_page ) {
+						$new_prb_locations[] = 'cart';
+					}
+
+					if ( $should_show_on_checkout_page ) {
+						$new_prb_locations[] = 'checkout';
+					}
+
+					$stripe_settings['payment_request_button_locations'] = $new_prb_locations;
+					update_option( 'woocommerce_stripe_settings', $stripe_settings );
 				}
 			}
 
@@ -275,7 +321,7 @@ function woocommerce_gateway_stripe() {
 			 * @version 4.0.0
 			 */
 			public function add_gateways( $methods ) {
-				if ( ! WC_Stripe_Features::is_upe_enabled() ) {
+				if ( ! WC_Stripe_Feature_Flags::is_upe_enabled() ) {
 					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Subs_Compat::class : WC_Gateway_Stripe::class;
 					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Sepa_Subs_Compat::class : WC_Gateway_Stripe_Sepa::class;
 					$methods[] = WC_Gateway_Stripe_Bancontact::class;
@@ -328,7 +374,7 @@ function woocommerce_gateway_stripe() {
 			 */
 			public function filter_gateway_order_admin( $sections ) {
 				unset( $sections['stripe'] );
-				if ( WC_Stripe_Features::is_upe_enabled() ) {
+				if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
 					unset( $sections['stripe_upe'] );
 				}
 				unset( $sections['stripe_bancontact'] );
@@ -342,7 +388,7 @@ function woocommerce_gateway_stripe() {
 				unset( $sections['stripe_multibanco'] );
 
 				$sections['stripe'] = 'Stripe';
-				if ( WC_Stripe_Features::is_upe_enabled() ) {
+				if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
 					$sections['stripe_upe'] = 'Stripe checkout experience';
 				}
 				$sections['stripe_bancontact'] = __( 'Stripe Bancontact', 'woocommerce-gateway-stripe' );
@@ -376,7 +422,7 @@ function woocommerce_gateway_stripe() {
 					$settings     = array_merge( $old_settings, $settings );
 				}
 
-				if ( ! WC_Stripe_Features::is_upe_enabled() ) {
+				if ( ! WC_Stripe_Feature_Flags::is_upe_enabled() ) {
 					return $settings;
 				}
 

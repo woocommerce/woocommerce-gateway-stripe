@@ -3,9 +3,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-class WC_Stripe_Features {
+class WC_Stripe_Feature_Flags {
 	/**
-	 * Checks whether UPE is enabled.
+	 * Checks whether UPE feature flag is enabled.
 	 *
 	 * @return bool
 	 */
