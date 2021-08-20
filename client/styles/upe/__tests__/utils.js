@@ -9,7 +9,7 @@ import tinycolor from 'tinycolor2';
 import * as upeUtils from '../utils';
 
 describe( 'UPE Utilities to generate UPE styles', () => {
-	test( 'generateHoverColors returns new darker background and colors are readable', () => {
+	it( 'generateHoverColors returns new darker background and colors are readable', () => {
 		const hoverColors = upeUtils.generateHoverColors(
 			'#333333', //rgb(51,51,51) Storefront place order button background color.
 			'#ffffff'
@@ -26,7 +26,7 @@ describe( 'UPE Utilities to generate UPE styles', () => {
 		).toBe( true );
 	} );
 
-	test( 'generateHoverColors returns lighter background when brigthness < 50 and colors are readable', () => {
+	it( 'generateHoverColors returns lighter background when brigthness < 50 and colors are readable', () => {
 		const hoverColors = upeUtils.generateHoverColors(
 			'rgb(40, 48, 61)', // 2021 place order button background color.
 			'rgb(209, 228, 221)'
@@ -43,7 +43,7 @@ describe( 'UPE Utilities to generate UPE styles', () => {
 		).toBe( true );
 	} );
 
-	test( 'generateHoverColors returns readable colors using fallbacks', () => {
+	it( 'generateHoverColors returns readable colors using fallbacks', () => {
 		let hoverColors = upeUtils.generateHoverColors(
 			'#333333',
 			'#333333' // Unreadable
@@ -89,7 +89,8 @@ describe( 'UPE Utilities to generate UPE styles', () => {
 			)
 		).toBe( true );
 	} );
-	test( 'generateHoverColors returns empty colors if provided colors are not valid', () => {
+
+	it( 'generateHoverColors returns empty colors if provided colors are not valid', () => {
 		const hoverColors = upeUtils.generateHoverColors(
 			'notacolor',
 			'rgb(209, 228, 221)'

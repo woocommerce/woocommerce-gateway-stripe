@@ -16,6 +16,9 @@ module.exports = {
 	resolve: {
 		extensions: [ '.json', '.js', '.jsx' ],
 		modules: [ path.join( __dirname, 'client' ), 'node_modules' ],
+		alias: {
+			wcstripe: path.resolve( __dirname, 'client' ),
+		},
 	},
 	entry: {
 		index: './client/blocks/index.js',
