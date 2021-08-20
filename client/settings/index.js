@@ -7,6 +7,7 @@ import ReactDOM from 'react-dom';
 /**
  * Internal dependencies
  */
+import './style.scss';
 import SettingsManager from './settings-manager';
 
 const settingsContainer = document.getElementById(

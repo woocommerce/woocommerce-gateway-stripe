@@ -7,6 +7,7 @@ import { getQuery } from '@woocommerce/navigation';
 /**
  * Internal dependencies
  */
+import './style.scss';
 import { PaymentMethodsPanel } from '../payment-methods';
 import { PaymentSettingsPanel } from '../payment-settings';
 

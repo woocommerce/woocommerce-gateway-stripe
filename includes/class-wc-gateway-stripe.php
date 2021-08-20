@@ -381,6 +381,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		wp_register_style(
+			'WC_STRIPE_UPE_ADMIN_SETTINGS',
+			plugins_url( 'build/style-upe_settings.css', WC_STRIPE_MAIN_FILE ),
+			[],
+			WC_STRIPE_VERSION
+		);
+
+		wp_enqueue_style( 'WC_STRIPE_UPE_ADMIN_SETTINGS' );
+
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
 		if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
