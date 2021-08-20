@@ -7,9 +7,10 @@ import styled from '@emotion/styled';
 const SettingsSectionWrapper = styled.div`
 	display: flex;
 	flex-flow: column;
+	margin-bottom: 24px;
 
-	&:not( &:last-child ) {
-		margin-bottom: 24px;
+	&:last-child {
+		margin-bottom: 0;
 	}
 
 	@media ( min-width: 800px ) {
