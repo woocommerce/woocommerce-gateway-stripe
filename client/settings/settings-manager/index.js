@@ -9,6 +9,8 @@ import { __ } from '@wordpress/i18n';
  */
 import SettingsLayout from '../settings-layout';
 import SettingsSection from '../settings-section';
+import PaymentRequestSection from '../payment-request-section';
+import GeneralSettingsSection from '../general-settings-section';
 import SaveSettingsSection from '../save-settings-section';
 
 const PaymentMethodsDescription = () => (
@@ -46,10 +48,10 @@ const SettingsManager = () => {
 	return (
 		<SettingsLayout>
 			<SettingsSection Description={ PaymentMethodsDescription }>
-				The payment sections' settings go here.
+				<GeneralSettingsSection />
 			</SettingsSection>
 			<SettingsSection Description={ PaymentRequestDescription }>
-				The express checkout sections' settings go here.
+				<PaymentRequestSection />
 			</SettingsSection>
 			<SaveSettingsSection />
 		</SettingsLayout>
