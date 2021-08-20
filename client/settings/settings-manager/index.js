@@ -1,5 +1,14 @@
+/**
+ * Internal dependencies
+ */
+import SettingsTabPanel from '../tab-panel/';
+
 const SettingsManager = () => {
-	return <div></div>;
+	return (
+		<div>
+			<SettingsTabPanel />
+		</div>
+	);
 };
 
 export default SettingsManager;

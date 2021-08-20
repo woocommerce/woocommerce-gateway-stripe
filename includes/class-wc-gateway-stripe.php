@@ -383,6 +383,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
+		wp_register_style(
+			'WC_STRIPE_UPE_ADMIN_SETTINGS',
+			plugins_url( 'build/style-upe_settings.css', WC_STRIPE_MAIN_FILE ),
+			[],
+			null
+		);
+
+		wp_enqueue_style( 'WC_STRIPE_UPE_ADMIN_SETTINGS' );
+
 		if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
 			// Webpack generates an assets file containing a dependencies array for our built JS file.
 			$script_path       = 'build/upe_settings.js';
