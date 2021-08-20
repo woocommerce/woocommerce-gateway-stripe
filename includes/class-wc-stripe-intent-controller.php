@@ -318,6 +318,9 @@ class WC_Stripe_Intent_Controller {
 
 	/**
 	 * Handle AJAX requests for creating a setup intent without confirmation for Stripe UPE.
+	 *
+	 * @since x.x.x
+	 * @version x.x.x
 	 */
 	public function init_setup_intent_ajax() {
 		try {
@@ -342,23 +345,27 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * Creates a setup intent without confirmation.
 	 *
+	 * @since x.x.x
+	 * @version x.x.x
 	 * @return array
+	 * @throws Exception If customer for the current user cannot be read/found.
 	 */
 	public function init_setup_intent() {
 		// Determine the customer managing the payment methods, create one if we don't have one already.
-		$user     = wp_get_current_user();
-		$customer = new WC_Stripe_Customer( $user->ID );
-		if ( null === $customer->get_id() ) {
-//			$customer_data = WC_Payments_Customer_Service::map_customer_data( null, new \WC_Customer( $user->ID ) );
-//			$customer_id   = $this->customer_service->create_customer_for_user( $user, $customer_data );
+		$user        = wp_get_current_user();
+		$customer    = new WC_Stripe_Customer( $user->ID );
+		$customer_id = $customer->get_id();
+		if ( empty( $customer_id ) ) {
+			$customer_data = WC_Stripe_Customer::map_customer_data( null, new WC_Customer( $user->ID ) );
+			$customer_id   = $customer->create_customer( $customer_data );
 		}
 
-		$gateway = new WC_Stripe_UPE_Payment_Gateway();
+		$gateway              = new WC_Stripe_UPE_Payment_Gateway();
 		$payment_method_types = array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] );
 
 		$setup_intent = WC_Stripe_API::request(
 			[
-				'customer'               => $customer->get_id(),
+				'customer'             => $customer_id,
 				'payment_method_types' => $payment_method_types,
 			],
 			'setup_intents'
