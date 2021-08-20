@@ -25,7 +25,7 @@ export const UPESettingsTabPanel = () => (
 			},
 			{
 				name: 'settings',
-				title: 'Payment Settings',
+				title: 'Settings',
 			},
 		] }
 	>
