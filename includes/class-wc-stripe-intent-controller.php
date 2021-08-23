@@ -9,9 +9,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Handles in-checkout AJAX calls, related to Payment Intents.
  */
 class WC_Stripe_Intent_Controller {
-
-	const UPE_APPEARANCE_TRANSIENT = 'wc_stripe_upe_appearance';
-
 	/**
 	 * Holds an instance of the gateway class.
 	 *
@@ -340,7 +337,7 @@ class WC_Stripe_Intent_Controller {
 
 			$appearance = isset( $_POST['appearance'] ) ? wc_clean( wp_unslash( $_POST['appearance'] ) ) : null;
 			if ( null !== $appearance ) {
-				set_transient( self::UPE_APPEARANCE_TRANSIENT, $appearance, DAY_IN_SECONDS );
+				set_transient( WC_Stripe_UPE_Payment_Gateway::UPE_APPEARANCE_TRANSIENT, $appearance, DAY_IN_SECONDS );
 			}
 			wp_send_json_success( $appearance, 200 );
 		} catch ( Exception $e ) {
@@ -359,7 +356,7 @@ class WC_Stripe_Intent_Controller {
 	 * Clear the saved UPE appearance transient value.
 	 */
 	public function clear_upe_appearance_transient() {
-		delete_transient( self::UPE_APPEARANCE_TRANSIENT );
+		delete_transient( WC_Stripe_UPE_Payment_Gateway::UPE_APPEARANCE_TRANSIENT );
 	}
 
 }
