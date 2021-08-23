@@ -248,7 +248,7 @@ class WC_Stripe_Admin_Notices {
 		}
 
 		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
-			if ( 'WC_Stripe_UPE_Payment_Method_CC' === $method_class ) {
+			if ( WC_Stripe_UPE_Payment_Method_CC::class === $method_class ) {
 				continue;
 			}
 			$method      = $method_class::STRIPE_ID;
