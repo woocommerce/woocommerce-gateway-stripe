@@ -11,8 +11,6 @@ import WCStripeAPI from '../../api';
 import { getStripeServerData } from '../../stripe-utils';
 import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
 
-const PAYMENT_METHOD_NAME_CARD = 'stripe';
-
 jQuery( function ( $ ) {
 	const key = getStripeServerData()?.key;
 	const isUPEEnabled = getStripeServerData()?.isUPEEnabled;
@@ -578,12 +576,8 @@ jQuery( function ( $ ) {
 		);
 	}
 
-	// Handle the checkout form when WooCommerce Payments is chosen.
-	const wcStripePaymentMethods = [ PAYMENT_METHOD_NAME_CARD ];
-	const checkoutEvents = wcStripePaymentMethods
-		.map( ( method ) => `checkout_place_order_${ method }` )
-		.join( ' ' );
-	$( 'form.checkout' ).on( checkoutEvents, function () {
+	// Handle the checkout form when WooCommerce Gateway Stripe is chosen.
+	$( 'form.checkout' ).on( 'checkout_place_order_stripe', function () {
 		if ( ! isUsingSavedPaymentMethod() ) {
 			if ( isUPEEnabled && paymentIntentId ) {
 				handleUPECheckout( $( this ) );
