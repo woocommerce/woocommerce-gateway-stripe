@@ -428,27 +428,23 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			// Get user/customer for order.
 			$customer_id = $this->get_stripe_customer_id( $order );
 
+			$payment_method_type = '';
 			$payment_needed = 0 < $order->get_total();
 
 			// Get payment intent to confirm status.
 			if ( $payment_needed ) {
-				$intent                 = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
-				$charge                 = 0 < $intent->charges->total_count ? end( $intent->charges->data ) : null;
-				$payment_method_details = (array) $charge->payment_method_details;
-				$payment_method_type    = $payment_method_details['type'];
-				$error                  = $intent->last_payment_error;
+				$intent = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
 			} else {
-				$intent                 = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id );
-				$payment_method_details = false;
-				$payment_method_options = array_keys( $intent->payment_method_options );
-				$payment_method_type    = $payment_method_options[0];
-				$error                  = $intent->last_setup_error;
+				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id );
 			}
+			$error  = $intent->last_payment_error;
 
 			if ( ! empty( $error ) ) {
 				WC_Stripe_Logger::log( 'Error when processing payment: ' . $error['message'] );
 				throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
+
+			list( $payment_method_type, $payment_method_details ) = $this->get_payment_method_data_from_intent( $intent );
 
 			if ( ! isset( $this->payment_methods[ $payment_method_type ] ) ) {
 				return;
@@ -622,5 +618,30 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 		$data['description'] = $api_credentials_text;
 		return $this->generate_title_html( $key, $data );
+	}
+
+	/**
+	 * Extacts the Stripe intent's payment_method_type and payment_method_details values.
+	 *
+	 * @param $intent   Stripe's intent response.
+	 * @return string[] List with 2 values: payment_method_type and payment_method_details.
+	 */
+	private function get_payment_method_data_from_intent( $intent ) {
+		$payment_method_type = '';
+		$payment_method_details = false;
+
+		if ( 'payment_intent' === $intent->object ) {
+			if ( ! empty( $intent->charges ) && 0 < $intent->charges->total_count ) {
+				$charge = end( $intent->charges->data );
+				$payment_method_details = (array) $charge->payment_method_details;
+				$payment_method_type = ! empty( $payment_method_details ) ? $payment_method_details['type'] : '';
+			}
+		} elseif ( 'setup_intent' === $intent->object ) {
+			$payment_method_options = array_keys( $intent->payment_method_options );
+			$payment_method_type = ! empty( $payment_method_options ) ? $payment_method_options[0] : '';
+			// Setup intents don't have details, keep the false value.
+		}
+
+		return [ $payment_method_type, $payment_method_details ];
 	}
 }
