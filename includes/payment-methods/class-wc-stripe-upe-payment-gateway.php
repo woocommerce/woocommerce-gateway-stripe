@@ -428,7 +428,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			// Get user/customer for order.
 			$customer_id = $this->get_stripe_customer_id( $order );
 
-			$payment_method_type = '';
 			$payment_needed = 0 < $order->get_total();
 
 			// Get payment intent to confirm status.
