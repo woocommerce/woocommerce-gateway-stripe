@@ -57,6 +57,13 @@ class WC_Stripe_Settings_Controller {
 				$script_asset['version'],
 				true
 			);
+			wp_register_style(
+				'woocommerce_stripe_admin',
+				plugins_url( 'build/style-upe_settings.css', WC_STRIPE_MAIN_FILE ),
+				[ 'wc-components' ],
+				$script_asset['version']
+			);
+			wp_enqueue_style( 'woocommerce_stripe_admin' );
 		} else {
 			wp_register_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION, true );
 		}
