@@ -62,11 +62,12 @@ class WC_Stripe_Settings_Controller {
 		}
 
 		$params = [
-			'time'             => time(),
-			'i18n_out_of_sync' => wp_kses(
+			'time'              => time(),
+			'i18n_out_of_sync'  => wp_kses(
 				__( '<strong>Warning:</strong> your site\'s time does not match the time on your browser and may be incorrect. Some payment methods depend on webhook verification and verifying webhooks with a signing secret depends on your site\'s time being correct, so please check your site\'s time before setting a webhook secret. You may need to contact your site\'s hosting provider to correct the site\'s time.', 'woocommerce-gateway-stripe' ),
 				[ 'strong' => [] ]
 			),
+			'upe_setting_value' => isset( $gateway_settings['upe_checkout_experience_enabled'] ) ? 'no' : $gateway_settings['upe_checkout_experience_enabled'],
 		];
 		wp_localize_script( 'woocommerce_stripe_admin', 'wc_stripe_settings_params', $params );
 
