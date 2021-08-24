@@ -42,7 +42,7 @@ const PaymentRequestDescription = () => (
 	</>
 );
 
-const PaymentSettingsPanel = () => {
+const PaymentMethodsPanel = () => {
 	return (
 		<>
 			<SettingsSection Description={ PaymentMethodsDescription }>
@@ -51,8 +51,8 @@ const PaymentSettingsPanel = () => {
 			<SettingsSection Description={ PaymentRequestDescription }>
 				<PaymentRequestSection />
 			</SettingsSection>
-	</>
+		</>
 	);
 };
 
-export default PaymentSettingsPanel;
+export default PaymentMethodsPanel;

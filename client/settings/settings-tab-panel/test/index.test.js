@@ -30,19 +30,20 @@ describe( 'SettingsTabPanel', () => {
 
 	it( 'should change tabs when clicking on them', () => {
 		render( <SettingsTabPanel /> );
-		const settingsButton = screen.getByRole( 'tab', { name: /Settings/i } );
 		const methodsButton = screen.getByRole( 'tab', {
 			name: /Payment Methods/i,
 		} );
-		userEvent.click( settingsButton );
-		expect( screen.queryByText( /Settings content/i ) ).toBeInTheDocument();
 		userEvent.click( methodsButton );
-		expect( screen.queryByText( /Payment Methods content/i ) ).toBeInTheDocument();
-	} );
 
-	it( 'should render Settings panel when settings query param is passed', () => {
-		render( <SettingsTabPanel /> );
+		expect(
+			screen.queryByText( /The general settings sections goes here/i )
+		).toBeInTheDocument();
+
 		const settingsButton = screen.getByRole( 'tab', { name: /Settings/i } );
-		expect( settingsButton ).toHaveClass( 'is-active' );
+		userEvent.click( settingsButton );
+
+		expect(
+			screen.queryByText( /The general settings card goes here/i )
+		).toBeInTheDocument();
 	} );
 } );
