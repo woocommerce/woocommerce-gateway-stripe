@@ -48,14 +48,12 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 			'unknown' => __( 'unknown', 'woocommerce-gateway-stripe' ),
 		];
 
-		$payment_method_title = sprintf(
-		// Translators: %1$s card brand, %2$s card funding (prepaid, credit, etc.).
+		return sprintf(
+			// Translators: %1$s card brand, %2$s card funding (prepaid, credit, etc.).
 			__( '%1$s %2$s card', 'woocommerce-gateway-stripe' ),
-			ucfirst( $details['network'] ),
-			$funding_types[ $details['funding'] ]
+			ucfirst( $details->network ),
+			$funding_types[ $details->funding ]
 		);
-
-		return $payment_method_title;
 	}
 
 }
