@@ -2,16 +2,16 @@
  * External dependencies
  */
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-
-jest.mock( '@woocommerce/navigation', () => ( {
-	getQuery: jest.fn().mockReturnValue( { panel: 'settings' } ),
-} ) );
+import { getQuery } from '@woocommerce/navigation';
 
 /**
  * Internal dependencies
  */
 import SettingsTabPanel from '../';
+
+jest.mock( '@woocommerce/navigation', () => ( {
+	getQuery: jest.fn().mockReturnValue( {} ),
+} ) );
 
 describe( 'SettingsTabPanel', () => {
 	afterEach( () => {
@@ -20,6 +20,7 @@ describe( 'SettingsTabPanel', () => {
 
 	it( 'should render two tabs when mounted', () => {
 		render( <SettingsTabPanel /> );
+
 		expect(
 			screen.getByRole( 'tab', { name: /Payment Methods/i } )
 		).toBeInTheDocument();
@@ -28,22 +29,20 @@ describe( 'SettingsTabPanel', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'should change tabs when clicking on them', () => {
+	it( 'should render the Stripe payment method tab content by default', () => {
 		render( <SettingsTabPanel /> );
-		const methodsButton = screen.getByRole( 'tab', {
-			name: /Payment Methods/i,
-		} );
-		userEvent.click( methodsButton );
 
 		expect(
-			screen.queryByText( /The general settings sections goes here/i )
-		).toBeInTheDocument();
+			screen.queryByTestId( 'settings-tab' )
+		).not.toBeInTheDocument();
+		expect( screen.queryByTestId( 'methods-tab' ) ).toBeInTheDocument();
+	} );
 
-		const settingsButton = screen.getByRole( 'tab', { name: /Settings/i } );
-		userEvent.click( settingsButton );
+	it( 'should render the general settings tab content when the URL matches', () => {
+		getQuery.mockReturnValue( { panel: 'settings' } );
+		render( <SettingsTabPanel /> );
 
-		expect(
-			screen.queryByText( /The general settings card goes here/i )
-		).toBeInTheDocument();
+		expect( screen.queryByTestId( 'settings-tab' ) ).toBeInTheDocument();
+		expect( screen.queryByTestId( 'methods-tab' ) ).not.toBeInTheDocument();
 	} );
 } );
