@@ -439,7 +439,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$error  = $intent->last_payment_error;
 
 			if ( ! empty( $error ) ) {
-				WC_Stripe_Logger::log( 'Error when processing payment: ' . $error['message'] );
+				WC_Stripe_Logger::log( 'Error when processing payment: ' . $error->message );
 				throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
