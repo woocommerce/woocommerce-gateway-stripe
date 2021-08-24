@@ -9,6 +9,9 @@
     "url": "git://github.com/woocommerce/woocommerce-gateway-stripe.git"
   },
   "devDependencies": {
+    "@emotion/babel-plugin": "^11.3.0",
+    "@emotion/react": "^11.4.1",
+    "@emotion/styled": "^11.3.0",
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^12.0.0",
     "@testing-library/user-event": "^13.2.1",
@@ -20,6 +23,7 @@
     "@wordpress/babel-plugin-makepot": "^4.2.0",
     "@wordpress/babel-preset-default": "^6.3.1",
     "@wordpress/components": "^15.0.0",
+    "@wordpress/i18n": "^4.2.1",
     "@wordpress/jest-preset-default": "^7.1.0",
     "@wordpress/scripts": "^13.0.2",
     "archiver": "^5.0.0",
