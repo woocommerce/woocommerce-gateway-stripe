@@ -345,9 +345,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( $payment_intent_id ) {
 			if ( $payment_needed ) {
 				$request = [
-					'amount'   => $converted_amount,
-					'currency' => $currency,
+					'amount'      => $converted_amount,
+					'currency'    => $currency,
+					/* translators: 1) blog name 2) order number */
+					'description' => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
 				];
+
+				// Get user/customer for order.
+				$customer_id = $this->get_stripe_customer_id( $order );
+				if ( ! empty( $customer_id ) ) {
+					$request['customer'] = $customer_id;
+				}
 
 				if ( '' !== $selected_upe_payment_type ) {
 					// Only update the payment_method_types if we have a reference to the payment type the customer selected.
