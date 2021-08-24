@@ -13,7 +13,7 @@ import PaymentMethodsPanel from '../payment-methods';
 import PaymentSettingsPanel from '../payment-settings';
 
 // This grabs the "panel" URL query string value to allow for opening a specific tab.
-const { panel } = getQuery() || '';
+const { panel } = getQuery();
 
 const SettingsTabPanel = () => (
 	<TabPanel
