@@ -358,6 +358,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					$request['setup_future_usage'] = 'off_session';
 				}
 
+				$request['metadata'] = $this->get_metadata_from_order( $order );
+
 				WC_Stripe_API::request_with_level3_data(
 					$request,
 					"payment_intents/$payment_intent_id",
@@ -627,5 +629,29 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return [ $payment_method_type, $payment_method_details ];
+	}
+
+	/**
+	 * Prepares Stripe metadata for a given order.
+	 *
+	 * @param WC_Order $order Order being processed.
+	 *
+	 * @return array Array of keyed metadata values.
+	 */
+	private function get_metadata_from_order( $order ) {
+
+		// TODO: change this after adding the subscriptions trait: $this->is_payment_recurring( $order->get_id() ) ? Payment_Type::RECURRING() : Payment_Type::SINGLE();
+		$payment_type = 'single';
+		$name         = sanitize_text_field( $order->get_billing_first_name() ) . ' ' . sanitize_text_field( $order->get_billing_last_name() );
+		$email        = sanitize_email( $order->get_billing_email() );
+
+		return [
+			'customer_name'  => $name,
+			'customer_email' => $email,
+			'site_url'       => esc_url( get_site_url() ),
+			'order_id'       => $order->get_id(),
+			'order_key'      => $order->get_order_key(),
+			'payment_type'   => $payment_type,
+		];
 	}
 }
