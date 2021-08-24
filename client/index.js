@@ -10,8 +10,6 @@ addFilter(
 	'woocommerce_admin_pages_list',
 	'woocommerce-gateway-stripe',
 	( pages ) => {
-		// const { menuID, rootLink } = getMenuSettings();
-
 		pages.push( {
 			container: OnboardingWizard,
 			path: '/onboarding',
