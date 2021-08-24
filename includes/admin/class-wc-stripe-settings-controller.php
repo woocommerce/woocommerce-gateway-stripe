@@ -42,9 +42,7 @@ class WC_Stripe_Settings_Controller {
 
 		if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
 			// Webpack generates an assets file containing a dependencies array for our built JS file.
-			$script_path       = 'build/upe_settings.js';
 			$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe_settings.asset.php';
-			$script_url        = plugins_url( $script_path, WC_STRIPE_MAIN_FILE );
 			$script_asset      = file_exists( $script_asset_path )
 				? require $script_asset_path
 				: [
@@ -54,7 +52,7 @@ class WC_Stripe_Settings_Controller {
 
 			wp_register_script(
 				'woocommerce_stripe_admin',
-				$script_url,
+				plugins_url( 'build/upe_settings.js', WC_STRIPE_MAIN_FILE ),
 				$script_asset['dependencies'],
 				$script_asset['version'],
 				true

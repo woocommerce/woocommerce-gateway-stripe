@@ -4,6 +4,7 @@ module.exports = {
 	ignore: [],
 	presets: [ '@wordpress/babel-preset-default' ],
 	plugins: [
+		'@emotion',
 		[ '@babel/transform-runtime', { corejs: 3 } ],
 		'@babel/plugin-proposal-optional-chaining',
 		'@babel/plugin-proposal-nullish-coalescing-operator',
@@ -11,6 +12,7 @@ module.exports = {
 	env: {
 		production: {
 			plugins: [
+				'@emotion',
 				[
 					'@wordpress/babel-plugin-makepot',
 					{

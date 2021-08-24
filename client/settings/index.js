@@ -8,6 +8,7 @@ import ReactDOM from 'react-dom';
  * Internal dependencies
  */
 import SettingsManager from './settings-manager';
+import './styles.scss';
 
 const settingsContainer = document.getElementById(
 	'wc-stripe-account-settings-container'
