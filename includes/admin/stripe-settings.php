@@ -180,7 +180,7 @@ $stripe_settings = apply_filters(
 				'long'  => __( 'Text and logo', 'woocommerce-gateway-stripe' ),
 			],
 		],
-		'payment_request_button_locations'           => [
+		'payment_request_button_locations'    => [
 			'title'             => __( 'Payment Request Button Locations', 'woocommerce-gateway-stripe' ),
 			'type'              => 'multiselect',
 			'description'       => __( 'Select where you would like Payment Request Buttons to be displayed', 'woocommerce-gateway-stripe' ),
