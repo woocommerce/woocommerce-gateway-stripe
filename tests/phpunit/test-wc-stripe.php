@@ -120,7 +120,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
 		$this->reloadPaymentGateways();
 
-		$this->assertTrue( WC_Stripe::get_instance()->is_upe_preview_enabled() );
+		$this->assertTrue( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() );
 
 		$loaded_gateway_classes = array_map(
 			function( $gateway ) {
