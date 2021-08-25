@@ -19,6 +19,7 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_upe_settings_redesign_enabled() {
+//		return true;
 		return '1' === get_option( '_wcstripe_feature_upe_settings', '0' );
 	}
 }
