@@ -9,10 +9,10 @@ class WC_Stripe_UPE_Compatibility {
 	const LEARN_MORE_LINK = '?TODO';
 
 	public static function is_wp_supported() {
-		return version_compare( get_bloginfo( 'version' ), self::MIN_WP_VERSION, '<' ) === false;
+		return version_compare( get_bloginfo( 'version' ), self::MIN_WP_VERSION, '>=' );
 	}
 
 	public static function is_wc_supported() {
-		return version_compare( WC_VERSION, self::MIN_WC_VERSION, '<' ) === false;
+		return version_compare( WC_VERSION, self::MIN_WC_VERSION, '>=' );
 	}
 }
