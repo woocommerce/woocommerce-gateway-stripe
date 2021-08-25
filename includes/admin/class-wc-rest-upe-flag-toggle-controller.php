@@ -86,8 +86,8 @@ class WC_REST_UPE_Flag_Toggle_Controller extends WP_REST_Controller {
 			return new WP_REST_Response( [ 'result' => 'bad_request' ], 400 );
 		}
 
-		$settings                                    = get_option( 'woocommerce_stripe_settings', [] );
-		$settings['upe_checkout_experience_enabled'] = ! ! $is_upe_enabled;
+		$settings = get_option( 'woocommerce_stripe_settings', [] );
+		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = ! ! $is_upe_enabled;
 
 		update_option( 'woocommerce_stripe_settings', $settings );
 

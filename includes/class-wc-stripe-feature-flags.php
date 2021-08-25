@@ -4,6 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 class WC_Stripe_Feature_Flags {
+	const UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME = 'upe_checkout_experience_enabled';
+
 	/**
 	 * Checks whether UPE "preview" feature flag is enabled.
 	 * This allows the merchant to enable/disable UPE checkout.
@@ -21,7 +23,7 @@ class WC_Stripe_Feature_Flags {
 	 */
 	public static function is_upe_checkout_enabled() {
 		$stripe_settings = get_option( 'woocommerce_stripe_settings', null );
-		return ! empty( $stripe_settings['upe_checkout_experience_enabled'] ) && 'yes' === $stripe_settings['upe_checkout_experience_enabled'];
+		return ! empty( $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) && 'yes' === $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ];
 	}
 
 	/**

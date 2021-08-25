@@ -436,13 +436,13 @@ function woocommerce_gateway_stripe() {
 			 */
 			protected function toggle_upe( $settings, $old_settings ) {
 				if ( false === $old_settings ) {
-					$old_settings = [ 'upe_checkout_experience_enabled' => 'no' ];
+					$old_settings = [ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no' ];
 				}
-				if ( ! isset( $settings['upe_checkout_experience_enabled'] ) || $settings['upe_checkout_experience_enabled'] === $old_settings['upe_checkout_experience_enabled'] ) {
+				if ( ! isset( $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) || $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] === $old_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
 					return $settings;
 				}
 
-				if ( 'no' === $old_settings['upe_checkout_experience_enabled'] && 'yes' === $settings['upe_checkout_experience_enabled'] ) {
+				if ( 'no' === $old_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] && 'yes' === $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
 					return $this->enable_upe( $settings );
 				}
 
