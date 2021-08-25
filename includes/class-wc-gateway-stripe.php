@@ -133,7 +133,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// Hooks.
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
-		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_fee' ] );
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_payout' ], 20 );
@@ -337,30 +336,16 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Load admin scripts.
-	 *
-	 * @since 3.1.0
-	 * @version 3.1.0
+	 * Maybe override the parent admin_options method.
 	 */
-	public function admin_scripts() {
-		if ( 'woocommerce_page_wc-settings' !== get_current_screen()->id ) {
+	public function admin_options() {
+		if ( ! WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
+			parent::admin_options();
+
 			return;
 		}
 
-		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
-
-		wp_register_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION, true );
-
-		$params = [
-			'time'             => time(),
-			'i18n_out_of_sync' => wp_kses(
-				__( '<strong>Warning:</strong> your site\'s time does not match the time on your browser and may be incorrect. Some payment methods depend on webhook verification and verifying webhooks with a signing secret depends on your site\'s time being correct, so please check your site\'s time before setting a webhook secret. You may need to contact your site\'s hosting provider to correct the site\'s time.', 'woocommerce-gateway-stripe' ),
-				[ 'strong' => [] ]
-			),
-		];
-		wp_localize_script( 'woocommerce_stripe_admin', 'wc_stripe_settings_params', $params );
-
-		wp_enqueue_script( 'woocommerce_stripe_admin' );
+		do_action( 'wc_stripe_gateway_admin_options_wrapper', $this );
 	}
 
 	/**
