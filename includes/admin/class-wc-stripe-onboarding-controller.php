@@ -71,6 +71,6 @@ class WC_Stripe_Onboarding_Controller {
 	 * Output a container for react app to mount on.
 	 */
 	public function render_onboarding_wizard() {
-		echo '<div id="wc-stripe-onboarding-wizard-container"></div>';
+		echo '<div class="wrap"><div id="wc-stripe-onboarding-wizard-container"></div></div>';
 	}
 }
