@@ -20,7 +20,7 @@ if ( settingsContainer ) {
 	ReactDOM.render(
 		<UpeToggleContextProvider
 			defaultIsUpeEnabled={
-				wc_stripe_settings_params.upe_setting_value === 'yes'
+				wc_stripe_settings_params.is_upe_checkout_enabled === '1'
 			}
 		>
 			<SettingsManager />

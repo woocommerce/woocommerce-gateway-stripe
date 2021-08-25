@@ -215,7 +215,7 @@ $stripe_settings = apply_filters(
 	]
 );
 
-if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
+if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 	$upe_settings = [
 		'upe_checkout_experience'         => [
 			'title' => __( 'Checkout experience', 'woocommerce-gateway-stripe' ),
@@ -230,7 +230,7 @@ if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
 			'desc_tip'    => true,
 		],
 	];
-	if ( WC_Stripe::get_instance()->is_upe_enabled() ) {
+	if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 		$upe_settings['upe_checkout_experience_accepted_payments'] = [
 			'type'    => 'upe_checkout_experience_accepted_payments',
 			'default' => [ 'card' ],

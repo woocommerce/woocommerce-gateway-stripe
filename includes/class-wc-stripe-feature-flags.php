@@ -5,12 +5,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WC_Stripe_Feature_Flags {
 	/**
-	 * Checks whether UPE feature flag is enabled.
+	 * Checks whether UPE "preview" feature flag is enabled.
+	 * This allows the merchant to enable/disable UPE checkout.
 	 *
 	 * @return bool
 	 */
-	public static function is_upe_enabled() {
+	public static function is_upe_preview_enabled() {
 		return '1' === get_option( '_wcstripe_feature_upe', '0' ) || self::is_upe_settings_redesign_enabled();
+	}
+
+	/**
+	 * Checks whether UPE is enabled.
+	 *
+	 * @return bool
+	 */
+	public static function is_upe_checkout_enabled() {
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', null );
+		return ! empty( $stripe_settings['upe_checkout_experience_enabled'] ) && 'yes' === $stripe_settings['upe_checkout_experience_enabled'];
 	}
 
 	/**

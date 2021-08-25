@@ -325,7 +325,7 @@ function woocommerce_gateway_stripe() {
 			 * @version 4.0.0
 			 */
 			public function add_gateways( $methods ) {
-				if ( ! WC_Stripe_Feature_Flags::is_upe_enabled() ) {
+				if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Subs_Compat::class : WC_Gateway_Stripe::class;
 					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Sepa_Subs_Compat::class : WC_Gateway_Stripe_Sepa::class;
 					$methods[] = WC_Gateway_Stripe_Bancontact::class;
@@ -339,7 +339,7 @@ function woocommerce_gateway_stripe() {
 					return $methods;
 				}
 
-				if ( $this->is_upe_enabled() ) {
+				if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 					$methods[] = WC_Stripe_UPE_Payment_Gateway::class;
 				} else {
 					// These payment gateways will be hidden when UPE is enabled:
@@ -361,16 +361,6 @@ function woocommerce_gateway_stripe() {
 			}
 
 			/**
-			 * Check if UPE is enabled.
-			 *
-			 * @return bool True if UPE is enabled, false if it is not.
-			 */
-			public function is_upe_enabled() {
-				$stripe_settings = get_option( 'woocommerce_stripe_settings', null );
-				return ! empty( $stripe_settings['upe_checkout_experience_enabled'] ) && 'yes' === $stripe_settings['upe_checkout_experience_enabled'];
-			}
-
-			/**
 			 * Modifies the order of the gateways displayed in admin.
 			 *
 			 * @since 4.0.0
@@ -378,7 +368,7 @@ function woocommerce_gateway_stripe() {
 			 */
 			public function filter_gateway_order_admin( $sections ) {
 				unset( $sections['stripe'] );
-				if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
+				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 					unset( $sections['stripe_upe'] );
 				}
 				unset( $sections['stripe_bancontact'] );
@@ -392,7 +382,7 @@ function woocommerce_gateway_stripe() {
 				unset( $sections['stripe_multibanco'] );
 
 				$sections['stripe'] = 'Stripe';
-				if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
+				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 					$sections['stripe_upe'] = 'Stripe checkout experience';
 				}
 				$sections['stripe_bancontact'] = __( 'Stripe Bancontact', 'woocommerce-gateway-stripe' );
@@ -426,7 +416,7 @@ function woocommerce_gateway_stripe() {
 					$settings     = array_merge( $old_settings, $settings );
 				}
 
-				if ( ! WC_Stripe_Feature_Flags::is_upe_enabled() ) {
+				if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 					return $settings;
 				}
 
@@ -564,7 +554,7 @@ function woocommerce_gateway_stripe() {
 				$oauth_init->register_routes();
 				$oauth_connect->register_routes();
 
-				if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
+				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-upe-flag-toggle-controller.php';
 					$upe_flag_toggle_controller = new WC_REST_UPE_Flag_Toggle_Controller();
 					$upe_flag_toggle_controller->register_routes();
