@@ -1,5 +1,7 @@
 <?php
 
+use Automattic\WooCommerce\Admin\PageController;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -13,6 +15,7 @@ class WC_Stripe_Onboarding_Controller {
 	public function __construct() {
 		add_action( 'admin_menu', [ $this, 'add_onboarding_wizard' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
+
 	}
 
 	/**
@@ -25,9 +28,12 @@ class WC_Stripe_Onboarding_Controller {
 		$script_url        = plugins_url( $script_path, WC_STRIPE_MAIN_FILE );
 		$script_asset      = file_exists( $script_asset_path )
 			? require $script_asset_path
-			: [ 'dependencies' => [] ];
+			: [
+				'dependencies' => [],
+				'version'      => WC_STRIPE_VERSION,
+			];
 
-		wp_register_script( // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
+		wp_register_script(
 			'wc_stripe_onboarding_wizard',
 			$script_url,
 			$script_asset['dependencies'],
@@ -49,6 +55,15 @@ class WC_Stripe_Onboarding_Controller {
 			'manage_woocommerce',
 			'wc_stripe-onboarding_wizard',
 			[ $this, 'render_onboarding_wizard' ]
+		);
+
+		// Connect PHP-powered admin page to wc-admin
+		wc_admin_connect_page(
+			[
+				'id'        => 'wc-stripe-onboarding-wizard',
+				'screen_id' => 'admin_page_wc_stripe-onboarding_wizard',
+				'title'     => __( 'Onboarding Wizard', 'woocommerce-gateway-stripe' ),
+			]
 		);
 	}
 
