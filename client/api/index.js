@@ -194,8 +194,24 @@ export default class WCStripeAPI {
 	 * @return {Promise} The final promise for the request to the server.
 	 */
 	saveUPEAppearance( appearance ) {
-		console.error( 'TODO: Not implemented yet: saveUPEAppearance' );
-		return null;
+		return this.request( getAjaxUrl( 'save_upe_appearance' ), {
+			appearance,
+			_ajax_nonce: getStripeServerData()?.saveUPEAppearanceNonce,
+		} )
+			.then( ( response ) => {
+				if ( response.result === 'failure' ) {
+					throw new Error( response.messages );
+				}
+				return response;
+			} )
+			.catch( ( error ) => {
+				if ( error.message ) {
+					throw error;
+				} else {
+					// Covers the case of error on the Ajax request.
+					throw new Error( error.statusText );
+				}
+			} );
 	}
 
 	/**
