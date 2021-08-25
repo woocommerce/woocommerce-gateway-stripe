@@ -229,6 +229,24 @@ class WC_Stripe_Customer {
 	}
 
 	/**
+	 * Updates existing Stripe customer or creates new customer for User through API.
+	 *
+	 * @param array $args     Additional arguments for the request (optional).
+	 * @param bool  $is_retry Whether the current call is a retry (optional, defaults to false). If true, then an exception will be thrown instead of further retries on error.
+	 *
+	 * @return string Customer ID
+	 *
+	 * @throws WC_Stripe_Exception
+	 */
+	public function update_or_create_customer( $args = [], $is_retry = false ) {
+		if ( empty( $this->get_id() ) ) {
+			return $this->recreate_customer();
+		} else {
+			return $this->update_customer( $args, true );
+		}
+	}
+
+	/**
 	 * Checks to see if error is of invalid request
 	 * error and it is no such customer.
 	 *

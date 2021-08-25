@@ -340,7 +340,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$currency                  = $order->get_currency();
 		$converted_amount          = WC_Stripe_Helper::get_stripe_amount( $amount, $currency );
 		$payment_needed            = 0 < $converted_amount;
-		$save_payment_method       = ! empty( $_POST[ 'wc-' . static::ID . '-new-payment-method' ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$save_payment_method       = ! empty( $_POST[ 'wc-' . self::ID . '-new-payment-method' ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_upe_payment_type = ! empty( $_POST['wc_stripe_selected_upe_payment_type'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 		if ( $payment_intent_id ) {
@@ -356,6 +356,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				$customer_id = $this->get_stripe_customer_id( $order );
 				if ( ! empty( $customer_id ) ) {
 					$request['customer'] = $customer_id;
+				} else {
+					$user                = $this->get_user_from_order( $order );
+					$customer            = new WC_Stripe_Customer( $user->ID );
+					$request['customer'] = $customer->update_or_create_customer();// Update customer or create customer if customer does not exist.
 				}
 
 				if ( '' !== $selected_upe_payment_type ) {
@@ -428,7 +432,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			// Get payment intent to confirm status.
 			if ( $payment_needed ) {
-				$intent = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
+				$intent = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id );
 			} else {
 				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id );
 			}
@@ -447,9 +451,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$payment_method = $this->payment_methods[ $payment_method_type ];
 
 			// TODO: save the payment method
-			// if ( $save_payment_method && $payment_method->is_reusable() ) {
-			//     See: https://github.com/Automattic/woocommerce-payments/blob/b69532e92a381cf054f515896c56cc365e3904d4/includes/payment-methods/class-upe-payment-gateway.php#L493
-			// }
+			if ( $save_payment_method && $payment_method->is_reusable() ) {
+				$user  = $this->get_user_from_order( $order );
+				$token = $payment_method->get_payment_token_for_user( $user, $intent->payment_method );
+				$this->add_token_to_order( $order, $token );
+			}
 
 			$intent->captured = 'yes'; // TODO: this is to re-use the parent logic, maybe re-implement it to not use charges?, see: https://github.com/Automattic/woocommerce-payments/blob/b69532e92a381cf054f515896c56cc365e3904d4/includes/class-wc-payment-gateway-wcpay.php#L1125
 			$this->process_response( $intent, $order );
@@ -466,6 +472,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			wp_safe_redirect( wc_get_checkout_url() );
 			exit;
 		}
+	}
+
+	/**
+	 * Get WC User from WC Order.
+	 *
+	 * @param WC_Order $order
+	 *
+	 * @return WC_User
+	 */
+	public function get_user_from_order( $order ) {
+		$user = $order->get_user();
+		if ( false === $user ) {
+			$user = wp_get_current_user();
+		}
+		return $user;
 	}
 
 	/**
@@ -532,6 +553,41 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$order->set_payment_method_title( $payment_method_title );
 		$order->save();
+	}
+
+	/**
+	 * Saves the payment token to the order.
+	 *
+	 * @param WC_Order         $order The order.
+	 * @param WC_Payment_Token $token The token to save.
+	 */
+	public function add_token_to_order( $order, $token ) {
+		$payment_token = $this->get_payment_token( $order );
+
+		// This could lead to tokens being saved twice in an order's payment tokens, but it is needed so that shoppers
+		// may re-use a previous card for the same subscription, as we consider the last token to be the active one.
+		// We can't remove the previous entry for the token because WC_Order does not support removal of tokens [1] and
+		// we can't delete the token as it might be used somewhere else.
+		// [1] https://github.com/woocommerce/woocommerce/issues/11857.
+		if ( is_null( $payment_token ) || $token->get_id() !== $payment_token->get_id() ) {
+			$order->add_payment_token( $token );
+		}
+
+		// TODO: implement this when Subscriptions added
+		// $this->maybe_add_token_to_subscription_order( $order, $token );
+	}
+
+	/**
+	 * Retrieve payment token from a subscription or order.
+	 *
+	 * @param WC_Order $order Order or subscription object.
+	 *
+	 * @return null|WC_Payment_Token Last token associated with order or subscription.
+	 */
+	protected function get_payment_token( $order ) {
+		$order_tokens = $order->get_payment_tokens();
+		$token_id     = end( $order_tokens );
+		return ! $token_id ? null : WC_Payment_Tokens::get( $token_id );
 	}
 
 	/**
