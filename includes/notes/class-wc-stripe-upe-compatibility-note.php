@@ -31,14 +31,14 @@ class WC_Stripe_UPE_Compatibility_Note {
 
 		$note->set_title( __( 'Important compatibility information about WooCommerce Stripe', 'woocommerce-gateway-stripe' ) );
 		/* translators: $1 WordPress version installed. $2 WooCommerce version installed. */
-		$note->set_content( sprintf( __( 'Starting with version 5.6.0, WooCommerce Stripe will require WordPress %1$s or greater and WooCommerce %2$s or greater to be installed and active.', 'woocommerce-gateway-stripe' ), WC_STRIPE_UPE_MIN_WP_VER, WC_STRIPE_UPE_MIN_WC_VER ) );
+		$note->set_content( sprintf( __( 'Starting with version 5.6.0, WooCommerce Stripe will require WordPress %1$s or greater and WooCommerce %2$s or greater to be installed and active.', 'woocommerce-gateway-stripe' ), WC_Stripe_UPE_Compatibility::MIN_WP_VERSION, WC_Stripe_UPE_Compatibility::MIN_WC_VERSION ) );
 		$note->set_type( $note_class::E_WC_ADMIN_NOTE_WARNING );
 		$note->set_name( self::NOTE_NAME );
 		$note->set_source( 'woocommerce-gateway-stripe' );
 		$note->add_action(
 			self::NOTE_NAME,
 			__( 'Learn more', 'woocommerce-gateway-stripe' ),
-			'?TODO',
+			WC_Stripe_UPE_Compatibility::LEARN_MORE_LINK,
 			$note_class::E_WC_ADMIN_NOTE_UNACTIONED,
 			true
 		);
@@ -62,7 +62,7 @@ class WC_Stripe_UPE_Compatibility_Note {
 	public static function init() {
 		// if the note hasn't been added, add it
 		// if it has been added and the merchant has upgraded WC & WP, delete it
-		if ( version_compare( WC_VERSION, WC_STRIPE_UPE_MIN_WC_VER, '<' ) || version_compare( get_bloginfo( 'version' ), WC_STRIPE_UPE_MIN_WP_VER, '<' ) ) {
+		if ( ! WC_Stripe_UPE_Compatibility::is_wc_supported() || ! WC_Stripe_UPE_Compatibility::is_wp_supported() ) {
 			self::possibly_add_note();
 		} else {
 			self::possibly_delete_note();

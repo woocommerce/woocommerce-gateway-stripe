@@ -30,17 +30,22 @@ class WC_Stripe_UPE_Compatibility_Controller {
 				[
 					'name'        => 'WordPress',
 					'version'     => get_bloginfo( 'version' ),
-					'requirement' => WC_STRIPE_UPE_MIN_WP_VER,
+					'requirement' => WC_Stripe_UPE_Compatibility::MIN_WP_VERSION,
 					/* translators: %s. WordPress version installed. */
-					'message'     => sprintf( __( 'WordPress %s or greater', 					'woocommerce-gateway-stripe' ), WC_STRIPE_UPE_MIN_WP_VER ),
+					'message'     => sprintf( __( 'WordPress %s or greater', 'woocommerce-gateway-stripe' ), WC_Stripe_UPE_Compatibility::MIN_WP_VERSION ),
 				],
 				[
 					'name'        => 'WooCommerce',
 					'version'     => $this->get_wc_version(),
-					'requirement' => WC_STRIPE_UPE_MIN_WC_VER,
+					'requirement' => WC_Stripe_UPE_Compatibility::MIN_WC_VERSION,
 					/* translators: %s. WooCommerce version installed. */
-					'message'     => sprintf( __( 'WooCommerce %s or greater to be installed and active',					'woocommerce-gateway-stripe'
-					), WC_STRIPE_UPE_MIN_WC_VER ),
+					'message'     => sprintf(
+						__(
+							'WooCommerce %s or greater to be installed and active',
+							'woocommerce-gateway-stripe'
+						),
+						WC_Stripe_UPE_Compatibility::MIN_WC_VERSION
+					),
 				],
 			],
 			function ( $requirement ) {
@@ -84,7 +89,7 @@ class WC_Stripe_UPE_Compatibility_Controller {
 				),
 				$unsatisfied_requirements_message,
 				$unsatisfied_requirements_versions,
-				'?TODO'
+				WC_Stripe_UPE_Compatibility::LEARN_MORE_LINK
 			)
 		);
 		echo '</strong></p></div>';

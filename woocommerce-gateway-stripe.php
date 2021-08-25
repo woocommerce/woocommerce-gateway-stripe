@@ -25,8 +25,6 @@ define( 'WC_STRIPE_VERSION', '5.4.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '3.0' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '3.3' );
-define( 'WC_STRIPE_UPE_MIN_WP_VER', '5.6' );
-define( 'WC_STRIPE_UPE_MIN_WC_VER', '5.4' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
 define( 'WC_STRIPE_PLUGIN_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
@@ -50,7 +48,7 @@ function woocommerce_stripe_missing_wc_notice() {
  */
 function woocommerce_stripe_wc_not_supported() {
 	/* translators: $1. Minimum WooCommerce version. $2. Current WooCommerce version. */
-	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce %1$s or greater to be installed and active. WooCommerce %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ? WC_STRIPE_UPE_MIN_WC_VER : WC_STRIPE_MIN_WC_VER, WC_VERSION ) . '</strong></p></div>';
+	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce %1$s or greater to be installed and active. WooCommerce %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ? WC_Stripe_UPE_Compatibility::MIN_WC_VERSION : WC_STRIPE_MIN_WC_VER, WC_VERSION ) . '</strong></p></div>';
 }
 
 /**
@@ -60,7 +58,7 @@ function woocommerce_stripe_wc_not_supported() {
  */
 function woocommerce_stripe_wp_not_supported() {
 	/* translators: $1. Minimum WordPress version. $2. Current WordPress version. */
-	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WordPress %1$s or greater to be installed and active. WordPress %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), WC_STRIPE_UPE_MIN_WP_VER, get_bloginfo( 'version' ) ) . '</strong></p></div>';
+	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WordPress %1$s or greater to be installed and active. WordPress %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), WC_Stripe_UPE_Compatibility::MIN_WP_VERSION, get_bloginfo( 'version' ) ) . '</strong></p></div>';
 }
 
 function woocommerce_gateway_stripe() {
@@ -605,6 +603,7 @@ add_action( 'plugins_loaded', 'woocommerce_gateway_stripe_init' );
 function woocommerce_gateway_stripe_init() {
 	// including this here so that all the classes have the ability to leverage `WC_Stripe_Feature_Flags`
 	require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-feature-flags.php';
+	require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-upe-compatibility.php';
 	load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
 
 	if ( ! class_exists( 'WooCommerce' ) ) {
@@ -617,13 +616,13 @@ function woocommerce_gateway_stripe_init() {
 		return;
 	}
 
-	if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() && version_compare( WC_VERSION, WC_STRIPE_UPE_MIN_WC_VER, '<' ) ) {
+	if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() && ! WC_Stripe_UPE_Compatibility::is_wc_supported() ) {
 		add_action( 'admin_notices', 'woocommerce_stripe_wc_not_supported' );
 		return;
 	}
 
 	// technically speaking, WooCommerce also wouldn't support the same version of WP as we are, but I guess this doesn't hurt.
-	if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() && version_compare( get_bloginfo( 'version' ), WC_STRIPE_UPE_MIN_WP_VER, '<' ) ) {
+	if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() && ! WC_Stripe_UPE_Compatibility::is_wp_supported() ) {
 		add_action( 'admin_notices', 'woocommerce_stripe_wp_not_supported' );
 		return;
 	}
