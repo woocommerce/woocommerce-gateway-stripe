@@ -45,14 +45,14 @@ const SettingsManager = () => {
 				tabs={ TABS_CONTENT }
 			>
 				{ ( tab ) => (
-					<>
+					<div data-testid={ `${ tab.name }-tab` }>
 						{ tab.name === 'settings' ? (
 							<PaymentSettingsPanel />
 						) : (
 							<PaymentMethodsPanel />
 						) }
 						<SaveSettingsSection />
-					</>
+					</div>
 				) }
 			</StyledTabPanel>
 		</SettingsLayout>
