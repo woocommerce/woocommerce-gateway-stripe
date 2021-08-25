@@ -37,7 +37,7 @@ class WC_Stripe_Onboarding_Controller {
 			'wc_stripe_onboarding_wizard',
 			$script_url,
 			$script_asset['dependencies'],
-			null,
+			$script_asset['version'],
 			true
 		);
 
