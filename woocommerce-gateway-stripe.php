@@ -271,7 +271,7 @@ function woocommerce_gateway_stripe() {
 				if ( ! empty( $stripe_settings ) && empty( $prb_locations ) ) {
 					global $post;
 
-					$should_show_on_product_page  = ! apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false );
+					$should_show_on_product_page  = ! apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post );
 					$should_show_on_cart_page     = apply_filters( 'wc_stripe_show_payment_request_on_cart', true );
 					$should_show_on_checkout_page = apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post );
 
