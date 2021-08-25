@@ -1,3 +1,4 @@
+/* global wc_stripe_settings_params */
 /**
  * External dependencies
  */
@@ -8,6 +9,7 @@ import ReactDOM from 'react-dom';
  * Internal dependencies
  */
 import SettingsManager from './settings-manager';
+import UpeToggleContextProvider from './upe-toggle/provider';
 import './styles.scss';
 
 const settingsContainer = document.getElementById(
@@ -15,5 +17,14 @@ const settingsContainer = document.getElementById(
 );
 
 if ( settingsContainer ) {
-	ReactDOM.render( <SettingsManager />, settingsContainer );
+	ReactDOM.render(
+		<UpeToggleContextProvider
+			defaultIsUpeEnabled={
+				wc_stripe_settings_params.upe_setting_value === 'yes'
+			}
+		>
+			<SettingsManager />
+		</UpeToggleContextProvider>,
+		settingsContainer
+	);
 }

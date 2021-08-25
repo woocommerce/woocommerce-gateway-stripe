@@ -345,9 +345,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		if ( $payment_intent_id ) {
 			if ( $payment_needed ) {
 				$request = [
-					'amount'   => $converted_amount,
-					'currency' => $currency,
+					'amount'      => $converted_amount,
+					'currency'    => $currency,
+					/* translators: 1) blog name 2) order number */
+					'description' => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
 				];
+
+				// Get user/customer for order.
+				$customer_id = $this->get_stripe_customer_id( $order );
+				if ( ! empty( $customer_id ) ) {
+					$request['customer'] = $customer_id;
+				}
 
 				if ( '' !== $selected_upe_payment_type ) {
 					// Only update the payment_method_types if we have a reference to the payment type the customer selected.
@@ -357,6 +365,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				if ( $save_payment_method ) {
 					$request['setup_future_usage'] = 'off_session';
 				}
+
+				$request['metadata'] = $this->get_metadata_from_order( $order );
 
 				WC_Stripe_API::request_with_level3_data(
 					$request,
@@ -627,5 +637,29 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 
 		return [ $payment_method_type, $payment_method_details ];
+	}
+
+	/**
+	 * Prepares Stripe metadata for a given order.
+	 *
+	 * @param WC_Order $order Order being processed.
+	 *
+	 * @return array Array of keyed metadata values.
+	 */
+	private function get_metadata_from_order( $order ) {
+
+		// TODO: change this after adding the subscriptions trait: $this->is_payment_recurring( $order->get_id() ) ? Payment_Type::RECURRING() : Payment_Type::SINGLE();
+		$payment_type = 'single';
+		$name         = sanitize_text_field( $order->get_billing_first_name() ) . ' ' . sanitize_text_field( $order->get_billing_last_name() );
+		$email        = sanitize_email( $order->get_billing_email() );
+
+		return [
+			'customer_name'  => $name,
+			'customer_email' => $email,
+			'site_url'       => esc_url( get_site_url() ),
+			'order_id'       => $order->get_id(),
+			'order_key'      => $order->get_order_key(),
+			'payment_type'   => $payment_type,
+		];
 	}
 }
