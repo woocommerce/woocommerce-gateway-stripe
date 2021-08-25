@@ -187,6 +187,11 @@ function woocommerce_gateway_stripe() {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-settings-controller.php';
 
 					new WC_Stripe_Settings_Controller();
+
+					if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
+						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-onboarding-controller.php';
+						new WC_Stripe_Onboarding_Controller();
+					}
 				}
 
 				// REMOVE IN THE FUTURE.
