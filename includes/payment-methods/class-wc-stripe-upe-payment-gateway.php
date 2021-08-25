@@ -208,6 +208,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['ajax_url']                 = WC_AJAX::get_endpoint( '%%endpoint%%' );
 		$stripe_params['createPaymentIntentNonce'] = wp_create_nonce( '_wc_stripe_nonce' );
 		$stripe_params['upeAppeareance']           = get_transient( self::UPE_APPEARANCE_TRANSIENT );
+		$stripe_params['saveUPEAppearanceNonce']   = wp_create_nonce( '_wc_stripe_save_upe_appearance_nonce' );
 		$stripe_params['paymentMethodsConfig']     = $this->get_enabled_payment_method_config();
 		$stripe_params['accountDescriptor']        = 'accountDescriptor'; // TODO: this should be added to the Stripe settings page or remove it from here.
 
@@ -431,7 +432,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			} else {
 				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id );
 			}
-			$error  = $intent->last_payment_error;
+			$error = $intent->last_payment_error;
 
 			if ( ! empty( $error ) ) {
 				WC_Stripe_Logger::log( 'Error when processing payment: ' . $error->message );
@@ -621,18 +622,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return string[] List with 2 values: payment_method_type and payment_method_details.
 	 */
 	private function get_payment_method_data_from_intent( $intent ) {
-		$payment_method_type = '';
+		$payment_method_type    = '';
 		$payment_method_details = false;
 
 		if ( 'payment_intent' === $intent->object ) {
 			if ( ! empty( $intent->charges ) && 0 < $intent->charges->total_count ) {
-				$charge = end( $intent->charges->data );
+				$charge                 = end( $intent->charges->data );
 				$payment_method_details = (array) $charge->payment_method_details;
-				$payment_method_type = ! empty( $payment_method_details ) ? $payment_method_details['type'] : '';
+				$payment_method_type    = ! empty( $payment_method_details ) ? $payment_method_details['type'] : '';
 			}
 		} elseif ( 'setup_intent' === $intent->object ) {
 			$payment_method_options = array_keys( $intent->payment_method_options );
-			$payment_method_type = ! empty( $payment_method_options ) ? $payment_method_options[0] : '';
+			$payment_method_type    = ! empty( $payment_method_options ) ? $payment_method_options[0] : '';
 			// Setup intents don't have details, keep the false value.
 		}
 
