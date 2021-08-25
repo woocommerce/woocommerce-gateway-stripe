@@ -45,8 +45,8 @@ class WC_Stripe_UPE_Compatibility_Controller {
 					'name'        => 'WooCommerce',
 					'version'     => $this->get_wc_version(),
 					'requirement' => WC_Stripe_UPE_Compatibility::MIN_WC_VERSION,
-					/* translators: %s. WooCommerce version installed. */
 					'message'     => sprintf(
+						/* translators: %s. WooCommerce version installed. */
 						__(
 							'WooCommerce %s or greater to be installed and active',
 							'woocommerce-gateway-stripe'
