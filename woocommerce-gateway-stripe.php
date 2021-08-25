@@ -601,7 +601,7 @@ function woocommerce_gateway_stripe() {
 add_action( 'plugins_loaded', 'woocommerce_gateway_stripe_init' );
 
 function woocommerce_gateway_stripe_init() {
-	// including this here so that all the classes have the ability to leverage `WC_Stripe_Feature_Flags`
+	// including this here so that all the classes have the ability to leverage `WC_Stripe_Feature_Flags` and `WC_Stripe_UPE_Compatibility`
 	require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-feature-flags.php';
 	require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-upe-compatibility.php';
 	load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
