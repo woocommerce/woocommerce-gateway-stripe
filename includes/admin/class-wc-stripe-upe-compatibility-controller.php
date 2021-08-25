@@ -16,7 +16,7 @@ class WC_Stripe_UPE_Compatibility_Controller {
 	}
 
 	/**
-	 * I created this as a separate method so it can be mocked in unit tests.
+	 * I created this as a separate method, so it can be mocked in unit tests.
 	 *
 	 * @retun string
 	 */
@@ -25,6 +25,13 @@ class WC_Stripe_UPE_Compatibility_Controller {
 	}
 
 	public function add_upcoming_compatibility_notice() {
+		/*
+		 * The following might be hard to read, but here's what I'm trying to do:
+		 * - If WP and WC are both supported -> nothing to do
+		 * - If WC is not supported -> construct message saying "Stripe will require WooCommerce 5.4 or greater to be installed and active. Your version of WooCommerce [X.X] will no longer be supported"
+		 * - If WP is not supported -> construct message saying "Stripe will require WordPress 5.6 or greater. Your version of WordPress [X.X] will no longer be supported"
+		 * - If WC & WP are both not supported -> construct message saying "Stripe will require WordPress 5.6 or greater and WooCommerce 5.4 or greater to be installed and active. Your versions of WordPress [X.X] and WooCommerce [X.X] will no longer be supported"
+		 */
 		$unsatisfied_requirements = array_filter(
 			[
 				[
