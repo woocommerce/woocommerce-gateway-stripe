@@ -1,3 +1,4 @@
+/* global wc_stripe_settings_params */
 /**
  * External dependencies
  */
@@ -19,7 +20,7 @@ if ( settingsContainer ) {
 	ReactDOM.render(
 		<UpeToggleContextProvider
 			defaultIsUpeEnabled={
-				woocommerce_stripe_admin.upe_setting_value === 'yes'
+				wc_stripe_settings_params.upe_setting_value === 'yes'
 			}
 		>
 			<SettingsManager />

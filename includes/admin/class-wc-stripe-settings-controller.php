@@ -61,6 +61,7 @@ class WC_Stripe_Settings_Controller {
 			wp_register_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION, true );
 		}
 
+		$gateway_settings = get_option('woocommerce_stripe_settings', []);
 		$params = [
 			'time'              => time(),
 			'i18n_out_of_sync'  => wp_kses(
