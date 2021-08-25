@@ -78,7 +78,7 @@ class WC_Stripe_UPE_Compatibility_Controller {
 			__( ' and ', 'woocommerce-gateway-stripe' ),
 			array_map(
 				function ( $requirement ) {
-					return $requirement['name'] . ' ' . $requirement['requirement'];
+					return $requirement['name'] . ' ' . $requirement['version'];
 				},
 				$unsatisfied_requirements
 			)

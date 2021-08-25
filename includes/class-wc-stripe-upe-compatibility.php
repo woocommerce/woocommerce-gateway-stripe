@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WC_Stripe_UPE_Compatibility {
 	const MIN_WP_VERSION  = '5.6';
-	const MIN_WC_VERSION  = '5.4';
+	const MIN_WC_VERSION  = '5.5';
 	const LEARN_MORE_LINK = '?TODO';
 
 	public static function is_wp_supported() {
