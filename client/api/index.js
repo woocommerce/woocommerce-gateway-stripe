@@ -18,12 +18,13 @@ import {
  * Construct WC AJAX endpoint URL.
  *
  * @param {string} endpoint Request endpoint URL.
+ * @param {string} prefix Endpoint URI prefix (default: 'wc_stripe_').
  * @return {string} URL with interpolated endpoint.
  */
-const getAjaxUrl = ( endpoint ) => {
+const getAjaxUrl = ( endpoint, prefix = 'wc_stripe_' ) => {
 	return getStripeServerData()
 		?.ajax_url?.toString()
-		?.replace( '%%endpoint%%', 'wc_stripe_' + endpoint );
+		?.replace( '%%endpoint%%', prefix + endpoint );
 };
 
 export const getCartDetails = () => {
@@ -172,12 +173,72 @@ export default class WCStripeAPI {
 			} );
 	}
 
-	confirmIntent( url, savePaymentMethod ) {
+	/**
+	 * Extracts the details about a payment intent from the redirect URL,
+	 * and displays the intent confirmation modal (if needed).
+	 *
+	 * @param {string} redirectUrl The redirect URL, returned from the server.
+	 * @param {string} paymentMethodToSave The ID of a Payment Method if it should be saved (optional).
+	 * @return {string|boolean} A redirect URL on success, or `true` if no confirmation is needed.
+	 */
+	confirmIntent( redirectUrl, paymentMethodToSave ) {
 		console.error( 'TODO: Not implemented yet: confirmIntent' );
 		return true;
 	}
 
+	/**
+	 * Saves the calculated UPE appearance values in a transient.
+	 *
+	 * @param {Object} appearance The UPE appearance object with style values
+	 *
+	 * @return {Promise} The final promise for the request to the server.
+	 */
 	saveUPEAppearance( appearance ) {
-		console.error( 'TODO: Not implemented yet: saveUPEAppearance' );
+		return this.request( getAjaxUrl( 'save_upe_appearance' ), {
+			appearance,
+			_ajax_nonce: getStripeServerData()?.saveUPEAppearanceNonce,
+		} )
+			.then( ( response ) => {
+				if ( response.result === 'failure' ) {
+					throw new Error( response.messages );
+				}
+				return response;
+			} )
+			.catch( ( error ) => {
+				if ( error.message ) {
+					throw error;
+				} else {
+					// Covers the case of error on the Ajax request.
+					throw new Error( error.statusText );
+				}
+			} );
+	}
+
+	/**
+	 * Process checkout and update payment intent via AJAX.
+	 *
+	 * @param {string} paymentIntentId ID of payment intent to be updated.
+	 * @param {Object} fields Checkout fields.
+	 * @return {Promise} Promise containing redirect URL for UPE element.
+	 */
+	processCheckout( paymentIntentId, fields ) {
+		return this.request( getAjaxUrl( 'checkout', '' ), {
+			...fields,
+			wc_payment_intent_id: paymentIntentId,
+		} )
+			.then( ( response ) => {
+				if ( response.result === 'failure' ) {
+					throw new Error( response.messages );
+				}
+				return response;
+			} )
+			.catch( ( error ) => {
+				if ( error.message ) {
+					throw error;
+				} else {
+					// Covers the case of error on the Ajax request.
+					throw new Error( error.statusText );
+				}
+			} );
 	}
 }

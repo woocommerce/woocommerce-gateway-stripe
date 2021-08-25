@@ -11,9 +11,6 @@ import WCStripeAPI from '../../api';
 import { getStripeServerData } from '../../stripe-utils';
 import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
 
-const PAYMENT_METHOD_NAME_CARD = 'stripe';
-const PAYMENT_METHOD_NAME_UPE = 'stripe_upe';
-
 jQuery( function ( $ ) {
 	const key = getStripeServerData()?.key;
 	const isUPEEnabled = getStripeServerData()?.isUPEEnabled;
@@ -195,10 +192,7 @@ jQuery( function ( $ ) {
 			$( '.woocommerce-SavedPaymentMethods-saveNew' ).show();
 		} else {
 			$( '.woocommerce-SavedPaymentMethods-saveNew' ).hide();
-			$( 'input#wc-woocommerce_payments-new-payment-method' ).prop(
-				'checked',
-				false
-			);
+			$( 'input#wc-stripe-new-payment-method' ).prop( 'checked', false );
 		}
 	};
 
@@ -397,7 +391,7 @@ jQuery( function ( $ ) {
 
 		try {
 			const isSavingPaymentMethod = $(
-				'#wc-woocommerce_payments-new-payment-method'
+				'#wc-stripe-new-payment-method'
 			).is( ':checked' );
 			const savePaymentMethod = isSavingPaymentMethod ? 'yes' : 'no';
 
@@ -520,9 +514,9 @@ jQuery( function ( $ ) {
 	const maybeShowAuthenticationModal = () => {
 		const paymentMethodId = $( '#wc-stripe-payment-method' ).val();
 
-		const savePaymentMethod = $(
-			'#wc-woocommerce_payments-new-payment-method'
-		).is( ':checked' );
+		const savePaymentMethod = $( '#wc-stripe-new-payment-method' ).is(
+			':checked'
+		);
 		const confirmation = api.confirmIntent(
 			window.location.href,
 			savePaymentMethod ? paymentMethodId : null
@@ -577,20 +571,13 @@ jQuery( function ( $ ) {
 	 */
 	function isUsingSavedPaymentMethod() {
 		return (
-			$( '#wc-woocommerce_payments-payment-token-new' ).length &&
-			! $( '#wc-woocommerce_payments-payment-token-new' ).is( ':checked' )
+			$( '#wc-stripe-payment-token-new' ).length &&
+			! $( '#wc-stripe-payment-token-new' ).is( ':checked' )
 		);
 	}
 
-	// Handle the checkout form when WooCommerce Payments is chosen.
-	const wcStripePaymentMethods = [
-		PAYMENT_METHOD_NAME_CARD,
-		PAYMENT_METHOD_NAME_UPE,
-	];
-	const checkoutEvents = wcStripePaymentMethods
-		.map( ( method ) => `checkout_place_order_${ method }` )
-		.join( ' ' );
-	$( 'form.checkout' ).on( checkoutEvents, function () {
+	// Handle the checkout form when WooCommerce Gateway Stripe is chosen.
+	$( 'form.checkout' ).on( 'checkout_place_order_stripe', function () {
 		if ( ! isUsingSavedPaymentMethod() ) {
 			if ( isUPEEnabled && paymentIntentId ) {
 				handleUPECheckout( $( this ) );
