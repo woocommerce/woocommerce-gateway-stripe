@@ -31,13 +31,16 @@ class WC_Stripe_UPE_Compatibility_Controller {
 					'name'        => 'WordPress',
 					'version'     => get_bloginfo( 'version' ),
 					'requirement' => WC_STRIPE_UPE_MIN_WP_VER,
-					'message'     => sprintf( __( 'Wordpress %s or greater' ), WC_STRIPE_UPE_MIN_WP_VER ),
+					/* translators: %s. WordPress version installed. */
+					'message'     => sprintf( __( 'WordPress %s or greater', 					'woocommerce-gateway-stripe' ), WC_STRIPE_UPE_MIN_WP_VER ),
 				],
 				[
 					'name'        => 'WooCommerce',
 					'version'     => $this->get_wc_version(),
 					'requirement' => WC_STRIPE_UPE_MIN_WC_VER,
-					'message'     => sprintf( __( 'WooCommerce %s or greater to be installed and active' ), WC_STRIPE_UPE_MIN_WC_VER ),
+					/* translators: %s. WooCommerce version installed. */
+					'message'     => sprintf( __( 'WooCommerce %s or greater to be installed and active',					'woocommerce-gateway-stripe'
+					), WC_STRIPE_UPE_MIN_WC_VER ),
 				],
 			],
 			function ( $requirement ) {

@@ -30,6 +30,7 @@ class WC_Stripe_UPE_Compatibility_Note {
 		$note       = new $note_class();
 
 		$note->set_title( __( 'Important compatibility information about WooCommerce Stripe', 'woocommerce-gateway-stripe' ) );
+		/* translators: $1 WordPress version installed. $2 WooCommerce version installed. */
 		$note->set_content( sprintf( __( 'Starting with version 5.6.0, WooCommerce Stripe will require WordPress %1$s or greater and WooCommerce %2$s or greater to be installed and active.', 'woocommerce-gateway-stripe' ), WC_STRIPE_UPE_MIN_WP_VER, WC_STRIPE_UPE_MIN_WC_VER ) );
 		$note->set_type( $note_class::E_WC_ADMIN_NOTE_WARNING );
 		$note->set_name( self::NOTE_NAME );
