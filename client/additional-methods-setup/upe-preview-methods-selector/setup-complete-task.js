@@ -6,7 +6,7 @@
  import { __ } from '@wordpress/i18n';
  import { Button } from '@wordpress/components';
  import { getHistory, getNewPath } from '@woocommerce/navigation';
- import { useDispatch } from '@wordpress/data';
+//  import { useDispatch } from '@wordpress/data';
  import interpolateComponents from 'interpolate-components';
 
  /**
@@ -22,7 +22,7 @@
 		 getHistory().push( getNewPath( {}, '/', {} ) );
 	 }, [] );
 
-	 const { updateOptions } = useDispatch( 'wc/admin/options' );
+	//  const { updateOptions } = useDispatch( 'wc/admin/options' );
 
 	 return (
 		 <WizardTaskItem
