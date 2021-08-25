@@ -24,6 +24,7 @@
     "@wordpress/api-fetch": "^5.2.1",
     "@wordpress/babel-plugin-makepot": "^4.2.0",
     "@wordpress/babel-preset-default": "^6.3.1",
+    "@wordpress/base-styles": "^3.6.0",
     "@wordpress/components": "^15.0.0",
     "@wordpress/i18n": "^4.2.1",
     "@wordpress/jest-preset-default": "^7.1.0",

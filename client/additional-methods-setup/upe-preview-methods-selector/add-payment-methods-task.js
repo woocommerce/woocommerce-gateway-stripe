@@ -18,16 +18,39 @@ import interpolateComponents from 'interpolate-components';
 import WizardTaskContext from '../wizard/task/context';
 import CollapsibleBody from '../wizard/collapsible-body';
 import WizardTaskItem from '../wizard/task-item';
-import {
-	useEnabledPaymentMethodIds,
-	useGetAvailablePaymentMethodIds,
-	useSettings,
-} from '../../data';
+//TODO
+// import {
+// 	useEnabledPaymentMethodIds,
+// 	useGetAvailablePaymentMethodIds,
+// 	useSettings,
+// } from '../../data';
 import PaymentMethodCheckboxes from '../../components/payment-methods-checkboxes';
 import PaymentMethodCheckbox from '../../components/payment-methods-checkboxes/payment-method-checkbox';
 import { LoadableBlock } from '../../components/loadable';
 import LoadableSettingsSection from '../../settings/loadable-settings-section';
 import CurrencyInformationForMethods from '../../components/currency-information-for-methods';
+
+//TODO, these should come from data
+const useEnabledPaymentMethodIds = () => {
+	return [
+		['sepa_debit'],
+		() => ({}),
+	]
+}
+const useGetAvailablePaymentMethodIds = () => {
+	return [
+		'giropay',
+		'sofort',
+		'sepa_debit',
+	];
+}
+const useSettings = () => {
+	return {
+		saveSettings: Promise.resolve('Success'),
+		isSaving: false,
+	};
+
+};
 
 const usePaymentMethodsCheckboxState = () => {
 	const availablePaymentMethods = useGetAvailablePaymentMethodIds();

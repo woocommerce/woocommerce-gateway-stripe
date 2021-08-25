@@ -7,12 +7,12 @@
  /**
   * Internal dependencies
   */
- import Wizard from '../wizard/wrapper';
- import WizardTask from '../wizard/task';
- import WizardTaskList from '../wizard/task-list';
- import EnableUpePreviewTask from './enable-upe-preview-task';
- import SetupCompleteTask from './setup-complete-task';
- import AddPaymentMethodsTask from './add-payment-methods-task';
+ import Wizard from './wizard/wrapper';
+ import WizardTask from './wizard/task';
+ import WizardTaskList from './wizard/task-list';
+ import EnableUpePreviewTask from './upe-preview-methods-selector/enable-upe-preview-task';
+ import SetupCompleteTask from './upe-preview-methods-selector/setup-complete-task';
+ import AddPaymentMethodsTask from './upe-preview-methods-selector/add-payment-methods-task';
  import './index.scss';
 
  const OnboardingWizard = () => {

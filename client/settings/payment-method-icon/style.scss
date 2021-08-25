@@ -1,0 +1,28 @@
+@import "../../styles/abstracts/styles.scss";
+
+.woocommerce-payments__payment-method-icon {
+	display: inline-flex;
+	align-items: center;
+	vertical-align: middle;
+	max-width: 160px;
+
+	@include breakpoint( '>660px' ) {
+		max-width: inherit;
+	}
+
+	&__label {
+		margin-left: 4px;
+	}
+
+	svg {
+		width: 38px;
+		height: auto;
+	}
+
+	&.has-icon-border {
+		svg {
+			box-shadow: 0 0 0 1px #ddd;
+			border-radius: 2px;
+		}
+	}
+}
