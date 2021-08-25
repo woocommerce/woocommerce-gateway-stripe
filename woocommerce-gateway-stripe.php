@@ -668,10 +668,6 @@ function woocommerce_gateway_stripe_woocommerce_block_support() {
 		add_action(
 			'woocommerce_blocks_payment_method_type_registration',
 			function( Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry ) {
-				if ( ! class_exists( 'WC_Stripe_Payment_Request' ) ) {
-					return;
-				}
-
 				$container = Automattic\WooCommerce\Blocks\Package::container();
 				// registers as shared instance.
 				$container->register(
