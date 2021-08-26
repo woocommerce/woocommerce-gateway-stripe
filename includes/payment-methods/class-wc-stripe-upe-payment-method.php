@@ -37,19 +37,19 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	protected $is_reusable;
 
 	/**
-	 * Instance of WC Payments Token Service to save payment method
+	 * Instance of WC Stripe Payments Token Service to save payment method
 	 *
-	 * @var WC_Payments_Token_Service
+	 * @var WC_Stripe_Payment_Tokens
 	 */
 	protected $token_service;
 
 	/**
 	 * Create instance of payment method
 	 *
-	 * @param WC_Payments_Token_Service $token_service Instance of WC_Payments_Token_Service.
+	 * @param WC_Stripe_Payment_Tokens $token_service Instance of WC_Stripe_Payment_Tokens.
 	 */
 	public function __construct( $token_service ) {
-		//      $this->token_service = $token_service;
+		$this->token_service = $token_service;
 	}
 
 	/**
@@ -98,13 +98,13 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Add payment method to user and return WC payment token
 	 *
-	 * @param WP_User $user User to get payment token from.
-	 * @param string  $payment_method_id Stripe payment method ID string.
+	 * @param WC_Stripe_Customer $user User to get payment token from.
+	 * @param stdClass  $payment_method Stripe payment method ID string.
 	 *
 	 * @return WC_Payment_Token_CC|WC_Payment_Token_WCPay_SEPA WC object for payment token.
 	 */
-	public function get_payment_token_for_user( $user, $payment_method_id ) {
-		//      return $this->token_service->add_payment_method_to_user( $payment_method_id, $user );
+	public function get_payment_token_for_user( $user, $payment_method ) {
+		return $this->token_service->add_payment_method_to_user( $payment_method, $user );
 	}
 
 	/**
