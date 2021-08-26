@@ -81,9 +81,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'refunds',
 		];
 
+		$tokens                = new WC_Stripe_Payment_Tokens();
 		$this->payment_methods = [];
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-			$payment_method                                     = new $payment_method_class( null );
+			$payment_method                                     = new $payment_method_class( $tokens );
 			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
 		}
 
@@ -422,7 +423,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		try {
 			// Get user/customer for order.
-			$customer_id = $this->get_stripe_customer_id( $order );
+			$user = new WC_Stripe_Customer( wp_get_current_user()->ID );
 
 			$payment_needed = 0 < $order->get_total();
 
@@ -446,10 +447,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 			$payment_method = $this->payment_methods[ $payment_method_type ];
 
-			// TODO: save the payment method
-			// if ( $save_payment_method && $payment_method->is_reusable() ) {
-			//     See: https://github.com/Automattic/woocommerce-payments/blob/b69532e92a381cf054f515896c56cc365e3904d4/includes/payment-methods/class-upe-payment-gateway.php#L493
-			// }
+			if ( $save_payment_method && $payment_method->is_reusable() ) {
+				try {
+					$token = $payment_method->get_payment_token_for_user( $user, $intent->payment_method );
+					$this->add_token_to_order( $order, $token );
+				} catch ( Exception $e ) {
+					// If saving the token fails, log the error message but catch the error to avoid crashing the checkout flow.
+					WC_Stripe_Logger::log( 'Error when saving payment method: ' . $e->getMessage() );
+				}
+			}
 
 			$intent->captured = 'yes'; // TODO: this is to re-use the parent logic, maybe re-implement it to not use charges?, see: https://github.com/Automattic/woocommerce-payments/blob/b69532e92a381cf054f515896c56cc365e3904d4/includes/class-wc-payment-gateway-wcpay.php#L1125
 			$this->process_response( $intent, $order );
@@ -465,6 +471,58 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			wc_add_notice( $e->getMessage(), 'error' );
 			wp_safe_redirect( wc_get_checkout_url() );
 			exit;
+		}
+	}
+
+	/**
+	 * Retrieve payment token from a subscription or order.
+	 *
+	 * @param WC_Order $order Order or subscription object.
+	 *
+	 * @return null|WC_Payment_Token Last token associated with order or subscription.
+	 */
+	protected function get_payment_token( $order ) {
+		$order_tokens = $order->get_payment_tokens();
+		$token_id     = end( $order_tokens );
+		return ! $token_id ? null : WC_Payment_Tokens::get( $token_id );
+	}
+
+	/**
+	 * Saves the payment token to the order.
+	 *
+	 * @param WC_Order         $order The order.
+	 * @param WC_Payment_Token $token The token to save.
+	 */
+	public function add_token_to_order( $order, $token ) {
+		$payment_token = $this->get_payment_token( $order );
+
+		// This could lead to tokens being saved twice in an order's payment tokens, but it is needed so that shoppers
+		// may re-use a previous card for the same subscription, as we consider the last token to be the active one.
+		// We can't remove the previous entry for the token because WC_Order does not support removal of tokens [1] and
+		// we can't delete the token as it might be used somewhere else.
+		// [1] https://github.com/woocommerce/woocommerce/issues/11857.
+		if ( is_null( $payment_token ) || $token->get_id() !== $payment_token->get_id() ) {
+			$order->add_payment_token( $token );
+		}
+
+		$this->maybe_add_token_to_subscription_order( $order, $token );
+	}
+
+	/**
+	 * Saves the payment token to the order.
+	 *
+	 * @param WC_Order         $order The order.
+	 * @param WC_Payment_Token $token The token to save.
+	 */
+	public function maybe_add_token_to_subscription_order( $order, $token ) {
+		if ( class_exists( 'WC_Subscriptions' ) && version_compare( WC_Subscriptions::$version, '2.2.0', '>=' ) ) {
+			$subscriptions = wcs_get_subscriptions_for_order( $order->get_id() );
+			foreach ( $subscriptions as $subscription ) {
+				$payment_token = $this->get_payment_token( $subscription );
+				if ( is_null( $payment_token ) || $token->get_id() !== $payment_token->get_id() ) {
+					$subscription->add_payment_token( $token );
+				}
+			}
 		}
 	}
 
