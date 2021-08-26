@@ -515,7 +515,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param WC_Payment_Token $token The token to save.
 	 */
 	public function maybe_add_token_to_subscription_order( $order, $token ) {
-		if ( class_exists( 'WC_Subscriptions' ) && version_compare( WC_Subscriptions::$version, '2.2.0', '>=' ) ) {
+		if ( $this->is_subscriptions_enabled() ) {
 			$subscriptions = wcs_get_subscriptions_for_order( $order->get_id() );
 			foreach ( $subscriptions as $subscription ) {
 				$payment_token = $this->get_payment_token( $subscription );

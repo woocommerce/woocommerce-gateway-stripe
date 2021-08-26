@@ -3,6 +3,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use WC_Stripe_Subscriptions_Utilities;
+
 // phpcs:disable WordPress.Files.FileName
 
 /**
@@ -13,6 +15,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
+
+	use WC_Stripe_Subscriptions_Utilities;
+
 	/**
 	 * Displays the admin settings webhook description.
 	 *
