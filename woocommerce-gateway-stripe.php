@@ -120,9 +120,7 @@ function woocommerce_gateway_stripe() {
 			 * *Singleton* via the `new` operator from outside of this class.
 			 */
 			public function __construct() {
-				add_action( 'admin_menu', [ $this, 'add_payments_menu' ] );
 				add_action( 'admin_init', [ $this, 'install' ] );
-				add_action( 'admin_enqueue_scripts', [ $this, 'admin_enqueue_scripts' ] );
 
 				$this->init();
 
@@ -568,50 +566,6 @@ function woocommerce_gateway_stripe() {
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-upe-flag-toggle-controller.php';
 					$upe_flag_toggle_controller = new WC_REST_UPE_Flag_Toggle_Controller();
 					$upe_flag_toggle_controller->register_routes();
-				}
-			}
-
-			/**
-			 * Adds React powered admin menus
-			 */
-			public function add_payments_menu() {
-				if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
-					// Register a onbaording wizard page for UPE.
-					wc_admin_register_page(
-						[
-							'id'     => 'wc-stripe-onboarding',
-							'title'  => __( 'Onboarding', 'woocommerce-gateway-stripe' ),
-							'path'   => '/onboarding',
-							'parent' => 'woocommerce',
-						]
-					);
-
-					// wc_admin_register_page() automatically creates an admin menu. We don't need a submenu for the onboarding prompt page.
-					remove_submenu_page( 'woocommerce', 'wc-admin&path=/onboarding' );
-				}
-			}
-
-			/**
-			 * Enqueue admin scripts.
-			 */
-			public function admin_enqueue_scripts() {
-				if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
-					$script_path       = 'build/client_index.js';
-					$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/client_index.asset.php';
-					$script_url        = plugins_url( $script_path, WC_STRIPE_MAIN_FILE );
-					$script_asset      = file_exists( $script_asset_path )
-					? require $script_asset_path
-					: [ 'dependencies' => [] ];
-
-					wp_register_script( // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion
-						'wc_stripe_index',
-						$script_url,
-						$script_asset['dependencies'],
-						null,
-						true
-					);
-
-					wp_enqueue_script( 'wc_stripe_index' );
 				}
 			}
 		}
