@@ -21,6 +21,6 @@ class WC_Stripe_UPE_Payment_Method_Bancontact extends WC_Stripe_UPE_Payment_Meth
 		parent::__construct( $token_service );
 		$this->stripe_id   = self::STRIPE_ID;
 		$this->title       = 'Pay with Bancontact';
-		$this->is_reusable = true; // TODO: is it?
+		$this->is_reusable = false;
 	}
 }
