@@ -9,7 +9,8 @@ import { Icon, check } from '@wordpress/icons';
  * Internal dependencies
  */
 import WizardTaskContext from './task/context';
-import './task-item.scss';
+// import './task-item.scss';
+import './style.scss';
 
 const WizardTaskItem = ( { children, title, index, className } ) => {
 	const { isCompleted, isActive } = useContext( WizardTaskContext );

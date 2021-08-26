@@ -8,7 +8,8 @@ import classNames from 'classnames';
  * Internal dependencies
  */
 import WizardTaskContext from './task/context';
-import './collapsible-body.scss';
+// import './collapsible-body.scss';
+import './style.scss';
 
 const CollapsibleBody = ( { className, ...restProps } ) => {
 	const { isActive } = useContext( WizardTaskContext );

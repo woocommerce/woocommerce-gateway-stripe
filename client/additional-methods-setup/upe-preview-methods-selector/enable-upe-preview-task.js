@@ -14,7 +14,8 @@ import WizardTaskContext from '../wizard/task/context';
 import CollapsibleBody from '../wizard/collapsible-body';
 import WizardTaskItem from '../wizard/task-item';
 import Pill from '../../components/pill';
-import './enable-upe-preview-task.scss';
+// import './enable-upe-preview-task.scss';
+import './style.scss';
 
 const EnableUpePreviewTask = () => {
 	const status = 'ready'; //TODO: Use status from somewhere else.

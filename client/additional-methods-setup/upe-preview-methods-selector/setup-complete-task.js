@@ -15,7 +15,8 @@
  import CollapsibleBody from '../wizard/collapsible-body';
  import WizardTaskItem from '../wizard/task-item';
  import WizardTaskContext from '../wizard/task/context';
- import './setup-complete-task.scss';
+//  import './setup-complete-task.scss';
+import './style.scss';
 
  const SetupComplete = () => {
 	 const handleGoHome = useCallback( () => {

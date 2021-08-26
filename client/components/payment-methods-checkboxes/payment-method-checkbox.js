@@ -14,7 +14,8 @@ import PaymentMethodIcon from '../../settings/payment-method-icon';
 import Pill from '../pill';
 import Tooltip from '../tooltip';
 import paymentMethodsMap from '../../payment-methods-map';
-import './payment-method-checkbox.scss';
+// import './payment-method-checkbox.scss';
+import './style.scss';
 import WCPaySettingsContext from '../../settings/wcpay-settings-context';
 
 const PaymentMethodDescription = ( { name } ) => {
