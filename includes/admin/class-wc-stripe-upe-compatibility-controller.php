@@ -140,7 +140,7 @@ class WC_Stripe_UPE_Compatibility_Controller {
 					'woocommerce-gateway-stripe'
 				),
 				$unsatisfied_requirements_message,
-				$unsatisfied_requirements_versions,
+				$unsatisfied_requirements_versions
 			)
 		);
 		echo '</strong></p></div>';

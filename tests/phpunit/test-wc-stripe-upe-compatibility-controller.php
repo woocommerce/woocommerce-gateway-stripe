@@ -65,6 +65,16 @@ class WC_Stripe_UPE_Compatibility_Controller_Test extends WP_UnitTestCase {
 		$this->controller->add_compatibility_notice();
 	}
 
+	public function test_should_add_a_notice_when_the_wc_version_will_not_be_satisfied() {
+		update_option( '_wcstripe_feature_upe_settings', '0' );
+		$this->overwrite_wp_version( '5.7.0' );
+		$this->overwrite_wc_version( '5.2.0' );
+
+		$this->expectOutputRegex( '/Stripe will require WooCommerce 5.5 or greater to be installed and active. Your version of WooCommerce 5.2.0 will no longer be supported/' );
+
+		$this->controller->add_compatibility_notice();
+	}
+
 	public function test_should_add_a_notice_when_the_wc_version_is_not_satisfied() {
 		$this->overwrite_wp_version( '5.7.0' );
 		$this->overwrite_wc_version( '5.2.0' );
