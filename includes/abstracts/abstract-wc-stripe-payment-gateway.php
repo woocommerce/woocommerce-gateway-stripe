@@ -51,6 +51,40 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Outputs scripts used for upe opt-in banner
+	 */
+	public function admin_scripts_for_banner() {
+		if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
+			// Webpack generates an assets file containing a dependencies array for our built JS file.
+			$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe_opt_in_banner.asset.php';
+			$script_asset      = file_exists( $script_asset_path )
+				? require $script_asset_path
+				: [
+					'dependencies' => [],
+					'version'      => WC_STRIPE_VERSION,
+				];
+
+			wp_register_script(
+				'woocommerce_stripe_upe_opt_in',
+				plugins_url( 'build/upe_opt_in_banner.js', WC_STRIPE_MAIN_FILE ),
+				$script_asset['dependencies'],
+				$script_asset['version'],
+				true
+			);
+
+			wp_register_style(
+				'woocommerce_stripe_upe_opt_in',
+				plugins_url( 'build/style-upe_opt_in_banner.css', WC_STRIPE_MAIN_FILE ),
+				[ 'wc-components' ],
+				$script_asset['version']
+			);
+
+			wp_enqueue_style( 'woocommerce_stripe_upe_opt_in' );
+			wp_enqueue_script( 'woocommerce_stripe_upe_opt_in' );
+		}
+	}
+
+	/**
 	 * Displays the save to account checkbox.
 	 *
 	 * @since 4.1.0
