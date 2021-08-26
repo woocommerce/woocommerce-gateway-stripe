@@ -11,8 +11,6 @@ import WCStripeAPI from '../../api';
 import { getStripeServerData } from '../../stripe-utils';
 import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
 
-const PAYMENT_METHOD_NAME_CARD = 'stripe';
-
 jQuery( function ( $ ) {
 	const key = getStripeServerData()?.key;
 	const isUPEEnabled = getStripeServerData()?.isUPEEnabled;
@@ -121,6 +119,7 @@ jQuery( function ( $ ) {
 			postalCode: 'never',
 		},
 	};
+	const upeLoadingSelector = '#wc-stripe-upe-form';
 
 	/**
 	 * Block UI to indicate processing and avoid duplicate submission.
@@ -231,8 +230,12 @@ jQuery( function ( $ ) {
 	 * @param {boolean} isSetupIntent {Boolean} isSetupIntent Set to true if we are on My Account adding a payment method.
 	 */
 	const mountUPEElement = function ( isSetupIntent = false ) {
-		// Do not mount UPE twice.
-		if ( upeElement || paymentIntentId ) {
+		blockUI( $( upeLoadingSelector ) );
+
+		// Do not recreate UPE element unnecessarily.
+		if ( upeElement ) {
+			upeElement.unmount();
+			upeElement.mount( '#wc-stripe-upe-element' );
 			return;
 		}
 
@@ -248,14 +251,12 @@ jQuery( function ( $ ) {
 			? api.initSetupIntent()
 			: api.createIntent( orderId );
 
-		const $upeContainer = $( '#wc-stripe-upe-element' );
-		blockUI( $upeContainer );
-
 		intentAction
 			.then( ( response ) => {
-				// I repeat, do NOT mount UPE twice.
+				// I repeat, do NOT recreate UPE element unnecessarily.
 				if ( upeElement || paymentIntentId ) {
-					unblockUI( $upeContainer );
+					upeElement.unmount();
+					upeElement.mount( '#wc-stripe-upe-element' );
 					return;
 				}
 
@@ -285,7 +286,10 @@ jQuery( function ( $ ) {
 
 				upeElement = elements.create( 'payment', upeSettings );
 				upeElement.mount( '#wc-stripe-upe-element' );
-				unblockUI( $upeContainer );
+
+				upeElement.on( 'ready', () => {
+					unblockUI( $( upeLoadingSelector ) );
+				} );
 				upeElement.on( 'change', ( event ) => {
 					const selectedUPEPaymentType = event.value.type;
 					const isPaymentMethodReusable =
@@ -297,7 +301,7 @@ jQuery( function ( $ ) {
 				} );
 			} )
 			.catch( ( error ) => {
-				unblockUI( $upeContainer );
+				unblockUI( $( upeLoadingSelector ) );
 				showError( error.message );
 				const gatewayErrorMessage =
 					'<div>An error was encountered when preparing the payment form. Please try again later.</div>';
@@ -316,8 +320,7 @@ jQuery( function ( $ ) {
 		if (
 			$( '#wc-stripe-upe-element' ).length &&
 			! $( '#wc-stripe-upe-element' ).children().length &&
-			isUPEEnabled &&
-			! upeElement
+			isUPEEnabled
 		) {
 			mountUPEElement();
 		}
@@ -578,12 +581,8 @@ jQuery( function ( $ ) {
 		);
 	}
 
-	// Handle the checkout form when WooCommerce Payments is chosen.
-	const wcStripePaymentMethods = [ PAYMENT_METHOD_NAME_CARD ];
-	const checkoutEvents = wcStripePaymentMethods
-		.map( ( method ) => `checkout_place_order_${ method }` )
-		.join( ' ' );
-	$( 'form.checkout' ).on( checkoutEvents, function () {
+	// Handle the checkout form when WooCommerce Gateway Stripe is chosen.
+	$( 'form.checkout' ).on( 'checkout_place_order_stripe', function () {
 		if ( ! isUsingSavedPaymentMethod() ) {
 			if ( isUPEEnabled && paymentIntentId ) {
 				handleUPECheckout( $( this ) );
