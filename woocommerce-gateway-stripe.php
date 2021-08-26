@@ -142,6 +142,7 @@ function woocommerce_gateway_stripe() {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-privacy.php';
 				}
 
+				require_once dirname( __FILE__ ) . '/includes/compat/subscriptions/trait-wc-stripe-subscriptions-utilities.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-exception.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-logger.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-helper.php';
