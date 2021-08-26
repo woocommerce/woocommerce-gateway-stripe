@@ -43,7 +43,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
 			echo '<table class="form-table">' . $this->generate_settings_html( array_slice( $form_fields, 0, $target_index, true ), false ) . '</table>';
-			echo '<div id="wc-stripe-upe-ont-in-banner"></div>';
+			echo '<div id="wc-stripe-upe-opt-in-banner"></div>';
 			echo '<table class="form-table">' . $this->generate_settings_html( array_slice( $form_fields, $target_index, null, true ), false ) . '</table>';
 		} else {
 			echo '<table class="form-table">' . $this->generate_settings_html( $form_fields, false ) . '</table>';

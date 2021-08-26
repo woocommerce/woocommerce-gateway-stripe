@@ -90,7 +90,7 @@ const UPEOptInBanner = () => (
 );
 
 const bannerContainer = document.getElementById(
-	'wc-stripe-upe-ont-in-banner'
+	'wc-stripe-upe-opt-in-banner'
 );
 
 if ( bannerContainer ) {
