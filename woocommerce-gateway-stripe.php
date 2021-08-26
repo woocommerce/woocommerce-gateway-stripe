@@ -48,17 +48,7 @@ function woocommerce_stripe_missing_wc_notice() {
  */
 function woocommerce_stripe_wc_not_supported() {
 	/* translators: $1. Minimum WooCommerce version. $2. Current WooCommerce version. */
-	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce %1$s or greater to be installed and active. WooCommerce %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ? WC_Stripe_UPE_Compatibility::MIN_WC_VERSION : WC_STRIPE_MIN_WC_VER, WC_VERSION ) . '</strong></p></div>';
-}
-
-/**
- * WooCommerce not supported fallback notice.
- *
- * @since 5.5.0
- */
-function woocommerce_stripe_wp_not_supported() {
-	/* translators: $1. Minimum WordPress version. $2. Current WordPress version. */
-	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WordPress %1$s or greater to be installed and active. WordPress %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), WC_Stripe_UPE_Compatibility::MIN_WP_VERSION, get_bloginfo( 'version' ) ) . '</strong></p></div>';
+	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce %1$s or greater to be installed and active. WooCommerce %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), WC_STRIPE_MIN_WC_VER, WC_VERSION ) . '</strong></p></div>';
 }
 
 function woocommerce_gateway_stripe() {
@@ -163,6 +153,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-apple-pay-registration.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-pre-orders-compat.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-feature-flags.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
@@ -190,6 +181,8 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-intent-controller.php';
 				require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-inbox-notes.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-upe-compatibility.php';
+				require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-upe-compatibility-controller.php';
 
 				if ( is_admin() ) {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
@@ -201,11 +194,6 @@ function woocommerce_gateway_stripe() {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-onboarding-controller.php';
 						new WC_Stripe_Onboarding_Controller();
 					}
-				}
-
-				if ( ! WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
-					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-upe-compatibility-controller.php';
-					new WC_Stripe_UPE_Compatibility_Controller();
 				}
 
 				// REMOVE IN THE FUTURE.
@@ -223,6 +211,7 @@ function woocommerce_gateway_stripe() {
 					add_filter( 'woocommerce_get_sections_checkout', [ $this, 'filter_gateway_order_admin' ] );
 				}
 
+				new WC_Stripe_UPE_Compatibility_Controller();
 			}
 
 			/**
@@ -601,9 +590,6 @@ function woocommerce_gateway_stripe() {
 add_action( 'plugins_loaded', 'woocommerce_gateway_stripe_init' );
 
 function woocommerce_gateway_stripe_init() {
-	// including this here so that all the classes have the ability to leverage `WC_Stripe_Feature_Flags` and `WC_Stripe_UPE_Compatibility`
-	require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-feature-flags.php';
-	require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-upe-compatibility.php';
 	load_plugin_textdomain( 'woocommerce-gateway-stripe', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
 
 	if ( ! class_exists( 'WooCommerce' ) ) {
@@ -613,17 +599,6 @@ function woocommerce_gateway_stripe_init() {
 
 	if ( version_compare( WC_VERSION, WC_STRIPE_MIN_WC_VER, '<' ) ) {
 		add_action( 'admin_notices', 'woocommerce_stripe_wc_not_supported' );
-		return;
-	}
-
-	if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() && ! WC_Stripe_UPE_Compatibility::is_wc_supported() ) {
-		add_action( 'admin_notices', 'woocommerce_stripe_wc_not_supported' );
-		return;
-	}
-
-	// technically speaking, WooCommerce also wouldn't support the same version of WP as we are, but I guess this doesn't hurt.
-	if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() && ! WC_Stripe_UPE_Compatibility::is_wp_supported() ) {
-		add_action( 'admin_notices', 'woocommerce_stripe_wp_not_supported' );
 		return;
 	}
 
@@ -648,6 +623,8 @@ register_activation_hook( __FILE__, 'add_woocommerce_inbox_variant' );
 function wcstripe_deactivated() {
 	// admin notes are not supported on older versions of WooCommerce.
 	if ( version_compare( WC_VERSION, '4.4.0', '>=' ) ) {
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-upe-compatibility.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-compatibility-note.php';
 		WC_Stripe_UPE_Compatibility_Note::possibly_delete_note();
 	}

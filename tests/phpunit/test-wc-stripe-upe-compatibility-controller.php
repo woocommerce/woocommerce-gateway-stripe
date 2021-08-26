@@ -24,6 +24,7 @@ class WC_Stripe_UPE_Compatibility_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function setUp() {
 		parent::setUp();
+		update_option( '_wcstripe_feature_upe_settings', '1' );
 
 		// saving these values to that they can be restored after the test runs
 		global $wp_version;
@@ -39,6 +40,7 @@ class WC_Stripe_UPE_Compatibility_Controller_Test extends WP_UnitTestCase {
 
 	public function tearDown() {
 		parent::tearDown();
+		delete_option( '_wcstripe_feature_upe_settings' );
 
 		// restore the overwritten values
 		global $wp_version;
@@ -60,33 +62,33 @@ class WC_Stripe_UPE_Compatibility_Controller_Test extends WP_UnitTestCase {
 
 		$this->expectOutputString( '' );
 
-		$this->controller->add_upcoming_compatibility_notice();
+		$this->controller->add_compatibility_notice();
 	}
 
 	public function test_should_add_a_notice_when_the_wc_version_is_not_satisfied() {
 		$this->overwrite_wp_version( '5.7.0' );
 		$this->overwrite_wc_version( '5.2.0' );
 
-		$this->expectOutputRegex( '/Stripe will require WooCommerce 5.5 or greater to be installed and active. Your version of WooCommerce 5.2.0 will no longer be supported/' );
+		$this->expectOutputRegex( '/Stripe requires WooCommerce 5.5 or greater to be installed and active. Your version of WooCommerce 5.2.0 is no longer supported/' );
 
-		$this->controller->add_upcoming_compatibility_notice();
+		$this->controller->add_compatibility_notice();
 	}
 
 	public function test_should_add_a_notice_when_the_wp_version_is_not_satisfied() {
 		$this->overwrite_wp_version( '5.5.0' );
 		$this->overwrite_wc_version( '5.7.0' );
 
-		$this->expectOutputRegex( '/Stripe will require WordPress 5.6 or greater. Your version of WordPress 5.5.0 will no longer be supported/' );
+		$this->expectOutputRegex( '/Stripe requires WordPress 5.6 or greater. Your version of WordPress 5.5.0 is no longer supported/' );
 
-		$this->controller->add_upcoming_compatibility_notice();
+		$this->controller->add_compatibility_notice();
 	}
 
 	public function test_should_add_a_notice_when_the_wp_and_wc_versions_are_not_satisfied() {
 		$this->overwrite_wp_version( '5.5.0' );
 		$this->overwrite_wc_version( '5.2.1' );
 
-		$this->expectOutputRegex( '/Stripe will require WordPress 5.6 or greater and WooCommerce 5.5 or greater to be installed and active. Your versions of WordPress 5.5.0 and WooCommerce 5.2.1 will no longer be supported/' );
+		$this->expectOutputRegex( '/Stripe requires WordPress 5.6 or greater and WooCommerce 5.5 or greater to be installed and active. Your versions of WordPress 5.5.0 and WooCommerce 5.2.1 are no longer supported/' );
 
-		$this->controller->add_upcoming_compatibility_notice();
+		$this->controller->add_compatibility_notice();
 	}
 }
