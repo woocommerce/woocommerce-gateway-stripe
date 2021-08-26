@@ -2,7 +2,7 @@
  * External dependencies
  */
 import React, { useState } from 'react';
-import styled from '@emotion/styled';
+import { styled } from '@linaria/react';
 import { __ } from '@wordpress/i18n';
 import {
 	Button,
@@ -30,7 +30,7 @@ const AdditionalControlsWrapper = styled.div`
 		background: white;
 		opacity: 0.5;
 
-		${ ( { hasOverlay } ) => ( hasOverlay ? 'display: none;' : '' ) }
+		display: ${ ( { hasOverlay } ) => ( hasOverlay ? 'none' : 'block' ) };
 	}
 `;
 

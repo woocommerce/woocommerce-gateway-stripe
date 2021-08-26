@@ -13,6 +13,21 @@ module.exports = {
 			injectPolyfill: true,
 		} ),
 	],
+	module: {
+		...defaultConfig.module,
+		rules: defaultConfig.module.rules.map((rule) => {
+			if (rule.test.test('.jsx')) {
+				rule.use.push({
+					loader: '@linaria/webpack-loader',
+					options: {
+						sourceMap: process.env.NODE_ENV !== 'production',
+					},
+				});
+			}
+
+			return rule
+		}),
+	},
 	resolve: {
 		extensions: [ '.json', '.js', '.jsx' ],
 		modules: [ path.join( __dirname, 'client' ), 'node_modules' ],

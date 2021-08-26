@@ -1,4 +1,4 @@
-import styled from '@emotion/styled';
+import { styled } from '@linaria/react';
 
 const SettingsLayout = styled.div`
 	margin: 24px auto 0;

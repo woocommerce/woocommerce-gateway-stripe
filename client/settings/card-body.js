@@ -1,7 +1,12 @@
-import styled from '@emotion/styled';
+/**
+ * External dependencies
+ */
+import React from 'react';
+import { css } from '@linaria/core';
 import { CardBody } from '@wordpress/components';
+import classNames from 'classnames';
 
-export default styled( CardBody )`
+const CardBodyStyles = css`
 	// increasing the specificity of the styles to override the Gutenberg ones
 	&.is-size-medium.is-size-medium {
 		padding: $grid-unit-30;
@@ -49,3 +54,10 @@ export default styled( CardBody )`
 		margin-top: unset;
 	}
 `;
+
+export default ( { className, ...restProps } ) => (
+	<CardBody
+		{ ...restProps }
+		className={ classNames( CardBodyStyles, className ) }
+	/>
+);

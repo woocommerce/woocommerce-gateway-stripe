@@ -2,7 +2,7 @@
  * External dependencies
  */
 import React from 'react';
-import styled from '@emotion/styled';
+import { styled } from '@linaria/react';
 
 /**
  * Internal dependencies

@@ -2,23 +2,23 @@
  * External dependencies
  */
 import React from 'react';
-import styled from '@emotion/styled';
-import { css } from '@emotion/react';
+import { styled } from '@linaria/react';
 
 const IconSizesMap = {
-	small: css`
-		height: 24px;
-		width: 37px;
-	`,
-	medium: css`
-		height: 40px;
-		width: 65px;
-	`,
+	small: {
+		height: '24px',
+		width: '37px',
+	},
+	medium: {
+		height: '40px',
+		width: '65px',
+	},
 };
 
 const Wrapper = styled.span`
 	// also accounts for null size
-	${ ( { size } ) => IconSizesMap[ size ] || '' }
+	height: ${ ( { size } ) => IconSizesMap[ size ].height };
+	width: ${ ( { size } ) => IconSizesMap[ size ].width };
 
 	box-sizing: border-box;
 	display: inline-flex;

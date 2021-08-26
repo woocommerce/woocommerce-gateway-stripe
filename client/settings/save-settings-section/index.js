@@ -4,7 +4,7 @@
 import React from 'react';
 import { Button } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
-import styled from '@emotion/styled';
+import { styled } from '@linaria/react';
 
 /**
  * Internal dependencies

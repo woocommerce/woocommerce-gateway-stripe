@@ -5,7 +5,7 @@ import React from 'react';
 import { TabPanel } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { getQuery } from '@woocommerce/navigation';
-import styled from '@emotion/styled';
+import { css } from '@linaria/core';
 
 /**
  * Internal dependencies
@@ -15,7 +15,7 @@ import PaymentSettingsPanel from '../payment-settings';
 import PaymentMethodsPanel from '../payment-methods';
 import SaveSettingsSection from '../save-settings-section';
 
-const StyledTabPanel = styled( TabPanel )`
+const TabPanelStyles = css`
 	.components-tab-panel__tabs {
 		border-bottom: 1px solid #c3c4c7;
 		margin-bottom: 32px;
@@ -39,8 +39,8 @@ const SettingsManager = () => {
 
 	return (
 		<SettingsLayout>
-			<StyledTabPanel
-				className="wc-stripe-account-settings-panel"
+			<TabPanel
+				className={ TabPanelStyles }
 				initialTabName={ panel === 'settings' ? 'settings' : 'methods' }
 				tabs={ TABS_CONTENT }
 			>
@@ -54,7 +54,7 @@ const SettingsManager = () => {
 						<SaveSettingsSection />
 					</div>
 				) }
-			</StyledTabPanel>
+			</TabPanel>
 		</SettingsLayout>
 	);
 };

@@ -9,9 +9,8 @@
     "url": "git://github.com/woocommerce/woocommerce-gateway-stripe.git"
   },
   "devDependencies": {
-    "@emotion/babel-plugin": "^11.3.0",
-    "@emotion/react": "^11.4.1",
-    "@emotion/styled": "^11.3.0",
+    "@babel/core": "^7.15.0",
+    "@linaria/webpack-loader": "^3.0.0-beta.7",
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^12.0.0",
     "@testing-library/user-event": "^13.2.1",
@@ -62,6 +61,10 @@
     "yarnhook": "^0.5.1"
   },
   "dependencies": {
+    "@linaria/babel-preset": "^3.0.0-beta.4",
+    "@linaria/core": "^3.0.0-beta.4",
+    "@linaria/react": "^3.0.0-beta.7",
+    "@linaria/shaker": "^3.0.0-beta.7",
     "@stripe/react-stripe-js": "1.2.2",
     "@stripe/stripe-js": "1.11.0",
     "interpolate-components": "^1.1.1"
