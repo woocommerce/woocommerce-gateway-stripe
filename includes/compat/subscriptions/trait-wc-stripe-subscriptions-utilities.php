@@ -1,7 +1,6 @@
 <?php
 /**
  * Trait WC_Stripe_Subscriptions_Utilities
- *
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
