@@ -101,7 +101,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		add_filter(
 			'pre_option__wcstripe_feature_upe',
 			function() {
-				return '1';
+				return 'yes';
 			}
 		);
 		delete_option( 'woocommerce_stripe_settings' );

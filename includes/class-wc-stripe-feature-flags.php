@@ -13,7 +13,7 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_upe_preview_enabled() {
-		return '1' === get_option( '_wcstripe_feature_upe', '0' ) || self::is_upe_settings_redesign_enabled();
+		return 'yes' === get_option( '_wcstripe_feature_upe', 'no' ) || self::is_upe_settings_redesign_enabled();
 	}
 
 	/**
@@ -32,6 +32,6 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_upe_settings_redesign_enabled() {
-		return '1' === get_option( '_wcstripe_feature_upe_settings', '0' );
+		return 'yes' === get_option( '_wcstripe_feature_upe_settings', 'no' );
 	}
 }
