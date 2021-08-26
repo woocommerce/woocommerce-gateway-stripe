@@ -83,6 +83,50 @@ class WC_Stripe_Payment_Tokens {
 	}
 
 	/**
+	 * Creates and add a token to an user, based on the payment_method object
+	 *
+	 * @param   stdClass                                        $payment_method Stripe payment method instance to be added.
+	 * @param   WC_Stripe_Customer                              $user User to attach payment method to.
+	 * @return  WC_Payment_Token_CC|WC_Payment_Token_SEPA The WC object for the payment token.
+	 */
+	public function add_token_to_user( $payment_method, $user ) {
+		// Clear cached payment methods.
+		$user->clear_cache();
+
+		// TODO: change 'sepa_debit' to the SEPA reference in the class that will be created to match Stripe's value
+		// maybe we will need to update the SEPA implementation below as well, depending on how's the new class implementation
+		if ( 'sepa_debit' === $payment_method->type ) {
+			$token = new WC_Payment_Token_SEPA();
+			$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+			$token->set_last4( $payment_method->sepa->last4 );
+		} else {
+			$payment_id = WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID;
+			$token      = new WC_Payment_Token_CC();
+			$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+			$token->set_expiry_month( $payment_method->$payment_id->exp_month );
+			$token->set_expiry_year( $payment_method->$payment_id->exp_year );
+			$token->set_card_type( strtolower( $payment_method->$payment_id->brand ) );
+			$token->set_last4( $payment_method->$payment_id->last4 );
+		}
+		$token->set_token( $payment_method->id );
+		$token->set_user_id( $user->get_user_id() );
+		$token->save();
+
+		return $token;
+	}
+
+	/**
+	 * Adds a payment method to a user.
+	 *
+	 * @param stdClass           $payment_method Payment method to be added.
+	 * @param WC_Stripe_Customer $user User to attach payment method to.
+	 * @return WC_Payment_Token_CC The newly created token.
+	 */
+	public function add_payment_method_to_user( $payment_method, $user ) {
+		return $this->add_token_to_user( $payment_method, $user );
+	}
+
+	/**
 	 * Gets saved tokens from API if they don't already exist in WooCommerce.
 	 *
 	 * @since 3.1.0
@@ -165,9 +209,9 @@ class WC_Stripe_Payment_Tokens {
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
-	 * @param  array            $item         Individual list item from woocommerce_saved_payment_methods_list
-	 * @param  WC_Payment_Token $payment_token The payment token associated with this method entry
-	 * @return array                           Filtered item
+	 * @param  array                 $item Individual list item from woocommerce_saved_payment_methods_list
+	 * @param  WC_Payment_Token_SEPA $payment_token The payment token associated with this method entry
+	 * @return array                 Filtered item
 	 */
 	public function get_account_saved_payment_methods_list_item_sepa( $item, $payment_token ) {
 		if ( 'sepa' === strtolower( $payment_token->get_type() ) ) {
