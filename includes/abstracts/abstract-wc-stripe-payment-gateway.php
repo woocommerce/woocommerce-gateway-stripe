@@ -3,8 +3,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use WC_Stripe_Subscriptions_Utilities;
-
 // phpcs:disable WordPress.Files.FileName
 
 /**
