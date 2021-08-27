@@ -181,6 +181,8 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-intent-controller.php';
 				require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-inbox-notes.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-upe-compatibility.php';
+				require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-upe-compatibility-controller.php';
 
 				if ( is_admin() ) {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
@@ -209,6 +211,7 @@ function woocommerce_gateway_stripe() {
 					add_filter( 'woocommerce_get_sections_checkout', [ $this, 'filter_gateway_order_admin' ] );
 				}
 
+				new WC_Stripe_UPE_Compatibility_Controller();
 			}
 
 			/**
@@ -607,6 +610,17 @@ if ( ! function_exists( 'add_woocommerce_inbox_variant' ) ) {
 }
 register_activation_hook( __FILE__, 'add_woocommerce_inbox_variant' );
 
+function wcstripe_deactivated() {
+	// admin notes are not supported on older versions of WooCommerce.
+	if ( version_compare( WC_VERSION, '4.4.0', '>=' ) ) {
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-upe-compatibility.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-compatibility-note.php';
+		WC_Stripe_UPE_Compatibility_Note::possibly_delete_note();
+	}
+}
+register_deactivation_hook( __FILE__, 'wcstripe_deactivated' );
+
 // Hook in Blocks integration. This action is called in a callback on plugins loaded, so current Stripe plugin class
 // implementation is too late.
 add_action( 'woocommerce_blocks_loaded', 'woocommerce_gateway_stripe_woocommerce_block_support' );
@@ -621,6 +635,11 @@ function woocommerce_gateway_stripe_woocommerce_block_support() {
 		add_action(
 			'woocommerce_blocks_payment_method_type_registration',
 			function( Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry ) {
+				// I noticed some incompatibility with WP 5.x and WC 5.3 when `_wcstripe_feature_upe_settings` is enabled.
+				if ( ! class_exists( 'WC_Stripe_Payment_Request' ) ) {
+					return;
+				}
+
 				$container = Automattic\WooCommerce\Blocks\Package::container();
 				// registers as shared instance.
 				$container->register(
