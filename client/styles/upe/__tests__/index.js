@@ -27,7 +27,7 @@ describe( 'Getting styles for automated theming', () => {
 		},
 	};
 
-	test( 'getFieldStyles returns correct styles for inputs', () => {
+	it( 'getFieldStyles returns correct styles for inputs', () => {
 		jest.spyOn( document, 'querySelector' ).mockImplementation( () => {
 			return mockElement;
 		} );
@@ -48,7 +48,7 @@ describe( 'Getting styles for automated theming', () => {
 		} );
 	} );
 
-	test( 'getFieldStyles returns empty object if it can not find the element', () => {
+	it( 'getFieldStyles returns empty object if it can not find the element', () => {
 		jest.spyOn( document, 'querySelector' ).mockImplementation( () => {
 			return undefined;
 		} );
@@ -60,7 +60,7 @@ describe( 'Getting styles for automated theming', () => {
 		expect( fieldStyles ).toEqual( {} );
 	} );
 
-	test( 'getFontRulesFromPage returns font rules from allowed font providers', () => {
+	it( 'getFontRulesFromPage returns font rules from allowed font providers', () => {
 		const mockStyleSheets = {
 			length: 3,
 			0: {
@@ -88,7 +88,7 @@ describe( 'Getting styles for automated theming', () => {
 		] );
 	} );
 
-	test( 'getFontRulesFromPage returns empty array if there are no fonts from allowed providers', () => {
+	it( 'getFontRulesFromPage returns empty array if there are no fonts from allowed providers', () => {
 		const mockStyleSheets = {
 			length: 2,
 			0: {
@@ -105,7 +105,7 @@ describe( 'Getting styles for automated theming', () => {
 		expect( fontRules ).toEqual( [] );
 	} );
 
-	test( 'getAppearance returns the object with filtered CSS rules for UPE theming', () => {
+	it( 'getAppearance returns the object with filtered CSS rules for UPE theming', () => {
 		jest.spyOn( document, 'querySelector' ).mockImplementation( () => {
 			return mockElement;
 		} );

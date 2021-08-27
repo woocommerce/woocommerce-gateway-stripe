@@ -1,0 +1,19 @@
+name: JS tests
+
+on:
+  pull_request
+
+jobs:
+  test:
+    name:    JS testing
+    runs-on: ubuntu-18.04
+    steps:
+      # clone the repository
+      - uses: actions/checkout@v2
+      # enable dependencies caching
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm/
+          key:  ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+      # install dependencies and run linter
+      - run: npm ci && npm run test:js
