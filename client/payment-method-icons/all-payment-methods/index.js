@@ -8,6 +8,6 @@ import React from 'react';
  */
 import icon from './icon.svg';
 
-const AllPaymentMethodsIcon = () => <img src={ icon } />;
+const AllPaymentMethodsIcon = () => <img src={ icon } alt="" />;
 
 export default AllPaymentMethodsIcon;

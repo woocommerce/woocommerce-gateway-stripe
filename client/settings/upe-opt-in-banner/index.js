@@ -5,19 +5,15 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { __ } from '@wordpress/i18n';
 import styled from '@emotion/styled';
-import {
-    Button,
-    Card,
-    ExternalLink
-} from '@wordpress/components';
+import { Button, Card, ExternalLink } from '@wordpress/components';
 
 /**
-* Internal dependencies
-*/
-import Pill from '../pill';
+ * Internal dependencies
+ */
+import Pill from '../../components/pill';
 import AllPaymentMethodsIcon from '../../payment-method-icons/all-payment-methods';
 
-const BannerWrapper = styled(Card)`
+const BannerWrapper = styled( Card )`
 	display: flex;
 	flex-flow: row;
 	justify-content: center;
@@ -39,7 +35,7 @@ const Actions = styled.div`
 `;
 
 const ImageWrapper = styled.div`
-	background: #F7F9FC;
+	background: #f7f9fc;
 	display: none;
 	flex: 0 0 33%;
 
@@ -55,36 +51,33 @@ const ImageWrapper = styled.div`
 const UPEOptInBanner = () => (
 	<BannerWrapper>
 		<InformationWrapper>
-			<Pill>{__('Early access', 'woocommerce-payments')}</Pill>
+			<Pill>{ __( 'Early access', 'woocommerce-payments' ) }</Pill>
 			<h3>
-				{__(
+				{ __(
 					'Enable the new Stripe payment management experience',
 					'woocommerce-payments'
-				)}
+				) }
 			</h3>
 			<p>
-				{__(
+				{ __(
 					/* eslint-disable-next-line max-len */
 					'Spend less time managing giropay and other payment methods in an improved settings and checkout experience, now available to select merchants.',
 					'woocommerce-payments'
-				)}
+				) }
 			</p>
 			<Actions>
 				<span>
-					<Button isPrimary onClick={() => alert('Will allow user to enable in store')}>
-						{__(
-							'Enable in your store',
-							'woocommerce-payments'
-						)}
+					<Button isPrimary href="?TODO" target="_blank">
+						{ __( 'Enable in your store', 'woocommerce-payments' ) }
 					</Button>
 				</span>
 				<ExternalLink href="?TODO">
-					{__('Learn more', 'woocommerce-payments')}
+					{ __( 'Learn more', 'woocommerce-payments' ) }
 				</ExternalLink>
 			</Actions>
 		</InformationWrapper>
 		<ImageWrapper>
-			<AllPaymentMethodsIcon/>
+			<AllPaymentMethodsIcon />
 		</ImageWrapper>
 	</BannerWrapper>
 );
