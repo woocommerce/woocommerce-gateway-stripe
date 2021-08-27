@@ -1,5 +1,13 @@
 @import "../../styles/abstracts/styles.scss";
 
+.components-card__header {
+	font-size: 20px;
+}
+
+.components-card {
+	margin-bottom: 24px;
+}
+
 .enable-upe-preview {
 	&__body {
 		&.is-active {
@@ -12,7 +20,7 @@
 		display: flex;
 		flex-direction: column;
 
-		@media ( max-width: 660px ) {
+		@include breakpoint( '>660px' ) {
 			flex-direction: row;
 			justify-content: space-between;
 			align-items: stretch;
