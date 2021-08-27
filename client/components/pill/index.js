@@ -14,10 +14,8 @@ const PillWrapper = styled.span`
 	line-height: 1.4em;
 	padding: 2px 8px;
 	width: fit-content;
- `;
+`;
 
-const Pill = ({ ...restProps }) => (
-	<PillWrapper {...restProps} />
-);
+const Pill = ( { ...restProps } ) => <PillWrapper { ...restProps } />;
 
 export default Pill;
