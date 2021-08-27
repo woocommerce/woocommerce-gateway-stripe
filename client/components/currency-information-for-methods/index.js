@@ -19,12 +19,12 @@ const ListToCommaSeparatedSentencePartConverter = ( items ) => {
 	if ( 1 === items.length ) {
 		return items[ 0 ];
 	} else if ( 2 === items.length ) {
-		return items.join( ' ' + __( 'and', 'woocommerce-payments' ) + ' ' );
+		return items.join( ' ' + __( 'and', 'woocommerce-gateway-stripe' ) + ' ' );
 	}
 	const lastItem = items.pop();
 	return (
 		items.join( ', ' ) +
-		__( ', and', 'woocommerce-payments' ) +
+		__( ', and', 'woocommerce-gateway-stripe' ) +
 		' ' +
 		lastItem
 	);
@@ -109,7 +109,7 @@ const CurrencyInformationForMethods = ( { selectedMethods } ) => {
 						__(
 							"%s %s %s additional %s, so {{strong}}we'll add %s to your store{{/strong}}. " +
 								'You can view & manage currencies later in settings.',
-							'woocommerce-payments'
+							'woocommerce-gateway-stripe'
 						),
 						ListToCommaSeparatedSentencePartConverter(
 							paymentMethodsWithMissingCurrencies
@@ -118,14 +118,14 @@ const CurrencyInformationForMethods = ( { selectedMethods } ) => {
 							'requires',
 							'require',
 							paymentMethodsWithMissingCurrencies.length,
-							'woocommerce-payments'
+							'woocommerce-gateway-stripe'
 						),
 						1 === missingCurrencyLabels.length ? 'an' : '',
 						_n(
 							'currency',
 							'currencies',
 							missingCurrencyLabels.length,
-							'woocommerce-payments'
+							'woocommerce-gateway-stripe'
 						),
 						ListToCommaSeparatedSentencePartConverter(
 							missingCurrencyLabels

@@ -14,7 +14,6 @@ import WizardTaskContext from '../wizard/task/context';
 import CollapsibleBody from '../wizard/collapsible-body';
 import WizardTaskItem from '../wizard/task-item';
 import Pill from '../../components/pill';
-// import './enable-upe-preview-task.scss';
 import './style.scss';
 
 const EnableUpePreviewTask = () => {
@@ -32,7 +31,7 @@ const EnableUpePreviewTask = () => {
 				mixedString: __(
 					'{{wrapper}}Enable the new WooCommerce Payments checkout experience{{/wrapper}} ' +
 						'{{earlyAccessWrapper}}Early access{{/earlyAccessWrapper}}',
-					'woocommerce-payments'
+					'woocommerce-gateway-stripe'
 				),
 				components: {
 					wrapper: <span />,
@@ -47,7 +46,7 @@ const EnableUpePreviewTask = () => {
 						mixedString: __(
 							'Get early access to additional payment methods and an improved checkout experience, ' +
 								'coming soon to WooCommerce payments. {{learnMoreLink /}}',
-							'woocommerce-payments'
+							'woocommerce-gateway-stripe'
 						),
 						components: {
 							learnMoreLink: (
@@ -55,7 +54,7 @@ const EnableUpePreviewTask = () => {
 								<ExternalLink href="https://docs.woocommerce.com/document/payments/additional-payment-methods/#introduction">
 									{ __(
 										'Learn more',
-										'woocommerce-payments'
+										'woocommerce-gateway-stripe'
 									) }
 								</ExternalLink>
 							),
@@ -72,19 +71,19 @@ const EnableUpePreviewTask = () => {
 								<li>
 									{ __(
 										'Easily add new payment methods used by customers from all over the world.',
-										'woocommerce-payments'
+										'woocommerce-gateway-stripe'
 									) }
 								</li>
 								<li>
 									{ __(
 										'FREE upgrade exclusive to WooCommerce Payments users.',
-										'woocommerce-payments'
+										'woocommerce-gateway-stripe'
 									) }
 								</li>
 								<li>
 									{ __(
 										'No hidden costs or setup fees.',
-										'woocommerce-payments'
+										'woocommerce-gateway-stripe'
 									) }
 								</li>
 							</ul>
@@ -99,19 +98,19 @@ const EnableUpePreviewTask = () => {
 								<li>
 									{ __(
 										'Checkout is completed without leaving your store.',
-										'woocommerce-payments'
+										'woocommerce-gateway-stripe'
 									) }
 								</li>
 								<li>
 									{ __(
 										'Customers see only payment methods most relevent for them.',
-										'woocommerce-payments'
+										'woocommerce-gateway-stripe'
 									) }
 								</li>
 								<li>
 									{ __(
 										'Refined checkout experience designed for desktop and mobile.',
-										'woocommerce-payments'
+										'woocommerce-gateway-stripe'
 									) }
 								</li>
 							</ul>
@@ -124,7 +123,7 @@ const EnableUpePreviewTask = () => {
 					onClick={ handleContinueClick }
 					isPrimary
 				>
-					{ __( 'Enable', 'woocommerce-payments' ) }
+					{ __( 'Enable', 'woocommerce-gateway-stripe' ) }
 				</Button>
 			</CollapsibleBody>
 		</WizardTaskItem>

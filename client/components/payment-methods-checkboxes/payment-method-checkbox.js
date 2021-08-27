@@ -28,7 +28,7 @@ const PaymentMethodDescription = ( { name } ) => {
 				<VisuallyHidden>
 					{ __(
 						'Information about the payment method, click to expand',
-						'woocommerce-payments'
+						'woocommerce-gateway-stripe'
 					) }
 				</VisuallyHidden>
 				<Icon icon="info-outline" />
@@ -61,7 +61,7 @@ const PaymentMethodCheckbox = ( { onChange, name, checked = false, fees } ) => {
 			<Tooltip
 				content={ __(
 					'Base transaction fees',
-					'woocommerce-payments'
+					'woocommerce-gateway-stripe'
 				) }
 			>
 				<Pill
@@ -69,12 +69,12 @@ const PaymentMethodCheckbox = ( { onChange, name, checked = false, fees } ) => {
 					aria-label={ sprintf(
 						__(
 							'Base transaction fees: %s',
-							'woocommerce-payments'
+							'woocommerce-gateway-stripe'
 						),
 						fees
 					) }
 				>
-					{/* TODO: Insert account fees here. */}
+				{__('2.9% + C$0.30', }
 				</Pill>
 			</Tooltip>
 			<PaymentMethodDescription name={ name } />

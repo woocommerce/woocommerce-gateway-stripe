@@ -16,7 +16,7 @@
  import './style.scss';
 
  const OnboardingWizard = () => {
-	 const isUpeEnabled = false; //TODO: feature flag.
+	 const isUpeEnabled = true; //TODO: feature flag.
 
 	return (
 		<Card className="upe-preview-methods-selector">

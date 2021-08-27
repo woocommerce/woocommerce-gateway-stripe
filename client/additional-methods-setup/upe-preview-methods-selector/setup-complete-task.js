@@ -23,33 +23,31 @@ import './style.scss';
 		 getHistory().push( getNewPath( {}, '/', {} ) );
 	 }, [] );
 
-	//  const { updateOptions } = useDispatch( 'wc/admin/options' );
-
 	 return (
 		 <WizardTaskItem
 			 className="setup-complete-task"
-			 title={ __( 'Setup complete', 'woocommerce-payments' ) }
+			 title={ __( 'Setup complete', 'woocommerce-gateway-stripe' ) }
 			 index={ 3 }
 		 >
 			 <CollapsibleBody>
 				 <p className="wcpay-wizard-task__description-element is-muted-color">
 					 { __(
 						 "You're ready to begin accepting payments with the new methods!",
-						 'woocommerce-payments'
+						 'woocommerce-gateway-stripe'
 					 ) }
 				 </p>
 				 <p className="wcpay-wizard-task__description-element is-muted-color">
 					 { interpolateComponents( {
 						 mixedString: __(
 							 '{{setupTaxesLink /}} to ensure smooth transactions if you plan to sell to customers in Europe.',
-							 'woocommerce-payments'
+							 'woocommerce-gateway-stripe'
 						 ),
 						 components: {
 							 setupTaxesLink: (
 								 <a href="admin.php?page=wc-settings&tab=tax">
 									 { __(
 										 'Set up taxes',
-										 'woocommerce-payments'
+										 'woocommerce-gateway-stripe'
 									 ) }
 								 </a>
 							 ),
@@ -59,14 +57,14 @@ import './style.scss';
 				 <p className="wcpay-wizard-task__description-element is-muted-color">
 					 { __(
 						 'To manage other payment settings or update your payment information, visit the payment settings.',
-						 'woocommerce-payments'
+						 'woocommerce-gateway-stripe'
 					 ) }
 				 </p>
 				 <div className="setup-complete-task__buttons">
 					 <Button onClick={ handleGoHome } isPrimary>
 						 { __(
 							 'Go to WooCommerce Home',
-							 'woocommerce-payments'
+							 'woocommerce-gateway-stripe'
 						 ) }
 					 </Button>
 					 <Button
@@ -75,7 +73,7 @@ import './style.scss';
 					 >
 						 { __(
 							 'View payment settings',
-							 'woocommerce-payments'
+							 'woocommerce-gateway-stripe'
 						 ) }
 					 </Button>
 				 </div>
