@@ -18,6 +18,6 @@ class WC_Stripe_UPE_Payment_Method_Giropay extends WC_Stripe_UPE_Payment_Method 
 	public function __construct() {
 		$this->stripe_id   = self::STRIPE_ID;
 		$this->title       = 'Pay with Giropay';
-		$this->is_reusable = true; // TODO: is it?
+		$this->is_reusable = false; // TODO: is it?
 	}
 }
