@@ -72,14 +72,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				true
 			);
 
-			wp_register_style(
-				'woocommerce_stripe_upe_opt_in',
-				plugins_url( 'build/style-upe_opt_in_banner.css', WC_STRIPE_MAIN_FILE ),
-				[ 'wc-components' ],
-				$script_asset['version']
-			);
-
-			wp_enqueue_style( 'woocommerce_stripe_upe_opt_in' );
 			wp_enqueue_script( 'woocommerce_stripe_upe_opt_in' );
 		}
 	}
