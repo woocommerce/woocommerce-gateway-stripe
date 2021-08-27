@@ -18,11 +18,8 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 
 	/**
 	 * Constructor for card payment method
-	 *
-	 * @param WC_Stripe_Payment_Tokens $token_service Token class instance.
 	 */
-	public function __construct( $token_service ) {
-		parent::__construct( $token_service );
+	public function __construct() {
 		$this->stripe_id   = self::STRIPE_ID;
 		$this->title       = 'Credit card / debit card';
 		$this->is_reusable = true;
@@ -55,5 +52,30 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 			$funding_types[ $details->funding ]
 		);
 	}
+
+	/**
+	 * Add payment method to user and return WC payment token.
+	 *
+	 * @param WP_User $user User to add payment token to.
+	 * @param object $intent JSON object for Stripe payment intent.
+	 *
+	 * @return WC_Payment_Token_CC WC object for payment token.
+	 */
+	public function get_payment_token_for_user( $user, $intent ) {
+		$payment_method = $intent->payment_method;
+
+		$token = new WC_Payment_Token_CC();
+		$token->set_expiry_month( $payment_method->card->exp_month );
+		$token->set_expiry_year( $payment_method->card->exp_year );
+		$token->set_card_type( strtolower( $payment_method->card->brand ) );
+		$token->set_last4( $payment_method->card->last4 );
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( $payment_method->id );
+		$token->set_user_id( $user->ID );
+		$token->save();
+
+		return $token;
+	}
+
 
 }

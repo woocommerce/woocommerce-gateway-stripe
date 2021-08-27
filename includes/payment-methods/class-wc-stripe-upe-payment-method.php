@@ -37,22 +37,6 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	protected $is_reusable;
 
 	/**
-	 * Instance of WC Payments Token Service to save payment method
-	 *
-	 * @var WC_Payments_Token_Service
-	 */
-	protected $token_service;
-
-	/**
-	 * Create instance of payment method
-	 *
-	 * @param WC_Payments_Token_Service $token_service Instance of WC_Payments_Token_Service.
-	 */
-	public function __construct( $token_service ) {
-		//      $this->token_service = $token_service;
-	}
-
-	/**
 	 * Returns payment method ID
 	 *
 	 * @return string
@@ -96,15 +80,31 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
-	 * Add payment method to user and return WC payment token
+	 * Add payment method to user and return WC payment token.
 	 *
-	 * @param WP_User $user User to get payment token from.
-	 * @param string  $payment_method_id Stripe payment method ID string.
+	 * By default we use WC_Payment_Token_SEPA, because most
+	 * payment methods support saving payment methods via
+	 * conversion to SEPA Direct Debit.
 	 *
-	 * @return WC_Payment_Token_UPE WC object for payment token.
+	 * @param WP_User $user User to add payment token to.
+	 * @param object $intent JSON object for Stripe payment intent.
+	 *
+	 * @return WC_Payment_Token_SEPA|null WC object for payment token.
 	 */
-	public function get_payment_token_for_user( $user, $payment_method_id ) {
-		return $this->token_service->add_payment_method_to_user( $user, $payment_method_id );
+	public function get_payment_token_for_user( $user, $intent ) {
+		if ( ! $this->is_reusable() ) {
+			return null;
+		}
+		$payment_method_details = $this->get_payment_method_details_from_intent( $intent );
+
+		$token = new WC_Payment_Token_SEPA();
+		$token->set_last4( $payment_method_details->iban_last4 );
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( $payment_method_details->generated_sepa_debit );
+		$token->set_user_id( $user->ID );
+		$token->save();
+
+		return $token;
 	}
 
 	/**
@@ -118,5 +118,24 @@ abstract class WC_Stripe_UPE_Payment_Method {
 			return WC_Subscriptions_Cart::cart_contains_subscription() || 0 < count( wcs_get_order_type_cart_items( 'renewal' ) );
 		}
 		return false;
+	}
+
+	/**
+	 * Returns payment method details from Payment Intent
+	 * in order to save payment method.
+	 *
+	 * @param object $intent JSON object for Stripe payment intent.
+	 *
+	 * @return object
+	 */
+	protected function get_payment_method_details_from_intent( $intent ) {
+		if ( 'payment_intent' === $intent->object ) {
+			$charge                 = end( $intent->charges->data );
+			$payment_method_details = (array) $charge->payment_method_details;
+			return $payment_method_details[ $this->stripe_id ];
+		} elseif ( 'setup_intent' === $intent->object ) {
+			// TODO: We will need to do something different here to get the generated SEPA pm...
+			return null;
+		}
 	}
 }

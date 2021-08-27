@@ -83,7 +83,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$this->payment_methods = [];
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-			$payment_method                                     = new $payment_method_class( null );
+			$payment_method                                     = new $payment_method_class();
 			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
 		}
 
@@ -425,16 +425,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		WC_Stripe_Logger::log( "Begin processing UPE redirect payment for order $order_id for the amount of {$order->get_total()}" );
 
 		try {
-			// Get user/customer for order.
-			$customer_id = $this->get_stripe_customer_id( $order );
-
 			$payment_needed = 0 < $order->get_total();
 
 			// Get payment intent to confirm status.
 			if ( $payment_needed ) {
-				$intent = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id );
+				$intent = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
 			} else {
-				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id );
+				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
 			}
 			$error = $intent->last_payment_error;
 
@@ -452,6 +449,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			// TODO: save the payment method
 			if ( $save_payment_method && $payment_method->is_reusable() ) {
+
 				$user  = $this->get_user_from_order( $order );
 				$token = $payment_method->get_payment_token_for_user( $user, $intent->payment_method );
 				$this->add_token_to_order( $order, $token );
