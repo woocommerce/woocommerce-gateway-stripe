@@ -51,28 +51,31 @@ const ImageWrapper = styled.div`
 const UPEOptInBanner = () => (
 	<BannerWrapper>
 		<InformationWrapper>
-			<Pill>{ __( 'Early access', 'woocommerce-payments' ) }</Pill>
+			<Pill>{ __( 'Early access', 'woocommerce-gateway-stripe' ) }</Pill>
 			<h3>
 				{ __(
 					'Enable the new Stripe payment management experience',
-					'woocommerce-payments'
+					'woocommerce-gateway-stripe'
 				) }
 			</h3>
 			<p>
 				{ __(
 					/* eslint-disable-next-line max-len */
 					'Spend less time managing giropay and other payment methods in an improved settings and checkout experience, now available to select merchants.',
-					'woocommerce-payments'
+					'woocommerce-gateway-stripe'
 				) }
 			</p>
 			<Actions>
 				<span>
 					<Button isPrimary href="?TODO" target="_blank">
-						{ __( 'Enable in your store', 'woocommerce-payments' ) }
+						{ __(
+							'Enable in your store',
+							'woocommerce-gateway-stripe'
+						) }
 					</Button>
 				</span>
 				<ExternalLink href="?TODO">
-					{ __( 'Learn more', 'woocommerce-payments' ) }
+					{ __( 'Learn more', 'woocommerce-gateway-stripe' ) }
 				</ExternalLink>
 			</Actions>
 		</InformationWrapper>
