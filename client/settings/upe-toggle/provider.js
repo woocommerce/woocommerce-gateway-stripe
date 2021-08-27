@@ -19,13 +19,15 @@ const UpeToggleContextProvider = ( { children, defaultIsUpeEnabled } ) => {
 		( value ) => {
 			setStatus( 'pending' );
 
+			const sanitizedValue = Boolean( value );
+
 			return apiFetch( {
 				path: `/wc/v3/wc_stripe/upe_flag_toggle`,
 				method: 'POST',
-				data: { is_upe_enabled: Boolean( value ) ? 'yes' : 'no' },
+				data: { is_upe_enabled: sanitizedValue },
 			} )
 				.then( () => {
-					setIsUpeEnabled( Boolean( value ) );
+					setIsUpeEnabled( sanitizedValue );
 					setStatus( 'resolved' );
 				} )
 				.catch( () => {

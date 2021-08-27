@@ -24,7 +24,7 @@ class WC_Stripe_UPE_Compatibility_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function setUp() {
 		parent::setUp();
-		update_option( '_wcstripe_feature_upe_settings', '1' );
+		update_option( '_wcstripe_feature_upe_settings', 'yes' );
 
 		// saving these values to that they can be restored after the test runs
 		global $wp_version;
@@ -66,7 +66,7 @@ class WC_Stripe_UPE_Compatibility_Controller_Test extends WP_UnitTestCase {
 	}
 
 	public function test_should_add_a_notice_when_the_wc_version_will_not_be_satisfied() {
-		update_option( '_wcstripe_feature_upe_settings', '0' );
+		update_option( '_wcstripe_feature_upe_settings', 'no' );
 		$this->overwrite_wp_version( '5.7.0' );
 		$this->overwrite_wc_version( '5.2.0' );
 

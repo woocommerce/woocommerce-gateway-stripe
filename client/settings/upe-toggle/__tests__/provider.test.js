@@ -99,7 +99,7 @@ describe( 'UpeToggleContextProvider', () => {
 				path: '/wc/v3/wc_stripe/upe_flag_toggle',
 				method: 'POST',
 				// eslint-disable-next-line camelcase
-				data: { is_upe_enabled: 'no' },
+				data: { is_upe_enabled: false },
 			} )
 		);
 
