@@ -18,173 +18,22 @@ import interpolateComponents from 'interpolate-components';
 import WizardTaskContext from '../wizard/task/context';
 import CollapsibleBody from '../wizard/collapsible-body';
 import WizardTaskItem from '../wizard/task-item';
-//TODO
-// import {
-// 	useEnabledPaymentMethodIds,
-// 	useGetAvailablePaymentMethodIds,
-// 	useSettings,
-// } from '../../data';
-import PaymentMethodCheckboxes from '../../components/payment-methods-checkboxes';
-import PaymentMethodCheckbox from '../../components/payment-methods-checkboxes/payment-method-checkbox';
-import { LoadableBlock } from '../../components/loadable';
-import LoadableSettingsSection from '../../settings/loadable-settings-section';
-import CurrencyInformationForMethods from '../../components/currency-information-for-methods';
+import {
+	useEnabledPaymentMethodIds,
+	useGetAvailablePaymentMethodIds,
+	useSettings,
+} from '../../data';
 
-//TODO, these should come from data
-const useEnabledPaymentMethodIds = () => {
-	return [
-		['sepa_debit'],
-		() => ({}),
-	]
-}
-const useGetAvailablePaymentMethodIds = () => {
-	return [
-		'giropay',
-		'sofort',
-		'sepa_debit',
-	];
-}
-const useSettings = () => {
-	return {
-		saveSettings: Promise.resolve('Success'),
-		isSaving: false,
-	};
-
-};
-
-const usePaymentMethodsCheckboxState = () => {
-	const availablePaymentMethods = useGetAvailablePaymentMethodIds();
-	const [ paymentMethodsState, setPaymentMethodsState ] = useState( {} );
-
-	useEffect( () => {
-		setPaymentMethodsState(
-			// by default, all the checkboxes should be "checked"
-			availablePaymentMethods
-				.filter( ( method ) =>
-					[
-						'giropay',
-						'sofort',
-						'sepa_debit',
-						'ideal',
-						'p24',
-					].includes( method )
-				)
-				.reduce(
-					( map, paymentMethod ) => ( {
-						...map,
-						[ paymentMethod ]: true,
-					} ),
-					{}
-				)
-		);
-	}, [ availablePaymentMethods, setPaymentMethodsState ] );
-
-	const handleChange = useCallback(
-		( paymentMethodName, enabled ) => {
-			setPaymentMethodsState( ( oldValues ) => ( {
-				...oldValues,
-				[ paymentMethodName ]: enabled,
-			} ) );
-		},
-		[ setPaymentMethodsState ]
-	);
-
-	return [ paymentMethodsState, handleChange ];
-};
-
-const ContinueButton = ( { paymentMethodsState } ) => {
-	const { setCompleted } = useContext( WizardTaskContext );
-	const [
-		initialEnabledPaymentMethodIds,
-		updateEnabledPaymentMethodIds,
-	] = useEnabledPaymentMethodIds();
-
-	const { saveSettings, isSaving } = useSettings();
-
-	const checkedPaymentMethods = useMemo(
-		() =>
-			Object.entries( paymentMethodsState )
-				.map( ( [ method, enabled ] ) => enabled && method )
-				.filter( Boolean ),
-		[ paymentMethodsState ]
-	);
-
-	const unCheckedPaymentMethods = Object.entries( paymentMethodsState )
-		.map( ( [ method, enabled ] ) => ! enabled && method )
-		.filter( Boolean );
-
-	const handleContinueClick = useCallback( () => {
-		// creating a separate callback, so that the main thread isn't blocked on click of the button
-		const callback = async () => {
-			updateEnabledPaymentMethodIds( [
-				// adding the newly selected payment methods and removing them from the `initialEnabledPaymentMethodIds` if unchecked
-				...new Set(
-					[
-						...initialEnabledPaymentMethodIds,
-						...checkedPaymentMethods,
-					].filter(
-						( method ) =>
-							! unCheckedPaymentMethods.includes( method )
-					)
-				),
-			] );
-
-			const isSuccess = await saveSettings();
-			if ( ! isSuccess ) {
-				// restoring the state, in case of soft route
-				updateEnabledPaymentMethodIds( initialEnabledPaymentMethodIds );
-				return;
-			}
-
-			setCompleted(
-				{
-					initialMethods: initialEnabledPaymentMethodIds,
-				},
-				'setup-complete'
-			);
-		};
-
-		callback();
-	}, [
-		unCheckedPaymentMethods,
-		checkedPaymentMethods,
-		updateEnabledPaymentMethodIds,
-		saveSettings,
-		setCompleted,
-		initialEnabledPaymentMethodIds,
-	] );
-
-	return (
-		<Button
-			isBusy={ isSaving }
-			disabled={ isSaving || 1 > checkedPaymentMethods.length }
-			onClick={ handleContinueClick }
-			isPrimary
-		>
-			{ __( 'Add payment methods', 'woocommerce-payments' ) }
-		</Button>
-	);
-};
 
 const AddPaymentMethodsTask = () => {
 	const availablePaymentMethods = useGetAvailablePaymentMethodIds();
-	const { isActive } = useContext( WizardTaskContext );
+	const { setCompleted } = useContext( WizardTaskContext );
+	const isSaving = false;
 
-	// I am using internal state in this component
-	// and committing the changes on `initialEnabledPaymentMethodIds` only when the "continue" button is clicked.
-	// Otherwise a user could navigate to another page via soft-routing and the settings would be in un-saved state,
-	// possibly causing errors.
-	const [
-		paymentMethodsState,
-		handlePaymentMethodChange,
-	] = usePaymentMethodsCheckboxState();
-	const selectedMethods = useMemo(
-		() =>
-			Object.entries( paymentMethodsState )
-				.map( ( [ method, enabled ] ) => enabled && method )
-				.filter( Boolean ),
-		[ paymentMethodsState ]
-	);
+	const handleContinueClick = useCallback( () => {
+		setCompleted( true, 'setup-complete' );
+	}, [ setCompleted ] );
+
 
 	return (
 		<WizardTaskItem
@@ -221,85 +70,17 @@ const AddPaymentMethodsTask = () => {
 								'woocommerce-payments'
 							) }
 						</p>
-						<LoadableBlock numLines={ 10 } isLoading={ ! isActive }>
-							<LoadableSettingsSection numLines={ 10 }>
-								<PaymentMethodCheckboxes>
-									{ availablePaymentMethods.includes(
-										'giropay'
-									) && (
-										<PaymentMethodCheckbox
-											checked={
-												paymentMethodsState.giropay
-											}
-											onChange={
-												handlePaymentMethodChange
-											}
-											name="giropay"
-										/>
-									) }
-									{ availablePaymentMethods.includes(
-										'p24'
-									) && (
-										<PaymentMethodCheckbox
-											checked={ paymentMethodsState.p24 }
-											onChange={
-												handlePaymentMethodChange
-											}
-											name="p24"
-										/>
-									) }
-									{ availablePaymentMethods.includes(
-										'sofort'
-									) && (
-										<PaymentMethodCheckbox
-											checked={
-												paymentMethodsState.sofort
-											}
-											onChange={
-												handlePaymentMethodChange
-											}
-											name="sofort"
-										/>
-									) }
-									{ availablePaymentMethods.includes(
-										'sepa_debit'
-									) && (
-										<PaymentMethodCheckbox
-											checked={
-												paymentMethodsState.sepa_debit
-											}
-											onChange={
-												handlePaymentMethodChange
-											}
-											name="sepa_debit"
-										/>
-									) }
-									{ availablePaymentMethods.includes(
-										'ideal'
-									) && (
-										<PaymentMethodCheckbox
-											checked={
-												paymentMethodsState.ideal
-											}
-											onChange={
-												handlePaymentMethodChange
-											}
-											name="ideal"
-										/>
-									) }
-								</PaymentMethodCheckboxes>
-							</LoadableSettingsSection>
-						</LoadableBlock>
+
 					</CardBody>
 				</Card>
-				<CurrencyInformationForMethods
-					selectedMethods={ selectedMethods }
-				/>
-				<LoadableBlock numLines={ 10 } isLoading={ ! isActive }>
-					<ContinueButton
-						paymentMethodsState={ paymentMethodsState }
-					/>
-				</LoadableBlock>
+				<Button
+					isBusy={ isSaving }
+					disabled={ isSaving }
+					onClick={ handleContinueClick }
+					isPrimary
+				>
+					{ __( 'Add payment methods', 'woocommerce-payments' ) }
+				</Button>
 			</CollapsibleBody>
 		</WizardTaskItem>
 	);

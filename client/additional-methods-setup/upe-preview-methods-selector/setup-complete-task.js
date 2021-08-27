@@ -29,7 +29,7 @@ import './style.scss';
 		 <WizardTaskItem
 			 className="setup-complete-task"
 			 title={ __( 'Setup complete', 'woocommerce-payments' ) }
-			 index={ 2 }
+			 index={ 3 }
 		 >
 			 <CollapsibleBody>
 				 <p className="wcpay-wizard-task__description-element is-muted-color">

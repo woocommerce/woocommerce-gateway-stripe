@@ -36,11 +36,10 @@
 							<EnableUpePreviewTask />
 						</WizardTask>
 						<WizardTask id="add-payment-methods">
-							{/* <AddPaymentMethodsTask /> */}
+							<AddPaymentMethodsTask />
 						</WizardTask>
 						<WizardTask id="setup-complete">
-							{/* <SetupCompleteTask /> */}
-							box3
+							<SetupCompleteTask />
 						</WizardTask>
 					</WizardTaskList>
 				</Wizard>
