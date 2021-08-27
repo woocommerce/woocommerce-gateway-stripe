@@ -449,7 +449,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			// TODO: save the payment method
 			if ( $save_payment_method && $payment_method->is_reusable() ) {
-
 				$user  = $this->get_user_from_order( $order );
 				$token = $payment_method->get_payment_token_for_user( $user, $intent->payment_method );
 				$this->add_token_to_order( $order, $token );

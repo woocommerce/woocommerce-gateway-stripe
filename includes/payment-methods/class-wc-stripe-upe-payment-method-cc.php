@@ -57,7 +57,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * Add payment method to user and return WC payment token.
 	 *
 	 * @param WP_User $user User to add payment token to.
-	 * @param object $intent JSON object for Stripe payment intent.
+	 * @param object $intent JSON object for Stripe payment/setup intent.
 	 *
 	 * @return WC_Payment_Token_CC WC object for payment token.
 	 */

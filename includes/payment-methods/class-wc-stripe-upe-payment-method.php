@@ -92,6 +92,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 * @return WC_Payment_Token_SEPA|null WC object for payment token.
 	 */
 	public function get_payment_token_for_user( $user, $intent ) {
+		// TODO: Need to test this with SEPA, instead of methods converted to SEPA.
 		if ( ! $this->is_reusable() ) {
 			return null;
 		}
@@ -134,7 +135,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 			$payment_method_details = (array) $charge->payment_method_details;
 			return $payment_method_details[ $this->stripe_id ];
 		} elseif ( 'setup_intent' === $intent->object ) {
-			// TODO: We will need to do something different here to get the generated SEPA pm...
+			// TODO: I think we will need to do something different here to get the generated SEPA pm...
 			return null;
 		}
 	}
