@@ -1,4 +1,6 @@
 @import "../../styles/abstracts/styles.scss";
+@import "./enable-upe-preview-task.scss";
+@import "./setup-complete-task.scss";
 
 .components-card__header {
 	font-size: 20px;
@@ -6,92 +8,4 @@
 
 .components-card {
 	margin-bottom: 24px;
-}
-
-.enable-upe-preview {
-	&__body {
-		&.is-active {
-			// there's so much text that on mobile the text overflows the max-height set on the collapsible body.
-			max-height: 1000px;
-		}
-	}
-
-	&__advantages-wrapper {
-		display: flex;
-		flex-direction: column;
-
-		@include breakpoint( '>660px' ) {
-			flex-direction: row;
-			justify-content: space-between;
-			align-items: stretch;
-
-			> * {
-				width: 100%;
-
-				&:not( :first-child ) {
-					margin-left: 8px;
-				}
-			}
-		}
-	}
-
-	&__advantage {
-		overflow: hidden;
-
-		&-color {
-			position: relative;
-			width: 100%;
-			height: 5px;
-
-			&--for-you {
-				background: #007cba;
-			}
-
-			&--for-customers {
-				background: #b35eb1;
-			}
-
-			&::after {
-				position: absolute;
-				content: ' ';
-				width: 100%;
-				height: 2px;
-				bottom: 0;
-				left: 0;
-				border-top-left-radius: 3px;
-				border-top-right-radius: 3px;
-				background: $white;
-			}
-		}
-
-		svg {
-			fill: $gray-600;
-		}
-
-		h3 {
-			margin: 12px 0;
-			font-size: 13px;
-			line-height: 20px;
-		}
-
-		&-features-list {
-			li {
-				background: url( "data:image/svg+xml, %3Csvg xmlns='http://www.w3.org/2000/svg' fill='%234AB866' viewBox='0 0 24 24' height='auto' width='20'%3E%3Cpath d='M18.3 5.6L9.9 16.9l-4.6-3.4-.9 1.2 5.8 4.3 9.3-12.6z' /%3E%3C/svg%3E" )
-					no-repeat left top;
-				padding: 0 0 0 24px;
-				font-size: 13px;
-				line-height: 1.5;
-			}
-		}
-	}
-}
-
-.setup-complete-task {
-	&__buttons {
-		.components-button {
-			&:not( :last-child ) {
-				margin-right: 20px;
-			}
-		}
-	}
 }
