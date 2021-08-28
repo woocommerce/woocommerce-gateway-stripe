@@ -16,7 +16,7 @@ const WizardTaskList = ( { children } ) => {
 	useLayoutEffect( () => {
 		// set the focus on the next active heading.
 		// but need to set the focus only after the first mount, only when the active task changes.
-		if ( true === isFirstMount.current ) {
+		if ( isFirstMount.current === true ) {
 			isFirstMount.current = false;
 			return;
 		}

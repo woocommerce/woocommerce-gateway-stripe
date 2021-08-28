@@ -1,22 +1,22 @@
 /**
  * External dependencies
  */
- import React from 'react';
- import { useEffect, useCallback, useContext } from '@wordpress/element';
- import { __ } from '@wordpress/i18n';
- import { Button } from '@wordpress/components';
- import { getHistory, getNewPath } from '@woocommerce/navigation';
+import React from 'react';
+import { useEffect, useCallback, useContext } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
+import { Button } from '@wordpress/components';
+import { getHistory, getNewPath } from '@woocommerce/navigation';
 //  import { useDispatch } from '@wordpress/data';
- import interpolateComponents from 'interpolate-components';
+import interpolateComponents from 'interpolate-components';
 
- /**
-  * Internal dependencies
-  */
- import CollapsibleBody from '../wizard/collapsible-body';
- import WizardTaskItem from '../wizard/task-item';
- import WizardTaskContext from '../wizard/task/context';
- import WizardContext from '../wizard/wrapper/context';
- import { useEnabledPaymentMethodIds } from '../../data';
+/**
+ * Internal dependencies
+ */
+import CollapsibleBody from '../wizard/collapsible-body';
+import WizardTaskItem from '../wizard/task-item';
+import WizardTaskContext from '../wizard/task/context';
+import WizardContext from '../wizard/wrapper/context';
+import { useEnabledPaymentMethodIds } from '../../data';
 //  import './setup-complete-task.scss';
 import PaymentMethodIcon from '../../settings/payment-method-icon';
 import './style.scss';
@@ -35,7 +35,7 @@ const SetupCompleteMessaging = () => {
 	// we need to check that the type of `enableUpePreviewPayload` is an object - it can also just be `true` or `undefined`
 	let addedPaymentMethodsCount = 0;
 	if (
-		'object' === typeof enableUpePreviewPayload &&
+		typeof enableUpePreviewPayload === 'object' &&
 		enableUpePreviewPayload.initialMethods
 	) {
 		const { initialMethods } = enableUpePreviewPayload;
@@ -43,7 +43,7 @@ const SetupCompleteMessaging = () => {
 	}
 
 	// can't just check for "0", some methods could have been disabled
-	if ( 0 >= addedPaymentMethodsCount ) {
+	if ( addedPaymentMethodsCount <= 0 ) {
 		return __( 'Setup complete!', 'woocommerce-gateway-stripe' );
 	}
 
@@ -72,31 +72,34 @@ const EnabledMethodsList = () => {
 	);
 };
 
- const SetupComplete = () => {
-	 return (
+const SetupComplete = () => {
+	return (
 		<WizardTaskItem
-		title={ __( 'Enjoy the new features', 'woocommerce-gateway-stripe' ) }
-		index={ 3 }
-	>
-		<CollapsibleBody>
-			<p className="wcpay-wizard-task__description-element is-muted-color">
-				<SetupCompleteMessaging />
-			</p>
-			<EnabledMethodsList />
-			<div className="setup-complete-task__buttons">
-				<Button
-					href="admin.php?page=wc-settings&tab=checkout&section=woocommerce_payments"
-					isPrimary
-				>
-					{ __(
-						'Go to payments settings',
-						'woocommerce-gateway-stripe'
-					) }
-				</Button>
-			</div>
-		</CollapsibleBody>
-	</WizardTaskItem>
-	 );
- };
+			title={ __(
+				'Enjoy the new features',
+				'woocommerce-gateway-stripe'
+			) }
+			index={ 3 }
+		>
+			<CollapsibleBody>
+				<p className="wcpay-wizard-task__description-element is-muted-color">
+					<SetupCompleteMessaging />
+				</p>
+				<EnabledMethodsList />
+				<div className="setup-complete-task__buttons">
+					<Button
+						href="admin.php?page=wc-settings&tab=checkout&section=woocommerce_payments"
+						isPrimary
+					>
+						{ __(
+							'Go to payments settings',
+							'woocommerce-gateway-stripe'
+						) }
+					</Button>
+				</div>
+			</CollapsibleBody>
+		</WizardTaskItem>
+	);
+};
 
- export default SetupComplete;
+export default SetupComplete;

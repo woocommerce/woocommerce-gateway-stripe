@@ -26,27 +26,28 @@ import {
 import PaymentMethodCheckboxes from '../../components/payment-methods-checkboxes';
 import PaymentMethodCheckbox from '../../components/payment-methods-checkboxes/payment-method-checkbox';
 
-
 const AddPaymentMethodsTask = () => {
 	const availablePaymentMethods = useGetAvailablePaymentMethodIds();
 	const { setCompleted } = useContext( WizardTaskContext );
 	const isSaving = false;
-	const [paymentMethodsState, setPaymentMethodsState] = useState({
-		'giropay': true,
-		'sofort': true,
-		'sepa_debit': true
-	});
+	const [ paymentMethodsState, setPaymentMethodsState ] = useState( {
+		giropay: true,
+		sofort: true,
+		sepa_debit: true,
+	} );
 
 	const handleContinueClick = useCallback( () => {
 		setCompleted( true, 'setup-complete' );
 	}, [ setCompleted ] );
 
-	const paymentsCheckboxHandler = (name, enabled) => {
-		setPaymentMethodsState({...paymentMethodsState, ...{
-			[name]: enabled
-		}});
-	}
-
+	const paymentsCheckboxHandler = ( name, enabled ) => {
+		setPaymentMethodsState( {
+			...paymentMethodsState,
+			...{
+				[ name ]: enabled,
+			},
+		} );
+	};
 
 	return (
 		<WizardTaskItem
@@ -85,18 +86,20 @@ const AddPaymentMethodsTask = () => {
 						</p>
 
 						<PaymentMethodCheckboxes>
-							{availablePaymentMethods.map( paymentMethodId =>
-								<PaymentMethodCheckbox
-									name={paymentMethodId}
-									onChange={paymentsCheckboxHandler}
-									checked={paymentMethodsState[paymentMethodId]}
-								>
-
-								</PaymentMethodCheckbox>
-							)}
-
+							{ availablePaymentMethods.map(
+								( paymentMethodId ) => (
+									<PaymentMethodCheckbox
+										name={ paymentMethodId }
+										onChange={ paymentsCheckboxHandler }
+										checked={
+											paymentMethodsState[
+												paymentMethodId
+											]
+										}
+									></PaymentMethodCheckbox>
+								)
+							) }
 						</PaymentMethodCheckboxes>
-
 					</CardBody>
 				</Card>
 				<Button
@@ -105,7 +108,10 @@ const AddPaymentMethodsTask = () => {
 					onClick={ handleContinueClick }
 					isPrimary
 				>
-					{ __( 'Add payment methods', 'woocommerce-gateway-stripe' ) }
+					{ __(
+						'Add payment methods',
+						'woocommerce-gateway-stripe'
+					) }
 				</Button>
 			</CollapsibleBody>
 		</WizardTaskItem>

@@ -72,7 +72,7 @@ const PaymentMethodCheckbox = ( { onChange, name, checked = false, fees } ) => {
 						fees
 					) }
 				>
-				{__('2.9% + C$0.30', 'woocommerce-gateway-stripe')}
+					{ __( '2.9% + C$0.30', 'woocommerce-gateway-stripe' ) }
 				</Pill>
 			</Tooltip>
 			<PaymentMethodDescription name={ name } />

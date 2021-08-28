@@ -118,8 +118,8 @@ const EnableUpePreviewTask = () => {
 					</Card>
 				</div>
 				<Button
-					isBusy={ 'pending' === status }
-					disabled={ 'pending' === status }
+					isBusy={ status === 'pending' }
+					disabled={ status === 'pending' }
 					onClick={ handleContinueClick }
 					isPrimary
 				>
