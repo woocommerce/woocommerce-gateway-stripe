@@ -85,13 +85,15 @@ const AddPaymentMethodsTask = () => {
 						</p>
 
 						<PaymentMethodCheckboxes>
-							<PaymentMethodCheckbox
-								name='giropay'
-								onChange={paymentsCheckboxHandler}
-								checked={paymentMethodsState['giropay']}
-							>
+							{availablePaymentMethods.map( paymentMethodId =>
+								<PaymentMethodCheckbox
+									name={paymentMethodId}
+									onChange={paymentsCheckboxHandler}
+									checked={paymentMethodsState[paymentMethodId]}
+								>
 
-							</PaymentMethodCheckbox>
+								</PaymentMethodCheckbox>
+							)}
 
 						</PaymentMethodCheckboxes>
 
