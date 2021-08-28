@@ -38,8 +38,6 @@ const PaymentMethodDescription = ( { name } ) => {
 };
 
 const PaymentMethodCheckbox = ( { onChange, name, checked = false, fees } ) => {
-	const { accountFees } = useContext( WCPaySettingsContext );
-
 	const handleChange = useCallback(
 		( enabled ) => {
 			onChange( name, enabled );
