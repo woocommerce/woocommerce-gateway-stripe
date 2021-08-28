@@ -31,9 +31,7 @@ const AddPaymentMethodsTask = () => {
 	const { setCompleted } = useContext( WizardTaskContext );
 	const isSaving = false;
 	const [ paymentMethodsState, setPaymentMethodsState ] = useState( {
-		giropay: true,
-		sofort: true,
-		sepa_debit: true,
+		card: true,
 	} );
 
 	const handleContinueClick = useCallback( () => {
@@ -53,7 +51,7 @@ const AddPaymentMethodsTask = () => {
 		<WizardTaskItem
 			className="add-payment-methods-task"
 			title={ __(
-				'Boost your sales with payment methods',
+				'Review accepted payment methods',
 				'woocommerce-gateway-stripe'
 			) }
 			index={ 2 }
@@ -62,14 +60,13 @@ const AddPaymentMethodsTask = () => {
 				<p className="wcpay-wizard-task__description-element is-muted-color">
 					{ interpolateComponents( {
 						mixedString: __(
-							'For best results, we recommend adding all available payment methods. ' +
-								"We'll only show your customer the most relevant payment methods " +
-								'based on their location. {{learnMoreLink}}Learn more{{/learnMoreLink}}',
+							"We've added methods that you'd already enabled. For best results, we recommand adding " +
+								"all available payment methods. We'll only show your customers the most relevant payment" +
+								'methods based on their location and purchasing history. {{learnMoreLink}}Learn more{{/learnMoreLink}}',
 							'woocommerce-gateway-stripe'
 						),
 						components: {
 							learnMoreLink: (
-								// eslint-disable-next-line max-len
 								<ExternalLink href="https://docs.woocommerce.com/document/payments/additional-payment-methods/#available-methods" />
 							),
 						},
@@ -78,7 +75,7 @@ const AddPaymentMethodsTask = () => {
 				<Card className="add-payment-methods-task__payment-selector-wrapper">
 					<CardBody>
 						{ /* eslint-disable-next-line max-len */ }
-						<p className="add-payment-methods-task__payment-selector-title wcpay-wizard-task__description-element">
+						<p className="add-payment-methods-task__payment-selector-title wcpay-wizard-task__description-element is-headline">
 							{ __(
 								'Payments accepted at checkout',
 								'woocommerce-gateway-stripe'

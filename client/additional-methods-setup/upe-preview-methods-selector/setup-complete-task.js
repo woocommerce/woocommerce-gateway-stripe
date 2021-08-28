@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import { useEffect, useCallback, useContext } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import { Button } from '@wordpress/components';
 import { getHistory, getNewPath } from '@woocommerce/navigation';
 //  import { useDispatch } from '@wordpress/data';
@@ -14,7 +14,6 @@ import interpolateComponents from 'interpolate-components';
  */
 import CollapsibleBody from '../wizard/collapsible-body';
 import WizardTaskItem from '../wizard/task-item';
-import WizardTaskContext from '../wizard/task/context';
 import WizardContext from '../wizard/wrapper/context';
 import { useEnabledPaymentMethodIds } from '../../data';
 //  import './setup-complete-task.scss';
@@ -24,6 +23,10 @@ import './style.scss';
 const SetupCompleteMessaging = () => {
 	const [ enabledPaymentMethods ] = useEnabledPaymentMethodIds();
 	const enabledMethodsCount = enabledPaymentMethods.length;
+	//TODO: Initial payment methods need to be passed down before step 2.
+	const initialMethods = [
+		'cards'
+	];
 
 	const { completedTasks } = useContext( WizardContext );
 	const enableUpePreviewPayload = completedTasks[ 'add-payment-methods' ];
@@ -32,15 +35,7 @@ const SetupCompleteMessaging = () => {
 		return null;
 	}
 
-	// we need to check that the type of `enableUpePreviewPayload` is an object - it can also just be `true` or `undefined`
-	let addedPaymentMethodsCount = 0;
-	if (
-		typeof enableUpePreviewPayload === 'object' &&
-		enableUpePreviewPayload.initialMethods
-	) {
-		const { initialMethods } = enableUpePreviewPayload;
-		addedPaymentMethodsCount = enabledMethodsCount - initialMethods.length;
-	}
+	const addedPaymentMethodsCount = enabledMethodsCount - initialMethods.length;
 
 	// can't just check for "0", some methods could have been disabled
 	if ( addedPaymentMethodsCount <= 0 ) {

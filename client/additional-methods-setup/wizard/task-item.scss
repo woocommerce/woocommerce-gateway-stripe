@@ -28,7 +28,7 @@
 		flex-direction: row;
 		margin: 4px 0;
 		font-weight: 600;
-		font-size: 16px;
+		font-size: 14px;
 		color: #2c3338;
 
 		.is-active & {
@@ -109,6 +109,11 @@
 
 		&.is-muted-color {
 			color: $gray-700;
+		}
+
+		&.is-headline {
+			font-weight: 600;
+			font-size: 14px;
 		}
 
 		.components-external-link svg {
