@@ -65,7 +65,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @var array
 	 */
-	protected $payment_methods = [];
+	public $payment_methods = [];
 
 	/**
 	 * Constructor
@@ -449,8 +449,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			// TODO: save the payment method
 			if ( $save_payment_method && $payment_method->is_reusable() ) {
-				$user  = $this->get_user_from_order( $order );
-				$token = $payment_method->get_payment_token_for_user( $user, $intent->payment_method );
+				$user = $this->get_user_from_order( $order );
+				// Clear transient, since we are adding a new payment method.
+				WC_Stripe_Customer::clear_payment_method_cache( $user->ID, $payment_method->get_retrievable_type() );
+				$token = $payment_method->add_token_to_user( $user, $intent->payment_method );
 				$this->add_token_to_order( $order, $token );
 			}
 
@@ -494,7 +496,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return bool
 	 */
-	private function is_enabled_at_checkout( $payment_method_id ) {
+	public function is_enabled_at_checkout( $payment_method_id ) {
 		if ( ! isset( $this->payment_methods[ $payment_method_id ] ) ) {
 			return false;
 		}
@@ -509,7 +511,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return bool
 	 */
-	private function is_enabled_for_saved_payments( $payment_method_id ) {
+	public function is_enabled_for_saved_payments( $payment_method_id ) {
 		if ( ! isset( $this->payment_methods[ $payment_method_id ] ) ) {
 			return false;
 		}

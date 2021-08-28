@@ -11,6 +11,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Customer {
 
 	/**
+	 * String prefix for Stripe payment methods request transient.
+	 */
+	const PAYMENT_METHODS_TRANSIENT_PREFIX = 'stripe_payment_methods_';
+
+	/**
 	 * Stripe customer ID
 	 *
 	 * @var string
@@ -412,6 +417,47 @@ class WC_Stripe_Customer {
 	}
 
 	/**
+	 * Gets saved payment methods for a customer using Intentions API.
+	 *
+	 * @param string $payment_method_type Stripe ID of payment method type
+	 *
+	 * @return array
+	 */
+	public function get_payment_methods( $payment_method_type ) {
+		if ( ! $this->get_id() ) {
+			return [];
+		}
+
+		$payment_methods = get_transient( self::PAYMENT_METHODS_TRANSIENT_PREFIX . $payment_method_type . $this->get_user_id() );
+
+		if ( false === $payment_methods ) {
+			// TODO: Maybe use const from SEPA UPE payment method when implemented.
+			$params   = 'sepa_debit' === $payment_method_type ? '?expand[]=data.sepa_debit.generated_from.charge' : '';
+			$response = WC_Stripe_API::request(
+				[
+					'customer' => $this->get_id(),
+					'type'     => $payment_method_type,
+					'limit'    => 100, // Maximum allowed value.
+				],
+				'payment_methods' . $params,
+				'GET'
+			);
+
+			if ( ! empty( $response->error ) ) {
+				return [];
+			}
+
+			if ( is_array( $response->data ) ) {
+				$payment_methods = $response->data;
+			}
+
+			set_transient( self::PAYMENT_METHODS_TRANSIENT_PREFIX . $payment_method_type . $this->get_user_id(), $payment_methods, DAY_IN_SECONDS );
+		}
+
+		return empty( $payment_methods ) ? [] : $payment_methods;
+	}
+
+	/**
 	 * Delete a source from stripe.
 	 *
 	 * @param string $source_id
@@ -427,6 +473,29 @@ class WC_Stripe_Customer {
 
 		if ( empty( $response->error ) ) {
 			do_action( 'wc_stripe_delete_source', $this->get_id(), $response );
+
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Detach a payment method from stripe.
+	 *
+	 * @param string $payment_method_id
+	 */
+	public function detach_payment_method( $payment_method_id ) {
+		if ( ! $this->get_id() ) {
+			return false;
+		}
+
+		$response = WC_Stripe_API::request( [], "payment_methods/$payment_method_id/detach" , 'POST' );
+
+		$this->clear_cache();
+
+		if ( empty( $response->error ) ) {
+			do_action( 'wc_stripe_detach_payment_method', $this->get_id(), $response );
 
 			return true;
 		}
@@ -460,12 +529,46 @@ class WC_Stripe_Customer {
 	}
 
 	/**
+	 * Set default payment method in Stripe
+	 *
+	 * @param string $payment_method_id
+	 */
+	public function set_default_payment_method( $payment_method_id ) {
+		$response = WC_Stripe_API::request(
+			[
+				'invoice_settings' => [
+					'default_payment_method' => sanitize_text_field( $payment_method_id ),
+				],
+			],
+			'customers/' . $this->get_id(),
+			'POST'
+		);
+
+		$this->clear_cache();
+
+		if ( empty( $response->error ) ) {
+			do_action( 'wc_stripe_set_default_payment_method', $this->get_id(), $response );
+
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
 	 * Deletes caches for this users cards.
 	 */
 	public function clear_cache() {
 		delete_transient( 'stripe_sources_' . $this->get_id() );
 		delete_transient( 'stripe_customer_' . $this->get_id() );
 		$this->customer_data = [];
+	}
+
+	/**
+	 * Deletes payment method request cache for a user.
+	 */
+	public static function clear_payment_method_cache( $user_id, $payment_method_type ) {
+		delete_transient( self::PAYMENT_METHODS_TRANSIENT_PREFIX . $payment_method_type . $user_id );
 	}
 
 	/**

@@ -80,7 +80,16 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
-	 * Add payment method to user and return WC payment token.
+	 * Returns string representing payment method type
+	 * to query to retrieve saved payment methods from Stripe.
+	 */
+	public function get_retrievable_type() {
+		// TODO: Use const from SEPA upe method class, when implemented.
+		return $this->is_reusable() ? 'sepa_debit' : null;
+	}
+
+	/**
+	 * Add payment method from intent to user and return WC payment token.
 	 *
 	 * By default we use WC_Payment_Token_SEPA, because most
 	 * payment methods support saving payment methods via
@@ -91,20 +100,47 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 *
 	 * @return WC_Payment_Token_SEPA|null WC object for payment token.
 	 */
-	public function get_payment_token_for_user( $user, $intent ) {
+	public function add_token_to_user( $user, $intent ) {
 		// TODO: Need to test this with SEPA, instead of methods converted to SEPA.
 		if ( ! $this->is_reusable() ) {
 			return null;
 		}
 		$payment_method_details = $this->get_payment_method_details_from_intent( $intent );
+		return $this->create_payment_token_for_user( $user->ID, $payment_method_details->generated_sepa_debit, $payment_method_details->iban_last4 );
+	}
 
+	/**
+	 * Add payment method to user and return WC payment token.
+	 *
+	 * This will be used from the WC_Stripe_Payment_Tokens service
+	 * as opposed to WC_Stripe_UPE_Payment_Gateway.
+	 *
+	 * @param string $user_id        WP_User ID
+	 * @param object $payment_method Stripe payment method object
+	 *
+	 * @return WC_Payment_Token_SEPA
+	 */
+	public function add_token_to_user_from_payment_method( $user_id, $payment_method ) {
+		return $this->create_payment_token_for_user( $user_id, $payment_method->id, $payment_method->sepa_debit->last4 );
+	}
+
+	/**
+	 * Create new WC payment token and add to user.
+	 *
+	 * @param string $user_id           WP_User ID
+	 * @param string $payment_method_id Stripe payment method ID
+	 * @param string $last4             IBAN/SEPA Debit last 4 digits
+	 *
+	 * @return WC_Payment_Token_SEPA
+	 */
+	private function create_payment_token_for_user( $user_id, $payment_method_id, $last4 ) {
 		$token = new WC_Payment_Token_SEPA();
-		$token->set_last4( $payment_method_details->iban_last4 );
+		$token->set_last4( $last4 );
 		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
-		$token->set_token( $payment_method_details->generated_sepa_debit );
-		$token->set_user_id( $user->ID );
+		$token->set_token( $payment_method_id );
+		$token->set_type( $this->get_id() );
+		$token->set_user_id( $user_id );
 		$token->save();
-
 		return $token;
 	}
 

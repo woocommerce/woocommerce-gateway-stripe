@@ -105,4 +105,16 @@ class WC_Payment_Token_SEPA extends WC_Payment_Token {
 	public function set_last4( $last4 ) {
 		$this->set_prop( 'last4', $last4 );
 	}
+
+	/**
+	 * Set token type,
+	 * if token has been converted from another payment method.
+	 *
+	 * @since 4.0.0
+	 * @version 4.0.0
+	 * @param string $last4
+	 */
+	public function set_type( $type ) {
+		$this->type = $type;
+	}
 }

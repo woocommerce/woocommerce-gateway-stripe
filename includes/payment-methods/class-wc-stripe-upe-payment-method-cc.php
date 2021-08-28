@@ -54,16 +54,38 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
+	 * Returns string representing payment method type
+	 * to query to retrieve saved payment methods from Stripe.
+	 */
+	public function get_retrievable_type() {
+		return $this->get_id();
+	}
+
+	/**
 	 * Add payment method to user and return WC payment token.
 	 *
-	 * @param WP_User $user User to add payment token to.
-	 * @param object $intent JSON object for Stripe payment/setup intent.
+	 * @param WP_User $user   User to add payment token to.
+	 * @param object  $intent JSON object for Stripe payment/setup intent.
 	 *
 	 * @return WC_Payment_Token_CC WC object for payment token.
 	 */
-	public function get_payment_token_for_user( $user, $intent ) {
+	public function add_token_to_user( $user, $intent ) {
 		$payment_method = $intent->payment_method;
+		return $this->add_token_to_user_from_payment_method( $user->ID, $payment_method );
+	}
 
+		/**
+	 * Add payment method to user and return WC payment token.
+	 *
+	 * This will be used from the WC_Stripe_Payment_Tokens service
+	 * as opposed to WC_Stripe_UPE_Payment_Gateway.
+	 *
+	 * @param string $user_id        WP_User ID
+	 * @param object $payment_method Stripe payment method object
+	 *
+	 * @return WC_Payment_Token_CC
+	 */
+	public function add_token_to_user_from_payment_method( $user_id, $payment_method ) {
 		$token = new WC_Payment_Token_CC();
 		$token->set_expiry_month( $payment_method->card->exp_month );
 		$token->set_expiry_year( $payment_method->card->exp_year );
@@ -71,11 +93,11 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		$token->set_last4( $payment_method->card->last4 );
 		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
 		$token->set_token( $payment_method->id );
-		$token->set_user_id( $user->ID );
+		$token->set_type( $this->get_id() );
+		$token->set_user_id( $user_id );
 		$token->save();
 
 		return $token;
 	}
-
 
 }
