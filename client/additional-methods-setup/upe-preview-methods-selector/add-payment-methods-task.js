@@ -81,6 +81,7 @@ const AddPaymentMethodsTask = () => {
 												paymentMethodId
 											]
 										}
+										fees="2.9%"
 									></PaymentMethodCheckbox>
 								)
 							) }
