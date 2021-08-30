@@ -19,7 +19,6 @@ import PaymentMethodCheckbox from '../../components/payment-methods-checkboxes/p
 const AddPaymentMethodsTask = () => {
 	const availablePaymentMethods = useGetAvailablePaymentMethodIds();
 	const { setCompleted } = useContext( WizardTaskContext );
-	const isSaving = false;
 	const [ paymentMethodsState, setPaymentMethodsState ] = useState( {
 		card: true,
 	} );
@@ -88,12 +87,7 @@ const AddPaymentMethodsTask = () => {
 						</PaymentMethodCheckboxes>
 					</CardBody>
 				</Card>
-				<Button
-					isBusy={ isSaving }
-					disabled={ isSaving }
-					onClick={ handleContinueClick }
-					isPrimary
-				>
+				<Button onClick={ handleContinueClick } isPrimary>
 					{ __(
 						'Add payment methods',
 						'woocommerce-gateway-stripe'
