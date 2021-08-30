@@ -29,7 +29,7 @@ const EnableUpePreviewTask = () => {
 		<WizardTaskItem
 			title={ interpolateComponents( {
 				mixedString: __(
-					'{{wrapper}}Enable the new WooCommerce Payments checkout experience{{/wrapper}} ' +
+					'{{wrapper}}Enable the new Stripe checkout experience{{/wrapper}} ' +
 						'{{earlyAccessWrapper}}Early access{{/earlyAccessWrapper}}',
 					'woocommerce-gateway-stripe'
 				),
@@ -45,13 +45,13 @@ const EnableUpePreviewTask = () => {
 					{ interpolateComponents( {
 						mixedString: __(
 							'Get early access to additional payment methods and an improved checkout experience, ' +
-								'coming soon to WooCommerce payments. {{learnMoreLink /}}',
+								'coming soon to WooCommerce Gateway Stripe. {{learnMoreLink /}}',
 							'woocommerce-gateway-stripe'
 						),
 						components: {
 							learnMoreLink: (
 								// eslint-disable-next-line max-len
-								<ExternalLink href="https://docs.woocommerce.com/document/payments/additional-payment-methods/#introduction">
+								<ExternalLink href="TODO?">
 									{ __(
 										'Learn more',
 										'woocommerce-gateway-stripe'
@@ -76,7 +76,7 @@ const EnableUpePreviewTask = () => {
 								</li>
 								<li>
 									{ __(
-										'FREE upgrade exclusive to WooCommerce Payments users.',
+										'FREE upgrade exclusive to Stripe users.',
 										'woocommerce-gateway-stripe'
 									) }
 								</li>

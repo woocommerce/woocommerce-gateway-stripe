@@ -67,7 +67,7 @@ const AddPaymentMethodsTask = () => {
 						),
 						components: {
 							learnMoreLink: (
-								<ExternalLink href="https://docs.woocommerce.com/document/payments/additional-payment-methods/#available-methods" />
+								<ExternalLink href="TODO?" />
 							),
 						},
 					} ) }
