@@ -3,6 +3,9 @@
  */
 import React, { useMemo, useContext } from 'react';
 
+/**
+ * Internal dependencies
+ */
 import WizardContext from '../wrapper/context';
 import WizardTaskContext from './context';
 

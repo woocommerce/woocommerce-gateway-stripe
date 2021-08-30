@@ -24,7 +24,7 @@ const PaymentMethodIcon = ( { name, showName } ) => {
 		<span
 			className={ classNames(
 				'woocommerce-gateway-stripe__payment-method-icon',
-				{ 'has-icon-border': 'card' !== name }
+				{ 'has-icon-border': name !== 'card' }
 			) }
 		>
 			<Icon />
