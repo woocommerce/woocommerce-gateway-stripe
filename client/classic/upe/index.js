@@ -102,6 +102,9 @@ jQuery( function ( $ ) {
 	const elements = api.getStripe().elements( {
 		fonts: getFontRulesFromPage(),
 	} );
+	const sepaElementsOptions =
+		getStripeServerData()?.sepaElementsOptions ?? {};
+	const iban = elements.create( 'iban', sepaElementsOptions );
 
 	let upeElement = null;
 	let paymentIntentId = null;
@@ -324,6 +327,13 @@ jQuery( function ( $ ) {
 		) {
 			mountUPEElement();
 		}
+
+		if (
+			$( '#stripe-iban-element' ).length &&
+			! $( '#stripe-iban-element' ).children().length
+		) {
+			iban.mount( '#stripe-iban-element' );
+		}
 	} );
 
 	if (
@@ -351,6 +361,13 @@ jQuery( function ( $ ) {
 				$( 'form#order_review' ).submit();
 			}
 			mountUPEElement( useSetUpIntent );
+		}
+
+		if (
+			$( '#stripe-iban-element' ).length &&
+			! $( '#stripe-iban-element' ).children().length
+		) {
+			iban.mount( '#stripe-iban-element' );
 		}
 	}
 
