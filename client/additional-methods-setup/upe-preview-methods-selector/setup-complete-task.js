@@ -79,7 +79,7 @@ const SetupComplete = () => {
 				<EnabledMethodsList />
 				<div className="setup-complete-task__buttons">
 					<Button
-						href="admin.php?page=wc-settings&tab=checkout&section=woocommerce_payments"
+						href="admin.php?page=wc-settings&tab=checkout&section=stripe"
 						isPrimary
 					>
 						{ __(

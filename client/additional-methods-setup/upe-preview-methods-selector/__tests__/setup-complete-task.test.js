@@ -39,7 +39,7 @@ describe( 'SetupComplete', () => {
 		expect( setCompletedMock ).not.toHaveBeenCalled();
 
 		expect( screen.getByText( 'Go to payments settings' ).href ).toContain(
-			'admin.php?page=wc-settings&tab=checkout&section=woocommerce_payments'
+			'admin.php?page=wc-settings&tab=checkout&section=stripe'
 		);
 	} );
 
