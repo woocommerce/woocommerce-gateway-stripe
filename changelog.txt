@@ -7,6 +7,7 @@
 * Add - Settings to control Payment Request Button locations in the Stripe plugin settings. Persists changes made through pre-existing filters, or defaults to the Cart and Product pages if no filters are in use.
 * Tweak - Deprecated the 'wc_stripe_hide_payment_request_on_product_page', 'wc_stripe_show_payment_request_on_checkout', and 'wc_stripe_show_payment_request_on_cart' filters in favor of the UI-driven approach in the plugin settings.
 * Add - Notice for WP & WC version compatibility check.
+* Add - Notice about UPE availability.
 
 = 5.4.1 - 2021-09-01 =
 * Fix - Get Subscription CustomerID from Order instead of User.
