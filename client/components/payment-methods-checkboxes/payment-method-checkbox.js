@@ -2,7 +2,7 @@
 /**
  * External dependencies
  */
-import React, { useContext } from 'react';
+import React from 'react';
 import { CheckboxControl, Icon, VisuallyHidden } from '@wordpress/components';
 import { useCallback, useMemo } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
@@ -14,9 +14,7 @@ import PaymentMethodIcon from '../../settings/payment-method-icon';
 import Pill from '../pill';
 import Tooltip from '../tooltip';
 import paymentMethodsMap from '../../payment-methods-map';
-// import './payment-method-checkbox.scss';
 import './style.scss';
-import WCPaySettingsContext from '../../settings/wcpay-settings-context';
 
 const PaymentMethodDescription = ( { name } ) => {
 	const description = paymentMethodsMap[ name ]?.description;
@@ -65,6 +63,7 @@ const PaymentMethodCheckbox = ( { onChange, name, checked = false, fees } ) => {
 				<Pill
 					className="payment-method-checkbox__fees"
 					aria-label={ sprintf(
+						/* translators: %s A percentage representing the transaction fees. */
 						__(
 							'Base transaction fees: %s',
 							'woocommerce-gateway-stripe'
@@ -72,7 +71,8 @@ const PaymentMethodCheckbox = ( { onChange, name, checked = false, fees } ) => {
 						fees
 					) }
 				>
-					{ __( '2.9% + C$0.30', 'woocommerce-gateway-stripe' ) }
+					{ fees ||
+						__( 'missing fees', 'woocommerce-gateway-stripe' ) }
 				</Pill>
 			</Tooltip>
 			<PaymentMethodDescription name={ name } />
