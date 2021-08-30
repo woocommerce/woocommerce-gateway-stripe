@@ -38,11 +38,11 @@ class WC_Stripe_Inbox_Notes {
 
 		/**
 		 * No need to display the admin inbox note when
+		 * - upe preview is disabled
 		 * - upe is already enabled
-		 * - upe settings flag is disabled
 		 * - stripe is not enabled
 		 */
-		if ( ! WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() || WC_Stripe_Feature_Flags::is_upe_enabled() || ! $stripe_enabled ) {
+		if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() || WC_Stripe_Feature_Flags::is_upe_checkout_enabled() || ! $stripe_enabled ) {
 			return;
 		}
 
