@@ -1,13 +1,7 @@
 /**
  * External dependencies
  */
-import React, {
-	useCallback,
-	useContext,
-	useEffect,
-	useMemo,
-	useState,
-} from 'react';
+import React, { useCallback, useContext, useState } from 'react';
 import { __ } from '@wordpress/i18n';
 import { Button, Card, CardBody, ExternalLink } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
@@ -18,11 +12,7 @@ import interpolateComponents from 'interpolate-components';
 import WizardTaskContext from '../wizard/task/context';
 import CollapsibleBody from '../wizard/collapsible-body';
 import WizardTaskItem from '../wizard/task-item';
-import {
-	useEnabledPaymentMethodIds,
-	useGetAvailablePaymentMethodIds,
-	useSettings,
-} from '../../data';
+import { useGetAvailablePaymentMethodIds } from '../../data';
 import PaymentMethodCheckboxes from '../../components/payment-methods-checkboxes';
 import PaymentMethodCheckbox from '../../components/payment-methods-checkboxes/payment-method-checkbox';
 
@@ -66,9 +56,7 @@ const AddPaymentMethodsTask = () => {
 							'woocommerce-gateway-stripe'
 						),
 						components: {
-							learnMoreLink: (
-								<ExternalLink href="TODO?" />
-							),
+							learnMoreLink: <ExternalLink href="TODO?" />,
 						},
 					} ) }
 				</p>

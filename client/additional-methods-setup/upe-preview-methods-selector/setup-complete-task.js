@@ -2,12 +2,9 @@
  * External dependencies
  */
 import React from 'react';
-import { useEffect, useCallback, useContext } from '@wordpress/element';
+import { useContext } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { Button } from '@wordpress/components';
-import { getHistory, getNewPath } from '@woocommerce/navigation';
-//  import { useDispatch } from '@wordpress/data';
-import interpolateComponents from 'interpolate-components';
 
 /**
  * Internal dependencies
@@ -16,7 +13,6 @@ import CollapsibleBody from '../wizard/collapsible-body';
 import WizardTaskItem from '../wizard/task-item';
 import WizardContext from '../wizard/wrapper/context';
 import { useEnabledPaymentMethodIds } from '../../data';
-//  import './setup-complete-task.scss';
 import PaymentMethodIcon from '../../settings/payment-method-icon';
 import './style.scss';
 
@@ -24,9 +20,7 @@ const SetupCompleteMessaging = () => {
 	const [ enabledPaymentMethods ] = useEnabledPaymentMethodIds();
 	const enabledMethodsCount = enabledPaymentMethods.length;
 	//TODO: Initial payment methods need to be passed down before step 2.
-	const initialMethods = [
-		'cards'
-	];
+	const initialMethods = [ 'cards' ];
 
 	const { completedTasks } = useContext( WizardContext );
 	const enableUpePreviewPayload = completedTasks[ 'add-payment-methods' ];
@@ -35,7 +29,8 @@ const SetupCompleteMessaging = () => {
 		return null;
 	}
 
-	const addedPaymentMethodsCount = enabledMethodsCount - initialMethods.length;
+	const addedPaymentMethodsCount =
+		enabledMethodsCount - initialMethods.length;
 
 	// can't just check for "0", some methods could have been disabled
 	if ( addedPaymentMethodsCount <= 0 ) {
@@ -43,9 +38,10 @@ const SetupCompleteMessaging = () => {
 	}
 
 	return sprintf(
+		/* translators: Number of payment methods */
 		_n(
-			'Setup complete! One new payment method is now live on your store!',
-			'Setup complete! %s new payment methods are now live on your store!',
+			'Setup complete! %d new payment method is now live on your store!',
+			'Setup complete! %d new payment methods are now live on your store!',
 			addedPaymentMethodsCount,
 			'woocommerce-gateway-stripe'
 		),
