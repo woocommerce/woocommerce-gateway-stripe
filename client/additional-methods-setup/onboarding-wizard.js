@@ -21,16 +21,7 @@ const OnboardingWizard = () => {
 	return (
 		<Card className="upe-preview-methods-selector">
 			<CardBody>
-				<Wizard
-					defaultActiveTask={
-						isUpeEnabled
-							? 'add-payment-methods'
-							: 'enable-upe-preview'
-					}
-					defaultCompletedTasks={ {
-						'enable-upe-preview': isUpeEnabled,
-					} }
-				>
+				<Wizard defaultActiveTask="enable-upe-preview">
 					<WizardTaskList>
 						<WizardTask id="enable-upe-preview">
 							<EnableUpePreviewTask />
