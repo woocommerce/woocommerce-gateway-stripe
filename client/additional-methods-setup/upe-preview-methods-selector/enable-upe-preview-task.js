@@ -17,8 +17,6 @@ import Pill from '../../components/pill';
 import './style.scss';
 
 const EnableUpePreviewTask = () => {
-	const status = 'ready'; //TODO: Use status from somewhere else.
-
 	const { setCompleted } = useContext( WizardTaskContext );
 
 	const handleContinueClick = useCallback( () => {
@@ -117,12 +115,7 @@ const EnableUpePreviewTask = () => {
 						</CardBody>
 					</Card>
 				</div>
-				<Button
-					isBusy={ status === 'pending' }
-					disabled={ status === 'pending' }
-					onClick={ handleContinueClick }
-					isPrimary
-				>
+				<Button onClick={ handleContinueClick } isPrimary>
 					{ __( 'Enable', 'woocommerce-gateway-stripe' ) }
 				</Button>
 			</CollapsibleBody>
