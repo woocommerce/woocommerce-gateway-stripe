@@ -38,7 +38,7 @@ describe( 'SetupComplete', () => {
 		renderHelper( setCompletedMock );
 		expect( setCompletedMock ).not.toHaveBeenCalled();
 
-		expect( screen.getByText( 'Go to payments settings' ).href ).toContain(
+		expect( screen.getByText( 'Go to Stripe settings' ).href ).toContain(
 			'admin.php?page=wc-settings&tab=checkout&section=stripe'
 		);
 	} );

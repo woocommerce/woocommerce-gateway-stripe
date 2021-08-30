@@ -83,7 +83,7 @@ const SetupComplete = () => {
 						isPrimary
 					>
 						{ __(
-							'Go to payments settings',
+							'Go to Stripe settings',
 							'woocommerce-gateway-stripe'
 						) }
 					</Button>
