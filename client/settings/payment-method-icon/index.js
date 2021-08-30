@@ -23,13 +23,13 @@ const PaymentMethodIcon = ( { name, showName } ) => {
 	return (
 		<span
 			className={ classNames(
-				'woocommerce-payments__payment-method-icon',
+				'woocommerce-gateway-stripe__payment-method-icon',
 				{ 'has-icon-border': 'card' !== name }
 			) }
 		>
 			<Icon />
 			{ showName && (
-				<span className="woocommerce-payments__payment-method-icon__label">
+				<span className="woocommerce-gateway-stripe__payment-method-icon__label">
 					{ label }
 				</span>
 			) }

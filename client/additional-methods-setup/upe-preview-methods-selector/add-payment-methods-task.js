@@ -86,6 +86,7 @@ const AddPaymentMethodsTask = () => {
 							{ availablePaymentMethods.map(
 								( paymentMethodId ) => (
 									<PaymentMethodCheckbox
+										key={ paymentMethodId }
 										name={ paymentMethodId }
 										onChange={ paymentsCheckboxHandler }
 										checked={
