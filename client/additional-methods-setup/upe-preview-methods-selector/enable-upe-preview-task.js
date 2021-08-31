@@ -43,7 +43,7 @@ const EnableUpePreviewTask = () => {
 					{ interpolateComponents( {
 						mixedString: __(
 							'Get early access to additional payment methods and an improved checkout experience, ' +
-								'coming soon to WooCommerce Gateway Stripe. {{learnMoreLink /}}',
+								'coming soon to Stripe. {{learnMoreLink /}}',
 							'woocommerce-gateway-stripe'
 						),
 						components: {
