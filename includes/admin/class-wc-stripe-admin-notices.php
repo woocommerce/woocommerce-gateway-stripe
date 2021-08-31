@@ -243,7 +243,7 @@ class WC_Stripe_Admin_Notices {
 			}
 		}
 
-		if ( ! WC_Stripe_Feature_Flags::is_upe_enabled() || ! WC_Stripe::get_instance()->is_upe_enabled() ) {
+		if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() || ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			return;
 		}
 
