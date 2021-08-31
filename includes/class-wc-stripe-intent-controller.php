@@ -27,6 +27,7 @@ class WC_Stripe_Intent_Controller {
 		add_action( 'wc_ajax_wc_stripe_create_setup_intent', [ $this, 'create_setup_intent' ] );
 
 		add_action( 'wc_ajax_wc_stripe_create_payment_intent', [ $this, 'create_payment_intent_ajax' ] );
+		add_action( 'wc_ajax_wc_stripe_update_payment_intent', [ $this, 'update_payment_intent_ajax' ] );
 
 		add_action( 'wc_ajax_wc_stripe_save_upe_appearance', [ $this, 'save_upe_appearance_ajax' ] );
 		add_action( 'wc_ajax_nopriv_wc_stripe_save_upe_appearance', [ $this, 'save_upe_appearance_ajax' ] );
@@ -264,7 +265,7 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * Handle AJAX request for creating a payment intent for Stripe UPE.
 	 *
-	 * @throws Process_Payment_Exception - If nonce or setup intent is invalid.
+	 * @throws Exception - If nonce or setup intent is invalid.
 	 */
 	public function create_payment_intent_ajax() {
 		try {
@@ -323,6 +324,64 @@ class WC_Stripe_Intent_Controller {
 		return [
 			'id'            => $payment_intent->id,
 			'client_secret' => $payment_intent->client_secret,
+		];
+	}
+
+	/**
+	 * Handle AJAX request for updating a payment intent for Stripe UPE.
+	 *
+	 * @since x.x.x
+	 *
+	 * @throws Exception - If nonce or setup intent is invalid.
+	 */
+	public function update_payment_intent_ajax() {
+		try {
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_payment_intent_nonce', false, false );
+			if ( ! $is_nonce_valid ) {
+				throw new Exception( __( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			$order_id                  = isset( $_POST['wc_stripe_order_id'] ) ? absint( $_POST['wc_stripe_order_id'] ) : null;
+			$payment_intent_id         = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : '';
+			$save_payment_method       = isset( $_POST['save_payment_method'] ) ? 'yes' === wc_clean( wp_unslash( $_POST['save_payment_method'] ) ) : false;
+			$selected_upe_payment_type = ! empty( $_POST['wc_stripe_selected_upe_payment_type'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ) ) : '';
+
+			wp_send_json_success( $this->update_payment_intent( $payment_intent_id, $order_id, $save_payment_method, $selected_upe_payment_type ), 200 );
+		} catch ( Exception $e ) {
+			// Send back error so it can be displayed to the customer.
+			wp_send_json_error(
+				[
+					'error' => [
+						'message' => $e->getMessage(),
+					],
+				]
+			);
+		}
+	}
+
+	/**
+	 * Updates payment intent to be able to save payment method.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param {string}  $payment_intent_id         The id of the payment intent to update.
+	 * @param {int}     $order_id                  The id of the order if intent created from Order.
+	 * @param {boolean} $save_payment_method       True if saving the payment method.
+	 * @param {string}  $selected_upe_payment_type The name of the selected UPE payment type or empty string.
+	 *
+	 * @return array|null An array with result of the update, or nothing
+	 */
+	public function update_payment_intent( $payment_intent_id = '', $order_id = null, $save_payment_method = false, $selected_upe_payment_type = '' ) {
+		$order = wc_get_order( $order_id );
+		if ( ! is_a( $order, 'WC_Order' ) ) {
+			return;
+		}
+		$amount   = $order->get_total();
+		$currency = $order->get_currency();
+
+		// - TODO: Make request to Stripe API to update payment intent.
+		return [
+			'success' => true,
 		];
 	}
 
