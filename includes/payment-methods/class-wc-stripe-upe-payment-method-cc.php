@@ -64,13 +64,12 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Add payment method to user and return WC payment token.
 	 *
-	 * @param WP_User $user   User to add payment token to.
-	 * @param object  $intent JSON object for Stripe payment/setup intent.
+	 * @param WP_User $user           User to add payment token to.
+	 * @param object  $payment_method JSON object for Stripe payment method.
 	 *
 	 * @return WC_Payment_Token_CC WC object for payment token.
 	 */
-	public function add_token_to_user( $user, $intent ) {
-		$payment_method = $intent->payment_method;
+	public function add_token_to_user( $user, $payment_method ) {
 		return $this->add_token_to_user_from_payment_method( $user->ID, $payment_method );
 	}
 
@@ -93,7 +92,6 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		$token->set_last4( $payment_method->card->last4 );
 		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
 		$token->set_token( $payment_method->id );
-		$token->set_type( $this->get_id() );
 		$token->set_user_id( $user_id );
 		$token->save();
 

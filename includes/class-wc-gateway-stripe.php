@@ -506,26 +506,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
-	 *
-	 * @since 4.2.0
-	 * @param object   $error The error that was returned from Stripe's API.
-	 * @param WC_Order $order The order those payment is being processed.
-	 * @return bool           A flag that indicates that the customer does not exist and should be removed.
-	 */
-	public function maybe_remove_non_existent_customer( $error, $order ) {
-		if ( ! $this->is_no_such_customer_error( $error ) ) {
-			return false;
-		}
-
-		delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
-		$order->delete_meta_data( '_stripe_customer_id' );
-		$order->save();
-
-		return true;
-	}
-
-	/**
 	 * Completes an order without a positive value.
 	 *
 	 * @since 4.2.0

@@ -124,7 +124,7 @@ class WC_Stripe_Payment_Tokens {
 	 * @return array
 	 */
 	public function woocommerce_get_customer_payment_tokens( $tokens, $user_id, $gateway_id ) {
-		if ( WC_Stripe_Feature_Flags::is_upe_enabled() && WC_Stripe::get_instance()->is_upe_enabled() ) {
+		if ( WC_Stripe_Feature_Flags::is_upe_enabled() && WC_Stripe::get_instance()->is_upe_enabled() && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id ) {
 			return $this->woocommerce_get_customer_upe_payment_tokens( $tokens, $user_id, $gateway_id );
 		} else {
 			return $this->woocommerce_get_customer_payment_tokens_legacy( $tokens, $user_id, $gateway_id );
@@ -219,22 +219,21 @@ class WC_Stripe_Payment_Tokens {
 	 * @return array
 	 */
 	public function woocommerce_get_customer_upe_payment_tokens( $tokens, $user_id, $gateway_id ) {
-		if ( ! empty( $gateway_id ) && WC_Payment_Gateway_WCPay::GATEWAY_ID !== $gateway_id && is_user_logged_in() ) {
+		if ( ! empty( $gateway_id ) && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id && is_user_logged_in() ) {
 			$gateway                  = new WC_Stripe_UPE_Payment_Gateway();
 			$reusable_payment_methods = array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] );
 			$customer                 = new WC_Stripe_Customer( $user_id );
-			$existing_tokens          = [];
+			$remaining_tokens         = [];
 
 			foreach ( $tokens as $token ) {
-				if ( WC_Stripe_UPE_Payment_Gateway::ID === $gateway ) {
-					if ( ! in_array( $token->get_type(), $enabled_payment_methods, true ) ) {
-						// Remove saved token from list, if payment method is currently disabled.
-						unset( $tokens[ $token->get_id() ] );
-					} else {
-						// Store relevant existing tokens here.
-						// We will use this list to check whether these methods still exist on Stripe's side.
-						$existing_tokens[ $token->get_token() ] = $token;
-					}
+				$payment_method_type = $this->get_payment_method_type_from_token( $token );
+				if ( ! in_array( $payment_method_type, $reusable_payment_methods, true ) ) {
+					// Remove saved token from list, if payment method is not enabled.
+					unset( $tokens[ $token->get_id() ] );
+				} else {
+					// Store relevant existing tokens here.
+					// We will use this list to check whether these methods still exist on Stripe's side.
+					$remaining_tokens[ $token->get_token() ] = $token;
 				}
 			}
 
@@ -252,15 +251,20 @@ class WC_Stripe_Payment_Tokens {
 				// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
 				remove_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 				foreach ( $payment_methods as $payment_method ) {
-					if ( ! isset( $existing_tokens[ $payment_method->id ] ) ) {
+					if ( ! isset( $remaining_tokens[ $payment_method->id ] ) ) {
+						$payment_method_type = $this->get_original_payment_method_type( $payment_method );
+						if ( ! in_array( $payment_method_type, $reusable_payment_methods, true ) ) {
+							continue;
+						}
+
 						// Create new token for new payment method and add to list.
-						$payment_method_type        = $this->get_original_payment_method_type( $payment_method );
-						$upe_payment_method         = $gateway->payment_methods[ $payment_method->type ];
+						$upe_payment_method         = $gateway->payment_methods[ $payment_method_type ];
 						$token                      = $upe_payment_method->add_token_to_user_from_payment_method( $user_id, $payment_method );
 						$tokens[ $token->get_id() ] = $token;
 					} else {
-						// Remaining IDs in $existing_tokens no longer exist with Stripe and will be eliminated.
-						unset( $existing_tokens[ $payment_method->id ] );
+						// Count that existing token for payment method is still present on Stripe.
+						// Remaining IDs in $remaining_tokens no longer exist with Stripe and will be eliminated.
+						unset( $remaining_tokens[ $payment_method->id ] );
 					}
 				}
 				add_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
@@ -269,19 +273,19 @@ class WC_Stripe_Payment_Tokens {
 			// Eliminate remaining payment methods no longer known by Stripe.
 			// Prevent unnecessary recursion, when deleting tokens.
 			remove_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
-			foreach ( $existing_tokens as $token ) {
+			foreach ( $remaining_tokens as $token ) {
 				unset( $tokens[ $token->get_id() ] );
 				$token->delete();
 			}
 			add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
 		}
-
+		
 		return $tokens;
 	}
 
 	/**
-	 * Returns original type of payment method,
-	 * after checking whether payment method is generated SEPA.
+	 * Returns original type of payment method from Stripe payment method response,
+	 * after checking whether payment method is SEPA method generated from another type.
 	 *
 	 * @param object $payment_method Stripe payment method JSON object.
 	 *
@@ -291,11 +295,29 @@ class WC_Stripe_Payment_Tokens {
 		// TODO: Maybe use const from SEPA UPE payment method when implemented.
 		if( 'sepa_debit' === $payment_method->type ) {
 			// TODO: Maybe need additional logic here to check setup_attempt
-			if( ! is_empty( $payment_method->sepa_debit->generated_from->charge ) ) {
+			if ( ! is_null( $payment_method->sepa_debit->generated_from->charge ) ) {
 				return $payment_method->sepa_debit->generated_from->charge->payment_method_details->type;
 			}
 		}
 		return $payment_method->type;
+	}
+
+	/**
+	 * Returns original Stripe payment method type from payment token
+	 *
+	 * @param WC_Payment_Token $payment_token WC Payment Token (CC or SEPA)
+	 *
+	 * @return string
+	 */
+	private function get_payment_method_type_from_token( $payment_token ) {
+		$type = $payment_token->get_type();
+		if ( 'CC' === $type ) {
+			return 'card';
+		} elseif ( 'sepa' === $type ) {
+			return $payment_token->get_payment_method_type();
+		} else {
+			return $type;
+		}
 	}
 
 	/**

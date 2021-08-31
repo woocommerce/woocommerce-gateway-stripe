@@ -138,7 +138,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 		$token->set_last4( $last4 );
 		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
 		$token->set_token( $payment_method_id );
-		$token->set_type( $this->get_id() );
+		$token->set_payment_method_type( $this->get_id() );
 		$token->set_user_id( $user_id );
 		$token->save();
 		return $token;

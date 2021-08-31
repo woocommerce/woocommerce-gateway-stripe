@@ -79,6 +79,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$this->supports           = [
 			'products',
 			'refunds',
+			'tokenization',
 		];
 
 		$this->payment_methods = [];
@@ -334,6 +335,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return array|null An array with result of payment and redirect URL, or nothing.
 	 */
 	public function process_payment( $order_id ) {
+		if ( $this->is_using_saved_payment_method() ) {
+			return $this->process_payment_with_saved_payment_method( $order_id );
+		}
+
 		$payment_intent_id         = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$order                     = wc_get_order( $order_id );
 		$amount                    = $order->get_total();
@@ -420,14 +425,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			$token          = WC_Stripe_Payment_Tokens::get_token_from_request( $_POST );
 			$payment_method = WC_Stripe_API::request( [], 'payment_methods/' . $token->get_token(), 'GET' );
-			$payment_needed = 0 >= $order->get_total();
+			$payment_needed = 0 < $order->get_total();
 
 			$this->maybe_disallow_prepaid_card( $payment_method );
 			$this->save_payment_method_to_order( $order, $payment_method );
 
-			WC_Stripe_Logger::log( "Info: Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
+			WC_Stripe_Logger::log( "Info: Begin processing payment with saved payment method for order $order_id for the amount of {$order->get_total()}" );
 
 			$intent = null;
+			$enabled_payment_methods = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_at_checkout' ] );
 			if ( $payment_needed ) {
 				// This will throw exception if not valid.
 				$this->validate_minimum_order_amount( $order );
@@ -436,13 +442,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				$level3_data     = $this->get_level3_data_from_order( $order );
 				$intent          = WC_Stripe_API::request_with_level3_data(
 					[
-						'payment_method' => $payment_method->id,
-						'amount'         => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
-						'currency'       => strtolower( $order->get_currency() ),
-						'description'    => $full_request['description'],
-						'metadata'       => $full_request['metadata'],
-						'capture_method' => ( 'true' === $full_request['capture'] ) ? 'automatic' : 'manual',
-						'confirm'        => 'true',
+						'payment_method'       => $payment_method->id,
+						'payment_method_types' => $enabled_payment_methods,
+						'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
+						'currency'             => strtolower( $order->get_currency() ),
+						'description'          => $request_details['description'],
+						'metadata'             => $request_details['metadata'],
+						'capture_method'       => ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual',
+						'customer'             => $payment_method->customer,
+						'confirm'              => 'true',
 					],
 					'payment_intents',
 					$level3_data,
@@ -451,9 +459,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			} else {
 				$intent = WC_Stripe_API::request(
 					[
-						'payment_method' => $payment_method->id,
-						'customer'       => $payment_method->customer,
-						'confirm'        => 'true',
+						'payment_method'       => $payment_method->id,
+						'payment_method_types' => $enabled_payment_methods,
+						'customer'             => $payment_method->customer,
+						'confirm'              => 'true',
 					],
 					'setup_intents',
 					'POST'
@@ -463,7 +472,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			if ( ! empty( $intent->error ) ) {
 				$this->maybe_remove_non_existent_customer( $intent->error, $order );
 
-				// We want to retry.
+				// We want to retry (apparently).
 				if ( $this->is_retryable_error( $intent->error ) ) {
 					return $this->retry_after_error( $intent, $order, $can_retry );
 				}
@@ -480,7 +489,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				}
 			}
 
-			$this->process_response( $intent, $order );
+			// Use the last charge within the intent to proceed.
+			$charge = end( $intent->charges->data );
+			list( $payment_method_type, $payment_method_details ) = $this->get_payment_method_data_from_intent( $intent );
+
+			$this->process_response( $charge, $order );
 			$this->set_payment_method_title_for_order( $order, $payment_method_type, $payment_method_details );
 
 			// Remove cart.
@@ -565,8 +578,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				$this->add_token_to_order( $order, $token );
 			}
 
-			$intent->captured = 'yes'; // TODO: this is to re-use the parent logic, maybe re-implement it to not use charges?, see: https://github.com/Automattic/woocommerce-payments/blob/b69532e92a381cf054f515896c56cc365e3904d4/includes/class-wc-payment-gateway-wcpay.php#L1125
-			$this->process_response( $intent, $order );
+			// Use the last charge within the intent to proceed.
+			$charge = end( $intent->charges->data );
+			$this->process_response( $charge, $order );
 
 			$this->set_payment_method_title_for_order( $order, $payment_method_type, $payment_method_details );
 
