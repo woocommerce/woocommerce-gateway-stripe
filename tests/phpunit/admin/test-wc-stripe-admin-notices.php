@@ -54,7 +54,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		add_filter(
 			'pre_option__wcstripe_feature_upe',
 			function() {
-				return '1';
+				return 'yes';
 			}
 		);
 		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
