@@ -148,6 +148,18 @@ jQuery( function ( $ ) {
 		$form.removeClass( 'processing' ).unblock();
 	};
 
+	/**
+	 * Checks whether SEPA IBAN element is present in the DOM and needs to be mounted
+	 *
+	 * @return {boolean} Whether IBAN needs to be mounted
+	 */
+	const doesIbanNeedToBeMounted = () => {
+		return (
+			$( '#stripe-iban-element' ).length &&
+			! $( '#stripe-iban-element' ).children().length
+		);
+	};
+
 	// Show error notice at top of checkout form.
 	const showError = ( errorMessage ) => {
 		let messageWrapper = '';
@@ -328,10 +340,7 @@ jQuery( function ( $ ) {
 			mountUPEElement();
 		}
 
-		if (
-			$( '#stripe-iban-element' ).length &&
-			! $( '#stripe-iban-element' ).children().length
-		) {
+		if ( doesIbanNeedToBeMounted() ) {
 			iban.mount( '#stripe-iban-element' );
 		}
 	} );
@@ -363,10 +372,7 @@ jQuery( function ( $ ) {
 			mountUPEElement( useSetUpIntent );
 		}
 
-		if (
-			$( '#stripe-iban-element' ).length &&
-			! $( '#stripe-iban-element' ).children().length
-		) {
+		if ( doesIbanNeedToBeMounted() ) {
 			iban.mount( '#stripe-iban-element' );
 		}
 	}
