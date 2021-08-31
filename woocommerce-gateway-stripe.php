@@ -181,6 +181,8 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-intent-controller.php';
 				require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-inbox-notes.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-upe-compatibility.php';
+				require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-upe-compatibility-controller.php';
 
 				if ( is_admin() ) {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
@@ -209,6 +211,7 @@ function woocommerce_gateway_stripe() {
 					add_filter( 'woocommerce_get_sections_checkout', [ $this, 'filter_gateway_order_admin' ] );
 				}
 
+				new WC_Stripe_UPE_Compatibility_Controller();
 			}
 
 			/**
@@ -330,7 +333,7 @@ function woocommerce_gateway_stripe() {
 			 * @version 4.0.0
 			 */
 			public function add_gateways( $methods ) {
-				if ( ! WC_Stripe_Feature_Flags::is_upe_enabled() ) {
+				if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Subs_Compat::class : WC_Gateway_Stripe::class;
 					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Sepa_Subs_Compat::class : WC_Gateway_Stripe_Sepa::class;
 					$methods[] = WC_Gateway_Stripe_Bancontact::class;
@@ -344,7 +347,7 @@ function woocommerce_gateway_stripe() {
 					return $methods;
 				}
 
-				if ( $this->is_upe_enabled() ) {
+				if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 					$methods[] = WC_Stripe_UPE_Payment_Gateway::class;
 				} else {
 					// These payment gateways will be hidden when UPE is enabled:
@@ -366,16 +369,6 @@ function woocommerce_gateway_stripe() {
 			}
 
 			/**
-			 * Check if UPE is enabled.
-			 *
-			 * @return bool True if UPE is enabled, false if it is not.
-			 */
-			public function is_upe_enabled() {
-				$stripe_settings = get_option( 'woocommerce_stripe_settings', null );
-				return ! empty( $stripe_settings['upe_checkout_experience_enabled'] ) && 'yes' === $stripe_settings['upe_checkout_experience_enabled'];
-			}
-
-			/**
 			 * Modifies the order of the gateways displayed in admin.
 			 *
 			 * @since 4.0.0
@@ -383,7 +376,7 @@ function woocommerce_gateway_stripe() {
 			 */
 			public function filter_gateway_order_admin( $sections ) {
 				unset( $sections['stripe'] );
-				if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
+				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 					unset( $sections['stripe_upe'] );
 				}
 				unset( $sections['stripe_bancontact'] );
@@ -397,7 +390,7 @@ function woocommerce_gateway_stripe() {
 				unset( $sections['stripe_multibanco'] );
 
 				$sections['stripe'] = 'Stripe';
-				if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
+				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 					$sections['stripe_upe'] = 'Stripe checkout experience';
 				}
 				$sections['stripe_bancontact'] = __( 'Stripe Bancontact', 'woocommerce-gateway-stripe' );
@@ -431,7 +424,7 @@ function woocommerce_gateway_stripe() {
 					$settings     = array_merge( $old_settings, $settings );
 				}
 
-				if ( ! WC_Stripe_Feature_Flags::is_upe_enabled() ) {
+				if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 					return $settings;
 				}
 
@@ -451,13 +444,13 @@ function woocommerce_gateway_stripe() {
 			 */
 			protected function toggle_upe( $settings, $old_settings ) {
 				if ( false === $old_settings ) {
-					$old_settings = [ 'upe_checkout_experience_enabled' => 'no' ];
+					$old_settings = [ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no' ];
 				}
-				if ( ! isset( $settings['upe_checkout_experience_enabled'] ) || $settings['upe_checkout_experience_enabled'] === $old_settings['upe_checkout_experience_enabled'] ) {
+				if ( ! isset( $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) || $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] === $old_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
 					return $settings;
 				}
 
-				if ( 'no' === $old_settings['upe_checkout_experience_enabled'] && 'yes' === $settings['upe_checkout_experience_enabled'] ) {
+				if ( 'no' === $old_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] && 'yes' === $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
 					return $this->enable_upe( $settings );
 				}
 
@@ -569,7 +562,7 @@ function woocommerce_gateway_stripe() {
 				$oauth_init->register_routes();
 				$oauth_connect->register_routes();
 
-				if ( WC_Stripe_Feature_Flags::is_upe_enabled() ) {
+				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-upe-flag-toggle-controller.php';
 					$upe_flag_toggle_controller = new WC_REST_UPE_Flag_Toggle_Controller();
 					$upe_flag_toggle_controller->register_routes();
@@ -617,6 +610,17 @@ if ( ! function_exists( 'add_woocommerce_inbox_variant' ) ) {
 }
 register_activation_hook( __FILE__, 'add_woocommerce_inbox_variant' );
 
+function wcstripe_deactivated() {
+	// admin notes are not supported on older versions of WooCommerce.
+	if ( version_compare( WC_VERSION, '4.4.0', '>=' ) ) {
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-upe-compatibility.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-compatibility-note.php';
+		WC_Stripe_UPE_Compatibility_Note::possibly_delete_note();
+	}
+}
+register_deactivation_hook( __FILE__, 'wcstripe_deactivated' );
+
 // Hook in Blocks integration. This action is called in a callback on plugins loaded, so current Stripe plugin class
 // implementation is too late.
 add_action( 'woocommerce_blocks_loaded', 'woocommerce_gateway_stripe_woocommerce_block_support' );
@@ -631,6 +635,11 @@ function woocommerce_gateway_stripe_woocommerce_block_support() {
 		add_action(
 			'woocommerce_blocks_payment_method_type_registration',
 			function( Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry ) {
+				// I noticed some incompatibility with WP 5.x and WC 5.3 when `_wcstripe_feature_upe_settings` is enabled.
+				if ( ! class_exists( 'WC_Stripe_Payment_Request' ) ) {
+					return;
+				}
+
 				$container = Automattic\WooCommerce\Blocks\Package::container();
 				// registers as shared instance.
 				$container->register(
