@@ -19,8 +19,9 @@ class WC_Stripe_UPE_Payment_Method_Eps extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function __construct( $token_service ) {
 		parent::__construct( $token_service );
-		$this->stripe_id   = self::STRIPE_ID;
-		$this->title       = 'Pay with EPS';
-		$this->is_reusable = true; // TODO: is it?
+		$this->stripe_id            = self::STRIPE_ID;
+		$this->title                = 'Pay with EPS';
+		$this->is_reusable          = false;
+		$this->supported_currencies = [ 'EUR' ];
 	}
 }

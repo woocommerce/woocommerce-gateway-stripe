@@ -30,6 +30,53 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Prints the admin options for the gateway.
+	 * Inserts an empty placeholder div for UPE opt-in banner if feature flag is enabled.
+	 */
+	public function admin_options() {
+		$form_fields  = $this->get_form_fields();
+		$target_index = array_search( 'activation', array_keys( $form_fields ), true ) + 1;
+
+		echo '<h2>' . esc_html( $this->get_method_title() );
+		wc_back_link( __( 'Return to payments', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ) );
+		echo '</h2>';
+
+		if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
+			echo '<table class="form-table">' . $this->generate_settings_html( array_slice( $form_fields, 0, $target_index, true ), false ) . '</table>';
+			echo '<div id="wc-stripe-upe-opt-in-banner"></div>';
+			echo '<table class="form-table">' . $this->generate_settings_html( array_slice( $form_fields, $target_index, null, true ), false ) . '</table>';
+		} else {
+			echo '<table class="form-table">' . $this->generate_settings_html( $form_fields, false ) . '</table>';
+		}
+	}
+
+	/**
+	 * Outputs scripts used for upe opt-in banner
+	 */
+	public function admin_scripts_for_banner() {
+		if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
+			// Webpack generates an assets file containing a dependencies array for our built JS file.
+			$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe_opt_in_banner.asset.php';
+			$script_asset      = file_exists( $script_asset_path )
+				? require $script_asset_path
+				: [
+					'dependencies' => [],
+					'version'      => WC_STRIPE_VERSION,
+				];
+
+			wp_register_script(
+				'woocommerce_stripe_upe_opt_in',
+				plugins_url( 'build/upe_opt_in_banner.js', WC_STRIPE_MAIN_FILE ),
+				$script_asset['dependencies'],
+				$script_asset['version'],
+				true
+			);
+
+			wp_enqueue_script( 'woocommerce_stripe_upe_opt_in' );
+		}
+	}
+
+	/**
 	 * Displays the save to account checkbox.
 	 *
 	 * @since 4.1.0

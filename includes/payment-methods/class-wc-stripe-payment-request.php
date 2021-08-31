@@ -1665,26 +1665,33 @@ class WC_Stripe_Payment_Request {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
-		$items     = [];
-		$subtotal  = 0;
-		$discounts = 0;
+		$items         = [];
+		$lines         = [];
+		$subtotal      = 0;
+		$discounts     = 0;
+		$display_items = ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items;
 
-		// Default show only subtotal instead of itemization.
-		if ( ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items ) {
-			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
-				$amount         = $cart_item['line_subtotal'];
-				$subtotal      += $cart_item['line_subtotal'];
-				$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
+		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+			$subtotal      += $cart_item['line_subtotal'];
+			$amount         = $cart_item['line_subtotal'];
+			$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
+			$product_name   = $cart_item['data']->get_name();
 
-				$product_name = $cart_item['data']->get_name();
+			$lines[] = [
+				'label'  => $product_name . $quantity_label,
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $amount ),
+			];
+		}
 
-				$item = [
-					'label'  => $product_name . $quantity_label,
-					'amount' => WC_Stripe_Helper::get_stripe_amount( $amount ),
-				];
+		if ( $display_items ) {
+			$items = array_merge( $items, $lines );
+		} else {
+			// Default show only subtotal instead of itemization.
 
-				$items[] = $item;
-			}
+			$items[] = [
+				'label'  => 'Subtotal',
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $subtotal ),
+			];
 		}
 
 		if ( version_compare( WC_VERSION, '3.2', '<' ) ) {
