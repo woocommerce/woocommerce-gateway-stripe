@@ -278,6 +278,7 @@ class WC_Stripe_Intent_Controller {
 
 			wp_send_json_success( $this->create_payment_intent( $order_id ), 200 );
 		} catch ( Exception $e ) {
+			WC_Stripe_Logger::log( 'Create payment intent error: ' . $e->getMessage() );
 			// Send back error so it can be displayed to the customer.
 			wp_send_json_error(
 				[
@@ -293,7 +294,7 @@ class WC_Stripe_Intent_Controller {
 	 * Creates payment intent using current cart or order and store details.
 	 *
 	 * @param {int} $order_id The id of the order if intent created from Order.
-	 *
+	 * @throws Exception - If the create intent call returns with an error.
 	 * @return array
 	 */
 	public function create_payment_intent( $order_id = null ) {
@@ -314,6 +315,10 @@ class WC_Stripe_Intent_Controller {
 			],
 			'payment_intents'
 		);
+
+		if ( ! empty( $payment_intent->error ) ) {
+			throw new Exception( $payment_intent->error->message );
+		}
 
 		return [
 			'id'            => $payment_intent->id,
