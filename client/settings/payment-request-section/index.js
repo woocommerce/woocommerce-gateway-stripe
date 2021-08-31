@@ -167,7 +167,10 @@ const PaymentRequestSection = () => {
 			</CardBody>
 			<CardDivider />
 			<CardBody>
-				<Button isSecondary href="?TODO">
+				<Button
+					isSecondary
+					href="?page=wc_stripe-express_checkouts_customizer"
+				>
 					{ __(
 						'Customize appearance',
 						'woocommerce-gateway-stripe'

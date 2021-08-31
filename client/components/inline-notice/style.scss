@@ -1,0 +1,13 @@
+// PR #1735 includes work to import @wordpress/base-styles/_variables.scss
+// hard-coding 24px for margin-bottom to be replaced by $grid-unit-30
+.wc-stripe-inline-notice {
+	// increasing the specificity of the styles to override the Gutenberg ones
+	&#{&} {
+		margin: 0;
+		margin-bottom: 24px;
+	}
+
+	&.is-info {
+		background: #def1f7;
+	}
+}
