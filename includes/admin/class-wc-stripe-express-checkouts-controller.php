@@ -32,7 +32,6 @@ class WC_Stripe_Express_Checkouts_Controller {
 				'dependencies' => [],
 				'version'      => WC_STRIPE_VERSION,
 			];
-
 		wp_register_script(
 			'wc_stripe-express_checkouts_customizer',
 			$script_url,
