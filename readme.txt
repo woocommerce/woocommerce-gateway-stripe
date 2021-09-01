@@ -126,7 +126,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.4.1 - 2021-xx-xx =
+= 5.4.1 - 2021-09-01 =
 * Fix - Get Subscription CustomerID from Order instead of User.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

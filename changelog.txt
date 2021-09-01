@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 5.4.1 - 2021-xx-xx =
+= 5.4.1 - 2021-09-01 =
 * Fix - Get Subscription CustomerID from Order instead of User.
 
 = 5.4.0 - 2021-08-18 =
