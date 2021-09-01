@@ -8,6 +8,9 @@
 * Tweak - Deprecated the 'wc_stripe_hide_payment_request_on_product_page', 'wc_stripe_show_payment_request_on_checkout', and 'wc_stripe_show_payment_request_on_cart' filters in favor of the UI-driven approach in the plugin settings.
 * Add - Notice for WP & WC version compatibility check.
 
+= 5.4.1 - 2021-09-01 =
+* Fix - Get Subscription CustomerID from Order instead of User.
+
 = 5.4.0 - 2021-08-18 =
 * Fix - Do not ask for a Shipping Address if no Shipping Zone is defined.
 * Fix - Return HTTP 204 when webhook validation fails so Stripe won't stop sending certain webhook events after too many failed validations.
