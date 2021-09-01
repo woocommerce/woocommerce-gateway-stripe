@@ -573,7 +573,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			if ( $save_payment_method && $payment_method->is_reusable() ) {
 				$user = $this->get_user_from_order( $order );
 				// Clear transient, since we are adding a new payment method.
-				WC_Stripe_Customer::clear_payment_method_cache( $user->ID, $payment_method->get_retrievable_type() );
+				$customer = new WC_Stripe_Customer( $user->ID );
+				$customer->clear_cache();
 				$token = $payment_method->add_token_to_user( $user, $intent->payment_method );
 				$this->add_token_to_order( $order, $token );
 			}

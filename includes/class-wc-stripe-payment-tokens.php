@@ -300,7 +300,7 @@ class WC_Stripe_Payment_Tokens {
 	 */
 	private function get_original_payment_method_type( $payment_method ) {
 		// TODO: Maybe use const from SEPA UPE payment method when implemented.
-		if( 'sepa_debit' === $payment_method->type ) {
+		if ( 'sepa_debit' === $payment_method->type ) {
 			// TODO: Maybe need additional logic here to check setup_attempt
 			if ( ! is_null( $payment_method->sepa_debit->generated_from->charge ) ) {
 				return $payment_method->sepa_debit->generated_from->charge->payment_method_details->type;
