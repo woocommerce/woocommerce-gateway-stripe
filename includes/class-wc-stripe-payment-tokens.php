@@ -219,7 +219,14 @@ class WC_Stripe_Payment_Tokens {
 	 * @return array
 	 */
 	public function woocommerce_get_customer_upe_payment_tokens( $tokens, $user_id, $gateway_id ) {
-		if ( ! empty( $gateway_id ) && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id && is_user_logged_in() ) {
+		if ( is_user_logged_in() ) {
+
+			if ( count( $tokens ) >= get_option( 'posts_per_page' ) ) {
+				// The tokens data store is not paginated and only the first "post_per_page" (defaults to 10) tokens are retrieved.
+				// Having 10 saved credit cards is considered an unsupported edge case, new ones that have been stored in Stripe won't be added.
+				return $tokens;
+			}
+
 			$gateway                  = new WC_Stripe_UPE_Payment_Gateway();
 			$reusable_payment_methods = array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] );
 			$customer                 = new WC_Stripe_Customer( $user_id );
@@ -279,7 +286,7 @@ class WC_Stripe_Payment_Tokens {
 			}
 			add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
 		}
-		
+
 		return $tokens;
 	}
 
