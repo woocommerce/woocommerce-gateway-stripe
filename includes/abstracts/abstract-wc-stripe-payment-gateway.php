@@ -41,17 +41,24 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Inserts an empty placeholder div for UPE opt-in banner if feature flag is enabled.
 	 */
 	public function admin_options() {
-		$form_fields  = $this->get_form_fields();
-		$target_index = array_search( 'activation', array_keys( $form_fields ), true ) + 1;
+		$form_fields         = $this->get_form_fields();
+		$target_index        = array_search( 'activation', array_keys( $form_fields ), true ) + 1;
+		$is_stripe_connected = woocommerce_gateway_stripe()->connect->is_connected();
 
 		echo '<h2>' . esc_html( $this->get_method_title() );
 		wc_back_link( __( 'Return to payments', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ) );
 		echo '</h2>';
 
 		if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
-			echo '<table class="form-table">' . $this->generate_settings_html( array_slice( $form_fields, 0, $target_index, true ), false ) . '</table>';
-			echo '<div id="wc-stripe-upe-opt-in-banner"></div>';
-			echo '<table class="form-table">' . $this->generate_settings_html( array_slice( $form_fields, $target_index, null, true ), false ) . '</table>';
+			if ( ! $is_stripe_connected ) {
+				global $hide_save_button;
+				$hide_save_button  = true;
+				echo '<div id="wc-stripe-new-account-container"></div>';
+			} else {
+				echo '<table class="form-table">' . $this->generate_settings_html( array_slice( $form_fields, 0, $target_index, true ), false ) . '</table>';
+				echo '<div id="wc-stripe-upe-opt-in-banner"></div>';
+				echo '<table class="form-table">' . $this->generate_settings_html( array_slice( $form_fields, $target_index, null, true ), false ) . '</table>';
+			}
 		} else {
 			echo '<table class="form-table">' . $this->generate_settings_html( $form_fields, false ) . '</table>';
 		}
