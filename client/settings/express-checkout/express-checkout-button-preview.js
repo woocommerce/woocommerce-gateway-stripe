@@ -63,6 +63,7 @@ const ExpressCheckoutButtonPreview = () => {
 	const stripe = useStripe();
 	const [ paymentRequest, setPaymentRequest ] = useState();
 	const [ isLoading, setIsLoading ] = useState( true );
+	// @todo - use 'usePaymentRequestButtonxxx' hooks above that were commented out.
 	const [ buttonType ] = useState( 'buy' );
 	const [ size ] = useState( 'default' );
 	const [ theme ] = useState( 'dark' );

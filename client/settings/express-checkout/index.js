@@ -14,8 +14,5 @@ const container = document.getElementById(
 );
 
 if ( container ) {
-	ReactDOM.render(
-		<ExpressCheckoutsSettings methodId="payment_request" />,
-		container
-	);
+	ReactDOM.render( <ExpressCheckoutsSettings />, container );
 }

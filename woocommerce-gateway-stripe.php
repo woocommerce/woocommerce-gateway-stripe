@@ -188,7 +188,7 @@ function woocommerce_gateway_stripe() {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-settings-controller.php';
 
-					if ( $_GET['method'] === 'payment_request') {
+					if ( isset( $_GET['method'] ) && $_GET['method'] === 'payment_request' ) {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-express-checkouts-controller.php';
 						new WC_Stripe_Express_Checkouts_Controller();
 					} else {
