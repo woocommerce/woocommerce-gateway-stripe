@@ -63,17 +63,10 @@ const ExpressCheckoutsSettings = ( { methodId } ) => {
 		);
 	}
 
-	const { title, description: Description } = method;
+	const { description: Description } = method;
 
 	return (
 		<SettingsLayout>
-			<h2 className="payment-method-settings__breadcrumbs">
-				<a href={ '#' }>
-					{ __( 'WooCommerce Stripe', 'woocommerce-payments' ) }
-				</a>{ ' ' }
-				&gt; <span>{ title }</span>
-			</h2>
-
 			<SettingsSection Description={ Description }>
 				<LoadableSettingsSection numLines={ 30 }>
 					<ExpressCheckoutsCustomizer />
