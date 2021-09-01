@@ -10,12 +10,17 @@ import {
 	CardDivider,
 	CheckboxControl,
 } from '@wordpress/components';
+import { addQueryArgs } from '@wordpress/url';
 import interpolateComponents from 'interpolate-components';
 
 /**
  * Internal dependencies
  */
 import CardBody from '../card-body';
+
+const customizeAppearanceURL = addQueryArgs( window.location.href, {
+	method: 'payment_request',
+} );
 
 const AdditionalControlsWrapper = styled.div`
 	position: relative;
@@ -167,10 +172,7 @@ const PaymentRequestSection = () => {
 			</CardBody>
 			<CardDivider />
 			<CardBody>
-				<Button
-					isSecondary
-					href="?page=wc_stripe-express_checkouts_customizer"
-				>
+				<Button isSecondary href={ customizeAppearanceURL }>
 					{ __(
 						'Customize appearance',
 						'woocommerce-gateway-stripe'

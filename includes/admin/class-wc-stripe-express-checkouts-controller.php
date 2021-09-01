@@ -51,7 +51,7 @@ class WC_Stripe_Express_Checkouts_Controller {
 	public function admin_options( WC_Stripe_Payment_Gateway $gateway ) {
 		global $hide_save_button;
 		$hide_save_button = true;
-		echo '<h2>' . esc_html( $gateway->get_method_title() );
+		echo '<h2>Customize express checkouts';
 		wc_back_link( __( 'Return to Stripe', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 		echo '</h2>';
 		echo '<div class="wrap"><div id="wc_stripe-express_checkouts_customizer-container"></div></div>';

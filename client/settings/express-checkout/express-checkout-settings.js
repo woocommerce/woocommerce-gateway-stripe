@@ -17,13 +17,16 @@ import LoadableSettingsSection from '../../components/loadable-settings-section'
 import SaveSettingsSection from '../save-settings-section';
 
 const expressCheckouts = {
-	title: 'Express checkouts',
 	description: () => (
 		<>
-			<h2>{ __( 'Express checkouts', 'woocommerce-payments' ) }</h2>
+			<h2>{ __( 'Google Pay / Apple Pay', 'woocommerce-payments' ) }</h2>
 			<p>
 				{ __(
-					'Decide how buttons for digital wallets like Apple Pay and Google Pay are displayed in your store.',
+					'Decide how buttons for digital wallets Apple Pay and ' +
+						'Google Pay are displayed in your store. Depending on ' +
+						'their web browser and their wallet configurations,' +
+						'your customers will see either Apple Pay or Google Pay,' +
+						'but not both.',
 					'woocommerce-payments'
 				) }
 			</p>
