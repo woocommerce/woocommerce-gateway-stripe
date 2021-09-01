@@ -161,6 +161,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-eps.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-bancontact.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sofort.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-giropay.php';
