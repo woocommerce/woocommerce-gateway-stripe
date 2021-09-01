@@ -126,10 +126,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.4.0 - 2021-08-18 =
-* Fix - Do not ask for a Shipping Address if no Shipping Zone is defined.
-* Fix - Return HTTP 204 when webhook validation fails so Stripe won't stop sending certain webhook events after too many failed validations.
-* Fix - Possible use of an undefined variable `prepared_source`.
-* Add - 'wc_stripe_allowed_payment_processing_statuses' filter to customize order statuses that allow payment processing in the context of 3DS payments.
+= 5.4.1 - 2021-xx-xx =
+* Fix - Get Subscription CustomerID from Order instead of User.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 5.4.1 - 2021-xx-xx =
+* Fix - Get Subscription CustomerID from Order instead of User.
+
 = 5.4.0 - 2021-08-18 =
 * Fix - Do not ask for a Shipping Address if no Shipping Zone is defined.
 * Fix - Return HTTP 204 when webhook validation fails so Stripe won't stop sending certain webhook events after too many failed validations.
