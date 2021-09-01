@@ -65,6 +65,8 @@ class WC_Stripe_UPE_Availability_Note {
 	}
 
 	public static function init() {
-		self::possibly_add_note();
+		if ( defined( 'WC_VERSION' ) && version_compare( WC_VERSION, '4.4.0', '>=' ) ) {
+			self::possibly_add_note();
+		}
 	}
 }
