@@ -671,7 +671,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return array Array of keyed metadata values.
 	 */
-	private function get_metadata_from_order( $order ) {
+	public function get_metadata_from_order( $order ) {
 
 		// TODO: change this after adding the subscriptions trait: $this->is_payment_recurring( $order->get_id() ) ? Payment_Type::RECURRING() : Payment_Type::SINGLE();
 		$payment_type = 'single';

@@ -373,13 +373,46 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function update_payment_intent( $payment_intent_id = '', $order_id = null, $save_payment_method = false, $selected_upe_payment_type = '' ) {
 		$order = wc_get_order( $order_id );
+
 		if ( ! is_a( $order, 'WC_Order' ) ) {
 			return;
 		}
+
+		$gateway = new WC_Stripe_UPE_Payment_Gateway();
+
 		$amount   = $order->get_total();
 		$currency = $order->get_currency();
+		$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
 
-		// - TODO: Make request to Stripe API to update payment intent.
+		if ( $payment_intent_id ) {
+
+			$request = [
+				'amount'   => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
+				'currency' => strtolower( $currency ),
+				'metadata' => $gateway->get_metadata_from_order( $order ),
+			];
+
+			if ( '' !== $selected_upe_payment_type ) {
+				// Only update the payment_method_types if we have a reference to the payment type the customer selected.
+				$request['payment_method_types'] = [ $selected_upe_payment_type ];
+			}
+			if ( ! empty( $customer ) && $customer->get_id() ) {
+				$request['customer'] = $customer->get_id();
+			}
+			if ( $save_payment_method ) {
+				$request['setup_future_usage'] = 'off_session';
+			}
+
+			$level3_data = $gateway->get_level3_data_from_order( $order );
+
+			WC_Stripe_API::request_with_level3_data(
+				$request,
+				"payment_intents/{$payment_intent_id}",
+				$level3_data,
+				$order
+			);
+		}
+
 		return [
 			'success' => true,
 		];
