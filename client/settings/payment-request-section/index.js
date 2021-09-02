@@ -19,7 +19,7 @@ import interpolateComponents from 'interpolate-components';
 import CardBody from '../card-body';
 
 const customizeAppearanceURL = addQueryArgs( window.location.href, {
-	method: 'payment_request',
+	area: 'express_checkouts',
 } );
 
 const AdditionalControlsWrapper = styled.div`

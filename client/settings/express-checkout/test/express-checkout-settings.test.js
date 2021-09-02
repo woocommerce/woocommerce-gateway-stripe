@@ -43,6 +43,11 @@ describe( 'ExpressCheckoutsSettings', () => {
 	it( 'renders settings with defaults', () => {
 		render( <ExpressCheckoutsSettings /> );
 
+		const heading = screen.queryByRole( 'heading', {
+			name: 'Google Pay / Apple Pay',
+		} );
+		expect( heading ).toBeInTheDocument();
+
 		// confirm settings headings
 		expect(
 			screen.queryByRole( 'heading', { name: 'Call to action' } )
