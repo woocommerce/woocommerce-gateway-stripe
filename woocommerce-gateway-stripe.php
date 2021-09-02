@@ -5,7 +5,7 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 5.4.0
+ * Version: 5.4.1
  * Requires at least: 4.6
  * Tested up to: 5.7
  * WC requires at least: 3.3
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '5.4.0' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '5.4.1' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '3.0' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '3.3' );
@@ -276,7 +276,7 @@ function woocommerce_gateway_stripe() {
 				if ( ! empty( $stripe_settings ) && empty( $prb_locations ) ) {
 					global $post;
 
-					$should_show_on_product_page  = ! apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false );
+					$should_show_on_product_page  = ! apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post );
 					$should_show_on_cart_page     = apply_filters( 'wc_stripe_show_payment_request_on_cart', true );
 					$should_show_on_checkout_page = apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post );
 
