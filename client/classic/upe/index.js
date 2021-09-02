@@ -8,7 +8,7 @@ import jQuery from 'jquery';
  */
 import './style.scss';
 import WCStripeAPI from '../../api';
-import { getStripeServerData } from '../../stripe-utils';
+import { getStripeServerData, getUPETerms } from '../../stripe-utils';
 import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
 
 jQuery( function ( $ ) {
@@ -193,6 +193,7 @@ jQuery( function ( $ ) {
 		} else {
 			$( '.woocommerce-SavedPaymentMethods-saveNew' ).hide();
 			$( 'input#wc-stripe-new-payment-method' ).prop( 'checked', false );
+			$( 'input#wc-stripe-new-payment-method' ).trigger( 'change' );
 		}
 	};
 
@@ -607,6 +608,25 @@ jQuery( function ( $ ) {
 			return false;
 		}
 	} );
+
+	// Add terms parameter to UPE if save payment information checkbox is checked.
+	// This shows required legal mandates when customer elects to save payment method during checkout.
+	$( document ).on(
+		'change',
+		'#wc-stripe-new-payment-method',
+		() => {
+			const value = $( '#wc-stripe-new-payment-method' ).is(
+				':checked'
+			)
+				? 'always'
+				: 'never';
+			if ( isUPEEnabled && upeElement ) {
+				upeElement.update( {
+					terms: getUPETerms( value ),
+				} );
+			}
+		}
+	);
 
 	// On every page load, check to see whether we should display the authentication
 	// modal and display it if it should be displayed.

@@ -449,6 +449,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Store extra meta data for an order from a Stripe Response.
 	 */
 	public function process_response( $response, $order ) {
+		// TODO: This does not support setup intents.
 		WC_Stripe_Logger::log( 'Processing response: ' . print_r( $response, true ) );
 
 		$order_id = $order->get_id();
