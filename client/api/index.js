@@ -190,10 +190,10 @@ export default class WCStripeAPI {
 		selectedUPEPaymentType
 	) {
 		return this.request( getAjaxUrl( 'update_payment_intent' ), {
-			wc_stripe_order_id: orderId,
+			stripe_order_id: orderId,
 			wc_payment_intent_id: paymentIntentId,
 			save_payment_method: savePaymentMethod,
-			wc_stripe_selected_upe_payment_type: selectedUPEPaymentType,
+			selected_upe_payment_type: selectedUPEPaymentType,
 			_ajax_nonce: getStripeServerData()?.updatePaymentIntentNonce,
 		} )
 			.then( ( response ) => {
