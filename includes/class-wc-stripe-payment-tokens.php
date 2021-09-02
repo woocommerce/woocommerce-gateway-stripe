@@ -66,7 +66,7 @@ class WC_Stripe_Payment_Tokens {
 	 * @return \WC_Payment_Token|NULL
 	 */
 	public static function get_token_from_request( array $request ) {
-		$payment_method    = $request['payment_method'] ?? null;
+		$payment_method    = is_null( $request['payment_method'] ) ? $request['payment_method'] : null;
 		$token_request_key = 'wc-' . $payment_method . '-payment-token';
 		if (
 			! isset( $request[ $token_request_key ] ) ||

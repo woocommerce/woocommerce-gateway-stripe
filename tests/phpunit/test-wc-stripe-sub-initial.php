@@ -92,6 +92,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 						'customer'      => $customer,
 						'source'        => $source,
 						'source_object' => (object) [],
+						'object'        => 'source',
 					]
 				)
 			);

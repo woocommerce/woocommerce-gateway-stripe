@@ -16,6 +16,7 @@ class WC_Stripe_UPE_Payment_Method_Bancontact extends WC_Stripe_UPE_Payment_Meth
 	 * Constructor for Bancontact payment method
 	 */
 	public function __construct() {
+		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = 'Pay with Bancontact';
 		$this->is_reusable          = false; // TODO: Should be true, once SEPA is implemented as a payment method.

@@ -102,6 +102,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 						'customer'      => $customer,
 						'source'        => $source,
 						'source_object' => (object) [],
+						'object'        => 'source',
 					]
 				)
 			);
@@ -282,6 +283,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 						'customer'      => $customer,
 						'source'        => $source,
 						'source_object' => (object) [],
+						'object'        => 'source',
 					]
 				)
 			);

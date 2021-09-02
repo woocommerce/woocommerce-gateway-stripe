@@ -20,6 +20,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * Constructor for card payment method
 	 */
 	public function __construct() {
+		parent::__construct();
 		$this->stripe_id   = self::STRIPE_ID;
 		$this->title       = 'Credit card / debit card';
 		$this->is_reusable = true;
