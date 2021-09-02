@@ -269,7 +269,7 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function create_payment_intent_ajax() {
 		try {
-			$is_nonce_valid = check_ajax_referer( '_wc_stripe_nonce', false, false );
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_payment_intent_nonce', false, false );
 			if ( ! $is_nonce_valid ) {
 				throw new Exception( __( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
@@ -425,7 +425,7 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function save_upe_appearance_ajax() {
 		try {
-			$is_nonce_valid = check_ajax_referer( '_wc_stripe_save_upe_appearance_nonce', false, false );
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_save_upe_appearance_nonce', false, false );
 			if ( ! $is_nonce_valid ) {
 				throw new Exception(
 					__( 'Unable to update UPE appearance values at this time.', 'woocommerce-gateway-stripe' )
