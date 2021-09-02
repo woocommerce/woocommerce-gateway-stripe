@@ -1,0 +1,82 @@
+/** @format */
+.woocommerce-account-status__header {
+	flex-wrap: wrap;
+
+	.edit-details .components-button.is-link {
+		text-decoration: none;
+	}
+
+	.edit-details,
+	.account-details,
+	.account-status {
+		flex-basis: auto;
+		min-width: max-content;
+	}
+
+	// on a smaller viewports controls section should move in front of the
+	// status chip
+	@include breakpoint( '<480px' ) {
+		.account-details {
+			order: 1;
+			flex-grow: 1;
+			margin-bottom: 8px;
+		}
+		.edit-details {
+			order: 2;
+			margin-bottom: 8px;
+		}
+		.account-status {
+			order: 3;
+		}
+	}
+}
+.woocommerce-account-status-item {
+	line-height: 16px;
+	flex-wrap: wrap;
+	height: auto;
+	min-height: 2em;
+	margin-bottom: 8px;
+
+	.progressbar {
+		width: 100%;
+
+		&__outer-progress-label {
+			color: #757575;
+		}
+	}
+
+	.item-label,
+	.item-value {
+		flex-shrink: 1;
+		flex-basis: auto;
+		width: min-content;
+	}
+
+	.item-label {
+		color: #1e1e1e;
+		min-width: 130px;
+		white-space: nowrap;
+	}
+
+	@include breakpoint( '<480px' ) {
+		.item-label {
+			min-width: 80px;
+		}
+	}
+
+	.item-value {
+		color: #757575;
+
+		svg {
+			margin: 0 0.2rem;
+			position: relative;
+		}
+
+		span {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			height: 24px;
+		}
+	}
+}

@@ -10,6 +10,7 @@ import { Card } from '@wordpress/components';
  */
 import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
+import AccountStatus from '../account-details';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -27,11 +28,10 @@ const GeneralSettingsDescription = () => (
 
 const AccountDetailsDescription = () => (
 	<>
-		<h2>{ __( 'General', 'woocommerce-gateway-stripe' ) }</h2>
+		<h2>{ __( 'Account Details', 'woocommerce-gateway-stripe' ) }</h2>
 		<p>
 			{ __(
-				'Connect the plugin to your Stripe account, view ' +
-					'account overview, and edit business details. ',
+				'View account overview and edit business details.',
 				'woocommerce-gateway-stripe'
 			) }
 		</p>
@@ -46,10 +46,18 @@ const GeneralSettingsCard = () => {
 	);
 };
 
+const accountStatusMock = {
+	status: 'complete',
+	paymentsEnabled: true,
+	depositsStatus: true,
+}
+
 const AccountDetailsCard = () => {
 	return (
 		<Card>
-			<CardBody>The account details card goes here.</CardBody>
+			<CardBody>
+				<AccountStatus accountStatus={ accountStatusMock } />
+			</CardBody>
 		</Card>
 	);
 };
