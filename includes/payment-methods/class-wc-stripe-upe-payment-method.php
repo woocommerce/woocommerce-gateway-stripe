@@ -37,12 +37,44 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	protected $is_reusable;
 
 	/**
+	 * Array of currencies supported by this UPE method
+	 *
+	 * @var array
+	 */
+	protected $supported_currencies;
+
+	/**
+	 * Wether this UPE method is enabled
+	 *
+	 * @var bool
+	 */
+	protected $enabled;
+
+	/**
+	 * Create instance of payment method
+	 */
+	public function __construct() {
+		$main_settings       = get_option( 'woocommerce_stripe_settings' );
+		$enabled_upe_methods = $main_settings['upe_checkout_experience_accepted_payments'];
+		$this->enabled       = in_array( static::STRIPE_ID, $enabled_upe_methods, true );
+	}
+
+	/**
 	 * Returns payment method ID
 	 *
 	 * @return string
 	 */
 	public function get_id() {
 		return $this->stripe_id;
+	}
+
+	/**
+	 * Returns true if the UPE method is enabled.
+	 *
+	 * @return bool
+	 */
+	public function is_enabled() {
+		return $this->enabled;
 	}
 
 	/**
@@ -174,5 +206,17 @@ abstract class WC_Stripe_UPE_Payment_Method {
 			// TODO: I think we will need to do something different here to get the generated SEPA pm...
 			return null;
 		}
+	}
+
+	/**
+	 * Returns the currencies this UPE method supports.
+	 *
+	 * @return array|null
+	 */
+	public function get_supported_currencies() {
+		return apply_filters(
+			'wc_stripe_' . static::STRIPE_ID . '_upe_supported_currencies',
+			$this->supported_currencies
+		);
 	}
 }

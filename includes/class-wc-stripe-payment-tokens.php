@@ -124,7 +124,7 @@ class WC_Stripe_Payment_Tokens {
 	 * @return array
 	 */
 	public function woocommerce_get_customer_payment_tokens( $tokens, $user_id, $gateway_id ) {
-		if ( WC_Stripe_Feature_Flags::is_upe_enabled() && WC_Stripe::get_instance()->is_upe_enabled() && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id ) {
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id ) {
 			return $this->woocommerce_get_customer_upe_payment_tokens( $tokens, $user_id, $gateway_id );
 		} else {
 			return $this->woocommerce_get_customer_payment_tokens_legacy( $tokens, $user_id, $gateway_id );
@@ -351,7 +351,7 @@ class WC_Stripe_Payment_Tokens {
 	 */
 	public function woocommerce_payment_token_deleted( $token_id, $token ) {
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
-		if ( WC_Stripe_Feature_Flags::is_upe_enabled() && WC_Stripe::get_instance()->is_upe_enabled() ) {
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			if ( 'stripe' === $token->get_gateway_id() ) {
 				$stripe_customer->detach_payment_method( $token->get_token() );
 			}
@@ -372,7 +372,7 @@ class WC_Stripe_Payment_Tokens {
 		$token           = WC_Payment_Tokens::get( $token_id );
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
 
-		if ( WC_Stripe_Feature_Flags::is_upe_enabled() && WC_Stripe::get_instance()->is_upe_enabled() ) {
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			if ( 'stripe' === $token->get_gateway_id() ) {
 				$stripe_customer->set_default_payment_method( $token->get_token() );
 			}

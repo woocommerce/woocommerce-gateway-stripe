@@ -210,6 +210,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$stripe_params['orderId'] = $order_id;
 		}
 
+		$sepa_elements_options = apply_filters(
+			'wc_stripe_sepa_elements_options',
+			[
+				'supportedCountries' => [ 'SEPA' ],
+				'placeholderCountry' => WC()->countries->get_base_country(),
+				'style'              => [ 'base' => [ 'fontSize' => '15px' ] ],
+			]
+		);
+
 		$stripe_params['isCheckout']               = is_checkout() && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
 		$stripe_params['isOrderPay']               = is_wc_endpoint_url( 'order-pay' );
 		$stripe_params['return_url']               = $this->get_stripe_return_url();
@@ -221,6 +230,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['paymentMethodsConfig']     = $this->get_enabled_payment_method_config();
 		$stripe_params['accountDescriptor']        = 'accountDescriptor'; // TODO: this should be added to the Stripe settings page or remove it from here.
 		$stripe_params['genericErrorMessage']      = __( 'There was a problem processing the payment. Please check your email inbox and refresh the page to try again.', 'woocommerce-gateway-stripe' );
+		$stripe_params['sepaElementsOptions']      = $sepa_elements_options;
 
 		return $stripe_params;
 	}

@@ -102,6 +102,9 @@ jQuery( function ( $ ) {
 	const elements = api.getStripe().elements( {
 		fonts: getFontRulesFromPage(),
 	} );
+	const sepaElementsOptions =
+		getStripeServerData()?.sepaElementsOptions ?? {};
+	const iban = elements.create( 'iban', sepaElementsOptions );
 
 	let upeElement = null;
 	let paymentIntentId = null;
@@ -119,6 +122,7 @@ jQuery( function ( $ ) {
 			postalCode: 'never',
 		},
 	};
+	const upeLoadingSelector = '#wc-stripe-upe-form';
 
 	/**
 	 * Block UI to indicate processing and avoid duplicate submission.
@@ -142,6 +146,18 @@ jQuery( function ( $ ) {
 	 */
 	const unblockUI = ( $form ) => {
 		$form.removeClass( 'processing' ).unblock();
+	};
+
+	/**
+	 * Checks whether SEPA IBAN element is present in the DOM and needs to be mounted
+	 *
+	 * @return {boolean} Whether IBAN needs to be mounted
+	 */
+	const doesIbanNeedToBeMounted = () => {
+		return (
+			$( '#stripe-iban-element' ).length &&
+			! $( '#stripe-iban-element' ).children().length
+		);
 	};
 
 	// Show error notice at top of checkout form.
@@ -230,8 +246,12 @@ jQuery( function ( $ ) {
 	 * @param {boolean} isSetupIntent {Boolean} isSetupIntent Set to true if we are on My Account adding a payment method.
 	 */
 	const mountUPEElement = function ( isSetupIntent = false ) {
-		// Do not mount UPE twice.
-		if ( upeElement || paymentIntentId ) {
+		blockUI( $( upeLoadingSelector ) );
+
+		// Do not recreate UPE element unnecessarily.
+		if ( upeElement ) {
+			upeElement.unmount();
+			upeElement.mount( '#wc-stripe-upe-element' );
 			return;
 		}
 
@@ -247,14 +267,12 @@ jQuery( function ( $ ) {
 			? api.initSetupIntent()
 			: api.createIntent( orderId );
 
-		const $upeContainer = $( '#wc-stripe-upe-element' );
-		blockUI( $upeContainer );
-
 		intentAction
 			.then( ( response ) => {
-				// I repeat, do NOT mount UPE twice.
+				// I repeat, do NOT recreate UPE element unnecessarily.
 				if ( upeElement || paymentIntentId ) {
-					unblockUI( $upeContainer );
+					upeElement.unmount();
+					upeElement.mount( '#wc-stripe-upe-element' );
 					return;
 				}
 
@@ -284,7 +302,10 @@ jQuery( function ( $ ) {
 
 				upeElement = elements.create( 'payment', upeSettings );
 				upeElement.mount( '#wc-stripe-upe-element' );
-				unblockUI( $upeContainer );
+
+				upeElement.on( 'ready', () => {
+					unblockUI( $( upeLoadingSelector ) );
+				} );
 				upeElement.on( 'change', ( event ) => {
 					const selectedUPEPaymentType = event.value.type;
 					const isPaymentMethodReusable =
@@ -296,7 +317,7 @@ jQuery( function ( $ ) {
 				} );
 			} )
 			.catch( ( error ) => {
-				unblockUI( $upeContainer );
+				unblockUI( $( upeLoadingSelector ) );
 				showError( error.message );
 				const gatewayErrorMessage =
 					'<div>An error was encountered when preparing the payment form. Please try again later.</div>';
@@ -315,10 +336,13 @@ jQuery( function ( $ ) {
 		if (
 			$( '#wc-stripe-upe-element' ).length &&
 			! $( '#wc-stripe-upe-element' ).children().length &&
-			isUPEEnabled &&
-			! upeElement
+			isUPEEnabled
 		) {
 			mountUPEElement();
+		}
+
+		if ( doesIbanNeedToBeMounted() ) {
+			iban.mount( '#stripe-iban-element' );
 		}
 	} );
 
@@ -347,6 +371,10 @@ jQuery( function ( $ ) {
 				$( 'form#order_review' ).submit();
 			}
 			mountUPEElement( useSetUpIntent );
+		}
+
+		if ( doesIbanNeedToBeMounted() ) {
+			iban.mount( '#stripe-iban-element' );
 		}
 	}
 

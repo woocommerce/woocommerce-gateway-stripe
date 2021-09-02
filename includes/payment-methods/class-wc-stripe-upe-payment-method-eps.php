@@ -16,8 +16,9 @@ class WC_Stripe_UPE_Payment_Method_Eps extends WC_Stripe_UPE_Payment_Method {
 	 * Constructor for EPS payment method
 	 */
 	public function __construct() {
-		$this->stripe_id   = self::STRIPE_ID;
-		$this->title       = 'Pay with EPS';
-		$this->is_reusable = false;
+		$this->stripe_id            = self::STRIPE_ID;
+		$this->title                = 'Pay with EPS';
+		$this->is_reusable          = false;
+		$this->supported_currencies = [ 'EUR' ];
 	}
 }
