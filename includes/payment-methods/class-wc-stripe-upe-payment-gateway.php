@@ -534,11 +534,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				}
 			}
 
-			// Use the last charge within the intent to proceed.
-			$charge = end( $intent->charges->data );
 			list( $payment_method_type, $payment_method_details ) = $this->get_payment_method_data_from_intent( $intent );
 
-			$this->process_response( $charge, $order );
+			// Use the last charge within the intent to proceed.
+			if ( isset( $intent->charges ) ) {
+				$charge = end( $intent->charges->data );
+				$this->process_response( $charge, $order );
+			} else {
+				// TODO: Add implementation for setup intents.
+				$this->process_response( $intent, $order );
+			}
 			$this->set_payment_method_title_for_order( $order, $payment_method_type, $payment_method_details );
 
 			// Remove cart.
