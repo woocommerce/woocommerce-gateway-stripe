@@ -30,6 +30,8 @@ class WC_Stripe_Intent_Controller {
 
 		add_action( 'wc_ajax_wc_stripe_save_upe_appearance', [ $this, 'save_upe_appearance_ajax' ] );
 		add_action( 'wc_ajax_nopriv_wc_stripe_save_upe_appearance', [ $this, 'save_upe_appearance_ajax' ] );
+
+		add_action( 'wc_ajax_wc_stripe_update_order_status', [ $this, 'update_order_status_ajax' ] );
 		add_action( 'switch_theme', [ $this, 'clear_upe_appearance_transient' ] );
 	}
 
@@ -357,6 +359,72 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function clear_upe_appearance_transient() {
 		delete_transient( WC_Stripe_UPE_Payment_Gateway::UPE_APPEARANCE_TRANSIENT );
+	}
+
+	/**
+	 * Handle AJAX request after authenticating payment at checkout.
+	 *
+	 * This function is used to update the order status after the user has
+	 * been asked to authenticate their payment.
+	 *
+	 * This function is used for both:
+	 * - regular checkout
+	 * - Pay for Order page (in theory).
+	 *
+	 * @throws WC_Stripe_Exception
+	 */
+	public function update_order_status_ajax() {
+		try {
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_order_status_nonce', false, false );
+			if ( ! $is_nonce_valid ) {
+				throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			$order_id = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : false;
+			$order    = wc_get_order( $order_id );
+			if ( ! $order ) {
+				throw new WC_Stripe_Exception( 'order_not_found', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			$intent_id          = $order->get_meta( '_stripe_intent_id' );
+			$intent_id_received = isset( $_POST['intent_id'] ) ? wc_clean( wp_unslash( $_POST['intent_id'] ) ) : null;
+			if ( empty( $intent_id_received ) || $intent_id_received !== $intent_id ) {
+				$note = sprintf(
+					/* translators: %1: transaction ID of the payment or a translated string indicating an unknown ID. */
+					esc_html__( 'A payment with ID %s was used in an attempt to pay for this order. This payment intent ID does not match any payments for this order, so it was ignored and the order was not updated.', 'woocommerce-gateway-stripe' ),
+					$intent_id_received
+				);
+				$order->add_order_note( $note );
+				throw new WC_Stripe_Exception( 'invalid_intent_id', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
+			$save_payment_method = isset( $_POST['payment_method_id'] ) && ! empty( wc_clean( wp_unslash( $_POST['payment_method_id'] ) ) );
+
+			$gateway = new WC_Stripe_UPE_Payment_Gateway();
+			$gateway->process_order_for_confirmed_intent( $order, $intent_id_received, $save_payment_method );
+			wp_send_json_success(
+				[
+					'return_url' => $gateway->get_return_url( $order ),
+				],
+				200
+			);
+		} catch ( WC_Stripe_Exception $e ) {
+			wc_add_notice( $e->getLocalizedMessage(), 'error' );
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+			/* translators: error message */
+			if ( $order ) {
+				$order->update_status( 'failed' );
+			}
+
+			// Send back error so it can be displayed to the customer.
+			wp_send_json_error(
+				[
+					'error' => [
+						'message' => $e->getMessage(),
+					],
+				]
+			);
+		}
 	}
 
 }

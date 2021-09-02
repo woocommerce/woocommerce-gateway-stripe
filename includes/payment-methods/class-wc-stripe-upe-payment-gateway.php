@@ -26,6 +26,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	const UPE_APPEARANCE_TRANSIENT = 'wc_stripe_upe_appearance';
 
 	/**
+	 * Stripe intents that are treated as successfully created.
+	 *
+	 * @type array
+	 */
+	const SUCCESSFUL_INTENT_STATUS = [ 'succeeded', 'requires_capture', 'processing' ];
+
+	/**
 	 * Notices (array)
 	 *
 	 * @var array
@@ -207,11 +214,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['isOrderPay']               = is_wc_endpoint_url( 'order-pay' );
 		$stripe_params['return_url']               = $this->get_stripe_return_url();
 		$stripe_params['ajax_url']                 = WC_AJAX::get_endpoint( '%%endpoint%%' );
+		$stripe_params['adminAjaxUrl']             = admin_url( 'admin-ajax.php' );
 		$stripe_params['createPaymentIntentNonce'] = wp_create_nonce( '_wc_stripe_nonce' );
 		$stripe_params['upeAppeareance']           = get_transient( self::UPE_APPEARANCE_TRANSIENT );
 		$stripe_params['saveUPEAppearanceNonce']   = wp_create_nonce( '_wc_stripe_save_upe_appearance_nonce' );
 		$stripe_params['paymentMethodsConfig']     = $this->get_enabled_payment_method_config();
 		$stripe_params['accountDescriptor']        = 'accountDescriptor'; // TODO: this should be added to the Stripe settings page or remove it from here.
+		$stripe_params['genericErrorMessage']      = __( 'There was a problem processing the payment. Please check your email inbox and refresh the page to try again.', 'woocommerce-gateway-stripe' );
 
 		return $stripe_params;
 	}
@@ -432,7 +441,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 			WC_Stripe_Logger::log( "Info: Begin processing payment with saved payment method for order $order_id for the amount of {$order->get_total()}" );
 
-			$intent = null;
+			// If we are retrying request, maybe intent has been saved to order.
+			$intent = $this->get_intent_from_order( $order );
+
 			$enabled_payment_methods = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_at_checkout' ] );
 			if ( $payment_needed ) {
 				// This will throw exception if not valid.
@@ -440,34 +451,45 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 				$request_details = $this->generate_payment_request( $order, $payment_method );
 				$level3_data     = $this->get_level3_data_from_order( $order );
-				$intent          = WC_Stripe_API::request_with_level3_data(
-					[
-						'payment_method'       => $payment_method->id,
-						'payment_method_types' => $enabled_payment_methods,
-						'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
-						'currency'             => strtolower( $order->get_currency() ),
-						'description'          => $request_details['description'],
-						'metadata'             => $request_details['metadata'],
-						'capture_method'       => ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual',
-						'customer'             => $payment_method->customer,
-						'confirm'              => 'true',
-					],
-					'payment_intents',
+				$endpoint        = false !== $intent ? "payment_intents/$intent->id" : 'payment_intents';
+				$request         = [
+					'payment_method'       => $payment_method->id,
+					'payment_method_types' => $enabled_payment_methods,
+					'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
+					'currency'             => strtolower( $order->get_currency() ),
+					'description'          => $request_details['description'],
+					'metadata'             => $request_details['metadata'],
+					'customer'             => $payment_method->customer,
+				];
+				if ( false === $intent ) {
+					$request['capture_method'] = ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual';
+					$request['confirm']        = 'true';
+				}
+
+				$intent = WC_Stripe_API::request_with_level3_data(
+					$request,
+					$endpoint,
 					$level3_data,
 					$order
 				);
 			} else {
+				$endpoint = false !== $intent ? "setup_intents/$intent->id" : 'setup_intents';
+				$request  = [
+					'payment_method'       => $payment_method->id,
+					'payment_method_types' => $enabled_payment_methods,
+					'customer'             => $payment_method->customer,
+				];
+				if ( false === $intent ) {
+					$request['confirm'] = 'true';
+				}
+
 				$intent = WC_Stripe_API::request(
-					[
-						'payment_method'       => $payment_method->id,
-						'payment_method_types' => $enabled_payment_methods,
-						'customer'             => $payment_method->customer,
-						'confirm'              => 'true',
-					],
-					'setup_intents',
+					$request,
+					$endpoint,
 					'POST'
 				);
 			}
+			$this->save_intent_to_order( $order, $intent );
 
 			if ( ! empty( $intent->error ) ) {
 				$this->maybe_remove_non_existent_customer( $intent->error, $order );
@@ -485,6 +507,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					return [
 						'result'   => 'success',
 						'redirect' => $intent->next_action->redirect_to_url->url,
+					];
+				} else {
+					return [
+						'result'   => 'success',
+						// Include a new nonce for update_order_status to ensure the update order
+						// status call works when a guest user creates an account during checkout.
+						'redirect' => sprintf(
+							'#wc-stripe-confirm-%s:%s:%s:%s',
+							$payment_needed ? 'pi' : 'si',
+							$order_id,
+							$intent->client_secret,
+							wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
+						),
 					];
 				}
 			}
@@ -547,44 +582,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		WC_Stripe_Logger::log( "Begin processing UPE redirect payment for order $order_id for the amount of {$order->get_total()}" );
 
 		try {
-			$payment_needed = 0 < $order->get_total();
-
-			// Get payment intent to confirm status.
-			if ( $payment_needed ) {
-				$intent = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
-			} else {
-				$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
-			}
-			$error = $intent->last_payment_error;
-
-			if ( ! empty( $error ) ) {
-				WC_Stripe_Logger::log( 'Error when processing payment: ' . $error->message );
-				throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
-			}
-
-			list( $payment_method_type, $payment_method_details ) = $this->get_payment_method_data_from_intent( $intent );
-
-			if ( ! isset( $this->payment_methods[ $payment_method_type ] ) ) {
-				return;
-			}
-			$payment_method = $this->payment_methods[ $payment_method_type ];
-
-			// TODO: save the payment method
-			if ( $save_payment_method && $payment_method->is_reusable() ) {
-				$user = $this->get_user_from_order( $order );
-				// Clear transient, since we are adding a new payment method.
-				$customer = new WC_Stripe_Customer( $user->ID );
-				$customer->clear_cache();
-				$token = $payment_method->add_token_to_user( $user, $intent->payment_method );
-				$this->add_token_to_order( $order, $token );
-			}
-
-			// Use the last charge within the intent to proceed.
-			$charge = end( $intent->charges->data );
-			$this->process_response( $charge, $order );
-
-			$this->set_payment_method_title_for_order( $order, $payment_method_type, $payment_method_details );
-
+			$this->process_order_for_confirmed_intent( $order, $intent_id, $save_payment_method );
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
@@ -595,6 +593,52 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			wp_safe_redirect( wc_get_checkout_url() );
 			exit;
 		}
+	}
+
+	/**
+	 * Update order and maybe save payment method for an order after an intent has been created and confirmed.
+	 *
+	 * @param WC_Order $order               Order being processed.
+	 * @param string   $intent_id           Stripe setup/payment ID.
+	 * @param bool     $save_payment_method Boolean representing whether payment method for order should be saved.
+	 */
+	public function process_order_for_confirmed_intent( $order, $intent_id, $save_payment_method ) {
+		$payment_needed = 0 < $order->get_total();
+
+		// Get payment intent to confirm status.
+		if ( $payment_needed ) {
+			$intent = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
+		} else {
+			$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
+		}
+		$error = $intent->last_payment_error;
+
+		if ( ! empty( $error ) ) {
+			WC_Stripe_Logger::log( 'Error when processing payment: ' . $error->message );
+			throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+		}
+
+		list( $payment_method_type, $payment_method_details ) = $this->get_payment_method_data_from_intent( $intent );
+
+		if ( ! isset( $this->payment_methods[ $payment_method_type ] ) ) {
+			return;
+		}
+		$payment_method = $this->payment_methods[ $payment_method_type ];
+
+		if ( $save_payment_method && $payment_method->is_reusable() ) {
+			$user = $this->get_user_from_order( $order );
+			// Clear transient, since we are adding a new payment method.
+			$customer = new WC_Stripe_Customer( $user->ID );
+			$customer->clear_cache();
+			$token = $payment_method->add_token_to_user( $user, $intent->payment_method );
+			$this->add_token_to_order( $order, $token );
+		}
+
+		// Use the last charge within the intent to proceed.
+		$charge = end( $intent->charges->data );
+		$this->process_response( $charge, $order );
+		$this->save_intent_to_order( $order, $intent );
+		$this->set_payment_method_title_for_order( $order, $payment_method_type, $payment_method_details );
 	}
 
 	/**
@@ -614,7 +658,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 	}
 
-		/**
+	/**
 	 * Retries the payment process once an error occured.
 	 *
 	 * @param object   $intent     The Payment Intent response from the Stripe API.

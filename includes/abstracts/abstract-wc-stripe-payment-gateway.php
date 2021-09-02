@@ -1331,7 +1331,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param stdClass $intent Payment intent information.
 	 */
 	public function save_intent_to_order( $order, $intent ) {
-		$order->update_meta_data( '_stripe_intent_id', $intent->id );
+		if ( 'payment_intent' === $intent->object ) {
+			$order->update_meta_data( '_stripe_intent_id', $intent->id );
+		} elseif ( 'setup_intent' === $intent->object ) {
+			$order->update_meta_data( '_stripe_setup_intent', $intent->id );
+		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
 			$order->save();
@@ -1371,11 +1375,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @throws Exception            Throws exception for unknown $intent_type.
 	 */
 	private function get_intent( $intent_type, $intent_id ) {
-		if ( ! in_array( $intent_type, [ 'payment_intents', 'setup_intents' ] ) ) {
+		if ( ! in_array( $intent_type, [ 'payment_intents', 'setup_intents' ], true ) ) {
 			throw new Exception( "Failed to get intent of type $intent_type. Type is not allowed" );
 		}
 
-		$response = WC_Stripe_API::request( [], "$intent_type/$intent_id", 'GET' );
+		$response = WC_Stripe_API::request( [], "$intent_type/$intent_id?expand[]=payment_method", 'GET' );
 
 		if ( $response && isset( $response->{ 'error' } ) ) {
 			$error_response_message = print_r( $response, true );

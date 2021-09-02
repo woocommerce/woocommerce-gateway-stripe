@@ -220,7 +220,6 @@ class WC_Stripe_Payment_Tokens {
 	 */
 	public function woocommerce_get_customer_upe_payment_tokens( $tokens, $user_id, $gateway_id ) {
 		if ( is_user_logged_in() ) {
-
 			if ( count( $tokens ) >= get_option( 'posts_per_page' ) ) {
 				// The tokens data store is not paginated and only the first "post_per_page" (defaults to 10) tokens are retrieved.
 				// Having 10 saved credit cards is considered an unsupported edge case, new ones that have been stored in Stripe won't be added.
@@ -263,7 +262,6 @@ class WC_Stripe_Payment_Tokens {
 						if ( ! in_array( $payment_method_type, $reusable_payment_methods, true ) ) {
 							continue;
 						}
-
 						// Create new token for new payment method and add to list.
 						$upe_payment_method         = $gateway->payment_methods[ $payment_method_type ];
 						$token                      = $upe_payment_method->add_token_to_user_from_payment_method( $user_id, $payment_method );

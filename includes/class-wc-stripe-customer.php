@@ -13,7 +13,7 @@ class WC_Stripe_Customer {
 	/**
 	 * String prefix for Stripe payment methods request transient.
 	 */
-	const PAYMENT_METHODS_TRANSIENT_PREFIX = 'stripe_payment_methods_';
+	const PAYMENT_METHODS_TRANSIENT_KEY = 'stripe_payment_methods_';
 
 	/**
 	 * Stripe customer ID
@@ -428,7 +428,7 @@ class WC_Stripe_Customer {
 			return [];
 		}
 
-		$payment_methods = get_transient( self::PAYMENT_METHODS_TRANSIENT_PREFIX . $this->get_user_id() );
+		$payment_methods = get_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . $this->get_id() );
 
 		if ( false === $payment_methods ) {
 			// TODO: Maybe use const from SEPA UPE payment method when implemented.
@@ -451,7 +451,7 @@ class WC_Stripe_Customer {
 				$payment_methods = $response->data;
 			}
 
-			set_transient( self::PAYMENT_METHODS_TRANSIENT_PREFIX . $this->get_user_id(), $payment_methods, DAY_IN_SECONDS );
+			set_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . $this->get_id(), $payment_methods, DAY_IN_SECONDS );
 		}
 
 		return empty( $payment_methods ) ? [] : $payment_methods;
@@ -561,7 +561,7 @@ class WC_Stripe_Customer {
 	public function clear_cache() {
 		delete_transient( 'stripe_sources_' . $this->get_id() );
 		delete_transient( 'stripe_customer_' . $this->get_id() );
-		delete_transient( self::PAYMENT_METHODS_TRANSIENT_PREFIX . $this->get_id() );
+		delete_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . $this->get_id() );
 		$this->customer_data = [];
 	}
 
