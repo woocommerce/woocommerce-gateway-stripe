@@ -1,8 +1,6 @@
 .is-loadable-placeholder {
 	animation: loading-fade 1.6s ease-in-out infinite;
-	// replace when #1735 is merged.
-	// background-color: $light-gray-500;
-	background-color: 'lightgrey';
+	background-color: '#e2e4e7';
 	color: transparent;
 
 	@media screen and ( prefers-reduced-motion: reduce ) {
