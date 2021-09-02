@@ -19,8 +19,9 @@ class WC_Stripe_UPE_Payment_Method_Ideal extends WC_Stripe_UPE_Payment_Method {
 	 */
 	public function __construct( $token_service ) {
 		parent::__construct( $token_service );
-		$this->stripe_id   = self::STRIPE_ID;
-		$this->title       = 'Pay with Ideal';
-		$this->is_reusable = true; // TODO: is it?
+		$this->stripe_id            = self::STRIPE_ID;
+		$this->title                = 'Pay with Ideal';
+		$this->is_reusable          = true; // TODO: is it?
+		$this->supported_currencies = [ 'EUR' ];
 	}
 }
