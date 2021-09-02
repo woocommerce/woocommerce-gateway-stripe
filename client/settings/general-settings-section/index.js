@@ -1,8 +1,9 @@
 /**
  * External dependencies
  */
-import React from 'react';
+import React, { useContext } from 'react';
 import styled from '@emotion/styled';
+import { __ } from '@wordpress/i18n';
 import { Card } from '@wordpress/components';
 
 /**
@@ -11,6 +12,7 @@ import { Card } from '@wordpress/components';
 import CardBody from '../card-body';
 import CardsIcon from '../../payment-method-icons/cards';
 import UPEOptInBanner from '../upe-opt-in-banner';
+import UpeToggleContext from '../upe-toggle/context';
 
 const GeneralSettingsSectionWrapper = styled.div`
 	display: flex;
@@ -54,13 +56,15 @@ const PaymentMethodDescription = styled.div`
 	}
 `;
 
-const OptInBannerWrapper = styled.div`
+const UPEOptInBannerWrapper = styled.div`
 	div:first-of-type {
 		max-width: 100%;
 	}
 `;
 
 const GeneralSettingsSection = () => {
+	const { isUpeEnabled } = useContext( UpeToggleContext );
+
 	return (
 		<GeneralSettingsSectionWrapper>
 			<Card>
@@ -68,18 +72,25 @@ const GeneralSettingsSection = () => {
 					<CardsIcon size="medium" />
 					<PaymentMethodText>
 						<PaymentMethodLabel>
-							Credit card / debit card
+							{ __(
+								'Credit card / debit card',
+								'woocommerce-gateway-stripe'
+							) }
 						</PaymentMethodLabel>
 						<PaymentMethodDescription>
-							Let your customers pay with major credit and debit
-							cards without leaving your store.
+							{ __(
+								'Let your customers pay with major credit and debit cards without leaving your store.',
+								'woocommerce-gateway-stripe'
+							) }
 						</PaymentMethodDescription>
 					</PaymentMethodText>
 				</CardBodyWrapper>
 			</Card>
-			<OptInBannerWrapper data-testid="opt-in-banner">
-				<UPEOptInBanner />
-			</OptInBannerWrapper>
+			{ ! isUpeEnabled && (
+				<UPEOptInBannerWrapper data-testid="opt-in-banner">
+					<UPEOptInBanner />
+				</UPEOptInBannerWrapper>
+			) }
 		</GeneralSettingsSectionWrapper>
 	);
 };
