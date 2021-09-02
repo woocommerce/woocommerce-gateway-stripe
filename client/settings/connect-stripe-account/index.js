@@ -4,6 +4,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import { __ } from '@wordpress/i18n';
+import interpolateComponents from 'interpolate-components';
 import { Button, Card } from '@wordpress/components';
 
 /**
@@ -28,7 +29,7 @@ const InformationText = styled.p`
 	color: #1e1e1e;
 `;
 
-const TermOfServicesText = styled.p`
+const TermsOfServiceText = styled.p`
 	color: #757575;
 	font-size: 12px;
 	font-weight: 400;
@@ -60,24 +61,36 @@ const ConnectStripeAccount = () => (
 	<CardWrapper>
 		<StripeBanner />
 		<CardBody>
-			<h2>Get started with Stripe</h2>
+			<h2>
+				{ __(
+					'Get started with Stripe',
+					'woocommerce-gateway-stripe'
+				) }
+			</h2>
 			<InformationText>
-				Connect or create a Stripe account to accept payments directly
-				onsite, including Payment Request buttons (such as Apple Pay and
-				Google Pay), iDeal, SEPA, Sofort, and more international payment
-				methods.
+				{ __(
+					'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDeal, SEPA, Sofort, and more international payment methods.',
+					'woocommerce-gateway-stripe'
+				) }
 			</InformationText>
-			<TermOfServicesText>
-				By clicking &quot;Create or connect an account&quot;, you agree
-				to{ ' ' }
-				<a
-					href="https://stripe.com/ssa"
-					target="_blank"
-					rel="noreferrer"
-				>
-					Stripe’s Terms of service.
-				</a>
-			</TermOfServicesText>
+			<TermsOfServiceText>
+				{ interpolateComponents( {
+					mixedString: __(
+						'By clicking "Create or connect an account", you agree to {{stripeTermsOfServiceLink}}Stripe’s Terms of service.{{/stripeTermsOfServiceLink}}',
+						'woocommerce-gateway-stripe'
+					),
+					components: {
+						stripeTermsOfServiceLink: (
+							// eslint-disable-next-line jsx-a11y/anchor-has-content
+							<a
+								target="_blank"
+								rel="noreferrer"
+								href="https://stripe.com/ssa"
+							/>
+						),
+					},
+				} ) }
+			</TermsOfServiceText>
 			<ButtonWrapper>
 				<Button
 					isPrimary
