@@ -26,6 +26,7 @@
     "@wordpress/components": "^15.0.0",
     "@wordpress/date": "3.9.0",
     "@wordpress/i18n": "^4.2.1",
+    "@wordpress/icons": "^5.0.1",
     "@wordpress/jest-preset-default": "^7.1.0",
     "@wordpress/scripts": "^13.0.2",
     "archiver": "^5.0.0",

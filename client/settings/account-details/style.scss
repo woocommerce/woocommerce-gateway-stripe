@@ -1,14 +1,26 @@
-.account-status__info {
-	margin-left: 1.6rem;
+.account-details {
 
-	svg {
-		margin: 0 0.2rem;
-		position: relative;
-		top: 4px;
+	.components-card__body {
+		display: flex;
+		flex-direction: column;
+		padding: 24px 40px;
+	}
+
+	&__row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		padding: 8px 0px;
+
+		p {
+			
+		}
+	}
+
+	&__desc {
+		margin-top: 1rem;
+		font-style: italic;
 	}
 }
 
-.account-status__desc {
-	margin-top: 1rem;
-	font-style: italic;
-}
+

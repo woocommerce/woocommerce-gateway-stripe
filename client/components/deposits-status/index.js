@@ -8,18 +8,17 @@ import { createInterpolateElement } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import '../account-status/shared.scss';
 
 const DepositsStatus = ( props ) => {
 	const { depositsStatus, iconSize } = props;
-	let className = 'account-status__info__green';
+	let className = 'account-details__info__green';
 	let description;
-	let icon = <Icon icon="dashicons-yes-alt" size={ iconSize } />;
+	let icon = <Icon icon="yes-alt" size={ iconSize } />;
 
 	if ( depositsStatus === 'disabled' ) {
 		description = __( 'Disabled', 'woocommerce-gateway-stripe' );
-		className = 'account-status__info__red';
-		icon = <Icon icon="dashicons-warning" size={ iconSize } />;
+		className = 'account-details__info__red';
+		icon = <Icon icon="warning" size={ iconSize } />;
 	} else if ( depositsStatus === 'daily' ) {
 		description = __( 'Daily', 'woocommerce-gateway-stripe' );
 	} else if ( depositsStatus === 'weekly' ) {
@@ -46,8 +45,8 @@ const DepositsStatus = ( props ) => {
 				),
 			}
 		);
-		className = 'account-status__info__yellow';
-		icon = <Icon icon="dashicons-warning" size={ iconSize } />;
+		className = 'account-details__info__yellow';
+		icon = <Icon icon="warning" size={ iconSize } />;
 	} else {
 		description = __( 'Unknown', 'woocommerce-gateway-stripe' );
 	}

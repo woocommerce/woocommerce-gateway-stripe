@@ -11,27 +11,26 @@ import { createInterpolateElement } from '@wordpress/element';
  */
 import DepositsStatus from '../../components/deposits-status';
 import PaymentsStatus from '../../components/payments-status';
-import StatusChip from '../../components/account-status/status-chip';
 import './style.scss';
 
 const renderPaymentsStatus = ( paymentsEnabled ) => {
 	return (
-		<span className="account-status__info">
+		<div className="account-details__row">
 			{ __( 'Payments:', 'woocommerce-gateway-stripe' ) }
 			<PaymentsStatus
 				paymentsEnabled={ paymentsEnabled }
 				iconSize={ 18 }
 			/>
-		</span>
+		</div>
 	);
 };
 
 const renderDepositsStatus = ( depositsStatus ) => {
 	return (
-		<span className="account-status__info">
-			{ __( 'Deposits:', 'woocommerce-gateway-stripe' ) }
+		<div className="account-details__row">
+			<p>{ __( 'Deposits:', 'woocommerce-gateway-stripe' ) }</p>
 			<DepositsStatus iconSize={ 18 } depositsStatus={ depositsStatus } />
-		</span>
+		</div>
 	);
 };
 
@@ -94,7 +93,16 @@ const renderAccountStatusDescription = ( accountStatus ) => {
 		return null;
 	}
 
-	return <div className="account-status__desc">{ description }</div>;
+	return <div className="account-details__desc">{ description }</div>;
+};
+
+const renderBaseFees = ( baseFees ) => {
+	return (
+		<div className="account-details__row">
+			<p>{ __( 'Base Fees:', 'woocommerce-gateway-stripe' ) }</p>
+			<span>{ baseFees }</span>
+		</div>
+	);
 };
 
 const AccountStatus = ( props ) => {
@@ -102,10 +110,12 @@ const AccountStatus = ( props ) => {
 	if ( accountStatus.error ) {
 		return (
 			<div>
-				{ __(
-					'Error determining the connection status.',
-					'woocommerce-gateway-stripe'
-				) }
+				<p>
+					{ __(
+						'Error determining the connection status.',
+						'woocommerce-gateway-stripe'
+					) }
+				</p>
 			</div>
 		);
 	}
@@ -113,9 +123,9 @@ const AccountStatus = ( props ) => {
 	return (
 		<div>
 			<div>
-				<StatusChip accountStatus={ accountStatus.status } />
 				{ renderPaymentsStatus( accountStatus.paymentsEnabled ) }
 				{ renderDepositsStatus( accountStatus.depositsStatus ) }
+				{ renderBaseFees( accountStatus.baseFees ) }
 			</div>
 			{ renderAccountStatusDescription( accountStatus ) }
 		</div>

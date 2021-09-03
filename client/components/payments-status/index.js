@@ -1,5 +1,3 @@
-/** @format */
-
 /**
  * External dependencies
  */
@@ -9,14 +7,14 @@ import { Icon } from '@wordpress/components';
 /**
  * Internal dependencies
  */
-import '../account-status/shared.scss';
+import './style.scss';
 
 const PaymentsStatusEnabled = ( props ) => {
 	const { iconSize } = props;
 
 	return (
-		<span className={ 'account-status__info__green' }>
-			<Icon icon="dashicons-yes-alt" size={ iconSize } />
+		<span className={ 'account-details__info__green' }>
+			<Icon icon="yes-alt" size={ iconSize } />
 			{ __( 'Enabled', 'woocommerce-gateway-stripe' ) }
 		</span>
 	);
@@ -26,8 +24,8 @@ const PaymentsStatusDisabled = ( props ) => {
 	const { iconSize } = props;
 
 	return (
-		<span className={ 'account-status__info__red' }>
-			<Icon icon="dashicons-warning" size={ iconSize } />
+		<span className={ 'account-details__info__red' }>
+			<Icon icon="warning" size={ iconSize } />
 			{ __( 'Disabled', 'woocommerce-gateway-stripe' ) }
 		</span>
 	);
