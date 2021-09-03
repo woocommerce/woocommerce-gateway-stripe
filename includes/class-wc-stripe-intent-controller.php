@@ -304,14 +304,21 @@ class WC_Stripe_Intent_Controller {
 			$amount = $order->get_total();
 		}
 
-		$gateway = new WC_Stripe_UPE_Payment_Gateway();
+		$gateways = WC()->payment_gateways()->payment_gateways();
+		/**
+		 * Our gateway object.
+		 *
+		 * @var $gateway WC_Stripe_UPE_Payment_Gateway
+		 */
+		$gateway                 = $gateways[ WC_Stripe_UPE_Payment_Gateway::ID ];
+		$enabled_payment_methods = $gateway->get_upe_enabled_at_checkout_payment_method_ids();
 
 		$currency       = get_woocommerce_currency();
 		$payment_intent = WC_Stripe_API::request(
 			[
 				'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
 				'currency'             => strtolower( $currency ),
-				'payment_method_types' => $gateway->get_upe_enabled_payment_method_ids(),
+				'payment_method_types' => $enabled_payment_methods,
 			],
 			'payment_intents'
 		);
