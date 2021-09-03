@@ -262,8 +262,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return string[]
 	 */
-	public function get_upe_enabled_at_checkout_payment_method_ids(): array {
-		$available_method_ids = array();
+	public function get_upe_enabled_at_checkout_payment_method_ids() {
+		$available_method_ids = [];
 		foreach ( $this->get_upe_enabled_payment_method_ids() as $payment_method_id ) {
 			if ( isset( $this->payment_methods[ $payment_method_id ] ) && $this->payment_methods[ $payment_method_id ]->is_enabled_at_checkout() ) {
 				$available_method_ids[] = $payment_method_id;
