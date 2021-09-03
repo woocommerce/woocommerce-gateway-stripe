@@ -7,7 +7,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 /**
  * Internal dependencies
  */
-import Wizard from '../wrapper';
+import Wizard from '../wrapper/provider';
 import WizardTask from '../task';
 import WizardTaskList from '../task-list';
 import WizardTaskItem from '../task-item';

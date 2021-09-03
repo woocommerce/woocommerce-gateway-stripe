@@ -7,7 +7,7 @@ import { Card, CardBody } from '@wordpress/components';
 /**
  * Internal dependencies
  */
-import Wizard from './wizard/wrapper/provider.js';
+import Wizard from './wizard/wrapper/provider';
 import WizardTask from './wizard/task';
 import WizardTaskList from './wizard/task-list';
 import EnableUpePreviewTask from './upe-preview-methods-selector/enable-upe-preview-task';
