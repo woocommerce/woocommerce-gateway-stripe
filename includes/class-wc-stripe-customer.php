@@ -599,4 +599,41 @@ class WC_Stripe_Customer {
 
 		return $data;
 	}
+
+	/**
+	 * Adds a payment method.
+	 * Creates and add a token to the user, based on the payment_method object
+	 *
+	 * @param object $payment_method Payment method to be added.
+	 * @return WC_Payment_Token_CC|WC_Payment_Token_SEPA The WC token for the payment method.
+	 *
+	 * @since x.x.x
+	 * @version x.x.x
+	 */
+	public function add_payment_method_to_user( $payment_method ) {
+		if ( 'sepa_debit' === $payment_method->type ) {
+			$token = new WC_Payment_Token_SEPA();
+			$token->set_last4( $payment_method->sepa_debit->last4 );
+		} else if ( 'card' ) {
+			$token = new WC_Payment_Token_CC();
+			$token->set_expiry_month( $payment_method->card->exp_month );
+			$token->set_expiry_year( $payment_method->card->exp_year );
+			$token->set_card_type( strtolower( $payment_method->card->brand ) );
+			$token->set_last4( $payment_method->card->last4 );
+		} else {
+			return null;
+		}
+
+		$token->set_gateway_id( 'stripe' );
+		$token->set_token( $payment_method->id );
+		$token->set_user_id( $this->get_user_id() );
+		$token->save();
+
+		// Clear cached payment methods.
+		$this->clear_cache();
+
+		do_action( 'woocommerce_stripe_add_payment_method', $this->get_id(), $token, $payment_method );
+
+		return $token;
+	}
 }
