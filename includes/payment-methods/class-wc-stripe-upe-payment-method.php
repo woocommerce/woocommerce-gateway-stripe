@@ -64,7 +64,13 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 */
 	public function __construct( $token_service ) {
 		$main_settings       = get_option( 'woocommerce_stripe_settings' );
-		$enabled_upe_methods = $main_settings['upe_checkout_experience_accepted_payments'];
+
+		if ( isset( $main_settings['upe_checkout_experience_accepted_payments'] ) ) {
+			$enabled_upe_methods = $main_settings['upe_checkout_experience_accepted_payments'];
+		} else {
+			$enabled_upe_methods = [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ];
+		}
+
 		$this->enabled       = in_array( static::STRIPE_ID, $enabled_upe_methods, true );
 		// $this->token_service = $token_service;
 	}
