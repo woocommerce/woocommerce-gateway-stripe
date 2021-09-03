@@ -767,11 +767,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 
 			$payment_method_id = $setup_intent->payment_method;
-
 			$payment_method_object = WC_Stripe_API::retrieve( 'payment_methods/' . $payment_method_id );
 
 			$payment_method = $this->payment_methods[ $payment_method_object->type ];
-
 			return $payment_method->add_payment_token_to_user( $user, $payment_method_object );
 		} catch ( Exception $e ) {
 			wc_add_notice( $e->getMessage(), 'error', [ 'icon' => 'error' ] );
