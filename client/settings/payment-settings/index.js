@@ -71,11 +71,11 @@ const AccountSettingsDropdownMenu = () => {
 };
 
 const accountStatusMock = {
-	status: 'complete',
 	paymentsEnabled: true,
-	depositsStatus: true,
+	depositsEnabled: false,
 	email: 'hello@johndoe.com',
 	baseFees: 'US Dollar (USD) 2.9% + $0.30 per transaction',
+	accountLink: 'https://stripe.com/support',
 };
 
 const AccountDetailsCard = () => {

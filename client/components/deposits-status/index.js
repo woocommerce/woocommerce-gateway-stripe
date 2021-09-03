@@ -3,52 +3,23 @@
  */
 import { Icon } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
-import { createInterpolateElement } from '@wordpress/element';
 
 /**
  * Internal dependencies
  */
 
-const DepositsStatus = ( props ) => {
-	const { depositsStatus, iconSize } = props;
+const DepositsEnabled = ( props ) => {
+	const { depositsEnabled, iconSize } = props;
 	let className = 'account-details__info__green';
 	let description;
 	let icon = <Icon icon="yes-alt" size={ iconSize } />;
 
-	if ( depositsStatus === 'disabled' ) {
-		description = __( 'Disabled', 'woocommerce-gateway-stripe' );
-		className = 'account-details__info__red';
-		icon = <Icon icon="warning" size={ iconSize } />;
-	} else if ( depositsStatus === 'daily' ) {
-		description = __( 'Daily', 'woocommerce-gateway-stripe' );
-	} else if ( depositsStatus === 'weekly' ) {
-		description = __( 'Weekly', 'woocommerce-gateway-stripe' );
-	} else if ( depositsStatus === 'monthly' ) {
-		description = __( 'Monthly', 'woocommerce-gateway-stripe' );
-	} else if ( depositsStatus === 'manual' ) {
-		const learnMoreHref =
-			'https://docs.woocommerce.com/document/payments/faq/deposits-suspended/';
-		description = createInterpolateElement(
-			/* translators: <a> - suspended accounts FAQ URL */
-			__(
-				'Temporarily suspended (<a>learn more</a>)',
-				'woocommerce-gateway-stripe'
-			),
-			{
-				a: (
-					// eslint-disable-next-line jsx-a11y/anchor-has-content
-					<a
-						href={ learnMoreHref }
-						target="_blank"
-						rel="noopener noreferrer"
-					/>
-				),
-			}
-		);
+	if ( depositsEnabled === true ) {
+		description = __( 'Enabled', 'woocommerce-gateway-stripe' );
+	} else {
 		className = 'account-details__info__yellow';
 		icon = <Icon icon="warning" size={ iconSize } />;
-	} else {
-		description = __( 'Unknown', 'woocommerce-gateway-stripe' );
+		description = __( 'Disabled/Unknown', 'woocommerce-gateway-stripe' );
 	}
 
 	return (
@@ -59,4 +30,4 @@ const DepositsStatus = ( props ) => {
 	);
 };
 
-export default DepositsStatus;
+export default DepositsEnabled;

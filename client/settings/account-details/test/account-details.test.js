@@ -2,7 +2,7 @@
 /**
  * External dependencies
  */
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 
 /**
  * Internal dependencies
@@ -14,95 +14,30 @@ describe( 'AccountStatus', () => {
 		return render( <AccountStatus accountStatus={ accountStatus } /> );
 	};
 
-	test( 'renders connected account', () => {
-		const { container: accountStatus } = renderAccountStatus( {
-			status: 'complete',
+	test( 'renders enabled payments and deposits on account', () => {
+		renderAccountStatus( {
 			paymentsEnabled: true,
-			depositsStatus: 'daily',
-			currentDeadline: 0,
-			accountLink: '',
+			depositsEnabled: true,
+			accountLink: 'https://stripe.com/support',
 		} );
-		expect( accountStatus ).toMatchSnapshot();
+		// @todo expect the description to not show up
+		// @todo expect enabled to show up for payments
+		const warningDescription = screen.queryByText(
+			/Payments and deposits may be disabled for this account until missing business information is updated/i
+		);
+		expect( warningDescription ).not.toBeInTheDocument();
 	} );
 
-	test( 'renders restricted soon account', () => {
-		const { container: accountStatus } = renderAccountStatus( {
-			status: 'restricted_soon',
-			paymentsEnabled: true,
-			depositsStatus: 'daily',
-			currentDeadline: 1583844589,
-			accountLink:
-				'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=woocommerce_payments&wcpay-login=1',
-		} );
-		expect( accountStatus ).toMatchSnapshot();
-	} );
-
-	test( 'renders restricted account with overdue requirements', () => {
-		const accountStatus = renderAccountStatus( {
-			status: 'restricted',
+	test( 'renders disabled deposits and payments on account', () => {
+		renderAccountStatus( {
 			paymentsEnabled: false,
-			depositsStatus: 'disabled',
-			currentDeadline: 1583844589,
-			pastDue: true,
-			accountLink:
-				'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=woocommerce_payments&wcpay-login=1',
+			depositsEnabled: false,
+			accountLink: 'https://stripe.com/support',
 		} );
-		expect( accountStatus ).toMatchSnapshot();
-	} );
-
-	test( 'renders restricted account', () => {
-		const accountStatus = renderAccountStatus( {
-			status: 'restricted',
-			paymentsEnabled: false,
-			depositsStatus: 'disabled',
-			currentDeadline: 1583844589,
-			pastDue: false,
-			accountLink: '',
-		} );
-		expect( accountStatus ).toMatchSnapshot();
-	} );
-
-	test( 'renders rejected.other account', () => {
-		const { container: accountStatus } = renderAccountStatus( {
-			status: 'rejected.other',
-			paymentsEnabled: false,
-			depositsStatus: 'disabled',
-			currentDeadline: 0,
-			accountLink: '',
-		} );
-		expect( accountStatus ).toMatchSnapshot();
-	} );
-
-	test( 'renders rejected.fraud account', () => {
-		const { container: accountStatus } = renderAccountStatus( {
-			status: 'rejected.fraud',
-			paymentsEnabled: false,
-			depositsStatus: 'disabled',
-			currentDeadline: 0,
-			accountLink: '',
-		} );
-		expect( accountStatus ).toMatchSnapshot();
-	} );
-
-	test( 'renders rejected.terms_of_service account', () => {
-		const { container: accountStatus } = renderAccountStatus( {
-			status: 'rejected.terms_of_service',
-			paymentsEnabled: false,
-			depositsStatus: 'disabled',
-			currentDeadline: 0,
-			accountLink: '',
-		} );
-		expect( accountStatus ).toMatchSnapshot();
-	} );
-
-	test( 'renders manual (suspended) deposits', () => {
-		const { container: accountStatus } = renderAccountStatus( {
-			status: 'complete',
-			paymentsEnabled: true,
-			depositsStatus: 'manual',
-			currentDeadline: 0,
-			accountLink: '',
-		} );
-		expect( accountStatus ).toMatchSnapshot();
+		// @todo expect the description to show up
+		const warningDescription = screen.getByText(
+			/Payments and deposits may be disabled for this account until missing business information is updated/i
+		);
+		expect( warningDescription ).toBeInTheDocument();
 	} );
 } );
