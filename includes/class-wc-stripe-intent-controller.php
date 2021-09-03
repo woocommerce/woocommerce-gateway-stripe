@@ -295,8 +295,10 @@ class WC_Stripe_Intent_Controller {
 	 * @return array
 	 */
 	public function create_payment_intent( $order_id = null ) {
-		$amount = WC()->cart->get_total( false );
-		$order  = wc_get_order( $order_id );
+		$settings = get_option( 'woocommerce_stripe_settings', [] );
+		$capture  = ! empty( $settings['capture'] ) && 'yes' === $settings['capture'];
+		$amount   = WC()->cart->get_total( false );
+		$order    = wc_get_order( $order_id );
 		if ( is_a( $order, 'WC_Order' ) ) {
 			$amount = $order->get_total();
 		}
@@ -313,6 +315,7 @@ class WC_Stripe_Intent_Controller {
 				'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
 				'currency'             => strtolower( $currency ),
 				'payment_method_types' => $enabled_payment_methods,
+				'capture_method'       => $capture ? 'automatic' : 'manual',
 			],
 			'payment_intents'
 		);
