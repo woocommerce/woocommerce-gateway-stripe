@@ -44,11 +44,11 @@ const ButtonWrapper = styled.div`
 	> :last-child {
 		box-shadow: none;
 
-		&:active,
-		&:focus,
-		&:hover {
-			box-shadow: none !important;
-			background: none !important;
+		&:active:not( :disabled ),
+		&:focus:not( :disabled ),
+		&:hover:not( :disabled ) {
+			box-shadow: none;
+			background: none;
 		}
 
 		@media ( max-width: 660px ) {

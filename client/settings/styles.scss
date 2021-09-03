@@ -5,8 +5,4 @@
 #wc-stripe-new-account-container {
 	display: flex;
 	justify-content: center;
-
-	@media ( max-width: 660px ) {
-		display: block;
-	}
 }
