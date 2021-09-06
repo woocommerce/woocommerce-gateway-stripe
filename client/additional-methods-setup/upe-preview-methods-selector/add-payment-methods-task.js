@@ -18,23 +18,39 @@ import PaymentMethodCheckbox from '../../components/payment-methods-checkboxes/p
 import { LoadableBlock } from '../../components/loadable';
 import LoadableSettingsSection from '../../settings/loadable-settings-section';
 
+const upeMethods = [
+	'bancontact',
+	'giropay',
+	'ideal',
+	'p24',
+	'sepa_debit',
+	'sofort',
+];
+
 const usePaymentMethodsCheckboxState = () => {
 	const availablePaymentMethods = useGetAvailablePaymentMethodIds();
+	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
 	const [ paymentMethodsState, setPaymentMethodsState ] = useState( {} );
 
 	useEffect( () => {
 		setPaymentMethodsState(
-			// by default, all the checkboxes should be "checked"
+			// by default, only the checkboxes for methods enabled prior to enabling UPE should be checked
 			availablePaymentMethods
+				.filter( ( method ) => upeMethods.includes( method ) )
 				.reduce(
-					( map, paymentMethod ) => ( {
-						...map,
-						[ paymentMethod ]: true,
-					} ),
+					( map, paymentMethod ) => {
+						const isEnabledAsNonUpeGateway = window.wc_stripe_onboarding_params.enabled_non_upe_gateway_ids.includes( paymentMethod );
+						const isEnabledInUpe = enabledPaymentMethodIds.includes( paymentMethod );
+
+						return {
+							...map,
+							[ paymentMethod ]: isEnabledAsNonUpeGateway || isEnabledInUpe,
+						};
+					},
 					{}
 				)
 		);
-	}, [ availablePaymentMethods, setPaymentMethodsState ] );
+	}, [ availablePaymentMethods, enabledPaymentMethodIds, setPaymentMethodsState ] );
 
 	const handleChange = useCallback(
 		( paymentMethodName, enabled ) => {
@@ -123,6 +139,22 @@ const ContinueButton = ( { paymentMethodsState } ) => {
 	);
 };
 
+const SelectAllButton = ( { methods, setMethodState } ) => {
+	const handleClick = useCallback(
+		() => {
+			Object.keys( methods )
+				.forEach( ( method ) => {
+					setMethodState( method, true );
+				} );
+		},
+		[ methods, setMethodState ]
+	);
+
+	return <Button isLink onClick={ handleClick }>
+		{ __( 'Select all', 'woocommerce-gateway-stripe' ) }
+	</Button>;
+};
+
 const AddPaymentMethodsTask = () => {
 	const availablePaymentMethods = useGetAvailablePaymentMethodIds();
 	const { isActive } = useContext( WizardTaskContext );
@@ -168,24 +200,28 @@ const AddPaymentMethodsTask = () => {
 								'woocommerce-gateway-stripe'
 							) }
 						</p>
+						<SelectAllButton methods={ paymentMethodsState } setMethodState={ handlePaymentMethodChange } />
 						<LoadableBlock numLines={ 10 } isLoading={ ! isActive }>
 							<LoadableSettingsSection numLines={ 10 }>
 								<PaymentMethodCheckboxes>
-									{ availablePaymentMethods.map(
-										( key ) => (
-											<PaymentMethodCheckbox
-												key={ key }
-												checked={
-													paymentMethodsState[
-														key
-													]
-												}
-												onChange={
-													handlePaymentMethodChange
-												}
-												name={ key }
-											/>
-										)
+									{ upeMethods.map(
+										( key ) =>
+											availablePaymentMethods.includes(
+												key
+											) && (
+												<PaymentMethodCheckbox
+													key={ key }
+													checked={
+														paymentMethodsState[
+															key
+														]
+													}
+													onChange={
+														handlePaymentMethodChange
+													}
+													name={ key }
+												/>
+											)
 									) }
 								</PaymentMethodCheckboxes>
 							</LoadableSettingsSection>

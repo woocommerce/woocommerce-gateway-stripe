@@ -50,7 +50,8 @@ class WC_Stripe_Onboarding_Controller {
 		);
 
 		wp_localize_script( 'wc_stripe_onboarding_wizard', 'wc_stripe_onboarding_params', [
-			'is_upe_checkout_enabled' => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
+			'is_upe_checkout_enabled'     => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
+			'enabled_non_upe_gateway_ids' => $this->get_enabled_stripe_gateway_ids(),
 		] );
 
 		wp_enqueue_script( 'wc_stripe_onboarding_wizard' );
@@ -85,5 +86,19 @@ class WC_Stripe_Onboarding_Controller {
 	 */
 	public function render_onboarding_wizard() {
 		echo '<div class="wrap"><div id="wc-stripe-onboarding-wizard-container"></div></div>';
+	}
+
+	/**
+	 * @return string[]
+	 */
+	private function get_enabled_stripe_gateway_ids() {
+		$enabled_stripe_gateways    = array_filter( WC()->payment_gateways()->payment_gateways(), function ( $gateway ) {
+			return 0 === strpos( $gateway->id, 'stripe_' ) && 'yes' === $gateway->enabled;
+		} );
+		$enabled_stripe_gateway_ids = array_map( function ( $gateway ) {
+			return substr( $gateway->id, strlen( 'stripe_' ) );
+		}, $enabled_stripe_gateways );
+
+		return array_values( $enabled_stripe_gateway_ids );
 	}
 }
