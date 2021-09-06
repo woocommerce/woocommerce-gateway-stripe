@@ -1,24 +1,18 @@
 /**
  * External dependencies
  */
-import React, { useCallback, useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { CheckboxControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
-const useToggle = ( initialValue = false ) => {
-	const [ value, setValue ] = useState( initialValue );
-	const toggleValue = useCallback(
-		() => setValue( ( oldValue ) => ! oldValue ),
-		[ setValue ]
-	);
-
-	return [ value, toggleValue ];
-};
+/**
+ * Internal dependencies
+ */
+import { useDevMode, useDebugLog } from './data-mock';
 
 const DebugMode = () => {
-	// TODO
-	const isDevModeEnabled = false;
-	const [ isLoggingChecked, setIsLoggingChecked ] = useToggle( false );
+	const isDevModeEnabled = useDevMode();
+	const [ isLoggingChecked, setIsLoggingChecked ] = useDebugLog();
 	const headingRef = useRef( null );
 
 	useEffect( () => {
@@ -35,6 +29,7 @@ const DebugMode = () => {
 				{ __( 'Debug mode', 'woocommerce-gateway-stripe' ) }
 			</h4>
 			<CheckboxControl
+				data-testid="logging-checkbox"
 				label={
 					isDevModeEnabled
 						? __(

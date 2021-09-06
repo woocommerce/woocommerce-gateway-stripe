@@ -22,10 +22,8 @@ export const useSeparateCardForm = makeToggleHook( false );
 
 export const useShortAccountStatement = makeToggleHook( false );
 
-// TODO: use the accurate data from the backend, once available
 export const useAccountStatementDescriptor = () =>
 	useState( 'WOOTESTING, LTD' );
 
-// TODO: use the accurate data from the backend, once available
 export const useShortAccountStatementDescriptor = () =>
 	useState( 'WOOTESTING' );
