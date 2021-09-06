@@ -50,7 +50,7 @@ const AddPaymentMethodsTask = () => {
 					{ interpolateComponents( {
 						mixedString: __(
 							"We've added methods that you'd already enabled. For best results, we recommand adding " +
-								"all available payment methods. We'll only show your customers the most relevant payment" +
+								"all available payment methods. We'll only show your customers the most relevant payment " +
 								'methods based on their location and purchasing history. {{learnMoreLink}}Learn more{{/learnMoreLink}}',
 							'woocommerce-gateway-stripe'
 						),

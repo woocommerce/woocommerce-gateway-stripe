@@ -13,15 +13,20 @@ import { Icon, store, people } from '@wordpress/icons';
 import WizardTaskContext from '../wizard/task/context';
 import CollapsibleBody from '../wizard/collapsible-body';
 import WizardTaskItem from '../wizard/task-item';
+import UpeToggleContext from '../../settings/upe-toggle/context';
 import Pill from '../../components/pill';
 import './style.scss';
 
 const EnableUpePreviewTask = () => {
+	const { setIsUpeEnabled, status } = useContext( UpeToggleContext );
+
 	const { setCompleted } = useContext( WizardTaskContext );
 
 	const handleContinueClick = useCallback( () => {
-		setCompleted( true, 'add-payment-methods' );
-	}, [ setCompleted ] );
+		setIsUpeEnabled( true ).then( () => {
+			setCompleted( true, 'add-payment-methods' );
+		} );
+	}, [ setIsUpeEnabled, setCompleted ] );
 
 	return (
 		<WizardTaskItem
@@ -64,7 +69,7 @@ const EnableUpePreviewTask = () => {
 						<div className="enable-upe-preview__advantage-color enable-upe-preview__advantage-color--for-you" />
 						<CardBody>
 							<Icon icon={ store } />
-							<h3>For you</h3>
+							<h3>{ __( 'For you', 'woocommerce-gateway-stripe' ) }</h3>
 							<ul className="enable-upe-preview__advantage-features-list">
 								<li>
 									{ __(
@@ -91,7 +96,7 @@ const EnableUpePreviewTask = () => {
 						<div className="enable-upe-preview__advantage-color enable-upe-preview__advantage-color--for-customers" />
 						<CardBody>
 							<Icon icon={ people } />
-							<h3>For customers</h3>
+							<h3>{ __( 'For customers', 'woocommerce-gateway-stripe' ) }</h3>
 							<ul className="enable-upe-preview__advantage-features-list">
 								<li>
 									{ __(
@@ -115,7 +120,12 @@ const EnableUpePreviewTask = () => {
 						</CardBody>
 					</Card>
 				</div>
-				<Button onClick={ handleContinueClick } isPrimary>
+				<Button
+					isBusy={ 'pending' === status }
+					disabled={ 'pending' === status }
+					onClick={ handleContinueClick }
+					isPrimary
+				>
 					{ __( 'Enable', 'woocommerce-gateway-stripe' ) }
 				</Button>
 			</CollapsibleBody>
