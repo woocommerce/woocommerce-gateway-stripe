@@ -22,7 +22,9 @@ const DebugMode = () => {
 	const headingRef = useRef( null );
 
 	useEffect( () => {
-		if ( ! headingRef.current ) return;
+		if ( ! headingRef.current ) {
+			return;
+		}
 
 		headingRef.current.focus();
 	}, [] );
