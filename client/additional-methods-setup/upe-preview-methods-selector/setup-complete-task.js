@@ -2,7 +2,7 @@
  * External dependencies
  */
 import React from 'react';
-import { useContext } from '@wordpress/element';
+import { useEffect, useContext } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
 import { Button } from '@wordpress/components';
 
@@ -15,12 +15,11 @@ import WizardContext from '../wizard/wrapper/context';
 import { useEnabledPaymentMethodIds } from '../../data';
 import PaymentMethodIcon from '../../settings/payment-method-icon';
 import './style.scss';
+import WizardTaskContext from '../wizard/task/context';
 
 const SetupCompleteMessaging = () => {
 	const [ enabledPaymentMethods ] = useEnabledPaymentMethodIds();
 	const enabledMethodsCount = enabledPaymentMethods.length;
-	//TODO: Initial payment methods need to be passed down before step 2.
-	const initialMethods = [ 'cards' ];
 
 	const { completedTasks } = useContext( WizardContext );
 	const enableUpePreviewPayload = completedTasks[ 'add-payment-methods' ];
@@ -29,8 +28,15 @@ const SetupCompleteMessaging = () => {
 		return null;
 	}
 
-	const addedPaymentMethodsCount =
-		enabledMethodsCount - initialMethods.length;
+	// we need to check that the type of `enableUpePreviewPayload` is an object - it can also just be `true` or `undefined`
+	let addedPaymentMethodsCount = 0;
+	if (
+		'object' === typeof enableUpePreviewPayload &&
+		enableUpePreviewPayload.initialMethods
+	) {
+		const { initialMethods } = enableUpePreviewPayload;
+		addedPaymentMethodsCount = enabledMethodsCount - initialMethods.length;
+	}
 
 	// can't just check for "0", some methods could have been disabled
 	if ( addedPaymentMethodsCount <= 0 ) {
@@ -64,6 +70,16 @@ const EnabledMethodsList = () => {
 };
 
 const SetupComplete = () => {
+	const { isActive } = useContext( WizardTaskContext );
+
+	useEffect( () => {
+		if ( ! isActive ) {
+			return;
+		}
+
+		window.wc_stripe_onboarding_params.is_upe_checkout_enabled = true;
+	}, [ isActive ] );
+
 	return (
 		<WizardTaskItem
 			title={ __(

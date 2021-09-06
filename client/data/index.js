@@ -1,13 +1,22 @@
+const availableMethods = [ 'card', 'giropay', 'sofort', 'sepa_debit' ];
+let enabledMethods = [ 'card', 'sepa_debit' ];
+
 //TODO, these should come from an endpoint/ data store.
 const useEnabledPaymentMethodIds = () => {
-	return [ [ 'card', 'sepa_debit' ], () => ( {} ) ];
+	return [ enabledMethods, ( methods ) => {
+		enabledMethods = methods;
+	} ];
 };
 const useGetAvailablePaymentMethodIds = () => {
-	return [ 'card', 'giropay', 'sofort', 'sepa_debit' ];
+	return availableMethods;
 };
 const useSettings = () => {
 	return {
-		saveSettings: Promise.resolve( 'Success' ),
+		saveSettings: () => new Promise( ( resolve ) => {
+			setTimeout( () => {
+				resolve( 'Success' );
+			}, 500 );
+		} ),
 		isSaving: false,
 	};
 };

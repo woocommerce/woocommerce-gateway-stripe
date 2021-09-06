@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import React, { useCallback, useContext, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { __ } from '@wordpress/i18n';
 import { Button, Card, CardBody, ExternalLink } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
@@ -12,29 +12,129 @@ import interpolateComponents from 'interpolate-components';
 import WizardTaskContext from '../wizard/task/context';
 import CollapsibleBody from '../wizard/collapsible-body';
 import WizardTaskItem from '../wizard/task-item';
-import { useGetAvailablePaymentMethodIds } from '../../data';
+import { useEnabledPaymentMethodIds, useGetAvailablePaymentMethodIds, useSettings } from '../../data';
 import PaymentMethodCheckboxes from '../../components/payment-methods-checkboxes';
 import PaymentMethodCheckbox from '../../components/payment-methods-checkboxes/payment-method-checkbox';
+import { LoadableBlock } from '../../components/loadable';
+import LoadableSettingsSection from '../../settings/loadable-settings-section';
+
+const usePaymentMethodsCheckboxState = () => {
+	const availablePaymentMethods = useGetAvailablePaymentMethodIds();
+	const [ paymentMethodsState, setPaymentMethodsState ] = useState( {} );
+
+	useEffect( () => {
+		setPaymentMethodsState(
+			// by default, all the checkboxes should be "checked"
+			availablePaymentMethods
+				.reduce(
+					( map, paymentMethod ) => ( {
+						...map,
+						[ paymentMethod ]: true,
+					} ),
+					{}
+				)
+		);
+	}, [ availablePaymentMethods, setPaymentMethodsState ] );
+
+	const handleChange = useCallback(
+		( paymentMethodName, enabled ) => {
+			setPaymentMethodsState( ( oldValues ) => ( {
+				...oldValues,
+				[ paymentMethodName ]: enabled,
+			} ) );
+		},
+		[ setPaymentMethodsState ]
+	);
+
+	return [ paymentMethodsState, handleChange ];
+};
+
+const ContinueButton = ( { paymentMethodsState } ) => {
+	const { setCompleted } = useContext( WizardTaskContext );
+	const [
+		initialEnabledPaymentMethodIds,
+		updateEnabledPaymentMethodIds,
+	] = useEnabledPaymentMethodIds();
+
+	const { saveSettings, isSaving } = useSettings();
+
+	const checkedPaymentMethods = useMemo(
+		() =>
+			Object.entries( paymentMethodsState )
+				.map( ( [ method, enabled ] ) => enabled && method )
+				.filter( Boolean ),
+		[ paymentMethodsState ]
+	);
+
+	const unCheckedPaymentMethods = Object.entries( paymentMethodsState )
+		.map( ( [ method, enabled ] ) => ! enabled && method )
+		.filter( Boolean );
+
+	const handleContinueClick = useCallback( () => {
+		// creating a separate callback, so that the main thread isn't blocked on click of the button
+		const callback = async () => {
+			updateEnabledPaymentMethodIds( [
+				// adding the newly selected payment methods and removing them from the `initialEnabledPaymentMethodIds` if unchecked
+				...new Set(
+					[
+						...initialEnabledPaymentMethodIds,
+						...checkedPaymentMethods,
+					].filter(
+						( method ) =>
+							! unCheckedPaymentMethods.includes( method )
+					)
+				),
+			] );
+
+			const isSuccess = await saveSettings();
+			if ( ! isSuccess ) {
+				// restoring the state, in case of soft route
+				updateEnabledPaymentMethodIds( initialEnabledPaymentMethodIds );
+				return;
+			}
+
+			setCompleted(
+				{
+					initialMethods: initialEnabledPaymentMethodIds,
+				},
+				'setup-complete'
+			);
+		};
+
+		callback();
+	}, [
+		unCheckedPaymentMethods,
+		checkedPaymentMethods,
+		updateEnabledPaymentMethodIds,
+		saveSettings,
+		setCompleted,
+		initialEnabledPaymentMethodIds,
+	] );
+
+	return (
+		<Button
+			isBusy={ isSaving }
+			disabled={ isSaving || 1 > checkedPaymentMethods.length }
+			onClick={ handleContinueClick }
+			isPrimary
+		>
+			{ __( 'Add payment methods', 'woocommerce-gateway-stripe' ) }
+		</Button>
+	);
+};
 
 const AddPaymentMethodsTask = () => {
 	const availablePaymentMethods = useGetAvailablePaymentMethodIds();
-	const { setCompleted } = useContext( WizardTaskContext );
-	const [ paymentMethodsState, setPaymentMethodsState ] = useState( {
-		card: true,
-	} );
+	const { isActive } = useContext( WizardTaskContext );
 
-	const handleContinueClick = useCallback( () => {
-		setCompleted( true, 'setup-complete' );
-	}, [ setCompleted ] );
-
-	const paymentsCheckboxHandler = ( name, enabled ) => {
-		setPaymentMethodsState( {
-			...paymentMethodsState,
-			...{
-				[ name ]: enabled,
-			},
-		} );
-	};
+	// I am using internal state in this component
+	// and committing the changes on `initialEnabledPaymentMethodIds` only when the "continue" button is clicked.
+	// Otherwise a user could navigate to another page via soft-routing and the settings would be in un-saved state,
+	// possibly causing errors.
+	const [
+		paymentMethodsState,
+		handlePaymentMethodChange,
+	] = usePaymentMethodsCheckboxState();
 
 	return (
 		<WizardTaskItem
@@ -68,31 +168,35 @@ const AddPaymentMethodsTask = () => {
 								'woocommerce-gateway-stripe'
 							) }
 						</p>
-
-						<PaymentMethodCheckboxes>
-							{ availablePaymentMethods.map(
-								( paymentMethodId ) => (
-									<PaymentMethodCheckbox
-										key={ paymentMethodId }
-										name={ paymentMethodId }
-										onChange={ paymentsCheckboxHandler }
-										checked={
-											paymentMethodsState[
-												paymentMethodId
-											]
-										}
-									></PaymentMethodCheckbox>
-								)
-							) }
-						</PaymentMethodCheckboxes>
+						<LoadableBlock numLines={ 10 } isLoading={ ! isActive }>
+							<LoadableSettingsSection numLines={ 10 }>
+								<PaymentMethodCheckboxes>
+									{ availablePaymentMethods.map(
+										( key ) => (
+											<PaymentMethodCheckbox
+												key={ key }
+												checked={
+													paymentMethodsState[
+														key
+													]
+												}
+												onChange={
+													handlePaymentMethodChange
+												}
+												name={ key }
+											/>
+										)
+									) }
+								</PaymentMethodCheckboxes>
+							</LoadableSettingsSection>
+						</LoadableBlock>
 					</CardBody>
 				</Card>
-				<Button onClick={ handleContinueClick } isPrimary>
-					{ __(
-						'Add payment methods',
-						'woocommerce-gateway-stripe'
-					) }
-				</Button>
+				<LoadableBlock numLines={ 10 } isLoading={ ! isActive }>
+					<ContinueButton
+						paymentMethodsState={ paymentMethodsState }
+					/>
+				</LoadableBlock>
 			</CollapsibleBody>
 		</WizardTaskItem>
 	);
