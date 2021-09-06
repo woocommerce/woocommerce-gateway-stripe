@@ -5,12 +5,17 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 const Wrapper = styled.div`
-	max-width: 500px;
 	position: relative;
 
-	.components-base-control__field .components-text-control__input {
-		// to make room for the help text, so that the input's text and the help text don't overlap
-		padding-right: 55px;
+	.components-base-control__field {
+		@media ( min-width: 783px ) {
+			width: 50%;
+		}
+
+		.components-text-control__input {
+			// to make room for the help text, so that the input's text and the help text don't overlap
+			padding-right: 55px;
+		}
 	}
 `;
 
@@ -23,6 +28,7 @@ const HelpText = styled.span`
 
 	@media ( min-width: 783px ) {
 		top: 32px;
+		right: calc( 50% + 10px );
 	}
 `;
 
