@@ -46,7 +46,6 @@ class WC_Stripe_Inbox_Notes {
 			return;
 		}
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
 		WC_Stripe_UPE_Availability_Note::init();
 	}
 

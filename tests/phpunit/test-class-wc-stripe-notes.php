@@ -35,8 +35,9 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 		if ( version_compare( WC_VERSION, '4.4.0', '>=' ) ) {
 			WC_Stripe_Inbox_Notes::create_upe_availability_note();
 
-			$note_id = WC_Stripe_UPE_Availability_Note::NOTE_NAME;
-			$this->assertSame( 1, count( ( WC_Data_Store::load( 'admin-note' ) )->get_notes_with_name( $note_id ) ) );
+			$note_id          = WC_Stripe_UPE_Availability_Note::NOTE_NAME;
+			$admin_note_store = WC_Data_Store::load( 'admin-note' );
+			$this->assertSame( 1, count( $admin_note_store->get_notes_with_name( $note_id ) ) );
 		} else {
 			$this->markTestSkipped( 'The used WC components are not backward compatible' );
 		}
@@ -49,8 +50,9 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 
 			WC_Stripe_Inbox_Notes::create_upe_availability_note();
 
-			$note_id = WC_Stripe_UPE_Availability_Note::NOTE_NAME;
-			$this->assertSame( 0, count( ( WC_Data_Store::load( 'admin-note' ) )->get_notes_with_name( $note_id ) ) );
+			$note_id          = WC_Stripe_UPE_Availability_Note::NOTE_NAME;
+			$admin_note_store = WC_Data_Store::load( 'admin-note' );
+			$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( $note_id ) ) );
 		} else {
 			$this->markTestSkipped( 'The used WC components are not backward compatible' );
 		}
@@ -68,8 +70,9 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 
 			WC_Stripe_Inbox_Notes::create_upe_availability_note();
 
-			$note_id = WC_Stripe_UPE_Availability_Note::NOTE_NAME;
-			$this->assertSame( 0, count( ( WC_Data_Store::load( 'admin-note' ) )->get_notes_with_name( $note_id ) ) );
+			$note_id          = WC_Stripe_UPE_Availability_Note::NOTE_NAME;
+			$admin_note_store = WC_Data_Store::load( 'admin-note' );
+			$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( $note_id ) ) );
 		} else {
 			$this->markTestSkipped( 'The used WC components are not backward compatible' );
 		}
@@ -87,8 +90,9 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 
 			WC_Stripe_Inbox_Notes::create_upe_availability_note();
 
-			$note_id = WC_Stripe_UPE_Availability_Note::NOTE_NAME;
-			$this->assertSame( 0, count( ( WC_Data_Store::load( 'admin-note' ) )->get_notes_with_name( $note_id ) ) );
+			$note_id          = WC_Stripe_UPE_Availability_Note::NOTE_NAME;
+			$admin_note_store = WC_Data_Store::load( 'admin-note' );
+			$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( $note_id ) ) );
 		} else {
 			$this->markTestSkipped( 'The used WC components are not backward compatible' );
 		}

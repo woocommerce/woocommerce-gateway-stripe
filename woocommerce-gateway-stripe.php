@@ -154,7 +154,6 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-pre-orders-compat.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-feature-flags.php';
-				require_once dirname( __FILE__ ) . '/includes/notes/class-wc-stripe-upe-availability-note.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
@@ -216,6 +215,10 @@ function woocommerce_gateway_stripe() {
 
 				if ( version_compare( WC_VERSION, '3.4', '<' ) ) {
 					add_filter( 'woocommerce_get_sections_checkout', [ $this, 'filter_gateway_order_admin' ] );
+				}
+
+				if ( version_compare( WC_VERSION, '4.4.0', '>=' ) ) {
+					require_once dirname( __FILE__ ) . '/includes/notes/class-wc-stripe-upe-availability-note.php';
 				}
 
 				new WC_Stripe_UPE_Compatibility_Controller();
