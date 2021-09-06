@@ -264,8 +264,6 @@ class WC_Stripe_Intent_Controller {
 
 	/**
 	 * Handle AJAX request for creating a payment intent for Stripe UPE.
-	 *
-	 * @throws Exception - If nonce or setup intent is invalid.
 	 */
 	public function create_payment_intent_ajax() {
 		try {
@@ -331,8 +329,6 @@ class WC_Stripe_Intent_Controller {
 	 * Handle AJAX request for updating a payment intent for Stripe UPE.
 	 *
 	 * @since x.x.x
-	 *
-	 * @throws Exception - If nonce or setup intent is invalid.
 	 */
 	public function update_payment_intent_ajax() {
 		try {
