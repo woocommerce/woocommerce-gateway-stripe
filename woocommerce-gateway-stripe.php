@@ -188,9 +188,9 @@ function woocommerce_gateway_stripe() {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-settings-controller.php';
 
-					if ( isset( $_GET['area'] ) && 'express_checkouts' === $_GET['area'] ) {
-						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-express-checkouts-controller.php';
-						new WC_Stripe_Express_Checkouts_Controller();
+					if ( isset( $_GET['area'] ) && 'payment_requests' === $_GET['area'] ) {
+						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-payment-requests-controller.php';
+						new WC_Stripe_Payment_Requests_Controller();
 					} else {
 						new WC_Stripe_Settings_Controller();
 					}

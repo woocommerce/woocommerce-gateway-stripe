@@ -22,7 +22,8 @@ module.exports = {
 	},
 	entry: {
 		additional_methods_setup: './client/additional-methods-setup/index.js',
-		express_checkouts_customizer: './client/settings/express-checkout/index.js',
+		payment_requests_customizer:
+			'./client/settings/payment-requests/index.js',
 		index: './client/blocks/index.js',
 		upe_classic: './client/classic/upe/index.js',
 		upe_opt_in_banner: './client/settings/upe-opt-in-banner/index.js',

@@ -1,7 +1,4 @@
 <?php
-
-use Automattic\WooCommerce\Admin\PageController;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -11,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 5.4.1
  */
-class WC_Stripe_Express_Checkouts_Controller {
+class WC_Stripe_Payment_Requests_Controller {
 	public function __construct() {
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wc_stripe_gateway_admin_options_wrapper', [ $this, 'admin_options' ] );
@@ -21,9 +18,18 @@ class WC_Stripe_Express_Checkouts_Controller {
 	 * Load admin scripts.
 	 */
 	public function admin_scripts() {
+
+		wp_register_style(
+			'wc_stripe-payment-requests_customizer',
+			plugins_url( 'build/style-payment_requests_customizer.css', WC_STRIPE_MAIN_FILE ),
+			[],
+			$script_asset['version']
+		);
+		wp_enqueue_style( 'wc_stripe-payment-requests_customizer' );
+
 		// Webpack generates an assets file containing a dependencies array for our built JS file.
-		$script_path       = 'build/express_checkouts_customizer.js';
-		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/express_checkouts_customizer.asset.php';
+		$script_path       = 'build/payment_requests_customizer.js';
+		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/payment_requests_customizer.asset.php';
 		$script_url        = plugins_url( $script_path, WC_STRIPE_MAIN_FILE );
 		$script_asset      = file_exists( $script_asset_path )
 			? require $script_asset_path
@@ -32,14 +38,14 @@ class WC_Stripe_Express_Checkouts_Controller {
 				'version'      => WC_STRIPE_VERSION,
 			];
 		wp_register_script(
-			'wc_stripe-express_checkouts_customizer',
+			'wc_stripe-payment-requests_customizer',
 			$script_url,
 			$script_asset['dependencies'],
 			$script_asset['version'],
 			true
 		);
 
-		wp_enqueue_script( 'wc_stripe-express_checkouts_customizer' );
+		wp_enqueue_script( 'wc_stripe-payment-requests_customizer' );
 	}
 
 	/**
@@ -51,9 +57,9 @@ class WC_Stripe_Express_Checkouts_Controller {
 	public function admin_options( WC_Stripe_Payment_Gateway $gateway ) {
 		global $hide_save_button;
 		$hide_save_button = true;
-		echo '<h2>Customize express checkouts';
+		echo '<h2>' . __( 'Customize express checkouts', 'woocommerce-gateway-stripe' );
 		wc_back_link( __( 'Return to Stripe', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 		echo '</h2>';
-		echo '<div class="wrap"><div id="wc_stripe-express_checkouts_customizer-container"></div></div>';
+		echo '<div class="wrap"><div id="wc_stripe-payment-requests_customizer_container"></div></div>';
 	}
 }

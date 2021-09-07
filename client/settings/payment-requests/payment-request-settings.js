@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -10,13 +9,13 @@ import { ExternalLink } from '@wordpress/components';
  * Internal dependencies
  */
 import './style.scss';
-import ExpressCheckoutsCustomizer from './express-checkout-customizer';
+import PaymentRequestsCustomizer from './payment-request-customizer';
 import SettingsSection from '../settings-section';
 import SettingsLayout from '../settings-layout';
 import LoadableSettingsSection from '../../components/loadable-settings-section';
 import SaveSettingsSection from '../save-settings-section';
 
-const expressCheckouts = {
+const paymentRequests = {
 	description: () => (
 		<>
 			<h2>{ __( 'Google Pay / Apple Pay', 'woocommerce-payments' ) }</h2>
@@ -24,8 +23,8 @@ const expressCheckouts = {
 				{ __(
 					'Decide how buttons for digital wallets Apple Pay and ' +
 						'Google Pay are displayed in your store. Depending on ' +
-						'their web browser and their wallet configurations,' +
-						'your customers will see either Apple Pay or Google Pay,' +
+						'their web browser and their wallet configurations, ' +
+						'your customers will see either Apple Pay or Google Pay, ' +
 						'but not both.',
 					'woocommerce-payments'
 				) }
@@ -50,14 +49,14 @@ const expressCheckouts = {
 	),
 }
 
-const ExpressCheckoutsSettings = () => {
-	const { description: Description } = expressCheckouts;
+const PaymentRequestsSettings = () => {
+	const { description: Description } = paymentRequests;
 
 	return (
 		<SettingsLayout>
 			<SettingsSection Description={ Description }>
 				<LoadableSettingsSection numLines={ 30 }>
-					<ExpressCheckoutsCustomizer />
+					<PaymentRequestsCustomizer />
 				</LoadableSettingsSection>
 			</SettingsSection>
 
@@ -66,4 +65,4 @@ const ExpressCheckoutsSettings = () => {
 	);
 };
 
-export default ExpressCheckoutsSettings;
+export default PaymentRequestsSettings;

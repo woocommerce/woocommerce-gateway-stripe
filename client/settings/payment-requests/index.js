@@ -7,12 +7,12 @@ import ReactDOM from 'react-dom';
 /**
  * Internal dependencies
  */
-import ExpressCheckoutsSettings from './express-checkout-settings';
+import PaymentRequestsSettings from './payment-request-settings';
 
 const container = document.getElementById(
-	'wc_stripe-express_checkouts_customizer-container'
+	'wc_stripe-payment-requests_customizer_container'
 );
 
 if ( container ) {
-	ReactDOM.render( <ExpressCheckoutsSettings />, container );
+	ReactDOM.render( <PaymentRequestsSettings />, container );
 }

@@ -20,7 +20,7 @@ import {
  * Internal dependencies
  */
 import CardBody from '../card-body';
-import PaymentRequestButtonPreview from './express-checkout-button-preview';
+import PaymentRequestButtonPreview from './payment-request-button-preview';
 // This will be used once we have data persistence.
 // import { getPaymentRequestData } from '../../payment-request/utils';
 
@@ -121,7 +121,7 @@ const buttonThemeOptions = [
 	},
 ];
 
-const ExpressCheckoutsCustomizer = () => {
+const PaymentRequestsCustomizer = () => {
 	// These will be changed to use usePaymentRequestButton hooks from ../../data
 	const [ buttonType, setButtonType ] = useState( 'buy' );
 	const [ size, setSize ] = useState( 'default' );
@@ -189,4 +189,4 @@ const ExpressCheckoutsCustomizer = () => {
 	);
 };
 
-export default ExpressCheckoutsCustomizer;
+export default PaymentRequestsCustomizer;

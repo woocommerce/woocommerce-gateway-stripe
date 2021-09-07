@@ -25,7 +25,7 @@ import {
 /**
  * stripePromise is used to pass into <Elements>'s stripe props.
  * The stripe prop in <Elements> can't be change once passed in.
- * Keeping this outside of <ExpressCheckoutButtonPreview> so that
+ * Keeping this outside of <PaymentRequestsButtonPreview> so that
  * re-rendering does not change it.
  */
 
@@ -59,7 +59,7 @@ const buttonSizeToPxMap = {
 	large: 56,
 };
 
-const ExpressCheckoutButtonPreview = () => {
+const PaymentRequestsButtonPreview = () => {
 	const stripe = useStripe();
 	const [ paymentRequest, setPaymentRequest ] = useState();
 	const [ isLoading, setIsLoading ] = useState( true );
@@ -144,4 +144,4 @@ const ExpressCheckoutButtonPreview = () => {
 	);
 };
 
-export default ExpressCheckoutButtonPreview;
+export default PaymentRequestsButtonPreview;
