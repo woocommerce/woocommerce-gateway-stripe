@@ -65,8 +65,19 @@ class WC_Stripe_UPE_Availability_Note {
 	}
 
 	public static function init() {
-		if ( defined( 'WC_VERSION' ) && version_compare( WC_VERSION, '4.4.0', '>=' ) ) {
-			self::possibly_add_note();
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_enabled  = isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
+
+		/**
+		 * No need to display the admin inbox note when
+		 * - upe preview is disabled
+		 * - upe is already enabled
+		 * - stripe is not enabled
+		 */
+		if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() || WC_Stripe_Feature_Flags::is_upe_checkout_enabled() || ! $stripe_enabled ) {
+			return;
 		}
+
+		self::possibly_add_note();
 	}
 }
