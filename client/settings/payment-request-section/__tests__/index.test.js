@@ -3,9 +3,31 @@ import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import PaymentRequestSection from '..';
+import {
+	usePaymentRequestEnabledSettings
+} from '../../../data/index';
+
+jest.mock( '../../../data/index', () => ( {
+	usePaymentRequestEnabledSettings: jest.fn(),
+} ) );
+
+const getMockPaymentRequestEnabledSettings = (
+	isEnabled,
+	updateIsPaymentRequestEnabledHandler
+) => [ isEnabled, updateIsPaymentRequestEnabledHandler ];
 
 describe( 'PaymentRequestSection', () => {
+	beforeEach( () => {
+		usePaymentRequestEnabledSettings.mockReturnValue(
+			getMockPaymentRequestEnabledSettings( false, jest.fn() )
+		);
+	} );
+
 	it( 'should enable express checkout locations when express checkout is enabled', () => {
+		usePaymentRequestEnabledSettings.mockReturnValue(
+			getMockPaymentRequestEnabledSettings( true, jest.fn() )
+		);
+
 		render( <PaymentRequestSection /> );
 
 		const [
@@ -24,7 +46,11 @@ describe( 'PaymentRequestSection', () => {
 		expect( cartCheckbox ).toBeChecked();
 	} );
 
-	it( 'should disable express checkout locations when express checkout is enabled', () => {
+	it( 'should disable express checkout locations when express checkout is disabled', () => {
+		usePaymentRequestEnabledSettings.mockReturnValue(
+			getMockPaymentRequestEnabledSettings( false, jest.fn() )
+		);
+
 		render( <PaymentRequestSection /> );
 
 		const [
@@ -43,5 +69,23 @@ describe( 'PaymentRequestSection', () => {
 		expect( productPageCheckbox ).not.toBeChecked();
 		expect( cartCheckbox ).toBeDisabled();
 		expect( cartCheckbox ).not.toBeChecked();
+	} );
+
+	it( 'should dispatch enabled status update if express checkout is being toggled', async () => {
+		const updateIsPaymentRequestEnabledHandler = jest.fn();
+		usePaymentRequestEnabledSettings.mockReturnValue(
+			getMockPaymentRequestEnabledSettings(
+				false,
+				updateIsPaymentRequestEnabledHandler
+			)
+		);
+
+		render( <PaymentRequestSection /> );
+
+		userEvent.click( screen.getByText( 'Enable express checkouts' ) );
+
+		expect( updateIsPaymentRequestEnabledHandler ).toHaveBeenCalledWith(
+			true
+		);
 	} );
 } );
