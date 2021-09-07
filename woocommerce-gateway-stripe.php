@@ -568,8 +568,10 @@ function woocommerce_gateway_stripe() {
 					$upe_flag_toggle_controller = new WC_REST_UPE_Flag_Toggle_Controller();
 					$upe_flag_toggle_controller->register_routes();
 
+					$gateway = new WC_Gateway_Stripe();
+
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
-					$settings_controller = new WC_REST_Stripe_Settings_Controller();
+					$settings_controller = new WC_REST_Stripe_Settings_Controller( $gateway );
 					$settings_controller->register_routes();
 				}
 			}
