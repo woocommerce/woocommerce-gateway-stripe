@@ -1,0 +1,26 @@
+.is-loadable-placeholder {
+	animation: loading-fade 1.6s ease-in-out infinite;
+	background-color: #e2e4e7;
+	color: transparent;
+
+	@media screen and ( prefers-reduced-motion: reduce ) {
+		animation: none;
+	}
+	display: inline-block;
+
+	&.is-inline {
+		display: inline;
+	}
+
+	&.is-block {
+		display: block;
+		margin-top: 1em;
+		&:first-child {
+			margin-top: 0;
+		}
+
+		p {
+			margin: 0;
+		}
+	}
+}

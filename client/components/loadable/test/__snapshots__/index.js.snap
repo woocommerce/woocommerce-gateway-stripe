@@ -1,0 +1,22 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Loadable when active uses children as placeholder if not passed 1`] = `
+<div>
+  <span
+    aria-busy="true"
+    class="is-loadable-placeholder"
+  >
+    <div>
+      Loaded content
+    </div>
+  </span>
+</div>
+`;
+
+exports[`Loadable when inactive render children 1`] = `
+<div>
+  <div>
+    Loaded content
+  </div>
+</div>
+`;
