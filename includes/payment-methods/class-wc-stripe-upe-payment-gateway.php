@@ -198,12 +198,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'locale'       => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 		];
 
-		// If we're on the pay page we need to pass stripe.js the address of the order.
-		if ( isset( $_GET['pay_for_order'] ) && 'true' === $_GET['pay_for_order'] ) { // wpcs: csrf ok.
-			$order_id                 = wc_clean( $wp->query_vars['order-pay'] ); // wpcs: csrf ok, sanitization ok, xss ok.
-			$stripe_params['orderId'] = $order_id;
-		}
-
 		$sepa_elements_options = apply_filters(
 			'wc_stripe_sepa_elements_options',
 			[
@@ -214,17 +208,38 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		);
 
 		$stripe_params['isCheckout']               = is_checkout() && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
-		$stripe_params['isOrderPay']               = is_wc_endpoint_url( 'order-pay' );
 		$stripe_params['return_url']               = $this->get_stripe_return_url();
 		$stripe_params['ajax_url']                 = WC_AJAX::get_endpoint( '%%endpoint%%' );
-		$stripe_params['createPaymentIntentNonce'] = wp_create_nonce( '_wc_stripe_create_payment_intent_nonce' );
-		$stripe_params['createSetupIntentNonce']   = wp_create_nonce( '_wc_stripe_create_setup_intent_nonce' );
+		$stripe_params['createPaymentIntentNonce'] = wp_create_nonce( 'wc_stripe_create_payment_intent_nonce' );
+		$stripe_params['updatePaymentIntentNonce'] = wp_create_nonce( 'wc_stripe_update_payment_intent_nonce' );
+		$stripe_params['createSetupIntentNonce']   = wp_create_nonce( 'wc_stripe_create_setup_intent_nonce' );
 		$stripe_params['upeAppeareance']           = get_transient( self::UPE_APPEARANCE_TRANSIENT );
-		$stripe_params['saveUPEAppearanceNonce']   = wp_create_nonce( '_wc_stripe_save_upe_appearance_nonce' );
+		$stripe_params['saveUPEAppearanceNonce']   = wp_create_nonce( 'wc_stripe_save_upe_appearance_nonce' );
 		$stripe_params['paymentMethodsConfig']     = $this->get_enabled_payment_method_config();
 		$stripe_params['accountDescriptor']        = $this->statement_descriptor;
 		$stripe_params['addPaymentReturnURL']      = wc_get_account_endpoint_url( 'payment-methods' );
 		$stripe_params['sepaElementsOptions']      = $sepa_elements_options;
+
+		if ( is_wc_endpoint_url( 'order-pay' ) ) {
+			$order_id                    = absint( get_query_var( 'order-pay' ) );
+			$stripe_params['orderId']    = $order_id;
+			$stripe_params['isOrderPay'] = true;
+			$order                       = wc_get_order( $order_id );
+
+			if ( is_a( $order, 'WC_Order' ) ) {
+				$stripe_params['orderReturnURL'] = esc_url_raw(
+					add_query_arg(
+						[
+							'order_id'          => $order_id,
+							'wc_payment_method' => self::ID,
+							'_wpnonce'          => wp_create_nonce( 'wc_stripe_process_redirect_order_nonce' ),
+						],
+						$this->get_return_url( $order )
+					)
+				);
+			}
+		}
+
 		return $stripe_params;
 	}
 
@@ -400,7 +415,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 						[
 							'order_id'            => $order_id,
 							'wc_payment_method'   => self::ID,
-							'_wpnonce'            => wp_create_nonce( 'wcpay_process_redirect_order_nonce' ),
+							'_wpnonce'            => wp_create_nonce( 'wc_stripe_process_redirect_order_nonce' ),
 							'save_payment_method' => $save_payment_method ? 'yes' : 'no',
 						],
 						$this->get_return_url( $order )
@@ -436,7 +451,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$is_nonce_valid = check_admin_referer( 'wcpay_process_redirect_order_nonce' );
+		$is_nonce_valid = check_admin_referer( 'wc_stripe_process_redirect_order_nonce' );
 		if ( ! $is_nonce_valid || empty( $_GET['wc_payment_method'] ) ) {
 			return;
 		}
@@ -592,6 +607,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$payment_method_title = $this->payment_methods[ $payment_method_type ]->get_title( $payment_method_details );
 
+		$order->set_payment_method( self::ID );
 		$order->set_payment_method_title( $payment_method_title );
 		$order->save();
 	}
@@ -709,7 +725,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return array Array of keyed metadata values.
 	 */
-	private function get_metadata_from_order( $order ) {
+	public function get_metadata_from_order( $order ) {
 
 		// TODO: change this after adding the subscriptions trait: $this->is_payment_recurring( $order->get_id() ) ? Payment_Type::RECURRING() : Payment_Type::SINGLE();
 		$payment_type = 'single';

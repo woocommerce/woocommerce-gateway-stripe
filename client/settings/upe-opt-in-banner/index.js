@@ -67,7 +67,11 @@ const UPEOptInBanner = () => (
 			</p>
 			<Actions>
 				<span>
-					<Button isPrimary href="?TODO" target="_blank">
+					<Button
+						isPrimary
+						href="?page=wc_stripe-onboarding_wizard"
+						target="_blank"
+					>
 						{ __(
 							'Enable in your store',
 							'woocommerce-gateway-stripe'
