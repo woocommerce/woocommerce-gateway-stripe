@@ -3,7 +3,8 @@
  */
 import React from 'react';
 import { __ } from '@wordpress/i18n';
-import { Card, ExternalLink } from '@wordpress/components';
+import { CheckboxControl, Card, ExternalLink } from '@wordpress/components';
+import interpolateComponents from 'interpolate-components';
 
 /**
  * Internal dependencies
@@ -13,6 +14,7 @@ import CardBody from '../card-body';
 import PaymentsAndTransactionsSection from '../payments-and-transactions-section';
 import AdvancedSettingsSection from '../advanced-settings-section';
 import CustomizationOptionsNotice from '../customization-options-notice';
+import './style.scss';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -64,7 +66,41 @@ const PaymentsAndTransactionsDescription = () => (
 const GeneralSettingsSection = () => {
 	return (
 		<Card>
-			<CardBody>The general settings card goes here.</CardBody>
+			<CardBody>
+				<CheckboxControl
+					checked={ true }
+					onChange={ () => {} }
+					label={ __(
+						'Enable Stripe',
+						'woocommerce-gateway-stripe'
+					) }
+				/>
+				<span className="wc-stripe-general-checkbox-description">
+					When enabled, payment methods powered by Stripe will appear
+					on checkout.
+				</span>
+
+				<CheckboxControl
+					label={ __(
+						'Enable test mode',
+						'woocommerce-gateway-stripe'
+					) }
+				/>
+				<span className="wc-stripe-general-checkbox-description">
+					{ interpolateComponents( {
+						mixedString: __(
+							'Use {{testCardNumbersLink /}} to simulate various transactions. {{learnMoreLink/}}',
+							'woocommerce-gateway-stripe'
+						),
+						components: {
+							testCardNumbersLink: (
+								<a href="TODO">test card numbers</a>
+							),
+							learnMoreLink: <a href="TODO">Learn more</a>,
+						},
+					} ) }
+				</span>
+			</CardBody>
 		</Card>
 	);
 };
