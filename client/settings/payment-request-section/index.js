@@ -16,6 +16,7 @@ import interpolateComponents from 'interpolate-components';
  * Internal dependencies
  */
 import CardBody from '../card-body';
+import { usePaymentRequestEnabledSettings } from '../../data';
 
 const AdditionalControlsWrapper = styled.div`
 	position: relative;
@@ -35,9 +36,11 @@ const AdditionalControlsWrapper = styled.div`
 `;
 
 const PaymentRequestSection = () => {
-	const [ isPaymentRequestEnabled, setIsPaymentRequestEnabled ] = useState(
-		true
-	);
+	const [
+		isPaymentRequestEnabled,
+		updateIsPaymentRequestEnabled,
+	] = usePaymentRequestEnabledSettings();
+
 	const [ paymentRequestLocations, setPaymentRequestLocations ] = useState( [
 		'cart',
 		'product',
@@ -62,9 +65,7 @@ const PaymentRequestSection = () => {
 			<CardBody>
 				<CheckboxControl
 					checked={ isPaymentRequestEnabled }
-					onChange={ () =>
-						setIsPaymentRequestEnabled( ( val ) => ! val )
-					}
+					onChange={ updateIsPaymentRequestEnabled }
 					label={ __(
 						'Enable express checkouts',
 						'woocommerce-gateway-stripe'
