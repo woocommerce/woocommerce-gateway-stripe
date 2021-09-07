@@ -395,7 +395,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$is_nonce_valid = check_admin_referer( 'wcpay_process_redirect_order_nonce' );
+		$is_nonce_valid = check_admin_referer( 'wc_stripe_process_redirect_order_nonce' );
 		if ( ! $is_nonce_valid || empty( $_GET['wc_payment_method'] ) ) {
 			return;
 		}

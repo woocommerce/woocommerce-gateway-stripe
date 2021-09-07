@@ -1,0 +1,44 @@
+@import "../../styles/abstracts/styles.scss";
+
+.wcpay-tooltip {
+	&__content-wrapper {
+		// ensures that the element needed for position calculations isn't included in the DOM layout
+		display: contents;
+	}
+
+	&__tooltip-wrapper {
+		visibility: hidden;
+		position: fixed;
+		opacity: 0;
+		transition: opacity 150ms ease-in;
+		// gotta do it a bit higher than the modal used in Gutenberg, to ensure the tooltip appears on top 😅
+		z-index: 100010;
+
+		&.is-hiding {
+			opacity: 0 !important;
+			transition: opacity 200ms ease-out 300ms;
+		}
+	}
+
+	&__tooltip {
+		position: relative;
+
+		color: $white;
+		background-color: $gray-900;
+		padding: 10px;
+		text-align: center;
+
+		&::after {
+			content: ' ';
+			position: absolute;
+
+			// assuming all the tooltips are displayed at the top of the wrapped element.
+			// no need to complicate things since that's the only use case at the moment.
+			bottom: 0;
+			left: 50%;
+			transform: translate( -50%, 22px );
+			border: solid 15px transparent;
+			border-top-color: $gray-900;
+		}
+	}
+}

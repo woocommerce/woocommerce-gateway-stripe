@@ -24,7 +24,7 @@ module.exports = {
 		index: './client/blocks/index.js',
 		upe_classic: './client/classic/upe/index.js',
 		upe_settings: './client/settings/index.js',
-		additional_methods_setup: './client/additional-methods-setup/index.js',
+		upe_onboarding_wizard: './client/upe-onboarding-wizard/index.js',
 		upe_opt_in_banner: './client/settings/upe-opt-in-banner/index.js',
 	},
 };
