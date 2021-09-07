@@ -225,16 +225,16 @@ jQuery( function ( $ ) {
 	 */
 	const getBillingDetails = ( fields ) => {
 		return {
-			name: `${ fields.billing_first_name } ${ fields.billing_last_name }`.trim(),
-			email: fields.billing_email,
-			phone: fields.billing_phone,
+			name: `${ fields.billing_first_name } ${ fields.billing_last_name }`.trim() || '-',
+			email: fields.billing_email || '-',
+			phone: fields.billing_phone || '-',
 			address: {
-				country: fields.billing_country,
-				line1: fields.billing_address_1,
-				line2: fields.billing_address_2,
-				city: fields.billing_city,
-				state: fields.billing_state,
-				postal_code: fields.billing_postcode,
+				country: fields.billing_country || '-',
+				line1: fields.billing_address_1 || '-',
+				line2: fields.billing_address_2 || '-',
+				city: fields.billing_city || '-',
+				state: fields.billing_state || '-',
+				postal_code: fields.billing_postcode || '-',
 			},
 		};
 	};
