@@ -1,6 +1,6 @@
 <?php
 /**
- * Class WC_REST_UPE_Flag_Toggle_Controller
+ * Class WC_REST_Stripe_Settings_Controller
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -18,10 +18,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 	protected $rest_base = 'wc_stripe/settings';
 
 	/**
-	 * @var WC_Gateway_Stripe
+	 * @var WC_Gateway_Stripe Stripe payment gateway.
 	 */
 	private $gateway;
 
+	/**
+	 * @param WC_Gateway_Stripe $gateway Stripe payment gateway.
+	 */
 	public function __construct( WC_Gateway_Stripe $gateway ) {
 		$this->gateway = $gateway;
 	}
@@ -48,7 +51,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 				'permission_callback' => [ $this, 'check_permission' ],
 				'args'                => [
 					'is_payment_request_enabled'        => [
-						'description'       => __( 'If WooCommerce Payments express checkouts should be enabled.', 'woocommerce-payments' ),
+						'description'       => __( 'If Stripe express checkouts should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
