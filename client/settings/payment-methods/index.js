@@ -14,6 +14,7 @@ import PaymentRequestSection from '../payment-request-section';
 import GeneralSettingsSection from '../general-settings-section';
 import ApplePayIcon from '../../payment-method-icons/apple-pay';
 import GooglePayIcon from '../../payment-method-icons/google-pay';
+import LoadableSettingsSection from '../loadable-settings-section';
 
 const IconsWrapper = styled.ul`
 	li {
@@ -71,7 +72,9 @@ const PaymentMethodsPanel = () => {
 				<GeneralSettingsSection />
 			</SettingsSection>
 			<SettingsSection Description={ PaymentRequestDescription }>
-				<PaymentRequestSection />
+				<LoadableSettingsSection numLines={ 20 }>
+					<PaymentRequestSection />
+				</LoadableSettingsSection>
 			</SettingsSection>
 		</>
 	);
