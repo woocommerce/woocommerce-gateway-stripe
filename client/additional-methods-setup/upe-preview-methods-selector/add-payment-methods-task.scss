@@ -1,0 +1,16 @@
+.add-payment-methods-task__payment-selector-header {
+	display: flex;
+	margin-bottom: 1em;
+
+	.wcpay-wizard-task__description-element {
+		margin: 0;
+	}
+}
+
+.add-payment-methods-task__select-all-button {
+	&#{&} {
+		&#{&} {
+			margin-left: 8px;
+		}
+	}
+}

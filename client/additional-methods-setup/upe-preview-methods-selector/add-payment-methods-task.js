@@ -17,6 +17,7 @@ import PaymentMethodCheckboxes from '../../components/payment-methods-checkboxes
 import PaymentMethodCheckbox from '../../components/payment-methods-checkboxes/payment-method-checkbox';
 import { LoadableBlock } from '../../components/loadable';
 import LoadableSettingsSection from '../../settings/loadable-settings-section';
+import './style.scss';
 
 const upeMethods = [
 	'bancontact',
@@ -150,7 +151,7 @@ const SelectAllButton = ( { methods, setMethodState } ) => {
 		[ methods, setMethodState ]
 	);
 
-	return <Button isLink onClick={ handleClick }>
+	return <Button isLink onClick={ handleClick } className="add-payment-methods-task__select-all-button">
 		{ __( 'Select all', 'woocommerce-gateway-stripe' ) }
 	</Button>;
 };
@@ -193,14 +194,16 @@ const AddPaymentMethodsTask = () => {
 				</p>
 				<Card className="add-payment-methods-task__payment-selector-wrapper">
 					<CardBody>
-						{ /* eslint-disable-next-line max-len */ }
-						<p className="add-payment-methods-task__payment-selector-title wcpay-wizard-task__description-element is-headline">
-							{ __(
-								'Payments accepted at checkout',
-								'woocommerce-gateway-stripe'
-							) }
-						</p>
-						<SelectAllButton methods={ paymentMethodsState } setMethodState={ handlePaymentMethodChange } />
+						<div className="add-payment-methods-task__payment-selector-header">
+							{ /* eslint-disable-next-line max-len */ }
+							<p className="add-payment-methods-task__payment-selector-title wcpay-wizard-task__description-element is-headline">
+								{ __(
+									'Payments accepted at checkout',
+									'woocommerce-gateway-stripe'
+								) }
+							</p>
+							<SelectAllButton methods={ paymentMethodsState } setMethodState={ handlePaymentMethodChange } />
+						</div>
 						<LoadableBlock numLines={ 10 } isLoading={ ! isActive }>
 							<LoadableSettingsSection numLines={ 10 }>
 								<PaymentMethodCheckboxes>

@@ -13,6 +13,7 @@ const useGetAvailablePaymentMethodIds = () => {
 const useSettings = () => {
 	return {
 		saveSettings: () => new Promise( ( resolve ) => {
+			console.debug( 'Called saveSettings()' ); // TODO Remove this once an actual implementation is in place.
 			setTimeout( () => {
 				resolve( 'Success' );
 			}, 500 );
