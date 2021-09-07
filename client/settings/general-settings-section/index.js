@@ -11,7 +11,7 @@ import { Card } from '@wordpress/components';
  */
 import CardBody from '../card-body';
 import CardsIcon from '../../payment-method-icons/cards';
-import UPEOptInBanner from '../upe-opt-in-banner';
+import UpeOptInBanner from '../upe-opt-in-banner';
 import UpeToggleContext from '../upe-toggle/context';
 
 const GeneralSettingsSectionWrapper = styled.div`
@@ -56,7 +56,7 @@ const PaymentMethodDescription = styled.div`
 	}
 `;
 
-const UPEOptInBannerWrapper = styled.div`
+const UpeOptInBannerWrapper = styled.div`
 	div:first-of-type {
 		max-width: 100%;
 	}
@@ -87,9 +87,9 @@ const GeneralSettingsSection = () => {
 				</CardBodyWrapper>
 			</Card>
 			{ ! isUpeEnabled && (
-				<UPEOptInBannerWrapper data-testid="opt-in-banner">
-					<UPEOptInBanner />
-				</UPEOptInBannerWrapper>
+				<UpeOptInBannerWrapper data-testid="opt-in-banner">
+					<UpeOptInBanner />
+				</UpeOptInBannerWrapper>
 			) }
 		</GeneralSettingsSectionWrapper>
 	);
