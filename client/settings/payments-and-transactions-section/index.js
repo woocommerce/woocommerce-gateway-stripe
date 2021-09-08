@@ -106,7 +106,7 @@ const PaymentsAndTransactionsSection = () => {
 							'woocommerce-gateway-stripe'
 						) }
 						label={ __(
-							'Customer bank statement',
+							'Full bank statement',
 							'woocommerce-gateway-stripe'
 						) }
 						value={ accountStatementDescriptor }
@@ -137,7 +137,7 @@ const PaymentsAndTransactionsSection = () => {
 								'woocommerce-gateway-stripe'
 							) }
 							label={ __(
-								'Short customer bank statement',
+								'Shortened customer bank statement',
 								'woocommerce-gateway-stripe'
 							) }
 							value={ shortAccountStatementDescriptor }

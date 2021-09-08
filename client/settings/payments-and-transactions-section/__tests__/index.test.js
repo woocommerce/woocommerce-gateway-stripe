@@ -51,7 +51,7 @@ describe( 'PaymentsAndTransactionsSection', () => {
 
 		expect( screen.getByText( '15 / 22' ) ).toBeInTheDocument();
 
-		fireEvent.change( screen.getByLabelText( 'Customer bank statement' ), {
+		fireEvent.change( screen.getByLabelText( 'Full bank statement' ), {
 			target: { value: 'New Statement Name' },
 		} );
 
@@ -72,7 +72,7 @@ describe( 'PaymentsAndTransactionsSection', () => {
 		expect( screen.getByText( '7 / 10' ) ).toBeInTheDocument();
 
 		fireEvent.change(
-			screen.getByLabelText( 'Short customer bank statement' ),
+			screen.getByLabelText( 'Shortened customer bank statement' ),
 			{
 				target: { value: 'WOOTESTING' },
 			}
