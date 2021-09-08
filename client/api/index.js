@@ -141,8 +141,29 @@ export default class WCStripeAPI {
 		} );
 	}
 
+	/**
+	 * Creates a setup intent without confirming it.
+	 *
+	 * @return {Promise} The final promise for the request to the server.
+	 */
 	initSetupIntent() {
-		console.error( 'TODO: Not implemented yet: initSetupIntent' );
+		return this.request( getAjaxUrl( 'init_setup_intent' ), {
+			_ajax_nonce: getStripeServerData()?.createSetupIntentNonce,
+		} )
+			.then( ( response ) => {
+				if ( ! response.success ) {
+					throw response.data.error;
+				}
+				return response.data;
+			} )
+			.catch( ( error ) => {
+				if ( error.message ) {
+					throw error;
+				} else {
+					// Covers the case of error on the Ajax request.
+					throw new Error( error.statusText );
+				}
+			} );
 	}
 
 	/**

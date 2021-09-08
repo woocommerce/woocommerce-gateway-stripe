@@ -539,4 +539,101 @@ class WC_Stripe_Customer {
 		// If we have a user, get their locale with a site fallback.
 		return ( $user ) ? get_user_locale( $user->ID ) : get_locale();
 	}
+
+	/**
+	 * Given a WC_Order or WC_Customer, returns an array representing a Stripe customer object.
+	 * At least one parameter has to not be null.
+	 *
+	 * @param WC_Order    $wc_order    The Woo order to parse.
+	 * @param WC_Customer $wc_customer The Woo customer to parse.
+	 *
+	 * @return array Customer data.
+	 */
+	public static function map_customer_data( WC_Order $wc_order = null, WC_Customer $wc_customer = null ) {
+		if ( null === $wc_customer && null === $wc_order ) {
+			return [];
+		}
+
+		// Where available, the order data takes precedence over the customer.
+		$object_to_parse = isset( $wc_order ) ? $wc_order : $wc_customer;
+		$name            = $object_to_parse->get_billing_first_name() . ' ' . $object_to_parse->get_billing_last_name();
+		$description     = '';
+		if ( null !== $wc_customer && ! empty( $wc_customer->get_username() ) ) {
+			// We have a logged in user, so add their username to the customer description.
+			// translators: %1$s Name, %2$s Username.
+			$description = sprintf( __( 'Name: %1$s, Username: %2$s', 'woocommerce-gateway-stripe' ), $name, $wc_customer->get_username() );
+		} else {
+			// Current user is not logged in.
+			// translators: %1$s Name.
+			$description = sprintf( __( 'Name: %1$s, Guest', 'woocommerce-gateway-stripe' ), $name );
+		}
+
+		$data = [
+			'name'        => $name,
+			'description' => $description,
+			'email'       => $object_to_parse->get_billing_email(),
+			'phone'       => $object_to_parse->get_billing_phone(),
+			'address'     => [
+				'line1'       => $object_to_parse->get_billing_address_1(),
+				'line2'       => $object_to_parse->get_billing_address_2(),
+				'postal_code' => $object_to_parse->get_billing_postcode(),
+				'city'        => $object_to_parse->get_billing_city(),
+				'state'       => $object_to_parse->get_billing_state(),
+				'country'     => $object_to_parse->get_billing_country(),
+			],
+		];
+
+		if ( ! empty( $object_to_parse->get_shipping_postcode() ) ) {
+			$data['shipping'] = [
+				'name'    => $object_to_parse->get_shipping_first_name() . ' ' . $object_to_parse->get_shipping_last_name(),
+				'address' => [
+					'line1'       => $object_to_parse->get_shipping_address_1(),
+					'line2'       => $object_to_parse->get_shipping_address_2(),
+					'postal_code' => $object_to_parse->get_shipping_postcode(),
+					'city'        => $object_to_parse->get_shipping_city(),
+					'state'       => $object_to_parse->get_shipping_state(),
+					'country'     => $object_to_parse->get_shipping_country(),
+				],
+			];
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Adds a payment method.
+	 * Creates and add a token to the user, based on the payment_method object
+	 *
+	 * @param object $payment_method Payment method to be added.
+	 * @return WC_Payment_Token_CC|WC_Payment_Token_SEPA The WC token for the payment method.
+	 *
+	 * @since x.x.x
+	 * @version x.x.x
+	 */
+	public function add_payment_method_to_user( $payment_method ) {
+		if ( 'sepa_debit' === $payment_method->type ) {
+			$token = new WC_Payment_Token_SEPA();
+			$token->set_last4( $payment_method->sepa_debit->last4 );
+		} elseif ( 'card' === $payment_method->type ) {
+			$token = new WC_Payment_Token_CC();
+			$token->set_expiry_month( $payment_method->card->exp_month );
+			$token->set_expiry_year( $payment_method->card->exp_year );
+			$token->set_card_type( strtolower( $payment_method->card->brand ) );
+			$token->set_last4( $payment_method->card->last4 );
+		} else {
+			return null;
+		}
+
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_token( $payment_method->id );
+		$token->set_user_id( $this->get_user_id() );
+		$token->save();
+
+		// Clear cached payment methods.
+		$this->clear_cache();
+
+		do_action( 'woocommerce_stripe_add_payment_method', $this->get_id(), $token, $payment_method );
+
+		return $token;
+	}
 }
