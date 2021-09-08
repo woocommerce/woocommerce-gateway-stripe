@@ -7,11 +7,11 @@ import { screen, render } from '@testing-library/react';
 /**
  * Internal dependencies
  */
-import UPEOptInBanner from '..';
+import UpeOptInBanner from '..';
 
-describe( 'UPEOptInBanner', () => {
+describe( 'UpeOptInBanner', () => {
 	it( 'should render the information', () => {
-		render( <UPEOptInBanner /> );
+		render( <UpeOptInBanner /> );
 
 		expect(
 			screen.queryByText(
@@ -26,7 +26,7 @@ describe( 'UPEOptInBanner', () => {
 	} );
 
 	it( 'should render the action elements', () => {
-		render( <UPEOptInBanner /> );
+		render( <UpeOptInBanner /> );
 
 		expect(
 			screen.queryByText( 'Enable in your store' )

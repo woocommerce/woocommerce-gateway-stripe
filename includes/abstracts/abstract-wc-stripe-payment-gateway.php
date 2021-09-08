@@ -80,16 +80,20 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Displays the save to account checkbox.
 	 *
 	 * @since 4.1.0
+	 * @version x.x.x
 	 */
-	public function save_payment_method_checkbox() {
-		printf(
-			'<p class="form-row woocommerce-SavedPaymentMethods-saveNew">
-				<input id="wc-%1$s-new-payment-method" name="wc-%1$s-new-payment-method" type="checkbox" value="true" style="width:auto;" />
-				<label for="wc-%1$s-new-payment-method" style="display:inline;">%2$s</label>
-			</p>',
-			esc_attr( $this->id ),
-			esc_html( apply_filters( 'wc_stripe_save_to_account_text', __( 'Save payment information to my account for future purchases.', 'woocommerce-gateway-stripe' ) ) )
-		);
+	public function save_payment_method_checkbox( $force_checked = false ) {
+		$id = 'wc-' . $this->id . '-new-payment-method';
+		?>
+		<div <?php echo $force_checked ? 'style="display:none;"' : ''; /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?>>
+			<p class="form-row woocommerce-SavedPaymentMethods-saveNew">
+				<input id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $id ); ?>" type="checkbox" value="true" style="width:auto;" <?php echo $force_checked ? 'checked' : ''; /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?> />
+				<label for="<?php echo esc_attr( $id ); ?>" style="display:inline;">
+					<?php echo esc_html( apply_filters( 'wc_stripe_save_to_account_text', __( 'Save payment information to my account for future purchases.', 'woocommerce-gateway-stripe' ) ) ); ?>
+				</label>
+			</p>
+		</div>
+		<?php
 	}
 
 	/**
@@ -328,16 +332,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.0
 	 */
 	public function get_stripe_customer_id( $order ) {
-		$customer = get_user_option( '_stripe_customer_id', $order->get_customer_id() );
+		// Try to get it via the order first.
+		$customer = $order->get_meta( '_stripe_customer_id', true );
 
 		if ( empty( $customer ) ) {
-			// Try to get it via the order.
-			return $order->get_meta( '_stripe_customer_id', true );
-		} else {
-			return $customer;
+			$customer = get_user_option( '_stripe_customer_id', $order->get_customer_id() );
 		}
 
-		return false;
+		return $customer;
 	}
 
 	/**

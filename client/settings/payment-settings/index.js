@@ -3,13 +3,15 @@
  */
 import React from 'react';
 import { __ } from '@wordpress/i18n';
-import { Card } from '@wordpress/components';
+import { Card, ExternalLink } from '@wordpress/components';
 
 /**
  * Internal dependencies
  */
 import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
+import PaymentsAndTransactionsSection from '../payments-and-transactions-section';
+import AdvancedSettingsSection from '../advanced-settings-section';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -38,7 +40,27 @@ const AccountDetailsDescription = () => (
 	</>
 );
 
-const GeneralSettingsCard = () => {
+const PaymentsAndTransactionsDescription = () => (
+	<>
+		<h2>
+			{ __( 'Payments & transactions', 'woocommerce-gateway-stripe' ) }
+		</h2>
+		<p>
+			{ __(
+				'Configure optional payment settings and transaction details.',
+				'woocommerce-gateway-stripe'
+			) }
+		</p>
+		<ExternalLink href="?TODO">
+			{ __(
+				'View Frequently Asked Questions',
+				'woocommerce-gateway-stripe'
+			) }
+		</ExternalLink>
+	</>
+);
+
+const GeneralSettingsSection = () => {
 	return (
 		<Card>
 			<CardBody>The general settings card goes here.</CardBody>
@@ -46,7 +68,7 @@ const GeneralSettingsCard = () => {
 	);
 };
 
-const AccountDetailsCard = () => {
+const AccountDetailsSection = () => {
 	return (
 		<Card>
 			<CardBody>The account details card goes here.</CardBody>
@@ -58,11 +80,15 @@ const PaymentSettingsPanel = () => {
 	return (
 		<>
 			<SettingsSection Description={ GeneralSettingsDescription }>
-				<GeneralSettingsCard />
+				<GeneralSettingsSection />
 			</SettingsSection>
 			<SettingsSection Description={ AccountDetailsDescription }>
-				<AccountDetailsCard />
+				<AccountDetailsSection />
 			</SettingsSection>
+			<SettingsSection Description={ PaymentsAndTransactionsDescription }>
+				<PaymentsAndTransactionsSection />
+			</SettingsSection>
+			<AdvancedSettingsSection />
 		</>
 	);
 };

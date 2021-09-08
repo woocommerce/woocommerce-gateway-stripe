@@ -950,6 +950,8 @@ class WC_Stripe_Payment_Request {
 	 * @return  boolean  True if PRBs are enabled on product pages, false otherwise
 	 */
 	public function should_show_prb_on_product_pages() {
+		global $post;
+
 		// Message we show for the deprecated PRB location filters. Intended for support so we
 		// don't provide translations.
 		$deprecation_message         =
@@ -960,7 +962,7 @@ class WC_Stripe_Payment_Request {
 		// Note the negation because if the filter returns `true` that means we should hide the PRB.
 		return ! apply_filters_deprecated(
 			'wc_stripe_hide_payment_request_on_product_page',
-			[ ! $should_show_on_product_page ],
+			[ ! $should_show_on_product_page, $post ],
 			'5.5.0',
 			'', // There is no replacement.
 			$deprecation_message
