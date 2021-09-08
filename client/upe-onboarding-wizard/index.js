@@ -1,3 +1,4 @@
+/* global wc_stripe_settings_params */
 /**
  * External dependencies
  */
@@ -7,6 +8,7 @@ import ReactDOM from 'react-dom';
 /**
  * Internal dependencies
  */
+import UpeToggleContextProvider from 'wcstripe/settings/upe-toggle/provider';
 import OnboardingWizard from './onboarding-wizard';
 
 const container = document.getElementById(
@@ -14,5 +16,14 @@ const container = document.getElementById(
 );
 
 if ( container ) {
-	ReactDOM.render( <OnboardingWizard />, container );
+	ReactDOM.render(
+		<UpeToggleContextProvider
+			defaultIsUpeEnabled={
+				wc_stripe_settings_params.is_upe_checkout_enabled === '1'
+			}
+		>
+			<OnboardingWizard />
+		</UpeToggleContextProvider>,
+		container
+	);
 }

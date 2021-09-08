@@ -67,11 +67,7 @@ const UpeOptInBanner = () => (
 			</p>
 			<Actions>
 				<span>
-					<Button
-						isPrimary
-						href="?page=wc_stripe-onboarding_wizard"
-						target="_blank"
-					>
+					<Button isPrimary href="?page=wc_stripe-onboarding_wizard">
 						{ __(
 							'Enable in your store',
 							'woocommerce-gateway-stripe'
