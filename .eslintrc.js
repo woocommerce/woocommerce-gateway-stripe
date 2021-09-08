@@ -17,6 +17,7 @@ module.exports = {
 			'@wordpress/i18n',
 			'@wordpress/is-shallow-equal',
 			'@wordpress/element',
+			'@wordpress/data',
 		],
 	},
 };
