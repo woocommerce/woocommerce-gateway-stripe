@@ -1,10 +1,9 @@
 /**
  * External dependencies
  */
-import React from 'react';
 import styled from '@emotion/styled';
 
-const PillWrapper = styled.span`
+const Pill = styled.span`
 	border: 1px solid #757575;
 	border-radius: 28px;
 	color: #757575;
@@ -15,7 +14,5 @@ const PillWrapper = styled.span`
 	padding: 2px 8px;
 	width: fit-content;
 `;
-
-const Pill = ( { ...restProps } ) => <PillWrapper { ...restProps } />;
 
 export default Pill;
