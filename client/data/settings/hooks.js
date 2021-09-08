@@ -54,3 +54,11 @@ export const useGetSavingError = () => {
 		return getSavingError();
 	}, [] );
 };
+
+//TODO, these should come from an endpoint/ data store.
+export const useEnabledPaymentMethodIds = () => {
+	return [ [ 'card', 'sepa_debit' ], () => ( {} ) ];
+};
+export const useGetAvailablePaymentMethodIds = () => {
+	return [ 'card', 'giropay', 'sofort', 'sepa_debit' ];
+};

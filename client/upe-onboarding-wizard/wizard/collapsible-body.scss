@@ -1,0 +1,13 @@
+.task-collapsible-body {
+	max-height: 0;
+	overflow: hidden;
+	opacity: 0;
+	transition: max-height 500ms ease-out, opacity 500ms ease-out;
+
+	&.is-active {
+		overflow: visible;
+		max-height: 1000px;
+		opacity: 1;
+		transition: max-height 500ms ease-in, opacity 500ms ease-in;
+	}
+}
