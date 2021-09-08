@@ -6,7 +6,6 @@ import { __ } from '@wordpress/i18n';
 import {
 	Button,
 	Card,
-	CardDivider,
 	CardFooter,
 	CheckboxControl,
 	ExternalLink,
