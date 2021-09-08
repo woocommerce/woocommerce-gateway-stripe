@@ -477,7 +477,6 @@ class WC_Stripe_Intent_Controller {
 			throw new Exception( $setup_intent->error->message );
 		}
 
-
 		return [
 			'id'            => $setup_intent->id,
 			'client_secret' => $setup_intent->client_secret,

@@ -297,8 +297,7 @@ class WC_Stripe_Payment_Tokens {
 	 * @return string Payment method type/ID
 	 */
 	private function get_original_payment_method_type( $payment_method ) {
-		// TODO: Maybe use const from SEPA UPE payment method when implemented.
-		if ( 'sepa_debit' === $payment_method->type ) {
+		if ( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID === $payment_method->type ) {
 			// TODO: Maybe need additional logic here to check setup_attempt
 			if ( ! is_null( $payment_method->sepa_debit->generated_from->charge ) ) {
 				return $payment_method->sepa_debit->generated_from->charge->payment_method_details->type;
@@ -352,7 +351,7 @@ class WC_Stripe_Payment_Tokens {
 	public function woocommerce_payment_token_deleted( $token_id, $token ) {
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			if ( 'stripe' === $token->get_gateway_id() ) {
+			if ( WC_Stripe_UPE_Payment_Gateway::ID === $token->get_gateway_id() ) {
 				$stripe_customer->detach_payment_method( $token->get_token() );
 			}
 		} else {
@@ -373,7 +372,7 @@ class WC_Stripe_Payment_Tokens {
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
 
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			if ( 'stripe' === $token->get_gateway_id() ) {
+			if ( WC_Stripe_UPE_Payment_Gateway::ID === $token->get_gateway_id() ) {
 				$stripe_customer->set_default_payment_method( $token->get_token() );
 			}
 		} else {

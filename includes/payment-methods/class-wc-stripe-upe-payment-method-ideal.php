@@ -19,7 +19,7 @@ class WC_Stripe_UPE_Payment_Method_Ideal extends WC_Stripe_UPE_Payment_Method {
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = 'Pay with iDEAL';
-		$this->is_reusable          = false; // TODO: Should be true, once SEPA is implemented as a payment method.
+		$this->is_reusable          = true;
 		$this->supported_currencies = [ 'EUR' ];
 	}
 }

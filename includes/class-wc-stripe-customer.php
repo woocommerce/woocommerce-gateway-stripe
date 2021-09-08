@@ -19,8 +19,8 @@ class WC_Stripe_Customer {
 	 * Queryable Stripe payment method types.
 	 */
 	const STRIPE_PAYMENT_METHODS = [
-		'card',
-		'sepa_debit',
+		WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
 	];
 
 	/**
@@ -439,8 +439,7 @@ class WC_Stripe_Customer {
 		$payment_methods = get_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . $payment_method_type . $this->get_id() );
 
 		if ( false === $payment_methods ) {
-			// TODO: Maybe use const from SEPA UPE payment method when implemented.
-			$params   = 'sepa_debit' === $payment_method_type ? '?expand[]=data.sepa_debit.generated_from.charge' : '';
+			$params   = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID === $payment_method_type ? '?expand[]=data.sepa_debit.generated_from.charge' : '';
 			$response = WC_Stripe_API::request(
 				[
 					'customer' => $this->get_id(),
