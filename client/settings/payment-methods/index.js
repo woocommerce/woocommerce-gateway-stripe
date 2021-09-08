@@ -38,9 +38,9 @@ const PaymentMethodsDescription = () => {
 			{ isUpeEnabled && (
 				<p>
 					{ __(
-						'Add and edit payments available to customers at checkout. ' +
-							'Based on their device type, location, your customers will ' +
-							'only see the most relevant payment methods.',
+						'Select payments available to customers at checkout. ' +
+							'Based on their device type, location, and purchase history, ' +
+							'your customers will only see the most relevant payment methods.',
 						'woocommerce-gateway-stripe'
 					) }
 				</p>
