@@ -423,7 +423,7 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function init_setup_intent_ajax() {
 		try {
-			$is_nonce_valid = check_ajax_referer( '_wc_stripe_create_setup_intent_nonce', false, false );
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_setup_intent_nonce', false, false );
 			if ( ! $is_nonce_valid ) {
 				throw new Exception( __( "We're not able to add this payment method. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
@@ -465,6 +465,7 @@ class WC_Stripe_Intent_Controller {
 		$setup_intent = WC_Stripe_API::request(
 			[
 				'customer'             => $customer_id,
+				'confirm'              => 'false',
 				'payment_method_types' => $payment_method_types,
 			],
 			'setup_intents'
