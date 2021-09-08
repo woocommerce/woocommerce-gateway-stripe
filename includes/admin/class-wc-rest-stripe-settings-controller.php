@@ -18,11 +18,15 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 	protected $rest_base = 'wc_stripe/settings';
 
 	/**
-	 * @var WC_Gateway_Stripe Stripe payment gateway.
+	 * Stripe payment gateway.
+	 *
+	 * @var WC_Gateway_Stripe
 	 */
 	private $gateway;
 
 	/**
+	 * Constructor.
+	 *
 	 * @param WC_Gateway_Stripe $gateway Stripe payment gateway.
 	 */
 	public function __construct( WC_Gateway_Stripe $gateway ) {
@@ -50,7 +54,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 				'callback'            => [ $this, 'update_settings' ],
 				'permission_callback' => [ $this, 'check_permission' ],
 				'args'                => [
-					'is_payment_request_enabled'        => [
+					'is_payment_request_enabled' => [
 						'description'       => __( 'If Stripe express checkouts should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
@@ -66,9 +70,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 	 * @return WP_REST_Response
 	 */
 	public function get_settings() {
-		return new WP_REST_Response( [
-			'is_payment_request_enabled' => 'yes' === $this->gateway->get_option( 'payment_request' ),
-		] );
+		return new WP_REST_Response(
+			[
+				'is_payment_request_enabled' => 'yes' === $this->gateway->get_option( 'payment_request' ),
+			]
+		);
 	}
 
 	/**
