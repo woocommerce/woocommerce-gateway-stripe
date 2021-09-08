@@ -1,0 +1,18 @@
+.setup-complete-task {
+	&__buttons {
+		.components-button {
+			&:not( :last-child ) {
+				margin-right: $grid-unit-10;
+			}
+		}
+	}
+
+	&__enabled-methods-list {
+		display: flex;
+		align-items: center;
+
+		> *:not( :last-child ) {
+			margin-right: $grid-unit-10;
+		}
+	}
+}

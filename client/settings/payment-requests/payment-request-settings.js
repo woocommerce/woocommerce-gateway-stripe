@@ -47,7 +47,7 @@ const paymentRequests = {
 			</p>
 		</>
 	),
-}
+};
 
 const PaymentRequestsSettings = () => {
 	const { description: Description } = paymentRequests;
