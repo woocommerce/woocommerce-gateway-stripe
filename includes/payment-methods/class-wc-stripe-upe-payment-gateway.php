@@ -433,7 +433,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	public function maybe_process_upe_redirect() {
 		if ( $this->is_payment_methods_page() ) {
-			// If a payment method was added using UPE, we need to clear the cache and notify the user.
 			if ( $this->is_setup_intent_success_creation_redirection() ) {
 				$setup_intent_id = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
 				$this->create_token_from_setup_intent( $setup_intent_id, wp_get_current_user() );

@@ -614,7 +614,7 @@ class WC_Stripe_Customer {
 		if ( 'sepa_debit' === $payment_method->type ) {
 			$token = new WC_Payment_Token_SEPA();
 			$token->set_last4( $payment_method->sepa_debit->last4 );
-		} else if ( 'card' ) {
+		} elseif ( 'card' ) {
 			$token = new WC_Payment_Token_CC();
 			$token->set_expiry_month( $payment_method->card->exp_month );
 			$token->set_expiry_year( $payment_method->card->exp_year );
@@ -624,7 +624,7 @@ class WC_Stripe_Customer {
 			return null;
 		}
 
-		$token->set_gateway_id( 'stripe' );
+		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
 		$token->set_token( $payment_method->id );
 		$token->set_user_id( $this->get_user_id() );
 		$token->save();
