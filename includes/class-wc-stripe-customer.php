@@ -614,7 +614,7 @@ class WC_Stripe_Customer {
 		if ( 'sepa_debit' === $payment_method->type ) {
 			$token = new WC_Payment_Token_SEPA();
 			$token->set_last4( $payment_method->sepa_debit->last4 );
-		} elseif ( 'card' ) {
+		} elseif ( 'card' === $payment_method->type ) {
 			$token = new WC_Payment_Token_CC();
 			$token->set_expiry_month( $payment_method->card->exp_month );
 			$token->set_expiry_year( $payment_method->card->exp_year );
