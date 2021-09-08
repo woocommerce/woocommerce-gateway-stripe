@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import React from 'react';
+import { React, useState } from 'react';
 import { __ } from '@wordpress/i18n';
 import { CheckboxControl, Card, ExternalLink } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
@@ -64,23 +64,33 @@ const PaymentsAndTransactionsDescription = () => (
 );
 
 const GeneralSettingsSection = () => {
+	const [ enableStripe, setEnableStripe ] = useState( false );
+	const [ enableTestMode, setEnableTestMode ] = useState( false );
+
+	const toggleEnableStripe = () => setEnableStripe( ! enableStripe );
+	const toggleEnableTestMode = () => setEnableTestMode( ! enableTestMode );
+
 	return (
 		<Card>
 			<CardBody>
 				<CheckboxControl
-					checked={ true }
-					onChange={ () => {} }
+					checked={ enableStripe }
+					onChange={ toggleEnableStripe }
 					label={ __(
 						'Enable Stripe',
 						'woocommerce-gateway-stripe'
 					) }
 				/>
 				<span className="wc-stripe-general-checkbox-description">
-					When enabled, payment methods powered by Stripe will appear
-					on checkout.
+					{ __(
+						'When enabled, payment methods powered by Stripe will appear on checkout.',
+						'woocommerce-gateway-stripe'
+					) }
 				</span>
 
 				<CheckboxControl
+					checked={ enableTestMode }
+					onChange={ toggleEnableTestMode }
 					label={ __(
 						'Enable test mode',
 						'woocommerce-gateway-stripe'
