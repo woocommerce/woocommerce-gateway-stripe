@@ -122,8 +122,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 * to query to retrieve saved payment methods from Stripe.
 	 */
 	public function get_retrievable_type() {
-		// TODO: Use const from SEPA upe method class, when implemented.
-		return $this->is_reusable() ? 'sepa_debit' : null;
+		return $this->is_reusable() ? WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID : null;
 	}
 
 	/**
@@ -139,7 +138,6 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 * @return WC_Payment_Token_SEPA|null WC object for payment token.
 	 */
 	public function add_token_to_user_from_intent( $user_id, $intent ) {
-		// TODO: Need to test this with SEPA, instead of methods converted to SEPA.
 		if ( ! $this->is_reusable() ) {
 			return null;
 		}
