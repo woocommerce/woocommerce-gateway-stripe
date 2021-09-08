@@ -66,16 +66,35 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 * Add payment method to user and return WC payment token.
 	 *
 	 * @param WP_User $user           User to add payment token to.
-	 * @param object  $payment_method JSON object for Stripe payment method.
+	 * @param object  $intent         JSON object for Stripe payment intent.
 	 *
 	 * @return WC_Payment_Token_CC WC object for payment token.
 	 */
-	public function add_token_to_user( $user, $payment_method ) {
-		return $this->add_token_to_user_from_payment_method( $user->ID, $payment_method );
+	public function add_token_to_user_from_intent( $user_id, $intent ) {
+		return $this->add_token_to_user_from_payment_method( $user_id, $intent->payment_method );
 	}
 
-		/**
+	/**
 	 * Add payment method to user and return WC payment token.
+	 *
+	 * This will be used from the WC_Stripe_Payment_Tokens service
+	 * as opposed to WC_Stripe_UPE_Payment_Gateway.
+	 *
+	 * @param string $user_        WP_User ID
+	 * @param object $payment_method Stripe payment method object
+	 *
+	 * @return WC_Payment_Token_CC
+	 */
+	public function add_token_to_user_from_payment_method( $user_id, $payment_method ) {
+		$customer = new WC_Stripe_Customer( $user_id );
+		$token    = $this->create_payment_token_for_user( $user_id, $payment_method );
+
+		$customer->add_payment_method_actions( $token, $payment_method );
+		return $token;
+	}
+
+	/**
+	 * Create and return WC payment token for user.
 	 *
 	 * This will be used from the WC_Stripe_Payment_Tokens service
 	 * as opposed to WC_Stripe_UPE_Payment_Gateway.
@@ -85,7 +104,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	 *
 	 * @return WC_Payment_Token_CC
 	 */
-	public function add_token_to_user_from_payment_method( $user_id, $payment_method ) {
+	public function create_payment_token_for_user( $user_id, $payment_method ) {
 		$token = new WC_Payment_Token_CC();
 		$token->set_expiry_month( $payment_method->card->exp_month );
 		$token->set_expiry_year( $payment_method->card->exp_year );

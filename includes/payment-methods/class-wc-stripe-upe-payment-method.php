@@ -138,13 +138,17 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 *
 	 * @return WC_Payment_Token_SEPA|null WC object for payment token.
 	 */
-	public function add_token_to_user( $user, $intent ) {
+	public function add_token_to_user_from_intent( $user_id, $intent ) {
 		// TODO: Need to test this with SEPA, instead of methods converted to SEPA.
 		if ( ! $this->is_reusable() ) {
 			return null;
 		}
-		$payment_method_details = $this->get_payment_method_details_from_intent( $intent );
-		return $this->create_payment_token_for_user( $user->ID, $payment_method_details->generated_sepa_debit, $payment_method_details->iban_last4 );
+		$customer       = new WC_Stripe_Customer( $user_id );
+		$payment_method = $this->get_payment_method_details_from_intent( $intent );
+		$token          = $this->create_payment_token_for_user( $user_id, $payment_method->generated_sepa_debit, $payment_method->iban_last4 );
+
+		$customer->add_payment_method_actions( $token, $payment_method );
+		return $token;
 	}
 
 	/**
@@ -159,7 +163,11 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 * @return WC_Payment_Token_SEPA
 	 */
 	public function add_token_to_user_from_payment_method( $user_id, $payment_method ) {
-		return $this->create_payment_token_for_user( $user_id, $payment_method->id, $payment_method->sepa_debit->last4 );
+		$customer = new WC_Stripe_Customer( $user_id );
+		$token    = $this->create_payment_token_for_user( $user_id, $payment_method->id, $payment_method->sepa_debit->last4 );
+
+		$customer->add_payment_method_actions( $token, $payment_method );
+		return $token;
 	}
 
 	/**
