@@ -3,95 +3,158 @@
  */
 import React, { useContext } from 'react';
 import styled from '@emotion/styled';
-import { __ } from '@wordpress/i18n';
-import { Card } from '@wordpress/components';
+import { Card, CheckboxControl } from '@wordpress/components';
 
 /**
  * Internal dependencies
  */
+import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import CardBody from '../card-body';
-import CardsIcon from '../../payment-method-icons/cards';
 import UpeOptInBanner from '../upe-opt-in-banner';
 import UpeToggleContext from '../upe-toggle/context';
+import {
+	useEnabledPaymentMethods,
+	useGetAvailablePaymentMethods,
+} from './data-mock';
+import PaymentMethodDescription from './payment-method-description';
+import SectionHeading from './section-heading';
+import PaymentMethodsMap from '../../payment-methods-map';
+import PaymentMethodSetupHelp from './payment-method-setup-help';
 
-const GeneralSettingsSectionWrapper = styled.div`
+const StyledUpeOptInBanner = styled( UpeOptInBanner )`
+	max-width: 100%;
+	margin: 0;
+`;
+
+const StyledCard = styled( Card )`
+	margin-bottom: 12px;
+`;
+
+const PaymentMethodsList = styled.ul`
+	margin: 0;
+
+	> li {
+		margin: 0;
+		padding: 16px 24px 14px 24px;
+
+		@media ( min-width: 660px ) {
+			padding: 24px 24px 24px 24px;
+		}
+
+		&:not( :last-child ) {
+			box-shadow: inset 0 -1px 0 #e8eaeb;
+		}
+	}
+`;
+
+const PaymentMethodWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
-`;
-
-const CardBodyWrapper = styled( CardBody )`
-	display: flex;
-
-	> * {
-		margin-bottom: 0px;
-	}
-`;
-
-const PaymentMethodText = styled.div`
-	flex: 0 0 100%;
+	flex-wrap: nowrap;
 
 	@media ( min-width: 660px ) {
-		flex: 1 1 auto;
-		margin-left: 12px;
+		flex-direction: row;
+		align-items: center;
 	}
 `;
 
-const PaymentMethodLabel = styled.div`
-	color: $gray-900;
-	display: inline-block;
-	font-size: 14px;
-	font-weight: 600;
-	line-height: 20px;
-	margin-bottom: 4px;
-`;
-
-const PaymentMethodDescription = styled.div`
-	color: ##646970;
-	font-size: 13px;
-	line-height: 16px;
-	margin-bottom: 14px;
+const StyledFees = styled( PaymentMethodFeesPill )`
+	flex: 1 0 auto;
+	margin-top: 20px;
+	margin-left: 32px;
 
 	@media ( min-width: 660px ) {
-		margin-bottom: 0px;
+		margin-top: 0;
+		margin-left: 24px;
 	}
 `;
 
-const UpeOptInBannerWrapper = styled.div`
-	div:first-of-type {
-		max-width: 100%;
+const PaymentMethodCheckbox = styled( CheckboxControl )`
+	.components-base-control__field {
+		margin: 0;
+		display: flex;
+
+		@media ( min-width: 660px ) {
+			align-items: center;
+		}
 	}
 `;
 
 const GeneralSettingsSection = () => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
+	const [
+		enabledPaymentMethods,
+		setEnabledPaymentMethods,
+	] = useEnabledPaymentMethods();
+	const availablePaymentMethods = useGetAvailablePaymentMethods();
+
+	const makeCheckboxChangeHandler = ( method ) => ( hasBeenChecked ) => {
+		if ( hasBeenChecked ) {
+			setEnabledPaymentMethods( [ ...enabledPaymentMethods, method ] );
+		} else {
+			setEnabledPaymentMethods(
+				enabledPaymentMethods.filter( ( m ) => m !== method )
+			);
+		}
+	};
+
 	return (
-		<GeneralSettingsSectionWrapper>
-			<Card>
-				<CardBodyWrapper>
-					<CardsIcon size="medium" />
-					<PaymentMethodText>
-						<PaymentMethodLabel>
-							{ __(
-								'Credit card / debit card',
-								'woocommerce-gateway-stripe'
-							) }
-						</PaymentMethodLabel>
-						<PaymentMethodDescription>
-							{ __(
-								'Let your customers pay with major credit and debit cards without leaving your store.',
-								'woocommerce-gateway-stripe'
-							) }
-						</PaymentMethodDescription>
-					</PaymentMethodText>
-				</CardBodyWrapper>
-			</Card>
+		<>
+			<StyledCard>
+				<SectionHeading />
+				<CardBody size={ null }>
+					<PaymentMethodsList>
+						{ availablePaymentMethods.map( ( method ) => {
+							const {
+								Icon,
+								label,
+								description,
+							} = PaymentMethodsMap[ method ];
+
+							return (
+								<li key={ method }>
+									<PaymentMethodWrapper>
+										{ isUpeEnabled ? (
+											<>
+												<PaymentMethodCheckbox
+													label={
+														<PaymentMethodDescription
+															Icon={ Icon }
+															description={
+																description
+															}
+															label={ label }
+														/>
+													}
+													onChange={ makeCheckboxChangeHandler(
+														method
+													) }
+													checked={ enabledPaymentMethods.includes(
+														method
+													) }
+												/>
+												<StyledFees id={ method } />
+											</>
+										) : (
+											<PaymentMethodDescription
+												Icon={ Icon }
+												description={ description }
+												label={ label }
+											/>
+										) }
+									</PaymentMethodWrapper>
+									<PaymentMethodSetupHelp id={ method } />
+								</li>
+							);
+						} ) }
+					</PaymentMethodsList>
+				</CardBody>
+			</StyledCard>
 			{ ! isUpeEnabled && (
-				<UpeOptInBannerWrapper data-testid="opt-in-banner">
-					<UpeOptInBanner />
-				</UpeOptInBannerWrapper>
+				<StyledUpeOptInBanner data-testid="opt-in-banner" />
 			) }
-		</GeneralSettingsSectionWrapper>
+		</>
 	);
 };
 
