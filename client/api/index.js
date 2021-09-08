@@ -149,12 +149,21 @@ export default class WCStripeAPI {
 	initSetupIntent() {
 		return this.request( getAjaxUrl( 'init_setup_intent' ), {
 			_ajax_nonce: getStripeServerData()?.createSetupIntentNonce,
-		} ).then( ( response ) => {
-			if ( ! response.success ) {
-				throw response.data.error;
-			}
-			return response.data;
-		} );
+		} )
+			.then( ( response ) => {
+				if ( ! response.success ) {
+					throw response.data.error;
+				}
+				return response.data;
+			} )
+			.catch( ( error ) => {
+				if ( error.message ) {
+					throw error;
+				} else {
+					// Covers the case of error on the Ajax request.
+					throw new Error( error.statusText );
+				}
+			} );
 	}
 
 	/**
