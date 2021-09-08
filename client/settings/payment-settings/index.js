@@ -3,7 +3,14 @@
  */
 import { React, useState } from 'react';
 import { __ } from '@wordpress/i18n';
-import { CheckboxControl, Card, ExternalLink } from '@wordpress/components';
+import {
+	Button,
+	Card,
+	CardDivider,
+	CardFooter,
+	CheckboxControl,
+	ExternalLink,
+} from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
 
 /**
@@ -104,13 +111,18 @@ const GeneralSettingsSection = () => {
 						),
 						components: {
 							testCardNumbersLink: (
-								<a href="TODO">test card numbers</a>
+								<a href="?TODO">test card numbers</a>
 							),
-							learnMoreLink: <a href="TODO">Learn more</a>,
+							learnMoreLink: <a href="?TODO">Learn more</a>,
 						},
 					} ) }
 				</span>
 			</CardBody>
+			<CardFooter>
+				<Button isSecondary href="?TODO">
+					{ __( 'Edit account keys', 'woocommerce-gateway-stripe' ) }
+				</Button>
+			</CardFooter>
 		</Card>
 	);
 };
