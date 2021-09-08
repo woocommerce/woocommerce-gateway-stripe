@@ -3,7 +3,6 @@
 .is-loadable-placeholder {
 	animation: loading-fade 1.6s ease-in-out infinite;
 	background-color: $light-gray-500;
-}
 	color: transparent;
 
 	@media screen and ( prefers-reduced-motion: reduce ) {
