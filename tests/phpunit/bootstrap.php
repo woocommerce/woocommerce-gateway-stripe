@@ -37,6 +37,10 @@ function _manually_load_plugin() {
 
 	$_plugin_dir = __DIR__ . '/../../';
 	require $_plugin_dir . 'woocommerce-gateway-stripe.php';
+
+	// REST controllers.
+	require_once $_plugin_dir . 'includes/admin/class-wc-stripe-rest-controller.php';
+	require_once $_plugin_dir . 'includes/admin/class-wc-rest-stripe-settings-controller.php';
 }
 
 tests_add_filter( 'muplugins_loaded', '_manually_load_plugin' );

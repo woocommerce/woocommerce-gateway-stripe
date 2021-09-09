@@ -36,12 +36,8 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		// Set the user so that we can pass the authentication.
 		wp_set_current_user( 1 );
 
-		/*
-		 * The file containing WC_REST_Stripe_Settings_Controller is included during `rest_api_init`
-		 * if `_wcstripe_feature_upe = "yes"`.
-		 */
+		// The routes in WC_REST_Stripe_Settings_Controller are only registered if `_wcstripe_feature_upe = "yes"`.
 		update_option( '_wcstripe_feature_upe', 'yes' );
-		do_action( 'rest_api_init' );
 
 		$this->gateway    = new WC_Gateway_Stripe();
 		$this->controller = new WC_REST_Stripe_Settings_Controller( $this->gateway );
