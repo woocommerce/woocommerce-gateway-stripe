@@ -39,17 +39,12 @@ class WC_Stripe_Intent_Controller {
 	 * Returns an instantiated gateway.
 	 *
 	 * @since 4.2.0
-	 * @return WC_Gateway_Stripe
+	 * @return WC_Stripe_Payment_Gateway
 	 */
 	protected function get_gateway() {
 		if ( ! isset( $this->gateway ) ) {
-			if ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) {
-				$class_name = 'WC_Stripe_Subs_Compat';
-			} else {
-				$class_name = 'WC_Gateway_Stripe';
-			}
-
-			$this->gateway = new $class_name();
+			$gateways      = WC()->payment_gateways()->payment_gateways();
+			$this->gateway = $gateways[ WC_Gateway_Stripe::ID ];
 		}
 
 		return $this->gateway;
@@ -304,14 +299,18 @@ class WC_Stripe_Intent_Controller {
 			$amount = $order->get_total();
 		}
 
-		$gateway = new WC_Stripe_UPE_Payment_Gateway();
+		$gateway = $this->get_gateway();
+		if ( ! is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+			throw new Exception( __( "We're not able to process this payment.", 'woocommerce-gateway-stripe' ) );
+		}
+		$enabled_payment_methods = $gateway->get_upe_enabled_at_checkout_payment_method_ids();
 
 		$currency       = get_woocommerce_currency();
 		$payment_intent = WC_Stripe_API::request(
 			[
 				'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
 				'currency'             => strtolower( $currency ),
-				'payment_method_types' => $gateway->get_upe_enabled_payment_method_ids(),
+				'payment_method_types' => $enabled_payment_methods,
 			],
 			'payment_intents'
 		);

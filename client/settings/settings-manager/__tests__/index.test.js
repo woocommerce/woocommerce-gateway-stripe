@@ -13,6 +13,14 @@ jest.mock( '@woocommerce/navigation', () => ( {
 	getQuery: jest.fn().mockReturnValue( {} ),
 } ) );
 
+jest.mock( '@wordpress/data', () => ( {
+	useSelect: jest.fn().mockReturnValue( {} ),
+	useDispatch: jest.fn().mockReturnValue( {} ),
+	combineReducers: jest.fn().mockReturnValue( {} ),
+	createReduxStore: jest.fn().mockReturnValue( {} ),
+	register: jest.fn().mockReturnValue( {} ),
+} ) );
+
 describe( 'SettingsManager', () => {
 	afterEach( () => {
 		jest.clearAllMocks();
