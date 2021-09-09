@@ -141,8 +141,29 @@ export default class WCStripeAPI {
 		} );
 	}
 
+	/**
+	 * Creates a setup intent without confirming it.
+	 *
+	 * @return {Promise} The final promise for the request to the server.
+	 */
 	initSetupIntent() {
-		console.error( 'TODO: Not implemented yet: initSetupIntent' );
+		return this.request( getAjaxUrl( 'init_setup_intent' ), {
+			_ajax_nonce: getStripeServerData()?.createSetupIntentNonce,
+		} )
+			.then( ( response ) => {
+				if ( ! response.success ) {
+					throw response.data.error;
+				}
+				return response.data;
+			} )
+			.catch( ( error ) => {
+				if ( error.message ) {
+					throw error;
+				} else {
+					// Covers the case of error on the Ajax request.
+					throw new Error( error.statusText );
+				}
+			} );
 	}
 
 	/**
@@ -168,6 +189,45 @@ export default class WCStripeAPI {
 					throw error;
 				} else {
 					// Covers the case of error on the Ajax request.
+					throw new Error( error.statusText );
+				}
+			} );
+	}
+
+	/**
+	 * Updates a payment intent with data from order: customer, level3 data and and maybe sets the payment for future use.
+	 *
+	 * @param {string} paymentIntentId The id of the payment intent.
+	 * @param {number} orderId The id of the order.
+	 * @param {string} savePaymentMethod 'yes' if saving.
+	 * @param {string} selectedUPEPaymentType The name of the selected UPE payment type or empty string.
+	 *
+	 * @return {Promise} The final promise for the request to the server.
+	 */
+	updateIntent(
+		paymentIntentId,
+		orderId,
+		savePaymentMethod,
+		selectedUPEPaymentType
+	) {
+		return this.request( getAjaxUrl( 'update_payment_intent' ), {
+			stripe_order_id: orderId,
+			wc_payment_intent_id: paymentIntentId,
+			save_payment_method: savePaymentMethod,
+			selected_upe_payment_type: selectedUPEPaymentType,
+			_ajax_nonce: getStripeServerData()?.updatePaymentIntentNonce,
+		} )
+			.then( ( response ) => {
+				if ( response.result === 'failure' ) {
+					throw new Error( response.messages );
+				}
+				return response;
+			} )
+			.catch( ( error ) => {
+				if ( error.message ) {
+					throw error;
+				} else {
+					// Covers the case of error on the Ajaxrequest.
 					throw new Error( error.statusText );
 				}
 			} );
