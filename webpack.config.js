@@ -25,6 +25,6 @@ module.exports = {
 		upe_classic: './client/classic/upe/index.js',
 		upe_settings: './client/settings/index.js',
 		upe_onboarding_wizard: './client/upe-onboarding-wizard/index.js',
-		upe_opt_in_banner: './client/settings/upe-opt-in-banner/index.js',
+		upe_opt_in_banner: './client/entrypoints/upe-opt-in-banner/index.js',
 	},
 };
