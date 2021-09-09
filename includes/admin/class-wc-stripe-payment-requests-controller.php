@@ -18,15 +18,6 @@ class WC_Stripe_Payment_Requests_Controller {
 	 * Load admin scripts.
 	 */
 	public function admin_scripts() {
-
-		wp_register_style(
-			'wc_stripe-payment-requests_customizer',
-			plugins_url( 'build/style-payment_requests_customizer.css', WC_STRIPE_MAIN_FILE ),
-			[],
-			$script_asset['version']
-		);
-		wp_enqueue_style( 'wc_stripe-payment-requests_customizer' );
-
 		// Webpack generates an assets file containing a dependencies array for our built JS file.
 		$script_path       = 'build/payment_requests_customizer.js';
 		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/payment_requests_customizer.asset.php';
@@ -46,6 +37,14 @@ class WC_Stripe_Payment_Requests_Controller {
 		);
 
 		wp_enqueue_script( 'wc_stripe-payment-requests_customizer' );
+
+		wp_register_style(
+			'wc_stripe-payment-requests_customizer',
+			plugins_url( 'build/style-payment_requests_customizer.css', WC_STRIPE_MAIN_FILE ),
+			[],
+			$script_asset['version']
+		);
+		wp_enqueue_style( 'wc_stripe-payment-requests_customizer' );
 	}
 
 	/**

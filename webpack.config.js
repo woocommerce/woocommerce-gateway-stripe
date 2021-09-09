@@ -21,16 +21,11 @@ module.exports = {
 		},
 	},
 	entry: {
-		additional_methods_setup: './client/additional-methods-setup/index.js',
+		index: './client/blocks/index.js',
 		payment_requests_customizer:
 			'./client/settings/payment-requests/index.js',
-		index: './client/blocks/index.js',
 		upe_classic: './client/classic/upe/index.js',
-<<<<<<< HEAD
-=======
-		upe_settings: './client/settings/index.js',
 		upe_onboarding_wizard: './client/upe-onboarding-wizard/index.js',
->>>>>>> develop
 		upe_opt_in_banner: './client/settings/upe-opt-in-banner/index.js',
 		upe_settings: './client/settings/index.js',
 	},
