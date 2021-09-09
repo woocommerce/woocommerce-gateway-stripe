@@ -48,8 +48,8 @@ const ImageWrapper = styled.div`
 	}
 `;
 
-const UpeOptInBanner = () => (
-	<BannerWrapper>
+const UpeOptInBanner = ( props ) => (
+	<BannerWrapper { ...props }>
 		<InformationWrapper>
 			<Pill>{ __( 'Early access', 'woocommerce-gateway-stripe' ) }</Pill>
 			<h3>
