@@ -34,7 +34,7 @@ const Tooltip = ( { isVisible, onHide = noop, ...props } ) => {
 
 	return (
 		<button
-			className="wcpay-tooltip__content-wrapper"
+			className="wcstripe-tooltip__content-wrapper"
 			// on touch devices there's no mouse enter/leave, so we need to use a separate event (click/focus)
 			// this creates 2 different (desirable) states on non-touch devices: if you hover and then click, the tooltip will persist
 			onMouseEnter={ handleMouseEnter }
