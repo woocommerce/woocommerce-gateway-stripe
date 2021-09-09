@@ -98,6 +98,10 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function deregister_wc_blocks_rest_api() {
 		try {
+			if ( ! class_exists( 'Automattic\WooCommerce\Blocks\Package' ) ) {
+				throw new Exception( 'This is not WC Blocks >= 2.6.0. Skipping to `catch` block!' );
+			}
+
 			/* For WooCommerce Blocks >= 2.6.0: */
 			$wc_blocks_rest_api = Package::container()->get( RestApi::class );
 			remove_action( 'rest_api_init', [ $wc_blocks_rest_api, 'register_rest_routes' ] );
