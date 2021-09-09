@@ -12,6 +12,9 @@ import CustomizationOptionsNotice from '..';
 import UpeToggleContext from '../../upe-toggle/context';
 
 jest.mock( '@wordpress/data' );
+jest.mock( '@woocommerce/data', () => ( {
+	OPTIONS_STORE_NAME: 'wc/admin/options',
+} ) );
 
 jest.mock( '@wordpress/a11y', () => ( {
 	...jest.requireActual( '@wordpress/a11y' ),
@@ -106,18 +109,5 @@ describe( 'CustomizationOptionsNotice', () => {
 		);
 
 		expect( container.firstChild ).toBeNull();
-	} );
-
-	it( 'should render (but not click) even though `useDispatch` returns `null`', () => {
-		useSelect.mockReturnValue( true );
-		useDispatch.mockReturnValue( null );
-
-		const { container } = render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<CustomizationOptionsNotice />
-			</UpeToggleContext.Provider>
-		);
-
-		expect( container.firstChild ).not.toBeNull();
 	} );
 } );
