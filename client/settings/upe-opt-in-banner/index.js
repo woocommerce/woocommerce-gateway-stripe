@@ -20,6 +20,7 @@ const BannerWrapper = styled( Card )`
 	display: flex;
 	flex-flow: row;
 	justify-content: center;
+	margin-bottom: 0;
 `;
 
 const InformationWrapper = styled.div`
