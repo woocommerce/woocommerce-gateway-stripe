@@ -50,6 +50,7 @@ const ImageWrapper = styled.div`
 	background: #f7f9fc;
 	display: none;
 	flex: 0 0 45%;
+	position: relative;
 
 	img {
 		max-width: 100%;
