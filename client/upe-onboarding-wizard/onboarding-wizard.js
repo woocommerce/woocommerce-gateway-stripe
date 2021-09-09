@@ -1,12 +1,13 @@
 /**
  * External dependencies
  */
-import React from 'react';
+import React, { useContext } from 'react';
 import { Card, CardBody } from '@wordpress/components';
 
 /**
  * Internal dependencies
  */
+import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import Wizard from './wizard/wrapper/provider';
 import WizardTask from './wizard/task';
 import WizardTaskList from './wizard/task-list';
@@ -16,10 +17,21 @@ import AddPaymentMethodsTask from './upe-preview-methods-selector/add-payment-me
 import './style.scss';
 
 const OnboardingWizard = () => {
+	const { isUpeEnabled } = useContext( UpeToggleContext );
+
 	return (
 		<Card className="upe-preview-methods-selector">
 			<CardBody>
-				<Wizard defaultActiveTask="enable-upe-preview">
+				<Wizard
+					defaultActiveTask={
+						isUpeEnabled
+							? 'add-payment-methods'
+							: 'enable-upe-preview'
+					}
+					defaultCompletedTasks={ {
+						'enable-upe-preview': isUpeEnabled,
+					} }
+				>
 					<WizardTaskList>
 						<WizardTask id="enable-upe-preview">
 							<EnableUpePreviewTask />
