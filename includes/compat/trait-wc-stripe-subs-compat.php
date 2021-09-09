@@ -4,43 +4,70 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Compatibility class for Subscriptions.
- *
- * @extends WC_Gateway_Stripe
+ * Trait for Subscriptions compatibility.
  */
-class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
+trait WC_Stripe_Subscriptions_Trait {
+
+	// - TODO: Maybe move to an utilities file.
+	// Utilities
 	/**
-	 * Constructor
+	 * Checks if subscriptions are enabled on the site.
+	 *
+	 * @return bool Whether subscriptions is enabled or not.
 	 */
-	public function __construct() {
-		parent::__construct();
+	public function is_subscriptions_enabled() {
+		return class_exists( 'WC_Subscriptions' ) && version_compare( WC_Subscriptions::$version, '2.2.0', '>=' );
+	}
+	// end Utilities
 
-		if ( class_exists( 'WC_Subscriptions_Order' ) ) {
-			add_action( 'woocommerce_scheduled_subscription_payment_' . $this->id, [ $this, 'scheduled_subscription_payment' ], 10, 2 );
-			add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
-			add_action( 'wcs_renewal_order_created', [ $this, 'delete_renewal_meta' ], 10 );
-			add_action( 'woocommerce_subscription_failing_payment_method_updated_stripe', [ $this, 'update_failing_payment_method' ], 10, 2 );
-			add_action( 'wc_stripe_cards_payment_fields', [ $this, 'display_update_subs_payment_checkout' ] );
-			add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', [ $this, 'handle_add_payment_method_success' ], 10, 2 );
-			add_action( 'woocommerce_subscriptions_change_payment_before_submit', [ $this, 'differentiate_change_payment_method_form' ] );
-
-			// display the credit card used for a subscription in the "My Subscriptions" table
-			add_filter( 'woocommerce_my_subscriptions_payment_method', [ $this, 'maybe_render_subscription_payment_method' ], 10, 2 );
-
-			// allow store managers to manually set Stripe as the payment method on a subscription
-			add_filter( 'woocommerce_subscription_payment_meta', [ $this, 'add_subscription_payment_meta' ], 10, 2 );
-			add_filter( 'woocommerce_subscription_validate_payment_meta', [ $this, 'validate_subscription_payment_meta' ], 10, 2 );
-			add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'maybe_hide_save_checkbox' ] );
-
-			/*
-			 * WC subscriptions hooks into the "template_redirect" hook with priority 100.
-			 * If the screen is "Pay for order" and the order is a subscription renewal, it redirects to the plain checkout.
-			 * See: https://github.com/woocommerce/woocommerce-subscriptions/blob/99a75687e109b64cbc07af6e5518458a6305f366/includes/class-wcs-cart-renewal.php#L165
-			 * If we are in the "You just need to authorize SCA" flow, we don't want that redirection to happen.
-			 */
-			add_action( 'template_redirect', [ $this, 'remove_order_pay_var' ], 99 );
-			add_action( 'template_redirect', [ $this, 'restore_order_pay_var' ], 101 );
+	/**
+	 * Initialize subscription support and hooks.
+	 */
+	public function maybe_init_subscriptions() {
+		if ( ! $this->is_subscriptions_enabled() ) {
+			return;
 		}
+
+		$this->supports = array_merge(
+			$this->supports,
+			[
+				'subscriptions',
+				'subscription_cancellation',
+				'subscription_suspension',
+				'subscription_reactivation',
+				'subscription_amount_changes',
+				'subscription_date_changes',
+				'subscription_payment_method_change',
+				'subscription_payment_method_change_customer',
+				'subscription_payment_method_change_admin',
+				'multiple_subscriptions',
+			]
+		);
+
+		add_action( 'woocommerce_scheduled_subscription_payment_' . $this->id, [ $this, 'scheduled_subscription_payment' ], 10, 2 );
+		add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
+		add_action( 'wcs_renewal_order_created', [ $this, 'delete_renewal_meta' ], 10 );
+		add_action( 'woocommerce_subscription_failing_payment_method_updated_stripe', [ $this, 'update_failing_payment_method' ], 10, 2 );
+		add_action( 'wc_stripe_cards_payment_fields', [ $this, 'display_update_subs_payment_checkout' ] );
+		add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', [ $this, 'handle_add_payment_method_success' ], 10, 2 );
+		add_action( 'woocommerce_subscriptions_change_payment_before_submit', [ $this, 'differentiate_change_payment_method_form' ] );
+
+		// display the credit card used for a subscription in the "My Subscriptions" table
+		add_filter( 'woocommerce_my_subscriptions_payment_method', [ $this, 'maybe_render_subscription_payment_method' ], 10, 2 );
+
+		// allow store managers to manually set Stripe as the payment method on a subscription
+		add_filter( 'woocommerce_subscription_payment_meta', [ $this, 'add_subscription_payment_meta' ], 10, 2 );
+		add_filter( 'woocommerce_subscription_validate_payment_meta', [ $this, 'validate_subscription_payment_meta' ], 10, 2 );
+		add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'maybe_hide_save_checkbox' ] );
+
+		/*
+		* WC subscriptions hooks into the "template_redirect" hook with priority 100.
+		* If the screen is "Pay for order" and the order is a subscription renewal, it redirects to the plain checkout.
+		* See: https://github.com/woocommerce/woocommerce-subscriptions/blob/99a75687e109b64cbc07af6e5518458a6305f366/includes/class-wcs-cart-renewal.php#L165
+		* If we are in the "You just need to authorize SCA" flow, we don't want that redirection to happen.
+		*/
+		add_action( 'template_redirect', [ $this, 'remove_order_pay_var' ], 99 );
+		add_action( 'template_redirect', [ $this, 'restore_order_pay_var' ], 101 );
 	}
 
 	/**
@@ -302,7 +329,7 @@ class WC_Stripe_Subs_Compat extends WC_Gateway_Stripe {
 			WC_Stripe_Logger::log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
 
 			/*
-			 If we're doing a retry and source is chargeable, we need to pass
+			 * If we're doing a retry and source is chargeable, we need to pass
 			 * a different idempotency key and retry for success.
 			 */
 			if ( is_object( $source_object ) && empty( $source_object->error ) && $this->need_update_idempotency_key( $source_object, $previous_error ) ) {

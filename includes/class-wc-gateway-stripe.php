@@ -10,6 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
+	use WC_Stripe_Subscriptions_Trait;
+
 	const ID = 'stripe';
 
 	/**
@@ -89,16 +91,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			'refunds',
 			'tokenization',
 			'add_payment_method',
-			'subscriptions',
-			'subscription_cancellation',
-			'subscription_suspension',
-			'subscription_reactivation',
-			'subscription_amount_changes',
-			'subscription_date_changes',
-			'subscription_payment_method_change',
-			'subscription_payment_method_change_customer',
-			'subscription_payment_method_change_admin',
-			'multiple_subscriptions',
 			'pre-orders',
 		];
 
@@ -107,6 +99,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// Load the settings.
 		$this->init_settings();
+
+		// Check if subscriptions are enabled and add support for them.
+		$this->maybe_init_subscriptions();
 
 		// Get setting values.
 		$this->title                = $this->get_option( 'title' );
