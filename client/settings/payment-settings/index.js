@@ -14,7 +14,6 @@ import PaymentsAndTransactionsSection from '../payments-and-transactions-section
 import AdvancedSettingsSection from '../advanced-settings-section';
 import CustomizationOptionsNotice from '../customization-options-notice';
 import GeneralSettingsSection from './general-settings-section';
-import './style.scss';
 
 const GeneralSettingsDescription = () => (
 	<>
