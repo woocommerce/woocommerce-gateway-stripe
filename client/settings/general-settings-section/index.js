@@ -1,53 +1,160 @@
 /**
  * External dependencies
  */
-import React from 'react';
-import { Card } from '@wordpress/components';
+import React, { useContext } from 'react';
+import styled from '@emotion/styled';
+import { Card, CheckboxControl } from '@wordpress/components';
 
 /**
  * Internal dependencies
  */
+import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import CardBody from '../card-body';
-import SofortIcon from '../../payment-method-icons/sofort';
-import SepaIcon from '../../payment-method-icons/sepa';
-import CardsIcon from '../../payment-method-icons/cards';
-import GiropayIcon from '../../payment-method-icons/giropay';
-import ApplePayIcon from '../../payment-method-icons/apple-pay';
-import GooglePayIcon from '../../payment-method-icons/google-pay';
+import UpeOptInBanner from '../upe-opt-in-banner';
+import UpeToggleContext from '../upe-toggle/context';
+import {
+	useEnabledPaymentMethods,
+	useGetAvailablePaymentMethods,
+} from './data-mock';
+import PaymentMethodDescription from './payment-method-description';
+import SectionHeading from './section-heading';
+import PaymentMethodsMap from '../../payment-methods-map';
+import PaymentMethodSetupHelp from './payment-method-setup-help';
+
+const StyledUpeOptInBanner = styled( UpeOptInBanner )`
+	max-width: 100%;
+	margin: 0;
+`;
+
+const StyledCard = styled( Card )`
+	margin-bottom: 12px;
+`;
+
+const PaymentMethodsList = styled.ul`
+	margin: 0;
+
+	> li {
+		margin: 0;
+		padding: 16px 24px 14px 24px;
+
+		@media ( min-width: 660px ) {
+			padding: 24px 24px 24px 24px;
+		}
+
+		&:not( :last-child ) {
+			box-shadow: inset 0 -1px 0 #e8eaeb;
+		}
+	}
+`;
+
+const PaymentMethodWrapper = styled.div`
+	display: flex;
+	flex-direction: column;
+	flex-wrap: nowrap;
+
+	@media ( min-width: 660px ) {
+		flex-direction: row;
+		align-items: center;
+	}
+`;
+
+const StyledFees = styled( PaymentMethodFeesPill )`
+	flex: 1 0 auto;
+	margin-top: 20px;
+	margin-left: 32px;
+
+	@media ( min-width: 660px ) {
+		margin-top: 0;
+		margin-left: 24px;
+	}
+`;
+
+const PaymentMethodCheckbox = styled( CheckboxControl )`
+	.components-base-control__field {
+		margin: 0;
+		display: flex;
+
+		@media ( min-width: 660px ) {
+			align-items: center;
+		}
+	}
+`;
 
 const GeneralSettingsSection = () => {
+	const { isUpeEnabled } = useContext( UpeToggleContext );
+
+	const [
+		enabledPaymentMethods,
+		setEnabledPaymentMethods,
+	] = useEnabledPaymentMethods();
+	const availablePaymentMethods = useGetAvailablePaymentMethods();
+
+	const makeCheckboxChangeHandler = ( method ) => ( hasBeenChecked ) => {
+		if ( hasBeenChecked ) {
+			setEnabledPaymentMethods( [ ...enabledPaymentMethods, method ] );
+		} else {
+			setEnabledPaymentMethods(
+				enabledPaymentMethods.filter( ( m ) => m !== method )
+			);
+		}
+	};
+
 	return (
-		<Card>
-			<CardBody>
-				The general settings sections goes here.
-				<ul>
-					<li>
-						<GooglePayIcon />
-						<GooglePayIcon size="medium" />
-					</li>
-					<li>
-						<ApplePayIcon />
-						<ApplePayIcon size="medium" />
-					</li>
-					<li>
-						<SofortIcon />
-						<SofortIcon size="medium" />
-					</li>
-					<li>
-						<GiropayIcon />
-						<GiropayIcon size="medium" />
-					</li>
-					<li>
-						<SepaIcon />
-						<SepaIcon size="medium" />
-					</li>
-					<li>
-						<CardsIcon />
-						<CardsIcon size="medium" />
-					</li>
-				</ul>
-			</CardBody>
-		</Card>
+		<>
+			<StyledCard>
+				<SectionHeading />
+				<CardBody size={ null }>
+					<PaymentMethodsList>
+						{ availablePaymentMethods.map( ( method ) => {
+							const {
+								Icon,
+								label,
+								description,
+							} = PaymentMethodsMap[ method ];
+
+							return (
+								<li key={ method }>
+									<PaymentMethodWrapper>
+										{ isUpeEnabled ? (
+											<>
+												<PaymentMethodCheckbox
+													label={
+														<PaymentMethodDescription
+															Icon={ Icon }
+															description={
+																description
+															}
+															label={ label }
+														/>
+													}
+													onChange={ makeCheckboxChangeHandler(
+														method
+													) }
+													checked={ enabledPaymentMethods.includes(
+														method
+													) }
+												/>
+												<StyledFees id={ method } />
+											</>
+										) : (
+											<PaymentMethodDescription
+												Icon={ Icon }
+												description={ description }
+												label={ label }
+											/>
+										) }
+									</PaymentMethodWrapper>
+									<PaymentMethodSetupHelp id={ method } />
+								</li>
+							);
+						} ) }
+					</PaymentMethodsList>
+				</CardBody>
+			</StyledCard>
+			{ ! isUpeEnabled && (
+				<StyledUpeOptInBanner data-testid="opt-in-banner" />
+			) }
+		</>
 	);
 };
 

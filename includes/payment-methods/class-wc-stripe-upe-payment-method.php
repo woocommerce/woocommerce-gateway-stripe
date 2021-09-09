@@ -64,7 +64,13 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 */
 	public function __construct( $token_service ) {
 		$main_settings       = get_option( 'woocommerce_stripe_settings' );
-		$enabled_upe_methods = $main_settings['upe_checkout_experience_accepted_payments'];
+
+		if ( isset( $main_settings['upe_checkout_experience_accepted_payments'] ) ) {
+			$enabled_upe_methods = $main_settings['upe_checkout_experience_accepted_payments'];
+		} else {
+			$enabled_upe_methods = [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ];
+		}
+
 		$this->enabled       = in_array( static::STRIPE_ID, $enabled_upe_methods, true );
 		// $this->token_service = $token_service;
 	}
@@ -105,6 +111,11 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 * @return bool
 	 */
 	public function is_enabled_at_checkout() {
+		$currencies = $this->get_supported_currencies();
+		if ( ! empty( $currencies ) && ! in_array( get_woocommerce_currency(), $currencies, true ) ) {
+			return false;
+		}
+
 		if ( $this->is_subscription_item_in_cart() ) {
 			return $this->is_reusable();
 		}
@@ -127,10 +138,11 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 * @param WP_User $user User to get payment token from.
 	 * @param string  $payment_method_id Stripe payment method ID string.
 	 *
-	 * @return WC_Payment_Token_CC|WC_Payment_Token_WCPay_SEPA WC object for payment token.
+	 * @return WC_Payment_Token_CC|WC_Payment_Token_SEPA WC object for payment token.
 	 */
-	public function get_payment_token_for_user( $user, $payment_method_id ) {
-		//      return $this->token_service->add_payment_method_to_user( $payment_method_id, $user );
+	public function add_payment_token_to_user( $user, $payment_method_object ) {
+		$customer = new WC_Stripe_Customer( $user->ID );
+		return $customer->add_payment_method_to_user( $payment_method_object );
 	}
 
 	/**

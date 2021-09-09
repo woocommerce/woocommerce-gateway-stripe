@@ -48,8 +48,8 @@ const ImageWrapper = styled.div`
 	}
 `;
 
-const UPEOptInBanner = () => (
-	<BannerWrapper>
+const UpeOptInBanner = ( props ) => (
+	<BannerWrapper { ...props }>
 		<InformationWrapper>
 			<Pill>{ __( 'Early access', 'woocommerce-gateway-stripe' ) }</Pill>
 			<h3>
@@ -67,7 +67,11 @@ const UPEOptInBanner = () => (
 			</p>
 			<Actions>
 				<span>
-					<Button isPrimary href="?TODO" target="_blank">
+					<Button
+						isPrimary
+						href="?page=wc_stripe-onboarding_wizard"
+						target="_blank"
+					>
 						{ __(
 							'Enable in your store',
 							'woocommerce-gateway-stripe'
@@ -90,7 +94,7 @@ const bannerContainer = document.getElementById(
 );
 
 if ( bannerContainer ) {
-	ReactDOM.render( <UPEOptInBanner />, bannerContainer );
+	ReactDOM.render( <UpeOptInBanner />, bannerContainer );
 }
 
-export default UPEOptInBanner;
+export default UpeOptInBanner;

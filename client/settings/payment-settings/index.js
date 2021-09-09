@@ -5,6 +5,7 @@ import React from 'react';
 import { __ } from '@wordpress/i18n';
 import { Card, CardHeader, DropdownMenu } from '@wordpress/components';
 import { moreVertical } from '@wordpress/icons';
+import { Card, ExternalLink } from '@wordpress/components';
 
 /**
  * Internal dependencies
@@ -13,6 +14,9 @@ import './style.scss';
 import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
 import AccountStatus from '../account-details';
+import PaymentsAndTransactionsSection from '../payments-and-transactions-section';
+import AdvancedSettingsSection from '../advanced-settings-section';
+import CustomizationOptionNotice from '../customization-option-notice';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -40,7 +44,27 @@ const AccountDetailsDescription = () => (
 	</>
 );
 
-const GeneralSettingsCard = () => {
+const PaymentsAndTransactionsDescription = () => (
+	<>
+		<h2>
+			{ __( 'Payments & transactions', 'woocommerce-gateway-stripe' ) }
+		</h2>
+		<p>
+			{ __(
+				'Configure optional payment settings and transaction details.',
+				'woocommerce-gateway-stripe'
+			) }
+		</p>
+		<ExternalLink href="?TODO">
+			{ __(
+				'View Frequently Asked Questions',
+				'woocommerce-gateway-stripe'
+			) }
+		</ExternalLink>
+	</>
+);
+
+const GeneralSettingsSection = () => {
 	return (
 		<Card>
 			<CardBody>The general settings card goes here.</CardBody>
@@ -78,7 +102,7 @@ const accountStatusMock = {
 	accountLink: 'https://stripe.com/support',
 };
 
-const AccountDetailsCard = () => {
+const AccountDetailsSection = () => {
 	return (
 		<Card className="account-details">
 			<CardHeader className="account-details__header">
@@ -98,11 +122,16 @@ const PaymentSettingsPanel = () => {
 	return (
 		<>
 			<SettingsSection Description={ GeneralSettingsDescription }>
-				<GeneralSettingsCard />
+				<GeneralSettingsSection />
+				<CustomizationOptionNotice />
 			</SettingsSection>
 			<SettingsSection Description={ AccountDetailsDescription }>
-				<AccountDetailsCard />
+				<AccountDetailsSection />
 			</SettingsSection>
+			<SettingsSection Description={ PaymentsAndTransactionsDescription }>
+				<PaymentsAndTransactionsSection />
+			</SettingsSection>
+			<AdvancedSettingsSection />
 		</>
 	);
 };

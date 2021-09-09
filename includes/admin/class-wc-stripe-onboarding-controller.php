@@ -23,8 +23,8 @@ class WC_Stripe_Onboarding_Controller {
 	 */
 	public function admin_scripts() {
 		// Webpack generates an assets file containing a dependencies array for our built JS file.
-		$script_path       = 'build/additional_methods_setup.js';
-		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/additional_methods_setup.asset.php';
+		$script_path       = 'build/upe_onboarding_wizard.js';
+		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe_onboarding_wizard.asset.php';
 		$script_url        = plugins_url( $script_path, WC_STRIPE_MAIN_FILE );
 		$script_asset      = file_exists( $script_asset_path )
 			? require $script_asset_path
@@ -32,6 +32,8 @@ class WC_Stripe_Onboarding_Controller {
 				'dependencies' => [],
 				'version'      => WC_STRIPE_VERSION,
 			];
+		$style_path = 'build/style-upe_onboarding_wizard.css';
+		$style_url = plugins_url( $style_path, WC_STRIPE_MAIN_FILE );
 
 		wp_register_script(
 			'wc_stripe_onboarding_wizard',
@@ -40,8 +42,15 @@ class WC_Stripe_Onboarding_Controller {
 			$script_asset['version'],
 			true
 		);
+		wp_register_style(
+			'wc_stripe_onboarding_wizard',
+			$style_url,
+			[ 'wc-components' ],
+			$script_asset['version']
+		);
 
 		wp_enqueue_script( 'wc_stripe_onboarding_wizard' );
+		wp_enqueue_style( 'wc_stripe_onboarding_wizard' );
 	}
 
 	/**
