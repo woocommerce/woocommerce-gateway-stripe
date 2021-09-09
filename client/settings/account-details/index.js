@@ -14,7 +14,7 @@ import './style.scss';
 const renderPaymentsStatus = ( paymentsEnabled ) => {
 	return (
 		<div className="account-details__row">
-			{ __( 'Payments:', 'woocommerce-gateway-stripe' ) }
+			<p>{ __( 'Payments:', 'woocommerce-gateway-stripe' ) }</p>
 			<PaymentsStatus
 				paymentsEnabled={ paymentsEnabled }
 				iconSize={ 18 }

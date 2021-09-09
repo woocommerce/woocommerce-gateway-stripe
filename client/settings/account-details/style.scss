@@ -10,6 +10,14 @@
 		flex-direction: row;
 		align-items: center;
 		padding: 8px 0px;
+
+		p {
+			flex-grow: 1;
+		}
+
+		span {
+			flex-grow: 4;
+		}
 	}
 
 	&__desc {
