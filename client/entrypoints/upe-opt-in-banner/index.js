@@ -42,5 +42,3 @@ if ( bannerContainer ) {
 		bannerContainer
 	);
 }
-
-export default UpeOptInBanner;
