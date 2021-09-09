@@ -3,6 +3,9 @@
  * Class WC_REST_Stripe_Settings_Controller_Test
  */
 
+use Automattic\WooCommerce\Blocks\Package;
+use Automattic\WooCommerce\Blocks\RestApi;
+
 /**
  * WC_REST_Stripe_Settings_Controller_Test unit tests.
  */
@@ -14,24 +17,12 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	const SETTINGS_ROUTE = '/wc/v3/wc_stripe/settings';
 
 	/**
-	 * The system under test.
-	 *
-	 * @var WC_REST_Stripe_Settings_Controller
-	 */
-	private $controller;
-
-	/**
-	 * Gateway.
-	 *
-	 * @var WC_Gateway_Stripe
-	 */
-	private $gateway;
-
-	/**
 	 * Pre-test setup
 	 */
 	public function setUp() {
 		parent::setUp();
+
+		add_action( 'rest_api_init', [ $this, 'deregister_wc_blocks_rest_api' ], 5 );
 
 		// Set the user so that we can pass the authentication.
 		wp_set_current_user( 1 );
@@ -39,8 +30,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		// The routes in WC_REST_Stripe_Settings_Controller are only registered if `_wcstripe_feature_upe = "yes"`.
 		update_option( '_wcstripe_feature_upe', 'yes' );
 
-		$this->gateway    = new WC_Gateway_Stripe();
-		$this->controller = new WC_REST_Stripe_Settings_Controller( $this->gateway );
+		do_action( 'rest_api_init' );
 	}
 
 	public function test_get_settings_request_returns_status_code_200() {
@@ -100,5 +90,20 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 			return $allcaps;
 		};
+	}
+
+	/**
+	 * Deregister WooCommerce Blocks REST routes to prevent _doing_it_wrong() notices
+	 * after calls to rest_do_request().
+	 */
+	public function deregister_wc_blocks_rest_api() {
+		try {
+			/* For WooCommerce Blocks >= 2.6.0: */
+			$wc_blocks_rest_api = Package::container()->get( RestApi::class );
+			remove_action( 'rest_api_init', [ $wc_blocks_rest_api, 'register_rest_routes' ] );
+		} catch ( Exception $e ) {
+			/* For WooCommerce Blocks < 2.6.0: */
+			remove_action( 'rest_api_init', [ RestApi::class, 'register_rest_routes' ] );
+		}
 	}
 }
