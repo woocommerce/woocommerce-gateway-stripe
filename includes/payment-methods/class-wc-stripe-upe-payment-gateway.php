@@ -71,7 +71,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Array mapping payment method string IDs to classes
 	 *
-	 * @var array
+	 * @var WC_Stripe_UPE_Payment_Method[]
 	 */
 	public $payment_methods = [];
 
@@ -267,7 +267,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	private function get_enabled_payment_method_config() {
 		$settings                = [];
-		$enabled_payment_methods = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_at_checkout' ] );
+		$enabled_payment_methods = $this->get_upe_enabled_at_checkout_payment_method_ids();
 
 		foreach ( $enabled_payment_methods as $payment_method ) {
 			$settings[ $payment_method ] = [
@@ -290,6 +290,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				'card',
 			]
 		);
+	}
+
+	/**
+	 * Returns the list of enabled payment method types that will function with the current checkout.
+	 *
+	 * @return string[]
+	 */
+	public function get_upe_enabled_at_checkout_payment_method_ids() {
+		$available_method_ids = [];
+		foreach ( $this->get_upe_enabled_payment_method_ids() as $payment_method_id ) {
+			if ( isset( $this->payment_methods[ $payment_method_id ] ) && $this->payment_methods[ $payment_method_id ]->is_enabled_at_checkout() ) {
+				$available_method_ids[] = $payment_method_id;
+			}
+		}
+		return $available_method_ids;
 	}
 
 	/**

@@ -101,6 +101,11 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 * @return bool
 	 */
 	public function is_enabled_at_checkout() {
+		$currencies = $this->get_supported_currencies();
+		if ( ! empty( $currencies ) && ! in_array( get_woocommerce_currency(), $currencies, true ) ) {
+			return false;
+		}
+
 		if ( $this->is_subscription_item_in_cart() ) {
 			return $this->is_reusable();
 		}
