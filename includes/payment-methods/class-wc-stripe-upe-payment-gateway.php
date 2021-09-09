@@ -483,8 +483,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			if ( $payment_needed ) {
 				// This will throw exception if not valid.
 				$this->validate_minimum_order_amount( $order );
+				$prepared_payment_method = $this->prepare_payment_method( $payment_method, $token );
 
-				$request_details = $this->generate_payment_request( $order, $payment_method );
+				$request_details = $this->generate_payment_request( $order, $prepared_payment_method );
 				$level3_data     = $this->get_level3_data_from_order( $order );
 				$endpoint        = false !== $intent ? "payment_intents/$intent->id" : 'payment_intents';
 				$request         = [
@@ -729,6 +730,26 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		}
 		$this->save_intent_to_order( $order, $intent );
 		$this->set_payment_method_title_for_order( $order, $payment_method_type, $payment_method_details );
+	}
+
+	/**
+	 * Converts payment method into object similar to prepared source
+	 * compatible with wc_stripe_payment_metadata and wc_stripe_generate_payment_request filters.
+	 *
+	 * @param object           $payment_method Stripe payment method object response.
+	 * @param WC_Payment_Token $token          WC Payment Token.
+	 *
+	 * @return object
+	 */
+	public function prepare_payment_method( $payment_method, $token ) {
+		return (object) [
+			'token_id'              => $token->get_id(),
+			'customer'              => $payment_method->customer,
+			'source'                => null,
+			'source_object'         => null,
+			'payment_method'        => $payment_method->id,
+			'payment_method_object' => $payment_method,
+		];
 	}
 
 	/**

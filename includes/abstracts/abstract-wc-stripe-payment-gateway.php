@@ -405,10 +405,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since 3.1.0
 	 * @version 4.5.4
 	 * @param  WC_Order $order
-	 * @param  object   $payment_method Stripe Payment Method or Source.
+	 * @param  object   $prepared_payment_method Stripe Payment Method or Source.
 	 * @return array()
 	 */
-	public function generate_payment_request( $order, $payment_method ) {
+	public function generate_payment_request( $order, $prepared_payment_method ) {
 		$settings              = get_option( 'woocommerce_stripe_settings', [] );
 		$statement_descriptor  = ! empty( $settings['statement_descriptor'] ) ? str_replace( "'", '', $settings['statement_descriptor'] ) : '';
 		$capture               = ! empty( $settings['capture'] ) && 'yes' === $settings['capture'] ? true : false;
@@ -469,18 +469,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			];
 		}
 
-		$post_data['metadata'] = apply_filters( 'wc_stripe_payment_metadata', $metadata, $order, $payment_method );
+		$post_data['metadata'] = apply_filters( 'wc_stripe_payment_metadata', $metadata, $order, $prepared_payment_method );
 
-		if ( $payment_method->customer ) {
-			$post_data['customer'] = $payment_method->customer;
+		if ( $prepared_payment_method->customer ) {
+			$post_data['customer'] = $prepared_payment_method->customer;
 		}
 
-		if ( 'source' === $payment_method->object && $payment_method->source ) {
-			$post_data['source'] = $payment_method->source;
+		if ( ! is_null( $prepared_payment_method->source ) ) {
+			$post_data['source'] = $prepared_payment_method->source;
 		}
 
-		if ( 'payment_method' === $payment_method->object ) {
-			$post_data['payment_method'] = $payment_method->id;
+		if ( ! is_null( $prepared_payment_method->payment_method ) ) {
+			$post_data['payment_method'] = $prepared_payment_method->payment_method;
 		}
 
 		/**
@@ -491,7 +491,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		 * @param WC_Order $order
 		 * @param object $source
 		 */
-		return apply_filters( 'wc_stripe_generate_payment_request', $post_data, $order, $payment_method );
+		return apply_filters( 'wc_stripe_generate_payment_request', $post_data, $order, $prepared_payment_method );
 	}
 
 	/**
