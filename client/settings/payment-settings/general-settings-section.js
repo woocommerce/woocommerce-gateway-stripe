@@ -78,9 +78,15 @@ const GeneralSettingsSection = () => {
 							),
 							components: {
 								testCardNumbersLink: (
-									<a href="?TODO">test card numbers</a>
+									<a href="https://stripe.com/docs/testing#cards">
+										test card numbers
+									</a>
 								),
-								learnMoreLink: <a href="?TODO">Learn more</a>,
+								learnMoreLink: (
+									<a href="https://stripe.com/docs/testing">
+										Learn more
+									</a>
+								),
 							},
 						} ) }
 					</CheckboxDescription>
