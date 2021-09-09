@@ -7,6 +7,7 @@ import { __ } from '@wordpress/i18n';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { useCallback } from '@wordpress/element';
 import interpolateComponents from 'interpolate-components';
+import { OPTIONS_STORE_NAME } from '@woocommerce/data';
 
 /**
  * Internal dependencies
@@ -15,10 +16,8 @@ import InlineNotice from '../../components/inline-notice';
 import UpeToggleContext from '../upe-toggle/context';
 
 const NoticeWrapper = styled( InlineNotice )`
-	padding: 16px 24px;
-
-	&.wcstripe-inline-notice {
-		border-left: 4px solid #00aadc;
+	// increasing the specificity to override the margin value.
+	&& {
 		margin-bottom: 0;
 	}
 `;
@@ -31,7 +30,7 @@ const CustomizationOptionsNotice = () => {
 
 	const isCustomizationOptionsNoticeVisible = useSelect( ( select ) => {
 		const { getOption, hasFinishedResolution } = select(
-			'wc/admin/options'
+			OPTIONS_STORE_NAME
 		);
 
 		const hasFinishedResolving = hasFinishedResolution( 'getOption', [
@@ -44,13 +43,13 @@ const CustomizationOptionsNotice = () => {
 		return hasFinishedResolving && ! isOptionDismissed;
 	} );
 
-	const optionsDispatch = useDispatch( 'wc/admin/options' );
+	const { updateOptions } = useDispatch( OPTIONS_STORE_NAME );
 
 	const handleDismissNotice = useCallback( () => {
-		optionsDispatch.updateOptions( {
+		updateOptions( {
 			[ CUSTOMIZATION_OPTIONS_NOTICE_OPTION ]: 'no',
 		} );
-	}, [ optionsDispatch ] );
+	}, [ updateOptions ] );
 
 	if ( ! isUpeEnabled || ! isCustomizationOptionsNoticeVisible ) {
 		return null;
