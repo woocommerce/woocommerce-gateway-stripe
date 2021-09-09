@@ -144,7 +144,7 @@ class WC_Stripe_Payment_Tokens {
 			$stored_tokens = [];
 
 			foreach ( $tokens as $token ) {
-				$stored_tokens[] = $token->get_token();
+				$stored_tokens[ $token->get_token() ] = $token;
 			}
 
 			if ( 'stripe' === $gateway_id ) {
@@ -153,7 +153,7 @@ class WC_Stripe_Payment_Tokens {
 
 				foreach ( $stripe_sources as $source ) {
 					if ( isset( $source->type ) && 'card' === $source->type ) {
-						if ( ! in_array( $source->id, $stored_tokens ) ) {
+						if ( ! isset( $stored_tokens[ $source->id ] ) ) {
 							$token = new WC_Payment_Token_CC();
 							$token->set_token( $source->id );
 							$token->set_gateway_id( 'stripe' );
@@ -168,9 +168,11 @@ class WC_Stripe_Payment_Tokens {
 							$token->set_user_id( $customer_id );
 							$token->save();
 							$tokens[ $token->get_id() ] = $token;
+						} else {
+							unset( $stored_tokens[ $source->id ] );
 						}
 					} else {
-						if ( ! in_array( $source->id, $stored_tokens ) && 'card' === $source->object ) {
+						if ( ! isset( $stored_tokens[ $source->id ] ) && 'card' === $source->object ) {
 							$token = new WC_Payment_Token_CC();
 							$token->set_token( $source->id );
 							$token->set_gateway_id( 'stripe' );
@@ -181,6 +183,8 @@ class WC_Stripe_Payment_Tokens {
 							$token->set_user_id( $customer_id );
 							$token->save();
 							$tokens[ $token->get_id() ] = $token;
+						} else {
+							unset( $stored_tokens[ $source->id ] );
 						}
 					}
 				}
@@ -192,7 +196,7 @@ class WC_Stripe_Payment_Tokens {
 
 				foreach ( $stripe_sources as $source ) {
 					if ( isset( $source->type ) && 'sepa_debit' === $source->type ) {
-						if ( ! in_array( $source->id, $stored_tokens ) ) {
+						if ( ! isset( $stored_tokens[ $source->id ] ) ) {
 							$token = new WC_Payment_Token_SEPA();
 							$token->set_token( $source->id );
 							$token->set_gateway_id( 'stripe_sepa' );
@@ -200,9 +204,17 @@ class WC_Stripe_Payment_Tokens {
 							$token->set_user_id( $customer_id );
 							$token->save();
 							$tokens[ $token->get_id() ] = $token;
+						} else {
+							unset( $stored_tokens[ $source->id ] );
 						}
 					}
 				}
+			}
+
+			// Removes saved tokens that are not sources.
+			foreach ( $stored_tokens as $token ) {
+				unset( $tokens[ $token->get_id() ] );
+				$token->delete();
 			}
 		}
 
