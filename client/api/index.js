@@ -291,14 +291,17 @@ export default class WCStripeAPI {
 					( result.error.setup_intent &&
 						result.error.setup_intent.id );
 
-				const ajaxCall = this.request( getAjaxUrl( 'update_order_status' ), {
-					order_id: orderId,
-					// Update the current order status nonce with the new one to ensure that the update
-					// order status call works when a guest user creates an account during checkout.
-					intent_id: intentId,
-					payment_method_id: paymentMethodToSave || null,
-					_ajax_nonce: nonce,
-				} );
+				const ajaxCall = this.request(
+					getAjaxUrl( 'update_order_status' ),
+					{
+						order_id: orderId,
+						// Update the current order status nonce with the new one to ensure that the update
+						// order status call works when a guest user creates an account during checkout.
+						intent_id: intentId,
+						payment_method_id: paymentMethodToSave || null,
+						_ajax_nonce: nonce,
+					}
+				);
 
 				return [ ajaxCall, result.error ];
 			} )
