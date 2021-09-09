@@ -44,7 +44,7 @@ class WC_Stripe_Onboarding_Controller {
 		);
 		wp_localize_script(
 			'wc_stripe_onboarding_wizard',
-			'wc_stripe_settings_params',
+			'wc_stripe_onboarding_params',
 			[
 				'is_upe_checkout_enabled' => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
 			]

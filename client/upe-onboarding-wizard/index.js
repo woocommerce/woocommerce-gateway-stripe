@@ -1,4 +1,4 @@
-/* global wc_stripe_settings_params */
+/* global wc_stripe_onboarding_params */
 /**
  * External dependencies
  */
@@ -19,7 +19,7 @@ if ( container ) {
 	ReactDOM.render(
 		<UpeToggleContextProvider
 			defaultIsUpeEnabled={
-				wc_stripe_settings_params.is_upe_checkout_enabled === '1'
+				wc_stripe_onboarding_params.is_upe_checkout_enabled === '1'
 			}
 		>
 			<OnboardingWizard />
