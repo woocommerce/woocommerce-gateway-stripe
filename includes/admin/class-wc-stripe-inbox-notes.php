@@ -33,7 +33,10 @@ class WC_Stripe_Inbox_Notes {
 	}
 
 	public static function create_upe_availability_note() {
-		WC_Stripe_UPE_Availability_Note::init();
+		if ( version_compare( WC_VERSION, '4.4.0', '>=' ) ) {
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
+			WC_Stripe_UPE_Availability_Note::init();
+		}
 	}
 
 	public static function get_campaign_2020_cutoff() {

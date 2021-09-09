@@ -217,10 +217,6 @@ function woocommerce_gateway_stripe() {
 					add_filter( 'woocommerce_get_sections_checkout', [ $this, 'filter_gateway_order_admin' ] );
 				}
 
-				if ( version_compare( WC_VERSION, '4.4.0', '>=' ) ) {
-					require_once dirname( __FILE__ ) . '/includes/notes/class-wc-stripe-upe-availability-note.php';
-				}
-
 				new WC_Stripe_UPE_Compatibility_Controller();
 			}
 
