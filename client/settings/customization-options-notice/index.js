@@ -4,7 +4,7 @@
 import React, { useContext } from 'react';
 import styled from '@emotion/styled';
 import { __ } from '@wordpress/i18n';
-import { useSelect, dispatch } from '@wordpress/data';
+import { useSelect, useDispatch } from '@wordpress/data';
 import { useCallback } from '@wordpress/element';
 import interpolateComponents from 'interpolate-components';
 
@@ -44,11 +44,13 @@ const CustomizationOptionsNotice = () => {
 		return hasFinishedResolving && ! isOptionDismissed;
 	} );
 
+	const optionsDispatch = useDispatch( 'wc/admin/options' );
+
 	const handleDismissNotice = useCallback( () => {
-		dispatch( 'wc/admin/options' ).updateOptions( {
+		optionsDispatch.updateOptions( {
 			[ CUSTOMIZATION_OPTIONS_NOTICE_OPTION ]: 'no',
 		} );
-	}, [] );
+	}, [ optionsDispatch ] );
 
 	if ( ! isUpeEnabled || ! isCustomizationOptionsNoticeVisible ) {
 		return null;

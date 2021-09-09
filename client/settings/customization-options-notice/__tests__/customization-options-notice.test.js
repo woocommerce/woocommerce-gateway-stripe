@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import { screen, render } from '@testing-library/react';
-import { useSelect, dispatch } from '@wordpress/data';
+import { useSelect, useDispatch } from '@wordpress/data';
 
 /**
  * Internal dependencies
@@ -20,7 +20,7 @@ jest.mock( '@wordpress/a11y', () => ( {
 
 describe( 'CustomizationOptionsNotice', () => {
 	beforeEach( () => {
-		dispatch.mockImplementation( () => ( {
+		useDispatch.mockImplementation( () => ( {
 			updateOptions: jest.fn(),
 		} ) );
 	} );
@@ -75,15 +75,13 @@ describe( 'CustomizationOptionsNotice', () => {
 			return callback( selectMock );
 		} );
 
-		render(
+		const { container } = render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
 				<CustomizationOptionsNotice />
 			</UpeToggleContext.Provider>
 		);
 
-		expect(
-			screen.queryByText( 'Where are the customization options?' )
-		).not.toBeInTheDocument();
+		expect( container.firstChild ).toBeNull();
 	} );
 
 	it( 'should not render the notice when UPE is enabled but `wc_show_upe_customization_options_notice` is disabled', () => {
@@ -101,14 +99,25 @@ describe( 'CustomizationOptionsNotice', () => {
 			return callback( selectMock );
 		} );
 
-		render(
+		const { container } = render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
 				<CustomizationOptionsNotice />
 			</UpeToggleContext.Provider>
 		);
 
-		expect(
-			screen.queryByText( 'Where are the customization options?' )
-		).not.toBeInTheDocument();
+		expect( container.firstChild ).toBeNull();
+	} );
+
+	it( 'should render (but not click) even though `useDispatch` returns `null`', () => {
+		useSelect.mockReturnValue( true );
+		useDispatch.mockReturnValue( null );
+
+		const { container } = render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
+				<CustomizationOptionsNotice />
+			</UpeToggleContext.Provider>
+		);
+
+		expect( container.firstChild ).not.toBeNull();
 	} );
 } );
