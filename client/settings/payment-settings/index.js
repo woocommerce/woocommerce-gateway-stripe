@@ -3,9 +3,13 @@
  */
 import React from 'react';
 import { __ } from '@wordpress/i18n';
-import { Card, CardHeader, DropdownMenu } from '@wordpress/components';
+import {
+	Card,
+	CardHeader,
+	DropdownMenu,
+	ExternalLink,
+} from '@wordpress/components';
 import { moreVertical } from '@wordpress/icons';
-import { Card, ExternalLink } from '@wordpress/components';
 
 /**
  * Internal dependencies
