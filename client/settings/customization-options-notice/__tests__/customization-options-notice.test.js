@@ -3,12 +3,12 @@
  */
 import React from 'react';
 import { screen, render } from '@testing-library/react';
-import { useSelect, useDispatch } from '@wordpress/data';
+import { useSelect, dispatch } from '@wordpress/data';
 
 /**
  * Internal dependencies
  */
-import CustomizationOptionNotice from '..';
+import CustomizationOptionsNotice from '..';
 import UpeToggleContext from '../../upe-toggle/context';
 
 jest.mock( '@wordpress/data' );
@@ -18,9 +18,9 @@ jest.mock( '@wordpress/a11y', () => ( {
 	speak: jest.fn(),
 } ) );
 
-describe( 'CustomizationOptionNotice', () => {
+describe( 'CustomizationOptionsNotice', () => {
 	beforeEach( () => {
-		useDispatch.mockImplementation( () => ( {
+		dispatch.mockImplementation( () => ( {
 			updateOptions: jest.fn(),
 		} ) );
 	} );
@@ -46,7 +46,7 @@ describe( 'CustomizationOptionNotice', () => {
 
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<CustomizationOptionNotice />
+				<CustomizationOptionsNotice />
 			</UpeToggleContext.Provider>
 		);
 
@@ -77,7 +77,7 @@ describe( 'CustomizationOptionNotice', () => {
 
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<CustomizationOptionNotice />
+				<CustomizationOptionsNotice />
 			</UpeToggleContext.Provider>
 		);
 
@@ -103,7 +103,7 @@ describe( 'CustomizationOptionNotice', () => {
 
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<CustomizationOptionNotice />
+				<CustomizationOptionsNotice />
 			</UpeToggleContext.Provider>
 		);
 

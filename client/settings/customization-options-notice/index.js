@@ -4,7 +4,7 @@
 import React, { useContext } from 'react';
 import styled from '@emotion/styled';
 import { __ } from '@wordpress/i18n';
-import { useSelect, useDispatch } from '@wordpress/data';
+import { useSelect, dispatch } from '@wordpress/data';
 import { useCallback } from '@wordpress/element';
 import interpolateComponents from 'interpolate-components';
 
@@ -26,7 +26,7 @@ const NoticeWrapper = styled( InlineNotice )`
 const CUSTOMIZATION_OPTIONS_NOTICE_OPTION =
 	'wc_show_upe_customization_options_notice';
 
-const CustomizationOptionNotice = () => {
+const CustomizationOptionsNotice = () => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
 	const isCustomizationOptionsNoticeVisible = useSelect( ( select ) => {
@@ -44,13 +44,11 @@ const CustomizationOptionNotice = () => {
 		return hasFinishedResolving && ! isOptionDismissed;
 	} );
 
-	const { updateOptions } = useDispatch( 'wc/admin/options' );
-
 	const handleDismissNotice = useCallback( () => {
-		updateOptions( {
+		dispatch( 'wc/admin/options' ).updateOptions( {
 			[ CUSTOMIZATION_OPTIONS_NOTICE_OPTION ]: 'no',
 		} );
-	}, [ updateOptions ] );
+	}, [] );
 
 	if ( ! isUpeEnabled || ! isCustomizationOptionsNoticeVisible ) {
 		return null;
@@ -71,4 +69,4 @@ const CustomizationOptionNotice = () => {
 	);
 };
 
-export default CustomizationOptionNotice;
+export default CustomizationOptionsNotice;
