@@ -48,8 +48,8 @@ const ImageWrapper = styled.div`
 	}
 `;
 
-const UPEOptInBanner = () => (
-	<BannerWrapper>
+const UpeOptInBanner = ( props ) => (
+	<BannerWrapper { ...props }>
 		<InformationWrapper>
 			<Pill>{ __( 'Early access', 'woocommerce-gateway-stripe' ) }</Pill>
 			<h3>
@@ -94,7 +94,7 @@ const bannerContainer = document.getElementById(
 );
 
 if ( bannerContainer ) {
-	ReactDOM.render( <UPEOptInBanner />, bannerContainer );
+	ReactDOM.render( <UpeOptInBanner />, bannerContainer );
 }
 
-export default UPEOptInBanner;
+export default UpeOptInBanner;

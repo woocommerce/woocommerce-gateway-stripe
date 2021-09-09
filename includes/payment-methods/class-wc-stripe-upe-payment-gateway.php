@@ -21,6 +21,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		WC_Stripe_UPE_Payment_Method_Eps::class,
 		WC_Stripe_UPE_Payment_Method_Bancontact::class,
 		WC_Stripe_UPE_Payment_Method_Ideal::class,
+		WC_Stripe_UPE_Payment_Method_Sepa::class,
 	];
 
 	const UPE_APPEARANCE_TRANSIENT = 'wc_stripe_upe_appearance';
@@ -79,6 +80,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$this->supports           = [
 			'products',
 			'refunds',
+			'tokenization',
+			'add_payment_method',
 		];
 
 		$this->payment_methods = [];
@@ -205,16 +208,26 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			]
 		);
 
+		$enabled_billing_fields = [];
+		foreach ( WC()->checkout()->get_checkout_fields( 'billing' ) as $billing_field => $billing_field_options ) {
+			if ( ! isset( $billing_field_options['enabled'] ) || $billing_field_options['enabled'] ) {
+				$enabled_billing_fields[] = $billing_field;
+			}
+		}
+
 		$stripe_params['isCheckout']               = is_checkout() && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
 		$stripe_params['return_url']               = $this->get_stripe_return_url();
 		$stripe_params['ajax_url']                 = WC_AJAX::get_endpoint( '%%endpoint%%' );
 		$stripe_params['createPaymentIntentNonce'] = wp_create_nonce( 'wc_stripe_create_payment_intent_nonce' );
 		$stripe_params['updatePaymentIntentNonce'] = wp_create_nonce( 'wc_stripe_update_payment_intent_nonce' );
+		$stripe_params['createSetupIntentNonce']   = wp_create_nonce( 'wc_stripe_create_setup_intent_nonce' );
 		$stripe_params['upeAppeareance']           = get_transient( self::UPE_APPEARANCE_TRANSIENT );
 		$stripe_params['saveUPEAppearanceNonce']   = wp_create_nonce( 'wc_stripe_save_upe_appearance_nonce' );
 		$stripe_params['paymentMethodsConfig']     = $this->get_enabled_payment_method_config();
-		$stripe_params['accountDescriptor']        = 'accountDescriptor'; // TODO: this should be added to the Stripe settings page or remove it from here.
+		$stripe_params['accountDescriptor']        = $this->statement_descriptor;
+		$stripe_params['addPaymentReturnURL']      = wc_get_account_endpoint_url( 'payment-methods' );
 		$stripe_params['sepaElementsOptions']      = $sepa_elements_options;
+		$stripe_params['enabledBillingFields']     = $enabled_billing_fields;
 
 		if ( is_wc_endpoint_url( 'order-pay' ) ) {
 			$order_id                    = absint( get_query_var( 'order-pay' ) );
@@ -328,8 +341,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				<?php
 				$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
 				if ( $this->is_saved_cards_enabled() && ! empty( $methods_enabled_for_saved_payments ) ) {
+					$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page();
 					if ( is_user_logged_in() ) {
-						$this->save_payment_method_checkbox();
+						$this->save_payment_method_checkbox( $force_save_payment );
 					}
 				}
 				?>
@@ -348,7 +362,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			<?php
 		}
 	}
-
 
 	/**
 	 * Process the payment for a given order.
@@ -419,6 +432,54 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				)
 			),
 		];
+	}
+
+	/**
+	 * Check for a UPE redirect payment method on order received page or setup intent on payment methods page.
+	 *
+	 * @since x.x.x
+	 * @version x.x.x
+	 */
+	public function maybe_process_upe_redirect() {
+		if ( $this->is_payment_methods_page() ) {
+			if ( $this->is_setup_intent_success_creation_redirection() ) {
+				$setup_intent_id = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
+				$this->create_token_from_setup_intent( $setup_intent_id, wp_get_current_user() );
+				wc_add_notice( __( 'Payment method successfully added.', 'woocommerce-gateway-stripe' ) );
+			}
+			return;
+		}
+
+		if ( ! is_order_received_page() ) {
+			return;
+		}
+
+		$payment_method = isset( $_GET['wc_payment_method'] ) ? wc_clean( wp_unslash( $_GET['wc_payment_method'] ) ) : '';
+		if ( self::ID !== $payment_method ) {
+			return;
+		}
+
+		$is_nonce_valid = check_admin_referer( 'wc_stripe_process_redirect_order_nonce' );
+		if ( ! $is_nonce_valid || empty( $_GET['wc_payment_method'] ) ) {
+			return;
+		}
+
+		if ( ! empty( $_GET['payment_intent_client_secret'] ) ) {
+			$intent_id = isset( $_GET['payment_intent'] ) ? wc_clean( wp_unslash( $_GET['payment_intent'] ) ) : '';
+		} elseif ( ! empty( $_GET['setup_intent_client_secret'] ) ) {
+			$intent_id = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
+		} else {
+			return;
+		}
+
+		$order_id            = isset( $_GET['order_id'] ) ? wc_clean( wp_unslash( $_GET['order_id'] ) ) : '';
+		$save_payment_method = isset( $_GET['save_payment_method'] ) ? 'yes' === wc_clean( wp_unslash( $_GET['save_payment_method'] ) ) : false;
+
+		if ( empty( $intent_id ) || empty( $order_id ) ) {
+			return;
+		}
+
+		$this->process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method );
 	}
 
 	/**
@@ -515,7 +576,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return bool
 	 */
-	private function is_enabled_for_saved_payments( $payment_method_id ) {
+	public function is_enabled_for_saved_payments( $payment_method_id ) {
 		if ( ! isset( $this->payment_methods[ $payment_method_id ] ) ) {
 			return false;
 		}
@@ -687,5 +748,59 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			'order_key'      => $order->get_order_key(),
 			'payment_type'   => $payment_type,
 		];
+	}
+
+	/**
+	 * Returns true when viewing payment methods page.
+	 *
+	 * @return bool
+	 */
+	private function is_payment_methods_page() {
+		global $wp;
+
+		$page_id = wc_get_page_id( 'myaccount' );
+
+		return ( $page_id && is_page( $page_id ) && ( isset( $wp->query_vars['payment-methods'] ) ) );
+	}
+
+	/**
+	 * True if the request contains the values that indicates a redirection after a successful setup intent creation.
+	 *
+	 * @return bool
+	 */
+	private function is_setup_intent_success_creation_redirection() {
+		return ( ! empty( $_GET['setup_intent_client_secret'] ) & ! empty( $_GET['setup_intent'] ) & ! empty( $_GET['redirect_status'] ) && 'succeeded' === $_GET['redirect_status'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	}
+
+	/**
+	 * Adds a token to current user from a setup intent id.
+	 *
+	 * @param string  $setup_intent_id ID of the setup intent.
+	 * @param WP_User $user            User to add token to.
+	 *
+	 * @return WC_Payment_Token_CC|WC_Payment_Token_WCPay_SEPA The added token.
+	 *
+	 * @since x.x.x
+	 * @version x.x.x
+	 */
+	private function create_token_from_setup_intent( $setup_intent_id, $user ) {
+		try {
+			$setup_intent = WC_Stripe_API::retrieve( 'setup_intents/' . $setup_intent_id );
+			if ( ! empty( $setup_intent->last_payment_error ) ) {
+				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			$payment_method_id = $setup_intent->payment_method;
+			$payment_method_object = WC_Stripe_API::retrieve( 'payment_methods/' . $payment_method_id );
+
+			$payment_method = $this->payment_methods[ $payment_method_object->type ];
+			return $payment_method->add_payment_token_to_user( $user, $payment_method_object );
+		} catch ( Exception $e ) {
+			wc_add_notice( $e->getMessage(), 'error', [ 'icon' => 'error' ] );
+			Logger::log( 'Error when adding payment method: ' . $e->getMessage() );
+			return [
+				'result' => 'error',
+			];
+		}
 	}
 }
