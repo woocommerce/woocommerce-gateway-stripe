@@ -29,8 +29,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 		// The routes in WC_REST_Stripe_Settings_Controller are only registered if `_wcstripe_feature_upe = "yes"`.
 		update_option( '_wcstripe_feature_upe', 'yes' );
-
-		do_action( 'rest_api_init' );
 	}
 
 	public function test_get_settings_request_returns_status_code_200() {
@@ -84,7 +82,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 *
 	 * @return Closure
 	 */
-	private function create_can_manage_woocommerce_cap_override( bool $can_manage_woocommerce ) {
+	private function create_can_manage_woocommerce_cap_override( $can_manage_woocommerce ) {
 		return function ( $allcaps ) use ( $can_manage_woocommerce ) {
 			$allcaps['manage_woocommerce'] = $can_manage_woocommerce;
 

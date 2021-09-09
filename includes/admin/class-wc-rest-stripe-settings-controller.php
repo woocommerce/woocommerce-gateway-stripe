@@ -94,7 +94,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 	 * @param WP_REST_Request $request Request object.
 	 */
 	private function update_is_payment_request_enabled( WP_REST_Request $request ) {
-		if ( ! $request->has_param( 'is_payment_request_enabled' ) ) {
+		if ( null === $request->get_param( 'is_payment_request_enabled' ) ) {
 			return;
 		}
 
