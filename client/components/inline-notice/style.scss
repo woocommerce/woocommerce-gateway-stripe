@@ -5,13 +5,13 @@
 	&#{&} {
 		margin: 0;
 		margin-bottom: $grid-unit-30;
+
+		&.is-dismissible {
+			padding-right: 12px;
+		}
 	}
 
 	&.is-info {
 		background: #def1f7;
-	}
-
-	&.components-notice.is-dismissible {
-		padding-right: 12px;
 	}
 }
