@@ -773,10 +773,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		return (object) [
-			'token_id'      => $wc_token_id,
-			'customer'      => $customer_id,
-			'source'        => $source_id,
-			'source_object' => $source_object,
+			'token_id'       => $wc_token_id,
+			'customer'       => $customer_id,
+			'source'         => $source_id,
+			'source_object'  => $source_object,
+			'payment_method' => null,
 		];
 	}
 
@@ -835,10 +836,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		return (object) [
-			'token_id'      => $token_id,
-			'customer'      => $stripe_customer ? $stripe_customer->get_id() : false,
-			'source'        => $stripe_source,
-			'source_object' => $source_object,
+			'token_id'       => $token_id,
+			'customer'       => $stripe_customer ? $stripe_customer->get_id() : false,
+			'source'         => $stripe_source,
+			'source_object'  => $source_object,
+			'payment_method' => null,
 		];
 	}
 
