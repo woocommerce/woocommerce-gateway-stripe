@@ -28,6 +28,7 @@ class WC_Stripe_Intent_Controller {
 
 		add_action( 'wc_ajax_wc_stripe_create_payment_intent', [ $this, 'create_payment_intent_ajax' ] );
 		add_action( 'wc_ajax_wc_stripe_update_payment_intent', [ $this, 'update_payment_intent_ajax' ] );
+		add_action( 'wc_ajax_wc_stripe_init_setup_intent', [ $this, 'init_setup_intent_ajax' ] );
 
 		add_action( 'wc_ajax_wc_stripe_save_upe_appearance', [ $this, 'save_upe_appearance_ajax' ] );
 		add_action( 'wc_ajax_nopriv_wc_stripe_save_upe_appearance', [ $this, 'save_upe_appearance_ajax' ] );
@@ -38,17 +39,12 @@ class WC_Stripe_Intent_Controller {
 	 * Returns an instantiated gateway.
 	 *
 	 * @since 4.2.0
-	 * @return WC_Gateway_Stripe
+	 * @return WC_Stripe_Payment_Gateway
 	 */
 	protected function get_gateway() {
 		if ( ! isset( $this->gateway ) ) {
-			if ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) {
-				$class_name = 'WC_Stripe_Subs_Compat';
-			} else {
-				$class_name = 'WC_Gateway_Stripe';
-			}
-
-			$this->gateway = new $class_name();
+			$gateways      = WC()->payment_gateways()->payment_gateways();
+			$this->gateway = $gateways[ WC_Gateway_Stripe::ID ];
 		}
 
 		return $this->gateway;
@@ -263,7 +259,7 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
-	 * Handle AJAX request for creating a payment intent for Stripe UPE.
+	 * Handle AJAX requests for creating a payment intent for Stripe UPE.
 	 */
 	public function create_payment_intent_ajax() {
 		try {
@@ -303,14 +299,18 @@ class WC_Stripe_Intent_Controller {
 			$amount = $order->get_total();
 		}
 
-		$gateway = new WC_Stripe_UPE_Payment_Gateway();
+		$gateway = $this->get_gateway();
+		if ( ! is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+			throw new Exception( __( "We're not able to process this payment.", 'woocommerce-gateway-stripe' ) );
+		}
+		$enabled_payment_methods = $gateway->get_upe_enabled_at_checkout_payment_method_ids();
 
 		$currency       = get_woocommerce_currency();
 		$payment_intent = WC_Stripe_API::request(
 			[
 				'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
 				'currency'             => strtolower( $currency ),
-				'payment_method_types' => $gateway->get_upe_enabled_payment_method_ids(),
+				'payment_method_types' => $enabled_payment_methods,
 			],
 			'payment_intents'
 		);
@@ -411,6 +411,68 @@ class WC_Stripe_Intent_Controller {
 
 		return [
 			'success' => true,
+		];
+	}
+
+	/**
+	 * Handle AJAX requests for creating a setup intent without confirmation for Stripe UPE.
+	 *
+	 * @since x.x.x
+	 * @version x.x.x
+	 */
+	public function init_setup_intent_ajax() {
+		try {
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_setup_intent_nonce', false, false );
+			if ( ! $is_nonce_valid ) {
+				throw new Exception( __( "We're not able to add this payment method. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			wp_send_json_success( $this->init_setup_intent(), 200 );
+		} catch ( Exception $e ) {
+			// Send back error, so it can be displayed to the customer.
+			wp_send_json_error(
+				[
+					'error' => [
+						'message' => $e->getMessage(),
+					],
+				]
+			);
+		}
+	}
+
+	/**
+	 * Creates a setup intent without confirmation.
+	 *
+	 * @since x.x.x
+	 * @version x.x.x
+	 * @return array
+	 * @throws Exception If customer for the current user cannot be read/found.
+	 */
+	public function init_setup_intent() {
+		// Determine the customer managing the payment methods, create one if we don't have one already.
+		$user        = wp_get_current_user();
+		$customer    = new WC_Stripe_Customer( $user->ID );
+		$customer_id = $customer->get_id();
+		if ( empty( $customer_id ) ) {
+			$customer_data = WC_Stripe_Customer::map_customer_data( null, new WC_Customer( $user->ID ) );
+			$customer_id   = $customer->create_customer( $customer_data );
+		}
+
+		$gateway              = new WC_Stripe_UPE_Payment_Gateway();
+		$payment_method_types = array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] );
+
+		$setup_intent = WC_Stripe_API::request(
+			[
+				'customer'             => $customer_id,
+				'confirm'              => 'false',
+				'payment_method_types' => $payment_method_types,
+			],
+			'setup_intents'
+		);
+
+		return [
+			'id'            => $setup_intent->id,
+			'client_secret' => $setup_intent->client_secret,
 		];
 	}
 

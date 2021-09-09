@@ -11,6 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
+
+	const ID = 'stripe_sepa';
+
 	/**
 	 * The delay between retries.
 	 *

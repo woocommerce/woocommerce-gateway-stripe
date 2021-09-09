@@ -161,6 +161,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-eps.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-bancontact.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sofort.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-giropay.php';
@@ -357,6 +358,7 @@ function woocommerce_gateway_stripe() {
 				} else {
 					// These payment gateways will be hidden when UPE is enabled:
 					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Subs_Compat::class : WC_Gateway_Stripe::class;
+					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Sepa_Subs_Compat::class : WC_Gateway_Stripe_Sepa::class;
 					$methods[] = WC_Gateway_Stripe_Giropay::class;
 					$methods[] = WC_Gateway_Stripe_Ideal::class;
 					$methods[] = WC_Gateway_Stripe_Bancontact::class;
@@ -364,7 +366,6 @@ function woocommerce_gateway_stripe() {
 				}
 
 				// These payment gateways will always be visible, regardless if UPE is enabled or disabled:
-				$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Sepa_Subs_Compat::class : WC_Gateway_Stripe_Sepa::class;
 				$methods[] = WC_Gateway_Stripe_Sofort::class;
 				$methods[] = WC_Gateway_Stripe_P24::class;
 				$methods[] = WC_Gateway_Stripe_Alipay::class;

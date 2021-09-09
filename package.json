@@ -26,8 +26,11 @@
     "@wordpress/babel-preset-default": "^6.3.1",
     "@wordpress/base-styles": "^3.6.0",
     "@wordpress/components": "^15.0.0",
+    "@wordpress/data": "^6.0.1",
     "@wordpress/i18n": "^4.2.1",
+    "@wordpress/icons": "^5.0.1",
     "@wordpress/jest-preset-default": "^7.1.0",
+    "@wordpress/primitives": "^3.0.0",
     "@wordpress/scripts": "^13.0.2",
     "@wordpress/url": "^3.2.1",
     "archiver": "^5.0.0",
@@ -70,6 +73,7 @@
     "@stripe/stripe-js": "1.11.0",
     "@wordpress/icons": "^5.0.1",
     "classnames": "^2.3.1",
+    "gridicons": "^3.4.0",
     "interpolate-components": "^1.1.1"
   },
   "assets": {
