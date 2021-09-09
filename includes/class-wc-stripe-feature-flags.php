@@ -22,8 +22,6 @@ class WC_Stripe_Feature_Flags {
 	 * @return bool
 	 */
 	public static function is_upe_checkout_enabled() {
-		delete_option('wc_show_upe_customization_options_notice');
-		return true;
 		$stripe_settings = get_option( 'woocommerce_stripe_settings', null );
 		return ! empty( $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) && 'yes' === $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ];
 	}
