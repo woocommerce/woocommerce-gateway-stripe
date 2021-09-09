@@ -30,7 +30,11 @@ export default styled( AllPaymentMethodsIcon )`
 		top: 0;
 		height: 100%;
 		width: 50%;
-		background: linear-gradient( 0.25turn, transparent, #f7f9fc );
+		background: linear-gradient(
+			0.25turn,
+			rgba( 255, 255, 255, 0 ),
+			#f7f9fc
+		);
 	}
 
 	img {
