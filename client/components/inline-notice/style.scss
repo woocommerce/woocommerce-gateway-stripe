@@ -1,6 +1,6 @@
 @import "../../styles/abstracts/styles.scss";
 
-.wcpay-inline-notice {
+.wcstripe-inline-notice {
 	// increasing the specificity of the styles to override the Gutenberg ones
 	&#{&} {
 		margin: 0;
@@ -9,5 +9,9 @@
 
 	&.is-info {
 		background: #def1f7;
+	}
+
+	&.components-notice.is-dismissible {
+		padding-right: 12px;
 	}
 }
