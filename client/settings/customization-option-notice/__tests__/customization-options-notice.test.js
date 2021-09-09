@@ -51,7 +51,7 @@ describe( 'CustomizationOptionNotice', () => {
 		);
 
 		expect(
-			screen.queryByText( 'Where are customization options?' )
+			screen.queryByText( 'Where are the customization options?' )
 		).toBeInTheDocument();
 		expect(
 			screen.queryByText(
@@ -82,7 +82,7 @@ describe( 'CustomizationOptionNotice', () => {
 		);
 
 		expect(
-			screen.queryByText( 'Where are customization options?' )
+			screen.queryByText( 'Where are the customization options?' )
 		).not.toBeInTheDocument();
 	} );
 
@@ -108,7 +108,7 @@ describe( 'CustomizationOptionNotice', () => {
 		);
 
 		expect(
-			screen.queryByText( 'Where are customization options?' )
+			screen.queryByText( 'Where are the customization options?' )
 		).not.toBeInTheDocument();
 	} );
 } );

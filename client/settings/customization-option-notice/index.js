@@ -4,7 +4,6 @@
 import React, { useContext } from 'react';
 import styled from '@emotion/styled';
 import { __ } from '@wordpress/i18n';
-import { Notice } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { useCallback } from '@wordpress/element';
 import interpolateComponents from 'interpolate-components';
@@ -12,16 +11,15 @@ import interpolateComponents from 'interpolate-components';
 /**
  * Internal dependencies
  */
+import InlineNotice from '../../components/inline-notice';
 import UpeToggleContext from '../upe-toggle/context';
 
-const NoticeWrapper = styled( Notice )`
-	background: #def1f7;
-	border-left: 4px solid #00aadc;
-	margin: 16px 0px;
-	padding-right: 12px;
+const NoticeWrapper = styled( InlineNotice )`
+	padding: 16px 24px;
 
-	&.is-dismissible {
-		padding-right: 12px;
+	&.wcstripe-inline-notice {
+		border-left: 4px solid #00aadc;
+		margin-bottom: 0;
 	}
 `;
 
@@ -62,7 +60,7 @@ const CustomizationOptionNotice = () => {
 		<NoticeWrapper isDismissible={ true } onRemove={ handleDismissNotice }>
 			{ interpolateComponents( {
 				mixedString: __(
-					'{{strong}}Where are customization options?{{/strong}} In the new checkout experience, payment method details are automatically displayed in your customers’ languages so you don’t have to worry about writing them manually.',
+					'{{strong}}Where are the customization options?{{/strong}} In the new checkout experience, payment method details are automatically displayed in your customers’ languages so you don’t have to worry about writing them manually.',
 					'woocommerce-gateway-stripe'
 				),
 				components: {
