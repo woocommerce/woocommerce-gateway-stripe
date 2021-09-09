@@ -1,9 +1,8 @@
 .account-details {
 
-	.components-card__body {
+	&__flex-container {
 		display: flex;
 		flex-direction: column;
-		padding: 24px 40px;
 	}
 
 	&__row {

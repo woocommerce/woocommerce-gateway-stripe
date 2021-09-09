@@ -84,7 +84,7 @@ const AccountStatus = ( props ) => {
 
 	return (
 		<div>
-			<div>
+			<div className="account-details__flex-container">
 				{ renderPaymentsStatus( accountStatus.paymentsEnabled ) }
 				{ renderdepositsEnabled( accountStatus.depositsEnabled ) }
 				{ renderBaseFees( accountStatus.baseFees ) }
