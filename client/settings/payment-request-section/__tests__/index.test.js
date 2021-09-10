@@ -5,9 +5,9 @@ import userEvent from '@testing-library/user-event';
 import PaymentRequestSection from '..';
 import {
 	usePaymentRequestEnabledSettings
-} from '../../../data/index';
+} from '../../../data';
 
-jest.mock( '../../../data/index', () => ( {
+jest.mock( '../../../data', () => ( {
 	usePaymentRequestEnabledSettings: jest.fn(),
 } ) );
 
