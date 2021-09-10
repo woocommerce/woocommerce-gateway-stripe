@@ -15,7 +15,7 @@ import GeneralSettingsSection from '../general-settings-section';
 import ApplePayIcon from '../../payment-method-icons/apple-pay';
 import GooglePayIcon from '../../payment-method-icons/google-pay';
 import UpeToggleContext from '../upe-toggle/context';
-import CustomizationOptionNotice from '../customization-option-notice';
+import CustomizationOptionsNotice from '../customization-options-notice';
 
 const IconsWrapper = styled.ul`
 	li {
@@ -78,7 +78,7 @@ const PaymentMethodsPanel = () => {
 		<>
 			<SettingsSection Description={ PaymentMethodsDescription }>
 				<GeneralSettingsSection />
-				<CustomizationOptionNotice />
+				<CustomizationOptionsNotice />
 			</SettingsSection>
 			<SettingsSection Description={ PaymentRequestDescription }>
 				<PaymentRequestSection />

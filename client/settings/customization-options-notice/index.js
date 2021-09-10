@@ -4,9 +4,10 @@
 import React, { useContext } from 'react';
 import styled from '@emotion/styled';
 import { __ } from '@wordpress/i18n';
-import { useSelect, dispatch } from '@wordpress/data';
+import { useSelect, useDispatch } from '@wordpress/data';
 import { useCallback } from '@wordpress/element';
 import interpolateComponents from 'interpolate-components';
+import { OPTIONS_STORE_NAME } from '@woocommerce/data';
 
 /**
  * Internal dependencies
@@ -15,10 +16,8 @@ import InlineNotice from '../../components/inline-notice';
 import UpeToggleContext from '../upe-toggle/context';
 
 const NoticeWrapper = styled( InlineNotice )`
-	padding: 16px 24px;
-
-	&.wcstripe-inline-notice {
-		border-left: 4px solid #00aadc;
+	// increasing the specificity to override the margin value.
+	&& {
 		margin-bottom: 0;
 	}
 `;
@@ -26,12 +25,12 @@ const NoticeWrapper = styled( InlineNotice )`
 const CUSTOMIZATION_OPTIONS_NOTICE_OPTION =
 	'wc_show_upe_customization_options_notice';
 
-const CustomizationOptionNotice = () => {
+const CustomizationOptionsNotice = () => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
 	const isCustomizationOptionsNoticeVisible = useSelect( ( select ) => {
 		const { getOption, hasFinishedResolution } = select(
-			'wc/admin/options'
+			OPTIONS_STORE_NAME
 		);
 
 		const hasFinishedResolving = hasFinishedResolution( 'getOption', [
@@ -44,11 +43,13 @@ const CustomizationOptionNotice = () => {
 		return hasFinishedResolving && ! isOptionDismissed;
 	} );
 
+	const { updateOptions } = useDispatch( OPTIONS_STORE_NAME );
+
 	const handleDismissNotice = useCallback( () => {
-		dispatch( 'wc/admin/options' ).updateOptions( {
+		updateOptions( {
 			[ CUSTOMIZATION_OPTIONS_NOTICE_OPTION ]: 'no',
 		} );
-	}, [] );
+	}, [ updateOptions ] );
 
 	if ( ! isUpeEnabled || ! isCustomizationOptionsNoticeVisible ) {
 		return null;
@@ -69,4 +70,4 @@ const CustomizationOptionNotice = () => {
 	);
 };
 
-export default CustomizationOptionNotice;
+export default CustomizationOptionsNotice;
