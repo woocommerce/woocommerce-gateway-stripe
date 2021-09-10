@@ -95,7 +95,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	public function get_payment_method_data() {
 		// We need to call array_merge_recursive so the blocks 'button' setting doesn't overwrite
 		// what's provided from the gateway or payment request configuration.
-		return array_merge_recursive(
+		return array_replace_recursive(
 			$this->get_gateway_javascript_params(),
 			$this->get_payment_request_javascript_params(),
 			// Blocks-specific options
