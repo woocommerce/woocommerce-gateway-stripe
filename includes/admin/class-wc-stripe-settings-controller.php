@@ -59,7 +59,7 @@ class WC_Stripe_Settings_Controller {
 			);
 			wp_register_style(
 				'woocommerce_stripe_admin',
-				plugins_url( 'build/style-upe_settings.css', WC_STRIPE_MAIN_FILE ),
+				plugins_url( 'build/upe_settings.css', WC_STRIPE_MAIN_FILE ),
 				[ 'wc-components' ],
 				$script_asset['version']
 			);

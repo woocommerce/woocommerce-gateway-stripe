@@ -8,17 +8,20 @@ import { useSelect, useDispatch } from '@wordpress/data';
 /**
  * Internal dependencies
  */
-import CustomizationOptionNotice from '..';
+import CustomizationOptionsNotice from '..';
 import UpeToggleContext from '../../upe-toggle/context';
 
 jest.mock( '@wordpress/data' );
+jest.mock( '@woocommerce/data', () => ( {
+	OPTIONS_STORE_NAME: 'wc/admin/options',
+} ) );
 
 jest.mock( '@wordpress/a11y', () => ( {
 	...jest.requireActual( '@wordpress/a11y' ),
 	speak: jest.fn(),
 } ) );
 
-describe( 'CustomizationOptionNotice', () => {
+describe( 'CustomizationOptionsNotice', () => {
 	beforeEach( () => {
 		useDispatch.mockImplementation( () => ( {
 			updateOptions: jest.fn(),
@@ -46,7 +49,7 @@ describe( 'CustomizationOptionNotice', () => {
 
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<CustomizationOptionNotice />
+				<CustomizationOptionsNotice />
 			</UpeToggleContext.Provider>
 		);
 
@@ -75,15 +78,13 @@ describe( 'CustomizationOptionNotice', () => {
 			return callback( selectMock );
 		} );
 
-		render(
+		const { container } = render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<CustomizationOptionNotice />
+				<CustomizationOptionsNotice />
 			</UpeToggleContext.Provider>
 		);
 
-		expect(
-			screen.queryByText( 'Where are the customization options?' )
-		).not.toBeInTheDocument();
+		expect( container.firstChild ).toBeNull();
 	} );
 
 	it( 'should not render the notice when UPE is enabled but `wc_show_upe_customization_options_notice` is disabled', () => {
@@ -101,14 +102,12 @@ describe( 'CustomizationOptionNotice', () => {
 			return callback( selectMock );
 		} );
 
-		render(
+		const { container } = render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<CustomizationOptionNotice />
+				<CustomizationOptionsNotice />
 			</UpeToggleContext.Provider>
 		);
 
-		expect(
-			screen.queryByText( 'Where are the customization options?' )
-		).not.toBeInTheDocument();
+		expect( container.firstChild ).toBeNull();
 	} );
 } );
