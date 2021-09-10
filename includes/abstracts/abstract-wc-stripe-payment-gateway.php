@@ -1395,7 +1395,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		// Try to confirm the intent & capture the charge (if 3DS is not required).
 		$confirm_request = [
-			'source' => $prepared_source->source,
+			'source'     => $prepared_source->source,
+			'return_url' => $order->get_checkout_payment_url( true ),
 		];
 
 		$level3_data      = $this->get_level3_data_from_order( $order );
@@ -1550,6 +1551,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				'payment_method' => $prepared_source->source,
 				'customer'       => $prepared_source->customer,
 				'confirm'        => 'true',
+				'return_url'     => $this->get_return_url( $order ),
 			],
 			'setup_intents'
 		);
@@ -1587,6 +1589,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'off_session'          => 'true',
 			'confirm'              => 'true',
 			'confirmation_method'  => 'automatic',
+			'return_url'           => $this->get_return_url( $order ),
 		];
 
 		if ( isset( $full_request['statement_descriptor'] ) ) {
