@@ -132,8 +132,6 @@ function woocommerce_gateway_stripe() {
 			public function __construct() {
 				add_action( 'admin_init', [ $this, 'install' ] );
 
-				$this->stripe_gateway = $this->create_stripe_gateway();
-
 				$this->init();
 
 				$this->api                           = new WC_Stripe_Connect_API();
@@ -196,6 +194,8 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-inbox-notes.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-upe-compatibility.php';
 				require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-upe-compatibility-controller.php';
+
+				$this->stripe_gateway = $this->create_stripe_gateway();
 
 				if ( is_admin() ) {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
