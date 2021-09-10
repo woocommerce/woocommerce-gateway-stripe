@@ -58,5 +58,6 @@ module.exports = {
 			'@wordpress/element',
 			'@wordpress/data',
 		],
+		'import/resolver': 'webpack',
 	},
 };
