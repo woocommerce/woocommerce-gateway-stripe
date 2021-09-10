@@ -60,6 +60,60 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array
 	 */
 	public function get_payment_method_script_handles() {
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			$this->register_upe_payment_method_script_handles();
+		} else {
+			$this->register_classic_payment_method_script_handles();
+		}
+
+		return [ 'wc-stripe-blocks-integration' ];
+	}
+
+	/**
+	 * Registers the UPE JS scripts.
+	 */
+	private function register_upe_payment_method_script_handles() {
+		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/upe_blocks.asset.php';
+		$version      = WC_STRIPE_VERSION;
+		$dependencies = [];
+		if ( file_exists( $asset_path ) ) {
+			$asset        = require $asset_path;
+			$version      = is_array( $asset ) && isset( $asset['version'] )
+				? $asset['version']
+				: $version;
+			$dependencies = is_array( $asset ) && isset( $asset['dependencies'] )
+				? $asset['dependencies']
+				: $dependencies;
+		}
+
+		// Manually register stripe since it's missing for UPE checkout for some reason.
+		wp_register_script(
+			'stripe',
+			'https://js.stripe.com/v3/',
+			[],
+			'3.0',
+			true
+		);
+
+		$dependencies[] = 'stripe';
+
+		wp_register_script(
+			'wc-stripe-blocks-integration',
+			WC_STRIPE_PLUGIN_URL . '/build/upe_blocks.js',
+			$dependencies,
+			$version,
+			true
+		);
+		wp_set_script_translations(
+			'wc-stripe-blocks-integration',
+			'woocommerce-gateway-stripe'
+		);
+	}
+
+	/**
+	 * Registers the classic JS scripts.
+	 */
+	private function register_classic_payment_method_script_handles() {
 		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/index.asset.php';
 		$version      = WC_STRIPE_VERSION;
 		$dependencies = [];
@@ -83,8 +137,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			'wc-stripe-blocks-integration',
 			'woocommerce-gateway-stripe'
 		);
-
-		return [ 'wc-stripe-blocks-integration' ];
 	}
 
 	/**
