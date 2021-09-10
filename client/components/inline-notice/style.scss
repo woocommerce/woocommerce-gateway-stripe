@@ -1,6 +1,6 @@
 @import "../../styles/abstracts/styles.scss";
 
-.wcstripe-inline-notice {
+.wc-stripe_inline-notice {
 	// increasing the specificity of the styles to override the Gutenberg ones
 	&#{&} {
 		margin: 0;
