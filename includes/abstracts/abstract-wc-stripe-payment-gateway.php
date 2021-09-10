@@ -1396,7 +1396,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// Try to confirm the intent & capture the charge (if 3DS is not required).
 		$confirm_request = [
 			'source'     => $prepared_source->source,
-			'return_url' => $order->get_checkout_payment_url( true ),
+			'return_url' => $this->get_return_url( $order ),
 		];
 
 		$level3_data      = $this->get_level3_data_from_order( $order );
