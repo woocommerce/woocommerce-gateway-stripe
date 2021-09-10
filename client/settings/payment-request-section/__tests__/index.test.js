@@ -11,22 +11,13 @@ jest.mock( '../../../data', () => ( {
 	usePaymentRequestEnabledSettings: jest.fn(),
 } ) );
 
-const getMockPaymentRequestEnabledSettings = (
-	isEnabled,
-	updateIsPaymentRequestEnabledHandler
-) => [ isEnabled, updateIsPaymentRequestEnabledHandler ];
-
 describe( 'PaymentRequestSection', () => {
 	beforeEach( () => {
-		usePaymentRequestEnabledSettings.mockReturnValue(
-			getMockPaymentRequestEnabledSettings( false, jest.fn() )
-		);
+		usePaymentRequestEnabledSettings.mockReturnValue( [ false, jest.fn() ] );
 	} );
 
 	it( 'should enable express checkout locations when express checkout is enabled', () => {
-		usePaymentRequestEnabledSettings.mockReturnValue(
-			getMockPaymentRequestEnabledSettings( true, jest.fn() )
-		);
+		usePaymentRequestEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
 
 		render( <PaymentRequestSection /> );
 
@@ -47,9 +38,7 @@ describe( 'PaymentRequestSection', () => {
 	} );
 
 	it( 'should disable express checkout locations when express checkout is disabled', () => {
-		usePaymentRequestEnabledSettings.mockReturnValue(
-			getMockPaymentRequestEnabledSettings( false, jest.fn() )
-		);
+		usePaymentRequestEnabledSettings.mockReturnValue( [ false, jest.fn() ] );
 
 		render( <PaymentRequestSection /> );
 
@@ -73,12 +62,7 @@ describe( 'PaymentRequestSection', () => {
 
 	it( 'should dispatch enabled status update if express checkout is being toggled', async () => {
 		const updateIsPaymentRequestEnabledHandler = jest.fn();
-		usePaymentRequestEnabledSettings.mockReturnValue(
-			getMockPaymentRequestEnabledSettings(
-				false,
-				updateIsPaymentRequestEnabledHandler
-			)
-		);
+		usePaymentRequestEnabledSettings.mockReturnValue( [ false, updateIsPaymentRequestEnabledHandler ] );
 
 		render( <PaymentRequestSection /> );
 
