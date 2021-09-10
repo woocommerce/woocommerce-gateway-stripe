@@ -132,6 +132,6 @@ class WC_REST_Stripe_Account_Keys_Controller extends WP_REST_Controller {
 
 		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
 
-		return new WP_REST_Response( [ 'result' => $settings ], 200 );
+		return new WP_REST_Response( [ 'result' => 'success' ], 200 );
 	}
 }
