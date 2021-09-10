@@ -10,8 +10,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
-	use WC_Stripe_Subscriptions_Trait;
-
 	const ID = 'stripe';
 
 	/**
@@ -532,6 +530,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 1.0.0
 	 * @since 4.1.0 Add 4th parameter to track previous error.
+	 * @version x.x.x
+	 *
 	 * @param int  $order_id Reference.
 	 * @param bool $retry Should we retry on fail.
 	 * @param bool $force_save_source Force save the payment source.
@@ -544,6 +544,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
 		try {
 			$order = wc_get_order( $order_id );
+
+			if ( $this->has_subscription( $order_id ) ) {
+				$force_save_source = true;
+			}
+
+			if ( $this->maybe_change_subscription_payment_method( $order_id ) ) {
+				return $this->process_change_subscription_payment_method( $order_id );
+			}
 
 			// ToDo: `process_pre_order` saves the source to the order for a later payment.
 			// This might not work well with PaymentIntents.

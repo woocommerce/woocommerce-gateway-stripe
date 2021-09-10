@@ -13,6 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
+
+	use WC_Stripe_Subscriptions_Trait;
+
 	/**
 	 * The delay between retries.
 	 *
@@ -451,16 +454,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		return wp_sanitize_redirect( esc_url_raw( add_query_arg( [ 'utm_nooverride' => '1' ], $this->get_return_url() ) ) );
-	}
-
-	/**
-	 * Is $order_id a subscription?
-	 *
-	 * @param  int $order_id
-	 * @return boolean
-	 */
-	public function has_subscription( $order_id ) {
-		return ( function_exists( 'wcs_order_contains_subscription' ) && ( wcs_order_contains_subscription( $order_id ) || wcs_is_subscription( $order_id ) || wcs_order_contains_renewal( $order_id ) ) );
 	}
 
 	/**
@@ -929,6 +922,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( is_callable( [ $order, 'save' ] ) ) {
 			$order->save();
 		}
+
+		$this->maybe_update_source_on_subscription_order( $order, $source );
 	}
 
 	/**
@@ -1235,7 +1230,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->source );
 
-		if ( $this->save_payment_method_requested() || $force_save_source ) {
+		if ( $this->save_payment_method_requested() || $this->has_subscription( $order ) || $force_save_source ) {
 			$request['setup_future_usage']              = 'off_session';
 			$request['metadata']['save_payment_method'] = 'true';
 		}

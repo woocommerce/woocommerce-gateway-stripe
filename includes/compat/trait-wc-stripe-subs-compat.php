@@ -7,19 +7,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Trait for Subscriptions compatibility.
  */
 trait WC_Stripe_Subscriptions_Trait {
-
-	// - TODO: Maybe move to an utilities file.
-	// Utilities
-	/**
-	 * Checks if subscriptions are enabled on the site.
-	 *
-	 * @return bool Whether subscriptions is enabled or not.
-	 */
-	public function is_subscriptions_enabled() {
-		return class_exists( 'WC_Subscriptions' ) && version_compare( WC_Subscriptions::$version, '2.2.0', '>=' );
-	}
-	// end Utilities
-
 	/**
 	 * Initialize subscription support and hooks.
 	 */
@@ -45,9 +32,9 @@ trait WC_Stripe_Subscriptions_Trait {
 		);
 
 		add_action( 'woocommerce_scheduled_subscription_payment_' . $this->id, [ $this, 'scheduled_subscription_payment' ], 10, 2 );
+		add_action( 'woocommerce_subscription_failing_payment_method_updated_' . $this->id, [ $this, 'update_failing_payment_method' ], 10, 2 );
 		add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
 		add_action( 'wcs_renewal_order_created', [ $this, 'delete_renewal_meta' ], 10 );
-		add_action( 'woocommerce_subscription_failing_payment_method_updated_stripe', [ $this, 'update_failing_payment_method' ], 10, 2 );
 		add_action( 'wc_stripe_cards_payment_fields', [ $this, 'display_update_subs_payment_checkout' ] );
 		add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', [ $this, 'handle_add_payment_method_success' ], 10, 2 );
 		add_action( 'woocommerce_subscriptions_change_payment_before_submit', [ $this, 'differentiate_change_payment_method_form' ] );
@@ -70,6 +57,30 @@ trait WC_Stripe_Subscriptions_Trait {
 		add_action( 'template_redirect', [ $this, 'restore_order_pay_var' ], 101 );
 	}
 
+	// - TODO: Maybe move to an utilities file.
+	// Utilities
+	/**
+	 * Checks if subscriptions are enabled on the site.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return bool Whether subscriptions is enabled or not.
+	 */
+	public function is_subscriptions_enabled() {
+		return class_exists( 'WC_Subscriptions' ) && version_compare( WC_Subscriptions::$version, '2.2.0', '>=' );
+	}
+
+	/**
+	 * Is $order_id a subscription?
+	 *
+	 * @param  int $order_id
+	 * @return boolean
+	 */
+	public function has_subscription( $order_id ) {
+		return ( function_exists( 'wcs_order_contains_subscription' ) && ( wcs_order_contains_subscription( $order_id ) || wcs_is_subscription( $order_id ) || wcs_order_contains_renewal( $order_id ) ) );
+	}
+	// end Utilities
+
 	/**
 	 * Checks to see if we need to hide the save checkbox field.
 	 * Because when cart contains a subs product, it will save regardless.
@@ -86,16 +97,6 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Is $order_id a subscription?
-	 *
-	 * @param  int $order_id
-	 * @return boolean
-	 */
-	public function has_subscription( $order_id ) {
-		return ( function_exists( 'wcs_order_contains_subscription' ) && ( wcs_order_contains_subscription( $order_id ) || wcs_is_subscription( $order_id ) || wcs_order_contains_renewal( $order_id ) ) );
-	}
-
-	/**
 	 * Checks if page is pay for order and change subs payment page.
 	 *
 	 * @since 4.0.4
@@ -103,6 +104,22 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function is_subs_change_payment() {
 		return ( isset( $_GET['pay_for_order'] ) && isset( $_GET['change_payment_method'] ) );
+	}
+
+	/**
+	 * Maybe process payment method change for subscriptions.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param int $order_id
+	 * @return bool
+	 */
+	public function maybe_change_subscription_payment_method( $order_id ) {
+		return (
+			$this->is_subscriptions_enabled() &&
+			$this->has_subscription( $order_id ) &&
+			$this->is_subs_change_payment()
+		);
 	}
 
 	/**
@@ -176,11 +193,11 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Process the payment method change for subscriptions.
 	 *
-	 * @since 4.0.4
-	 * @since 4.1.11 Remove 3DS check as it is not needed.
+	 * @since x.x.x
 	 * @param int $order_id
+	 * @return array|null
 	 */
-	public function change_subs_payment_method( $order_id ) {
+	public function process_change_subscription_payment_method( $order_id ) {
 		try {
 			$subscription    = wc_get_order( $order_id );
 			$prepared_source = $this->prepare_source( get_current_user_id(), true );
@@ -199,47 +216,6 @@ trait WC_Stripe_Subscriptions_Trait {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 		}
-	}
-
-	/**
-	 * Process the payment based on type.
-	 *
-	 * @param  int $order_id
-	 * @return array
-	 */
-	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
-		if ( $this->has_subscription( $order_id ) ) {
-			if ( $this->is_subs_change_payment() ) {
-				return $this->change_subs_payment_method( $order_id );
-			}
-
-			// Regular payment with force customer enabled
-			return parent::process_payment( $order_id, $retry, true, $previous_error, $use_order_source );
-		} else {
-			return parent::process_payment( $order_id, $retry, $force_save_source, $previous_error, $use_order_source );
-		}
-	}
-
-	/**
-	 * Overloads WC_Stripe_Payment_Gateway::generate_create_intent_request() in order to
-	 * include additional flags, used when setting payment intents up for off-session usage.
-	 *
-	 * @param WC_Order $order           The order that is being paid for.
-	 * @param object   $prepared_source The source that is used for the payment.
-	 * @return array                    The arguments for the request.
-	 */
-	public function generate_create_intent_request( $order, $prepared_source ) {
-		$request = parent::generate_create_intent_request( $order, $prepared_source );
-
-		// Non-subscription orders do not need any additional parameters.
-		if ( ! $this->has_subscription( $order ) ) {
-			return $request;
-		}
-
-		// Let Stripe know that the payment should be prepared for future usage.
-		$request['setup_future_usage'] = 'off_session';
-
-		return $request;
 	}
 
 	/**
@@ -280,7 +256,8 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			// Unlike regular off-session subscription payments, early renewals are treated as on-session payments, involving the customer.
 			if ( isset( $_REQUEST['process_early_renewal'] ) ) { // wpcs: csrf ok.
-				$response = parent::process_payment( $order_id, true, false, $previous_error, true );
+				// - TODO: When UPE, signature will be different.
+				$response = $this->process_payment( $order_id, true, false, $previous_error, true );
 
 				if ( 'success' === $response['result'] && isset( $response['payment_intent_secret'] ) ) {
 					$verification_url = add_query_arg(
@@ -421,11 +398,12 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Updates other subscription sources.
 	 *
-	 * @since 3.1.0
-	 * @version 4.0.0
+	 * @since x.x.x
 	 */
-	public function save_source_to_order( $order, $source ) {
-		parent::save_source_to_order( $order, $source );
+	public function maybe_update_source_on_subscription_order( $order, $source ) {
+		if ( ! $this->is_subscriptions_enabled() ) {
+			return;
+		}
 
 		$order_id = $order->get_id();
 
@@ -730,28 +708,28 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param WC_Order $order The renewal order.
 	 * @param stdClass $intent The Payment Intent object.
 	 */
-	protected function handle_intent_verification_success( $order, $intent ) {
-		parent::handle_intent_verification_success( $order, $intent );
+	// protected function handle_intent_verification_success( $order, $intent ) {
+	// 	parent::handle_intent_verification_success( $order, $intent );
 
-		if ( isset( $_GET['early_renewal'] ) ) { // wpcs: csrf ok.
-			wcs_update_dates_after_early_renewal( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ), $order );
-			wc_add_notice( __( 'Your early renewal order was successful.', 'woocommerce-gateway-stripe' ), 'success' );
-		}
-	}
+	// 	if ( isset( $_GET['early_renewal'] ) ) { // wpcs: csrf ok.
+	// 		wcs_update_dates_after_early_renewal( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ), $order );
+	// 		wc_add_notice( __( 'Your early renewal order was successful.', 'woocommerce-gateway-stripe' ), 'success' );
+	// 	}
+	// }
 
-	/**
-	 * During early renewals, instead of failing the renewal order, delete it and let Subs redirect to the checkout.
-	 *
-	 * @param WC_Order $order The renewal order.
-	 * @param stdClass $intent The Payment Intent object (unused).
-	 */
-	protected function handle_intent_verification_failure( $order, $intent ) {
-		if ( isset( $_GET['early_renewal'] ) ) {
-			$order->delete( true );
-			wc_add_notice( __( 'Payment authorization for the renewal order was unsuccessful, please try again.', 'woocommerce-gateway-stripe' ), 'error' );
-			$renewal_url = wcs_get_early_renewal_url( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ) );
-			wp_redirect( $renewal_url );
-			exit;
-		}
-	}
+	// /**
+	//  * During early renewals, instead of failing the renewal order, delete it and let Subs redirect to the checkout.
+	//  *
+	//  * @param WC_Order $order The renewal order.
+	//  * @param stdClass $intent The Payment Intent object (unused).
+	//  */
+	// protected function handle_intent_verification_failure( $order, $intent ) {
+	// 	if ( isset( $_GET['early_renewal'] ) ) {
+	// 		$order->delete( true );
+	// 		wc_add_notice( __( 'Payment authorization for the renewal order was unsuccessful, please try again.', 'woocommerce-gateway-stripe' ), 'error' );
+	// 		$renewal_url = wcs_get_early_renewal_url( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ) );
+	// 		wp_redirect( $renewal_url );
+	// 		exit;
+	// 	}
+	// }
 }
