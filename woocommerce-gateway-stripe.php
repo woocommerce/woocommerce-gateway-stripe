@@ -480,9 +480,12 @@ function woocommerce_gateway_stripe() {
 			 * @return array New value but with defaults initially filled in for missing settings.
 			 */
 			protected function toggle_upe( $settings, $old_settings ) {
+				// If there are no old settings, populate the variable with defaults.
 				if ( false === $old_settings ) {
 					$old_settings = [ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no' ];
 				}
+
+				// New UPE state not specified or not changed.
 				if ( ! isset( $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) || $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] === $old_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
 					return $settings;
 				}
@@ -534,8 +537,7 @@ function woocommerce_gateway_stripe() {
 			}
 
 			protected function disable_upe( $settings ) {
-				$upe_gateway            = new WC_Stripe_UPE_Payment_Gateway();
-				$upe_enabled_method_ids = $upe_gateway->get_upe_enabled_payment_method_ids();
+				$upe_enabled_method_ids = $this->stripe_gateway->get_upe_enabled_payment_method_ids();
 				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
 					if ( ! defined( "$method_class::LPM_GATEWAY_CLASS" ) || ! in_array( $method_class::STRIPE_ID, $upe_enabled_method_ids, true ) ) {
 						continue;
