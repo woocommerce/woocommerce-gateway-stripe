@@ -40,7 +40,7 @@ class WC_Stripe_Payment_Requests_Controller {
 
 		wp_register_style(
 			'wc_stripe-payment-requests_customizer',
-			plugins_url( 'build/style-payment_requests_customizer.css', WC_STRIPE_MAIN_FILE ),
+			plugins_url( 'build/payment_requests_customizer.css', WC_STRIPE_MAIN_FILE ),
 			[],
 			$script_asset['version']
 		);

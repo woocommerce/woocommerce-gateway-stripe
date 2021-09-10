@@ -4,6 +4,10 @@ const DependencyExtractionWebpackPlugin = require( '@woocommerce/dependency-extr
 
 module.exports = {
 	...defaultConfig,
+	optimization: {
+		...defaultConfig.optimization,
+		splitChunks: undefined,
+	},
 	plugins: [
 		...defaultConfig.plugins.filter(
 			( plugin ) =>
