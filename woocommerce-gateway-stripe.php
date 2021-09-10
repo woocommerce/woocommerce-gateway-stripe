@@ -100,6 +100,16 @@ function woocommerce_gateway_stripe() {
 			public $payment_request_configuration;
 
 			/**
+			 * Stripe gateway.
+			 *
+			 * Since WC_Stripe_Payment_Gateway is an abstract class, this can be an instance of
+			 * WC_Gateway_Stripe, WC_Stripe_Subs_Compat, or WC_Stripe_UPE_Payment_Gateway.
+			 *
+			 * @var WC_Stripe_Payment_Gateway
+			 */
+			public $stripe_gateway;
+
+			/**
 			 * Private clone method to prevent cloning of the instance of the
 			 * *Singleton* instance.
 			 *
@@ -121,6 +131,8 @@ function woocommerce_gateway_stripe() {
 			 */
 			public function __construct() {
 				add_action( 'admin_init', [ $this, 'install' ] );
+
+				$this->stripe_gateway = $this->create_stripe_gateway();
 
 				$this->init();
 
@@ -339,8 +351,13 @@ function woocommerce_gateway_stripe() {
 			 * @version 4.0.0
 			 */
 			public function add_gateways( $methods ) {
+				/*
+				 * The value of $this->stripe_gateway depends on the instance
+				 * returned by $this->create_stripe_gateway().
+				 */
+				$methods[] = $this->stripe_gateway;
+
 				if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Subs_Compat::class : WC_Gateway_Stripe::class;
 					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Sepa_Subs_Compat::class : WC_Gateway_Stripe_Sepa::class;
 					$methods[] = WC_Gateway_Stripe_Bancontact::class;
 					$methods[] = WC_Gateway_Stripe_Sofort::class;
@@ -350,14 +367,12 @@ function woocommerce_gateway_stripe() {
 					$methods[] = WC_Gateway_Stripe_P24::class;
 					$methods[] = WC_Gateway_Stripe_Alipay::class;
 					$methods[] = WC_Gateway_Stripe_Multibanco::class;
+
 					return $methods;
 				}
 
-				if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-					$methods[] = WC_Stripe_UPE_Payment_Gateway::class;
-				} else {
+				if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 					// These payment gateways will be hidden when UPE is enabled:
-					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Subs_Compat::class : WC_Gateway_Stripe::class;
 					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Sepa_Subs_Compat::class : WC_Gateway_Stripe_Sepa::class;
 					$methods[] = WC_Gateway_Stripe_Giropay::class;
 					$methods[] = WC_Gateway_Stripe_Ideal::class;
@@ -372,6 +387,23 @@ function woocommerce_gateway_stripe() {
 				$methods[] = WC_Gateway_Stripe_Multibanco::class;
 
 				return $methods;
+			}
+
+			/**
+			 * Creates an instance of one of WC_Stripe_Payment_Gateway's implementations.
+			 *
+			 * @return WC_Gateway_Stripe|WC_Stripe_Subs_Compat|WC_Stripe_UPE_Payment_Gateway
+			 */
+			private function create_stripe_gateway() {
+				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+					return new WC_Stripe_UPE_Payment_Gateway();
+				}
+
+				if ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) {
+					return new WC_Stripe_Subs_Compat();
+				}
+
+				return new WC_Gateway_Stripe();
 			}
 
 			/**
@@ -424,8 +456,7 @@ function woocommerce_gateway_stripe() {
 			 */
 			public function gateway_settings_update( $settings, $old_settings ) {
 				if ( false === $old_settings ) {
-					$gateway      = new WC_Gateway_Stripe();
-					$fields       = $gateway->get_form_fields();
+					$fields       = $this->stripe_gateway->get_form_fields();
 					$old_settings = array_merge( array_fill_keys( array_keys( $fields ), '' ), wp_list_pluck( $fields, 'default' ) );
 					$settings     = array_merge( $old_settings, $settings );
 				}
