@@ -12,7 +12,7 @@ import './style.scss';
 
 const InlineNotice = ( { className, ...restProps } ) => (
 	<Notice
-		className={ classNames( 'wc-stripe_inline-notice', className ) }
+		className={ classNames( 'wcstripe-inline-notice', className ) }
 		{ ...restProps }
 	/>
 );

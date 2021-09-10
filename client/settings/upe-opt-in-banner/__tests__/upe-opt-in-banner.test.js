@@ -10,24 +10,17 @@ import { screen, render } from '@testing-library/react';
 import UpeOptInBanner from '..';
 
 describe( 'UpeOptInBanner', () => {
-	it( 'should render the information', () => {
-		render( <UpeOptInBanner /> );
+	it( 'should render', () => {
+		render(
+			<UpeOptInBanner
+				title="Title mock"
+				description="Description mock"
+				Image={ () => null }
+			/>
+		);
 
-		expect(
-			screen.queryByText(
-				'Enable the new Stripe payment management experience'
-			)
-		).toBeInTheDocument();
-		expect(
-			screen.queryByText(
-				'Spend less time managing giropay and other payment methods in an improved settings and checkout experience, now available to select merchants.'
-			)
-		).toBeInTheDocument();
-	} );
-
-	it( 'should render the action elements', () => {
-		render( <UpeOptInBanner /> );
-
+		expect( screen.queryByText( 'Title mock' ) ).toBeInTheDocument();
+		expect( screen.queryByText( 'Description mock' ) ).toBeInTheDocument();
 		expect(
 			screen.queryByText( 'Enable in your store' )
 		).toBeInTheDocument();
