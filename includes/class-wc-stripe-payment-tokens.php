@@ -124,7 +124,7 @@ class WC_Stripe_Payment_Tokens {
 	 * @return array
 	 */
 	public function woocommerce_get_customer_payment_tokens( $tokens, $user_id, $gateway_id ) {
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_UPE_Payment_Gateway::ID === $gateway_id ) {
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			return $this->woocommerce_get_customer_upe_payment_tokens( $tokens, $user_id, $gateway_id );
 		} else {
 			return $this->woocommerce_get_customer_payment_tokens_legacy( $tokens, $user_id, $gateway_id );
@@ -188,6 +188,11 @@ class WC_Stripe_Payment_Tokens {
 						}
 					}
 				}
+				// Removes saved tokens that are not sources.
+				foreach ( $stored_tokens as $token ) {
+					unset( $tokens[ $token->get_id() ] );
+					$token->delete();
+				}
 			}
 
 			if ( 'stripe_sepa' === $gateway_id ) {
@@ -209,12 +214,11 @@ class WC_Stripe_Payment_Tokens {
 						}
 					}
 				}
-			}
-
-			// Removes saved tokens that are not sources.
-			foreach ( $stored_tokens as $token ) {
-				unset( $tokens[ $token->get_id() ] );
-				$token->delete();
+				// Removes saved tokens that are not sources.
+				foreach ( $stored_tokens as $token ) {
+					unset( $tokens[ $token->get_id() ] );
+					$token->delete();
+				}
 			}
 		}
 
@@ -231,19 +235,23 @@ class WC_Stripe_Payment_Tokens {
 	 * @return array
 	 */
 	public function woocommerce_get_customer_upe_payment_tokens( $tokens, $user_id, $gateway_id ) {
-		if ( is_user_logged_in() ) {
-			if ( count( $tokens ) >= get_option( 'posts_per_page' ) ) {
-				// The tokens data store is not paginated and only the first "post_per_page" (defaults to 10) tokens are retrieved.
-				// Having 10 saved credit cards is considered an unsupported edge case, new ones that have been stored in Stripe won't be added.
-				return $tokens;
-			}
+		if ( ( ! empty( $gateway_id ) && WC_Stripe_UPE_Payment_Gateway::ID !== $gateway_id ) || ! is_user_logged_in() ) {
+			return $tokens;
+		}
 
-			$gateway                  = new WC_Stripe_UPE_Payment_Gateway();
-			$reusable_payment_methods = array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] );
-			$customer                 = new WC_Stripe_Customer( $user_id );
-			$remaining_tokens         = [];
+		if ( count( $tokens ) >= get_option( 'posts_per_page' ) ) {
+			// The tokens data store is not paginated and only the first "post_per_page" (defaults to 10) tokens are retrieved.
+			// Having 10 saved credit cards is considered an unsupported edge case, new ones that have been stored in Stripe won't be added.
+			return $tokens;
+		}
 
-			foreach ( $tokens as $token ) {
+		$gateway                  = new WC_Stripe_UPE_Payment_Gateway();
+		$reusable_payment_methods = array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] );
+		$customer                 = new WC_Stripe_Customer( $user_id );
+		$remaining_tokens         = [];
+
+		foreach ( $tokens as $token ) {
+			if ( WC_Stripe_UPE_Payment_Gateway::ID === $token->get_gateway_id() ) {
 				$payment_method_type = $this->get_payment_method_type_from_token( $token );
 				if ( ! in_array( $payment_method_type, $reusable_payment_methods, true ) ) {
 					// Remove saved token from list, if payment method is not enabled.
@@ -254,48 +262,48 @@ class WC_Stripe_Payment_Tokens {
 					$remaining_tokens[ $token->get_token() ] = $token;
 				}
 			}
-
-			$retrievable_payment_method_types = [];
-			foreach ( $reusable_payment_methods as $payment_method_id ) {
-				$upe_payment_method = $gateway->payment_methods[ $payment_method_id ];
-				if ( ! in_array( $upe_payment_method->get_retrievable_type(), $retrievable_payment_method_types, true ) ) {
-					$retrievable_payment_method_types[] = $upe_payment_method->get_retrievable_type();
-				}
-			}
-
-			foreach ( $retrievable_payment_method_types as $payment_method_id ) {
-				$payment_methods = $customer->get_payment_methods( $payment_method_id );
-
-				// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
-				remove_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
-				foreach ( $payment_methods as $payment_method ) {
-					if ( ! isset( $remaining_tokens[ $payment_method->id ] ) ) {
-						$payment_method_type = $this->get_original_payment_method_type( $payment_method );
-						if ( ! in_array( $payment_method_type, $reusable_payment_methods, true ) ) {
-							continue;
-						}
-						// Create new token for new payment method and add to list.
-						$upe_payment_method         = $gateway->payment_methods[ $payment_method_type ];
-						$token                      = $upe_payment_method->add_token_to_user_from_payment_method( $user_id, $payment_method );
-						$tokens[ $token->get_id() ] = $token;
-					} else {
-						// Count that existing token for payment method is still present on Stripe.
-						// Remaining IDs in $remaining_tokens no longer exist with Stripe and will be eliminated.
-						unset( $remaining_tokens[ $payment_method->id ] );
-					}
-				}
-				add_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
-			}
-
-			// Eliminate remaining payment methods no longer known by Stripe.
-			// Prevent unnecessary recursion, when deleting tokens.
-			remove_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
-			foreach ( $remaining_tokens as $token ) {
-				unset( $tokens[ $token->get_id() ] );
-				$token->delete();
-			}
-			add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
 		}
+
+		$retrievable_payment_method_types = [];
+		foreach ( $reusable_payment_methods as $payment_method_id ) {
+			$upe_payment_method = $gateway->payment_methods[ $payment_method_id ];
+			if ( ! in_array( $upe_payment_method->get_retrievable_type(), $retrievable_payment_method_types, true ) ) {
+				$retrievable_payment_method_types[] = $upe_payment_method->get_retrievable_type();
+			}
+		}
+
+		foreach ( $retrievable_payment_method_types as $payment_method_id ) {
+			$payment_methods = $customer->get_payment_methods( $payment_method_id );
+
+			// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
+			remove_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
+			foreach ( $payment_methods as $payment_method ) {
+				if ( ! isset( $remaining_tokens[ $payment_method->id ] ) ) {
+					$payment_method_type = $this->get_original_payment_method_type( $payment_method );
+					if ( ! in_array( $payment_method_type, $reusable_payment_methods, true ) ) {
+						continue;
+					}
+					// Create new token for new payment method and add to list.
+					$upe_payment_method         = $gateway->payment_methods[ $payment_method_type ];
+					$token                      = $upe_payment_method->add_token_to_user_from_payment_method( $user_id, $payment_method );
+					$tokens[ $token->get_id() ] = $token;
+				} else {
+					// Count that existing token for payment method is still present on Stripe.
+					// Remaining IDs in $remaining_tokens no longer exist with Stripe and will be eliminated.
+					unset( $remaining_tokens[ $payment_method->id ] );
+				}
+			}
+			add_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
+		}
+
+		// Eliminate remaining payment methods no longer known by Stripe.
+		// Prevent unnecessary recursion, when deleting tokens.
+		remove_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
+		foreach ( $remaining_tokens as $token ) {
+			unset( $tokens[ $token->get_id() ] );
+			$token->delete();
+		}
+		add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
 
 		return $tokens;
 	}
