@@ -1078,6 +1078,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	protected function handle_intent_verification_success( $order, $intent ) {
 		$this->process_response( end( $intent->charges->data ), $order );
+		$this->maybe_process_subscription_early_renewal_success( $order, $intent );
 	}
 
 	/**
@@ -1089,6 +1090,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	protected function handle_intent_verification_failure( $order, $intent ) {
 		$this->failed_sca_auth( $order, $intent );
+		$this->maybe_process_subscription_early_renewal_failure( $order, $intent );
 	}
 
 	/**

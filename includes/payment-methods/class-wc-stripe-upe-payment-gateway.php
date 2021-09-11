@@ -13,8 +13,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 */
 class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
-	// use WC_Stripe_Subscriptions_Trait;
-
 	const ID = 'stripe';
 
 	const UPE_AVAILABLE_METHODS = [
@@ -113,9 +111,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Load the settings.
 		$this->init_settings();
-
-		// Check if subscriptions are enabled and add support for them.
-		$this->maybe_init_subscriptions();
 
 		$main_settings              = get_option( 'woocommerce_stripe_settings' );
 		$this->title                = $this->get_option( 'title' );
