@@ -2,19 +2,40 @@
  * External dependencies
  */
 import { useState, useEffect } from '@wordpress/element';
-import { Elements, PaymentElement } from '@stripe/react-stripe-js';
+import {
+	Elements,
+	ElementsConsumer,
+	PaymentElement,
+} from '@stripe/react-stripe-js';
 
 /**
  * Internal dependencies
  */
+import { confirmUpePayment } from './confirm-upe-payment';
 /* eslint-disable @woocommerce/dependency-group */
 import { getStripeServerData } from 'wcstripe/stripe-utils';
 /* eslint-enable */
 
-const UPEField = ( { api } ) => {
+const UPEField = ( {
+	api,
+	activePaymentMethod,
+	billing: { billingData },
+	elements,
+	emitResponse,
+	eventRegistration: {
+		onPaymentProcessing,
+		onCheckoutAfterProcessingWithSuccess,
+	},
+	shouldSavePayment,
+	stripe,
+} ) => {
 	const [ clientSecret, setClientSecret ] = useState( null );
 	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
+	const [ selectedUpePaymentType, setSelectedUpePaymentType ] = useState(
+		''
+	);
 	const [ hasRequestedIntent, setHasRequestedIntent ] = useState( false );
+	const [ isUpeComplete, setIsUpeComplete ] = useState( false );
 	const [ errorMessage, setErrorMessage ] = useState( null );
 
 	useEffect( () => {
@@ -40,6 +61,82 @@ const UPEField = ( { api } ) => {
 		setHasRequestedIntent( true );
 		createIntent();
 	}, [ paymentIntentId, hasRequestedIntent, api, errorMessage ] );
+
+	useEffect(
+		() =>
+			onPaymentProcessing( () => {
+				if ( activePaymentMethod !== 'stripe' ) {
+					return;
+				}
+
+				if ( ! isUpeComplete ) {
+					return {
+						type: 'error',
+						message: 'Your payment information is incomplete.',
+					};
+				}
+
+				if ( errorMessage ) {
+					return {
+						type: 'error',
+						message: errorMessage,
+					};
+				}
+
+				if (
+					shouldSavePayment /* &&
+				! paymentMethodsConfig[ selectedUPEPaymentType ].isReusable */
+				) {
+					return {
+						type: 'error',
+						message:
+							'This payment method can not be saved for future use.',
+					};
+				}
+			} ),
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[ activePaymentMethod, isUpeComplete, shouldSavePayment ]
+	);
+
+	useEffect(
+		() =>
+			onCheckoutAfterProcessingWithSuccess(
+				( { orderId, processingResponse: { paymentDetails } } ) => {
+					async function updateIntent() {
+						await api.updateIntent(
+							paymentIntentId,
+							orderId,
+							shouldSavePayment ? 'yes' : 'no',
+							selectedUpePaymentType
+						);
+
+						const paymentElement = elements.getElement(
+							PaymentElement
+						);
+
+						return confirmUpePayment(
+							api,
+							paymentDetails.redirect_url,
+							paymentDetails.payment_needed,
+							paymentElement,
+							billingData,
+							emitResponse
+						);
+					}
+
+					return updateIntent();
+				}
+			),
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[
+			api,
+			elements,
+			paymentIntentId,
+			selectedUpePaymentType,
+			shouldSavePayment,
+			stripe,
+		]
+	);
 
 	const elementOptions = {
 		clientSecret,
@@ -78,15 +175,27 @@ const UPEField = ( { api } ) => {
 	return (
 		<PaymentElement
 			options={ elementOptions }
-			onChange={ ( event ) => console.log( event ) }
+			onChange={ ( event ) => {
+				setIsUpeComplete( event.complete );
+				setSelectedUpePaymentType( event.value.type );
+			} }
 		/>
 	);
 };
 
-export const UPEPaymentForm = ( { api } ) => {
+export const UPEPaymentForm = ( { api, ...props } ) => {
 	return (
 		<Elements stripe={ api.getStripe() }>
-			<UPEField api={ api } />
+			<ElementsConsumer>
+				{ ( { stripe, elements } ) => (
+					<UPEField
+						api={ api }
+						elements={ elements }
+						stripe={ stripe }
+						{ ...props }
+					/>
+				) }
+			</ElementsConsumer>
 		</Elements>
 	);
 };
