@@ -627,10 +627,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 					// Redirect to bank page when appropriate.
 					if ( property_exists( $intent, 'next_action' ) && 'redirect_to_url' === $intent->next_action->type ) {
-						$manual_redirect = $intent->next_action->redirect_to_url->url;
 						return [
-							'result'          => 'success',
-							'manual_redirect' => $manual_redirect,
+							'result'   => 'success',
+							'redirect' => $intent->next_action->redirect_to_url->url,
 						];
 					}
 

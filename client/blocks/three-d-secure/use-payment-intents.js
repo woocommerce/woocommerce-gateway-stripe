@@ -28,9 +28,9 @@ const openIntentModal = ( {
 } ) => {
 	const checkoutResponse = { type: successType };
 
-	if ( paymentDetails.manual_redirect ) {
+	if ( paymentDetails.redirect ) {
 		// Need to redirect to bank instead of confirming via modal.
-		checkoutResponse.redirectUrl = paymentDetails.manual_redirect;
+		checkoutResponse.redirectUrl = paymentDetails.redirect;
 		return checkoutResponse;
 	}
 

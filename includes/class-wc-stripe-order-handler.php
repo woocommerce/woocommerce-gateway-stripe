@@ -26,6 +26,68 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_order_status_cancelled', [ $this, 'cancel_payment' ] );
 		add_action( 'woocommerce_order_status_refunded', [ $this, 'cancel_payment' ] );
 		add_filter( 'woocommerce_tracks_event_properties', [ $this, 'woocommerce_tracks_event_properties' ], 10, 2 );
+
+		add_action(
+			'wp',
+			function() {
+				if ( ! is_order_received_page() || empty( $_GET['payment_intent_client_secret'] ) || empty( $_GET['payment_intent'] ) ) {
+					return;
+				}
+
+				$order_id = isset( $_GET['order_id'] ) ? wc_clean( wp_unslash( $_GET['order_id'] ) ) : '';
+				$intent_id = wc_clean( wp_unslash( $_GET['payment_intent'] ) );
+
+				$order = wc_get_order( $order_id );
+
+				if ( ! is_object( $order ) ) {
+					return;
+				}
+
+				if ( $order->has_status( [ 'processing', 'completed', 'on-hold' ] ) ) {
+					return;
+				}
+
+				$intent = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
+
+				try {
+					// This will throw exception if not valid.
+					$this->validate_minimum_order_amount( $order );
+
+					$error = $intent->last_payment_error;
+
+					if ( ! empty( $error ) ) {
+						WC_Stripe_Logger::log( 'Error when processing payment: ' . $error->message );
+
+						$localized_messages = WC_Stripe_Helper::get_localized_messages();
+
+						if ( 'card_error' === $error->type ) {
+							$message = isset( $localized_messages[ $error->code ] ) ? $localized_messages[ $error->code ] : $error->message;
+						} else {
+							$message = isset( $localized_messages[ $error->type ] ) ? $localized_messages[ $error->type ] : $error->message;
+						}
+
+						throw new WC_Stripe_Exception( print_r( $error, true ), $message );
+					}
+
+					// TODO: this is to re-use the parent logic, maybe re-implement it to not use charges?,
+					// see: https://github.com/Automattic/woocommerce-payments/blob/b69532e92a381cf054f515896c56cc365e3904d4/includes/class-wc-payment-gateway-wcpay.php#L1125
+					$intent->captured = 'yes';
+
+					$this->process_response( $intent, $order );
+				} catch ( WC_Stripe_Exception $e ) {
+					WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+					do_action( 'wc_gateway_stripe_process_redirect_payment_error', $e, $order );
+
+					/* translators: error message */
+					$order->update_status( 'failed', sprintf( __( 'Stripe payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() ) );
+
+					wc_add_notice( $e->getLocalizedMessage(), 'error' );
+					wp_safe_redirect( wc_get_checkout_url() );
+					exit;
+				}
+			}
+		);
 	}
 
 	/**
