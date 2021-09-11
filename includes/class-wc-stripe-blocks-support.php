@@ -108,6 +108,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			'wc-stripe-blocks-integration',
 			'woocommerce-gateway-stripe'
 		);
+
+		wp_dequeue_script( 'wc-stripe-upe-classic' );
 	}
 
 	/**
