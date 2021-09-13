@@ -7,15 +7,8 @@ import React from 'react';
 /**
  * Internal dependencies
  */
-// import { useSettings } from '../data';
+import { useSettings } from '../data';
 import { LoadableBlock } from '../components/loadable';
-
-//TODO: This should come from data
-const useSettings = () => {
-	return {
-		isLoading: false
-	}
-};
 
 const LoadableSettingsSection = ( { children, numLines } ) => {
 	const { isLoading } = useSettings();
