@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import React from 'react';
+import { React } from 'react';
 import { __ } from '@wordpress/i18n';
 import { Card, ExternalLink } from '@wordpress/components';
 
@@ -13,6 +13,7 @@ import CardBody from '../card-body';
 import PaymentsAndTransactionsSection from '../payments-and-transactions-section';
 import AdvancedSettingsSection from '../advanced-settings-section';
 import CustomizationOptionsNotice from '../customization-options-notice';
+import GeneralSettingsSection from './general-settings-section';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -25,16 +26,25 @@ const GeneralSettingsDescription = () => (
 				'woocommerce-gateway-stripe'
 			) }
 		</p>
+		<p>
+			<ExternalLink href="?TODO">
+				{ __( 'View Stripe docs', 'woocommerce-gateway-stripe' ) }
+			</ExternalLink>
+		</p>
+		<p>
+			<ExternalLink href="?TODO">
+				{ __( 'Get support', 'woocommerce-gateway-stripe' ) }
+			</ExternalLink>
+		</p>
 	</>
 );
 
 const AccountDetailsDescription = () => (
 	<>
-		<h2>{ __( 'General', 'woocommerce-gateway-stripe' ) }</h2>
+		<h2>{ __( 'Account details', 'woocommerce-gateway-stripe' ) }</h2>
 		<p>
 			{ __(
-				'Connect the plugin to your Stripe account, view ' +
-					'account overview, and edit business details. ',
+				'View account overview and edit business details.',
 				'woocommerce-gateway-stripe'
 			) }
 		</p>
@@ -60,14 +70,6 @@ const PaymentsAndTransactionsDescription = () => (
 		</ExternalLink>
 	</>
 );
-
-const GeneralSettingsSection = () => {
-	return (
-		<Card>
-			<CardBody>The general settings card goes here.</CardBody>
-		</Card>
-	);
-};
 
 const AccountDetailsSection = () => {
 	return (
