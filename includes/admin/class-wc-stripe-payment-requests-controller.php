@@ -27,21 +27,21 @@ class WC_Stripe_Payment_Requests_Controller {
 				'version'      => WC_STRIPE_VERSION,
 			];
 		wp_register_script(
-			'wc-stripe-payment-requests-settings',
+			'wc-stripe-payment-request-settings',
 			plugins_url( 'build/payment_requests_settings.js', WC_STRIPE_MAIN_FILE ),
 			$asset_metadata['dependencies'],
 			$asset_metadata['version'],
 			true
 		);
-		wp_enqueue_script( 'wc-stripe-payment-requests-settings' );
+		wp_enqueue_script( 'wc-stripe-payment-request-settings' );
 
 		wp_register_style(
-			'wc-stripe-payment-requests-settings',
+			'wc-stripe-payment-request-settings',
 			plugins_url( 'build/payment_requests_settings.css', WC_STRIPE_MAIN_FILE ),
 			[ 'wc-components' ],
 			$asset_metadata['version']
 		);
-		wp_enqueue_style( 'wc-stripe-payment-requests-settings' );
+		wp_enqueue_style( 'wc-stripe-payment-request-settings' );
 	}
 
 	/**
@@ -54,6 +54,6 @@ class WC_Stripe_Payment_Requests_Controller {
 		echo '<h2>' . __( 'Customize express checkouts', 'woocommerce-gateway-stripe' );
 		wc_back_link( __( 'Return to Stripe', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 		echo '</h2>';
-		echo '<div class="wrap"><div id="wc-stripe-payment-requests-settings-container"></div></div>';
+		echo '<div class="wrap"><div id="wc-stripe-payment-request-settings-container"></div></div>';
 	}
 }

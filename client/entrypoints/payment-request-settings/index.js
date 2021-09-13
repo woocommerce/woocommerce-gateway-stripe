@@ -10,7 +10,7 @@ import ReactDOM from 'react-dom';
 import PaymentRequestsPage from './payment-request-page';
 
 const container = document.getElementById(
-	'wc-stripe-payment-requests-settings-container'
+	'wc-stripe-payment-request-settings-container'
 );
 
 if ( container ) {
