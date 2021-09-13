@@ -1,3 +1,4 @@
+@import '../../styles/abstracts/colors';
 .account-details {
 
 	&__flex-container {
@@ -28,6 +29,10 @@
 	&__desc {
 		margin-top: 1rem;
 		font-style: italic;
+	}
+
+	&__error {
+		color: $alert-red;
 	}
 }
 

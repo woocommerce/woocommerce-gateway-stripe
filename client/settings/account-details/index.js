@@ -69,6 +69,19 @@ const renderBaseFees = ( baseFees ) => {
 
 const AccountDetails = ( props ) => {
 	const { accountStatus } = props;
+	if ( accountStatus.error ) {
+		return (
+			<div>
+				<p className="account-details__error">
+					{ __(
+						'Error determining the connection status.',
+						'woocommerce-gateway-stripe'
+					) }
+				</p>
+			</div>
+		);
+	}
+
 	return (
 		<div>
 			<div className="account-details__flex-container">
