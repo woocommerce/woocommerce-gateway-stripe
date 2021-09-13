@@ -13,28 +13,29 @@ import { STORE_NAME } from '../constants';
 export const useSettings = () => {
 	const { saveSettings } = useDispatch( STORE_NAME );
 
-	return useSelect(
-		( select ) => {
-			const {
-				getSettings,
-				hasFinishedResolution,
-				isResolving,
-				isSavingSettings,
-			} = select( STORE_NAME );
+	const settings = useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
 
-			const isLoading =
-				isResolving( 'getSettings' ) ||
-				! hasFinishedResolution( 'getSettings' );
+		return getSettings();
+	}, [] );
 
-			return {
-				settings: getSettings(),
-				isLoading,
-				saveSettings,
-				isSaving: isSavingSettings(),
-			};
-		},
-		[ saveSettings ]
-	);
+	const isLoading = useSelect( ( select ) => {
+		const { hasFinishedResolution, isResolving } = select( STORE_NAME );
+
+		return (
+			isResolving( 'getSettings' ) ||
+			! hasFinishedResolution( 'getSettings' )
+		);
+	}, [] );
+
+	const isSaving = useSelect( ( select ) => {
+		const { isSavingSettings } = select( STORE_NAME );
+
+		return isSavingSettings();
+	}, [] );
+
+	return { settings, isLoading, isSaving, saveSettings };
+};
 };
 
 export const usePaymentRequestEnabledSettings = () => {
