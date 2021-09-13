@@ -10,7 +10,6 @@ import {
 	CheckboxControl,
 } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
-import styled from '@emotion/styled';
 
 /**
  * Internal dependencies
@@ -21,76 +20,48 @@ const GeneralSettingsSection = () => {
 	const [ enableStripe, setEnableStripe ] = useState( false );
 	const [ enableTestMode, setEnableTestMode ] = useState( false );
 
-	const toggleEnableStripe = () => setEnableStripe( ! enableStripe );
-	const toggleEnableTestMode = () => setEnableTestMode( ! enableTestMode );
-
-	const CheckboxDescription = styled.span`
-		font-style: italic;
-		display: block;
-	`;
-
-	const GeneralSettingsOptionWrapper = styled.div`
-		&:first-of-type {
-			margin-top: 26px;
-		}
-		&:not( :last-child ) {
-			margin-bottom: 26px;
-		}
-		&:last-child {
-			margin-bottom: 24px;
-		}
-	`;
-
 	return (
 		<Card>
 			<CardBody>
-				<GeneralSettingsOptionWrapper>
-					<CheckboxControl
-						checked={ enableStripe }
-						onChange={ toggleEnableStripe }
-						label={ __(
-							'Enable Stripe',
-							'woocommerce-gateway-stripe'
-						) }
-					/>
-					<CheckboxDescription>
-						{ __(
-							'When enabled, payment methods powered by Stripe will appear on checkout.',
-							'woocommerce-gateway-stripe'
-						) }
-					</CheckboxDescription>
-				</GeneralSettingsOptionWrapper>
+				<CheckboxControl
+					checked={ enableStripe }
+					onChange={ setEnableStripe }
+					label={ __(
+						'Enable Stripe',
+						'woocommerce-gateway-stripe'
+					) }
+					help={ __(
+						'When enabled, payment methods powered by Stripe will appear on checkout.',
+						'woocommerce-gateway-stripe'
+					) }
+				/>
 
-				<GeneralSettingsOptionWrapper>
-					<CheckboxControl
-						checked={ enableTestMode }
-						onChange={ toggleEnableTestMode }
-						label={ __(
-							'Enable test mode',
+				<CheckboxControl
+					checked={ enableTestMode }
+					onChange={ setEnableTestMode }
+					label={ __(
+						'Enable test mode',
+						'woocommerce-gateway-stripe'
+					) }
+					help={ interpolateComponents( {
+						mixedString: __(
+							'Use {{testCardNumbersLink /}} to simulate various transactions. {{learnMoreLink/}}',
 							'woocommerce-gateway-stripe'
-						) }
-					/>
-					<CheckboxDescription>
-						{ interpolateComponents( {
-							mixedString: __(
-								'Use {{testCardNumbersLink /}} to simulate various transactions. {{learnMoreLink/}}',
-								'woocommerce-gateway-stripe'
+						),
+						components: {
+							testCardNumbersLink: (
+								<a href="https://stripe.com/docs/testing#cards">
+									test card numbers
+								</a>
 							),
-							components: {
-								testCardNumbersLink: (
-									<a href="https://stripe.com/docs/testing#cards">
-										test card numbers
-									</a>
-								),
-								learnMoreLink: (
-									<a href="https://stripe.com/docs/testing">
-										Learn more
-									</a>
-								),
-							},
-						} ) }
-					</CheckboxDescription>
-				</GeneralSettingsOptionWrapper>
+							learnMoreLink: (
+								<a href="https://stripe.com/docs/testing">
+									Learn more
+								</a>
+							),
+						},
+					} ) }
+				/>
 			</CardBody>
 			<CardFooter>
 				<Button isSecondary href="?TODO">
