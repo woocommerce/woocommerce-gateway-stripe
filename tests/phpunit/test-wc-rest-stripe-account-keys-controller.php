@@ -117,6 +117,28 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'original-test-key-9999', $settings['test_publishable_key'] );
 	}
 
+	/**
+	 * Test updating a key to "", as if user deleting the key.
+	 */
+	public function test_setting_blank_live_key_returns_status_code_200() {
+		$request = new WP_REST_Request( 'POST', self::ROUTE );
+		$request->set_param( 'publishable_key', '' );
+
+		$response = $this->controller->set_account_keys( $request );
+		$expected = [
+			'result' => 'success',
+		];
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( $expected, $response->get_data() );
+
+		$settings = get_option( 'woocommerce_stripe_settings' );
+
+		$this->assertEquals( '', $settings['publishable_key'] );
+		// Other settings do not change and do not get erased.
+		$this->assertEquals( 'original-test-key-9999', $settings['test_publishable_key'] );
+	}
+
 	public function test_validate_publishable_key() {
 		$expected_wp_error = new WP_Error( 400, 'The "Live Publishable Key" should start with "pk_live", enter the correct key.' );
 

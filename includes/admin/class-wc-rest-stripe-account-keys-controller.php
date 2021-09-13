@@ -99,10 +99,14 @@ class WC_REST_Stripe_Account_Keys_Controller extends WP_REST_Controller {
 	 * @return WP_REST_Response
 	 */
 	public function get_account_keys() {
-		//TODO: Debug/testing only, remove this end point.
+		$allowed_params  = [ 'publishable_key', 'secret_key', 'webhook_secret', 'test_publishable_key', 'test_secret_key', 'test_webhook_secret' ];
+		$stripe_settings = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
+		// Filter only the fields we want to return
+		$account_keys = array_intersect_key( $stripe_settings, array_flip( $allowed_params ) );
+
 		return new WP_REST_Response(
 			[
-				'settings' => $this->get_stripe_settings(),
+				'settings' => $account_keys,
 			]
 		);
 	}
@@ -190,12 +194,12 @@ class WC_REST_Stripe_Account_Keys_Controller extends WP_REST_Controller {
 		$test_webhook_secret  = $request->get_param( 'test_webhook_secret' );
 
 		$settings                         = $this->get_stripe_settings();
-		$settings['publishable_key']      = empty( $publishable_key ) ? $settings['publishable_key'] : $publishable_key;
-		$settings['secret_key']           = empty( $secret_key ) ? $settings['secret_key'] : $secret_key;
-		$settings['webhook_secret']       = empty( $webhook_secret ) ? $settings['webhook_secret'] : $webhook_secret;
-		$settings['test_publishable_key'] = empty( $test_publishable_key ) ? $settings['test_publishable_key'] : $test_publishable_key;
-		$settings['test_secret_key']      = empty( $test_secret_key ) ? $settings['test_secret_key'] : $test_secret_key;
-		$settings['test_webhook_secret']  = empty( $test_webhook_secret ) ? $settings['test_webhook_secret'] : $test_webhook_secret;
+		$settings['publishable_key']      = is_null( $publishable_key ) ? $settings['publishable_key'] : $publishable_key;
+		$settings['secret_key']           = is_null( $secret_key ) ? $settings['secret_key'] : $secret_key;
+		$settings['webhook_secret']       = is_null( $webhook_secret ) ? $settings['webhook_secret'] : $webhook_secret;
+		$settings['test_publishable_key'] = is_null( $test_publishable_key ) ? $settings['test_publishable_key'] : $test_publishable_key;
+		$settings['test_secret_key']      = is_null( $test_secret_key ) ? $settings['test_secret_key'] : $test_secret_key;
+		$settings['test_webhook_secret']  = is_null( $test_webhook_secret ) ? $settings['test_webhook_secret'] : $test_webhook_secret;
 
 		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
 
