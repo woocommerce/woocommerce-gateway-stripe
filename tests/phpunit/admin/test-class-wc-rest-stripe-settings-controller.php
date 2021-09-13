@@ -17,6 +17,11 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	const SETTINGS_ROUTE = '/wc/v3/wc_stripe/settings';
 
 	/**
+	 * @var WC_Gateway_Stripe
+	 */
+	private $gateway;
+
+	/**
 	 * Pre-test setup
 	 */
 	public function setUp() {
