@@ -286,7 +286,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	public function get_upe_enabled_payment_method_ids() {
 		$capture = ! empty( $this->get_option( 'capture' ) ) && $this->get_option( 'capture' ) === 'yes';
 		if ( ! $capture ) {
-			return ['card'];
+			return [ 'card' ];
 		}
 		return $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] );
 	}
