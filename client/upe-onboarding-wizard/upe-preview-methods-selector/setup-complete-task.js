@@ -53,7 +53,7 @@ const EnabledMethodsList = () => {
 	const [ enabledPaymentMethods ] = useEnabledPaymentMethodIds();
 
 	return (
-		<ul className="wcpay-wizard-task__description-element setup-complete-task__enabled-methods-list">
+		<ul className="wcstripe-wizard-task__description-element setup-complete-task__enabled-methods-list">
 			{ enabledPaymentMethods.map( ( methodId ) => (
 				<li key={ methodId }>
 					<PaymentMethodIcon name={ methodId } showName={ false } />
@@ -73,7 +73,7 @@ const SetupComplete = () => {
 			index={ 3 }
 		>
 			<CollapsibleBody>
-				<p className="wcpay-wizard-task__description-element is-muted-color">
+				<p className="wcstripe-wizard-task__description-element is-muted-color">
 					<SetupCompleteMessaging />
 				</p>
 				<EnabledMethodsList />
