@@ -48,11 +48,11 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 		$expected = [
 			'settings' => [
 				'test_publishable_key' => 'original-test-key-9999',
-				'test_secret_key' => '',
-				'test_webhook_secret' => '',
-				'publishable_key' => 'original-live-key-9999',
-				'secret_key' => '',
-				'webhook_secret' => '',
+				'test_secret_key'      => '',
+				'test_webhook_secret'  => '',
+				'publishable_key'      => 'original-live-key-9999',
+				'secret_key'           => '',
+				'webhook_secret'       => '',
 			],
 		];
 
