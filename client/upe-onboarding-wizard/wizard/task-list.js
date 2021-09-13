@@ -26,7 +26,7 @@ const WizardTaskList = ( { children } ) => {
 		}
 
 		const nextActiveTitle = wrapperRef.current.querySelector(
-			'.wcpay-wizard-task.is-active .wcpay-wizard-task__headline'
+			'.wcstripe-wizard-task.is-active .wcstripe-wizard-task__headline'
 		);
 		if ( ! nextActiveTitle ) {
 			return;

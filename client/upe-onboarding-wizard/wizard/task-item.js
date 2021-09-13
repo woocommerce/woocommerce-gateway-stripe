@@ -16,30 +16,30 @@ const WizardTaskItem = ( { children, title, index, className } ) => {
 
 	return (
 		<li
-			className={ classNames( 'wcpay-wizard-task', className, {
+			className={ classNames( 'wcstripe-wizard-task', className, {
 				'is-completed': isCompleted,
 				'is-active': isActive,
 			} ) }
 		>
-			<div className="wcpay-wizard-task__top-border" />
+			<div className="wcstripe-wizard-task__top-border" />
 			<div
-				className="wcpay-wizard-task__headline"
+				className="wcstripe-wizard-task__headline"
 				// tabindex with value `-1` is necessary to programmatically set the focus
 				// on an element that is not interactive.
 				tabIndex="-1"
 			>
-				<div className="wcpay-wizard-task__icon-wrapper">
-					<div className="wcpay-wizard-task__icon-text">
+				<div className="wcstripe-wizard-task__icon-wrapper">
+					<div className="wcstripe-wizard-task__icon-text">
 						{ index }
 					</div>
 					<Icon
 						icon={ check }
-						className="wcpay-wizard-task__icon-checkmark"
+						className="wcstripe-wizard-task__icon-checkmark"
 					/>
 				</div>
-				<span className="wcpay-wizard-task__title">{ title }</span>
+				<span className="wcstripe-wizard-task__title">{ title }</span>
 			</div>
-			<div className="wcpay-wizard-task__body">{ children }</div>
+			<div className="wcstripe-wizard-task__body">{ children }</div>
 		</li>
 	);
 };
