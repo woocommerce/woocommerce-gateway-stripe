@@ -32,7 +32,7 @@ class WC_Stripe_Onboarding_Controller {
 				'dependencies' => [],
 				'version'      => WC_STRIPE_VERSION,
 			];
-		$style_path = 'build/style-upe_onboarding_wizard.css';
+		$style_path = 'build/upe_onboarding_wizard.css';
 		$style_url = plugins_url( $style_path, WC_STRIPE_MAIN_FILE );
 
 		wp_register_script(
@@ -41,6 +41,13 @@ class WC_Stripe_Onboarding_Controller {
 			$script_asset['dependencies'],
 			$script_asset['version'],
 			true
+		);
+		wp_localize_script(
+			'wc_stripe_onboarding_wizard',
+			'wc_stripe_onboarding_params',
+			[
+				'is_upe_checkout_enabled' => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
+			]
 		);
 		wp_register_style(
 			'wc_stripe_onboarding_wizard',

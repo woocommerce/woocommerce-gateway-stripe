@@ -12,6 +12,7 @@ import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
 import PaymentsAndTransactionsSection from '../payments-and-transactions-section';
 import AdvancedSettingsSection from '../advanced-settings-section';
+import CustomizationOptionsNotice from '../customization-options-notice';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -81,6 +82,7 @@ const PaymentSettingsPanel = () => {
 		<>
 			<SettingsSection Description={ GeneralSettingsDescription }>
 				<GeneralSettingsSection />
+				<CustomizationOptionsNotice />
 			</SettingsSection>
 			<SettingsSection Description={ AccountDetailsDescription }>
 				<AccountDetailsSection />

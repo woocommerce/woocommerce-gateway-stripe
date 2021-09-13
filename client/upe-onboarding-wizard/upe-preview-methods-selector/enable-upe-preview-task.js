@@ -10,6 +10,7 @@ import { Icon, store, people } from '@wordpress/icons';
 /**
  * Internal dependencies
  */
+import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import WizardTaskContext from '../wizard/task/context';
 import CollapsibleBody from '../wizard/collapsible-body';
 import WizardTaskItem from '../wizard/task-item';
@@ -18,9 +19,12 @@ import './style.scss';
 
 const EnableUpePreviewTask = () => {
 	const { setCompleted } = useContext( WizardTaskContext );
+	const { setIsUpeEnabled, status } = useContext( UpeToggleContext );
 
 	const handleContinueClick = useCallback( () => {
-		setCompleted( true, 'add-payment-methods' );
+		setIsUpeEnabled( true ).then( () => {
+			setCompleted( true, 'add-payment-methods' );
+		} );
 	}, [ setCompleted ] );
 
 	return (
@@ -39,7 +43,7 @@ const EnableUpePreviewTask = () => {
 			index={ 1 }
 		>
 			<CollapsibleBody className="enable-upe-preview__body">
-				<p className="wcpay-wizard-task__description-element is-muted-color">
+				<p className="wcstripe-wizard-task__description-element is-muted-color">
 					{ interpolateComponents( {
 						mixedString: __(
 							'Get early access to additional payment methods and an improved checkout experience, ' +
@@ -115,7 +119,12 @@ const EnableUpePreviewTask = () => {
 						</CardBody>
 					</Card>
 				</div>
-				<Button onClick={ handleContinueClick } isPrimary>
+				<Button
+					isBusy={ status === 'pending' }
+					disabled={ status === 'pending' }
+					onClick={ handleContinueClick }
+					isPrimary
+				>
 					{ __( 'Enable', 'woocommerce-gateway-stripe' ) }
 				</Button>
 			</CollapsibleBody>

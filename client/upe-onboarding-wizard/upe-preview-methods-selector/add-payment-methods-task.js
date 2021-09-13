@@ -46,7 +46,7 @@ const AddPaymentMethodsTask = () => {
 			index={ 2 }
 		>
 			<CollapsibleBody>
-				<p className="wcpay-wizard-task__description-element is-muted-color">
+				<p className="wcstripe-wizard-task__description-element is-muted-color">
 					{ interpolateComponents( {
 						mixedString: __(
 							"We've added methods that you'd already enabled. For best results, we recommand adding " +
@@ -62,7 +62,7 @@ const AddPaymentMethodsTask = () => {
 				<Card className="add-payment-methods-task__payment-selector-wrapper">
 					<CardBody>
 						{ /* eslint-disable-next-line max-len */ }
-						<p className="add-payment-methods-task__payment-selector-title wcpay-wizard-task__description-element is-headline">
+						<p className="add-payment-methods-task__payment-selector-title wcstripe-wizard-task__description-element is-headline">
 							{ __(
 								'Payments accepted at checkout',
 								'woocommerce-gateway-stripe'

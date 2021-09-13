@@ -10,6 +10,7 @@ import {
 	CardDivider,
 	CheckboxControl,
 } from '@wordpress/components';
+import { addQueryArgs } from '@wordpress/url';
 import interpolateComponents from 'interpolate-components';
 
 /**
@@ -17,6 +18,10 @@ import interpolateComponents from 'interpolate-components';
  */
 import CardBody from '../card-body';
 import { usePaymentRequestEnabledSettings } from '../../data';
+
+const customizeAppearanceURL = addQueryArgs( window.location.href, {
+	area: 'payment_requests',
+} );
 
 const AdditionalControlsWrapper = styled.div`
 	position: relative;
@@ -168,7 +173,7 @@ const PaymentRequestSection = () => {
 			</CardBody>
 			<CardDivider />
 			<CardBody>
-				<Button isSecondary href="?TODO">
+				<Button isSecondary href={ customizeAppearanceURL }>
 					{ __(
 						'Customize appearance',
 						'woocommerce-gateway-stripe'

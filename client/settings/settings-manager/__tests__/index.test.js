@@ -13,6 +13,8 @@ jest.mock( '@woocommerce/navigation', () => ( {
 	getQuery: jest.fn().mockReturnValue( {} ),
 } ) );
 
+jest.mock( 'wcstripe/settings/customization-options-notice', () => () => null );
+
 describe( 'SettingsManager', () => {
 	afterEach( () => {
 		jest.clearAllMocks();
