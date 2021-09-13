@@ -1,4 +1,3 @@
-/** @format */
 /**
  * External dependencies
  */
@@ -20,8 +19,6 @@ describe( 'AccountStatus', () => {
 			depositsEnabled: true,
 			accountLink: 'https://stripe.com/support',
 		} );
-		// @todo expect the description to not show up
-		// @todo expect enabled to show up for payments
 		const warningDescription = screen.queryByText(
 			/Payments and deposits may be disabled for this account until missing business information is updated/i
 		);
@@ -34,7 +31,6 @@ describe( 'AccountStatus', () => {
 			depositsEnabled: false,
 			accountLink: 'https://stripe.com/support',
 		} );
-		// @todo expect the description to show up
 		const warningDescription = screen.getByText(
 			/Payments\/deposits may be disabled for this account until missing business information is updated/i
 		);
