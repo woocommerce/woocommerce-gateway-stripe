@@ -91,6 +91,12 @@ class WC_REST_UPE_Flag_Toggle_Controller extends WP_REST_Controller {
 
 		update_option( 'woocommerce_stripe_settings', $settings );
 
+		// including the class again because otherwise it's not present.
+		if ( version_compare( WC_VERSION, '4.4.0', '>=' ) ) {
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
+			WC_Stripe_UPE_Availability_Note::possibly_delete_note();
+		}
+
 		return new WP_REST_Response( [ 'result' => 'success' ], 200 );
 	}
 }
