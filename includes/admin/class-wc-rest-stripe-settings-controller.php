@@ -162,7 +162,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 			'payment_request_button_locations' => 'payment_request_button_locations',
 		];
 		foreach ( $attributes as $request_key => $attribute ) {
-			if ( ! $request->has_param( $request_key ) ) {
+			if ( null === $request->get_param( $request_key ) ) {
 				continue;
 			}
 
