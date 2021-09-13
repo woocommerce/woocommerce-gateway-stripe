@@ -230,15 +230,15 @@ if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 			'desc_tip'    => true,
 		],
 		'payment_request_button_size' => [
-			'title'       => __( 'Size of the button displayed for Express Checkouts', 'woocommerce-payments' ),
+			'title'       => __( 'Size of the button displayed for Express Checkouts', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
-			'description' => __( 'Select the size of the button.', 'woocommerce-payments' ),
+			'description' => __( 'Select the size of the button.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'default',
 			'desc_tip'    => true,
 			'options'     => [
-				'default' => __( 'Default', 'woocommerce-payments' ),
-				'medium'  => __( 'Medium', 'woocommerce-payments' ),
-				'large'   => __( 'Large', 'woocommerce-payments' ),
+				'default' => __( 'Default', 'woocommerce-gateway-stripe' ),
+				'medium'  => __( 'Medium', 'woocommerce-gateway-stripe' ),
+				'large'   => __( 'Large', 'woocommerce-gateway-stripe' ),
 			],
 		],
 	];
@@ -259,8 +259,8 @@ if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 	unset( $stripe_settings['payment_request_button_height'] );
 	unset( $stripe_settings['payment_request_button_label'] );
 	// injecting some of the new options.
-	$stripe_settings['payment_request_button_type']['options']['default'] = __( 'Only icon', 'woocommerce-payments' );
-	$stripe_settings['payment_request_button_type']['options']['book']    = __( 'Book', 'woocommerce-payments' );
+	$stripe_settings['payment_request_button_type']['options']['default'] = __( 'Only icon', 'woocommerce-gateway-stripe' );
+	$stripe_settings['payment_request_button_type']['options']['book']    = __( 'Book', 'woocommerce-gateway-stripe' );
 	// no longer valid options.
 	unset( $stripe_settings['payment_request_button_type']['options']['branded'] );
 	unset( $stripe_settings['payment_request_button_type']['options']['custom'] );

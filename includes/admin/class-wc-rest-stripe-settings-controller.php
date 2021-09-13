@@ -64,7 +64,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'payment_request_button_locations' => [
-						'description'       => __( 'Express checkout locations that should be enabled.', 'woocommerce-payments' ),
+						'description'       => __( 'Express checkout locations that should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'array',
 						'items'             => [
 							'type' => 'string',
@@ -73,7 +73,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'payment_request_button_type'      => [
-						'description'       => __( 'Express checkout button types.', 'woocommerce-payments' ),
+						'description'       => __( 'Express checkout button types.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'items'             => [
 							'type' => 'string',
@@ -82,7 +82,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'payment_request_button_size'      => [
-						'description'       => __( 'Express checkout button sizes.', 'woocommerce-payments' ),
+						'description'       => __( 'Express checkout button sizes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'items'             => [
 							'type' => 'string',
@@ -92,7 +92,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'payment_request_button_theme'     => [
-						'description'       => __( 'Express checkout button themes.', 'woocommerce-payments' ),
+						'description'       => __( 'Express checkout button themes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'items'             => [
 							'type' => 'string',
