@@ -27,9 +27,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 	/**
 	 * Constructor.
 	 *
-	 * @param WC_Gateway_Stripe $gateway Stripe payment gateway.
+	 * Injected gateway should be an instance of WC_Stripe_Payment_Gateway or WC_Stripe_UPE_Payment_Gateway.
+	 *
+	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
 	 */
-	public function __construct( WC_Gateway_Stripe $gateway ) {
+	public function __construct( WC_Stripe_Payment_Gateway $gateway ) {
 		$this->gateway = $gateway;
 	}
 
