@@ -36,6 +36,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	const SUCCESSFUL_INTENT_STATUS = [ 'succeeded', 'requires_capture', 'processing' ];
 
 	/**
+	 * The delay between retries.
+	 *
+	 * @var int
+	 */
+	public $retry_interval;
+
+	/**
 	 * Notices (array)
 	 *
 	 * @var array
@@ -88,8 +95,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->id           = self::ID;
-		$this->method_title = __( 'Stripe UPE', 'woocommerce-gateway-stripe' );
+		$this->id             = self::ID;
+		$this->retry_interval = 1;
+		$this->method_title   = __( 'Stripe UPE', 'woocommerce-gateway-stripe' );
 		/* translators: link */
 		$this->method_description = __( 'Accept debit and credit cards in 135+ currencies, methods such as Alipay, and one-touch checkout with Apple Pay.', 'woocommerce-gateway-stripe' );
 		$this->has_fields         = true;
@@ -111,6 +119,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Load the settings.
 		$this->init_settings();
+
+		// Check if subscriptions are enabled and add support for them.
+		$this->maybe_init_subscriptions();
 
 		$main_settings              = get_option( 'woocommerce_stripe_settings' );
 		$this->title                = $this->get_option( 'title' );
@@ -1122,9 +1133,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return array Array of keyed metadata values.
 	 */
 	public function get_metadata_from_order( $order ) {
-
-		// TODO: change this after adding the subscriptions trait: $this->is_payment_recurring( $order->get_id() ) ? Payment_Type::RECURRING() : Payment_Type::SINGLE();
-		$payment_type = 'single';
+		$payment_type = $this->is_payment_recurring( $order->get_id() ) ? 'recurring' : 'single';
 		$name         = sanitize_text_field( $order->get_billing_first_name() ) . ' ' . sanitize_text_field( $order->get_billing_last_name() );
 		$email        = sanitize_email( $order->get_billing_email() );
 

@@ -15,6 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 abstract class WC_Stripe_UPE_Payment_Method {
 
+	use WC_Stripe_Subscriptions_Utilities_Trait;
+
 	/**
 	 * Stripe key name
 	 *
@@ -223,19 +225,6 @@ abstract class WC_Stripe_UPE_Payment_Method {
 		$token->set_user_id( $user_id );
 		$token->save();
 		return $token;
-	}
-
-	/**
-	 * Returns boolean on whether current WC_Cart or WC_Subscriptions_Cart
-	 * contains a subscription or subscription renewal item
-	 *
-	 * @return bool
-	 */
-	public function is_subscription_item_in_cart() {
-		if ( class_exists( 'WC_Subscriptions' ) && version_compare( WC_Subscriptions::$version, '2.2.0', '>=' ) ) {
-			return WC_Subscriptions_Cart::cart_contains_subscription() || 0 < count( wcs_get_order_type_cart_items( 'renewal' ) );
-		}
-		return false;
 	}
 
 	/**

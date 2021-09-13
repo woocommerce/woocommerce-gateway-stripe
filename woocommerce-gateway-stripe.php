@@ -147,7 +147,8 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-logger.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-helper.php';
 				include_once dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php';
-				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-subs-compat.php';
+				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-subscriptions-utilities.php';
+				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-subscriptions.php';
 				require_once dirname( __FILE__ ) . '/includes/abstracts/abstract-wc-stripe-payment-gateway.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-state.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-handler.php';
@@ -363,7 +364,7 @@ function woocommerce_gateway_stripe() {
 			public function add_gateways( $methods ) {
 				if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 					$methods[] = WC_Gateway_Stripe::class;
-					// $methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Sepa_Subs_Compat::class : WC_Gateway_Stripe_Sepa::class;
+					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Sepa_Subs_Compat::class : WC_Gateway_Stripe_Sepa::class;
 					$methods[] = WC_Gateway_Stripe_Bancontact::class;
 					$methods[] = WC_Gateway_Stripe_Sofort::class;
 					$methods[] = WC_Gateway_Stripe_Giropay::class;
@@ -380,7 +381,7 @@ function woocommerce_gateway_stripe() {
 				} else {
 					// These payment gateways will be hidden when UPE is enabled:
 					$methods[] = WC_Gateway_Stripe::class;
-					// $methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Sepa_Subs_Compat::class : WC_Gateway_Stripe_Sepa::class;
+					$methods[] = ( class_exists( 'WC_Subscriptions_Order' ) && function_exists( 'wcs_create_renewal_order' ) ) ? WC_Stripe_Sepa_Subs_Compat::class : WC_Gateway_Stripe_Sepa::class;
 					$methods[] = WC_Gateway_Stripe_Giropay::class;
 					$methods[] = WC_Gateway_Stripe_Ideal::class;
 					$methods[] = WC_Gateway_Stripe_Bancontact::class;

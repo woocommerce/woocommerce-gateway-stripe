@@ -7,6 +7,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Trait for Subscriptions compatibility.
  */
 trait WC_Stripe_Subscriptions_Trait {
+
+	use WC_Stripe_Subscriptions_Utilities_Trait;
+
 	/**
 	 * Initialize subscription support and hooks.
 	 */
@@ -45,7 +48,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		// allow store managers to manually set Stripe as the payment method on a subscription
 		add_filter( 'woocommerce_subscription_payment_meta', [ $this, 'add_subscription_payment_meta' ], 10, 2 );
 		add_filter( 'woocommerce_subscription_validate_payment_meta', [ $this, 'validate_subscription_payment_meta' ], 10, 2 );
-		add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'maybe_hide_save_checkbox' ] );
+		add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'display_save_payment_method_checkbox' ] );
 
 		/*
 		* WC subscriptions hooks into the "template_redirect" hook with priority 100.
@@ -55,71 +58,6 @@ trait WC_Stripe_Subscriptions_Trait {
 		*/
 		add_action( 'template_redirect', [ $this, 'remove_order_pay_var' ], 99 );
 		add_action( 'template_redirect', [ $this, 'restore_order_pay_var' ], 101 );
-	}
-
-	// - TODO: Maybe move to an utilities file.
-	// Utilities
-	/**
-	 * Checks if subscriptions are enabled on the site.
-	 *
-	 * @since x.x.x
-	 *
-	 * @return bool Whether subscriptions is enabled or not.
-	 */
-	public function is_subscriptions_enabled() {
-		return class_exists( 'WC_Subscriptions' ) && version_compare( WC_Subscriptions::$version, '2.2.0', '>=' );
-	}
-
-	/**
-	 * Is $order_id a subscription?
-	 *
-	 * @param  int $order_id
-	 * @return boolean
-	 */
-	public function has_subscription( $order_id ) {
-		return ( function_exists( 'wcs_order_contains_subscription' ) && ( wcs_order_contains_subscription( $order_id ) || wcs_is_subscription( $order_id ) || wcs_order_contains_renewal( $order_id ) ) );
-	}
-	// end Utilities
-
-	/**
-	 * Checks to see if we need to hide the save checkbox field.
-	 * Because when cart contains a subs product, it will save regardless.
-	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
-	 */
-	public function maybe_hide_save_checkbox( $display_tokenization ) {
-		if ( WC_Subscriptions_Cart::cart_contains_subscription() ) {
-			return false;
-		}
-
-		return $display_tokenization;
-	}
-
-	/**
-	 * Checks if page is pay for order and change subs payment page.
-	 *
-	 * @since 4.0.4
-	 * @return bool
-	 */
-	public function is_subs_change_payment() {
-		return ( isset( $_GET['pay_for_order'] ) && isset( $_GET['change_payment_method'] ) );
-	}
-
-	/**
-	 * Maybe process payment method change for subscriptions.
-	 *
-	 * @since x.x.x
-	 *
-	 * @param int $order_id
-	 * @return bool
-	 */
-	public function maybe_change_subscription_payment_method( $order_id ) {
-		return (
-			$this->is_subscriptions_enabled() &&
-			$this->has_subscription( $order_id ) &&
-			$this->is_subs_change_payment()
-		);
 	}
 
 	/**
@@ -188,6 +126,22 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function differentiate_change_payment_method_form() {
 		echo '<input type="hidden" id="wc-stripe-change-payment-method" />';
+	}
+
+	/**
+	 * Maybe process payment method change for subscriptions.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param int $order_id
+	 * @return bool
+	 */
+	public function maybe_change_subscription_payment_method( $order_id ) {
+		return (
+			$this->is_subscriptions_enabled() &&
+			$this->has_subscription( $order_id ) &&
+			$this->is_changing_payment_method_for_subscription()
+		);
 	}
 
 	/**
