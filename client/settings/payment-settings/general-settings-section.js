@@ -10,18 +10,23 @@ import {
 	CheckboxControl,
 } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
+import styled from '@emotion/styled';
 
 /**
  * Internal dependencies
  */
 import CardBody from '../card-body';
 
+const StyledCard = styled( Card )`
+	margin-bottom: 12px;
+`;
+
 const GeneralSettingsSection = () => {
 	const [ enableStripe, setEnableStripe ] = useState( false );
 	const [ enableTestMode, setEnableTestMode ] = useState( false );
 
 	return (
-		<Card>
+		<StyledCard>
 			<CardBody>
 				<CheckboxControl
 					checked={ enableStripe }
@@ -68,7 +73,7 @@ const GeneralSettingsSection = () => {
 					{ __( 'Edit account keys', 'woocommerce-gateway-stripe' ) }
 				</Button>
 			</CardFooter>
-		</Card>
+		</StyledCard>
 	);
 };
 
