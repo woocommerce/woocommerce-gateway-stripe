@@ -54,6 +54,6 @@ class WC_Stripe_Payment_Requests_Controller {
 		echo '<h2>' . __( 'Customize express checkouts', 'woocommerce-gateway-stripe' );
 		wc_back_link( __( 'Return to Stripe', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 		echo '</h2>';
-		echo '<div class="wrap"><div id="wc-stripe-payment-requests-customizer-container"></div></div>';
+		echo '<div class="wrap"><div id="wc-stripe-payment-requests-settings-container"></div></div>';
 	}
 }
