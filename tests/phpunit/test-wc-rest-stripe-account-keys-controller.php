@@ -41,6 +41,25 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 		$this->controller = new WC_REST_Stripe_Account_Keys_Controller();
 	}
 
+	public function test_get_account_keys_returns_status_code_200() {
+		$request = new WP_REST_Request( 'GET', self::ROUTE );
+
+		$response = $this->controller->get_account_keys( $request );
+		$expected = [
+			'settings' => [
+				'test_publishable_key' => 'original-test-key-9999',
+				'test_secret_key' => '',
+				'test_webhook_secret' => '',
+				'publishable_key' => 'original-live-key-9999',
+				'secret_key' => '',
+				'webhook_secret' => '',
+			],
+		];
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( $expected, $response->get_data() );
+	}
+
 	/**
 	 * Test as if the user update publishable_keys, secret_key, webhook
 	 */
