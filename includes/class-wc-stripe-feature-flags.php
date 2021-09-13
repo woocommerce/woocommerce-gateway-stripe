@@ -27,6 +27,16 @@ class WC_Stripe_Feature_Flags {
 	}
 
 	/**
+	 * Checks whether UPE has been manually disabled by the merchant.
+	 *
+	 * @return bool
+	 */
+	public static function did_merchant_disable_upe() {
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', null );
+		return ! empty( $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) && 'disabled' === $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ];
+	}
+
+	/**
 	 * Checks whether the feature flag used for the new settings + UPE is enabled.
 	 *
 	 * @return bool
