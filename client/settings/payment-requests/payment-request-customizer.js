@@ -135,7 +135,8 @@ const PaymentRequestsCustomizer = () => {
 			publishableKey: 'pk_test_123',
 			accountId: '0001',
 			locale: 'en',
-		}
+		};
+
 		return loadStripe( stripeSettings.publishableKey, {
 			stripeAccount: stripeSettings.accountId,
 			locale: stripeSettings.locale,

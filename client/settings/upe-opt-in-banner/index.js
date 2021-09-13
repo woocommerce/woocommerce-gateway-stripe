@@ -2,7 +2,6 @@
  * External dependencies
  */
 import React from 'react';
-import ReactDOM from 'react-dom';
 import { __ } from '@wordpress/i18n';
 import styled from '@emotion/styled';
 import { Button, Card, ExternalLink } from '@wordpress/components';
@@ -11,23 +10,37 @@ import { Button, Card, ExternalLink } from '@wordpress/components';
  * Internal dependencies
  */
 import Pill from '../../components/pill';
-import AllPaymentMethodsIcon from '../../payment-method-icons/all-payment-methods';
+
+const StyledPill = styled( Pill )`
+	border-color: #007cba;
+	color: #007cba;
+`;
 
 const BannerWrapper = styled( Card )`
 	display: flex;
 	flex-flow: row;
 	justify-content: center;
-	margin: 12px 0;
-	max-width: 680px;
+	margin-bottom: 0;
 `;
 
 const InformationWrapper = styled.div`
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
 	flex: 0 1 auto;
-	padding: 24px;
+	padding: 45px 24px;
+
+	h3 {
+		margin-bottom: 8px;
+	}
+
+	p {
+		margin-top: 0;
+		margin-bottom: 24px;
+	}
 `;
 
 const Actions = styled.div`
-	padding-top: 11px;
 	display: flex;
 	flex-wrap: wrap;
 	gap: 12px;
@@ -37,60 +50,46 @@ const Actions = styled.div`
 const ImageWrapper = styled.div`
 	background: #f7f9fc;
 	display: none;
-	flex: 0 0 33%;
+	flex: 0 0 45%;
+	position: relative;
 
 	img {
-		padding: 24px;
+		max-width: 100%;
+		width: auto;
+		height: auto;
 	}
 
 	@media ( min-width: 660px ) {
 		display: flex;
+		justify-content: center;
+		align-items: center;
 	}
 `;
 
-const UpeOptInBanner = ( props ) => (
+const UpeOptInBanner = ( { title, description, Image, ...props } ) => (
 	<BannerWrapper { ...props }>
 		<InformationWrapper>
-			<Pill>{ __( 'Early access', 'woocommerce-gateway-stripe' ) }</Pill>
-			<h3>
-				{ __(
-					'Enable the new Stripe payment management experience',
-					'woocommerce-gateway-stripe'
-				) }
-			</h3>
-			<p>
-				{ __(
-					/* eslint-disable-next-line max-len */
-					'Spend less time managing giropay and other payment methods in an improved settings and checkout experience, now available to select merchants.',
-					'woocommerce-gateway-stripe'
-				) }
-			</p>
+			<StyledPill>
+				{ __( 'Early access', 'woocommerce-gateway-stripe' ) }
+			</StyledPill>
+			<h3>{ title }</h3>
+			<p>{ description }</p>
 			<Actions>
-				<span>
-					<Button isPrimary href="?page=wc_stripe-onboarding_wizard">
-						{ __(
-							'Enable in your store',
-							'woocommerce-gateway-stripe'
-						) }
-					</Button>
-				</span>
+				<Button isSecondary href="?page=wc_stripe-onboarding_wizard">
+					{ __(
+						'Enable in your store',
+						'woocommerce-gateway-stripe'
+					) }
+				</Button>
 				<ExternalLink href="?TODO">
 					{ __( 'Learn more', 'woocommerce-gateway-stripe' ) }
 				</ExternalLink>
 			</Actions>
 		</InformationWrapper>
 		<ImageWrapper>
-			<AllPaymentMethodsIcon />
+			<Image />
 		</ImageWrapper>
 	</BannerWrapper>
 );
-
-const bannerContainer = document.getElementById(
-	'wc-stripe-upe-opt-in-banner'
-);
-
-if ( bannerContainer ) {
-	ReactDOM.render( <UpeOptInBanner />, bannerContainer );
-}
 
 export default UpeOptInBanner;

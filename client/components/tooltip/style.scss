@@ -1,6 +1,6 @@
 @import "../../styles/abstracts/styles.scss";
 
-.wcpay-tooltip {
+.wcstripe-tooltip {
 	&__content-wrapper {
 		// ensures that the element needed for position calculations isn't included in the DOM layout
 		display: contents;
