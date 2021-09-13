@@ -709,7 +709,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param stdClass $intent The Payment Intent object.
 	 */
 	protected function maybe_process_subscription_early_renewal( $order, $intent ) {
-		if ( isset( $_GET['early_renewal'] ) ) { // wpcs: csrf ok.
+		if ( $this->is_subscriptions_enabled() && isset( $_GET['early_renewal'] ) ) { // wpcs: csrf ok.
 			wcs_update_dates_after_early_renewal( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ), $order );
 			wc_add_notice( __( 'Your early renewal order was successful.', 'woocommerce-gateway-stripe' ), 'success' );
 		}
@@ -722,7 +722,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param stdClass $intent The Payment Intent object (unused).
 	 */
 	protected function maybe_process_subscription_early_failure( $order, $intent ) {
-		if ( isset( $_GET['early_renewal'] ) ) { // wpcs: csrf ok.
+		if ( $this->is_subscriptions_enabled() && isset( $_GET['early_renewal'] ) ) { // wpcs: csrf ok.
 			$order->delete( true );
 			wc_add_notice( __( 'Payment authorization for the renewal order was unsuccessful, please try again.', 'woocommerce-gateway-stripe' ), 'error' );
 			$renewal_url = wcs_get_early_renewal_url( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ) );
