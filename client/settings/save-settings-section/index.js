@@ -10,17 +10,22 @@ import styled from '@emotion/styled';
  * Internal dependencies
  */
 import SettingsSection from '../settings-section';
+import { useSettings } from '../../data';
 
 const SaveSettingsSectionWrapper = styled( SettingsSection )`
 	text-align: right;
 `;
 
 const SaveSettingsSection = () => {
+	const { saveSettings, isSaving, isLoading } = useSettings();
+
 	return (
 		<SaveSettingsSectionWrapper>
 			<Button
 				isPrimary
-				onClick={ () => alert( 'Welcome to the settings screen.' ) }
+				isBusy={ isSaving }
+				disabled={ isSaving || isLoading }
+				onClick={ saveSettings }
 			>
 				{ __( 'Save changes', 'woocommerce-gateway-stripe' ) }
 			</Button>

@@ -14,6 +14,7 @@ import PaymentRequestSection from '../payment-request-section';
 import GeneralSettingsSection from '../general-settings-section';
 import ApplePayIcon from '../../payment-method-icons/apple-pay';
 import GooglePayIcon from '../../payment-method-icons/google-pay';
+import LoadableSettingsSection from '../loadable-settings-section';
 import UpeToggleContext from '../upe-toggle/context';
 import CustomizationOptionsNotice from '../customization-options-notice';
 
@@ -81,7 +82,9 @@ const PaymentMethodsPanel = () => {
 				<CustomizationOptionsNotice />
 			</SettingsSection>
 			<SettingsSection Description={ PaymentRequestDescription }>
-				<PaymentRequestSection />
+				<LoadableSettingsSection numLines={ 20 }>
+					<PaymentRequestSection />
+				</LoadableSettingsSection>
 			</SettingsSection>
 		</>
 	);
