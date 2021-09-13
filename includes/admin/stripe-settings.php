@@ -217,7 +217,7 @@ $stripe_settings = apply_filters(
 
 if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 	$upe_settings = [
-		'upe_checkout_experience' => [
+		'upe_checkout_experience'     => [
 			'title' => __( 'Checkout experience', 'woocommerce-gateway-stripe' ),
 			'type'  => 'title',
 		],
@@ -229,6 +229,18 @@ if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 			'default'     => 'no',
 			'desc_tip'    => true,
 		],
+		'payment_request_button_size' => [
+			'title'       => __( 'Size of the button displayed for Express Checkouts', 'woocommerce-payments' ),
+			'type'        => 'select',
+			'description' => __( 'Select the size of the button.', 'woocommerce-payments' ),
+			'default'     => 'default',
+			'desc_tip'    => true,
+			'options'     => [
+				'default' => __( 'Default', 'woocommerce-payments' ),
+				'medium'  => __( 'Medium', 'woocommerce-payments' ),
+				'large'   => __( 'Large', 'woocommerce-payments' ),
+			],
+		],
 	];
 	if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 		$upe_settings['upe_checkout_experience_accepted_payments'] = [
@@ -238,6 +250,20 @@ if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 	}
 	// Insert UPE options below the 'description' setting.
 	$stripe_settings = array_merge( array_splice( $stripe_settings, 0, array_search( 'description', array_keys( $stripe_settings ), true ) + 1 ), $upe_settings, $stripe_settings );
+
+	// in the new settings, "checkout" is going to be enabled by default (if it is a new WCStripe installation).
+	$stripe_settings['payment_request_button_locations']['default'][] = 'checkout';
+
+	// no longer needed in the new settings.
+	unset( $stripe_settings['payment_request_button_branded_type'] );
+	unset( $stripe_settings['payment_request_button_height'] );
+	unset( $stripe_settings['payment_request_button_label'] );
+	// injecting some of the new options.
+	$stripe_settings['payment_request_button_type']['options']['default'] = __( 'Only icon', 'woocommerce-payments' );
+	$stripe_settings['payment_request_button_type']['options']['book']    = __( 'Book', 'woocommerce-payments' );
+	// no longer valid options.
+	unset( $stripe_settings['payment_request_button_type']['options']['branded'] );
+	unset( $stripe_settings['payment_request_button_type']['options']['custom'] );
 }
 
 return apply_filters(

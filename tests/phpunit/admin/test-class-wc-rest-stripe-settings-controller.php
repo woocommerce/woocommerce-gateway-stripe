@@ -29,6 +29,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 		// The routes in WC_REST_Stripe_Settings_Controller are only registered if `_wcstripe_feature_upe = "yes"`.
 		update_option( '_wcstripe_feature_upe', 'yes' );
+		$this->gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
 	}
 
 	public function test_get_settings_request_returns_status_code_200() {
@@ -61,6 +62,24 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
+	}
+
+	public function test_update_payment_request_settings_returns_status_code_200() {
+		$this->assertEquals( 'dark', $this->gateway->get_option( 'payment_request_button_theme' ) );
+		$this->assertEquals( 'default', $this->gateway->get_option( 'payment_request_button_size' ) );
+		$this->assertEquals( 'buy', $this->gateway->get_option( 'payment_request_button_type' ) );
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'payment_request_button_theme', 'light' );
+		$request->set_param( 'payment_request_button_size', 'medium' );
+		$request->set_param( 'payment_request_button_type', 'book' );
+
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( 'light', $this->gateway->get_option( 'payment_request_button_theme' ) );
+		$this->assertEquals( 'medium', $this->gateway->get_option( 'payment_request_button_size' ) );
+		$this->assertEquals( 'book', $this->gateway->get_option( 'payment_request_button_type' ) );
 	}
 
 	public function test_update_settings_fails_if_user_cannot_manage_woocommerce() {

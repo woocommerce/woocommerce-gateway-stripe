@@ -39,6 +39,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 	 * Configure REST API routes.
 	 */
 	public function register_routes() {
+		$form_fields = $this->gateway->get_form_fields();
+
 		register_rest_route(
 			$this->namespace,
 			'/' . $this->rest_base,
@@ -56,9 +58,46 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 				'callback'            => [ $this, 'update_settings' ],
 				'permission_callback' => [ $this, 'check_permission' ],
 				'args'                => [
-					'is_payment_request_enabled' => [
+					'is_payment_request_enabled'       => [
 						'description'       => __( 'If Stripe express checkouts should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'payment_request_button_locations' => [
+						'description'       => __( 'Express checkout locations that should be enabled.', 'woocommerce-payments' ),
+						'type'              => 'array',
+						'items'             => [
+							'type' => 'string',
+							'enum' => array_keys( $form_fields['payment_request_button_locations']['options'] ),
+						],
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'payment_request_button_type'      => [
+						'description'       => __( 'Express checkout button types.', 'woocommerce-payments' ),
+						'type'              => 'string',
+						'items'             => [
+							'type' => 'string',
+							'enum' => array_keys( $form_fields['payment_request_button_type']['options'] ),
+						],
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'payment_request_button_size'      => [
+						'description'       => __( 'Express checkout button sizes.', 'woocommerce-payments' ),
+						'type'              => 'string',
+						'items'             => [
+							'type' => 'string',
+							// it can happen that `$form_fields['payment_request_button_size']` is empty (in tests) - fixing temporarily.
+							'enum' => array_keys( isset( $form_fields['payment_request_button_size']['options'] ) ? $form_fields['payment_request_button_size']['options'] : [] ),
+						],
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'payment_request_button_theme'     => [
+						'description'       => __( 'Express checkout button themes.', 'woocommerce-payments' ),
+						'type'              => 'string',
+						'items'             => [
+							'type' => 'string',
+							'enum' => array_keys( $form_fields['payment_request_button_theme']['options'] ),
+						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 				],
@@ -74,7 +113,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 	public function get_settings() {
 		return new WP_REST_Response(
 			[
-				'is_payment_request_enabled' => 'yes' === $this->gateway->get_option( 'payment_request' ),
+				'is_payment_request_enabled'       => 'yes' === $this->gateway->get_option( 'payment_request' ),
+				'payment_request_button_type'      => $this->gateway->get_option( 'payment_request_button_type' ),
+				'payment_request_button_theme'     => $this->gateway->get_option( 'payment_request_button_theme' ),
+				'payment_request_button_size'      => $this->gateway->get_option( 'payment_request_button_size' ),
+				'payment_request_button_locations' => $this->gateway->get_option( 'payment_request_button_locations' ),
 			]
 		);
 	}
@@ -86,6 +129,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 	 */
 	public function update_settings( WP_REST_Request $request ) {
 		$this->update_is_payment_request_enabled( $request );
+		$this->update_payment_request_settings( $request );
 
 		return new WP_REST_Response( [], 200 );
 	}
@@ -103,5 +147,27 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 		$is_payment_request_enabled = $request->get_param( 'is_payment_request_enabled' );
 
 		$this->gateway->update_option( 'payment_request', $is_payment_request_enabled ? 'yes' : 'no' );
+	}
+
+	/**
+	 * Updates appearance attributes of the payment request button.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_payment_request_settings( WP_REST_Request $request ) {
+		$attributes = [
+			'payment_request_button_type'      => 'payment_request_button_type',
+			'payment_request_button_size'      => 'payment_request_button_size',
+			'payment_request_button_theme'     => 'payment_request_button_theme',
+			'payment_request_button_locations' => 'payment_request_button_locations',
+		];
+		foreach ( $attributes as $request_key => $attribute ) {
+			if ( ! $request->has_param( $request_key ) ) {
+				continue;
+			}
+
+			$value = $request->get_param( $request_key );
+			$this->gateway->update_option( $attribute, $value );
+		}
 	}
 }
