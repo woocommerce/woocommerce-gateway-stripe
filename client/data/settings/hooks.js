@@ -40,11 +40,13 @@ export const useSettings = () => {
 export const usePaymentRequestEnabledSettings = () => {
 	const { updateIsPaymentRequestEnabled } = useDispatch( STORE_NAME );
 
-	return useSelect( ( select ) => {
+	const isPaymentRequestEnabled = useSelect( ( select ) => {
 		const { getIsPaymentRequestEnabled } = select( STORE_NAME );
 
-		return [ getIsPaymentRequestEnabled(), updateIsPaymentRequestEnabled ];
-	} );
+		return getIsPaymentRequestEnabled();
+	}, [] );
+
+	return [ isPaymentRequestEnabled, updateIsPaymentRequestEnabled ];
 };
 
 export const useGetSavingError = () => {
