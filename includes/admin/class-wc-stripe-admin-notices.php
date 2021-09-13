@@ -175,7 +175,7 @@ class WC_Stripe_Admin_Notices {
 			if ( empty( $show_keys_notice ) ) {
 				$secret = WC_Stripe_API::get_secret_key();
 				// if '_wcstripe_feature_upe_settings' is enabled show the notice in main settings page only
-				$should_show_notice_on_page = WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ? ( isset( $_GET['page'] ) && ! isset( $_GET['section'] ) ) : ! ( isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 'stripe' === $_GET['section'] );
+				$should_show_notice_on_page = WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ? ! ( isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 'stripe' === substr( sanitize_text_field( wp_unslash( $_GET['section'] ) ), 0, 6 ) ) : ! ( isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 'stripe' === $_GET['section'] );
 
 				if ( empty( $secret ) && $should_show_notice_on_page ) {
 					$setting_link = $this->get_setting_link();
