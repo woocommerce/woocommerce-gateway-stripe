@@ -41,9 +41,9 @@ export const usePaymentRequestEnabledSettings = () => {
 	const { updateIsPaymentRequestEnabled } = useDispatch( STORE_NAME );
 
 	const isPaymentRequestEnabled = useSelect( ( select ) => {
-		const { getIsPaymentRequestEnabled } = select( STORE_NAME );
+		const { getSettings } = select( STORE_NAME );
 
-		return getIsPaymentRequestEnabled();
+		return getSettings().is_payment_request_enabled || false;
 	}, [] );
 
 	return [ isPaymentRequestEnabled, updateIsPaymentRequestEnabled ];

@@ -19,10 +19,6 @@ export const isSavingSettings = ( state ) => {
 	return getSettingsState( state ).isSaving || false;
 };
 
-export const getIsPaymentRequestEnabled = ( state ) => {
-	return getSettings( state ).is_payment_request_enabled || false;
-};
-
 export const getSavingError = ( state ) => {
 	return getSettingsState( state ).savingError;
 };
