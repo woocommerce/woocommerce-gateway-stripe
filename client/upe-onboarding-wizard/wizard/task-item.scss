@@ -1,16 +1,16 @@
 @import "../../styles/abstracts/styles.scss";
 
-.wcpay-wizard-task {
+.wcstripe-wizard-task {
 	margin-bottom: 0;
 
 	&:first-child {
-		.wcpay-wizard-task__top-border {
+		.wcstripe-wizard-task__top-border {
 			display: none;
 		}
 	}
 
 	&:last-child {
-		.wcpay-wizard-task__body {
+		.wcstripe-wizard-task__body {
 			border-left: none;
 		}
 	}
