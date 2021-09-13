@@ -27,6 +27,10 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	public function setUp() {
 		parent::setUp();
 
+		if ( version_compare( WC_VERSION, '3.4.0', '<' ) ) {
+			$this->markTestSkipped( 'The controller is not compatible with older WC versions, due to the missing `update_option` method on the gateway.' );
+		}
+
 		add_action( 'rest_api_init', [ $this, 'deregister_wc_blocks_rest_api' ], 5 );
 
 		// Set the user so that we can pass the authentication.
