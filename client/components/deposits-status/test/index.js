@@ -9,7 +9,7 @@ import { render, screen } from '@testing-library/react';
 import DepositsEnabled from '../';
 
 describe( 'depositsEnabled', () => {
-	test( 'renders disabled/unknown status', () => {
+	test( 'renders disabled status', () => {
 		renderdepositsEnabled( false, 20 );
 		const disabledText = screen.queryByText( /disabled/i );
 		expect( disabledText ).toBeInTheDocument();

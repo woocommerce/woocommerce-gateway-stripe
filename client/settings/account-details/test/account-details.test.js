@@ -36,7 +36,7 @@ describe( 'AccountStatus', () => {
 		} );
 		// @todo expect the description to show up
 		const warningDescription = screen.getByText(
-			/Payments and deposits may be disabled for this account until missing business information is updated/i
+			/Payments\/deposits may be disabled for this account until missing business information is updated/i
 		);
 		expect( warningDescription ).toBeInTheDocument();
 	} );
