@@ -117,21 +117,21 @@ class WC_REST_Stripe_Account_Keys_Controller extends WP_REST_Controller {
 	 * @param array $validate_options
 	 * @return true|WP_Error
 	 */
-	private function validate_stripe_param( $param, $reques, $key, $validate_options ) {
+	private function validate_stripe_param( $param, $request, $key, $validate_options ) {
 		if ( empty( $param ) ) {
 			return true;
 		}
-		$result = rest_validate_request_arg( $param, $reques, $key );
+		$result = rest_validate_request_arg( $param, $request, $key );
 		if ( ! empty( $result ) && ! preg_match( $validate_options['regex'], $param ) ) {
-			return new WP_Error( $validate_options['error_message'] );
+			return new WP_Error( 400, $validate_options['error_message'] );
 		}
 		return true;
 	}
 
-	public function validate_publishable_key( $param, $reques, $key ) {
+	public function validate_publishable_key( $param, $request, $key ) {
 		return $this->validate_stripe_param(
 			$param,
-			$reques,
+			$request,
 			$key,
 			[
 				'regex'         => '/^pk_live_/',
@@ -140,10 +140,10 @@ class WC_REST_Stripe_Account_Keys_Controller extends WP_REST_Controller {
 		);
 	}
 
-	public function validate_secret_key( $param, $reques, $key ) {
+	public function validate_secret_key( $param, $request, $key ) {
 		return $this->validate_stripe_param(
 			$param,
-			$reques,
+			$request,
 			$key,
 			[
 				'regex'         => '/^[rs]k_live_/',
@@ -152,10 +152,10 @@ class WC_REST_Stripe_Account_Keys_Controller extends WP_REST_Controller {
 		);
 	}
 
-	public function validate_test_publishable_key( $param, $reques, $key ) {
+	public function validate_test_publishable_key( $param, $request, $key ) {
 		return $this->validate_stripe_param(
 			$param,
-			$reques,
+			$request,
 			$key,
 			[
 				'regex'         => '/^pk_test_/',
@@ -164,10 +164,10 @@ class WC_REST_Stripe_Account_Keys_Controller extends WP_REST_Controller {
 		);
 	}
 
-	public function validate_test_secret_key( $param, $reques, $key ) {
+	public function validate_test_secret_key( $param, $request, $key ) {
 		return $this->validate_stripe_param(
 			$param,
-			$reques,
+			$request,
 			$key,
 			[
 				'regex'         => '/^[rs]k_test_/',
@@ -175,7 +175,6 @@ class WC_REST_Stripe_Account_Keys_Controller extends WP_REST_Controller {
 			]
 		);
 	}
-
 
 	/**
 	 * Update the data.
@@ -189,8 +188,6 @@ class WC_REST_Stripe_Account_Keys_Controller extends WP_REST_Controller {
 		$test_publishable_key = $request->get_param( 'test_publishable_key' );
 		$test_secret_key      = $request->get_param( 'test_secret_key' );
 		$test_webhook_secret  = $request->get_param( 'test_webhook_secret' );
-
-		//TODO: validate keys starts with pk_live and sk_live or rk_live
 
 		$settings                         = $this->get_stripe_settings();
 		$settings['publishable_key']      = empty( $publishable_key ) ? $settings['publishable_key'] : $publishable_key;
