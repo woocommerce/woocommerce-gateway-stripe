@@ -10,7 +10,7 @@ import { Card, CheckboxControl } from '@wordpress/components';
  */
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import CardBody from '../card-body';
-import UpeOptInBanner from '../upe-opt-in-banner';
+import UpeOptInBanner from './upe-opt-in-banner';
 import UpeToggleContext from '../upe-toggle/context';
 import {
 	useEnabledPaymentMethods,
@@ -20,11 +20,6 @@ import PaymentMethodDescription from './payment-method-description';
 import SectionHeading from './section-heading';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodSetupHelp from './payment-method-setup-help';
-
-const StyledUpeOptInBanner = styled( UpeOptInBanner )`
-	max-width: 100%;
-	margin: 0;
-`;
 
 const StyledCard = styled( Card )`
 	margin-bottom: 12px;
@@ -151,9 +146,7 @@ const GeneralSettingsSection = () => {
 					</PaymentMethodsList>
 				</CardBody>
 			</StyledCard>
-			{ ! isUpeEnabled && (
-				<StyledUpeOptInBanner data-testid="opt-in-banner" />
-			) }
+			<UpeOptInBanner />
 		</>
 	);
 };

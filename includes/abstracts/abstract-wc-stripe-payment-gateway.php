@@ -54,26 +54,48 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Outputs scripts used for upe opt-in banner
 	 */
 	public function admin_scripts_for_banner() {
-		if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
-			// Webpack generates an assets file containing a dependencies array for our built JS file.
-			$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe_opt_in_banner.asset.php';
-			$script_asset      = file_exists( $script_asset_path )
-				? require $script_asset_path
-				: [
-					'dependencies' => [],
-					'version'      => WC_STRIPE_VERSION,
-				];
-
-			wp_register_script(
-				'woocommerce_stripe_upe_opt_in',
-				plugins_url( 'build/upe_opt_in_banner.js', WC_STRIPE_MAIN_FILE ),
-				$script_asset['dependencies'],
-				$script_asset['version'],
-				true
-			);
-
-			wp_enqueue_script( 'woocommerce_stripe_upe_opt_in' );
+		if ( ! WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
+			return;
 		}
+
+		if ( ! is_admin() ) {
+			return;
+		}
+
+		global $current_tab, $current_section;
+
+		if ( ! isset( $current_tab ) || 'checkout' !== $current_tab ) {
+			return;
+		}
+
+		if ( ! isset( $current_section ) || $this->id !== $current_section ) {
+			return;
+		}
+
+		// Webpack generates an assets file containing a dependencies array for our built JS file.
+		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe_opt_in_banner.asset.php';
+		$script_asset      = file_exists( $script_asset_path )
+			? require $script_asset_path
+			: [
+				'dependencies' => [],
+				'version'      => WC_STRIPE_VERSION,
+			];
+
+		wp_register_script(
+			'woocommerce_stripe_upe_opt_in',
+			plugins_url( 'build/upe_opt_in_banner.js', WC_STRIPE_MAIN_FILE ),
+			$script_asset['dependencies'],
+			$script_asset['version'],
+			true
+		);
+		wp_localize_script(
+			'woocommerce_stripe_upe_opt_in',
+			'wc_stripe_upe_opt_in_params',
+			[
+				'method_name' => $this->get_method_title(),
+			]
+		);
+		wp_enqueue_script( 'woocommerce_stripe_upe_opt_in' );
 	}
 
 	/**

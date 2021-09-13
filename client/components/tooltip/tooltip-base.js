@@ -41,7 +41,7 @@ const useHideDelay = (
 
 		// element is marked as visible, no need to hide it
 		if ( isVisibleProp ) {
-			rootElement.dispatchEvent( new Event( 'wcpay-tooltip-open' ) );
+			rootElement.dispatchEvent( new Event( 'wcstripe-tooltip-open' ) );
 			setIsVisible( true );
 			return;
 		}
@@ -88,12 +88,12 @@ const useHideDelay = (
 		};
 
 		document.addEventListener( 'click', handleDocumentClick );
-		rootElement.addEventListener( 'wcpay-tooltip-open', handleHideElement );
+		rootElement.addEventListener( 'wcstripe-tooltip-open', handleHideElement );
 
 		return () => {
 			document.removeEventListener( 'click', handleDocumentClick );
 			rootElement.removeEventListener(
-				'wcpay-tooltip-open',
+				'wcstripe-tooltip-open',
 				handleHideElement
 			);
 		};
@@ -189,7 +189,7 @@ const TooltipBase = ( {
 
 	return (
 		<>
-			<div className="wcpay-tooltip__content-wrapper" ref={ wrapperRef }>
+			<div className="wcstripe-tooltip__content-wrapper" ref={ wrapperRef }>
 				{ children }
 			</div>
 			{ isTooltipVisible && (
@@ -197,13 +197,13 @@ const TooltipBase = ( {
 					<div
 						ref={ tooltipWrapperRef }
 						className={ classNames(
-							'wcpay-tooltip__tooltip-wrapper',
+							'wcstripe-tooltip__tooltip-wrapper',
 							{ 'is-hiding': ! isVisible }
 						) }
 					>
 						<div
 							className={ classNames(
-								'wcpay-tooltip__tooltip',
+								'wcstripe-tooltip__tooltip',
 								className
 							) }
 						>
