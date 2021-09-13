@@ -790,7 +790,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
-			$payment_method_id = $setup_intent->payment_method;
+			$payment_method_id     = $setup_intent->payment_method;
 			$payment_method_object = WC_Stripe_API::retrieve( 'payment_methods/' . $payment_method_id );
 
 			$payment_method = $this->payment_methods[ $payment_method_object->type ];
