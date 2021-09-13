@@ -32,8 +32,8 @@ class WC_Stripe_Onboarding_Controller {
 				'dependencies' => [],
 				'version'      => WC_STRIPE_VERSION,
 			];
-		$style_path = 'build/upe_onboarding_wizard.css';
-		$style_url = plugins_url( $style_path, WC_STRIPE_MAIN_FILE );
+		$style_path        = 'build/upe_onboarding_wizard.css';
+		$style_url         = plugins_url( $style_path, WC_STRIPE_MAIN_FILE );
 
 		wp_register_script(
 			'wc_stripe_onboarding_wizard',

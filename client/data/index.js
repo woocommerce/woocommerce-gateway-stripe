@@ -1,19 +1,15 @@
-//TODO, these should come from an endpoint/ data store.
-const useEnabledPaymentMethodIds = () => {
-	return [ [ 'card', 'sepa_debit' ], () => ( {} ) ];
-};
-const useGetAvailablePaymentMethodIds = () => {
-	return [ 'card', 'giropay', 'sofort', 'sepa_debit' ];
-};
-const useSettings = () => {
-	return {
-		saveSettings: Promise.resolve( 'Success' ),
-		isSaving: false,
-	};
-};
+/** @format */
 
-export {
-	useEnabledPaymentMethodIds,
-	useGetAvailablePaymentMethodIds,
-	useSettings,
-};
+/**
+ * Internal dependencies
+ */
+import { STORE_NAME } from './constants';
+import { initStore } from './store';
+
+initStore();
+
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export const WC_STRIPE_STORE_NAME = STORE_NAME;
+
+// We only ask for hooks when importing directly from 'wcstripe/data'.
+export * from './settings/hooks';
