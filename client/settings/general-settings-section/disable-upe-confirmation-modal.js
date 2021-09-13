@@ -79,7 +79,7 @@ const DisableUpeConfirmationModal = ( { onClose } ) => {
 				await setIsUpeEnabled( false );
 				createSuccessNotice(
 					__(
-						'What made you disable the new payments experience?',
+						'🤔 What made you disable the new payments experience?',
 						'woocommerce-gateway-stripe'
 					),
 					{
