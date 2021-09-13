@@ -14,17 +14,20 @@ describe( 'GeneralSettingsSection', () => {
 	it( 'should enable stripe when stripe checkbox is clicked', () => {
 		render( <GeneralSettingsSection /> );
 
-		expect( screen.getByLabelText( 'Enable Stripe' ) ).not.toBeChecked();
-		expect( screen.getByLabelText( 'Enable test mode' ) ).not.toBeChecked();
+		const enableStripeCheckbox = screen.getByLabelText( 'Enable Stripe' );
+		const testModeCheckbox = screen.getByLabelText( 'Enable test mode' );
 
-		userEvent.click( screen.getByLabelText( 'Enable Stripe' ) );
+		expect( enableStripeCheckbox ).not.toBeChecked();
+		expect( testModeCheckbox ).not.toBeChecked();
 
-		expect( screen.getByLabelText( 'Enable Stripe' ) ).toBeChecked();
-		expect( screen.getByLabelText( 'Enable test mode' ) ).not.toBeChecked();
+		userEvent.click( enableStripeCheckbox );
 
-		userEvent.click( screen.getByLabelText( 'Enable test mode' ) );
+		expect( enableStripeCheckbox ).toBeChecked();
+		expect( testModeCheckbox ).not.toBeChecked();
 
-		expect( screen.getByLabelText( 'Enable Stripe' ) ).toBeChecked();
-		expect( screen.getByLabelText( 'Enable test mode' ) ).toBeChecked();
+		userEvent.click( testModeCheckbox );
+
+		expect( enableStripeCheckbox ).toBeChecked();
+		expect( testModeCheckbox ).toBeChecked();
 	} );
 } );
