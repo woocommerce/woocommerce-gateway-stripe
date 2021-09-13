@@ -12,12 +12,17 @@
 		padding: 8px 0px;
 
 		p {
-			flex: 1;
+			flex: 1 0 30px;
 		}
 
 		span {
-			flex: 5 1 20%;
+			flex: 5 0 20%;
 		}
+
+		span.dashicon {
+			margin-right: 4px;
+		}
+	
 	}
 
 	&__desc {

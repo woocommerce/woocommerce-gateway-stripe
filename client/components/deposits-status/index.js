@@ -19,7 +19,7 @@ const DepositsEnabled = ( props ) => {
 	} else {
 		className = 'account-details__info__yellow';
 		icon = <Icon icon="warning" size={ iconSize } />;
-		description = __( 'Disabled/Unknown', 'woocommerce-gateway-stripe' );
+		description = __( 'Disabled', 'woocommerce-gateway-stripe' );
 	}
 
 	return (

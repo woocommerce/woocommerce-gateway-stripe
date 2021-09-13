@@ -16,8 +16,8 @@ const renderPaymentsStatus = ( paymentsEnabled ) => {
 		<div className="account-details__row">
 			<p>{ __( 'Payments:', 'woocommerce-gateway-stripe' ) }</p>
 			<PaymentsStatus
-				paymentsEnabled={ paymentsEnabled }
 				iconSize={ 18 }
+				paymentsEnabled={ paymentsEnabled }
 			/>
 		</div>
 	);
@@ -35,7 +35,7 @@ const renderdepositsEnabled = ( depositsEnabled ) => {
 	);
 };
 
-const renderAccountStatusDescription = ( accountStatus ) => {
+const renderMissingAccountDetailsDescription = ( accountStatus ) => {
 	const { accountLink, paymentsEnabled, depositsEnabled } = accountStatus;
 
 	let description = '';
@@ -43,7 +43,7 @@ const renderAccountStatusDescription = ( accountStatus ) => {
 		description = createInterpolateElement(
 			/* translators: <a> - dashboard login URL */
 			__(
-				'Payments and deposits may be disabled for this account until missing business information is updated. <a>Update now</a>',
+				'Payments/deposits may be disabled for this account until missing business information is updated. <a>Update now</a>',
 				'woocommerce-gateway-stripe'
 			),
 			// eslint-disable-next-line jsx-a11y/anchor-has-content
@@ -67,21 +67,8 @@ const renderBaseFees = ( baseFees ) => {
 	);
 };
 
-const AccountStatus = ( props ) => {
+const AccountDetails = ( props ) => {
 	const { accountStatus } = props;
-	if ( accountStatus.error ) {
-		return (
-			<div>
-				<p>
-					{ __(
-						'Error determining the connection status.',
-						'woocommerce-gateway-stripe'
-					) }
-				</p>
-			</div>
-		);
-	}
-
 	return (
 		<div>
 			<div className="account-details__flex-container">
@@ -89,9 +76,9 @@ const AccountStatus = ( props ) => {
 				{ renderdepositsEnabled( accountStatus.depositsEnabled ) }
 				{ renderBaseFees( accountStatus.baseFees ) }
 			</div>
-			{ renderAccountStatusDescription( accountStatus ) }
+			{ renderMissingAccountDetailsDescription( accountStatus ) }
 		</div>
 	);
 };
 
-export default AccountStatus;
+export default AccountDetails;
