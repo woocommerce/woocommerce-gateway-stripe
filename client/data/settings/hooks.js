@@ -36,7 +36,6 @@ export const useSettings = () => {
 
 	return { settings, isLoading, isSaving, saveSettings };
 };
-};
 
 export const usePaymentRequestEnabledSettings = () => {
 	const { updateIsPaymentRequestEnabled } = useDispatch( STORE_NAME );
