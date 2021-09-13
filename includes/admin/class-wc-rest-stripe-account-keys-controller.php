@@ -61,12 +61,12 @@ class WC_REST_Stripe_Account_Keys_Controller extends WP_REST_Controller {
 					'publishable_key'      => [
 						'description'       => __( 'Your Stripe API Publishable key, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
-						'validate_callback' => 'rest_validate_request_arg',
+						'validate_callback' => [ $this, 'validate_publishable_key' ],
 					],
 					'secret_key'           => [
 						'description'       => __( 'Your Stripe API Secret, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
-						'validate_callback' => 'rest_validate_request_arg',
+						'validate_callback' => [ $this, 'validate_secret_key' ],
 					],
 					'webhook_secret'       => [
 						'description'       => __( 'Your Stripe webhook endpoint URL, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
@@ -76,12 +76,12 @@ class WC_REST_Stripe_Account_Keys_Controller extends WP_REST_Controller {
 					'test_publishable_key' => [
 						'description'       => __( 'Your Stripe testing API Publishable key, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
-						'validate_callback' => 'rest_validate_request_arg',
+						'validate_callback' => [ $this, 'validate_test_publishable_key' ],
 					],
 					'test_secret_key'      => [
 						'description'       => __( 'Your Stripe testing API Secret, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
-						'validate_callback' => 'rest_validate_request_arg',
+						'validate_callback' => [ $this, 'validate_test_secret_key' ],
 					],
 					'test_webhook_secret'  => [
 						'description'       => __( 'Your Stripe testing webhook endpoint URL, obtained from your Stripe dashboard.', 'woocommerce-gateway-stripe' ),
@@ -106,6 +106,76 @@ class WC_REST_Stripe_Account_Keys_Controller extends WP_REST_Controller {
 			]
 		);
 	}
+
+	/**
+	 * Validate stripe publishable keys and secrets. Allow empty string to erase key.
+	 * Also validates against explicit key prefixes based on live/test environment.
+	 *
+	 * @param mixed           $value
+	 * @param WP_REST_Request $request
+	 * @param string          $param
+	 * @param array $validate_options
+	 * @return true|WP_Error
+	 */
+	private function validate_stripe_param( $param, $reques, $key, $validate_options ) {
+		if ( empty( $param ) ) {
+			return true;
+		}
+		$result = rest_validate_request_arg( $param, $reques, $key );
+		if ( ! empty( $result ) && ! preg_match( $validate_options['regex'], $param ) ) {
+			return new WP_Error( $validate_options['error_message'] );
+		}
+		return true;
+	}
+
+	public function validate_publishable_key( $param, $reques, $key ) {
+		return $this->validate_stripe_param(
+			$param,
+			$reques,
+			$key,
+			[
+				'regex'         => '/^pk_live_/',
+				'error_message' => __( 'The "Live Publishable Key" should start with "pk_live", enter the correct key.', 'woocommerce-gateway-stripe' ),
+			]
+		);
+	}
+
+	public function validate_secret_key( $param, $reques, $key ) {
+		return $this->validate_stripe_param(
+			$param,
+			$reques,
+			$key,
+			[
+				'regex'         => '/^[rs]k_live_/',
+				'error_message' => __( 'The "Live Secret Key" should start with "sk_live" or "rk_live", enter the correct key.', 'woocommerce-gateway-stripe' ),
+			]
+		);
+	}
+
+	public function validate_test_publishable_key( $param, $reques, $key ) {
+		return $this->validate_stripe_param(
+			$param,
+			$reques,
+			$key,
+			[
+				'regex'         => '/^pk_test_/',
+				'error_message' => __( 'The "Test Publishable Key" should start with "pk_test", enter the correct key.', 'woocommerce-gateway-stripe' ),
+			]
+		);
+	}
+
+	public function validate_test_secret_key( $param, $reques, $key ) {
+		return $this->validate_stripe_param(
+			$param,
+			$reques,
+			$key,
+			[
+				'regex'         => '/^[rs]k_test_/',
+				'error_message' => __( 'The "Test Secret Key" should start with "sk_test" or "rk_test", enter the correct key.', 'woocommerce-gateway-stripe' ),
+			]
+		);
+	}
+
 
 	/**
 	 * Update the data.
