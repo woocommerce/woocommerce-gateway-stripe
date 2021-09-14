@@ -213,7 +213,6 @@ trait WC_Stripe_Subscriptions_Trait {
 			$this->ensure_subscription_has_customer_id( $order_id );
 
 			// Unlike regular off-session subscription payments, early renewals are treated as on-session payments, involving the customer.
-			// - TODO: Check if this has to be a card payment to be processed as an early renewal.
 			if ( isset( $_REQUEST['process_early_renewal'] ) ) { // wpcs: csrf ok.
 				// - TODO: When UPE, signature will be different.
 				$response = $this->process_payment( $order_id, true, false, $previous_error, true );
@@ -277,10 +276,20 @@ trait WC_Stripe_Subscriptions_Trait {
 				$prepared_source->source = '';
 			}
 
-			$this->lock_order_payment( $renewal_order );
+			// If the payment gateway is SEPA, use the charges API.
+			// TODO: Remove when SEPA is migrated to payment intents.
+			if ( 'stripe_sepa' === $this->id ) {
+				$request            = $this->generate_payment_request( $renewal_order, $prepared_source );
+				$request['capture'] = 'true';
+				$request['amount']  = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
+				$response           = WC_Stripe_API::request( $request );
 
-			$response                   = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
-			$is_authentication_required = $this->is_authentication_required_for_payment( $response );
+				$is_authentication_required = false;
+			} else {
+				$this->lock_order_payment( $renewal_order );
+				$response                   = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
+				$is_authentication_required = $this->is_authentication_required_for_payment( $response );
+			}
 
 			// It's only a failed payment if it's an error and it's not of the type 'authentication_required'.
 			// If it's 'authentication_required', then we should email the user and ask them to authenticate.
@@ -339,10 +348,14 @@ trait WC_Stripe_Subscriptions_Trait {
 				// The charge was successfully captured
 				do_action( 'wc_gateway_stripe_process_payment', $response, $renewal_order );
 
-				$this->process_response( end( $response->charges->data ), $renewal_order );
+				// Use the last charge within the intent or the full response body in case of SEPA.
+				$this->process_response( isset( $response->charges ) ? end( $response->charges->data ) : $response, $renewal_order );
 			}
 
-			$this->unlock_order_payment( $renewal_order );
+			// TODO: Remove when SEPA is migrated to payment intents.
+			if ( 'stripe_sepa' !== $this->id ) {
+				$this->unlock_order_payment( $renewal_order );
+			}
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
