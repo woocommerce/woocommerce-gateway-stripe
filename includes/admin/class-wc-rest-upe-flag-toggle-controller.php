@@ -87,9 +87,15 @@ class WC_REST_UPE_Flag_Toggle_Controller extends WP_REST_Controller {
 		}
 
 		$settings = get_option( 'woocommerce_stripe_settings', [] );
-		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = $is_upe_enabled ? 'yes' : 'no';
+		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = $is_upe_enabled ? 'yes' : 'disabled';
 
 		update_option( 'woocommerce_stripe_settings', $settings );
+
+		// including the class again because otherwise it's not present.
+		if ( version_compare( WC_VERSION, '4.4.0', '>=' ) ) {
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
+			WC_Stripe_UPE_Availability_Note::possibly_delete_note();
+		}
 
 		return new WP_REST_Response( [ 'result' => 'success' ], 200 );
 	}
