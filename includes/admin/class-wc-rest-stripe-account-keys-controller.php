@@ -6,18 +6,14 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * REST controller for saving Stripe's test/live account keys. This includes Live Publishable Key,
- * Live Secret Key, Webhook Secret.
+ * REST controller for saving Stripe's test/live account keys.
+ *
+ * This includes Live Publishable Key, Live Secret Key, Webhook Secret.
+ *
+ * @since 5.6.0
  */
-class WC_REST_Stripe_Account_Keys_Controller extends WP_REST_Controller {
+class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Controller {
 	const STRIPE_GATEWAY_SETTINGS_OPTION_NAME = 'woocommerce_stripe_settings';
-
-	/**
-	 * Endpoint namespace.
-	 *
-	 * @var string
-	 */
-	protected $namespace = 'wc/v3';
 
 	/**
 	 * Endpoint path.
@@ -25,17 +21,6 @@ class WC_REST_Stripe_Account_Keys_Controller extends WP_REST_Controller {
 	 * @var string
 	 */
 	protected $rest_base = 'wc_stripe/account_keys';
-
-	/**
-	 * Verify access to request.
-	 */
-	public function check_permission() {
-		return current_user_can( 'manage_woocommerce' );
-	}
-
-	private function get_stripe_settings() {
-		return get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
-	}
 
 	/**
 	 * Configure REST API routes.
@@ -104,11 +89,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WP_REST_Controller {
 		// Filter only the fields we want to return
 		$account_keys = array_intersect_key( $stripe_settings, array_flip( $allowed_params ) );
 
-		return new WP_REST_Response(
-			[
-				'settings' => $account_keys,
-			]
-		);
+		return new WP_REST_Response($account_keys);
 	}
 
 	/**
@@ -193,7 +174,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WP_REST_Controller {
 		$test_secret_key      = $request->get_param( 'test_secret_key' );
 		$test_webhook_secret  = $request->get_param( 'test_webhook_secret' );
 
-		$settings                         = $this->get_stripe_settings();
+		$settings                         = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
 		$settings['publishable_key']      = is_null( $publishable_key ) ? $settings['publishable_key'] : $publishable_key;
 		$settings['secret_key']           = is_null( $secret_key ) ? $settings['secret_key'] : $secret_key;
 		$settings['webhook_secret']       = is_null( $webhook_secret ) ? $settings['webhook_secret'] : $webhook_secret;
@@ -203,6 +184,6 @@ class WC_REST_Stripe_Account_Keys_Controller extends WP_REST_Controller {
 
 		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
 
-		return new WP_REST_Response( [ 'result' => 'success' ], 200 );
+		return new WP_REST_Response( [], 200 );
 	}
 }
