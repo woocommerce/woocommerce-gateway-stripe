@@ -102,7 +102,6 @@ const accountStatusMock = {
 	paymentsEnabled: true,
 	depositsEnabled: true,
 	email: 'hello@johndoe.com',
-	baseFees: 'US Dollar (USD) 2.9% + $0.30 per transaction',
 	accountLink: 'https://stripe.com/support',
 };
 

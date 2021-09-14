@@ -53,15 +53,6 @@ const MissingAccountDetailsDescription = ( { accountStatus } ) => {
 	return <div className="account-details__desc">{ description }</div>;
 };
 
-const AccountSection = ( { baseFees } ) => {
-	return (
-		<div className="account-details__row">
-			<p>{ __( 'Base Fees:', 'woocommerce-gateway-stripe' ) }</p>
-			<span>{ baseFees }</span>
-		</div>
-	);
-};
-
 const AccountDetails = ( { accountStatus } ) => {
 	if ( accountStatus.error ) {
 		return (
@@ -81,7 +72,6 @@ const AccountDetails = ( { accountStatus } ) => {
 			<div className="account-details__flex-container">
 				<PaymentsSection isEnabled={ accountStatus.paymentsEnabled } />
 				<DepositsSection isEnabled={ accountStatus.depositsEnabled } />
-				<AccountSection baseFees={ accountStatus.baseFees } />
 			</div>
 			<MissingAccountDetailsDescription accountStatus={ accountStatus } />
 		</div>
