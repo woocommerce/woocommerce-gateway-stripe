@@ -29,8 +29,6 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_order_status_cancelled', [ $this, 'cancel_payment' ] );
 		add_action( 'woocommerce_order_status_refunded', [ $this, 'cancel_payment' ] );
 		add_filter( 'woocommerce_tracks_event_properties', [ $this, 'woocommerce_tracks_event_properties' ], 10, 2 );
-
-		add_action( 'wp', [ $this, 'maybe_process_upe_redirect' ] );
 	}
 
 	/**
@@ -378,18 +376,6 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		return $properties;
 	}
-
-	/**
-	 * Check for a UPE redirect payment method on order received page or setup intent on payment methods page.
-	 *
-	 * @since x.x.x
-	 * @version x.x.x
-	 */
-	public function maybe_process_upe_redirect() {
-		$gateway = new WC_Stripe_UPE_Payment_Gateway();
-		$gateway->maybe_process_upe_redirect();
-	}
-
 }
 
 new WC_Stripe_Order_Handler();
