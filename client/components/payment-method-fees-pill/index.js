@@ -26,20 +26,32 @@ const FeeTerm = styled.dt`
 	margin-right: auto;
 `;
 
+const PStyled = styled.p`
+	text-align: left;
+	color: #ccc;
+	font-size: 11px;
+`;
+
 const FeesTooltipContent = () => {
 	return (
-		<FeesList>
-			<FeeTerm>Base fee</FeeTerm>
-			<dt>1.4% + $0.30</dt>
-			<FeeTerm>International payment method fee</FeeTerm>
-			<dt>1.5%</dt>
-			<FeeTerm>Foreign exchange fee</FeeTerm>
-			<dt>1.0%</dt>
-			<FeeTerm>Total per transaction</FeeTerm>
-			<dt>
-				<strong>3.9% + $0.30</strong>
-			</dt>
-		</FeesList>
+		<>
+			<FeesList>
+				<FeeTerm>Base fee</FeeTerm>
+				<dt>1.4% + $0.30</dt>
+				<FeeTerm>International payment method fee</FeeTerm>
+				<dt>1.5%</dt>
+				<FeeTerm>Foreign exchange fee</FeeTerm>
+				<dt>1.0%</dt>
+				<FeeTerm>Total per transaction</FeeTerm>
+				<dt>
+					<strong>3.9% + $0.30</strong>
+				</dt>
+			</FeesList>
+			<PStyled>
+				Dispute and failed transactions have separate fees.{ ' ' }
+				<a href="TODO?">Learn more</a>
+			</PStyled>
+		</>
 	);
 };
 
