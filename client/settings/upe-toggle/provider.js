@@ -11,7 +11,7 @@ import UpeToggleContext from './context';
 // eslint-disable-next-line @woocommerce/dependency-group,import/no-unresolved
 import { recordEvent } from 'wcstripe/tracking';
 
-function trackToggle( isEnabled ) {
+function trackUpeToggle( isEnabled ) {
 	const eventName = isEnabled
 		? 'wstripe_upe_enabled'
 		: 'wstripe_upe_disabled';
@@ -37,7 +37,7 @@ const UpeToggleContextProvider = ( { children, defaultIsUpeEnabled } ) => {
 				data: { is_upe_enabled: sanitizedValue },
 			} )
 				.then( () => {
-					trackToggle( sanitizedValue );
+					trackUpeToggle( sanitizedValue );
 					setIsUpeEnabled( sanitizedValue );
 					setStatus( 'resolved' );
 				} )
