@@ -6,7 +6,7 @@ import { useSelect, useDispatch } from '@wordpress/data';
 /**
  * Internal dependencies
  */
-import { useSettings, usePaymentRequestEnabledSettings } from '../hooks';
+import { useSettings, usePaymentRequestEnabledSettings, usePaymentRequestLocations } from '../hooks';
 import { STORE_NAME } from '../../constants';
 
 jest.mock( '@wordpress/data' );
@@ -118,6 +118,45 @@ describe( 'Settings hooks tests', () => {
 			expect(
 				actions.updateIsPaymentRequestEnabled
 			).toHaveBeenCalledWith( true );
+		} );
+	} );
+
+	describe( 'usePaymentRequestLocations()', () => {
+		test( 'returns and updates payment request locations', () => {
+			const locationsBeforeUpdate = [ 'product' ];
+			const locationsAfterUpdate = [ 'checkout', 'cart' ];
+
+			actions = {
+				updatePaymentRequestLocations: jest.fn(),
+			};
+
+			selectors = {
+				getSettings: jest.fn( () => ( {
+					payment_request_enabled_locations: locationsBeforeUpdate,
+				} ) )
+			};
+
+			const [
+				paymentRequestLocations,
+				updatePaymentRequestLocations,
+			] = usePaymentRequestLocations();
+
+			updatePaymentRequestLocations( locationsAfterUpdate );
+
+			expect( paymentRequestLocations ).toEqual( locationsBeforeUpdate );
+			expect(
+				actions.updatePaymentRequestLocations
+			).toHaveBeenCalledWith( locationsAfterUpdate );
+		} );
+
+		test( 'returns [] if setting is missing', () => {
+			selectors = {
+				getSettings: jest.fn( () => ( {} ) )
+			};
+
+			const [ paymentRequestLocations ] = usePaymentRequestLocations();
+
+			expect( paymentRequestLocations ).toEqual( [] );
 		} );
 	} );
 } );

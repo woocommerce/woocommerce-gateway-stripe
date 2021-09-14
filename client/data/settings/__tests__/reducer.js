@@ -8,7 +8,7 @@ import {
 	// TODO Uncomment code below once settings data API is fully ported.
 	// updateIsManualCaptureEnabled,
 	// updateAccountStatementDescriptor,
-	// updatePaymentRequestLocations,
+	updatePaymentRequestLocations,
 	updateIsPaymentRequestEnabled,
 } from '../actions';
 
@@ -242,51 +242,50 @@ describe( 'Settings reducer tests', () => {
 		} );
 	} );
 
-	// TODO Uncomment code below once settings data API is fully ported.
-	// describe( 'SET_PAYMENT_REQUEST_LOCATIONS', () => {
-	// 	const initPaymentRequestState = [ 'product' ];
-	// 	const enableAllpaymentRequestState = [ 'product', 'checkout', 'cart' ];
-	//
-	// 	test( 'toggle `data.payment_request_enabled_locations`', () => {
-	// 		const oldState = {
-	// 			data: {
-	// 				payment_request_enabled_locations: initPaymentRequestState,
-	// 			},
-	// 		};
-	//
-	// 		const state = reducer(
-	// 			oldState,
-	// 			updatePaymentRequestLocations( enableAllpaymentRequestState )
-	// 		);
-	//
-	// 		expect( state.data.payment_request_enabled_locations ).toEqual(
-	// 			enableAllpaymentRequestState
-	// 		);
-	// 	} );
-	//
-	// 	test( 'leaves other fields unchanged', () => {
-	// 		const oldState = {
-	// 			foo: 'bar',
-	// 			data: {
-	// 				payment_request_enabled_locations: initPaymentRequestState,
-	// 				baz: 'quux',
-	// 			},
-	// 			savingError: {},
-	// 		};
-	//
-	// 		const state = reducer(
-	// 			oldState,
-	// 			updatePaymentRequestLocations( enableAllpaymentRequestState )
-	// 		);
-	//
-	// 		expect( state ).toEqual( {
-	// 			foo: 'bar',
-	// 			data: {
-	// 				payment_request_enabled_locations: enableAllpaymentRequestState,
-	// 				baz: 'quux',
-	// 			},
-	// 			savingError: null,
-	// 		} );
-	// 	} );
-	// } );
+	describe( 'SET_PAYMENT_REQUEST_LOCATIONS', () => {
+		const initPaymentRequestState = [ 'product' ];
+		const enableAllpaymentRequestState = [ 'product', 'checkout', 'cart' ];
+
+		test( 'toggle `data.payment_request_enabled_locations`', () => {
+			const oldState = {
+				data: {
+					payment_request_enabled_locations: initPaymentRequestState,
+				},
+			};
+
+			const state = reducer(
+				oldState,
+				updatePaymentRequestLocations( enableAllpaymentRequestState )
+			);
+
+			expect( state.data.payment_request_enabled_locations ).toEqual(
+				enableAllpaymentRequestState
+			);
+		} );
+
+		test( 'leaves other fields unchanged', () => {
+			const oldState = {
+				foo: 'bar',
+				data: {
+					payment_request_enabled_locations: initPaymentRequestState,
+					baz: 'quux',
+				},
+				savingError: {},
+			};
+
+			const state = reducer(
+				oldState,
+				updatePaymentRequestLocations( enableAllpaymentRequestState )
+			);
+
+			expect( state ).toEqual( {
+				foo: 'bar',
+				data: {
+					payment_request_enabled_locations: enableAllpaymentRequestState,
+					baz: 'quux',
+				},
+				savingError: null,
+			} );
+		} );
+	} );
 } );

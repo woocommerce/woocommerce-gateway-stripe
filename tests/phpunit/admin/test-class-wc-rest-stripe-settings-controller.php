@@ -17,6 +17,20 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	const SETTINGS_ROUTE = '/wc/v3/wc_stripe/settings';
 
 	/**
+	 * The system under test.
+	 *
+	 * @var WC_REST_Stripe_Settings_Controller
+	 */
+	private $controller;
+
+	/**
+	 * Gateway.
+	 *
+	 * @var WC_Stripe_Payment_Gateway
+	 */
+	private $gateway;
+
+	/**
 	 * Pre-test setup
 	 */
 	public function setUp() {
@@ -29,6 +43,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 		// The routes in WC_REST_Stripe_Settings_Controller are only registered if `_wcstripe_feature_upe = "yes"`.
 		update_option( '_wcstripe_feature_upe', 'yes' );
+
+		$this->gateway    = new WC_Gateway_Stripe();
+		$this->controller = new WC_REST_Stripe_Settings_Controller( $this->gateway );
 	}
 
 	public function test_get_settings_request_returns_status_code_200() {
@@ -75,6 +92,17 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$response = rest_do_request( new WP_REST_Request( 'POST', self::SETTINGS_ROUTE ) );
 		$this->assertEquals( 200, $response->get_status() );
 		remove_filter( 'user_has_cap', $cb );
+	}
+
+	public function test_update_settings_saves_payment_request_button_theme() {
+		$this->assertEquals( [ 'product', 'cart' ], $this->gateway->get_option( 'payment_request_button_locations' ) );
+
+		$request = new WP_REST_Request();
+		$request->set_param( 'payment_request_enabled_locations', [ 'cart', 'checkout' ] );
+
+		$this->controller->update_settings( $request );
+
+		$this->assertEquals( [ 'cart', 'checkout' ], $this->gateway->get_option( 'payment_request_button_locations' ) );
 	}
 
 	/**

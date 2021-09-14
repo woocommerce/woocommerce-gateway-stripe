@@ -10,6 +10,8 @@ import { useSelect, useDispatch } from '@wordpress/data';
  */
 import { STORE_NAME } from '../constants';
 
+const EMPTY_ARR = [];
+
 export const useSettings = () => {
 	const { saveSettings } = useDispatch( STORE_NAME );
 
@@ -47,6 +49,18 @@ export const usePaymentRequestEnabledSettings = () => {
 	}, [] );
 
 	return [ isPaymentRequestEnabled, updateIsPaymentRequestEnabled ];
+};
+
+export const usePaymentRequestLocations = () => {
+	const { updatePaymentRequestLocations } = useDispatch( STORE_NAME );
+
+	const paymentRequestLocations = useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
+
+		return getSettings().payment_request_enabled_locations || EMPTY_ARR;
+	} );
+
+	return [ paymentRequestLocations, updatePaymentRequestLocations ];
 };
 
 export const useGetSavingError = () => {

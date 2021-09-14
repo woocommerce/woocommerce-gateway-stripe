@@ -1,19 +1,44 @@
+/**
+ * External dependencies
+ */
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+/**
+ * Internal dependencies
+ */
 import PaymentRequestSection from '..';
 import {
-	usePaymentRequestEnabledSettings
+	usePaymentRequestEnabledSettings,
+	usePaymentRequestLocations,
 } from '../../../data';
 
 jest.mock( '../../../data', () => ( {
 	usePaymentRequestEnabledSettings: jest.fn(),
+	usePaymentRequestLocations: jest.fn(),
 } ) );
+
+const getMockPaymentRequestLocations = (
+	isCheckoutEnabled,
+	isProductPageEnabled,
+	isCartEnabled,
+	updatePaymentRequestLocationsHandler
+) => [
+	[
+		isCheckoutEnabled && 'checkout',
+		isProductPageEnabled && 'product',
+		isCartEnabled && 'cart',
+	].filter( Boolean ),
+	updatePaymentRequestLocationsHandler,
+];
 
 describe( 'PaymentRequestSection', () => {
 	beforeEach( () => {
 		usePaymentRequestEnabledSettings.mockReturnValue( [ false, jest.fn() ] );
+		usePaymentRequestLocations.mockReturnValue(
+			getMockPaymentRequestLocations( true, true, true, jest.fn() )
+		);
 	} );
 
 	it( 'should enable express checkout locations when express checkout is enabled', () => {
@@ -71,5 +96,66 @@ describe( 'PaymentRequestSection', () => {
 		expect( updateIsPaymentRequestEnabledHandler ).toHaveBeenCalledWith(
 			true
 		);
+	} );
+
+	it( 'should trigger an action to save the checked locations when un-checking the location checkboxes', async () => {
+		const updatePaymentRequestLocationsHandler = jest.fn();
+		usePaymentRequestEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
+		usePaymentRequestLocations.mockReturnValue(
+			getMockPaymentRequestLocations(
+				true,
+				true,
+				true,
+				updatePaymentRequestLocationsHandler
+			)
+		);
+
+		render( <PaymentRequestSection /> );
+
+		// Uncheck each checkbox, and verify them what kind of action should have been called
+		userEvent.click( screen.getByText( 'Product page' ) );
+		expect(
+			updatePaymentRequestLocationsHandler
+		).toHaveBeenLastCalledWith( [ 'checkout', 'cart' ] );
+
+		userEvent.click( screen.getByText( 'Checkout' ) );
+		expect(
+			updatePaymentRequestLocationsHandler
+		).toHaveBeenLastCalledWith( [ 'product', 'cart' ] );
+
+		userEvent.click( screen.getByText( 'Cart' ) );
+		expect(
+			updatePaymentRequestLocationsHandler
+		).toHaveBeenLastCalledWith( [ 'checkout', 'product' ] );
+	} );
+
+	it( 'should trigger an action to save the checked locations when checking the location checkboxes', async () => {
+		const updatePaymentRequestLocationsHandler = jest.fn();
+		usePaymentRequestEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
+		usePaymentRequestLocations.mockReturnValue(
+			getMockPaymentRequestLocations(
+				false,
+				false,
+				false,
+				updatePaymentRequestLocationsHandler
+			)
+		);
+
+		render( <PaymentRequestSection /> );
+
+		userEvent.click( screen.getByText( 'Cart' ) );
+		expect(
+			updatePaymentRequestLocationsHandler
+		).toHaveBeenLastCalledWith( [ 'cart' ] );
+
+		userEvent.click( screen.getByText( 'Product page' ) );
+		expect(
+			updatePaymentRequestLocationsHandler
+		).toHaveBeenLastCalledWith( [ 'product' ] );
+
+		userEvent.click( screen.getByText( 'Checkout' ) );
+		expect(
+			updatePaymentRequestLocationsHandler
+		).toHaveBeenLastCalledWith( [ 'checkout' ] );
 	} );
 } );

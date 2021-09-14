@@ -66,3 +66,9 @@ export function* saveSettings() {
 
 	return null === error;
 }
+
+export function updatePaymentRequestLocations( locations ) {
+	return updateSettingsValues( {
+		payment_request_enabled_locations: [ ...locations ],
+	} );
+}

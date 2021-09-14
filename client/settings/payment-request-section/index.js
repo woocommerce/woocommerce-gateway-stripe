@@ -17,7 +17,10 @@ import interpolateComponents from 'interpolate-components';
  * Internal dependencies
  */
 import CardBody from '../card-body';
-import { usePaymentRequestEnabledSettings } from '../../data';
+import {
+	usePaymentRequestEnabledSettings,
+	usePaymentRequestLocations,
+} from '../../data';
 
 const customizeAppearanceURL = addQueryArgs( window.location.href, {
 	area: 'payment_requests',
@@ -45,21 +48,19 @@ const PaymentRequestSection = () => {
 		isPaymentRequestEnabled,
 		updateIsPaymentRequestEnabled,
 	] = usePaymentRequestEnabledSettings();
-
-	const [ paymentRequestLocations, setPaymentRequestLocations ] = useState( [
-		'cart',
-		'product',
-		'checkout',
-	] );
+	const [
+		paymentRequestLocations,
+		updatePaymentRequestLocations,
+	] = usePaymentRequestLocations();
 
 	const makeLocationChangeHandler = ( location ) => ( isChecked ) => {
 		if ( isChecked ) {
-			setPaymentRequestLocations( [
+			updatePaymentRequestLocations( [
 				...paymentRequestLocations,
 				location,
 			] );
 		} else {
-			setPaymentRequestLocations(
+			updatePaymentRequestLocations(
 				paymentRequestLocations.filter( ( name ) => name !== location )
 			);
 		}
