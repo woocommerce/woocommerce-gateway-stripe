@@ -89,7 +89,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Controller {
 		// Filter only the fields we want to return
 		$account_keys = array_intersect_key( $stripe_settings, array_flip( $allowed_params ) );
 
-		return new WP_REST_Response($account_keys);
+		return new WP_REST_Response( $account_keys );
 	}
 
 	/**
