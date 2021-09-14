@@ -35,5 +35,10 @@ if ( settingsContainer ) {
 }
 
 if ( newAccountContainer ) {
-	ReactDOM.render( <ConnectStripeAccount />, newAccountContainer );
+	ReactDOM.render(
+		<ConnectStripeAccount
+			oauthUrl={ wc_stripe_settings_params.stripe_oauth_url }
+		/>,
+		newAccountContainer
+	);
 }
