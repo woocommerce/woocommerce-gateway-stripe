@@ -56,7 +56,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 			];
 
 			$this->assertEquals( 'GET', $request_args['method'] );
-			$this->assertStringEndsWith( 'payment_intents/pi_123', $url );
+			$this->assertStringEndsWith( 'payment_intents/pi_123?expand[]=payment_method', $url );
 
 			return $response;
 		};
@@ -92,7 +92,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 			];
 
 			$this->assertEquals( 'GET', $request_args['method'] );
-			$this->assertStringEndsWith( 'payment_intents/pi_123', $url );
+			$this->assertStringEndsWith( 'payment_intents/pi_123?expand[]=payment_method', $url );
 
 			return $response;
 		};

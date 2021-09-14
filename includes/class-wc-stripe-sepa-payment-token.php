@@ -34,6 +34,13 @@ class WC_Payment_Token_SEPA extends WC_Payment_Token {
 	];
 
 	/**
+	 * Stores original Stripe payment method type.
+	 *
+	 * @var string
+	 */
+	protected $payment_method_type = 'sepa_debit';
+
+	/**
 	 * Get type to display to user.
 	 *
 	 * @since  4.0.0
@@ -104,5 +111,23 @@ class WC_Payment_Token_SEPA extends WC_Payment_Token {
 	 */
 	public function set_last4( $last4 ) {
 		$this->set_prop( 'last4', $last4 );
+	}
+
+	/**
+	 * Set Stripe payment method type.
+	 *
+	 * @param string $type
+	 */
+	public function set_payment_method_type( $type ) {
+		$this->payment_method_type = $type;
+	}
+
+	/**
+	 * Returns Stripe payment method type.
+	 *
+	 * @return string $payment_method_type
+	 */
+	public function get_payment_method_type() {
+		return $this->payment_method_type;
 	}
 }
