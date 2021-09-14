@@ -63,6 +63,30 @@ export const usePaymentRequestLocations = () => {
 	return [ paymentRequestLocations, updatePaymentRequestLocations ];
 };
 
+export const useIsStripeEnabled = () => {
+	const { updateIsStripeEnabled } = useDispatch( STORE_NAME );
+
+	const isStripeEnabled = useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
+
+		return getSettings().is_stripe_enabled || false;
+	}, [] );
+
+	return [ isStripeEnabled, updateIsStripeEnabled ];
+};
+
+export const useTestMode = () => {
+	const { updateIsTestModeEnabled } = useDispatch( STORE_NAME );
+
+	const isTestModeEnabled = useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
+
+		return getSettings().is_test_mode_enabled || false;
+	}, [] );
+
+	return [ isTestModeEnabled, updateIsTestModeEnabled ];
+};
+
 export const useGetSavingError = () => {
 	return useSelect( ( select ) => {
 		const { getSavingError } = select( STORE_NAME );

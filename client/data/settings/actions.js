@@ -72,3 +72,11 @@ export function updatePaymentRequestLocations( locations ) {
 		payment_request_enabled_locations: [ ...locations ],
 	} );
 }
+
+export function updateIsStripeEnabled( isEnabled ) {
+	return updateSettingsValues( { is_stripe_enabled: isEnabled } );
+}
+
+export function updateIsTestModeEnabled( isEnabled ) {
+	return updateSettingsValues( { is_test_mode_enabled: isEnabled } );
+}

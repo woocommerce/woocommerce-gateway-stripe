@@ -1617,4 +1617,36 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function is_valid_us_zip_code( $zip ) {
 		return ! empty( $zip ) && preg_match( '/^\d{5,5}(-\d{4,4})?$/', $zip );
 	}
+
+	/**
+	 * Checks whether the gateway is enabled.
+	 *
+	 * @return bool The result.
+	 */
+	public function is_enabled() {
+		return 'yes' === $this->get_option( 'enabled' );
+	}
+
+	/**
+	 * Disables gateway.
+	 */
+	public function disable() {
+		$this->update_option( 'enabled', 'no' );
+	}
+
+	/**
+	 * Enables gateway.
+	 */
+	public function enable() {
+		$this->update_option( 'enabled', 'yes' );
+	}
+
+	/**
+	 * Returns whether test_mode is active for the gateway.
+	 *
+	 * @return boolean Test mode enabled if true, disabled if false.
+	 */
+	public function is_in_test_mode() {
+		return 'yes' === $this->get_option( 'testmode' );
+	}
 }

@@ -15,6 +15,7 @@ import styled from '@emotion/styled';
 /**
  * Internal dependencies
  */
+import { useIsStripeEnabled, useTestMode } from 'wcstripe/data';
 import CardBody from '../card-body';
 
 const StyledCard = styled( Card )`
@@ -22,15 +23,15 @@ const StyledCard = styled( Card )`
 `;
 
 const GeneralSettingsSection = () => {
-	const [ enableStripe, setEnableStripe ] = useState( false );
-	const [ enableTestMode, setEnableTestMode ] = useState( false );
+	const [ isStripeEnabled, setIsStripeEnabled ] = useIsStripeEnabled();
+	const [ isTestModeEnabled, setIsTestModeEnabled ] = useTestMode();
 
 	return (
 		<StyledCard>
 			<CardBody>
 				<CheckboxControl
-					checked={ enableStripe }
-					onChange={ setEnableStripe }
+					checked={ isStripeEnabled }
+					onChange={ setIsStripeEnabled }
 					label={ __(
 						'Enable Stripe',
 						'woocommerce-gateway-stripe'
@@ -42,8 +43,8 @@ const GeneralSettingsSection = () => {
 				/>
 
 				<CheckboxControl
-					checked={ enableTestMode }
-					onChange={ setEnableTestMode }
+					checked={ isTestModeEnabled }
+					onChange={ setIsTestModeEnabled }
 					label={ __(
 						'Enable test mode',
 						'woocommerce-gateway-stripe'

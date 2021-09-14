@@ -14,6 +14,7 @@ import PaymentsAndTransactionsSection from '../payments-and-transactions-section
 import AdvancedSettingsSection from '../advanced-settings-section';
 import CustomizationOptionsNotice from '../customization-options-notice';
 import GeneralSettingsSection from './general-settings-section';
+import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -83,7 +84,9 @@ const PaymentSettingsPanel = () => {
 	return (
 		<>
 			<SettingsSection Description={ GeneralSettingsDescription }>
-				<GeneralSettingsSection />
+				<LoadableSettingsSection numLines={ 20 }>
+					<GeneralSettingsSection />
+				</LoadableSettingsSection>
 				<CustomizationOptionsNotice />
 			</SettingsSection>
 			<SettingsSection Description={ AccountDetailsDescription }>

@@ -58,13 +58,23 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 				'callback'            => [ $this, 'update_settings' ],
 				'permission_callback' => [ $this, 'check_permission' ],
 				'args'                => [
-					'is_payment_request_enabled' => [
+					'is_stripe_enabled'                 => [
+						'description'       => __( 'If Stripe should be enabled.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'boolean',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'is_test_mode_enabled'              => [
+						'description'       => __( 'Stripe test mode setting.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'boolean',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'is_payment_request_enabled'        => [
 						'description'       => __( 'If Stripe express checkouts should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'payment_request_enabled_locations' => [
-						'description'       => __( 'Express checkout locations that should be enabled.', 'woocommerce-payments' ),
+						'description'       => __( 'Express checkout locations that should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'array',
 						'items'             => [
 							'type' => 'string',
@@ -85,6 +95,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 	public function get_settings() {
 		return new WP_REST_Response(
 			[
+				'is_stripe_enabled'                 => $this->gateway->is_enabled(),
+				'is_test_mode_enabled'              => $this->gateway->is_in_test_mode(),
 				'is_payment_request_enabled'        => 'yes' === $this->gateway->get_option( 'payment_request' ),
 				'payment_request_enabled_locations' => $this->gateway->get_option( 'payment_request_button_locations' ),
 			]
@@ -97,10 +109,46 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 	 * @param WP_REST_Request $request Full data about the request.
 	 */
 	public function update_settings( WP_REST_Request $request ) {
+		$this->update_is_stripe_enabled( $request );
+		$this->update_is_test_mode_enabled( $request );
 		$this->update_is_payment_request_enabled( $request );
 		$this->update_payment_request_enabled_locations( $request );
 
 		return new WP_REST_Response( [], 200 );
+	}
+
+	/**
+	 * Updates Stripe enabled status.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_is_stripe_enabled( WP_REST_Request $request ) {
+		$is_stripe_enabled = $request->get_param( 'is_stripe_enabled' );
+
+		if ( null === $is_stripe_enabled ) {
+			return;
+		}
+
+		if ( $is_stripe_enabled ) {
+			$this->gateway->enable();
+		} else {
+			$this->gateway->disable();
+		}
+	}
+
+	/**
+	 * Updates Stripe test mode.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_is_test_mode_enabled( WP_REST_Request $request ) {
+		$is_test_mode_enabled = $request->get_param( 'is_test_mode_enabled' );
+
+		if ( null === $is_test_mode_enabled ) {
+			return;
+		}
+
+		$this->gateway->update_option( 'testmode', $is_test_mode_enabled ? 'yes' : 'no' );
 	}
 
 	/**
