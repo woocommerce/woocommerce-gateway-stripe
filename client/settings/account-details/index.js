@@ -1,41 +1,36 @@
 /**
  * External dependencies
  */
+import React from 'react';
 import { __ } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
 
 /**
  * Internal dependencies
  */
-import DepositsEnabled from '../../components/deposits-status';
+import DepositsStatus from '../../components/deposits-status';
 import PaymentsStatus from '../../components/payments-status';
 import './style.scss';
 
-const renderPaymentsStatus = ( paymentsEnabled ) => {
+const PaymentsSection = ( props ) => {
 	return (
 		<div className="account-details__row">
 			<p>{ __( 'Payments:', 'woocommerce-gateway-stripe' ) }</p>
-			<PaymentsStatus
-				iconSize={ 18 }
-				paymentsEnabled={ paymentsEnabled }
-			/>
+			<PaymentsStatus { ...props } />
 		</div>
 	);
 };
 
-const renderdepositsEnabled = ( depositsEnabled ) => {
+const DepositsSection = ( props ) => {
 	return (
 		<div className="account-details__row">
 			<p>{ __( 'Deposits:', 'woocommerce-gateway-stripe' ) }</p>
-			<DepositsEnabled
-				iconSize={ 18 }
-				depositsEnabled={ depositsEnabled }
-			/>
+			<DepositsStatus { ...props } />
 		</div>
 	);
 };
 
-const renderMissingAccountDetailsDescription = ( accountStatus ) => {
+const MissingAccountDetailsDescription = ( { accountStatus } ) => {
 	const { accountLink, paymentsEnabled, depositsEnabled } = accountStatus;
 
 	let description = '';
@@ -58,7 +53,7 @@ const renderMissingAccountDetailsDescription = ( accountStatus ) => {
 	return <div className="account-details__desc">{ description }</div>;
 };
 
-const renderBaseFees = ( baseFees ) => {
+const AccountSection = ( { baseFees } ) => {
 	return (
 		<div className="account-details__row">
 			<p>{ __( 'Base Fees:', 'woocommerce-gateway-stripe' ) }</p>
@@ -67,8 +62,7 @@ const renderBaseFees = ( baseFees ) => {
 	);
 };
 
-const AccountDetails = ( props ) => {
-	const { accountStatus } = props;
+const AccountDetails = ( { accountStatus } ) => {
 	if ( accountStatus.error ) {
 		return (
 			<div>
@@ -85,11 +79,11 @@ const AccountDetails = ( props ) => {
 	return (
 		<div>
 			<div className="account-details__flex-container">
-				{ renderPaymentsStatus( accountStatus.paymentsEnabled ) }
-				{ renderdepositsEnabled( accountStatus.depositsEnabled ) }
-				{ renderBaseFees( accountStatus.baseFees ) }
+				<PaymentsSection isEnabled={ accountStatus.paymentsEnabled } />
+				<DepositsSection isEnabled={ accountStatus.depositsEnabled } />
+				<AccountSection baseFees={ accountStatus.baseFees } />
 			</div>
-			{ renderMissingAccountDetailsDescription( accountStatus ) }
+			<MissingAccountDetailsDescription accountStatus={ accountStatus } />
 		</div>
 	);
 };

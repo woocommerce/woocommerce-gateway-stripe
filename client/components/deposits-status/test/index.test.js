@@ -1,32 +1,28 @@
 /**
  * External dependencies
  */
+import React from 'react';
 import { render, screen } from '@testing-library/react';
 
 /**
  * Internal dependencies
  */
-import DepositsEnabled from '../';
+import DepositsStatus from '..';
 
 describe( 'depositsEnabled', () => {
 	test( 'renders disabled status', () => {
-		renderdepositsEnabled( false, 20 );
+		renderDepositsStatus( false );
 		const disabledText = screen.queryByText( /disabled/i );
 		expect( disabledText ).toBeInTheDocument();
 	} );
 
 	test( 'renders enabled status', () => {
-		renderdepositsEnabled( true, 20 );
+		renderDepositsStatus( true );
 		const enabledText = screen.queryByText( /enabled/i );
 		expect( enabledText ).toBeInTheDocument();
 	} );
 
-	function renderdepositsEnabled( depositsEnabled, iconSize ) {
-		return render(
-			<DepositsEnabled
-				depositsEnabled={ depositsEnabled }
-				iconSize={ iconSize }
-			/>
-		);
+	function renderDepositsStatus( depositsEnabled ) {
+		return render( <DepositsStatus isEnabled={ depositsEnabled } /> );
 	}
 } );

@@ -1,9 +1,17 @@
 @import '../../styles/abstracts/colors';
 .account-details {
 
+	.is-size-large {
+		padding: 24px 32px;
+	}
+
 	&__flex-container {
 		display: flex;
 		flex-direction: column;
+	}
+
+	&__header {
+		margin: 0px;
 	}
 
 	&__row {
@@ -14,6 +22,7 @@
 
 		p {
 			flex: 1 0 30px;
+			margin: 0px;
 		}
 
 		span {

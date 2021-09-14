@@ -1,16 +1,16 @@
 @import '../../styles/abstracts/colors';
 .account-details__info {
-	&__green {
+	&--green {
 		fill: $alert-green;
 		color: $alert-green;
 	}
 
-	&__red {
+	&--red {
 		fill: $alert-red;
 		color: $alert-red;
 	}
 
-	&__yellow {
+	&--yellow {
 		fill: $alert-yellow;
 		color: $alert-yellow;
 	}
