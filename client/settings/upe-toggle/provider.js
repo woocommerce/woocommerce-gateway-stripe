@@ -13,8 +13,8 @@ import { recordEvent } from 'wcstripe/tracking';
 
 function trackUpeToggle( isEnabled ) {
 	const eventName = isEnabled
-		? 'wstripe_upe_enabled'
-		: 'wstripe_upe_disabled';
+		? 'wcstripe_upe_enabled'
+		: 'wcstripe_upe_disabled';
 
 	recordEvent( eventName );
 }

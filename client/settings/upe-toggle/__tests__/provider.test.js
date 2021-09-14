@@ -109,7 +109,7 @@ describe( 'UpeToggleContextProvider', () => {
 
 		await waitFor( () => expect( apiFetch ).toHaveReturned() );
 
-		expect( recordEvent ).toHaveBeenCalledWith( 'wstripe_upe_disabled' );
+		expect( recordEvent ).toHaveBeenCalledWith( 'wcstripe_upe_disabled' );
 		expect( childrenMock ).toHaveBeenCalledWith( {
 			isUpeEnabled: false,
 			setIsUpeEnabled: expect.any( Function ),
