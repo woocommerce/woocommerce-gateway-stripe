@@ -39,13 +39,14 @@ trait WC_Stripe_Subscriptions_Trait {
 		add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
 		add_action( 'wcs_renewal_order_created', [ $this, 'delete_renewal_meta' ], 10 );
 		add_action( 'wc_stripe_cards_payment_fields', [ $this, 'display_update_subs_payment_checkout' ] );
+		add_action( 'wc_stripe_sepa_payment_fields', [ $this, 'display_update_subs_payment_checkout' ] );
 		add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', [ $this, 'handle_add_payment_method_success' ], 10, 2 );
 		add_action( 'woocommerce_subscriptions_change_payment_before_submit', [ $this, 'differentiate_change_payment_method_form' ] );
 
-		// display the credit card used for a subscription in the "My Subscriptions" table
+		// Display the credit card used for a subscription in the "My Subscriptions" table.
 		add_filter( 'woocommerce_my_subscriptions_payment_method', [ $this, 'maybe_render_subscription_payment_method' ], 10, 2 );
 
-		// allow store managers to manually set Stripe as the payment method on a subscription
+		// Allow store managers to manually set Stripe as the payment method on a subscription.
 		add_filter( 'woocommerce_subscription_payment_meta', [ $this, 'add_subscription_payment_meta' ], 10, 2 );
 		add_filter( 'woocommerce_subscription_validate_payment_meta', [ $this, 'validate_subscription_payment_meta' ], 10, 2 );
 		add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'display_save_payment_method_checkbox' ] );
@@ -90,6 +91,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Updates all active subscriptions payment method.
 	 *
 	 * @since 4.1.11
+	 *
 	 * @param string $source_id
 	 * @param object $source_object
 	 */
@@ -148,6 +150,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Process the payment method change for subscriptions.
 	 *
 	 * @since x.x.x
+	 *
 	 * @param int $order_id
 	 * @return array|null
 	 */
@@ -188,6 +191,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @since 3.0
 	 * @since 4.0.4 Add third parameter flag to retry.
 	 * @since 4.1.0 Add fourth parameter to log previous errors.
+	 *
 	 * @param float  $amount
 	 * @param mixed  $renewal_order
 	 * @param bool   $retry Should we retry the process?
@@ -209,6 +213,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			$this->ensure_subscription_has_customer_id( $order_id );
 
 			// Unlike regular off-session subscription payments, early renewals are treated as on-session payments, involving the customer.
+			// - TODO: Check if this has to be a card payment to be processed as an early renewal.
 			if ( isset( $_REQUEST['process_early_renewal'] ) ) { // wpcs: csrf ok.
 				// - TODO: When UPE, signature will be different.
 				$response = $this->process_payment( $order_id, true, false, $previous_error, true );
@@ -314,7 +319,6 @@ trait WC_Stripe_Subscriptions_Trait {
 			}
 
 			// Either the charge was successfully captured, or it requires further authentication.
-
 			if ( $is_authentication_required ) {
 				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order, $response );
 
@@ -385,9 +389,9 @@ trait WC_Stripe_Subscriptions_Trait {
 	public function delete_resubscribe_meta( $resubscribe_order ) {
 		delete_post_meta( $resubscribe_order->get_id(), '_stripe_customer_id' );
 		delete_post_meta( $resubscribe_order->get_id(), '_stripe_source_id' );
-		// For BW compat will remove in future
+		// For BW compat will remove in future.
 		delete_post_meta( $resubscribe_order->get_id(), '_stripe_card_id' );
-		// delete payment intent ID
+		// Delete payment intent ID.
 		delete_post_meta( $resubscribe_order->get_id(), '_stripe_intent_id' );
 		$this->delete_renewal_meta( $resubscribe_order );
 	}
@@ -401,7 +405,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		WC_Stripe_Helper::delete_stripe_fee( $renewal_order );
 		WC_Stripe_Helper::delete_stripe_net( $renewal_order );
 
-		// delete payment intent ID
+		// Delete payment intent ID.
 		delete_post_meta( $renewal_order->get_id(), '_stripe_intent_id' );
 
 		return $renewal_order;
@@ -425,6 +429,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * manually set up automatic recurring payments for a customer via the Edit Subscriptions screen in 2.0+.
 	 *
 	 * @since 2.5
+	 *
 	 * @param array           $payment_meta associative array of meta data required for automatic payments
 	 * @param WC_Subscription $subscription An instance of a subscription object
 	 * @return array
@@ -464,6 +469,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 *
 	 * @since 2.5
 	 * @since 4.0.4 Stripe sourd id field no longer needs to be required.
+	 *
 	 * @param string $payment_method_id The ID of the payment method to validate
 	 * @param array  $payment_meta associative array of meta data required for automatic payments
 	 * @return array
@@ -497,6 +503,8 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Render the payment method used for a subscription in the "My Subscriptions" table
 	 *
 	 * @since 1.7.5
+	 * @version x.x.x
+	 *
 	 * @param string          $payment_method_to_display the default payment method text to display
 	 * @param WC_Subscription $subscription the subscription details
 	 * @return string the subscription payment method
@@ -570,6 +578,9 @@ trait WC_Stripe_Subscriptions_Trait {
 					if ( $card ) {
 						/* translators: 1) card brand 2) last 4 digits */
 						$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
+					} elseif ( $source->sepa_debit ) {
+						/* translators: 1) last 4 digits of SEPA Direct Debit */
+						$payment_method_to_display = sprintf( __( 'Via SEPA Direct Debit ending in %1$s', 'woocommerce-gateway-stripe' ), $source->sepa_debit->last4 );
 					}
 
 					break;
