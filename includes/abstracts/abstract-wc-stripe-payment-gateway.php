@@ -14,6 +14,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
+	 * The delay between retries.
+	 *
+	 * @var int
+	 */
+	protected $retry_interval = 1;
+
+	/**
 	 * Displays the admin settings webhook description.
 	 *
 	 * @since 4.1.0
@@ -669,7 +676,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function is_prepaid_card( $source_object ) {
 		return (
 			$source_object
-			&& ( 'token' === $source_object->object || 'source' === $source_object->object )
+			&& in_array( $source_object->object, [ 'token', 'source', 'payment_method' ], true )
 			&& 'prepaid' === $source_object->card->funding
 		);
 	}
@@ -1647,5 +1654,21 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function is_valid_us_zip_code( $zip ) {
 		return ! empty( $zip ) && preg_match( '/^\d{5,5}(-\d{4,4})?$/', $zip );
+	}
+
+	/**
+	 * Gets a localized message for an error from a response, adds it as a note to the order, and throws it.
+	 *
+	 * @since 4.2.0
+	 * @param  stdClass $response  The response from the Stripe API.
+	 * @param  WC_Order $order     The order to add a note to.
+	 * @throws WC_Stripe_Exception An exception with the right message.
+	 */
+	public function throw_localized_message( $response, $order ) {
+		$localized_message = $this->get_localized_error_message_from_response( $response );
+
+		$order->add_order_note( $localized_message );
+
+		throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 	}
 }

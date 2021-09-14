@@ -13,13 +13,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	const ID = 'stripe';
 
 	/**
-	 * The delay between retries.
-	 *
-	 * @var int
-	 */
-	public $retry_interval;
-
-	/**
 	 * Should we capture Credit cards
 	 *
 	 * @var bool
@@ -86,7 +79,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->retry_interval = 1;
 		$this->id             = self::ID;
 		$this->method_title   = __( 'Stripe', 'woocommerce-gateway-stripe' );
 		/* translators: 1) link to Stripe register page 2) link to Stripe api keys page */
@@ -779,22 +771,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $localized_message;
-	}
-
-	/**
-	 * Gets a localized message for an error from a response, adds it as a note to the order, and throws it.
-	 *
-	 * @since 4.2.0
-	 * @param  stdClass $response  The response from the Stripe API.
-	 * @param  WC_Order $order     The order to add a note to.
-	 * @throws WC_Stripe_Exception An exception with the right message.
-	 */
-	public function throw_localized_message( $response, $order ) {
-		$localized_message = $this->get_localized_error_message_from_response( $response );
-
-		$order->add_order_note( $localized_message );
-
-		throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 	}
 
 	/**
