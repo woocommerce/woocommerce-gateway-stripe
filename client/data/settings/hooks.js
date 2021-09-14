@@ -23,9 +23,12 @@ export const useSettings = () => {
 	}, [] );
 
 	const isLoading = useSelect( ( select ) => {
-		const { hasFinishedResolution } = select( STORE_NAME );
+		const { hasFinishedResolution, isResolving } = select( STORE_NAME );
 
-		return ! hasFinishedResolution( 'getSettings' );
+		return (
+			isResolving( 'getSettings' ) ||
+			! hasFinishedResolution( 'getSettings' )
+		);
 	}, [] );
 
 	const isSaving = useSelect( ( select ) => {

@@ -44,6 +44,7 @@ describe( 'Settings hooks tests', () => {
 			selectors = {
 				getSettings: jest.fn( () => ( { foo: 'bar' } ) ),
 				hasFinishedResolution: jest.fn(),
+				isResolving: jest.fn(),
 				isSavingSettings: jest.fn(),
 			};
 		} );
@@ -56,21 +57,32 @@ describe( 'Settings hooks tests', () => {
 			expect( actions.saveSettings ).toHaveBeenCalledWith( 'bar' );
 		} );
 
-		test( 'returns isLoading = true when hasFinishedResolution = false', () => {
-			selectors.hasFinishedResolution.mockReturnValue( false );
-
-			const { isLoading } = useSettings();
-
-			expect( isLoading ).toBeTruthy();
-		} );
-
-		test( 'returns isLoading = false when hasFinishedResolution = true', () => {
+		test( 'returns isLoading = false when isResolving = false and hasFinishedResolution = true', () => {
 			selectors.hasFinishedResolution.mockReturnValue( true );
+			selectors.isResolving.mockReturnValue( false );
 
 			const { isLoading } = useSettings();
 
 			expect( isLoading ).toBeFalsy();
 		} );
+
+		test.each( [
+			[ false, false ],
+			[ true, false ],
+			[ true, true ],
+		] )(
+			'returns isLoading = true when isResolving = %s and hasFinishedResolution = %s',
+			( isResolving, hasFinishedResolution ) => {
+				selectors.hasFinishedResolution.mockReturnValue(
+					hasFinishedResolution
+				);
+				selectors.isResolving.mockReturnValue( isResolving );
+
+				const { isLoading } = useSettings();
+
+				expect( isLoading ).toBeTruthy();
+			}
+		);
 	} );
 
 	describe( 'usePaymentRequestEnabledSettings()', () => {
