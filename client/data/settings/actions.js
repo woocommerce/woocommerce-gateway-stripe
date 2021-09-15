@@ -108,3 +108,7 @@ export function updateShortAccountStatementDescriptor( shortStatementDescriptor 
 		short_statement_descriptor: shortStatementDescriptor,
 	} );
 }
+
+export function updateIsDebugLogEnabled( isEnabled ) {
+	return updateSettingsValues( { is_debug_log_enabled: isEnabled } );
+}

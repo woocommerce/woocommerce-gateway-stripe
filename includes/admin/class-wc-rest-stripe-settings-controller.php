@@ -110,6 +110,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 				'statement_descriptor'                  => $this->gateway->get_option( 'statement_descriptor' ),
 				'is_short_statement_descriptor_enabled' => 'yes' === $this->gateway->get_option( 'is_short_statement_descriptor_enabled' ),
 				'short_statement_descriptor'            => $this->gateway->get_option( 'short_statement_descriptor' ),
+
+				/* Settings > Advanced settings */
+				'is_debug_log_enabled' => 'yes' === $this->gateway->get_option( 'logging' ),
 			]
 		);
 	}
@@ -135,6 +138,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 		$this->update_account_statement_descriptor( $request );
 		$this->update_is_short_account_statement_enabled( $request );
 		$this->update_short_account_statement_descriptor( $request );
+
+		/* Settings > Advanced settings */
+		$this->update_is_debug_log_enabled( $request );
 
 		return new WP_REST_Response( [], 200 );
 	}
@@ -291,5 +297,20 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 		}
 
 		$this->gateway->update_option( 'short_statement_descriptor', $short_account_statement_descriptor );
+	}
+
+	/**
+	 * Updates WooCommerce Payments test mode.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_is_debug_log_enabled( WP_REST_Request $request ) {
+		$is_debug_log_enabled = $request->get_param( 'is_debug_log_enabled' );
+
+		if ( null === $request->has_param( 'is_debug_log_enabled' ) ) {
+			return;
+		}
+
+		$this->gateway->update_option( 'logging', $is_debug_log_enabled ? 'yes' : 'no' );
 	}
 }

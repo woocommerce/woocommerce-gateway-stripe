@@ -8,7 +8,8 @@ import { __ } from '@wordpress/i18n';
 /**
  * Internal dependencies
  */
-import { useDevMode, useDebugLog } from './data-mock';
+import { useDevMode } from './data-mock';
+import { useDebugLog } from 'wcstripe/data';
 
 const DebugMode = () => {
 	const isDevModeEnabled = useDevMode();

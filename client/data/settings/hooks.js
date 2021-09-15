@@ -9,7 +9,6 @@ import { useSelect, useDispatch } from '@wordpress/data';
  * Internal dependencies
  */
 import { STORE_NAME } from '../constants';
-import { updateIsSavedCardsEnabled } from 'wcstripe/data/settings/actions';
 
 const EMPTY_ARR = [];
 
@@ -164,6 +163,18 @@ export const useShortAccountStatementDescriptor = () => {
 	);
 
 	return [ shortAccountStatementDescriptor, updateShortAccountStatementDescriptor ];
+};
+
+export const useDebugLog = () => {
+	const { updateIsDebugLogEnabled } = useDispatch( STORE_NAME );
+
+	const isDebugLogEnabled = useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
+
+		return getSettings().is_debug_log_enabled || false;
+	} );
+
+	return [ isDebugLogEnabled, updateIsDebugLogEnabled ];
 };
 
 export const useGetSavingError = () => {

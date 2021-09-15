@@ -12,6 +12,7 @@ import { Card, Button } from '@wordpress/components';
 import SettingsSection from '../settings-section';
 import DebugMode from './debug-mode';
 import CardBody from '../card-body';
+import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 
 const useToggle = ( initialValue = false ) => {
 	const [ value, setValue ] = useState( initialValue );
@@ -38,11 +39,13 @@ const AdvancedSettings = () => {
 			</SettingsSection>
 			{ isSectionExpanded && (
 				<SettingsSection>
-					<Card>
-						<CardBody>
-							<DebugMode />
-						</CardBody>
-					</Card>
+					<LoadableSettingsSection numLines={ 10 }>
+						<Card>
+							<CardBody>
+								<DebugMode />
+							</CardBody>
+						</Card>
+					</LoadableSettingsSection>
 				</SettingsSection>
 			) }
 		</>
