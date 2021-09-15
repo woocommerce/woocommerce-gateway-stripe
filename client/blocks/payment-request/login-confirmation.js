@@ -1,7 +1,7 @@
 /**
  * Internal dependencies
  */
-import { getStripeServerData } from '../stripe-utils';
+import { getStripeServerData } from '../../stripe-utils';
 
 /**
  * Displays a `confirm` dialog which leads to a redirect.

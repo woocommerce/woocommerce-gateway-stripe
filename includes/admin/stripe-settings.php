@@ -3,7 +3,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-return apply_filters(
+$stripe_settings = apply_filters(
 	'wc_stripe_settings',
 	[
 		'enabled'                             => [
@@ -28,8 +28,8 @@ return apply_filters(
 			'desc_tip'    => true,
 		],
 		'api_credentials'                     => [
-			'title'       => __( 'Stripe Account Keys', 'woocommerce-gateway-stripe' ),
-			'type'        => 'stripe_account_keys',
+			'title' => __( 'Stripe Account Keys', 'woocommerce-gateway-stripe' ),
+			'type'  => 'stripe_account_keys',
 		],
 		'testmode'                            => [
 			'title'       => __( 'Test mode', 'woocommerce-gateway-stripe' ),
@@ -180,6 +180,22 @@ return apply_filters(
 				'long'  => __( 'Text and logo', 'woocommerce-gateway-stripe' ),
 			],
 		],
+		'payment_request_button_locations'    => [
+			'title'             => __( 'Payment Request Button Locations', 'woocommerce-gateway-stripe' ),
+			'type'              => 'multiselect',
+			'description'       => __( 'Select where you would like Payment Request Buttons to be displayed', 'woocommerce-gateway-stripe' ),
+			'desc_tip'          => true,
+			'class'             => 'wc-enhanced-select',
+			'options'           => [
+				'product'  => __( 'Product', 'woocommerce-gateway-stripe' ),
+				'cart'     => __( 'Cart', 'woocommerce-gateway-stripe' ),
+				'checkout' => __( 'Checkout', 'woocommerce-gateway-stripe' ),
+			],
+			'default'           => [ 'product', 'cart' ],
+			'custom_attributes' => [
+				'data-placeholder' => __( 'Select pages', 'woocommerce-gateway-stripe' ),
+			],
+		],
 		'saved_cards'                         => [
 			'title'       => __( 'Saved Cards', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Enable Payment via Saved Cards', 'woocommerce-gateway-stripe' ),
@@ -197,4 +213,34 @@ return apply_filters(
 			'desc_tip'    => true,
 		],
 	]
+);
+
+if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
+	$upe_settings = [
+		'upe_checkout_experience' => [
+			'title' => __( 'Checkout experience', 'woocommerce-gateway-stripe' ),
+			'type'  => 'title',
+		],
+		WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => [
+			'title'       => __( 'Enable/Disable', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Enable new checkout experience', 'woocommerce-gateway-stripe' ),
+			'type'        => 'checkbox',
+			'description' => __( 'If enabled, users will... TBD', 'woocommerce-gateway-stripe' ),
+			'default'     => 'no',
+			'desc_tip'    => true,
+		],
+	];
+	if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+		$upe_settings['upe_checkout_experience_accepted_payments'] = [
+			'type'    => 'upe_checkout_experience_accepted_payments',
+			'default' => [ 'card' ],
+		];
+	}
+	// Insert UPE options below the 'description' setting.
+	$stripe_settings = array_merge( array_splice( $stripe_settings, 0, array_search( 'description', array_keys( $stripe_settings ), true ) + 1 ), $upe_settings, $stripe_settings );
+}
+
+return apply_filters(
+	'wc_stripe_settings',
+	$stripe_settings
 );

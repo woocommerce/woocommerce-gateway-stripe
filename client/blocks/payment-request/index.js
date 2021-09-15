@@ -13,7 +13,7 @@ import {
 	getStripeServerData,
 	loadStripe,
 	createPaymentRequestUsingCart,
-} from '../stripe-utils';
+} from '../../stripe-utils';
 
 const ApplePayPreview = () => <img src={ applePayImage } alt="" />;
 

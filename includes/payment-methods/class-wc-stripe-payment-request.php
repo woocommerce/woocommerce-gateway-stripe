@@ -818,8 +818,6 @@ class WC_Stripe_Payment_Request {
 	 * @version 5.2.0
 	 */
 	public function display_payment_request_button_separator_html() {
-		global $post;
-
 		$gateways = WC()->payment_gateways->get_available_payment_gateways();
 
 		if ( ! isset( $gateways['stripe'] ) ) {
@@ -830,7 +828,7 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		if ( is_checkout() && ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post ) ) {
+		if ( is_checkout() && ! in_array( 'checkout', $this->get_button_locations(), true ) ) {
 			return;
 		}
 		?>
@@ -847,8 +845,6 @@ class WC_Stripe_Payment_Request {
 	 * @return  boolean  True if PRBs are supported on current page, false otherwise
 	 */
 	public function should_show_payment_request_button() {
-		global $post;
-
 		// If keys are not set bail.
 		if ( ! $this->are_keys_set() ) {
 			WC_Stripe_Logger::log( 'Keys are not set correctly.' );
@@ -871,20 +867,17 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// Don't show on cart if disabled.
-		if ( is_cart() && ! apply_filters( 'wc_stripe_show_payment_request_on_cart', true ) ) {
+		if ( is_cart() && ! $this->should_show_prb_on_cart_page() ) {
 			return false;
 		}
 
 		// Don't show on checkout if disabled.
-		if ( is_checkout() && ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', false, $post ) ) {
+		if ( is_checkout() && ! $this->should_show_prb_on_checkout_page() ) {
 			return false;
 		}
 
 		// Don't show if product page PRB is disabled.
-		if (
-			$this->is_product()
-			&& apply_filters( 'wc_stripe_hide_payment_request_on_product_page', false, $post )
-		) {
+		if ( $this->is_product() && ! $this->should_show_prb_on_product_pages() ) {
 			return false;
 		}
 
@@ -894,6 +887,86 @@ class WC_Stripe_Payment_Request {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Returns true if Payment Request Buttons are enabled on the cart page, false
+	 * otherwise.
+	 *
+	 * @since   5.5.0
+	 * @version 5.5.0
+	 * @return  boolean  True if PRBs are enabled on the cart page, false otherwise
+	 */
+	public function should_show_prb_on_cart_page() {
+		// Message we show for the deprecated PRB location filters. Intended for support so we
+		// don't provide translations.
+		$deprecation_message      =
+			'Please configure Payment Request Button locations through the Stripe plugin settings.';
+		$should_show_on_cart_page = in_array( 'cart', $this->get_button_locations(), true );
+
+		// Respect the deprecated filters, but add a deprecation notice.
+		return apply_filters_deprecated(
+			'wc_stripe_show_payment_request_on_cart',
+			[ $should_show_on_cart_page ],
+			'5.5.0',
+			'', // There is no replacement.
+			$deprecation_message
+		);
+	}
+
+	/**
+	 * Returns true if Payment Request Buttons are enabled on the checkout page, false
+	 * otherwise.
+	 *
+	 * @since   5.5.0
+	 * @version 5.5.0
+	 * @return  boolean  True if PRBs are enabled on the checkout page, false otherwise
+	 */
+	public function should_show_prb_on_checkout_page() {
+		global $post;
+
+		// Message we show for the deprecated PRB location filters. Intended for support so we
+		// don't provide translations.
+		$deprecation_message          =
+			'Please configure Payment Request Button locations through the Stripe plugin settings.';
+		$should_show_on_checkout_page = in_array( 'checkout', $this->get_button_locations(), true );
+
+		// Respect the deprecated filters, but add a deprecation notice.
+		return apply_filters_deprecated(
+			'wc_stripe_show_payment_request_on_checkout',
+			[ $should_show_on_checkout_page, $post ],
+			'5.5.0',
+			'', // There is no replacement.
+			$deprecation_message
+		);
+	}
+
+	/**
+	 * Returns true if Payment Request Buttons are enabled on product pages, false
+	 * otherwise.
+	 *
+	 * @since   5.5.0
+	 * @version 5.5.0
+	 * @return  boolean  True if PRBs are enabled on product pages, false otherwise
+	 */
+	public function should_show_prb_on_product_pages() {
+		global $post;
+
+		// Message we show for the deprecated PRB location filters. Intended for support so we
+		// don't provide translations.
+		$deprecation_message         =
+			'Please configure Payment Request Button locations through the Stripe plugin settings.';
+		$should_show_on_product_page = in_array( 'product', $this->get_button_locations(), true );
+
+		// Respect the deprecated filters, but add a deprecation notice.
+		// Note the negation because if the filter returns `true` that means we should hide the PRB.
+		return ! apply_filters_deprecated(
+			'wc_stripe_hide_payment_request_on_product_page',
+			[ ! $should_show_on_product_page, $post ],
+			'5.5.0',
+			'', // There is no replacement.
+			$deprecation_message
+		);
 	}
 
 	/**
@@ -1594,26 +1667,33 @@ class WC_Stripe_Payment_Request {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
-		$items     = [];
-		$subtotal  = 0;
-		$discounts = 0;
+		$items         = [];
+		$lines         = [];
+		$subtotal      = 0;
+		$discounts     = 0;
+		$display_items = ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items;
 
-		// Default show only subtotal instead of itemization.
-		if ( ! apply_filters( 'wc_stripe_payment_request_hide_itemization', true ) || $itemized_display_items ) {
-			foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
-				$amount         = $cart_item['line_subtotal'];
-				$subtotal      += $cart_item['line_subtotal'];
-				$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
+		foreach ( WC()->cart->get_cart() as $cart_item_key => $cart_item ) {
+			$subtotal      += $cart_item['line_subtotal'];
+			$amount         = $cart_item['line_subtotal'];
+			$quantity_label = 1 < $cart_item['quantity'] ? ' (x' . $cart_item['quantity'] . ')' : '';
+			$product_name   = $cart_item['data']->get_name();
 
-				$product_name = $cart_item['data']->get_name();
+			$lines[] = [
+				'label'  => $product_name . $quantity_label,
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $amount ),
+			];
+		}
 
-				$item = [
-					'label'  => $product_name . $quantity_label,
-					'amount' => WC_Stripe_Helper::get_stripe_amount( $amount ),
-				];
+		if ( $display_items ) {
+			$items = array_merge( $items, $lines );
+		} else {
+			// Default show only subtotal instead of itemization.
 
-				$items[] = $item;
-			}
+			$items[] = [
+				'label'  => 'Subtotal',
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $subtotal ),
+			];
 		}
 
 		if ( version_compare( WC_VERSION, '3.2', '<' ) ) {
@@ -1704,5 +1784,21 @@ class WC_Stripe_Payment_Request {
 			'message'      => $message,
 			'redirect_url' => $redirect_url,
 		];
+	}
+
+	public function get_button_locations() {
+		// If the locations have not been set return the default setting.
+		if ( ! isset( $this->stripe_settings['payment_request_button_locations'] ) ) {
+			return [ 'product', 'cart' ];
+		}
+
+		// If all locations are removed through the settings UI the location config will be set to
+		// an empty string "". If that's the case (and if the settings are not an array for any
+		// other reason) we should return an empty array.
+		if ( ! is_array( $this->stripe_settings['payment_request_button_locations'] ) ) {
+			return [];
+		}
+
+		return $this->stripe_settings['payment_request_button_locations'];
 	}
 }

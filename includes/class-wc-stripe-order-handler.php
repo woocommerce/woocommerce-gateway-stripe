@@ -29,6 +29,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_order_status_cancelled', [ $this, 'cancel_payment' ] );
 		add_action( 'woocommerce_order_status_refunded', [ $this, 'cancel_payment' ] );
 		add_filter( 'woocommerce_tracks_event_properties', [ $this, 'woocommerce_tracks_event_properties' ], 10, 2 );
+
+		add_action( 'wp', [ $this, 'maybe_process_upe_redirect' ] );
 	}
 
 	/**
@@ -376,6 +378,47 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 		return $properties;
 	}
+
+	/**
+	 * Check for a UPE redirect payment method on order received page or setup intent on payment methods page.
+	 *
+	 * @since 5.5.0
+	 * @version 5.5.0
+	 */
+	public function maybe_process_upe_redirect() {
+		if ( ! is_order_received_page() ) {
+			return;
+		}
+
+		$payment_method = isset( $_GET['wc_payment_method'] ) ? wc_clean( wp_unslash( $_GET['wc_payment_method'] ) ) : '';
+		if ( WC_Stripe_UPE_Payment_Gateway::ID !== $payment_method ) {
+			return;
+		}
+
+		$is_nonce_valid = check_admin_referer( 'wcpay_process_redirect_order_nonce' );
+		if ( ! $is_nonce_valid || empty( $_GET['wc_payment_method'] ) ) {
+			return;
+		}
+
+		if ( ! empty( $_GET['payment_intent_client_secret'] ) ) {
+			$intent_id = isset( $_GET['payment_intent'] ) ? wc_clean( wp_unslash( $_GET['payment_intent'] ) ) : '';
+		} elseif ( ! empty( $_GET['setup_intent_client_secret'] ) ) {
+			$intent_id = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
+		} else {
+			return;
+		}
+
+		$order_id            = isset( $_GET['order_id'] ) ? wc_clean( wp_unslash( $_GET['order_id'] ) ) : '';
+		$save_payment_method = isset( $_GET['save_payment_method'] ) ? 'yes' === wc_clean( wp_unslash( $_GET['save_payment_method'] ) ) : false;
+
+		if ( empty( $intent_id ) || empty( $order_id ) ) {
+			return;
+		}
+
+		$gateway = new WC_Stripe_UPE_Payment_Gateway();
+		$gateway->process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method );
+	}
+
 }
 
 new WC_Stripe_Order_Handler();
