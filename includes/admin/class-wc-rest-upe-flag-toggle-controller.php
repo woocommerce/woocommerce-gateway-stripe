@@ -8,27 +8,13 @@ defined( 'ABSPATH' ) || exit;
 /**
  * REST controller for UPE feature flag.
  */
-class WC_REST_UPE_Flag_Toggle_Controller extends WP_REST_Controller {
-	/**
-	 * Endpoint namespace.
-	 *
-	 * @var string
-	 */
-	protected $namespace = 'wc/v3';
-
+class WC_REST_UPE_Flag_Toggle_Controller extends WC_Stripe_REST_Controller {
 	/**
 	 * Endpoint path.
 	 *
 	 * @var string
 	 */
 	protected $rest_base = 'wc_stripe/upe_flag_toggle';
-
-	/**
-	 * Verify access to request.
-	 */
-	public function check_permission() {
-		return current_user_can( 'manage_woocommerce' );
-	}
 
 	/**
 	 * Configure REST API routes.

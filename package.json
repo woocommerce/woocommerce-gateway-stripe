@@ -30,6 +30,7 @@
     "@wordpress/date": "3.9.0",
     "@wordpress/data": "^6.0.1",
     "@wordpress/data-controls": "^2.2.3",
+    "@wordpress/dom-ready": "^3.2.1",
     "@wordpress/i18n": "^4.2.1",
     "@wordpress/icons": "^5.0.1",
     "@wordpress/jest-preset-default": "^7.1.0",
