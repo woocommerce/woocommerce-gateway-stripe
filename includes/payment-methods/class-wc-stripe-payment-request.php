@@ -893,8 +893,8 @@ class WC_Stripe_Payment_Request {
 	 * Returns true if Payment Request Buttons are enabled on the cart page, false
 	 * otherwise.
 	 *
-	 * @since   x.x.x
-	 * @version x.x.x
+	 * @since   5.5.0
+	 * @version 5.5.0
 	 * @return  boolean  True if PRBs are enabled on the cart page, false otherwise
 	 */
 	public function should_show_prb_on_cart_page() {
@@ -918,8 +918,8 @@ class WC_Stripe_Payment_Request {
 	 * Returns true if Payment Request Buttons are enabled on the checkout page, false
 	 * otherwise.
 	 *
-	 * @since   x.x.x
-	 * @version x.x.x
+	 * @since   5.5.0
+	 * @version 5.5.0
 	 * @return  boolean  True if PRBs are enabled on the checkout page, false otherwise
 	 */
 	public function should_show_prb_on_checkout_page() {
@@ -945,8 +945,8 @@ class WC_Stripe_Payment_Request {
 	 * Returns true if Payment Request Buttons are enabled on product pages, false
 	 * otherwise.
 	 *
-	 * @since   x.x.x
-	 * @version x.x.x
+	 * @since   5.5.0
+	 * @version 5.5.0
 	 * @return  boolean  True if PRBs are enabled on product pages, false otherwise
 	 */
 	public function should_show_prb_on_product_pages() {

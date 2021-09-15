@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 *
 * @extends WC_Stripe_Payment_Gateway
 *
-* @since x.x.x
+* @since 5.5.0
 */
 class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
@@ -669,8 +669,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param string $intent_id The Stripe setup/payment intent ID for the order payment.
 	 * @param bool   $save_payment_method Boolean representing whether payment method for order should be saved.
 	 *
-	 * @since x.x.x
-	 * @version x.x.x
+	 * @since 5.5.0
+	 * @version 5.5.0
 	 */
 	public function process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method ) {
 		$order = wc_get_order( $order_id );
@@ -911,8 +911,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @param string     $payment_method_type Stripe payment method key.
 	 * @param array|bool $payment_method_details Array of payment method details from charge or false.
 	 *
-	 * @since x.x.x
-	 * @version x.x.x
+	 * @since 5.5.0
+	 * @version 5.5.0
 	 */
 	public function set_payment_method_title_for_order( $order, $payment_method_type, $payment_method_details ) {
 		if ( ! isset( $this->payment_methods[ $payment_method_type ] ) ) {

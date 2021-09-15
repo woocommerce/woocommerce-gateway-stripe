@@ -5,11 +5,11 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 5.4.1
+ * Version: 5.5.0
  * Requires at least: 4.6
- * Tested up to: 5.7
+ * Tested up to: 5.8
  * WC requires at least: 3.3
- * WC tested up to: 5.4
+ * WC tested up to: 5.6
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '5.4.1' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '5.5.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '3.0' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '3.3' );
@@ -266,8 +266,8 @@ function woocommerce_gateway_stripe() {
 			 * be removed when we're reasonably sure most merchants have had their settings updated
 			 * through this function. Maybe ~80% of merchants is a good threshold?
 			 *
-			 * @since x.x.x
-			 * @version x.x.x
+			 * @since 5.5.0
+			 * @version 5.5.0
 			 */
 			public function update_prb_location_settings() {
 				$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
