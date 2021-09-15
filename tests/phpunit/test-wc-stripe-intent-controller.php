@@ -33,8 +33,8 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	public function setUp() {
 		parent::setUp();
 
-		$this->order          = WC_Helper_Order::create_order();
-		$this->gateway        = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
+		$this->order           = WC_Helper_Order::create_order();
+		$this->gateway         = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )
 			->disableOriginalConstructor()
 			->setMethods( [ 'maybe_process_upe_redirect' ] )
 			->getMock();
@@ -70,8 +70,8 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	public function test_manual_capture_from_the_settings() {
-		$this->gateway->update_option( 'capture', 'no' );
-		$test_request = function ( $preempt, $parsed_args, $url ) {
+		$this->gateway->settings['capture'] = 'no';
+		$test_request                       = function ( $preempt, $parsed_args, $url ) {
 			$this->assertArrayHasKey( 'capture_method', $parsed_args['body'] );
 			$this->assertEquals( 'manual', $parsed_args['body']['capture_method'] );
 
@@ -93,8 +93,8 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	}
 
 	public function test_automatic_capture_from_the_settings() {
-		$this->gateway->update_option( 'capture', 'yes' );
-		$test_request = function ( $preempt, $parsed_args, $url ) {
+		$this->gateway->settings['capture'] = 'yes';
+		$test_request                       = function ( $preempt, $parsed_args, $url ) {
 			$this->assertArrayHasKey( 'capture_method', $parsed_args['body'] );
 			$this->assertEquals( 'automatic', $parsed_args['body']['capture_method'] );
 
