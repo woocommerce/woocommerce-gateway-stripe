@@ -15,13 +15,6 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	const ID = 'stripe_sepa';
 
 	/**
-	 * The delay between retries.
-	 *
-	 * @var int
-	 */
-	public $retry_interval;
-
-	/**
 	 * Notices (array)
 	 *
 	 * @var array
@@ -74,7 +67,6 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->retry_interval = 1;
 		$this->id             = 'stripe_sepa';
 		$this->method_title   = __( 'Stripe SEPA Direct Debit', 'woocommerce-gateway-stripe' );
 		/* translators: link */
