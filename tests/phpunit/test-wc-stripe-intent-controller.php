@@ -11,7 +11,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 *
 	 * @var WC_Stripe_Intent_Controller
 	 */
-	private $mockController;
+	private $mock_controller;
 
 	/**
 	 * Gateway
@@ -38,11 +38,11 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			->disableOriginalConstructor()
 			->setMethods( [ 'maybe_process_upe_redirect' ] )
 			->getMock();
-		$this->mockController = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
+		$this->mock_controller = $this->getMockBuilder( 'WC_Stripe_Intent_Controller' )
 			->disableOriginalConstructor()
 			->setMethods( [ 'get_gateway' ] )
 			->getMock();
-		$this->mockController->expects( $this->any() )
+		$this->mock_controller->expects( $this->any() )
 			->method( 'get_gateway' )
 			->willReturn( $this->gateway );
 	}
@@ -66,7 +66,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		add_filter( 'pre_http_request', $test_request, 10, 3 );
 
-		$this->mockController->create_payment_intent( $this->order->get_id() );
+		$this->mock_controller->create_payment_intent( $this->order->get_id() );
 	}
 
 	public function test_manual_capture_from_the_settings() {
@@ -89,7 +89,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		add_filter( 'pre_http_request', $test_request, 10, 3 );
 
-		$this->mockController->create_payment_intent( $this->order->get_id() );
+		$this->mock_controller->create_payment_intent( $this->order->get_id() );
 	}
 
 	public function test_automatic_capture_from_the_settings() {
@@ -112,6 +112,6 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		add_filter( 'pre_http_request', $test_request, 10, 3 );
 
-		$this->mockController->create_payment_intent( $this->order->get_id() );
+		$this->mock_controller->create_payment_intent( $this->order->get_id() );
 	}
 }
