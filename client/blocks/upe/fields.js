@@ -7,6 +7,7 @@ import {
 	ElementsConsumer,
 	PaymentElement,
 } from '@stripe/react-stripe-js';
+import { __ } from '@wordpress/i18n';
 
 /**
  * Internal dependencies
@@ -56,7 +57,10 @@ const UPEField = ( {
 			} catch ( error ) {
 				setErrorMessage(
 					error?.message ??
-						'There was an error loading the payment gateway'
+						__(
+							'There was an error loading the payment gateway',
+							'woocommerce-gateway-stripe'
+						)
 				);
 			}
 		}
@@ -75,7 +79,10 @@ const UPEField = ( {
 				if ( ! isUpeComplete ) {
 					return {
 						type: 'error',
-						message: 'Your payment information is incomplete.',
+						message: __(
+							'Your payment information is incomplete.',
+							'woocommerce-gateway-stripe'
+						),
 					};
 				}
 
@@ -92,8 +99,10 @@ const UPEField = ( {
 				) {
 					return {
 						type: 'error',
-						message:
+						message: __(
 							'This payment method can not be saved for future use.',
+							'woocommerce-gateway-stripe'
+						),
 					};
 				}
 
