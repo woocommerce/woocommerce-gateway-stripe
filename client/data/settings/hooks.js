@@ -12,6 +12,28 @@ import { STORE_NAME } from '../constants';
 
 const EMPTY_ARR = [];
 
+const makeReadWritePairHookWithUpdateCallback = ( fieldName, updateActionCb, fieldDefaultValue = false ) => () => {
+	const { updateSettingsValues } = useDispatch( STORE_NAME );
+
+	const field = useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
+
+		return getSettings()[ fieldName ] || fieldDefaultValue;
+	}, [] );
+
+	const action = ( v ) => updateActionCb( v, updateSettingsValues );
+
+	return [ field, action ];
+};
+
+const makeReadWritePairHook = ( fieldName, fieldDefaultValue = false ) => {
+	const action = ( v, updateSettingsValues ) => updateSettingsValues( {
+		[ fieldName ]: v,
+	} );
+
+	return makeReadWritePairHookWithUpdateCallback( fieldName, action, fieldDefaultValue );
+};
+
 export const useSettings = () => {
 	const { saveSettings } = useDispatch( STORE_NAME );
 
@@ -39,143 +61,24 @@ export const useSettings = () => {
 	return { settings, isLoading, isSaving, saveSettings };
 };
 
-export const usePaymentRequestEnabledSettings = () => {
-	const { updateIsPaymentRequestEnabled } = useDispatch( STORE_NAME );
+export const usePaymentRequestEnabledSettings = makeReadWritePairHook( 'is_payment_request_enabled' );
+export const useIsStripeEnabled = makeReadWritePairHook( 'is_stripe_enabled' );
+export const useTestMode = makeReadWritePairHook( 'is_test_mode_enabled' );
+export const useSavedCards = makeReadWritePairHook( 'is_saved_cards_enabled' );
+export const useManualCapture = makeReadWritePairHook( 'is_manual_capture_enabled' );
+export const useSeparateCardForm = makeReadWritePairHook( 'is_separate_card_form_enabled' );
+export const useAccountStatementDescriptor = makeReadWritePairHook( 'statement_descriptor', '' );
+export const useIsShortAccountStatementEnabled = makeReadWritePairHook( 'is_short_statement_descriptor_enabled' );
+export const useShortAccountStatementDescriptor = makeReadWritePairHook( 'short_statement_descriptor', '' );
+export const useDebugLog = makeReadWritePairHook( 'is_debug_log_enabled' );
 
-	const isPaymentRequestEnabled = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().is_payment_request_enabled || false;
-	}, [] );
-
-	return [ isPaymentRequestEnabled, updateIsPaymentRequestEnabled ];
-};
-
-export const usePaymentRequestLocations = () => {
-	const { updatePaymentRequestLocations } = useDispatch( STORE_NAME );
-
-	const paymentRequestLocations = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().payment_request_enabled_locations || EMPTY_ARR;
-	} );
-
-	return [ paymentRequestLocations, updatePaymentRequestLocations ];
-};
-
-export const useIsStripeEnabled = () => {
-	const { updateIsStripeEnabled } = useDispatch( STORE_NAME );
-
-	const isStripeEnabled = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().is_stripe_enabled || false;
-	}, [] );
-
-	return [ isStripeEnabled, updateIsStripeEnabled ];
-};
-
-export const useTestMode = () => {
-	const { updateIsTestModeEnabled } = useDispatch( STORE_NAME );
-
-	const isTestModeEnabled = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().is_test_mode_enabled || false;
-	}, [] );
-
-	return [ isTestModeEnabled, updateIsTestModeEnabled ];
-};
-
-export const useSavedCards = () => {
-	const { updateIsSavedCardsEnabled } = useDispatch( STORE_NAME );
-
-	const isSavedCardsEnabled = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().is_saved_cards_enabled || false;
-	}, [] );
-
-	return [ isSavedCardsEnabled, updateIsSavedCardsEnabled ];
-};
-
-export const useManualCapture = () => {
-	const { updateIsManualCaptureEnabled } = useDispatch( STORE_NAME );
-
-	const isManualCaptureEnabled = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().is_manual_capture_enabled || false;
-	}, [] );
-
-	return [ isManualCaptureEnabled, updateIsManualCaptureEnabled ];
-};
-
-export const useSeparateCardForm = () => {
-	const { updateIsSeparateCardFormEnabled } = useDispatch( STORE_NAME );
-
-	const isSeparateCardFormEnabled = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().is_separate_card_form_enabled || false;
-	}, [] );
-
-	return [ isSeparateCardFormEnabled, updateIsSeparateCardFormEnabled ];
-};
-
-export const useAccountStatementDescriptor = () => {
-	const { updateAccountStatementDescriptor } = useDispatch( STORE_NAME );
-
-	const accountStatementDescriptor = useSelect(
-		( select ) => {
-			const { getSettings } = select( STORE_NAME );
-
-			return getSettings().statement_descriptor || '';
-		},
-		[]
-	);
-
-	return [ accountStatementDescriptor, updateAccountStatementDescriptor ];
-};
-
-export const useIsShortAccountStatementEnabled = () => {
-	const { updateIsShortAccountStatementEnabled } = useDispatch( STORE_NAME );
-
-	const isShortAccountStatementEnabled = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().is_short_statement_descriptor_enabled || false;
-	}, [] );
-
-	return [ isShortAccountStatementEnabled, updateIsShortAccountStatementEnabled ];
-};
-
-export const useShortAccountStatementDescriptor = () => {
-	const { updateShortAccountStatementDescriptor } = useDispatch( STORE_NAME );
-
-	const shortAccountStatementDescriptor = useSelect(
-		( select ) => {
-			const { getSettings } = select( STORE_NAME );
-
-			return getSettings().short_statement_descriptor || '';
-		},
-		[]
-	);
-
-	return [ shortAccountStatementDescriptor, updateShortAccountStatementDescriptor ];
-};
-
-export const useDebugLog = () => {
-	const { updateIsDebugLogEnabled } = useDispatch( STORE_NAME );
-
-	const isDebugLogEnabled = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().is_debug_log_enabled || false;
-	} );
-
-	return [ isDebugLogEnabled, updateIsDebugLogEnabled ];
-};
+export const usePaymentRequestLocations = makeReadWritePairHookWithUpdateCallback(
+	'payment_request_enabled_locations',
+	( v, updateSettingsValues ) => updateSettingsValues( {
+		payment_request_enabled_locations: [ ...v ],
+	} ),
+	EMPTY_ARR
+);
 
 export const useGetSavingError = () => {
 	return useSelect( ( select ) => {
