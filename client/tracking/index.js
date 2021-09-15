@@ -4,7 +4,6 @@
 import domReady from '@wordpress/dom-ready';
 
 const LIBRARY_MOCK = {
-	isEnabled: false,
 	recordEvent: () => null,
 };
 
@@ -14,7 +13,12 @@ const LIBRARY_MOCK = {
  * @return {Object} The tracking library.
  */
 function getLibrary() {
-	if ( window.wc && window.wc.tracks && window.wc.tracks.recordEvent ) {
+	if (
+		window.wc &&
+		window.wc.tracks &&
+		window.wc.tracks.recordEvent &&
+		typeof window.wc.tracks.recordEvent === 'function'
+	) {
 		return window.wc.tracks;
 	}
 
@@ -31,7 +35,7 @@ function getLibrary() {
  * @return {boolean} True if site tracking is enabled.
  */
 function isEnabled() {
-	return getLibrary().isEnabled;
+	return window.wcTracks && window.wcTracks.isEnabled;
 }
 
 /**
@@ -44,6 +48,7 @@ export function recordEvent( eventName, eventProperties ) {
 	// Wc-admin track script could be enqueued after our plugin, wrap in domReady
 	// to make sure we're not too early.
 	domReady( () => {
+		console.log( '###', { isEnabled: isEnabled(), lib: getLibrary() } );
 		if ( ! isEnabled() ) {
 			return;
 		}
