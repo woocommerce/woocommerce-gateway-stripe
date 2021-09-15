@@ -239,11 +239,89 @@ export default class WCStripeAPI {
 	 *
 	 * @param {string} redirectUrl The redirect URL, returned from the server.
 	 * @param {string} paymentMethodToSave The ID of a Payment Method if it should be saved (optional).
-	 * @return {string|boolean} A redirect URL on success, or `true` if no confirmation is needed.
+	 * @return {mixed} A redirect URL on success, or `true` if no confirmation is needed.
 	 */
 	confirmIntent( redirectUrl, paymentMethodToSave ) {
-		console.error( 'TODO: Not implemented yet: confirmIntent' );
-		return true;
+		const partials = redirectUrl.match(
+			/#wc-stripe-confirm-(pi|si):(.+):(.+):(.+)$/
+		);
+
+		if ( ! partials ) {
+			return true;
+		}
+
+		const isSetupIntent = 'si' === partials[ 1 ];
+		let orderId = partials[ 2 ];
+		const clientSecret = partials[ 3 ];
+		const nonce = partials[ 4 ];
+
+		const orderPayIndex = redirectUrl.indexOf( 'order-pay' );
+		const isOrderPage = -1 < orderPayIndex;
+
+		// If we're on the Pay for Order page, get the order ID
+		// directly from the URL instead of relying on the hash.
+		// The checkout URL does not contain the string 'order-pay'.
+		// The Pay for Order page contains the string 'order-pay' and
+		// can have these formats:
+		// Plain permalinks:
+		// /?page_id=7&order-pay=189&pay_for_order=true&key=wc_order_key
+		// Non-plain permalinks:
+		// /checkout/order-pay/189/
+		// Match for consecutive digits after the string 'order-pay' to get the order ID.
+		const orderIdPartials =
+			isOrderPage &&
+			redirectUrl.substring( orderPayIndex ).match( /\d+/ );
+		if ( orderIdPartials ) {
+			orderId = orderIdPartials[ 0 ];
+		}
+
+		const confirmAction = isSetupIntent
+			? this.getStripe().confirmCardSetup( clientSecret )
+			: this.getStripe( true ).confirmCardPayment( clientSecret );
+
+		const request = confirmAction
+			// ToDo: Switch to an async function once it works with webpack.
+			.then( ( result ) => {
+				const intentId =
+					( result.paymentIntent && result.paymentIntent.id ) ||
+					( result.setupIntent && result.setupIntent.id ) ||
+					( result.error &&
+						result.error.payment_intent &&
+						result.error.payment_intent.id ) ||
+					( result.error.setup_intent &&
+						result.error.setup_intent.id );
+
+				const ajaxCall = this.request(
+					getAjaxUrl( 'update_order_status' ),
+					{
+						order_id: orderId,
+						// Update the current order status nonce with the new one to ensure that the update
+						// order status call works when a guest user creates an account during checkout.
+						intent_id: intentId,
+						payment_method_id: paymentMethodToSave || null,
+						_ajax_nonce: nonce,
+					}
+				);
+
+				return [ ajaxCall, result.error ];
+			} )
+			.then( ( [ verificationCall, originalError ] ) => {
+				if ( originalError ) {
+					throw originalError;
+				}
+
+				return verificationCall.then( ( response ) => {
+					if ( ! response.success ) {
+						throw response.data.error;
+					}
+					return response.data.return_url;
+				} );
+			} );
+
+		return {
+			request,
+			isOrderPage,
+		};
 	}
 
 	/**
