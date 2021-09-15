@@ -98,10 +98,11 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			->will(
 				$this->returnValue(
 					(object) [
-						'token_id'      => false,
-						'customer'      => $customer,
-						'source'        => $source,
-						'source_object' => (object) [],
+						'token_id'       => false,
+						'customer'       => $customer,
+						'source'         => $source,
+						'source_object'  => (object) [],
+						'payment_method' => null,
 					]
 				)
 			);
@@ -278,10 +279,11 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			->will(
 				$this->returnValue(
 					(object) [
-						'token_id'      => false,
-						'customer'      => $customer,
-						'source'        => $source,
-						'source_object' => (object) [],
+						'token_id'       => false,
+						'customer'       => $customer,
+						'source'         => $source,
+						'source_object'  => (object) [],
+						'payment_method' => null,
 					]
 				)
 			);
