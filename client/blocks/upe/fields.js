@@ -39,6 +39,8 @@ const UPEField = ( {
 	const [ isUpeComplete, setIsUpeComplete ] = useState( false );
 	const [ errorMessage, setErrorMessage ] = useState( null );
 
+	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
+
 	useEffect( () => {
 		if ( paymentIntentId || hasRequestedIntent ) {
 			return;
@@ -85,8 +87,8 @@ const UPEField = ( {
 				}
 
 				if (
-					shouldSavePayment /* &&
-				! paymentMethodsConfig[ selectedUPEPaymentType ].isReusable */
+					shouldSavePayment &&
+					! paymentMethodsConfig[ selectedUpePaymentType ].isReusable
 				) {
 					return {
 						type: 'error',

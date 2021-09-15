@@ -8,9 +8,9 @@ import { useEffect, useState } from '@wordpress/element';
  * Internal dependencies
  */
 import { UPEPaymentForm } from './fields';
+import { SavedTokenHandler } from './saved-token-handler';
 /* eslint-disable @woocommerce/dependency-group */
 import { getStripeServerData } from 'wcstripe/stripe-utils';
-import { ThreeDSecurePaymentHandler } from 'wcstripe/blocks/three-d-secure';
 import { PAYMENT_METHOD_NAME } from 'wcstripe/blocks/credit-card/constants';
 import WCStripeAPI from 'wcstripe/api';
 /* eslint-enable */
@@ -69,7 +69,7 @@ const upePaymentMethod = {
 	),
 	edit: <StripeComponent RenderedComponent={ UPEPaymentForm } api={ api } />,
 	savedTokenComponent: (
-		<StripeComponent RenderedComponent={ ThreeDSecurePaymentHandler } />
+		<StripeComponent RenderedComponent={ SavedTokenHandler } api={ api } />
 	),
 	canMakePayment: () => api.getStripe(),
 	ariaLabel: __(
