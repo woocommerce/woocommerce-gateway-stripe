@@ -520,12 +520,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				return;
 			}
 
-			$token          = WC_Stripe_Payment_Tokens::get_token_from_request( $_POST );
-			$payment_method = $this->stripe_request( 'payment_methods/' . $token->get_token(), [], null, 'GET' );
-			$payment_needed = 0 < $order->get_total();
+			$token                   = WC_Stripe_Payment_Tokens::get_token_from_request( $_POST );
+			$payment_method          = $this->stripe_request( 'payment_methods/' . $token->get_token(), [], null, 'GET' );
+			$prepared_payment_method = $this->prepare_payment_method( $payment_method, $token );
 
 			$this->maybe_disallow_prepaid_card( $payment_method );
-			$this->save_payment_method_to_order( $order, $payment_method );
+			$this->save_payment_method_to_order( $order, $prepared_payment_method );
 
 			WC_Stripe_Logger::log( "Info: Begin processing payment with saved payment method for order $order_id for the amount of {$order->get_total()}" );
 
@@ -533,10 +533,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$intent = $this->get_intent_from_order( $order );
 
 			$enabled_payment_methods = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_at_checkout' ] );
+			$payment_needed          = 0 < $order->get_total();
+
 			if ( $payment_needed ) {
 				// This will throw exception if not valid.
 				$this->validate_minimum_order_amount( $order );
-				$prepared_payment_method = $this->prepare_payment_method( $payment_method, $token );
 
 				$request_details = $this->generate_payment_request( $order, $prepared_payment_method );
 				$endpoint        = false !== $intent ? "payment_intents/$intent->id" : 'payment_intents';
@@ -762,9 +763,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$payment_method = $this->payment_methods[ $payment_method_type ];
 
 		if ( $save_payment_method && $payment_method->is_reusable() ) {
-			$user  = $this->get_user_from_order( $order );
-			$token = $payment_method->add_token_to_user_from_intent( $user->ID, $intent );
-			$this->add_token_to_order( $order, $token );
+			$user                    = $this->get_user_from_order( $order );
+			$token                   = $payment_method->add_token_to_user_from_intent( $user->ID, $intent );
+			$payment_method          = WC_Stripe_API::request( [], 'payment_methods/' . $token->get_token(), 'GET' );
+			$prepared_payment_method = $this->prepare_payment_method( $payment_method, $token );
+
+			$this->save_payment_method_to_order( $order, $prepared_payment_method );
 		}
 
 		// Use the last charge within the intent to proceed.
@@ -809,11 +813,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( $payment_method->customer ) {
 			$order->update_meta_data( '_stripe_customer_id', $payment_method->customer );
 		}
-		$order->update_meta_data( '_stripe_payment_method_id', $payment_method->id );
+		// Save the payment method id as `source_id`, because we use both `sources` and `payment_methods` APIs.
+		$order->update_meta_data( '_stripe_source_id', $payment_method->payment_method );
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
 			$order->save();
 		}
+
+		$this->maybe_update_source_on_subscription_order( $order, $payment_method );
 	}
 
 	/**
@@ -973,28 +980,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$order->set_payment_method( self::ID );
 		$order->set_payment_method_title( $payment_method_title );
 		$order->save();
-	}
-
-	/**
-	 * Saves the payment token to the order.
-	 *
-	 * @param WC_Order         $order The order.
-	 * @param WC_Payment_Token $token The token to save.
-	 */
-	public function add_token_to_order( $order, $token ) {
-		$payment_token = $this->get_payment_token( $order );
-
-		// This could lead to tokens being saved twice in an order's payment tokens, but it is needed so that shoppers
-		// may re-use a previous card for the same subscription, as we consider the last token to be the active one.
-		// We can't remove the previous entry for the token because WC_Order does not support removal of tokens [1] and
-		// we can't delete the token as it might be used somewhere else.
-		// [1] https://github.com/woocommerce/woocommerce/issues/11857.
-		if ( is_null( $payment_token ) || $token->get_id() !== $payment_token->get_id() ) {
-			$order->add_payment_token( $token );
-		}
-
-		// TODO: implement this when Subscriptions added
-		// $this->maybe_add_token_to_subscription_order( $order, $token );
 	}
 
 	/**

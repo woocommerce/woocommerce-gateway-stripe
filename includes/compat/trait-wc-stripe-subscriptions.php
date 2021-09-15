@@ -390,7 +390,12 @@ trait WC_Stripe_Subscriptions_Trait {
 		foreach ( $subscriptions as $subscription ) {
 			$subscription_id = $subscription->get_id();
 			update_post_meta( $subscription_id, '_stripe_customer_id', $source->customer );
-			update_post_meta( $subscription_id, '_stripe_source_id', $source->source );
+
+			if ( ! empty( $source->payment_method ) ) {
+				update_post_meta( $subscription_id, '_stripe_source_id', $source->payment_method );
+			} else {
+				update_post_meta( $subscription_id, '_stripe_source_id', $source->source );
+			}
 		}
 	}
 
