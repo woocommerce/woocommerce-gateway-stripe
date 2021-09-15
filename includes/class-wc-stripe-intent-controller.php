@@ -559,7 +559,7 @@ class WC_Stripe_Intent_Controller {
 			$intent_id_received = isset( $_POST['intent_id'] ) ? wc_clean( wp_unslash( $_POST['intent_id'] ) ) : null;
 			if ( empty( $intent_id_received ) || $intent_id_received !== $intent_id ) {
 				$note = sprintf(
-				/* translators: %1: transaction ID of the payment or a translated string indicating an unknown ID. */
+					/* translators: %1: transaction ID of the payment or a translated string indicating an unknown ID. */
 					esc_html__( 'A payment with ID %s was used in an attempt to pay for this order. This payment intent ID does not match any payments for this order, so it was ignored and the order was not updated.', 'woocommerce-gateway-stripe' ),
 					$intent_id_received
 				);
