@@ -93,7 +93,9 @@ const PaymentSettingsPanel = () => {
 				<AccountDetailsSection />
 			</SettingsSection>
 			<SettingsSection Description={ PaymentsAndTransactionsDescription }>
-				<PaymentsAndTransactionsSection />
+				<LoadableSettingsSection numLines={ 20 }>
+					<PaymentsAndTransactionsSection />
+				</LoadableSettingsSection>
 			</SettingsSection>
 			<AdvancedSettingsSection />
 		</>

@@ -80,3 +80,31 @@ export function updateIsStripeEnabled( isEnabled ) {
 export function updateIsTestModeEnabled( isEnabled ) {
 	return updateSettingsValues( { is_test_mode_enabled: isEnabled } );
 }
+
+export function updateIsSavedCardsEnabled( isEnabled ) {
+	return updateSettingsValues( { is_saved_cards_enabled: isEnabled } );
+}
+
+export function updateIsSeparateCardFormEnabled( isEnabled ) {
+	return updateSettingsValues( { is_separate_card_form_enabled: isEnabled } );
+}
+
+export function updateIsManualCaptureEnabled( isEnabled ) {
+	return updateSettingsValues( { is_manual_capture_enabled: isEnabled } );
+}
+
+export function updateAccountStatementDescriptor( accountStatementDescriptor ) {
+	return updateSettingsValues( {
+		statement_descriptor: accountStatementDescriptor,
+	} );
+}
+
+export function updateIsShortAccountStatementEnabled( isEnabled ) {
+	return updateSettingsValues( { is_short_statement_descriptor_enabled: isEnabled } );
+}
+
+export function updateShortAccountStatementDescriptor( shortStatementDescriptor ) {
+	return updateSettingsValues( {
+		short_statement_descriptor: shortStatementDescriptor,
+	} );
+}

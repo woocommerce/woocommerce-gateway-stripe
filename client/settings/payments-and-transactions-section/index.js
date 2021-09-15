@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import React, { useCallback, useState } from 'react';
+import React from 'react';
 import { __ } from '@wordpress/i18n';
 import { Card, CheckboxControl, TextControl } from '@wordpress/components';
 
@@ -13,11 +13,11 @@ import TextLengthHelpInputWrapper from './text-length-help-input-wrapper';
 import {
 	useManualCapture,
 	useSavedCards,
-	useShortAccountStatement,
 	useSeparateCardForm,
 	useAccountStatementDescriptor,
+	useIsShortAccountStatementEnabled,
 	useShortAccountStatementDescriptor,
-} from './data-mock';
+} from 'wcstripe/data';
 
 const PaymentsAndTransactionsSection = () => {
 	const [
@@ -36,7 +36,7 @@ const PaymentsAndTransactionsSection = () => {
 	const [
 		isShortAccountStatementEnabled,
 		setIsShortAccountStatementEnabled,
-	] = useShortAccountStatement();
+	] = useIsShortAccountStatementEnabled();
 	const [
 		shortAccountStatementDescriptor,
 		setShortAccountStatementDescriptor,

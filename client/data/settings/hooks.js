@@ -9,6 +9,7 @@ import { useSelect, useDispatch } from '@wordpress/data';
  * Internal dependencies
  */
 import { STORE_NAME } from '../constants';
+import { updateIsSavedCardsEnabled } from 'wcstripe/data/settings/actions';
 
 const EMPTY_ARR = [];
 
@@ -85,6 +86,84 @@ export const useTestMode = () => {
 	}, [] );
 
 	return [ isTestModeEnabled, updateIsTestModeEnabled ];
+};
+
+export const useSavedCards = () => {
+	const { updateIsSavedCardsEnabled } = useDispatch( STORE_NAME );
+
+	const isSavedCardsEnabled = useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
+
+		return getSettings().is_saved_cards_enabled || false;
+	}, [] );
+
+	return [ isSavedCardsEnabled, updateIsSavedCardsEnabled ];
+};
+
+export const useManualCapture = () => {
+	const { updateIsManualCaptureEnabled } = useDispatch( STORE_NAME );
+
+	const isManualCaptureEnabled = useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
+
+		return getSettings().is_manual_capture_enabled || false;
+	}, [] );
+
+	return [ isManualCaptureEnabled, updateIsManualCaptureEnabled ];
+};
+
+export const useSeparateCardForm = () => {
+	const { updateIsSeparateCardFormEnabled } = useDispatch( STORE_NAME );
+
+	const isSeparateCardFormEnabled = useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
+
+		return getSettings().is_separate_card_form_enabled || false;
+	}, [] );
+
+	return [ isSeparateCardFormEnabled, updateIsSeparateCardFormEnabled ];
+};
+
+export const useAccountStatementDescriptor = () => {
+	const { updateAccountStatementDescriptor } = useDispatch( STORE_NAME );
+
+	const accountStatementDescriptor = useSelect(
+		( select ) => {
+			const { getSettings } = select( STORE_NAME );
+
+			return getSettings().statement_descriptor || '';
+		},
+		[]
+	);
+
+	return [ accountStatementDescriptor, updateAccountStatementDescriptor ];
+};
+
+export const useIsShortAccountStatementEnabled = () => {
+	const { updateIsShortAccountStatementEnabled } = useDispatch( STORE_NAME );
+
+	const isShortAccountStatementEnabled = useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
+
+		return getSettings().is_short_statement_descriptor_enabled || false;
+	}, [] );
+
+	return [ isShortAccountStatementEnabled, updateIsShortAccountStatementEnabled ];
+};
+
+export const useShortAccountStatementDescriptor = () => {
+	const { updateShortAccountStatementDescriptor } = useDispatch( STORE_NAME );
+
+	const shortAccountStatementDescriptor = useSelect(
+		( select ) => {
+			const { getSettings } = select( STORE_NAME );
+
+			return getSettings().short_statement_descriptor || '';
+		},
+		[]
+	);
+
+	return [ shortAccountStatementDescriptor, updateShortAccountStatementDescriptor ];
 };
 
 export const useGetSavingError = () => {

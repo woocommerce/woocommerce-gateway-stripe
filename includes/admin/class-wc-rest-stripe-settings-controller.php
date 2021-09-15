@@ -95,10 +95,21 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 	public function get_settings() {
 		return new WP_REST_Response(
 			[
-				'is_stripe_enabled'                 => $this->gateway->is_enabled(),
-				'is_test_mode_enabled'              => $this->gateway->is_in_test_mode(),
+				/* Settings > General */
+				'is_stripe_enabled'    => $this->gateway->is_enabled(),
+				'is_test_mode_enabled' => $this->gateway->is_in_test_mode(),
+
+				/* Settings > Express checkouts */
 				'is_payment_request_enabled'        => 'yes' === $this->gateway->get_option( 'payment_request' ),
 				'payment_request_enabled_locations' => $this->gateway->get_option( 'payment_request_button_locations' ),
+
+				/* Settings > Payments & transactions */
+				'is_manual_capture_enabled'             => 'no' === $this->gateway->get_option( 'capture' ),
+				'is_saved_cards_enabled'                => 'yes' === $this->gateway->get_option( 'saved_cards' ),
+				'is_separate_card_form_enabled'         => 'no' === $this->gateway->get_option( 'inline_cc_form' ),
+				'statement_descriptor'                  => $this->gateway->get_option( 'statement_descriptor' ),
+				'is_short_statement_descriptor_enabled' => 'yes' === $this->gateway->get_option( 'is_short_statement_descriptor_enabled' ),
+				'short_statement_descriptor'            => $this->gateway->get_option( 'short_statement_descriptor' ),
 			]
 		);
 	}
@@ -109,10 +120,21 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 	 * @param WP_REST_Request $request Full data about the request.
 	 */
 	public function update_settings( WP_REST_Request $request ) {
+		/* Settings > General */
 		$this->update_is_stripe_enabled( $request );
 		$this->update_is_test_mode_enabled( $request );
+
+		/* Settings > Express checkouts */
 		$this->update_is_payment_request_enabled( $request );
 		$this->update_payment_request_enabled_locations( $request );
+
+		/* Settings > Payments & transactions */
+		$this->update_is_manual_capture_enabled( $request );
+		$this->update_is_saved_cards_enabled( $request );
+		$this->update_is_separate_card_form_enabled( $request );
+		$this->update_account_statement_descriptor( $request );
+		$this->update_is_short_account_statement_enabled( $request );
+		$this->update_short_account_statement_descriptor( $request );
 
 		return new WP_REST_Response( [], 200 );
 	}
@@ -179,5 +201,95 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 		}
 
 		$this->gateway->update_option( 'payment_request_button_locations', $payment_request_enabled_locations );
+	}
+
+	/**
+	 * Updates WooCommerce Payments manual capture.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_is_manual_capture_enabled( WP_REST_Request $request ) {
+		$is_manual_capture_enabled = $request->get_param( 'is_manual_capture_enabled' );
+
+		if ( null === $is_manual_capture_enabled ) {
+			return;
+		}
+
+		$this->gateway->update_option( 'capture', $is_manual_capture_enabled ? 'no' : 'yes' );
+	}
+
+	/**
+	 * Updates WooCommerce Payments "saved cards" feature.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_is_saved_cards_enabled( WP_REST_Request $request ) {
+		$is_saved_cards_enabled = $request->get_param( 'is_saved_cards_enabled' );
+
+		if ( null === $is_saved_cards_enabled ) {
+			return;
+		}
+
+		$this->gateway->update_option( 'saved_cards', $is_saved_cards_enabled ? 'yes' : 'no' );
+	}
+
+	/**
+	 * Updates WooCommerce Payments "saved cards" feature.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_is_separate_card_form_enabled( WP_REST_Request $request ) {
+		$is_separate_card_form_enabled = $request->get_param( 'is_separate_card_form_enabled' );
+
+		if ( null === $is_separate_card_form_enabled ) {
+			return;
+		}
+
+		$this->gateway->update_option( 'inline_cc_form', $is_separate_card_form_enabled ? 'no' : 'yes' );
+	}
+
+	/**
+	 * Updates WooCommerce Payments account statement descriptor.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_account_statement_descriptor( WP_REST_Request $request ) {
+		$account_statement_descriptor = $request->get_param( 'statement_descriptor' );
+
+		if ( null === $account_statement_descriptor ) {
+			return;
+		}
+
+		$this->gateway->update_option( 'statement_descriptor', $account_statement_descriptor );
+	}
+
+	/**
+	 * Updates WooCommerce Payments manual capture.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_is_short_account_statement_enabled( WP_REST_Request $request ) {
+		$is_short_account_statement_enabled = $request->get_param( 'is_short_statement_descriptor_enabled' );
+
+		if ( null === $is_short_account_statement_enabled ) {
+			return;
+		}
+
+		$this->gateway->update_option( 'is_short_statement_descriptor_enabled', $is_short_account_statement_enabled ? 'yes' : 'no' );
+	}
+
+	/**
+	 * Updates WooCommerce Payments account statement descriptor.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_short_account_statement_descriptor( WP_REST_Request $request ) {
+		$short_account_statement_descriptor = $request->get_param( 'short_statement_descriptor' );
+
+		if ( null === $short_account_statement_descriptor ) {
+			return;
+		}
+
+		$this->gateway->update_option( 'short_statement_descriptor', $short_account_statement_descriptor );
 	}
 }
