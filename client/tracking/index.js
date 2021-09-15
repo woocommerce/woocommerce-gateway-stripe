@@ -48,7 +48,6 @@ export function recordEvent( eventName, eventProperties ) {
 	// Wc-admin track script could be enqueued after our plugin, wrap in domReady
 	// to make sure we're not too early.
 	domReady( () => {
-		console.log( '###', { isEnabled: isEnabled(), lib: getLibrary() } );
 		if ( ! isEnabled() ) {
 			return;
 		}
