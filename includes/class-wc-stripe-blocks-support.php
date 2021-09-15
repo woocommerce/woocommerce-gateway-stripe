@@ -63,7 +63,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			$this->register_upe_payment_method_script_handles();
 		} else {
-			$this->register_classic_payment_method_script_handles();
+			$this->register_legacy_payment_method_script_handles();
 		}
 
 		return [ 'wc-stripe-blocks-integration' ];
@@ -116,7 +116,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	/**
 	 * Registers the classic JS scripts.
 	 */
-	private function register_classic_payment_method_script_handles() {
+	private function register_legacy_payment_method_script_handles() {
 		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/index.asset.php';
 		$version      = WC_STRIPE_VERSION;
 		$dependencies = [];
