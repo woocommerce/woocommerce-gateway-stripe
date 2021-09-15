@@ -411,6 +411,11 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			$gateway = $gateways['stripe'];
 			return array_filter( $gateway->supports, [ $gateway, 'supports' ] );
 		}
+
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && empty( $gateways ) ) {
+			$gateway = new WC_Stripe_UPE_Payment_Gateway();
+			return array_filter( $gateway->supports, [ $gateway, 'supports' ] );
+		}
 		return [];
 	}
 }
