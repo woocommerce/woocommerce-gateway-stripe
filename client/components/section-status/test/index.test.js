@@ -7,22 +7,22 @@ import { render, screen } from '@testing-library/react';
 /**
  * Internal dependencies
  */
-import PaymentsStatus from '..';
+import SectionStatus from '..';
 
-describe( 'PaymentsStatus', () => {
+describe( 'SectionStatus', () => {
 	test( 'renders enabled status', () => {
-		renderPaymentsStatus( true );
+		renderSectionStatus( true );
 		const enabledText = screen.getByText( /enabled/i );
 		expect( enabledText ).toBeInTheDocument();
 	} );
 
 	test( 'renders disabled status', () => {
-		renderPaymentsStatus( false );
+		renderSectionStatus( false );
 		const disabledText = screen.getByText( /disabled/i );
 		expect( disabledText ).toBeInTheDocument();
 	} );
 
-	function renderPaymentsStatus( paymentsEnabled ) {
-		return render( <PaymentsStatus isEnabled={ paymentsEnabled } /> );
+	function renderSectionStatus( isEnabled ) {
+		return render( <SectionStatus isEnabled={ isEnabled } /> );
 	}
 } );

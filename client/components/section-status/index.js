@@ -10,26 +10,26 @@ import { Icon } from '@wordpress/components';
  */
 import './style.scss';
 
-const PaymentsStatusEnabled = () => {
+const SectionStatusEnabled = () => {
 	return (
-		<span className="account-details__info--green">
+		<span className="section-status__info--green">
 			<Icon icon="yes-alt" />
 			{ __( 'Enabled', 'woocommerce-gateway-stripe' ) }
 		</span>
 	);
 };
 
-const PaymentsStatusDisabled = () => {
+const SectionStatusDisabled = () => {
 	return (
-		<span className="account-details__info--yellow">
+		<span className="section-status__info--yellow">
 			<Icon icon="warning" />
 			{ __( 'Disabled', 'woocommerce-gateway-stripe' ) }
 		</span>
 	);
 };
 
-const PaymentsStatus = ( { isEnabled } ) => {
-	return isEnabled ? <PaymentsStatusEnabled /> : <PaymentsStatusDisabled />;
+const SectionStatus = ( { isEnabled } ) => {
+	return isEnabled ? <SectionStatusEnabled /> : <SectionStatusDisabled />;
 };
 
-export default PaymentsStatus;
+export default SectionStatus;

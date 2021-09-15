@@ -8,15 +8,14 @@ import { createInterpolateElement } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import DepositsStatus from '../../components/deposits-status';
-import PaymentsStatus from '../../components/payments-status';
+import SectionStatus from '../../components/section-status';
 import './style.scss';
 
 const PaymentsSection = ( props ) => {
 	return (
 		<div className="account-details__row">
 			<p>{ __( 'Payments:', 'woocommerce-gateway-stripe' ) }</p>
-			<PaymentsStatus { ...props } />
+			<SectionStatus { ...props } />
 		</div>
 	);
 };
@@ -25,7 +24,7 @@ const DepositsSection = ( props ) => {
 	return (
 		<div className="account-details__row">
 			<p>{ __( 'Deposits:', 'woocommerce-gateway-stripe' ) }</p>
-			<DepositsStatus { ...props } />
+			<SectionStatus { ...props } />
 		</div>
 	);
 };

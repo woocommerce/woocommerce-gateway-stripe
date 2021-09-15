@@ -1,13 +1,8 @@
 @import '../../styles/abstracts/colors';
-.account-details__info {
+.section-status__info {
 	&--green {
 		fill: $alert-green;
 		color: $alert-green;
-	}
-
-	&--red {
-		fill: $alert-red;
-		color: $alert-red;
 	}
 
 	&--yellow {
