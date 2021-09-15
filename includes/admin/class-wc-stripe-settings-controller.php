@@ -71,6 +71,12 @@ class WC_Stripe_Settings_Controller {
 			wp_register_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION, true );
 		}
 
+		$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url();
+		if ( is_wp_error( $oauth_url ) ) {
+			// TODO: Add a warning/error notification
+			$oauth_url = "";
+		}
+
 		$params = [
 			'time'                    => time(),
 			'i18n_out_of_sync'        => wp_kses(
@@ -78,7 +84,7 @@ class WC_Stripe_Settings_Controller {
 				[ 'strong' => [] ]
 			),
 			'is_upe_checkout_enabled' => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
-			'stripe_oauth_url'        => woocommerce_gateway_stripe()->connect->get_oauth_url(),
+			'stripe_oauth_url'        => $oauth_url,
 		];
 		wp_localize_script( 'woocommerce_stripe_admin', 'wc_stripe_settings_params', $params );
 

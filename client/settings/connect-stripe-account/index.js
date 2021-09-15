@@ -92,7 +92,11 @@ const ConnectStripeAccount = ( props ) => (
 				} ) }
 			</TermsOfServiceText>
 			<ButtonWrapper>
-				<Button isPrimary href={ props.oauthUrl }>
+				<Button
+					isPrimary
+					href={ props.oauthUrl }
+					disabled={ ! props.oauthUrl }
+				>
 					{ __(
 						'Create or connect an account',
 						'woocommerce-gateway-stripe'
