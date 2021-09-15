@@ -115,6 +115,7 @@ const GeneralSettingsSection = () => {
 												<PaymentMethodCheckbox
 													label={
 														<PaymentMethodDescription
+															id={ method }
 															Icon={ Icon }
 															description={
 																description
@@ -139,7 +140,6 @@ const GeneralSettingsSection = () => {
 											/>
 										) }
 									</PaymentMethodWrapper>
-									<PaymentMethodSetupHelp id={ method } />
 								</li>
 							);
 						} ) }
