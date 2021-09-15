@@ -34,6 +34,8 @@ class WC_Stripe_Intent_Controller {
 		add_action( 'wc_ajax_nopriv_wc_stripe_save_upe_appearance', [ $this, 'save_upe_appearance_ajax' ] );
 
 		add_action( 'wc_ajax_wc_stripe_update_order_status', [ $this, 'update_order_status_ajax' ] );
+		add_action( 'wc_ajax_wc_stripe_update_failed_order', [ $this, 'update_failed_order_ajax' ] );
+
 		add_action( 'switch_theme', [ $this, 'clear_upe_appearance_transient' ] );
 	}
 
@@ -584,6 +586,61 @@ class WC_Stripe_Intent_Controller {
 				]
 			);
 		}
+	}
+
+	/**
+	 * Handle AJAX request if error occurs while confirming intent.
+	 * We will log the error and update the order.
+	 *
+	 * @throws WC_Stripe_Exception
+	 */
+	public function update_failed_order_ajax() {
+		try {
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_failed_order_nonce', false, false );
+			if ( ! $is_nonce_valid ) {
+				throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			$order_id  = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : null;
+			$intent_id = isset( $_POST['intent_id'] ) ? wc_clean( wp_unslash( $_POST['intent_id'] ) ) : '';
+			$order     = wc_get_order( $order_id );
+
+			if ( ! empty( $order_id ) && ! empty( $intent_id ) && is_object( $order ) ) {
+				$payment_needed = 0 < $order->get_total();
+				if ( $payment_needed ) {
+					$intent = WC_Stripe_API::retrieve( "payment_intents/$intent_id" );
+				} else {
+					$intent = WC_Stripe_API::retrieve( "setup_intents/$intent_id" );
+				}
+				$error = $intent->last_payment_error;
+
+				if ( ! empty( $error ) ) {
+					WC_Stripe_Logger::log( 'Error when processing payment: ' . $error->message );
+					throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
+				}
+
+				// Use the last charge within the intent to proceed.
+				if ( isset( $intent->charges ) ) {
+					$charge = end( $intent->charges->data );
+					$this->process_response( $charge, $order );
+				} else {
+					// TODO: Add implementation for setup intents.
+					$this->process_response( $intent, $order );
+				}
+				$this->save_intent_to_order( $order, $intent );
+			}
+		} catch ( WC_Stripe_Exception $e ) {
+			// We are expecting an exception to be thrown here.
+			wc_add_notice( $e->getLocalizedMessage(), 'error' );
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
+
+			/* translators: error message */
+			$order->update_status( 'failed' );
+		}
+
+		wp_send_json_success();
 	}
 
 }
