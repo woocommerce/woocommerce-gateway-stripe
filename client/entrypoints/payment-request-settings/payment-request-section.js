@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { __ } from '@wordpress/i18n';
 import { Card, RadioControl } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
