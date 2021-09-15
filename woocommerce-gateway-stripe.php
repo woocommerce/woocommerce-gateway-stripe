@@ -217,11 +217,6 @@ function woocommerce_gateway_stripe() {
 					add_filter( 'woocommerce_get_sections_checkout', [ $this, 'filter_gateway_order_admin' ] );
 				}
 
-				// If UPE is enabled, initialize the Gateway here for the hooks in the constructor to work.
-				if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-					new WC_Stripe_UPE_Payment_Gateway();
-				}
-
 				new WC_Stripe_UPE_Compatibility_Controller();
 			}
 
