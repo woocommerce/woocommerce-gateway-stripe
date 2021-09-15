@@ -73,7 +73,6 @@ class WC_Stripe_Settings_Controller {
 
 		$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url();
 		if ( is_wp_error( $oauth_url ) ) {
-			// TODO: Add a warning/error notification
 			$oauth_url = '';
 		}
 
