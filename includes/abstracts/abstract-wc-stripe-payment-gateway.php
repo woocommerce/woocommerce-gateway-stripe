@@ -1659,24 +1659,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		return $intent;
 	}
 
-	/**
-	 * Checks if subscription has a Stripe customer ID and adds it if doesn't.
-	 *
-	 * Fix renewal for existing subscriptions affected by https://github.com/woocommerce/woocommerce-gateway-stripe/issues/1072.
-	 *
-	 * @param int $order_id subscription renewal order id.
-	 */
-	public function ensure_subscription_has_customer_id( $order_id ) {
-		$subscriptions_ids = wcs_get_subscriptions_for_order( $order_id, [ 'order_type' => 'any' ] );
-		foreach ( $subscriptions_ids as $subscription_id => $subscription ) {
-			if ( ! metadata_exists( 'post', $subscription_id, '_stripe_customer_id' ) ) {
-				$stripe_customer = new WC_Stripe_Customer( $subscription->get_user_id() );
-				update_post_meta( $subscription_id, '_stripe_customer_id', $stripe_customer->get_id() );
-				update_post_meta( $order_id, '_stripe_customer_id', $stripe_customer->get_id() );
-			}
-		}
-	}
-
 	/** Verifies whether a certain ZIP code is valid for the US, incl. 4-digit extensions.
 	 *
 	 * @param string $zip The ZIP code to verify.

@@ -199,18 +199,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function process_subscription_payment( $amount, $renewal_order, $retry = true, $previous_error = false ) {
 		try {
-			if ( $amount * 100 < WC_Stripe_Helper::get_minimum_amount() ) {
-				/* translators: minimum amount */
-				$message = sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( WC_Stripe_Helper::get_minimum_amount() / 100 ) );
-				throw new WC_Stripe_Exception(
-					'Error while processing renewal order ' . $renewal_order->get_id() . ' : ' . $message,
-					$message
-				);
-			}
-
 			$order_id = $renewal_order->get_id();
-
-			$this->ensure_subscription_has_customer_id( $order_id );
 
 			// Unlike regular off-session subscription payments, early renewals are treated as on-session payments, involving the customer.
 			if ( isset( $_REQUEST['process_early_renewal'] ) ) { // wpcs: csrf ok.
