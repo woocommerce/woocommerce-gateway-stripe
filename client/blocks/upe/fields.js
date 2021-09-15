@@ -14,6 +14,7 @@ import {
 import { confirmUpePayment } from './confirm-upe-payment';
 /* eslint-disable @woocommerce/dependency-group */
 import { getStripeServerData } from 'wcstripe/stripe-utils';
+import { PAYMENT_METHOD_NAME } from 'wcstripe/blocks/credit-card/constants';
 /* eslint-enable */
 
 const UPEField = ( {
@@ -93,6 +94,16 @@ const UPEField = ( {
 							'This payment method can not be saved for future use.',
 					};
 				}
+
+				return {
+					type: 'success',
+					meta: {
+						paymentMethodData: {
+							paymentMethod: PAYMENT_METHOD_NAME,
+							wc_payment_intent_id: paymentIntentId,
+						},
+					},
+				};
 			} ),
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[ activePaymentMethod, isUpeComplete, shouldSavePayment ]
@@ -140,7 +151,7 @@ const UPEField = ( {
 
 	const elementOptions = {
 		clientSecret,
-		business: { name: 'Automattic' },
+		business: { name: getStripeServerData()?.accountDescriptor },
 		fields: {
 			billingDetails: {
 				name: 'never',
