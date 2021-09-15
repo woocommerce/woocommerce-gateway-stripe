@@ -174,4 +174,24 @@ const getErrorMessageForTypeAndCode = ( type, code = '' ) => {
 	return null;
 };
 
+/**
+ * Generates terms parameter for UPE, with value set for reusable payment methods
+ *
+ * @param {Object} paymentMethodsConfig Object mapping payment method strings to their settings.
+ * @param {string} value The terms value for each available payment method.
+ * @return {Object} Terms parameter fit for UPE.
+ */
+ export const getUPETerms = ( value = 'always' ) => {
+	const config = getStripeServerData()?.paymentMethodsConfig;
+	const reusablePaymentMethods = Object.keys( config ).filter(
+		( method ) => config[ method ].isReusable
+	);
+
+	return reusablePaymentMethods.reduce( ( obj, method ) => {
+		obj[ method ] = value;
+		return obj;
+	}, {} );
+};
+
+
 export { getStripeServerData, getApiKey, getErrorMessageForTypeAndCode };

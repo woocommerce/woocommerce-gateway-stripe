@@ -253,7 +253,7 @@ class WC_Stripe_Admin_Notices {
 			}
 			$method      = $method_class::STRIPE_ID;
 			$show_notice = get_option( 'wc_stripe_show_' . strtolower( $method ) . '_upe_notice' );
-			$upe_method  = new $method_class( null );
+			$upe_method  = new $method_class();
 			if ( ! $upe_method->is_enabled() || 'no' === $show_notice ) {
 				continue;
 			}
