@@ -1,6 +1,6 @@
 <?php
 /**
- * These teste make assertions against class WC_REST_UPE_Flag_Toggle_Controller.
+ * These tests make assertions against class WC_REST_UPE_Flag_Toggle_Controller.
  *
  * @package WooCommerce_Stripe/Tests/WC_REST_UPE_Flag_Toggle_Controller
  */
@@ -12,7 +12,7 @@ class WC_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * Tested REST route.
 	 */
-	const ROUTE = '/wc/v3/payments/upe_flag_toggle';
+	const ROUTE = '/wc/v3/wc_stripe/upe_flag_toggle';
 
 	/**
 	 * The system under test.
