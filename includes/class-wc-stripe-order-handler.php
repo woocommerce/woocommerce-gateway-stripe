@@ -382,8 +382,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Check for a UPE redirect payment method on order received page or setup intent on payment methods page.
 	 *
-	 * @since x.x.x
-	 * @version x.x.x
+	 * @since 5.5.0
+	 * @version 5.5.0
 	 */
 	public function maybe_process_upe_redirect() {
 		if ( ! is_order_received_page() ) {
