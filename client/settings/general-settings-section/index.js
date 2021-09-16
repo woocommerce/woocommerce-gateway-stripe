@@ -11,7 +11,6 @@ import {
 } from './data-mock';
 import PaymentMethodDescription from './payment-method-description';
 import SectionHeading from './section-heading';
-import PaymentMethodSetupHelp from './payment-method-setup-help';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 
 const StyledCard = styled( Card )`
@@ -108,6 +107,7 @@ const GeneralSettingsSection = () => {
 												<PaymentMethodCheckbox
 													label={
 														<PaymentMethodDescription
+															id={ method }
 															Icon={ Icon }
 															description={
 																description
@@ -132,7 +132,6 @@ const GeneralSettingsSection = () => {
 											/>
 										) }
 									</PaymentMethodWrapper>
-									<PaymentMethodSetupHelp id={ method } />
 								</li>
 							);
 						} ) }

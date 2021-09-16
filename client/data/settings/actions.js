@@ -4,7 +4,7 @@ import { apiFetch } from '@wordpress/data-controls';
 import { NAMESPACE, STORE_NAME } from '../constants';
 import ACTION_TYPES from './action-types';
 
-function updateSettingsValues( payload ) {
+export function updateSettingsValues( payload ) {
 	return {
 		type: ACTION_TYPES.SET_SETTINGS_VALUES,
 		payload,

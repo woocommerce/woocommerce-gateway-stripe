@@ -1,28 +1,12 @@
 import { __ } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
-import { Icon, info } from '@wordpress/icons';
+import Pill from 'wcstripe/components/pill';
 
-const Wrapper = styled.div`
-	display: flex;
-	flex-wrap: nowrap;
-	margin-top: 20px;
-	align-items: center;
-`;
-
-const StyledIcon = styled( Icon )`
-	fill: #949494;
-	margin-right: 12px;
-	flex: 0 0 24px;
-
-	@media ( min-width: 600px ) {
-		flex-basis: 20px;
-	}
-`;
-
-const Text = styled.div`
-	color: #757575;
-	font-size: 13px;
+const StyledPill = styled( Pill )`
+	border: 1px solid #f0b849;
+	background-color: #f0b849;
+	color: #1e1e1e;
 	line-height: 16px;
 `;
 
@@ -32,15 +16,9 @@ const PaymentMethodSetupHelp = ( { id } ) => {
 	}
 
 	return (
-		<Wrapper>
-			<StyledIcon icon={ info } />
-			<Text>
-				{ __(
-					'You must provide more information to enable Direct debit payment (SEPA).',
-					'woocommerce-gateway-stripe'
-				) }
-			</Text>
-		</Wrapper>
+		<StyledPill>
+			{ __( 'Pending activation', 'woocommerce-gateway-stripe' ) }
+		</StyledPill>
 	);
 };
 

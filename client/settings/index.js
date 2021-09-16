@@ -1,13 +1,17 @@
 /* global wc_stripe_settings_params */
-
 import React from 'react';
 import ReactDOM from 'react-dom';
+import ConnectStripeAccount from './connect-stripe-account';
 import SettingsManager from './settings-manager';
 import UpeToggleContextProvider from './upe-toggle/provider';
 import './styles.scss';
 
 const settingsContainer = document.getElementById(
 	'wc-stripe-account-settings-container'
+);
+
+const newAccountContainer = document.getElementById(
+	'wc-stripe-new-account-container'
 );
 
 if ( settingsContainer ) {
@@ -21,4 +25,8 @@ if ( settingsContainer ) {
 		</UpeToggleContextProvider>,
 		settingsContainer
 	);
+}
+
+if ( newAccountContainer ) {
+	ReactDOM.render( <ConnectStripeAccount />, newAccountContainer );
 }

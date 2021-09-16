@@ -23,11 +23,14 @@ class WC_Stripe_Settings_Controller {
 	 */
 	public function admin_options( WC_Stripe_Payment_Gateway $gateway ) {
 		global $hide_save_button;
-		$hide_save_button = true;
+		$hide_save_button    = true;
+		$is_stripe_connected = woocommerce_gateway_stripe()->connect->is_connected();
+
 		echo '<h2>' . esc_html( $gateway->get_method_title() );
 		wc_back_link( __( 'Return to payments', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ) );
 		echo '</h2>';
-		echo '<div id="wc-stripe-account-settings-container"></div>';
+
+		echo $is_stripe_connected ? '<div id="wc-stripe-account-settings-container"></div>' : '<div id="wc-stripe-new-account-container"></div>';
 	}
 
 	/**

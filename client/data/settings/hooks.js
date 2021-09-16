@@ -1,5 +1,8 @@
 import { useSelect, useDispatch } from '@wordpress/data';
+import { useCallback } from 'react';
 import { STORE_NAME } from '../constants';
+
+const EMPTY_ARR = [];
 
 export const useSettings = () => {
 	const { saveSettings } = useDispatch( STORE_NAME );
@@ -46,6 +49,86 @@ export const useGetSavingError = () => {
 
 		return getSavingError();
 	}, [] );
+};
+
+export const usePaymentRequestLocations = () => {
+	const { updateSettingsValues } = useDispatch( STORE_NAME );
+
+	const locations = useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
+
+		return getSettings().payment_request_button_locations || EMPTY_ARR;
+	} );
+
+	const handler = useCallback(
+		( values ) =>
+			updateSettingsValues( {
+				payment_request_button_locations: values,
+			} ),
+		[ updateSettingsValues ]
+	);
+
+	return [ locations, handler ];
+};
+
+export const usePaymentRequestButtonType = () => {
+	const { updateSettingsValues } = useDispatch( STORE_NAME );
+
+	const type = useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
+
+		return getSettings().payment_request_button_type || '';
+	} );
+
+	const handler = useCallback(
+		( value ) =>
+			updateSettingsValues( {
+				payment_request_button_type: value,
+			} ),
+		[ updateSettingsValues ]
+	);
+
+	return [ type, handler ];
+};
+
+export const usePaymentRequestButtonSize = () => {
+	const { updateSettingsValues } = useDispatch( STORE_NAME );
+
+	const size = useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
+
+		return getSettings().payment_request_button_size || '';
+	} );
+
+	const handler = useCallback(
+		( value ) =>
+			updateSettingsValues( {
+				payment_request_button_size: value,
+			} ),
+		[ updateSettingsValues ]
+	);
+
+	return [ size, handler ];
+};
+
+export const usePaymentRequestButtonTheme = () => {
+	const { updateSettingsValues } = useDispatch( STORE_NAME );
+
+	const size = useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
+
+		return getSettings().payment_request_button_theme || '';
+	} );
+
+	const handler = useCallback(
+		( value ) =>
+			updateSettingsValues( {
+				payment_request_button_theme: value,
+			} ),
+		[ updateSettingsValues ]
+	);
+
+	return [ size, handler ];
 };
 
 //TODO, these should come from an endpoint/ data store.

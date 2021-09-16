@@ -1,5 +1,10 @@
 import { useSelect, useDispatch } from '@wordpress/data';
-import { useSettings, usePaymentRequestEnabledSettings } from '../hooks';
+import { renderHook, act } from '@testing-library/react-hooks';
+import {
+	useSettings,
+	usePaymentRequestEnabledSettings,
+	usePaymentRequestButtonTheme,
+} from '../hooks';
 import { STORE_NAME } from '../../constants';
 
 jest.mock( '@wordpress/data' );
@@ -115,6 +120,60 @@ describe( 'Settings hooks tests', () => {
 			expect(
 				actions.updateIsPaymentRequestEnabled
 			).toHaveBeenCalledWith( true );
+		} );
+	} );
+
+	describe( 'usePaymentRequestButtonTheme()', () => {
+		test( 'returns the value of getSettings().payment_request_button_theme', () => {
+			selectors = {
+				getSettings: jest.fn( () => ( {
+					payment_request_button_theme: 'dark',
+				} ) ),
+			};
+
+			const { result } = renderHook( () =>
+				usePaymentRequestButtonTheme()
+			);
+			const [ value ] = result.current;
+
+			expect( value ).toEqual( 'dark' );
+		} );
+
+		test( 'returns an empty string if setting is missing', () => {
+			selectors = {
+				getSettings: jest.fn( () => ( {} ) ),
+			};
+
+			const { result } = renderHook( () =>
+				usePaymentRequestButtonTheme()
+			);
+			const [ value ] = result.current;
+
+			expect( value ).toEqual( '' );
+		} );
+
+		test( 'allows to update the store', () => {
+			const updateSettingsValuesMock = jest.fn();
+			actions = {
+				updateSettingsValues: updateSettingsValuesMock,
+			};
+
+			selectors = {
+				getSettings: jest.fn( () => ( {} ) ),
+			};
+
+			const { result } = renderHook( () =>
+				usePaymentRequestButtonTheme()
+			);
+			const [ , handler ] = result.current;
+
+			act( () => {
+				handler( 'dark' );
+			} );
+
+			expect( updateSettingsValuesMock ).toHaveBeenCalledWith( {
+				payment_request_button_theme: 'dark',
+			} );
 		} );
 	} );
 } );

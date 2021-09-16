@@ -1,9 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import PaymentRequestsSettings from '../payment-request-settings';
+import PaymentRequestSection from '../payment-request-section';
 import PaymentRequestButtonPreview from '../payment-request-button-preview';
-
-/* @todo: Add back when we have data persistence.
 import {
 	usePaymentRequestButtonType,
 	usePaymentRequestButtonSize,
@@ -15,11 +13,6 @@ jest.mock( '../../../data', () => ( {
 	usePaymentRequestButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
 	usePaymentRequestButtonTheme: jest.fn().mockReturnValue( [ 'dark' ] ),
 } ) );
-*/
-
-const usePaymentRequestButtonType = jest.fn().mockReturnValue( [ 'buy' ] );
-const usePaymentRequestButtonSize = jest.fn().mockReturnValue( [ 'default' ] );
-const usePaymentRequestButtonTheme = jest.fn().mockReturnValue( [ 'dark' ] );
 
 jest.mock( '../payment-request-button-preview' );
 PaymentRequestButtonPreview.mockImplementation( () => '<></>' );
@@ -32,14 +25,15 @@ jest.mock( '../utils/utils', () => ( {
 	} ),
 } ) );
 
-describe( 'PaymentRequestsSettings', () => {
-	it( 'renders settings with defaults', () => {
-		render( <PaymentRequestsSettings /> );
+jest.mock( 'wcstripe/data', () => ( {
+	usePaymentRequestButtonType: jest.fn().mockReturnValue( [ 'buy' ] ),
+	usePaymentRequestButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
+	usePaymentRequestButtonTheme: jest.fn().mockReturnValue( [ 'dark' ] ),
+} ) );
 
-		const heading = screen.queryByRole( 'heading', {
-			name: 'Google Pay / Apple Pay',
-		} );
-		expect( heading ).toBeInTheDocument();
+describe( 'PaymentRequestSection', () => {
+	it( 'renders settings with defaults', () => {
+		render( <PaymentRequestSection /> );
 
 		// confirm settings headings
 		expect(
@@ -64,9 +58,7 @@ describe( 'PaymentRequestsSettings', () => {
 		expect( screen.getByLabelText( /Dark/ ) ).toBeChecked();
 	} );
 
-	// This has to be skipped because the hooks in PaymentRequestsCustomizer do not exist yet.
-	// eslint-disable-next-line jest/no-disabled-tests
-	it.skip( 'triggers the hooks when the settings are being interacted with', () => {
+	it( 'triggers the hooks when the settings are being interacted with', () => {
 		const setButtonTypeMock = jest.fn();
 		const setButtonSizeMock = jest.fn();
 		const setButtonThemeMock = jest.fn();
@@ -83,7 +75,7 @@ describe( 'PaymentRequestsSettings', () => {
 			setButtonThemeMock,
 		] );
 
-		render( <PaymentRequestsSettings /> );
+		render( <PaymentRequestSection /> );
 
 		expect( setButtonTypeMock ).not.toHaveBeenCalled();
 		expect( setButtonSizeMock ).not.toHaveBeenCalled();

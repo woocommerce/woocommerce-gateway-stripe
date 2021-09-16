@@ -4,16 +4,13 @@ import {
 	PaymentRequestButtonElement,
 	useStripe,
 } from '@stripe/react-stripe-js';
-import InlineNotice from '../../components/inline-notice';
 import { shouldUseGooglePayBrand } from './utils/utils';
-
-/* Will be used once hooked up to data persistence.
+import InlineNotice from 'wcstripe/components/inline-notice';
 import {
 	usePaymentRequestButtonType,
 	usePaymentRequestButtonSize,
 	usePaymentRequestButtonTheme,
-} from '../../data';
-*/
+} from 'wcstripe/data';
 
 /**
  * stripePromise is used to pass into <Elements>'s stripe props.
@@ -56,10 +53,9 @@ const PaymentRequestsButtonPreview = () => {
 	const stripe = useStripe();
 	const [ paymentRequest, setPaymentRequest ] = useState();
 	const [ isLoading, setIsLoading ] = useState( true );
-	// @todo - use 'usePaymentRequestButtonxxx' hooks above that were commented out.
-	const [ buttonType ] = useState( 'buy' );
-	const [ size ] = useState( 'default' );
-	const [ theme ] = useState( 'dark' );
+	const [ buttonType ] = usePaymentRequestButtonType();
+	const [ size ] = usePaymentRequestButtonSize();
+	const [ theme ] = usePaymentRequestButtonTheme();
 
 	useEffect( () => {
 		if ( ! stripe ) {

@@ -155,6 +155,42 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 			],
 			[
 				[
+					'woocommerce_stripe_settings'    => [
+						'enabled' => 'yes',
+					],
+					'wc_stripe_show_style_notice'    => 'no',
+					'wc_stripe_show_sca_notice'      => 'no',
+					'_wcstripe_feature_upe_settings' => 'yes',
+					'home'                           => 'https://...',
+				],
+				[],
+				false,
+				[
+					'page'    => 'wc-settings',
+					'section' => 'stripe',
+				],
+			],
+			[
+				[
+					'woocommerce_stripe_settings'    => [
+						'enabled' => 'yes',
+					],
+					'wc_stripe_show_style_notice'    => 'no',
+					'wc_stripe_show_sca_notice'      => 'no',
+					'_wcstripe_feature_upe_settings' => 'yes',
+					'home'                           => 'https://...',
+				],
+				[
+					'keys',
+				],
+				false,
+				[
+					'page' => 'wc-settings',
+				],
+				'/set your Stripe account keys/',
+			],
+			[
+				[
 					'woocommerce_stripe_settings' => [
 						'enabled'              => 'yes',
 						'testmode'             => 'yes',

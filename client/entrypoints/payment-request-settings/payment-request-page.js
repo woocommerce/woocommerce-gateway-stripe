@@ -1,11 +1,11 @@
 import { __ } from '@wordpress/i18n';
 import React from 'react';
 import { ExternalLink } from '@wordpress/components';
-import SettingsSection from '../settings-section';
-import SettingsLayout from '../settings-layout';
-import LoadableSettingsSection from '../../components/loadable-settings-section';
-import SaveSettingsSection from '../save-settings-section';
-import PaymentRequestsCustomizer from './payment-request-customizer';
+import PaymentRequestsSection from './payment-request-section';
+import SettingsSection from 'wcstripe/settings/settings-section';
+import SettingsLayout from 'wcstripe/settings/settings-layout';
+import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
+import SaveSettingsSection from 'wcstripe/settings/save-settings-section';
 import './style.scss';
 
 const Description = () => (
@@ -42,12 +42,12 @@ const Description = () => (
 	</>
 );
 
-const PaymentRequestsSettings = () => {
+const PaymentRequestsPage = () => {
 	return (
 		<SettingsLayout>
 			<SettingsSection Description={ Description }>
 				<LoadableSettingsSection numLines={ 30 }>
-					<PaymentRequestsCustomizer />
+					<PaymentRequestsSection />
 				</LoadableSettingsSection>
 			</SettingsSection>
 
@@ -56,4 +56,4 @@ const PaymentRequestsSettings = () => {
 	);
 };
 
-export default PaymentRequestsSettings;
+export default PaymentRequestsPage;
