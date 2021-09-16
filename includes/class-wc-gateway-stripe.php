@@ -477,20 +477,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Checks whether a source exists.
-	 *
-	 * @since 4.2.0
-	 * @param  object $prepared_source The source that should be verified.
-	 * @throws WC_Stripe_Exception     An exception if the source ID is missing.
-	 */
-	public function check_source( $prepared_source ) {
-		if ( empty( $prepared_source->source ) ) {
-			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
-			throw new WC_Stripe_Exception( print_r( $prepared_source, true ), $localized_message );
-		}
-	}
-
-	/**
 	 * Completes an order without a positive value.
 	 *
 	 * @since 4.2.0
