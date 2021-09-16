@@ -25,7 +25,7 @@ jest.mock( '../data-mock', () => ( {
 	useShortAccountStatementDescriptor: jest.fn(),
 } ) );
 
-jest.mock( './statement-preview', () => ( {
+jest.mock( '../statement-preview', () => ( {
 	useGetCurrencySettings: jest.fn().mockReturnValue( {
 		precision: 2,
 		symbol: '$',
