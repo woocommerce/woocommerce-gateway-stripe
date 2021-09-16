@@ -2,11 +2,16 @@
  * External dependencies
  */
 import { useSelect, useDispatch } from '@wordpress/data';
+import { renderHook, act } from '@testing-library/react-hooks';
 
 /**
  * Internal dependencies
  */
-import { useSettings, usePaymentRequestEnabledSettings } from '../hooks';
+import {
+	useSettings,
+	usePaymentRequestEnabledSettings,
+	usePaymentRequestButtonTheme,
+} from '../hooks';
 import { STORE_NAME } from '../../constants';
 
 jest.mock( '@wordpress/data' );
@@ -85,20 +90,24 @@ describe( 'Settings hooks tests', () => {
 			selectors = {
 				getSettings: jest.fn( () => ( {
 					is_payment_request_enabled: true,
-				} ) )
+				} ) ),
 			};
 
-			const [ isPaymentRequestEnabled ] = usePaymentRequestEnabledSettings();
+			const [
+				isPaymentRequestEnabled,
+			] = usePaymentRequestEnabledSettings();
 
 			expect( isPaymentRequestEnabled ).toEqual( true );
 		} );
 
 		test( 'returns false if setting is missing', () => {
 			selectors = {
-				getSettings: jest.fn( () => ( {} ) )
+				getSettings: jest.fn( () => ( {} ) ),
 			};
 
-			const [ isPaymentRequestEnabled ] = usePaymentRequestEnabledSettings();
+			const [
+				isPaymentRequestEnabled,
+			] = usePaymentRequestEnabledSettings();
 
 			expect( isPaymentRequestEnabled ).toBeFalsy();
 		} );
@@ -109,7 +118,7 @@ describe( 'Settings hooks tests', () => {
 			};
 
 			selectors = {
-				getSettings: jest.fn( () => ( {} ) )
+				getSettings: jest.fn( () => ( {} ) ),
 			};
 
 			const [ , action ] = usePaymentRequestEnabledSettings();
@@ -118,6 +127,60 @@ describe( 'Settings hooks tests', () => {
 			expect(
 				actions.updateIsPaymentRequestEnabled
 			).toHaveBeenCalledWith( true );
+		} );
+	} );
+
+	describe( 'usePaymentRequestButtonTheme()', () => {
+		test( 'returns the value of getSettings().payment_request_button_theme', () => {
+			selectors = {
+				getSettings: jest.fn( () => ( {
+					payment_request_button_theme: 'dark',
+				} ) ),
+			};
+
+			const { result } = renderHook( () =>
+				usePaymentRequestButtonTheme()
+			);
+			const [ value ] = result.current;
+
+			expect( value ).toEqual( 'dark' );
+		} );
+
+		test( 'returns an empty string if setting is missing', () => {
+			selectors = {
+				getSettings: jest.fn( () => ( {} ) ),
+			};
+
+			const { result } = renderHook( () =>
+				usePaymentRequestButtonTheme()
+			);
+			const [ value ] = result.current;
+
+			expect( value ).toEqual( '' );
+		} );
+
+		test( 'allows to update the store', () => {
+			const updateSettingsValuesMock = jest.fn();
+			actions = {
+				updateSettingsValues: updateSettingsValuesMock,
+			};
+
+			selectors = {
+				getSettings: jest.fn( () => ( {} ) ),
+			};
+
+			const { result } = renderHook( () =>
+				usePaymentRequestButtonTheme()
+			);
+			const [ , handler ] = result.current;
+
+			act( () => {
+				handler( 'dark' );
+			} );
+
+			expect( updateSettingsValuesMock ).toHaveBeenCalledWith( {
+				payment_request_button_theme: 'dark',
+			} );
 		} );
 	} );
 } );
