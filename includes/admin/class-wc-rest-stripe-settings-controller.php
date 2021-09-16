@@ -161,6 +161,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 
 		/* Settings > Express checkouts */
 		$this->update_is_payment_request_enabled( $request );
+		$this->update_payment_request_settings( $request );
 
 		/* Settings > Payments & transactions */
 		$this->update_is_manual_capture_enabled( $request );
@@ -172,8 +173,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 
 		/* Settings > Advanced settings */
 		$this->update_is_debug_log_enabled( $request );
-
-		$this->update_payment_request_settings( $request );
 
 		return new WP_REST_Response( [], 200 );
 	}
@@ -345,6 +344,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 			'payment_request_button_theme'     => 'payment_request_button_theme',
 			'payment_request_button_locations' => 'payment_request_button_locations',
 		];
+
 		foreach ( $attributes as $request_key => $attribute ) {
 			if ( null === $request->get_param( $request_key ) ) {
 				continue;

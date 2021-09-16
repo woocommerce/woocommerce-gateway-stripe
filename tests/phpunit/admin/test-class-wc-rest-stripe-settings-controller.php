@@ -119,13 +119,12 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	}
 
 	public function test_update_settings_saves_payment_request_button_theme() {
-		$this->assertEquals( [ 'product', 'cart' ], $this->gateway->get_option( 'payment_request_button_locations' ) );
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'payment_request_button_locations', [ 'cart', 'checkout' ] );
 
-		$request = new WP_REST_Request();
-		$request->set_param( 'payment_request_enabled_locations', [ 'cart', 'checkout' ] );
+		$response = rest_do_request( $request );
 
-		$this->controller->update_settings( $request );
-
+		$this->assertEquals( 200, $response->get_status() );
 		$this->assertEquals( [ 'cart', 'checkout' ], $this->gateway->get_option( 'payment_request_button_locations' ) );
 	}
 
