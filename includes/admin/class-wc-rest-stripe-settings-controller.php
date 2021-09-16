@@ -39,7 +39,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 	 * Configure REST API routes.
 	 */
 	public function register_routes() {
-		$wcpay_form_fields = $this->gateway->get_form_fields();
 		$form_fields = $this->gateway->get_form_fields();
 
 		register_rest_route(
