@@ -1,3 +1,7 @@
+/* global wc_stripe_admin_settings */
+/**
+ * External dependencies
+ */
 import { __ } from '@wordpress/i18n';
 import { React } from 'react';
 import {
@@ -96,24 +100,19 @@ const AccountSettingsDropdownMenu = () => {
 	);
 };
 
-const accountStatusMock = {
-	paymentsEnabled: true,
-	depositsEnabled: true,
-	email: 'hello@johndoe.com',
-	accountLink: 'https://stripe.com/support',
-};
-
 const AccountDetailsSection = () => {
+	const accountStatus = wc_stripe_admin_settings.accountStatus;
+
 	return (
 		<Card className="account-details">
 			<CardHeader className="account-details__header">
 				<h4 className="account-details__header">
-					{ accountStatusMock.email }
+					{ accountStatus.email }
 				</h4>
 				<AccountSettingsDropdownMenu />
 			</CardHeader>
 			<CardBody>
-				<AccountStatus accountStatus={ accountStatusMock } />
+				<AccountStatus accountStatus={ accountStatus } />
 			</CardBody>
 		</Card>
 	);
