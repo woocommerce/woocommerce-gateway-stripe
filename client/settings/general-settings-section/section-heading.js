@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import React, { useContext, useState } from 'react';
+import React, { useState } from 'react';
 import styled from '@emotion/styled';
 import { __ } from '@wordpress/i18n';
 import { CardHeader, DropdownMenu } from '@wordpress/components';
@@ -11,7 +11,6 @@ import { moreVertical } from '@wordpress/icons';
  * Internal dependencies
  */
 import Pill from 'wcstripe/components/pill';
-import UpeToggleContext from '../upe-toggle/context';
 import DisableUpeConfirmationModal from './disable-upe-confirmation-modal';
 
 const StyledHeader = styled( CardHeader )`
@@ -43,15 +42,9 @@ const Title = styled.h4`
 `;
 
 const SectionHeading = () => {
-	const { isUpeEnabled } = useContext( UpeToggleContext );
-
 	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] = useState(
 		false
 	);
-
-	if ( ! isUpeEnabled ) {
-		return null;
-	}
 
 	return (
 		<StyledHeader>

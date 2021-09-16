@@ -59,7 +59,9 @@ const PaymentMethodDescription = ( {
 			<div>
 				<LabelWrapper>
 					<Label>{ label }</Label>
-					<PaymentMethodSetupHelp id={ id } />
+					{ id && (
+						<PaymentMethodSetupHelp id={ id } label={ label } />
+					) }
 				</LabelWrapper>
 				<Description>{ description }</Description>
 			</div>

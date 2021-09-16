@@ -20,7 +20,8 @@ const Tooltip = ( { isVisible, onHide = noop, ...props } ) => {
 		setIsHovered( false );
 		onHide();
 	};
-	const handleMouseClick = () => {
+	const handleMouseClick = ( event ) => {
+		event.preventDefault();
 		setIsClicked( ( val ) => ! val );
 		if ( isClicked ) {
 			onHide();

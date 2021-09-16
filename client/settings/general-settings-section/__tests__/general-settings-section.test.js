@@ -48,6 +48,14 @@ describe( 'GeneralSettingsSection', () => {
 			)
 		).toBeInTheDocument();
 		expect( screen.queryByTestId( 'opt-in-banner' ) ).toBeInTheDocument();
+		expect(
+			screen.queryByText( 'Get more payment methods' )
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole( 'button', {
+				name: 'Disable the new Payment Experience',
+			} )
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'should not render the opt-in banner if UPE is enabled', () => {
@@ -60,6 +68,14 @@ describe( 'GeneralSettingsSection', () => {
 		expect(
 			screen.queryByTestId( 'opt-in-banner' )
 		).not.toBeInTheDocument();
+		expect(
+			screen.queryByText( 'Get more payment methods' )
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole( 'button', {
+				name: 'Disable the new Payment Experience',
+			} )
+		).toBeInTheDocument();
 	} );
 
 	it( 'should allow to enable a payment method when UPE is enabled', () => {
