@@ -4,6 +4,7 @@
 import { Icon } from '@wordpress/components';
 import React from 'react';
 import { __ } from '@wordpress/i18n';
+import { useSelect } from '@wordpress/data';
 
 /**
  * Internal dependencies
@@ -85,12 +86,18 @@ const StatementPreview = ( { title, icon, text, className = '' } ) => {
 		return <Icon icon={ iconSVG } />;
 	};
 
+	const currencySettings = useSelect(
+		( select ) =>
+			select( 'wc/admin/settings' ).getSetting( 'wc_admin', 'currency' ),
+		[]
+	);
+
 	// Handles formatting the preview amount according to the store's currency settings.
-	const decimals = '0'.repeat( wcSettings.currency.precision );
+	const decimals = '0'.repeat( currencySettings.precision ?? 2 );
 	const transactionAmount =
-		wcSettings.currency.symbolPosition === 'left'
-			? `${ wcSettings.currency.symbol }20${ wcSettings.currency.decimalSeparator }${ decimals }`
-			: `20${ wcSettings.currency.decimalSeparator }${ decimals }${ wcSettings.currency.symbol }`;
+		currencySettings.symbolPosition === 'left'
+			? `${ currencySettings.symbol }20${ currencySettings.decimalSeparator }${ decimals }`
+			: `20${ currencySettings.decimalSeparator }${ decimals }${ currencySettings.symbol }`;
 
 	return (
 		<div className={ `statement-preview ${ className }` }>
