@@ -1,9 +1,6 @@
-/**
- * External dependencies
- */
+import { __ } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
-import { __ } from '@wordpress/i18n';
 import { Icon, info } from '@wordpress/icons';
 
 const Wrapper = styled.div`

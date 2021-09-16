@@ -1,11 +1,4 @@
-/**
- * External dependencies
- */
 import React, { useLayoutEffect, useRef, useContext } from 'react';
-
-/**
- * Internal dependencies
- */
 import WizardContext from './wrapper/context';
 
 const WizardTaskList = ( { children } ) => {

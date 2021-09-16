@@ -1,19 +1,12 @@
-/**
- * External dependencies
- */
 import React, { useContext } from 'react';
 import { Card, CardBody } from '@wordpress/components';
-
-/**
- * Internal dependencies
- */
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import Wizard from './wizard/wrapper/provider';
 import WizardTask from './wizard/task';
 import WizardTaskList from './wizard/task-list';
 import EnableUpePreviewTask from './upe-preview-methods-selector/enable-upe-preview-task';
 import SetupCompleteTask from './upe-preview-methods-selector/setup-complete-task';
 import AddPaymentMethodsTask from './upe-preview-methods-selector/add-payment-methods-task';
+import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import './style.scss';
 
 const OnboardingWizard = () => {

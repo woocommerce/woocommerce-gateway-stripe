@@ -1,19 +1,12 @@
-/**
- * External dependencies
- */
-import React from 'react';
 import { __ } from '@wordpress/i18n';
+import React from 'react';
 import { ExternalLink } from '@wordpress/components';
-
-/**
- * Internal dependencies
- */
-import './style.scss';
-import PaymentRequestsCustomizer from './payment-request-customizer';
 import SettingsSection from '../settings-section';
 import SettingsLayout from '../settings-layout';
 import LoadableSettingsSection from '../../components/loadable-settings-section';
 import SaveSettingsSection from '../save-settings-section';
+import PaymentRequestsCustomizer from './payment-request-customizer';
+import './style.scss';
 
 const Description = () => (
 	<>

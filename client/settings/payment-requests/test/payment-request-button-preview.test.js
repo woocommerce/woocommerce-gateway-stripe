@@ -1,13 +1,6 @@
-/**
- * External dependencies
- */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { useStripe } from '@stripe/react-stripe-js';
-
-/**
- * Internal dependencies
- */
 import PaymentRequestsButtonPreview from '../payment-request-button-preview';
 import { shouldUseGooglePayBrand } from '../utils/utils';
 

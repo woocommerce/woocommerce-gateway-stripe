@@ -1,13 +1,4 @@
-/** @format */
-
-/**
- * External dependencies
- */
 import { useSelect, useDispatch } from '@wordpress/data';
-
-/**
- * Internal dependencies
- */
 import { STORE_NAME } from '../constants';
 
 export const useSettings = () => {

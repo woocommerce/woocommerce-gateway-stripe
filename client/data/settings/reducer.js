@@ -1,8 +1,3 @@
-/** @format */
-
-/**
- * Internal dependencies
- */
 import ACTION_TYPES from './action-types';
 
 const defaultState = {

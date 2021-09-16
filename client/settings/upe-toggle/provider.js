@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
 import { useCallback, useMemo, useState } from 'react';
 import apiFetch from '@wordpress/api-fetch';
-
-/**
- * Internal dependencies
- */
 import UpeToggleContext from './context';
 // eslint-disable-next-line @woocommerce/dependency-group,import/no-unresolved
 import { recordEvent } from 'wcstripe/tracking';

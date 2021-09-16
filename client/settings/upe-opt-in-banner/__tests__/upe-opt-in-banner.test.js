@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
 import React from 'react';
 import { screen, render } from '@testing-library/react';
-
-/**
- * Internal dependencies
- */
 import UpeOptInBanner from '..';
 
 describe( 'UpeOptInBanner', () => {

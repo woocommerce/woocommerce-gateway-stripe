@@ -1,13 +1,9 @@
-/**
- * External dependencies
- */
-import React, { useMemo, useState } from 'react';
 import { __ } from '@wordpress/i18n';
+import React, { useMemo, useState } from 'react';
 import { Card, RadioControl } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-
 /* Will be used once hooked up to data persistence.
 import {
 	usePaymentRequestButtonType,
@@ -15,10 +11,6 @@ import {
 	usePaymentRequestButtonTheme,
 } from '../../data';
 */
-
-/**
- * Internal dependencies
- */
 import CardBody from '../card-body';
 import PaymentRequestButtonPreview from './payment-request-button-preview';
 // This will be used once we have data persistence.

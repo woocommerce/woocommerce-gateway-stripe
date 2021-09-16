@@ -1,18 +1,11 @@
-/**
- * External dependencies
- */
-import { React, useState, useEffect } from 'react';
 import { __, sprintf } from '@wordpress/i18n';
+import { React, useState, useEffect } from 'react';
 import {
 	PaymentRequestButtonElement,
 	useStripe,
 } from '@stripe/react-stripe-js';
-
-/**
- * Internal dependencies
- */
-import { shouldUseGooglePayBrand } from './utils/utils';
 import InlineNotice from '../../components/inline-notice';
+import { shouldUseGooglePayBrand } from './utils/utils';
 
 /* Will be used once hooked up to data persistence.
 import {
@@ -41,8 +34,8 @@ const BrowserHelpText = () => {
 	return (
 		<p className="payment-method-settings__preview-help-text">
 			{ sprintf(
+				/* translators: %1: Payment method name %2: Browser name. */
 				__(
-					/* translators: %1: Payment method name %2: Browser name. */
 					'To preview the %1$s button, view this page in the %2$s browser.',
 					'woocommerce-gateway-stripe'
 				),

@@ -1,14 +1,5 @@
-/** @format **/
-
-/**
- * External dependencies
- */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-
-/**
- * Internal dependencies
- */
 import TooltipBase from '../tooltip-base';
 
 jest.useFakeTimers();

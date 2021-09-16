@@ -1,14 +1,7 @@
-/**
- * External dependencies
- */
-import React, { useContext } from 'react';
 import { __ } from '@wordpress/i18n';
+import React, { useContext } from 'react';
 import { ExternalLink } from '@wordpress/components';
 import styled from '@emotion/styled';
-
-/**
- * Internal dependencies
- */
 import SettingsSection from '../settings-section';
 import PaymentRequestSection from '../payment-request-section';
 import GeneralSettingsSection from '../general-settings-section';

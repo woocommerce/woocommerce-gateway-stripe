@@ -1,15 +1,7 @@
-/** @format */
-/**
- * External dependencies
- */
-import React from 'react';
-import { CheckboxControl, Icon, VisuallyHidden } from '@wordpress/components';
 import { useCallback, useMemo } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
-
-/**
- * Internal dependencies
- */
+import React from 'react';
+import { CheckboxControl, Icon, VisuallyHidden } from '@wordpress/components';
 import PaymentMethodIcon from '../../settings/payment-method-icon';
 import Pill from '../pill';
 import Tooltip from '../tooltip';

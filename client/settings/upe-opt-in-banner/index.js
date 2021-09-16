@@ -1,14 +1,7 @@
-/**
- * External dependencies
- */
-import React from 'react';
 import { __ } from '@wordpress/i18n';
+import React from 'react';
 import styled from '@emotion/styled';
 import { Button, Card, ExternalLink } from '@wordpress/components';
-
-/**
- * Internal dependencies
- */
 import Pill from '../../components/pill';
 
 const StyledPill = styled( Pill )`

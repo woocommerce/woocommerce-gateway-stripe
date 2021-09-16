@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-
-/**
- * Internal dependencies
- */
 import PaymentRequestsSettings from '../payment-request-settings';
 import PaymentRequestButtonPreview from '../payment-request-button-preview';
 
@@ -72,6 +65,7 @@ describe( 'PaymentRequestsSettings', () => {
 	} );
 
 	// This has to be skipped because the hooks in PaymentRequestsCustomizer do not exist yet.
+	// eslint-disable-next-line jest/no-disabled-tests
 	it.skip( 'triggers the hooks when the settings are being interacted with', () => {
 		const setButtonTypeMock = jest.fn();
 		const setButtonSizeMock = jest.fn();

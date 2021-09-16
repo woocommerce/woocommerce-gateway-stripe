@@ -1,11 +1,4 @@
-/**
- * External dependencies
- */
 import { useSelect, useDispatch } from '@wordpress/data';
-
-/**
- * Internal dependencies
- */
 import { useSettings, usePaymentRequestEnabledSettings } from '../hooks';
 import { STORE_NAME } from '../../constants';
 
@@ -85,20 +78,24 @@ describe( 'Settings hooks tests', () => {
 			selectors = {
 				getSettings: jest.fn( () => ( {
 					is_payment_request_enabled: true,
-				} ) )
+				} ) ),
 			};
 
-			const [ isPaymentRequestEnabled ] = usePaymentRequestEnabledSettings();
+			const [
+				isPaymentRequestEnabled,
+			] = usePaymentRequestEnabledSettings();
 
 			expect( isPaymentRequestEnabled ).toEqual( true );
 		} );
 
 		test( 'returns false if setting is missing', () => {
 			selectors = {
-				getSettings: jest.fn( () => ( {} ) )
+				getSettings: jest.fn( () => ( {} ) ),
 			};
 
-			const [ isPaymentRequestEnabled ] = usePaymentRequestEnabledSettings();
+			const [
+				isPaymentRequestEnabled,
+			] = usePaymentRequestEnabledSettings();
 
 			expect( isPaymentRequestEnabled ).toBeFalsy();
 		} );
@@ -109,7 +106,7 @@ describe( 'Settings hooks tests', () => {
 			};
 
 			selectors = {
-				getSettings: jest.fn( () => ( {} ) )
+				getSettings: jest.fn( () => ( {} ) ),
 			};
 
 			const [ , action ] = usePaymentRequestEnabledSettings();

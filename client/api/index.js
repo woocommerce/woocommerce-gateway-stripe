@@ -1,13 +1,6 @@
 /* global Stripe */
 
-/**
- * External dependencies
- */
 import $ from 'jquery';
-
-/**
- * Internal dependencies
- */
 import {
 	normalizeOrderData,
 	normalizeAddress,
@@ -239,7 +232,7 @@ export default class WCStripeAPI {
 	 *
 	 * @param {string} redirectUrl The redirect URL, returned from the server.
 	 * @param {string} paymentMethodToSave The ID of a Payment Method if it should be saved (optional).
-	 * @return {mixed} A redirect URL on success, or `true` if no confirmation is needed.
+	 * @return {string|true} A redirect URL on success, or `true` if no confirmation is needed.
 	 */
 	confirmIntent( redirectUrl, paymentMethodToSave ) {
 		const partials = redirectUrl.match(
@@ -250,13 +243,13 @@ export default class WCStripeAPI {
 			return true;
 		}
 
-		const isSetupIntent = 'si' === partials[ 1 ];
+		const isSetupIntent = partials[ 1 ] === 'si';
 		let orderId = partials[ 2 ];
 		const clientSecret = partials[ 3 ];
 		const nonce = partials[ 4 ];
 
 		const orderPayIndex = redirectUrl.indexOf( 'order-pay' );
-		const isOrderPage = -1 < orderPayIndex;
+		const isOrderPage = orderPayIndex > -1;
 
 		// If we're on the Pay for Order page, get the order ID
 		// directly from the URL instead of relying on the hash.

@@ -1,11 +1,4 @@
-/**
- * External dependencies
- */
 import { useState, useEffect } from '@wordpress/element';
-
-/**
- * Internal dependencies
- */
 import { getStripeServerData } from '../../stripe-utils';
 
 export const shouldUseGooglePayBrand = () => {

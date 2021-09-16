@@ -1,14 +1,7 @@
-/**
- * External dependencies
- */
-import React, { useCallback, useContext, useState } from 'react';
 import { __ } from '@wordpress/i18n';
+import React, { useCallback, useContext, useState } from 'react';
 import { Button, Card, CardBody, ExternalLink } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
-
-/**
- * Internal dependencies
- */
 import WizardTaskContext from '../wizard/task/context';
 import CollapsibleBody from '../wizard/collapsible-body';
 import WizardTaskItem from '../wizard/task-item';

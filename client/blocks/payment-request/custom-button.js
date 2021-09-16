@@ -1,11 +1,4 @@
-/**
- * External dependencies
- */
 import { __ } from '@wordpress/i18n';
-
-/**
- * Internal dependencies
- */
 import { getStripeServerData } from '../../stripe-utils';
 
 export const CustomButton = ( { onButtonClicked } ) => {
