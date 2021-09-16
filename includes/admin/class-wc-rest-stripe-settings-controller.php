@@ -131,6 +131,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 
 				/* Settings > Express checkouts */
 				'is_payment_request_enabled'        => 'yes' === $this->gateway->get_option( 'payment_request' ),
+				'payment_request_button_locations' => $this->gateway->get_option( 'payment_request_button_locations' ),
+				'payment_request_button_type'      => $this->gateway->get_option( 'payment_request_button_type' ),
+				'payment_request_button_theme'     => $this->gateway->get_option( 'payment_request_button_theme' ),
+				'payment_request_button_size'      => $this->gateway->get_option( 'payment_request_button_size' ),
 
 				/* Settings > Payments & transactions */
 				'is_manual_capture_enabled'             => 'no' === $this->gateway->get_option( 'capture' ),
@@ -142,11 +146,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 
 				/* Settings > Advanced settings */
 				'is_debug_log_enabled' => 'yes' === $this->gateway->get_option( 'logging' ),
-				'is_payment_request_enabled'       => 'yes' === $this->gateway->get_option( 'payment_request' ),
-				'payment_request_button_type'      => $this->gateway->get_option( 'payment_request_button_type' ),
-				'payment_request_button_theme'     => $this->gateway->get_option( 'payment_request_button_theme' ),
-				'payment_request_button_size'      => $this->gateway->get_option( 'payment_request_button_size' ),
-				'payment_request_button_locations' => $this->gateway->get_option( 'payment_request_button_locations' ),
 			]
 		);
 	}
