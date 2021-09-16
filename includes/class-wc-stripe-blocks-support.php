@@ -86,17 +86,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				: $dependencies;
 		}
 
-		// Manually register stripe since it's missing for UPE checkout for some reason.
-		wp_register_script(
-			'stripe',
-			'https://js.stripe.com/v3/',
-			[],
-			'3.0',
-			true
-		);
-
-		$dependencies[] = 'stripe';
-
 		wp_register_script(
 			'wc-stripe-blocks-integration',
 			WC_STRIPE_PLUGIN_URL . '/build/upe_blocks.js',
