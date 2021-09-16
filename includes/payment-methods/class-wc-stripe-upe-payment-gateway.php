@@ -115,7 +115,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// When feature flags are enabled, title shows the count of enabled payment methods in settings page only.
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_Feature_Flags::is_upe_preview_enabled() && isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] ) {
 			$enabled_payment_methods_count = count( $this->get_upe_enabled_payment_method_ids() );
-			$this->title                   = $enabled_payment_methods_count . ( $enabled_payment_methods_count > 1 ? ' payment methods' : ' payment method' );
+			/* translators: $1. Count of enabled payment methods. */
+			$this->title = sprintf( _n( '%d payment method', '%d payment methods', $enabled_payment_methods_count, 'woocommerce-gateway-stripe' ), $enabled_payment_methods_count );
 		}
 
 		if ( $this->testmode ) {
