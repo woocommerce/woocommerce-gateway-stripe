@@ -193,6 +193,7 @@ function woocommerce_gateway_stripe() {
 				if ( is_admin() ) {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-settings-controller.php';
+					require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-account.php';
 
 					if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && ! WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-old-settings-upe-toggle-controller.php';
