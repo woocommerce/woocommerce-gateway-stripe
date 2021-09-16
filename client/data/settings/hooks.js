@@ -97,10 +97,10 @@ export const useShortAccountStatementDescriptor = makeReadWritePairHook(
 export const useDebugLog = makeReadWritePairHook( 'is_debug_log_enabled' );
 
 export const usePaymentRequestLocations = makeReadWritePairHookWithUpdateCallback(
-	'payment_request_enabled_locations',
+	'payment_request_button_locations',
 	( v, updateSettingsValues ) =>
 		updateSettingsValues( {
-			payment_request_enabled_locations: [ ...v ],
+			payment_request_button_locations: [ ...v ],
 		} ),
 	EMPTY_ARR
 );
