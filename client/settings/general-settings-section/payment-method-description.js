@@ -3,6 +3,10 @@
  */
 import React from 'react';
 import styled from '@emotion/styled';
+
+/**
+ * Internal dependencies
+ */
 import PaymentMethodSetupHelp from './payment-method-setup-help';
 
 const Wrapper = styled.div`
