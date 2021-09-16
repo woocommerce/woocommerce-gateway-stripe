@@ -81,17 +81,20 @@ const icons = {
 	},
 };
 
+export const useGetCurrencySettings = () =>
+	useSelect(
+		( select ) =>
+			select( SETTINGS_STORE_NAME ).getSetting( 'wc_admin', 'currency' ),
+		[]
+	);
+
 const StatementPreview = ( { title, icon, text, className = '' } ) => {
 	const StatementIcon = ( { icon: thisIcon } ) => {
 		const iconSVG = icons?.[ thisIcon ] ? icons[ thisIcon ] : icons.bank;
 		return <Icon icon={ iconSVG } />;
 	};
 
-	const currencySettings = useSelect(
-		( select ) =>
-			select( SETTINGS_STORE_NAME ).getSetting( 'wc_admin', 'currency' ),
-		[]
-	);
+	const currencySettings = useGetCurrencySettings();
 
 	// Handles formatting the preview amount according to the store's currency settings.
 	const decimals = '0'.repeat( currencySettings.precision ?? 2 );
