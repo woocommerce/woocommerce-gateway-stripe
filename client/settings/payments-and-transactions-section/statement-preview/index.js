@@ -1,10 +1,11 @@
 /**
  * External dependencies
  */
-import { Icon } from '@wordpress/components';
 import React from 'react';
+import { Icon } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { useSelect } from '@wordpress/data';
+import { SETTINGS_STORE_NAME } from '@woocommerce/data';
 
 /**
  * Internal dependencies
@@ -88,7 +89,7 @@ const StatementPreview = ( { title, icon, text, className = '' } ) => {
 
 	const currencySettings = useSelect(
 		( select ) =>
-			select( 'wc/admin/settings' ).getSetting( 'wc_admin', 'currency' ),
+			select( SETTINGS_STORE_NAME ).getSetting( 'wc_admin', 'currency' ),
 		[]
 	);
 
