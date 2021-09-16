@@ -256,7 +256,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$this->save_payment_method_checkbox();
 		}
 
-		do_action( 'wc_stripe_cards_payment_fields', $this->id );
+		do_action( 'wc_stripe_payment_fields_stripe', $this->id );
 
 		echo '</div>';
 

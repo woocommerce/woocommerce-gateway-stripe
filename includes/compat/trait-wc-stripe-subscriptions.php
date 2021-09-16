@@ -40,8 +40,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		add_action( 'woocommerce_subscription_failing_payment_method_updated_' . $this->id, [ $this, 'update_failing_payment_method' ], 10, 2 );
 		add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
 		add_action( 'wcs_renewal_order_created', [ $this, 'delete_renewal_meta' ], 10 );
-		add_action( 'wc_stripe_cards_payment_fields', [ $this, 'display_update_subs_payment_checkout' ] );
-		add_action( 'wc_stripe_sepa_payment_fields', [ $this, 'display_update_subs_payment_checkout' ] );
+		add_action( 'wc_stripe_payment_fields_' . $this->id, [ $this, 'display_update_subs_payment_checkout' ] );
 		add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', [ $this, 'handle_add_payment_method_success' ], 10, 2 );
 		add_action( 'woocommerce_subscriptions_change_payment_before_submit', [ $this, 'differentiate_change_payment_method_form' ] );
 
