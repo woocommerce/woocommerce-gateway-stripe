@@ -174,8 +174,10 @@ class WC_Stripe_Admin_Notices {
 
 			if ( empty( $show_keys_notice ) ) {
 				$secret = WC_Stripe_API::get_secret_key();
+				// phpcs:ignore
+				$should_show_notice_on_page = ! ( isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 0 === strpos( $_GET['section'], 'stripe' ) );
 
-				if ( empty( $secret ) && ! ( isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 'stripe' === $_GET['section'] ) ) {
+				if ( empty( $secret ) && $should_show_notice_on_page ) {
 					$setting_link = $this->get_setting_link();
 					/* translators: 1) link */
 					$this->add_admin_notice( 'keys', 'notice notice-warning', sprintf( __( 'Stripe is almost ready. To get started, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ), true );

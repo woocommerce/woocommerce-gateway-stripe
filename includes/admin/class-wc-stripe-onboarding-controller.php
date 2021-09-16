@@ -1,7 +1,5 @@
 <?php
 
-use Automattic\WooCommerce\Admin\PageController;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -12,6 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 5.4.1
  */
 class WC_Stripe_Onboarding_Controller {
+	const SCREEN_ID = 'admin_page_wc_stripe-onboarding_wizard';
+
 	public function __construct() {
 		add_action( 'admin_menu', [ $this, 'add_onboarding_wizard' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
@@ -22,6 +22,15 @@ class WC_Stripe_Onboarding_Controller {
 	 * Load admin scripts.
 	 */
 	public function admin_scripts() {
+		$current_screen = get_current_screen();
+		if ( ! $current_screen ) {
+			return;
+		}
+
+		if ( empty( $current_screen->id ) || self::SCREEN_ID !== $current_screen->id ) {
+			return;
+		}
+
 		// Webpack generates an assets file containing a dependencies array for our built JS file.
 		$script_path       = 'build/upe_onboarding_wizard.js';
 		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe_onboarding_wizard.asset.php';
@@ -77,7 +86,7 @@ class WC_Stripe_Onboarding_Controller {
 		wc_admin_connect_page(
 			[
 				'id'        => 'wc-stripe-onboarding-wizard',
-				'screen_id' => 'admin_page_wc_stripe-onboarding_wizard',
+				'screen_id' => self::SCREEN_ID,
 				'title'     => __( 'Onboarding Wizard', 'woocommerce-gateway-stripe' ),
 			]
 		);
