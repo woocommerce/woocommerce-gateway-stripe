@@ -13,13 +13,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	const ID = 'stripe';
 
 	/**
-	 * The delay between retries.
-	 *
-	 * @var int
-	 */
-	public $retry_interval;
-
-	/**
 	 * Should we capture Credit cards
 	 *
 	 * @var bool
@@ -86,9 +79,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->retry_interval = 1;
-		$this->id             = self::ID;
-		$this->method_title   = __( 'Stripe', 'woocommerce-gateway-stripe' );
+		$this->id           = self::ID;
+		$this->method_title = __( 'Stripe', 'woocommerce-gateway-stripe' );
 		/* translators: 1) link to Stripe register page 2) link to Stripe api keys page */
 		$this->method_description = __( 'Stripe works by adding payment fields on the checkout and then sending the details to Stripe for verification.', 'woocommerce-gateway-stripe' );
 		$this->has_fields         = true;
@@ -506,26 +498,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
-	 *
-	 * @since 4.2.0
-	 * @param object   $error The error that was returned from Stripe's API.
-	 * @param WC_Order $order The order those payment is being processed.
-	 * @return bool           A flag that indicates that the customer does not exist and should be removed.
-	 */
-	public function maybe_remove_non_existent_customer( $error, $order ) {
-		if ( ! $this->is_no_such_customer_error( $error ) ) {
-			return false;
-		}
-
-		delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
-		$order->delete_meta_data( '_stripe_customer_id' );
-		$order->save();
-
-		return true;
-	}
-
-	/**
 	 * Completes an order without a positive value.
 	 *
 	 * @since 4.2.0
@@ -649,32 +621,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				// Use the last charge within the intent to proceed.
 				$response = end( $intent->charges->data );
 
-				// If the intent requires a 3DS flow, redirect to it.
-				if ( 'requires_action' === $intent->status ) {
-					$this->unlock_order_payment( $order );
-
-					if ( is_wc_endpoint_url( 'order-pay' ) ) {
-						$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
-
-						return [
-							'result'   => 'success',
-							'redirect' => $redirect_url,
-						];
-					} else {
-						/**
-						 * This URL contains only a hash, which will be sent to `checkout.js` where it will be set like this:
-						 * `window.location = result.redirect`
-						 * Once this redirect is sent to JS, the `onHashChange` function will execute `handleCardPayment`.
-						 */
-
-						return [
-							'result'                => 'success',
-							'redirect'              => $this->get_return_url( $order ),
-							'payment_intent_secret' => $intent->client_secret,
-							'save_payment_method'   => $this->save_payment_method_requested(),
-						];
-					}
-				}
 			}
 
 			// Process valid response.
@@ -825,22 +771,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $localized_message;
-	}
-
-	/**
-	 * Gets a localized message for an error from a response, adds it as a note to the order, and throws it.
-	 *
-	 * @since 4.2.0
-	 * @param  stdClass $response  The response from the Stripe API.
-	 * @param  WC_Order $order     The order to add a note to.
-	 * @throws WC_Stripe_Exception An exception with the right message.
-	 */
-	public function throw_localized_message( $response, $order ) {
-		$localized_message = $this->get_localized_error_message_from_response( $response );
-
-		$order->add_order_note( $localized_message );
-
-		throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 	}
 
 	/**

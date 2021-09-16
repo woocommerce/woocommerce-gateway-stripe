@@ -3,13 +3,21 @@
  */
 import { React } from 'react';
 import { __ } from '@wordpress/i18n';
-import { Card, ExternalLink } from '@wordpress/components';
+import {
+	Card,
+	CardHeader,
+	DropdownMenu,
+	ExternalLink,
+} from '@wordpress/components';
+import { moreVertical } from '@wordpress/icons';
 
 /**
  * Internal dependencies
  */
+import './style.scss';
 import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
+import AccountStatus from '../account-details';
 import PaymentsAndTransactionsSection from '../payments-and-transactions-section';
 import AdvancedSettingsSection from '../advanced-settings-section';
 import CustomizationOptionsNotice from '../customization-options-notice';
@@ -72,10 +80,47 @@ const PaymentsAndTransactionsDescription = () => (
 	</>
 );
 
+const AccountSettingsDropdownMenu = () => {
+	return (
+		<DropdownMenu
+			icon={ moreVertical }
+			label={ __(
+				'Edit details or disconnect account',
+				'woocommerce-gateway-stripe'
+			) }
+			controls={ [
+				{
+					title: __( 'Edit Details', 'woocommerce-gateway-stripe' ),
+					onClick: () => console.log( 'Edit my details' ),
+				},
+				{
+					title: 'Disconnect',
+					onClick: () => console.log( 'Disconnecting' ),
+				},
+			] }
+		/>
+	);
+};
+
+const accountStatusMock = {
+	paymentsEnabled: true,
+	depositsEnabled: true,
+	email: 'hello@johndoe.com',
+	accountLink: 'https://stripe.com/support',
+};
+
 const AccountDetailsSection = () => {
 	return (
-		<Card>
-			<CardBody>The account details card goes here.</CardBody>
+		<Card className="account-details">
+			<CardHeader className="account-details__header">
+				<h4 className="account-details__header">
+					{ accountStatusMock.email }
+				</h4>
+				<AccountSettingsDropdownMenu />
+			</CardHeader>
+			<CardBody>
+				<AccountStatus accountStatus={ accountStatusMock } />
+			</CardBody>
 		</Card>
 	);
 };

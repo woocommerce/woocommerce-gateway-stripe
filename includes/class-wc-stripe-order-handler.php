@@ -10,7 +10,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	private static $_this;
-	public $retry_interval;
 
 	/**
 	 * Constructor.
@@ -20,8 +19,6 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function __construct() {
 		self::$_this = $this;
-
-		$this->retry_interval = 1;
 
 		add_action( 'wp', [ $this, 'maybe_process_redirect_order' ] );
 		add_action( 'woocommerce_order_status_processing', [ $this, 'capture_payment' ] );
@@ -382,8 +379,8 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Check for a UPE redirect payment method on order received page or setup intent on payment methods page.
 	 *
-	 * @since x.x.x
-	 * @version x.x.x
+	 * @since 5.5.0
+	 * @version 5.5.0
 	 */
 	public function maybe_process_upe_redirect() {
 		$gateway = new WC_Stripe_UPE_Payment_Gateway();

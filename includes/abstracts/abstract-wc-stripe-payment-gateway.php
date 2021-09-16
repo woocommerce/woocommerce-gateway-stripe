@@ -14,6 +14,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
+	 * The delay between retries.
+	 *
+	 * @var int
+	 */
+	protected $retry_interval = 1;
+
+	/**
 	 * Displays the admin settings webhook description.
 	 *
 	 * @since 4.1.0
@@ -31,22 +38,39 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 	/**
 	 * Prints the admin options for the gateway.
-	 * Inserts an empty placeholder div for UPE opt-in banner if feature flag is enabled.
+	 * Inserts an empty placeholder div feature flag is enabled.
 	 */
 	public function admin_options() {
-		$form_fields  = $this->get_form_fields();
-		$target_index = array_search( 'activation', array_keys( $form_fields ), true ) + 1;
+		$form_fields = $this->get_form_fields();
 
 		echo '<h2>' . esc_html( $this->get_method_title() );
 		wc_back_link( __( 'Return to payments', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ) );
 		echo '</h2>';
 
 		if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
+			$this->render_upe_settings();
+		} else {
+			echo '<table class="form-table">' . $this->generate_settings_html( $form_fields, false ) . '</table>';
+		}
+	}
+
+	/**
+	 * Inserts an empty placeholder div for new account card when Stripe is not connected.
+	 * Inserts an empty placeholder div for UPE opt-in banner within the existing form fields, otherwise.
+	 */
+	public function render_upe_settings() {
+		global $hide_save_button;
+		$form_fields         = $this->get_form_fields();
+		$target_index        = array_search( 'activation', array_keys( $form_fields ), true ) + 1;
+		$is_stripe_connected = woocommerce_gateway_stripe()->connect->is_connected();
+
+		if ( ! $is_stripe_connected ) {
+			$hide_save_button = true;
+			echo '<div id="wc-stripe-new-account-container"></div>';
+		} else {
 			echo '<table class="form-table">' . $this->generate_settings_html( array_slice( $form_fields, 0, $target_index, true ), false ) . '</table>';
 			echo '<div id="wc-stripe-upe-opt-in-banner"></div>';
 			echo '<table class="form-table">' . $this->generate_settings_html( array_slice( $form_fields, $target_index, null, true ), false ) . '</table>';
-		} else {
-			echo '<table class="form-table">' . $this->generate_settings_html( $form_fields, false ) . '</table>';
 		}
 	}
 
@@ -285,6 +309,26 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Customer param wrong? The user may have been deleted on stripe's end. Remove customer_id. Can be retried without.
+	 *
+	 * @since 4.2.0
+	 * @param object   $error The error that was returned from Stripe's API.
+	 * @param WC_Order $order The order those payment is being processed.
+	 * @return bool           A flag that indicates that the customer does not exist and should be removed.
+	 */
+	public function maybe_remove_non_existent_customer( $error, $order ) {
+		if ( ! $this->is_no_such_customer_error( $error ) ) {
+			return false;
+		}
+
+		delete_user_option( $order->get_customer_id(), '_stripe_customer_id' );
+		$order->delete_meta_data( '_stripe_customer_id' );
+		$order->save();
+
+		return true;
+	}
+
+	/**
 	 * All payment icons that work with Stripe. Some icons references
 	 * WC core icons.
 	 *
@@ -407,10 +451,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since 3.1.0
 	 * @version 4.5.4
 	 * @param  WC_Order $order
-	 * @param  object   $prepared_source
+	 * @param  object   $prepared_payment_method Stripe Payment Method or Source.
 	 * @return array()
 	 */
-	public function generate_payment_request( $order, $prepared_source ) {
+	public function generate_payment_request( $order, $prepared_payment_method ) {
 		$settings              = get_option( 'woocommerce_stripe_settings', [] );
 		$statement_descriptor  = ! empty( $settings['statement_descriptor'] ) ? str_replace( "'", '', $settings['statement_descriptor'] ) : '';
 		$capture               = ! empty( $settings['capture'] ) && 'yes' === $settings['capture'] ? true : false;
@@ -471,14 +515,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			];
 		}
 
-		$post_data['metadata'] = apply_filters( 'wc_stripe_payment_metadata', $metadata, $order, $prepared_source );
+		$post_data['metadata'] = apply_filters( 'wc_stripe_payment_metadata', $metadata, $order, $prepared_payment_method );
 
-		if ( $prepared_source->customer ) {
-			$post_data['customer'] = $prepared_source->customer;
+		if ( $prepared_payment_method->customer ) {
+			$post_data['customer'] = $prepared_payment_method->customer;
 		}
 
-		if ( $prepared_source->source ) {
-			$post_data['source'] = $prepared_source->source;
+		if ( ! is_null( $prepared_payment_method->source ) ) {
+			$post_data['source'] = $prepared_payment_method->source;
+		}
+
+		if ( ! is_null( $prepared_payment_method->payment_method ) ) {
+			$post_data['payment_method'] = $prepared_payment_method->payment_method;
 		}
 
 		/**
@@ -489,13 +537,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		 * @param WC_Order $order
 		 * @param object $source
 		 */
-		return apply_filters( 'wc_stripe_generate_payment_request', $post_data, $order, $prepared_source );
+		return apply_filters( 'wc_stripe_generate_payment_request', $post_data, $order, $prepared_payment_method );
 	}
 
 	/**
 	 * Store extra meta data for an order from a Stripe Response.
 	 */
 	public function process_response( $response, $order ) {
+		// TODO: This does not support setup intents.
 		WC_Stripe_Logger::log( 'Processing response: ' . print_r( $response, true ) );
 
 		$order_id = $order->get_id();
@@ -644,7 +693,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function is_prepaid_card( $source_object ) {
 		return (
 			$source_object
-			&& ( 'token' === $source_object->object || 'source' === $source_object->object )
+			&& in_array( $source_object->object, [ 'token', 'source', 'payment_method' ], true )
 			&& 'prepaid' === $source_object->card->funding
 		);
 	}
@@ -770,10 +819,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		return (object) [
-			'token_id'      => $wc_token_id,
-			'customer'      => $customer_id,
-			'source'        => $source_id,
-			'source_object' => $source_object,
+			'token_id'       => $wc_token_id,
+			'customer'       => $customer_id,
+			'source'         => $source_id,
+			'source_object'  => $source_object,
+			'payment_method' => null,
 		];
 	}
 
@@ -832,10 +882,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		return (object) [
-			'token_id'      => $token_id,
-			'customer'      => $stripe_customer ? $stripe_customer->get_id() : false,
-			'source'        => $stripe_source,
-			'source_object' => $source_object,
+			'token_id'       => $token_id,
+			'customer'       => $stripe_customer ? $stripe_customer->get_id() : false,
+			'source'         => $stripe_source,
+			'source_object'  => $source_object,
+			'payment_method' => null,
 		];
 	}
 
@@ -1378,7 +1429,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param stdClass $intent Payment intent information.
 	 */
 	public function save_intent_to_order( $order, $intent ) {
-		$order->update_meta_data( '_stripe_intent_id', $intent->id );
+		if ( 'payment_intent' === $intent->object ) {
+			$order->update_meta_data( '_stripe_intent_id', $intent->id );
+		} elseif ( 'setup_intent' === $intent->object ) {
+			$order->update_meta_data( '_stripe_setup_intent', $intent->id );
+		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
 			$order->save();
@@ -1418,11 +1473,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @throws Exception            Throws exception for unknown $intent_type.
 	 */
 	private function get_intent( $intent_type, $intent_id ) {
-		if ( ! in_array( $intent_type, [ 'payment_intents', 'setup_intents' ] ) ) {
+		if ( ! in_array( $intent_type, [ 'payment_intents', 'setup_intents' ], true ) ) {
 			throw new Exception( "Failed to get intent of type $intent_type. Type is not allowed" );
 		}
 
-		$response = WC_Stripe_API::request( [], "$intent_type/$intent_id", 'GET' );
+		$response = WC_Stripe_API::request( [], "$intent_type/$intent_id?expand[]=payment_method", 'GET' );
 
 		if ( $response && isset( $response->{ 'error' } ) ) {
 			$error_response_message = print_r( $response, true );
@@ -1648,5 +1703,21 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function is_in_test_mode() {
 		return 'yes' === $this->get_option( 'testmode' );
+	}
+
+	/**
+	 * Gets a localized message for an error from a response, adds it as a note to the order, and throws it.
+	 *
+	 * @since 4.2.0
+	 * @param  stdClass $response  The response from the Stripe API.
+	 * @param  WC_Order $order     The order to add a note to.
+	 * @throws WC_Stripe_Exception An exception with the right message.
+	 */
+	public function throw_localized_message( $response, $order ) {
+		$localized_message = $this->get_localized_error_message_from_response( $response );
+
+		$order->add_order_note( $localized_message );
+
+		throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 	}
 }

@@ -1,25 +1,23 @@
 /**
  * External dependencies
  */
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { __ } from '@wordpress/i18n';
 import { Card, RadioControl } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 
-/* Will be used once hooked up to data persistence.
 import {
 	usePaymentRequestButtonType,
 	usePaymentRequestButtonSize,
 	usePaymentRequestButtonTheme,
-} from '../../data';
-*/
+} from 'wcstripe/data';
 
 /**
  * Internal dependencies
  */
-import CardBody from '../card-body';
+import CardBody from 'wcstripe/settings/card-body';
 import PaymentRequestButtonPreview from './payment-request-button-preview';
 // This will be used once we have data persistence.
 // import { getPaymentRequestData } from '../../payment-request/utils';
@@ -121,11 +119,10 @@ const buttonThemeOptions = [
 	},
 ];
 
-const PaymentRequestsCustomizer = () => {
-	// These will be changed to use usePaymentRequestButton hooks from ../../data
-	const [ buttonType, setButtonType ] = useState( 'buy' );
-	const [ size, setSize ] = useState( 'default' );
-	const [ theme, setTheme ] = useState( 'dark' );
+const PaymentRequestsSection = () => {
+	const [ buttonType, setButtonType ] = usePaymentRequestButtonType();
+	const [ size, setSize ] = usePaymentRequestButtonSize();
+	const [ theme, setTheme ] = usePaymentRequestButtonTheme();
 
 	const stripePromise = useMemo( () => {
 		// This will be linked to actual Stripe account data:
@@ -190,4 +187,4 @@ const PaymentRequestsCustomizer = () => {
 	);
 };
 
-export default PaymentRequestsCustomizer;
+export default PaymentRequestsSection;

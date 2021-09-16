@@ -27,6 +27,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 * Gateway.
 	 *
 	 * @var WC_Stripe_Payment_Gateway
+	 * @var WC_Gateway_Stripe
 	 */
 	private $gateway;
 
@@ -35,6 +36,10 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function setUp() {
 		parent::setUp();
+
+		if ( version_compare( WC_VERSION, '3.4.0', '<' ) ) {
+			$this->markTestSkipped( 'The controller is not compatible with older WC versions, due to the missing `update_option` method on the gateway.' );
+		}
 
 		add_action( 'rest_api_init', [ $this, 'deregister_wc_blocks_rest_api' ], 5 );
 
@@ -46,6 +51,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 		$this->gateway    = new WC_Gateway_Stripe();
 		$this->controller = new WC_REST_Stripe_Settings_Controller( $this->gateway );
+		$this->gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
 	}
 
 	public function test_get_settings_request_returns_status_code_200() {
@@ -78,6 +84,24 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$response = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
+	}
+
+	public function test_update_payment_request_settings_returns_status_code_200() {
+		$this->assertEquals( 'dark', $this->gateway->get_option( 'payment_request_button_theme' ) );
+		$this->assertEquals( 'default', $this->gateway->get_option( 'payment_request_button_size' ) );
+		$this->assertEquals( 'buy', $this->gateway->get_option( 'payment_request_button_type' ) );
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'payment_request_button_theme', 'light' );
+		$request->set_param( 'payment_request_button_size', 'medium' );
+		$request->set_param( 'payment_request_button_type', 'book' );
+
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( 'light', $this->gateway->get_option( 'payment_request_button_theme' ) );
+		$this->assertEquals( 'medium', $this->gateway->get_option( 'payment_request_button_size' ) );
+		$this->assertEquals( 'book', $this->gateway->get_option( 'payment_request_button_type' ) );
 	}
 
 	public function test_update_settings_fails_if_user_cannot_manage_woocommerce() {

@@ -12,13 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
-	 * Delay of retries.
-	 *
-	 * @var int
-	 */
-	public $retry_interval;
-
-	/**
 	 * Is test mode active?
 	 *
 	 * @var bool

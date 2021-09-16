@@ -8,6 +8,16 @@ import apiFetch from '@wordpress/api-fetch';
  * Internal dependencies
  */
 import UpeToggleContext from './context';
+// eslint-disable-next-line @woocommerce/dependency-group,import/no-unresolved
+import { recordEvent } from 'wcstripe/tracking';
+
+function trackUpeToggle( isEnabled ) {
+	const eventName = isEnabled
+		? 'wcstripe_upe_enabled'
+		: 'wcstripe_upe_disabled';
+
+	recordEvent( eventName );
+}
 
 const UpeToggleContextProvider = ( { children, defaultIsUpeEnabled } ) => {
 	const [ isUpeEnabled, setIsUpeEnabled ] = useState(
@@ -27,6 +37,7 @@ const UpeToggleContextProvider = ( { children, defaultIsUpeEnabled } ) => {
 				data: { is_upe_enabled: sanitizedValue },
 			} )
 				.then( () => {
+					trackUpeToggle( sanitizedValue );
 					setIsUpeEnabled( sanitizedValue );
 					setStatus( 'resolved' );
 				} )
