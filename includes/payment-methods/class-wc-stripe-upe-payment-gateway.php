@@ -103,15 +103,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		// Load the settings.
 		$this->init_settings();
 
-		$main_settings                 = get_option( 'woocommerce_stripe_settings' );
-		$enabled_payment_methods_count = count( $this->get_upe_enabled_payment_method_ids() );
-		$this->title                   = $enabled_payment_methods_count . ( $enabled_payment_methods_count > 1 ? ' payment methods' : ' payment method' );
-		$this->description             = $this->get_option( 'description' );
-		$this->enabled                 = $this->get_option( 'enabled' );
-		$this->testmode                = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
-		$this->publishable_key         = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
-		$this->secret_key              = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
-		$this->statement_descriptor    = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
+		$main_settings              = get_option( 'woocommerce_stripe_settings' );
+		$this->title                = $this->get_option( 'title' );
+		$this->description          = $this->get_option( 'description' );
+		$this->enabled              = $this->get_option( 'enabled' );
+		$this->testmode             = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
+		$this->publishable_key      = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
+		$this->secret_key           = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
+		$this->statement_descriptor = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
+
+		// When feature flags are enabled, title shows the count of enabled payment methods in settings page only.
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_Feature_Flags::is_upe_preview_enabled() && isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] ) {
+			$enabled_payment_methods_count = count( $this->get_upe_enabled_payment_method_ids() );
+			$this->title                   = $enabled_payment_methods_count . ( $enabled_payment_methods_count > 1 ? ' payment methods' : ' payment method' );
+		}
 
 		if ( $this->testmode ) {
 			$this->publishable_key = ! empty( $main_settings['test_publishable_key'] ) ? $main_settings['test_publishable_key'] : '';
