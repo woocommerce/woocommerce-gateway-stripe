@@ -82,4 +82,37 @@ describe( 'PaymentsAndTransactionsSection', () => {
 			'WOOTESTING'
 		);
 	} );
+
+	it( 'shows the full bank statement preview', () => {
+		const updateAccountStatementDescriptor = jest.fn();
+		const mockValue = 'WOOTESTING, LTD';
+		useAccountStatementDescriptor.mockReturnValue( [
+			mockValue,
+			updateAccountStatementDescriptor,
+		] );
+		render( <PaymentsAndTransactionsSection /> );
+
+		expect(
+			document.querySelector(
+				'.full-bank-statement .transaction-detail.description'
+			)
+		).toHaveTextContent( mockValue );
+	} );
+
+	it( 'shows the shortened customer bank statement preview', () => {
+		useShortAccountStatement.mockReturnValue( [ true, jest.fn() ] );
+		const updateShortAccountStatementDescriptor = jest.fn();
+		const mockValue = 'WOOTEST';
+		useShortAccountStatementDescriptor.mockReturnValue( [
+			mockValue,
+			updateShortAccountStatementDescriptor,
+		] );
+		render( <PaymentsAndTransactionsSection /> );
+
+		expect(
+			document.querySelector(
+				'.shortened-bank-statement .transaction-detail.description'
+			)
+		).toHaveTextContent( `${ mockValue }* #123456` );
+	} );
 } );
