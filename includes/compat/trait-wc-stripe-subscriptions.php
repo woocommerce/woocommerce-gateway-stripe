@@ -44,7 +44,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', [ $this, 'handle_add_payment_method_success' ], 10, 2 );
 		add_action( 'woocommerce_subscriptions_change_payment_before_submit', [ $this, 'differentiate_change_payment_method_form' ] );
 
-		// Display the credit card used for a subscription in the "My Subscriptions" table.
+		// Display the payment method used for a subscription in the "My Subscriptions" table.
 		add_filter( 'woocommerce_my_subscriptions_payment_method', [ $this, 'maybe_render_subscription_payment_method' ], 10, 2 );
 
 		// Allow store managers to manually set Stripe as the payment method on a subscription.
@@ -204,8 +204,8 @@ trait WC_Stripe_Subscriptions_Trait {
 			$order_id = $renewal_order->get_id();
 
 			// Unlike regular off-session subscription payments, early renewals are treated as on-session payments, involving the customer.
-			if ( isset( $_REQUEST['process_early_renewal'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
-				// - TODO: When UPE, signature will be different.
+			if ( isset( $_REQUEST['process_early_renewal'] ) && 'stripe' === $this->id ) { // phpcs:ignore WordPress.Security.NonceVerification
+				// - TODO: Fix UPE early renewals via client modal.
 				$response = $this->process_payment( $order_id, true, false, $previous_error, true );
 
 				if ( 'success' === $response['result'] && isset( $response['payment_intent_secret'] ) ) {
@@ -570,20 +570,23 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		$stripe_customer->set_id( $stripe_customer_id );
 
-		$sources                   = $stripe_customer->get_sources();
+		// Retrieve all possible payment methods for subscriptions.
+		$sources                   = array_merge(
+			$stripe_customer->get_payment_methods( 'card' ),
+			$stripe_customer->get_payment_methods( 'sepa_debit' )
+		);
 		$payment_method_to_display = __( 'N/A', 'woocommerce-gateway-stripe' );
 
 		if ( $sources ) {
-			$card = false;
-
 			foreach ( $sources as $source ) {
-				if ( isset( $source->type ) && 'card' === $source->type ) {
-					$card = $source->card;
-				} elseif ( isset( $source->object ) && 'card' === $source->object ) {
-					$card = $source;
-				}
-
 				if ( $source->id === $stripe_source_id ) {
+					$card = false;
+					if ( isset( $source->type ) && 'card' === $source->type ) {
+						$card = $source->card;
+					} elseif ( isset( $source->object ) && 'card' === $source->object ) {
+						$card = $source;
+					}
+
 					if ( $card ) {
 						/* translators: 1) card brand 2) last 4 digits */
 						$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
