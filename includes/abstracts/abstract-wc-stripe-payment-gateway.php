@@ -524,6 +524,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$metadata += [
 				'payment_type' => 'recurring',
 			];
+
+			$request['setup_future_usage'] = 'off_session';
 		}
 
 		$post_data['metadata'] = apply_filters( 'wc_stripe_payment_metadata', $metadata, $order, $prepared_payment_method );
@@ -1230,8 +1232,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->source );
 
-		if ( $this->save_payment_method_requested() || $this->has_subscription( $order ) || $force_save_source ) {
-			$request['setup_future_usage']              = 'off_session';
+		if ( $this->save_payment_method_requested() || $force_save_source ) {
 			$request['metadata']['save_payment_method'] = 'true';
 		}
 

@@ -62,7 +62,7 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 		if ( ! $this->is_subscriptions_enabled() ) {
 			return false;
 		}
-		return $this->is_changing_payment_method_for_subscription() || wcs_order_contains_subscription( $order_id );
+		return $this->is_changing_payment_method_for_subscription() || $this->has_subscription( $order_id );
 	}
 
 	/**

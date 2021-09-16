@@ -983,19 +983,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Retrieve payment token from a subscription or order.
-	 *
-	 * @param WC_Order $order Order or subscription object.
-	 *
-	 * @return null|WC_Payment_Token Last token associated with order or subscription.
-	 */
-	protected function get_payment_token( $order ) {
-		$order_tokens = $order->get_payment_tokens();
-		$token_id     = end( $order_tokens );
-		return ! $token_id ? null : WC_Payment_Tokens::get( $token_id );
-	}
-
-	/**
 	 * This is overloading the upe checkout experience type on the settings page.
 	 *
 	 * @param string $key Field key.

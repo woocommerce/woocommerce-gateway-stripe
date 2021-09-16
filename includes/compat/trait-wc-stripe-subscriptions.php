@@ -12,6 +12,8 @@ trait WC_Stripe_Subscriptions_Trait {
 
 	/**
 	 * Initialize subscription support and hooks.
+	 *
+	 * @since x.x.x
 	 */
 	public function maybe_init_subscriptions() {
 		if ( ! $this->is_subscriptions_enabled() ) {
@@ -191,6 +193,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @since 3.0
 	 * @since 4.0.4 Add third parameter flag to retry.
 	 * @since 4.1.0 Add fourth parameter to log previous errors.
+	 * @since x.x.x Process renewal payments for SEPA and UPE.
 	 *
 	 * @param float  $amount
 	 * @param mixed  $renewal_order
@@ -202,7 +205,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			$order_id = $renewal_order->get_id();
 
 			// Unlike regular off-session subscription payments, early renewals are treated as on-session payments, involving the customer.
-			if ( isset( $_REQUEST['process_early_renewal'] ) ) { // wpcs: csrf ok.
+			if ( isset( $_REQUEST['process_early_renewal'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 				// - TODO: When UPE, signature will be different.
 				$response = $this->process_payment( $order_id, true, false, $previous_error, true );
 
@@ -604,7 +607,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function remove_order_pay_var() {
 		global $wp;
-		if ( isset( $_GET['wc-stripe-confirmation'] ) ) {
+		if ( isset( $_GET['wc-stripe-confirmation'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			$this->order_pay_var         = $wp->query_vars['order-pay'];
 			$wp->query_vars['order-pay'] = null;
 		}
@@ -681,7 +684,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param stdClass $intent The Payment Intent object.
 	 */
 	protected function maybe_process_subscription_early_renewal( $order, $intent ) {
-		if ( $this->is_subscriptions_enabled() && isset( $_GET['early_renewal'] ) ) { // wpcs: csrf ok.
+		if ( $this->is_subscriptions_enabled() && isset( $_GET['early_renewal'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			wcs_update_dates_after_early_renewal( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ), $order );
 			wc_add_notice( __( 'Your early renewal order was successful.', 'woocommerce-gateway-stripe' ), 'success' );
 		}
@@ -694,7 +697,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param stdClass $intent The Payment Intent object (unused).
 	 */
 	protected function maybe_process_subscription_early_failure( $order, $intent ) {
-		if ( $this->is_subscriptions_enabled() && isset( $_GET['early_renewal'] ) ) { // wpcs: csrf ok.
+		if ( $this->is_subscriptions_enabled() && isset( $_GET['early_renewal'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			$order->delete( true );
 			wc_add_notice( __( 'Payment authorization for the renewal order was unsuccessful, please try again.', 'woocommerce-gateway-stripe' ), 'error' );
 			$renewal_url = wcs_get_early_renewal_url( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ) );
