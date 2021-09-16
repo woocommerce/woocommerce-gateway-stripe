@@ -59,17 +59,17 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 				'permission_callback' => [ $this, 'check_permission' ],
 				'args'                => [
 
-					'is_stripe_enabled'                 => [
+					'is_stripe_enabled'                => [
 						'description'       => __( 'If Stripe should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'is_test_mode_enabled'              => [
+					'is_test_mode_enabled'             => [
 						'description'       => __( 'Stripe test mode setting.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'is_payment_request_enabled'        => [
+					'is_payment_request_enabled'       => [
 						'description'       => __( 'If Stripe express checkouts should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
@@ -125,15 +125,15 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 		return new WP_REST_Response(
 			[
 				/* Settings > General */
-				'is_stripe_enabled'    => $this->gateway->is_enabled(),
-				'is_test_mode_enabled' => $this->gateway->is_in_test_mode(),
+				'is_stripe_enabled'                     => $this->gateway->is_enabled(),
+				'is_test_mode_enabled'                  => $this->gateway->is_in_test_mode(),
 
 				/* Settings > Express checkouts */
-				'is_payment_request_enabled'        => 'yes' === $this->gateway->get_option( 'payment_request' ),
-				'payment_request_button_locations' => $this->gateway->get_option( 'payment_request_button_locations' ),
-				'payment_request_button_type'      => $this->gateway->get_option( 'payment_request_button_type' ),
-				'payment_request_button_theme'     => $this->gateway->get_option( 'payment_request_button_theme' ),
-				'payment_request_button_size'      => $this->gateway->get_option( 'payment_request_button_size' ),
+				'is_payment_request_enabled'            => 'yes' === $this->gateway->get_option( 'payment_request' ),
+				'payment_request_button_locations'      => $this->gateway->get_option( 'payment_request_button_locations' ),
+				'payment_request_button_type'           => $this->gateway->get_option( 'payment_request_button_type' ),
+				'payment_request_button_theme'          => $this->gateway->get_option( 'payment_request_button_theme' ),
+				'payment_request_button_size'           => $this->gateway->get_option( 'payment_request_button_size' ),
 
 				/* Settings > Payments & transactions */
 				'is_manual_capture_enabled'             => 'no' === $this->gateway->get_option( 'capture' ),
@@ -144,7 +144,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 				'short_statement_descriptor'            => $this->gateway->get_option( 'short_statement_descriptor' ),
 
 				/* Settings > Advanced settings */
-				'is_debug_log_enabled' => 'yes' === $this->gateway->get_option( 'logging' ),
+				'is_debug_log_enabled'                  => 'yes' === $this->gateway->get_option( 'logging' ),
 			]
 		);
 	}

@@ -51,7 +51,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 		$this->gateway    = new WC_Gateway_Stripe();
 		$this->controller = new WC_REST_Stripe_Settings_Controller( $this->gateway );
-		$this->gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
+		$this->gateway    = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
 	}
 
 	public function test_get_settings_request_returns_status_code_200() {
