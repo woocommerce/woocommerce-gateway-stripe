@@ -20,6 +20,9 @@ module.exports = {
 			'@wordpress/jest-preset-default/scripts/setup-globals.js'
 		),
 	],
+	globals: {
+		__PAYMENT_METHOD_FEES_ENABLED: false,
+	},
 	setupFilesAfterEnv: [
 		require.resolve(
 			'@wordpress/jest-preset-default/scripts/setup-test-framework.js'

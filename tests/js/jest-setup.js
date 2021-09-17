@@ -17,6 +17,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+	global.__PAYMENT_METHOD_FEES_ENABLED = false;
 	function cleanup () {
 		jest.clearAllTimers()
 		nock.cleanAll()

@@ -1,3 +1,4 @@
+const webpack = require( 'webpack' );
 const path = require( 'path' );
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 const DependencyExtractionWebpackPlugin = require( '@woocommerce/dependency-extraction-webpack-plugin' );
@@ -15,6 +16,11 @@ module.exports = {
 		),
 		new DependencyExtractionWebpackPlugin( {
 			injectPolyfill: true,
+		} ),
+		new webpack.DefinePlugin( {
+			__PAYMENT_METHOD_FEES_ENABLED: JSON.stringify(
+				process.env.PAYMENT_METHOD_FEES_ENABLED === 'true'
+			),
 		} ),
 	],
 	resolve: {
