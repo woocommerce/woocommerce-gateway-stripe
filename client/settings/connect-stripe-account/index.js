@@ -50,7 +50,7 @@ const ButtonWrapper = styled.div`
 	}
 `;
 
-const ConnectStripeAccount = () => (
+const ConnectStripeAccount = ( props ) => (
 	<CardWrapper>
 		<StripeBanner />
 		<CardBody>
@@ -87,8 +87,8 @@ const ConnectStripeAccount = () => (
 			<ButtonWrapper>
 				<Button
 					isPrimary
-					// eslint-disable-next-line no-alert, no-undef
-					onClick={ () => alert( 'Modal will be implemented later' ) }
+					href={ props.oauthUrl }
+					disabled={ ! props.oauthUrl }
 				>
 					{ __(
 						'Create or connect an account',
