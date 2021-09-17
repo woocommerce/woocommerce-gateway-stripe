@@ -67,9 +67,11 @@ class Allowed_Payment_Request_Button_Types_Update {
 	}
 
 	/**
+	 * Returns the list of available payment gateways.
+	 *
 	 * @return array
 	 */
-	public function get_gateways(): array {
+	public function get_gateways(){
 		return WC()->payment_gateways()->payment_gateways();
 	}
 }
