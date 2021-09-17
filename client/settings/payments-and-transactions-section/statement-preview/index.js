@@ -4,8 +4,7 @@
 import React from 'react';
 import { Icon } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
-import { useSelect } from '@wordpress/data';
-import { SETTINGS_STORE_NAME } from '@woocommerce/data';
+import CurrencyFactory from '@woocommerce/currency';
 
 /**
  * Internal dependencies
@@ -81,27 +80,22 @@ const icons = {
 	},
 };
 
-export const useGetCurrencySettings = () =>
-	useSelect(
-		( select ) =>
-			select( SETTINGS_STORE_NAME ).getSetting( 'wc_admin', 'currency' ),
-		[]
-	);
-
 const StatementPreview = ( { title, icon, text, className = '' } ) => {
 	const StatementIcon = ( { icon: thisIcon } ) => {
 		const iconSVG = icons?.[ thisIcon ] ? icons[ thisIcon ] : icons.bank;
 		return <Icon icon={ iconSVG } />;
 	};
 
-	const currencySettings = useGetCurrencySettings();
+	const currencySettings = CurrencyFactory( {
+		symbol: '$',
+		symbolPosition: 'left',
+		precision: 2,
+		decimalSeparator: '.',
+		...window?.wcSettings?.currency,
+	} );
 
 	// Handles formatting the preview amount according to the store's currency settings.
-	const decimals = '0'.repeat( currencySettings.precision ?? 2 );
-	const transactionAmount =
-		currencySettings.symbolPosition === 'left'
-			? `${ currencySettings.symbol }20${ currencySettings.decimalSeparator }${ decimals }`
-			: `20${ currencySettings.decimalSeparator }${ decimals }${ currencySettings.symbol }`;
+	const transactionAmount = currencySettings.formatAmount( 20 );
 
 	return (
 		<div className={ `statement-preview ${ className }` }>

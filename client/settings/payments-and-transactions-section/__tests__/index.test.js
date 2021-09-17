@@ -25,15 +25,6 @@ jest.mock( '../data-mock', () => ( {
 	useShortAccountStatementDescriptor: jest.fn(),
 } ) );
 
-jest.mock( '../statement-preview', () => ( {
-	useGetCurrencySettings: jest.fn().mockReturnValue( {
-		precision: 2,
-		symbol: '$',
-		symbolPosition: 'left',
-		decimalSeparator: '.',
-	} ),
-} ) );
-
 describe( 'PaymentsAndTransactionsSection', () => {
 	beforeEach( () => {
 		useManualCapture.mockReturnValue( [ true, jest.fn() ] );
