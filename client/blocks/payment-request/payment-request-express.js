@@ -3,7 +3,6 @@ import {
 	PaymentRequestButtonElement,
 	useStripe,
 } from '@stripe/react-stripe-js';
-import { getStripeServerData } from '../../stripe-utils';
 import { GooglePayButton, shouldUseGooglePayBrand } from './branded-buttons';
 import { CustomButton } from './custom-button';
 import {
@@ -14,6 +13,7 @@ import {
 	useOnClickHandler,
 	useCancelHandler,
 } from './hooks';
+import { getStripeServerData } from 'wcstripe/blocks/utils';
 
 /**
  * @typedef {import('../stripe-utils/type-defs').Stripe} Stripe

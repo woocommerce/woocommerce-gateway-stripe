@@ -1,8 +1,8 @@
 import { useState } from '@wordpress/element';
 import { Elements, useStripe } from '@stripe/react-stripe-js';
-import { getStripeServerData } from '../../stripe-utils';
 import { useCheckoutSubscriptions } from './use-checkout-subscriptions';
 import { InlineCard, CardElements } from './elements';
+import { getStripeServerData } from 'wcstripe/blocks/utils';
 
 /**
  * @typedef {import('../stripe-utils/type-defs').Stripe} Stripe

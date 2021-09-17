@@ -16,15 +16,13 @@ import { errorTypes, errorCodes } from './constants';
  * @return  {StripeServerData} Stripe server data.
  */
 const getStripeServerData = () => {
-	// Classic checkout or blocks-based one.
-	const stripeServerData =
-		typeof wc_stripe_upe_params !== 'undefined' // eslint-disable-line camelcase
-			? wc_stripe_upe_params // eslint-disable-line camelcase
-			: wc?.wcSettings?.getSetting( 'stripe_data', null );
-	if ( ! stripeServerData ) {
+	// Classic checkout.
+	// eslint-disable-next-line camelcase
+	if ( ! wc_stripe_upe_params ) {
 		throw new Error( 'Stripe initialization data is not available' );
 	}
-	return stripeServerData;
+	// eslint-disable-next-line camelcase
+	return wc_stripe_upe_params;
 };
 
 /**

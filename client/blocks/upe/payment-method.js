@@ -10,7 +10,7 @@ import { useEffect, useState } from '@wordpress/element';
 import { UPEPaymentForm } from './fields';
 import { SavedTokenHandler } from './saved-token-handler';
 /* eslint-disable @woocommerce/dependency-group */
-import { getStripeServerData } from 'wcstripe/stripe-utils';
+import { getStripeServerData } from 'wcstripe/blocks/utils';
 import { PAYMENT_METHOD_NAME } from 'wcstripe/blocks/credit-card/constants';
 import WCStripeAPI from 'wcstripe/api';
 /* eslint-enable */
@@ -71,7 +71,7 @@ const upePaymentMethod = {
 	savedTokenComponent: (
 		<StripeComponent RenderedComponent={ SavedTokenHandler } api={ api } />
 	),
-	canMakePayment: () => api.getStripe(),
+	canMakePayment: () => !! api.getStripe(),
 	ariaLabel: __(
 		'Stripe Credit Card payment method',
 		'woocommerce-gateway-stripe'

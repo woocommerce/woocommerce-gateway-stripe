@@ -1,12 +1,9 @@
 import { getSetting } from '@woocommerce/settings';
-import {
-	getStripeServerData,
-	loadStripe,
-	createPaymentRequestUsingCart,
-} from '../../stripe-utils';
+import { loadStripe, createPaymentRequestUsingCart } from '../../stripe-utils';
 import { PAYMENT_METHOD_NAME } from './constants';
 import { PaymentRequestExpress } from './payment-request-express';
 import { applePayImage } from './apple-pay-preview';
+import { getStripeServerData } from 'wcstripe/blocks/utils';
 
 const ApplePayPreview = () => <img src={ applePayImage } alt="" />;
 

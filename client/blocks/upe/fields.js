@@ -14,7 +14,7 @@ import { __ } from '@wordpress/i18n';
  */
 import { confirmUpePayment } from './confirm-upe-payment';
 /* eslint-disable @woocommerce/dependency-group */
-import { getStripeServerData } from 'wcstripe/stripe-utils';
+import { getStripeServerData } from 'wcstripe/blocks/utils';
 import { PAYMENT_METHOD_NAME } from 'wcstripe/blocks/credit-card/constants';
 /* eslint-enable */
 

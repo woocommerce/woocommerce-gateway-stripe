@@ -4,12 +4,10 @@ import {
 	CardNumberElement,
 	useElements,
 } from '@stripe/react-stripe-js';
-import {
-	getStripeServerData,
-	getErrorMessageForTypeAndCode,
-} from '../../stripe-utils';
+import { getErrorMessageForTypeAndCode } from '../../stripe-utils';
 import { errorTypes } from '../../stripe-utils/constants';
 import { PAYMENT_METHOD_NAME } from './constants';
+import { getStripeServerData } from 'wcstripe/blocks/utils';
 
 /**
  * @typedef {import('@stripe/stripe-js').Stripe} Stripe

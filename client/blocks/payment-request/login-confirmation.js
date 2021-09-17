@@ -1,4 +1,4 @@
-import { getStripeServerData } from '../../stripe-utils';
+import { getStripeServerData } from 'wcstripe/blocks/utils';
 
 /**
  * Displays a `confirm` dialog which leads to a redirect.

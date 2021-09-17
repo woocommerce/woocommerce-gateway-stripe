@@ -1,5 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import { getStripeServerData } from '../../stripe-utils';
+import { getStripeServerData } from 'wcstripe/blocks/utils';
 
 export const CustomButton = ( { onButtonClicked } ) => {
 	const {

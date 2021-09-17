@@ -4,7 +4,9 @@ import {
 	updateShippingDetails,
 	createOrder,
 } from '../../api';
-import { getStripeServerData } from '../../stripe-utils';
+/* eslint-disable @woocommerce/dependency-group */
+import { getStripeServerData } from 'wcstripe/blocks/utils';
+/* eslint-enable */
 
 const shippingAddressChangeHandler = ( paymentRequestType ) => ( evt ) => {
 	const { shippingAddress } = evt;
