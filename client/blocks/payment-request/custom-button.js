@@ -9,8 +9,8 @@ export const CustomButton = ( { onButtonClicked } ) => {
 	} = getStripeServerData()?.button;
 	return (
 		<button
-			type={ 'button' }
-			id={ 'wc-stripe-custom-button' }
+			type="button"
+			id="wc-stripe-custom-button"
 			className={ `button ${ theme } is-active` }
 			style={ {
 				height: height + 'px',

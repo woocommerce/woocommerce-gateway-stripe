@@ -74,7 +74,7 @@ const AddPaymentMethodsTask = () => {
 												paymentMethodId
 											]
 										}
-									></PaymentMethodCheckbox>
+									/>
 								)
 							) }
 						</PaymentMethodCheckboxes>

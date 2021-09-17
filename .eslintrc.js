@@ -15,6 +15,11 @@ module.exports = {
 	rules: {
 		'react-hooks/exhaustive-deps': 'error',
 		'react-hooks/rules-of-hooks': 'error',
+		'react/jsx-curly-brace-presence': [
+			'error',
+			{ props: 'never', children: 'never' },
+		],
+		'react/self-closing-comp': [ 'error', { component: true, html: true } ],
 		'@woocommerce/dependency-group': 'off',
 		'import/no-useless-path-segments': [
 			'error',
