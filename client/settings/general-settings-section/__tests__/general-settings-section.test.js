@@ -25,6 +25,9 @@ jest.mock( '@wordpress/data', () => ( {
 	register: jest.fn(),
 	combineReducers: jest.fn(),
 } ) );
+jest.mock( '../../loadable-settings-section', () => ( { children } ) =>
+	children
+);
 
 describe( 'GeneralSettingsSection', () => {
 	beforeEach( () => {
