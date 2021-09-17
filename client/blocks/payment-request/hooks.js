@@ -7,7 +7,7 @@ import {
 	paymentProcessingHandler,
 } from './event-handlers';
 import { displayLoginConfirmation } from './login-confirmation';
-import { getStripeServerData } from 'wcstripe/blocks/utils';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 /**
  * This hook takes care of creating a payment request and making sure
@@ -82,7 +82,7 @@ export const useOnClickHandler = (
 	return useCallback(
 		( evt, pr ) => {
 			// If login is required, display redirect confirmation dialog.
-			if ( getStripeServerData()?.login_confirmation ) {
+			if ( getBlocksConfiguration()?.login_confirmation ) {
 				evt.preventDefault();
 				displayLoginConfirmation( paymentRequestType );
 				return;

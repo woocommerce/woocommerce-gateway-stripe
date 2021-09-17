@@ -13,7 +13,7 @@ import {
 	useOnClickHandler,
 	useCancelHandler,
 } from './hooks';
-import { getStripeServerData } from 'wcstripe/blocks/utils';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 /**
  * @typedef {import('../stripe-utils/type-defs').Stripe} Stripe
@@ -73,7 +73,7 @@ const PaymentRequestExpressComponent = ( {
 		type = 'default',
 		theme = 'dark',
 		height = '48',
-	} = getStripeServerData()?.button;
+	} = getBlocksConfiguration()?.button;
 
 	const paymentRequestButtonStyle = {
 		paymentRequestButton: {
@@ -83,9 +83,9 @@ const PaymentRequestExpressComponent = ( {
 		},
 	};
 
-	const isBranded = getStripeServerData()?.button?.is_branded;
-	const brandedType = getStripeServerData()?.button?.branded_type;
-	const isCustom = getStripeServerData()?.button?.is_custom;
+	const isBranded = getBlocksConfiguration()?.button?.is_branded;
+	const brandedType = getBlocksConfiguration()?.button?.branded_type;
+	const isCustom = getBlocksConfiguration()?.button?.is_custom;
 
 	if ( ! paymentRequest ) {
 		return null;

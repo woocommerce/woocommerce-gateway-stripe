@@ -3,7 +3,7 @@
  */
 import { getSetting } from '@woocommerce/settings';
 
-export const getStripeServerData = () => {
+export const getBlocksConfiguration = () => {
 	const stripeServerData = getSetting( 'stripe_data', null );
 
 	if ( ! stripeServerData ) {

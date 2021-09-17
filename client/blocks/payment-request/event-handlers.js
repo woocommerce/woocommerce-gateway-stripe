@@ -5,7 +5,7 @@ import {
 	createOrder,
 } from '../../api';
 /* eslint-disable @woocommerce/dependency-group */
-import { getStripeServerData } from 'wcstripe/blocks/utils';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 /* eslint-enable */
 
 const shippingAddressChangeHandler = ( paymentRequestType ) => ( evt ) => {
@@ -191,11 +191,13 @@ const paymentProcessingHandler = (
 	setExpressPaymentError
 ) => ( evt ) => {
 	const allowPrepaidCards =
-		getStripeServerData()?.stripe?.allow_prepaid_card === 'yes';
+		getBlocksConfiguration()?.stripe?.allow_prepaid_card === 'yes';
 
 	// Check if we allow prepaid cards.
 	if ( ! allowPrepaidCards && evt?.source?.card?.funding === 'prepaid' ) {
-		setExpressPaymentError( getStripeServerData()?.i18n?.no_prepaid_card );
+		setExpressPaymentError(
+			getBlocksConfiguration()?.i18n?.no_prepaid_card
+		);
 	} else {
 		// Create the order and attempt to pay.
 		createOrder( evt, paymentRequestType ).then(

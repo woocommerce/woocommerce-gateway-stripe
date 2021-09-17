@@ -10,16 +10,16 @@ import { useEffect, useState } from '@wordpress/element';
 import { UPEPaymentForm } from './fields';
 import { SavedTokenHandler } from './saved-token-handler';
 /* eslint-disable @woocommerce/dependency-group */
-import { getStripeServerData } from 'wcstripe/blocks/utils';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { PAYMENT_METHOD_NAME } from 'wcstripe/blocks/credit-card/constants';
 import WCStripeAPI from 'wcstripe/api';
 /* eslint-enable */
 
 const api = new WCStripeAPI(
 	{
-		key: getStripeServerData()?.key,
-		locale: getStripeServerData()?.locale,
-		isUPEEnabled: getStripeServerData()?.isUPEEnabled,
+		key: getBlocksConfiguration()?.key,
+		locale: getBlocksConfiguration()?.locale,
+		isUPEEnabled: getBlocksConfiguration()?.isUPEEnabled,
 	},
 	// A promise-based interface to jQuery.post.
 	( url, args ) => {
@@ -55,7 +55,7 @@ const StripeLabel = ( props ) => {
 	const { PaymentMethodLabel } = props.components;
 
 	const labelText =
-		getStripeServerData()?.title ??
+		getBlocksConfiguration()?.title ??
 		__( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
 
 	return <PaymentMethodLabel text={ labelText } />;
@@ -78,9 +78,9 @@ const upePaymentMethod = {
 	),
 	supports: {
 		// Use `false` as fallback values in case server provided configuration is missing.
-		showSavedCards: getStripeServerData()?.showSavedCards ?? false,
-		showSaveOption: getStripeServerData()?.showSaveOption ?? false,
-		features: getStripeServerData()?.supports ?? [],
+		showSavedCards: getBlocksConfiguration()?.showSavedCards ?? false,
+		showSaveOption: getBlocksConfiguration()?.showSaveOption ?? false,
+		features: getBlocksConfiguration()?.supports ?? [],
 	},
 };
 

@@ -14,7 +14,7 @@ import { __ } from '@wordpress/i18n';
  */
 import { confirmUpePayment } from './confirm-upe-payment';
 /* eslint-disable @woocommerce/dependency-group */
-import { getStripeServerData } from 'wcstripe/blocks/utils';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { PAYMENT_METHOD_NAME } from 'wcstripe/blocks/credit-card/constants';
 /* eslint-enable */
 
@@ -40,7 +40,7 @@ const UPEField = ( {
 	const [ isUpeComplete, setIsUpeComplete ] = useState( false );
 	const [ errorMessage, setErrorMessage ] = useState( null );
 
-	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
+	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 
 	useEffect( () => {
 		if ( paymentIntentId || hasRequestedIntent ) {
@@ -50,7 +50,7 @@ const UPEField = ( {
 		async function createIntent() {
 			try {
 				const response = await api.createIntent(
-					getStripeServerData()?.orderId
+					getBlocksConfiguration()?.orderId
 				);
 				setPaymentIntentId( response.id );
 				setClientSecret( response.client_secret );
@@ -162,7 +162,7 @@ const UPEField = ( {
 
 	const elementOptions = {
 		clientSecret,
-		business: { name: getStripeServerData()?.accountDescriptor },
+		business: { name: getBlocksConfiguration()?.accountDescriptor },
 		fields: {
 			billingDetails: {
 				name: 'never',
