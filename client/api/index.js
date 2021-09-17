@@ -379,4 +379,23 @@ export default class WCStripeAPI {
 				}
 			} );
 	}
+
+	/**
+	 * Updates order status, if there is an error while confirming intent.
+	 *
+	 * @param {string} intentId The id of the Payment/Setup Intent.
+	 * @param {number} orderId The id of the WC_Order..
+	 */
+	 updateFailedOrder( intentId, orderId ) {
+		this.request( getAjaxUrl( 'update_failed_order' ), {
+			intent_id: intentId,
+			order_id: orderId,
+			_ajax_nonce: getStripeServerData()?.updateFailedOrderNonce,
+		} )
+			.catch( ( ) => {
+				// If something goes wrong here,
+				// we would still rather throw the Stripe error rather than this one.
+				return;
+			} );
+	}
 }
