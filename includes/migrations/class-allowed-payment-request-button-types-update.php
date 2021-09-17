@@ -24,6 +24,11 @@ class Allowed_Payment_Request_Button_Types_Update {
 	 * Only execute the migration if not applied yet.
 	 */
 	public function maybe_migrate() {
+		// not compatible with older WC versions, due to the missing `update_option` method on the gateway class
+		if ( version_compare( WC_VERSION, '3.4.0', '<' ) ) {
+			return;
+		}
+
 		$gateways       = $this->get_gateways();
 		$stripe_gateway = $gateways[ WC_Gateway_Stripe::ID ];
 
