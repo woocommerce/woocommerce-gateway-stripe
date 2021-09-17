@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
 import { Button, Card } from '@wordpress/components';
 import CardBody from '../card-body';
-import StripeBanner from '../../payment-method-icons/stripe-banner';
+import StripeBanner from 'wcstripe/components/stripe-banner';
 
 const CardWrapper = styled( Card )`
 	max-width: 560px;
