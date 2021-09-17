@@ -13,6 +13,7 @@ import SectionHeading from './section-heading';
 import SectionFooter from './section-footer';
 import PaymentMethodsList from './payment-methods-list';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
+import LoadableSettingsSection from '../loadable-settings-section';
 
 const StyledCard = styled( Card )`
 	margin-bottom: 12px;
@@ -24,9 +25,11 @@ const GeneralSettingsSection = () => {
 	return (
 		<>
 			<StyledCard>
-				{ isUpeEnabled && <SectionHeading /> }
-				<PaymentMethodsList />
-				{ isUpeEnabled && <SectionFooter /> }
+				<LoadableSettingsSection numLines={ isUpeEnabled ? 30 : 7 }>
+					{ isUpeEnabled && <SectionHeading /> }
+					<PaymentMethodsList />
+					{ isUpeEnabled && <SectionFooter /> }
+				</LoadableSettingsSection>
 			</StyledCard>
 			<UpeOptInBanner />
 		</>
