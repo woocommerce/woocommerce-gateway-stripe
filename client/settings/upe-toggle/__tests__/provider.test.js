@@ -15,6 +15,11 @@ import { recordEvent } from 'wcstripe/tracking';
 
 jest.mock( '@wordpress/api-fetch', () => jest.fn() );
 jest.mock( 'wcstripe/tracking', () => ( { recordEvent: jest.fn() } ) );
+jest.mock( '@wordpress/data', () => ( {
+	useDispatch: jest.fn().mockReturnValue( {
+		invalidateResolutionForStoreSelector: () => null,
+	} ),
+} ) );
 
 describe( 'UpeToggleContextProvider', () => {
 	afterEach( () => {
