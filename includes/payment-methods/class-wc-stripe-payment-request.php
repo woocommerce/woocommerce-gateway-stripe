@@ -304,11 +304,6 @@ class WC_Stripe_Payment_Request {
 	 * @return  string
 	 */
 	public function get_button_branded_type() {
-		// no longer a valid option
-		if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
-			return false;
-		}
-
 		return isset( $this->stripe_settings['payment_request_button_branded_type'] ) ? $this->stripe_settings['payment_request_button_branded_type'] : 'default';
 	}
 
