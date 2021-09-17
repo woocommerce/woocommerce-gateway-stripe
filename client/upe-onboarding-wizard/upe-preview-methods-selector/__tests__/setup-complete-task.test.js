@@ -11,12 +11,13 @@ import WizardTaskContext from '../../wizard/task/context';
 import SetupComplete from '../setup-complete-task';
 import WizardContext from '../../wizard/wrapper/context';
 
+jest.mock( 'wcstripe/data', () => ( {
+	useEnabledPaymentMethodIds: () => [ [ 'card', 'sepa_debit' ], () => null ],
+} ) );
+
 describe( 'SetupComplete', () => {
 	const renderHelper = ( setCompletedMock ) => {
-		if ( ! setCompletedMock ) {
-			setCompletedMock = jest.fn();
-		}
-		render(
+		return render(
 			<WizardContext.Provider
 				value={ {
 					completedTasks: {
@@ -25,7 +26,7 @@ describe( 'SetupComplete', () => {
 				} }
 			>
 				<WizardTaskContext.Provider
-					value={ { setCompleted: setCompletedMock } }
+					value={ { setCompleted: setCompletedMock || jest.fn() } }
 				>
 					<SetupComplete />
 				</WizardTaskContext.Provider>

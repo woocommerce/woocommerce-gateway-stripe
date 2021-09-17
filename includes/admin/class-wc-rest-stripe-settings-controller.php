@@ -101,7 +101,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'enabled_payment_method_ids'     => [
-						'description'       => __( 'Payment method IDs that should be enabled. Other methods will be disabled.', 'woocommerce-payments' ),
+						'description'       => __( 'Payment method IDs that should be enabled. Other methods will be disabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'array',
 						'items'             => [
 							'type' => 'string',
