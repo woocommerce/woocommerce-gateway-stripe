@@ -32,11 +32,7 @@ describe( 'ConnectStripeAccount', () => {
 
 	it( 'should have a Stripe OAuth link for "Create or connect an account" button', () => {
 		render(
-			<ConnectStripeAccount
-				oauthUrl={
-					'https://connect.stripe.com/oauth/v2/authorize?response_type=code&client_id=ca_1234&scope=read_write&state=1234'
-				}
-			/>
+			<ConnectStripeAccount oauthUrl="https://connect.stripe.com/oauth/v2/authorize?response_type=code&client_id=ca_1234&scope=read_write&state=1234" />
 		);
 
 		expect(
@@ -48,7 +44,7 @@ describe( 'ConnectStripeAccount', () => {
 	} );
 
 	it( 'should not be able to click button "Create or connect an account" if OAuth URL is blank', () => {
-		render( <ConnectStripeAccount oauthUrl={ '' } /> );
+		render( <ConnectStripeAccount oauthUrl="" /> );
 
 		expect(
 			screen.getByText( 'Create or connect an account' )
