@@ -468,7 +468,7 @@ jQuery( function ( $ ) {
 				},
 			} );
 			if ( error ) {
-				await api.updateFailedOrder( paymentIntentId, response.order_id );
+				await api.updateFailedOrder( paymentIntentId, orderId );
 				throw error;
 			}
 		} catch ( error ) {
