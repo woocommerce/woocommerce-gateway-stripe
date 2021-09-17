@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
 import React from 'react';
 import { render } from '@testing-library/react';
-
-/**
- * Internal dependencies
- */
 import PaymentMethodFeesPill from '..';
 
 describe( 'PaymentMethodFeesPill', () => {
