@@ -638,7 +638,7 @@ class WC_Stripe_Intent_Controller {
 
 				// Use the last charge within the intent to proceed.
 				$gateway = $this->get_gateway();
-				if ( isset( $intent->charges ) ) {
+				if ( isset( $intent->charges ) && ! empty( $intent->charges->data ) ) {
 					$charge = end( $intent->charges->data );
 					$gateway->process_response( $charge, $order );
 				} else {
