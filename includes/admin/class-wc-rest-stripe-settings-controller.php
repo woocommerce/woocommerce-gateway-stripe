@@ -100,6 +100,15 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
+					'enabled_payment_method_ids'     => [
+						'description'       => __( 'Payment method IDs that should be enabled. Other methods will be disabled.', 'woocommerce-payments' ),
+						'type'              => 'array',
+						'items'             => [
+							'type' => 'string',
+							'enum' => $this->gateway->get_upe_available_payment_methods(),
+						],
+						'validate_callback' => 'rest_validate_request_arg',
+					],
 				],
 			]
 		);
@@ -113,6 +122,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 	public function get_settings() {
 		return new WP_REST_Response(
 			[
+				'enabled_payment_method_ids'       => $this->gateway->get_upe_enabled_payment_method_ids(),
+				'available_payment_method_ids'     => $this->gateway->get_upe_available_payment_methods(),
 				'is_payment_request_enabled'       => 'yes' === $this->gateway->get_option( 'payment_request' ),
 				'payment_request_button_type'      => $this->gateway->get_option( 'payment_request_button_type' ),
 				'payment_request_button_theme'     => $this->gateway->get_option( 'payment_request_button_theme' ),

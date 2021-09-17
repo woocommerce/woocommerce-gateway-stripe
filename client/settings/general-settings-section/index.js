@@ -13,9 +13,9 @@ import CardBody from '../card-body';
 import UpeOptInBanner from './upe-opt-in-banner';
 import UpeToggleContext from '../upe-toggle/context';
 import {
-	useEnabledPaymentMethods,
-	useGetAvailablePaymentMethods,
-} from './data-mock';
+	useEnabledPaymentMethodIds,
+	useGetAvailablePaymentMethodIds,
+} from 'wcstripe/data';
 import PaymentMethodDescription from './payment-method-description';
 import SectionHeading from './section-heading';
 import PaymentMethodsMap from '../../payment-methods-map';
@@ -81,8 +81,8 @@ const GeneralSettingsSection = () => {
 	const [
 		enabledPaymentMethods,
 		setEnabledPaymentMethods,
-	] = useEnabledPaymentMethods();
-	const availablePaymentMethods = useGetAvailablePaymentMethods();
+	] = useEnabledPaymentMethodIds();
+	const availablePaymentMethods = useGetAvailablePaymentMethodIds();
 
 	const makeCheckboxChangeHandler = ( method ) => ( hasBeenChecked ) => {
 		if ( hasBeenChecked ) {

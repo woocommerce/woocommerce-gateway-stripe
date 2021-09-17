@@ -16,7 +16,7 @@ import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import InlineNotice from 'wcstripe/components/inline-notice';
 import PaymentMethodsMap from '../../payment-methods-map';
 import UpeToggleContext from '../upe-toggle/context';
-import { useEnabledPaymentMethods } from './data-mock';
+import { useEnabledPaymentMethodIds } from 'wcstripe/data';
 
 const AlertIcon = styled( Icon )`
 	fill: #d94f4f;
@@ -110,7 +110,7 @@ const DisableUpeConfirmationModal = ( { onClose } ) => {
 		callback();
 	};
 
-	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethods();
+	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
 	const upePaymentMethods = enabledPaymentMethodIds.filter(
 		( method ) => method !== 'card'
 	);
