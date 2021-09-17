@@ -268,7 +268,7 @@ class WC_Stripe_Payment_Request {
 	 * @return  string
 	 */
 	public function get_button_height() {
-		if ( ! WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
+		if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 			return isset( $this->stripe_settings['payment_request_button_height'] ) ? str_replace( 'px', '', $this->stripe_settings['payment_request_button_height'] ) : '64';
 		}
 
@@ -316,7 +316,7 @@ class WC_Stripe_Payment_Request {
 	 */
 	public function is_custom_button() {
 		// no longer a valid option
-		if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
+		if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 			return false;
 		}
 
@@ -343,7 +343,7 @@ class WC_Stripe_Payment_Request {
 	 */
 	public function get_button_label() {
 		// no longer a valid option
-		if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
+		if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 			return '';
 		}
 
@@ -1655,7 +1655,7 @@ class WC_Stripe_Payment_Request {
 		// it would be DRYer to use `array_merge`,
 		// but I thought that this approach might be more straightforward to clean up when we remove the feature flag code.
 		$button_type = $this->get_button_type();
-		if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
+		if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 			return [
 				'type'         => $button_type,
 				'theme'        => $this->get_button_theme(),
