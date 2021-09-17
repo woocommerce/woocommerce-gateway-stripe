@@ -6,6 +6,9 @@ import {
 	normalizeAddress,
 	getStripeServerData,
 } from '../stripe-utils';
+/* eslint-disable @woocommerce/dependency-group */
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+/* eslint-enable */
 
 /**
  * Construct WC AJAX endpoint URL.
@@ -15,14 +18,14 @@ import {
  * @return {string} URL with interpolated endpoint.
  */
 const getAjaxUrl = ( endpoint, prefix = 'wc_stripe_' ) => {
-	return getStripeServerData()
+	return getBlocksConfiguration()
 		?.ajax_url?.toString()
 		?.replace( '%%endpoint%%', prefix + endpoint );
 };
 
 export const getCartDetails = () => {
 	const data = {
-		security: getStripeServerData()?.nonce?.payment,
+		security: getBlocksConfiguration()?.nonce?.payment,
 	};
 
 	return $.ajax( {
@@ -40,9 +43,9 @@ export const getCartDetails = () => {
  */
 export const updateShippingOptions = ( address, paymentRequestType ) => {
 	const data = {
-		security: getStripeServerData()?.nonce?.shipping,
+		security: getBlocksConfiguration()?.nonce?.shipping,
 		payment_request_type: paymentRequestType,
-		is_product_page: getStripeServerData()?.is_product_page,
+		is_product_page: getBlocksConfiguration()?.is_product_page,
 		...normalizeAddress( address ),
 	};
 
@@ -55,9 +58,9 @@ export const updateShippingOptions = ( address, paymentRequestType ) => {
 
 export const updateShippingDetails = ( shippingOption ) => {
 	const data = {
-		security: getStripeServerData()?.nonce?.update_shipping,
+		security: getBlocksConfiguration()?.nonce?.update_shipping,
 		shipping_method: [ shippingOption.id ],
-		is_product_page: getStripeServerData()?.is_product_page,
+		is_product_page: getBlocksConfiguration()?.is_product_page,
 	};
 
 	return $.ajax( {
