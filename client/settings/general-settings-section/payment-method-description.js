@@ -4,6 +4,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+/**
+ * Internal dependencies
+ */
+import PaymentMethodSetupHelp from './payment-method-setup-help';
+
 const Wrapper = styled.div`
 	display: flex;
 	align-items: center;
@@ -18,13 +23,19 @@ const IconWrapper = styled.div`
 	}
 `;
 
-const Label = styled.div`
+const LabelWrapper = styled.div`
+	display: inline-flex;
+	align-items: center;
+	margin-bottom: 4px;
+	gap: 8px;
+	flex-wrap: wrap;
+`;
+
+const Label = styled.span`
 	color: #1e1e1e;
-	display: inline-block;
 	font-size: 14px;
 	font-weight: 600;
 	line-height: 20px;
-	margin-bottom: 4px;
 `;
 
 const Description = styled.div`
@@ -37,6 +48,7 @@ const PaymentMethodDescription = ( {
 	Icon = () => null,
 	label,
 	description,
+	id,
 	...restProps
 } ) => {
 	return (
@@ -45,7 +57,10 @@ const PaymentMethodDescription = ( {
 				<Icon size="medium" />
 			</IconWrapper>
 			<div>
-				<Label>{ label }</Label>
+				<LabelWrapper>
+					<Label>{ label }</Label>
+					<PaymentMethodSetupHelp id={ id } />
+				</LabelWrapper>
 				<Description>{ description }</Description>
 			</div>
 		</Wrapper>

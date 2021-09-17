@@ -37,6 +37,8 @@ class WC_Stripe_Intent_Controller {
 		add_action( 'wc_ajax_wc_stripe_update_failed_order', [ $this, 'update_failed_order_ajax' ] );
 
 		add_action( 'switch_theme', [ $this, 'clear_upe_appearance_transient' ] );
+
+		add_action( 'wp', [ $this, 'maybe_process_upe_redirect' ] );
 	}
 
 	/**
@@ -47,11 +49,27 @@ class WC_Stripe_Intent_Controller {
 	 */
 	protected function get_gateway() {
 		if ( ! isset( $this->gateway ) ) {
-			$gateways      = WC()->payment_gateways()->payment_gateways();
+			$gateways      = WC()->payment_gateways()->get_available_payment_gateways();
 			$this->gateway = $gateways[ WC_Gateway_Stripe::ID ];
 		}
 
 		return $this->gateway;
+	}
+
+	/**
+	 * Returns an instantiated UPE gateway
+	 *
+	 * @since x.x.x
+	 * @throws WC_Stripe_Exception if UPE is not enabled.
+	 * @return WC_Stripe_UPE_Payment_Gateway
+	 */
+	protected function get_upe_gateway() {
+		$gateway = $this->get_gateway();
+		if ( ! $gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
+			WC_Stripe_Logger::log( 'Error instantiating the UPE Payment Gateway, UPE is not enabled.' );
+			throw new WC_Stripe_Exception( __( "We're not able to process this payment.", 'woocommerce-gateway-stripe' ) );
+		}
+		return $gateway;
 	}
 
 	/**
@@ -303,10 +321,7 @@ class WC_Stripe_Intent_Controller {
 			$amount = $order->get_total();
 		}
 
-		$gateway = $this->get_gateway();
-		if ( ! is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
-			throw new Exception( __( "We're not able to process this payment.", 'woocommerce-gateway-stripe' ) );
-		}
+		$gateway                 = $this->get_upe_gateway();
 		$enabled_payment_methods = $gateway->get_upe_enabled_at_checkout_payment_method_ids();
 
 		$currency       = get_woocommerce_currency();
@@ -371,6 +386,7 @@ class WC_Stripe_Intent_Controller {
 	 * @param {boolean} $save_payment_method       True if saving the payment method.
 	 * @param {string}  $selected_upe_payment_type The name of the selected UPE payment type or empty string.
 	 *
+	 * @throws Exception  If the update intent call returns with an error.
 	 * @return array|null An array with result of the update, or nothing
 	 */
 	public function update_payment_intent( $payment_intent_id = '', $order_id = null, $save_payment_method = false, $selected_upe_payment_type = '' ) {
@@ -380,8 +396,7 @@ class WC_Stripe_Intent_Controller {
 			return;
 		}
 
-		$gateway = new WC_Stripe_UPE_Payment_Gateway();
-
+		$gateway  = $this->get_upe_gateway();
 		$amount   = $order->get_total();
 		$currency = $order->get_currency();
 		$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
@@ -464,7 +479,7 @@ class WC_Stripe_Intent_Controller {
 			$customer_id   = $customer->create_customer( $customer_data );
 		}
 
-		$gateway              = new WC_Stripe_UPE_Payment_Gateway();
+		$gateway              = $this->get_upe_gateway();
 		$payment_method_types = array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] );
 
 		$setup_intent = WC_Stripe_API::request(
@@ -562,7 +577,7 @@ class WC_Stripe_Intent_Controller {
 			}
 			$save_payment_method = isset( $_POST['payment_method_id'] ) && ! empty( wc_clean( wp_unslash( $_POST['payment_method_id'] ) ) );
 
-			$gateway = new WC_Stripe_UPE_Payment_Gateway();
+			$gateway = $this->get_upe_gateway();
 			$gateway->process_order_for_confirmed_intent( $order, $intent_id_received, $save_payment_method );
 			wp_send_json_success(
 				[
@@ -622,14 +637,15 @@ class WC_Stripe_Intent_Controller {
 				}
 
 				// Use the last charge within the intent to proceed.
+				$gateway = $this->get_gateway();
 				if ( isset( $intent->charges ) ) {
 					$charge = end( $intent->charges->data );
-					$this->process_response( $charge, $order );
+					$gateway->process_response( $charge, $order );
 				} else {
 					// TODO: Add implementation for setup intents.
-					$this->process_response( $intent, $order );
+					$gateway->process_response( $intent, $order );
 				}
-				$this->save_intent_to_order( $order, $intent );
+				$gateway->save_intent_to_order( $order, $intent );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
 			// We are expecting an exception to be thrown here.
@@ -645,6 +661,18 @@ class WC_Stripe_Intent_Controller {
 		wp_send_json_success();
 	}
 
+	/*
+	 * Check for a UPE redirect payment method on order received page or setup intent on payment methods page.
+	 *
+	 * @since x.x.x
+	 * @version x.x.x
+	 */
+	public function maybe_process_upe_redirect() {
+		$gateway = $this->get_gateway();
+		if ( is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+			$gateway->maybe_process_upe_redirect();
+		}
+	}
 }
 
 new WC_Stripe_Intent_Controller();

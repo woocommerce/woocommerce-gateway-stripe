@@ -27,6 +27,12 @@ jest.mock( '@stripe/react-stripe-js', () => ( {
 	useStripe: jest.fn(),
 } ) );
 
+jest.mock( 'wcstripe/data', () => ( {
+	usePaymentRequestButtonType: jest.fn().mockReturnValue( [ 'buy' ] ),
+	usePaymentRequestButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
+	usePaymentRequestButtonTheme: jest.fn().mockReturnValue( [ 'dark' ] ),
+} ) );
+
 describe( 'PaymentRequestsButtonPreview', () => {
 	const canMakePaymentMock = jest.fn();
 

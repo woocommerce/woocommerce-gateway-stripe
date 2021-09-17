@@ -7,12 +7,12 @@ import ReactDOM from 'react-dom';
 /**
  * Internal dependencies
  */
-import PaymentRequestsSettings from './payment-request-settings';
+import PaymentRequestsPage from './payment-request-page';
 
 const container = document.getElementById(
-	'wc_stripe-payment-requests_customizer_container'
+	'wc-stripe-payment-request-settings-container'
 );
 
 if ( container ) {
-	ReactDOM.render( <PaymentRequestsSettings />, container );
+	ReactDOM.render( <PaymentRequestsPage />, container );
 }
