@@ -195,13 +195,15 @@ const UPEField = ( {
 	}
 
 	return (
-		<PaymentElement
-			options={ elementOptions }
-			onChange={ ( event ) => {
-				setIsUpeComplete( event.complete );
-				setSelectedUpePaymentType( event.value.type );
-			} }
-		/>
+		<div className={ 'wc-block-gateway-container' }>
+			<PaymentElement
+				options={ elementOptions }
+				onChange={ ( event ) => {
+					setIsUpeComplete( event.complete );
+					setSelectedUpePaymentType( event.value.type );
+				} }
+			/>
+		</div>
 	);
 };
 
