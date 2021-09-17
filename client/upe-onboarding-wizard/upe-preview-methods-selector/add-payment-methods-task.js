@@ -125,7 +125,7 @@ const ContinueButton = ( { paymentMethodsState } ) => {
 			onClick={ handleContinueClick }
 			isPrimary
 		>
-			{ __( 'Add payment methods', 'woocommerce-payments' ) }
+			{ __( 'Add payment methods', 'woocommerce-gateway-stripe' ) }
 		</Button>
 	);
 };
