@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
 import React from 'react';
 import { screen, render } from '@testing-library/react';
-
-/**
- * Internal dependencies
- */
 import ConnectStripeAccount from '..';
 
 describe( 'ConnectStripeAccount', () => {

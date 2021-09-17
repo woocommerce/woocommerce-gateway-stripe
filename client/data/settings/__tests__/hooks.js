@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
 import { useSelect, useDispatch } from '@wordpress/data';
 import { renderHook, act } from '@testing-library/react-hooks';
-
-/**
- * Internal dependencies
- */
 import {
 	useSettings,
 	usePaymentRequestEnabledSettings,

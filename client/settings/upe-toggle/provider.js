@@ -1,17 +1,8 @@
-/**
- * External dependencies
- */
+import { useDispatch } from '@wordpress/data';
 import { useCallback, useMemo, useState } from 'react';
 import apiFetch from '@wordpress/api-fetch';
-import { useDispatch } from '@wordpress/data';
-
-/**
- * Internal dependencies
- */
 import UpeToggleContext from './context';
-// eslint-disable-next-line @woocommerce/dependency-group,import/no-unresolved
 import { STORE_NAME } from 'wcstripe/data/constants';
-// eslint-disable-next-line @woocommerce/dependency-group,import/no-unresolved
 import { recordEvent } from 'wcstripe/tracking';
 
 function trackUpeToggle( isEnabled ) {

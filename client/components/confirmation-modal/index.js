@@ -1,14 +1,8 @@
-/**
- * External dependencies
- */
 import React from 'react';
 import { Modal } from '@wordpress/components';
 import classNames from 'classnames';
 import { HorizontalRule } from '@wordpress/primitives';
 
-/**
- * Internal dependencies
- */
 import './style.scss';
 
 const ConfirmationModal = ( { children, actions, className, ...props } ) => (

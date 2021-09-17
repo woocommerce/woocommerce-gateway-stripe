@@ -1,17 +1,9 @@
-/**
- * External dependencies
- */
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-
-/**
- * Internal dependencies
- */
 import WizardTaskContext from '../../wizard/task/context';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
-
 import EnableUpePreviewTask from '../enable-upe-preview-task';
+import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 describe( 'EnableUpePreviewTask', () => {
 	it( 'should enable the UPE flag when clicking the "Enable" button', async () => {

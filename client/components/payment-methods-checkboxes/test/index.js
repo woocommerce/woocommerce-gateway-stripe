@@ -1,14 +1,6 @@
-/** @format */
-/**
- * External dependencies
- */
 import React from 'react';
 import { render, within, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-
-/**
- * Internal dependencies
- */
 import PaymentMethodsCheckboxes from '..';
 import PaymentMethodsCheckbox from '../payment-method-checkbox';
 

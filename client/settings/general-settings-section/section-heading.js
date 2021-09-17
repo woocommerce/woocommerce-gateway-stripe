@@ -1,18 +1,11 @@
-/**
- * External dependencies
- */
+import { __ } from '@wordpress/i18n';
 import React, { useContext, useState } from 'react';
 import styled from '@emotion/styled';
-import { __ } from '@wordpress/i18n';
 import { CardHeader, DropdownMenu } from '@wordpress/components';
 import { moreVertical } from '@wordpress/icons';
-
-/**
- * Internal dependencies
- */
-import Pill from 'wcstripe/components/pill';
 import UpeToggleContext from '../upe-toggle/context';
 import DisableUpeConfirmationModal from './disable-upe-confirmation-modal';
+import Pill from 'wcstripe/components/pill';
 
 const StyledHeader = styled( CardHeader )`
 	justify-content: space-between;

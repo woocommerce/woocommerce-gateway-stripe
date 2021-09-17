@@ -1,12 +1,5 @@
-/*
- * External dependencies
- */
 import { registerStore, combineReducers } from '@wordpress/data';
 import { controls } from '@wordpress/data-controls';
-
-/**
- * Internal dependencies
- */
 import { STORE_NAME } from './constants';
 import * as settings from './settings';
 

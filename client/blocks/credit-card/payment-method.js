@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
-import { Elements, useStripe } from '@stripe/react-stripe-js';
 import { useState } from '@wordpress/element';
-
-/**
- * Internal dependencies
- */
+import { Elements, useStripe } from '@stripe/react-stripe-js';
 import { getStripeServerData } from '../../stripe-utils';
 import { useCheckoutSubscriptions } from './use-checkout-subscriptions';
 import { InlineCard, CardElements } from './elements';

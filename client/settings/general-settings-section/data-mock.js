@@ -1,11 +1,4 @@
-/**
- * External dependencies
- */
 import { useContext, useState } from 'react';
-
-/**
- * Internal dependencies
- */
 import UpeToggleContext from '../upe-toggle/context';
 
 export const useGetAvailablePaymentMethods = () => {

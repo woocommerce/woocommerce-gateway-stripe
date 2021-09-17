@@ -1,15 +1,8 @@
-/**
- * External dependencies
- */
+import { __ } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
-import { __ } from '@wordpress/i18n';
 import interpolateComponents from 'interpolate-components';
 import { Button, Card } from '@wordpress/components';
-
-/**
- * Internal dependencies
- */
 import CardBody from '../card-body';
 import StripeBanner from 'wcstripe/components/stripe-banner';
 

@@ -1,15 +1,8 @@
-/**
- * External dependencies
- */
 import { __ } from '@wordpress/i18n';
 import { useEffect, useState } from '@wordpress/element';
-
-/**
- * Internal dependencies
- */
 import { getStripeServerData, loadStripe } from '../../stripe-utils';
-import { StripeCreditCard, getStripeCreditCardIcons } from './payment-method';
 import { ThreeDSecurePaymentHandler } from '../three-d-secure';
+import { StripeCreditCard, getStripeCreditCardIcons } from './payment-method';
 import { PAYMENT_METHOD_NAME } from './constants';
 
 const stripePromise = loadStripe();

@@ -1,11 +1,4 @@
-/**
- * External dependencies
- */
 import $ from 'jquery';
-
-/**
- * Internal dependencies
- */
 import {
 	updateShippingOptions,
 	updateShippingDetails,

@@ -1,7 +1,3 @@
-/** @format */
-/**
- * External dependencies
- */
 import React from 'react';
 
 const PaymentMethodsSelector = ( { children } ) => {

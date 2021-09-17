@@ -1,13 +1,6 @@
-/**
- * External dependencies
- */
+import { __ } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
-import { __ } from '@wordpress/i18n';
-
-/**
- * Internal dependencies
- */
 import Pill from 'wcstripe/components/pill';
 
 const StyledPill = styled( Pill )`

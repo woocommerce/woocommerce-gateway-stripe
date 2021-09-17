@@ -1,18 +1,11 @@
-/**
- * External dependencies
- */
-import React from 'react';
-import { CheckboxControl, Icon, VisuallyHidden } from '@wordpress/components';
 import { useCallback, useMemo } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-
-/**
- * Internal dependencies
- */
+import React from 'react';
+import { CheckboxControl, Icon, VisuallyHidden } from '@wordpress/components';
 import PaymentMethodIcon from '../../settings/payment-method-icon';
 import Tooltip from '../tooltip';
-import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import paymentMethodsMap from '../../payment-methods-map';
+import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import './style.scss';
 
 const PaymentMethodDescription = ( { id } ) => {
