@@ -71,7 +71,7 @@ class Allowed_Payment_Request_Button_Types_Update {
 	 *
 	 * @return array
 	 */
-	public function get_gateways(){
+	public function get_gateways() {
 		return WC()->payment_gateways()->payment_gateways();
 	}
 }

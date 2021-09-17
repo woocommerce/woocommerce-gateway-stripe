@@ -66,7 +66,7 @@ class Allowed_Payment_Request_Button_Types_Update_Test extends WP_UnitTestCase {
 		$this->gateway_mock->method( 'get_option' )
 						->willReturnCallback(
 							function ( $key ) use ( $settings ) {
-								return $settings[ $key ] ?? '';
+								return isset( $settings[ $key ] ) ? $settings[ $key ] : '';
 							}
 						);
 		$this->migration->method( 'get_gateways' )->willReturn( [ 'stripe' => $this->gateway_mock ] );
