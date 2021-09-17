@@ -1,15 +1,8 @@
-/**
- * External dependencies
- */
+import { __ } from '@wordpress/i18n';
 import React from 'react';
 import { TabPanel } from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
 import { getQuery } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
-
-/**
- * Internal dependencies
- */
 import SettingsLayout from '../settings-layout';
 import PaymentSettingsPanel from '../payment-settings';
 import PaymentMethodsPanel from '../payment-methods';

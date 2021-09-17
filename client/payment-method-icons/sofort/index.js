@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
 import React from 'react';
 import styled from '@emotion/styled';
-
-/**
- * Internal dependencies
- */
 import IconWithShell from '../styles/icon-with-shell';
 import icon from './icon.svg';
 

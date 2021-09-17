@@ -1,11 +1,4 @@
-/**
- * External dependencies
- */
 import { __ } from '@wordpress/i18n';
-
-/**
- * Internal dependencies
- */
 import CreditCardIcon from './payment-method-icons/cards';
 import GiropayIcon from './payment-method-icons/giropay';
 import SofortIcon from './payment-method-icons/sofort';

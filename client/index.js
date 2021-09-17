@@ -1,9 +1,5 @@
-/**
- * External dependencies
- */
 import { __ } from '@wordpress/i18n';
 import { addFilter } from '@wordpress/hooks';
-
 import OnboardingWizard from './upe-onboarding-wizard/onboarding-wizard.js';
 
 addFilter(

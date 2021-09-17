@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
-import React from 'react';
 import { __, sprintf } from '@wordpress/i18n';
-
-/**
- * Internal dependencies
- */
+import React from 'react';
 import Pill from '../pill';
 
 // eslint-disable-next-line no-unused-vars

@@ -1,6 +1,3 @@
-/**
- * External dependencies
- */
 import { useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import {
@@ -9,10 +6,6 @@ import {
 	CardExpiryElement,
 	CardCvcElement,
 } from '@stripe/react-stripe-js';
-
-/**
- * Internal dependencies
- */
 import { useElementOptions } from './use-element-options';
 
 /** @typedef {import('react')} React */

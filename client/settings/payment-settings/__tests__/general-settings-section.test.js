@@ -1,13 +1,6 @@
-/**
- * External dependencies
- */
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-
-/**
- * Internal dependencies
- */
 import GeneralSettingsSection from '../general-settings-section';
 
 describe( 'GeneralSettingsSection', () => {

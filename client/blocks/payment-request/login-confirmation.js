@@ -1,6 +1,3 @@
-/**
- * Internal dependencies
- */
 import { getStripeServerData } from '../../stripe-utils';
 
 /**

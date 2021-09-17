@@ -1,13 +1,6 @@
-/**
- * External dependencies
- */
-import React from 'react';
 import { __ } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
-
-/**
- * Internal dependencies
- */
+import React from 'react';
 import SectionStatus from '../../components/section-status';
 import './style.scss';
 
