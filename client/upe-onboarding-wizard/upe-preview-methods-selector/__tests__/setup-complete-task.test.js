@@ -1,11 +1,4 @@
-/**
- * External dependencies
- */
 import { render, screen } from '@testing-library/react';
-
-/**
- * Internal dependencies
- */
 import WizardTaskContext from '../../wizard/task/context';
 import SetupComplete from '../setup-complete-task';
 import WizardContext from '../../wizard/wrapper/context';

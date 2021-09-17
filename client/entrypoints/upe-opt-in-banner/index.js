@@ -1,17 +1,10 @@
 /* global wc_stripe_upe_opt_in_params */
-/**
- * External dependencies
- */
+import { __, sprintf } from '@wordpress/i18n';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { __, sprintf } from '@wordpress/i18n';
 import styled from '@emotion/styled';
-
-/**
- * Internal dependencies
- */
-import UpeOptInBanner from 'wcstripe/settings/upe-opt-in-banner';
 import AllPaymentMethodsIcon from './all-payment-methods';
+import UpeOptInBanner from 'wcstripe/settings/upe-opt-in-banner';
 
 const StyledUpeOptInBanner = styled( UpeOptInBanner )`
 	max-width: 680px;
@@ -30,8 +23,8 @@ if ( bannerContainer ) {
 				'woocommerce-gateway-stripe'
 			) }
 			description={ sprintf(
+				/* translators: %s: a payment method name (e.g.: Stripe giropay, Stripe SEPA, Stripe Sofort, etc). */
 				__(
-					/* translators: %s: a payment method name (e.g.: Stripe giropay, Stripe SEPA, Stripe Sofort, etc). */
 					'Spend less time managing %s and other payment methods in an improved settings and checkout experience, now available to select merchants.',
 					'woocommerce-gateway-stripe'
 				),

@@ -1,17 +1,8 @@
-/** @format */
-
-/**
- * External dependencies
- */
 import { dispatch, select } from '@wordpress/data';
-import { apiFetch } from '@wordpress/data-controls';
 import { __ } from '@wordpress/i18n';
-
-/**
- * Internal dependencies
- */
-import ACTION_TYPES from './action-types';
+import { apiFetch } from '@wordpress/data-controls';
 import { NAMESPACE, STORE_NAME } from '../constants';
+import ACTION_TYPES from './action-types';
 
 export function updateSettingsValues( payload ) {
 	return {
@@ -64,5 +55,5 @@ export function* saveSettings() {
 		yield updateIsSavingSettings( false, error );
 	}
 
-	return null === error;
+	return error === null;
 }

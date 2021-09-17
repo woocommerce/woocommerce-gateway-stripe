@@ -1,13 +1,6 @@
-/**
- * External dependencies
- */
 import { dispatch, select } from '@wordpress/data';
 import { apiFetch } from '@wordpress/data-controls';
 import { findIndex } from 'lodash';
-
-/**
- * Internal dependencies
- */
 import { saveSettings, updateIsSavingSettings } from '../actions';
 
 jest.mock( '@wordpress/data' );
@@ -23,7 +16,7 @@ describe( 'Settings actions tests', () => {
 
 			apiFetch.mockImplementation( () => {} );
 			dispatch.mockImplementation( ( storeName ) => {
-				if ( 'core/notices' === storeName ) {
+				if ( storeName === 'core/notices' ) {
 					return noticesDispatch;
 				}
 

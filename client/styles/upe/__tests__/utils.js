@@ -1,11 +1,4 @@
-/**
- * External dependencies
- */
 import tinycolor from 'tinycolor2';
-
-/**
- * Internal dependencies
- */
 import * as upeUtils from '../utils';
 
 describe( 'UPE Utilities to generate UPE styles', () => {

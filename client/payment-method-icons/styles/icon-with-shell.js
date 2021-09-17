@@ -1,13 +1,6 @@
-/**
- * External dependencies
- */
 import React from 'react';
 import styled from '@emotion/styled';
 import { css } from '@emotion/react';
-
-/**
- * Internal dependencies
- */
 import BaseIcon from './base-icon';
 
 const IconSpacingMap = {

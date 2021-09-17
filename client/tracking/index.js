@@ -1,6 +1,3 @@
-/**
- * External dependencies
- */
 import domReady from '@wordpress/dom-ready';
 
 const LIBRARY_MOCK = {

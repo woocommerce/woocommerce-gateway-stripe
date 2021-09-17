@@ -1,29 +1,27 @@
-/** @format */
-/**
- * External dependencies
- */
-import { render, screen, getByText } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
-
-/**
- * Internal dependencies
- */
 import PaymentMethodIcon from '..';
 
 describe( 'PaymentMethodIcon', () => {
 	test( 'renders giropay payment method icon', () => {
 		const { container } = render( <PaymentMethodIcon name="giropay" /> );
-		expect( container.querySelector( 'img' ).src ).toContain('test-file-stub');
+		expect( container.querySelector( 'img' ).src ).toContain(
+			'test-file-stub'
+		);
 	} );
 
 	test( 'renders Sepa payment method icon', () => {
 		const { container } = render( <PaymentMethodIcon name="sepa_debit" /> );
-		expect( container.querySelector( 'img' ).src ).toContain('test-file-stub');
+		expect( container.querySelector( 'img' ).src ).toContain(
+			'test-file-stub'
+		);
 	} );
 
 	test( 'renders Sofort payment method icon', () => {
 		const { container } = render( <PaymentMethodIcon name="sofort" /> );
-		expect( container.querySelector( 'img' ).src ).toContain('test-file-stub');
+		expect( container.querySelector( 'img' ).src ).toContain(
+			'test-file-stub'
+		);
 	} );
 
 	test( 'renders giropay payment method icon and label', () => {

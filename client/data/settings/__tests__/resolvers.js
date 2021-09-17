@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
 import { dispatch } from '@wordpress/data';
 import { apiFetch } from '@wordpress/data-controls';
-
-/**
- * Internal dependencies
- */
 import { getSettings } from '../resolvers';
 import { updateSettings } from '../actions';
 
@@ -47,7 +40,7 @@ describe( 'Settings resolvers tests', () => {
 
 			apiFetch.mockImplementation( () => {} );
 			dispatch.mockImplementation( ( storeName ) => {
-				if ( 'core/notices' === storeName ) {
+				if ( storeName === 'core/notices' ) {
 					return noticesDispatch;
 				}
 

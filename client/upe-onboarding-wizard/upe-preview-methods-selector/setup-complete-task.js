@@ -1,14 +1,7 @@
-/**
- * External dependencies
- */
-import React from 'react';
 import { useContext } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
+import React from 'react';
 import { Button } from '@wordpress/components';
-
-/**
- * Internal dependencies
- */
 import CollapsibleBody from '../wizard/collapsible-body';
 import WizardTaskItem from '../wizard/task-item';
 import WizardContext from '../wizard/wrapper/context';

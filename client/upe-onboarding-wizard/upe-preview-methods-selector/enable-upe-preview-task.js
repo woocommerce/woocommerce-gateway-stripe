@@ -1,20 +1,13 @@
-/**
- * External dependencies
- */
-import React, { useCallback, useContext } from 'react';
 import { __ } from '@wordpress/i18n';
+import React, { useCallback, useContext } from 'react';
 import { Button, Card, CardBody, ExternalLink } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
 import { Icon, store, people } from '@wordpress/icons';
-
-/**
- * Internal dependencies
- */
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import WizardTaskContext from '../wizard/task/context';
 import CollapsibleBody from '../wizard/collapsible-body';
 import WizardTaskItem from '../wizard/task-item';
 import Pill from '../../components/pill';
+import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import './style.scss';
 
 const EnableUpePreviewTask = () => {
@@ -25,7 +18,7 @@ const EnableUpePreviewTask = () => {
 		setIsUpeEnabled( true ).then( () => {
 			setCompleted( true, 'add-payment-methods' );
 		} );
-	}, [ setCompleted ] );
+	}, [ setCompleted, setIsUpeEnabled ] );
 
 	return (
 		<WizardTaskItem

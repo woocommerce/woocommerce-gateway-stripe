@@ -1,21 +1,14 @@
-/**
- * External dependencies
- */
-import React, { useContext } from 'react';
-import styled from '@emotion/styled';
 import { useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
+import React, { useContext } from 'react';
+import styled from '@emotion/styled';
 import { Button, ExternalLink } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
 import { Icon, info } from '@wordpress/icons';
-
-/**
- * Internal dependencies
- */
-import ConfirmationModal from 'wcstripe/components/confirmation-modal';
-import InlineNotice from 'wcstripe/components/inline-notice';
 import PaymentMethodsMap from '../../payment-methods-map';
 import UpeToggleContext from '../upe-toggle/context';
+import ConfirmationModal from 'wcstripe/components/confirmation-modal';
+import InlineNotice from 'wcstripe/components/inline-notice';
 import { useEnabledPaymentMethodIds } from 'wcstripe/data';
 
 const AlertIcon = styled( Icon )`

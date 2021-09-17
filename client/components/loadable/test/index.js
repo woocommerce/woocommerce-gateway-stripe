@@ -1,12 +1,4 @@
-/** @format */
-/**
- * External dependencies
- */
 import { render } from '@testing-library/react';
-
-/**
- * Internal dependencies
- */
 import Loadable from '..';
 
 describe( 'Loadable', () => {

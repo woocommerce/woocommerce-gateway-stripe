@@ -1,13 +1,6 @@
-/**
- * External dependencies
- */
+import { useSelect, useDispatch } from '@wordpress/data';
 import React from 'react';
 import { screen, render } from '@testing-library/react';
-import { useSelect, useDispatch } from '@wordpress/data';
-
-/**
- * Internal dependencies
- */
 import CustomizationOptionsNotice from '..';
 import UpeToggleContext from '../../upe-toggle/context';
 

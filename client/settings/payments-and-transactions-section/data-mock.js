@@ -1,6 +1,3 @@
-/**
- * External dependencies
- */
 import { useCallback, useState } from 'react';
 
 // TODO: this is here just for testing purposes while we work on the backend data
