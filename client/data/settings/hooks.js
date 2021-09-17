@@ -143,7 +143,7 @@ export const usePaymentRequestButtonTheme = () => {
 export const useEnabledPaymentMethodIds = () => {
 	const { updateSettingsValues } = useDispatch( STORE_NAME );
 
-	const size = useSelect( ( select ) => {
+	const methods = useSelect( ( select ) => {
 		const { getSettings } = select( STORE_NAME );
 
 		return getSettings().enabled_payment_method_ids || EMPTY_ARR;
@@ -157,7 +157,7 @@ export const useEnabledPaymentMethodIds = () => {
 		[ updateSettingsValues ]
 	);
 
-	return [ size, handler ];
+	return [ methods, handler ];
 };
 
 export const useGetAvailablePaymentMethodIds = () =>
