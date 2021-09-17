@@ -100,7 +100,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'enabled_payment_method_ids'     => [
+					'enabled_payment_method_ids'       => [
 						'description'       => __( 'Payment method IDs that should be enabled. Other methods will be disabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'array',
 						'items'             => [
@@ -188,9 +188,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 */
-	private function update_enabled_payment_methods(WP_REST_Request $request) {
+	private function update_enabled_payment_methods( WP_REST_Request $request ) {
 		// no need to update the payment methods, if the UPE checkout is not enabled
-		if(!WC_Stripe_Feature_Flags::is_upe_checkout_enabled()) {
+		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			return;
 		}
 
