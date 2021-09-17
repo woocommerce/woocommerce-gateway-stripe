@@ -975,6 +975,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 * @return string
 	 */
 	public function generate_upe_checkout_experience_accepted_payments_html( $key, $data ) {
+		$stripe_account      = WC_Stripe_API::retrieve( 'account' );
+		$stripe_capabilities = (array) $stripe_account->capabilities;
+
+		// Spoof inactive capability.
+		$stripe_capabilities['ideal_payments'] = 'inactive';
+
 		$data['description'] = '<div id="wc_stripe_upe_method_selection"><p><strong>Payments accepted on checkout</strong></p></div>
 			<table class="wc_gateways widefat form-table" cellspacing="0" aria-describedby="wc_stripe_upe_method_selection">
 			<thead>
@@ -986,11 +992,25 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			</thead>
 			<tbody>';
 
+		$capability_error    = sprintf(
+			/* translators: %1, %2, %3, and %4 are all HTML markup tags */
+			__( '%1$sNOTE: This payment method cannot be enabled in WooCommerce because it hasn\'t been enabled on your Stripe account yet. You can enable it from the %2$sStripe dashboard%3$s. (Some payment methods may require additional setup or verification to enable.)%4$s ', 'woocommerce-gateway-stripe' ),
+			'<br><span style="color: red; font-weight: normal;">',
+			'<a href="https://dashboard.stripe.com/settings/payments" target="_blank">',
+			'</a>',
+			'</span>'
+		);
+
 		foreach ( $this->payment_methods as $method_id => $method ) {
 			$method_enabled       = in_array( $method_id, $this->get_upe_enabled_payment_method_ids(), true ) ? 'enabled' : 'disabled';
+			$capability_id        = "{$method_id}_payments"; // This assumes UPE method ID's are ALWAYS capability ID's without the _payments suffix.
 			$data['description'] .= '<tr data-upe_method_id="' . $method_id . '">
-					<td class="name" width=""><a href="#" class="wc-payment-gateway-method-title">' . $method_id . '</a><span class="wc-payment-gateway-method-name">&nbsp;–&nbsp;Subtext goes here.</span></td>
-					<td class="status" width="1%"><a class="wc-payment-upe-method-toggle-' . $method_enabled . '" href="#"><span class="woocommerce-input-toggle woocommerce-input-toggle--' . $method_enabled . '" aria-label="The &quot;' . $method_id . '&quot; payment method is currently ' . $method_enabled . '">' . ( 'enabled' === $method_enabled ? 'Yes' : 'No' ) . '</span></a></td>
+					<td class="name" width=""><a href="#" class="wc-payment-gateway-method-title">' . $method_id . '</a><span class="wc-payment-gateway-method-name">&nbsp;–&nbsp;Subtext goes here.</span>';
+			if ( 'active' !== $stripe_capabilities[ $capability_id ] ) {
+				$data['description'] .= $capability_error;
+			}
+			$data['description'] .= '</td>
+					<td class="status" width="1%"><a class="wc-payment-upe-method-toggle-' . $method_enabled . '" href="#"><span class="' . ( ( 'active' !== $stripe_capabilities[ $capability_id ] ) ? 'woocommerce-input-toggle--loading ' : '' ) . 'woocommerce-input-toggle woocommerce-input-toggle--' . $method_enabled . '" aria-label="The &quot;' . $method_id . '&quot; payment method is currently ' . $method_enabled . '">' . ( 'enabled' === $method_enabled ? 'Yes' : 'No' ) . '</span></a></td>
 					<td class="description" width="">Long description text goes here.</td>
 				</tr>';
 		}

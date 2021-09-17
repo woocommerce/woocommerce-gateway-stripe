@@ -128,6 +128,9 @@ jQuery( function( $ ) {
 			// Toggle UPE methods on/off.
 			$( '.wc_gateways' ).on( 'click', '.wc-payment-upe-method-toggle-enabled, .wc-payment-upe-method-toggle-disabled', function() {
 				var $toggle = $( this ).find( '.woocommerce-input-toggle' );
+				if ( $toggle.hasClass( 'woocommerce-input-toggle--loading' ) ) {
+					return false;
+				}
 				$toggle.toggleClass( 'woocommerce-input-toggle--enabled  woocommerce-input-toggle--disabled' );
 				$toggle.parent().toggleClass( 'wc-payment-upe-method-toggle-enabled  wc-payment-upe-method-toggle-disabled' );
 				$( '#wc_stripe_upe_change_notice' ).removeClass( 'hidden' );
