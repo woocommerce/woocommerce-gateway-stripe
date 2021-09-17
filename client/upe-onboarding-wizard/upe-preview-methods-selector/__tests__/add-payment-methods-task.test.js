@@ -11,6 +11,16 @@ import userEvent from '@testing-library/user-event';
 import WizardTaskContext from '../../wizard/task/context';
 import AddPaymentMethodsTask from '../add-payment-methods-task';
 
+jest.mock( 'wcstripe/data', () => ( {
+	useEnabledPaymentMethodIds: () => [ [ 'card', 'sepa_debit' ], () => null ],
+	useGetAvailablePaymentMethodIds: () => [
+		'card',
+		'giropay',
+		'sofort',
+		'sepa_debit',
+	],
+} ) );
+
 describe( 'AddPaymentMethodsTask', () => {
 	it( 'should proceed to step 3 by clicking "Add payment methods" button', async () => {
 		const setCompletedMock = jest.fn();
