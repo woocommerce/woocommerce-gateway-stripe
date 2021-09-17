@@ -1,5 +1,5 @@
-const webpack = require( 'webpack' );
 const path = require( 'path' );
+const webpack = require( 'webpack' );
 const defaultConfig = require( '@wordpress/scripts/config/webpack.config' );
 const DependencyExtractionWebpackPlugin = require( '@woocommerce/dependency-extraction-webpack-plugin' );
 
