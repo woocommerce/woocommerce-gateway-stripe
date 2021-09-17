@@ -1,25 +1,17 @@
-/**
- * External dependencies
- */
 import React, { useContext } from 'react';
 import styled from '@emotion/styled';
 import { Card, CheckboxControl } from '@wordpress/components';
-
-/**
- * Internal dependencies
- */
-import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import CardBody from '../card-body';
-import UpeOptInBanner from './upe-opt-in-banner';
 import UpeToggleContext from '../upe-toggle/context';
+import PaymentMethodsMap from '../../payment-methods-map';
+import UpeOptInBanner from './upe-opt-in-banner';
 import {
 	useEnabledPaymentMethods,
 	useGetAvailablePaymentMethods,
 } from './data-mock';
 import PaymentMethodDescription from './payment-method-description';
 import SectionHeading from './section-heading';
-import PaymentMethodsMap from '../../payment-methods-map';
-import PaymentMethodSetupHelp from './payment-method-setup-help';
+import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 
 const StyledCard = styled( Card )`
 	margin-bottom: 12px;

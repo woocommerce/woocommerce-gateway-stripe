@@ -239,7 +239,7 @@ class WC_Stripe_Admin_Notices {
 				continue;
 			}
 
-			if ( ! in_array( get_woocommerce_currency(), $gateway->get_supported_currency() ) ) {
+			if ( ! in_array( get_woocommerce_currency(), $gateway->get_supported_currency(), true ) ) {
 				/* translators: %1$s Payment method, %2$s List of supported currencies */
 				$this->add_admin_notice( $method, 'notice notice-error', sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s', 'woocommerce-gateway-stripe' ), $method, implode( ', ', $gateway->get_supported_currency() ) ), true );
 			}
@@ -259,7 +259,7 @@ class WC_Stripe_Admin_Notices {
 			if ( ! $upe_method->is_enabled() || 'no' === $show_notice ) {
 				continue;
 			}
-			if ( ! in_array( get_woocommerce_currency(), $upe_method->get_supported_currencies() ) ) {
+			if ( ! in_array( get_woocommerce_currency(), $upe_method->get_supported_currencies(), true ) ) {
 				/* translators: %1$s Payment method, %2$s List of supported currencies */
 				$this->add_admin_notice( $method . '_upe', 'notice notice-error', sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s', 'woocommerce-gateway-stripe' ), $method, implode( ', ', $upe_method->get_supported_currencies() ) ), true );
 			}

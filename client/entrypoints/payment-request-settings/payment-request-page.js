@@ -1,19 +1,12 @@
-/**
- * External dependencies
- */
-import React from 'react';
 import { __ } from '@wordpress/i18n';
+import React from 'react';
 import { ExternalLink } from '@wordpress/components';
-
-/**
- * Internal dependencies
- */
-import './style.scss';
 import PaymentRequestsSection from './payment-request-section';
 import SettingsSection from 'wcstripe/settings/settings-section';
 import SettingsLayout from 'wcstripe/settings/settings-layout';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import SaveSettingsSection from 'wcstripe/settings/save-settings-section';
+import './style.scss';
 
 const Description = () => (
 	<>

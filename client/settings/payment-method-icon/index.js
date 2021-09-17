@@ -1,14 +1,7 @@
-/**
- * External dependencies
- */
 import React from 'react';
 import classNames from 'classnames';
-
-/**
- * Internal dependencies
- */
-import './style.scss';
 import paymentMethodsMap from '../../payment-methods-map';
+import './style.scss';
 
 const PaymentMethodIcon = ( { name, showName } ) => {
 	const paymentMethod = paymentMethodsMap[ name ];

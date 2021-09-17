@@ -1,13 +1,6 @@
 /* global wc_stripe_upe_params, wc */
 
-/**
- * External dependencies
- */
 import { __ } from '@wordpress/i18n';
-
-/**
- * Internal dependencies
- */
 import { errorTypes, errorCodes } from './constants';
 
 /**
@@ -177,11 +170,10 @@ const getErrorMessageForTypeAndCode = ( type, code = '' ) => {
 /**
  * Generates terms parameter for UPE, with value set for reusable payment methods
  *
- * @param {Object} paymentMethodsConfig Object mapping payment method strings to their settings.
  * @param {string} value The terms value for each available payment method.
  * @return {Object} Terms parameter fit for UPE.
  */
- export const getUPETerms = ( value = 'always' ) => {
+export const getUPETerms = ( value = 'always' ) => {
 	const config = getStripeServerData()?.paymentMethodsConfig;
 	const reusablePaymentMethods = Object.keys( config ).filter(
 		( method ) => config[ method ].isReusable
@@ -192,6 +184,5 @@ const getErrorMessageForTypeAndCode = ( type, code = '' ) => {
 		return obj;
 	}, {} );
 };
-
 
 export { getStripeServerData, getApiKey, getErrorMessageForTypeAndCode };

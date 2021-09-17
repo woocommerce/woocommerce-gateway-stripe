@@ -1,22 +1,15 @@
-/**
- * External dependencies
- */
 import { useEffect } from '@wordpress/element';
 import {
 	CardElement,
 	CardNumberElement,
 	useElements,
 } from '@stripe/react-stripe-js';
-
-/**
- * Internal dependencies
- */
-import { PAYMENT_METHOD_NAME } from './constants';
 import {
 	getStripeServerData,
 	getErrorMessageForTypeAndCode,
 } from '../../stripe-utils';
 import { errorTypes } from '../../stripe-utils/constants';
+import { PAYMENT_METHOD_NAME } from './constants';
 
 /**
  * @typedef {import('@stripe/stripe-js').Stripe} Stripe
