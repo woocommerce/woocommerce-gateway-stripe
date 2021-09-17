@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
 import React from 'react';
 import styled from '@emotion/styled';
-
-/**
- * Internal dependencies
- */
 import icon from './icon.svg';
 
 const Image = styled.img`

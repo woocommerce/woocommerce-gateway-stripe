@@ -1,15 +1,8 @@
-/**
- * External dependencies
- */
 import {
 	Elements,
 	PaymentRequestButtonElement,
 	useStripe,
 } from '@stripe/react-stripe-js';
-
-/**
- * Internal dependencies
- */
 import { getStripeServerData } from '../../stripe-utils';
 import { GooglePayButton, shouldUseGooglePayBrand } from './branded-buttons';
 import { CustomButton } from './custom-button';

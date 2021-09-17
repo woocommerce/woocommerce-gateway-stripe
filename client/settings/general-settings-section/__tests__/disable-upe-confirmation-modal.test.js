@@ -1,14 +1,7 @@
-/**
- * External dependencies
- */
+import { useDispatch } from '@wordpress/data';
 import React from 'react';
 import { screen, render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { useDispatch } from '@wordpress/data';
-
-/**
- * Internal dependencies
- */
 import DisableUpeConfirmationModal from '../disable-upe-confirmation-modal';
 import UpeToggleContext from '../../upe-toggle/context';
 import {

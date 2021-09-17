@@ -1,11 +1,4 @@
-/**
- * External dependencies
- */
 import React, { useState, useMemo } from 'react';
-
-/**
- * Internal dependencies
- */
 import WizardContext from './context';
 
 const Wizard = ( {

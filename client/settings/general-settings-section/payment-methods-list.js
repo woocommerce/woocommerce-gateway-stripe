@@ -1,21 +1,14 @@
-/**
- * External dependencies
- */
 import React, { useContext } from 'react';
 import styled from '@emotion/styled';
 import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
-
-/**
- * Internal dependencies
- */
-import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import UpeToggleContext from '../upe-toggle/context';
+import PaymentMethodsMap from '../../payment-methods-map';
 import {
 	useEnabledPaymentMethods,
 	useGetAvailablePaymentMethods,
 } from './data-mock';
 import PaymentMethodDescription from './payment-method-description';
-import PaymentMethodsMap from '../../payment-methods-map';
+import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 
 const List = styled.ul`
 	margin: 0;

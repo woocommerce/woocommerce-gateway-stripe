@@ -1,15 +1,8 @@
-/**
- * External dependencies
- */
-import { React, useState } from 'react';
 import { __ } from '@wordpress/i18n';
+import { React, useState } from 'react';
 import { Button, Card, CheckboxControl } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
 import styled from '@emotion/styled';
-
-/**
- * Internal dependencies
- */
 import CardBody from '../card-body';
 import CardFooter from '../card-footer';
 

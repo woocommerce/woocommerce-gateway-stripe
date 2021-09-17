@@ -1,11 +1,4 @@
-/**
- * External dependencies
- */
 import { useState, useEffect } from '@wordpress/element';
-
-/**
- * Internal dependencies
- */
 import { getStripeServerData } from '../../stripe-utils';
 
 export const shouldUseGooglePayBrand = () => {
@@ -67,9 +60,9 @@ export const GooglePayButton = ( { onButtonClicked } ) => {
 
 	return (
 		<button
-			type={ 'button' }
-			id={ 'wc-stripe-branded-button' }
-			aria-label={ 'Google Pay' }
+			type="button"
+			id="wc-stripe-branded-button"
+			aria-label="Google Pay"
 			// 'light-outline' is a viable CSS class for the button, so we don't use the normalized
 			// `gpayButtonTheme` as the class here.
 			className={ `gpay-button ${ theme } ${ type }` }
@@ -78,6 +71,6 @@ export const GooglePayButton = ( { onButtonClicked } ) => {
 				height: height + 'px',
 			} }
 			onClick={ onButtonClicked }
-		></button>
+		/>
 	);
 };

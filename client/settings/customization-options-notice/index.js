@@ -1,17 +1,10 @@
-/**
- * External dependencies
- */
-import React, { useContext } from 'react';
-import styled from '@emotion/styled';
 import { __ } from '@wordpress/i18n';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { useCallback } from '@wordpress/element';
+import styled from '@emotion/styled';
+import React, { useContext } from 'react';
 import interpolateComponents from 'interpolate-components';
 import { OPTIONS_STORE_NAME } from '@woocommerce/data';
-
-/**
- * Internal dependencies
- */
 import InlineNotice from '../../components/inline-notice';
 import UpeToggleContext from '../upe-toggle/context';
 

@@ -1,13 +1,6 @@
-/**
- * External dependencies
- */
-import React from 'react';
 import { __ } from '@wordpress/i18n';
+import React from 'react';
 import { ExternalLink } from '@wordpress/components';
-
-/**
- * External dependencies
- */
 import CardFooter from 'wcstripe/settings/card-footer';
 
 const SectionFooter = () => (

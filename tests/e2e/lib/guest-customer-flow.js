@@ -1,11 +1,11 @@
 /**
  * External dependencies
  */
-import { GuestCustomerFlow as Base, SingleProductPage } from 'wc-e2e-page-objects';
+import {
+	GuestCustomerFlow as Base,
+	SingleProductPage,
+} from 'wc-e2e-page-objects';
 
-/**
- * Internal dependencies
- */
 import CartPage from './cart-page.js';
 import CheckoutPage from './checkout-page.js';
 
@@ -17,14 +17,14 @@ export default class GuestCustomerFlow extends Base {
 	openCart() {
 		return this.open( {
 			object: CartPage,
-			path: '/cart'
+			path: '/cart',
 		} );
 	}
 
 	openCheckout() {
 		return this.open( {
 			object: CheckoutPage,
-			path: '/checkout'
+			path: '/checkout',
 		} );
 	}
 
@@ -36,7 +36,7 @@ export default class GuestCustomerFlow extends Base {
 	fromProductPathAddToCart( path ) {
 		const product = this.open( {
 			object: SingleProductPage,
-			path: path
+			path: path,
 		} );
 
 		product.addToCart();

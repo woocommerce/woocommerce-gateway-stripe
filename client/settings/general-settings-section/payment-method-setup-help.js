@@ -1,13 +1,6 @@
-/**
- * External dependencies
- */
+import { __, sprintf } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
-import { __, sprintf } from '@wordpress/i18n';
-
-/**
- * Internal dependencies
- */
 import Pill from 'wcstripe/components/pill';
 import Tooltip from 'wcstripe/components/tooltip';
 
