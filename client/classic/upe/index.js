@@ -468,6 +468,7 @@ jQuery( function ( $ ) {
 				},
 			} );
 			if ( error ) {
+				await api.updateFailedOrder( paymentIntentId, orderId );
 				throw error;
 			}
 		} catch ( error ) {
@@ -552,6 +553,7 @@ jQuery( function ( $ ) {
 				( { error } = await api.getStripe().confirmSetup( upeConfig ) );
 			}
 			if ( error ) {
+				await api.updateFailedOrder( paymentIntentId, response.order_id );
 				throw error;
 			}
 		} catch ( error ) {
