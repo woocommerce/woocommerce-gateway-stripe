@@ -11,7 +11,7 @@ import { Button, Card } from '@wordpress/components';
  * Internal dependencies
  */
 import CardBody from '../card-body';
-import StripeBanner from '../../payment-method-icons/stripe-banner';
+import StripeBanner from 'wcstripe/components/stripe-banner';
 
 const CardWrapper = styled( Card )`
 	max-width: 560px;
