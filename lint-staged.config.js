@@ -1,5 +1,5 @@
 module.exports = {
-	'*.{js,jsx}': [ 'npm run format:js', 'eslint' ],
+	'*.{js,jsx,ts,tsx}': [ 'npm run format:js', 'eslint' ],
 	'*.{scss,css}': [ 'npm run lint:css' ],
 	'*.php':
 		'./vendor/bin/phpcs --standard=phpcs.xml.dist -n --basepath=. --colors',
