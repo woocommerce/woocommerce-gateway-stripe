@@ -19,8 +19,6 @@ import './style.scss';
 const SetupCompleteMessaging = () => {
 	const [ enabledPaymentMethods ] = useEnabledPaymentMethodIds();
 	const enabledMethodsCount = enabledPaymentMethods.length;
-	//TODO: Initial payment methods need to be passed down before step 2.
-	const initialMethods = [ 'cards' ];
 
 	const { completedTasks } = useContext( WizardContext );
 	const enableUpePreviewPayload = completedTasks[ 'add-payment-methods' ];
@@ -29,21 +27,29 @@ const SetupCompleteMessaging = () => {
 		return null;
 	}
 
-	const addedPaymentMethodsCount =
-		enabledMethodsCount - initialMethods.length;
+	// we need to check that the type of `enableUpePreviewPayload` is an object - it can also just be `true` or `undefined`
+	let addedPaymentMethodsCount = 0;
+	if (
+		typeof enableUpePreviewPayload === 'object' &&
+		enableUpePreviewPayload.initialMethods
+	) {
+		const { initialMethods } = enableUpePreviewPayload;
+		addedPaymentMethodsCount = enabledMethodsCount - initialMethods.length;
+	}
 
 	// can't just check for "0", some methods could have been disabled
 	if ( addedPaymentMethodsCount <= 0 ) {
-		return __( 'Setup complete!', 'woocommerce-gateway-stripe' );
+		return __( 'Setup complete!', 'woocommerce-payments' );
 	}
 
+	// eslint-disable-next-line @wordpress/valid-sprintf
 	return sprintf(
-		/* translators: Number of payment methods */
+		/* translators: %s: the number of payment methods added */
 		_n(
-			'Setup complete! %d new payment method is now live on your store!',
-			'Setup complete! %d new payment methods are now live on your store!',
+			'Setup complete! One new payment method is now live on your store!',
+			'Setup complete! %s new payment methods are now live on your store!',
 			addedPaymentMethodsCount,
-			'woocommerce-gateway-stripe'
+			'woocommerce-payments'
 		),
 		addedPaymentMethodsCount
 	);
