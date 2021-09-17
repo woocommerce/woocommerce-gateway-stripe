@@ -1,8 +1,5 @@
-/**
- * External dependencies
- */
-import { React } from 'react';
 import { __ } from '@wordpress/i18n';
+import { React } from 'react';
 import {
 	Card,
 	CardHeader,
@@ -10,11 +7,6 @@ import {
 	ExternalLink,
 } from '@wordpress/components';
 import { moreVertical } from '@wordpress/icons';
-
-/**
- * Internal dependencies
- */
-import './style.scss';
 import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
 import AccountStatus from '../account-details';
@@ -22,6 +14,7 @@ import PaymentsAndTransactionsSection from '../payments-and-transactions-section
 import AdvancedSettingsSection from '../advanced-settings-section';
 import CustomizationOptionsNotice from '../customization-options-notice';
 import GeneralSettingsSection from './general-settings-section';
+import './style.scss';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -90,10 +83,12 @@ const AccountSettingsDropdownMenu = () => {
 			controls={ [
 				{
 					title: __( 'Edit Details', 'woocommerce-gateway-stripe' ),
+					// eslint-disable-next-line no-console
 					onClick: () => console.log( 'Edit my details' ),
 				},
 				{
 					title: 'Disconnect',
+					// eslint-disable-next-line no-console
 					onClick: () => console.log( 'Disconnecting' ),
 				},
 			] }

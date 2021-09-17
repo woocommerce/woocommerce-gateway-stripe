@@ -1,11 +1,4 @@
-/**
- * External dependencies
- */
 import { Elements, useStripe } from '@stripe/react-stripe-js';
-
-/**
- * Internal dependencies
- */
 import { usePaymentIntents } from './use-payment-intents';
 
 const sourceIdNoop = () => void null;

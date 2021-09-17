@@ -1,6 +1,3 @@
-/**
- * Internal dependencies
- */
 import { upeRestrictedProperties } from './upe-styles';
 import { generateHoverRules, generateOutlineStyle } from './utils.js';
 

@@ -1,22 +1,15 @@
-/**
- * External dependencies
- */
 import { useState, useEffect, useCallback } from '@wordpress/element';
-
-/**
- * Internal dependencies
- */
 import { getCartDetails } from '../../api';
+import {
+	getStripeServerData,
+	createPaymentRequestUsingCart,
+} from '../../stripe-utils';
 import {
 	shippingAddressChangeHandler,
 	shippingOptionChangeHandler,
 	paymentProcessingHandler,
 } from './event-handlers';
 import { displayLoginConfirmation } from './login-confirmation';
-import {
-	getStripeServerData,
-	createPaymentRequestUsingCart,
-} from '../../stripe-utils';
 
 /**
  * This hook takes care of creating a payment request and making sure

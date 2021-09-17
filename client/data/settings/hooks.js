@@ -1,14 +1,5 @@
-/** @format */
-
-/**
- * External dependencies
- */
 import { useSelect, useDispatch } from '@wordpress/data';
 import { useCallback } from 'react';
-
-/**
- * Internal dependencies
- */
 import { STORE_NAME } from '../constants';
 
 const EMPTY_ARR = [];

@@ -1,13 +1,7 @@
-/**
- * External dependencies
- */
-import React from 'react';
 import { __ } from '@wordpress/i18n';
+import React from 'react';
 import { Icon } from '@wordpress/components';
 
-/**
- * Internal dependencies
- */
 import './style.scss';
 
 const SectionStatusEnabled = () => {

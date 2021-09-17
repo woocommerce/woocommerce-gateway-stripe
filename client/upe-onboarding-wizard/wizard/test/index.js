@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
 import React, { useContext } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-
-/**
- * Internal dependencies
- */
 import Wizard from '../wrapper/provider';
 import WizardTask from '../task';
 import WizardTaskList from '../task-list';

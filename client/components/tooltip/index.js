@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
 import React, { useState } from 'react';
 import { noop } from 'lodash';
-
-/**
- * Internal dependencies
- */
 import TooltipBase from './tooltip-base';
 
 const Tooltip = ( { isVisible, onHide = noop, ...props } ) => {

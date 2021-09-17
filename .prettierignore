@@ -1,0 +1,12 @@
+bin
+build
+assets/js
+dist
+docker
+node_modules
+release
+vendor
+wordpress_org_assets
+
+tests/e2e/docker
+tests/e2e/deps
