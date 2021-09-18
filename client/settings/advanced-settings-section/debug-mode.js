@@ -1,15 +1,7 @@
-/**
- * External dependencies
- */
+import { __ } from '@wordpress/i18n';
 import React, { useEffect, useRef } from 'react';
 import { CheckboxControl } from '@wordpress/components';
-import { __ } from '@wordpress/i18n';
-
-/**
- * Internal dependencies
- */
-import { useDevMode } from './data-mock';
-import { useDebugLog } from 'wcstripe/data';
+import { useDevMode, useDebugLog } from './data-mock';
 
 const DebugMode = () => {
 	const isDevModeEnabled = useDevMode();

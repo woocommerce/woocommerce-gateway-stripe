@@ -4,10 +4,6 @@
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-
-/**
- * Internal dependencies
- */
 import PaymentRequestSection from '..';
 import {
 	usePaymentRequestEnabledSettings,
@@ -35,7 +31,10 @@ const getMockPaymentRequestLocations = (
 
 describe( 'PaymentRequestSection', () => {
 	beforeEach( () => {
-		usePaymentRequestEnabledSettings.mockReturnValue( [ false, jest.fn() ] );
+		usePaymentRequestEnabledSettings.mockReturnValue( [
+			false,
+			jest.fn(),
+		] );
 		usePaymentRequestLocations.mockReturnValue(
 			getMockPaymentRequestLocations( true, true, true, jest.fn() )
 		);
@@ -63,7 +62,10 @@ describe( 'PaymentRequestSection', () => {
 	} );
 
 	it( 'should disable express checkout locations when express checkout is disabled', () => {
-		usePaymentRequestEnabledSettings.mockReturnValue( [ false, jest.fn() ] );
+		usePaymentRequestEnabledSettings.mockReturnValue( [
+			false,
+			jest.fn(),
+		] );
 
 		render( <PaymentRequestSection /> );
 
@@ -87,7 +89,10 @@ describe( 'PaymentRequestSection', () => {
 
 	it( 'should dispatch enabled status update if express checkout is being toggled', async () => {
 		const updateIsPaymentRequestEnabledHandler = jest.fn();
-		usePaymentRequestEnabledSettings.mockReturnValue( [ false, updateIsPaymentRequestEnabledHandler ] );
+		usePaymentRequestEnabledSettings.mockReturnValue( [
+			false,
+			updateIsPaymentRequestEnabledHandler,
+		] );
 
 		render( <PaymentRequestSection /> );
 

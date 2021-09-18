@@ -1,20 +1,17 @@
-/**
- * External dependencies
- */
 import React, { useEffect, useContext } from 'react';
 import { render, waitFor } from '@testing-library/react';
 import apiFetch from '@wordpress/api-fetch';
-
-/**
- * Internal dependencies
- */
-
 import UpeToggleContextProvider from '../provider';
 import UpeToggleContext from '../context';
 import { recordEvent } from 'wcstripe/tracking';
 
 jest.mock( '@wordpress/api-fetch', () => jest.fn() );
 jest.mock( 'wcstripe/tracking', () => ( { recordEvent: jest.fn() } ) );
+jest.mock( '@wordpress/data', () => ( {
+	useDispatch: jest.fn().mockReturnValue( {
+		invalidateResolutionForStoreSelector: () => null,
+	} ),
+} ) );
 
 describe( 'UpeToggleContextProvider', () => {
 	afterEach( () => {

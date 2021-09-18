@@ -1,15 +1,11 @@
-/**
- * External dependencies
- */
 import { __ } from '@wordpress/i18n';
-
-/**
- * Internal dependencies
- */
 import CreditCardIcon from './payment-method-icons/cards';
 import GiropayIcon from './payment-method-icons/giropay';
 import SofortIcon from './payment-method-icons/sofort';
 import SepaIcon from './payment-method-icons/sepa';
+import EpsIcon from './payment-method-icons/eps';
+import BancontactIcon from './payment-method-icons/bancontact';
+import IdealIcon from './payment-method-icons/ideal';
 
 export default {
 	card: {
@@ -50,6 +46,36 @@ export default {
 			'woocommerce-gateway-stripe'
 		),
 		Icon: SofortIcon,
+		currencies: [ 'EUR' ],
+	},
+	eps: {
+		id: 'eps',
+		label: __( 'EPS', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'EPS is an Austria-based payment method that allows customers to complete transactions online using their bank credentials.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: EpsIcon,
+		currencies: [ 'EUR' ],
+	},
+	bancontact: {
+		id: 'bancontact',
+		label: __( 'Bancontact', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Bancontact is the most popular online payment method in Belgium, with over 15 million cards in circulation.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: BancontactIcon,
+		currencies: [ 'EUR' ],
+	},
+	ideal: {
+		id: 'ideal',
+		label: __( 'iDEAL', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'iDEAL is a Netherlands-based payment method that allows customers to complete transactions online using their bank credentials.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: IdealIcon,
 		currencies: [ 'EUR' ],
 	},
 };

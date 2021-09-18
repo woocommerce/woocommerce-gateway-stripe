@@ -9,9 +9,6 @@
  * @typedef {import('@woocommerce/type-defs/billing').BillingData} CartBillingAddress
  */
 
-/**
- * Internal dependencies
- */
 import { getStripeServerData } from './utils';
 
 /**

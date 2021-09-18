@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-
-/**
- * Internal dependencies
- */
 import SectionStatus from '..';
 
 describe( 'SectionStatus', () => {

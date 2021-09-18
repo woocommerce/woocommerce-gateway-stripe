@@ -1,5 +1,3 @@
-/** @format */
-
 const EMPTY_OBJ = {};
 
 const getSettingsState = ( state ) => {

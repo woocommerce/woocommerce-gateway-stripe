@@ -1,14 +1,11 @@
-/**
- * External dependencies
- */
 import { useSelect, useDispatch } from '@wordpress/data';
 import { renderHook, act } from '@testing-library/react-hooks';
-
-/**
- * Internal dependencies
- */
-
-import { useSettings, usePaymentRequestEnabledSettings, usePaymentRequestLocations, usePaymentRequestButtonTheme } from '../hooks';
+import {
+	useSettings,
+	usePaymentRequestEnabledSettings,
+	usePaymentRequestButtonTheme,
+	usePaymentRequestLocations,
+} from '../hooks';
 import { STORE_NAME } from '../../constants';
 
 jest.mock( '@wordpress/data' );
@@ -139,7 +136,7 @@ describe( 'Settings hooks tests', () => {
 			selectors = {
 				getSettings: jest.fn( () => ( {
 					payment_request_enabled_locations: locationsBeforeUpdate,
-				} ) )
+				} ) ),
 			};
 
 			const [
@@ -157,12 +154,14 @@ describe( 'Settings hooks tests', () => {
 
 		test( 'returns [] if setting is missing', () => {
 			selectors = {
-				getSettings: jest.fn( () => ( {} ) )
+				getSettings: jest.fn( () => ( {} ) ),
 			};
 
 			const [ paymentRequestLocations ] = usePaymentRequestLocations();
 
 			expect( paymentRequestLocations ).toEqual( [] );
+		} );
+	} );
 
 	describe( 'usePaymentRequestButtonTheme()', () => {
 		test( 'returns the value of getSettings().payment_request_button_theme', () => {

@@ -1,9 +1,6 @@
-/**
- * External dependencies
- */
-import React, { useState } from 'react';
-import styled from '@emotion/styled';
 import { __ } from '@wordpress/i18n';
+import React from 'react';
+import styled from '@emotion/styled';
 import {
 	Button,
 	Card,
@@ -12,10 +9,6 @@ import {
 } from '@wordpress/components';
 import { addQueryArgs } from '@wordpress/url';
 import interpolateComponents from 'interpolate-components';
-
-/**
- * Internal dependencies
- */
 import CardBody from '../card-body';
 import {
 	usePaymentRequestEnabledSettings,

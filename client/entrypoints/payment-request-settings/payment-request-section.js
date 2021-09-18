@@ -1,24 +1,16 @@
-/**
- * External dependencies
- */
-import React, { useMemo } from 'react';
 import { __ } from '@wordpress/i18n';
+import React, { useMemo } from 'react';
 import { Card, RadioControl } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-
+import PaymentRequestButtonPreview from './payment-request-button-preview';
 import {
 	usePaymentRequestButtonType,
 	usePaymentRequestButtonSize,
 	usePaymentRequestButtonTheme,
 } from 'wcstripe/data';
-
-/**
- * Internal dependencies
- */
 import CardBody from 'wcstripe/settings/card-body';
-import PaymentRequestButtonPreview from './payment-request-button-preview';
 // This will be used once we have data persistence.
 // import { getPaymentRequestData } from '../../payment-request/utils';
 
