@@ -685,7 +685,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param WC_Order $order The renewal order.
 	 * @param stdClass $intent The Payment Intent object.
 	 */
-	protected function maybe_process_subscription_early_renewal( $order, $intent ) {
+	protected function maybe_process_subscription_early_renewal_success( $order, $intent ) {
 		if ( $this->is_subscriptions_enabled() && isset( $_GET['early_renewal'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			wcs_update_dates_after_early_renewal( wcs_get_subscription( $order->get_meta( '_subscription_renewal' ) ), $order );
 			wc_add_notice( __( 'Your early renewal order was successful.', 'woocommerce-gateway-stripe' ), 'success' );
@@ -698,7 +698,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param WC_Order $order The renewal order.
 	 * @param stdClass $intent The Payment Intent object (unused).
 	 */
-	protected function maybe_process_subscription_early_failure( $order, $intent ) {
+	protected function maybe_process_subscription_early_renewal_failure( $order, $intent ) {
 		if ( $this->is_subscriptions_enabled() && isset( $_GET['early_renewal'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			$order->delete( true );
 			wc_add_notice( __( 'Payment authorization for the renewal order was unsuccessful, please try again.', 'woocommerce-gateway-stripe' ), 'error' );
