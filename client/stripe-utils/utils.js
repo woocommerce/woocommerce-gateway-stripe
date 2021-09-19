@@ -2,6 +2,9 @@
 
 import { __ } from '@wordpress/i18n';
 import { errorTypes, errorCodes } from './constants';
+/* eslint-disable @woocommerce/dependency-group */
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+/* eslint-enable */
 
 /**
  * @typedef {import('./type-defs').StripeServerData} StripeServerData
@@ -56,7 +59,8 @@ export const createPaymentRequestUsingCart = ( stripe, cart ) => {
 		country: cart.order_data.country_code,
 		requestPayerName: true,
 		requestPayerEmail: true,
-		requestPayerPhone: getStripeServerData()?.checkout?.needs_payer_phone,
+		requestPayerPhone: getBlocksConfiguration()?.checkout
+			?.needs_payer_phone,
 		requestShipping: cart.shipping_required ? true : false,
 		displayItems: cart.order_data.displayItems,
 	};
