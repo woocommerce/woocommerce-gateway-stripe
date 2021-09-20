@@ -4,7 +4,7 @@ import { CardBody } from '@wordpress/components';
 export default styled( CardBody )`
 	// increasing the specificity of the styles to override the Gutenberg ones
 	&.is-size-medium.is-size-medium {
-		padding: $grid-unit-30;
+		padding: 24px;
 	}
 
 	h4 {

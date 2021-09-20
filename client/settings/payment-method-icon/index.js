@@ -19,7 +19,7 @@ const PaymentMethodIcon = ( { name, showName } ) => {
 				{ 'has-icon-border': name !== 'card' }
 			) }
 		>
-			<Icon />
+			<Icon className="woocommerce-gateway-stripe__payment-method-icon__icon" />
 			{ showName && (
 				<span className="woocommerce-gateway-stripe__payment-method-icon__label">
 					{ label }

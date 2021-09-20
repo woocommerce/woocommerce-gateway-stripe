@@ -21,5 +21,10 @@ class WC_Stripe_UPE_Payment_Method_Eps extends WC_Stripe_UPE_Payment_Method {
 		$this->title                = 'Pay with EPS';
 		$this->is_reusable          = false;
 		$this->supported_currencies = [ 'EUR' ];
+		$this->label                = __( 'EPS', 'woocommerce-gateway-stripe' );
+		$this->description          = __(
+			'EPS is an Austria-based payment method that allows customers to complete transactions online using their bank credentials.',
+			'woocommerce-gateway-stripe'
+		);
 	}
 }
