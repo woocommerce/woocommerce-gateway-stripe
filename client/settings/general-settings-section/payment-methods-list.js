@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import UpeToggleContext from '../upe-toggle/context';
 import PaymentMethodsMap from '../../payment-methods-map';
-import {
-	useEnabledPaymentMethods,
-	useGetAvailablePaymentMethods,
-} from './data-mock';
 import PaymentMethodDescription from './payment-method-description';
+import {
+	useEnabledPaymentMethodIds,
+	useGetAvailablePaymentMethodIds,
+} from 'wcstripe/data';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 
 const List = styled.ul`
@@ -58,8 +58,8 @@ const GeneralSettingsSection = () => {
 	const [
 		enabledPaymentMethods,
 		setEnabledPaymentMethods,
-	] = useEnabledPaymentMethods();
-	const availablePaymentMethods = useGetAvailablePaymentMethods();
+	] = useEnabledPaymentMethodIds();
+	const availablePaymentMethods = useGetAvailablePaymentMethodIds();
 
 	const makeCheckboxChangeHandler = ( method ) => ( hasBeenChecked ) => {
 		if ( hasBeenChecked ) {

@@ -5,13 +5,13 @@ import userEvent from '@testing-library/user-event';
 import DisableUpeConfirmationModal from '../disable-upe-confirmation-modal';
 import UpeToggleContext from '../../upe-toggle/context';
 import {
-	useEnabledPaymentMethods,
-	useGetAvailablePaymentMethods,
-} from '../data-mock';
+	useEnabledPaymentMethodIds,
+	useGetAvailablePaymentMethodIds,
+} from 'wcstripe/data';
 
-jest.mock( '../data-mock', () => ( {
-	useGetAvailablePaymentMethods: jest.fn(),
-	useEnabledPaymentMethods: jest.fn(),
+jest.mock( 'wcstripe/data', () => ( {
+	useGetAvailablePaymentMethodIds: jest.fn(),
+	useEnabledPaymentMethodIds: jest.fn(),
 } ) );
 jest.mock( '@wordpress/data', () => ( {
 	useDispatch: jest.fn(),
@@ -22,8 +22,11 @@ jest.mock( '@wordpress/data', () => ( {
 
 describe( 'DisableUpeConfirmationModal', () => {
 	beforeEach( () => {
-		useGetAvailablePaymentMethods.mockReturnValue( [ 'card', 'giropay' ] );
-		useEnabledPaymentMethods.mockReturnValue( [ [ 'card' ], jest.fn() ] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			'card',
+			'giropay',
+		] );
+		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card' ], jest.fn() ] );
 		useDispatch.mockReturnValue( {} );
 	} );
 
@@ -40,7 +43,7 @@ describe( 'DisableUpeConfirmationModal', () => {
 	} );
 
 	it( 'should not render the list of payment methods when there are multiple payments enabled', () => {
-		useEnabledPaymentMethods.mockReturnValue( [
+		useEnabledPaymentMethodIds.mockReturnValue( [
 			[ 'giropay' ],
 			jest.fn(),
 		] );
