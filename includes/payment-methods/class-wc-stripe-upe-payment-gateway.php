@@ -993,7 +993,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$data['description'] .= '<tr data-upe_method_id="' . $method_id . '">
 					<td class="name" width=""><a href="#" class="wc-payment-gateway-method-title">' . $method_id . '</a><span class="wc-payment-gateway-method-name">&nbsp;–&nbsp;Subtext goes here.</span></td>
 					<td class="status" width="1%"><a class="wc-payment-upe-method-toggle-' . $method_enabled . '" href="#"><span class="woocommerce-input-toggle woocommerce-input-toggle--' . $method_enabled . '" aria-label="The &quot;' . $method_id . '&quot; payment method is currently ' . $method_enabled . '">' . ( 'enabled' === $method_enabled ? 'Yes' : 'No' ) . '</span></a></td>
-					<td class="description" width="">Long description text goes here.</td>
+					<td class="description" width="">' . $this->get_payment_method_description( $method_id ) . '</td>
 				</tr>';
 		}
 
@@ -1002,6 +1002,40 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			<span id="wc_stripe_upe_change_notice" class="hidden">' . __( 'You must save your changes.', 'woocommerce-gateway-stripe' ) . '</span>';
 
 		return $this->generate_title_html( $key, $data );
+	}
+
+	private function get_payment_method_description( $method ) {
+		$description_mapper = [
+			'card' => __(
+				'Let your customers pay with major credit and debit cards without leaving your store.',
+				'woocommerce-gateway-stripe'
+			),
+			'giropay' => __(
+				'Expand your business with giropay — Germany’s second most popular payment system.',
+				'woocommerce-gateway-stripe'
+			),
+			'sepa_debit' => __(
+				'Reach 500 million customers and over 20 million businesses across the European Union.',
+				'woocommerce-gateway-stripe'
+			),
+			'sofort' => __(
+				'Accept secure bank transfers from Austria, Belgium, Germany, Italy, Netherlands, and Spain.',
+				'woocommerce-gateway-stripe'
+			),
+			'eps' => __(
+				'EPS is an Austria-based payment method that allows customers to complete transactions online using their bank credentials.',
+				'woocommerce-gateway-stripe'
+			),
+			'bancontact' => __(
+				'Bancontact is the most popular online payment method in Belgium, with over 15 million cards in circulation.',
+				'woocommerce-gateway-stripe'
+			),
+			'ideal' => __(
+				'iDEAL is a Netherlands-based payment method that allows customers to complete transactions online using their bank credentials.',
+				'woocommerce-gateway-stripe'
+			),
+		];
+		return isset( $description_mapper[ $method ] ) ? $description_mapper[ $method ] : 'Long description text goes here.';
 	}
 
 	/**
