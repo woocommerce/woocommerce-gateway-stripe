@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
-import React, { useContext } from 'react';
 import { __ } from '@wordpress/i18n';
-
-/**
- * Internal dependencies
- */
+import React, { useContext } from 'react';
 import UpeOptInBanner from '../upe-opt-in-banner';
 import UpeToggleContext from '../upe-toggle/context';
 

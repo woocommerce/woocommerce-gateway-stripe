@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
 import { render, screen } from '@testing-library/react';
 import { getQuery } from '@woocommerce/navigation';
-
-/**
- * Internal dependencies
- */
 import SettingsManager from '..';
 
 jest.mock( '@woocommerce/navigation', () => ( {

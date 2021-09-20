@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
 import React, { useContext } from 'react';
 import classNames from 'classnames';
-
-/**
- * Internal dependencies
- */
 import WizardTaskContext from './task/context';
 import './style.scss';
 

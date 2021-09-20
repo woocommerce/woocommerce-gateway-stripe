@@ -3,9 +3,6 @@
  */
 import { StoreOwnerFlow as Base } from 'wc-e2e-page-objects';
 
-/**
- * Internal dependencies
- */
 import WPAdminWCSettingsCheckoutStripe from './wp-admin-wc-settings-checkout-stripe.js';
 
 export default class StoreOwnerFlow extends Base {
@@ -15,8 +12,9 @@ export default class StoreOwnerFlow extends Base {
 
 	openStripeSettings() {
 		return this.open( {
-			path: '/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe',
-			object: WPAdminWCSettingsCheckoutStripe
+			path:
+				'/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe',
+			object: WPAdminWCSettingsCheckoutStripe,
 		} );
 	}
 

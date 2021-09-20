@@ -1,13 +1,6 @@
-/**
- * External dependencies
- */
-import React, { useCallback, useState } from 'react';
 import { __ } from '@wordpress/i18n';
+import React from 'react';
 import { Card, CheckboxControl, TextControl } from '@wordpress/components';
-
-/**
- * Internal dependencies
- */
 import CardBody from '../card-body';
 import TextLengthHelpInputWrapper from './text-length-help-input-wrapper';
 import StatementPreviewsWrapper from './statement-previews-wrapper';

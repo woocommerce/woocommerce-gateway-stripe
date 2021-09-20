@@ -1,15 +1,8 @@
-/**
- * External dependencies
- */
+import { __ } from '@wordpress/i18n';
 import React from 'react';
 import styled from '@emotion/styled';
-import { __ } from '@wordpress/i18n';
 import interpolateComponents from 'interpolate-components';
 import { Button, Card } from '@wordpress/components';
-
-/**
- * Internal dependencies
- */
 import CardBody from '../card-body';
 import StripeBanner from 'wcstripe/components/stripe-banner';
 
@@ -57,7 +50,7 @@ const ButtonWrapper = styled.div`
 	}
 `;
 
-const ConnectStripeAccount = () => (
+const ConnectStripeAccount = ( props ) => (
 	<CardWrapper>
 		<StripeBanner />
 		<CardBody>
@@ -94,8 +87,8 @@ const ConnectStripeAccount = () => (
 			<ButtonWrapper>
 				<Button
 					isPrimary
-					// eslint-disable-next-line no-alert, no-undef
-					onClick={ () => alert( 'Modal will be implemented later' ) }
+					href={ props.oauthUrl }
+					disabled={ ! props.oauthUrl }
 				>
 					{ __(
 						'Create or connect an account',

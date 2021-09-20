@@ -1,39 +1,39 @@
-import '@testing-library/jest-dom'
-import nock from 'nock'
+import '@testing-library/jest-dom';
+import nock from 'nock';
 
-beforeAll(() => {
+beforeAll( () => {
 	// ensures that the tests don't use any real endpoints
-	nock.disableNetConnect()
-})
+	nock.disableNetConnect();
+} );
 
-afterAll(() => {
-	nock.enableNetConnect()
-})
+afterAll( () => {
+	nock.enableNetConnect();
+} );
 
-beforeEach(() => {
-	if (!nock.isActive()) {
-		nock.activate()
+beforeEach( () => {
+	if ( ! nock.isActive() ) {
+		nock.activate();
 	}
-})
+} );
 
-afterEach(() => {
-	function cleanup () {
-		jest.clearAllTimers()
-		nock.cleanAll()
-		nock.restore()
-	}
-
-	if (nock.isDone()) {
-		cleanup()
-		return
+afterEach( () => {
+	function cleanup() {
+		jest.clearAllTimers();
+		nock.cleanAll();
+		nock.restore();
 	}
 
-	const pendingMockedRequests = [...nock.pendingMocks()]
-	cleanup()
+	if ( nock.isDone() ) {
+		cleanup();
+		return;
+	}
 
-	const nockError = `A test case completed with some requests that have not been queried:\n\n ${pendingMockedRequests.join(
+	const pendingMockedRequests = [ ...nock.pendingMocks() ];
+	cleanup();
+
+	const nockError = `A test case completed with some requests that have not been queried:\n\n ${ pendingMockedRequests.join(
 		' | '
-	)}`
+	) }`;
 
-	throw new Error(nockError)
-})
+	throw new Error( nockError );
+} );

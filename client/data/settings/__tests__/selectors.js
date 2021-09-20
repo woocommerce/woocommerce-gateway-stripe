@@ -1,6 +1,3 @@
-/**
- * Internal dependencies
- */
 import { getSettings, isSavingSettings } from '../selectors';
 
 describe( 'Settings selectors tests', () => {

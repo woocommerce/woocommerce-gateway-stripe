@@ -1,12 +1,4 @@
-/** @format */
-/**
- * External dependencies
- */
 import React from 'react';
-
-/**
- * Internal dependencies
- */
 import { useSettings } from '../data';
 import { LoadableBlock } from '../components/loadable';
 

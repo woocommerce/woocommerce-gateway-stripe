@@ -1,15 +1,6 @@
-/** @format */
-
-/**
- * External dependencies
- */
 import { dispatch } from '@wordpress/data';
-import { apiFetch } from '@wordpress/data-controls';
 import { __ } from '@wordpress/i18n';
-
-/**
- * Internal dependencies
- */
+import { apiFetch } from '@wordpress/data-controls';
 import { NAMESPACE } from '../constants';
 import { updateSettings } from './actions';
 

@@ -1,19 +1,12 @@
-/**
- * External dependencies
- */
 import { getSetting } from '@woocommerce/settings';
-
-/**
- * Internal dependencies
- */
-import { PAYMENT_METHOD_NAME } from './constants';
-import { PaymentRequestExpress } from './payment-request-express';
-import { applePayImage } from './apple-pay-preview';
 import {
 	getStripeServerData,
 	loadStripe,
 	createPaymentRequestUsingCart,
 } from '../../stripe-utils';
+import { PAYMENT_METHOD_NAME } from './constants';
+import { PaymentRequestExpress } from './payment-request-express';
+import { applePayImage } from './apple-pay-preview';
 
 const ApplePayPreview = () => <img src={ applePayImage } alt="" />;
 

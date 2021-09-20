@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-
-/**
- * Internal dependencies
- */
 import TextLengthHelpInputWrapper from '../text-length-help-input-wrapper';
 
 describe( 'TextLengthHelpInputWrapper', () => {
