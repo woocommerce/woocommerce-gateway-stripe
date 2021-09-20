@@ -66,9 +66,13 @@ const ContinueButton = ( { paymentMethodsState } ) => {
 		[ paymentMethodsState ]
 	);
 
-	const unCheckedPaymentMethods = Object.entries( paymentMethodsState )
-		.map( ( [ method, enabled ] ) => ! enabled && method )
-		.filter( Boolean );
+	const unCheckedPaymentMethods = useMemo(
+		() =>
+			Object.entries( paymentMethodsState )
+				.map( ( [ method, enabled ] ) => ! enabled && method )
+				.filter( Boolean ),
+		[ paymentMethodsState ]
+	);
 
 	const handleContinueClick = useCallback( () => {
 		// creating a separate callback, so that the main thread isn't blocked on click of the button

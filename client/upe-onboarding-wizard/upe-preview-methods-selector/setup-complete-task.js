@@ -21,14 +21,9 @@ const SetupCompleteMessaging = () => {
 	}
 
 	// we need to check that the type of `enableUpePreviewPayload` is an object - it can also just be `true` or `undefined`
-	let addedPaymentMethodsCount = 0;
-	if (
-		typeof enableUpePreviewPayload === 'object' &&
-		enableUpePreviewPayload.initialMethods
-	) {
-		const { initialMethods } = enableUpePreviewPayload;
-		addedPaymentMethodsCount = enabledMethodsCount - initialMethods.length;
-	}
+	const addedPaymentMethodsCount =
+		enabledMethodsCount -
+		( enableUpePreviewPayload.initialMethods?.length ?? 0 );
 
 	// can't just check for "0", some methods could have been disabled
 	if ( addedPaymentMethodsCount <= 0 ) {
