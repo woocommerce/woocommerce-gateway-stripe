@@ -11,7 +11,6 @@ import './style.scss';
 
 const SetupCompleteMessaging = () => {
 	const [ enabledPaymentMethods ] = useEnabledPaymentMethodIds();
-	const enabledMethodsCount = enabledPaymentMethods.length;
 
 	const { completedTasks } = useContext( WizardContext );
 	const enableUpePreviewPayload = completedTasks[ 'add-payment-methods' ];
@@ -20,8 +19,10 @@ const SetupCompleteMessaging = () => {
 		return null;
 	}
 
-	const addedPaymentMethodsCount =
-		enabledMethodsCount - enableUpePreviewPayload.initialMethods.length;
+	const addedPaymentMethodsCount = enabledPaymentMethods.filter(
+		( method ) =>
+			! enableUpePreviewPayload.initialMethods.includes( method )
+	).length;
 
 	// can't just check for "0", some methods could have been disabled
 	if ( addedPaymentMethodsCount <= 0 ) {
@@ -33,7 +34,7 @@ const SetupCompleteMessaging = () => {
 		/* translators: %s: the number of payment methods added */
 		_n(
 			'Setup complete! One new payment method is now live on your store!',
-			'Setup complete! %s new payment methods are now live on your store!',
+			'Setup complete! %d new payment methods are now live on your store!',
 			addedPaymentMethodsCount,
 			'woocommerce-gateway-stripe'
 		),

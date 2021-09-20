@@ -90,7 +90,7 @@ describe( 'SetupComplete', () => {
 		);
 	} );
 
-	it( 'renders setup complete messaging when context value says that more than one payment method has been added', () => {
+	it( 'renders setup complete messaging when context value says that some methods have been added and some have been removed', () => {
 		useEnabledPaymentMethodIds.mockReturnValue( [
 			[ 'card', 'giropay', 'sofort', 'sepa_debit' ],
 			() => null,
@@ -100,7 +100,7 @@ describe( 'SetupComplete', () => {
 				value={ {
 					completedTasks: {
 						'add-payment-methods': {
-							initialMethods: [ 'card' ],
+							initialMethods: [ 'card', 'ideal', 'eps' ],
 						},
 					},
 				} }
