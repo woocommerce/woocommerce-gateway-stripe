@@ -157,14 +157,12 @@ const PaymentsAndTransactionsSection = () => {
 							className="shortened-bank-statement"
 						/>
 					) }
-					{
-						<StatementPreview
-							icon="bank"
-							title={ translatedFullBankPreviewTitle }
-							text={ accountStatementDescriptor }
-							className="full-bank-statement"
-						/>
-					}
+					<StatementPreview
+						icon="bank"
+						title={ translatedFullBankPreviewTitle }
+						text={ accountStatementDescriptor }
+						className="full-bank-statement"
+					/>
 				</StatementPreviewsWrapper>
 			</CardBody>
 		</Card>
