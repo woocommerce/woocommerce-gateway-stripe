@@ -251,8 +251,8 @@ if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && ! WC_Stripe_Helper::is
 			'default' => [ 'card' ],
 		];
 	}
-	// Insert UPE options below the 'description' setting.
-	$stripe_settings = array_merge( array_splice( $stripe_settings, 0, array_search( 'description', array_keys( $stripe_settings ), true ) + 1 ), $upe_settings, $stripe_settings );
+	// Insert UPE options below the 'logging' setting.
+	$stripe_settings = array_merge( $stripe_settings, $upe_settings );
 
 	// in the new settings, "checkout" is going to be enabled by default (if it is a new WCStripe installation).
 	$stripe_settings['payment_request_button_locations']['default'][] = 'checkout';
