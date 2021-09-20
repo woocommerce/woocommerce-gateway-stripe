@@ -451,6 +451,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					$order
 				);
 			}
+		} else {
+			$gateway = new WC_Gateway_Stripe();
+			return $gateway->process_payment( $order_id );
 		}
 
 		return [
