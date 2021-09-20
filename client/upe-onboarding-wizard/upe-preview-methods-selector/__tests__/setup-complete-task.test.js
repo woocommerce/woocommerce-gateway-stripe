@@ -16,7 +16,7 @@ describe( 'SetupComplete', () => {
 		] );
 	} );
 
-	it( 'renders setup complete messaging when context value is undefined', () => {
+	it( 'should not render setup complete messaging when context value is undefined', () => {
 		render(
 			<WizardContext.Provider value={ { completedTasks: {} } }>
 				<WizardTaskContext.Provider value={ { isActive: true } }>
