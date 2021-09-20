@@ -132,15 +132,16 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 * Returns boolean dependent on whether payment method
 	 * can be used at checkout
 	 *
+	 * @param int|null $order_id
 	 * @return bool
 	 */
-	public function is_enabled_at_checkout() {
+	public function is_enabled_at_checkout( $order_id = null ) {
 		$currencies = $this->get_supported_currencies();
 		if ( ! empty( $currencies ) && ! in_array( get_woocommerce_currency(), $currencies, true ) ) {
 			return false;
 		}
-
-		if ( $this->is_subscription_item_in_cart() ) {
+		// If cart or order contains subscription, enable payment method if it's reusable.
+		if ( $this->is_subscription_item_in_cart() || ( ! empty( $order_id ) && $this->has_subscription( $order_id ) ) ) {
 			return $this->is_reusable();
 		}
 		return true;

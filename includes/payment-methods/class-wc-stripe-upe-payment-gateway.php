@@ -319,12 +319,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Returns the list of enabled payment method types that will function with the current checkout.
 	 *
+	 * @param int|null $order_id
 	 * @return string[]
 	 */
-	public function get_upe_enabled_at_checkout_payment_method_ids() {
+	public function get_upe_enabled_at_checkout_payment_method_ids( $order_id = null ) {
 		$available_method_ids = [];
 		foreach ( $this->get_upe_enabled_payment_method_ids() as $payment_method_id ) {
-			if ( isset( $this->payment_methods[ $payment_method_id ] ) && $this->payment_methods[ $payment_method_id ]->is_enabled_at_checkout() ) {
+			if ( isset( $this->payment_methods[ $payment_method_id ] ) && $this->payment_methods[ $payment_method_id ]->is_enabled_at_checkout( $order_id ) ) {
 				$available_method_ids[] = $payment_method_id;
 			}
 		}
