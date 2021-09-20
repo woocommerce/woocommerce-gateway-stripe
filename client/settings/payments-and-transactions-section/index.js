@@ -44,6 +44,10 @@ const PaymentsAndTransactionsSection = () => {
 		setShortAccountStatementDescriptor,
 	] = useShortAccountStatementDescriptor();
 
+	const translatedFullBankPreviewTitle = isShortAccountStatementEnabled
+		? __( 'All Other Payment Methods', 'woocommerce-gateway-stripe' )
+		: __( 'All Payment Methods', 'woocommerce-gateway-stripe' );
+
 	return (
 		<Card className="transactions-and-deposits">
 			<CardBody>
@@ -163,10 +167,7 @@ const PaymentsAndTransactionsSection = () => {
 					{
 						<StatementPreview
 							icon="bank"
-							title={ __(
-								'All Payment Methods',
-								'woocommerce-gateway-stripe'
-							) }
+							title={ translatedFullBankPreviewTitle }
 							text={ accountStatementDescriptor }
 							className="full-bank-statement"
 						/>
