@@ -1,70 +1,147 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import WizardTaskContext from '../../wizard/task/context';
 import AddPaymentMethodsTask from '../add-payment-methods-task';
+import WCPaySettingsContext from '../../../settings/wcpay-settings-context';
+import {
+	useGetAvailablePaymentMethodIds,
+	useEnabledPaymentMethodIds,
+	useSettings,
+} from 'wcstripe/data';
+
+jest.mock( 'wcstripe/data', () => ( {
+	useGetAvailablePaymentMethodIds: jest.fn(),
+	useEnabledPaymentMethodIds: jest.fn(),
+	useSettings: jest.fn(),
+	useCurrencies: jest.fn(),
+} ) );
+
+const SettingsContextProvider = ( { children } ) => (
+	<WCPaySettingsContext.Provider
+		value={ { featureFlags: { multiCurrency: true }, accountFees: {} } }
+	>
+		{ children }
+	</WCPaySettingsContext.Provider>
+);
 
 describe( 'AddPaymentMethodsTask', () => {
-	it( 'should proceed to step 3 by clicking "Add payment methods" button', async () => {
-		const setCompletedMock = jest.fn();
+	beforeEach( () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			'card',
+			'bancontact',
+			'giropay',
+			'p24',
+			'ideal',
+			'sepa_debit',
+			'sofort',
+		] );
+		useSettings.mockReturnValue( {
+			saveSettings: () => Promise.resolve( true ),
+			isSaving: false,
+			isLoading: false,
+		} );
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ 'card' ],
+			() => null,
+		] );
+	} );
 
+	it( 'should not allow to move forward if no payment methods are selected', () => {
+		const setCompletedMock = jest.fn();
+		useEnabledPaymentMethodIds.mockReturnValue( [ [], () => null ] );
 		render(
-			<WizardTaskContext.Provider
-				value={ { setCompleted: setCompletedMock } }
-			>
-				<AddPaymentMethodsTask />
-			</WizardTaskContext.Provider>
+			<SettingsContextProvider>
+				<WizardTaskContext.Provider
+					value={ { setCompleted: setCompletedMock, isActive: true } }
+				>
+					<AddPaymentMethodsTask />
+				</WizardTaskContext.Provider>
+			</SettingsContextProvider>
 		);
 
-		expect( setCompletedMock ).not.toHaveBeenCalled();
+		expect( screen.getByText( 'Add payment methods' ) ).not.toBeEnabled();
+	} );
+
+	it( 'should move forward when the payment methods are selected', async () => {
+		const setCompletedMock = jest.fn();
+		const updateEnabledPaymentMethodsMock = jest.fn();
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ 'card' ],
+			updateEnabledPaymentMethodsMock,
+		] );
+		render(
+			<SettingsContextProvider>
+				<WizardTaskContext.Provider
+					value={ { setCompleted: setCompletedMock, isActive: true } }
+				>
+					<AddPaymentMethodsTask />
+				</WizardTaskContext.Provider>
+			</SettingsContextProvider>
+		);
+
+		expect( screen.getByText( 'Add payment methods' ) ).toBeEnabled();
+		expect(
+			screen.queryByRole( 'checkbox', { name: /Credit/ } )
+		).toBeChecked();
+
+		userEvent.click( screen.getByRole( 'checkbox', { name: 'giropay' } ) );
 
 		userEvent.click( screen.getByText( 'Add payment methods' ) );
 
-		expect( setCompletedMock ).toHaveBeenCalledWith(
-			true,
-			'setup-complete'
+		expect( updateEnabledPaymentMethodsMock ).toHaveBeenCalledWith( [
+			'card',
+			'giropay',
+		] );
+		await waitFor( () =>
+			expect( setCompletedMock ).toHaveBeenCalledWith(
+				{ initialMethods: [ 'card' ] },
+				'setup-complete'
+			)
 		);
 	} );
 
-	it( 'should have "Credit card/debit card" check as default payment method', async () => {
+	it( 'should remove the un-checked payment methods, if they were present before', async () => {
 		const setCompletedMock = jest.fn();
+		const updateEnabledPaymentMethodsMock = jest.fn();
+		const initialMethods = [ 'card', 'giropay' ];
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			initialMethods,
+			updateEnabledPaymentMethodsMock,
+		] );
 		render(
-			<WizardTaskContext.Provider
-				value={ { setCompleted: setCompletedMock } }
-			>
-				<AddPaymentMethodsTask />
-			</WizardTaskContext.Provider>
+			<SettingsContextProvider>
+				<WizardTaskContext.Provider
+					value={ { setCompleted: setCompletedMock, isActive: true } }
+				>
+					<AddPaymentMethodsTask />
+				</WizardTaskContext.Provider>
+			</SettingsContextProvider>
 		);
 
 		expect(
-			screen.getByRole( 'checkbox', { name: 'Credit card / debit card' } )
+			screen.getByRole( 'checkbox', { name: 'giropay' } )
 		).toBeChecked();
-	} );
+		expect(
+			screen.getByRole( 'checkbox', { name: /Credit/ } )
+		).toBeChecked();
 
-	it( 'should click the payment method text and check its checkbox', async () => {
-		const paymentMethodNames = [
-			'giropay',
-			'Sofort',
-			'Direct debit payment',
-		];
+		// uncheck a method
+		userEvent.click( screen.getByRole( 'checkbox', { name: 'giropay' } ) );
 
-		const setCompletedMock = jest.fn();
-		render(
-			<WizardTaskContext.Provider
-				value={ { setCompleted: setCompletedMock } }
-			>
-				<AddPaymentMethodsTask />
-			</WizardTaskContext.Provider>
+		userEvent.click( screen.getByText( 'Add payment methods' ) );
+
+		// Methods are removed.
+		expect( updateEnabledPaymentMethodsMock ).toHaveBeenCalledWith( [
+			'card',
+		] );
+		await waitFor( () =>
+			expect( setCompletedMock ).toHaveBeenCalledWith(
+				{
+					initialMethods: [ 'card', 'giropay' ],
+				},
+				'setup-complete'
+			)
 		);
-
-		paymentMethodNames.forEach( function ( paymentMethodName ) {
-			userEvent.click( screen.getByLabelText( paymentMethodName ) );
-		} );
-
-		paymentMethodNames.forEach( function ( paymentMethodName ) {
-			expect(
-				screen.getByRole( 'checkbox', { name: paymentMethodName } )
-			).toBeChecked();
-		} );
 	} );
 } );

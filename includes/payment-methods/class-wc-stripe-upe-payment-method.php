@@ -30,6 +30,20 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	protected $title;
 
 	/**
+	 * Method label
+	 *
+	 * @var string
+	 */
+	protected $label;
+
+	/**
+	 * Method description
+	 *
+	 * @var string
+	 */
+	protected $description;
+
+	/**
 	 * Can payment method be saved or reused?
 	 *
 	 * @var bool
@@ -92,6 +106,24 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 */
 	public function get_title( $payment_details = false ) {
 		return $this->title;
+	}
+
+	/**
+	 * Returns payment method label
+	 *
+	 * @return string
+	 */
+	public function get_label() {
+		return $this->label;
+	}
+
+	/**
+	 * Returns payment method description
+	 *
+	 * @return string
+	 */
+	public function get_description() {
+		return $this->description;
 	}
 
 	/**

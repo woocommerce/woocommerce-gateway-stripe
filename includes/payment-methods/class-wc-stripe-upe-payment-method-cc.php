@@ -24,6 +24,11 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		$this->stripe_id   = self::STRIPE_ID;
 		$this->title       = 'Credit card / debit card';
 		$this->is_reusable = true;
+		$this->label       = __( 'Credit card / debit card', 'woocommerce-gateway-stripe' );
+		$this->description = __(
+			'Let your customers pay with major credit and debit cards without leaving your store.',
+			'woocommerce-gateway-stripe'
+		);
 	}
 
 	/**
