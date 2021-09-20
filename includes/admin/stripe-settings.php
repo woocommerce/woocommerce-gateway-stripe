@@ -229,10 +229,6 @@ $stripe_settings = apply_filters(
 
 if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && ! WC_Stripe_Helper::is_pre_orders_exists() ) {
 	$upe_settings = [
-		'upe_checkout_experience' => [
-			'title' => __( 'Checkout experience', 'woocommerce-gateway-stripe' ),
-			'type'  => 'title',
-		],
 		WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => [
 			'title'       => __( 'New checkout experience', 'woocommerce-gateway-stripe' ),
 			'label'       => sprintf(
