@@ -49,19 +49,20 @@
 			color: #007cba;
 		}
 	}
-}
 
-.statement-icon-and-title {
-	grid-column: 1/-1;
-	text-transform: uppercase;
-	color: #1e1e1e;
-	display: grid;
-	grid-template-columns: 16px 1fr;
-	grid-gap: 8px;
-	align-items: center;
-	margin-bottom: 12px;
+	.statement-icon-and-title {
+		grid-column: 1/-1;
+		text-transform: uppercase;
+		color: #1e1e1e;
+		display: grid;
+		grid-template-columns: 16px 1fr;
+		grid-gap: 8px;
+		align-items: center;
+		margin-bottom: 12px;
 
-	p {
-		margin: 0;
+		p {
+			margin: 0;
+		}
 	}
 }
+
