@@ -1,7 +1,4 @@
-/** @format */
-
 const EMPTY_OBJ = {};
-const EMPTY_ARR = [];
 
 const getSettingsState = ( state ) => {
 	if ( ! state ) {

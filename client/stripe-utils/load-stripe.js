@@ -1,11 +1,4 @@
-/**
- * External dependencies
- */
 import { loadStripe } from '@stripe/stripe-js';
-
-/**
- * Internal dependencies
- */
 import { getApiKey, getStripeServerData } from './utils';
 
 const stripePromise = () =>

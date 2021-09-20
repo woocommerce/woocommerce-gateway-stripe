@@ -21,6 +21,24 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	protected $retry_interval = 1;
 
 	/**
+	 * Fallback method to be inherited by all payment methods. Stripe UPE will override it.
+	 *
+	 * @return string[]
+	 */
+	public function get_upe_enabled_payment_method_ids() {
+		return [ 'card' ];
+	}
+
+	/**
+	 * Fallback method to be inherited by all payment methods. Stripe UPE will override it.
+	 *
+	 * @return string[]
+	 */
+	public function get_upe_available_payment_methods() {
+		return [ 'card' ];
+	}
+
+	/**
 	 * Displays the admin settings webhook description.
 	 *
 	 * @since 4.1.0
@@ -1051,7 +1069,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		} elseif ( ! empty( $response->id ) ) {
 			$formatted_amount = wc_price( $response->amount / 100 );
-			if ( in_array( strtolower( $order->get_currency() ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
+			if ( in_array( strtolower( $order->get_currency() ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
 				$formatted_amount = wc_price( $response->amount );
 			}
 

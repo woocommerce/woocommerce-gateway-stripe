@@ -1,14 +1,7 @@
-/**
- * External dependencies
- */
-import React from 'react';
 import { useContext } from '@wordpress/element';
 import { __, _n, sprintf } from '@wordpress/i18n';
+import React from 'react';
 import { Button } from '@wordpress/components';
-
-/**
- * Internal dependencies
- */
 import CollapsibleBody from '../wizard/collapsible-body';
 import WizardTaskItem from '../wizard/task-item';
 import WizardContext from '../wizard/wrapper/context';
@@ -18,9 +11,6 @@ import './style.scss';
 
 const SetupCompleteMessaging = () => {
 	const [ enabledPaymentMethods ] = useEnabledPaymentMethodIds();
-	const enabledMethodsCount = enabledPaymentMethods.length;
-	//TODO: Initial payment methods need to be passed down before step 2.
-	const initialMethods = [ 'cards' ];
 
 	const { completedTasks } = useContext( WizardContext );
 	const enableUpePreviewPayload = completedTasks[ 'add-payment-methods' ];
@@ -29,18 +19,21 @@ const SetupCompleteMessaging = () => {
 		return null;
 	}
 
-	const addedPaymentMethodsCount =
-		enabledMethodsCount - initialMethods.length;
+	const addedPaymentMethodsCount = enabledPaymentMethods.filter(
+		( method ) =>
+			! enableUpePreviewPayload.initialMethods.includes( method )
+	).length;
 
 	// can't just check for "0", some methods could have been disabled
 	if ( addedPaymentMethodsCount <= 0 ) {
 		return __( 'Setup complete!', 'woocommerce-gateway-stripe' );
 	}
 
+	// eslint-disable-next-line @wordpress/valid-sprintf
 	return sprintf(
-		/* translators: Number of payment methods */
+		/* translators: %s: the number of payment methods added */
 		_n(
-			'Setup complete! %d new payment method is now live on your store!',
+			'Setup complete! One new payment method is now live on your store!',
 			'Setup complete! %d new payment methods are now live on your store!',
 			addedPaymentMethodsCount,
 			'woocommerce-gateway-stripe'

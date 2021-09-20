@@ -1,6 +1,3 @@
-/**
- * External dependencies
- */
 import tinycolor from 'tinycolor2';
 
 /**

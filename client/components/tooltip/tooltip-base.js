@@ -1,14 +1,8 @@
-/**
- * External dependencies
- */
 import React, { useEffect, useRef, useState, memo } from 'react';
 import { createPortal } from 'react-dom';
 import classNames from 'classnames';
 import { debounce, noop } from 'lodash';
 
-/**
- * Internal dependencies
- */
 import './style.scss';
 
 const rootElement =
@@ -88,7 +82,10 @@ const useHideDelay = (
 		};
 
 		document.addEventListener( 'click', handleDocumentClick );
-		rootElement.addEventListener( 'wcstripe-tooltip-open', handleHideElement );
+		rootElement.addEventListener(
+			'wcstripe-tooltip-open',
+			handleHideElement
+		);
 
 		return () => {
 			document.removeEventListener( 'click', handleDocumentClick );
@@ -189,7 +186,10 @@ const TooltipBase = ( {
 
 	return (
 		<>
-			<div className="wcstripe-tooltip__content-wrapper" ref={ wrapperRef }>
+			<div
+				className="wcstripe-tooltip__content-wrapper"
+				ref={ wrapperRef }
+			>
 				{ children }
 			</div>
 			{ isTooltipVisible && (

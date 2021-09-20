@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
 import React from 'react';
 import styled from '@emotion/styled';
-
-/**
- * Internal dependencies
- */
 import PaymentMethodSetupHelp from './payment-method-setup-help';
 
 const Wrapper = styled.div`
@@ -59,7 +52,9 @@ const PaymentMethodDescription = ( {
 			<div>
 				<LabelWrapper>
 					<Label>{ label }</Label>
-					<PaymentMethodSetupHelp id={ id } />
+					{ id && (
+						<PaymentMethodSetupHelp id={ id } label={ label } />
+					) }
 				</LabelWrapper>
 				<Description>{ description }</Description>
 			</div>

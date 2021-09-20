@@ -1,15 +1,8 @@
-/**
- * External dependencies
- */
 import jQuery from 'jquery';
-
-/**
- * Internal dependencies
- */
-import './style.scss';
 import WCStripeAPI from '../../api';
 import { getStripeServerData, getUPETerms } from '../../stripe-utils';
 import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
+import './style.scss';
 
 jQuery( function ( $ ) {
 	const key = getStripeServerData()?.key;
@@ -468,6 +461,7 @@ jQuery( function ( $ ) {
 				},
 			} );
 			if ( error ) {
+				await api.updateFailedOrder( paymentIntentId, orderId );
 				throw error;
 			}
 		} catch ( error ) {
@@ -552,6 +546,10 @@ jQuery( function ( $ ) {
 				( { error } = await api.getStripe().confirmSetup( upeConfig ) );
 			}
 			if ( error ) {
+				await api.updateFailedOrder(
+					paymentIntentId,
+					response.order_id
+				);
 				throw error;
 			}
 		} catch ( error ) {
@@ -662,22 +660,16 @@ jQuery( function ( $ ) {
 
 	// Add terms parameter to UPE if save payment information checkbox is checked.
 	// This shows required legal mandates when customer elects to save payment method during checkout.
-	$( document ).on(
-		'change',
-		'#wc-stripe-new-payment-method',
-		() => {
-			const value = $( '#wc-stripe-new-payment-method' ).is(
-				':checked'
-			)
-				? 'always'
-				: 'never';
-			if ( isUPEEnabled && upeElement ) {
-				upeElement.update( {
-					terms: getUPETerms( value ),
-				} );
-			}
+	$( document ).on( 'change', '#wc-stripe-new-payment-method', () => {
+		const value = $( '#wc-stripe-new-payment-method' ).is( ':checked' )
+			? 'always'
+			: 'never';
+		if ( isUPEEnabled && upeElement ) {
+			upeElement.update( {
+				terms: getUPETerms( value ),
+			} );
 		}
-	);
+	} );
 
 	// On every page load, check to see whether we should display the authentication
 	// modal and display it if it should be displayed.

@@ -1,14 +1,8 @@
-/**
- * External dependencies
- */
+import { useDispatch } from '@wordpress/data';
 import { useCallback, useMemo, useState } from 'react';
 import apiFetch from '@wordpress/api-fetch';
-
-/**
- * Internal dependencies
- */
 import UpeToggleContext from './context';
-// eslint-disable-next-line @woocommerce/dependency-group,import/no-unresolved
+import { STORE_NAME } from 'wcstripe/data/constants';
 import { recordEvent } from 'wcstripe/tracking';
 
 function trackUpeToggle( isEnabled ) {
@@ -24,6 +18,7 @@ const UpeToggleContextProvider = ( { children, defaultIsUpeEnabled } ) => {
 		Boolean( defaultIsUpeEnabled )
 	);
 	const [ status, setStatus ] = useState( 'resolved' );
+	const { invalidateResolutionForStoreSelector } = useDispatch( STORE_NAME );
 
 	const updateFlag = useCallback(
 		( value ) => {
@@ -38,6 +33,7 @@ const UpeToggleContextProvider = ( { children, defaultIsUpeEnabled } ) => {
 			} )
 				.then( () => {
 					trackUpeToggle( sanitizedValue );
+					invalidateResolutionForStoreSelector( 'getSettings' );
 					setIsUpeEnabled( sanitizedValue );
 					setStatus( 'resolved' );
 				} )
@@ -45,7 +41,7 @@ const UpeToggleContextProvider = ( { children, defaultIsUpeEnabled } ) => {
 					setStatus( 'error' );
 				} );
 		},
-		[ setStatus, setIsUpeEnabled ]
+		[ setStatus, setIsUpeEnabled, invalidateResolutionForStoreSelector ]
 	);
 
 	const contextValue = useMemo(

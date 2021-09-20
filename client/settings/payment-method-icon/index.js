@@ -1,14 +1,7 @@
-/**
- * External dependencies
- */
 import React from 'react';
 import classNames from 'classnames';
-
-/**
- * Internal dependencies
- */
-import './style.scss';
 import paymentMethodsMap from '../../payment-methods-map';
+import './style.scss';
 
 const PaymentMethodIcon = ( { name, showName } ) => {
 	const paymentMethod = paymentMethodsMap[ name ];
@@ -26,7 +19,7 @@ const PaymentMethodIcon = ( { name, showName } ) => {
 				{ 'has-icon-border': name !== 'card' }
 			) }
 		>
-			<Icon />
+			<Icon className="woocommerce-gateway-stripe__payment-method-icon__icon" />
 			{ showName && (
 				<span className="woocommerce-gateway-stripe__payment-method-icon__label">
 					{ label }

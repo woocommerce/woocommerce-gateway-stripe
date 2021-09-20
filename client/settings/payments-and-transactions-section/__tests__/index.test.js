@@ -1,11 +1,4 @@
-/**
- * External dependencies
- */
 import { fireEvent, render, screen } from '@testing-library/react';
-
-/**
- * Internal dependencies
- */
 import PaymentsAndTransactionsSection from '..';
 import {
 	useManualCapture,
@@ -81,5 +74,55 @@ describe( 'PaymentsAndTransactionsSection', () => {
 		expect( updateShortAccountStatementDescriptor ).toHaveBeenCalledWith(
 			'WOOTESTING'
 		);
+	} );
+
+	it( 'shows the full bank statement preview', () => {
+		const updateAccountStatementDescriptor = jest.fn();
+		const mockValue = 'WOOTESTING, LTD';
+		useAccountStatementDescriptor.mockReturnValue( [
+			mockValue,
+			updateAccountStatementDescriptor,
+		] );
+		render( <PaymentsAndTransactionsSection /> );
+
+		expect(
+			document.querySelector(
+				'.full-bank-statement .transaction-detail.description'
+			)
+		).toHaveTextContent( mockValue );
+	} );
+
+	it( 'shows the shortened customer bank statement preview when useShortAccountStatement is true', () => {
+		useShortAccountStatement.mockReturnValue( [ true, jest.fn() ] );
+		const updateShortAccountStatementDescriptor = jest.fn();
+		const mockValue = 'WOOTEST';
+		useShortAccountStatementDescriptor.mockReturnValue( [
+			mockValue,
+			updateShortAccountStatementDescriptor,
+		] );
+		render( <PaymentsAndTransactionsSection /> );
+
+		expect(
+			document.querySelector(
+				'.shortened-bank-statement .transaction-detail.description'
+			)
+		).toHaveTextContent( `${ mockValue }* #123456` );
+	} );
+
+	it( 'should not show the shortened customer bank statement preview when useShortAccountStatement is false', () => {
+		useShortAccountStatement.mockReturnValue( [ false, jest.fn() ] );
+		const updateShortAccountStatementDescriptor = jest.fn();
+		const mockValue = 'WOOTEST';
+		useShortAccountStatementDescriptor.mockReturnValue( [
+			mockValue,
+			updateShortAccountStatementDescriptor,
+		] );
+		render( <PaymentsAndTransactionsSection /> );
+
+		expect(
+			document.querySelector(
+				'.shortened-bank-statement .transaction-detail.description'
+			)
+		).toBe( null );
 	} );
 } );

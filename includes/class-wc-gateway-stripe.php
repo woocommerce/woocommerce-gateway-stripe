@@ -621,6 +621,32 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				// Use the last charge within the intent to proceed.
 				$response = end( $intent->charges->data );
 
+				// If the intent requires a 3DS flow, redirect to it.
+				if ( 'requires_action' === $intent->status ) {
+					$this->unlock_order_payment( $order );
+
+					if ( is_wc_endpoint_url( 'order-pay' ) ) {
+						$redirect_url = add_query_arg( 'wc-stripe-confirmation', 1, $order->get_checkout_payment_url( false ) );
+
+						return [
+							'result'   => 'success',
+							'redirect' => $redirect_url,
+						];
+					} else {
+						/**
+						 * This URL contains only a hash, which will be sent to `checkout.js` where it will be set like this:
+						 * `window.location = result.redirect`
+						 * Once this redirect is sent to JS, the `onHashChange` function will execute `handleCardPayment`.
+						 */
+
+						return [
+							'result'                => 'success',
+							'redirect'              => $this->get_return_url( $order ),
+							'payment_intent_secret' => $intent->client_secret,
+							'save_payment_method'   => $this->save_payment_method_requested(),
+						];
+					}
+				}
 			}
 
 			// Process valid response.
