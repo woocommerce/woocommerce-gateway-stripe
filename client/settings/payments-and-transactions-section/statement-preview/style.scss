@@ -1,0 +1,66 @@
+.statement-preview {
+	display: grid;
+	grid-template-columns: 2.5fr 1fr;
+	border: thin solid #ddd;
+	padding: 12px 11px;
+	font-size: 11px;
+	line-height: 16px;
+	color: #949494;
+	border-radius: 3px 3px 0 0;
+	border-bottom: none;
+	box-shadow: 0 2px 6px rgba( 0, 0, 0, 0.05 );
+	position: relative;
+
+	@media screen and ( max-width: 609px ) {
+		&:not( :last-child ) {
+			margin-bottom: 20px;
+		}
+	}
+
+	@media screen and ( min-width: 800px ) and ( max-width: 1109px ) {
+		&:not( :last-child ) {
+			margin-bottom: 20px;
+		}
+	}
+
+	::after {
+		position: absolute;
+		content: '';
+		bottom: -4px;
+		height: 5px;
+		left: -1px;
+		right: -1px;
+		background: #fff;
+		background: url( "data:image/svg+xml,%3Csvg width='10' height='4' viewBox='0 0 10 4' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3.73815 3.07193L0.591642 0.563133H10.6252L7.47867 3.07192C6.38445 3.94438 4.83237 3.94438 3.73815 3.07193Z' fill='white'/%3E%3Cpath d='M0.903352 0.172189C0.68744 3.64737e-05 0.372851 0.0355107 0.200699 0.251423C0.0285461 0.467335 0.0640203 0.781924 0.279933 0.954076L0.903352 0.172189ZM3.73815 3.07193L3.42644 3.46287L3.42644 3.46287L3.73815 3.07193ZM7.47867 3.07192L7.16696 2.68098L7.16696 2.68098L7.47867 3.07192ZM10.9369 0.954076C11.1528 0.781924 11.1883 0.467335 11.0161 0.251423C10.844 0.0355107 10.5294 3.64709e-05 10.3135 0.172189L10.9369 0.954076ZM0.279933 0.954076L3.42644 3.46287L4.04986 2.68098L0.903352 0.172189L0.279933 0.954076ZM7.79038 3.46287L10.9369 0.954076L10.3135 0.172189L7.16696 2.68098L7.79038 3.46287ZM3.42644 3.46287C4.70303 4.48073 6.51379 4.48073 7.79038 3.46287L7.16696 2.68098C6.25511 3.40802 4.96171 3.40802 4.04986 2.68098L3.42644 3.46287Z' fill='%23DDDDDD'/%3E%3C/svg%3E" );
+		background-repeat: round;
+	}
+
+	hr {
+		grid-column: 1/-1;
+		width: 100%;
+	}
+
+	.transaction-detail {
+		font-weight: bold;
+		color: #757575;
+
+		&.description {
+			color: #007cba;
+		}
+	}
+
+	.statement-icon-and-title {
+		grid-column: 1/-1;
+		text-transform: uppercase;
+		color: #1e1e1e;
+		display: grid;
+		grid-template-columns: 16px 1fr;
+		grid-gap: 8px;
+		align-items: center;
+		margin-bottom: 12px;
+
+		p {
+			margin: 0;
+		}
+	}
+}
