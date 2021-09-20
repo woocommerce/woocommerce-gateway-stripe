@@ -51,3 +51,5 @@ require $_tests_dir . '/includes/bootstrap.php';
 require_once __DIR__ . '/helpers/class-wc-helper-product.php';
 require_once __DIR__ . '/helpers/class-wc-helper-shipping.php';
 require_once __DIR__ . '/helpers/class-wc-helper-order.php';
+require_once __DIR__ . '/helpers/class-wc-helper-token.php';
+require_once __DIR__ . '/helpers/class-wc-helper-static-method-mock.php';
