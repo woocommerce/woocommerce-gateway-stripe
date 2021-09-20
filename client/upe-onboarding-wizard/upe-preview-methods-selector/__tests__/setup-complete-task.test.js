@@ -16,36 +16,6 @@ describe( 'SetupComplete', () => {
 		] );
 	} );
 
-	it( 'should not render setup complete messaging when context value is undefined', () => {
-		render(
-			<WizardContext.Provider value={ { completedTasks: {} } }>
-				<WizardTaskContext.Provider value={ { isActive: true } }>
-					<SetupComplete />
-				</WizardTaskContext.Provider>
-			</WizardContext.Provider>
-		);
-
-		expect(
-			screen.queryByText( /Setup complete/ )
-		).not.toBeInTheDocument();
-	} );
-
-	it( 'renders setup complete messaging when context value is `true`', () => {
-		render(
-			<WizardContext.Provider
-				value={ { completedTasks: { 'add-payment-methods': true } } }
-			>
-				<WizardTaskContext.Provider value={ { isActive: true } }>
-					<SetupComplete />
-				</WizardTaskContext.Provider>
-			</WizardContext.Provider>
-		);
-
-		expect( screen.getByText( /Setup complete/ ) ).toHaveTextContent(
-			'Setup complete!'
-		);
-	} );
-
 	it( 'renders setup complete messaging when context value says that methods have not changed', () => {
 		render(
 			<WizardContext.Provider
