@@ -99,7 +99,7 @@ describe( 'PaymentsAndTransactionsSection', () => {
 		).toHaveTextContent( mockValue );
 	} );
 
-	it( 'shows the shortened customer bank statement preview', () => {
+	it( 'shows the shortened customer bank statement preview when useShortAccountStatement is true', () => {
 		useShortAccountStatement.mockReturnValue( [ true, jest.fn() ] );
 		const updateShortAccountStatementDescriptor = jest.fn();
 		const mockValue = 'WOOTEST';
@@ -114,5 +114,22 @@ describe( 'PaymentsAndTransactionsSection', () => {
 				'.shortened-bank-statement .transaction-detail.description'
 			)
 		).toHaveTextContent( `${ mockValue }* #123456` );
+	} );
+
+	it( 'should not show the shortened customer bank statement preview when useShortAccountStatement is false', () => {
+		useShortAccountStatement.mockReturnValue( [ false, jest.fn() ] );
+		const updateShortAccountStatementDescriptor = jest.fn();
+		const mockValue = 'WOOTEST';
+		useShortAccountStatementDescriptor.mockReturnValue( [
+			mockValue,
+			updateShortAccountStatementDescriptor,
+		] );
+		render( <PaymentsAndTransactionsSection /> );
+
+		expect(
+			document.querySelector(
+				'.shortened-bank-statement .transaction-detail.description'
+			)
+		).toBe( null );
 	} );
 } );
