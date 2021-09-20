@@ -7,7 +7,7 @@ import {
 	useGetAvailablePaymentMethodIds,
 	useEnabledPaymentMethodIds,
 	useSettings,
-} from '../../../data';
+} from 'wcstripe/data';
 import WCPaySettingsContext from '../../../settings/wcpay-settings-context';
 
 jest.mock( 'wcstripe/data', () => ( {
