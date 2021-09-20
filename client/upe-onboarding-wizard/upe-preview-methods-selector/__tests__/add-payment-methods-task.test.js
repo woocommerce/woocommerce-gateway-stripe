@@ -3,12 +3,12 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import WizardTaskContext from '../../wizard/task/context';
 import AddPaymentMethodsTask from '../add-payment-methods-task';
+import WCPaySettingsContext from '../../../settings/wcpay-settings-context';
 import {
 	useGetAvailablePaymentMethodIds,
 	useEnabledPaymentMethodIds,
 	useSettings,
 } from 'wcstripe/data';
-import WCPaySettingsContext from '../../../settings/wcpay-settings-context';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useGetAvailablePaymentMethodIds: jest.fn(),
