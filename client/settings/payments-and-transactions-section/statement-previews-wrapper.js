@@ -8,6 +8,7 @@ const StatementPreviews = styled.div`
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	grid-column-gap: 15px;
+	padding-bottom: 8px;
 
 	> p {
 		grid-column: 1/-1;
