@@ -1,30 +1,29 @@
 .statement-preview {
 	display: grid;
 	grid-template-columns: 2.5fr 1fr;
-	border: thin solid #dddddd;
+	border: thin solid #ddd;
 	padding: 12px 11px;
 	font-size: 11px;
 	line-height: 16px;
 	color: #949494;
 	border-radius: 3px 3px 0 0;
 	border-bottom: none;
-	box-shadow: 0px 2px 6px rgba( 0, 0, 0, 0.05 );
+	box-shadow: 0 2px 6px rgba( 0, 0, 0, 0.05 );
 	position: relative;
 
-
-	@media screen and (max-width: 609px) {
-		&:not(:last-child) {
+	@media screen and ( max-width: 609px ) {
+		&:not( :last-child ) {
 			margin-bottom: 20px;
 		}
 	}
 
-	@media screen and (min-width: 800px) and (max-width: 1109px) {
-		&:not(:last-child) {
+	@media screen and ( min-width: 800px ) and ( max-width: 1109px ) {
+		&:not( :last-child ) {
 			margin-bottom: 20px;
 		}
 	}
 
-	&:after {
+	::after {
 		position: absolute;
 		content: '';
 		bottom: -4px;
@@ -65,4 +64,3 @@
 		}
 	}
 }
-
