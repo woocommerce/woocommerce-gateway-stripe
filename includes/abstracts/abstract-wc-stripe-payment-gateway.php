@@ -721,6 +721,17 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Checks if source is payment method (pm_).
+	 *
+	 * @since x.x.x
+	 * @param string $source_id
+	 * @return bool
+	 */
+	public function is_type_payment_method( $source_id ) {
+		return ( preg_match( '/^pm_/', $source_id ) );
+	}
+
+	/**
 	 * Checks if payment is via saved payment source.
 	 *
 	 * @since 4.1.0
@@ -793,7 +804,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			$source_id = $wc_token->get_token();
 
-			if ( $this->is_type_legacy_card( $source_id ) ) {
+			if ( $this->is_type_legacy_card( $source_id ) || $this->is_type_payment_method( $source_id ) ) {
 				$is_token = true;
 			}
 		} elseif ( isset( $_POST['stripe_token'] ) && 'new' !== $_POST['stripe_token'] ) {
