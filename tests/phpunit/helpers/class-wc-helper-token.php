@@ -39,7 +39,7 @@ class WC_Helper_Token {
 		$token = new WC_Payment_Token_SEPA();
 		$token->set_token( $payment_method );
 		$token->set_gateway_id( $gateway );
-		$token->set_user_id( $user_id ?? get_current_user_id() );
+		$token->set_user_id( is_null( $user_id ) ? get_current_user_id() : $user_id );
 		$token->set_last4( '4269' );
 		$token->save();
 
