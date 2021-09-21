@@ -1,6 +1,8 @@
 import { useSelect, useDispatch } from '@wordpress/data';
 import { renderHook, act } from '@testing-library/react-hooks';
 import {
+	useEnabledPaymentMethodIds,
+	useGetAvailablePaymentMethodIds,
 	useSettings,
 	usePaymentRequestEnabledSettings,
 	usePaymentRequestButtonTheme,
@@ -25,6 +27,81 @@ describe( 'Settings hooks tests', () => {
 		} );
 		useSelect.mockImplementation( ( cb ) => {
 			return cb( selectMock );
+		} );
+	} );
+
+	describe( 'useEnabledPaymentMethodIds()', () => {
+		test( 'returns the value of getSettings().enabled_payment_method_ids', () => {
+			selectors = {
+				getSettings: jest.fn( () => ( {
+					enabled_payment_method_ids: [ 'card' ],
+				} ) ),
+			};
+
+			const { result } = renderHook( () => useEnabledPaymentMethodIds() );
+			const [ value ] = result.current;
+
+			expect( value ).toEqual( [ 'card' ] );
+		} );
+
+		test( 'returns an empty array if setting is missing', () => {
+			selectors = {
+				getSettings: jest.fn( () => ( {} ) ),
+			};
+
+			const { result } = renderHook( () => useEnabledPaymentMethodIds() );
+			const [ value ] = result.current;
+
+			expect( value ).toEqual( [] );
+		} );
+
+		test( 'returns expected action', () => {
+			actions = {
+				updateSettingsValues: jest.fn(),
+			};
+
+			selectors = {
+				getSettings: jest.fn( () => ( {} ) ),
+			};
+
+			const { result } = renderHook( () => useEnabledPaymentMethodIds() );
+			const [ , action ] = result.current;
+
+			act( () => {
+				action( [ 'giropay' ] );
+			} );
+
+			expect( actions.updateSettingsValues ).toHaveBeenCalledWith( {
+				enabled_payment_method_ids: [ 'giropay' ],
+			} );
+		} );
+	} );
+
+	describe( 'useGetAvailablePaymentMethodIds()', () => {
+		test( 'returns the value of getSettings().available_payment_method_ids', () => {
+			selectors = {
+				getSettings: jest.fn( () => ( {
+					available_payment_method_ids: [ 'card' ],
+				} ) ),
+			};
+
+			const { result } = renderHook( () =>
+				useGetAvailablePaymentMethodIds()
+			);
+
+			expect( result.current ).toEqual( [ 'card' ] );
+		} );
+
+		test( 'returns an empty array if setting is missing', () => {
+			selectors = {
+				getSettings: jest.fn( () => ( {} ) ),
+			};
+
+			const { result } = renderHook( () =>
+				useGetAvailablePaymentMethodIds()
+			);
+
+			expect( result.current ).toEqual( [] );
 		} );
 	} );
 

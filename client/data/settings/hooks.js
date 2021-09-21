@@ -131,10 +131,29 @@ export const usePaymentRequestButtonTheme = () => {
 	return [ size, handler ];
 };
 
-//TODO, these should come from an endpoint/ data store.
 export const useEnabledPaymentMethodIds = () => {
-	return [ [ 'card', 'sepa_debit' ], () => ( {} ) ];
+	const { updateSettingsValues } = useDispatch( STORE_NAME );
+
+	const methods = useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
+
+		return getSettings().enabled_payment_method_ids || EMPTY_ARR;
+	} );
+
+	const handler = useCallback(
+		( value ) =>
+			updateSettingsValues( {
+				enabled_payment_method_ids: value,
+			} ),
+		[ updateSettingsValues ]
+	);
+
+	return [ methods, handler ];
 };
-export const useGetAvailablePaymentMethodIds = () => {
-	return [ 'card', 'giropay', 'sofort', 'sepa_debit' ];
-};
+
+export const useGetAvailablePaymentMethodIds = () =>
+	useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
+
+		return getSettings().available_payment_method_ids || EMPTY_ARR;
+	} );

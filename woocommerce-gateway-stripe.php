@@ -191,6 +191,11 @@ function woocommerce_gateway_stripe() {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-settings-controller.php';
 
+					if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && ! WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
+						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-old-settings-upe-toggle-controller.php';
+						new WC_Stripe_Old_Settings_UPE_Toggle_Controller();
+					}
+
 					if ( isset( $_GET['area'] ) && 'payment_requests' === $_GET['area'] ) {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-payment-requests-controller.php';
 						new WC_Stripe_Payment_Requests_Controller();
@@ -220,6 +225,13 @@ function woocommerce_gateway_stripe() {
 				}
 
 				new WC_Stripe_UPE_Compatibility_Controller();
+
+				// Disable UPE if Pre Order extension is active.
+				if ( WC_Stripe_Helper::is_pre_orders_exists() && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+					$stripe_settings = get_option( 'woocommerce_stripe_settings' );
+					$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
+					update_option( 'woocommerce_stripe_settings', $stripe_settings );
+				}
 			}
 
 			/**

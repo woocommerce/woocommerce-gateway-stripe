@@ -1,52 +1,118 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import WizardTaskContext from '../../wizard/task/context';
 import SetupComplete from '../setup-complete-task';
 import WizardContext from '../../wizard/wrapper/context';
+import { useEnabledPaymentMethodIds } from 'wcstripe/data';
+
+jest.mock( 'wcstripe/data', () => ( {
+	useEnabledPaymentMethodIds: jest.fn(),
+} ) );
 
 describe( 'SetupComplete', () => {
-	const renderHelper = ( setCompletedMock ) => {
-		if ( ! setCompletedMock ) {
-			setCompletedMock = jest.fn();
-		}
+	beforeEach( () => {
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ 'card', 'giropay', 'sofort' ],
+			() => null,
+		] );
+	} );
+
+	it( 'renders setup complete messaging when context value says that methods have not changed', () => {
 		render(
 			<WizardContext.Provider
 				value={ {
 					completedTasks: {
-						'add-payment-methods': { initialMethods: [ 'card' ] },
+						'add-payment-methods': {
+							initialMethods: [ 'card', 'giropay', 'sofort' ],
+						},
 					},
 				} }
 			>
-				<WizardTaskContext.Provider
-					value={ { setCompleted: setCompletedMock } }
-				>
+				<WizardTaskContext.Provider value={ { isActive: true } }>
 					<SetupComplete />
 				</WizardTaskContext.Provider>
 			</WizardContext.Provider>
 		);
-	};
 
-	it( 'Clicking "Add payment methods" should redirect back to settings page', async () => {
-		const setCompletedMock = jest.fn();
-		renderHelper( setCompletedMock );
-		expect( setCompletedMock ).not.toHaveBeenCalled();
-
-		expect( screen.getByText( 'Go to Stripe settings' ).href ).toContain(
-			'admin.php?page=wc-settings&tab=checkout&section=stripe'
+		expect( screen.getByText( /Setup complete/ ) ).toHaveTextContent(
+			'Setup complete!'
 		);
 	} );
 
-	it( 'should show the 1 extra payment is selected compared to step 1', async () => {
-		renderHelper();
-		expect(
-			screen.getByText(
-				'Setup complete! 1 new payment method is now live on your store!'
-			)
-		).toBeInTheDocument();
+	it( 'renders setup complete messaging when context value says that one payment method has been removed', () => {
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ 'card', 'sofort' ],
+			() => null,
+		] );
+		render(
+			<WizardContext.Provider
+				value={ {
+					completedTasks: {
+						'add-payment-methods': {
+							initialMethods: [ 'card', 'giropay', 'sofort' ],
+						},
+					},
+				} }
+			>
+				<WizardTaskContext.Provider value={ { isActive: true } }>
+					<SetupComplete />
+				</WizardTaskContext.Provider>
+			</WizardContext.Provider>
+		);
+
+		expect( screen.getByText( /Setup complete/ ) ).toHaveTextContent(
+			'Setup complete!'
+		);
 	} );
 
-	it( 'should have 2 icons displaying after setup is completed', async () => {
-		renderHelper();
-		expect( screen.getAllByRole( 'img' ).length ).toBe( 2 );
+	it( 'renders setup complete messaging when context value says that one payment method has been added', () => {
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ 'card', 'giropay' ],
+			() => null,
+		] );
+		render(
+			<WizardContext.Provider
+				value={ {
+					completedTasks: {
+						'add-payment-methods': {
+							initialMethods: [ 'card' ],
+						},
+					},
+				} }
+			>
+				<WizardTaskContext.Provider value={ { isActive: true } }>
+					<SetupComplete />
+				</WizardTaskContext.Provider>
+			</WizardContext.Provider>
+		);
+
+		expect( screen.getByText( /Setup complete/ ) ).toHaveTextContent(
+			'Setup complete! One new payment method is now live on your store!'
+		);
+	} );
+
+	it( 'renders setup complete messaging when context value says that some methods have been added and some have been removed', () => {
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ 'card', 'giropay', 'sofort', 'sepa_debit' ],
+			() => null,
+		] );
+		render(
+			<WizardContext.Provider
+				value={ {
+					completedTasks: {
+						'add-payment-methods': {
+							initialMethods: [ 'card', 'ideal', 'eps' ],
+						},
+					},
+				} }
+			>
+				<WizardTaskContext.Provider value={ { isActive: true } }>
+					<SetupComplete />
+				</WizardTaskContext.Provider>
+			</WizardContext.Provider>
+		);
+
+		expect( screen.getByText( /Setup complete/ ) ).toHaveTextContent(
+			'Setup complete! 3 new payment methods are now live on your store!'
+		);
 	} );
 } );
