@@ -649,6 +649,9 @@ function wcstripe_deactivated() {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-upe-compatibility.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-compatibility-note.php';
 		WC_Stripe_UPE_Compatibility_Note::possibly_delete_note();
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
+		WC_Stripe_UPE_Availability_Note::possibly_delete_note();
 	}
 }
 register_deactivation_hook( __FILE__, 'wcstripe_deactivated' );
