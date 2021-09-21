@@ -247,7 +247,7 @@ if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && ! WC_Stripe_Helper::is
 	if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 		// This adds the payment method section
 		$upe_settings['upe_checkout_experience_accepted_payments'] = [
-			'title'       => __( 'Payments accepted on checkout (Early access)', 'woocommerce-gateway-stripe' ),
+			'title'   => __( 'Payments accepted on checkout (Early access)', 'woocommerce-gateway-stripe' ),
 			'type'    => 'upe_checkout_experience_accepted_payments',
 			'default' => [ 'card' ],
 		];
