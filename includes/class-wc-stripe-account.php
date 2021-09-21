@@ -13,27 +13,23 @@ class WC_Stripe_Account {
 	const ACCOUNT_OPTION = 'wcstripe_account_data';
 	const ACCOUNT_API    = 'account';
 
-	public function __construct() {
-		self::cache_account();
-	}
-
 	/**
 	 * Gets and caches the data for the account connected to this site.
 	 *
 	 * @return array Account data or empty if failed to retrieve account data.
 	 */
-	public static function get_cached_account_data() {
+	public function get_cached_account_data() {
 		if ( ! woocommerce_gateway_stripe()->connect->is_connected() ) {
 			return [];
 		}
 
-		$account = self::read_account_from_cache();
+		$account = $this->read_account_from_cache();
 
 		if ( ! empty( $account ) ) {
 			return $account;
 		}
 
-		$account = self::cache_account();
+		$account = $this->cache_account();
 		return $account;
 	}
 
@@ -42,50 +38,49 @@ class WC_Stripe_Account {
 	 *
 	 * @return array
 	 */
-	private static function read_account_from_cache() {
-		$account_cache = get_option( self::ACCOUNT_OPTION );
+	private function read_account_from_cache() {
+		$account_cache = json_decode( json_encode( get_transient( self::ACCOUNT_OPTION ) ), true );
+		$settings_options = get_option( 'woocommerce_stripe_settings', [] );
+		$mode             = isset( $settings_options['testmode'] ) && 'yes' === $settings_options['testmode'] ? 'test' : 'live';
 
-		if ( false === $account_cache || ! isset( $account_cache['account'] ) || ! isset( $account_cache['expires'] ) ) {
-			// No option found or the data isn't in the shape we expect.
+		// No data found in transient
+		if ( false === $account_cache ) {
 			return [];
 		}
 
-		// Set $account to empty if the cache has expired, triggering another fetch.
-		if ( $account_cache['expires'] < time() ) {
+		// Current account mode does not match with the cached mode
+		if ( $account_cache['mode'] !== $mode ) {
 			return [];
 		}
 
 		// We have fresh account data in the cache, so return it.
-		return $account_cache['account'];
+		return $account_cache;
 	}
 
 	/**
 	 * Caches account data for a period of time.
 	 */
-	private static function cache_account() {
-		$expiration = 2 * HOUR_IN_SECONDS;
+	private function cache_account() {
+		$expiration       = 2 * HOUR_IN_SECONDS;
+		$settings_options = get_option( 'woocommerce_stripe_settings', [] );
+		$mode             = isset( $settings_options['testmode'] ) && 'yes' === $settings_options['testmode'] ? 'test' : 'live';
 
 		try {
-			$account = WC_Stripe_API::request(
+			$account       = WC_Stripe_API::request(
 				[],
 				self::ACCOUNT_API,
 				'GET'
 			);
+			$account->mode = $mode;
 		} catch ( WC_Stripe_Exception $e ) {
 			return [];
 		}
 
-		// Add the account data and expiry time to the array we're caching.
-		$account_cache            = [];
-		$account_cache['account'] = $account;
-		$account_cache['expires'] = time() + $expiration;
+		// Add the account data and mode to the array we're caching.
+		$account_cache = $account;
 
 		// Create or update the account option cache.
-		if ( false === get_option( self::ACCOUNT_OPTION ) ) {
-			add_option( self::ACCOUNT_OPTION, $account_cache, '', 'no' );
-		} else {
-			update_option( self::ACCOUNT_OPTION, $account_cache, 'no' );
-		}
+		set_transient( self::ACCOUNT_OPTION, $account_cache, $expiration );
 
 		return $account;
 	}
@@ -95,16 +90,16 @@ class WC_Stripe_Account {
 	 *
 	 * @return array Either the new account data or empty if unavailable.
 	 */
-	public static function refresh_account_data() {
-		self::clear_cache();
-		return self::get_cached_account_data();
+	public function refresh_account_data() {
+		$this->clear_cache();
+		return $this->get_cached_account_data();
 	}
 
 	/**
 	 * Wipes the account data option.
 	 */
-	public static function clear_cache() {
-		delete_option( self::ACCOUNT_OPTION );
+	public function clear_cache() {
+		delete_transient( self::ACCOUNT_OPTION );
 	}
 
 	/**
@@ -112,7 +107,7 @@ class WC_Stripe_Account {
 	 *
 	 * @return bool True if account can accept card payments, false otherwise.
 	 */
-	private static function are_payments_enabled( $account ) {
+	private function are_payments_enabled( $account ) {
 		$capabilities = $account['capabilities'] ? $account['capabilities'] : [];
 
 		if ( empty( $capabilities ) ) {
@@ -128,7 +123,7 @@ class WC_Stripe_Account {
 	 * @return bool Returns 'false' if payouts aren't enabled for the (Stripe) account or of there is no
 	 * deposits schedule set.
 	 */
-	private static function are_deposits_enabled( $account ) {
+	private function are_deposits_enabled( $account ) {
 		$are_payouts_enabled = $account['payouts_enabled'] || false;
 		$payout_settings     = $account['settings']['payouts'] ? $account['settings']['payouts'] : [];
 
@@ -144,17 +139,21 @@ class WC_Stripe_Account {
 	 *
 	 * @return array Account status data or empty if failed to retrieve account data.
 	 */
-	public static function get_account_status() {
-		$account = json_decode( json_encode( self::get_cached_account_data() ), true );
+	public function get_account_status() {
+		$account = json_decode( json_encode( $this->get_cached_account_data() ), true );
 
 		if ( empty( $account ) ) {
-			return [];
+			return [
+				'error' => true,
+			];
 		}
+
 		return [
 			'email'           => isset( $account['email'] ) ? $account['email'] : '',
-			'paymentsEnabled' => self::are_payments_enabled( $account ),
-			'depositsEnabled' => self::are_deposits_enabled( $account ),
+			'paymentsEnabled' => $this->are_payments_enabled( $account ),
+			'depositsEnabled' => $this->are_deposits_enabled( $account ),
 			'accountLink'     => 'https://stripe.com/support',
+			'mode'            => $account['mode'],
 		];
 	}
 }

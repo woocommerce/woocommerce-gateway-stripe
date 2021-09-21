@@ -1,4 +1,4 @@
-/* global wc_stripe_admin_settings */
+/* global wc_stripe_settings_params */
 /**
  * External dependencies
  */
@@ -13,6 +13,7 @@ import {
 import { moreVertical } from '@wordpress/icons';
 import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
+import Pill from '../../components/pill';
 import AccountStatus from '../account-details';
 import PaymentsAndTransactionsSection from '../payments-and-transactions-section';
 import AdvancedSettingsSection from '../advanced-settings-section';
@@ -101,14 +102,17 @@ const AccountSettingsDropdownMenu = () => {
 };
 
 const AccountDetailsSection = () => {
-	const accountStatus = wc_stripe_admin_settings.accountStatus;
+	const accountStatus = wc_stripe_settings_params.accountStatus;
 
 	return (
 		<Card className="account-details">
 			<CardHeader className="account-details__header">
-				<h4 className="account-details__header">
-					{ accountStatus.email }
-				</h4>
+				{ accountStatus.email && (
+					<h4 className="account-details__header">
+						{ accountStatus.email }
+					</h4>
+				) }
+				{ accountStatus.mode === 'test' && <Pill>Test Mode</Pill> }
 				<AccountSettingsDropdownMenu />
 			</CardHeader>
 			<CardBody>
