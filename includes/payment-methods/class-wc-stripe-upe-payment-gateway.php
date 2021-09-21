@@ -993,7 +993,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			$subtext_messages     = $method->get_subtext_messages();
 			$data['description'] .= '<tr data-upe_method_id="' . $method_id . '">
 					<td class="name" width="">
-						<a href="#" class="wc-payment-gateway-method-title">' . $this->payment_methods[ $method_id ]->get_label() . '</a>
+						<a href="#" class="wc-payment-gateway-method-title">' . $method->get_label() . '</a>
 						' . ( empty( $subtext_messages ) ? '' : '<span class="wc-payment-gateway-method-name">&nbsp;–&nbsp;' . $subtext_messages . '</span>' ) . '
 					</td>
 					<td class="status" width="1%"><a class="wc-payment-upe-method-toggle-' . $method_enabled . '" href="#"><span class="woocommerce-input-toggle woocommerce-input-toggle--' . $method_enabled . '" aria-label="The &quot;' . $method_id . '&quot; payment method is currently ' . $method_enabled . '">' . ( 'enabled' === $method_enabled ? 'Yes' : 'No' ) . '</span></a></td>
