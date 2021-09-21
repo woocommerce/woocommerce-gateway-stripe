@@ -6,6 +6,7 @@ import PaymentMethodIcon from '../../settings/payment-method-icon';
 import Tooltip from '../tooltip';
 import paymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
+import PaymentMethodSetupHelp from 'wcstripe/settings/general-settings-section/payment-method-setup-help';
 import './style.scss';
 
 const PaymentMethodDescription = ( { id } ) => {
@@ -45,6 +46,10 @@ const PaymentMethodCheckbox = ( { onChange, name, checked = false } ) => {
 				checked={ checked }
 				onChange={ handleChange }
 				label={ label }
+			/>
+			<PaymentMethodSetupHelp
+				id={ name }
+				label={ paymentMethodsMap[ name ]?.label }
 			/>
 
 			<PaymentMethodFeesPill

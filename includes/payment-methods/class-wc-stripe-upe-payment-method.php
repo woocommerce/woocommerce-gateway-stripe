@@ -30,6 +30,20 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	protected $title;
 
 	/**
+	 * Method label
+	 *
+	 * @var string
+	 */
+	protected $label;
+
+	/**
+	 * Method description
+	 *
+	 * @var string
+	 */
+	protected $description;
+
+	/**
 	 * Can payment method be saved or reused?
 	 *
 	 * @var bool
@@ -92,6 +106,24 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 */
 	public function get_title( $payment_details = false ) {
 		return $this->title;
+	}
+
+	/**
+	 * Returns payment method label
+	 *
+	 * @return string
+	 */
+	public function get_label() {
+		return $this->label;
+	}
+
+	/**
+	 * Returns payment method description
+	 *
+	 * @return string
+	 */
+	public function get_description() {
+		return $this->description;
 	}
 
 	/**
@@ -235,5 +267,26 @@ abstract class WC_Stripe_UPE_Payment_Method {
 			'wc_stripe_' . static::STRIPE_ID . '_upe_supported_currencies',
 			$this->supported_currencies
 		);
+	}
+
+	/**
+	 * Returns the HTML for the subtext messaging in the old settings UI.
+	 *
+	 * @return string
+	 */
+	public function get_subtext_messages() {
+		// can be either a `currency` or `activation` messaging, to be displayed in the old settings UI.
+		$messages = [];
+
+		$currencies = $this->get_supported_currencies();
+		if ( ! empty( $currencies ) && ! in_array( get_woocommerce_currency(), $currencies, true ) ) {
+			/* translators: %s: List of comma-separated currencies. */
+			$tooltip_content = sprintf( esc_attr__( 'In order to be used at checkout, the payment method requires the store currency to be set to one of: %s', 'woocommerce-gateway-stripe' ), implode( ', ', $currencies ) );
+			$text            = __( 'Requires currency', 'woocommerce-gateway-stripe' );
+
+			$messages[] = $text . '<span class="tips" data-tip="' . $tooltip_content . '"><span class="woocommerce-help-tip" style="margin-top: 0;"></span></span>';
+		}
+
+		return count( $messages ) > 0 ? join( '&nbsp;–&nbsp;', $messages ) : '';
 	}
 }

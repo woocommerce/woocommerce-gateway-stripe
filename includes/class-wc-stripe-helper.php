@@ -376,7 +376,7 @@ class WC_Stripe_Helper {
 	 * @return bool
 	 */
 	public static function is_pre_orders_exists() {
-		return class_exists( 'WC_Pre_Orders_Order' );
+		return class_exists( 'WC_Pre_Orders' );
 	}
 
 	/**

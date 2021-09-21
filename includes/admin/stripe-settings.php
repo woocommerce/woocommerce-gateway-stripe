@@ -196,6 +196,18 @@ $stripe_settings = apply_filters(
 				'data-placeholder' => __( 'Select pages', 'woocommerce-gateway-stripe' ),
 			],
 		],
+		'payment_request_button_size'         => [
+			'title'       => __( 'Size of the button displayed for Express Checkouts', 'woocommerce-gateway-stripe' ),
+			'type'        => 'select',
+			'description' => __( 'Select the size of the button.', 'woocommerce-gateway-stripe' ),
+			'default'     => 'default',
+			'desc_tip'    => true,
+			'options'     => [
+				'default' => __( 'Default', 'woocommerce-gateway-stripe' ),
+				'medium'  => __( 'Medium', 'woocommerce-gateway-stripe' ),
+				'large'   => __( 'Large', 'woocommerce-gateway-stripe' ),
+			],
+		],
 		'saved_cards'                         => [
 			'title'       => __( 'Saved Cards', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Enable Payment via Saved Cards', 'woocommerce-gateway-stripe' ),
@@ -215,9 +227,9 @@ $stripe_settings = apply_filters(
 	]
 );
 
-if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
+if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && ! WC_Stripe_Helper::is_pre_orders_exists() ) {
 	$upe_settings = [
-		'upe_checkout_experience'     => [
+		'upe_checkout_experience' => [
 			'title' => __( 'Checkout experience', 'woocommerce-gateway-stripe' ),
 			'type'  => 'title',
 		],
@@ -228,18 +240,6 @@ if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 			'description' => __( 'If enabled, users will... TBD', 'woocommerce-gateway-stripe' ),
 			'default'     => 'no',
 			'desc_tip'    => true,
-		],
-		'payment_request_button_size' => [
-			'title'       => __( 'Size of the button displayed for Express Checkouts', 'woocommerce-gateway-stripe' ),
-			'type'        => 'select',
-			'description' => __( 'Select the size of the button.', 'woocommerce-gateway-stripe' ),
-			'default'     => 'default',
-			'desc_tip'    => true,
-			'options'     => [
-				'default' => __( 'Default', 'woocommerce-gateway-stripe' ),
-				'medium'  => __( 'Medium', 'woocommerce-gateway-stripe' ),
-				'large'   => __( 'Large', 'woocommerce-gateway-stripe' ),
-			],
 		],
 	];
 	if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
