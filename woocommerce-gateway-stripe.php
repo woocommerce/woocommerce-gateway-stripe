@@ -26,6 +26,7 @@ define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '3.0' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '3.3' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
+define( 'WC_STRIPE_ABSPATH', __DIR__ . '/' );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
 define( 'WC_STRIPE_PLUGIN_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
 
@@ -207,6 +208,9 @@ function woocommerce_gateway_stripe() {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-onboarding-controller.php';
 						new WC_Stripe_Onboarding_Controller();
 					}
+
+					// TODO: Set up conditions for whether or not we'll ever need to show the modal
+					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin.php';
 				}
 
 				// REMOVE IN THE FUTURE.
@@ -599,6 +603,20 @@ function woocommerce_gateway_stripe() {
 					$stripe_account_keys_controller = new WC_REST_Stripe_Account_keys_Controller();
 					$stripe_account_keys_controller->register_routes();
 				}
+			}
+
+			/**
+			 * Gets the file modified time as a cache buster if we're in dev mode, or the plugin version otherwise.
+			 *
+			 * @param string $file Local path to the file.
+			 * @return string The cache buster value to use for the given file.
+			 */
+			public static function get_file_version( $file ) {
+				if ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) {
+					$file = trim( $file, '/' );
+					return filemtime( WC_STRIPE_ABSPATH . $file );
+				}
+				return WC_STRIPE_VERSION;
 			}
 		}
 
