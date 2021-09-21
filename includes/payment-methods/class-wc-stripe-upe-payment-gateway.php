@@ -296,6 +296,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 		}
 
+		$amount = WC()->cart->get_total( false );
+		$order  = isset( $order_id ) ? wc_get_order( $order_id ) : null;
+		if ( is_a( $order, 'WC_Order' ) ) {
+			$amount = $order->get_total();
+		}
+
+		$converted_amount = WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( get_woocommerce_currency() ) );
+		// Pre-orders and free trial subscriptions don't require payments.
+		$stripe_params['isPaymentRequired'] = 0 < $converted_amount;
+
 		return $stripe_params;
 	}
 

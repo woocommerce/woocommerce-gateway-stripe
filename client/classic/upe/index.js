@@ -351,7 +351,10 @@ jQuery( function ( $ ) {
 			! $( '#wc-stripe-upe-element' ).children().length &&
 			isUPEEnabled
 		) {
-			mountUPEElement();
+			const isSetupIntent = ! (
+				getStripeServerData()?.isPaymentRequired ?? true
+			);
+			mountUPEElement( isSetupIntent );
 		}
 
 		if ( doesIbanNeedToBeMounted() ) {
@@ -372,7 +375,7 @@ jQuery( function ( $ ) {
 			const isChangingPayment = getStripeServerData()?.isChangingPayment;
 
 			// We use a setup intent if we are on the screens to add a new payment method or to change a subscription payment.
-			const useSetUpIntent =
+			const isSetupIntent =
 				$( 'form#add_payment_method' ).length || isChangingPayment;
 
 			if ( isChangingPayment && getStripeServerData()?.newTokenFormId ) {
@@ -383,7 +386,7 @@ jQuery( function ( $ ) {
 				$( token ).prop( 'selected', true ).trigger( 'click' );
 				$( 'form#order_review' ).submit();
 			}
-			mountUPEElement( useSetUpIntent );
+			mountUPEElement( isSetupIntent );
 		}
 
 		if ( doesIbanNeedToBeMounted() ) {
@@ -514,7 +517,7 @@ jQuery( function ( $ ) {
 		}
 
 		blockUI( $form );
-		// Create object where keys are form field names and keys are form field values
+		// Create object where keys are form field names and values are form field values
 		const formFields = $form.serializeArray().reduce( ( obj, field ) => {
 			obj[ field.name ] = field.value;
 			return obj;
