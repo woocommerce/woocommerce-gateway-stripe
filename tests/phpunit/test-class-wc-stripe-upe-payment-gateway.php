@@ -42,9 +42,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Base template for Stripe payment intent.
 	 */
 	const MOCK_CARD_PAYMENT_INTENT_TEMPLATE = [
-		'object'  => 'payment_intent',
-		'status'  => 'succeeded',
-		'charges' => [
+		'object'        => 'payment_intent',
+		'status'        => 'succeeded',
+		'client_secret' => 'cs_mock',
+		'charges'       => [
 			'total_count' => 1,
 			'data'        => [
 				[
@@ -63,14 +64,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	public function setUp() {
 		parent::setUp();
 
-		$this->mock_payment_methods = [];
-		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-			$mock_payment_method = $this->getMockBuilder( $payment_method_class )
-				->setMethods( [ 'is_subscription_item_in_cart' ] )
-				->getMock();
-			$this->mock_payment_methods[ $mock_payment_method->get_id() ] = $mock_payment_method;
-		}
-
 		$this->mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->setMethods(
 				[
@@ -88,6 +81,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->will(
 				$this->returnValue( self::MOCK_RETURN_URL )
 			);
+
+		$enabled_payment_method_ids = [];
+		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+			$enabled_payment_method_ids[] = $payment_method_class::STRIPE_ID;
+		}
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'get_upe_enabled_payment_method_ids' )
+			->will(
+				$this->returnValue( $enabled_payment_method_ids )
+			);
 	}
 
 	/**
@@ -103,23 +106,35 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Helper function to mock subscriptions for internal UPE payment methods.
+	 * Helper function to get amount, description, and metadata for Stripe requests.
+	 *
+	 * @param WC_Order $order Test WC Order.
+	 *
+	 * @return array
 	 */
-	private function set_cart_contains_subscription_items( $cart_contains_subscriptions ) {
-		foreach ( $this->mock_payment_methods as $mock_payment_method ) {
-			$mock_payment_method->expects( $this->any() )
-				->method( 'is_subscription_item_in_cart' )
-				->will(
-					$this->returnValue( $cart_contains_subscriptions )
-				);
-		}
+	private function get_order_details( $order ) {
+		$total        = $order->get_total();
+		$currency     = $order->get_currency();
+		$order_id     = $order->get_id();
+		$order_number = $order->get_order_number();
+		$order_key    = $order->get_order_key();
+		$amount       = WC_Stripe_Helper::get_stripe_amount( $total, $currency );
+		$description  = "Test Blog - Order $order_number";
+		$metadata     = [
+			'customer_name'  => 'Jeroen Sormani',
+			'customer_email' => 'admin@example.org',
+			'site_url'       => 'http://example.org',
+			'order_id'       => $order_id,
+			'order_key'      => $order_key,
+			'payment_type'   => 'single',
+		];
+		return [ $amount, $description, $metadata ];
 	}
 
 	/**
 	 * Test payment fields HTML output.
 	 */
 	public function test_payment_fields_outputs_fields() {
-		$this->set_cart_contains_subscription_items( false );
 		$this->mock_gateway->payment_fields();
 		$this->expectOutputRegex( '/<div id="wc-stripe-upe-element"><\/div>/' );
 	}
@@ -131,24 +146,17 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$payment_intent_id = 'pi_mock';
 		$customer_id       = 'cus_mock';
 		$order             = WC_Helper_Order::create_order();
-		$total             = $order->get_total();
 		$currency          = $order->get_currency();
 		$order_id          = $order->get_id();
-		$order_number      = $order->get_order_number();
-		$order_key         = $order->get_order_key();
-		$expected_request  = [
-			'amount'      => WC_Stripe_Helper::get_stripe_amount( $total, $currency ),
+
+		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+
+		$expected_request = [
+			'amount'      => $amount,
 			'currency'    => $currency,
-			'description' => "Test Blog - Order $order_number",
+			'description' => $description,
 			'customer'    => $customer_id,
-			'metadata'    => [
-				'customer_name'  => 'Jeroen Sormani',
-				'customer_email' => 'admin@example.org',
-				'site_url'       => 'http://example.org',
-				'order_id'       => $order_id,
-				'order_key'      => $order_key,
-				'payment_type'   => 'single',
-			],
+			'metadata'    => $metadata,
 		];
 
 		$_POST = [ 'wc_payment_intent_id' => $payment_intent_id ];
@@ -184,28 +192,15 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Test basic checkout with saved payment method.
 	 */
 	public function test_process_payment_with_saved_method_confirms_intent_immediately() {
-		$this->set_cart_contains_subscription_items( false );
 		$token = $this->set_postvars_for_saved_payment_method();
 
 		$order             = WC_Helper_Order::create_order();
-		$total             = $order->get_total();
-		$currency          = $order->get_currency();
 		$order_id          = $order->get_id();
-		$order_number      = $order->get_order_number();
-		$order_key         = $order->get_order_key();
-		$amount            = WC_Stripe_Helper::get_stripe_amount( $total, $currency );
-		$description       = "Test Blog - Order $order_number";
-		$metadata          = [
-			'customer_name'  => 'Jeroen Sormani',
-			'customer_email' => 'admin@example.org',
-			'site_url'       => 'http://example.org',
-			'order_id'       => $order_id,
-			'order_key'      => $order_key,
-			'payment_type'   => 'single',
-		];
 		$payment_intent_id = 'pi_mock';
 		$payment_method_id = $token->get_token();
 		$customer_id       = 'cus_mock';
+
+		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
 
 		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
@@ -217,14 +212,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$payment_intent_mock['id']     = $payment_intent_id;
 		$payment_intent_mock['amount'] = $amount;
 		$payment_intent_mock['charges']['data'][0]['payment_method_details'] = $payment_method_mock;
-
-		$enabled_payment_method_ids = array_keys( $this->mock_payment_methods );
-
-		$this->mock_gateway->expects( $this->any() )
-			->method( 'get_upe_enabled_payment_method_ids' )
-			->will(
-				$this->returnValue( $enabled_payment_method_ids )
-			);
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'generate_payment_request' )
@@ -257,6 +244,65 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'success', $response['result'] );
 		$this->assertEquals( 'processing', $final_order->get_status() );
 		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
+		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
+		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_payment_method_id', true ) );
 		$this->assertRegExp( '/Charge ID: ch_mock/', $note->content );
+	}
+
+	/**
+	 * Test SCA 3DS flow with saved payment method.
+	 */
+	public function test_sca_checkout_with_saved_payment_method_redirects_client() {
+		$token = $this->set_postvars_for_saved_payment_method();
+
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+		$payment_intent_id = 'pi_mock';
+		$payment_method_id = $token->get_token();
+		$customer_id       = 'cus_mock';
+
+		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+
+		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']               = $payment_method_id;
+		$payment_method_mock['customer']         = $customer_id;
+		$payment_method_mock['card']['exp_year'] = intval( gmdate( 'Y' ) ) + 1;
+
+		$payment_intent_mock           = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']     = $payment_intent_id;
+		$payment_intent_mock['amount'] = $amount;
+		$payment_intent_mock['status'] = 'requires_action';
+		$payment_intent_mock['charges']['data'][0]['payment_method_details'] = $payment_method_mock;
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'generate_payment_request' )
+			->will(
+				$this->returnValue(
+					[
+						'description' => $description,
+						'metadata'    => $metadata,
+						'capture'     => 'true',
+					]
+				)
+			);
+
+		$this->mock_gateway->expects( $this->exactly( 2 ) )
+			->method( 'stripe_request' )
+			->willReturnOnConsecutiveCalls(
+				json_decode( wp_json_encode( $payment_method_mock ) ),
+				json_decode( wp_json_encode( $payment_intent_mock ) )
+			);
+
+		$response      = $this->mock_gateway->process_payment( $order_id );
+		$final_order   = wc_get_order( $order_id );
+		$client_secret = $payment_intent_mock['client_secret'];
+
+		$this->assertEquals( 'success', $response['result'] );
+		$this->assertEquals( 'pending', $final_order->get_status() );
+		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
+		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
+		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_payment_method_id', true ) );
+		$this->assertRegExp( "/#wc-stripe-confirm-pi:$order_id:$client_secret/", $response['redirect'] );
 	}
 }
