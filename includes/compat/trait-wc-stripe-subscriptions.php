@@ -204,8 +204,9 @@ trait WC_Stripe_Subscriptions_Trait {
 			$order_id = $renewal_order->get_id();
 
 			// Unlike regular off-session subscription payments, early renewals are treated as on-session payments, involving the customer.
-			if ( isset( $_REQUEST['process_early_renewal'] ) && 'stripe' === $this->id ) { // phpcs:ignore WordPress.Security.NonceVerification
-				// - TODO: Fix UPE early renewals via client modal.
+			// This makes the SCA authorization popup show up for the "Renew early" modal (Subscriptions settings > Accept Early Renewal Payments via a Modal).
+			// Note: Currently available for non-UPE credit card only.
+			if ( isset( $_REQUEST['process_early_renewal'] ) && 'stripe' === $this->id && ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) { // phpcs:ignore WordPress.Security.NonceVerification
 				$response = $this->process_payment( $order_id, true, false, $previous_error, true );
 
 				if ( 'success' === $response['result'] && isset( $response['payment_intent_secret'] ) ) {
