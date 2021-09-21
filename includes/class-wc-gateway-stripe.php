@@ -459,24 +459,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Checks if a source object represents a prepaid credit card and
-	 * throws an exception if it is one, but that is not allowed.
-	 *
-	 * @since 4.2.0
-	 * @param object $prepared_source The object with source details.
-	 * @throws WC_Stripe_Exception An exception if the card is prepaid, but prepaid cards are not allowed.
-	 */
-	public function maybe_disallow_prepaid_card( $prepared_source ) {
-		// Check if we don't allow prepaid credit cards.
-		if ( apply_filters( 'wc_stripe_allow_prepaid_card', true ) || ! $this->is_prepaid_card( $prepared_source->source_object ) ) {
-			return;
-		}
-
-		$localized_message = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charged. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
-		throw new WC_Stripe_Exception( print_r( $prepared_source->source_object, true ), $localized_message );
-	}
-
-	/**
 	 * Completes an order without a positive value.
 	 *
 	 * @since 4.2.0
@@ -563,7 +545,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source, $stripe_customer_id );
 			}
 
-			$this->maybe_disallow_prepaid_card( $prepared_source );
+			$this->maybe_disallow_prepaid_card( $prepared_source->source_object );
 			$this->check_source( $prepared_source );
 			$this->save_source_to_order( $order, $prepared_source );
 

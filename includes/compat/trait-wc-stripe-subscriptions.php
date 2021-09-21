@@ -160,7 +160,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			$subscription    = wc_get_order( $order_id );
 			$prepared_source = $this->prepare_source( get_current_user_id(), true );
 
-			$this->maybe_disallow_prepaid_card( $prepared_source );
+			$this->maybe_disallow_prepaid_card( $prepared_source->source_object );
 			$this->check_source( $prepared_source );
 			$this->save_source_to_order( $subscription, $prepared_source );
 

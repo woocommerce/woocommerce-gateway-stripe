@@ -710,6 +710,24 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Checks if a payment method object represents a prepaid credit card and
+	 * throws an exception if it is one, but that is not allowed.
+	 *
+	 * @since 4.2.0
+	 * @param object $prepared_source The object with source details.
+	 * @throws WC_Stripe_Exception An exception if the card is prepaid, but prepaid cards are not allowed.
+	 */
+	public function maybe_disallow_prepaid_card( $payment_method ) {
+		// Check if we don't allow prepaid credit cards.
+		if ( apply_filters( 'wc_stripe_allow_prepaid_card', true ) || ! $this->is_prepaid_card( $payment_method ) ) {
+			return;
+		}
+
+		$localized_message = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charged. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
+		throw new WC_Stripe_Exception( print_r( $payment_method, true ), $localized_message );
+	}
+
+	/**
 	 * Checks if source is of legacy type card.
 	 *
 	 * @since 4.0.8
