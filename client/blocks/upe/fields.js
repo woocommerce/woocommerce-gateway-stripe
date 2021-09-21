@@ -1,22 +1,13 @@
-/**
- * External dependencies
- */
 import { useState, useEffect } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 import {
 	Elements,
 	ElementsConsumer,
 	PaymentElement,
 } from '@stripe/react-stripe-js';
-import { __ } from '@wordpress/i18n';
-
-/**
- * Internal dependencies
- */
 import { confirmUpePayment } from './confirm-upe-payment';
-/* eslint-disable @woocommerce/dependency-group */
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { PAYMENT_METHOD_NAME } from 'wcstripe/blocks/credit-card/constants';
-/* eslint-enable */
 
 const UPEField = ( {
 	api,
@@ -218,7 +209,7 @@ const UPEField = ( {
 	}
 
 	return (
-		<div className={ 'wc-block-gateway-container' }>
+		<div className="wc-block-gateway-container">
 			<PaymentElement
 				options={ elementOptions }
 				onChange={ ( event ) => {

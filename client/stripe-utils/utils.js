@@ -1,4 +1,4 @@
-/* global wc_stripe_upe_params, wc */
+/* global wc_stripe_upe_params */
 
 import { __ } from '@wordpress/i18n';
 import { errorTypes, errorCodes } from './constants';

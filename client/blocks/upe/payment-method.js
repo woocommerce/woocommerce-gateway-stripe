@@ -1,19 +1,10 @@
-/**
- * External dependencies
- */
 import { __ } from '@wordpress/i18n';
 import { useEffect, useState } from '@wordpress/element';
-
-/**
- * Internal dependencies
- */
 import { UPEPaymentForm } from './fields';
 import { SavedTokenHandler } from './saved-token-handler';
-/* eslint-disable @woocommerce/dependency-group */
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { PAYMENT_METHOD_NAME } from 'wcstripe/blocks/credit-card/constants';
 import WCStripeAPI from 'wcstripe/api';
-/* eslint-enable */
 
 const api = new WCStripeAPI(
 	{

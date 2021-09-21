@@ -1,11 +1,4 @@
-/**
- * External dependencies
- */
 import { useEffect } from '@wordpress/element';
-
-/**
- * Internal dependencies
- */
 import confirmCardPayment from './confirm-card-payment.js';
 
 export const usePaymentCompleteHandler = (

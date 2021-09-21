@@ -1,6 +1,3 @@
-/**
- * Internal dependencies
- */
 import { usePaymentCompleteHandler } from './hooks';
 
 export const SavedTokenHandler = ( {

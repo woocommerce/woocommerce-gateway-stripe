@@ -1,7 +1,7 @@
 /**
  * Handles the confirmation of card payments (3DSv2 modals/SCA challenge).
  *
- * @param {WCStripeAPI} api            The API used for connection both with the server and Stripe.
+ * @param {Object}   api            The API used for connection both with the server and Stripe.
  * @param {string}   redirectUrl    The URL to redirect to after confirming the intent on Stripe.
  * @param {boolean}  paymentNeeded  A boolean whether a payment or a setup confirmation is needed.
  * @param {Object}   paymentElement Reference to the UPE element mounted on the page.

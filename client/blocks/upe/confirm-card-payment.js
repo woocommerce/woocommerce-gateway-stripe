@@ -1,7 +1,7 @@
 /**
  * Handles the confirmation of card payments (3DSv2 modals/SCA challenge).
  *
- * @param {WCStripeAPI} api               The API used for connection both with the server and Stripe.
+ * @param {Object}   api               The API used for connection both with the server and Stripe.
  * @param {Object}   paymentDetails    Details about the payment, received from the server.
  * @param {Object}   emitResponse      Various helpers for usage with observer response objects.
  * @param {boolean}  shouldSavePayment Indicates whether the payment method should be saved or not.
