@@ -305,4 +305,201 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_payment_method_id', true ) );
 		$this->assertRegExp( "/#wc-stripe-confirm-pi:$order_id:$client_secret/", $response['redirect'] );
 	}
+
+	/**
+	 * Test error state with fatal test during checkout with saved payment method.
+	 */
+	public function test_checkout_with_saved_payment_method_non_retryable_error_throws_exception() {
+		$token = $this->set_postvars_for_saved_payment_method();
+
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+		$payment_intent_id = 'pi_mock';
+		$payment_method_id = $token->get_token();
+		$customer_id       = 'cus_mock';
+
+		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+
+		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']               = $payment_method_id;
+		$payment_method_mock['customer']         = $customer_id;
+		$payment_method_mock['card']['exp_year'] = intval( gmdate( 'Y' ) ) + 1;
+
+		$failed_payment_intent_mock           = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$failed_payment_intent_mock['id']     = $payment_intent_id;
+		$failed_payment_intent_mock['amount'] = $amount;
+		$failed_payment_intent_mock['error']  = [
+			'type'    => 'completely_fatal_error',
+			'code'    => '666',
+			'message' => 'Oh my god',
+		];
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'generate_payment_request' )
+			->will(
+				$this->returnValue(
+					[
+						'description' => $description,
+						'metadata'    => $metadata,
+						'capture'     => 'true',
+					]
+				)
+			);
+
+		$this->mock_gateway->expects( $this->exactly( 2 ) )
+			->method( 'stripe_request' )
+			->willReturnOnConsecutiveCalls(
+				json_decode( wp_json_encode( $payment_method_mock ) ),
+				json_decode( wp_json_encode( $failed_payment_intent_mock ) )
+			);
+
+		$response    = $this->mock_gateway->process_payment( $order_id );
+		$final_order = wc_get_order( $order_id );
+
+		$this->assertEquals( 'fail', $response['result'] );
+		$this->assertEquals( 'failed', $final_order->get_status() );
+	}
+
+	/**
+	 * Tests retryable error during checkout using saved payment method.
+	 */
+	public function test_checkout_with_saved_payment_method_retries_error_when_possible() {
+		$token = $this->set_postvars_for_saved_payment_method();
+
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+		$payment_intent_id = 'pi_mock';
+		$payment_method_id = $token->get_token();
+		$customer_id       = 'cus_mock';
+
+		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+
+		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']               = $payment_method_id;
+		$payment_method_mock['customer']         = $customer_id;
+		$payment_method_mock['card']['exp_year'] = intval( gmdate( 'Y' ) ) + 1;
+
+		$successful_payment_intent_mock           = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$successful_payment_intent_mock['id']     = $payment_intent_id;
+		$successful_payment_intent_mock['amount'] = $amount;
+		$successful_payment_intent_mock['charges']['data'][0]['payment_method_details'] = $payment_method_mock;
+
+		$failed_payment_intent_mock          = $successful_payment_intent_mock;
+		$failed_payment_intent_mock['error'] = [
+			'type'    => 'api_connection_error',
+			'code'    => '501',
+			'message' => 'Owie server hurty',
+		];
+
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'generate_payment_request' )
+			->will(
+				$this->returnValue(
+					[
+						'description' => $description,
+						'metadata'    => $metadata,
+						'capture'     => 'true',
+					]
+				)
+			);
+
+		$this->mock_gateway->expects( $this->exactly( 4 ) )
+			->method( 'stripe_request' )
+			->willReturnOnConsecutiveCalls(
+				json_decode( wp_json_encode( $payment_method_mock ) ),
+				json_decode( wp_json_encode( $failed_payment_intent_mock ) ),
+				json_decode( wp_json_encode( $payment_method_mock ) ),
+				json_decode( wp_json_encode( $successful_payment_intent_mock ) )
+			);
+
+		$response    = $this->mock_gateway->process_payment( $order_id );
+		$final_order = wc_get_order( $order_id );
+		$note        = wc_get_order_notes(
+			[
+				'order_id' => $order_id,
+				'limit'    => 1,
+			]
+		)[0];
+
+		$this->assertEquals( 'success', $response['result'] );
+		$this->assertEquals( 'processing', $final_order->get_status() );
+		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
+		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
+		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_payment_method_id', true ) );
+		$this->assertRegExp( '/Charge ID: ch_mock/', $note->content );
+	}
+
+	/**
+	 * Tests that retryable error fails after 5 attempts.
+	 */
+	public function test_checkout_with_saved_payment_method_fails_after_five_attempts() {
+		$token = $this->set_postvars_for_saved_payment_method();
+
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+		$payment_intent_id = 'pi_mock';
+		$payment_method_id = $token->get_token();
+		$customer_id       = 'cus_mock';
+
+		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+
+		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']               = $payment_method_id;
+		$payment_method_mock['customer']         = $customer_id;
+		$payment_method_mock['card']['exp_year'] = intval( gmdate( 'Y' ) ) + 1;
+
+		$failed_payment_intent_mock           = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$failed_payment_intent_mock['id']     = $payment_intent_id;
+		$failed_payment_intent_mock['amount'] = $amount;
+		$failed_payment_intent_mock['error']  = [
+			'type'    => 'invalid_request_error',
+			'code'    => '404',
+			'message' => 'No such customer',
+		];
+
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'generate_payment_request' )
+			->will(
+				$this->returnValue(
+					[
+						'description' => $description,
+						'metadata'    => $metadata,
+						'capture'     => 'true',
+					]
+				)
+			);
+
+		$this->mock_gateway->expects( $this->exactly( 12 ) )
+			->method( 'stripe_request' )
+			->willReturnOnConsecutiveCalls(
+				json_decode( wp_json_encode( $payment_method_mock ) ),
+				json_decode( wp_json_encode( $failed_payment_intent_mock ) ),
+				json_decode( wp_json_encode( $payment_method_mock ) ),
+				json_decode( wp_json_encode( $failed_payment_intent_mock ) ),
+				json_decode( wp_json_encode( $payment_method_mock ) ),
+				json_decode( wp_json_encode( $failed_payment_intent_mock ) ),
+				json_decode( wp_json_encode( $payment_method_mock ) ),
+				json_decode( wp_json_encode( $failed_payment_intent_mock ) ),
+				json_decode( wp_json_encode( $payment_method_mock ) ),
+				json_decode( wp_json_encode( $failed_payment_intent_mock ) ),
+				json_decode( wp_json_encode( $payment_method_mock ) ),
+				json_decode( wp_json_encode( $failed_payment_intent_mock ) )
+			);
+
+		$response    = $this->mock_gateway->process_payment( $order_id );
+		$final_order = wc_get_order( $order_id );
+		$note        = wc_get_order_notes(
+			[
+				'order_id' => $order_id,
+				'limit'    => 1,
+			]
+		)[0];
+
+		$this->assertEquals( 'fail', $response['result'] );
+		$this->assertEquals( 'failed', $final_order->get_status() );
+		$this->assertEquals( '', $final_order->get_meta( '_stripe_customer_id', true ) );
+	}
 }
