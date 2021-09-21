@@ -35,7 +35,7 @@ class WC_Stripe_UPE_Compatibility_Controller {
 		}
 
 		// admin notes are not supported on older versions of WooCommerce.
-		if ( version_compare( $this->get_wc_version(), '4.4.0', '>=' ) ) {
+		if ( WC_Stripe_UPE_Compatibility::are_inbox_notes_supported() ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-compatibility-note.php';
 			WC_Stripe_UPE_Compatibility_Note::init();
 		}
@@ -63,8 +63,8 @@ class WC_Stripe_UPE_Compatibility_Controller {
 				],
 				[
 					'name'         => 'WooCommerce',
-					'version'      => $this->get_wc_version(),
-					'is_supported' => version_compare( $this->get_wc_version(), WC_Stripe_UPE_Compatibility::MIN_WC_VERSION, '>=' ),
+					'version'      => $this->get_wc_version() ? $this->get_wc_version() : '[version-not-found]',
+					'is_supported' => defined( 'WC_VERSION' ) && version_compare( $this->get_wc_version(), WC_Stripe_UPE_Compatibility::MIN_WC_VERSION, '>=' ),
 					'message'      => sprintf(
 					/* translators: %s. WooCommerce version installed. */
 						__(
