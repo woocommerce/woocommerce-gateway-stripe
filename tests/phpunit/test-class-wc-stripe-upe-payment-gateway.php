@@ -189,6 +189,57 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test basic redirect payment processed correctly.
+	 */
+	public function test_process_redirect_payment_returns_valid_response() {
+		$payment_intent_id = 'pi_mock';
+		$payment_method_id = 'pm_mock';
+		$customer_id       = 'cus_mock';
+		$order             = WC_Helper_Order::create_order();
+		$currency          = $order->get_currency();
+		$order_id          = $order->get_id();
+
+		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+
+		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']               = $payment_method_id;
+		$payment_method_mock['customer']         = $customer_id;
+		$payment_method_mock['card']['exp_year'] = intval( gmdate( 'Y' ) ) + 1;
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['last_payment_error'] = [];
+		$payment_intent_mock['payment_method']     = $payment_method_mock;
+		$payment_intent_mock['charges']['data'][0]['payment_method_details'] = $payment_method_mock;
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->will(
+				$this->returnValue(
+					json_decode( wp_json_encode( $payment_intent_mock ) )
+				)
+			);
+
+		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
+
+		$final_order = wc_get_order( $order_id );
+		$note        = wc_get_order_notes(
+			[
+				'order_id' => $order_id,
+				'limit'    => 1,
+			]
+		)[0];
+
+		$this->assertEquals( 'processing', $final_order->get_status() );
+		$this->assertEquals( 'Visa credit card', $final_order->get_payment_method_title() );
+		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
+		$this->assertRegExp( '/Charge ID: ch_mock/', $note->content );
+	}
+
+	/**
 	 * Test basic checkout with saved payment method.
 	 */
 	public function test_process_payment_with_saved_method_confirms_intent_immediately() {
