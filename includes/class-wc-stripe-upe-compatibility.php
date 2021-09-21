@@ -27,6 +27,6 @@ class WC_Stripe_UPE_Compatibility {
 			return false;
 		}
 
-		return true;
+		return trait_exists( 'Automattic\WooCommerce\Admin\Notes\NoteTraits' ) && class_exists( 'Automattic\WooCommerce\Admin\Notes\Note' );
 	}
 }
