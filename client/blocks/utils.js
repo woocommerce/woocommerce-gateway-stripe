@@ -1,6 +1,3 @@
-/**
- * External dependencies
- */
 import { getSetting } from '@woocommerce/settings';
 
 export const getBlocksConfiguration = () => {
@@ -11,4 +8,34 @@ export const getBlocksConfiguration = () => {
 	}
 
 	return stripeServerData;
+};
+
+/**
+ * Creates a payment request using cart data from WooCommerce.
+ *
+ * @param {Object} stripe - The Stripe JS object.
+ * @param {Object} cart - The cart data response from the store's AJAX API.
+ *
+ * @return {Object} A Stripe payment request.
+ */
+export const createPaymentRequestUsingCart = ( stripe, cart ) => {
+	const options = {
+		total: cart.order_data.total,
+		currency: cart.order_data.currency,
+		country: cart.order_data.country_code,
+		requestPayerName: true,
+		requestPayerEmail: true,
+		requestPayerPhone: getBlocksConfiguration()?.checkout
+			?.needs_payer_phone,
+		requestShipping: cart.shipping_required ? true : false,
+		displayItems: cart.order_data.displayItems,
+	};
+
+	// Puerto Rico (PR) is the only US territory/possession that's supported by Stripe.
+	// Since it's considered a US state by Stripe, we need to do some special mapping.
+	if ( options.country === 'PR' ) {
+		options.country = 'US';
+	}
+
+	return stripe.paymentRequest( options );
 };

@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from '@wordpress/element';
-import { getCartDetails } from '../../api';
-import { createPaymentRequestUsingCart } from '../../stripe-utils';
 import {
 	shippingAddressChangeHandler,
 	shippingOptionChangeHandler,
 	paymentProcessingHandler,
 } from './event-handlers';
 import { displayLoginConfirmation } from './login-confirmation';
-import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import {
+	getBlocksConfiguration,
+	createPaymentRequestUsingCart,
+} from 'wcstripe/blocks/utils';
+import { getCartDetails } from 'wcstripe/api/blocks';
 
 /**
  * This hook takes care of creating a payment request and making sure
