@@ -608,21 +608,6 @@ function woocommerce_gateway_stripe() {
 					$stripe_account_keys_controller->register_routes();
 				}
 			}
-
-			/**
-			 * Gets the file modified time as a cache buster if we're in dev mode, or the plugin version otherwise.
-			 *
-			 * @since 5.6.0
-			 * @param string $file Local path to the file.
-			 * @return string The cache buster value to use for the given file.
-			 */
-			public static function get_file_version( $file ) {
-				if ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) {
-					$file = trim( $file, '/' );
-					return filemtime( WC_STRIPE_ABSPATH . $file );
-				}
-				return WC_STRIPE_VERSION;
-			}
 		}
 
 		$plugin = WC_Stripe::get_instance();

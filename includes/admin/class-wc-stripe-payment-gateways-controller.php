@@ -17,8 +17,9 @@ class WC_Stripe_Payment_Gateways_Controller {
 	 */
 	public function __construct() {
 		// If UPE is enabled and there are enabled payment methods, we need to load the disable Stripe confirmation modal.
-		$enabled_upe_payment_methods = get_option( 'woocommerce_stripe_settings', [] )['upe_checkout_experience_accepted_payments'];
-		$upe_payment_requests_enabled = 'yes' === get_option( 'woocommerce_stripe_settings', [] )['payment_request'];
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		$enabled_upe_payment_methods = $stripe_settings['upe_checkout_experience_accepted_payments'];
+		$upe_payment_requests_enabled = 'yes' === $stripe_settings['payment_request'];
 
 		if ( count( $enabled_upe_payment_methods ) > 0 || $upe_payment_requests_enabled ) {
 			add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_payments_scripts' ] );
