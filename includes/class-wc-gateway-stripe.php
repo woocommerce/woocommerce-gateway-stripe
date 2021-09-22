@@ -779,27 +779,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Generates a localized message for an error from a response.
-	 *
-	 * @since 4.3.2
-	 *
-	 * @param stdClass $response The response from the Stripe API.
-	 *
-	 * @return string The localized error message.
-	 */
-	public function get_localized_error_message_from_response( $response ) {
-		$localized_messages = WC_Stripe_Helper::get_localized_messages();
-
-		if ( 'card_error' === $response->error->type ) {
-			$localized_message = isset( $localized_messages[ $response->error->code ] ) ? $localized_messages[ $response->error->code ] : $response->error->message;
-		} else {
-			$localized_message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
-		}
-
-		return $localized_message;
-	}
-
-	/**
 	 * Retries the payment process once an error occured.
 	 *
 	 * @since 4.2.0
