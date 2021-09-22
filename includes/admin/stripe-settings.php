@@ -197,7 +197,7 @@ $stripe_settings = apply_filters(
 			],
 		],
 		'payment_request_button_size'         => [
-			'title'       => __( 'Size of the button displayed for Express Checkouts', 'woocommerce-gateway-stripe' ),
+			'title'       => __( 'Payment Request Button Size', 'woocommerce-gateway-stripe' ),
 			'type'        => 'select',
 			'description' => __( 'Select the size of the button.', 'woocommerce-gateway-stripe' ),
 			'default'     => 'default',
@@ -226,6 +226,10 @@ $stripe_settings = apply_filters(
 		],
 	]
 );
+
+if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
+	unset( $stripe_settings['payment_request_button_size'] );
+}
 
 if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && ! WC_Stripe_Helper::is_pre_orders_exists() ) {
 	$upe_settings = [
