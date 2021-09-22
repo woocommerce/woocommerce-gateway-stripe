@@ -2,6 +2,7 @@
 import { dispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import domReady from '@wordpress/dom-ready';
+import { recordEvent } from 'wcstripe/tracking';
 
 domReady( () => {
 	// eslint-disable-next-line camelcase
@@ -10,6 +11,7 @@ domReady( () => {
 	}
 
 	const {
+		was_upe_enabled: wasUpeEnabled,
 		is_upe_enabled: isUpeEnabled,
 		// eslint-disable-next-line camelcase
 	} = wc_stripe_old_settings_param;
@@ -33,5 +35,12 @@ domReady( () => {
 				],
 			}
 		);
+	}
+
+	if ( wasUpeEnabled !== isUpeEnabled ) {
+		const eventName = isUpeEnabled
+			? 'wcstripe_upe_enabled'
+			: 'wcstripe_upe_disabled';
+		recordEvent( eventName );
 	}
 } );
