@@ -209,8 +209,11 @@ function woocommerce_gateway_stripe() {
 						new WC_Stripe_Onboarding_Controller();
 					}
 
-					// TODO: Set up conditions for whether or not we'll ever need to show the modal
-					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin.php';
+					// If UPE is enabled and there are enabled payment methods, we need to load the disable Stripe confirmation modal.
+					$enabled_upe_payment_methods = get_option( 'woocommerce_stripe_settings', [] )['upe_checkout_experience_accepted_payments'];
+					if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && count( $enabled_upe_payment_methods ) > 0 ) {
+						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin.php';
+					}
 				}
 
 				// REMOVE IN THE FUTURE.
@@ -608,6 +611,7 @@ function woocommerce_gateway_stripe() {
 			/**
 			 * Gets the file modified time as a cache buster if we're in dev mode, or the plugin version otherwise.
 			 *
+			 * @since 5.6.0
 			 * @param string $file Local path to the file.
 			 * @return string The cache buster value to use for the given file.
 			 */

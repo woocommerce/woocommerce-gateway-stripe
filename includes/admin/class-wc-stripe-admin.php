@@ -7,13 +7,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Class that handles various admin tasks.
  *
- * @since 4.1.0
+ * @since 5.6.0
  */
 class WC_Stripe_Admin {
 	/**
 	 * Constructor
 	 *
-	 * @since 4.1.0
+	 * @since 5.6.0
 	 */
 	public function __construct() {
 		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_payments_scripts' ] );
@@ -51,12 +51,7 @@ class WC_Stripe_Admin {
 			&& 'checkout' === $current_tab
 		);
 
-		// Update this conditional to see if we need to load the modal code
-		// Don't show if:
-			// UPE is not enabled
-			// No UPE payment methods have been added
-		$enabled_upe_payment_methods = get_option( 'woocommerce_stripe_settings', [] )['upe_checkout_experience_accepted_payments'];
-		if ( $is_payment_methods_page && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && count( $enabled_upe_payment_methods ) > 0 ) {
+		if ( $is_payment_methods_page ) {
 			wp_enqueue_script( 'WC_STRIPE_PAYMENT_GATEWAYS_PAGE' );
 			wp_enqueue_style( 'WC_STRIPE_PAYMENT_GATEWAYS_PAGE' );
 		}
@@ -64,7 +59,7 @@ class WC_Stripe_Admin {
 
 	/**
 	 * Adds a container to the "payment gateways" page.
-	 * This is where the "Are you sure you want to disable WCPay?" confirmation dialog is rendered.
+	 * This is where the "Are you sure you want to disable Stripe?" confirmation dialog is rendered.
 	 */
 	public function wc_stripe_gateway_container() {
 		?><div id="wc-stripe-payment-gateways-container" />
