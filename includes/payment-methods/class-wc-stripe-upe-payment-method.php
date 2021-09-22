@@ -282,10 +282,9 @@ abstract class WC_Stripe_UPE_Payment_Method {
 		if ( ! empty( $stripe_method_status ) && 'active' !== $stripe_method_status ) {
 			$text            = __( 'Pending activation', 'woocommerce-gateway-stripe' );
 			$tooltip_content = sprintf(
-				/* translators: %1: Payment method name %2: Store admin e-mail. */
-				esc_attr__( '%1$s won\'t be visible to your customers until you provide the required information. Follow the instructions we\'ve sent to %2$s.', 'woocommerce-gateway-stripe' ),
-				$this->get_label(),
-				get_option( 'admin_email' )
+				/* translators: %1: Payment method name */
+				esc_attr__( '%1$s won\'t be visible to your customers until you provide the required information. Follow the instructions Stripe has sent to your e-mail.', 'woocommerce-gateway-stripe' ),
+				$this->get_label()
 			);
 			$messages[] = $text . '<span class="tips" data-tip="' . $tooltip_content . '"><span class="woocommerce-help-tip" style="margin-top: 0;"></span></span>';
 		}
