@@ -115,7 +115,3 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_Availability_Note::NOTE_NAME ) ) );
 	}
 }
-
-//function woocommerce_gateway_stripe() {
-//	return WC_Stripe_Inbox_Notes_Test::$global_woocommerce_gateway_stripe;
-//}
