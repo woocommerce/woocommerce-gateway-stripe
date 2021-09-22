@@ -1,6 +1,10 @@
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
-import { getStripeServerData, getUPETerms } from '../../stripe-utils';
+import {
+	getStripeServerData,
+	getUPETerms,
+	getCustomGatewayTitle,
+} from '../../stripe-utils';
 import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
 import './style.scss';
 
@@ -96,6 +100,7 @@ jQuery( function ( $ ) {
 	const elements = api.getStripe().elements( {
 		fonts: getFontRulesFromPage(),
 	} );
+
 	const sepaElementsOptions =
 		getStripeServerData()?.sepaElementsOptions ?? {};
 	const iban = elements.create( 'iban', sepaElementsOptions );
@@ -343,6 +348,11 @@ jQuery( function ( $ ) {
 			} );
 	};
 
+	const renameGatewayTitle = () =>
+		$( 'label[for=payment_method_stripe]' ).text(
+			getCustomGatewayTitle( paymentMethodsConfig )
+		);
+
 	// Only attempt to mount the card element once that section of the page has loaded. We can use the updated_checkout
 	// event for this. This part of the page can also reload based on changes to checkout details, so we call unmount
 	// first to ensure the card element is re-mounted correctly.
@@ -354,6 +364,7 @@ jQuery( function ( $ ) {
 			! $( '#wc-stripe-upe-element' ).children().length &&
 			isUPEEnabled
 		) {
+			renameGatewayTitle();
 			mountUPEElement();
 		}
 
@@ -372,6 +383,7 @@ jQuery( function ( $ ) {
 			isUPEEnabled &&
 			! upeElement
 		) {
+			renameGatewayTitle();
 			const isChangingPayment = getStripeServerData()?.isChangingPayment;
 
 			// We use a setup intent if we are on the screens to add a new payment method or to change a subscription payment.
@@ -636,7 +648,7 @@ jQuery( function ( $ ) {
 		}
 	} );
 
-	// Handle the add payment method form for WooCommerce Payments.
+	// Handle the add payment method form for WooCommerce Gateway Stripe.
 	$( 'form#add_payment_method' ).on( 'submit', function () {
 		if ( ! $( '#wc-stripe-setup-intent' ).val() ) {
 			if ( isUPEEnabled && paymentIntentId ) {
@@ -646,7 +658,7 @@ jQuery( function ( $ ) {
 		}
 	} );
 
-	// Handle the Pay for Order form if WooCommerce Payments is chosen.
+	// Handle the Pay for Order form if WooCommerce Gateway Stripe is chosen.
 	$( '#order_review' ).on( 'submit', () => {
 		if ( ! isUsingSavedPaymentMethod() ) {
 			if ( getStripeServerData()?.isChangingPayment ) {
@@ -674,6 +686,9 @@ jQuery( function ( $ ) {
 	// On every page load, check to see whether we should display the authentication
 	// modal and display it if it should be displayed.
 	maybeShowAuthenticationModal();
+
+	// Update the gateway title on load.
+	renameGatewayTitle();
 
 	// Handle hash change - used when authenticating payment with SCA on checkout page.
 	window.addEventListener( 'hashchange', () => {

@@ -185,4 +185,27 @@ export const getUPETerms = ( value = 'always' ) => {
 	}, {} );
 };
 
-export { getStripeServerData, getApiKey, getErrorMessageForTypeAndCode };
+/**
+ * Forms dynamic gateway title for UPE checkout from enabled methods
+ *
+ * @param {Object} paymentMethodsConfig Object containing map of enabled UPE payment methods to settings.
+ * @return {string} Dynamic title string dependent on payment methods enabled.
+ */
+const getCustomGatewayTitle = ( paymentMethodsConfig ) => {
+	let label;
+	const enabledPaymentMethods = Object.keys( paymentMethodsConfig ).sort();
+	if ( enabledPaymentMethods.length < 2 ) {
+		label = paymentMethodsConfig[ enabledPaymentMethods[ 0 ] ].title;
+	} else {
+		label = getStripeServerData()?.checkoutTitle;
+	}
+
+	return label;
+};
+
+export {
+	getStripeServerData,
+	getApiKey,
+	getErrorMessageForTypeAndCode,
+	getCustomGatewayTitle,
+};

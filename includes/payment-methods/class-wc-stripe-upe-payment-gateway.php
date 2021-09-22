@@ -85,6 +85,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$this->method_title = __( 'Stripe UPE', 'woocommerce-gateway-stripe' );
 		/* translators: link */
 		$this->method_description = __( 'Accept debit and credit cards in 135+ currencies, methods such as Alipay, and one-touch checkout with Apple Pay.', 'woocommerce-gateway-stripe' );
+		$this->checkout_title     = __( 'Popular payment methods', 'woocommerce-gateway-stripe' );
 		$this->has_fields         = true;
 		$this->supports           = [
 			'products',
@@ -107,7 +108,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$main_settings              = get_option( 'woocommerce_stripe_settings' );
 		$this->title                = $this->get_option( 'title' );
-		$this->description          = $this->get_option( 'description' );
+		$this->description          = '';
 		$this->enabled              = $this->get_option( 'enabled' );
 		$this->testmode             = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
 		$this->publishable_key      = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
@@ -242,6 +243,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 		$stripe_params['saveUPEAppearanceNonce']   = wp_create_nonce( 'wc_stripe_save_upe_appearance_nonce' );
 		$stripe_params['paymentMethodsConfig']     = $this->get_enabled_payment_method_config();
 		$stripe_params['genericErrorMessage']      = __( 'There was a problem processing the payment. Please check your email inbox and refresh the page to try again.', 'woocommerce-gateway-stripe' );
+		$stripe_params['checkoutTitle']            = $this->checkout_title;
 		$stripe_params['accountDescriptor']        = $this->statement_descriptor;
 		$stripe_params['addPaymentReturnURL']      = wc_get_account_endpoint_url( 'payment-methods' );
 		$stripe_params['sepaElementsOptions']      = $sepa_elements_options;
@@ -281,6 +283,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		foreach ( $enabled_payment_methods as $payment_method ) {
 			$settings[ $payment_method ] = [
+				'title'      => $this->payment_methods[ $payment_method ]->get_title(),
 				'isReusable' => $this->payment_methods[ $payment_method ]->is_reusable(),
 			];
 		}
