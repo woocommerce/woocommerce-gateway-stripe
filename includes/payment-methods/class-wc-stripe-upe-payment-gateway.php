@@ -7,11 +7,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
 * Class that handles UPE payment method.
 *
-* @extends WC_Stripe_Payment_Gateway
+* @extends WC_Gateway_Stripe
 *
 * @since 5.5.0
 */
-class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
+class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 	const ID = 'stripe';
 
@@ -128,6 +128,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
+
+		// Needed for 3DS compatibility when checking out with PRBs..
+		// Copied from WC_Gateway_Stripe::__construct().
+		add_filter( 'woocommerce_payment_successful_result', [ $this, 'modify_successful_payment_result' ], 99999, 2 );
 	}
 
 	/**
@@ -398,11 +402,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Process the payment for a given order.
 	 *
-	 * @param int $order_id Order ID to process the payment for.
+	 * @param int  $order_id Reference.
+	 * @param bool $retry Should we retry on fail.
+	 * @param bool $force_save_source Force save the payment source.
+	 * @param mix  $previous_error Any error message from previous request.
+	 * @param bool $use_order_source Whether to use the source, which should already be attached to the order.
 	 *
 	 * @return array|null An array with result of payment and redirect URL, or nothing.
 	 */
-	public function process_payment( $order_id ) {
+	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
 		if ( $this->is_using_saved_payment_method() ) {
 			return $this->process_payment_with_saved_payment_method( $order_id );
 		}
@@ -446,13 +454,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 				$request['metadata'] = $this->get_metadata_from_order( $order );
 
-				WC_Stripe_API::request_with_level3_data(
-					$request,
+				$this->stripe_request(
 					"payment_intents/$payment_intent_id",
-					$this->get_level3_data_from_order( $order ),
+					$request,
 					$order
 				);
 			}
+		} else {
+			return parent::process_payment( $order_id, $retry, $force_save_source, $previous_error, $use_order_source );
 		}
 
 		return [
@@ -493,7 +502,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			}
 
 			$token          = WC_Stripe_Payment_Tokens::get_token_from_request( $_POST );
-			$payment_method = WC_Stripe_API::request( [], 'payment_methods/' . $token->get_token(), 'GET' );
+			$payment_method = $this->stripe_request( 'payment_methods/' . $token->get_token(), [], null, 'GET' );
 			$payment_needed = 0 < $order->get_total();
 
 			$this->maybe_disallow_prepaid_card( $payment_method );
@@ -511,7 +520,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 				$prepared_payment_method = $this->prepare_payment_method( $payment_method, $token );
 
 				$request_details = $this->generate_payment_request( $order, $prepared_payment_method );
-				$level3_data     = $this->get_level3_data_from_order( $order );
 				$endpoint        = false !== $intent ? "payment_intents/$intent->id" : 'payment_intents';
 				$request         = [
 					'payment_method'       => $payment_method->id,
@@ -527,10 +535,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					$request['confirm']        = 'true';
 				}
 
-				$intent = WC_Stripe_API::request_with_level3_data(
-					$request,
+				$intent = $this->stripe_request(
 					$endpoint,
-					$level3_data,
+					$request,
 					$order
 				);
 			} else {
@@ -544,11 +551,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 					$request['confirm'] = 'true';
 				}
 
-				$intent = WC_Stripe_API::request(
-					$request,
-					$endpoint,
-					'POST'
-				);
+				$intent = $this->stripe_request( $endpoint, $request );
 			}
 			$this->save_intent_to_order( $order, $intent );
 
@@ -721,9 +724,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		// Get payment intent to confirm status.
 		if ( $payment_needed ) {
-			$intent = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
+			$intent = $this->stripe_request( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
 		} else {
-			$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
+			$intent = $this->stripe_request( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
 		}
 		$error = $intent->last_payment_error;
 
@@ -797,14 +800,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Retries the payment process once an error occured.
 	 *
-	 * @param object   $intent     The Payment Intent response from the Stripe API.
-	 * @param WC_Order $order      An order that is being paid for.
-	 * @param bool     $can_retry
+	 * @param object   $intent            The Payment Intent response from the Stripe API.
+	 * @param WC_Order $order             An order that is being paid for.
+	 * @param bool     $retry             A flag that indicates whether another retry should be attempted.
+	 * @param bool     $force_save_source Force save the payment source.
+	 * @param mixed    $previous_error    Any error message from previous request.
+	 * @param bool     $use_order_source  Whether to use the source, which should already be attached to the order.
 	 * @throws WC_Stripe_Exception If the payment is not accepted.
 	 * @return array|void
 	 */
-	public function retry_after_error( $intent, $order, $can_retry ) {
-		if ( ! $can_retry ) {
+	public function retry_after_error( $intent, $order, $retry, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
+		if ( ! $retry ) {
 			$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
 			$order->add_order_note( $localized_message );
 			throw new WC_Stripe_Exception( print_r( $intent, true ), $localized_message ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.
@@ -1009,7 +1015,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 
 		$data['description'] .= '</tbody>
 			</table>
-			<span id="wc_stripe_upe_change_notice" class="hidden">' . __( 'You must save your changes.', 'woocommerce-gateway-stripe' ) . '</span>';
+			<span id="wc_stripe_upe_change_notice" class="hidden">' . __( 'You must save your changes.', 'woocommerce-gateway-stripe' ) . '</span>
+			<p><a class="button" target="_blank" href="https://dashboard.stripe.com/account/payments/settings">' . __( 'Get more payment methods', 'woocommerce-gateway-stripe' ) . '</a></p>';
 
 		return $this->generate_title_html( $key, $data );
 	}
@@ -1144,13 +1151,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 	 */
 	private function create_token_from_setup_intent( $setup_intent_id, $user ) {
 		try {
-			$setup_intent = WC_Stripe_API::retrieve( 'setup_intents/' . $setup_intent_id );
+			$setup_intent = $this->stripe_request( 'setup_intents/' . $setup_intent_id );
 			if ( ! empty( $setup_intent->last_payment_error ) ) {
 				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
 			$payment_method_id     = $setup_intent->payment_method;
-			$payment_method_object = WC_Stripe_API::retrieve( 'payment_methods/' . $payment_method_id );
+			$payment_method_object = $this->stripe_request( 'payment_methods/' . $payment_method_id );
 
 			$payment_method = $this->payment_methods[ $payment_method_object->type ];
 			return $payment_method->add_token_to_user_from_payment_method( $user->ID, $payment_method_object );
@@ -1162,4 +1169,26 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Stripe_Payment_Gateway {
 			];
 		}
 	}
+
+	/**
+	 * Wrapper function to manage requests to WC_Stripe_API.
+	 *
+	 * @param string   $path   Stripe API endpoint path to query.
+	 * @param string   $params Parameters for request body.
+	 * @param WC_Order $order  WC Order for request.
+	 * @param string   $method HTTP method for request.
+	 *
+	 * @return object JSON response object.
+	 */
+	protected function stripe_request( $path, $params = null, $order = null, $method = 'POST' ) {
+		if ( is_null( $params ) ) {
+			return WC_Stripe_API::retrieve( $path );
+		}
+		if ( ! is_null( $order ) ) {
+			$level3_data = $this->get_level3_data_from_order( $order );
+			return WC_Stripe_API::request_with_level3_data( $params, $path, $level3_data, $order );
+		}
+		return WC_Stripe_API::request( $params, $path, $method );
+	}
+
 }
