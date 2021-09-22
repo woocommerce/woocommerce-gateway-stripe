@@ -42,10 +42,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Base template for Stripe payment intent.
 	 */
 	const MOCK_CARD_PAYMENT_INTENT_TEMPLATE = [
-		'object'        => 'payment_intent',
-		'status'        => 'succeeded',
-		'client_secret' => 'cs_mock',
-		'charges'       => [
+		'object'             => 'payment_intent',
+		'status'             => 'succeeded',
+		'last_payment_error' => [],
+		'client_secret'      => 'cs_mock',
+		'charges'            => [
 			'total_count' => 1,
 			'data'        => [
 				[
@@ -542,12 +543,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$response    = $this->mock_gateway->process_payment( $order_id );
 		$final_order = wc_get_order( $order_id );
-		$note        = wc_get_order_notes(
-			[
-				'order_id' => $order_id,
-				'limit'    => 1,
-			]
-		)[0];
 
 		$this->assertEquals( 'fail', $response['result'] );
 		$this->assertEquals( 'failed', $final_order->get_status() );
