@@ -454,10 +454,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				$request['metadata'] = $this->get_metadata_from_order( $order );
 
-				WC_Stripe_API::request_with_level3_data(
-					$request,
+				$this->stripe_request(
 					"payment_intents/$payment_intent_id",
-					$this->get_level3_data_from_order( $order ),
+					$request,
 					$order
 				);
 			}
@@ -503,7 +502,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 
 			$token          = WC_Stripe_Payment_Tokens::get_token_from_request( $_POST );
-			$payment_method = WC_Stripe_API::request( [], 'payment_methods/' . $token->get_token(), 'GET' );
+			$payment_method = $this->stripe_request( 'payment_methods/' . $token->get_token(), [], null, 'GET' );
 			$payment_needed = 0 < $order->get_total();
 
 			$this->maybe_disallow_prepaid_card( $payment_method );
@@ -521,7 +520,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$prepared_payment_method = $this->prepare_payment_method( $payment_method, $token );
 
 				$request_details = $this->generate_payment_request( $order, $prepared_payment_method );
-				$level3_data     = $this->get_level3_data_from_order( $order );
 				$endpoint        = false !== $intent ? "payment_intents/$intent->id" : 'payment_intents';
 				$request         = [
 					'payment_method'       => $payment_method->id,
@@ -537,10 +535,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$request['confirm']        = 'true';
 				}
 
-				$intent = WC_Stripe_API::request_with_level3_data(
-					$request,
+				$intent = $this->stripe_request(
 					$endpoint,
-					$level3_data,
+					$request,
 					$order
 				);
 			} else {
@@ -554,11 +551,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$request['confirm'] = 'true';
 				}
 
-				$intent = WC_Stripe_API::request(
-					$request,
-					$endpoint,
-					'POST'
-				);
+				$intent = $this->stripe_request( $endpoint, $request );
 			}
 			$this->save_intent_to_order( $order, $intent );
 
@@ -731,9 +724,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Get payment intent to confirm status.
 		if ( $payment_needed ) {
-			$intent = WC_Stripe_API::retrieve( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
+			$intent = $this->stripe_request( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
 		} else {
-			$intent = WC_Stripe_API::retrieve( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
+			$intent = $this->stripe_request( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
 		}
 		$error = $intent->last_payment_error;
 
@@ -1154,13 +1147,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	private function create_token_from_setup_intent( $setup_intent_id, $user ) {
 		try {
-			$setup_intent = WC_Stripe_API::retrieve( 'setup_intents/' . $setup_intent_id );
+			$setup_intent = $this->stripe_request( 'setup_intents/' . $setup_intent_id );
 			if ( ! empty( $setup_intent->last_payment_error ) ) {
 				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
 			$payment_method_id     = $setup_intent->payment_method;
-			$payment_method_object = WC_Stripe_API::retrieve( 'payment_methods/' . $payment_method_id );
+			$payment_method_object = $this->stripe_request( 'payment_methods/' . $payment_method_id );
 
 			$payment_method = $this->payment_methods[ $payment_method_object->type ];
 			return $payment_method->add_token_to_user_from_payment_method( $user->ID, $payment_method_object );
@@ -1172,4 +1165,26 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			];
 		}
 	}
+
+	/**
+	 * Wrapper function to manage requests to WC_Stripe_API.
+	 *
+	 * @param string   $path   Stripe API endpoint path to query.
+	 * @param string   $params Parameters for request body.
+	 * @param WC_Order $order  WC Order for request.
+	 * @param string   $method HTTP method for request.
+	 *
+	 * @return object JSON response object.
+	 */
+	protected function stripe_request( $path, $params = null, $order = null, $method = 'POST' ) {
+		if ( is_null( $params ) ) {
+			return WC_Stripe_API::retrieve( $path );
+		}
+		if ( ! is_null( $order ) ) {
+			$level3_data = $this->get_level3_data_from_order( $order );
+			return WC_Stripe_API::request_with_level3_data( $params, $path, $level3_data, $order );
+		}
+		return WC_Stripe_API::request( $params, $path, $method );
+	}
+
 }
