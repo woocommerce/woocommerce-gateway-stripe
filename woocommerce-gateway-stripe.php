@@ -162,6 +162,8 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-eps.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-p24.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-bancontact.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sofort.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-giropay.php';
@@ -377,11 +379,11 @@ function woocommerce_gateway_stripe() {
 					$methods[] = WC_Gateway_Stripe_Ideal::class;
 					$methods[] = WC_Gateway_Stripe_Bancontact::class;
 					$methods[] = WC_Gateway_Stripe_Eps::class;
+					$methods[] = WC_Gateway_Stripe_Sofort::class;
+					$methods[] = WC_Gateway_Stripe_P24::class;
 				}
 
 				// These payment gateways will always be visible, regardless if UPE is enabled or disabled:
-				$methods[] = WC_Gateway_Stripe_Sofort::class;
-				$methods[] = WC_Gateway_Stripe_P24::class;
 				$methods[] = WC_Gateway_Stripe_Alipay::class;
 				$methods[] = WC_Gateway_Stripe_Multibanco::class;
 
