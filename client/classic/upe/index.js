@@ -2,6 +2,7 @@ import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
 import { getStripeServerData, getUPETerms } from '../../stripe-utils';
 import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
+import { legacyHashchangeHandler } from './legacy-support';
 import './style.scss';
 
 jQuery( function ( $ ) {
@@ -676,9 +677,11 @@ jQuery( function ( $ ) {
 	maybeShowAuthenticationModal();
 
 	// Handle hash change - used when authenticating payment with SCA on checkout page.
-	window.addEventListener( 'hashchange', () => {
+	$( window ).on( 'hashchange', () => {
 		if ( window.location.hash.startsWith( '#wc-stripe-confirm-' ) ) {
 			maybeShowAuthenticationModal();
+		} else if ( window.location.hash.startsWith( '#confirm-' ) ) {
+			legacyHashchangeHandler( api, showError );
 		}
 	} );
 } );
