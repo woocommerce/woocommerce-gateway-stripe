@@ -26,6 +26,7 @@ define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '3.0' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '3.3' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
+define( 'WC_STRIPE_ABSPATH', __DIR__ . '/' );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
 define( 'WC_STRIPE_PLUGIN_PATH', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
 
@@ -208,6 +209,11 @@ function woocommerce_gateway_stripe() {
 					if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-onboarding-controller.php';
 						new WC_Stripe_Onboarding_Controller();
+					}
+
+					if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-payment-gateways-controller.php';
+						new WC_Stripe_Payment_Gateways_Controller();
 					}
 				}
 
