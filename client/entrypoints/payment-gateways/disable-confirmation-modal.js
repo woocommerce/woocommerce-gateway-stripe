@@ -5,9 +5,9 @@ import './style.scss';
 import {
 	useEnabledPaymentMethodIds,
 	usePaymentRequestEnabledSettings,
-} from '../data';
-import PaymentMethodIcon from '../settings/payment-method-icon';
-import ConfirmationModal from '../components/confirmation-modal';
+} from '../../data';
+import PaymentMethodIcon from '../../settings/payment-method-icon';
+import ConfirmationModal from '../../components/confirmation-modal';
 
 const DisableConfirmationModal = ( { onClose, onConfirm } ) => {
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
