@@ -80,7 +80,7 @@ export default {
 		currencies: [ 'EUR' ],
 	},
 	p24: {
-		id: 'ideal',
+		id: 'p24',
 		label: __( 'Przelewy24', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'Przelewy24 is a Poland-based payment method aggregator that allows customers to complete transactions online using bank transfers and other methods.',
