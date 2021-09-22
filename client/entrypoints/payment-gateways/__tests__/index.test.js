@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DisableConfirmationModal from '../disable-confirmation-modal';
 
-jest.mock( '../../data', () => ( {
+jest.mock( '../../../data', () => ( {
 	useEnabledPaymentMethodIds: jest.fn().mockReturnValue( [ [] ] ),
 	usePaymentRequestEnabledSettings: jest.fn().mockReturnValue( '' ),
 } ) );
