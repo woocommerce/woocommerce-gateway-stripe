@@ -8,12 +8,29 @@ import { Button } from '@wordpress/components';
  * Internal dependencies
  */
 import './style.scss';
-import { useEnabledPaymentMethodIds } from '../data';
+import {
+	useEnabledPaymentMethodIds,
+	usePaymentRequestEnabledSettings,
+} from '../data';
 import PaymentMethodIcon from '../settings/payment-method-icon';
 import ConfirmationModal from '../components/confirmation-modal';
 
 const DisableConfirmationModal = ( { onClose, onConfirm } ) => {
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
+	const [
+		paymentRequestEnabledSettings,
+	] = usePaymentRequestEnabledSettings();
+
+	const mainDialogText =
+		enabledPaymentMethodIds.length === 0 && paymentRequestEnabledSettings
+			? __(
+					'Are you sure you want to disable Stripe? Without it, your customers will no longer be able to pay using the express checkouts.',
+					'woocommerce-gateway-stripe'
+			  )
+			: __(
+					'Are you sure you want to disable Stripe? Without it, your customers will no longer be able to pay using the payment methods below as well as express checkouts.',
+					'woocommerce-gateway-stripe'
+			  );
 
 	return (
 		<ConfirmationModal
@@ -31,27 +48,29 @@ const DisableConfirmationModal = ( { onClose, onConfirm } ) => {
 				</>
 			}
 		>
-			<p>
-				{ __(
-					'Are you sure you want to disable Stripe? Without it, your customers will no longer be able to pay using the payment methods below as well as express checkouts.',
-					'woocommerce-gateway-stripe'
-				) }
-			</p>
-			<p>
-				{ __(
-					'Payment methods that need Stripe:',
-					'woocommerce-gateway-stripe'
-				) }
-			</p>
-			<ul className="disable-confirmation-modal__payment-methods-list">
-				{ enabledPaymentMethodIds.map( ( methodId ) => {
-					return (
-						<li key={ methodId }>
-							<PaymentMethodIcon name={ methodId } showName />
-						</li>
-					);
-				} ) }
-			</ul>
+			<p>{ mainDialogText }</p>
+			{ enabledPaymentMethodIds.length > 0 && (
+				<>
+					<p>
+						{ __(
+							'Payment methods that need Stripe:',
+							'woocommerce-gateway-stripe'
+						) }
+					</p>
+					<ul className="disable-confirmation-modal__payment-methods-list">
+						{ enabledPaymentMethodIds.map( ( methodId ) => {
+							return (
+								<li key={ methodId }>
+									<PaymentMethodIcon
+										name={ methodId }
+										showName
+									/>
+								</li>
+							);
+						} ) }
+					</ul>
+				</>
+			) }
 		</ConfirmationModal>
 	);
 };

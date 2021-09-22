@@ -211,7 +211,8 @@ function woocommerce_gateway_stripe() {
 
 					// If UPE is enabled and there are enabled payment methods, we need to load the disable Stripe confirmation modal.
 					$enabled_upe_payment_methods = get_option( 'woocommerce_stripe_settings', [] )['upe_checkout_experience_accepted_payments'];
-					if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && count( $enabled_upe_payment_methods ) > 0 ) {
+					$upe_payment_requests_enabled = 'yes' === get_option( 'woocommerce_stripe_settings', [] )['payment_request'];
+					if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && ( count( $enabled_upe_payment_methods ) > 0 || $upe_payment_requests_enabled ) ) {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin.php';
 					}
 				}
