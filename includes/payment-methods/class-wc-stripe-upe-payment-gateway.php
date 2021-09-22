@@ -876,6 +876,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
+	 * Checks if gateway should be available to use.
+	 *
+	 * @since x.x.x
+	 */
+	public function is_available() {
+		if ( is_add_payment_method_page() && ! $this->is_saved_cards_enabled() ) {
+			return false;
+		}
+
+		return 'yes' === $this->enabled;
+	}
+
+	/**
 	 * Function to be used with array_filter
 	 * to filter UPE payment methods supported with current checkout
 	 *
