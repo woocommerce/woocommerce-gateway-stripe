@@ -6,6 +6,7 @@ import SepaIcon from './payment-method-icons/sepa';
 import EpsIcon from './payment-method-icons/eps';
 import BancontactIcon from './payment-method-icons/bancontact';
 import IdealIcon from './payment-method-icons/ideal';
+import P24Icon from './payment-method-icons/p24';
 
 export default {
 	card: {
@@ -77,5 +78,15 @@ export default {
 		),
 		Icon: IdealIcon,
 		currencies: [ 'EUR' ],
+	},
+	p24: {
+		id: 'p24',
+		label: __( 'Przelewy24', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Przelewy24 is a Poland-based payment method aggregator that allows customers to complete transactions online using bank transfers and other methods.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: P24Icon,
+		currencies: [ 'EUR', 'PLN' ],
 	},
 };

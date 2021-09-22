@@ -163,6 +163,8 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-eps.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-p24.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-bancontact.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sofort.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-giropay.php';
@@ -377,11 +379,11 @@ function woocommerce_gateway_stripe() {
 					$methods[] = WC_Gateway_Stripe_Ideal::class;
 					$methods[] = WC_Gateway_Stripe_Bancontact::class;
 					$methods[] = WC_Gateway_Stripe_Eps::class;
+					$methods[] = WC_Gateway_Stripe_Sofort::class;
+					$methods[] = WC_Gateway_Stripe_P24::class;
 				}
 
 				// These payment gateways will always be visible, regardless if UPE is enabled or disabled:
-				$methods[] = WC_Gateway_Stripe_Sofort::class;
-				$methods[] = WC_Gateway_Stripe_P24::class;
 				$methods[] = WC_Gateway_Stripe_Alipay::class;
 				$methods[] = WC_Gateway_Stripe_Multibanco::class;
 
@@ -650,6 +652,9 @@ function wcstripe_deactivated() {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-compatibility-note.php';
 		WC_Stripe_UPE_Compatibility_Note::possibly_delete_note();
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
+		WC_Stripe_UPE_Availability_Note::possibly_delete_note();
 	}
 }
 register_deactivation_hook( __FILE__, 'wcstripe_deactivated' );
