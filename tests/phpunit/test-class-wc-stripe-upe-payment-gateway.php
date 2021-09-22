@@ -483,9 +483,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Tests that retryable error fails after 5 attempts.
+	 * Tests that retryable error fails after 6 attempts.
 	 */
-	public function test_checkout_with_saved_payment_method_fails_after_five_attempts() {
+	public function test_checkout_with_saved_payment_method_fails_after_six_attempts() {
 		$token = $this->set_postvars_for_saved_payment_method();
 
 		$order             = WC_Helper_Order::create_order();
