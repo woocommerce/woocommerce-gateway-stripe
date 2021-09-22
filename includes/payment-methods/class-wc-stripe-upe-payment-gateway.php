@@ -57,6 +57,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public $statement_descriptor;
 
 	/**
+	 * Are saved cards enabled
+	 *
+	 * @var bool
+	 */
+	public $saved_cards;
+
+	/**
 	 * API access secret key
 	 *
 	 * @var string
@@ -931,7 +938,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool Whether the setting to allow saved cards is enabled or not.
 	 */
 	public function is_saved_cards_enabled() {
-		return 'yes' === $this->get_option( 'saved_cards' );
+		return $this->saved_cards;
 	}
 
 	/**
