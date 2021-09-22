@@ -100,6 +100,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return;
 		}
 
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			return;
+		}
+
 		if ( ! is_admin() ) {
 			return;
 		}
