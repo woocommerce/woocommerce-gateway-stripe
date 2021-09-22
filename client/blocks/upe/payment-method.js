@@ -9,14 +9,20 @@ import WCStripeAPI from 'wcstripe/api';
 const api = new WCStripeAPI(
 	{
 		key: getBlocksConfiguration()?.key,
-		locale: getBlocksConfiguration()?.locale,
-		isUPEEnabled: getBlocksConfiguration()?.isUPEEnabled,
+		locale: getBlocksConfiguration()?.locale ?? 'auto',
+		isUPEEnabled: getBlocksConfiguration()?.isUPEEnabled ?? false,
 	},
-	// A promise-based interface to jQuery.post.
-	( url, args ) => {
-		return new Promise( ( resolve, reject ) => {
-			jQuery.post( url, args ).then( resolve ).fail( reject );
+	async ( url, args ) => {
+		const data = new FormData();
+		for ( const key in args ) {
+			data.append( key, args[ key ] );
+		}
+
+		const response = await fetch( url, {
+			method: 'POST',
+			body: data,
 		} );
+		return await response.json();
 	}
 );
 
