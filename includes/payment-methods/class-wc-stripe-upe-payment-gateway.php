@@ -57,6 +57,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public $statement_descriptor;
 
 	/**
+	 * Are saved cards enabled
+	 *
+	 * @var bool
+	 */
+	public $saved_cards;
+
+	/**
 	 * API access secret key
 	 *
 	 * @var string
@@ -109,6 +116,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->title                = $this->get_option( 'title' );
 		$this->description          = $this->get_option( 'description' );
 		$this->enabled              = $this->get_option( 'enabled' );
+		$this->saved_cards          = 'yes' === $this->get_option( 'saved_cards' );
 		$this->testmode             = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
 		$this->publishable_key      = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
 		$this->secret_key           = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
@@ -876,6 +884,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
+	 * Checks if gateway should be available to use.
+	 *
+	 * @since x.x.x
+	 */
+	public function is_available() {
+		$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
+		if ( is_add_payment_method_page() && count( $methods_enabled_for_saved_payments ) === 0 ) {
+			return false;
+		}
+
+		return parent::is_available();
+	}
+
+	/**
 	 * Function to be used with array_filter
 	 * to filter UPE payment methods supported with current checkout
 	 *
@@ -916,7 +938,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool Whether the setting to allow saved cards is enabled or not.
 	 */
 	public function is_saved_cards_enabled() {
-		return 'yes' === $this->get_option( 'saved_cards' );
+		return $this->saved_cards;
 	}
 
 	/**
