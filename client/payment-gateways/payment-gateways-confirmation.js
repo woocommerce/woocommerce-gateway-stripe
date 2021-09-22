@@ -1,11 +1,5 @@
 /* global woocommerce_admin */
-/**
- * External dependencies
- */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-/**
- * Internal dependencies
- */
 import DisableConfirmationModal from './disable-confirmation-modal';
 import { useSettings } from 'data';
 

@@ -1,12 +1,6 @@
-/**
- * External dependencies
- */
 import { __ } from '@wordpress/i18n';
 import React from 'react';
 import { Button } from '@wordpress/components';
-/**
- * Internal dependencies
- */
 import './style.scss';
 import {
 	useEnabledPaymentMethodIds,
