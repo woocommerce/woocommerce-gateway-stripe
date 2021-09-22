@@ -272,11 +272,22 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Returns the HTML for the subtext messaging in the old settings UI.
 	 *
+	 * @param string $stripe_method_status (optional) Status of this payment method based on the Stripe's account capabilities
 	 * @return string
 	 */
-	public function get_subtext_messages() {
+	public function get_subtext_messages( $stripe_method_status ) {
 		// can be either a `currency` or `activation` messaging, to be displayed in the old settings UI.
 		$messages = [];
+
+		if ( ! empty( $stripe_method_status ) && 'active' !== $stripe_method_status ) {
+			$text            = __( 'Pending activation', 'woocommerce-gateway-stripe' );
+			$tooltip_content = sprintf(
+				/* translators: %1: Payment method name */
+				esc_attr__( '%1$s won\'t be visible to your customers until you provide the required information. Follow the instructions Stripe has sent to your e-mail.', 'woocommerce-gateway-stripe' ),
+				$this->get_label()
+			);
+			$messages[] = $text . '<span class="tips" data-tip="' . $tooltip_content . '"><span class="woocommerce-help-tip" style="margin-top: 0;"></span></span>';
+		}
 
 		$currencies = $this->get_supported_currencies();
 		if ( ! empty( $currencies ) && ! in_array( get_woocommerce_currency(), $currencies, true ) ) {

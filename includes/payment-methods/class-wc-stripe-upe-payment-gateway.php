@@ -985,6 +985,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string
 	 */
 	public function generate_upe_checkout_experience_accepted_payments_html( $key, $data ) {
+		$stripe_account      = WC_Stripe_API::retrieve( 'account' );
+		$stripe_capabilities = isset( $stripe_account->capabilities ) ? (array) $stripe_account->capabilities : [];
 		$data['description'] = '<p>' . __( "Select payments available to customers at checkout. We'll only show your customers the most relevant payment methods based on their currency and location.", 'woocommerce-gateway-stripe' ) . '</p>
 		<table class="wc_gateways widefat form-table" cellspacing="0" aria-describedby="wc_stripe_upe_method_selection">
 			<thead>
@@ -998,7 +1000,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		foreach ( $this->payment_methods as $method_id => $method ) {
 			$method_enabled       = in_array( $method_id, $this->get_upe_enabled_payment_method_ids(), true ) ? 'enabled' : 'disabled';
-			$subtext_messages     = $method->get_subtext_messages();
+			$capability_id        = "{$method_id}_payments"; // "_payments" is a suffix that comes from Stripe API, except when it is "transfers", which does not apply here
+			$method_status        = isset( $stripe_capabilities[ $capability_id ] ) ? $stripe_capabilities[ $capability_id ] : 'inactive';
+			$subtext_messages     = $method->get_subtext_messages( $method_status );
 			$data['description'] .= '<tr data-upe_method_id="' . $method_id . '">
 					<td class="name" width="">
 						<a href="#" class="wc-payment-gateway-method-title">' . $method->get_label() . '</a>
