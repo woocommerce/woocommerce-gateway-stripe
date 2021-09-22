@@ -83,8 +83,8 @@
     "yarnhook": "^0.5.1"
   },
   "dependencies": {
-    "@stripe/react-stripe-js": "1.2.2",
-    "@stripe/stripe-js": "1.11.0",
+    "@stripe/react-stripe-js": "1.4.1",
+    "@stripe/stripe-js": "1.15.1",
     "@testing-library/react-hooks": "^7.0.2",
     "@wordpress/icons": "^5.0.1",
     "classnames": "^2.3.1",
