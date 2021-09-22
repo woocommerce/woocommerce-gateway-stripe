@@ -1,8 +1,8 @@
 import { getSetting } from '@woocommerce/settings';
-import { loadStripe } from '../../stripe-utils';
 import { PAYMENT_METHOD_NAME } from './constants';
 import { PaymentRequestExpress } from './payment-request-express';
 import { applePayImage } from './apple-pay-preview';
+import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import {
 	getBlocksConfiguration,
 	createPaymentRequestUsingCart,

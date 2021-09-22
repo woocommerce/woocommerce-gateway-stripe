@@ -60,6 +60,15 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array
 	 */
 	public function get_payment_method_script_handles() {
+		// Ensure Stripe JS is enqueued
+		wp_register_script(
+			'stripe',
+			'https://js.stripe.com/v3/',
+			[],
+			'3.0',
+			true
+		);
+
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			$this->register_upe_payment_method_script_handles();
 		} else {
@@ -86,19 +95,10 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				: $dependencies;
 		}
 
-		// Ensure Stripe JS is enqueued
-		wp_register_script(
-			'stripe',
-			'https://js.stripe.com/v3/',
-			[],
-			'3.0',
-			true
-		);
-
 		wp_register_script(
 			'wc-stripe-blocks-integration',
 			WC_STRIPE_PLUGIN_URL . '/build/upe_blocks.js',
-			$dependencies,
+			array_merge( [ 'stripe' ], $dependencies ),
 			$version,
 			true
 		);
@@ -127,7 +127,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		wp_register_script(
 			'wc-stripe-blocks-integration',
 			WC_STRIPE_PLUGIN_URL . '/build/index.js',
-			$dependencies,
+			array_merge( [ 'stripe' ], $dependencies ),
 			$version,
 			true
 		);

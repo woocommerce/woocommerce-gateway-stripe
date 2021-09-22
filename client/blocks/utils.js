@@ -39,3 +39,19 @@ export const createPaymentRequestUsingCart = ( stripe, cart ) => {
 
 	return stripe.paymentRequest( options );
 };
+
+/**
+ * Returns the public api key for the stripe payment method
+ *
+ * @throws Error
+ * @return {string} The public api key for the stripe payment method.
+ */
+export const getApiKey = () => {
+	const apiKey = getBlocksConfiguration()?.key;
+	if ( ! apiKey ) {
+		throw new Error(
+			'There is no api key available for stripe. Make sure it is available on the wc.stripe_data.stripe.key property.'
+		);
+	}
+	return apiKey;
+};

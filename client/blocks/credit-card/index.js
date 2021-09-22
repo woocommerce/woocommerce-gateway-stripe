@@ -1,10 +1,10 @@
 import { __ } from '@wordpress/i18n';
 import { useEffect, useState } from '@wordpress/element';
-import { loadStripe } from '../../stripe-utils';
 import { ThreeDSecurePaymentHandler } from '../three-d-secure';
 import { StripeCreditCard, getStripeCreditCardIcons } from './payment-method';
 import { PAYMENT_METHOD_NAME } from './constants';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import { loadStripe } from 'wcstripe/blocks/load-stripe';
 
 const stripePromise = loadStripe();
 
