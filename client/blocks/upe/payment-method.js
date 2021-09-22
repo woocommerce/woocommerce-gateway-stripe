@@ -6,25 +6,18 @@ import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { PAYMENT_METHOD_NAME } from 'wcstripe/blocks/credit-card/constants';
 import WCStripeAPI from 'wcstripe/api';
 
-const api = new WCStripeAPI(
-	{
-		key: getBlocksConfiguration()?.key,
-		locale: getBlocksConfiguration()?.locale ?? 'auto',
-		isUPEEnabled: getBlocksConfiguration()?.isUPEEnabled ?? false,
-	},
-	async ( url, args ) => {
-		const data = new FormData();
-		for ( const key in args ) {
-			data.append( key, args[ key ] );
-		}
-
-		const response = await fetch( url, {
-			method: 'POST',
-			body: data,
-		} );
-		return await response.json();
+const api = new WCStripeAPI( getBlocksConfiguration(), async ( url, args ) => {
+	const data = new FormData();
+	for ( const key in args ) {
+		data.append( key, args[ key ] );
 	}
-);
+
+	const response = await fetch( url, {
+		method: 'POST',
+		body: data,
+	} );
+	return await response.json();
+} );
 
 const StripeComponent = ( { RenderedComponent, ...props } ) => {
 	const [ errorMessage, setErrorMessage ] = useState( '' );
