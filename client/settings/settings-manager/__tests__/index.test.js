@@ -9,6 +9,18 @@ jest.mock( '@woocommerce/navigation', () => ( {
 jest.mock( 'wcstripe/settings/customization-options-notice', () => () => null );
 
 describe( 'SettingsManager', () => {
+	beforeEach( () => {
+		global.wc_stripe_settings_params = {
+			accountStatus: {
+				email: 'test@example.com',
+				mode: 'test',
+				paymentsEnabled: true,
+				depositsEnabled: true,
+				accountLink: 'https://stripe.com/support',
+			},
+		};
+	} );
+
 	afterEach( () => {
 		jest.clearAllMocks();
 	} );
