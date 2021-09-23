@@ -11,6 +11,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Settings_Controller {
 	/**
+	 * The Stripe account instance.
+	 *
+	 * @var WC_Stripe_Account
+	 */
+	private $account;
+
+	/**
 	 * Constructor
 	 *
 	 * @param WC_Stripe_Account $account Stripe account

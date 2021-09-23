@@ -12,7 +12,20 @@ class WC_Stripe_Account {
 
 	const LIVE_ACCOUNT_OPTION = 'wcstripe_account_data_live';
 	const TEST_ACCOUNT_OPTION = 'wcstripe_account_data_test';
-	const ACCOUNT_API         = 'account';
+
+	/**
+	 * The Stripe connect instance.
+	 *
+	 * @var WC_Stripe_Connect
+	 */
+	private $connect;
+
+	/**
+	 * The Stripe API class to access the static method.
+	 *
+	 * @var WC_Stripe_API
+	 */
+	private $stripe_api;
 
 	/**
 	 * Constructor
@@ -74,7 +87,7 @@ class WC_Stripe_Account {
 		// Create or update the account option cache.
 		set_transient( $this->get_transient_key(), $account_cache, $expiration );
 
-		return $account;
+		return json_decode( json_encode( $account ), true );
 	}
 
 	/**

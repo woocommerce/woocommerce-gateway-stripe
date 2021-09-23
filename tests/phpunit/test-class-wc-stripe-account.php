@@ -9,6 +9,13 @@
  * Class WC_Stripe_Account tests.
  */
 class WC_Stripe_Account_Test extends WP_UnitTestCase {
+	/**
+	 * The Stripe account instance.
+	 *
+	 * @var WC_Stripe_Account
+	 */
+	private $account;
+
 	public function setUp() {
 		parent::setUp();
 

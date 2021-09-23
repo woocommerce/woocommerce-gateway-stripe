@@ -101,6 +101,13 @@ function woocommerce_gateway_stripe() {
 			public $payment_request_configuration;
 
 			/**
+			 * Stripe Account.
+			 *
+			 * @var WC_Stripe_Account
+			 */
+			private $account;
+
+			/**
 			 * Private clone method to prevent cloning of the instance of the
 			 * *Singleton* instance.
 			 *
