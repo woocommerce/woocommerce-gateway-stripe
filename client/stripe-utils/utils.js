@@ -145,15 +145,11 @@ export const getUPETerms = ( value = 'always' ) => {
  * @return {string} Dynamic title string dependent on payment methods enabled.
  */
 const getCustomGatewayTitle = ( paymentMethodsConfig ) => {
-	let label;
 	const enabledPaymentMethods = Object.keys( paymentMethodsConfig ).sort();
 	if ( enabledPaymentMethods.length < 2 ) {
-		label = paymentMethodsConfig[ enabledPaymentMethods[ 0 ] ].title;
-	} else {
-		label = getStripeServerData()?.checkoutTitle;
+		return paymentMethodsConfig[ enabledPaymentMethods[ 0 ] ].title;
 	}
-
-	return label;
+	return getStripeServerData()?.checkoutTitle;
 };
 
 export {
