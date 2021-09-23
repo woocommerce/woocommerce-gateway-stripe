@@ -987,9 +987,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		<table class="wc_gateways widefat form-table" cellspacing="0" aria-describedby="wc_stripe_upe_method_selection">
 			<thead>
 				<tr>
-					<th class="name">Method</th>
-					<th class="status">Enabled</th>
-					<th class="description">Description</th>
+					<th class="name">' . esc_html__( 'Method', 'woocommerce-gateway-stripe' ) . '</th>
+					<th class="status">' . esc_html__( 'Enabled', 'woocommerce-gateway-stripe' ) . '</th>
+					<th class="description">' . esc_html__( 'Description', 'woocommerce-gateway-stripe' ) . '</th>
 				</tr>
 			</thead>
 			<tbody>';
