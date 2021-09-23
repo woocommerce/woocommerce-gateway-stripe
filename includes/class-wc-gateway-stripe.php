@@ -193,6 +193,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function init_form_fields() {
 		$this->form_fields = require dirname( __FILE__ ) . '/admin/stripe-settings.php';
+		unset( $this->form_fields['title_upe'] );
 	}
 
 	/**
@@ -342,6 +343,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		global $wp;
 
 		$stripe_params = [
+			'title'                => $this->title,
 			'key'                  => $this->publishable_key,
 			'i18n_terms'           => __( 'Please accept the terms and conditions first', 'woocommerce-gateway-stripe' ),
 			'i18n_required_fields' => __( 'Please fill in required checkout fields first', 'woocommerce-gateway-stripe' ),

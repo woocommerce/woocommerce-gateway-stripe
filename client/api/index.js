@@ -125,7 +125,7 @@ export default class WCStripeAPI {
 	/**
 	 * Updates a payment intent with data from order: customer, level3 data and and maybe sets the payment for future use.
 	 *
-	 * @param {string} paymentIntentId The id of the payment intent.
+	 * @param {string} intentId The id of the payment intent.
 	 * @param {number} orderId The id of the order.
 	 * @param {string} savePaymentMethod 'yes' if saving.
 	 * @param {string} selectedUPEPaymentType The name of the selected UPE payment type or empty string.
@@ -133,14 +133,19 @@ export default class WCStripeAPI {
 	 * @return {Promise} The final promise for the request to the server.
 	 */
 	updateIntent(
-		paymentIntentId,
+		intentId,
 		orderId,
 		savePaymentMethod,
 		selectedUPEPaymentType
 	) {
+		// Don't update setup intents.
+		if ( intentId.includes( 'seti_' ) ) {
+			return;
+		}
+
 		return this.request( this.getAjaxUrl( 'update_payment_intent' ), {
 			stripe_order_id: orderId,
-			wc_payment_intent_id: paymentIntentId,
+			wc_payment_intent_id: intentId,
 			save_payment_method: savePaymentMethod,
 			selected_upe_payment_type: selectedUPEPaymentType,
 			_ajax_nonce: this.options?.updatePaymentIntentNonce,
