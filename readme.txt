@@ -126,12 +126,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.5.0 - 2021-09-15 =
-* Tweak - Moved the `WC_Gateway_Stripe::admin_scripts` method to `WC_Stripe_Settings_Controller::admin_scripts`.
-* Fix - Save payment method during 3D Secure flow for Block-based checkout.
-* Fix - Show subtotal on Payment Request dialog.
-* Add - Settings to control Payment Request Button locations in the Stripe plugin settings. Persists changes made through pre-existing filters, or defaults to the Cart and Product pages if no filters are in use.
-* Tweak - Deprecated the 'wc_stripe_hide_payment_request_on_product_page', 'wc_stripe_show_payment_request_on_checkout', and 'wc_stripe_show_payment_request_on_cart' filters in favor of the UI-driven approach in the plugin settings.
-* Add - Notice for WP & WC version compatibility check.
+= 5.6.0 - 2021-xx-xx =
+* Add - New checkout experience using Stripe Universal Payment Element.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
