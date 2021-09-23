@@ -10,7 +10,20 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 5.4.1
  */
 class WC_Stripe_Settings_Controller {
-	public function __construct() {
+	/**
+	 * The Stripe account instance.
+	 *
+	 * @var WC_Stripe_Account
+	 */
+	private $account;
+
+	/**
+	 * Constructor
+	 *
+	 * @param WC_Stripe_Account $account Stripe account
+	 */
+	public function __construct( WC_Stripe_Account $account ) {
+		$this->account = $account;
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wc_stripe_gateway_admin_options_wrapper', [ $this, 'admin_options' ] );
 	}
@@ -89,6 +102,7 @@ class WC_Stripe_Settings_Controller {
 			),
 			'is_upe_checkout_enabled' => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
 			'stripe_oauth_url'        => $oauth_url,
+			'accountStatus'           => $this->account->get_account_status(),
 		];
 		wp_localize_script( 'woocommerce_stripe_admin', 'wc_stripe_settings_params', $params );
 
