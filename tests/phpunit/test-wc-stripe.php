@@ -96,14 +96,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		];
 	}
 
-	private function enableUpeFeatureFlag() {
-		// Force the UPE feature flag on.
-		add_filter(
-			'pre_option__wcstripe_feature_upe',
-			function() {
-				return 'yes';
-			}
-		);
+	private function clearStripeSettings() {
 		delete_option( 'woocommerce_stripe_settings' );
 		$this->reloadPaymentGateways();
 	}
@@ -114,8 +107,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	}
 
 	public function test_legacy_payment_methods_supported_by_upe_are_not_loaded_when_upe_is_enabled() {
-		$this->enableUpeFeatureFlag();
-		$this->assertTrue( WC_Stripe_Feature_Flags::is_upe_preview_enabled() );
+		$this->clearStripeSettings();
 
 		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
 		$this->reloadPaymentGateways();
@@ -137,7 +129,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	}
 
 	public function test_turning_on_upe_with_no_stripe_legacy_payment_methods_enabled_will_not_turn_on_the_upe_gateway_and_default_to_card_only() {
-		$this->enableUpeFeatureFlag();
+		$this->clearStripeSettings();
 		// Store default stripe options
 		update_option( 'woocommerce_stripe_settings', [] );
 
@@ -157,7 +149,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	}
 
 	public function test_turning_on_upe_enables_the_correct_upe_methods_based_on_which_legacy_payment_methods_were_enabled_and_vice_versa() {
-		$this->enableUpeFeatureFlag();
+		$this->clearStripeSettings();
 
 		// Enable Giropay and Ideal LPM gateways.
 		update_option( 'woocommerce_stripe_giropay_settings', [ 'enabled' => 'yes' ] );

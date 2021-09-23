@@ -158,7 +158,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				'isAdmin'                        => is_admin(),
 				'shouldShowPaymentRequestButton' => $this->should_show_payment_request_button(),
 				'button'                         => [
-					'customLabel' => $this->payment_request_configuration->get_button_label(),
+					'customLabel' => '', // TODO: Remove JS related code.
 				],
 			]
 		);

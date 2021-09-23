@@ -194,7 +194,7 @@ function woocommerce_gateway_stripe() {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-settings-controller.php';
 
-					if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && ! WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
+					if ( ! WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-old-settings-upe-toggle-controller.php';
 						new WC_Stripe_Old_Settings_UPE_Toggle_Controller();
 					}
@@ -361,7 +361,7 @@ function woocommerce_gateway_stripe() {
 			 * @version x.x.x
 			 */
 			public function add_gateways( $methods ) {
-				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+				if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 					$methods[] = WC_Stripe_UPE_Payment_Gateway::class;
 				} else {
 					// These payment gateways will be hidden when UPE is enabled:
@@ -390,9 +390,7 @@ function woocommerce_gateway_stripe() {
 			 */
 			public function filter_gateway_order_admin( $sections ) {
 				unset( $sections['stripe'] );
-				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-					unset( $sections['stripe_upe'] );
-				}
+				unset( $sections['stripe_upe'] );
 				unset( $sections['stripe_bancontact'] );
 				unset( $sections['stripe_sofort'] );
 				unset( $sections['stripe_giropay'] );
@@ -403,10 +401,8 @@ function woocommerce_gateway_stripe() {
 				unset( $sections['stripe_sepa'] );
 				unset( $sections['stripe_multibanco'] );
 
-				$sections['stripe'] = 'Stripe';
-				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-					$sections['stripe_upe'] = 'Stripe checkout experience';
-				}
+				$sections['stripe']            = 'Stripe';
+				$sections['stripe_upe']        = 'Stripe checkout experience';
 				$sections['stripe_bancontact'] = __( 'Stripe Bancontact', 'woocommerce-gateway-stripe' );
 				$sections['stripe_sofort']     = __( 'Stripe SOFORT', 'woocommerce-gateway-stripe' );
 				$sections['stripe_giropay']    = __( 'Stripe Giropay', 'woocommerce-gateway-stripe' );
@@ -436,10 +432,6 @@ function woocommerce_gateway_stripe() {
 					$fields       = $gateway->get_form_fields();
 					$old_settings = array_merge( array_fill_keys( array_keys( $fields ), '' ), wp_list_pluck( $fields, 'default' ) );
 					$settings     = array_merge( $old_settings, $settings );
-				}
-
-				if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-					return $settings;
 				}
 
 				return $this->toggle_upe( $settings, $old_settings );
@@ -576,23 +568,21 @@ function woocommerce_gateway_stripe() {
 				$oauth_init->register_routes();
 				$oauth_connect->register_routes();
 
-				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-controller.php';
-					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-upe-flag-toggle-controller.php';
-					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-controller.php';
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-upe-flag-toggle-controller.php';
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
 
-					$upe_flag_toggle_controller = new WC_REST_UPE_Flag_Toggle_Controller();
-					$upe_flag_toggle_controller->register_routes();
+				$upe_flag_toggle_controller = new WC_REST_UPE_Flag_Toggle_Controller();
+				$upe_flag_toggle_controller->register_routes();
 
-					$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
+				$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
 
-					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
-					$settings_controller = new WC_REST_Stripe_Settings_Controller( $gateway );
-					$settings_controller->register_routes();
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
+				$settings_controller = new WC_REST_Stripe_Settings_Controller( $gateway );
+				$settings_controller->register_routes();
 
-					$stripe_account_keys_controller = new WC_REST_Stripe_Account_keys_Controller();
-					$stripe_account_keys_controller->register_routes();
-				}
+				$stripe_account_keys_controller = new WC_REST_Stripe_Account_keys_Controller();
+				$stripe_account_keys_controller->register_routes();
 			}
 		}
 

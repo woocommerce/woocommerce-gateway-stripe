@@ -245,7 +245,7 @@ class WC_Stripe_Admin_Notices {
 			}
 		}
 
-		if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() || ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			return;
 		}
 

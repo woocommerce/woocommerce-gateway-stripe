@@ -268,10 +268,6 @@ class WC_Stripe_Payment_Request {
 	 * @return  string
 	 */
 	public function get_button_height() {
-		if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-			return isset( $this->stripe_settings['payment_request_button_height'] ) ? str_replace( 'px', '', $this->stripe_settings['payment_request_button_height'] ) : '64';
-		}
-
 		$height = isset( $this->stripe_settings['payment_request_button_size'] ) ? $this->stripe_settings['payment_request_button_size'] : 'default';
 		if ( 'medium' === $height ) {
 			return '48';
@@ -305,49 +301,6 @@ class WC_Stripe_Payment_Request {
 	 */
 	public function get_button_branded_type() {
 		return isset( $this->stripe_settings['payment_request_button_branded_type'] ) ? $this->stripe_settings['payment_request_button_branded_type'] : 'default';
-	}
-
-	/**
-	 * Checks if the button is custom.
-	 *
-	 * @since   4.4.0
-	 * @version 4.4.0
-	 * @return  boolean
-	 */
-	public function is_custom_button() {
-		// no longer a valid option
-		if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-			return false;
-		}
-
-		return 'custom' === $this->get_button_type();
-	}
-
-	/**
-	 * Returns custom button css selector.
-	 *
-	 * @since   4.4.0
-	 * @version 4.4.0
-	 * @return  string
-	 */
-	public function custom_button_selector() {
-		return $this->is_custom_button() ? '#wc-stripe-custom-button' : '';
-	}
-
-	/**
-	 * Gets the custom button label.
-	 *
-	 * @since   4.4.0
-	 * @version 4.4.0
-	 * @return  string
-	 */
-	public function get_button_label() {
-		// no longer a valid option
-		if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-			return '';
-		}
-
-		return isset( $this->stripe_settings['payment_request_button_label'] ) ? $this->stripe_settings['payment_request_button_label'] : 'Buy now';
 	}
 
 	/**
@@ -812,14 +765,6 @@ class WC_Stripe_Payment_Request {
 		?>
 		<div id="wc-stripe-payment-request-wrapper" style="clear:both;padding-top:1.5em;display:none;">
 			<div id="wc-stripe-payment-request-button">
-				<?php
-				if ( $this->is_custom_button() ) {
-					$label      = esc_html( $this->get_button_label() );
-					$class_name = esc_attr( 'button ' . $this->get_button_theme() );
-					$style      = esc_attr( 'height:' . $this->get_button_height() . 'px;' );
-					echo "<button id=\"wc-stripe-custom-button\" class=\"$class_name\" style=\"$style\"> $label </button>";
-				}
-				?>
 				<!-- A Stripe Element will be inserted here. -->
 			</div>
 		</div>
@@ -1652,35 +1597,20 @@ class WC_Stripe_Payment_Request {
 	 * @return array
 	 */
 	public function get_button_settings() {
-		// it would be DRYer to use `array_merge`,
-		// but I thought that this approach might be more straightforward to clean up when we remove the feature flag code.
 		$button_type = $this->get_button_type();
-		if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-			return [
-				'type'         => $button_type,
-				'theme'        => $this->get_button_theme(),
-				'height'       => $this->get_button_height(),
-				// Default format is en_US.
-				'locale'       => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ),
-				'branded_type' => 'default' === $button_type ? 'short' : 'long',
-				// these values are no longer applicable - all the JS relying on them can be removed.
-				'css_selector' => '',
-				'label'        => '',
-				'is_custom'    => false,
-				'is_branded'   => false,
-			];
-		}
-
 		return [
 			'type'         => $button_type,
 			'theme'        => $this->get_button_theme(),
 			'height'       => $this->get_button_height(),
-			'locale'       => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ),
 			// Default format is en_US.
-			'is_custom'    => $this->is_custom_button(),
-			'is_branded'   => $this->is_branded_button(),
-			'css_selector' => $this->custom_button_selector(),
-			'branded_type' => $this->get_button_branded_type(),
+			'locale'       => apply_filters( 'wc_stripe_payment_request_button_locale', substr( get_locale(), 0, 2 ) ),
+			'branded_type' => 'default' === $button_type ? 'short' : 'long',
+			// These values are no longer applicable - all the JS relying on them can be removed.
+			// TODO: Remove JS related code.
+			'css_selector' => '',
+			'label'        => '',
+			'is_custom'    => false,
+			'is_branded'   => false,
 		];
 	}
 
