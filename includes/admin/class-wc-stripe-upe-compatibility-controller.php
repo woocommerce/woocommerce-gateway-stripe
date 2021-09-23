@@ -63,7 +63,7 @@ class WC_Stripe_UPE_Compatibility_Controller {
 				],
 				[
 					'name'         => 'WooCommerce',
-					'version'      => $this->get_wc_version() ? $this->get_wc_version() : '[version-not-found]',
+					'version'      => $this->get_wc_version(),
 					'is_supported' => version_compare( $this->get_wc_version(), WC_Stripe_UPE_Compatibility::MIN_WC_VERSION, '>=' ),
 					'message'      => sprintf(
 					/* translators: %s. WooCommerce version installed. */
