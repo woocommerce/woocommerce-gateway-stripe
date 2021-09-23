@@ -41,13 +41,24 @@ const StripeComponent = ( { RenderedComponent, ...props } ) => {
 	return <RenderedComponent stripe={ stripe } { ...props } />;
 };
 
+const getCustomPaymentMethodTitle = () => {
+	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
+	const enabledPaymentMethods = Object.keys( paymentMethodsConfig ).sort();
+
+	if ( enabledPaymentMethods.length < 2 ) {
+		return paymentMethodsConfig?.[ enabledPaymentMethods[ 0 ] ]?.title;
+	}
+
+	return (
+		getBlocksConfiguration()?.checkoutTitle ??
+		__( 'Credit / Debit Card', 'woocommerce-gateway-stripe' )
+	);
+};
+
 const StripeLabel = ( props ) => {
 	const { PaymentMethodLabel } = props.components;
 
-	const labelText =
-		getBlocksConfiguration()?.title ??
-		__( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
-
+	const labelText = getCustomPaymentMethodTitle();
 	return <PaymentMethodLabel text={ labelText } />;
 };
 
