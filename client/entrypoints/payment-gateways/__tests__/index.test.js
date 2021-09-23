@@ -8,7 +8,7 @@ jest.mock( '../../../data', () => ( {
 } ) );
 
 describe( 'DisableConfirmationModal', () => {
-	it( 'calls the onClose handler on cancel', async () => {
+	it( 'calls the onClose handler on cancel', () => {
 		const handleCloseMock = jest.fn();
 		render( <DisableConfirmationModal onClose={ handleCloseMock } /> );
 
@@ -19,7 +19,7 @@ describe( 'DisableConfirmationModal', () => {
 		expect( handleCloseMock ).toHaveBeenCalled();
 	} );
 
-	it( 'calls the onConfirm handler on cancel', async () => {
+	it( 'calls the onConfirm handler on cancel', () => {
 		const handleConfirmMock = jest.fn();
 		render( <DisableConfirmationModal onConfirm={ handleConfirmMock } /> );
 

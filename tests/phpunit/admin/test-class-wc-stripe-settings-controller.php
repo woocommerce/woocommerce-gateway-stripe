@@ -22,8 +22,17 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	public function setUp() {
 		parent::setUp();
 
+		$this->mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
+									->disableOriginalConstructor()
+									->setMethods(
+										[
+											'get_account_status',
+										]
+									)
+									->getMock();
+
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-settings-controller.php';
-		$this->controller = new WC_Stripe_Settings_Controller();
+		$this->controller = new WC_Stripe_Settings_Controller( $this->mock_account );
 		$this->gateway    = new WC_Gateway_Stripe();
 
 	}

@@ -10,7 +10,20 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 5.4.1
  */
 class WC_Stripe_Settings_Controller {
-	public function __construct() {
+	/**
+	 * The Stripe account instance.
+	 *
+	 * @var WC_Stripe_Account
+	 */
+	private $account;
+
+	/**
+	 * Constructor
+	 *
+	 * @param WC_Stripe_Account $account Stripe account
+	 */
+	public function __construct( WC_Stripe_Account $account ) {
+		$this->account = $account;
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wc_stripe_gateway_admin_options_wrapper', [ $this, 'admin_options' ] );
 	}
@@ -66,9 +79,14 @@ class WC_Stripe_Settings_Controller {
 				[ 'wc-components' ],
 				$script_asset['version']
 			);
-			wp_enqueue_style( 'woocommerce_stripe_admin' );
 		} else {
 			wp_register_script( 'woocommerce_stripe_admin', plugins_url( 'assets/js/stripe-admin' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION, true );
+			wp_register_style(
+				'woocommerce_stripe_admin',
+				plugins_url( 'assets/css/stripe-admin-styles' . $suffix . '.css', WC_STRIPE_MAIN_FILE ),
+				[],
+				WC_STRIPE_VERSION
+			);
 		}
 
 		$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url();
@@ -84,9 +102,11 @@ class WC_Stripe_Settings_Controller {
 			),
 			'is_upe_checkout_enabled' => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
 			'stripe_oauth_url'        => $oauth_url,
+			'accountStatus'           => $this->account->get_account_status(),
 		];
 		wp_localize_script( 'woocommerce_stripe_admin', 'wc_stripe_settings_params', $params );
 
 		wp_enqueue_script( 'woocommerce_stripe_admin' );
+		wp_enqueue_style( 'woocommerce_stripe_admin' );
 	}
 }

@@ -14,9 +14,7 @@ describe( 'ConnectStripeAccount', () => {
 				'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDeal, SEPA, Sofort, and more international payment methods.'
 			)
 		).toBeInTheDocument();
-		expect(
-			screen.queryByText( 'Stripe’s Terms of service.' )
-		).toBeInTheDocument();
+		expect( screen.queryByText( 'Terms of service.' ) ).toBeInTheDocument();
 	} );
 
 	it( 'should render the buttons', () => {
