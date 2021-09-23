@@ -62,7 +62,8 @@ class WC_Stripe_Account {
 		$expiration = 2 * HOUR_IN_SECONDS;
 
 		try {
-			$account = ( $this->stripe_api )::retrieve( 'account' );
+			// need call_user_func() as (  $this->stripe_api )::retrieve this syntax is not supported in php < 5.2
+			$account = call_user_func( [ $this->stripe_api, 'retrieve' ], 'account' );
 		} catch ( WC_Stripe_Exception $e ) {
 			return [];
 		}
