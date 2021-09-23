@@ -1,23 +1,36 @@
 import { __ } from '@wordpress/i18n';
 import { useEffect, useState } from '@wordpress/element';
-import { ThreeDSecurePaymentHandler } from '../three-d-secure';
-import { StripeCreditCard, getStripeCreditCardIcons } from './payment-method';
-import { PAYMENT_METHOD_NAME } from './constants';
+import { UPEPaymentForm } from './fields';
+import { SavedTokenHandler } from './saved-token-handler';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
-import { loadStripe } from 'wcstripe/blocks/load-stripe';
+import { PAYMENT_METHOD_NAME } from 'wcstripe/blocks/credit-card/constants';
+import WCStripeAPI from 'wcstripe/api';
 
-const stripePromise = loadStripe();
+const api = new WCStripeAPI( getBlocksConfiguration(), async ( url, args ) => {
+	const data = new FormData();
+	for ( const key in args ) {
+		data.append( key, args[ key ] );
+	}
+
+	const response = await fetch( url, {
+		method: 'POST',
+		body: data,
+	} );
+	return await response.json();
+} );
 
 const StripeComponent = ( { RenderedComponent, ...props } ) => {
 	const [ errorMessage, setErrorMessage ] = useState( '' );
 
+	const stripe = api.getStripe();
+
 	useEffect( () => {
-		Promise.resolve( stripePromise ).then( ( { error } ) => {
+		Promise.resolve( stripe ).then( ( { error } ) => {
 			if ( error ) {
 				setErrorMessage( error.message );
 			}
 		} );
-	}, [ setErrorMessage ] );
+	}, [ setErrorMessage, stripe ] );
 
 	useEffect( () => {
 		if ( errorMessage ) {
@@ -25,7 +38,7 @@ const StripeComponent = ( { RenderedComponent, ...props } ) => {
 		}
 	}, [ errorMessage ] );
 
-	return <RenderedComponent stripe={ stripePromise } { ...props } />;
+	return <RenderedComponent stripe={ stripe } { ...props } />;
 };
 
 const StripeLabel = ( props ) => {
@@ -38,17 +51,17 @@ const StripeLabel = ( props ) => {
 	return <PaymentMethodLabel text={ labelText } />;
 };
 
-const cardIcons = getStripeCreditCardIcons();
-const stripeCcPaymentMethod = {
+const upePaymentMethod = {
 	name: PAYMENT_METHOD_NAME,
 	label: <StripeLabel />,
-	content: <StripeComponent RenderedComponent={ StripeCreditCard } />,
-	edit: <StripeComponent RenderedComponent={ StripeCreditCard } />,
-	savedTokenComponent: (
-		<StripeComponent RenderedComponent={ ThreeDSecurePaymentHandler } />
+	content: (
+		<StripeComponent RenderedComponent={ UPEPaymentForm } api={ api } />
 	),
-	icons: cardIcons,
-	canMakePayment: () => stripePromise,
+	edit: <StripeComponent RenderedComponent={ UPEPaymentForm } api={ api } />,
+	savedTokenComponent: (
+		<StripeComponent RenderedComponent={ SavedTokenHandler } api={ api } />
+	),
+	canMakePayment: () => !! api.getStripe(),
 	ariaLabel: __(
 		'Stripe Credit Card payment method',
 		'woocommerce-gateway-stripe'
@@ -61,4 +74,4 @@ const stripeCcPaymentMethod = {
 	},
 };
 
-export default stripeCcPaymentMethod;
+export default upePaymentMethod;

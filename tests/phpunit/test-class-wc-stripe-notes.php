@@ -9,8 +9,20 @@
  * Class WC_Stripe_Inbox_Notes_Note tests.
  */
 class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
+	//  public static $global_woocommerce_gateway_stripe;
+
+	public $stripe_connect_mock;
+	public $stripe_connect_original;
+
 	public function setUp() {
 		parent::setUp();
+
+		// overriding the `WC_Stripe_Connect` in woocommerce_gateway_stripe(),
+		// because the method we're calling is static and we don't really have a way of injecting it all the way down to this class.
+		$this->stripe_connect_mock = $this->createPartialMock( WC_Stripe_Connect::class, [ 'is_connected' ] );
+		$this->stripe_connect_mock->expects( $this->any() )->method( 'is_connected' )->willReturn( true );
+		$this->stripe_connect_original        = woocommerce_gateway_stripe()->connect;
+		woocommerce_gateway_stripe()->connect = $this->stripe_connect_mock;
 
 		if ( version_compare( WC_VERSION, '4.4.0', '<' ) ) {
 			$this->markTestSkipped( 'The used WC components are not backward compatible' );
@@ -31,6 +43,7 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 	public function tearDown() {
 		parent::tearDown();
 
+		woocommerce_gateway_stripe()->connect = $this->stripe_connect_original;
 		delete_option( '_wcstripe_feature_upe_settings' );
 		delete_option( '_wcstripe_feature_upe' );
 		delete_option( 'woocommerce_stripe_settings' );
