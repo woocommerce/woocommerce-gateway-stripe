@@ -304,6 +304,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 		}
 
+		$amount = WC()->cart->get_total( false );
+		$order  = isset( $order_id ) ? wc_get_order( $order_id ) : null;
+		if ( is_a( $order, 'WC_Order' ) ) {
+			$amount = $order->get_total();
+		}
+
+		$converted_amount = WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( get_woocommerce_currency() ) );
+		// Pre-orders and free trial subscriptions don't require payments.
+		$stripe_params['isPaymentRequired'] = 0 < $converted_amount;
+
 		return $stripe_params;
 	}
 
@@ -629,13 +639,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			list( $payment_method_type, $payment_method_details ) = $this->get_payment_method_data_from_intent( $intent );
 
-			// Use the last charge within the intent to proceed.
-			if ( isset( $intent->charges ) ) {
-				$charge = end( $intent->charges->data );
-				$this->process_response( $charge, $order );
+			if ( $payment_needed ) {
+				// Use the last charge within the intent to proceed.
+				$this->process_response( end( $intent->charges->data ), $order );
 			} else {
-				// TODO: Add implementation for setup intents.
-				$this->process_response( $intent, $order );
+				$order->payment_complete();
 			}
 			$this->set_payment_method_title_for_order( $order, $payment_method_type, $payment_method_details );
 
@@ -767,10 +775,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		} else {
 			$intent = $this->stripe_request( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
 		}
-		$error = $intent->last_payment_error;
 
-		if ( ! empty( $error ) ) {
-			WC_Stripe_Logger::log( 'Error when processing payment: ' . $error->message );
+		if ( ! empty( $intent->last_payment_error ) ) {
+			WC_Stripe_Logger::log( 'Error when processing payment: ' . $intent->last_payment_error->message );
 			throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 		}
 
@@ -790,13 +797,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$this->save_payment_method_to_order( $order, $prepared_payment_method );
 		}
 
-		// Use the last charge within the intent to proceed.
-		if ( isset( $intent->charges ) ) {
-			$charge = end( $intent->charges->data );
-			$this->process_response( $charge, $order );
+		if ( $payment_needed ) {
+			// Use the last charge within the intent to proceed.
+			$this->process_response( end( $intent->charges->data ), $order );
 		} else {
-			// TODO: Add implementation for setup intents.
-			$this->process_response( $intent, $order );
+			$order->payment_complete();
 		}
 		$this->save_intent_to_order( $order, $intent );
 		$this->set_payment_method_title_for_order( $order, $payment_method_type, $payment_method_details );
@@ -1103,7 +1108,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$payment_method_type    = ! empty( $payment_method_details ) ? $payment_method_details['type'] : '';
 			}
 		} elseif ( 'setup_intent' === $intent->object ) {
-			$payment_method_options = array_keys( $intent->payment_method_options );
+			$payment_method_options = array_keys( (array) $intent->payment_method_options );
 			$payment_method_type    = ! empty( $payment_method_options ) ? $payment_method_options[0] : '';
 			// Setup intents don't have details, keep the false value.
 		}
