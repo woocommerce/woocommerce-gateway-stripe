@@ -681,7 +681,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
-		$is_nonce_valid = check_admin_referer( 'wc_stripe_process_redirect_order_nonce' );
+		$is_nonce_valid = isset( $_GET['_wpnonce'] ) && wp_verify_nonce( wc_clean( wp_unslash( $_GET['_wpnonce'] ) ), 'wc_stripe_process_redirect_order_nonce' );
 		if ( ! $is_nonce_valid || empty( $_GET['wc_payment_method'] ) ) {
 			return;
 		}
