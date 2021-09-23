@@ -118,7 +118,7 @@
     "wp": "docker run -it --env-file default.env --rm --user xfs --volumes-from woocommerce_stripe_wordpress --network container:woocommerce_stripe_wordpress wordpress:cli",
     "presass": "rm -f $npm_package_assets_styles_css",
     "sass": "node_modules/.bin/node-sass $npm_package_assets_styles_cssfolder --output $npm_package_assets_styles_cssfolder --output-style compressed",
-    "watchsass": "node_modules/.bin/node-sass $npm_package_assets_styles_sass --output $npm_package_assets_styles_css --output-style compressed --watch",
+    "watchsass": "node_modules/.bin/node-sass $npm_package_assets_styles_sass --output $npm_package_assets_styles_cssfolder --output-style compressed --watch",
     "postsass": "for f in $npm_package_assets_styles_css; do file=${f%.css}; node_modules/.bin/cleancss -o $file.css $f; done",
     "makepot": "wpi18n addtextdomain woocommerce-gateway-stripe --exclude node_modules,tests,docs,docker,release; wpi18n makepot --domain-path languages --pot-file woocommerce-gateway-stripe.pot --type plugin --main-file woocommerce-gateway-stripe.php --exclude node_modules,tests,docs,docker,release",
     "test": "cross-env NODE_CONFIG_DIR='./tests/e2e/config' BABEL_ENV=commonjs mocha \"tests/e2e\" --require babel-register --recursive",
