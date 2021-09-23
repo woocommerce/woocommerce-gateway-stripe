@@ -407,7 +407,7 @@ jQuery( function ( $ ) {
 			const { error } = await api.getStripe().confirmPayment( {
 				element: upeElement,
 				confirmParams: {
-					return_url: '',
+					return_url: '#',
 				},
 			} );
 			$form.removeClass( 'processing' ).unblock();
