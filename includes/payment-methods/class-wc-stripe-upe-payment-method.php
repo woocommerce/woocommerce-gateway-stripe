@@ -144,7 +144,8 @@ abstract class WC_Stripe_UPE_Payment_Method {
 		if ( $this->is_subscription_item_in_cart() || ( ! empty( $order_id ) && $this->has_subscription( $order_id ) ) ) {
 			return $this->is_reusable();
 		}
-		return true;
+
+		return $this->is_capability_active();
 	}
 
 	/**
@@ -155,6 +156,35 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 */
 	public function is_reusable() {
 		return $this->is_reusable;
+	}
+
+	/**
+	 * Returns boolean dependent on whether capability
+	 * for site account is enabled for payment method.
+	 *
+	 * @return bool
+	 */
+	public function is_capability_active() {
+		$capabilities = $this->get_capabilities_response();
+		if ( empty( $capabilities ) ) {
+			return false;
+		}
+		$key = $this->get_id() . '_payments';
+		return isset( $capabilities[ $key ] ) && 'active' === $capabilities[ $key ];
+	}
+
+	/**
+	 * Returns capabilities response object for site account.
+	 *
+	 * @return object
+	 */
+	public function get_capabilities_response() {
+		$account = WC_Stripe::get_instance()->account;
+		$data    = $account->get_cached_account_data();
+		if ( empty( $data ) || ! isset( $data['capabilities'] ) ) {
+			return [];
+		}
+		return $data['capabilities'];
 	}
 
 	/**
