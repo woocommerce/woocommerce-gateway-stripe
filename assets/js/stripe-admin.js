@@ -54,9 +54,9 @@ jQuery( function( $ ) {
 			// Toggle Payment Request buttons settings.
 			$( '#woocommerce_stripe_payment_request' ).on( 'change', function() {
 				if ( $( this ).is( ':checked' ) ) {
-					$( '#woocommerce_stripe_payment_request_button_theme, #woocommerce_stripe_payment_request_button_type, #woocommerce_stripe_payment_request_button_height' ).closest( 'tr' ).show();
+					$( '#woocommerce_stripe_payment_request_button_theme, #woocommerce_stripe_payment_request_button_type, #woocommerce_stripe_payment_request_button_locations, #woocommerce_stripe_payment_request_button_size, #woocommerce_stripe_payment_request_button_height' ).closest( 'tr' ).show();
 				} else {
-					$( '#woocommerce_stripe_payment_request_button_theme, #woocommerce_stripe_payment_request_button_type, #woocommerce_stripe_payment_request_button_height' ).closest( 'tr' ).hide();
+					$( '#woocommerce_stripe_payment_request_button_theme, #woocommerce_stripe_payment_request_button_type, #woocommerce_stripe_payment_request_button_locations, #woocommerce_stripe_payment_request_button_size, #woocommerce_stripe_payment_request_button_height' ).closest( 'tr' ).hide();
 				}
 			} ).trigger( 'change' );
 

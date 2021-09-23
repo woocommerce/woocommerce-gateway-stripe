@@ -1,8 +1,8 @@
 import { useState } from '@wordpress/element';
 import { Elements, useStripe } from '@stripe/react-stripe-js';
-import { getStripeServerData } from '../../stripe-utils';
 import { useCheckoutSubscriptions } from './use-checkout-subscriptions';
 import { InlineCard, CardElements } from './elements';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 /**
  * @typedef {import('../stripe-utils/type-defs').Stripe} Stripe
@@ -11,7 +11,7 @@ import { InlineCard, CardElements } from './elements';
  */
 
 export const getStripeCreditCardIcons = () => {
-	return Object.entries( getStripeServerData()?.icons ?? {} ).map(
+	return Object.entries( getBlocksConfiguration()?.icons ?? {} ).map(
 		( [ id, { src, alt } ] ) => {
 			return {
 				id,
@@ -53,7 +53,7 @@ const CreditCardComponent = ( {
 	const cardIcons = getStripeCreditCardIcons();
 
 	const renderedCardElement =
-		getStripeServerData()?.inline_cc_form === 'yes' ? (
+		getBlocksConfiguration()?.inline_cc_form === 'yes' ? (
 			<InlineCard
 				onChange={ onChange }
 				inputErrorComponent={ ValidationInputError }
