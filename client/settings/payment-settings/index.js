@@ -1,7 +1,4 @@
 /* global wc_stripe_settings_params */
-/**
- * External dependencies
- */
 import { __ } from '@wordpress/i18n';
 import { React } from 'react';
 import {
