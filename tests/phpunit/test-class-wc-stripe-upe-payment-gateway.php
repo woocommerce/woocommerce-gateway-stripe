@@ -224,7 +224,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		)[0];
 
 		$this->assertEquals( 'processing', $final_order->get_status() );
-		$this->assertEquals( 'Visa credit card', $final_order->get_payment_method_title() );
+		$this->assertEquals( 'Credit card / debit card', $final_order->get_payment_method_title() );
 		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
 		$this->assertRegExp( '/Charge ID: ch_mock/', $note->content );
 	}
