@@ -4,7 +4,7 @@
  *
  * The responses from HTTP requests are mocked using the WP filter `pre_http_request`.
  *
- * There are a few methods that need to be mocked in the class WC_Stripe_Subs_Compat, which is
+ * There are a few methods that need to be mocked in the class WC_Gateway_Stripe, which is
  * why that class is mocked even though the method under test is part of that class.
  *
  * @package WooCommerce_Stripe/Classes/WC_Stripe_Subscription_Initial_Test
@@ -19,7 +19,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 	 *
 	 * @var PHPUnit_Framework_MockObject_MockObject
 	 */
-	private $wc_stripe_subs_compat;
+	private $wc_gateway_stripe;
 
 	/**
 	 * The statement descriptor we'll use in a test.
@@ -34,7 +34,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 	public function setUp() {
 		parent::setUp();
 
-		$this->wc_stripe_subs_compat = $this->getMockBuilder( 'WC_Stripe_Subs_Compat' )
+		$this->wc_gateway_stripe = $this->getMockBuilder( 'WC_Gateway_Stripe' )
 			->disableOriginalConstructor()
 			->setMethods( [ 'prepare_source', 'has_subscription' ] )
 			->getMock();
@@ -82,7 +82,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 		$initial_order->save();
 
 		// Arrange: Mock prepare_source() so that we have a customer and source.
-		$this->wc_stripe_subs_compat
+		$this->wc_gateway_stripe
 			->expects( $this->any() )
 			->method( 'prepare_source' )
 			->will(
@@ -98,7 +98,7 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 			);
 
 		// Emulate a subscription.
-		$this->wc_stripe_subs_compat
+		$this->wc_gateway_stripe
 			->expects( $this->any() )
 			->method( 'has_subscription' )
 			->will( $this->returnValue( true ) );
@@ -188,8 +188,8 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', $pre_http_request_response_callback, 10, 3 );
 
 		// Act: call process_subscription_payment().
-		// We need to use `wc_stripe_subs_compat` here because we mocked this class earlier.
-		$result = $this->wc_stripe_subs_compat->process_payment( $order_id );
+		// We need to use `wc_gateway_stripe` here because we mocked this class earlier.
+		$result = $this->wc_gateway_stripe->process_payment( $order_id );
 
 		// Assert: nothing was returned.
 		$this->assertEquals( $result['result'], 'success' );
