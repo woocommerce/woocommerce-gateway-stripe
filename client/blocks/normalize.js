@@ -9,7 +9,7 @@
  * @typedef {import('@woocommerce/type-defs/billing').BillingData} CartBillingAddress
  */
 
-import { getStripeServerData } from './utils';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 /**
  * Normalizes order data received upon creating an order using the store's AJAX API.
@@ -26,7 +26,7 @@ const normalizeOrderData = ( sourceEvent, paymentRequestType ) => {
 	const shipping = sourceEvent?.shippingAddress;
 
 	const data = {
-		_wpnonce: getStripeServerData()?.nonce?.checkout,
+		_wpnonce: getBlocksConfiguration()?.nonce?.checkout,
 		billing_first_name:
 			name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
 		billing_last_name: name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '',

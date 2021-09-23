@@ -14,6 +14,7 @@ module.exports = {
 		node: true,
 	},
 	rules: {
+		'require-await': 'error',
 		'react-hooks/exhaustive-deps': 'error',
 		'react-hooks/rules-of-hooks': 'error',
 		'react/jsx-curly-brace-presence': [
