@@ -20,6 +20,13 @@ $stripe_settings = apply_filters(
 			'default'     => __( 'Credit Card (Stripe)', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		],
+		'title_upe'                           => [
+			'title'       => __( 'Title', 'woocommerce-gateway-stripe' ),
+			'type'        => 'text',
+			'description' => __( 'This controls the title which the user sees during checkout when multiple payment methods are enabled.', 'woocommerce-gateway-stripe' ),
+			'default'     => __( 'Popular payment methods', 'woocommerce-gateway-stripe' ),
+			'desc_tip'    => true,
+		],
 		'description'                         => [
 			'title'       => __( 'Description', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
