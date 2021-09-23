@@ -11,8 +11,6 @@
 class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	public function setUp() {
 		parent::setUp();
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
-		$this->account = new WC_Stripe_Account();
 
 		$stripe_settings                         = get_option( 'woocommerce_stripe_settings' );
 		$stripe_settings['enabled']              = 'yes';
@@ -21,36 +19,41 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 
-		$this->mock_api_client = $this->getMockBuilder( 'WC_Stripe_API' )
+		$this->mock_connect = $this->getMockBuilder( 'WC_Stripe_Connect' )
 									->disableOriginalConstructor()
 									->setMethods(
 										[
-											'request',
+											'is_connected',
 										]
 									)
 									->getMock();
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-account.php';
+		$this->account = new WC_Stripe_Account( $this->mock_connect, 'WC_Helper_Stripe_Api' );
 	}
 
 	public function tearDown() {
 		parent::tearDown();
 
-		delete_transient( 'wcstripe_account_data' );
+		delete_transient( 'wcstripe_account_data_test' );
+		delete_transient( 'wcstripe_account_data_live' );
 		delete_option( 'woocommerce_stripe_settings' );
 	}
 
 	public function test_get_cached_account_data_returns_empty_when_stripe_is_not_connected() {
-		delete_option( 'woocommerce_stripe_settings' );
+		$this->mock_connect->method( 'is_connected' )->willReturn( false );
 		$cached_data = $this->account->get_cached_account_data();
 
 		$this->assertEmpty( $cached_data );
 	}
 
 	public function test_get_cached_account_data_returns_data_when_cache_is_valid() {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
 		$account = [
-			'id'   => '1234',
-			'mode' => 'test',
+			'id'    => '1234',
+			'email' => 'test@example.com',
 		];
-		set_transient( 'wcstripe_account_data', $account );
+		set_transient( 'wcstripe_account_data_test', $account );
 
 		$cached_data = $this->account->get_cached_account_data();
 
@@ -58,34 +61,32 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	public function test_get_cached_account_data_fetch_data_when_cache_is_invalid() {
-		$response_data        = [
-			'id' => '1234',
-		];
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
 		$expected_cached_data = [
-			'id'   => '1234',
-			'mode' => 'test',
+			'id'    => '1234',
+			'email' => 'test@example.com',
 		];
-		$this->mock_api_client->expects( $this->once() )->method( 'request' )->will(
-			$this->returnValue( $response_data )
-		);
 
 		$cached_data = $this->account->get_cached_account_data();
 
-		$this->assertEmpty( $cached_data );
+		$this->assertSame( $cached_data, $expected_cached_data );
 	}
 
 	public function test_clear_cache() {
 		$account = [
-			'id'   => '1234',
-			'mode' => 'test',
+			'id'    => '1234',
+			'email' => 'test@example.com',
 		];
-		set_transient( 'wcstripe_account_data', $account );
+		set_transient( 'wcstripe_account_data_test', $account );
+		set_transient( 'wcstripe_account_data_live', $account );
 
 		$this->account->clear_cache();
-		$this->assertFalse( get_transient( 'wcstripe_account_data' ) );
+		$this->assertFalse( get_transient( 'wcstripe_account_data_test' ) );
+		$this->assertFalse( get_transient( 'wcstripe_account_data_live' ) );
 	}
 
 	public function test_get_account_status() {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
 		$account = [
 			'id'              => '1234',
 			'email'           => 'test@example.com',
@@ -94,9 +95,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'settings'        => [
 				'payouts' => [],
 			],
-			'mode'            => 'test',
 		];
-		set_transient( 'wcstripe_account_data', $account );
+		set_transient( 'wcstripe_account_data_test', $account );
 
 		$expected_response = [
 			'email'           => 'test@example.com',
@@ -112,7 +112,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	public function test_get_account_status_with_error_when_account_is_empty() {
-		delete_option( 'woocommerce_stripe_settings' );
+		$this->mock_connect->method( 'is_connected' )->willReturn( false );
 
 		$expected_response = [
 			'error' => true,
