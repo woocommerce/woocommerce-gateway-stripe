@@ -84,6 +84,10 @@ class WC_Stripe_UPE_Availability_Note {
 			return;
 		}
 
+		if ( ! woocommerce_gateway_stripe()->connect->is_connected() ) {
+			return;
+		}
+
 		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
 		$stripe_enabled  = isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
 		if ( ! $stripe_enabled ) {

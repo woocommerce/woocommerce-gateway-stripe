@@ -22,11 +22,7 @@ jQuery( function ( $ ) {
 
 	// Create an API object, which will be used throughout the checkout.
 	const api = new WCStripeAPI(
-		{
-			key,
-			locale: getStripeServerData()?.locale,
-			isUPEEnabled,
-		},
+		getStripeServerData(),
 		// A promise-based interface to jQuery.post.
 		( url, args ) => {
 			return new Promise( ( resolve, reject ) => {
