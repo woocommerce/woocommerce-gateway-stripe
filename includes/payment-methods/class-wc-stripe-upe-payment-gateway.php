@@ -984,12 +984,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_account      = WC_Stripe_API::retrieve( 'account' );
 		$stripe_capabilities = isset( $stripe_account->capabilities ) ? (array) $stripe_account->capabilities : [];
 		$data['description'] = '<p>' . __( "Select payments available to customers at checkout. We'll only show your customers the most relevant payment methods based on their currency and location.", 'woocommerce-gateway-stripe' ) . '</p>
-		<table class="wc_gateways widefat form-table" cellspacing="0" aria-describedby="wc_stripe_upe_method_selection">
+		<table class="wc_gateways widefat form-table wc-stripe-upe-method-selection" cellspacing="0" aria-describedby="wc_stripe_upe_method_selection">
 			<thead>
 				<tr>
-					<th class="name">' . esc_html__( 'Method', 'woocommerce-gateway-stripe' ) . '</th>
-					<th class="status">' . esc_html__( 'Enabled', 'woocommerce-gateway-stripe' ) . '</th>
-					<th class="description">' . esc_html__( 'Description', 'woocommerce-gateway-stripe' ) . '</th>
+					<th class="name wc-stripe-upe-method-selection__name">' . esc_html__( 'Method', 'woocommerce-gateway-stripe' ) . '</th>
+					<th class="status wc-stripe-upe-method-selection__status">' . esc_html__( 'Enabled', 'woocommerce-gateway-stripe' ) . '</th>
+					<th class="description wc-stripe-upe-method-selection__description">' . esc_html__( 'Description', 'woocommerce-gateway-stripe' ) . '</th>
 				</tr>
 			</thead>
 			<tbody>';
@@ -1007,18 +1007,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$method_enabled_label
 			);
 			$data['description'] .= '<tr data-upe_method_id="' . $method_id . '">
-					<td class="name" width="">
+					<td class="name wc-stripe-upe-method-selection__name" width="">
 						' . $method->get_label() . '
 						' . ( empty( $subtext_messages ) ? '' : '<span class="wc-payment-gateway-method-name">&nbsp;–&nbsp;' . $subtext_messages . '</span>' ) . '
 					</td>
-					<td class="status" width="1%">
+					<td class="status wc-stripe-upe-method-selection__status" width="1%">
 						<a class="wc-payment-upe-method-toggle-' . $method_enabled . '" href="#">
 							<span class="woocommerce-input-toggle woocommerce-input-toggle--' . $method_enabled . '" aria-label="' . $aria_label . '">
 							' . ( 'enabled' === $method_enabled ? __( 'Yes', 'woocommerce-gateway-stripe' ) : __( 'No', 'woocommerce-gateway-stripe' ) ) . '
 							</span>
 						</a>
 					</td>
-					<td class="description" width="">' . $method->get_description() . '</td>
+					<td class="description wc-stripe-upe-method-selection__description" width="">' . $method->get_description() . '</td>
 				</tr>';
 		}
 
