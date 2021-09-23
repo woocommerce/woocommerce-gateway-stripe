@@ -116,14 +116,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->maybe_init_subscriptions();
 
 		$main_settings              = get_option( 'woocommerce_stripe_settings' );
-		$this->title                = $this->get_option( 'title' );
-		$this->description          = $this->get_option( 'description' );
+		$this->title                = $this->get_option( 'title_upe' );
+		$this->description          = '';
 		$this->enabled              = $this->get_option( 'enabled' );
 		$this->saved_cards          = 'yes' === $this->get_option( 'saved_cards' );
 		$this->testmode             = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
 		$this->publishable_key      = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
 		$this->secret_key           = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
 		$this->statement_descriptor = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
+
+		$enabled_at_checkout_payment_methods = $this->get_upe_enabled_at_checkout_payment_method_ids();
+		if ( count( $enabled_at_checkout_payment_methods ) === 1 ) {
+			$this->title = $this->payment_methods[ $enabled_at_checkout_payment_methods[0] ]->get_title();
+		}
 
 		// When feature flags are enabled, title shows the count of enabled payment methods in settings page only.
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_Feature_Flags::is_upe_preview_enabled() && isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] ) {
@@ -153,6 +158,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function init_form_fields() {
 		$this->form_fields = require WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-settings.php';
 		unset( $this->form_fields['inline_cc_form'] );
+		unset( $this->form_fields['title'] );
+		unset( $this->form_fields['description'] );
 	}
 
 	/**
@@ -227,6 +234,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		global $wp;
 
 		$stripe_params = [
+			'title'        => $this->title,
 			'isUPEEnabled' => true,
 			'key'          => $this->publishable_key,
 			'locale'       => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
