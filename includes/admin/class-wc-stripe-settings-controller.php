@@ -11,14 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Settings_Controller {
 	/**
-	 * Stripe Account
+	 * Constructor
 	 *
-	 * @var WC_Stripe_Account
+	 * @param WC_Stripe_Account $account Stripe account
 	 */
-	private $account;
-
-	public function __construct() {
-		$this->account = new WC_Stripe_Account();
+	public function __construct( WC_Stripe_Account $account ) {
+		$this->account = $account;
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wc_stripe_gateway_admin_options_wrapper', [ $this, 'admin_options' ] );
 	}
