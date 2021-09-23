@@ -14,12 +14,21 @@ class WC_Stripe_Account {
 	const ACCOUNT_API    = 'account';
 
 	/**
+	 * Constructor
+	 *
+	 * @param WC_Stripe_Connect $connect Stripe connect
+	 */
+	public function __construct( WC_Stripe_Connect $connect ) {
+		$this->connect = $connect;
+	}
+
+	/**
 	 * Gets and caches the data for the account connected to this site.
 	 *
 	 * @return array Account data or empty if failed to retrieve account data.
 	 */
 	public function get_cached_account_data() {
-		if ( ! woocommerce_gateway_stripe()->connect->is_connected() ) {
+		if ( ! $this->connect->is_connected() ) {
 			return [];
 		}
 
@@ -29,8 +38,7 @@ class WC_Stripe_Account {
 			return $account;
 		}
 
-		$account = $this->cache_account();
-		return $account;
+		return $this->cache_account();
 	}
 
 	/**

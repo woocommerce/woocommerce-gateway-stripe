@@ -125,10 +125,6 @@ function woocommerce_gateway_stripe() {
 
 				$this->init();
 
-				$this->api                           = new WC_Stripe_Connect_API();
-				$this->connect                       = new WC_Stripe_Connect( $this->api );
-				$this->payment_request_configuration = new WC_Stripe_Payment_Request();
-
 				add_action( 'rest_api_init', [ $this, 'register_routes' ] );
 			}
 
@@ -191,6 +187,10 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-account.php';
 				new Allowed_Payment_Request_Button_Types_Update();
 
+				$this->api                           = new WC_Stripe_Connect_API();
+				$this->connect                       = new WC_Stripe_Connect( $this->api );
+				$this->payment_request_configuration = new WC_Stripe_Payment_Request();
+
 				if ( is_admin() ) {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-settings-controller.php';
@@ -205,7 +205,7 @@ function woocommerce_gateway_stripe() {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-payment-requests-controller.php';
 						new WC_Stripe_Payment_Requests_Controller();
 					} else {
-						$this->account = new WC_Stripe_Account();
+						$this->account = new WC_Stripe_Account( $this->connect );
 						new WC_Stripe_Settings_Controller( $this->account );
 					}
 
