@@ -321,10 +321,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string[]
 	 */
 	public function get_upe_enabled_payment_method_ids() {
-		$capture = ! empty( $this->get_option( 'capture' ) ) && $this->get_option( 'capture' ) === 'yes';
-		if ( ! $capture ) {
-			return [ 'card' ];
-		}
 		return $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] );
 	}
 
@@ -335,8 +331,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string[]
 	 */
 	public function get_upe_enabled_at_checkout_payment_method_ids( $order_id = null ) {
-		$available_method_ids = [];
-		foreach ( $this->get_upe_enabled_payment_method_ids() as $payment_method_id ) {
+		$capture                 = empty( $this->get_option( 'capture' ) ) || $this->get_option( 'capture' ) === 'yes';
+		$enabled_payment_methods = $capture ? $this->get_upe_enabled_payment_method_ids() : [ 'card' ];
+		$available_method_ids    = [];
+		foreach ( $enabled_payment_methods as $payment_method_id ) {
 			if ( isset( $this->payment_methods[ $payment_method_id ] ) && $this->payment_methods[ $payment_method_id ]->is_enabled_at_checkout( $order_id ) ) {
 				$available_method_ids[] = $payment_method_id;
 			}
