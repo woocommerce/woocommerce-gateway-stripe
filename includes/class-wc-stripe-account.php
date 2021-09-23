@@ -10,8 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Account {
 
-	const ACCOUNT_OPTION = 'wcstripe_account_data';
-	const ACCOUNT_API    = 'account';
+	const LIVE_ACCOUNT_OPTION = 'wcstripe_account_data_live';
+	const TEST_ACCOUNT_OPTION = 'wcstripe_account_data_test';
+	const ACCOUNT_API         = 'account';
 
 	/**
 	 * Constructor
@@ -44,42 +45,26 @@ class WC_Stripe_Account {
 	/**
 	 * Read the account from the WP option we cache it in.
 	 *
-	 * @return array
+	 * @return array empty when no data found in transient, otherwise returns cached data
 	 */
 	private function read_account_from_cache() {
-		$account_cache = json_decode( json_encode( get_transient( self::ACCOUNT_OPTION ) ), true );
-		$settings_options = get_option( 'woocommerce_stripe_settings', [] );
-		$mode             = isset( $settings_options['testmode'] ) && 'yes' === $settings_options['testmode'] ? 'test' : 'live';
+		$account_cache = json_decode( json_encode( get_transient( $this->get_transient_key() ) ), true );
 
-		// No data found in transient
-		if ( false === $account_cache ) {
-			return [];
-		}
-
-		// Current account mode does not match with the cached mode
-		if ( $account_cache['mode'] !== $mode ) {
-			return [];
-		}
-
-		// We have fresh account data in the cache, so return it.
-		return $account_cache;
+		return false === $account_cache ? [] : $account_cache;
 	}
 
 	/**
 	 * Caches account data for a period of time.
 	 */
 	private function cache_account() {
-		$expiration       = 2 * HOUR_IN_SECONDS;
-		$settings_options = get_option( 'woocommerce_stripe_settings', [] );
-		$mode             = isset( $settings_options['testmode'] ) && 'yes' === $settings_options['testmode'] ? 'test' : 'live';
+		$expiration = 2 * HOUR_IN_SECONDS;
 
 		try {
-			$account       = WC_Stripe_API::request(
+			$account = WC_Stripe_API::request(
 				[],
 				self::ACCOUNT_API,
 				'GET'
 			);
-			$account->mode = $mode;
 		} catch ( WC_Stripe_Exception $e ) {
 			return [];
 		}
@@ -88,9 +73,21 @@ class WC_Stripe_Account {
 		$account_cache = $account;
 
 		// Create or update the account option cache.
-		set_transient( self::ACCOUNT_OPTION, $account_cache, $expiration );
+		set_transient( $this->get_transient_key(), $account_cache, $expiration );
 
 		return $account;
+	}
+
+	/**
+	 * Checks Stripe connection mode if it is test mode or live mode
+	 *
+	 * @return string Transient key of test mode when testmode is enabled, otherwise returns the key of live mode.
+	 */
+	private function get_transient_key() {
+		$settings_options = get_option( 'woocommerce_stripe_settings', [] );
+		$key              = isset( $settings_options['testmode'] ) && 'yes' === $settings_options['testmode'] ? self::TEST_ACCOUNT_OPTION : self::LIVE_ACCOUNT_OPTION;
+
+		return $key;
 	}
 
 	/**
@@ -107,7 +104,8 @@ class WC_Stripe_Account {
 	 * Wipes the account data option.
 	 */
 	public function clear_cache() {
-		delete_transient( self::ACCOUNT_OPTION );
+		delete_transient( self::LIVE_ACCOUNT_OPTION );
+		delete_transient( self::TEST_ACCOUNT_OPTION );
 	}
 
 	/**
@@ -148,7 +146,9 @@ class WC_Stripe_Account {
 	 * @return array Account status data or empty if failed to retrieve account data.
 	 */
 	public function get_account_status() {
-		$account = json_decode( json_encode( $this->get_cached_account_data() ), true );
+		$account          = json_decode( json_encode( $this->get_cached_account_data() ), true );
+		$settings_options = get_option( 'woocommerce_stripe_settings', [] );
+		$mode             = isset( $settings_options['testmode'] ) && 'yes' === $settings_options['testmode'] ? 'test' : 'live';
 
 		if ( empty( $account ) ) {
 			return [
@@ -161,7 +161,7 @@ class WC_Stripe_Account {
 			'paymentsEnabled' => $this->are_payments_enabled( $account ),
 			'depositsEnabled' => $this->are_deposits_enabled( $account ),
 			'accountLink'     => 'https://stripe.com/support',
-			'mode'            => $account['mode'],
+			'mode'            => $mode,
 		];
 	}
 }
