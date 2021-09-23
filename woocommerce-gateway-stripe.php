@@ -457,7 +457,7 @@ function woocommerce_gateway_stripe() {
 			 * @return array New value but with defaults initially filled in for missing settings.
 			 */
 			protected function toggle_upe( $settings, $old_settings ) {
-				if ( false === $old_settings ) {
+				if ( false === $old_settings || ! isset( $old_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) ) {
 					$old_settings = [ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no' ];
 				}
 				if ( ! isset( $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) || $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] === $old_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
