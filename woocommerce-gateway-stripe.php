@@ -101,6 +101,13 @@ function woocommerce_gateway_stripe() {
 			public $payment_request_configuration;
 
 			/**
+			 * Stripe Account.
+			 *
+			 * @var WC_Stripe_Account
+			 */
+			private $account;
+
+			/**
 			 * Private clone method to prevent cloning of the instance of the
 			 * *Singleton* instance.
 			 *
@@ -124,10 +131,6 @@ function woocommerce_gateway_stripe() {
 				add_action( 'admin_init', [ $this, 'install' ] );
 
 				$this->init();
-
-				$this->api                           = new WC_Stripe_Connect_API();
-				$this->connect                       = new WC_Stripe_Connect( $this->api );
-				$this->payment_request_configuration = new WC_Stripe_Payment_Request();
 
 				add_action( 'rest_api_init', [ $this, 'register_routes' ] );
 			}
@@ -188,11 +191,17 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-inbox-notes.php';
 				require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-upe-compatibility-controller.php';
 				require_once dirname( __FILE__ ) . '/includes/migrations/class-allowed-payment-request-button-types-update.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-account.php';
 				new Allowed_Payment_Request_Button_Types_Update();
+
+				$this->api                           = new WC_Stripe_Connect_API();
+				$this->connect                       = new WC_Stripe_Connect( $this->api );
+				$this->payment_request_configuration = new WC_Stripe_Payment_Request();
 
 				if ( is_admin() ) {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-settings-controller.php';
+					require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-account.php';
 
 					if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && ! WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-old-settings-upe-toggle-controller.php';
@@ -203,7 +212,8 @@ function woocommerce_gateway_stripe() {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-payment-requests-controller.php';
 						new WC_Stripe_Payment_Requests_Controller();
 					} else {
-						new WC_Stripe_Settings_Controller();
+						$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+						new WC_Stripe_Settings_Controller( $this->account );
 					}
 
 					if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
