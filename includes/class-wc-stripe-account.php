@@ -18,9 +18,11 @@ class WC_Stripe_Account {
 	 * Constructor
 	 *
 	 * @param WC_Stripe_Connect $connect Stripe connect
+	 * @param $stripe_api Stripe API class
 	 */
-	public function __construct( WC_Stripe_Connect $connect ) {
-		$this->connect = $connect;
+	public function __construct( WC_Stripe_Connect $connect, $stripe_api ) {
+		$this->connect    = $connect;
+		$this->stripe_api = $stripe_api;
 	}
 
 	/**
@@ -60,11 +62,7 @@ class WC_Stripe_Account {
 		$expiration = 2 * HOUR_IN_SECONDS;
 
 		try {
-			$account = WC_Stripe_API::request(
-				[],
-				self::ACCOUNT_API,
-				'GET'
-			);
+			$account = ( $this->stripe_api )::retrieve( 'account' );
 		} catch ( WC_Stripe_Exception $e ) {
 			return [];
 		}

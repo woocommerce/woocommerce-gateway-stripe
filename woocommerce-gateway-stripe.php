@@ -205,7 +205,7 @@ function woocommerce_gateway_stripe() {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-payment-requests-controller.php';
 						new WC_Stripe_Payment_Requests_Controller();
 					} else {
-						$this->account = new WC_Stripe_Account( $this->connect );
+						$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 						new WC_Stripe_Settings_Controller( $this->account );
 					}
 
