@@ -13,7 +13,7 @@ class WC_Stripe_UPE_Compatibility {
 	}
 
 	public static function is_wc_supported() {
-		return defined( 'WC_VERSION' ) && version_compare( WC_VERSION, self::MIN_WC_VERSION, '>=' );
+		return version_compare( WC_VERSION, self::MIN_WC_VERSION, '>=' );
 	}
 
 	public static function are_inbox_notes_supported() {
