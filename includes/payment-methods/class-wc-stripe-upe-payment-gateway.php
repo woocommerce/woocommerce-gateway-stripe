@@ -976,7 +976,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
-		$payment_method_title = $this->payment_methods[ $payment_method_type ]->get_title( $payment_method_details );
+		$payment_method_title = $this->payment_methods[ $payment_method_type ]->get_label();
 
 		$order->set_payment_method( self::ID );
 		$order->set_payment_method_title( $payment_method_title );
