@@ -63,7 +63,7 @@ describe( 'PaymentRequestSection', () => {
 		expect( cartCheckbox ).not.toBeChecked();
 	} );
 
-	it( 'should dispatch enabled status update if express checkout is being toggled', async () => {
+	it( 'should dispatch enabled status update if express checkout is being toggled', () => {
 		const updateIsPaymentRequestEnabledHandler = jest.fn();
 		usePaymentRequestEnabledSettings.mockReturnValue( [
 			false,
