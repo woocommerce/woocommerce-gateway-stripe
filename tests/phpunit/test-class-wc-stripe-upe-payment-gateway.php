@@ -71,7 +71,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					'generate_payment_request',
 					'get_return_url',
 					'get_stripe_customer_id',
-					'get_upe_enabled_payment_method_ids',
 					'stripe_request',
 				]
 			)
@@ -81,16 +80,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->method( 'get_return_url' )
 			->will(
 				$this->returnValue( self::MOCK_RETURN_URL )
-			);
-
-		$enabled_payment_method_ids = [];
-		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-			$enabled_payment_method_ids[] = $payment_method_class::STRIPE_ID;
-		}
-		$this->mock_gateway->expects( $this->any() )
-			->method( 'get_upe_enabled_payment_method_ids' )
-			->will(
-				$this->returnValue( $enabled_payment_method_ids )
 			);
 	}
 
