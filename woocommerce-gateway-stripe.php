@@ -401,8 +401,8 @@ function woocommerce_gateway_stripe() {
 				unset( $sections['stripe_sepa'] );
 				unset( $sections['stripe_multibanco'] );
 
-				$sections['stripe']            = 'Stripe';
-				$sections['stripe_upe']        = 'Stripe checkout experience';
+				$sections['stripe']            = __( 'Stripe', 'woocommerce-gateway-stripe' );
+				$sections['stripe_upe']        = __( 'Stripe checkout experience', 'woocommerce-gateway-stripe' );
 				$sections['stripe_bancontact'] = __( 'Stripe Bancontact', 'woocommerce-gateway-stripe' );
 				$sections['stripe_sofort']     = __( 'Stripe SOFORT', 'woocommerce-gateway-stripe' );
 				$sections['stripe_giropay']    = __( 'Stripe Giropay', 'woocommerce-gateway-stripe' );
