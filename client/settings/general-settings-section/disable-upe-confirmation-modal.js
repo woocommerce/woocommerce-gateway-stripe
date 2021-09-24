@@ -4,22 +4,12 @@ import React, { useContext } from 'react';
 import styled from '@emotion/styled';
 import { Button, ExternalLink } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
-import { Icon, info } from '@wordpress/icons';
 import PaymentMethodsMap from '../../payment-methods-map';
 import UpeToggleContext from '../upe-toggle/context';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import InlineNotice from 'wcstripe/components/inline-notice';
 import { useEnabledPaymentMethodIds } from 'wcstripe/data';
-
-const AlertIcon = styled( Icon )`
-	fill: #d94f4f;
-	margin-right: 4px;
-`;
-
-const ModalTitleWrapper = styled.span`
-	display: inline-flex;
-	align-items: center;
-`;
+import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';
 
 const DeactivatingPaymentMethodsList = styled.ul`
 	min-height: 150px;
@@ -46,18 +36,6 @@ const PaymentMethodListItemContent = styled.div`
 		}
 	}
 `;
-
-const ModalTitle = () => {
-	return (
-		<ModalTitleWrapper>
-			<AlertIcon icon={ info } />
-			{ __(
-				'Disable the new payments experience',
-				'woocommerce-gateway-stripe'
-			) }
-		</ModalTitleWrapper>
-	);
-};
 
 const DisableUpeConfirmationModal = ( { onClose } ) => {
 	const { status, setIsUpeEnabled } = useContext( UpeToggleContext );
@@ -111,7 +89,14 @@ const DisableUpeConfirmationModal = ( { onClose } ) => {
 	return (
 		<>
 			<ConfirmationModal
-				title={ <ModalTitle /> }
+				title={
+					<AlertTitle
+						title={ __(
+							'Disable the new payments experience',
+							'woocommerce-gateway-stripe'
+						) }
+					/>
+				}
 				onRequestClose={ onClose }
 				actions={
 					<>

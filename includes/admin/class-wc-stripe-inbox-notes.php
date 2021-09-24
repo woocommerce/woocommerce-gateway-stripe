@@ -17,6 +17,10 @@ class WC_Stripe_Inbox_Notes {
 	const CAMPAIGN_2020_CLEANUP_ACTION = 'wc_stripe_apple_pay_2020_cleanup';
 
 	public function __construct() {
+		if ( ! WC_Stripe_UPE_Compatibility::are_inbox_notes_supported() ) {
+			return;
+		}
+
 		add_action( self::POST_SETUP_SUCCESS_ACTION, [ self::class, 'create_marketing_note' ] );
 		add_action( self::CAMPAIGN_2020_CLEANUP_ACTION, [ self::class, 'cleanup_campaign_2020' ] );
 		add_action( 'admin_init', [ self::class, 'create_upe_availability_note' ] );
@@ -33,10 +37,8 @@ class WC_Stripe_Inbox_Notes {
 	}
 
 	public static function create_upe_availability_note() {
-		if ( version_compare( WC_VERSION, '4.4.0', '>=' ) ) {
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
-			WC_Stripe_UPE_Availability_Note::init();
-		}
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
+		WC_Stripe_UPE_Availability_Note::init();
 	}
 
 	public static function get_campaign_2020_cutoff() {
