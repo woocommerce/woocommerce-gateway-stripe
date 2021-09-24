@@ -2,6 +2,8 @@
 
 = 5.6.0 - 2021-xx-xx =
 * Add - Pre-release preview of new checkout experience using Stripe Universal Payment Element.
+* Tweak - Removed "Branded" and "Custom label" options on Payment request buttons to align with design guidelines.
+* Tweak - Converted payment request button size value to distinct options to align with design guidelines.
 
 = 5.5.0 - 2021-09-15 =
 * Tweak - Moved the `WC_Gateway_Stripe::admin_scripts` method to `WC_Stripe_Settings_Controller::admin_scripts`.
