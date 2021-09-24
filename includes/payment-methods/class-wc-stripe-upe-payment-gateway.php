@@ -351,14 +351,25 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string[]
 	 */
 	public function get_upe_enabled_at_checkout_payment_method_ids( $order_id = null ) {
-		$capture                 = empty( $this->get_option( 'capture' ) ) || $this->get_option( 'capture' ) === 'yes';
-		$enabled_payment_methods = $capture ? $this->get_upe_enabled_payment_method_ids() : [ 'card' ];
-		$available_method_ids    = [];
-		foreach ( $enabled_payment_methods as $payment_method_id ) {
-			if ( isset( $this->payment_methods[ $payment_method_id ] ) && $this->payment_methods[ $payment_method_id ]->is_enabled_at_checkout( $order_id ) ) {
-				$available_method_ids[] = $payment_method_id;
+		$is_automatic_capture_enabled = $this->is_automatic_capture_enabled();
+		$available_method_ids         = [];
+		foreach ( $this->get_upe_enabled_payment_method_ids() as $payment_method_id ) {
+			if ( ! isset( $this->payment_methods[ $payment_method_id ] ) ) {
+				continue;
 			}
+
+			$method = $this->payment_methods[ $payment_method_id ];
+			if ( $method->is_enabled_at_checkout( $order_id ) === false ) {
+				continue;
+			}
+
+			if ( ! $is_automatic_capture_enabled && $method->requires_automatic_capture() ) {
+				continue;
+			}
+
+			$available_method_ids[] = $payment_method_id;
 		}
+
 		return $available_method_ids;
 	}
 
@@ -1007,12 +1018,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			</thead>
 			<tbody>';
 
+		$is_automatic_capture_enabled = $this->is_automatic_capture_enabled();
+
 		foreach ( $this->payment_methods as $method_id => $method ) {
 			$method_enabled       = in_array( $method_id, $this->get_upe_enabled_payment_method_ids(), true ) ? 'enabled' : 'disabled';
 			$method_enabled_label = 'enabled' === $method_enabled ? __( 'enabled', 'woocommerce-gateway-stripe' ) : __( 'disabled', 'woocommerce-gateway-stripe' );
 			$capability_id        = "{$method_id}_payments"; // "_payments" is a suffix that comes from Stripe API, except when it is "transfers", which does not apply here
 			$method_status        = isset( $stripe_capabilities[ $capability_id ] ) ? $stripe_capabilities[ $capability_id ] : 'inactive';
-			$subtext_messages     = $method->get_subtext_messages( $method_status );
+			$subtext_messages     = $method->get_subtext_messages( $is_automatic_capture_enabled, $method_status );
 			$aria_label           = sprintf(
 				/* translators: $1%s payment method ID, $2%s "enabled" or "disabled" */
 				esc_attr__( 'The &quot;%1$s&quot; payment method is currently %2$s', 'woocommerce-gateway-stripe' ),
@@ -1209,6 +1222,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return WC_Stripe_API::request_with_level3_data( $params, $path, $level3_data, $order );
 		}
 		return WC_Stripe_API::request( $params, $path, $method );
+	}
+
+	/**
+	 * Determines whether the "automatic" or "manual" capture setting is enabled.
+	 *
+	 * @return bool
+	 */
+	public function is_automatic_capture_enabled() {
+		return empty( $this->get_option( 'capture' ) ) || $this->get_option( 'capture' ) === 'yes';
 	}
 
 }

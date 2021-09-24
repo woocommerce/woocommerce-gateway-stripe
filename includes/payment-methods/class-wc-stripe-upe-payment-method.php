@@ -260,12 +260,23 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
+	 * Returns whether the payment method requires automatic capture.
+	 * By default all the UPE payment methods require automatic capture, except for "card".
+	 *
+	 * @return bool
+	 */
+	public function requires_automatic_capture() {
+		return true;
+	}
+
+	/**
 	 * Returns the HTML for the subtext messaging in the old settings UI.
 	 *
+	 * @param bool $is_automatic_capture_enabled Whether the "automatic" or "manual" capture setting is enabled on the main Stripe gateway.
 	 * @param string $stripe_method_status (optional) Status of this payment method based on the Stripe's account capabilities
 	 * @return string
 	 */
-	public function get_subtext_messages( $stripe_method_status ) {
+	public function get_subtext_messages( $is_automatic_capture_enabled, $stripe_method_status ) {
 		// can be either a `currency` or `activation` messaging, to be displayed in the old settings UI.
 		$messages = [];
 
@@ -282,10 +293,16 @@ abstract class WC_Stripe_UPE_Payment_Method {
 		$currencies = $this->get_supported_currencies();
 		if ( ! empty( $currencies ) && ! in_array( get_woocommerce_currency(), $currencies, true ) ) {
 			/* translators: %s: List of comma-separated currencies. */
-			$tooltip_content = sprintf( esc_attr__( 'In order to be used at checkout, the payment method requires the store currency to be set to one of: %s', 'woocommerce-gateway-stripe' ), implode( ', ', $currencies ) );
+			$tooltip_content = sprintf( esc_attr__( 'In order to be used at checkout, the payment method requires the store currency to be set to one of: %s.', 'woocommerce-gateway-stripe' ), implode( ', ', $currencies ) );
 			$text            = __( 'Requires currency', 'woocommerce-gateway-stripe' );
 
 			$messages[] = $text . '<span class="tips" data-tip="' . $tooltip_content . '"><span class="woocommerce-help-tip" style="margin-top: 0;"></span></span>';
+		}
+
+		if ( false === $is_automatic_capture_enabled && $this->requires_automatic_capture() ) {
+			$tooltip_content = esc_attr__( 'In order to be used at checkout, the payment method requires the "Capture charge immediately" setting to be checked.', 'woocommerce-gateway-stripe' );
+			$text            = __( 'Requires automatic capture', 'woocommerce-gateway-stripe' );
+			$messages[]      = $text . '<span class="tips" data-tip="' . $tooltip_content . '"><span class="woocommerce-help-tip" style="margin-top: 0;"></span></span>';
 		}
 
 		return count( $messages ) > 0 ? join( '&nbsp;–&nbsp;', $messages ) : '';
