@@ -18,8 +18,8 @@ class WC_Stripe_UPE_Payment_Method_Ideal extends WC_Stripe_UPE_Payment_Method {
 	public function __construct() {
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
-		$this->title                = 'Pay with iDEAL';
-		$this->is_reusable          = true;
+		$this->title                = __( 'Pay with iDEAL', 'woocommerce-gateway-stripe' );
+		$this->is_reusable          = false;
 		$this->supported_currencies = [ 'EUR' ];
 		$this->label                = __( 'iDEAL', 'woocommerce-gateway-stripe' );
 		$this->description          = __(

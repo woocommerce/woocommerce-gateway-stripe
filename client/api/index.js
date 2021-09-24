@@ -1,83 +1,5 @@
 /* global Stripe */
 
-import $ from 'jquery';
-import {
-	normalizeOrderData,
-	normalizeAddress,
-	getStripeServerData,
-} from '../stripe-utils';
-
-/**
- * Construct WC AJAX endpoint URL.
- *
- * @param {string} endpoint Request endpoint URL.
- * @param {string} prefix Endpoint URI prefix (default: 'wc_stripe_').
- * @return {string} URL with interpolated endpoint.
- */
-const getAjaxUrl = ( endpoint, prefix = 'wc_stripe_' ) => {
-	return getStripeServerData()
-		?.ajax_url?.toString()
-		?.replace( '%%endpoint%%', prefix + endpoint );
-};
-
-export const getCartDetails = () => {
-	const data = {
-		security: getStripeServerData()?.nonce?.payment,
-	};
-
-	return $.ajax( {
-		type: 'POST',
-		data,
-		url: getAjaxUrl( 'get_cart_details' ),
-	} );
-};
-
-/**
- * Update shipping options.
- *
- * @param {Object} address Customer address.
- * @param {string} paymentRequestType Either 'apple_pay' or 'payment_request_api' depending on the type of request.
- */
-export const updateShippingOptions = ( address, paymentRequestType ) => {
-	const data = {
-		security: getStripeServerData()?.nonce?.shipping,
-		payment_request_type: paymentRequestType,
-		is_product_page: getStripeServerData()?.is_product_page,
-		...normalizeAddress( address ),
-	};
-
-	return $.ajax( {
-		type: 'POST',
-		data,
-		url: getAjaxUrl( 'get_shipping_options' ),
-	} );
-};
-
-export const updateShippingDetails = ( shippingOption ) => {
-	const data = {
-		security: getStripeServerData()?.nonce?.update_shipping,
-		shipping_method: [ shippingOption.id ],
-		is_product_page: getStripeServerData()?.is_product_page,
-	};
-
-	return $.ajax( {
-		type: 'POST',
-		data,
-		url: getAjaxUrl( 'update_shipping_method' ),
-	} );
-};
-
-export const createOrder = ( sourceEvent, paymentRequestType ) => {
-	const data = normalizeOrderData( sourceEvent, paymentRequestType );
-
-	return $.ajax( {
-		type: 'POST',
-		data,
-		dataType: 'json',
-		url: getAjaxUrl( 'create_order' ),
-	} );
-};
-
 /**
  * Handles generic connections to the server and Stripe.
  */
@@ -92,6 +14,19 @@ export default class WCStripeAPI {
 		this.stripe = null;
 		this.options = options;
 		this.request = request;
+	}
+
+	/**
+	 * Construct WC AJAX endpoint URL.
+	 *
+	 * @param {string} endpoint Request endpoint URL.
+	 * @param {string} prefix Endpoint URI prefix (default: 'wc_stripe_').
+	 * @return {string} URL with interpolated endpoint.
+	 */
+	getAjaxUrl( endpoint, prefix = 'wc_stripe_' ) {
+		return this.options?.ajax_url
+			?.toString()
+			?.replace( '%%endpoint%%', prefix + endpoint );
 	}
 
 	/**
@@ -140,8 +75,8 @@ export default class WCStripeAPI {
 	 * @return {Promise} The final promise for the request to the server.
 	 */
 	initSetupIntent() {
-		return this.request( getAjaxUrl( 'init_setup_intent' ), {
-			_ajax_nonce: getStripeServerData()?.createSetupIntentNonce,
+		return this.request( this.getAjaxUrl( 'init_setup_intent' ), {
+			_ajax_nonce: this.options?.createSetupIntentNonce,
 		} )
 			.then( ( response ) => {
 				if ( ! response.success ) {
@@ -167,9 +102,9 @@ export default class WCStripeAPI {
 	 * @return {Promise} The final promise for the request to the server.
 	 */
 	createIntent( orderId ) {
-		return this.request( getAjaxUrl( 'create_payment_intent' ), {
+		return this.request( this.getAjaxUrl( 'create_payment_intent' ), {
 			stripe_order_id: orderId,
-			_ajax_nonce: getStripeServerData()?.createPaymentIntentNonce,
+			_ajax_nonce: this.options?.createPaymentIntentNonce,
 		} )
 			.then( ( response ) => {
 				if ( ! response.success ) {
@@ -190,7 +125,7 @@ export default class WCStripeAPI {
 	/**
 	 * Updates a payment intent with data from order: customer, level3 data and and maybe sets the payment for future use.
 	 *
-	 * @param {string} paymentIntentId The id of the payment intent.
+	 * @param {string} intentId The id of the payment intent.
 	 * @param {number} orderId The id of the order.
 	 * @param {string} savePaymentMethod 'yes' if saving.
 	 * @param {string} selectedUPEPaymentType The name of the selected UPE payment type or empty string.
@@ -198,17 +133,22 @@ export default class WCStripeAPI {
 	 * @return {Promise} The final promise for the request to the server.
 	 */
 	updateIntent(
-		paymentIntentId,
+		intentId,
 		orderId,
 		savePaymentMethod,
 		selectedUPEPaymentType
 	) {
-		return this.request( getAjaxUrl( 'update_payment_intent' ), {
+		// Don't update setup intents.
+		if ( intentId.includes( 'seti_' ) ) {
+			return;
+		}
+
+		return this.request( this.getAjaxUrl( 'update_payment_intent' ), {
 			stripe_order_id: orderId,
-			wc_payment_intent_id: paymentIntentId,
+			wc_payment_intent_id: intentId,
 			save_payment_method: savePaymentMethod,
 			selected_upe_payment_type: selectedUPEPaymentType,
-			_ajax_nonce: getStripeServerData()?.updatePaymentIntentNonce,
+			_ajax_nonce: this.options?.updatePaymentIntentNonce,
 		} )
 			.then( ( response ) => {
 				if ( response.result === 'failure' ) {
@@ -285,7 +225,7 @@ export default class WCStripeAPI {
 						result.error.setup_intent.id );
 
 				const ajaxCall = this.request(
-					getAjaxUrl( 'update_order_status' ),
+					this.getAjaxUrl( 'update_order_status' ),
 					{
 						order_id: orderId,
 						// Update the current order status nonce with the new one to ensure that the update
@@ -325,9 +265,9 @@ export default class WCStripeAPI {
 	 * @return {Promise} The final promise for the request to the server.
 	 */
 	saveUPEAppearance( appearance ) {
-		return this.request( getAjaxUrl( 'save_upe_appearance' ), {
+		return this.request( this.getAjaxUrl( 'save_upe_appearance' ), {
 			appearance,
-			_ajax_nonce: getStripeServerData()?.saveUPEAppearanceNonce,
+			_ajax_nonce: this.options?.saveUPEAppearanceNonce,
 		} )
 			.then( ( response ) => {
 				if ( response.result === 'failure' ) {
@@ -353,7 +293,7 @@ export default class WCStripeAPI {
 	 * @return {Promise} Promise containing redirect URL for UPE element.
 	 */
 	processCheckout( paymentIntentId, fields ) {
-		return this.request( getAjaxUrl( 'checkout', '' ), {
+		return this.request( this.getAjaxUrl( 'checkout', '' ), {
 			...fields,
 			wc_payment_intent_id: paymentIntentId,
 		} )
@@ -380,10 +320,10 @@ export default class WCStripeAPI {
 	 * @param {number} orderId The id of the WC_Order..
 	 */
 	updateFailedOrder( intentId, orderId ) {
-		this.request( getAjaxUrl( 'update_failed_order' ), {
+		this.request( this.getAjaxUrl( 'update_failed_order' ), {
 			intent_id: intentId,
 			order_id: orderId,
-			_ajax_nonce: getStripeServerData()?.updateFailedOrderNonce,
+			_ajax_nonce: this.options?.updateFailedOrderNonce,
 		} ).catch( () => {
 			// If something goes wrong here,
 			// we would still rather throw the Stripe error rather than this one.

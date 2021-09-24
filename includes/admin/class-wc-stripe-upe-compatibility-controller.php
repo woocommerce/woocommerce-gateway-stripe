@@ -35,7 +35,7 @@ class WC_Stripe_UPE_Compatibility_Controller {
 		}
 
 		// admin notes are not supported on older versions of WooCommerce.
-		if ( version_compare( $this->get_wc_version(), '4.4.0', '>=' ) ) {
+		if ( WC_Stripe_UPE_Compatibility::are_inbox_notes_supported() ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-compatibility-note.php';
 			WC_Stripe_UPE_Compatibility_Note::init();
 		}

@@ -22,7 +22,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	public function __construct() {
 		parent::__construct();
 		$this->stripe_id   = self::STRIPE_ID;
-		$this->title       = 'Credit card / debit card';
+		$this->title       = __( 'Pay with credit card / debit card', 'woocommerce-gateway-stripe' );
 		$this->is_reusable = true;
 		$this->label       = __( 'Credit card / debit card', 'woocommerce-gateway-stripe' );
 		$this->description = __(
