@@ -18,7 +18,7 @@ class WC_Stripe_UPE_Payment_Method_Sofort extends WC_Stripe_UPE_Payment_Method {
 	public function __construct() {
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
-		$this->title                = 'Pay with SOFORT';
+		$this->title                = __( 'Pay with SOFORT', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = true; // Supported through Stripe via SEPA Direct Debit
 		$this->supported_currencies = [ 'EUR' ];
 		$this->label                = __( 'SOFORT', 'woocommerce-gateway-stripe' );
