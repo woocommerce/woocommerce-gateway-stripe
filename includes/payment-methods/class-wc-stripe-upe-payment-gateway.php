@@ -304,7 +304,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 		}
 
-		$amount = WC()->cart->get_total( false );
+		$amount = is_null( WC()->cart ) ? 0 : WC()->cart->get_total( false );
 		$order  = isset( $order_id ) ? wc_get_order( $order_id ) : null;
 		if ( is_a( $order, 'WC_Order' ) ) {
 			$amount = $order->get_total();
