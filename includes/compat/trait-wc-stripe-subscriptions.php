@@ -52,6 +52,9 @@ trait WC_Stripe_Subscriptions_Trait {
 		add_filter( 'woocommerce_subscription_validate_payment_meta', [ $this, 'validate_subscription_payment_meta' ], 10, 2 );
 		add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'display_save_payment_method_checkbox' ] );
 
+		// Add the necessary information to create a mandate to the payment intent.
+		add_filter( 'wc_stripe_generate_create_intent_request', [ $this, 'add_subscription_information_to_intent' ] );
+
 		/*
 		* WC subscriptions hooks into the "template_redirect" hook with priority 100.
 		* If the screen is "Pay for order" and the order is a subscription renewal, it redirects to the plain checkout.
@@ -60,6 +63,50 @@ trait WC_Stripe_Subscriptions_Trait {
 		*/
 		add_action( 'template_redirect', [ $this, 'remove_order_pay_var' ], 99 );
 		add_action( 'template_redirect', [ $this, 'restore_order_pay_var' ], 101 );
+	}
+
+	/**
+	 * Add the necessary information to payment intents for subscriptions to allow Stripe to create
+	 * mandates for 3DS payments in India. It's ok to apply this across the board; Stripe will
+	 * take care of handling any authorizations.
+	 *
+	 * @param Array $request          The HTTP request that will be sent to Stripe to create the payment intent.
+	 * @param WC_Order $order         The renewal order.
+	 * @param Array $prepared_source  The source object.
+	 */
+	public function add_subscription_information_to_intent( $request, $order, $prepared_source ) {
+		// Just in case the order doesn't contain a subscription we return the base request.
+		if ( ! $this->has_subscription( $order->get_id() ) ) {
+			return $request;
+		}
+
+		$subscriptions = wcs_get_subscriptions_for_order( $order->get_id() );
+
+		// If there are no subscriptions we just return.
+		if ( 0 === count( $subscriptions ) ) {
+			return $request;
+		}
+
+		// TODO: What happens if there's more than one subscription?
+		if ( 1 > count( $subscriptions ) ) {
+			// This definitely feels wrong.
+			return $request;
+		}
+
+		$sub = $subscriptions[0];
+
+		// TODO: Maybe the order ID isn't unique enough? What happens when there are multiple subscriptions
+		// with different payment intervals in the order?
+		$request['payment_method_options']['card']['mandate_options']['reference']      = $order->get_id();
+		$request['payment_method_options']['card']['mandate_options']['amount']         = $order->get_total();
+		$request['payment_method_options']['card']['mandate_options']['amount_type']    = 'fixed'; // TODO: Are there any cases where amount is variable?
+		$request['payment_method_options']['card']['mandate_options']['start_date']     = $sub->get_date( 'start', 'gmt' ); // TODO: Better to use site timezone?
+		$request['payment_method_options']['card']['mandate_options']['interval']       = $sub->get_billing_period();
+		$request['payment_method_options']['card']['mandate_options']['interval_count'] = $sub->get_billing_interval();
+
+		// TODO: add optional mandate options? description, end_date.
+
+		return $request;
 	}
 
 	/**
