@@ -681,9 +681,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function maybe_process_upe_redirect() {
 		if ( $this->is_payment_methods_page() ) {
 			if ( $this->is_setup_intent_success_creation_redirection() ) {
-				$setup_intent_id = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
-				$this->create_token_from_setup_intent( $setup_intent_id, wp_get_current_user() );
-				wc_add_notice( __( 'Payment method successfully added.', 'woocommerce-gateway-stripe' ) );
+				if ( isset( $_GET['redirect_status'] ) && 'succeeded' === $_GET['redirect_status'] ) {
+					$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+					$customer->clear_cache();
+
+					wc_add_notice( __( 'Payment method successfully added.', 'woocommerce-gateway-stripe' ) );
+				} else {
+					wc_add_notice( __( 'Failed to add payment method.', 'woocommerce-gateway-stripe' ), 'error', [ 'icon' => 'error' ] );
+				}
 			}
 			return;
 		}
@@ -895,7 +900,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 *
 	 * @param WC_Order $order
 	 *
-	 * @return WC_User
+	 * @return WP_User
 	 */
 	public function get_user_from_order( $order ) {
 		$user = $order->get_user();
@@ -1155,39 +1160,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool
 	 */
 	private function is_setup_intent_success_creation_redirection() {
-		return ( ! empty( $_GET['setup_intent_client_secret'] ) & ! empty( $_GET['setup_intent'] ) & ! empty( $_GET['redirect_status'] ) && 'succeeded' === $_GET['redirect_status'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-	}
-
-	/**
-	 * Adds a token to current user from a setup intent id.
-	 *
-	 * @param string  $setup_intent_id ID of the setup intent.
-	 * @param WP_User $user            User to add token to.
-	 *
-	 * @return WC_Payment_Token_CC|WC_Payment_Token_WCPay_SEPA The added token.
-	 *
-	 * @since x.x.x
-	 * @version x.x.x
-	 */
-	private function create_token_from_setup_intent( $setup_intent_id, $user ) {
-		try {
-			$setup_intent = $this->stripe_request( 'setup_intents/' . $setup_intent_id );
-			if ( ! empty( $setup_intent->last_payment_error ) ) {
-				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
-			}
-
-			$payment_method_id     = $setup_intent->payment_method;
-			$payment_method_object = $this->stripe_request( 'payment_methods/' . $payment_method_id );
-
-			$payment_method = $this->payment_methods[ $payment_method_object->type ];
-			return $payment_method->add_token_to_user_from_payment_method( $user->ID, $payment_method_object );
-		} catch ( Exception $e ) {
-			wc_add_notice( $e->getMessage(), 'error', [ 'icon' => 'error' ] );
-			Logger::log( 'Error when adding payment method: ' . $e->getMessage() );
-			return [
-				'result' => 'error',
-			];
-		}
+		return ( ! empty( $_GET['setup_intent_client_secret'] ) & ! empty( $_GET['setup_intent'] ) & ! empty( $_GET['redirect_status'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 	}
 
 	/**
