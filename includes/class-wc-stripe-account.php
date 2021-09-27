@@ -80,6 +80,10 @@ class WC_Stripe_Account {
 			return [];
 		}
 
+		if ( is_wp_error( $account ) ) {
+			return [];
+		}
+
 		// Add the account data and mode to the array we're caching.
 		$account_cache = $account;
 
@@ -161,7 +165,7 @@ class WC_Stripe_Account {
 		$settings_options = get_option( 'woocommerce_stripe_settings', [] );
 		$mode             = isset( $settings_options['testmode'] ) && 'yes' === $settings_options['testmode'] ? 'test' : 'live';
 
-		if ( empty( $account ) || ! empty( $account['errors'] ) ) {
+		if ( empty( $account ) ) {
 			return [
 				'error' => true,
 			];
