@@ -161,7 +161,7 @@ class WC_Stripe_Account {
 		$settings_options = get_option( 'woocommerce_stripe_settings', [] );
 		$mode             = isset( $settings_options['testmode'] ) && 'yes' === $settings_options['testmode'] ? 'test' : 'live';
 
-		if ( empty( $account ) || isset( $account['errors'] ) ) {
+		if ( empty( $account ) || ! empty( $account['errors'] ) ) {
 			return [
 				'error' => true,
 			];
