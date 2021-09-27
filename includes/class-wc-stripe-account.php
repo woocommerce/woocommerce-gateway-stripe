@@ -74,10 +74,9 @@ class WC_Stripe_Account {
 	private function cache_account() {
 		$expiration = 2 * HOUR_IN_SECONDS;
 
-		// We must do it this way so the static method can be mocked.
-		$static_call = $this->stripe_api . '::retrieve';
 		try {
-			$account = $static_call( 'account' );
+			// need call_user_func() as (  $this->stripe_api )::retrieve this syntax is not supported in php < 5.2
+			$account = call_user_func( [ $this->stripe_api, 'retrieve' ], 'account' );
 		} catch ( WC_Stripe_Exception $e ) {
 			return [];
 		}
