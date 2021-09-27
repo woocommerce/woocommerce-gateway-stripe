@@ -21,21 +21,12 @@ class WC_Stripe_Account {
 	private $connect;
 
 	/**
-	 * The Stripe API class to access the static method.
-	 *
-	 * @var WC_Stripe_API
-	 */
-	private $stripe_api;
-
-	/**
 	 * Constructor
 	 *
 	 * @param WC_Stripe_Connect $connect Stripe connect
-	 * @param $stripe_api Stripe API class
 	 */
-	public function __construct( WC_Stripe_Connect $connect, $stripe_api ) {
-		$this->connect    = $connect;
-		$this->stripe_api = $stripe_api;
+	public function __construct( WC_Stripe_Connect $connect ) {
+		$this->connect = $connect;
 	}
 
 	/**
@@ -75,8 +66,7 @@ class WC_Stripe_Account {
 		$expiration = 2 * HOUR_IN_SECONDS;
 
 		try {
-			// need call_user_func() as (  $this->stripe_api )::retrieve this syntax is not supported in php < 5.2
-			$account = call_user_func( [ $this->stripe_api, 'retrieve' ], 'account' );
+			$account = WC_Stripe_API::retrieve( 'account' );
 		} catch ( WC_Stripe_Exception $e ) {
 			return [];
 		}
@@ -143,7 +133,7 @@ class WC_Stripe_Account {
 	 */
 	private function are_deposits_enabled( $account ) {
 		$are_payouts_enabled = $account['payouts_enabled'] || false;
-		$payout_settings     = $account['settings']['payouts'] ? $account['settings']['payouts'] : [];
+		$payout_settings     = isset( $account['settings']['payouts'] ) ? $account['settings']['payouts'] : [];
 
 		if ( ! $are_payouts_enabled || ! isset( $payout_settings['schedule']['interval'] ) ) {
 			return false;
