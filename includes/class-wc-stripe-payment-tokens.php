@@ -318,9 +318,11 @@ class WC_Stripe_Payment_Tokens {
 	 */
 	private function get_original_payment_method_type( $payment_method ) {
 		if ( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID === $payment_method->type ) {
-			// TODO: Maybe need additional logic here to check setup_attempt
 			if ( ! is_null( $payment_method->sepa_debit->generated_from->charge ) ) {
 				return $payment_method->sepa_debit->generated_from->charge->payment_method_details->type;
+			}
+			if ( ! is_null( $payment_method->sepa_debit->generated_from->setup_attempt ) ) {
+				return $payment_method->sepa_debit->generated_from->setup_attempt->payment_method_details->type;
 			}
 		}
 		return $payment_method->type;
