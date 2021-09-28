@@ -143,7 +143,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 
 		// Check currency compatibility.
 		$currencies = $this->get_supported_currencies();
-		if ( ! empty( $currencies ) && ! in_array( get_woocommerce_currency(), $currencies, true ) ) {
+		if ( ! empty( $currencies ) && ! in_array( $this->get_woocommerce_currency(), $currencies, true ) ) {
 			return false;
 		}
 		// If cart or order contains subscription, enable payment method if it's reusable.
@@ -293,6 +293,13 @@ abstract class WC_Stripe_UPE_Payment_Method {
 			'wc_stripe_' . static::STRIPE_ID . '_upe_supported_currencies',
 			$this->supported_currencies
 		);
+	}
+
+	/**
+	 * Wrapper function for get_woocommerce_currency global function
+	 */
+	public function get_woocommerce_currency() {
+		return get_woocommerce_currency();
 	}
 
 	/**
