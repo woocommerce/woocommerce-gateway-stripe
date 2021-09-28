@@ -79,9 +79,7 @@ jQuery( function( $ ) {
 				$( icons[ 0 ] ).addClass( 'icon-visible' );
 				let i = 0;
 				cardIconsInterval = setInterval( function() {
-					if ( i === icons.length ) {
-						i = 0;
-					}
+					i = i % icons.length;
 					icons.removeClass( 'icon-visible' );
 					$( icons[ i ] ).addClass( 'icon-visible' );
 					i++;
