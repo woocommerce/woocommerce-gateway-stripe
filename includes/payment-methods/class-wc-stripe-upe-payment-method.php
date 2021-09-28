@@ -146,6 +146,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 		if ( ! empty( $currencies ) && ! in_array( $this->get_woocommerce_currency(), $currencies, true ) ) {
 			return false;
 		}
+
 		// If cart or order contains subscription, enable payment method if it's reusable.
 		if ( $this->is_subscription_item_in_cart() || ( ! empty( $order_id ) && $this->has_subscription( $order_id ) ) ) {
 			return $this->is_reusable();

@@ -11,9 +11,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	private $mock_payment_methods = [];
 
 	/**
-	 * Mock capabilities object from Stripe response.
+	 * Mock capabilities object from Stripe response--all inactive.
 	 */
-	const MOCK_CAPABILITIES_RESPONSE = [
+	const MOCK_INACTIVE_CAPABILITIES_RESPONSE = [
 		'bancontact_payments' => 'inactive',
 		'card_payments'       => 'inactive',
 		'eps_payments'        => 'inactive',
@@ -23,6 +23,21 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'sepa_debit_payments' => 'inactive',
 		'sofort_payments'     => 'inactive',
 		'transfers'           => 'inactive',
+	];
+
+	/**
+	 * Mock capabilities object from Stripe response--all active.
+	 */
+	const MOCK_ACTIVE_CAPABILITIES_RESPONSE = [
+		'bancontact_payments' => 'active',
+		'card_payments'       => 'active',
+		'eps_payments'        => 'active',
+		'giropay_payments'    => 'active',
+		'ideal_payments'      => 'active',
+		'p24_payments'        => 'active',
+		'sepa_debit_payments' => 'active',
+		'sofort_payments'     => 'active',
+		'transfers'           => 'active',
 	];
 
 	/**
@@ -206,9 +221,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		// Enable all payment methods.
 		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'EUR' );
 		$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
-
-		$mock_capabilities_response = self::MOCK_CAPABILITIES_RESPONSE;
-		$this->set_mock_payment_method_return_value( 'get_capabilities_response', $mock_capabilities_response );
+		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_INACTIVE_CAPABILITIES_RESPONSE );
 
 		$card_method       = $this->mock_payment_methods['card'];
 		$giropay_method    = $this->mock_payment_methods['giropay'];
@@ -239,7 +252,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 				continue;
 			}
 
-			$mock_capabilities_response = self::MOCK_CAPABILITIES_RESPONSE;
+			$mock_capabilities_response = self::MOCK_INACTIVE_CAPABILITIES_RESPONSE;
 
 			$this->set_mock_payment_method_return_value( 'get_capabilities_response', $mock_capabilities_response, true );
 			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'EUR' );
@@ -257,6 +270,50 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 			$payment_method = $this->mock_payment_methods[ $id ];
 			$this->assertTrue( $payment_method->is_enabled_at_checkout() );
+		}
+	}
+
+	/**
+	 * Payment method is only enabled when its supported currency is present or method supports all currencies.
+	 */
+	public function test_payment_methods_are_only_enabled_when_currency_is_supported() {
+		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
+		foreach ( $payment_method_ids as $id ) {
+			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'CASHMONEY', true );
+			$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
+			$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
+
+			$payment_method       = $this->mock_payment_methods[ $id ];
+			$supported_currencies = $payment_method->get_supported_currencies();
+			if ( empty( $supported_currencies ) ) {
+				$this->assertTrue( $payment_method->is_enabled_at_checkout() );
+			} else {
+				$this->assertFalse( $payment_method->is_enabled_at_checkout() );
+
+				$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', end( $supported_currencies ), true );
+				$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
+				$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
+
+				$payment_method = $this->mock_payment_methods[ $id ];
+				$this->assertTrue( $payment_method->is_enabled_at_checkout() );
+			}
+		}
+	}
+
+	/**
+	 * If subscription product is in cart, enabled payment methods must be reusable.
+	 */
+	public function test_payment_methods_are_reusable_if_cart_contains_subscription() {
+		$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', true );
+		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
+		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'EUR' );
+
+		foreach ( $this->mock_payment_methods as $payment_method ) {
+			if ( $payment_method->is_reusable() ) {
+				$this->assertTrue( $payment_method->is_enabled_at_checkout() );
+			} else {
+				$this->assertFalse( $payment_method->is_enabled_at_checkout() );
+			}
 		}
 	}
 }
