@@ -226,7 +226,34 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'processing', $final_order->get_status() );
 		$this->assertEquals( 'Credit card / debit card', $final_order->get_payment_method_title() );
 		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
+		$this->assertEquals( true, $final_order->get_meta( '_stripe_upe_redirect_processed', true ) );
 		$this->assertRegExp( '/Charge ID: ch_mock/', $note->content );
+	}
+
+	/**
+	 * Test redirect payment processed only runs once.
+	 */
+	public function test_process_redirect_payment_only_runs_once() {
+		$payment_intent_id = 'pi_mock';
+		$payment_method_id = 'pm_mock';
+		$customer_id       = 'cus_mock';
+		$order             = WC_Helper_Order::create_order();
+		$currency          = $order->get_currency();
+		$order_id          = $order->get_id();
+
+		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+
+		// set up a failed order that has already been processed
+		$order->set_status( 'failed' );
+		$this->mock_gateway->save_order_redirect_processed( $order );
+
+		// attempt to reprocess the order and confirm status is unchanged
+		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
+
+		$final_order = wc_get_order( $order_id );
+
+		$this->assertEquals( 'failed', $final_order->get_status() );
 	}
 
 	/**

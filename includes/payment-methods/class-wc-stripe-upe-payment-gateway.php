@@ -746,6 +746,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
+		if ( $order->get_meta( '_stripe_upe_redirect_processed', true ) ) {
+			return;
+		}
+
 		WC_Stripe_Logger::log( "Begin processing UPE redirect payment for order $order_id for the amount of {$order->get_total()}" );
 
 		try {
@@ -808,6 +812,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 		$this->save_intent_to_order( $order, $intent );
 		$this->set_payment_method_title_for_order( $order, $payment_method_type, $payment_method_details );
+		$this->save_order_redirect_processed( $order );
 	}
 
 	/**
@@ -848,6 +853,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		$this->maybe_update_source_on_subscription_order( $order, $payment_method );
+	}
+
+	/**
+	 * Mark the order as processed by redirect so order is not reprocessed on page refresh.
+	 *
+	 * @param WC_Order $order For to which the source applies.
+	 */
+	public function save_order_redirect_processed( $order ) {
+		$order->update_meta_data( '_stripe_upe_redirect_processed', true );
+
+		if ( is_callable( [ $order, 'save' ] ) ) {
+			$order->save();
+		}
 	}
 
 	/**
