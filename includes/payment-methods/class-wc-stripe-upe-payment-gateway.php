@@ -753,6 +753,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
+		if ( $order->get_meta( '_stripe_upe_redirect_processed', true ) ) {
+			return;
+		}
+
 		WC_Stripe_Logger::log( "Begin processing UPE redirect payment for order $order_id for the amount of {$order->get_total()}" );
 
 		try {
@@ -817,6 +821,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 		$this->save_intent_to_order( $order, $intent );
 		$this->set_payment_method_title_for_order( $order, $payment_method_type, $payment_method_details );
+		$order->update_meta_data( '_stripe_upe_redirect_processed', true );
+		$order->save();
 	}
 
 	/**
