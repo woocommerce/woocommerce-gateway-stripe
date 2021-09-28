@@ -153,6 +153,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
+	 * Return the gateway icon - None for UPE.
+	 */
+	public function get_icon() {
+		return apply_filters( 'woocommerce_gateway_icon', null, $this->id );
+	}
+
+	/**
 	 * Initialize Gateway Settings Form Fields.
 	 */
 	public function init_form_fields() {
