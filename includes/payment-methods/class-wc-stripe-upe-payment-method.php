@@ -136,6 +136,12 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 * @return bool
 	 */
 	public function is_enabled_at_checkout( $order_id = null ) {
+		// Check capabilities first.
+		if ( ! $this->is_capability_active() ) {
+			return false;
+		}
+
+		// Check currency compatibility.
 		$currencies = $this->get_supported_currencies();
 		if ( ! empty( $currencies ) && ! in_array( get_woocommerce_currency(), $currencies, true ) ) {
 			return false;
@@ -145,7 +151,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 			return $this->is_reusable();
 		}
 
-		return $this->is_capability_active();
+		return true;
 	}
 
 	/**
