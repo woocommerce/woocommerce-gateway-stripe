@@ -587,10 +587,10 @@ function woocommerce_gateway_stripe() {
 
 				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-controller.php';
-					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-upe-flag-toggle-controller.php';
+					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
 
-					$upe_flag_toggle_controller = new WC_REST_UPE_Flag_Toggle_Controller();
+					$upe_flag_toggle_controller = new WC_Stripe_REST_UPE_Flag_Toggle_Controller();
 					$upe_flag_toggle_controller->register_routes();
 
 					$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];

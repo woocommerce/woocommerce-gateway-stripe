@@ -142,7 +142,7 @@ class WC_Stripe_Account {
 	 */
 	private function are_deposits_enabled( $account ) {
 		$are_payouts_enabled = $account['payouts_enabled'] || false;
-		$payout_settings     = $account['settings']['payouts'] ? $account['settings']['payouts'] : [];
+		$payout_settings     = isset( $account['settings']['payouts'] ) ? $account['settings']['payouts'] : [];
 
 		if ( ! $are_payouts_enabled || ! isset( $payout_settings['schedule']['interval'] ) ) {
 			return false;
