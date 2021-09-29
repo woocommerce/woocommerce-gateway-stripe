@@ -473,7 +473,7 @@ function woocommerce_gateway_stripe() {
 					return $settings;
 				}
 
-				if ( 'no' === $old_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] && 'yes' === $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
+				if ( 'yes' === $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
 					return $this->enable_upe( $settings );
 				}
 
