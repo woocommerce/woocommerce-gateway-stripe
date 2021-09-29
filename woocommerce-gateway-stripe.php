@@ -105,7 +105,7 @@ function woocommerce_gateway_stripe() {
 			 *
 			 * @var WC_Stripe_Account
 			 */
-			private $account;
+			public $account;
 
 			/**
 			 * Private clone method to prevent cloning of the instance of the
@@ -197,11 +197,11 @@ function woocommerce_gateway_stripe() {
 				$this->api                           = new WC_Stripe_Connect_API();
 				$this->connect                       = new WC_Stripe_Connect( $this->api );
 				$this->payment_request_configuration = new WC_Stripe_Payment_Request();
+				$this->account                       = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
 				if ( is_admin() ) {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-settings-controller.php';
-					require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-account.php';
 
 					if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && ! WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-old-settings-upe-toggle-controller.php';
@@ -212,7 +212,6 @@ function woocommerce_gateway_stripe() {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-payment-requests-controller.php';
 						new WC_Stripe_Payment_Requests_Controller();
 					} else {
-						$this->account = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 						new WC_Stripe_Settings_Controller( $this->account );
 					}
 
@@ -474,7 +473,7 @@ function woocommerce_gateway_stripe() {
 					return $settings;
 				}
 
-				if ( 'no' === $old_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] && 'yes' === $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
+				if ( 'yes' === $settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) {
 					return $this->enable_upe( $settings );
 				}
 
