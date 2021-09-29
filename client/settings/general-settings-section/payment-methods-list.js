@@ -84,53 +84,47 @@ const GeneralSettingsSection = () => {
 	};
 
 	return (
-		<>
-			<List>
-				{ availablePaymentMethods.map( ( method ) => {
-					const { Icon, label, description } = PaymentMethodsMap[
-						method
-					];
+		<List>
+			{ availablePaymentMethods.map( ( method ) => {
+				const { Icon, label, description } = PaymentMethodsMap[
+					method
+				];
 
-					return (
-						<ListElement key={ method }>
-							{ isUpeEnabled && (
-								<CheckboxControl
-									label={
-										<VisuallyHidden>
-											{ label }
-										</VisuallyHidden>
-									}
-									onChange={ makeCheckboxChangeHandler(
-										method
-									) }
-									checked={ enabledPaymentMethods.includes(
-										method
-									) }
-								/>
-							) }
-							<PaymentMethodWrapper>
-								<PaymentMethodDescription
-									id={ isUpeEnabled ? method : null }
-									Icon={ Icon }
-									description={ description }
-									label={ label }
-								/>
-								{ isUpeEnabled && <StyledFees id={ method } /> }
-							</PaymentMethodWrapper>
-						</ListElement>
-					);
-				} ) }
-				{ isConfirmationModalOpen && (
-					<RemoveMethodConfirmationModal
-						method={ modalOpenForMethod }
-						onClose={ () => setIsConfirmationModalOpen( false ) }
-						handleRemove={ () =>
-							handleRemoveMethod( modalOpenForMethod )
-						}
-					/>
-				) }
-			</List>
-		</>
+				return (
+					<ListElement key={ method }>
+						{ isUpeEnabled && (
+							<CheckboxControl
+								label={
+									<VisuallyHidden>{ label }</VisuallyHidden>
+								}
+								onChange={ makeCheckboxChangeHandler( method ) }
+								checked={ enabledPaymentMethods.includes(
+									method
+								) }
+							/>
+						) }
+						<PaymentMethodWrapper>
+							<PaymentMethodDescription
+								id={ isUpeEnabled ? method : null }
+								Icon={ Icon }
+								description={ description }
+								label={ label }
+							/>
+							{ isUpeEnabled && <StyledFees id={ method } /> }
+						</PaymentMethodWrapper>
+					</ListElement>
+				);
+			} ) }
+			{ isConfirmationModalOpen && (
+				<RemoveMethodConfirmationModal
+					method={ modalOpenForMethod }
+					onClose={ () => setIsConfirmationModalOpen( false ) }
+					handleRemove={ () =>
+						handleRemoveMethod( modalOpenForMethod )
+					}
+				/>
+			) }
+		</List>
 	);
 };
 

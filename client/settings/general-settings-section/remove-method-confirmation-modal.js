@@ -1,6 +1,5 @@
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import React from 'react';
-import interpolateComponents from 'interpolate-components';
 import { Button } from '@wordpress/components';
 import PaymentMethodsMap from '../../payment-methods-map';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
@@ -12,15 +11,14 @@ const RemoveMethodConfirmationModal = ( { method, onClose, handleRemove } ) => {
 		<ConfirmationModal
 			title={
 				<AlertTitle
-					title={ interpolateComponents( {
-						mixedString: __(
-							'Remove {{methodName /}} from checkout',
+					title={ sprintf(
+						/* translators: %s: payment method name (e.g.: giropay, EPS, Sofort, etc). */
+						__(
+							'Remove %s from checkout',
 							'woocommerce-gateway-stripe'
 						),
-						components: {
-							methodName: <span>&nbsp;{ label }&nbsp;</span>,
-						},
-					} ) }
+						label
+					) }
 				/>
 			}
 			onRequestClose={ onClose }
@@ -36,15 +34,14 @@ const RemoveMethodConfirmationModal = ( { method, onClose, handleRemove } ) => {
 			}
 		>
 			<p>
-				{ interpolateComponents( {
-					mixedString: __(
-						'Are you sure you want to remove {{methodName /}}? Your customers will no longer be able to pay using {{methodName /}}.',
+				{ sprintf(
+					/* translators: %1: payment method name (e.g.: giropay, EPS, Sofort, etc). */
+					__(
+						'Are you sure you want to remove %1$s? Your customers will no longer be able to pay using %1$s.',
 						'woocommerce-gateway-stripe'
 					),
-					components: {
-						methodName: <span>{ label }</span>,
-					},
-				} ) }
+					label
+				) }
 			</p>
 			<p>
 				{ __(
