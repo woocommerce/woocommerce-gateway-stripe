@@ -197,15 +197,15 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'SOFORT', $sofort_method->get_label() );
 		$this->assertEquals( 'Pay with SOFORT', $sofort_method->get_title() );
 		$this->assertEquals( 'Pay with SOFORT', $sofort_method->get_title( $mock_sofort_details ) );
-		$this->assertTrue( $sofort_method->is_reusable() );
-		$this->assertEquals( 'sepa_debit', $sofort_method->get_retrievable_type() );
+		$this->assertFalse( $sofort_method->is_reusable() );
+		$this->assertEquals( null, $sofort_method->get_retrievable_type() );
 
 		$this->assertEquals( 'bancontact', $bancontact_method->get_id() );
 		$this->assertEquals( 'Bancontact', $bancontact_method->get_label() );
 		$this->assertEquals( 'Pay with Bancontact', $bancontact_method->get_title() );
 		$this->assertEquals( 'Pay with Bancontact', $bancontact_method->get_title( $mock_bancontact_details ) );
-		$this->assertTrue( $bancontact_method->is_reusable() );
-		$this->assertEquals( 'sepa_debit', $bancontact_method->get_retrievable_type() );
+		$this->assertFalse( $bancontact_method->is_reusable() );
+		$this->assertEquals( null, $bancontact_method->get_retrievable_type() );
 
 		$this->assertEquals( 'ideal', $ideal_method->get_id() );
 		$this->assertEquals( 'iDEAL', $ideal_method->get_label() );

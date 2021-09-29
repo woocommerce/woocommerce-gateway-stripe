@@ -63,7 +63,7 @@ class WC_Stripe_Account {
 	 * @return array empty when no data found in transient, otherwise returns cached data
 	 */
 	private function read_account_from_cache() {
-		$account_cache = json_decode( json_encode( get_transient( $this->get_transient_key() ) ), true );
+		$account_cache = json_decode( wp_json_encode( get_transient( $this->get_transient_key() ) ), true );
 
 		return false === $account_cache ? [] : $account_cache;
 	}
@@ -86,7 +86,7 @@ class WC_Stripe_Account {
 		// Create or update the account option cache.
 		set_transient( $this->get_transient_key(), $account_cache, $expiration );
 
-		return json_decode( json_encode( $account ), true );
+		return json_decode( wp_json_encode( $account ), true );
 	}
 
 	/**
