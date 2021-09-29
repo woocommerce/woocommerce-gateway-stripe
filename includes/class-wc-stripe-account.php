@@ -80,7 +80,7 @@ class WC_Stripe_Account {
 			return [];
 		}
 
-		if ( is_wp_error( $account ) ) {
+		if ( is_wp_error( $account ) || isset( $account->error->message ) ) {
 			return [];
 		}
 
