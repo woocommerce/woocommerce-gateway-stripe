@@ -561,6 +561,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$this->update_fees( $order, is_string( $response->balance_transaction ) ? $response->balance_transaction : $response->balance_transaction->id );
 		}
 
+		if ( isset( $response->payment_method_details ) && isset( $response->payment_method_details->card ) && isset( $response->payment_method_details->card->mandate ) ) {
+			$order->update_meta_data( '_stripe_mandate_id', $response->payment_method_details->card->mandate );
+		}
+
 		if ( 'yes' === $captured ) {
 			/**
 			 * Charge can be captured but in a pending state. Payment methods
@@ -1484,6 +1488,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$order->update_meta_data( '_stripe_intent_id', $intent->id );
 		} elseif ( 'setup_intent' === $intent->object ) {
 			$order->update_meta_data( '_stripe_setup_intent', $intent->id );
+		}
+
+		// Add the mandate id necessary for renewal payments with Indian cards.
+		if ( isset( $intent->charges ) && isset( $intent->charges->data ) ) {
+			$charge = end( $intent->charges->data );
+
+			if ( isset( $charge->payment_method_options ) && isset( $charge->payment_method_options->card ) && isset( $charge->payment_method_options->card->mandate ) ) {
+				$mandate_id = $charge->payment_method_options->card->mandate;
+				$order->update_meta_data( '_stripe_mandate_id', $mandate_id );
+			}
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
