@@ -136,14 +136,22 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 * @return bool
 	 */
 	public function is_enabled_at_checkout( $order_id = null ) {
-		$currencies = $this->get_supported_currencies();
-		if ( ! empty( $currencies ) && ! in_array( get_woocommerce_currency(), $currencies, true ) ) {
+		// Check capabilities first.
+		if ( ! $this->is_capability_active() ) {
 			return false;
 		}
+
+		// Check currency compatibility.
+		$currencies = $this->get_supported_currencies();
+		if ( ! empty( $currencies ) && ! in_array( $this->get_woocommerce_currency(), $currencies, true ) ) {
+			return false;
+		}
+
 		// If cart or order contains subscription, enable payment method if it's reusable.
 		if ( $this->is_subscription_item_in_cart() || ( ! empty( $order_id ) && $this->has_subscription( $order_id ) ) ) {
 			return $this->is_reusable();
 		}
+
 		return true;
 	}
 
@@ -155,6 +163,35 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 */
 	public function is_reusable() {
 		return $this->is_reusable;
+	}
+
+	/**
+	 * Returns boolean dependent on whether capability
+	 * for site account is enabled for payment method.
+	 *
+	 * @return bool
+	 */
+	public function is_capability_active() {
+		$capabilities = $this->get_capabilities_response();
+		if ( empty( $capabilities ) ) {
+			return false;
+		}
+		$key = $this->get_id() . '_payments';
+		return isset( $capabilities[ $key ] ) && 'active' === $capabilities[ $key ];
+	}
+
+	/**
+	 * Returns capabilities response object for site account.
+	 *
+	 * @return object
+	 */
+	public function get_capabilities_response() {
+		$account = WC_Stripe::get_instance()->account;
+		$data    = $account->get_cached_account_data();
+		if ( empty( $data ) || ! isset( $data['capabilities'] ) ) {
+			return [];
+		}
+		return $data['capabilities'];
 	}
 
 	/**
@@ -257,6 +294,13 @@ abstract class WC_Stripe_UPE_Payment_Method {
 			'wc_stripe_' . static::STRIPE_ID . '_upe_supported_currencies',
 			$this->supported_currencies
 		);
+	}
+
+	/**
+	 * Wrapper function for get_woocommerce_currency global function
+	 */
+	public function get_woocommerce_currency() {
+		return get_woocommerce_currency();
 	}
 
 	/**
