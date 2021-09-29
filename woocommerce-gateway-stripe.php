@@ -481,6 +481,7 @@ function woocommerce_gateway_stripe() {
 			}
 
 			protected function enable_upe( $settings ) {
+				$settings['upe_checkout_experience_accepted_payments'] = [];
 				$payment_gateways = WC()->payment_gateways->payment_gateways();
 				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
 					$lpm_gateway_id = constant( $method_class::LPM_GATEWAY_CLASS . '::ID' );
@@ -503,9 +504,6 @@ function woocommerce_gateway_stripe() {
 							);
 						}
 						// ENABLE UPE METHOD
-						if ( ! isset( $settings['upe_checkout_experience_accepted_payments'] ) ) {
-							$settings['upe_checkout_experience_accepted_payments'] = [];
-						}
 						$settings['upe_checkout_experience_accepted_payments'][] = $method_class::STRIPE_ID;
 					}
 				}
