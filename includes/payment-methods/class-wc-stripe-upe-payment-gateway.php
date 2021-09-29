@@ -229,7 +229,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			apply_filters( 'wc_stripe_upe_params', $this->javascript_params() )
 		);
 
+		wp_register_style(
+			'wc-stripe-upe-classic',
+			WC_STRIPE_PLUGIN_URL . '/build/upe_classic.css',
+			[],
+			$version
+		);
+
 		wp_enqueue_script( 'wc-stripe-upe-classic' );
+		wp_enqueue_style( 'wc-stripe-upe-classic' );
 	}
 
 	/**
