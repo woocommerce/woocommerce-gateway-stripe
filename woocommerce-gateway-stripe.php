@@ -544,7 +544,9 @@ function woocommerce_gateway_stripe() {
 					$settings['enabled'] = 'no';
 				}
 				// DISABLE ALL UPE METHODS
-				$settings['upe_checkout_experience_accepted_payments'] = [];
+				if ( ! isset( $settings['upe_checkout_experience_accepted_payments'] ) ) {
+					$settings['upe_checkout_experience_accepted_payments'] = [];
+				}
 				return $settings;
 			}
 
