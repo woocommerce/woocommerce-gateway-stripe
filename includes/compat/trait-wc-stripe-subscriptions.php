@@ -80,6 +80,18 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $request;
 		}
 
+		// TODO: maybe this isn't necessary since this function should really only be called
+		//       when creating the intent? It's called in process_subscription_payment though
+		//       so it's probably needed here too?
+		// If we've already created a mandate for this order; use that.
+		$mandate = $order->get_meta( '_stripe_mandate_id', true );
+		if ( isset( $mandate ) && '' !== $mandate ) {
+			$request['mandate'] = $mandate;
+			return $request;
+		}
+
+		// Otherwise add the parameters required to create a mandate.
+
 		$subscriptions = wcs_get_subscriptions_for_order( $order->get_id() );
 
 		// If there are no subscriptions we just return.
