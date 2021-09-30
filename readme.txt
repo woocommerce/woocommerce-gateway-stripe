@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.6
 Tested up to: 5.8
 Requires PHP: 5.6
-Stable tag: 5.5.0
+Stable tag: 5.6.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -126,7 +126,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.6.0 - 2021-xx-xx =
+= 5.6.0 - 2021-09-30 =
 * Add - Pre-release preview of new checkout experience using Stripe Universal Payment Element.
 * Tweak - Removed "Branded" and "Custom label" options on Payment request buttons to align with design guidelines.
 * Tweak - Converted payment request button size value to distinct options to align with design guidelines.
