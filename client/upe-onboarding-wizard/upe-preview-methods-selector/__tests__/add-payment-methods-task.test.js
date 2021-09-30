@@ -81,12 +81,17 @@ describe( 'AddPaymentMethodsTask', () => {
 
 		userEvent.click( screen.getByText( 'Select all' ) );
 
+		expect( screen.queryByText( 'Select all' ) ).not.toBeInTheDocument();
 		expect(
 			screen.queryByRole( 'checkbox', { name: /Credit/ } )
 		).toBeChecked();
 		expect(
 			screen.getByRole( 'checkbox', { name: 'giropay' } )
 		).toBeChecked();
+
+		userEvent.click( screen.getByRole( 'checkbox', { name: 'giropay' } ) );
+
+		expect( screen.queryByText( 'Select all' ) ).toBeInTheDocument();
 	} );
 
 	it( 'should move forward when the payment methods are selected', async () => {
