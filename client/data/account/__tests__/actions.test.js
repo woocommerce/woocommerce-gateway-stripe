@@ -28,7 +28,8 @@ describe( 'Account actions tests', () => {
 			const yielded = [ ...refreshAccount() ];
 
 			expect( apiFetch ).toHaveBeenCalledWith( {
-				path: '/wc/v3/wc_stripe/account',
+				path: '/wc/v3/wc_stripe/account/refresh',
+				method: 'post',
 			} );
 			expect( yielded ).toContainEqual(
 				expect.objectContaining( {

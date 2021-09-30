@@ -7,7 +7,7 @@ import { updateAccount } from './actions';
 /**
  * Retrieve the account data from the site's REST API.
  */
-export function* getAccount() {
+export function* getAccountData() {
 	const path = `${ NAMESPACE }/account`;
 
 	try {

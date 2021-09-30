@@ -1,7 +1,7 @@
-import { getAccount, isRefreshingAccount } from '../selectors';
+import { getAccountData, isRefreshingAccount } from '../selectors';
 
 describe( 'Account selectors tests', () => {
-	describe( 'getAccount()', () => {
+	describe( 'getAccountData()', () => {
 		test( 'returns the value of state.account.data', () => {
 			const state = {
 				account: {
@@ -11,13 +11,13 @@ describe( 'Account selectors tests', () => {
 				},
 			};
 
-			expect( getAccount( state ) ).toEqual( { foo: 'bar' } );
+			expect( getAccountData( state ) ).toEqual( { foo: 'bar' } );
 		} );
 
 		test.each( [ [ undefined ], [ {} ], [ { account: {} } ] ] )(
 			'returns {} if key is missing (tested state: %j)',
 			( state ) => {
-				expect( getAccount( state ) ).toEqual( {} );
+				expect( getAccountData( state ) ).toEqual( {} );
 			}
 		);
 	} );

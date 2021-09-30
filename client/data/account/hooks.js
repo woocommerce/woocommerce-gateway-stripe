@@ -6,18 +6,18 @@ const EMPTY_OBJ = {};
 export const useAccount = () => {
 	const { refreshAccount } = useDispatch( STORE_NAME );
 
-	const account = useSelect( ( select ) => {
-		const { getAccount } = select( STORE_NAME );
+	const data = useSelect( ( select ) => {
+		const { getAccountData } = select( STORE_NAME );
 
-		return getAccount();
+		return getAccountData();
 	}, [] );
 
 	const isLoading = useSelect( ( select ) => {
 		const { hasFinishedResolution, isResolving } = select( STORE_NAME );
 
 		return (
-			isResolving( 'getAccount' ) ||
-			! hasFinishedResolution( 'getAccount' )
+			isResolving( 'getAccountData' ) ||
+			! hasFinishedResolution( 'getAccountData' )
 		);
 	}, [] );
 
@@ -27,13 +27,13 @@ export const useAccount = () => {
 		return isRefreshingAccount();
 	}, [] );
 
-	return { account, isLoading, isRefreshing, refreshAccount };
+	return { data, isLoading, isRefreshing, refreshAccount };
 };
 
 export const useGetCapabilities = () => {
 	return useSelect( ( select ) => {
-		const { getAccount } = select( STORE_NAME );
+		const { getAccountData } = select( STORE_NAME );
 
-		return getAccount().capabilities || EMPTY_OBJ;
+		return getAccountData().account?.capabilities ?? EMPTY_OBJ;
 	}, [] );
 };

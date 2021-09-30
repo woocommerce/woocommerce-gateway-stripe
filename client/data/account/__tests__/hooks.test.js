@@ -24,10 +24,10 @@ describe( 'Account hooks tests', () => {
 	} );
 
 	describe( 'useGetCapabilities()', () => {
-		it( 'returns the value of getAccount().capabilities', () => {
+		it( 'returns the value of getAccountData().account.capabilities', () => {
 			selectors = {
-				getAccount: jest.fn( () => ( {
-					capabilities: { card_payments: 'active' },
+				getAccountData: jest.fn( () => ( {
+					account: { capabilities: { card_payments: 'active' } },
 				} ) ),
 			};
 
@@ -38,7 +38,7 @@ describe( 'Account hooks tests', () => {
 
 		it( 'returns an empty object if the property is missing', () => {
 			selectors = {
-				getAccount: jest.fn( () => ( {} ) ),
+				getAccountData: jest.fn( () => ( {} ) ),
 			};
 
 			const { result } = renderHook( () => useGetCapabilities() );
@@ -54,7 +54,7 @@ describe( 'Account hooks tests', () => {
 			};
 
 			selectors = {
-				getAccount: jest.fn( () => ( { foo: 'bar' } ) ),
+				getAccountData: jest.fn( () => ( { foo: 'bar' } ) ),
 				hasFinishedResolution: jest.fn(),
 				isResolving: jest.fn(),
 				isRefreshingAccount: jest.fn(),
@@ -62,10 +62,10 @@ describe( 'Account hooks tests', () => {
 		} );
 
 		it( 'returns account from selector', () => {
-			const { account, refreshAccount } = useAccount();
+			const { data, refreshAccount } = useAccount();
 			refreshAccount();
 
-			expect( account ).toEqual( { foo: 'bar' } );
+			expect( data ).toEqual( { foo: 'bar' } );
 			expect( actions.refreshAccount ).toHaveBeenCalled();
 		} );
 

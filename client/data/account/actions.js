@@ -23,7 +23,8 @@ export function* refreshAccount() {
 		yield updateIsRefreshingAccount( true );
 
 		const data = yield apiFetch( {
-			path: `${ NAMESPACE }/account`,
+			method: 'post',
+			path: `${ NAMESPACE }/account/refresh`,
 		} );
 
 		yield updateAccount( data );

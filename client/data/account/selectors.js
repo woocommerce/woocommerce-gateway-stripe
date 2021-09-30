@@ -8,7 +8,7 @@ const getAccountState = ( state ) => {
 	return state.account || EMPTY_OBJ;
 };
 
-export const getAccount = ( state ) => {
+export const getAccountData = ( state ) => {
 	return getAccountState( state ).data || EMPTY_OBJ;
 };
 
