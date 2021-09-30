@@ -126,10 +126,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.6.0 - 2021-09-30 =
-* Add - Pre-release preview of new checkout experience using Stripe Universal Payment Element.
-* Tweak - Removed "Branded" and "Custom label" options on Payment request buttons to align with design guidelines.
-* Tweak - Converted payment request button size value to distinct options to align with design guidelines.
-* Tweak - Animate supported credit card icons instead of displaying multiple icons at once.
+= 5.x.x - 2021-xx-xx =
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
