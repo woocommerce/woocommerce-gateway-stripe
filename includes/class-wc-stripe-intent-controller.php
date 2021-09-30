@@ -59,7 +59,7 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * Returns an instantiated UPE gateway
 	 *
-	 * @since x.x.x
+	 * @since 5.6.0
 	 * @throws WC_Stripe_Exception if UPE is not enabled.
 	 * @return WC_Stripe_UPE_Payment_Gateway
 	 */
@@ -349,7 +349,7 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * Handle AJAX request for updating a payment intent for Stripe UPE.
 	 *
-	 * @since x.x.x
+	 * @since 5.6.0
 	 */
 	public function update_payment_intent_ajax() {
 		try {
@@ -379,7 +379,7 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * Updates payment intent to be able to save payment method.
 	 *
-	 * @since x.x.x
+	 * @since 5.6.0
 	 *
 	 * @param {string}  $payment_intent_id         The id of the payment intent to update.
 	 * @param {int}     $order_id                  The id of the order if intent created from Order.
@@ -438,8 +438,8 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * Handle AJAX requests for creating a setup intent without confirmation for Stripe UPE.
 	 *
-	 * @since x.x.x
-	 * @version x.x.x
+	 * @since 5.6.0
+	 * @version 5.6.0
 	 */
 	public function init_setup_intent_ajax() {
 		try {
@@ -464,8 +464,8 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * Creates a setup intent without confirmation.
 	 *
-	 * @since x.x.x
-	 * @version x.x.x
+	 * @since 5.6.0
+	 * @version 5.6.0
 	 * @return array
 	 * @throws Exception If customer for the current user cannot be read/found.
 	 */
@@ -664,8 +664,8 @@ class WC_Stripe_Intent_Controller {
 	/*
 	 * Check for a UPE redirect payment method on order received page or setup intent on payment methods page.
 	 *
-	 * @since x.x.x
-	 * @version x.x.x
+	 * @since 5.6.0
+	 * @version 5.6.0
 	 */
 	public function maybe_process_upe_redirect() {
 		$gateway = $this->get_gateway();
