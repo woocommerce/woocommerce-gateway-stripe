@@ -16,7 +16,7 @@ class WC_Stripe_Information_Overlay {
 
 		if ( empty( $show_information_overlay ) ) {
 			add_action( 'admin_enqueue_scripts', [ $this, 'information_overlay_script' ] );
-			add_action( 'woocommerce_admin_field_payment_gateways', [ $this, 'wc_stripe_information_overlay_container' ] );
+			add_action( 'woocommerce_admin_field_payment_gateways', [ $this, 'wc_stripe_information_overlay_container' ], 5 );
 		}
 	}
 
@@ -34,7 +34,7 @@ class WC_Stripe_Information_Overlay {
 			return;
 		}
 
-		if ( isset( $current_section ) ) {
+		if ( ! empty( $current_section ) ) {
 			return;
 		}
 
