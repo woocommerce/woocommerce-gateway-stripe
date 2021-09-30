@@ -1,9 +1,10 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import styled from '@emotion/styled';
 import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import UpeToggleContext from '../upe-toggle/context';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
+import RemoveMethodConfirmationModal from './remove-method-confirmation-modal';
 import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
@@ -54,6 +55,10 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 
 const GeneralSettingsSection = () => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
+	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] = useState(
+		false
+	);
+	const [ modalOpenForMethod, setModalOpenForMethod ] = useState( null );
 
 	const [
 		enabledPaymentMethods,
@@ -65,10 +70,17 @@ const GeneralSettingsSection = () => {
 		if ( hasBeenChecked ) {
 			setEnabledPaymentMethods( [ ...enabledPaymentMethods, method ] );
 		} else {
-			setEnabledPaymentMethods(
-				enabledPaymentMethods.filter( ( m ) => m !== method )
-			);
+			setIsConfirmationModalOpen( true );
+			setModalOpenForMethod( method );
 		}
+	};
+
+	const handleRemoveMethod = ( method ) => {
+		setIsConfirmationModalOpen( false );
+		setModalOpenForMethod( null );
+		setEnabledPaymentMethods(
+			enabledPaymentMethods.filter( ( m ) => m !== method )
+		);
 	};
 
 	return (
@@ -103,6 +115,15 @@ const GeneralSettingsSection = () => {
 					</ListElement>
 				);
 			} ) }
+			{ isConfirmationModalOpen && (
+				<RemoveMethodConfirmationModal
+					method={ modalOpenForMethod }
+					onClose={ () => setIsConfirmationModalOpen( false ) }
+					handleRemove={ () =>
+						handleRemoveMethod( modalOpenForMethod )
+					}
+				/>
+			) }
 		</List>
 	);
 };
