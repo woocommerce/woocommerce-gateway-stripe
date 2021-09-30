@@ -70,9 +70,9 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * mandates for 3DS payments in India. It's ok to apply this across the board; Stripe will
 	 * take care of handling any authorizations.
 	 *
-	 * @param Array $request          The HTTP request that will be sent to Stripe to create the payment intent.
-	 * @param WC_Order $order         The renewal order.
-	 * @param Array $prepared_source  The source object.
+	 * @param Array    $request          The HTTP request that will be sent to Stripe to create the payment intent.
+	 * @param WC_Order $order            The renewal order.
+	 * @param Array    $prepared_source  The source object.
 	 */
 	public function add_subscription_information_to_intent( $request, $order, $prepared_source ) {
 		// Just in case the order doesn't contain a subscription we return the base request.
@@ -90,6 +90,20 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $request;
 		}
 
+		// TODO: what happens if there's more than one renewal order?
+		$renewals = wcs_get_subscriptions_for_renewal_order( $order->get_id() );
+		if ( 1 === count( $renewals ) ) {
+			$renewal_order   = reset( $renewals );
+			$parent_order_id = $renewal_order->get_parent_id();
+			$parent_order    = wc_get_order( $parent_order_id );
+
+			$mandate = $parent_order->get_meta( '_stripe_mandate_id', true );
+			if ( isset( $mandate ) && '' !== $mandate ) {
+				$request['mandate'] = $mandate;
+				return $request;
+			}
+		}
+
 		// Otherwise add the parameters required to create a mandate.
 
 		$subscriptions = wcs_get_subscriptions_for_order( $order->get_id() );
@@ -100,7 +114,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		// TODO: What happens if there's more than one subscription?
-		if ( 1 > count( $subscriptions ) ) {
+		if ( 1 < count( $subscriptions ) ) {
 			// This definitely feels wrong.
 			return $request;
 		}
