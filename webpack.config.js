@@ -42,5 +42,7 @@ module.exports = {
 		upe_opt_in_banner: './client/entrypoints/upe-opt-in-banner/index.js',
 		upe_settings: './client/settings/index.js',
 		payment_gateways: './client/entrypoints/payment-gateways/index.js',
+		upe_information_overlay:
+			'./client/entrypoints/information-overlay/index.js',
 	},
 };
