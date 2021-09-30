@@ -188,11 +188,6 @@ class WC_Stripe_Payment_Tokens {
 						}
 					}
 				}
-				// Removes saved tokens that are not sources.
-				foreach ( $stored_tokens as $token ) {
-					unset( $tokens[ $token->get_id() ] );
-					$token->delete();
-				}
 			}
 
 			if ( 'stripe_sepa' === $gateway_id ) {
@@ -213,11 +208,6 @@ class WC_Stripe_Payment_Tokens {
 							unset( $stored_tokens[ $source->id ] );
 						}
 					}
-				}
-				// Removes saved tokens that are not sources.
-				foreach ( $stored_tokens as $token ) {
-					unset( $tokens[ $token->get_id() ] );
-					$token->delete();
 				}
 			}
 		}

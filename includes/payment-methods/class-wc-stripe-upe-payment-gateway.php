@@ -229,7 +229,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			apply_filters( 'wc_stripe_upe_params', $this->javascript_params() )
 		);
 
+		wp_register_style(
+			'wc-stripe-upe-classic',
+			WC_STRIPE_PLUGIN_URL . '/build/upe_classic.css',
+			[],
+			$version
+		);
+
 		wp_enqueue_script( 'wc-stripe-upe-classic' );
+		wp_enqueue_style( 'wc-stripe-upe-classic' );
 	}
 
 	/**
@@ -614,6 +622,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				];
 				if ( false === $intent ) {
 					$request['confirm'] = 'true';
+					// SEPA setup intents require mandate data.
+					if ( in_array( 'sepa_debit', array_values( $enabled_payment_methods ), true ) ) {
+						$request['mandate_data'] = [
+							'customer_acceptance' => [
+								'type'   => 'online',
+								'online' => [
+									'ip_address' => WC_Geolocation::get_ip_address(),
+									'user_agent' => isset( $_SERVER['HTTP_USER_AGENT'] ) ? $_SERVER['HTTP_USER_AGENT'] : '', // @codingStandardsIgnoreLine
+								],
+							],
+						];
+					}
 				}
 
 				$intent = $this->stripe_request( $endpoint, $request );
@@ -764,6 +784,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
+		if ( $order->get_meta( '_stripe_upe_redirect_processed', true ) ) {
+			return;
+		}
+
 		WC_Stripe_Logger::log( "Begin processing UPE redirect payment for order $order_id for the amount of {$order->get_total()}" );
 
 		try {
@@ -793,12 +817,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Get payment intent to confirm status.
 		if ( $payment_needed ) {
 			$intent = $this->stripe_request( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
+			$error  = isset( $intent->last_payment_error ) ? $intent->last_payment_error : false;
 		} else {
 			$intent = $this->stripe_request( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
+			$error  = isset( $intent->last_setup_error ) ? $intent->last_setup_error : false;
 		}
 
-		if ( ! empty( $intent->last_payment_error ) ) {
-			WC_Stripe_Logger::log( 'Error when processing payment: ' . $intent->last_payment_error->message );
+		if ( ! empty( $error ) ) {
+			WC_Stripe_Logger::log( 'Error when processing payment: ' . $error->message );
 			throw new WC_Stripe_Exception( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 		}
 
@@ -826,6 +852,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 		$this->save_intent_to_order( $order, $intent );
 		$this->set_payment_method_title_for_order( $order, $payment_method_type, $payment_method_details );
+		$order->update_meta_data( '_stripe_upe_redirect_processed', true );
+		$order->save();
 	}
 
 	/**
@@ -1033,16 +1061,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$is_automatic_capture_enabled = $this->is_automatic_capture_enabled();
 
 		foreach ( $this->payment_methods as $method_id => $method ) {
-			$method_enabled       = in_array( $method_id, $this->get_upe_enabled_payment_method_ids(), true ) ? 'enabled' : 'disabled';
+			$method_enabled       = in_array( $method_id, $this->get_upe_enabled_payment_method_ids(), true ) && ( $is_automatic_capture_enabled || ! $method->requires_automatic_capture() ) ? 'enabled' : 'disabled';
 			$method_enabled_label = 'enabled' === $method_enabled ? __( 'enabled', 'woocommerce-gateway-stripe' ) : __( 'disabled', 'woocommerce-gateway-stripe' );
 			$capability_id        = "{$method_id}_payments"; // "_payments" is a suffix that comes from Stripe API, except when it is "transfers", which does not apply here
 			$method_status        = isset( $stripe_capabilities[ $capability_id ] ) ? $stripe_capabilities[ $capability_id ] : 'inactive';
-			$subtext_messages     = $method->get_subtext_messages( $is_automatic_capture_enabled, $method_status );
+			$subtext_messages     = $method->get_subtext_messages( $method_status );
 			$aria_label           = sprintf(
 				/* translators: $1%s payment method ID, $2%s "enabled" or "disabled" */
 				esc_attr__( 'The &quot;%1$s&quot; payment method is currently %2$s', 'woocommerce-gateway-stripe' ),
 				$method_id,
 				$method_enabled_label
+			);
+			$manual_capture_tip = sprintf(
+				/* translators: $1%s payment method label */
+				__( '%1$s is not available to your customers when manual capture is enabled.', 'woocommerce-gateway-stripe' ),
+				$method->get_label()
 			);
 			$data['description'] .= '<tr data-upe_method_id="' . $method_id . '">
 					<td class="name wc-stripe-upe-method-selection__name" width="">
@@ -1054,8 +1087,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 							<span class="woocommerce-input-toggle woocommerce-input-toggle--' . $method_enabled . '" aria-label="' . $aria_label . '">
 							' . ( 'enabled' === $method_enabled ? __( 'Yes', 'woocommerce-gateway-stripe' ) : __( 'No', 'woocommerce-gateway-stripe' ) ) . '
 							</span>
-						</a>
-					</td>
+						</a>'
+						. ( ! $is_automatic_capture_enabled && $method->requires_automatic_capture() ? '<span class="tips dashicons dashicons-warning" style="margin-top: 1px; margin-right: -25px; margin-left: 5px; color: red" data-tip="' . $manual_capture_tip . '" />' : '' ) .
+					'</td>
 					<td class="description wc-stripe-upe-method-selection__description" width="">' . $method->get_description() . '</td>
 				</tr>';
 		}
@@ -1131,8 +1165,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$payment_method_type    = ! empty( $payment_method_details ) ? $payment_method_details['type'] : '';
 			}
 		} elseif ( 'setup_intent' === $intent->object ) {
-			$payment_method_options = array_keys( (array) $intent->payment_method_options );
-			$payment_method_type    = ! empty( $payment_method_options ) ? $payment_method_options[0] : '';
+			if ( ! empty( $intent->payment_method ) ) {
+				$payment_method_details = $intent->payment_method;
+				$payment_method_type    = $payment_method_details->type;
+			}
 			// Setup intents don't have details, keep the false value.
 		}
 

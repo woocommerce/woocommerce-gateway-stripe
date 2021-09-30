@@ -124,6 +124,16 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
+	 * Returns boolean dependent on whether capability
+	 * for site account is enabled for payment method.
+	 *
+	 * @return bool
+	 */
+	public function is_capability_active() {
+		return true;
+	}
+
+	/**
 	 * The Credit Card method allows automatic capture.
 	 *
 	 * @return bool
