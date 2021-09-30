@@ -1,22 +1,13 @@
-/**
- * External dependencies
- */
 import { useEffect } from '@wordpress/element';
 import {
 	CardElement,
 	CardNumberElement,
 	useElements,
 } from '@stripe/react-stripe-js';
-
-/**
- * Internal dependencies
- */
-import { PAYMENT_METHOD_NAME } from './constants';
-import {
-	getStripeServerData,
-	getErrorMessageForTypeAndCode,
-} from '../../stripe-utils';
+import { getErrorMessageForTypeAndCode } from '../../stripe-utils';
 import { errorTypes } from '../../stripe-utils/constants';
+import { PAYMENT_METHOD_NAME } from './constants';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 /**
  * @typedef {import('@stripe/stripe-js').Stripe} Stripe
@@ -60,7 +51,7 @@ export const usePaymentProcessing = (
 	useEffect( () => {
 		const createSource = async ( ownerInfo ) => {
 			const elementToGet =
-				getStripeServerData()?.inline_cc_form === 'yes'
+				getBlocksConfiguration()?.inline_cc_form === 'yes'
 					? CardElement
 					: CardNumberElement;
 			return await stripe.createSource(

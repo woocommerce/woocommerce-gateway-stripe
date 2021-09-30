@@ -1,19 +1,12 @@
-/**
- * External dependencies
- */
 import { getSetting } from '@woocommerce/settings';
-
-/**
- * Internal dependencies
- */
 import { PAYMENT_METHOD_NAME } from './constants';
 import { PaymentRequestExpress } from './payment-request-express';
 import { applePayImage } from './apple-pay-preview';
+import { loadStripe } from 'wcstripe/blocks/load-stripe';
 import {
-	getStripeServerData,
-	loadStripe,
+	getBlocksConfiguration,
 	createPaymentRequestUsingCart,
-} from '../../stripe-utils';
+} from 'wcstripe/blocks/utils';
 
 const ApplePayPreview = () => <img src={ applePayImage } alt="" />;
 
@@ -26,11 +19,11 @@ const paymentRequestPaymentMethod = {
 	canMakePayment: ( cartData ) => {
 		// If in the editor context, always return true to display the `edit` prop preview.
 		// https://github.com/woocommerce/woocommerce-gutenberg-products-block/issues/4101.
-		if ( getStripeServerData()?.isAdmin ?? false ) {
+		if ( getBlocksConfiguration()?.isAdmin ?? false ) {
 			return true;
 		}
 
-		if ( ! getStripeServerData()?.shouldShowPaymentRequestButton ) {
+		if ( ! getBlocksConfiguration()?.shouldShowPaymentRequestButton ) {
 			return false;
 		}
 
@@ -64,7 +57,7 @@ const paymentRequestPaymentMethod = {
 	},
 	paymentMethodId: 'stripe',
 	supports: {
-		features: getStripeServerData()?.supports ?? [],
+		features: getBlocksConfiguration()?.supports ?? [],
 	},
 };
 

@@ -66,6 +66,12 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 				'publishable_key'                 => 'pk_live_valid_test_key',
 				'secret_key'                      => 'sk_live_valid_test_key',
 				'upe_checkout_experience_enabled' => 'yes',
+			]
+		);
+
+		$stripe_settings = array_merge(
+			get_option( 'woocommerce_stripe_settings' ),
+			[
 				'upe_checkout_experience_accepted_payments' => [
 					'giropay',
 					'bancontact',
@@ -73,9 +79,12 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 				],
 			]
 		);
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+
 		update_option( 'wc_stripe_show_style_notice', 'no' );
 		update_option( 'home', 'https://...' );
 		update_option( 'wc_stripe_show_sca_notice', 'no' );
+
 		$notices = new WC_Stripe_Admin_Notices();
 		ob_start();
 		$notices->admin_notices();
@@ -150,6 +159,42 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 				],
 				[
 					'keys',
+				],
+				'/set your Stripe account keys/',
+			],
+			[
+				[
+					'woocommerce_stripe_settings'    => [
+						'enabled' => 'yes',
+					],
+					'wc_stripe_show_style_notice'    => 'no',
+					'wc_stripe_show_sca_notice'      => 'no',
+					'_wcstripe_feature_upe_settings' => 'yes',
+					'home'                           => 'https://...',
+				],
+				[],
+				false,
+				[
+					'page'    => 'wc-settings',
+					'section' => 'stripe',
+				],
+			],
+			[
+				[
+					'woocommerce_stripe_settings'    => [
+						'enabled' => 'yes',
+					],
+					'wc_stripe_show_style_notice'    => 'no',
+					'wc_stripe_show_sca_notice'      => 'no',
+					'_wcstripe_feature_upe_settings' => 'yes',
+					'home'                           => 'https://...',
+				],
+				[
+					'keys',
+				],
+				false,
+				[
+					'page' => 'wc-settings',
 				],
 				'/set your Stripe account keys/',
 			],

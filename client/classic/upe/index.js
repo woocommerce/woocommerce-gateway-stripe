@@ -1,20 +1,15 @@
-/**
- * External dependencies
- */
 import jQuery from 'jquery';
-
-/**
- * Internal dependencies
- */
-import './style.scss';
 import WCStripeAPI from '../../api';
-import { getStripeServerData } from '../../stripe-utils';
+import { getStripeServerData, getUPETerms } from '../../stripe-utils';
 import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
+import { legacyHashchangeHandler } from './legacy-support';
+import './style.scss';
 
 jQuery( function ( $ ) {
 	const key = getStripeServerData()?.key;
 	const isUPEEnabled = getStripeServerData()?.isUPEEnabled;
 	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
+	const enabledBillingFields = getStripeServerData()?.enabledBillingFields;
 
 	if ( ! key ) {
 		// If no configuration is present, probably this is not the checkout page.
@@ -23,11 +18,7 @@ jQuery( function ( $ ) {
 
 	// Create an API object, which will be used throughout the checkout.
 	const api = new WCStripeAPI(
-		{
-			key,
-			locale: getStripeServerData()?.locale,
-			isUPEEnabled,
-		},
+		getStripeServerData(),
 		// A promise-based interface to jQuery.post.
 		( url, args ) => {
 			return new Promise( ( resolve, reject ) => {
@@ -110,16 +101,36 @@ jQuery( function ( $ ) {
 	let paymentIntentId = null;
 	let isUPEComplete = false;
 	const hiddenBillingFields = {
-		name: 'never',
-		email: 'never',
-		phone: 'never',
+		name:
+			enabledBillingFields.includes( 'billing_first_name' ) ||
+			enabledBillingFields.includes( 'billing_last_name' )
+				? 'never'
+				: 'auto',
+		email: enabledBillingFields.includes( 'billing_email' )
+			? 'never'
+			: 'auto',
+		phone: enabledBillingFields.includes( 'billing_phone' )
+			? 'never'
+			: 'auto',
 		address: {
-			country: 'never',
-			line1: 'never',
-			line2: 'never',
-			city: 'never',
-			state: 'never',
-			postalCode: 'never',
+			country: enabledBillingFields.includes( 'billing_country' )
+				? 'never'
+				: 'auto',
+			line1: enabledBillingFields.includes( 'billing_address_1' )
+				? 'never'
+				: 'auto',
+			line2: enabledBillingFields.includes( 'billing_address_2' )
+				? 'never'
+				: 'auto',
+			city: enabledBillingFields.includes( 'billing_city' )
+				? 'never'
+				: 'auto',
+			state: enabledBillingFields.includes( 'billing_state' )
+				? 'never'
+				: 'auto',
+			postalCode: enabledBillingFields.includes( 'billing_postcode' )
+				? 'never'
+				: 'auto',
 		},
 	};
 	const upeLoadingSelector = '#wc-stripe-upe-form';
@@ -209,6 +220,7 @@ jQuery( function ( $ ) {
 		} else {
 			$( '.woocommerce-SavedPaymentMethods-saveNew' ).hide();
 			$( 'input#wc-stripe-new-payment-method' ).prop( 'checked', false );
+			$( 'input#wc-stripe-new-payment-method' ).trigger( 'change' );
 		}
 	};
 
@@ -225,16 +237,18 @@ jQuery( function ( $ ) {
 	 */
 	const getBillingDetails = ( fields ) => {
 		return {
-			name: `${ fields.billing_first_name } ${ fields.billing_last_name }`.trim(),
-			email: fields.billing_email,
-			phone: fields.billing_phone,
+			name:
+				`${ fields.billing_first_name } ${ fields.billing_last_name }`.trim() ||
+				'-',
+			email: fields.billing_email || '-',
+			phone: fields.billing_phone || '-',
 			address: {
-				country: fields.billing_country,
-				line1: fields.billing_address_1,
-				line2: fields.billing_address_2,
-				city: fields.billing_city,
-				state: fields.billing_state,
-				postal_code: fields.billing_postcode,
+				country: fields.billing_country || '-',
+				line1: fields.billing_address_1 || '-',
+				line2: fields.billing_address_2 || '-',
+				city: fields.billing_city || '-',
+				state: fields.billing_state || '-',
+				postal_code: fields.billing_postcode || '-',
 			},
 		};
 	};
@@ -337,7 +351,10 @@ jQuery( function ( $ ) {
 			! $( '#wc-stripe-upe-element' ).children().length &&
 			isUPEEnabled
 		) {
-			mountUPEElement();
+			const isSetupIntent = ! (
+				getStripeServerData()?.isPaymentRequired ?? true
+			);
+			mountUPEElement( isSetupIntent );
 		}
 
 		if ( doesIbanNeedToBeMounted() ) {
@@ -358,7 +375,7 @@ jQuery( function ( $ ) {
 			const isChangingPayment = getStripeServerData()?.isChangingPayment;
 
 			// We use a setup intent if we are on the screens to add a new payment method or to change a subscription payment.
-			const useSetUpIntent =
+			const isSetupIntent =
 				$( 'form#add_payment_method' ).length || isChangingPayment;
 
 			if ( isChangingPayment && getStripeServerData()?.newTokenFormId ) {
@@ -369,7 +386,7 @@ jQuery( function ( $ ) {
 				$( token ).prop( 'selected', true ).trigger( 'click' );
 				$( 'form#order_review' ).submit();
 			}
-			mountUPEElement( useSetUpIntent );
+			mountUPEElement( isSetupIntent );
 		}
 
 		if ( doesIbanNeedToBeMounted() ) {
@@ -393,7 +410,7 @@ jQuery( function ( $ ) {
 			const { error } = await api.getStripe().confirmPayment( {
 				element: upeElement,
 				confirmParams: {
-					return_url: '',
+					return_url: '#',
 				},
 			} );
 			$form.removeClass( 'processing' ).unblock();
@@ -444,6 +461,7 @@ jQuery( function ( $ ) {
 				},
 			} );
 			if ( error ) {
+				await api.updateFailedOrder( paymentIntentId, orderId );
 				throw error;
 			}
 		} catch ( error ) {
@@ -499,7 +517,7 @@ jQuery( function ( $ ) {
 		}
 
 		blockUI( $form );
-		// Create object where keys are form field names and keys are form field values
+		// Create object where keys are form field names and values are form field values
 		const formFields = $form.serializeArray().reduce( ( obj, field ) => {
 			obj[ field.name ] = field.value;
 			return obj;
@@ -528,6 +546,10 @@ jQuery( function ( $ ) {
 				( { error } = await api.getStripe().confirmSetup( upeConfig ) );
 			}
 			if ( error ) {
+				await api.updateFailedOrder(
+					paymentIntentId,
+					response.order_id
+				);
 				throw error;
 			}
 		} catch ( error ) {
@@ -636,14 +658,29 @@ jQuery( function ( $ ) {
 		}
 	} );
 
+	// Add terms parameter to UPE if save payment information checkbox is checked.
+	// This shows required legal mandates when customer elects to save payment method during checkout.
+	$( document ).on( 'change', '#wc-stripe-new-payment-method', () => {
+		const value = $( '#wc-stripe-new-payment-method' ).is( ':checked' )
+			? 'always'
+			: 'never';
+		if ( isUPEEnabled && upeElement ) {
+			upeElement.update( {
+				terms: getUPETerms( value ),
+			} );
+		}
+	} );
+
 	// On every page load, check to see whether we should display the authentication
 	// modal and display it if it should be displayed.
 	maybeShowAuthenticationModal();
 
 	// Handle hash change - used when authenticating payment with SCA on checkout page.
-	window.addEventListener( 'hashchange', () => {
+	$( window ).on( 'hashchange', () => {
 		if ( window.location.hash.startsWith( '#wc-stripe-confirm-' ) ) {
 			maybeShowAuthenticationModal();
+		} else if ( window.location.hash.startsWith( '#confirm-' ) ) {
+			legacyHashchangeHandler( api, showError );
 		}
 	} );
 } );

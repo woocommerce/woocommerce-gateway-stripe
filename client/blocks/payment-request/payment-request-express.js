@@ -1,16 +1,8 @@
-/**
- * External dependencies
- */
 import {
 	Elements,
 	PaymentRequestButtonElement,
 	useStripe,
 } from '@stripe/react-stripe-js';
-
-/**
- * Internal dependencies
- */
-import { getStripeServerData } from '../../stripe-utils';
 import { GooglePayButton, shouldUseGooglePayBrand } from './branded-buttons';
 import { CustomButton } from './custom-button';
 import {
@@ -21,6 +13,7 @@ import {
 	useOnClickHandler,
 	useCancelHandler,
 } from './hooks';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 /**
  * @typedef {import('../stripe-utils/type-defs').Stripe} Stripe
@@ -80,7 +73,7 @@ const PaymentRequestExpressComponent = ( {
 		type = 'default',
 		theme = 'dark',
 		height = '48',
-	} = getStripeServerData()?.button;
+	} = getBlocksConfiguration()?.button;
 
 	const paymentRequestButtonStyle = {
 		paymentRequestButton: {
@@ -90,9 +83,9 @@ const PaymentRequestExpressComponent = ( {
 		},
 	};
 
-	const isBranded = getStripeServerData()?.button?.is_branded;
-	const brandedType = getStripeServerData()?.button?.branded_type;
-	const isCustom = getStripeServerData()?.button?.is_custom;
+	const isBranded = getBlocksConfiguration()?.button?.is_branded;
+	const brandedType = getBlocksConfiguration()?.button?.branded_type;
+	const isCustom = getBlocksConfiguration()?.button?.is_custom;
 
 	if ( ! paymentRequest ) {
 		return null;

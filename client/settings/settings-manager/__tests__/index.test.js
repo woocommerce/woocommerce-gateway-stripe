@@ -1,19 +1,26 @@
-/**
- * External dependencies
- */
 import { render, screen } from '@testing-library/react';
 import { getQuery } from '@woocommerce/navigation';
-
-/**
- * Internal dependencies
- */
 import SettingsManager from '..';
 
 jest.mock( '@woocommerce/navigation', () => ( {
 	getQuery: jest.fn().mockReturnValue( {} ),
 } ) );
 
+jest.mock( 'wcstripe/settings/customization-options-notice', () => () => null );
+
 describe( 'SettingsManager', () => {
+	beforeEach( () => {
+		global.wc_stripe_settings_params = {
+			accountStatus: {
+				email: 'test@example.com',
+				mode: 'test',
+				paymentsEnabled: true,
+				depositsEnabled: true,
+				accountLink: 'https://stripe.com/support',
+			},
+		};
+	} );
+
 	afterEach( () => {
 		jest.clearAllMocks();
 	} );

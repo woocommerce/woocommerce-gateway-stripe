@@ -1,18 +1,17 @@
-/**
- * External dependencies
- */
 import React, { useEffect, useContext } from 'react';
 import { render, waitFor } from '@testing-library/react';
 import apiFetch from '@wordpress/api-fetch';
-
-/**
- * Internal dependencies
- */
-
 import UpeToggleContextProvider from '../provider';
 import UpeToggleContext from '../context';
+import { recordEvent } from 'wcstripe/tracking';
 
 jest.mock( '@wordpress/api-fetch', () => jest.fn() );
+jest.mock( 'wcstripe/tracking', () => ( { recordEvent: jest.fn() } ) );
+jest.mock( '@wordpress/data', () => ( {
+	useDispatch: jest.fn().mockReturnValue( {
+		invalidateResolutionForStoreSelector: () => null,
+	} ),
+} ) );
 
 describe( 'UpeToggleContextProvider', () => {
 	afterEach( () => {
@@ -41,6 +40,7 @@ describe( 'UpeToggleContextProvider', () => {
 			status: 'resolved',
 		} );
 		expect( apiFetch ).not.toHaveBeenCalled();
+		expect( recordEvent ).not.toHaveBeenCalled();
 	} );
 
 	it( 'should render the initial state given a default value for isUpeEnabled', () => {
@@ -59,6 +59,7 @@ describe( 'UpeToggleContextProvider', () => {
 			} )
 		);
 		expect( apiFetch ).not.toHaveBeenCalled();
+		expect( recordEvent ).not.toHaveBeenCalled();
 	} );
 
 	it( 'should call the API and resolve when setIsUpeEnabled has been called', async () => {
@@ -105,6 +106,7 @@ describe( 'UpeToggleContextProvider', () => {
 
 		await waitFor( () => expect( apiFetch ).toHaveReturned() );
 
+		expect( recordEvent ).toHaveBeenCalledWith( 'wcstripe_upe_disabled' );
 		expect( childrenMock ).toHaveBeenCalledWith( {
 			isUpeEnabled: false,
 			setIsUpeEnabled: expect.any( Function ),

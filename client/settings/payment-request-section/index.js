@@ -1,21 +1,20 @@
-/**
- * External dependencies
- */
+import { __ } from '@wordpress/i18n';
 import React, { useState } from 'react';
 import styled from '@emotion/styled';
-import { __ } from '@wordpress/i18n';
 import {
 	Button,
 	Card,
 	CardDivider,
 	CheckboxControl,
 } from '@wordpress/components';
+import { addQueryArgs } from '@wordpress/url';
 import interpolateComponents from 'interpolate-components';
-
-/**
- * Internal dependencies
- */
 import CardBody from '../card-body';
+import { usePaymentRequestEnabledSettings } from '../../data';
+
+const customizeAppearanceURL = addQueryArgs( window.location.href, {
+	area: 'payment_requests',
+} );
 
 const AdditionalControlsWrapper = styled.div`
 	position: relative;
@@ -35,9 +34,11 @@ const AdditionalControlsWrapper = styled.div`
 `;
 
 const PaymentRequestSection = () => {
-	const [ isPaymentRequestEnabled, setIsPaymentRequestEnabled ] = useState(
-		true
-	);
+	const [
+		isPaymentRequestEnabled,
+		updateIsPaymentRequestEnabled,
+	] = usePaymentRequestEnabledSettings();
+
 	const [ paymentRequestLocations, setPaymentRequestLocations ] = useState( [
 		'cart',
 		'product',
@@ -62,9 +63,7 @@ const PaymentRequestSection = () => {
 			<CardBody>
 				<CheckboxControl
 					checked={ isPaymentRequestEnabled }
-					onChange={ () =>
-						setIsPaymentRequestEnabled( ( val ) => ! val )
-					}
+					onChange={ updateIsPaymentRequestEnabled }
 					label={ __(
 						'Enable express checkouts',
 						'woocommerce-gateway-stripe'
@@ -167,7 +166,7 @@ const PaymentRequestSection = () => {
 			</CardBody>
 			<CardDivider />
 			<CardBody>
-				<Button isSecondary href="?TODO">
+				<Button isSecondary href={ customizeAppearanceURL }>
 					{ __(
 						'Customize appearance',
 						'woocommerce-gateway-stripe'

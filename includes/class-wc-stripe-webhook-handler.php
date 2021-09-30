@@ -12,13 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
-	 * Delay of retries.
-	 *
-	 * @var int
-	 */
-	public $retry_interval;
-
-	/**
 	 * Is test mode active?
 	 *
 	 * @var bool
@@ -430,11 +423,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_charge_succeeded( $notification ) {
-		// Ignore the notification for charges, created through PaymentIntents.
-		if ( isset( $notification->data->object->payment_intent ) && $notification->data->object->payment_intent ) {
-			return;
-		}
-
 		// The following payment methods are synchronous so does not need to be handle via webhook.
 		if ( ( isset( $notification->data->object->source->type ) && 'card' === $notification->data->object->source->type ) || ( isset( $notification->data->object->source->type ) && 'three_d_secure' === $notification->data->object->source->type ) ) {
 			return;

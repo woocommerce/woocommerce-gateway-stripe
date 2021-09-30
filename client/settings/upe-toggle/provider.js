@@ -1,19 +1,24 @@
-/**
- * External dependencies
- */
+import { useDispatch } from '@wordpress/data';
 import { useCallback, useMemo, useState } from 'react';
 import apiFetch from '@wordpress/api-fetch';
-
-/**
- * Internal dependencies
- */
 import UpeToggleContext from './context';
+import { STORE_NAME } from 'wcstripe/data/constants';
+import { recordEvent } from 'wcstripe/tracking';
+
+function trackUpeToggle( isEnabled ) {
+	const eventName = isEnabled
+		? 'wcstripe_upe_enabled'
+		: 'wcstripe_upe_disabled';
+
+	recordEvent( eventName );
+}
 
 const UpeToggleContextProvider = ( { children, defaultIsUpeEnabled } ) => {
 	const [ isUpeEnabled, setIsUpeEnabled ] = useState(
 		Boolean( defaultIsUpeEnabled )
 	);
 	const [ status, setStatus ] = useState( 'resolved' );
+	const { invalidateResolutionForStoreSelector } = useDispatch( STORE_NAME );
 
 	const updateFlag = useCallback(
 		( value ) => {
@@ -27,6 +32,8 @@ const UpeToggleContextProvider = ( { children, defaultIsUpeEnabled } ) => {
 				data: { is_upe_enabled: sanitizedValue },
 			} )
 				.then( () => {
+					trackUpeToggle( sanitizedValue );
+					invalidateResolutionForStoreSelector( 'getSettings' );
 					setIsUpeEnabled( sanitizedValue );
 					setStatus( 'resolved' );
 				} )
@@ -34,7 +41,7 @@ const UpeToggleContextProvider = ( { children, defaultIsUpeEnabled } ) => {
 					setStatus( 'error' );
 				} );
 		},
-		[ setStatus, setIsUpeEnabled ]
+		[ setStatus, setIsUpeEnabled, invalidateResolutionForStoreSelector ]
 	);
 
 	const contextValue = useMemo(

@@ -1,12 +1,4 @@
-/**
- * External dependencies
- */
 import { useState, useEffect, useCallback } from '@wordpress/element';
-
-/**
- * Internal dependencies
- */
-import { getCartDetails } from '../../api';
 import {
 	shippingAddressChangeHandler,
 	shippingOptionChangeHandler,
@@ -14,9 +6,10 @@ import {
 } from './event-handlers';
 import { displayLoginConfirmation } from './login-confirmation';
 import {
-	getStripeServerData,
+	getBlocksConfiguration,
 	createPaymentRequestUsingCart,
-} from '../../stripe-utils';
+} from 'wcstripe/blocks/utils';
+import { getCartDetails } from 'wcstripe/api/blocks';
 
 /**
  * This hook takes care of creating a payment request and making sure
@@ -91,7 +84,7 @@ export const useOnClickHandler = (
 	return useCallback(
 		( evt, pr ) => {
 			// If login is required, display redirect confirmation dialog.
-			if ( getStripeServerData()?.login_confirmation ) {
+			if ( getBlocksConfiguration()?.login_confirmation ) {
 				evt.preventDefault();
 				displayLoginConfirmation( paymentRequestType );
 				return;

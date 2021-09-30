@@ -20,7 +20,7 @@ class WC_Payment_Token_SEPA extends WC_Payment_Token {
 	/**
 	 * Stores payment type.
 	 *
-	 * @protected string
+	 * @var string
 	 */
 	protected $type = 'sepa';
 
@@ -30,7 +30,8 @@ class WC_Payment_Token_SEPA extends WC_Payment_Token {
 	 * @var array
 	 */
 	protected $extra_data = [
-		'last4' => '',
+		'last4'               => '',
+		'payment_method_type' => 'sepa_debit',
 	];
 
 	/**
@@ -88,7 +89,7 @@ class WC_Payment_Token_SEPA extends WC_Payment_Token {
 	 *
 	 * @since  4.0.0
 	 * @version 4.0.0
-	 * @param  string $context
+	 * @param  string $context What the value is for. Valid values are view and edit.
 	 * @return string Last 4 digits
 	 */
 	public function get_last4( $context = 'view' ) {
@@ -104,5 +105,24 @@ class WC_Payment_Token_SEPA extends WC_Payment_Token {
 	 */
 	public function set_last4( $last4 ) {
 		$this->set_prop( 'last4', $last4 );
+	}
+
+	/**
+	 * Set Stripe payment method type.
+	 *
+	 * @param string $type Payment method type.
+	 */
+	public function set_payment_method_type( $type ) {
+		$this->set_prop( 'payment_method_type', $type );
+	}
+
+	/**
+	 * Returns Stripe payment method type.
+	 *
+	 * @param string $context What the value is for. Valid values are view and edit.
+	 * @return string $payment_method_type
+	 */
+	public function get_payment_method_type( $context = 'view' ) {
+		return $this->get_prop( 'payment_method_type', $context );
 	}
 }

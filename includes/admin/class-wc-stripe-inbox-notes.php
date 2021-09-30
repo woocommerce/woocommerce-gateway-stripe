@@ -17,8 +17,13 @@ class WC_Stripe_Inbox_Notes {
 	const CAMPAIGN_2020_CLEANUP_ACTION = 'wc_stripe_apple_pay_2020_cleanup';
 
 	public function __construct() {
+		if ( ! WC_Stripe_UPE_Compatibility::are_inbox_notes_supported() ) {
+			return;
+		}
+
 		add_action( self::POST_SETUP_SUCCESS_ACTION, [ self::class, 'create_marketing_note' ] );
 		add_action( self::CAMPAIGN_2020_CLEANUP_ACTION, [ self::class, 'cleanup_campaign_2020' ] );
+		add_action( 'admin_init', [ self::class, 'create_upe_availability_note' ] );
 
 		// Schedule a 2020 holiday campaign cleanup action if needed.
 		// First, check to see if we are still before the cutoff.
@@ -29,6 +34,11 @@ class WC_Stripe_Inbox_Notes {
 				wp_schedule_single_event( self::get_campaign_2020_cutoff(), self::CAMPAIGN_2020_CLEANUP_ACTION );
 			}
 		}
+	}
+
+	public static function create_upe_availability_note() {
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
+		WC_Stripe_UPE_Availability_Note::init();
 	}
 
 	public static function get_campaign_2020_cutoff() {

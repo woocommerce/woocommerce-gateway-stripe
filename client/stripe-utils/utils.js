@@ -1,13 +1,6 @@
-/* global wc_stripe_upe_params, wc */
+/* global wc_stripe_upe_params */
 
-/**
- * External dependencies
- */
 import { __ } from '@wordpress/i18n';
-
-/**
- * Internal dependencies
- */
 import { errorTypes, errorCodes } from './constants';
 
 /**
@@ -23,60 +16,13 @@ import { errorTypes, errorCodes } from './constants';
  * @return  {StripeServerData} Stripe server data.
  */
 const getStripeServerData = () => {
-	// Classic checkout or blocks-based one.
-	const stripeServerData =
-		typeof wc_stripe_upe_params !== 'undefined' // eslint-disable-line camelcase
-			? wc_stripe_upe_params // eslint-disable-line camelcase
-			: wc?.wcSettings?.getSetting( 'stripe_data', null );
-	if ( ! stripeServerData ) {
+	// Classic checkout.
+	// eslint-disable-next-line camelcase
+	if ( ! wc_stripe_upe_params ) {
 		throw new Error( 'Stripe initialization data is not available' );
 	}
-	return stripeServerData;
-};
-
-/**
- * Returns the public api key for the stripe payment method
- *
- * @throws Error
- * @return {string} The public api key for the stripe payment method.
- */
-const getApiKey = () => {
-	const apiKey = getStripeServerData()?.key;
-	if ( ! apiKey ) {
-		throw new Error(
-			'There is no api key available for stripe. Make sure it is available on the wc.stripe_data.stripe.key property.'
-		);
-	}
-	return apiKey;
-};
-
-/**
- * Creates a payment request using cart data from WooCommerce.
- *
- * @param {Object} stripe - The Stripe JS object.
- * @param {Object} cart - The cart data response from the store's AJAX API.
- *
- * @return {Object} A Stripe payment request.
- */
-export const createPaymentRequestUsingCart = ( stripe, cart ) => {
-	const options = {
-		total: cart.order_data.total,
-		currency: cart.order_data.currency,
-		country: cart.order_data.country_code,
-		requestPayerName: true,
-		requestPayerEmail: true,
-		requestPayerPhone: getStripeServerData()?.checkout?.needs_payer_phone,
-		requestShipping: cart.shipping_required ? true : false,
-		displayItems: cart.order_data.displayItems,
-	};
-
-	// Puerto Rico (PR) is the only US territory/possession that's supported by Stripe.
-	// Since it's considered a US state by Stripe, we need to do some special mapping.
-	if ( options.country === 'PR' ) {
-		options.country = 'US';
-	}
-
-	return stripe.paymentRequest( options );
+	// eslint-disable-next-line camelcase
+	return wc_stripe_upe_params;
 };
 
 const isNonFriendlyError = ( type ) =>
@@ -174,4 +120,22 @@ const getErrorMessageForTypeAndCode = ( type, code = '' ) => {
 	return null;
 };
 
-export { getStripeServerData, getApiKey, getErrorMessageForTypeAndCode };
+/**
+ * Generates terms parameter for UPE, with value set for reusable payment methods
+ *
+ * @param {string} value The terms value for each available payment method.
+ * @return {Object} Terms parameter fit for UPE.
+ */
+export const getUPETerms = ( value = 'always' ) => {
+	const config = getStripeServerData()?.paymentMethodsConfig;
+	const reusablePaymentMethods = Object.keys( config ).filter(
+		( method ) => config[ method ].isReusable
+	);
+
+	return reusablePaymentMethods.reduce( ( obj, method ) => {
+		obj[ method ] = value;
+		return obj;
+	}, {} );
+};
+
+export { getStripeServerData, getErrorMessageForTypeAndCode };

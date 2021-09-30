@@ -1,7 +1,4 @@
-/**
- * Internal dependencies
- */
-import * as upeStyles from '../index';
+import * as upeStyles from '..';
 
 describe( 'Getting styles for automated theming', () => {
 	const mockElement = document.createElement( 'input' );

@@ -11,12 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
-	/**
-	 * The delay between retries.
-	 *
-	 * @var int
-	 */
-	public $retry_interval;
+
+	const ID = 'stripe_sepa';
 
 	/**
 	 * Notices (array)
@@ -71,9 +67,8 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->retry_interval = 1;
-		$this->id             = 'stripe_sepa';
-		$this->method_title   = __( 'Stripe SEPA Direct Debit', 'woocommerce-gateway-stripe' );
+		$this->id           = self::ID;
+		$this->method_title = __( 'Stripe SEPA Direct Debit', 'woocommerce-gateway-stripe' );
 		/* translators: link */
 		$this->method_description = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 		$this->has_fields         = true;
@@ -82,16 +77,6 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 			'refunds',
 			'tokenization',
 			'add_payment_method',
-			'subscriptions',
-			'subscription_cancellation',
-			'subscription_suspension',
-			'subscription_reactivation',
-			'subscription_amount_changes',
-			'subscription_date_changes',
-			'subscription_payment_method_change',
-			'subscription_payment_method_change_customer',
-			'subscription_payment_method_change_admin',
-			'multiple_subscriptions',
 			'pre-orders',
 		];
 
@@ -100,6 +85,9 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 
 		// Load the settings.
 		$this->init_settings();
+
+		// Check if subscriptions are enabled and add support for them.
+		$this->maybe_init_subscriptions();
 
 		$main_settings              = get_option( 'woocommerce_stripe_settings' );
 		$this->title                = $this->get_option( 'title' );
@@ -283,7 +271,7 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 			$this->save_payment_method_checkbox();
 		}
 
-		do_action( 'wc_stripe_sepa_payment_fields', $this->id );
+		do_action( 'wc_stripe_payment_fields_stripe_sepa', $this->id );
 
 		echo '</div>';
 	}
@@ -302,6 +290,14 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	public function process_payment( $order_id, $retry = true, $force_save_source = false ) {
 		try {
 			$order = wc_get_order( $order_id );
+
+			if ( $this->has_subscription( $order_id ) ) {
+				$force_save_source = true;
+			}
+
+			if ( $this->maybe_change_subscription_payment_method( $order_id ) ) {
+				return $this->process_change_subscription_payment_method( $order_id );
+			}
 
 			if ( $this->maybe_process_pre_orders( $order_id ) ) {
 				return $this->pre_orders->process_pre_order( $order_id );

@@ -1,19 +1,15 @@
-/**
- * External dependencies
- */
-import React from 'react';
 import { __ } from '@wordpress/i18n';
+import React, { useContext } from 'react';
 import { ExternalLink } from '@wordpress/components';
 import styled from '@emotion/styled';
-
-/**
- * Internal dependencies
- */
 import SettingsSection from '../settings-section';
 import PaymentRequestSection from '../payment-request-section';
 import GeneralSettingsSection from '../general-settings-section';
 import ApplePayIcon from '../../payment-method-icons/apple-pay';
 import GooglePayIcon from '../../payment-method-icons/google-pay';
+import LoadableSettingsSection from '../loadable-settings-section';
+import UpeToggleContext from '../upe-toggle/context';
+import CustomizationOptionsNotice from '../customization-options-notice';
 
 const IconsWrapper = styled.ul`
 	li {
@@ -22,24 +18,31 @@ const IconsWrapper = styled.ul`
 	}
 `;
 
-const PaymentMethodsDescription = () => (
-	<>
-		<h2>
-			{ __(
-				'Payments accepted on checkout',
-				'woocommerce-gateway-stripe'
+const PaymentMethodsDescription = () => {
+	const { isUpeEnabled } = useContext( UpeToggleContext );
+
+	return (
+		<>
+			<h2>
+				{ __(
+					'Payments accepted on checkout',
+					'woocommerce-gateway-stripe'
+				) }
+			</h2>
+
+			{ isUpeEnabled && (
+				<p>
+					{ __(
+						'Select payments available to customers at checkout. ' +
+							'Based on their device type, location, and purchase history, ' +
+							'your customers will only see the most relevant payment methods.',
+						'woocommerce-gateway-stripe'
+					) }
+				</p>
 			) }
-		</h2>
-		<p>
-			{ __(
-				'Add and edit payments available to customers at checkout. ' +
-					'Based on their device type, location, your customers will ' +
-					'only see the most relevant payment methods.',
-				'woocommerce-gateway-stripe'
-			) }
-		</p>
-	</>
-);
+		</>
+	);
+};
 
 const PaymentRequestDescription = () => (
 	<>
@@ -69,9 +72,12 @@ const PaymentMethodsPanel = () => {
 		<>
 			<SettingsSection Description={ PaymentMethodsDescription }>
 				<GeneralSettingsSection />
+				<CustomizationOptionsNotice />
 			</SettingsSection>
 			<SettingsSection Description={ PaymentRequestDescription }>
-				<PaymentRequestSection />
+				<LoadableSettingsSection numLines={ 20 }>
+					<PaymentRequestSection />
+				</LoadableSettingsSection>
 			</SettingsSection>
 		</>
 	);
