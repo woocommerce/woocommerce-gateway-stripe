@@ -60,6 +60,16 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	];
 
 	/**
+	 * Base template for Stripe payment intent.
+	 */
+	const MOCK_CARD_SETUP_INTENT_TEMPLATE = [
+		'object'           => 'setup_intent',
+		'status'           => 'succeeded',
+		'client_secret'    => 'cs_mock',
+		'last_setup_error' => [],
+	];
+
+	/**
 	 * Initial setup.
 	 */
 	public function setUp() {
@@ -191,6 +201,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
 
 		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
 		$payment_method_mock['id']               = $payment_method_id;
@@ -226,7 +237,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'processing', $final_order->get_status() );
 		$this->assertEquals( 'Credit card / debit card', $final_order->get_payment_method_title() );
 		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
-		$this->assertEquals( true, $final_order->get_meta( '_stripe_upe_redirect_processed', true ) );
+		$this->assertTrue( (bool) $final_order->get_meta( '_stripe_upe_redirect_processed', true ) );
 		$this->assertRegExp( '/Charge ID: ch_mock/', $note->content );
 	}
 
@@ -243,6 +254,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
 
 		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
 		$payment_method_mock['id']               = $payment_method_id;
@@ -279,7 +291,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'processing', $success_order->get_status() );
 		$this->assertEquals( 'Credit card / debit card', $success_order->get_payment_method_title() );
 		$this->assertEquals( $payment_intent_id, $success_order->get_meta( '_stripe_intent_id', true ) );
-		$this->assertEquals( true, $success_order->get_meta( '_stripe_upe_redirect_processed', true ) );
+		$this->assertTrue( (bool) $success_order->get_meta( '_stripe_upe_redirect_processed', true ) );
 		$this->assertRegExp( '/Charge ID: ch_mock/', $note->content );
 
 		// simulate an order getting marked as failed as if from a webhook
@@ -292,6 +304,47 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$final_order = wc_get_order( $order_id );
 
 		$this->assertEquals( 'failed', $final_order->get_status() );
+	}
+
+	/**
+	 * Test setup intents used when no payment needed.
+	 */
+	public function test_checkout_without_payment_uses_setup_intents() {
+		$setup_intent_id   = 'seti_mock';
+		$payment_method_id = 'pm_mock';
+		$customer_id       = 'cus_mock';
+		$order             = WC_Helper_Order::create_order();
+		$currency          = $order->get_currency();
+		$order_id          = $order->get_id();
+
+		$order->set_total( 0 );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']               = $payment_method_id;
+		$payment_method_mock['customer']         = $customer_id;
+		$payment_method_mock['card']['exp_year'] = intval( gmdate( 'Y' ) ) + 1;
+
+		$setup_intent_mock                   = self::MOCK_CARD_SETUP_INTENT_TEMPLATE;
+		$setup_intent_mock['id']             = $setup_intent_id;
+		$setup_intent_mock['payment_method'] = $payment_method_mock;
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( "setup_intents/$setup_intent_id?expand[]=payment_method" )
+			->will(
+				$this->returnValue(
+					json_decode( wp_json_encode( $setup_intent_mock ) )
+				)
+			);
+
+		$this->mock_gateway->process_upe_redirect_payment( $order_id, $setup_intent_id, false );
+
+		$final_order = wc_get_order( $order_id );
+
+		$this->assertEquals( 'processing', $final_order->get_status() );
+		$this->assertEquals( 'Credit card / debit card', $final_order->get_payment_method_title() );
 	}
 
 	/**
@@ -308,6 +361,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
 
 		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
 		$payment_method_mock['id']               = $payment_method_id;
@@ -369,6 +423,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
 
 		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
 		$payment_method_mock['id']               = $payment_method_id;
@@ -426,6 +481,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
 
 		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
 		$payment_method_mock['id']               = $payment_method_id;
@@ -481,6 +537,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
 
 		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
 		$payment_method_mock['id']               = $payment_method_id;
@@ -551,6 +608,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
 
 		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
 		$payment_method_mock['id']               = $payment_method_id;
