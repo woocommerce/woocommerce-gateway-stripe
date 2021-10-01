@@ -8,7 +8,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * REST controller for settings.
  */
-class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
+class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller {
 
 	/**
 	 * Endpoint path.
