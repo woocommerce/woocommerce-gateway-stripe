@@ -118,10 +118,8 @@ const GeneralSettingsSection = () => {
 			{ isConfirmationModalOpen && (
 				<RemoveMethodConfirmationModal
 					method={ modalOpenForMethod }
-					onConfirm={ () => setIsConfirmationModalOpen( false ) }
-					handleRemove={ () =>
-						handleRemoveMethod( modalOpenForMethod )
-					}
+					onClose={ () => setIsConfirmationModalOpen( false ) }
+					onConfirm={ handleRemoveMethod }
 				/>
 			) }
 		</List>
