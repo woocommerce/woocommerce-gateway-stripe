@@ -106,6 +106,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Convert response array to object.
+	 */
+	private function array_to_object( $array ) {
+		return json_decode( wp_json_encode( $array ) );
+	}
+
+	/**
 	 * Helper function to get amount, description, and metadata for Stripe requests.
 	 *
 	 * @param WC_Order $order Test WC Order.
@@ -196,7 +203,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$payment_method_id = 'pm_mock';
 		$customer_id       = 'cus_mock';
 		$order             = WC_Helper_Order::create_order();
-		$currency          = $order->get_currency();
 		$order_id          = $order->get_id();
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
@@ -220,7 +226,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
 			->will(
 				$this->returnValue(
-					json_decode( wp_json_encode( $payment_intent_mock ) )
+					$this->array_to_object( $payment_intent_mock )
 				)
 			);
 
@@ -249,7 +255,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$payment_method_id = 'pm_mock';
 		$customer_id       = 'cus_mock';
 		$order             = WC_Helper_Order::create_order();
-		$currency          = $order->get_currency();
 		$order_id          = $order->get_id();
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
@@ -273,7 +278,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
 			->will(
 				$this->returnValue(
-					json_decode( wp_json_encode( $payment_intent_mock ) )
+					$this->array_to_object( $payment_intent_mock )
 				)
 			);
 
@@ -314,7 +319,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$payment_method_id = 'pm_mock';
 		$customer_id       = 'cus_mock';
 		$order             = WC_Helper_Order::create_order();
-		$currency          = $order->get_currency();
 		$order_id          = $order->get_id();
 
 		$order->set_total( 0 );
@@ -335,7 +339,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->with( "setup_intents/$setup_intent_id?expand[]=payment_method" )
 			->will(
 				$this->returnValue(
-					json_decode( wp_json_encode( $setup_intent_mock ) )
+					$this->array_to_object( $setup_intent_mock )
 				)
 			);
 
@@ -355,7 +359,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$payment_method_id = 'pm_mock';
 		$customer_id       = 'cus_mock';
 		$order             = WC_Helper_Order::create_order();
-		$currency          = $order->get_currency();
 		$order_id          = $order->get_id();
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
@@ -377,8 +380,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->expects( $this->exactly( 2 ) )
 			->method( 'stripe_request' )
 			->willReturnOnConsecutiveCalls(
-				json_decode( wp_json_encode( $payment_intent_mock ) ),
-				json_decode( wp_json_encode( $payment_method_mock ) )
+				$this->array_to_object( $payment_intent_mock ),
+				$this->array_to_object( $payment_method_mock )
 			);
 
 		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, true );
@@ -389,6 +392,73 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
 		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
 		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
+	}
+
+	/**
+	 * Test order status corresponds with charge status.
+	 */
+	public function test_process_response_updates_order_by_charge_status() {
+		$payment_method_id = 'pm_mock';
+		$customer_id       = 'cus_mock';
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+
+		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']               = $payment_method_id;
+		$payment_method_mock['customer']         = $customer_id;
+		$payment_method_mock['card']['exp_year'] = intval( gmdate( 'Y' ) ) + 1;
+
+		$charge_mock                           = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE['charges']['data'][0];
+		$charge_mock['payment_method_details'] = $payment_method_mock;
+
+		// Test no charge captured.
+		$charge_mock['captured'] = false;
+		$charge_mock['id']       = 'ch_mock_1';
+		$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), wc_get_order( $order_id ) );
+		$test_order = wc_get_order( $order_id );
+
+		$this->assertEquals( 'no', $test_order->get_meta( '_stripe_charge_captured', true ) );
+		$this->assertEquals( $charge_mock['id'], $test_order->get_transaction_id() );
+		$this->assertEquals( 'on-hold', $test_order->get_status() );
+
+		// Test charge succeeds.
+		$charge_mock['captured'] = true;
+		$charge_mock['id']       = 'ch_mock_2';
+		$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), wc_get_order( $order_id ) );
+		$test_order = wc_get_order( $order_id );
+
+		$this->assertEquals( 'yes', $test_order->get_meta( '_stripe_charge_captured', true ) );
+		$this->assertEquals( 'processing', $test_order->get_status() );
+
+		// Test charge pending.
+		$charge_mock['status'] = 'pending';
+		$charge_mock['id']     = 'ch_mock_3';
+		$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), wc_get_order( $order_id ) );
+		$test_order = wc_get_order( $order_id );
+
+		$this->assertEquals( 'yes', $test_order->get_meta( '_stripe_charge_captured', true ) );
+		$this->assertEquals( $charge_mock['id'], $test_order->get_transaction_id() );
+		$this->assertEquals( 'on-hold', $test_order->get_status() );
+
+		// Test charge failed.
+		$charge_mock['status'] = 'failed';
+		$charge_mock['id']     = 'ch_mock_4';
+		$exception             = null;
+		try {
+			$this->mock_gateway->process_response( $this->array_to_object( $charge_mock ), wc_get_order( $order_id ) );
+		} catch ( WC_Stripe_Exception $e ) {
+			// Test that exception is thrown.
+			$exception = $e;
+		}
+
+		$note = wc_get_order_notes(
+			[
+				'order_id' => $order_id,
+				'limit'    => 1,
+			]
+		)[0];
+		$this->assertRegExp( '/Payment processing failed./', $note->content );
+		$this->assertRegExp( '/Payment processing failed./', $exception->getLocalizedMessage() );
 	}
 
 	/**
@@ -432,8 +502,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->expects( $this->exactly( 2 ) )
 			->method( 'stripe_request' )
 			->willReturnOnConsecutiveCalls(
-				json_decode( wp_json_encode( $payment_method_mock ) ),
-				json_decode( wp_json_encode( $payment_intent_mock ) )
+				$this->array_to_object( $payment_method_mock ),
+				$this->array_to_object( $payment_intent_mock )
 			);
 
 		$response    = $this->mock_gateway->process_payment( $order_id );
@@ -495,8 +565,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->expects( $this->exactly( 2 ) )
 			->method( 'stripe_request' )
 			->willReturnOnConsecutiveCalls(
-				json_decode( wp_json_encode( $payment_method_mock ) ),
-				json_decode( wp_json_encode( $payment_intent_mock ) )
+				$this->array_to_object( $payment_method_mock ),
+				$this->array_to_object( $payment_intent_mock )
 			);
 
 		$response      = $this->mock_gateway->process_payment( $order_id );
@@ -556,8 +626,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->expects( $this->exactly( 2 ) )
 			->method( 'stripe_request' )
 			->willReturnOnConsecutiveCalls(
-				json_decode( wp_json_encode( $payment_method_mock ) ),
-				json_decode( wp_json_encode( $failed_payment_intent_mock ) )
+				$this->array_to_object( $payment_method_mock ),
+				$this->array_to_object( $failed_payment_intent_mock )
 			);
 
 		$response    = $this->mock_gateway->process_payment( $order_id );
@@ -615,10 +685,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->expects( $this->exactly( 4 ) )
 			->method( 'stripe_request' )
 			->willReturnOnConsecutiveCalls(
-				json_decode( wp_json_encode( $payment_method_mock ) ),
-				json_decode( wp_json_encode( $failed_payment_intent_mock ) ),
-				json_decode( wp_json_encode( $payment_method_mock ) ),
-				json_decode( wp_json_encode( $successful_payment_intent_mock ) )
+				$this->array_to_object( $payment_method_mock ),
+				$this->array_to_object( $failed_payment_intent_mock ),
+				$this->array_to_object( $payment_method_mock ),
+				$this->array_to_object( $successful_payment_intent_mock )
 			);
 
 		$response    = $this->mock_gateway->process_payment( $order_id );
@@ -683,18 +753,18 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->expects( $this->exactly( 12 ) )
 			->method( 'stripe_request' )
 			->willReturnOnConsecutiveCalls(
-				json_decode( wp_json_encode( $payment_method_mock ) ),
-				json_decode( wp_json_encode( $failed_payment_intent_mock ) ),
-				json_decode( wp_json_encode( $payment_method_mock ) ),
-				json_decode( wp_json_encode( $failed_payment_intent_mock ) ),
-				json_decode( wp_json_encode( $payment_method_mock ) ),
-				json_decode( wp_json_encode( $failed_payment_intent_mock ) ),
-				json_decode( wp_json_encode( $payment_method_mock ) ),
-				json_decode( wp_json_encode( $failed_payment_intent_mock ) ),
-				json_decode( wp_json_encode( $payment_method_mock ) ),
-				json_decode( wp_json_encode( $failed_payment_intent_mock ) ),
-				json_decode( wp_json_encode( $payment_method_mock ) ),
-				json_decode( wp_json_encode( $failed_payment_intent_mock ) )
+				$this->array_to_object( $payment_method_mock ),
+				$this->array_to_object( $failed_payment_intent_mock ),
+				$this->array_to_object( $payment_method_mock ),
+				$this->array_to_object( $failed_payment_intent_mock ),
+				$this->array_to_object( $payment_method_mock ),
+				$this->array_to_object( $failed_payment_intent_mock ),
+				$this->array_to_object( $payment_method_mock ),
+				$this->array_to_object( $failed_payment_intent_mock ),
+				$this->array_to_object( $payment_method_mock ),
+				$this->array_to_object( $failed_payment_intent_mock ),
+				$this->array_to_object( $payment_method_mock ),
+				$this->array_to_object( $failed_payment_intent_mock )
 			);
 
 		$response    = $this->mock_gateway->process_payment( $order_id );
