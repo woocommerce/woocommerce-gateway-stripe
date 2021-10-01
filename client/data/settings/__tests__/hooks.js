@@ -31,63 +31,6 @@ describe( 'Settings hooks tests', () => {
 		} );
 	} );
 
-	const testReadWritePairHook = (
-		hookName,
-		storeKey,
-		testValue,
-		cb,
-		ifMissingReturn
-	) => {
-		describe( `${ hookName }`, () => {
-			test( `returns the value of getSettings().${ storeKey }`, () => {
-				selectors = {
-					getSettings: jest.fn( () => ( {
-						[ storeKey ]: testValue,
-					} ) ),
-				};
-
-				const { result } = renderHook( cb );
-				const [ value ] = result.current;
-
-				expect( value ).toEqual( testValue );
-			} );
-
-			test( `returns ${ JSON.stringify(
-				ifMissingReturn
-			) } if setting is missing`, () => {
-				selectors = {
-					getSettings: jest.fn( () => ( {} ) ),
-				};
-
-				const { result } = renderHook( cb );
-				const [ value ] = result.current;
-
-				expect( value ).toEqual( ifMissingReturn );
-			} );
-
-			test( 'returns expected action', () => {
-				actions = {
-					updateSettingsValues: jest.fn(),
-				};
-
-				selectors = {
-					getSettings: jest.fn( () => ( {} ) ),
-				};
-
-				const { result } = renderHook( cb );
-				const [ , action ] = result.current;
-
-				act( () => {
-					action( testValue );
-				} );
-
-				expect( actions.updateSettingsValues ).toHaveBeenCalledWith( {
-					[ storeKey ]: testValue,
-				} );
-			} );
-		} );
-	};
-
 	describe( 'useGetAvailablePaymentMethodIds()', () => {
 		test( 'returns the value of getSettings().available_payment_method_ids', () => {
 			selectors = {
@@ -166,35 +109,82 @@ describe( 'Settings hooks tests', () => {
 		);
 	} );
 
-	testReadWritePairHook(
-		'useEnabledPaymentMethodIds()',
-		'enabled_payment_method_ids',
-		[ 'card' ],
-		() => useEnabledPaymentMethodIds(),
-		[]
-	);
+	const createdHookExpectations = {
+		useEnabledPaymentMethodIds: {
+			hook: useEnabledPaymentMethodIds,
+			storeKey: 'enabled_payment_method_ids',
+			testedValue: [ 'card' ],
+			fallbackValue: [],
+		},
+		usePaymentRequestEnabledSettings: {
+			hook: usePaymentRequestEnabledSettings,
+			storeKey: 'is_payment_request_enabled',
+			testedValue: true,
+			fallbackValue: false,
+		},
+		usePaymentRequestLocations: {
+			hook: usePaymentRequestLocations,
+			storeKey: 'payment_request_button_locations',
+			testedValue: [ 'checkout', 'cart' ],
+			fallbackValue: [],
+		},
+		usePaymentRequestButtonTheme: {
+			hook: usePaymentRequestButtonTheme,
+			storeKey: 'payment_request_button_theme',
+			testedValue: 'dark',
+			fallbackValue: '',
+		},
+	};
 
-	testReadWritePairHook(
-		'usePaymentRequestEnabledSettings()',
-		'is_payment_request_enabled',
-		true,
-		() => usePaymentRequestEnabledSettings(),
-		false
-	);
+	describe.each( Object.entries( createdHookExpectations ) )(
+		'%s()',
+		( hookName, { hook, storeKey, testedValue, fallbackValue } ) => {
+			test( `returns the value of getSettings().${ storeKey }`, () => {
+				selectors = {
+					getSettings: jest.fn( () => ( {
+						[ storeKey ]: testedValue,
+					} ) ),
+				};
 
-	testReadWritePairHook(
-		'usePaymentRequestLocations()',
-		'payment_request_button_locations',
-		[ 'checkout', 'cart' ],
-		() => usePaymentRequestLocations(),
-		[]
-	);
+				const { result } = renderHook( hook );
+				const [ value ] = result.current;
 
-	testReadWritePairHook(
-		'usePaymentRequestButtonTheme()',
-		'payment_request_button_theme',
-		'dark',
-		() => usePaymentRequestButtonTheme(),
-		''
+				expect( value ).toEqual( testedValue );
+			} );
+
+			test( `returns ${ JSON.stringify(
+				fallbackValue
+			) } if setting is missing`, () => {
+				selectors = {
+					getSettings: jest.fn( () => ( {} ) ),
+				};
+
+				const { result } = renderHook( hook );
+				const [ value ] = result.current;
+
+				expect( value ).toEqual( fallbackValue );
+			} );
+
+			test( 'returns expected action', () => {
+				actions = {
+					updateSettingsValues: jest.fn(),
+				};
+
+				selectors = {
+					getSettings: jest.fn( () => ( {} ) ),
+				};
+
+				const { result } = renderHook( hook );
+				const [ , action ] = result.current;
+
+				act( () => {
+					action( testedValue );
+				} );
+
+				expect( actions.updateSettingsValues ).toHaveBeenCalledWith( {
+					[ storeKey ]: testedValue,
+				} );
+			} );
+		}
 	);
 } );
