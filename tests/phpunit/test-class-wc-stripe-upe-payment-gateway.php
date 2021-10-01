@@ -307,7 +307,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Test setup intents used when no payment needed.
+	 * Test checkout flow with setup intents.
 	 */
 	public function test_checkout_without_payment_uses_setup_intents() {
 		$setup_intent_id   = 'seti_mock';
@@ -345,6 +345,50 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'processing', $final_order->get_status() );
 		$this->assertEquals( 'Credit card / debit card', $final_order->get_payment_method_title() );
+	}
+
+	/**
+	 * Test checkout flow while saving payment method.
+	 */
+	public function test_checkout_saves_payment_method_to_order() {
+		$payment_intent_id = 'pi_mock';
+		$payment_method_id = 'pm_mock';
+		$customer_id       = 'cus_mock';
+		$order             = WC_Helper_Order::create_order();
+		$currency          = $order->get_currency();
+		$order_id          = $order->get_id();
+
+		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']               = $payment_method_id;
+		$payment_method_mock['customer']         = $customer_id;
+		$payment_method_mock['card']['exp_year'] = intval( gmdate( 'Y' ) ) + 1;
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['last_payment_error'] = [];
+		$payment_intent_mock['payment_method']     = $payment_method_mock;
+		$payment_intent_mock['charges']['data'][0]['payment_method_details'] = $payment_method_mock;
+
+		$this->mock_gateway->expects( $this->exactly( 2 ) )
+			->method( 'stripe_request' )
+			->willReturnOnConsecutiveCalls(
+				json_decode( wp_json_encode( $payment_intent_mock ) ),
+				json_decode( wp_json_encode( $payment_method_mock ) )
+			);
+
+		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, true );
+
+		$final_order = wc_get_order( $order_id );
+
+		$this->assertEquals( 'processing', $final_order->get_status() );
+		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
+		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
+		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
 	}
 
 	/**
