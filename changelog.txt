@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 5.x.x - 2021-xx-xx =
+* Fix - Naming conflict with other plugins on WC_Stripe_REST_Controller.
 
 = 5.6.0 - 2021-09-30 =
 * Add - Pre-release preview of new checkout experience using Stripe Universal Payment Element.
