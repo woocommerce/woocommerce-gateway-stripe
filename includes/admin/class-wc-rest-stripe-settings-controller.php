@@ -111,6 +111,15 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
+					'enabled_payment_method_ids'       => [
+						'description'       => __( 'Payment method IDs that should be enabled. Other methods will be disabled.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'array',
+						'items'             => [
+							'type' => 'string',
+							'enum' => $this->gateway->get_upe_available_payment_methods(),
+						],
+						'validate_callback' => 'rest_validate_request_arg',
+					],
 				],
 			]
 		);
@@ -128,12 +137,16 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 				'is_stripe_enabled'                     => $this->gateway->is_enabled(),
 				'is_test_mode_enabled'                  => $this->gateway->is_in_test_mode(),
 
+				/* Settings > Payments accepted on checkout */
+				'enabled_payment_method_ids'            => $this->gateway->get_upe_enabled_payment_method_ids(),
+				'available_payment_method_ids'          => $this->gateway->get_upe_available_payment_methods(),
+
 				/* Settings > Express checkouts */
 				'is_payment_request_enabled'            => 'yes' === $this->gateway->get_option( 'payment_request' ),
-				'payment_request_button_locations'      => $this->gateway->get_option( 'payment_request_button_locations' ),
 				'payment_request_button_type'           => $this->gateway->get_option( 'payment_request_button_type' ),
 				'payment_request_button_theme'          => $this->gateway->get_option( 'payment_request_button_theme' ),
 				'payment_request_button_size'           => $this->gateway->get_option( 'payment_request_button_size' ),
+				'payment_request_button_locations'      => $this->gateway->get_option( 'payment_request_button_locations' ),
 
 				/* Settings > Payments & transactions */
 				'is_manual_capture_enabled'             => 'no' === $this->gateway->get_option( 'capture' ),
@@ -158,6 +171,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 		/* Settings > General */
 		$this->update_is_stripe_enabled( $request );
 		$this->update_is_test_mode_enabled( $request );
+
+		/* Settings > Payments accepted on checkout */
+		$this->update_enabled_payment_methods( $request );
 
 		/* Settings > Express checkouts */
 		$this->update_is_payment_request_enabled( $request );
@@ -353,5 +369,35 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Controller {
 			$value = $request->get_param( $request_key );
 			$this->gateway->update_option( $attribute, $value );
 		}
+	}
+
+	/**
+	 * Updates the list of enabled payment methods.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_enabled_payment_methods( WP_REST_Request $request ) {
+		// no need to update the payment methods, if the UPE checkout is not enabled
+		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			return;
+		}
+
+		if ( null === $request->get_param( 'enabled_payment_method_ids' ) ) {
+			return;
+		}
+
+		$payment_method_ids_to_enable = $request->get_param( 'enabled_payment_method_ids' );
+		$available_payment_methods    = $this->gateway->get_upe_available_payment_methods();
+
+		$payment_method_ids_to_enable = array_values(
+			array_filter(
+				$payment_method_ids_to_enable,
+				function ( $payment_method ) use ( $available_payment_methods ) {
+					return in_array( $payment_method, $available_payment_methods, true );
+				}
+			)
+		);
+
+		$this->gateway->update_option( 'upe_checkout_experience_accepted_payments', $payment_method_ids_to_enable );
 	}
 }

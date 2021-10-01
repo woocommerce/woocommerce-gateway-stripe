@@ -439,7 +439,7 @@ class WC_Stripe_Customer {
 		$payment_methods = get_transient( self::PAYMENT_METHODS_TRANSIENT_KEY . $payment_method_type . $this->get_id() );
 
 		if ( false === $payment_methods ) {
-			$params   = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID === $payment_method_type ? '?expand[]=data.sepa_debit.generated_from.charge' : '';
+			$params   = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID === $payment_method_type ? '?expand[]=data.sepa_debit.generated_from.charge&expand[]=data.sepa_debit.generated_from.setup_attempt' : '';
 			$response = WC_Stripe_API::request(
 				[
 					'customer' => $this->get_id(),
@@ -731,8 +731,8 @@ class WC_Stripe_Customer {
 	 * @param WC_Payment_Token_CC|WC_Payment_Token_SEPA $token The WC token for the payment method.
 	 * @param object $payment_method Payment method to be added.
 	 *
-	 * @since x.x.x
-	 * @version x.x.x
+	 * @since 5.6.0
+	 * @version 5.6.0
 	 */
 	public function add_payment_method_actions( $token, $payment_method ) {
 		// Clear cached payment methods.

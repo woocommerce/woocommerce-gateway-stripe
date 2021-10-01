@@ -13,12 +13,33 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
+
+	use WC_Stripe_Subscriptions_Trait;
+
 	/**
 	 * The delay between retries.
 	 *
 	 * @var int
 	 */
 	protected $retry_interval = 1;
+
+	/**
+	 * Fallback method to be inherited by all payment methods. Stripe UPE will override it.
+	 *
+	 * @return string[]
+	 */
+	public function get_upe_enabled_payment_method_ids() {
+		return [ 'card' ];
+	}
+
+	/**
+	 * Fallback method to be inherited by all payment methods. Stripe UPE will override it.
+	 *
+	 * @return string[]
+	 */
+	public function get_upe_available_payment_methods() {
+		return [ 'card' ];
+	}
 
 	/**
 	 * Displays the admin settings webhook description.
@@ -126,7 +147,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Displays the save to account checkbox.
 	 *
 	 * @since 4.1.0
-	 * @version x.x.x
+	 * @version 5.6.0
 	 */
 	public function save_payment_method_checkbox( $force_checked = false ) {
 		$id = 'wc-' . $this->id . '-new-payment-method';
@@ -436,16 +457,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Is $order_id a subscription?
-	 *
-	 * @param  int $order_id
-	 * @return boolean
-	 */
-	public function has_subscription( $order_id ) {
-		return ( function_exists( 'wcs_order_contains_subscription' ) && ( wcs_order_contains_subscription( $order_id ) || wcs_is_subscription( $order_id ) || wcs_order_contains_renewal( $order_id ) ) );
-	}
-
-	/**
 	 * Generate the request for the payment.
 	 *
 	 * @since 3.1.0
@@ -544,7 +555,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Store extra meta data for an order from a Stripe Response.
 	 */
 	public function process_response( $response, $order ) {
-		// TODO: This does not support setup intents.
 		WC_Stripe_Logger::log( 'Processing response: ' . print_r( $response, true ) );
 
 		$order_id = $order->get_id();
@@ -699,6 +709,24 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Checks if a payment method object represents a prepaid credit card and
+	 * throws an exception if it is one, but that is not allowed.
+	 *
+	 * @since 4.2.0
+	 * @param object $prepared_source The object with source details.
+	 * @throws WC_Stripe_Exception An exception if the card is prepaid, but prepaid cards are not allowed.
+	 */
+	public function maybe_disallow_prepaid_card( $payment_method ) {
+		// Check if we don't allow prepaid credit cards.
+		if ( apply_filters( 'wc_stripe_allow_prepaid_card', true ) || ! $this->is_prepaid_card( $payment_method ) ) {
+			return;
+		}
+
+		$localized_message = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charged. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
+		throw new WC_Stripe_Exception( print_r( $payment_method, true ), $localized_message );
+	}
+
+	/**
 	 * Checks if source is of legacy type card.
 	 *
 	 * @since 4.0.8
@@ -707,6 +735,17 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function is_type_legacy_card( $source_id ) {
 		return ( preg_match( '/^card_/', $source_id ) );
+	}
+
+	/**
+	 * Checks if source is payment method (pm_).
+	 *
+	 * @since 5.6.0
+	 * @param string $source_id
+	 * @return bool
+	 */
+	public function is_type_payment_method( $source_id ) {
+		return ( preg_match( '/^pm_/', $source_id ) );
 	}
 
 	/**
@@ -782,7 +821,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			$source_id = $wc_token->get_token();
 
-			if ( $this->is_type_legacy_card( $source_id ) ) {
+			if ( $this->is_type_legacy_card( $source_id ) || $this->is_type_payment_method( $source_id ) ) {
 				$is_token = true;
 			}
 		} elseif ( isset( $_POST['stripe_token'] ) && 'new' !== $_POST['stripe_token'] ) {
@@ -891,6 +930,20 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Checks whether a source exists.
+	 *
+	 * @since 4.2.0
+	 * @param  object $prepared_source The source that should be verified.
+	 * @throws WC_Stripe_Exception     An exception if the source ID is missing.
+	 */
+	public function check_source( $prepared_source ) {
+		if ( empty( $prepared_source->source ) ) {
+			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
+			throw new WC_Stripe_Exception( print_r( $prepared_source, true ), $localized_message );
+		}
+	}
+
+	/**
 	 * Save source to order.
 	 *
 	 * @since 3.1.0
@@ -911,6 +964,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( is_callable( [ $order, 'save' ] ) ) {
 			$order->save();
 		}
+
+		$this->maybe_update_source_on_subscription_order( $order, $source );
 	}
 
 	/**
@@ -1203,6 +1258,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// The request for a charge contains metadata for the intent.
 		$full_request = $this->generate_payment_request( $order, $prepared_source );
 
+		$payment_method_types = WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ?
+			$this->get_upe_enabled_at_checkout_payment_method_ids() :
+			[ 'card' ];
+
 		$request = [
 			'source'               => $prepared_source->source,
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
@@ -1210,14 +1269,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'description'          => $full_request['description'],
 			'metadata'             => $full_request['metadata'],
 			'capture_method'       => ( 'true' === $full_request['capture'] ) ? 'automatic' : 'manual',
-			'payment_method_types' => [
-				'card',
-			],
+			'payment_method_types' => $payment_method_types,
 		];
 
 		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->source );
 
-		if ( $this->save_payment_method_requested() || $force_save_source ) {
+		if ( $this->save_payment_method_requested() || $this->has_subscription( $order->get_id() ) || $force_save_source ) {
 			$request['setup_future_usage']              = 'off_session';
 			$request['metadata']['save_payment_method'] = 'true';
 		}
@@ -1360,7 +1417,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$request['customer'] = $prepared_source->customer;
 		}
 
-		if ( $this->has_subscription( $order ) ) {
+		if ( $this->has_subscription( $order->get_id() ) ) {
 			// If this is a failed subscription order payment, the intent should be
 			// prepared for future usage.
 			$request['setup_future_usage'] = 'off_session';
@@ -1576,14 +1633,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// The request for a charge contains metadata for the intent.
 		$full_request = $this->generate_payment_request( $order, $prepared_source );
 
+		$payment_method_types = WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ?
+			$this->get_upe_enabled_at_checkout_payment_method_ids() :
+			[ 'card' ];
+
 		$request = [
 			'amount'               => $amount ? WC_Stripe_Helper::get_stripe_amount( $amount, $full_request['currency'] ) : $full_request['amount'],
 			'currency'             => $full_request['currency'],
 			'description'          => $full_request['description'],
 			'metadata'             => $full_request['metadata'],
-			'payment_method_types' => [
-				'card',
-			],
+			'payment_method_types' => $payment_method_types,
 			'off_session'          => 'true',
 			'confirm'              => 'true',
 			'confirmation_method'  => 'automatic',
@@ -1646,24 +1705,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		return $intent;
 	}
 
-	/**
-	 * Checks if subscription has a Stripe customer ID and adds it if doesn't.
-	 *
-	 * Fix renewal for existing subscriptions affected by https://github.com/woocommerce/woocommerce-gateway-stripe/issues/1072.
-	 *
-	 * @param int $order_id subscription renewal order id.
-	 */
-	public function ensure_subscription_has_customer_id( $order_id ) {
-		$subscriptions_ids = wcs_get_subscriptions_for_order( $order_id, [ 'order_type' => 'any' ] );
-		foreach ( $subscriptions_ids as $subscription_id => $subscription ) {
-			if ( ! metadata_exists( 'post', $subscription_id, '_stripe_customer_id' ) ) {
-				$stripe_customer = new WC_Stripe_Customer( $subscription->get_user_id() );
-				update_post_meta( $subscription_id, '_stripe_customer_id', $stripe_customer->get_id() );
-				update_post_meta( $order_id, '_stripe_customer_id', $stripe_customer->get_id() );
-			}
-		}
-	}
-
 	/** Verifies whether a certain ZIP code is valid for the US, incl. 4-digit extensions.
 	 *
 	 * @param string $zip The ZIP code to verify.
@@ -1719,5 +1760,26 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$order->add_order_note( $localized_message );
 
 		throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+	}
+
+	/**
+	 * Generates a localized message for an error from a response.
+	 *
+	 * @since 4.3.2
+	 *
+	 * @param stdClass $response The response from the Stripe API.
+	 *
+	 * @return string The localized error message.
+	 */
+	public function get_localized_error_message_from_response( $response ) {
+		$localized_messages = WC_Stripe_Helper::get_localized_messages();
+
+		if ( 'card_error' === $response->error->type ) {
+			$localized_message = isset( $localized_messages[ $response->error->code ] ) ? $localized_messages[ $response->error->code ] : $response->error->message;
+		} else {
+			$localized_message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
+		}
+
+		return $localized_message;
 	}
 }

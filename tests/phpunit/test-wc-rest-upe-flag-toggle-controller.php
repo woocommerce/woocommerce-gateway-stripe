@@ -1,14 +1,14 @@
 <?php
 /**
- * These tests make assertions against class WC_REST_UPE_Flag_Toggle_Controller.
+ * These tests make assertions against class WC_Stripe_REST_UPE_Flag_Toggle_Controller.
  *
- * @package WooCommerce_Stripe/Tests/WC_REST_UPE_Flag_Toggle_Controller
+ * @package WooCommerce_Stripe/Tests/WC_Stripe_REST_UPE_Flag_Toggle_Controller
  */
 
 /**
- * WC_REST_UPE_Flag_Toggle_Controller unit tests.
+ * WC_Stripe_REST_UPE_Flag_Toggle_Controller unit tests.
  */
-class WC_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
+class WC_Stripe_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * Tested REST route.
 	 */
@@ -17,7 +17,7 @@ class WC_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * The system under test.
 	 *
-	 * @var WC_REST_UPE_Flag_Toggle_Controller
+	 * @var WC_Stripe_REST_UPE_Flag_Toggle_Controller
 	 */
 	private $controller;
 
@@ -27,12 +27,12 @@ class WC_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
 	public function setUp() {
 		parent::setUp();
 
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-upe-flag-toggle-controller.php';
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php';
 
 		// Set the user so that we can pass the authentication.
 		wp_set_current_user( 1 );
 
-		$this->controller = new WC_REST_UPE_Flag_Toggle_Controller();
+		$this->controller = new WC_Stripe_REST_UPE_Flag_Toggle_Controller();
 	}
 
 	public function test_get_flag_request_returns_status_code_200() {
@@ -75,7 +75,7 @@ class WC_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
 
 		$settings = get_option( 'woocommerce_stripe_settings' );
 
-		$this->assertEquals( 'disabled', $settings['upe_checkout_experience_enabled'] );
+		$this->assertEquals( 'no', $settings['upe_checkout_experience_enabled'] );
 	}
 
 	public function test_set_flag_missing_request_returns_status_code_400() {

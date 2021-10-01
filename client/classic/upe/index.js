@@ -2,6 +2,7 @@ import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
 import { getStripeServerData, getUPETerms } from '../../stripe-utils';
 import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
+import { legacyHashchangeHandler } from './legacy-support';
 import './style.scss';
 
 jQuery( function ( $ ) {
@@ -17,11 +18,7 @@ jQuery( function ( $ ) {
 
 	// Create an API object, which will be used throughout the checkout.
 	const api = new WCStripeAPI(
-		{
-			key,
-			locale: getStripeServerData()?.locale,
-			isUPEEnabled,
-		},
+		getStripeServerData(),
 		// A promise-based interface to jQuery.post.
 		( url, args ) => {
 			return new Promise( ( resolve, reject ) => {
@@ -354,7 +351,10 @@ jQuery( function ( $ ) {
 			! $( '#wc-stripe-upe-element' ).children().length &&
 			isUPEEnabled
 		) {
-			mountUPEElement();
+			const isSetupIntent = ! (
+				getStripeServerData()?.isPaymentRequired ?? true
+			);
+			mountUPEElement( isSetupIntent );
 		}
 
 		if ( doesIbanNeedToBeMounted() ) {
@@ -375,7 +375,7 @@ jQuery( function ( $ ) {
 			const isChangingPayment = getStripeServerData()?.isChangingPayment;
 
 			// We use a setup intent if we are on the screens to add a new payment method or to change a subscription payment.
-			const useSetUpIntent =
+			const isSetupIntent =
 				$( 'form#add_payment_method' ).length || isChangingPayment;
 
 			if ( isChangingPayment && getStripeServerData()?.newTokenFormId ) {
@@ -386,7 +386,7 @@ jQuery( function ( $ ) {
 				$( token ).prop( 'selected', true ).trigger( 'click' );
 				$( 'form#order_review' ).submit();
 			}
-			mountUPEElement( useSetUpIntent );
+			mountUPEElement( isSetupIntent );
 		}
 
 		if ( doesIbanNeedToBeMounted() ) {
@@ -410,7 +410,7 @@ jQuery( function ( $ ) {
 			const { error } = await api.getStripe().confirmPayment( {
 				element: upeElement,
 				confirmParams: {
-					return_url: '',
+					return_url: '#',
 				},
 			} );
 			$form.removeClass( 'processing' ).unblock();
@@ -517,7 +517,7 @@ jQuery( function ( $ ) {
 		}
 
 		blockUI( $form );
-		// Create object where keys are form field names and keys are form field values
+		// Create object where keys are form field names and values are form field values
 		const formFields = $form.serializeArray().reduce( ( obj, field ) => {
 			obj[ field.name ] = field.value;
 			return obj;
@@ -676,9 +676,11 @@ jQuery( function ( $ ) {
 	maybeShowAuthenticationModal();
 
 	// Handle hash change - used when authenticating payment with SCA on checkout page.
-	window.addEventListener( 'hashchange', () => {
+	$( window ).on( 'hashchange', () => {
 		if ( window.location.hash.startsWith( '#wc-stripe-confirm-' ) ) {
 			maybeShowAuthenticationModal();
+		} else if ( window.location.hash.startsWith( '#confirm-' ) ) {
+			legacyHashchangeHandler( api, showError );
 		}
 	} );
 } );

@@ -69,16 +69,16 @@ const ConnectStripeAccount = ( props ) => (
 			<TermsOfServiceText>
 				{ interpolateComponents( {
 					mixedString: __(
-						'By clicking "Create or connect an account", you agree to {{stripeTermsOfServiceLink}}Stripe’s Terms of service.{{/stripeTermsOfServiceLink}}',
+						'By clicking "Create or connect an account", you agree to the {{tosLink}}Terms of service.{{/tosLink}}',
 						'woocommerce-gateway-stripe'
 					),
 					components: {
-						stripeTermsOfServiceLink: (
+						tosLink: (
 							// eslint-disable-next-line jsx-a11y/anchor-has-content
 							<a
 								target="_blank"
 								rel="noreferrer"
-								href="https://stripe.com/ssa"
+								href="https://wordpress.com/tos"
 							/>
 						),
 					},

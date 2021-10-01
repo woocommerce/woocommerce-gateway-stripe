@@ -18,8 +18,13 @@ class WC_Stripe_UPE_Payment_Method_Giropay extends WC_Stripe_UPE_Payment_Method 
 	public function __construct() {
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
-		$this->title                = 'Pay with giropay';
+		$this->title                = __( 'Pay with giropay', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = false;
 		$this->supported_currencies = [ 'EUR' ];
+		$this->label                = __( 'giropay', 'woocommerce-gateway-stripe' );
+		$this->description          = __(
+			'Expand your business with giropay — Germany’s second most popular payment system.',
+			'woocommerce-gateway-stripe'
+		);
 	}
 }

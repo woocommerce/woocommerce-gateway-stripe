@@ -4,13 +4,13 @@ import userEvent from '@testing-library/user-event';
 import GeneralSettingsSection from '..';
 import UpeToggleContext from '../../upe-toggle/context';
 import {
-	useEnabledPaymentMethods,
-	useGetAvailablePaymentMethods,
-} from '../data-mock';
+	useEnabledPaymentMethodIds,
+	useGetAvailablePaymentMethodIds,
+} from 'wcstripe/data';
 
-jest.mock( '../data-mock', () => ( {
-	useGetAvailablePaymentMethods: jest.fn(),
-	useEnabledPaymentMethods: jest.fn(),
+jest.mock( 'wcstripe/data', () => ( {
+	useGetAvailablePaymentMethodIds: jest.fn(),
+	useEnabledPaymentMethodIds: jest.fn(),
 } ) );
 jest.mock( '@wordpress/data', () => ( {
 	useDispatch: jest.fn().mockReturnValue( {} ),
@@ -24,8 +24,8 @@ jest.mock( '../../loadable-settings-section', () => ( { children } ) =>
 
 describe( 'GeneralSettingsSection', () => {
 	beforeEach( () => {
-		useGetAvailablePaymentMethods.mockReturnValue( [ 'card' ] );
-		useEnabledPaymentMethods.mockReturnValue( [ [ 'card' ], jest.fn() ] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card' ] );
+		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card' ], jest.fn() ] );
 	} );
 
 	it( 'should render the card information and the opt-in banner with action elements if UPE is disabled', () => {
@@ -75,14 +75,14 @@ describe( 'GeneralSettingsSection', () => {
 	} );
 
 	it( 'should allow to enable a payment method when UPE is enabled', () => {
-		useGetAvailablePaymentMethods.mockReturnValue( [
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			'card',
 			'giropay',
 			'sofort',
 			'sepa_debit',
 		] );
 		const updateEnabledMethodsMock = jest.fn();
-		useEnabledPaymentMethods.mockReturnValue( [
+		useEnabledPaymentMethodIds.mockReturnValue( [
 			[ 'card' ],
 			updateEnabledMethodsMock,
 		] );
@@ -108,15 +108,54 @@ describe( 'GeneralSettingsSection', () => {
 		] );
 	} );
 
-	it( 'should allow to disable a payment method when UPE is enabled', () => {
-		useGetAvailablePaymentMethods.mockReturnValue( [
+	it( 'should show modal to disable a payment method when UPE is enabled', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			'card',
 			'giropay',
 			'sofort',
 			'sepa_debit',
 		] );
 		const updateEnabledMethodsMock = jest.fn();
-		useEnabledPaymentMethods.mockReturnValue( [
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ 'card' ],
+			updateEnabledMethodsMock,
+		] );
+
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		const cardCheckbox = screen.getByRole( 'checkbox', {
+			name: /Credit card/,
+		} );
+
+		expect( cardCheckbox ).toBeChecked();
+		expect(
+			screen.queryByRole( 'heading', {
+				name: 'Remove Credit card / debit card from checkout',
+			} )
+		).not.toBeInTheDocument();
+
+		userEvent.click( cardCheckbox );
+
+		expect(
+			screen.getByRole( 'heading', {
+				name: 'Remove Credit card / debit card from checkout',
+			} )
+		).toBeInTheDocument();
+	} );
+
+	it( 'should not allow to disable a payment method when canceled via modal', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			'card',
+			'giropay',
+			'sofort',
+			'sepa_debit',
+		] );
+		const updateEnabledMethodsMock = jest.fn();
+		useEnabledPaymentMethodIds.mockReturnValue( [
 			[ 'card' ],
 			updateEnabledMethodsMock,
 		] );
@@ -135,8 +174,41 @@ describe( 'GeneralSettingsSection', () => {
 		expect( cardCheckbox ).toBeChecked();
 
 		userEvent.click( cardCheckbox );
+		userEvent.click( screen.getByRole( 'button', { name: 'Cancel' } ) );
 
-		expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [] );
+		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
+	} );
+
+	it( 'should allow to disable a payment method when confirmed via modal', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			'card',
+			'giropay',
+			'sofort',
+			'sepa_debit',
+		] );
+		const updateEnabledMethodsMock = jest.fn();
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ 'card' ],
+			updateEnabledMethodsMock,
+		] );
+
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		const cardCheckbox = screen.getByRole( 'checkbox', {
+			name: /Credit card/,
+		} );
+
+		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
+		expect( cardCheckbox ).toBeChecked();
+
+		userEvent.click( cardCheckbox );
+		userEvent.click( screen.getByRole( 'button', { name: 'Remove' } ) );
+
+		expect( updateEnabledMethodsMock ).toHaveBeenCalled();
 	} );
 
 	it( 'should display a modal to allow to disable UPE', () => {

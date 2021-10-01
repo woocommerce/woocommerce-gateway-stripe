@@ -1,6 +1,6 @@
 <?php
 /**
- * Class WC_REST_UPE_Flag_Toggle_Controller
+ * Class WC_Stripe_REST_UPE_Flag_Toggle_Controller
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -8,7 +8,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * REST controller for UPE feature flag.
  */
-class WC_REST_UPE_Flag_Toggle_Controller extends WC_Stripe_REST_Controller {
+class WC_Stripe_REST_UPE_Flag_Toggle_Controller extends WC_Stripe_REST_Controller {
 	/**
 	 * Endpoint path.
 	 *
@@ -78,7 +78,7 @@ class WC_REST_UPE_Flag_Toggle_Controller extends WC_Stripe_REST_Controller {
 		update_option( 'woocommerce_stripe_settings', $settings );
 
 		// including the class again because otherwise it's not present.
-		if ( version_compare( WC_VERSION, '4.4.0', '>=' ) ) {
+		if ( WC_Stripe_UPE_Compatibility::are_inbox_notes_supported() ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
 			WC_Stripe_UPE_Availability_Note::possibly_delete_note();
 		}

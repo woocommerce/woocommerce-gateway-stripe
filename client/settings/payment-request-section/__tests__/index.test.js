@@ -87,7 +87,7 @@ describe( 'PaymentRequestSection', () => {
 		expect( cartCheckbox ).not.toBeChecked();
 	} );
 
-	it( 'should dispatch enabled status update if express checkout is being toggled', async () => {
+	it( 'should dispatch enabled status update if express checkout is being toggled', () => {
 		const updateIsPaymentRequestEnabledHandler = jest.fn();
 		usePaymentRequestEnabledSettings.mockReturnValue( [
 			false,
@@ -103,7 +103,7 @@ describe( 'PaymentRequestSection', () => {
 		);
 	} );
 
-	it( 'should trigger an action to save the checked locations when un-checking the location checkboxes', async () => {
+	it( 'should trigger an action to save the checked locations when un-checking the location checkboxes', () => {
 		const updatePaymentRequestLocationsHandler = jest.fn();
 		usePaymentRequestEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
 		usePaymentRequestLocations.mockReturnValue(
@@ -134,7 +134,7 @@ describe( 'PaymentRequestSection', () => {
 		).toHaveBeenLastCalledWith( [ 'checkout', 'product' ] );
 	} );
 
-	it( 'should trigger an action to save the checked locations when checking the location checkboxes', async () => {
+	it( 'should trigger an action to save the checked locations when checking the location checkboxes', () => {
 		const updatePaymentRequestLocationsHandler = jest.fn();
 		usePaymentRequestEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
 		usePaymentRequestLocations.mockReturnValue(

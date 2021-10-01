@@ -3,6 +3,8 @@ import React from 'react';
 import { Card, CheckboxControl, TextControl } from '@wordpress/components';
 import CardBody from '../card-body';
 import TextLengthHelpInputWrapper from './text-length-help-input-wrapper';
+import StatementPreviewsWrapper from './statement-previews-wrapper';
+import StatementPreview from './statement-preview';
 import {
 	useManualCapture,
 	useSavedCards,
@@ -34,6 +36,10 @@ const PaymentsAndTransactionsSection = () => {
 		shortAccountStatementDescriptor,
 		setShortAccountStatementDescriptor,
 	] = useShortAccountStatementDescriptor();
+
+	const translatedFullBankPreviewTitle = isShortAccountStatementEnabled
+		? __( 'All Other Payment Methods', 'woocommerce-gateway-stripe' )
+		: __( 'All Payment Methods', 'woocommerce-gateway-stripe' );
 
 	return (
 		<Card className="transactions-and-deposits">
@@ -139,6 +145,25 @@ const PaymentsAndTransactionsSection = () => {
 						/>
 					</TextLengthHelpInputWrapper>
 				) }
+				<StatementPreviewsWrapper>
+					{ isShortAccountStatementEnabled && (
+						<StatementPreview
+							icon="creditCard"
+							title={ __(
+								'Cards & Express Checkouts',
+								'woocommerce-gateway-stripe'
+							) }
+							text={ `${ shortAccountStatementDescriptor }* #123456` }
+							className="shortened-bank-statement"
+						/>
+					) }
+					<StatementPreview
+						icon="bank"
+						title={ translatedFullBankPreviewTitle }
+						text={ accountStatementDescriptor }
+						className="full-bank-statement"
+					/>
+				</StatementPreviewsWrapper>
 			</CardBody>
 		</Card>
 	);
