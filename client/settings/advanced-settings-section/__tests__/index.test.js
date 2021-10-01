@@ -2,17 +2,19 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AdvancedSettings from '..';
-import { useDevMode, useDebugLog } from '../data-mock';
+import { useDevMode, useDebugLog, useSettings } from 'wcstripe/data';
 
-jest.mock( '../data-mock', () => ( {
+jest.mock( 'wcstripe/data', () => ( {
 	useDevMode: jest.fn(),
 	useDebugLog: jest.fn(),
+	useSettings: jest.fn(),
 } ) );
 
 describe( 'AdvancedSettings', () => {
 	beforeEach( () => {
-		useDevMode.mockReturnValue( false );
+		useDevMode.mockReturnValue( [ false, jest.fn() ] );
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
+		useSettings.mockReturnValue( { isLoading: false } );
 	} );
 
 	it( 'toggles the advanced settings section and sets focus on the first heading', () => {
@@ -29,7 +31,7 @@ describe( 'AdvancedSettings', () => {
 	it( 'toggles the debug mode input when dev mode is disabled', () => {
 		const setDebugLogMock = jest.fn();
 		useDebugLog.mockReturnValue( [ true, setDebugLogMock ] );
-		useDevMode.mockReturnValue( false );
+		useDevMode.mockReturnValue( [ false, jest.fn() ] );
 		render( <AdvancedSettings /> );
 
 		userEvent.click( screen.getByText( 'Advanced settings' ) );
@@ -45,7 +47,7 @@ describe( 'AdvancedSettings', () => {
 	} );
 
 	it( 'disables the debug mode input when dev mode is enabled', () => {
-		useDevMode.mockReturnValue( true );
+		useDevMode.mockReturnValue( [ true, jest.fn() ] );
 		render( <AdvancedSettings /> );
 
 		userEvent.click( screen.getByText( 'Advanced settings' ) );
