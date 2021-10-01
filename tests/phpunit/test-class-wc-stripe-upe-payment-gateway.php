@@ -395,6 +395,56 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test errors on intent throw exceptions.
+	 */
+	public function test_intent_error_throws_exception() {
+		$payment_intent_id = 'pi_mock';
+		$setup_intent_id   = 'seti_mock';
+		$payment_method_id = 'pm_mock';
+		$customer_id       = 'cus_mock';
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+
+		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['last_payment_error'] = [ 'message' => 'Uh-oh, something went wrong...' ];
+
+		$setup_intent_mock                     = self::MOCK_CARD_SETUP_INTENT_TEMPLATE;
+		$setup_intent_mock['id']               = $setup_intent_id;
+		$setup_intent_mock['last_setup_error'] = [ 'message' => 'Uh-oh, something went wrong...' ];
+
+		$this->mock_gateway->expects( $this->exactly( 2 ) )
+			->method( 'stripe_request' )
+			->willReturnOnConsecutiveCalls(
+				$this->array_to_object( $payment_intent_mock ),
+				$this->array_to_object( $setup_intent_mock )
+			);
+
+		$exception = null;
+		try {
+			$this->mock_gateway->process_order_for_confirmed_intent( $order, $payment_intent_id, false );
+		} catch ( WC_Stripe_Exception $e ) {
+			// Test exception thrown.
+			$exception = $e;
+		}
+		$this->assertRegExp( '/not able to process this payment./', $exception->getMessage() );
+
+		$exception = null;
+		$order->set_total( 0 );
+		$order->save();
+		try {
+			$this->mock_gateway->process_order_for_confirmed_intent( $order, $setup_intent_id, false );
+		} catch ( WC_Stripe_Exception $e ) {
+			// Test exception thrown.
+			$exception = $e;
+		}
+		$this->assertRegExp( '/not able to process this payment./', $exception->getMessage() );
+	}
+
+	/**
 	 * Test order status corresponds with charge status.
 	 */
 	public function test_process_response_updates_order_by_charge_status() {
