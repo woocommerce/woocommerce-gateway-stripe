@@ -73,9 +73,10 @@ class WC_Stripe_Onboarding_Controller {
 	 * Create an admin page without a side menu: wp-admin/admin.php?page=wc_stripe-onboarding_wizard
 	 */
 	public function add_onboarding_wizard() {
+		// This submenu is hidden from the admin menu
 		add_submenu_page(
-			null, // Hide this submenu from admin menu
-			__( 'Onboarding Wizard', 'woocommerce-gateway-stripe' ),
+			'admin.php',
+			__( 'Stripe - Onboarding Wizard', 'woocommerce-gateway-stripe' ),
 			__( 'Onboarding Wizard', 'woocommerce-gateway-stripe' ),
 			'manage_woocommerce',
 			'wc_stripe-onboarding_wizard',
