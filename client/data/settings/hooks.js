@@ -65,6 +65,18 @@ export const useSettings = () => {
 export const usePaymentRequestEnabledSettings = makeReadWritePairHook(
 	'is_payment_request_enabled'
 );
+export const usePaymentRequestButtonSize = makeReadWritePairHook(
+	'payment_request_button_size',
+	''
+);
+export const usePaymentRequestButtonType = makeReadWritePairHook(
+	'payment_request_button_type',
+	''
+);
+export const usePaymentRequestButtonTheme = makeReadWritePairHook(
+	'payment_request_button_theme',
+	''
+);
 export const useIsStripeEnabled = makeReadWritePairHook( 'is_stripe_enabled' );
 export const useTestMode = makeReadWritePairHook( 'is_test_mode_enabled' );
 export const useSavedCards = makeReadWritePairHook( 'is_saved_cards_enabled' );
@@ -103,66 +115,6 @@ export const useGetSavingError = () => {
 
 		return getSavingError();
 	}, [] );
-};
-
-export const usePaymentRequestButtonType = () => {
-	const { updateSettingsValues } = useDispatch( STORE_NAME );
-
-	const type = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().payment_request_button_type || '';
-	} );
-
-	const handler = useCallback(
-		( value ) =>
-			updateSettingsValues( {
-				payment_request_button_type: value,
-			} ),
-		[ updateSettingsValues ]
-	);
-
-	return [ type, handler ];
-};
-
-export const usePaymentRequestButtonSize = () => {
-	const { updateSettingsValues } = useDispatch( STORE_NAME );
-
-	const size = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().payment_request_button_size || '';
-	} );
-
-	const handler = useCallback(
-		( value ) =>
-			updateSettingsValues( {
-				payment_request_button_size: value,
-			} ),
-		[ updateSettingsValues ]
-	);
-
-	return [ size, handler ];
-};
-
-export const usePaymentRequestButtonTheme = () => {
-	const { updateSettingsValues } = useDispatch( STORE_NAME );
-
-	const size = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().payment_request_button_theme || '';
-	} );
-
-	const handler = useCallback(
-		( value ) =>
-			updateSettingsValues( {
-				payment_request_button_theme: value,
-			} ),
-		[ updateSettingsValues ]
-	);
-
-	return [ size, handler ];
 };
 
 export const useEnabledPaymentMethodIds = () => {

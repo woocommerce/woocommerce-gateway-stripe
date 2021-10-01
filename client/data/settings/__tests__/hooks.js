@@ -31,52 +31,62 @@ describe( 'Settings hooks tests', () => {
 		} );
 	} );
 
-	describe( 'useEnabledPaymentMethodIds()', () => {
-		test( 'returns the value of getSettings().enabled_payment_method_ids', () => {
-			selectors = {
-				getSettings: jest.fn( () => ( {
-					enabled_payment_method_ids: [ 'card' ],
-				} ) ),
-			};
+	const testReadWritePairHook = (
+		hookName,
+		storeKey,
+		testValue,
+		cb,
+		ifMissingReturn
+	) => {
+		describe( `${ hookName }`, () => {
+			test( `returns the value of getSettings().${ storeKey }`, () => {
+				selectors = {
+					getSettings: jest.fn( () => ( {
+						[ storeKey ]: testValue,
+					} ) ),
+				};
 
-			const { result } = renderHook( () => useEnabledPaymentMethodIds() );
-			const [ value ] = result.current;
+				const { result } = renderHook( cb );
+				const [ value ] = result.current;
 
-			expect( value ).toEqual( [ 'card' ] );
-		} );
-
-		test( 'returns an empty array if setting is missing', () => {
-			selectors = {
-				getSettings: jest.fn( () => ( {} ) ),
-			};
-
-			const { result } = renderHook( () => useEnabledPaymentMethodIds() );
-			const [ value ] = result.current;
-
-			expect( value ).toEqual( [] );
-		} );
-
-		test( 'returns expected action', () => {
-			actions = {
-				updateSettingsValues: jest.fn(),
-			};
-
-			selectors = {
-				getSettings: jest.fn( () => ( {} ) ),
-			};
-
-			const { result } = renderHook( () => useEnabledPaymentMethodIds() );
-			const [ , action ] = result.current;
-
-			act( () => {
-				action( [ 'giropay' ] );
+				expect( value ).toEqual( testValue );
 			} );
 
-			expect( actions.updateSettingsValues ).toHaveBeenCalledWith( {
-				enabled_payment_method_ids: [ 'giropay' ],
+			test( `returns ${ JSON.stringify(
+				ifMissingReturn
+			) } if setting is missing`, () => {
+				selectors = {
+					getSettings: jest.fn( () => ( {} ) ),
+				};
+
+				const { result } = renderHook( cb );
+				const [ value ] = result.current;
+
+				expect( value ).toEqual( ifMissingReturn );
+			} );
+
+			test( 'returns expected action', () => {
+				actions = {
+					updateSettingsValues: jest.fn(),
+				};
+
+				selectors = {
+					getSettings: jest.fn( () => ( {} ) ),
+				};
+
+				const { result } = renderHook( cb );
+				const [ , action ] = result.current;
+
+				act( () => {
+					action( testValue );
+				} );
+
+				expect( actions.updateSettingsValues ).toHaveBeenCalledWith( {
+					[ storeKey ]: testValue,
+				} );
 			} );
 		} );
-	} );
+	};
 
 	describe( 'useGetAvailablePaymentMethodIds()', () => {
 		test( 'returns the value of getSettings().available_payment_method_ids', () => {
@@ -156,141 +166,35 @@ describe( 'Settings hooks tests', () => {
 		);
 	} );
 
-	describe( 'usePaymentRequestEnabledSettings()', () => {
-		test( 'returns the value of getSettings().is_payment_request_enabled', () => {
-			selectors = {
-				getSettings: jest.fn( () => ( {
-					is_payment_request_enabled: true,
-				} ) ),
-			};
+	testReadWritePairHook(
+		'useEnabledPaymentMethodIds()',
+		'enabled_payment_method_ids',
+		[ 'card' ],
+		() => useEnabledPaymentMethodIds(),
+		[]
+	);
 
-			const [
-				isPaymentRequestEnabled,
-			] = usePaymentRequestEnabledSettings();
+	testReadWritePairHook(
+		'usePaymentRequestEnabledSettings()',
+		'is_payment_request_enabled',
+		true,
+		() => usePaymentRequestEnabledSettings(),
+		false
+	);
 
-			expect( isPaymentRequestEnabled ).toEqual( true );
-		} );
+	testReadWritePairHook(
+		'usePaymentRequestLocations()',
+		'payment_request_button_locations',
+		[ 'checkout', 'cart' ],
+		() => usePaymentRequestLocations(),
+		[]
+	);
 
-		test( 'returns false if setting is missing', () => {
-			selectors = {
-				getSettings: jest.fn( () => ( {} ) ),
-			};
-
-			const [
-				isPaymentRequestEnabled,
-			] = usePaymentRequestEnabledSettings();
-
-			expect( isPaymentRequestEnabled ).toBeFalsy();
-		} );
-
-		test( 'returns expected action', () => {
-			actions = {
-				updateIsPaymentRequestEnabled: jest.fn(),
-			};
-
-			selectors = {
-				getSettings: jest.fn( () => ( {} ) ),
-			};
-
-			const [ , action ] = usePaymentRequestEnabledSettings();
-			action( true );
-
-			expect(
-				actions.updateIsPaymentRequestEnabled
-			).toHaveBeenCalledWith( true );
-		} );
-	} );
-
-	describe( 'usePaymentRequestLocations()', () => {
-		test( 'returns and updates payment request locations', () => {
-			const locationsBeforeUpdate = [ 'product' ];
-			const locationsAfterUpdate = [ 'checkout', 'cart' ];
-
-			actions = {
-				updatePaymentRequestLocations: jest.fn(),
-			};
-
-			selectors = {
-				getSettings: jest.fn( () => ( {
-					payment_request_enabled_locations: locationsBeforeUpdate,
-				} ) ),
-			};
-
-			const [
-				paymentRequestLocations,
-				updatePaymentRequestLocations,
-			] = usePaymentRequestLocations();
-
-			updatePaymentRequestLocations( locationsAfterUpdate );
-
-			expect( paymentRequestLocations ).toEqual( locationsBeforeUpdate );
-			expect(
-				actions.updatePaymentRequestLocations
-			).toHaveBeenCalledWith( locationsAfterUpdate );
-		} );
-
-		test( 'returns [] if setting is missing', () => {
-			selectors = {
-				getSettings: jest.fn( () => ( {} ) ),
-			};
-
-			const [ paymentRequestLocations ] = usePaymentRequestLocations();
-
-			expect( paymentRequestLocations ).toEqual( [] );
-		} );
-	} );
-
-	describe( 'usePaymentRequestButtonTheme()', () => {
-		test( 'returns the value of getSettings().payment_request_button_theme', () => {
-			selectors = {
-				getSettings: jest.fn( () => ( {
-					payment_request_button_theme: 'dark',
-				} ) ),
-			};
-
-			const { result } = renderHook( () =>
-				usePaymentRequestButtonTheme()
-			);
-			const [ value ] = result.current;
-
-			expect( value ).toEqual( 'dark' );
-		} );
-
-		test( 'returns an empty string if setting is missing', () => {
-			selectors = {
-				getSettings: jest.fn( () => ( {} ) ),
-			};
-
-			const { result } = renderHook( () =>
-				usePaymentRequestButtonTheme()
-			);
-			const [ value ] = result.current;
-
-			expect( value ).toEqual( '' );
-		} );
-
-		test( 'allows to update the store', () => {
-			const updateSettingsValuesMock = jest.fn();
-			actions = {
-				updateSettingsValues: updateSettingsValuesMock,
-			};
-
-			selectors = {
-				getSettings: jest.fn( () => ( {} ) ),
-			};
-
-			const { result } = renderHook( () =>
-				usePaymentRequestButtonTheme()
-			);
-			const [ , handler ] = result.current;
-
-			act( () => {
-				handler( 'dark' );
-			} );
-
-			expect( updateSettingsValuesMock ).toHaveBeenCalledWith( {
-				payment_request_button_theme: 'dark',
-			} );
-		} );
-	} );
+	testReadWritePairHook(
+		'usePaymentRequestButtonTheme()',
+		'payment_request_button_theme',
+		'dark',
+		() => usePaymentRequestButtonTheme(),
+		''
+	);
 } );
