@@ -13,7 +13,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Initialize subscription support and hooks.
 	 *
-	 * @since x.x.x
+	 * @since 5.6.0
 	 */
 	public function maybe_init_subscriptions() {
 		if ( ! $this->is_subscriptions_enabled() ) {
@@ -134,7 +134,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Maybe process payment method change for subscriptions.
 	 *
-	 * @since x.x.x
+	 * @since 5.6.0
 	 *
 	 * @param int $order_id
 	 * @return bool
@@ -150,7 +150,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Process the payment method change for subscriptions.
 	 *
-	 * @since x.x.x
+	 * @since 5.6.0
 	 *
 	 * @param int $order_id
 	 * @return array|null
@@ -192,7 +192,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @since 3.0
 	 * @since 4.0.4 Add third parameter flag to retry.
 	 * @since 4.1.0 Add fourth parameter to log previous errors.
-	 * @since x.x.x Process renewal payments for SEPA and UPE.
+	 * @since 5.6.0 Process renewal payments for SEPA and UPE.
 	 *
 	 * @param float  $amount
 	 * @param mixed  $renewal_order
@@ -361,7 +361,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	/**
 	 * Updates other subscription sources.
 	 *
-	 * @since x.x.x
+	 * @since 5.6.0
 	 */
 	public function maybe_update_source_on_subscription_order( $order, $source ) {
 		if ( ! $this->is_subscriptions_enabled() ) {
@@ -513,7 +513,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Render the payment method used for a subscription in the "My Subscriptions" table
 	 *
 	 * @since 1.7.5
-	 * @version x.x.x
+	 * @version 5.6.0
 	 *
 	 * @param string          $payment_method_to_display the default payment method text to display
 	 * @param WC_Subscription $subscription the subscription details
