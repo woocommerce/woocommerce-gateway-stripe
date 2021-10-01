@@ -713,8 +713,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Check for a UPE redirect payment method on order received page or setup intent on payment methods page.
 	 *
-	 * @since x.x.x
-	 * @version x.x.x
+	 * @since 5.6.0
+	 * @version 5.6.0
 	 */
 	public function maybe_process_upe_redirect() {
 		if ( $this->is_payment_methods_page() ) {
@@ -959,7 +959,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Checks if gateway should be available to use.
 	 *
-	 * @since x.x.x
+	 * @since 5.6.0
 	 */
 	public function is_available() {
 		$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
