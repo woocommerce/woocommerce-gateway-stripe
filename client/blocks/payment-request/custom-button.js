@@ -1,7 +1,7 @@
 import { __ } from '@wordpress/i18n';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
-export const CustomButton = ( { onButtonClicked } ) => {
+export const CustomButton = ( { onButtonClicked: handleClick } ) => {
 	const {
 		theme = 'dark',
 		height = '44',
@@ -15,7 +15,7 @@ export const CustomButton = ( { onButtonClicked } ) => {
 			style={ {
 				height: height + 'px',
 			} }
-			onClick={ onButtonClicked }
+			onClick={ handleClick }
 		>
 			{ customLabel }
 		</button>

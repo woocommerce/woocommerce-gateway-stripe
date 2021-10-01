@@ -17,24 +17,27 @@ import {
 const PaymentsAndTransactionsSection = () => {
 	const [
 		isManualCaptureEnabled,
-		setIsManualCaptureEnabled,
+		handleIsManualCaptureEnabledChange,
 	] = useManualCapture();
-	const [ isSavedCardsEnabled, setIsSavedCardsEnabled ] = useSavedCards();
+	const [
+		isSavedCardsEnabled,
+		handleIsSavedCardsEnabledChange,
+	] = useSavedCards();
 	const [
 		isSeparateCardFormEnabled,
-		setIsSeparateCardFormEnabled,
+		handleIsSeparateCardFormEnabledChange,
 	] = useSeparateCardForm();
 	const [
 		accountStatementDescriptor,
-		setAccountStatementDescriptor,
+		handleAccountStatementDescriptorChange,
 	] = useAccountStatementDescriptor();
 	const [
 		isShortAccountStatementEnabled,
-		setIsShortAccountStatementEnabled,
+		handleIsShortAccountStatementEnabledChange,
 	] = useShortAccountStatement();
 	const [
 		shortAccountStatementDescriptor,
-		setShortAccountStatementDescriptor,
+		handleShortAccountStatementDescriptorChange,
 	] = useShortAccountStatementDescriptor();
 
 	const translatedFullBankPreviewTitle = isShortAccountStatementEnabled
@@ -49,7 +52,7 @@ const PaymentsAndTransactionsSection = () => {
 				</h4>
 				<CheckboxControl
 					checked={ isSavedCardsEnabled }
-					onChange={ setIsSavedCardsEnabled }
+					onChange={ handleIsSavedCardsEnabledChange }
 					label={ __(
 						'Enable payments via saved cards',
 						'woocommerce-gateway-stripe'
@@ -61,7 +64,7 @@ const PaymentsAndTransactionsSection = () => {
 				/>
 				<CheckboxControl
 					checked={ isSeparateCardFormEnabled }
-					onChange={ setIsSeparateCardFormEnabled }
+					onChange={ handleIsSeparateCardFormEnabledChange }
 					label={ __(
 						'Enable separate credit card form',
 						'woocommerce-gateway-stripe'
@@ -79,7 +82,7 @@ const PaymentsAndTransactionsSection = () => {
 				</h4>
 				<CheckboxControl
 					checked={ isManualCaptureEnabled }
-					onChange={ setIsManualCaptureEnabled }
+					onChange={ handleIsManualCaptureEnabledChange }
 					label={ __(
 						'Issue an authorization on checkout, and capture later',
 						'woocommerce-gateway-stripe'
@@ -109,13 +112,13 @@ const PaymentsAndTransactionsSection = () => {
 							'woocommerce-gateway-stripe'
 						) }
 						value={ accountStatementDescriptor }
-						onChange={ setAccountStatementDescriptor }
+						onChange={ handleAccountStatementDescriptorChange }
 						maxLength={ 22 }
 					/>
 				</TextLengthHelpInputWrapper>
 				<CheckboxControl
 					checked={ isShortAccountStatementEnabled }
-					onChange={ setIsShortAccountStatementEnabled }
+					onChange={ handleIsShortAccountStatementEnabledChange }
 					label={ __(
 						'Add customer order number to the bank statement',
 						'woocommerce-gateway-stripe'
@@ -140,7 +143,9 @@ const PaymentsAndTransactionsSection = () => {
 								'woocommerce-gateway-stripe'
 							) }
 							value={ shortAccountStatementDescriptor }
-							onChange={ setShortAccountStatementDescriptor }
+							onChange={
+								handleShortAccountStatementDescriptorChange
+							}
 							maxLength={ 10 }
 						/>
 					</TextLengthHelpInputWrapper>

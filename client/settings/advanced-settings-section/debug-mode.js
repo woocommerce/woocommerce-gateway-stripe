@@ -5,7 +5,7 @@ import { useDevMode, useDebugLog } from './data-mock';
 
 const DebugMode = () => {
 	const isDevModeEnabled = useDevMode();
-	const [ isLoggingChecked, setIsLoggingChecked ] = useDebugLog();
+	const [ isLoggingChecked, handleIsLoggingEnabledChange ] = useDebugLog();
 	const headingRef = useRef( null );
 
 	useEffect( () => {
@@ -40,7 +40,7 @@ const DebugMode = () => {
 				) }
 				disabled={ isDevModeEnabled }
 				checked={ isDevModeEnabled || isLoggingChecked }
-				onChange={ setIsLoggingChecked }
+				onChange={ handleIsLoggingEnabledChange }
 			/>
 		</>
 	);

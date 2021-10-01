@@ -44,7 +44,7 @@ const CreditCardComponent = ( {
 		emitResponse,
 		stripe
 	);
-	const onChange = ( paymentEvent ) => {
+	const handleChange = ( paymentEvent ) => {
 		if ( paymentEvent.error ) {
 			onStripeError( paymentEvent );
 		}
@@ -55,12 +55,12 @@ const CreditCardComponent = ( {
 	const renderedCardElement =
 		getBlocksConfiguration()?.inline_cc_form === 'yes' ? (
 			<InlineCard
-				onChange={ onChange }
+				onChange={ handleChange }
 				inputErrorComponent={ ValidationInputError }
 			/>
 		) : (
 			<CardElements
-				onChange={ onChange }
+				onChange={ handleChange }
 				inputErrorComponent={ ValidationInputError }
 			/>
 		);

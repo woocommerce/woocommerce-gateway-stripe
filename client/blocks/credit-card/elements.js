@@ -27,7 +27,7 @@ export const InlineCard = ( {
 	const { options, onActive, error, setError } = useElementOptions( {
 		hidePostalCode: true,
 	} );
-	const errorCallback = ( event ) => {
+	const handleChange = ( event ) => {
 		if ( event.error ) {
 			setError( event.error.message );
 		} else {
@@ -45,7 +45,7 @@ export const InlineCard = ( {
 					options={ options }
 					onBlur={ () => onActive( isEmpty ) }
 					onFocus={ () => onActive( isEmpty ) }
-					onChange={ errorCallback }
+					onChange={ handleChange }
 				/>
 				<label htmlFor="wc-stripe-inline-card-element">
 					{ __(
@@ -93,7 +93,7 @@ export const CardElements = ( {
 		error: cardCvcError,
 		setError: cardCvcSetError,
 	} = useElementOptions();
-	const errorCallback = ( errorSetter, elementId ) => ( event ) => {
+	const makeHandleChange = ( errorSetter, elementId ) => ( event ) => {
 		if ( event.error ) {
 			errorSetter( event.error.message );
 		} else {
@@ -106,7 +106,10 @@ export const CardElements = ( {
 		<div className="wc-block-card-elements">
 			<div className="wc-block-gateway-container wc-card-number-element">
 				<CardNumberElement
-					onChange={ errorCallback( cardNumSetError, 'cardNumber' ) }
+					onChange={ makeHandleChange(
+						cardNumSetError,
+						'cardNumber'
+					) }
 					options={ cardNumOptions }
 					className={ baseTextInputStyles }
 					id="wc-stripe-card-number-element"
@@ -120,7 +123,7 @@ export const CardElements = ( {
 			</div>
 			<div className="wc-block-gateway-container wc-card-expiry-element">
 				<CardExpiryElement
-					onChange={ errorCallback(
+					onChange={ makeHandleChange(
 						cardExpirySetError,
 						'cardExpiry'
 					) }
@@ -137,7 +140,7 @@ export const CardElements = ( {
 			</div>
 			<div className="wc-block-gateway-container wc-card-cvc-element">
 				<CardCvcElement
-					onChange={ errorCallback( cardCvcSetError, 'cardCvc' ) }
+					onChange={ makeHandleChange( cardCvcSetError, 'cardCvc' ) }
 					options={ cardCvcOptions }
 					className={ baseTextInputStyles }
 					onFocus={ () => cardCvcOnActive( isEmpty.cardCvc ) }

@@ -4,15 +4,20 @@ import userEvent from '@testing-library/user-event';
 import RemoveMethodConfirmationModal from '../remove-method-confirmation-modal';
 
 describe( 'RemoveMethodConfirmationModal', () => {
-	const handleCloseMock = jest.fn();
-	const handleRemoveMock = jest.fn();
+	let handleCloseMock;
+	let handleRemoveMock;
+
+	beforeEach( () => {
+		handleCloseMock = jest.fn();
+		handleRemoveMock = jest.fn();
+	} );
 
 	it( 'should render the information', () => {
 		render(
 			<RemoveMethodConfirmationModal
 				method="giropay"
 				onClose={ handleCloseMock }
-				handleRemove={ handleRemoveMock }
+				onConfirm={ handleRemoveMock }
 			/>
 		);
 
@@ -28,7 +33,7 @@ describe( 'RemoveMethodConfirmationModal', () => {
 			<RemoveMethodConfirmationModal
 				method="giropay"
 				onClose={ handleCloseMock }
-				handleRemove={ handleRemoveMock }
+				onConfirm={ handleRemoveMock }
 			/>
 		);
 
@@ -39,12 +44,12 @@ describe( 'RemoveMethodConfirmationModal', () => {
 		expect( handleCloseMock ).toHaveBeenCalled();
 	} );
 
-	it( 'should call handleRemove when the action is confirmed', () => {
+	it( 'should call onConfirm when the action is confirmed', () => {
 		render(
 			<RemoveMethodConfirmationModal
 				method="giropay"
 				onClose={ handleCloseMock }
-				handleRemove={ handleRemoveMock }
+				onConfirm={ handleRemoveMock }
 			/>
 		);
 

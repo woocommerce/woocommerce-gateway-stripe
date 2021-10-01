@@ -17,12 +17,14 @@ const useToggle = ( initialValue = false ) => {
 };
 
 const AdvancedSettings = () => {
-	const [ isSectionExpanded, toggleIsSectionExpanded ] = useToggle( false );
+	const [ isSectionExpanded, handleToggleSectionExpansion ] = useToggle(
+		false
+	);
 
 	return (
 		<>
 			<SettingsSection>
-				<Button onClick={ toggleIsSectionExpanded } isTertiary>
+				<Button onClick={ handleToggleSectionExpansion } isTertiary>
 					{ __( 'Advanced settings', 'woocommerce-gateway-stripe' ) }
 					<Icon
 						icon={ isSectionExpanded ? chevronUp : chevronDown }

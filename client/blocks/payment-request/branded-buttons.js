@@ -34,7 +34,7 @@ const useLocalizedGoogleSvg = ( type, theme, locale ) => {
 	return url;
 };
 
-export const GooglePayButton = ( { onButtonClicked } ) => {
+export const GooglePayButton = ( { onButtonClicked: handleButtonClick } ) => {
 	const {
 		theme = 'dark',
 		locale = 'en',
@@ -70,7 +70,7 @@ export const GooglePayButton = ( { onButtonClicked } ) => {
 				backgroundImage: `url(${ backgroundUrl })`,
 				height: height + 'px',
 			} }
-			onClick={ onButtonClicked }
+			onClick={ handleButtonClick }
 		/>
 	);
 };

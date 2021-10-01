@@ -10,7 +10,10 @@ import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import './style.scss';
 import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';
 
-const DisableConfirmationModal = ( { onClose, onConfirm } ) => {
+const DisableConfirmationModal = ( {
+	onClose: handleClose,
+	onConfirm: handleConfirm,
+} ) => {
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
 	const [
 		paymentRequestEnabledSettings,
@@ -38,13 +41,13 @@ const DisableConfirmationModal = ( { onClose, onConfirm } ) => {
 				/>
 			}
 			className="disable-confirmation-modal"
-			onRequestClose={ onClose }
+			onRequestClose={ handleClose }
 			actions={
 				<>
-					<Button onClick={ onConfirm } isPrimary isDestructive>
+					<Button onClick={ handleConfirm } isPrimary isDestructive>
 						Disable
 					</Button>
-					<Button onClick={ onClose } isSecondary>
+					<Button onClick={ handleClose } isSecondary>
 						Cancel
 					</Button>
 				</>

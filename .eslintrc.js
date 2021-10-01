@@ -14,6 +14,14 @@ module.exports = {
 		node: true,
 	},
 	rules: {
+		'react/jsx-handler-names': [
+			'error',
+			{
+				checkLocalVariables: true,
+				eventHandlerPropPrefix: 'on',
+				eventHandlerPrefix: '(handle|makeHandle)',
+			},
+		],
 		'require-await': 'error',
 		'react-hooks/exhaustive-deps': 'error',
 		'react-hooks/rules-of-hooks': 'error',

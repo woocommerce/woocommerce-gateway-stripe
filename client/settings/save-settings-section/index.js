@@ -10,7 +10,7 @@ const SaveSettingsSectionWrapper = styled( SettingsSection )`
 `;
 
 const SaveSettingsSection = () => {
-	const { saveSettings, isSaving, isLoading } = useSettings();
+	const { saveSettings: handleClick, isSaving, isLoading } = useSettings();
 
 	return (
 		<SaveSettingsSectionWrapper>
@@ -18,7 +18,7 @@ const SaveSettingsSection = () => {
 				isPrimary
 				isBusy={ isSaving }
 				disabled={ isSaving || isLoading }
-				onClick={ saveSettings }
+				onClick={ handleClick }
 			>
 				{ __( 'Save changes', 'woocommerce-gateway-stripe' ) }
 			</Button>

@@ -112,9 +112,12 @@ const buttonThemeOptions = [
 ];
 
 const PaymentRequestsSection = () => {
-	const [ buttonType, setButtonType ] = usePaymentRequestButtonType();
-	const [ size, setSize ] = usePaymentRequestButtonSize();
-	const [ theme, setTheme ] = usePaymentRequestButtonTheme();
+	const [
+		buttonType,
+		handleButtonTypeChange,
+	] = usePaymentRequestButtonType();
+	const [ size, handleSizeChange ] = usePaymentRequestButtonSize();
+	const [ theme, handleThemeChange ] = usePaymentRequestButtonTheme();
 
 	const stripePromise = useMemo( () => {
 		// This will be linked to actual Stripe account data:
@@ -151,7 +154,7 @@ const PaymentRequestsSection = () => {
 					) }
 					selected={ buttonType }
 					options={ buttonActionOptions }
-					onChange={ setButtonType }
+					onChange={ handleButtonTypeChange }
 				/>
 				<h4>{ __( 'Appearance', 'woocommerce-gateway-stripe' ) }</h4>
 				<RadioControl
@@ -162,13 +165,13 @@ const PaymentRequestsSection = () => {
 					label={ __( 'Size', 'woocommerce-gateway-stripe' ) }
 					selected={ size }
 					options={ buttonSizeOptions }
-					onChange={ setSize }
+					onChange={ handleSizeChange }
 				/>
 				<RadioControl
 					label={ __( 'Theme', 'woocommerce-gateway-stripe' ) }
 					selected={ theme }
 					options={ buttonThemeOptions }
-					onChange={ setTheme }
+					onChange={ handleThemeChange }
 				/>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
 				<Elements stripe={ stripePromise }>

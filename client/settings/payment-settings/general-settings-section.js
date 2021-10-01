@@ -11,15 +11,15 @@ const StyledCard = styled( Card )`
 `;
 
 const GeneralSettingsSection = () => {
-	const [ enableStripe, setEnableStripe ] = useState( false );
-	const [ enableTestMode, setEnableTestMode ] = useState( false );
+	const [ enableStripe, handleEnableStripeChange ] = useState( false );
+	const [ enableTestMode, handleTestModeChange ] = useState( false );
 
 	return (
 		<StyledCard>
 			<CardBody>
 				<CheckboxControl
 					checked={ enableStripe }
-					onChange={ setEnableStripe }
+					onChange={ handleEnableStripeChange }
 					label={ __(
 						'Enable Stripe',
 						'woocommerce-gateway-stripe'
@@ -32,7 +32,7 @@ const GeneralSettingsSection = () => {
 
 				<CheckboxControl
 					checked={ enableTestMode }
-					onChange={ setEnableTestMode }
+					onChange={ handleTestModeChange }
 					label={ __(
 						'Enable test mode',
 						'woocommerce-gateway-stripe'

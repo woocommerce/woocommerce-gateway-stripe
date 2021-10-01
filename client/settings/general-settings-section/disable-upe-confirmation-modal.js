@@ -37,7 +37,7 @@ const PaymentMethodListItemContent = styled.div`
 	}
 `;
 
-const DisableUpeConfirmationModal = ( { onClose } ) => {
+const DisableUpeConfirmationModal = ( { onClose: handleClose } ) => {
 	const { status, setIsUpeEnabled } = useContext( UpeToggleContext );
 
 	const { createErrorNotice, createSuccessNotice } = useDispatch(
@@ -66,7 +66,7 @@ const DisableUpeConfirmationModal = ( { onClose } ) => {
 						],
 					}
 				);
-				onClose();
+				handleClose();
 			} catch ( err ) {
 				createErrorNotice(
 					__(
@@ -97,13 +97,13 @@ const DisableUpeConfirmationModal = ( { onClose } ) => {
 						) }
 					/>
 				}
-				onRequestClose={ onClose }
+				onRequestClose={ handleClose }
 				actions={
 					<>
 						<Button
 							isSecondary
 							disabled={ status === 'pending' }
-							onClick={ onClose }
+							onClick={ handleClose }
 						>
 							{ __( 'Cancel', 'woocommerce-gateway-stripe' ) }
 						</Button>

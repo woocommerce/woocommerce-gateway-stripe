@@ -66,7 +66,7 @@ const GeneralSettingsSection = () => {
 	] = useEnabledPaymentMethodIds();
 	const availablePaymentMethods = useGetAvailablePaymentMethodIds();
 
-	const makeCheckboxChangeHandler = ( method ) => ( hasBeenChecked ) => {
+	const makeHandleCheckboxChange = ( method ) => ( hasBeenChecked ) => {
 		if ( hasBeenChecked ) {
 			setEnabledPaymentMethods( [ ...enabledPaymentMethods, method ] );
 		} else {
@@ -97,7 +97,7 @@ const GeneralSettingsSection = () => {
 								label={
 									<VisuallyHidden>{ label }</VisuallyHidden>
 								}
-								onChange={ makeCheckboxChangeHandler( method ) }
+								onChange={ makeHandleCheckboxChange( method ) }
 								checked={ enabledPaymentMethods.includes(
 									method
 								) }
@@ -118,7 +118,7 @@ const GeneralSettingsSection = () => {
 			{ isConfirmationModalOpen && (
 				<RemoveMethodConfirmationModal
 					method={ modalOpenForMethod }
-					onClose={ () => setIsConfirmationModalOpen( false ) }
+					onConfirm={ () => setIsConfirmationModalOpen( false ) }
 					handleRemove={ () =>
 						handleRemoveMethod( modalOpenForMethod )
 					}

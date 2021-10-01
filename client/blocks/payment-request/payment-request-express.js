@@ -60,7 +60,7 @@ const PaymentRequestExpressComponent = ( {
 		paymentRequestType,
 		setExpressPaymentError
 	);
-	const onPaymentRequestButtonClick = useOnClickHandler(
+	const handlePaymentRequestButtonClick = useOnClickHandler(
 		paymentRequestType,
 		setExpressPaymentError,
 		onClick
@@ -95,7 +95,7 @@ const PaymentRequestExpressComponent = ( {
 		return (
 			<CustomButton
 				onButtonClicked={ ( evt ) => {
-					onPaymentRequestButtonClick( evt, paymentRequest );
+					handlePaymentRequestButtonClick( evt, paymentRequest );
 				} }
 			/>
 		);
@@ -105,7 +105,7 @@ const PaymentRequestExpressComponent = ( {
 		return (
 			<GooglePayButton
 				onButtonClicked={ ( evt ) => {
-					onPaymentRequestButtonClick( evt, paymentRequest );
+					handlePaymentRequestButtonClick( evt, paymentRequest );
 				} }
 			/>
 		);
@@ -121,7 +121,7 @@ const PaymentRequestExpressComponent = ( {
 
 	return (
 		<PaymentRequestButtonElement
-			onClick={ onPaymentRequestButtonClick }
+			onClick={ handlePaymentRequestButtonClick }
 			options={ {
 				// @ts-ignore
 				style: paymentRequestButtonStyle,

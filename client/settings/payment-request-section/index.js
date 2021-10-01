@@ -36,7 +36,7 @@ const AdditionalControlsWrapper = styled.div`
 const PaymentRequestSection = () => {
 	const [
 		isPaymentRequestEnabled,
-		updateIsPaymentRequestEnabled,
+		handleIsPaymentRequestEnabledChange,
 	] = usePaymentRequestEnabledSettings();
 
 	const [ paymentRequestLocations, setPaymentRequestLocations ] = useState( [
@@ -45,7 +45,7 @@ const PaymentRequestSection = () => {
 		'checkout',
 	] );
 
-	const makeLocationChangeHandler = ( location ) => ( isChecked ) => {
+	const makeHandleLocationChange = ( location ) => ( isChecked ) => {
 		if ( isChecked ) {
 			setPaymentRequestLocations( [
 				...paymentRequestLocations,
@@ -63,7 +63,7 @@ const PaymentRequestSection = () => {
 			<CardBody>
 				<CheckboxControl
 					checked={ isPaymentRequestEnabled }
-					onChange={ updateIsPaymentRequestEnabled }
+					onChange={ handleIsPaymentRequestEnabledChange }
 					label={ __(
 						'Enable express checkouts',
 						'woocommerce-gateway-stripe'
@@ -120,7 +120,7 @@ const PaymentRequestSection = () => {
 										'checkout'
 									)
 								}
-								onChange={ makeLocationChangeHandler(
+								onChange={ makeHandleLocationChange(
 									'checkout'
 								) }
 								label={ __(
@@ -138,7 +138,7 @@ const PaymentRequestSection = () => {
 										'product'
 									)
 								}
-								onChange={ makeLocationChangeHandler(
+								onChange={ makeHandleLocationChange(
 									'product'
 								) }
 								label={ __(
@@ -154,7 +154,7 @@ const PaymentRequestSection = () => {
 									isPaymentRequestEnabled &&
 									paymentRequestLocations.includes( 'cart' )
 								}
-								onChange={ makeLocationChangeHandler( 'cart' ) }
+								onChange={ makeHandleLocationChange( 'cart' ) }
 								label={ __(
 									'Cart',
 									'woocommerce-gateway-stripe'
