@@ -172,7 +172,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Get_icon function.
 	 *
 	 * @since 1.0.0
-	 * @version x.x.x
+	 * @version 5.6.0
 	 * @return string
 	 */
 	public function get_icon() {
@@ -502,7 +502,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 1.0.0
 	 * @since 4.1.0 Add 4th parameter to track previous error.
-	 * @version x.x.x
+	 * @version 5.6.0
 	 *
 	 * @param int  $order_id Reference.
 	 * @param bool $retry Should we retry on fail.

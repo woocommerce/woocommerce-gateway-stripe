@@ -76,7 +76,8 @@ class WC_Stripe_Account {
 
 		// need call_user_func() as (  $this->stripe_api )::retrieve this syntax is not supported in php < 5.2
 		$account = call_user_func( [ $this->stripe_api, 'retrieve' ], 'account' );
-		if ( is_wp_error( $account ) ) {
+
+		if ( is_wp_error( $account ) || isset( $account->error->message ) ) {
 			return [];
 		}
 

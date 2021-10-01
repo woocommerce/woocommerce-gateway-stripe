@@ -147,7 +147,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Displays the save to account checkbox.
 	 *
 	 * @since 4.1.0
-	 * @version x.x.x
+	 * @version 5.6.0
 	 */
 	public function save_payment_method_checkbox( $force_checked = false ) {
 		$id = 'wc-' . $this->id . '-new-payment-method';
@@ -740,7 +740,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Checks if source is payment method (pm_).
 	 *
-	 * @since x.x.x
+	 * @since 5.6.0
 	 * @param string $source_id
 	 * @return bool
 	 */
