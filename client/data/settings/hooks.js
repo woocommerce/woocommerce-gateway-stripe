@@ -11,11 +11,14 @@ const makeReadWritePairHookWithUpdateCallback = (
 ) => () => {
 	const { updateSettingsValues } = useDispatch( STORE_NAME );
 
-	const field = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
+	const field = useSelect(
+		( select ) => {
+			const { getSettings } = select( STORE_NAME );
 
-		return getSettings()[ fieldName ] || fieldDefaultValue;
-	}, [] );
+			return getSettings()[ fieldName ] || fieldDefaultValue;
+		},
+		[ fieldName, fieldDefaultValue ]
+	);
 
 	const action = useCallback(
 		( v ) => updateActionCb( v, updateSettingsValues ),
