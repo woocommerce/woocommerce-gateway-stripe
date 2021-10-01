@@ -731,8 +731,8 @@ class WC_Stripe_Customer {
 	 * @param WC_Payment_Token_CC|WC_Payment_Token_SEPA $token The WC token for the payment method.
 	 * @param object $payment_method Payment method to be added.
 	 *
-	 * @since x.x.x
-	 * @version x.x.x
+	 * @since 5.6.0
+	 * @version 5.6.0
 	 */
 	public function add_payment_method_actions( $token, $payment_method ) {
 		// Clear cached payment methods.
