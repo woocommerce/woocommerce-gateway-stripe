@@ -38,7 +38,7 @@ function _manually_load_plugin() {
 	$_plugin_dir = __DIR__ . '/../../';
 	require $_plugin_dir . 'woocommerce-gateway-stripe.php';
 
-	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-controller.php';
+	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-base-controller.php';
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
 }
 
