@@ -1,4 +1,5 @@
 import { useSelect, useDispatch } from '@wordpress/data';
+import { useCallback } from 'react';
 import { STORE_NAME } from '../constants';
 
 const EMPTY_ARR = [];
@@ -16,7 +17,10 @@ const makeReadWritePairHookWithUpdateCallback = (
 		return getSettings()[ fieldName ] || fieldDefaultValue;
 	}, [] );
 
-	const action = ( v ) => updateActionCb( v, updateSettingsValues );
+	const action = useCallback(
+		( v ) => updateActionCb( v, updateSettingsValues ),
+		[ updateSettingsValues ]
+	);
 
 	return [ field, action ];
 };
