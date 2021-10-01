@@ -1,5 +1,4 @@
 import { useSelect, useDispatch } from '@wordpress/data';
-import { useCallback } from 'react';
 import { STORE_NAME } from '../constants';
 
 const EMPTY_ARR = [];
@@ -62,6 +61,10 @@ export const useSettings = () => {
 	return { settings, isLoading, isSaving, saveSettings };
 };
 
+export const useEnabledPaymentMethodIds = makeReadWritePairHook(
+	'enabled_payment_method_ids',
+	EMPTY_ARR
+);
 export const usePaymentRequestEnabledSettings = makeReadWritePairHook(
 	'is_payment_request_enabled'
 );
@@ -115,26 +118,6 @@ export const useGetSavingError = () => {
 
 		return getSavingError();
 	}, [] );
-};
-
-export const useEnabledPaymentMethodIds = () => {
-	const { updateSettingsValues } = useDispatch( STORE_NAME );
-
-	const methods = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().enabled_payment_method_ids || EMPTY_ARR;
-	} );
-
-	const handler = useCallback(
-		( value ) =>
-			updateSettingsValues( {
-				enabled_payment_method_ids: value,
-			} ),
-		[ updateSettingsValues ]
-	);
-
-	return [ methods, handler ];
 };
 
 export const useGetAvailablePaymentMethodIds = () =>
