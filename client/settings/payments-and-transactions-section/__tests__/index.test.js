@@ -3,16 +3,16 @@ import PaymentsAndTransactionsSection from '..';
 import {
 	useManualCapture,
 	useSavedCards,
-	useShortAccountStatement,
+	useIsShortAccountStatementEnabled,
 	useSeparateCardForm,
 	useAccountStatementDescriptor,
 	useShortAccountStatementDescriptor,
-} from '../data-mock';
+} from 'wcstripe/data';
 
-jest.mock( '../data-mock', () => ( {
+jest.mock( 'wcstripe/data', () => ( {
 	useManualCapture: jest.fn(),
 	useSavedCards: jest.fn(),
-	useShortAccountStatement: jest.fn(),
+	useIsShortAccountStatementEnabled: jest.fn(),
 	useSeparateCardForm: jest.fn(),
 	useAccountStatementDescriptor: jest.fn(),
 	useShortAccountStatementDescriptor: jest.fn(),
@@ -22,7 +22,10 @@ describe( 'PaymentsAndTransactionsSection', () => {
 	beforeEach( () => {
 		useManualCapture.mockReturnValue( [ true, jest.fn() ] );
 		useSavedCards.mockReturnValue( [ true, jest.fn() ] );
-		useShortAccountStatement.mockReturnValue( [ false, jest.fn() ] );
+		useIsShortAccountStatementEnabled.mockReturnValue( [
+			false,
+			jest.fn(),
+		] );
 		useSeparateCardForm.mockReturnValue( [ true, jest.fn() ] );
 		useAccountStatementDescriptor.mockReturnValue( [
 			'WOOTESTING, LTD',
@@ -54,7 +57,10 @@ describe( 'PaymentsAndTransactionsSection', () => {
 	} );
 
 	it( 'shows the shortened bank statement input', () => {
-		useShortAccountStatement.mockReturnValue( [ true, jest.fn() ] );
+		useIsShortAccountStatementEnabled.mockReturnValue( [
+			true,
+			jest.fn(),
+		] );
 		const updateShortAccountStatementDescriptor = jest.fn();
 		useShortAccountStatementDescriptor.mockReturnValue( [
 			'WOOTEST',
@@ -92,8 +98,11 @@ describe( 'PaymentsAndTransactionsSection', () => {
 		).toHaveTextContent( mockValue );
 	} );
 
-	it( 'shows the shortened customer bank statement preview when useShortAccountStatement is true', () => {
-		useShortAccountStatement.mockReturnValue( [ true, jest.fn() ] );
+	it( 'shows the shortened customer bank statement preview when useIsShortAccountStatementEnabled is true', () => {
+		useIsShortAccountStatementEnabled.mockReturnValue( [
+			true,
+			jest.fn(),
+		] );
 		const updateShortAccountStatementDescriptor = jest.fn();
 		const mockValue = 'WOOTEST';
 		useShortAccountStatementDescriptor.mockReturnValue( [
@@ -109,8 +118,11 @@ describe( 'PaymentsAndTransactionsSection', () => {
 		).toHaveTextContent( `${ mockValue }* #123456` );
 	} );
 
-	it( 'should not show the shortened customer bank statement preview when useShortAccountStatement is false', () => {
-		useShortAccountStatement.mockReturnValue( [ false, jest.fn() ] );
+	it( 'should not show the shortened customer bank statement preview when useIsShortAccountStatementEnabled is false', () => {
+		useIsShortAccountStatementEnabled.mockReturnValue( [
+			false,
+			jest.fn(),
+		] );
 		const updateShortAccountStatementDescriptor = jest.fn();
 		const mockValue = 'WOOTEST';
 		useShortAccountStatementDescriptor.mockReturnValue( [
