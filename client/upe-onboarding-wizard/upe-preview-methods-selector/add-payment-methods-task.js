@@ -156,11 +156,6 @@ const AddPaymentMethodsTask = () => {
 		} );
 	};
 
-	const areAllPaymentMethodsSelected =
-		Object.entries( paymentMethodsState )
-			.map( ( [ method, enabled ] ) => enabled && method )
-			.filter( Boolean ).length === availablePaymentMethods.length;
-
 	return (
 		<WizardTaskItem
 			className="add-payment-methods-task"
@@ -195,18 +190,16 @@ const AddPaymentMethodsTask = () => {
 										'woocommerce-gateway-stripe'
 									) }
 								</p>
-								{ ! areAllPaymentMethodsSelected && (
-									<Button
-										isLink
-										onClick={ handleSelectAllClick }
-										className="add-payment-methods-task__select-all-button"
-									>
-										{ __(
-											'Select all',
-											'woocommerce-gateway-stripe'
-										) }
-									</Button>
-								) }
+								<Button
+									isLink
+									onClick={ handleSelectAllClick }
+									className="add-payment-methods-task__select-all-button"
+								>
+									{ __(
+										'Select all',
+										'woocommerce-gateway-stripe'
+									) }
+								</Button>
 							</HeadingWrapper>
 
 							<PaymentMethodCheckboxes>
