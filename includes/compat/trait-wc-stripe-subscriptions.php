@@ -393,6 +393,23 @@ trait WC_Stripe_Subscriptions_Trait {
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
 
+			if ( ! empty( $response->next_action ) && 'card_await_notification' === $response->next_action->type ) {
+				$charge_attempt_at = $response->next_action->card_await_notification->charge_attempt_at;
+				$date              = new DateTime();
+				$date->setTimestamp( $charge_attempt_at );
+				$date->setTimezone( wp_timezone() );
+				$charge_attempt_date_string = $date->format( 'Y-m-d' );
+				$charge_attempt_time_string = $date->format( 'H:i' );
+
+				$message = sprintf(
+					/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
+					__( 'The customer must authorize this payment off-session. An attempt will be made to charge the customer\'s card on %1$s at %1$s.', 'woocommerce-gateway-stripe' ),
+					$charge_attempt_date_string,
+					$charge_attempt_time_string
+				);
+				$renewal_order->add_order_note( $message );
+			}
+
 			// Either the charge was successfully captured, or it requires further authentication.
 			if ( $is_authentication_required ) {
 				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order, $response );
