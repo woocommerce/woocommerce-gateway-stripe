@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * @since 5.6.0
  */
-class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Controller {
+class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 	/**
 	 * Endpoint path.
 	 *
