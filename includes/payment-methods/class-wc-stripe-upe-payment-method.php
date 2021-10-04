@@ -304,6 +304,16 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
+	 * Returns whether the payment method requires automatic capture.
+	 * By default all the UPE payment methods require automatic capture, except for "card".
+	 *
+	 * @return bool
+	 */
+	public function requires_automatic_capture() {
+		return true;
+	}
+
+	/**
 	 * Returns the HTML for the subtext messaging in the old settings UI.
 	 *
 	 * @param string $stripe_method_status (optional) Status of this payment method based on the Stripe's account capabilities

@@ -63,6 +63,32 @@ describe( 'AddPaymentMethodsTask', () => {
 		expect( screen.getByText( 'Add payment methods' ) ).not.toBeEnabled();
 	} );
 
+	it( 'should allow to select all payment methods', () => {
+		render(
+			<SettingsContextProvider>
+				<WizardTaskContext.Provider value={ { isActive: true } }>
+					<AddPaymentMethodsTask />
+				</WizardTaskContext.Provider>
+			</SettingsContextProvider>
+		);
+
+		expect(
+			screen.queryByRole( 'checkbox', { name: /Credit/ } )
+		).toBeChecked();
+		expect(
+			screen.getByRole( 'checkbox', { name: 'giropay' } )
+		).not.toBeChecked();
+
+		userEvent.click( screen.getByText( 'Select all' ) );
+
+		expect(
+			screen.queryByRole( 'checkbox', { name: /Credit/ } )
+		).toBeChecked();
+		expect(
+			screen.getByRole( 'checkbox', { name: 'giropay' } )
+		).toBeChecked();
+	} );
+
 	it( 'should move forward when the payment methods are selected', async () => {
 		const setCompletedMock = jest.fn();
 		const updateEnabledPaymentMethodsMock = jest.fn();
