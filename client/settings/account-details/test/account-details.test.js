@@ -1,32 +1,73 @@
 import { render, screen } from '@testing-library/react';
-import AccountStatus from '..';
+import AccountDetails from '..';
+import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
 
-describe( 'AccountStatus', () => {
-	const renderAccountStatus = ( accountStatus ) => {
-		return render( <AccountStatus accountStatus={ accountStatus } /> );
-	};
+jest.mock( 'wcstripe/data/account', () => ( {
+	useAccount: jest.fn(),
+	useGetCapabilities: jest.fn(),
+} ) );
 
-	test( 'renders enabled payments and deposits on account', () => {
-		renderAccountStatus( {
-			paymentsEnabled: true,
-			depositsEnabled: true,
-			accountLink: 'https://stripe.com/support',
+describe( 'AccountDetails', () => {
+	it( 'renders enabled payments and deposits on account', () => {
+		useGetCapabilities.mockReturnValue( {
+			card_payments: 'active',
 		} );
-		const warningDescription = screen.queryByText(
-			/Payments and deposits may be disabled for this account until missing business information is updated/i
-		);
-		expect( warningDescription ).not.toBeInTheDocument();
+		useAccount.mockReturnValue( {
+			data: {
+				account: {
+					settings: {
+						payouts: {
+							schedule: { interval: 'daily', delay_days: 2 },
+						},
+					},
+					payouts_enabled: true,
+				},
+			},
+		} );
+		render( <AccountDetails /> );
+
+		expect(
+			screen.queryByText( 'Error determining the connection status' )
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByText( /may be disabled/i )
+		).not.toBeInTheDocument();
 	} );
 
-	test( 'renders disabled deposits and payments on account', () => {
-		renderAccountStatus( {
-			paymentsEnabled: false,
-			depositsEnabled: false,
-			accountLink: 'https://stripe.com/support',
+	it( 'renders an error message when the account data is not available', () => {
+		useGetCapabilities.mockReturnValue( {} );
+		useAccount.mockReturnValue( {
+			data: {},
 		} );
-		const warningDescription = screen.getByText(
-			/Payments\/deposits may be disabled for this account until missing business information is updated/i
-		);
-		expect( warningDescription ).toBeInTheDocument();
+		render( <AccountDetails /> );
+
+		expect(
+			screen.queryByText( 'Error determining the connection status.' )
+		).toBeInTheDocument();
+		expect(
+			screen.queryByText( /may be disabled/i )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'renders disabled deposits and payments on account', () => {
+		useGetCapabilities.mockReturnValue( {
+			card_payments: 'disabled',
+		} );
+		useAccount.mockReturnValue( {
+			data: {
+				account: {
+					settings: {
+						payouts: {},
+					},
+					payouts_enabled: false,
+				},
+			},
+		} );
+		render( <AccountDetails /> );
+
+		expect(
+			screen.queryByText( 'Error determining the connection status' )
+		).not.toBeInTheDocument();
+		expect( screen.queryByText( /may be disabled/i ) ).toBeInTheDocument();
 	} );
 } );
