@@ -1,24 +1,54 @@
 import { __ } from '@wordpress/i18n';
-import React, { useCallback, useContext } from 'react';
-import { Button, Card, CardBody, ExternalLink } from '@wordpress/components';
+import React, { useCallback, useContext, useState } from 'react';
+import {
+	Button,
+	Card,
+	CardBody,
+	CheckboxControl,
+	ExternalLink,
+} from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
 import { Icon, store, people } from '@wordpress/icons';
 import WizardTaskContext from '../wizard/task/context';
 import CollapsibleBody from '../wizard/collapsible-body';
 import WizardTaskItem from '../wizard/task-item';
 import Pill from '../../components/pill';
+import { useManualCapture, useSettings } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import './style.scss';
 
 const EnableUpePreviewTask = () => {
 	const { setCompleted } = useContext( WizardTaskContext );
 	const { setIsUpeEnabled, status } = useContext( UpeToggleContext );
+	const { saveSettings, isSaving: isSavingSettings } = useSettings();
+	const [
+		initialIsManualCaptureEnabled,
+		setIsManualCaptureEnabled,
+	] = useManualCapture();
+
+	const [
+		internalIsManualCaptureDisabled,
+		setInternalIsManualCaptureDisabled,
+	] = useState( ! initialIsManualCaptureEnabled );
 
 	const handleContinueClick = useCallback( () => {
-		setIsUpeEnabled( true ).then( () => {
-			setCompleted( true, 'add-payment-methods' );
-		} );
-	}, [ setCompleted, setIsUpeEnabled ] );
+		setIsManualCaptureEnabled( false );
+		Promise.all( [ saveSettings(), setIsUpeEnabled( true ) ] ).then(
+			( [ saveSettingsResult ] ) => {
+				// when an error occurs, `saveSettings()` returns `false` (and still resolves)
+				if ( saveSettingsResult === false ) {
+					return;
+				}
+
+				setCompleted( true, 'add-payment-methods' );
+			}
+		);
+	}, [
+		setCompleted,
+		setIsUpeEnabled,
+		setIsManualCaptureEnabled,
+		saveSettings,
+	] );
 
 	return (
 		<WizardTaskItem
@@ -112,9 +142,27 @@ const EnableUpePreviewTask = () => {
 						</CardBody>
 					</Card>
 				</div>
+				{ initialIsManualCaptureEnabled && (
+					<CheckboxControl
+						label={ __(
+							'Disable manual capture of payments',
+							'woocommerce-gateway-stripe'
+						) }
+						onChange={ setInternalIsManualCaptureDisabled }
+						checked={ internalIsManualCaptureDisabled }
+						help={ __(
+							'In order to enable the new experience you need to disable the "manual capture" of payments.',
+							'woocommerce-gateway-stripe'
+						) }
+					/>
+				) }
 				<Button
-					isBusy={ status === 'pending' }
-					disabled={ status === 'pending' }
+					isBusy={ status === 'pending' || isSavingSettings }
+					disabled={
+						! internalIsManualCaptureDisabled ||
+						status === 'pending' ||
+						isSavingSettings
+					}
 					onClick={ handleContinueClick }
 					isPrimary
 				>
