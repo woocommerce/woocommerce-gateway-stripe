@@ -65,12 +65,13 @@ const MissingAccountDetailsDescription = () => {
 const AccountDetails = () => {
 	const { data } = useAccount();
 
-	if ( Object.keys( data.account ?? {} ).length === 0 ) {
+	const hasAccountError = Object.keys( data.account ?? {} ).length === 0;
+	if ( hasAccountError ) {
 		return (
 			<div>
 				<p className="account-details__error">
 					{ __(
-						'Error determining the connection status.',
+						'Error determining the account connection status.',
 						'woocommerce-gateway-stripe'
 					) }
 				</p>
