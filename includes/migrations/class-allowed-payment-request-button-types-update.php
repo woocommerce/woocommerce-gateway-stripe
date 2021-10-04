@@ -29,8 +29,7 @@ class Allowed_Payment_Request_Button_Types_Update {
 			return;
 		}
 
-		$gateways       = $this->get_gateways();
-		$stripe_gateway = $gateways[ WC_Gateway_Stripe::ID ];
+		$stripe_gateway = $this->get_gateway();
 
 		// "custom" or "branded" are no longer valid values for the button type - map them to new ones
 		$button_type = $stripe_gateway->get_option( 'payment_request_button_type' );
@@ -72,11 +71,11 @@ class Allowed_Payment_Request_Button_Types_Update {
 	}
 
 	/**
-	 * Returns the list of available payment gateways.
+	 * Returns the main Stripe payment gateways.
 	 *
-	 * @return array
+	 * @return WC_Stripe_Payment_Gateway
 	 */
-	public function get_gateways() {
-		return WC()->payment_gateways()->payment_gateways();
+	public function get_gateway() {
+		return woocommerce_gateway_stripe()->get_main_stripe_gateway();
 	}
 }
