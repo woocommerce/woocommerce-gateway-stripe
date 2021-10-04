@@ -1,6 +1,3 @@
-/**
- * External dependencies
- */
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -8,9 +5,9 @@ import PaymentRequestSection from '..';
 import {
 	usePaymentRequestEnabledSettings,
 	usePaymentRequestLocations,
-} from '../../../data';
+} from 'wcstripe/data';
 
-jest.mock( '../../../data', () => ( {
+jest.mock( 'wcstripe/data', () => ( {
 	usePaymentRequestEnabledSettings: jest.fn(),
 	usePaymentRequestLocations: jest.fn(),
 } ) );
