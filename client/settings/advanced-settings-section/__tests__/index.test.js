@@ -12,8 +12,10 @@ jest.mock( 'wcstripe/data', () => ( {
 
 describe( 'AdvancedSettings', () => {
 	beforeEach( () => {
-		useDevMode.mockReturnValue( [ false, jest.fn() ] );
+		useDevMode.mockReturnValue( false );
 		useDebugLog.mockReturnValue( [ true, jest.fn() ] );
+
+		// Set `isLoading` to false so `LoadableSettingsSection` can render.
 		useSettings.mockReturnValue( { isLoading: false } );
 	} );
 
@@ -31,7 +33,7 @@ describe( 'AdvancedSettings', () => {
 	it( 'toggles the debug mode input when dev mode is disabled', () => {
 		const setDebugLogMock = jest.fn();
 		useDebugLog.mockReturnValue( [ true, setDebugLogMock ] );
-		useDevMode.mockReturnValue( [ false, jest.fn() ] );
+		useDevMode.mockReturnValue( false );
 		render( <AdvancedSettings /> );
 
 		userEvent.click( screen.getByText( 'Advanced settings' ) );
@@ -47,7 +49,7 @@ describe( 'AdvancedSettings', () => {
 	} );
 
 	it( 'disables the debug mode input when dev mode is enabled', () => {
-		useDevMode.mockReturnValue( [ true, jest.fn() ] );
+		useDevMode.mockReturnValue( true );
 		render( <AdvancedSettings /> );
 
 		userEvent.click( screen.getByText( 'Advanced settings' ) );

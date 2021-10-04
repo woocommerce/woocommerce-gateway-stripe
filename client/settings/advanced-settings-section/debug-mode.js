@@ -4,7 +4,7 @@ import { CheckboxControl } from '@wordpress/components';
 import { useDevMode, useDebugLog } from 'wcstripe/data';
 
 const DebugMode = () => {
-	const [ isDevModeEnabled ] = useDevMode();
+	const isDevModeEnabled = useDevMode();
 	const [ isLoggingChecked, setIsLoggingChecked ] = useDebugLog();
 	const headingRef = useRef( null );
 

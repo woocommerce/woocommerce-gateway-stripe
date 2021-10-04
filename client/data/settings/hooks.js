@@ -108,7 +108,6 @@ export const useShortAccountStatementDescriptor = makeReadWritePairHook(
 	''
 );
 export const useDebugLog = makeReadWritePairHook( 'is_debug_log_enabled' );
-export const useDevMode = makeReadWritePairHook( 'is_dev_mode_enabled' );
 
 export const usePaymentRequestLocations = makeReadWritePairHookWithUpdateCallback(
 	'payment_request_button_locations',
@@ -133,3 +132,10 @@ export const useGetAvailablePaymentMethodIds = () =>
 
 		return getSettings().available_payment_method_ids || EMPTY_ARR;
 	} );
+
+export const useDevMode = () =>
+	useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
+
+		return getSettings().is_dev_mode_enabled || false;
+	}, [] );

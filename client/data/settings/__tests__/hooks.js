@@ -71,6 +71,30 @@ describe( 'Settings hooks tests', () => {
 		} );
 	} );
 
+	describe( 'useDevMode()', () => {
+		test( 'returns the value of getSettings().is_dev_mode_enabled', () => {
+			selectors = {
+				getSettings: jest.fn( () => ( {
+					is_dev_mode_enabled: true,
+				} ) ),
+			};
+
+			const { result } = renderHook( () => useDevMode() );
+
+			expect( result.current ).toEqual( true );
+		} );
+
+		test( 'returns false if setting is missing', () => {
+			selectors = {
+				getSettings: jest.fn( () => ( {} ) ),
+			};
+
+			const { result } = renderHook( () => useDevMode() );
+
+			expect( result.current ).toEqual( false );
+		} );
+	} );
+
 	describe( 'useSettings()', () => {
 		beforeEach( () => {
 			actions = {
@@ -203,12 +227,6 @@ describe( 'Settings hooks tests', () => {
 		useDebugLog: {
 			hook: useDebugLog,
 			storeKey: 'is_debug_log_enabled',
-			testedValue: true,
-			fallbackValue: false,
-		},
-		useDevMode: {
-			hook: useDevMode,
-			storeKey: 'is_dev_mode_enabled',
 			testedValue: true,
 			fallbackValue: false,
 		},
