@@ -17,7 +17,6 @@ const PaymentMethodCheckbox = ( { id } ) => {
 	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] = useState(
 		false
 	);
-
 	const [
 		enabledPaymentMethods,
 		setEnabledPaymentMethods,
