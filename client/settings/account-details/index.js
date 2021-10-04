@@ -18,12 +18,12 @@ const useAreDepositsEnabled = () => {
 };
 
 const PaymentsSection = () => {
-	const isActive = useIsCardPaymentsEnabled();
+	const isEnabled = useIsCardPaymentsEnabled();
 
 	return (
 		<div className="account-details__row">
 			<p>{ __( 'Payments:', 'woocommerce-gateway-stripe' ) }</p>
-			<SectionStatus isEnabled={ isActive } />
+			<SectionStatus isEnabled={ isEnabled } />
 		</div>
 	);
 };
