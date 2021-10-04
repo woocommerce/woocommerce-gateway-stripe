@@ -108,6 +108,13 @@ function woocommerce_gateway_stripe() {
 			public $account;
 
 			/**
+			 * The main Stripe gateway instance. Use get_main_stripe_gateway() to access it.
+			 *
+			 * @var null|WC_Stripe_Payment_Gateway
+			 */
+			protected $stripe_gateway = null;
+
+			/**
 			 * Private clone method to prevent cloning of the instance of the
 			 * *Singleton* instance.
 			 *
@@ -370,11 +377,10 @@ function woocommerce_gateway_stripe() {
 			 * @version 5.6.0
 			 */
 			public function add_gateways( $methods ) {
-				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-					$methods[] = WC_Stripe_UPE_Payment_Gateway::class;
-				} else {
+				$methods[] = $this->get_main_stripe_gateway();
+
+				if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() || ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 					// These payment gateways will be hidden when UPE is enabled:
-					$methods[] = WC_Gateway_Stripe::class;
 					$methods[] = WC_Gateway_Stripe_Sepa::class;
 					$methods[] = WC_Gateway_Stripe_Giropay::class;
 					$methods[] = WC_Gateway_Stripe_Ideal::class;
@@ -482,7 +488,7 @@ function woocommerce_gateway_stripe() {
 
 			protected function enable_upe( $settings ) {
 				$settings['upe_checkout_experience_accepted_payments'] = [];
-				$payment_gateways = WC()->payment_gateways->payment_gateways();
+				$payment_gateways                                      = WC()->payment_gateways->payment_gateways();
 				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
 					$lpm_gateway_id = constant( $method_class::LPM_GATEWAY_CLASS . '::ID' );
 					if ( isset( $payment_gateways[ $lpm_gateway_id ] ) && 'yes' === $payment_gateways[ $lpm_gateway_id ]->enabled ) {
@@ -587,21 +593,44 @@ function woocommerce_gateway_stripe() {
 
 				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-base-controller.php';
+					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
+					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-controller.php';
 
 					$upe_flag_toggle_controller = new WC_Stripe_REST_UPE_Flag_Toggle_Controller();
 					$upe_flag_toggle_controller->register_routes();
 
-					$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
-
-					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
-					$settings_controller = new WC_REST_Stripe_Settings_Controller( $gateway );
+					$settings_controller = new WC_REST_Stripe_Settings_Controller( $this->get_main_stripe_gateway() );
 					$settings_controller->register_routes();
 
-					$stripe_account_keys_controller = new WC_REST_Stripe_Account_keys_Controller();
+					$stripe_account_keys_controller = new WC_REST_Stripe_Account_Keys_Controller();
 					$stripe_account_keys_controller->register_routes();
+
+					$stripe_account_controller = new WC_REST_Stripe_Account_Controller( $this->account );
+					$stripe_account_controller->register_routes();
 				}
+			}
+
+			/**
+			 * Returns the main Stripe payment gateway class instance.
+			 *
+			 * @return WC_Stripe_Payment_Gateway
+			 */
+			public function get_main_stripe_gateway() {
+				if ( ! is_null( $this->stripe_gateway ) ) {
+					return $this->stripe_gateway;
+				}
+
+				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+					$this->stripe_gateway = new WC_Stripe_UPE_Payment_Gateway();
+
+					return $this->stripe_gateway;
+				}
+
+				$this->stripe_gateway = new WC_Gateway_Stripe();
+
+				return $this->stripe_gateway;
 			}
 		}
 
