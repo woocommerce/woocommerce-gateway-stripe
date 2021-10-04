@@ -1,17 +1,10 @@
-/**
- * External dependencies
- */
 import $ from 'jquery';
-
-/**
- * Internal dependencies
- */
 import {
 	updateShippingOptions,
 	updateShippingDetails,
 	createOrder,
-} from '../../api';
-import { getStripeServerData } from '../stripe-utils';
+} from 'wcstripe/api/blocks';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 const shippingAddressChangeHandler = ( paymentRequestType ) => ( evt ) => {
 	const { shippingAddress } = evt;
@@ -196,11 +189,13 @@ const paymentProcessingHandler = (
 	setExpressPaymentError
 ) => ( evt ) => {
 	const allowPrepaidCards =
-		getStripeServerData()?.stripe?.allow_prepaid_card === 'yes';
+		getBlocksConfiguration()?.stripe?.allow_prepaid_card === 'yes';
 
 	// Check if we allow prepaid cards.
 	if ( ! allowPrepaidCards && evt?.source?.card?.funding === 'prepaid' ) {
-		setExpressPaymentError( getStripeServerData()?.i18n?.no_prepaid_card );
+		setExpressPaymentError(
+			getBlocksConfiguration()?.i18n?.no_prepaid_card
+		);
 	} else {
 		// Create the order and attempt to pay.
 		createOrder( evt, paymentRequestType ).then(

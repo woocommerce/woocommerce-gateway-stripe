@@ -60,6 +60,58 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array
 	 */
 	public function get_payment_method_script_handles() {
+		// Ensure Stripe JS is enqueued
+		wp_register_script(
+			'stripe',
+			'https://js.stripe.com/v3/',
+			[],
+			'3.0',
+			true
+		);
+
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			$this->register_upe_payment_method_script_handles();
+		} else {
+			$this->register_legacy_payment_method_script_handles();
+		}
+
+		return [ 'wc-stripe-blocks-integration' ];
+	}
+
+	/**
+	 * Registers the UPE JS scripts.
+	 */
+	private function register_upe_payment_method_script_handles() {
+		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/upe_blocks.asset.php';
+		$version      = WC_STRIPE_VERSION;
+		$dependencies = [];
+		if ( file_exists( $asset_path ) ) {
+			$asset        = require $asset_path;
+			$version      = is_array( $asset ) && isset( $asset['version'] )
+				? $asset['version']
+				: $version;
+			$dependencies = is_array( $asset ) && isset( $asset['dependencies'] )
+				? $asset['dependencies']
+				: $dependencies;
+		}
+
+		wp_register_script(
+			'wc-stripe-blocks-integration',
+			WC_STRIPE_PLUGIN_URL . '/build/upe_blocks.js',
+			array_merge( [ 'stripe' ], $dependencies ),
+			$version,
+			true
+		);
+		wp_set_script_translations(
+			'wc-stripe-blocks-integration',
+			'woocommerce-gateway-stripe'
+		);
+	}
+
+	/**
+	 * Registers the classic JS scripts.
+	 */
+	private function register_legacy_payment_method_script_handles() {
 		$asset_path   = WC_STRIPE_PLUGIN_PATH . '/build/index.asset.php';
 		$version      = WC_STRIPE_VERSION;
 		$dependencies = [];
@@ -75,7 +127,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		wp_register_script(
 			'wc-stripe-blocks-integration',
 			WC_STRIPE_PLUGIN_URL . '/build/index.js',
-			$dependencies,
+			array_merge( [ 'stripe' ], $dependencies ),
 			$version,
 			true
 		);
@@ -83,8 +135,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			'wc-stripe-blocks-integration',
 			'woocommerce-gateway-stripe'
 		);
-
-		return [ 'wc-stripe-blocks-integration' ];
 	}
 
 	/**
@@ -95,12 +145,11 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	public function get_payment_method_data() {
 		// We need to call array_merge_recursive so the blocks 'button' setting doesn't overwrite
 		// what's provided from the gateway or payment request configuration.
-		return array_merge_recursive(
+		return array_replace_recursive(
 			$this->get_gateway_javascript_params(),
 			$this->get_payment_request_javascript_params(),
 			// Blocks-specific options
 			[
-				'title'                          => $this->get_title(),
 				'icons'                          => $this->get_icons(),
 				'supports'                       => $this->get_supported_features(),
 				'showSavedCards'                 => $this->get_show_saved_cards(),
@@ -129,23 +178,18 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		// TODO: Remove the `function_exists()` check once the minimum WP version has been bumped
 		//       to version 5.0.
 		if ( function_exists( 'has_block' ) ) {
-			global $post;
-
 			// Don't show if PRBs are supposed to be hidden on the cart page.
-			// Note: The cart block has the PRB enabled by default.
 			if (
 				has_block( 'woocommerce/cart' )
-				&& ! apply_filters( 'wc_stripe_show_payment_request_on_cart', true )
+				&& ! $this->payment_request_configuration->should_show_prb_on_cart_page()
 			) {
 				return false;
 			}
 
 			// Don't show if PRBs are supposed to be hidden on the checkout page.
-			// Note: The checkout block has the PRB enabled by default. This differs from the shortcode
-			//       checkout where the PRB is disabled by default.
 			if (
 				has_block( 'woocommerce/checkout' )
-				&& ! apply_filters( 'wc_stripe_show_payment_request_on_checkout', true, $post )
+				&& ! $this->payment_request_configuration->should_show_prb_on_checkout_page()
 			) {
 				return false;
 			}
@@ -308,8 +352,8 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				|| ! empty( $result->payment_details['setup_intent_secret'] )
 			)
 		) {
-			$payment_details                          = $result->payment_details;
-			$payment_details['verification_endpoint'] = add_query_arg(
+			$payment_details       = $result->payment_details;
+			$verification_endpoint = add_query_arg(
 				[
 					'order'       => $context->order->get_id(),
 					'nonce'       => wp_create_nonce( 'wc_stripe_confirm_pi' ),
@@ -317,6 +361,15 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				],
 				home_url() . \WC_Ajax::get_endpoint( 'wc_stripe_verify_intent' )
 			);
+
+			if ( ! empty( $payment_details['save_payment_method'] ) ) {
+				$verification_endpoint = add_query_arg(
+					[ 'save_payment_method' => true ],
+					$verification_endpoint
+				);
+			}
+
+			$payment_details['verification_endpoint'] = $verification_endpoint;
 			$result->set_payment_details( $payment_details );
 			$result->set_status( 'success' );
 		}

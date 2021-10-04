@@ -1,16 +1,10 @@
-/**
- * External dependencies
- */
 import { __ } from '@wordpress/i18n';
 import { useEffect, useState } from '@wordpress/element';
-
-/**
- * Internal dependencies
- */
-import { getStripeServerData, loadStripe } from '../stripe-utils';
-import { StripeCreditCard, getStripeCreditCardIcons } from './payment-method';
 import { ThreeDSecurePaymentHandler } from '../three-d-secure';
+import { StripeCreditCard, getStripeCreditCardIcons } from './payment-method';
 import { PAYMENT_METHOD_NAME } from './constants';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import { loadStripe } from 'wcstripe/blocks/load-stripe';
 
 const stripePromise = loadStripe();
 
@@ -38,7 +32,7 @@ const StripeLabel = ( props ) => {
 	const { PaymentMethodLabel } = props.components;
 
 	const labelText =
-		getStripeServerData()?.title ??
+		getBlocksConfiguration()?.title ??
 		__( 'Credit / Debit Card', 'woocommerce-gateway-stripe' );
 
 	return <PaymentMethodLabel text={ labelText } />;
@@ -61,9 +55,9 @@ const stripeCcPaymentMethod = {
 	),
 	supports: {
 		// Use `false` as fallback values in case server provided configuration is missing.
-		showSavedCards: getStripeServerData()?.showSavedCards ?? false,
-		showSaveOption: getStripeServerData()?.showSaveOption ?? false,
-		features: getStripeServerData()?.supports ?? [],
+		showSavedCards: getBlocksConfiguration()?.showSavedCards ?? false,
+		showSaveOption: getBlocksConfiguration()?.showSaveOption ?? false,
+		features: getBlocksConfiguration()?.supports ?? [],
 	},
 };
 

@@ -1,0 +1,16 @@
+.disable-confirmation-modal {
+	&__payment-methods-list {
+		margin-bottom: 32px;
+
+		> * {
+			&:not( :last-child ) {
+				margin-bottom: 12px;
+			}
+		}
+
+		// Hotfix for Stripe Gateway - might need to be fixed in WCPay as well.
+		.woocommerce-gateway-stripe__payment-method-icon {
+			max-width: inherit;
+		}
+	}
+}

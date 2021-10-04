@@ -12,13 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
-	 * Delay of retries.
-	 *
-	 * @var int
-	 */
-	public $retry_interval;
-
-	/**
 	 * Is test mode active?
 	 *
 	 * @var bool
@@ -86,7 +79,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Webhook_State::set_last_webhook_failure_at( time() );
 			WC_Stripe_Webhook_State::set_last_error_reason( $validation_result );
 
-			status_header( 400 );
+			// A webhook endpoint must return a 2xx HTTP status code to prevent future webhook
+			// delivery failures.
+			// @see https://stripe.com/docs/webhooks/build#acknowledge-events-immediately
+			status_header( 204 );
 			exit;
 		}
 	}
@@ -197,8 +193,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_id  = $order->get_id();
-		$source_id = $notification->data->object->id;
+		$order_id = $order->get_id();
 
 		$is_pending_receiver = ( 'receiver' === $notification->data->object->flow );
 
@@ -220,13 +215,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			WC_Stripe_Logger::log( "Info: (Webhook) Begin processing payment for order $order_id for the amount of {$order->get_total()}" );
 
 			// Prep source object.
-			$source_object           = new stdClass();
-			$source_object->token_id = '';
-			$source_object->customer = $this->get_stripe_customer_id( $order );
-			$source_object->source   = $source_id;
+			$prepared_source = $this->prepare_order_source( $order );
 
 			// Make the request.
-			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $source_object ), 'charges', 'POST', true );
+			$response = WC_Stripe_API::request( $this->generate_payment_request( $order, $prepared_source ), 'charges', 'POST', true );
 			$headers  = $response['headers'];
 			$response = $response['body'];
 
@@ -431,11 +423,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_charge_succeeded( $notification ) {
-		// Ignore the notification for charges, created through PaymentIntents.
-		if ( isset( $notification->data->object->payment_intent ) && $notification->data->object->payment_intent ) {
-			return;
-		}
-
 		// The following payment methods are synchronous so does not need to be handle via webhook.
 		if ( ( isset( $notification->data->object->source->type ) && 'card' === $notification->data->object->source->type ) || ( isset( $notification->data->object->source->type ) && 'three_d_secure' === $notification->data->object->source->type ) ) {
 			return;
@@ -743,7 +730,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( ! $order->has_status( [ 'pending', 'failed' ] ) ) {
+		if ( ! $order->has_status(
+			apply_filters(
+				'wc_stripe_allowed_payment_processing_statuses',
+				[ 'pending', 'failed' ]
+			)
+		) ) {
 			return;
 		}
 
@@ -790,7 +782,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if ( ! $order->has_status( [ 'pending', 'failed' ] ) ) {
+		if ( ! $order->has_status(
+			apply_filters(
+				'wc_gateway_stripe_allowed_payment_processing_statuses',
+				[ 'pending', 'failed' ]
+			)
+		) ) {
 			return;
 		}
 

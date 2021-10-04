@@ -1,6 +1,32 @@
 *** Changelog ***
 
 = 5.x.x - 2021-xx-xx =
+* Fix - Naming conflict with other plugins on WC_Stripe_REST_Controller.
+
+= 5.6.0 - 2021-09-30 =
+* Add - Pre-release preview of new checkout experience using Stripe Universal Payment Element.
+* Tweak - Removed "Branded" and "Custom label" options on Payment request buttons to align with design guidelines.
+* Tweak - Converted payment request button size value to distinct options to align with design guidelines.
+* Tweak - Animate supported credit card icons instead of displaying multiple icons at once.
+
+= 5.5.0 - 2021-09-15 =
+* Tweak - Moved the `WC_Gateway_Stripe::admin_scripts` method to `WC_Stripe_Settings_Controller::admin_scripts`.
+* Fix - Save payment method during 3D Secure flow for Block-based checkout.
+* Fix - Show subtotal on Payment Request dialog.
+* Add - Settings to control Payment Request Button locations in the Stripe plugin settings. Persists changes made through pre-existing filters, or defaults to the Cart and Product pages if no filters are in use.
+* Tweak - Deprecated the 'wc_stripe_hide_payment_request_on_product_page', 'wc_stripe_show_payment_request_on_checkout', and 'wc_stripe_show_payment_request_on_cart' filters in favor of the UI-driven approach in the plugin settings.
+* Add - Notice for WP & WC version compatibility check.
+
+= 5.4.1 - 2021-09-01 =
+* Fix - Get Subscription CustomerID from Order instead of User.
+
+= 5.4.0 - 2021-08-18 =
+* Fix - Do not ask for a Shipping Address if no Shipping Zone is defined.
+* Fix - Return HTTP 204 when webhook validation fails so Stripe won't stop sending certain webhook events after too many failed validations.
+* Fix - Possible use of an undefined variable `prepared_source`.
+* Add - 'wc_stripe_allowed_payment_processing_statuses' filter to customize order statuses that allow payment processing in the context of 3DS payments.
+
+= 5.3.0 - 2021-07-21 =
 * Fix - Disable Payment Request Buttons when order has to be split into multiple packages because Payment Requests do not support that use case.
 * Tweak - Payment request button should guide users to login when necessary.
 

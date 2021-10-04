@@ -11,6 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.0.0
  */
 class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
+
+	const ID = 'stripe_ideal';
+
 	/**
 	 * Notices (array)
 	 *
@@ -57,7 +60,7 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->id           = 'stripe_ideal';
+		$this->id           = self::ID;
 		$this->method_title = __( 'Stripe iDeal', 'woocommerce-gateway-stripe' );
 		/* translators: link */
 		$this->method_description = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
@@ -88,6 +91,7 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 		}
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
+		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts_for_banner' ] );
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
 	}
 
@@ -269,7 +273,12 @@ class WC_Gateway_Stripe_Ideal extends WC_Stripe_Payment_Gateway {
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
-			if ( $order->has_status( [ 'pending', 'failed' ] ) ) {
+			if ( $order->has_status(
+				apply_filters(
+					'wc_stripe_allowed_payment_processing_statuses',
+					[ 'pending', 'failed' ]
+				)
+			) ) {
 				$this->send_failed_order_email( $order_id );
 			}
 

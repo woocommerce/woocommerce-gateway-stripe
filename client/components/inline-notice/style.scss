@@ -1,0 +1,17 @@
+@import '../../styles/abstracts/styles.scss';
+
+.wcstripe-inline-notice {
+	// increasing the specificity of the styles to override the Gutenberg ones
+	&#{&} {
+		margin: 0;
+		margin-bottom: $grid-unit-30;
+
+		&.is-dismissible {
+			padding-right: 12px;
+		}
+	}
+
+	&.is-info {
+		background: #def1f7;
+	}
+}

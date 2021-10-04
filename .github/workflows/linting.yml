@@ -8,9 +8,9 @@ env:
   WC_VERSION: 4.5.0  # the most used version here
 
 jobs:
-  lint:
+  php_lint:
     name:    PHP linting
-    runs-on: ubuntu-16.04
+    runs-on: ubuntu-18.04
     steps:
       # clone the repository
       - uses: actions/checkout@v2
@@ -27,3 +27,22 @@ jobs:
           coverage:    none
       # install dependencies and run linter
       - run: composer self-update 2.0.6 && composer install --no-progress && ./vendor/bin/phpcs --standard=phpcs.xml.dist -n $(git ls-files | grep .php$)
+  js_css_lint:
+    name: JS & CSS linting
+    runs-on: ubuntu-18.04
+    steps:
+      # clone the repository
+      - uses: actions/checkout@v2
+      # enable dependencies caching
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/composer/
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm/
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+      # install dependencies and run linter
+      - run: npm ci
+      - run: npm run lint:js
+      - run: npm run lint:css

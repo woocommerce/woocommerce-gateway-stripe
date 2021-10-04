@@ -4,7 +4,7 @@
  *
  * The responses from HTTP requests are mocked using the WP filter `pre_http_request`.
  *
- * There are a few methods that need to be mocked in the class WC_Stripe_Subs_Compat, which is
+ * There are a few methods that need to be mocked in the class WC_Gateway_Stripe, which is
  * why that class is mocked even though the method under test is part of that class.
  *
  * @package     WooCommerce_Stripe/Classes/WC_Stripe_Subscription_Renewal_Test
@@ -19,7 +19,7 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	 *
 	 * @var PHPUnit_Framework_MockObject_MockObject
 	 */
-	private $wc_stripe_subs_compat;
+	private $wc_gateway_stripe;
 
 	/**
 	 * The statement descriptor we'll use in a test.
@@ -34,13 +34,13 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	public function setUp() {
 		parent::setUp();
 
-		$this->wc_stripe_subs_compat = $this->getMockBuilder( 'WC_Stripe_Subs_Compat' )
+		$this->wc_gateway_stripe = $this->getMockBuilder( 'WC_Gateway_Stripe' )
 			->disableOriginalConstructor()
 			->setMethods( [ 'prepare_order_source', 'has_subscription', 'ensure_subscription_has_customer_id' ] )
 			->getMock();
 
 		// Mocked in order to get metadata[payment_type] = recurring in the HTTP request.
-		$this->wc_stripe_subs_compat
+		$this->wc_gateway_stripe
 			->expects( $this->any() )
 			->method( 'has_subscription' )
 			->will(
@@ -92,16 +92,17 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$renewal_order->set_payment_method( 'stripe' );
 
 		// Arrange: Mock prepare_order_source() so that we have a customer and source.
-		$this->wc_stripe_subs_compat
+		$this->wc_gateway_stripe
 			->expects( $this->any() )
 			->method( 'prepare_order_source' )
 			->will(
 				$this->returnValue(
 					(object) [
-						'token_id'      => false,
-						'customer'      => $customer,
-						'source'        => $source,
-						'source_object' => (object) [],
+						'token_id'       => false,
+						'customer'       => $customer,
+						'source'         => $source,
+						'source_object'  => (object) [],
+						'payment_method' => null,
 					]
 				)
 			);
@@ -215,8 +216,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		);
 
 		// Act: call process_subscription_payment().
-		// We need to use `wc_stripe_subs_compat` here because we mocked this class earlier.
-		$result = $this->wc_stripe_subs_compat->process_subscription_payment( 20, $renewal_order, $should_retry, $previous_error );
+		// We need to use `wc_gateway_stripe` here because we mocked this class earlier.
+		$result = $this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, $should_retry, $previous_error );
 
 		// Assert: nothing was returned.
 		$this->assertEquals( $result, null );
@@ -272,16 +273,17 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$urls_used                     = [];
 
 		// Arrange: Mock prepare_order_source() so that we have a customer and source.
-		$this->wc_stripe_subs_compat
+		$this->wc_gateway_stripe
 			->expects( $this->any() )
 			->method( 'prepare_order_source' )
 			->will(
 				$this->returnValue(
 					(object) [
-						'token_id'      => false,
-						'customer'      => $customer,
-						'source'        => $source,
-						'source_object' => (object) [],
+						'token_id'       => false,
+						'customer'       => $customer,
+						'source'         => $source,
+						'source_object'  => (object) [],
+						'payment_method' => null,
 					]
 				)
 			);
@@ -328,8 +330,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		);
 
 		// Act: call process_subscription_payment().
-		// We need to use `wc_stripe_subs_compat` here because we mocked this class earlier.
-		$result = $this->wc_stripe_subs_compat->process_subscription_payment( 20, $renewal_order, $should_retry, $previous_error );
+		// We need to use `wc_gateway_stripe` here because we mocked this class earlier.
+		$result = $this->wc_gateway_stripe->process_subscription_payment( 20, $renewal_order, $should_retry, $previous_error );
 
 		// Assert: nothing was returned.
 		$this->assertEquals( $result, null );

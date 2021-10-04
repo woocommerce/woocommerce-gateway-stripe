@@ -1,12 +1,5 @@
-/**
- * External dependencies
- */
 import { useState, useEffect } from '@wordpress/element';
-
-/**
- * Internal dependencies
- */
-import { getStripeServerData } from '../stripe-utils';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 export const shouldUseGooglePayBrand = () => {
 	const ua = window.navigator.userAgent.toLowerCase();
@@ -46,10 +39,10 @@ export const GooglePayButton = ( { onButtonClicked } ) => {
 		theme = 'dark',
 		locale = 'en',
 		height = '44',
-	} = getStripeServerData()?.button;
+	} = getBlocksConfiguration()?.button;
 
 	const allowedTypes = [ 'short', 'long' ];
-	const { branded_type } = getStripeServerData()?.button; // eslint-disable-line camelcase
+	const { branded_type } = getBlocksConfiguration()?.button; // eslint-disable-line camelcase
 	const type = allowedTypes.includes( branded_type ) ? branded_type : 'long'; // eslint-disable-line camelcase
 
 	// Allowed themes for Google Pay button image are 'dark' and 'light'.
@@ -67,9 +60,9 @@ export const GooglePayButton = ( { onButtonClicked } ) => {
 
 	return (
 		<button
-			type={ 'button' }
-			id={ 'wc-stripe-branded-button' }
-			aria-label={ 'Google Pay' }
+			type="button"
+			id="wc-stripe-branded-button"
+			aria-label="Google Pay"
 			// 'light-outline' is a viable CSS class for the button, so we don't use the normalized
 			// `gpayButtonTheme` as the class here.
 			className={ `gpay-button ${ theme } ${ type }` }
@@ -78,6 +71,6 @@ export const GooglePayButton = ( { onButtonClicked } ) => {
 				height: height + 'px',
 			} }
 			onClick={ onButtonClicked }
-		></button>
+		/>
 	);
 };

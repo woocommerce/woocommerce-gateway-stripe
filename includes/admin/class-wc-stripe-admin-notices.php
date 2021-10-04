@@ -145,6 +145,7 @@ class WC_Stripe_Admin_Notices {
 				return;
 			}
 
+			// @codeCoverageIgnoreStart
 			if ( empty( $show_phpver_notice ) ) {
 				if ( version_compare( phpversion(), WC_STRIPE_MIN_PHP_VER, '<' ) ) {
 					/* translators: 1) int version 2) int version */
@@ -169,11 +170,14 @@ class WC_Stripe_Admin_Notices {
 					$this->add_admin_notice( 'curl', 'notice notice-warning', __( 'WooCommerce Stripe - cURL is not installed.', 'woocommerce-gateway-stripe' ), true );
 				}
 			}
+			// @codeCoverageIgnoreEnd
 
 			if ( empty( $show_keys_notice ) ) {
 				$secret = WC_Stripe_API::get_secret_key();
+				// phpcs:ignore
+				$should_show_notice_on_page = ! ( isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 0 === strpos( $_GET['section'], 'stripe' ) );
 
-				if ( empty( $secret ) && ! ( isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 'stripe' === $_GET['section'] ) ) {
+				if ( empty( $secret ) && $should_show_notice_on_page ) {
 					$setting_link = $this->get_setting_link();
 					/* translators: 1) link */
 					$this->add_admin_notice( 'keys', 'notice notice-warning', sprintf( __( 'Stripe is almost ready. To get started, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ), true );
@@ -235,9 +239,29 @@ class WC_Stripe_Admin_Notices {
 				continue;
 			}
 
-			if ( ! in_array( get_woocommerce_currency(), $gateway->get_supported_currency() ) ) {
+			if ( ! in_array( get_woocommerce_currency(), $gateway->get_supported_currency(), true ) ) {
 				/* translators: %1$s Payment method, %2$s List of supported currencies */
 				$this->add_admin_notice( $method, 'notice notice-error', sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s', 'woocommerce-gateway-stripe' ), $method, implode( ', ', $gateway->get_supported_currency() ) ), true );
+			}
+		}
+
+		if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() || ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			return;
+		}
+
+		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
+			if ( WC_Stripe_UPE_Payment_Method_CC::class === $method_class ) {
+				continue;
+			}
+			$method      = $method_class::STRIPE_ID;
+			$show_notice = get_option( 'wc_stripe_show_' . strtolower( $method ) . '_upe_notice' );
+			$upe_method  = new $method_class();
+			if ( ! $upe_method->is_enabled() || 'no' === $show_notice ) {
+				continue;
+			}
+			if ( ! in_array( get_woocommerce_currency(), $upe_method->get_supported_currencies(), true ) ) {
+				/* translators: %1$s Payment method, %2$s List of supported currencies */
+				$this->add_admin_notice( $method . '_upe', 'notice notice-error', sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s', 'woocommerce-gateway-stripe' ), $upe_method->get_label(), implode( ', ', $upe_method->get_supported_currencies() ) ), true );
 			}
 		}
 	}
@@ -314,6 +338,12 @@ class WC_Stripe_Admin_Notices {
 					break;
 				case 'changed_keys':
 					update_option( 'wc_stripe_show_changed_keys_notice', 'no' );
+					break;
+				default:
+					if ( false !== strpos( $notice, '_upe' ) ) {
+						update_option( 'wc_stripe_show_' . $notice . '_notice', 'no' );
+					}
+					break;
 			}
 		}
 	}
