@@ -109,7 +109,13 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	}
 
 	private function reloadPaymentGateways() {
-		woocommerce_gateway_stripe()->_TESTS_ONLY__unset_main_stripe_gateway();
+		Closure::bind(
+			function () {
+				$this->stripe_gateway = null;
+			},
+			woocommerce_gateway_stripe(),
+			WC_Stripe::class
+		)();
 		WC()->payment_gateways()->payment_gateways = [];
 		WC()->payment_gateways()->init();
 	}

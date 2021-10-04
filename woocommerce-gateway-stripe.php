@@ -632,15 +632,6 @@ function woocommerce_gateway_stripe() {
 
 				return $this->stripe_gateway;
 			}
-
-			/**
-			 * Use only in tests.
-			 * Running this will not unregister the hooks set by the gateway class.
-			 */
-			// phpcs:ignore WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid
-			public function _TESTS_ONLY__unset_main_stripe_gateway() {
-				$this->stripe_gateway = null;
-			}
 		}
 
 		$plugin = WC_Stripe::get_instance();
