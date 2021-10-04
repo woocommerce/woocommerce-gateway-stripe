@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.6
 Tested up to: 5.8
 Requires PHP: 5.6
-Stable tag: 5.6.0
+Stable tag: 5.6.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -126,6 +126,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.x.x - 2021-xx-xx =
+= 5.6.1 - 2021-10-04 =
+* Fix - Naming conflict with other plugins on WC_Stripe_REST_Controller.
+* Fix - Fatal error on `WC_REST_Stripe_Settings_Controller` when Elementor and WooFunnels plugins are used.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
