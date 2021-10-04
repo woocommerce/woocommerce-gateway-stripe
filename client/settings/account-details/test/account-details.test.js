@@ -26,9 +26,7 @@ describe( 'AccountDetails', () => {
 		} );
 		render( <AccountDetails /> );
 
-		expect(
-			screen.queryByText( 'Error determining the connection status' )
-		).not.toBeInTheDocument();
+		expect( screen.queryByText( /error/i ) ).not.toBeInTheDocument();
 		expect(
 			screen.queryByText( /may be disabled/i )
 		).not.toBeInTheDocument();
@@ -41,9 +39,7 @@ describe( 'AccountDetails', () => {
 		} );
 		render( <AccountDetails /> );
 
-		expect(
-			screen.queryByText( 'Error determining the connection status.' )
-		).toBeInTheDocument();
+		expect( screen.queryByText( /error/i ) ).toBeInTheDocument();
 		expect(
 			screen.queryByText( /may be disabled/i )
 		).not.toBeInTheDocument();
@@ -65,9 +61,7 @@ describe( 'AccountDetails', () => {
 		} );
 		render( <AccountDetails /> );
 
-		expect(
-			screen.queryByText( 'Error determining the connection status' )
-		).not.toBeInTheDocument();
+		expect( screen.queryByText( /error/i ) ).not.toBeInTheDocument();
 		expect( screen.queryByText( /may be disabled/i ) ).toBeInTheDocument();
 	} );
 } );
