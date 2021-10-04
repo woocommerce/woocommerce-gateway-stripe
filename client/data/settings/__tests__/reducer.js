@@ -1,5 +1,9 @@
 import reducer from '../reducer';
-import { updateSettings, updateIsSavingSettings } from '../actions';
+import {
+	updateSettings,
+	updateIsSavingSettings,
+	updateSettingsValues,
+} from '../actions';
 
 describe( 'Settings reducer tests', () => {
 	test( 'default state equals expected', () => {
@@ -61,6 +65,82 @@ describe( 'Settings reducer tests', () => {
 				},
 				savingError: {},
 			} );
+		} );
+	} );
+
+	describe( 'SET_SETTINGS_VALUES', () => {
+		test( 'adds specified new fields to the `data` subtree', () => {
+			const oldState = {
+				data: {
+					foo: 'bar',
+				},
+			};
+
+			const payload = { baz: 'quux', quuz: 'corge' };
+
+			const state = reducer( oldState, updateSettingsValues( payload ) );
+
+			expect( state.data ).toEqual( {
+				foo: 'bar',
+				baz: 'quux',
+				quuz: 'corge',
+			} );
+		} );
+		test( 'overwrites existing settings in the `data` subtree', () => {
+			const oldState = {
+				data: {
+					foo: 'bar',
+				},
+			};
+
+			const state = reducer(
+				oldState,
+				updateSettingsValues( { foo: 'baz' } )
+			);
+
+			expect( state.data ).toEqual( { foo: 'baz' } );
+		} );
+		test( 'changes only `data` fields specified in payload and leaves others unchanged', () => {
+			const oldState = {
+				quuz: 'corge',
+				data: {
+					foo: 'bar',
+					baz: 'quux',
+				},
+				savingError: null,
+			};
+
+			const state = reducer(
+				oldState,
+				updateSettingsValues( { foo: 'baz' } )
+			);
+
+			const expectedState = {
+				quuz: 'corge',
+				data: {
+					foo: 'baz',
+					baz: 'quux',
+				},
+				savingError: null,
+			};
+
+			expect( state ).toEqual( expectedState );
+		} );
+		test( 'sets savingError to null', () => {
+			const oldState = {
+				data: {
+					baz: 'quux',
+				},
+				savingError: 'baz',
+			};
+
+			const payload = {
+				quuz: 'corge',
+			};
+
+			const state = reducer( oldState, updateSettingsValues( payload ) );
+
+			expect( state.savingError ).toBeNull();
 		} );
 	} );
 
