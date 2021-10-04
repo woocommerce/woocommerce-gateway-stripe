@@ -17,6 +17,9 @@ import AdvancedSettingsSection from '../advanced-settings-section';
 import CustomizationOptionsNotice from '../customization-options-notice';
 import GeneralSettingsSection from './general-settings-section';
 import './style.scss';
+import { useTestMode } from 'wcstripe/data';
+import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
+import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -100,6 +103,7 @@ const AccountSettingsDropdownMenu = () => {
 
 const AccountDetailsSection = () => {
 	const accountStatus = wc_stripe_settings_params.accountStatus;
+	const [ isTestModeEnabled ] = useTestMode();
 
 	return (
 		<Card className="account-details">
@@ -109,7 +113,11 @@ const AccountDetailsSection = () => {
 						{ accountStatus.email }
 					</h4>
 				) }
-				{ accountStatus.mode === 'test' && <Pill>Test Mode</Pill> }
+				{ isTestModeEnabled && (
+					<Pill>
+						{ __( 'Test Mode', 'woocommerce-gateway-stripe' ) }
+					</Pill>
+				) }
 				<AccountSettingsDropdownMenu />
 			</CardHeader>
 			<CardBody>
@@ -123,11 +131,17 @@ const PaymentSettingsPanel = () => {
 	return (
 		<>
 			<SettingsSection Description={ GeneralSettingsDescription }>
-				<GeneralSettingsSection />
+				<LoadableSettingsSection numLines={ 20 }>
+					<LoadableAccountSection numLines={ 20 }>
+						<GeneralSettingsSection />
+					</LoadableAccountSection>
+				</LoadableSettingsSection>
 				<CustomizationOptionsNotice />
 			</SettingsSection>
 			<SettingsSection Description={ AccountDetailsDescription }>
-				<AccountDetailsSection />
+				<LoadableAccountSection numLines={ 20 }>
+					<AccountDetailsSection />
+				</LoadableAccountSection>
 			</SettingsSection>
 			<SettingsSection Description={ PaymentsAndTransactionsDescription }>
 				<PaymentsAndTransactionsSection />
