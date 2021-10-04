@@ -7,6 +7,18 @@ import {
 	usePaymentRequestEnabledSettings,
 	usePaymentRequestButtonTheme,
 	usePaymentRequestLocations,
+	usePaymentRequestButtonSize,
+	usePaymentRequestButtonType,
+	useIsStripeEnabled,
+	useTestMode,
+	useSavedCards,
+	useSeparateCardForm,
+	useAccountStatementDescriptor,
+	useIsShortAccountStatementEnabled,
+	useShortAccountStatementDescriptor,
+	useDebugLog,
+	useDevMode,
+	useManualCapture,
 } from '../hooks';
 import { STORE_NAME } from '../../constants';
 
@@ -109,16 +121,94 @@ describe( 'Settings hooks tests', () => {
 		);
 	} );
 
-	const createdHookExpectations = {
+	const generatedHookExpectations = {
 		useEnabledPaymentMethodIds: {
 			hook: useEnabledPaymentMethodIds,
 			storeKey: 'enabled_payment_method_ids',
-			testedValue: [ 'card' ],
+			testedValue: [ 'foo', 'bar' ],
 			fallbackValue: [],
 		},
 		usePaymentRequestEnabledSettings: {
 			hook: usePaymentRequestEnabledSettings,
 			storeKey: 'is_payment_request_enabled',
+			testedValue: true,
+			fallbackValue: false,
+		},
+		usePaymentRequestButtonSize: {
+			hook: usePaymentRequestButtonSize,
+			storeKey: 'payment_request_button_size',
+			testedValue: 'large',
+			fallbackValue: '',
+		},
+		usePaymentRequestButtonType: {
+			hook: usePaymentRequestButtonType,
+			storeKey: 'payment_request_button_type',
+			testedValue: '',
+			fallbackValue: '',
+		},
+		usePaymentRequestButtonTheme: {
+			hook: usePaymentRequestButtonTheme,
+			storeKey: 'payment_request_button_theme',
+			testedValue: 'dark',
+			fallbackValue: '',
+		},
+		useIsStripeEnabled: {
+			hook: useIsStripeEnabled,
+			storeKey: 'is_stripe_enabled',
+			testedValue: true,
+			fallbackValue: false,
+		},
+		useTestMode: {
+			hook: useTestMode,
+			storeKey: 'is_test_mode_enabled',
+			testedValue: true,
+			fallbackValue: false,
+		},
+		useSavedCards: {
+			hook: useSavedCards,
+			storeKey: 'is_saved_cards_enabled',
+			testedValue: true,
+			fallbackValue: false,
+		},
+		useManualCapture: {
+			hook: useManualCapture,
+			storeKey: 'is_manual_capture_enabled',
+			testedValue: true,
+			fallbackValue: false,
+		},
+		useSeparateCardForm: {
+			hook: useSeparateCardForm,
+			storeKey: 'is_separate_card_form_enabled',
+			testedValue: true,
+			fallbackValue: false,
+		},
+		useAccountStatementDescriptor: {
+			hook: useAccountStatementDescriptor,
+			storeKey: 'statement_descriptor',
+			testedValue: 'foo',
+			fallbackValue: '',
+		},
+		useIsShortAccountStatementEnabled: {
+			hook: useIsShortAccountStatementEnabled,
+			storeKey: 'is_short_statement_descriptor_enabled',
+			testedValue: true,
+			fallbackValue: false,
+		},
+		useShortAccountStatementDescriptor: {
+			hook: useShortAccountStatementDescriptor,
+			storeKey: 'short_statement_descriptor',
+			testedValue: 'bar',
+			fallbackValue: '',
+		},
+		useDebugLog: {
+			hook: useDebugLog,
+			storeKey: 'is_debug_log_enabled',
+			testedValue: true,
+			fallbackValue: false,
+		},
+		useDevMode: {
+			hook: useDevMode,
+			storeKey: 'is_dev_mode_enabled',
 			testedValue: true,
 			fallbackValue: false,
 		},
@@ -128,15 +218,9 @@ describe( 'Settings hooks tests', () => {
 			testedValue: [ 'checkout', 'cart' ],
 			fallbackValue: [],
 		},
-		usePaymentRequestButtonTheme: {
-			hook: usePaymentRequestButtonTheme,
-			storeKey: 'payment_request_button_theme',
-			testedValue: 'dark',
-			fallbackValue: '',
-		},
 	};
 
-	describe.each( Object.entries( createdHookExpectations ) )(
+	describe.each( Object.entries( generatedHookExpectations ) )(
 		'%s()',
 		( hookName, { hook, storeKey, testedValue, fallbackValue } ) => {
 			test( `returns the value of getSettings().${ storeKey }`, () => {
@@ -165,7 +249,7 @@ describe( 'Settings hooks tests', () => {
 				expect( value ).toEqual( fallbackValue );
 			} );
 
-			test( 'returns expected action', () => {
+			test( 'calls updateSettingsValues() on expected field with provided value', () => {
 				actions = {
 					updateSettingsValues: jest.fn(),
 				};
