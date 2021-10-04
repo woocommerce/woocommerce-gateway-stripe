@@ -1,10 +1,10 @@
 import React, { useContext, useState } from 'react';
 import styled from '@emotion/styled';
-import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import UpeToggleContext from '../upe-toggle/context';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
 import RemoveMethodConfirmationModal from './remove-method-confirmation-modal';
+import PaymentMethodCheckbox from './payment-method-checkbox';
 import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
@@ -66,15 +66,6 @@ const GeneralSettingsSection = () => {
 	] = useEnabledPaymentMethodIds();
 	const availablePaymentMethods = useGetAvailablePaymentMethodIds();
 
-	const makeCheckboxChangeHandler = ( method ) => ( hasBeenChecked ) => {
-		if ( hasBeenChecked ) {
-			setEnabledPaymentMethods( [ ...enabledPaymentMethods, method ] );
-		} else {
-			setIsConfirmationModalOpen( true );
-			setModalOpenForMethod( method );
-		}
-	};
-
 	const handleRemoveMethod = ( method ) => {
 		setIsConfirmationModalOpen( false );
 		setModalOpenForMethod( null );
@@ -92,17 +83,7 @@ const GeneralSettingsSection = () => {
 
 				return (
 					<ListElement key={ method }>
-						{ isUpeEnabled && (
-							<CheckboxControl
-								label={
-									<VisuallyHidden>{ label }</VisuallyHidden>
-								}
-								onChange={ makeCheckboxChangeHandler( method ) }
-								checked={ enabledPaymentMethods.includes(
-									method
-								) }
-							/>
-						) }
+						<PaymentMethodCheckbox id={ method } />
 						<PaymentMethodWrapper>
 							<PaymentMethodDescription
 								id={ isUpeEnabled ? method : null }
