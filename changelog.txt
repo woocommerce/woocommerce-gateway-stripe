@@ -2,6 +2,7 @@
 
 = 5.x.x - 2021-xx-xx =
 * Fix - Naming conflict with other plugins on WC_Stripe_REST_Controller.
+* Fix - Fatal error on `WC_REST_Stripe_Settings_Controller` when Elementor and WooFunnels plugins are used.
 
 = 5.6.0 - 2021-09-30 =
 * Add - Pre-release preview of new checkout experience using Stripe Universal Payment Element.
