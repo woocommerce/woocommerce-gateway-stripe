@@ -46,7 +46,7 @@ export function* saveSettings() {
 		// when the settings are saved, the "test mode" flag might have changed.
 		// In that case, we also need to fetch the "account" data again, to make sure we have it up to date.
 		yield dispatch( STORE_NAME ).invalidateResolutionForStoreSelector(
-			'getAccount'
+			'getAccountData'
 		);
 
 		yield dispatch( 'core/notices' ).createSuccessNotice(
