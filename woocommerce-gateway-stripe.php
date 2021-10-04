@@ -587,20 +587,24 @@ function woocommerce_gateway_stripe() {
 
 				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-base-controller.php';
+					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
+					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-controller.php';
 
 					$upe_flag_toggle_controller = new WC_Stripe_REST_UPE_Flag_Toggle_Controller();
 					$upe_flag_toggle_controller->register_routes();
 
 					$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
 
-					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
 					$settings_controller = new WC_REST_Stripe_Settings_Controller( $gateway );
 					$settings_controller->register_routes();
 
-					$stripe_account_keys_controller = new WC_REST_Stripe_Account_keys_Controller();
+					$stripe_account_keys_controller = new WC_REST_Stripe_Account_Keys_Controller();
 					$stripe_account_keys_controller->register_routes();
+
+					$stripe_account_controller = new WC_REST_Stripe_Account_Controller( $this->account );
+					$stripe_account_controller->register_routes();
 				}
 			}
 		}
