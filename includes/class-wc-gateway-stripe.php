@@ -172,20 +172,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Get_icon function.
 	 *
 	 * @since 1.0.0
-	 * @version 5.6.0
+	 * @version x.x.x
 	 * @return string
 	 */
 	public function get_icon() {
-		$icons                 = $this->payment_icons();
-		$supported_card_brands = WC_Stripe_Helper::get_supported_card_brands();
-
-		$icons_str = '';
-
-		foreach ( $supported_card_brands as $brand ) {
-			$icons_str .= isset( $icons[ $brand ] ) ? $icons[ $brand ] : '';
-		}
-
-		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
+		return apply_filters( 'woocommerce_gateway_icon', null, $this->id );
 	}
 
 	/**
