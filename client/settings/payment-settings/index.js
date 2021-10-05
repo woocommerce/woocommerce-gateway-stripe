@@ -1,4 +1,3 @@
-/* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
 import { React } from 'react';
 import {
@@ -20,6 +19,7 @@ import './style.scss';
 import { useTestMode } from 'wcstripe/data';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
+import { useAccount } from 'wcstripe/data/account';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -102,15 +102,15 @@ const AccountSettingsDropdownMenu = () => {
 };
 
 const AccountDetailsSection = () => {
-	const accountStatus = wc_stripe_settings_params.accountStatus;
 	const [ isTestModeEnabled ] = useTestMode();
+	const { data } = useAccount();
 
 	return (
 		<Card className="account-details">
 			<CardHeader className="account-details__header">
-				{ accountStatus.email && (
+				{ data.account?.email && (
 					<h4 className="account-details__header">
-						{ accountStatus.email }
+						{ data.account.email }
 					</h4>
 				) }
 				{ isTestModeEnabled && (
@@ -121,7 +121,7 @@ const AccountDetailsSection = () => {
 				<AccountSettingsDropdownMenu />
 			</CardHeader>
 			<CardBody>
-				<AccountStatus accountStatus={ accountStatus } />
+				<AccountStatus />
 			</CardBody>
 		</Card>
 	);
