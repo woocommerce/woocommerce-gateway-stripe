@@ -9,6 +9,14 @@ jest.mock( 'wcstripe/data', () => ( {
 	useGetAvailablePaymentMethodIds: jest.fn().mockReturnValue( [] ),
 } ) );
 
+// remove once manual capture hook is implemented
+jest.mock(
+	'wcstripe/settings/payments-and-transactions-section/data-mock',
+	() => ( {
+		useManualCapture: jest.fn().mockReturnValue( [] ),
+	} )
+);
+
 describe( 'OnboardingWizard', () => {
 	it( 'should render the onboarding wizard', () => {
 		render( <OnboardingWizard /> );
