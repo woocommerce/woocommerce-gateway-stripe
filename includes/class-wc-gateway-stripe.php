@@ -173,7 +173,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 1.0.0
 	 * @version x.x.x
-	 * @return string
+	 * @return string|null
 	 */
 	public function get_icon() {
 		return apply_filters( 'woocommerce_gateway_icon', null, $this->id );
