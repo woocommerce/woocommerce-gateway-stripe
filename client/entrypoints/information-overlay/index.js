@@ -86,4 +86,11 @@ jQuery( () => {
 			);
 		}
 	} );
+
+	// highlight the Stripe row
+	jQuery( 'tr[data-gateway_id="stripe"]' ).css( {
+		background: 'white',
+		position: 'relative',
+		'z-index': '1000000',
+	} );
 } );
