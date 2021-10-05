@@ -91,41 +91,4 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$this->assertFalse( get_transient( 'wcstripe_account_data_test' ) );
 		$this->assertFalse( get_transient( 'wcstripe_account_data_live' ) );
 	}
-
-	public function test_get_account_status() {
-		$this->mock_connect->method( 'is_connected' )->willReturn( true );
-		$account = [
-			'id'              => '1234',
-			'email'           => 'test@example.com',
-			'capabilities'    => [],
-			'payouts_enabled' => false,
-			'settings'        => [
-				'payouts' => [],
-			],
-		];
-		set_transient( 'wcstripe_account_data_test', $account );
-
-		$expected_response = [
-			'email'           => 'test@example.com',
-			'paymentsEnabled' => false,
-			'depositsEnabled' => false,
-			'accountLink'     => 'https://stripe.com/support',
-			'mode'            => 'test',
-		];
-
-		$account_status = $this->account->get_account_status();
-
-		$this->assertSame( $account_status, $expected_response );
-	}
-
-	public function test_get_account_status_with_error_when_account_is_empty() {
-		$this->mock_connect->method( 'is_connected' )->willReturn( false );
-
-		$expected_response = [
-			'error' => true,
-		];
-
-		$account_status = $this->account->get_account_status();
-		$this->assertSame( $account_status, $expected_response );
-	}
 }
