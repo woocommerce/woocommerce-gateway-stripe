@@ -1,5 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import { React } from 'react';
+import { React, useState } from 'react';
 import {
 	Card,
 	CardHeader,
@@ -15,6 +15,7 @@ import PaymentsAndTransactionsSection from '../payments-and-transactions-section
 import AdvancedSettingsSection from '../advanced-settings-section';
 import CustomizationOptionsNotice from '../customization-options-notice';
 import GeneralSettingsSection from './general-settings-section';
+import DisconnectStripeConfirmationModal from './disconnect-stripe-confirmation-modal';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import './style.scss';
 import { useTestMode } from 'wcstripe/data';
@@ -78,26 +79,40 @@ const PaymentsAndTransactionsDescription = () => (
 );
 
 const AccountSettingsDropdownMenu = () => {
+	const [
+		isConfirmationModalVisible,
+		setIsConfirmationModalVisible,
+	] = useState( false );
 	return (
-		<DropdownMenu
-			icon={ moreVertical }
-			label={ __(
-				'Edit details or disconnect account',
-				'woocommerce-gateway-stripe'
+		<>
+			<DropdownMenu
+				icon={ moreVertical }
+				label={ __(
+					'Edit details or disconnect account',
+					'woocommerce-gateway-stripe'
+				) }
+				controls={ [
+					{
+						title: __(
+							'Edit Details',
+							'woocommerce-gateway-stripe'
+						),
+						// eslint-disable-next-line no-console
+						onClick: () => console.log( 'Edit my details' ),
+					},
+					{
+						title: __( 'Disconnect', 'woocommerce-gateway-stripe' ),
+						// eslint-disable-next-line no-console
+						onClick: () => setIsConfirmationModalVisible( true ),
+					},
+				] }
+			/>
+			{ isConfirmationModalVisible && (
+				<DisconnectStripeConfirmationModal
+					onClose={ () => setIsConfirmationModalVisible( false ) }
+				/>
 			) }
-			controls={ [
-				{
-					title: __( 'Edit Details', 'woocommerce-gateway-stripe' ),
-					// eslint-disable-next-line no-console
-					onClick: () => console.log( 'Edit my details' ),
-				},
-				{
-					title: __( 'Disconnect', 'woocommerce-gateway-stripe' ),
-					// eslint-disable-next-line no-console
-					onClick: () => console.log( 'Disconnecting' ),
-				},
-			] }
-		/>
+		</>
 	);
 };
 
