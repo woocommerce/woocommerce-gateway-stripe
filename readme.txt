@@ -127,5 +127,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 5.x.x - 2021-xx-xx =
+* Tweak - Remove animated credit card icons from payment method option on the checkout page.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
