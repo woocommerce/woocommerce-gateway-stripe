@@ -125,6 +125,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'enabled_payment_method_ids'       => $this->gateway->get_upe_enabled_payment_method_ids(),
 				'available_payment_method_ids'     => $this->gateway->get_upe_available_payment_methods(),
 				'is_payment_request_enabled'       => 'yes' === $this->gateway->get_option( 'payment_request' ),
+				'is_test_mode_enabled'             => 'yes' === $this->gateway->get_option( 'testmode' ),
 				'payment_request_button_type'      => $this->gateway->get_option( 'payment_request_button_type' ),
 				'payment_request_button_theme'     => $this->gateway->get_option( 'payment_request_button_theme' ),
 				'payment_request_button_size'      => $this->gateway->get_option( 'payment_request_button_size' ),
@@ -141,6 +142,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	public function update_settings( WP_REST_Request $request ) {
 		$this->update_enabled_payment_methods( $request );
 		$this->update_is_payment_request_enabled( $request );
+		$this->update_is_test_mode_enabled( $request );
 		$this->update_payment_request_settings( $request );
 
 		return new WP_REST_Response( [], 200 );
@@ -157,6 +159,21 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		$is_payment_request_enabled = $request->get_param( 'is_payment_request_enabled' );
+
+		$this->gateway->update_option( 'testmode', $is_payment_request_enabled ? 'yes' : 'no' );
+	}
+
+	/**
+	 * Updates the "Test mode" enable/disable settings.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_is_test_mode_enabled( WP_REST_Request $request ) {
+		if ( null === $request->get_param( 'is_test_mode_enabled' ) ) {
+			return;
+		}
+
+		$is_payment_request_enabled = $request->get_param( 'is_test_mode_enabled' );
 
 		$this->gateway->update_option( 'payment_request', $is_payment_request_enabled ? 'yes' : 'no' );
 	}

@@ -151,6 +151,26 @@ export const useEnabledPaymentMethodIds = () => {
 	return [ methods, handler ];
 };
 
+export const useTestMode = () => {
+	const { updateSettingsValues } = useDispatch( STORE_NAME );
+
+	const methods = useSelect( ( select ) => {
+		const { getSettings } = select( STORE_NAME );
+
+		return getSettings().is_test_mode_enabled || false;
+	} );
+
+	const handler = useCallback(
+		( value ) =>
+			updateSettingsValues( {
+				is_test_mode_enabled: value,
+			} ),
+		[ updateSettingsValues ]
+	);
+
+	return [ methods, handler ];
+};
+
 export const useGetAvailablePaymentMethodIds = () =>
 	useSelect( ( select ) => {
 		const { getSettings } = select( STORE_NAME );
