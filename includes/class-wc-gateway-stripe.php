@@ -1235,4 +1235,36 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$data['description'] = $api_credentials_text;
 		return $this->generate_title_html( $key, $data );
 	}
+
+	/**
+	 * Checks whether the gateway is enabled.
+	 *
+	 * @return bool The result.
+	 */
+	public function is_enabled() {
+		return 'yes' === $this->get_option( 'enabled' );
+	}
+
+	/**
+	 * Disables gateway.
+	 */
+	public function disable() {
+		$this->update_option( 'enabled', 'no' );
+	}
+
+	/**
+	 * Enables gateway.
+	 */
+	public function enable() {
+		$this->update_option( 'enabled', 'yes' );
+	}
+
+	/**
+	 * Returns whether test_mode is active for the gateway.
+	 *
+	 * @return boolean Test mode enabled if true, disabled if false.
+	 */
+	public function is_in_test_mode() {
+		return 'yes' === $this->get_option( 'testmode' );
+	}
 }

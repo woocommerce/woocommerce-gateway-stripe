@@ -1715,38 +1715,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Checks whether the gateway is enabled.
-	 *
-	 * @return bool The result.
-	 */
-	public function is_enabled() {
-		return 'yes' === $this->get_option( 'enabled' );
-	}
-
-	/**
-	 * Disables gateway.
-	 */
-	public function disable() {
-		$this->update_option( 'enabled', 'no' );
-	}
-
-	/**
-	 * Enables gateway.
-	 */
-	public function enable() {
-		$this->update_option( 'enabled', 'yes' );
-	}
-
-	/**
-	 * Returns whether test_mode is active for the gateway.
-	 *
-	 * @return boolean Test mode enabled if true, disabled if false.
-	 */
-	public function is_in_test_mode() {
-		return 'yes' === $this->get_option( 'testmode' );
-	}
-
-	/**
 	 * Gets a localized message for an error from a response, adds it as a note to the order, and throws it.
 	 *
 	 * @since 4.2.0

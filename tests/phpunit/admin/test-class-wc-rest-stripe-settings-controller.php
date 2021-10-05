@@ -26,7 +26,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * Gateway.
 	 *
-	 * @var WC_Stripe_Payment_Gateway
 	 * @var WC_Gateway_Stripe
 	 */
 	private $gateway;
