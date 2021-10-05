@@ -43,4 +43,36 @@ describe( 'GeneralSettingsSection', () => {
 		expect( enableStripeCheckbox ).toBeChecked();
 		expect( setTestModeMock ).toHaveBeenCalledWith( true );
 	} );
+
+	it( 'should open live account keys modal when edit account keys clicked in live mode', () => {
+		const setTestModeMock = jest.fn();
+		useTestMode.mockReturnValue( [ false, setTestModeMock ] );
+
+		render( <GeneralSettingsSection /> );
+
+		const editKeysButton = screen.getByRole( 'button', {
+			text: /edit account keys/i,
+		} );
+		userEvent.click( editKeysButton );
+		const accountKeysModal = screen.getByLabelText(
+			/edit live account keys & webhooks/i
+		);
+		expect( accountKeysModal ).toBeInTheDocument();
+	} );
+
+	it( 'should open test account keys modal when edit account keys clicked in test mode', () => {
+		const setTestModeMock = jest.fn();
+		useTestMode.mockReturnValue( [ true, setTestModeMock ] );
+
+		render( <GeneralSettingsSection /> );
+
+		const editKeysButton = screen.getByRole( 'button', {
+			text: /edit account keys/i,
+		} );
+		userEvent.click( editKeysButton );
+		const accountKeysModal = screen.getByLabelText(
+			/edit test account keys & webhooks/i
+		);
+		expect( accountKeysModal ).toBeInTheDocument();
+	} );
 } );
