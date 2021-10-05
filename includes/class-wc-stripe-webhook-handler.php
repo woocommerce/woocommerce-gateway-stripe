@@ -597,6 +597,71 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Process a refund update.
+	 *
+	 * @param object $notification
+	 */
+	public function process_webhook_refund_updated( $notification ) {
+		$refund_object = $notification->data->object;
+		$order         = WC_Stripe_Helper::get_order_by_charge_id( $refund_object->charge );
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::log( 'Could not find order to update refund via charge ID: ' . $refund_object->charge );
+			return;
+		}
+
+		$order_id = $order->get_id();
+
+		if ( 'stripe' === $order->get_payment_method() ) {
+			$charge    = $order->get_transaction_id();
+			$refund_id = $order->get_meta( '_stripe_refund_id' );
+
+			$amount = wc_price( $refund_object->amount / 100 );
+			if ( in_array( strtolower( $order->get_currency() ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+				$amount = wc_price( $refund_object->amount );
+			}
+
+			// If the refund IDs do not match stop.
+			if ( $refund_object->id !== $refund_id ) {
+				return;
+			}
+
+			if ( $charge ) {
+				$refunds = wc_get_orders(
+					[
+						'limit'  => 1,
+						'parent' => $order_id,
+					]
+				);
+
+				if ( empty( $refunds ) ) {
+					// No existing refunds nothing to update.
+					return;
+				}
+
+				$refund = $refunds[0];
+
+				if ( in_array( $refund_object->status, [ 'failed', 'canceled' ], true ) ) {
+					if ( isset( $refund_object->failure_balance_transaction ) ) {
+						$this->update_fees( $order, $refund_object->failure_balance_transaction );
+					}
+					$refund->delete( true );
+					do_action( 'woocommerce_refund_deleted', $refund_id, $order_id );
+					if ( 'failed' === $refund_object->status ) {
+						/* translators: 1) transaction id 2) amount (including currency symbol) 3) refund failure code */
+						$note = sprintf( __( 'Refund failed with ID %1$s for %2$s - %3$s', 'woocommerce-gateway-stripe' ), $refund_object->id, $amount, $refund_object->failure_reason );
+					} else {
+						/* translators: 1) transaction id 2) amount (including currency symbol) 3) refund failure code */
+						$note = sprintf( __( 'Refund cancelled with ID %1$s for %2$s - %3$s', 'woocommerce-gateway-stripe' ), $refund_object->id, $amount, $refund_object->failure_reason );
+					}
+
+					$order->add_order_note( $note );
+				}
+			}
+		}
+	}
+
+	/**
 	 * Process webhook reviews that are opened. i.e Radar.
 	 *
 	 * @since 4.0.6
@@ -862,6 +927,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			case 'charge.refunded':
 				$this->process_webhook_refund( $notification );
+				break;
+
+			case 'charge.refund.updated':
+				$this->process_webhook_refund_updated( $notification );
 				break;
 
 			case 'review.opened':
