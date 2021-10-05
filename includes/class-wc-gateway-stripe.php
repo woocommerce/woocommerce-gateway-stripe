@@ -179,13 +179,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$icons                 = $this->payment_icons();
 		$supported_card_brands = WC_Stripe_Helper::get_supported_card_brands();
 
-		$icons_str = '<div class="card-brand-icons">';
+		$icons_str = '';
 
 		foreach ( $supported_card_brands as $brand ) {
 			$icons_str .= isset( $icons[ $brand ] ) ? $icons[ $brand ] : '';
 		}
-
-		$icons_str .= '</div>';
 
 		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
 	}
