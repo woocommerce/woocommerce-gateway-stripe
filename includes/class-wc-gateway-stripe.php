@@ -1267,4 +1267,33 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public function is_in_test_mode() {
 		return 'yes' === $this->get_option( 'testmode' );
 	}
+
+	/**
+	 * Validates statement descriptor value
+	 *
+	 * @param  string $key Field key.
+	 * @param  string $value Posted Value.
+	 *
+	 * @return string                   Sanitized statement descriptor.
+	 * @throws InvalidArgumentException When statement descriptor is invalid.
+	 */
+	public function validate_account_statement_descriptor_field( $key, $value ) {
+		// Since the value is escaped, and we are saving in a place that does not require escaping, apply stripslashes.
+		$value = trim( stripslashes( $value ) );
+
+		// Validation can be done with a single regex but splitting into multiple for better readability.
+		$valid_length   = '/^.{5,22}$/';
+		$has_one_letter = '/^.*[a-zA-Z]+/';
+		$no_specials    = '/^[^*"\'<>]*$/';
+
+		if (
+			! preg_match( $valid_length, $value ) ||
+			! preg_match( $has_one_letter, $value ) ||
+			! preg_match( $no_specials, $value )
+		) {
+			throw new InvalidArgumentException( __( 'Customer bank statement is invalid. Statement should be between 5 and 22 characters long, contain at least single Latin character and does not contain special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' ) );
+		}
+
+		return $value;
+	}
 }

@@ -56,9 +56,27 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'callback'            => [ $this, 'update_settings' ],
 				'permission_callback' => [ $this, 'check_permission' ],
 				'args'                => [
-
 					'is_stripe_enabled'                => [
 						'description'       => __( 'If Stripe should be enabled.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'boolean',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'enabled_payment_method_ids'       => [
+						'description'       => __( 'Payment method IDs that should be enabled. Other methods will be disabled.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'array',
+						'items'             => [
+							'type' => 'string',
+							'enum' => $this->gateway->get_upe_available_payment_methods(),
+						],
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'is_manual_capture_enabled'        => [
+						'description'       => __( 'If manual capture of charges should be enabled.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'boolean',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'is_saved_cards_enabled'           => [
+						'description'       => __( 'If "Saved cards" should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -66,6 +84,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'description'       => __( 'Stripe test mode setting.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'statement_descriptor'             => [
+						'description'       => __( 'Bank account descriptor to be displayed in customers\' bank accounts.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'validate_callback' => [ $this, 'validate_statement_descriptor' ],
 					],
 					'is_payment_request_enabled'       => [
 						'description'       => __( 'If Stripe express checkouts should be enabled.', 'woocommerce-gateway-stripe' ),
@@ -109,18 +132,37 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'enabled_payment_method_ids'       => [
-						'description'       => __( 'Payment method IDs that should be enabled. Other methods will be disabled.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'array',
-						'items'             => [
-							'type' => 'string',
-							'enum' => $this->gateway->get_upe_available_payment_methods(),
-						],
-						'validate_callback' => 'rest_validate_request_arg',
-					],
 				],
 			]
 		);
+	}
+
+	/**
+	 * Validate the statement descriptor argument.
+	 *
+	 * @since 4.7.0
+	 *
+	 * @param mixed           $value The value being validated.
+	 * @param WP_REST_Request $request The request made.
+	 * @param string          $param The parameter name, used in error messages.
+	 * @return true|WP_Error
+	 */
+	public function validate_statement_descriptor( $value, $request, $param ) {
+		$string_validation_result = rest_validate_request_arg( $value, $request, $param );
+		if ( true !== $string_validation_result ) {
+			return $string_validation_result;
+		}
+
+		try {
+			$this->gateway->validate_account_statement_descriptor_field( 'statement_descriptor', $value );
+		} catch ( Exception $exception ) {
+			return new WP_Error(
+				'rest_invalid_pattern',
+				$exception->getMessage()
+			);
+		}
+
+		return true;
 	}
 
 	/**
@@ -241,7 +283,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates WooCommerce Payments manual capture.
+	 * Updates manual capture.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 */
@@ -256,7 +298,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates WooCommerce Payments "saved cards" feature.
+	 * Updates "saved cards" feature.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 */
@@ -271,7 +313,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates WooCommerce Payments "saved cards" feature.
+	 * Updates "saved cards" feature.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 */
@@ -286,7 +328,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates WooCommerce Payments account statement descriptor.
+	 * Updates account statement descriptor.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 */
@@ -301,7 +343,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates WooCommerce Payments manual capture.
+	 * Updates whether short account statement should be used.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 */
@@ -316,7 +358,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates WooCommerce Payments account statement descriptor.
+	 * Updates short account statement descriptor.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 */
@@ -331,7 +373,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates WooCommerce Payments test mode.
+	 * Updates whether debug logging is enabled.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 */
@@ -380,12 +422,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		if ( null === $request->get_param( 'enabled_payment_method_ids' ) ) {
+		$payment_method_ids_to_enable = $request->get_param( 'enabled_payment_method_ids' );
+
+		if ( null === $payment_method_ids_to_enable ) {
 			return;
 		}
 
-		$payment_method_ids_to_enable = $request->get_param( 'enabled_payment_method_ids' );
-		$available_payment_methods    = $this->gateway->get_upe_available_payment_methods();
+		$available_payment_methods = $this->gateway->get_upe_available_payment_methods();
 
 		$payment_method_ids_to_enable = array_values(
 			array_filter(
