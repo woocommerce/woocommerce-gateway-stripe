@@ -64,10 +64,26 @@ const InformationOverlay = () => {
 	);
 };
 
-const informationOverlayContainer = document.getElementById(
-	'wc-stripe-information-overlay-container'
-);
+const stripeRowTop = jQuery( 'tr[data-gateway_id="stripe"]' ).offset().top;
+const windowHeight = jQuery( window ).height();
 
-if ( informationOverlayContainer ) {
-	ReactDOM.render( <InformationOverlay />, informationOverlayContainer );
-}
+// waiting for the dom to be fully loaded as the section below the table takes time to load
+jQuery( () => {
+	const scrollTop =
+		stripeRowTop > windowHeight / 2
+			? stripeRowTop - windowHeight / 2
+			: stripeRowTop;
+	// scrolling so that the Stripe row is always within view
+	jQuery( 'body,html' ).animate( { scrollTop }, 1000, () => {
+		const informationOverlayContainer = document.getElementById(
+			'wc-stripe-information-overlay-container'
+		);
+
+		if ( informationOverlayContainer ) {
+			ReactDOM.render(
+				<InformationOverlay />,
+				informationOverlayContainer
+			);
+		}
+	} );
+} );
