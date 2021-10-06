@@ -4,9 +4,9 @@ import { STORE_NAME } from '../constants';
 
 const EMPTY_ARR = [];
 
-const makeReadWritePairHookWithUpdateCallback = (
+const makeSettingsHookFromUpdateHandler = (
 	fieldName,
-	updateActionCb,
+	updateHandler,
 	fieldDefaultValue = false
 ) => () => {
 	const { updateSettingsValues } = useDispatch( STORE_NAME );
@@ -20,26 +20,33 @@ const makeReadWritePairHookWithUpdateCallback = (
 		[ fieldName, fieldDefaultValue ]
 	);
 
-	const action = useCallback(
-		( v ) => updateActionCb( v, updateSettingsValues ),
+	const handler = useCallback(
+		( v ) => updateHandler( v, updateSettingsValues ),
 		[ updateSettingsValues ]
 	);
 
-	return [ field, action ];
+	return [ field, handler ];
 };
 
-const makeReadWritePairHook = ( fieldName, fieldDefaultValue = false ) => {
-	const action = ( v, updateSettingsValues ) =>
+const makeSettingsHook = ( fieldName, fieldDefaultValue = false ) => {
+	const updateHandler = ( v, updateSettingsValues ) =>
 		updateSettingsValues( {
 			[ fieldName ]: v,
 		} );
 
-	return makeReadWritePairHookWithUpdateCallback(
+	return makeSettingsHookFromUpdateHandler(
 		fieldName,
-		action,
+		updateHandler,
 		fieldDefaultValue
 	);
 };
+
+const makeReadOnlySettingsHook = ( fieldName, fieldDefaultValue = false ) =>
+	makeSettingsHookFromUpdateHandler(
+		fieldName,
+		() => {},
+		fieldDefaultValue
+	)[ 0 ];
 
 export const useSettings = () => {
 	const { saveSettings } = useDispatch( STORE_NAME );
@@ -68,48 +75,46 @@ export const useSettings = () => {
 	return { settings, isLoading, isSaving, saveSettings };
 };
 
-export const useEnabledPaymentMethodIds = makeReadWritePairHook(
+export const useEnabledPaymentMethodIds = makeSettingsHook(
 	'enabled_payment_method_ids',
 	EMPTY_ARR
 );
-export const usePaymentRequestEnabledSettings = makeReadWritePairHook(
+export const usePaymentRequestEnabledSettings = makeSettingsHook(
 	'is_payment_request_enabled'
 );
-export const usePaymentRequestButtonSize = makeReadWritePairHook(
+export const usePaymentRequestButtonSize = makeSettingsHook(
 	'payment_request_button_size',
 	''
 );
-export const usePaymentRequestButtonType = makeReadWritePairHook(
+export const usePaymentRequestButtonType = makeSettingsHook(
 	'payment_request_button_type',
 	''
 );
-export const usePaymentRequestButtonTheme = makeReadWritePairHook(
+export const usePaymentRequestButtonTheme = makeSettingsHook(
 	'payment_request_button_theme',
 	''
 );
-export const useIsStripeEnabled = makeReadWritePairHook( 'is_stripe_enabled' );
-export const useTestMode = makeReadWritePairHook( 'is_test_mode_enabled' );
-export const useSavedCards = makeReadWritePairHook( 'is_saved_cards_enabled' );
-export const useManualCapture = makeReadWritePairHook(
-	'is_manual_capture_enabled'
-);
-export const useSeparateCardForm = makeReadWritePairHook(
+export const useIsStripeEnabled = makeSettingsHook( 'is_stripe_enabled' );
+export const useTestMode = makeSettingsHook( 'is_test_mode_enabled' );
+export const useSavedCards = makeSettingsHook( 'is_saved_cards_enabled' );
+export const useManualCapture = makeSettingsHook( 'is_manual_capture_enabled' );
+export const useSeparateCardForm = makeSettingsHook(
 	'is_separate_card_form_enabled'
 );
-export const useAccountStatementDescriptor = makeReadWritePairHook(
+export const useAccountStatementDescriptor = makeSettingsHook(
 	'statement_descriptor',
 	''
 );
-export const useIsShortAccountStatementEnabled = makeReadWritePairHook(
+export const useIsShortAccountStatementEnabled = makeSettingsHook(
 	'is_short_statement_descriptor_enabled'
 );
-export const useShortAccountStatementDescriptor = makeReadWritePairHook(
+export const useShortAccountStatementDescriptor = makeSettingsHook(
 	'short_statement_descriptor',
 	''
 );
-export const useDebugLog = makeReadWritePairHook( 'is_debug_log_enabled' );
+export const useDebugLog = makeSettingsHook( 'is_debug_log_enabled' );
 
-export const usePaymentRequestLocations = makeReadWritePairHookWithUpdateCallback(
+export const usePaymentRequestLocations = makeSettingsHookFromUpdateHandler(
 	'payment_request_button_locations',
 	( v, updateSettingsValues ) =>
 		updateSettingsValues( {
@@ -118,6 +123,12 @@ export const usePaymentRequestLocations = makeReadWritePairHookWithUpdateCallbac
 	EMPTY_ARR
 );
 
+export const useGetAvailablePaymentMethodIds = makeReadOnlySettingsHook(
+	'available_payment_method_ids',
+	EMPTY_ARR
+);
+export const useDevMode = makeReadOnlySettingsHook( 'is_dev_mode_enabled' );
+
 export const useGetSavingError = () => {
 	return useSelect( ( select ) => {
 		const { getSavingError } = select( STORE_NAME );
@@ -125,17 +136,3 @@ export const useGetSavingError = () => {
 		return getSavingError();
 	}, [] );
 };
-
-export const useGetAvailablePaymentMethodIds = () =>
-	useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().available_payment_method_ids || EMPTY_ARR;
-	} );
-
-export const useDevMode = () =>
-	useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().is_dev_mode_enabled || false;
-	}, [] );
