@@ -19,6 +19,10 @@ jest.mock( '@wordpress/data', () => ( {
 	register: jest.fn(),
 	combineReducers: jest.fn(),
 } ) );
+jest.mock(
+	'wcstripe/components/payment-method-capability-status-pill',
+	() => () => null
+);
 jest.mock( '../../loadable-settings-section', () => ( { children } ) =>
 	children
 );

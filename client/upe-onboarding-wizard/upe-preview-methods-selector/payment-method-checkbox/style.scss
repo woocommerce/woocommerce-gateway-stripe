@@ -1,4 +1,4 @@
-@import '../../styles/abstracts/styles.scss';
+@import '../../../styles/abstracts/styles.scss';
 
 .payment-method-checkbox {
 	display: flex;
@@ -11,13 +11,17 @@
 		margin-bottom: 0;
 	}
 
-	& > * {
-		margin: 0 3px;
+	&__element-wrapper {
+		display: flex;
+		align-items: center;
+
+		> * {
+			margin: 0 3px;
+		}
 	}
 
 	.components-base-control__field {
 		margin-bottom: 0;
-
 	}
 
 	.woocommerce-gateway-stripe__payment-method-icon__icon {
@@ -25,18 +29,6 @@
 
 		@include breakpoint( '>800px' ) {
 			display: inline-flex;
-		}
-	}
-
-	&__fees {
-		margin-left: auto;
-		margin-right: 3px;
-	}
-
-	&__info {
-		> * {
-			margin: 0;
-			color: $gray-600;
 		}
 	}
 }
