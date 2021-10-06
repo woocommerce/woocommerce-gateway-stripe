@@ -126,8 +126,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.6.2 - 2021-10-06 =
-* Tweak - Remove animated credit card icons from payment method option on the checkout page.
-* Fix - Payments for pre-orders and subscriptions with an empty source token now work as intended.
+= 5.x.x - 2021-xx-xx =
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
