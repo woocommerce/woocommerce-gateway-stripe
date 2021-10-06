@@ -39,7 +39,7 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 					  )
 			}
 		>
-			<InlineNotice isDismissable={ false }>
+			<InlineNotice isDismissible={ false }>
 				{ type === 'test'
 					? interpolateComponents( {
 							mixedString: __(
