@@ -541,14 +541,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_id = $order->get_id();
 
 		if ( 'stripe' === $order->get_payment_method() ) {
-			$charge    = $order->get_transaction_id();
-			$captured  = $order->get_meta( '_stripe_charge_captured', true );
-			$refund_id = $order->get_meta( '_stripe_refund_id', true );
+			$charge     = $order->get_transaction_id();
+			$captured   = $order->get_meta( '_stripe_charge_captured' );
+			$refund_id  = $order->get_meta( '_stripe_refund_id' );
+			$currency   = $order->get_currency();
+			$raw_amount = $notification->data->object->refunds->data[0]->amount;
 
-			$amount = wc_price( $notification->data->object->refunds->data[0]->amount / 100 );
-			if ( in_array( strtolower( $order->get_currency() ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
-				$amount = wc_price( $notification->data->object->refunds->data[0]->amount );
+			if ( ! in_array( strtolower( $currency ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+				$raw_amount /= 100;
 			}
+
+			$amount = wc_price( $raw_amount, [ 'currency' => $currency ] );
 
 			// If charge wasn't captured, skip creating a refund.
 			if ( 'yes' !== $captured ) {
@@ -613,13 +616,16 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_id = $order->get_id();
 
 		if ( 'stripe' === $order->get_payment_method() ) {
-			$charge    = $order->get_transaction_id();
-			$refund_id = $order->get_meta( '_stripe_refund_id' );
+			$charge     = $order->get_transaction_id();
+			$refund_id  = $order->get_meta( '_stripe_refund_id' );
+			$currency   = $order->get_currency();
+			$raw_amount = $refund_object->amount;
 
-			$amount = wc_price( $refund_object->amount / 100 );
-			if ( in_array( strtolower( $order->get_currency() ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
-				$amount = wc_price( $refund_object->amount );
+			if ( ! in_array( strtolower( $currency ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+				$raw_amount /= 100;
 			}
+
+			$amount = wc_price( $raw_amount, [ 'currency' => $currency ] );
 
 			// If the refund IDs do not match stop.
 			if ( $refund_object->id !== $refund_id ) {
