@@ -1,10 +1,14 @@
 import React from 'react';
 import { render, within, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import PaymentMethodsCheckboxes from '..';
-import PaymentMethodsCheckbox from '../payment-method-checkbox';
+import PaymentMethodCheckbox from '..';
 
-describe( 'PaymentMethodsCheckboxes', () => {
+jest.mock(
+	'wcstripe/components/payment-method-capability-status-pill',
+	() => () => null
+);
+
+describe( 'PaymentMethodCheckbox', () => {
 	it( 'triggers the onChange when clicking the checkbox', () => {
 		const handleChange = jest.fn();
 
@@ -18,16 +22,16 @@ describe( 'PaymentMethodsCheckboxes', () => {
 		];
 
 		render(
-			<PaymentMethodsCheckboxes>
-				{ upeMethods.map( ( key ) => (
-					<PaymentMethodsCheckbox
-						key={ key[ 0 ] }
+			<ul>
+				{ upeMethods.map( ( [ id, checked ] ) => (
+					<PaymentMethodCheckbox
+						key={ id }
 						onChange={ handleChange }
-						checked={ key[ 1 ] }
-						name={ key[ 0 ] }
+						checked={ checked }
+						id={ id }
 					/>
 				) ) }
-			</PaymentMethodsCheckboxes>
+			</ul>
 		);
 
 		const paymentMethods = screen.getAllByRole( 'listitem' );
