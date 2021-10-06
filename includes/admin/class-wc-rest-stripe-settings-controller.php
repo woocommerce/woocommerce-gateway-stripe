@@ -83,29 +83,20 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 					'payment_request_button_type'           => [
 						'description'       => __( 'Express checkout button types.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
-						'items'             => [
-							'type' => 'string',
-							'enum' => array_keys( $form_fields['payment_request_button_type']['options'] ),
-						],
+						'enum'              => array_keys( $form_fields['payment_request_button_type']['options'] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'payment_request_button_theme'          => [
 						'description'       => __( 'Express checkout button themes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
-						'items'             => [
-							'type' => 'string',
-							'enum' => array_keys( $form_fields['payment_request_button_theme']['options'] ),
-						],
+						'enum'              => array_keys( $form_fields['payment_request_button_theme']['options'] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'payment_request_button_size'           => [
 						'description'       => __( 'Express checkout button sizes.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
-						'items'             => [
-							'type' => 'string',
-							// it can happen that `$form_fields['payment_request_button_size']` is empty (in tests) - fixing temporarily.
-							'enum' => array_keys( isset( $form_fields['payment_request_button_size']['options'] ) ? $form_fields['payment_request_button_size']['options'] : [] ),
-						],
+						// it can happen that `$form_fields['payment_request_button_size']` is empty (in tests) - fixing temporarily.
+						'enum'              => array_keys( isset( $form_fields['payment_request_button_size']['options'] ) ? $form_fields['payment_request_button_size']['options'] : [] ),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'payment_request_button_locations'      => [
@@ -400,7 +391,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	private function update_is_debug_log_enabled( WP_REST_Request $request ) {
 		$is_debug_log_enabled = $request->get_param( 'is_debug_log_enabled' );
 
-		if ( null === $request->has_param( 'is_debug_log_enabled' ) ) {
+		if ( null === $is_debug_log_enabled ) {
 			return;
 		}
 

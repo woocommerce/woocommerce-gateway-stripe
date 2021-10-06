@@ -58,21 +58,90 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		wp_set_current_user( 1 );
 	}
 
-	public function test_get_settings_request_returns_status_code_200() {
+	/**
+	 * @dataProvider boolean_field_provider
+	 */
+	public function test_boolean_fields( $rest_key, $option_name, $inverse = false ) {
+		// It returns option value under expected key with HTTP code 200.
+		$this->get_gateway()->update_option( $option_name, 'yes' );
 		$response = $this->rest_get_settings();
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( $inverse ? false : true, $response->get_data()[ $rest_key ] );
+
+		// When option is "yes", return true (or if $inverse, false).
+		$this->get_gateway()->update_option( $option_name, 'yes' );
+		$this->assertEquals( $inverse ? false : true, $this->rest_get_settings()->get_data()[ $rest_key ] );
+
+		// When option is "no", return false (or if $inverse, true).
+		$this->get_gateway()->update_option( $option_name, 'no' );
+		$this->assertEquals( $inverse ? true : false, $this->rest_get_settings()->get_data()[ $rest_key ] );
+
+		// Update if new value is boolean.
+		$this->get_gateway()->update_option( $option_name, $inverse ? 'yes' : 'no' );
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( $rest_key, true );
+		$response = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( $inverse ? 'no' : 'yes', $this->get_gateway()->get_option( $option_name ) );
+
+		// Do not update if rest key not present in update request.
+		$status_before_request = $this->get_gateway()->get_option( $option_name );
+
+		$request  = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( $status_before_request, $this->get_gateway()->get_option( $option_name ) );
+
+		// Return HTTP code 400 if REST value is not boolean.
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( $rest_key, 'foo' );
+		$response = rest_do_request( $request );
+		$this->assertEquals( 400, $response->get_status() );
 	}
 
-	public function test_get_settings_returns_enabled_payment_method_ids() {
+	/**
+	 * @dataProvider enum_field_provider
+	 */
+	public function test_enum_fields( $rest_key, $option_name, $original_valid_value, $new_valid_value, $new_invalid_value ) {
+		// It returns option value under expected key with HTTP code 200.
+		$this->get_gateway()->update_option( $option_name, $original_valid_value );
 		$response = $this->rest_get_settings();
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( $original_valid_value, $response->get_data()[ $rest_key ] );
 
-		$enabled_method_ids = $response->get_data()['enabled_payment_method_ids'];
+		// Test update works for values within enum.
+		$this->get_gateway()->update_option( $option_name, $original_valid_value );
 
-		$this->assertEquals(
-			[ 'card' ],
-			$enabled_method_ids
-		);
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( $rest_key, $new_valid_value );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( $new_valid_value, $this->get_gateway()->get_option( $option_name ) );
+
+		// Do not update if rest key not present in update request.
+		$this->get_gateway()->update_option( $option_name, $original_valid_value );
+
+		$status_before_request = $this->get_gateway()->get_option( $option_name );
+		$request               = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( $status_before_request, $this->get_gateway()->get_option( $option_name ) );
+
+		// Test update fails and returns HTTP code 400 for values outside of enum.
+		$this->get_gateway()->update_option( $option_name, $original_valid_value );
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( $rest_key, $new_invalid_value );
+
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 400, $response->get_status() );
+		$this->assertEquals( $original_valid_value, $this->get_gateway()->get_option( $option_name ) );
 	}
 
 	public function test_get_settings_returns_available_payment_method_ids() {
@@ -94,22 +163,53 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		);
 	}
 
-	public function test_get_settings_request_returns_test_mode_flag() {
-		$this->get_gateway()->update_option( 'testmode', 'yes' );
-		$this->assertEquals( true, $this->rest_get_settings()->get_data()['is_test_mode_enabled'] );
-
-		$this->get_gateway()->update_option( 'testmode', 'no' );
-		$this->assertEquals( false, $this->rest_get_settings()->get_data()['is_test_mode_enabled'] );
+	public function boolean_field_provider() {
+		return [
+			'is_stripe_enabled'                     => [ 'is_stripe_enabled', 'enabled' ],
+			'is_test_mode_enabled'                  => [ 'is_test_mode_enabled', 'testmode' ],
+			'is_payment_request_enabled'            => [ 'is_payment_request_enabled', 'payment_request' ],
+			'is_manual_capture_enabled'             => [ 'is_manual_capture_enabled', 'capture', true ],
+			'is_saved_cards_enabled'                => [ 'is_saved_cards_enabled', 'saved_cards' ],
+			'is_separate_card_form_enabled'         => [ 'is_separate_card_form_enabled', 'inline_cc_form', true ],
+			'is_short_statement_descriptor_enabled' => [
+				'is_short_statement_descriptor_enabled',
+				'is_short_statement_descriptor_enabled',
+			],
+			'is_debug_log_enabled'                  => [ 'is_debug_log_enabled', 'logging' ],
+		];
 	}
 
-	public function test_get_settings_returns_if_stripe_is_enabled() {
-		$this->get_gateway()->enable();
-		$response = $this->rest_get_settings();
-		$this->assertTrue( $response->get_data()['is_stripe_enabled'] );
-
-		$this->get_gateway()->disable();
-		$response = $this->rest_get_settings();
-		$this->assertFalse( $response->get_data()['is_stripe_enabled'] );
+	public function enum_field_provider() {
+		return [
+			'enabled_payment_method_ids' => [
+				'enabled_payment_method_ids',
+				'upe_checkout_experience_accepted_payments',
+				[ 'card' ],
+				[ 'card', 'giropay' ],
+				[ 'foo' ],
+			],
+			'payment_request_button_theme' => [
+				'payment_request_button_theme',
+				'payment_request_button_theme',
+				'dark',
+				'light',
+				'foo',
+			],
+			'payment_request_button_size' => [
+				'payment_request_button_size',
+				'payment_request_button_size',
+				'default',
+				'large',
+				'foo',
+			],
+			'payment_request_button_type' => [
+				'payment_request_button_type',
+				'payment_request_button_type',
+				'buy',
+				'book',
+				'foo',
+			],
+		];
 	}
 
 	public function test_get_settings_fails_if_user_cannot_manage_woocommerce() {
@@ -126,93 +226,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		remove_filter( 'user_has_cap', $cb );
 	}
 
-	public function test_update_settings_request_returns_status_code_200() {
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'is_stripe_enabled', true );
-		$request->set_param( 'enabled_payment_method_ids', [ 'card' ] );
-
-		$response = rest_do_request( $request );
-
-		$this->assertEquals( 200, $response->get_status() );
-	}
-
-	public function test_update_settings_enables_stripe() {
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'is_stripe_enabled', true );
-
-		rest_do_request( $request );
-
-		$this->assertTrue( $this->get_gateway()->is_enabled() );
-	}
-
-	public function test_update_settings_disables_stripe() {
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'is_stripe_enabled', false );
-
-		rest_do_request( $request );
-
-		$this->assertFalse( $this->get_gateway()->is_enabled() );
-	}
-
-	public function test_update_settings_does_not_toggle_is_stripe_enabled_if_not_supplied() {
-		$status_before_request = $this->get_gateway()->is_enabled();
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-
-		rest_do_request( $request );
-
-		$this->assertEquals( $status_before_request, $this->get_gateway()->is_enabled() );
-	}
-
-	public function test_update_settings_returns_error_on_non_bool_is_stripe_enabled_value() {
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'is_stripe_enabled', 'foo' );
-
-		$response = rest_do_request( $request );
-
-		$this->assertEquals( 400, $response->get_status() );
-	}
-
-	public function test_update_settings_saves_enabled_payment_methods() {
-		$this->get_gateway()->update_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] );
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'enabled_payment_method_ids', [ 'card', 'giropay' ] );
-
-		rest_do_request( $request );
-
-		$this->assertEquals( [ 'card', 'giropay' ], $this->get_gateway()->get_option( 'upe_checkout_experience_accepted_payments' ) );
-	}
-
-	public function test_update_settings_validation_fails_if_invalid_gateway_id_supplied() {
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'enabled_payment_method_ids', [ 'foo', 'baz' ] );
-
-		$response = rest_do_request( $request );
-		$this->assertEquals( 400, $response->get_status() );
-	}
-
-	public function test_update_payment_request_settings_returns_status_code_200() {
-		$this->get_gateway()->update_option( 'payment_request_button_theme', 'dark' );
-		$this->get_gateway()->update_option( 'payment_request_button_size', 'default' );
-		$this->get_gateway()->update_option( 'payment_request_button_type', 'buy' );
-		$this->assertEquals( 'dark', $this->get_gateway()->get_option( 'payment_request_button_theme' ) );
-		$this->assertEquals( 'default', $this->get_gateway()->get_option( 'payment_request_button_size' ) );
-		$this->assertEquals( 'buy', $this->get_gateway()->get_option( 'payment_request_button_type' ) );
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'payment_request_button_theme', 'light' );
-		$request->set_param( 'payment_request_button_size', 'medium' );
-		$request->set_param( 'payment_request_button_type', 'book' );
-
-		$response = rest_do_request( $request );
-
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( 'light', $this->get_gateway()->get_option( 'payment_request_button_theme' ) );
-		$this->assertEquals( 'medium', $this->get_gateway()->get_option( 'payment_request_button_size' ) );
-		$this->assertEquals( 'book', $this->get_gateway()->get_option( 'payment_request_button_type' ) );
-	}
-
 	public function test_update_settings_fails_if_user_cannot_manage_woocommerce() {
 		$cb = $this->create_can_manage_woocommerce_cap_override( false );
 		add_filter( 'user_has_cap', $cb );
@@ -225,67 +238,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$response = rest_do_request( new WP_REST_Request( 'POST', self::SETTINGS_ROUTE ) );
 		$this->assertEquals( 200, $response->get_status() );
 		remove_filter( 'user_has_cap', $cb );
-	}
-
-	public function test_update_settings_enables_manual_capture() {
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'is_manual_capture_enabled', true );
-
-		rest_do_request( $request );
-
-		$this->assertEquals( 'no', $this->get_gateway()->get_option( 'capture' ) );
-	}
-
-	public function test_update_settings_disables_manual_capture() {
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'is_manual_capture_enabled', false );
-
-		rest_do_request( $request );
-
-		$this->assertEquals( 'yes', $this->get_gateway()->get_option( 'capture' ) );
-	}
-
-	public function test_update_settings_does_not_toggle_is_manual_capture_enabled_if_not_supplied() {
-		$status_before_request = $this->get_gateway()->get_option( 'manual_capture' );
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-
-		rest_do_request( $request );
-
-		$this->assertEquals( $status_before_request, $this->get_gateway()->get_option( 'manual_capture' ) );
-	}
-
-	public function test_update_settings_returns_error_on_non_bool_is_manual_capture_enabled_value() {
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'is_manual_capture_enabled', 'foo' );
-
-		$response = rest_do_request( $request );
-
-		$this->assertEquals( 400, $response->get_status() );
-	}
-
-	public function test_update_settings_saves_debug_log() {
-		$this->get_gateway()->update_option( 'logging', 'no' );
-		$this->assertEquals( 'no', $this->get_gateway()->get_option( 'logging' ) );
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'is_debug_log_enabled', true );
-
-		rest_do_request( $request );
-
-		$this->assertEquals( 'yes', $this->get_gateway()->get_option( 'logging' ) );
-	}
-
-	public function test_update_settings_saves_test_mode() {
-		$this->get_gateway()->update_option( 'testmode', 'no' );
-		$this->assertEquals( 'no', $this->get_gateway()->get_option( 'testmode' ) );
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'is_test_mode_enabled', true );
-
-		rest_do_request( $request );
-
-		$this->assertEquals( 'yes', $this->get_gateway()->get_option( 'testmode' ) );
 	}
 
 	public function test_update_settings_saves_account_statement_descriptor() {
@@ -301,38 +253,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( $new_account_descriptor, $this->get_gateway()->get_option( 'statement_descriptor' ) );
 	}
 
-	public function test_update_settings_saves_payment_request_button_theme() {
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'payment_request_button_locations', [ 'cart', 'checkout' ] );
-
-		$response = rest_do_request( $request );
-
-		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( [ 'cart', 'checkout' ], $this->get_gateway()->get_option( 'payment_request_button_locations' ) );
-	}
-
-	public function test_update_settings_saves_payment_request_button_size() {
-		$this->get_gateway()->update_option( 'payment_request_button_size', 'default' );
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'payment_request_button_size', 'medium' );
-
-		rest_do_request( $request );
-
-		$this->assertEquals( 'medium', $this->get_gateway()->get_option( 'payment_request_button_size' ) );
-	}
-
-	public function test_update_settings_saves_payment_request_button_type() {
-		$this->get_gateway()->update_option( 'payment_request_button_type', 'buy' );
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'payment_request_button_type', 'book' );
-
-		rest_do_request( $request );
-
-		$this->assertEquals( 'book', $this->get_gateway()->get_option( 'payment_request_button_type' ) );
-	}
-
 	public function test_update_settings_does_not_save_account_statement_descriptor_if_not_supplied() {
 		$status_before_request = $this->get_gateway()->get_option( 'statement_descriptor' );
 
@@ -341,28 +261,6 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		rest_do_request( $request );
 
 		$this->assertEquals( $status_before_request, $this->get_gateway()->get_option( 'statement_descriptor' ) );
-	}
-
-	public function test_update_settings_enables_saved_cards() {
-		$this->get_gateway()->update_option( 'saved_cards', 'no' );
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'is_saved_cards_enabled', true );
-
-		rest_do_request( $request );
-
-		$this->assertEquals( 'yes', $this->get_gateway()->get_option( 'saved_cards' ) );
-	}
-
-	public function test_update_settings_disables_saved_cards() {
-		$this->get_gateway()->update_option( 'saved_cards', 'yes' );
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'is_saved_cards_enabled', false );
-
-		rest_do_request( $request );
-
-		$this->assertEquals( 'no', $this->get_gateway()->get_option( 'saved_cards' ) );
 	}
 
 	/**
