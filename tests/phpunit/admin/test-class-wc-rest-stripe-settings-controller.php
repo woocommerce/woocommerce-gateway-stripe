@@ -147,7 +147,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * @dataProvider statement_descriptor_field_provider
 	 */
-	public function test_statement_descriptor_fields( $option_name ) {
+	public function test_statement_descriptor_fields( $option_name, $max_allowed_length ) {
 		// It returns option value under expected key with HTTP code 200.
 		$this->get_gateway()->update_option( $option_name, 'foobar' );
 		$response = $this->rest_get_settings();
@@ -188,7 +188,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		// Test update fails and returns HTTP code 400 for values that are too long.
 		$this->assert_statement_descriptor_update_request_fails_for_value(
 			$option_name,
-			'12345678901234567890123' // 23 characters
+			str_pad( '', $max_allowed_length + 1, 'a' )
 		);
 
 		// Test update fails and returns HTTP code 400 for values that contain no letters.
@@ -309,8 +309,8 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 	public function statement_descriptor_field_provider() {
 		return [
-			[ 'statement_descriptor' ],
-			[ 'short_statement_descriptor' ],
+			'statement_descriptor'       => [ 'statement_descriptor', 22 ],
+			'short_statement_descriptor' => [ 'short_statement_descriptor', 10 ],
 		];
 	}
 

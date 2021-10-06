@@ -126,7 +126,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 					'statement_descriptor'                  => [
 						'description'       => __( 'Bank account descriptor to be displayed in customers\' bank accounts.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
-						'validate_callback' => [ $this, 'validate_statement_descriptor' ],
+						'validate_callback' => [ $this, 'validate_regular_statement_descriptor' ],
 					],
 					'is_short_statement_descriptor_enabled' => [
 						'description'       => __( 'When enabled, we\'ll include the order number for card and express checkout transactions.', 'woocommerce-gateway-stripe' ),
@@ -136,7 +136,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 					'short_statement_descriptor'            => [
 						'description'       => __( 'We\'ll use the short version in combination with the customer order number.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
-						'validate_callback' => [ $this, 'validate_statement_descriptor' ],
+						'validate_callback' => [ $this, 'validate_short_statement_descriptor' ],
 					],
 					'is_debug_log_enabled'                  => [
 						'description'       => __( 'When enabled, payment error logs will be saved to WooCommerce > Status > Logs.', 'woocommerce-gateway-stripe' ),
@@ -149,6 +149,30 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
+	 * Validate the regular statement descriptor.
+	 *
+	 * @param mixed           $value The value being validated.
+	 * @param WP_REST_Request $request The request made.
+	 * @param string          $param The parameter name, used in error messages.
+	 * @return true|WP_Error
+	 */
+	public function validate_regular_statement_descriptor( $value, $request, $param ) {
+		return $this->validate_statement_descriptor( $value, $request, $param, 22 );
+	}
+
+	/**
+	 * Validate the short statement descriptor.
+	 *
+	 * @param mixed           $value The value being validated.
+	 * @param WP_REST_Request $request The request made.
+	 * @param string          $param The parameter name, used in error messages.
+	 * @return true|WP_Error
+	 */
+	public function validate_short_statement_descriptor( $value, $request, $param ) {
+		return $this->validate_statement_descriptor( $value, $request, $param, 10 );
+	}
+
+	/**
 	 * Validate the statement descriptor argument.
 	 *
 	 * @since 4.7.0
@@ -156,16 +180,17 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @param mixed           $value The value being validated.
 	 * @param WP_REST_Request $request The request made.
 	 * @param string          $param The parameter name, used in error messages.
+	 * @param int             $max_length Maximum statement length.
 	 * @return true|WP_Error
 	 */
-	public function validate_statement_descriptor( $value, $request, $param ) {
+	public function validate_statement_descriptor( $value, $request, $param, $max_length ) {
 		$string_validation_result = rest_validate_request_arg( $value, $request, $param );
 		if ( true !== $string_validation_result ) {
 			return $string_validation_result;
 		}
 
 		try {
-			$this->gateway->validate_account_statement_descriptor_field( $value );
+			$this->gateway->validate_account_statement_descriptor_field( $value, $max_length );
 		} catch ( Exception $exception ) {
 			return new WP_Error(
 				'rest_invalid_pattern',

@@ -1271,17 +1271,18 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Validates statement descriptor value
 	 *
-	 * @param  string $value Posted Value.
+	 * @param string $value Posted Value.
+	 * @param int    $max_length Maximum statement length.
 	 *
 	 * @return string                   Sanitized statement descriptor.
 	 * @throws InvalidArgumentException When statement descriptor is invalid.
 	 */
-	public function validate_account_statement_descriptor_field( $value ) {
+	public function validate_account_statement_descriptor_field( $value, $max_length ) {
 		// Since the value is escaped, and we are saving in a place that does not require escaping, apply stripslashes.
 		$value = trim( stripslashes( $value ) );
 
 		// Validation can be done with a single regex but splitting into multiple for better readability.
-		$valid_length   = '/^.{5,22}$/';
+		$valid_length   = '/^.{5,' . $max_length . '}$/';
 		$has_one_letter = '/^.*[a-zA-Z]+/';
 		$no_specials    = '/^[^*"\'<>]*$/';
 
