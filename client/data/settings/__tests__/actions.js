@@ -20,7 +20,7 @@ describe( 'Settings actions tests', () => {
 					return noticesDispatch;
 				}
 
-				return {};
+				return { invalidateResolutionForStoreSelector: () => null };
 			} );
 			select.mockImplementation( () => ( {
 				getSettings: jest.fn(),
