@@ -526,11 +526,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$post_data['customer'] = $prepared_payment_method->customer;
 		}
 
-		if ( ! is_null( $prepared_payment_method->source ) ) {
+		if ( ! empty( $prepared_payment_method->source ) ) {
 			$post_data['source'] = $prepared_payment_method->source;
 		}
 
-		if ( ! is_null( $prepared_payment_method->payment_method ) ) {
+		if ( ! empty( $prepared_payment_method->payment_method ) ) {
 			$post_data['payment_method'] = $prepared_payment_method->payment_method;
 		}
 
