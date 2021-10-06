@@ -2,14 +2,14 @@ import { useDispatch } from '@wordpress/data';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import InformationOverlay from '../information-overlay';
+import UpeInformationOverlay from '../upe-information-overlay';
 
 jest.mock( '@wordpress/data' );
 jest.mock( '@woocommerce/data', () => ( {
 	OPTIONS_STORE_NAME: 'wc/admin/options',
 } ) );
 
-describe( 'InformationOverlay', () => {
+describe( 'UpeInformationOverlay', () => {
 	const updateOptionsMock = jest.fn();
 	beforeEach( () => {
 		useDispatch.mockImplementation( () => ( {
@@ -22,7 +22,7 @@ describe( 'InformationOverlay', () => {
 	} );
 
 	it( 'renders information about Stripe', () => {
-		render( <InformationOverlay /> );
+		render( <UpeInformationOverlay /> );
 
 		expect(
 			screen.queryByText( 'View your Stripe payment methods' )
@@ -35,7 +35,7 @@ describe( 'InformationOverlay', () => {
 	} );
 
 	it( 'calls the onClose handler on cancel', () => {
-		render( <InformationOverlay /> );
+		render( <UpeInformationOverlay /> );
 
 		expect( updateOptionsMock ).not.toHaveBeenCalled();
 

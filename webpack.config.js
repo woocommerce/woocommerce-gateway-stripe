@@ -43,6 +43,6 @@ module.exports = {
 		upe_settings: './client/settings/index.js',
 		payment_gateways: './client/entrypoints/payment-gateways/index.js',
 		upe_information_overlay:
-			'./client/entrypoints/information-overlay/index.js',
+			'./client/entrypoints/upe-information-overlay/index.js',
 	},
 };

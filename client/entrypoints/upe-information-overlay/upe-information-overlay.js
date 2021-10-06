@@ -27,7 +27,7 @@ const Actions = styled.div`
 	margin-top: 16px;
 `;
 
-const InformationOverlay = () => {
+const UpeInformationOverlay = () => {
 	const [ isOverlayVisible, setIsOverlayVisible ] = useState( true );
 	const { updateOptions } = useDispatch( OPTIONS_STORE_NAME );
 
@@ -48,14 +48,14 @@ const InformationOverlay = () => {
 				'View your Stripe payment methods',
 				'woocommerce-gateway-stripe'
 			) }
-			onRequestClose={ () => handleDismiss() }
+			onRequestClose={ handleDismiss }
 		>
 			{ __(
 				'In the new payment management experience, you can view and manage all supported Stripe-powered payment methods in a single place.',
 				'woocommerce-gateway-stripe'
 			) }
 			<Actions>
-				<Button onClick={ () => handleDismiss() } isPrimary>
+				<Button onClick={ handleDismiss } isPrimary>
 					Got it
 				</Button>
 			</Actions>
@@ -63,4 +63,4 @@ const InformationOverlay = () => {
 	);
 };
 
-export default InformationOverlay;
+export default UpeInformationOverlay;

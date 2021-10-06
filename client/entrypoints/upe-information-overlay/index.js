@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import InformationOverlay from './information-overlay';
+import UpeInformationOverlay from './upe-information-overlay';
 
 const stripeRowTop = jQuery( 'tr[data-gateway_id="stripe"]' ).offset().top;
 const windowHeight = jQuery( window ).height();
@@ -19,7 +19,7 @@ jQuery( () => {
 
 		if ( informationOverlayContainer ) {
 			ReactDOM.render(
-				<InformationOverlay />,
+				<UpeInformationOverlay />,
 				informationOverlayContainer
 			);
 		}
