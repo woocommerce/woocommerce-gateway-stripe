@@ -144,6 +144,66 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( $original_valid_value, $this->get_gateway()->get_option( $option_name ) );
 	}
 
+	/**
+	 * @dataProvider statement_descriptor_field_provider
+	 */
+	public function test_statement_descriptor_fields( $option_name ) {
+		// It returns option value under expected key with HTTP code 200.
+		$this->get_gateway()->update_option( $option_name, 'foobar' );
+		$response = $this->rest_get_settings();
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( 'foobar', $response->get_data()[ $option_name ] );
+
+		// Test update works for values passing validation.
+		$this->get_gateway()->update_option( $option_name, 'foobar' );
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( $option_name, 'quuxcorge' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( 'quuxcorge', $this->get_gateway()->get_option( $option_name ) );
+
+		// Do not update if rest key not present in update request.
+		$this->get_gateway()->update_option( $option_name, 'foobar' );
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( 'foobar', $this->get_gateway()->get_option( $option_name ) );
+
+		// Test update fails and returns HTTP code 400 for non-string values.
+		$this->assert_statement_descriptor_update_request_fails_for_value(
+			$option_name,
+			[]
+		);
+
+		// Test update fails and returns HTTP code 400 for values that are too short.
+		$this->assert_statement_descriptor_update_request_fails_for_value(
+			$option_name,
+			'1234'
+		);
+
+		// Test update fails and returns HTTP code 400 for values that are too long.
+		$this->assert_statement_descriptor_update_request_fails_for_value(
+			$option_name,
+			'12345678901234567890123' // 23 characters
+		);
+
+		// Test update fails and returns HTTP code 400 for values that contain no letters.
+		$this->assert_statement_descriptor_update_request_fails_for_value(
+			$option_name,
+			'123456'
+		);
+
+		// Test update fails and returns HTTP code 400 for values that contain special characters.
+		$this->assert_statement_descriptor_update_request_fails_for_value(
+			$option_name,
+			'foobar\''
+		);
+	}
+
 	public function test_get_settings_returns_available_payment_method_ids() {
 		$response = $this->rest_get_settings();
 
@@ -161,6 +221,34 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			$expected_method_ids,
 			$available_method_ids
 		);
+	}
+
+	public function test_get_settings_fails_if_user_cannot_manage_woocommerce() {
+		$cb = $this->create_can_manage_woocommerce_cap_override( false );
+		add_filter( 'user_has_cap', $cb );
+		$response = $this->rest_get_settings();
+		$this->assertEquals( 403, $response->get_status() );
+		remove_filter( 'user_has_cap', $cb );
+
+		$cb = $this->create_can_manage_woocommerce_cap_override( true );
+		add_filter( 'user_has_cap', $cb );
+		$response = $this->rest_get_settings();
+		$this->assertEquals( 200, $response->get_status() );
+		remove_filter( 'user_has_cap', $cb );
+	}
+
+	public function test_update_settings_fails_if_user_cannot_manage_woocommerce() {
+		$cb = $this->create_can_manage_woocommerce_cap_override( false );
+		add_filter( 'user_has_cap', $cb );
+		$response = rest_do_request( new WP_REST_Request( 'POST', self::SETTINGS_ROUTE ) );
+		$this->assertEquals( 403, $response->get_status() );
+		remove_filter( 'user_has_cap', $cb );
+
+		$cb = $this->create_can_manage_woocommerce_cap_override( true );
+		add_filter( 'user_has_cap', $cb );
+		$response = rest_do_request( new WP_REST_Request( 'POST', self::SETTINGS_ROUTE ) );
+		$this->assertEquals( 200, $response->get_status() );
+		remove_filter( 'user_has_cap', $cb );
 	}
 
 	public function boolean_field_provider() {
@@ -209,58 +297,33 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 				'book',
 				'foo',
 			],
+			'payment_request_button_locations' => [
+				'payment_request_button_locations',
+				'payment_request_button_locations',
+				[ 'cart' ],
+				[ 'cart', 'checkout', 'product' ],
+				[ 'foo' ],
+			],
 		];
 	}
 
-	public function test_get_settings_fails_if_user_cannot_manage_woocommerce() {
-		$cb = $this->create_can_manage_woocommerce_cap_override( false );
-		add_filter( 'user_has_cap', $cb );
-		$response = $this->rest_get_settings();
-		$this->assertEquals( 403, $response->get_status() );
-		remove_filter( 'user_has_cap', $cb );
-
-		$cb = $this->create_can_manage_woocommerce_cap_override( true );
-		add_filter( 'user_has_cap', $cb );
-		$response = $this->rest_get_settings();
-		$this->assertEquals( 200, $response->get_status() );
-		remove_filter( 'user_has_cap', $cb );
+	public function statement_descriptor_field_provider() {
+		return [
+			[ 'statement_descriptor' ],
+			[ 'short_statement_descriptor' ],
+		];
 	}
 
-	public function test_update_settings_fails_if_user_cannot_manage_woocommerce() {
-		$cb = $this->create_can_manage_woocommerce_cap_override( false );
-		add_filter( 'user_has_cap', $cb );
-		$response = rest_do_request( new WP_REST_Request( 'POST', self::SETTINGS_ROUTE ) );
-		$this->assertEquals( 403, $response->get_status() );
-		remove_filter( 'user_has_cap', $cb );
-
-		$cb = $this->create_can_manage_woocommerce_cap_override( true );
-		add_filter( 'user_has_cap', $cb );
-		$response = rest_do_request( new WP_REST_Request( 'POST', self::SETTINGS_ROUTE ) );
-		$this->assertEquals( 200, $response->get_status() );
-		remove_filter( 'user_has_cap', $cb );
-	}
-
-	public function test_update_settings_saves_account_statement_descriptor() {
-		$this->get_gateway()->update_option( 'statement_descriptor', 'foo' );
-
-		$new_account_descriptor = 'new account descriptor';
+	private function assert_statement_descriptor_update_request_fails_for_value( $option_name, $new_invalid_value ) {
+		$this->get_gateway()->update_option( $option_name, 'foobar' );
 
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param( 'statement_descriptor', $new_account_descriptor );
+		$request->set_param( $option_name, $new_invalid_value );
 
-		rest_do_request( $request );
+		$response = rest_do_request( $request );
 
-		$this->assertEquals( $new_account_descriptor, $this->get_gateway()->get_option( 'statement_descriptor' ) );
-	}
-
-	public function test_update_settings_does_not_save_account_statement_descriptor_if_not_supplied() {
-		$status_before_request = $this->get_gateway()->get_option( 'statement_descriptor' );
-
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-
-		rest_do_request( $request );
-
-		$this->assertEquals( $status_before_request, $this->get_gateway()->get_option( 'statement_descriptor' ) );
+		$this->assertEquals( 400, $response->get_status() );
+		$this->assertEquals( 'foobar', $this->get_gateway()->get_option( $option_name ) );
 	}
 
 	/**

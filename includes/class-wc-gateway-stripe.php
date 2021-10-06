@@ -1271,13 +1271,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Validates statement descriptor value
 	 *
-	 * @param  string $key Field key.
 	 * @param  string $value Posted Value.
 	 *
 	 * @return string                   Sanitized statement descriptor.
 	 * @throws InvalidArgumentException When statement descriptor is invalid.
 	 */
-	public function validate_account_statement_descriptor_field( $key, $value ) {
+	public function validate_account_statement_descriptor_field( $value ) {
 		// Since the value is escaped, and we are saving in a place that does not require escaping, apply stripslashes.
 		$value = trim( stripslashes( $value ) );
 
