@@ -654,11 +654,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					$refund->delete( true );
 					do_action( 'woocommerce_refund_deleted', $refund_id, $order_id );
 					if ( 'failed' === $refund_object->status ) {
-						/* translators: 1) transaction id 2) amount (including currency symbol) 3) refund failure code */
-						$note = sprintf( __( 'Refund failed with ID %1$s for %2$s - %3$s', 'woocommerce-gateway-stripe' ), $refund_object->id, $amount, $refund_object->failure_reason );
+						/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund failure code */
+						$note = sprintf( __( 'Refund failed for %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $amount, $refund_object->id, $refund_object->failure_reason );
 					} else {
-						/* translators: 1) transaction id 2) amount (including currency symbol) 3) refund failure code */
-						$note = sprintf( __( 'Refund cancelled with ID %1$s for %2$s - %3$s', 'woocommerce-gateway-stripe' ), $refund_object->id, $amount, $refund_object->failure_reason );
+						/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund failure code */
+						$note = sprintf( __( 'Refund canceled for %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $amount, $refund_object->id, $refund_object->failure_reason );
 					}
 
 					$order->add_order_note( $note );
