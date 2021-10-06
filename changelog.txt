@@ -2,8 +2,7 @@
 
 = 5.x.x - 2021-xx-xx =
 * Tweak - Remove animated credit card icons from payment method option on the checkout page.
-
-* Fix - Failed payments for pre-orders and subscriptions with an empty source token.
+* Fix - Payments for pre-orders and subscriptions with an empty source token now work as intended.
 
 = 5.6.1 - 2021-10-04 =
 * Fix - Naming conflict with other plugins on WC_Stripe_REST_Controller.
