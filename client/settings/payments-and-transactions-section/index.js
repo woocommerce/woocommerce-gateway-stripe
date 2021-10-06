@@ -6,19 +6,15 @@ import TextLengthHelpInputWrapper from './text-length-help-input-wrapper';
 import StatementPreviewsWrapper from './statement-previews-wrapper';
 import StatementPreview from './statement-preview';
 import {
-	useManualCapture,
 	useSavedCards,
 	useShortAccountStatement,
 	useSeparateCardForm,
 	useAccountStatementDescriptor,
 	useShortAccountStatementDescriptor,
 } from './data-mock';
+import ManualCaptureControl from './manual-capture-control';
 
 const PaymentsAndTransactionsSection = () => {
-	const [
-		isManualCaptureEnabled,
-		handleIsManualCaptureEnabledChange,
-	] = useManualCapture();
 	const [
 		isSavedCardsEnabled,
 		handleIsSavedCardsEnabledChange,
@@ -80,18 +76,7 @@ const PaymentsAndTransactionsSection = () => {
 						'woocommerce-gateway-stripe'
 					) }
 				</h4>
-				<CheckboxControl
-					checked={ isManualCaptureEnabled }
-					onChange={ handleIsManualCaptureEnabledChange }
-					label={ __(
-						'Issue an authorization on checkout, and capture later',
-						'woocommerce-gateway-stripe'
-					) }
-					help={ __(
-						'Charge must be captured on the order details screen within 7 days of authorization, otherwise the authorization and order will be canceled.',
-						'woocommerce-gateway-stripe'
-					) }
-				/>
+				<ManualCaptureControl />
 				<h4>
 					{ __(
 						'Customer bank statement',

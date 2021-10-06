@@ -6,6 +6,7 @@ import React, {
 	useEffect,
 	useMemo,
 } from 'react';
+import styled from '@emotion/styled';
 import { Button, Card, CardBody, ExternalLink } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
 import WizardTaskContext from '../wizard/task/context';
@@ -16,9 +17,18 @@ import {
 	useEnabledPaymentMethodIds,
 	useSettings,
 } from '../../data';
-import PaymentMethodCheckboxes from '../../components/payment-methods-checkboxes';
-import PaymentMethodCheckbox from '../../components/payment-methods-checkboxes/payment-method-checkbox';
+import PaymentMethodCheckbox from './payment-method-checkbox';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
+
+const HeadingWrapper = styled.div`
+	display: flex;
+	margin-bottom: 1em;
+	gap: 8px;
+
+	> * {
+		margin: 0;
+	}
+`;
 
 const usePaymentMethodsCheckboxState = () => {
 	const [ initialEnabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
@@ -139,6 +149,12 @@ const AddPaymentMethodsTask = () => {
 		handlePaymentMethodChange,
 	] = usePaymentMethodsCheckboxState();
 
+	const handleSelectAllClick = () => {
+		availablePaymentMethods.forEach( ( method ) => {
+			handlePaymentMethodChange( method, true );
+		} );
+	};
+
 	return (
 		<WizardTaskItem
 			className="add-payment-methods-task"
@@ -164,21 +180,33 @@ const AddPaymentMethodsTask = () => {
 				</p>
 				<Card className="add-payment-methods-task__payment-selector-wrapper">
 					<CardBody>
-						{ /* eslint-disable-next-line max-len */ }
-						<p className="add-payment-methods-task__payment-selector-title wcstripe-wizard-task__description-element is-headline">
-							{ __(
-								'Payments accepted at checkout',
-								'woocommerce-gateway-stripe'
-							) }
-						</p>
-
 						<LoadableSettingsSection numLines={ 20 }>
-							<PaymentMethodCheckboxes>
+							<HeadingWrapper>
+								{ /* eslint-disable-next-line max-len */ }
+								<p className="add-payment-methods-task__payment-selector-title wcstripe-wizard-task__description-element is-headline">
+									{ __(
+										'Payments accepted at checkout',
+										'woocommerce-gateway-stripe'
+									) }
+								</p>
+								<Button
+									isLink
+									onClick={ handleSelectAllClick }
+									className="add-payment-methods-task__select-all-button"
+								>
+									{ __(
+										'Select all',
+										'woocommerce-gateway-stripe'
+									) }
+								</Button>
+							</HeadingWrapper>
+
+							<ul>
 								{ availablePaymentMethods.map(
 									( paymentMethodId ) => (
 										<PaymentMethodCheckbox
 											key={ paymentMethodId }
-											name={ paymentMethodId }
+											id={ paymentMethodId }
 											onChange={
 												handlePaymentMethodChange
 											}
@@ -190,7 +218,7 @@ const AddPaymentMethodsTask = () => {
 										/>
 									)
 								) }
-							</PaymentMethodCheckboxes>
+							</ul>
 						</LoadableSettingsSection>
 					</CardBody>
 				</Card>

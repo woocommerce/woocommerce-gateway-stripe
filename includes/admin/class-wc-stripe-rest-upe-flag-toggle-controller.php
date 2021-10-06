@@ -8,7 +8,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * REST controller for UPE feature flag.
  */
-class WC_Stripe_REST_UPE_Flag_Toggle_Controller extends WC_Stripe_REST_Controller {
+class WC_Stripe_REST_UPE_Flag_Toggle_Controller extends WC_Stripe_REST_Base_Controller {
 	/**
 	 * Endpoint path.
 	 *

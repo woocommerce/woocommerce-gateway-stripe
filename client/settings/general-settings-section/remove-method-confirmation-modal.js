@@ -8,10 +8,9 @@ import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';
 const RemoveMethodConfirmationModal = ( {
 	method,
 	onClose: handleClose,
-	onConfirm,
+	onConfirm: handleConfirm,
 } ) => {
 	const { label } = PaymentMethodsMap[ method ];
-
 	return (
 		<ConfirmationModal
 			title={
@@ -32,7 +31,7 @@ const RemoveMethodConfirmationModal = ( {
 					<Button isSecondary onClick={ handleClose }>
 						{ __( 'Cancel', 'woocommerce-gateway-stripe' ) }
 					</Button>
-					<Button isPrimary onClick={ () => onConfirm( method ) }>
+					<Button isPrimary onClick={ handleConfirm }>
 						{ __( 'Remove', 'woocommerce-gateway-stripe' ) }
 					</Button>
 				</>
