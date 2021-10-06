@@ -126,8 +126,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.6.1 - 2021-10-04 =
-* Fix - Naming conflict with other plugins on WC_Stripe_REST_Controller.
-* Fix - Fatal error on `WC_REST_Stripe_Settings_Controller` when Elementor and WooFunnels plugins are used.
+= 5.6.2 - 2021-xx-xx =
+* Tweak - Remove animated credit card icons from payment method option on the checkout page.
+* Fix - Payments for pre-orders and subscriptions with an empty source token now work as intended.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
