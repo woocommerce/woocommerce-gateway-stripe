@@ -81,18 +81,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function render_upe_settings() {
 		global $hide_save_button;
-		$form_fields         = $this->get_form_fields();
-		$target_index        = array_search( 'activation', array_keys( $form_fields ), true ) + 1;
+		$hide_save_button = true;
 		$is_stripe_connected = woocommerce_gateway_stripe()->connect->is_connected();
 
-		if ( ! $is_stripe_connected ) {
-			$hide_save_button = true;
-			echo '<div id="wc-stripe-new-account-container"></div>';
-		} else {
-			echo '<table class="form-table">' . $this->generate_settings_html( array_slice( $form_fields, 0, $target_index, true ), false ) . '</table>';
-			echo '<div id="wc-stripe-upe-opt-in-banner"></div>';
-			echo '<table class="form-table">' . $this->generate_settings_html( array_slice( $form_fields, $target_index, null, true ), false ) . '</table>';
-		}
+		echo $is_stripe_connected ? '<div id="wc-stripe-payment-gateway-container"></div>' : '<div id="wc-stripe-new-account-container"></div>';
 	}
 
 	/**
