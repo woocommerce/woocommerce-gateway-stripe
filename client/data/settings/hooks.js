@@ -41,12 +41,18 @@ const makeSettingsHook = ( fieldName, fieldDefaultValue = false ) => {
 	);
 };
 
-const makeReadOnlySettingsHook = ( fieldName, fieldDefaultValue = false ) =>
-	makeSettingsHookFromUpdateHandler(
-		fieldName,
-		() => {},
-		fieldDefaultValue
-	)[ 0 ];
+const makeReadOnlySettingsHook = (
+	fieldName,
+	fieldDefaultValue = false
+) => () =>
+	useSelect(
+		( select ) => {
+			const { getSettings } = select( STORE_NAME );
+
+			return getSettings()[ fieldName ] || fieldDefaultValue;
+		},
+		[ fieldName, fieldDefaultValue ]
+	);
 
 export const useSettings = () => {
 	const { saveSettings } = useDispatch( STORE_NAME );
