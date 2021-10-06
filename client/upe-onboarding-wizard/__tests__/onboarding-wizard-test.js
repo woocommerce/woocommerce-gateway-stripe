@@ -2,6 +2,10 @@ import React from 'react';
 import { screen, render } from '@testing-library/react';
 import OnboardingWizard from '../onboarding-wizard';
 
+jest.mock(
+	'wcstripe/components/payment-method-capability-status-pill',
+	() => () => null
+);
 jest.mock( 'wcstripe/data', () => ( {
 	useSettings: jest.fn().mockReturnValue( {} ),
 	useManualCapture: jest.fn().mockReturnValue( [] ),
