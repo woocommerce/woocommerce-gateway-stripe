@@ -505,6 +505,13 @@ jQuery( function( $ ) {
 				extra_details.type     = 'sepa_debit';
 
 				return stripe.createSource( iban, extra_details ).then( wc_stripe_form.sourceResponse );
+			} else if ( wc_stripe_form.isStripeCardChosen() ) {
+				// Create payment method, not source.
+				return stripe.createPaymentMethod( {
+					type: 'card',
+					card: stripe_card,
+					billing_details: extra_details.owner,
+				} ).then( wc_stripe_form.sourceResponse );
 			}
 
 			// Handle card payments.
@@ -525,11 +532,13 @@ jQuery( function( $ ) {
 
 			wc_stripe_form.reset();
 
+			const source_id = response.source ? response.source.id : response.paymentMethod.id;
+
 			wc_stripe_form.form.append(
 				$( '<input type="hidden" />' )
 					.addClass( 'stripe-source' )
 					.attr( 'name', 'stripe_source' )
-					.val( response.source.id )
+					.val( source_id )
 			);
 
 			if ( $( 'form#add_payment_method' ).length || $( '#wc-stripe-change-payment-method' ).length ) {

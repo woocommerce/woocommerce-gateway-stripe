@@ -682,7 +682,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return '';
 		}
 
-		$source_object = WC_Stripe_API::retrieve( 'sources/' . $source_id );
+		if ( substr( $source_id, 0, 3 ) === 'pm_' ) {
+			$source_object = WC_Stripe_API::retrieve( 'payment_methods/' . $source_id );
+		} else {
+			$source_object = WC_Stripe_API::retrieve( 'sources/' . $source_id );
+		}
 
 		if ( ! empty( $source_object->error ) ) {
 			throw new WC_Stripe_Exception( print_r( $source_object, true ), $source_object->error->message );
@@ -797,7 +801,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			 * Criteria to save to file is they are logged in, they opted to save or product requirements and the source is
 			 * actually reusable. Either that or force_save_source is true.
 			 */
-			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && 'reusable' === $source_object->usage ) || $force_save_source ) {
+			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && ( 'reusable' === $source_object->usage || substr( $source_object->id, 0, 3 ) === 'pm_' ) ) || $force_save_source ) {
 				$response = $customer->attach_source( $source_object->id );
 
 				if ( ! empty( $response->error ) ) {
@@ -1261,7 +1265,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			[ 'card' ];
 
 		$request = [
-			'source'               => $prepared_source->source,
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
 			'currency'             => strtolower( $order->get_currency() ),
 			'description'          => $full_request['description'],
@@ -1269,6 +1272,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'capture_method'       => ( 'true' === $full_request['capture'] ) ? 'automatic' : 'manual',
 			'payment_method_types' => $payment_method_types,
 		];
+
+		if ( substr( $prepared_source->source, 0, 3 ) === 'pm_' ) {
+			$request['payment_method'] = $prepared_source->source;
+		} else {
+			$request['source'] = $prepared_source->source;
+		}
 
 		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->source );
 
@@ -1403,7 +1412,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$request = [];
 
 		if ( $prepared_source->source !== $intent->source ) {
-			$request['source'] = $prepared_source->source;
+			if ( substr( $prepared_source->source, 0, 3 ) === 'pm_' ) {
+				$request['payment_method'] = $prepared_source->source;
+			} else {
+				$request['source'] = $prepared_source->source;
+			}
 		}
 
 		$new_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
@@ -1449,9 +1462,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		// Try to confirm the intent & capture the charge (if 3DS is not required).
-		$confirm_request = [
-			'source' => $prepared_source->source,
-		];
+		$confirm_request = [];
+		if ( substr( $prepared_source->source, 0, 3 ) === 'pm_' ) {
+			$confirm_request['payment_method'] = $prepared_source->source;
+		} else {
+			$confirm_request['source'] = $prepared_source->source;
+		}
 
 		$level3_data      = $this->get_level3_data_from_order( $order );
 		$confirmed_intent = WC_Stripe_API::request_with_level3_data(

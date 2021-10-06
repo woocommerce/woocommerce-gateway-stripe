@@ -362,12 +362,22 @@ class WC_Stripe_Customer {
 			$this->set_id( $this->create_customer() );
 		}
 
-		$response = WC_Stripe_API::request(
-			[
-				'source' => $source_id,
-			],
-			'customers/' . $this->get_id() . '/sources'
-		);
+		$response = null;
+		if ( substr( $source_id, 0, 3 ) === 'pm_' ) {
+			$response = WC_Stripe_API::request(
+				[
+					'customer' => $this->get_id(),
+				],
+				'payment_methods/' . $source_id . '/attach'
+			);
+		} else {
+			$response = WC_Stripe_API::request(
+				[
+					'source' => $source_id,
+				],
+				'customers/' . $this->get_id() . '/sources'
+			);
+		}
 
 		if ( ! empty( $response->error ) ) {
 			// It is possible the WC user once was linked to a customer on Stripe
