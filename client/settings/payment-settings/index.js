@@ -1,4 +1,3 @@
-/* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
 import { React } from 'react';
 import {
@@ -18,6 +17,9 @@ import CustomizationOptionsNotice from '../customization-options-notice';
 import GeneralSettingsSection from './general-settings-section';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import './style.scss';
+import { useTestMode } from 'wcstripe/data';
+import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
+import { useAccount } from 'wcstripe/data/account';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -100,21 +102,26 @@ const AccountSettingsDropdownMenu = () => {
 };
 
 const AccountDetailsSection = () => {
-	const accountStatus = wc_stripe_settings_params.accountStatus;
+	const [ isTestModeEnabled ] = useTestMode();
+	const { data } = useAccount();
 
 	return (
 		<Card className="account-details">
 			<CardHeader className="account-details__header">
-				{ accountStatus.email && (
+				{ data.account?.email && (
 					<h4 className="account-details__header">
-						{ accountStatus.email }
+						{ data.account.email }
 					</h4>
 				) }
-				{ accountStatus.mode === 'test' && <Pill>Test Mode</Pill> }
+				{ isTestModeEnabled && (
+					<Pill>
+						{ __( 'Test Mode', 'woocommerce-gateway-stripe' ) }
+					</Pill>
+				) }
 				<AccountSettingsDropdownMenu />
 			</CardHeader>
 			<CardBody>
-				<AccountStatus accountStatus={ accountStatus } />
+				<AccountStatus />
 			</CardBody>
 		</Card>
 	);
@@ -125,12 +132,16 @@ const PaymentSettingsPanel = () => {
 		<>
 			<SettingsSection Description={ GeneralSettingsDescription }>
 				<LoadableSettingsSection numLines={ 20 }>
-					<GeneralSettingsSection />
+					<LoadableAccountSection numLines={ 20 }>
+						<GeneralSettingsSection />
+					</LoadableAccountSection>
 				</LoadableSettingsSection>
 				<CustomizationOptionsNotice />
 			</SettingsSection>
 			<SettingsSection Description={ AccountDetailsDescription }>
-				<AccountDetailsSection />
+				<LoadableAccountSection numLines={ 20 }>
+					<AccountDetailsSection />
+				</LoadableAccountSection>
 			</SettingsSection>
 			<SettingsSection Description={ PaymentsAndTransactionsDescription }>
 				<LoadableSettingsSection numLines={ 20 }>
