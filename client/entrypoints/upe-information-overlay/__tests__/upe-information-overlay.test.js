@@ -10,7 +10,13 @@ jest.mock( '@woocommerce/data', () => ( {
 } ) );
 
 describe( 'UpeInformationOverlay', () => {
+	// inserting the stripe row in dom as in this test only the overlay component is being rendered in dom.
+	document.body.innerHTML =
+		'<table><thead><th>Method</th></thead><tbody><tr data-gateway_id="stripe">Stripe</tr></tbody></table>';
+	jest.spyOn( document, 'querySelector' );
+
 	const updateOptionsMock = jest.fn();
+
 	beforeEach( () => {
 		useDispatch.mockImplementation( () => ( {
 			updateOptions: updateOptionsMock,

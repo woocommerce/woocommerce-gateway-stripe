@@ -5,30 +5,22 @@ import UpeInformationOverlay from './upe-information-overlay';
 const stripeRowTop = jQuery( 'tr[data-gateway_id="stripe"]' ).offset().top;
 const windowHeight = jQuery( window ).height();
 
-// waiting for the dom to be fully loaded as the section below the table takes time to load
-jQuery( () => {
-	const scrollTop =
-		stripeRowTop > windowHeight / 2
-			? stripeRowTop - windowHeight / 2
-			: stripeRowTop;
-	// scrolling so that the Stripe row is always within view
-	jQuery( 'body,html' ).animate( { scrollTop }, 800, () => {
-		const informationOverlayContainer = document.getElementById(
-			'wc-stripe-information-overlay-container'
-		);
+const informationOverlayContainer = document.getElementById(
+	'wc-stripe-information-overlay-container'
+);
 
-		if ( informationOverlayContainer ) {
+if ( informationOverlayContainer ) {
+	const scrollDown = setInterval( () => {
+		const body = document.querySelector( 'body,html' );
+		const top = body.scrollTop + 50;
+		if ( top > stripeRowTop || top > windowHeight / 2 ) {
+			clearInterval( scrollDown );
 			ReactDOM.render(
 				<UpeInformationOverlay />,
 				informationOverlayContainer
 			);
+		} else {
+			body.scrollTop = top;
 		}
-	} );
-
-	// highlight the Stripe row
-	jQuery( 'tr[data-gateway_id="stripe"]' ).css( {
-		background: 'white',
-		position: 'relative',
-		'z-index': '1000000',
-	} );
-} );
+	}, 20 );
+}
