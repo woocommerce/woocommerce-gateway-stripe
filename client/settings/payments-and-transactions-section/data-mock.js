@@ -11,7 +11,7 @@ const makeToggleHook = ( initialValue = false ) => () => {
 	return [ value, toggleValue ];
 };
 
-export const useManualCapture = makeToggleHook( false );
+export const useManualCapture = makeToggleHook( true );
 
 export const useSavedCards = makeToggleHook( true );
 
