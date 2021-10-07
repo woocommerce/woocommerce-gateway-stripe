@@ -919,7 +919,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			if ( $source_id ) {
 				$stripe_source = $source_id;
-				$source_object = WC_Stripe_API::retrieve( 'sources/' . $source_id );
+				$source_object = $this->get_source_object( $source_id );
 			} elseif ( apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
 				/*
 				 * We can attempt to charge the customer's default source
@@ -1170,7 +1170,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$source = ! empty( $_POST['stripe_source'] ) ? wc_clean( wp_unslash( $_POST['stripe_source'] ) ) : '';
 
-		$source_object = WC_Stripe_API::retrieve( 'sources/' . $source );
+		$source_object = $this->get_source_object( $source );
 
 		if ( isset( $source_object ) ) {
 			if ( ! empty( $source_object->error ) ) {

@@ -297,7 +297,12 @@ class WC_Stripe_Customer {
 	 * @return WP_Error|int
 	 */
 	public function add_source( $source_id ) {
-		$response = WC_Stripe_API::retrieve( 'sources/' . $source_id );
+		$response = null;
+		if ( substr( $source_id, 0, 3 ) === 'pm_' ) {
+			$response = WC_Stripe_API::retrieve( 'payment_methods/' . $source_id );
+		} else {
+			$response = WC_Stripe_API::retrieve( 'sources/' . $source_id );
+		}
 
 		if ( ! empty( $response->error ) || is_wp_error( $response ) ) {
 			return $response;
@@ -318,7 +323,7 @@ class WC_Stripe_Customer {
 						$wc_token->set_last4( $response->sepa_debit->last4 );
 						break;
 					default:
-						if ( 'source' === $response->object && 'card' === $response->type ) {
+						if ( ( 'source' === $response->object || 'payment_method' === $response->object ) && 'card' === $response->type ) {
 							$wc_token = new WC_Payment_Token_CC();
 							$wc_token->set_token( $response->id );
 							$wc_token->set_gateway_id( 'stripe' );
@@ -387,6 +392,9 @@ class WC_Stripe_Customer {
 				$this->recreate_customer();
 				return $this->attach_source( $source_id );
 			} elseif ( $this->is_source_already_attached_error( $response->error ) ) {
+				if ( substr( $source_id, 0, 3 ) === 'pm_' ) {
+					return WC_Stripe_API::request( [], 'payment_methods/' . $source_id, 'GET' );
+				}
 				return WC_Stripe_API::request( [], 'sources/' . $source_id, 'GET' );
 			} else {
 				return $response;
@@ -422,6 +430,23 @@ class WC_Stripe_Customer {
 
 			if ( ! empty( $response->error ) ) {
 				return [];
+			}
+
+			// If there are no sources attached to this customer, check for attached card payment methods.
+			if ( empty( $response->data ) ) {
+				$response = WC_Stripe_API::request(
+					[
+						'limit'    => 100,
+						'customer' => $this->get_id(),
+						'type'     => 'card',
+					],
+					'payment_methods',
+					'GET'
+				);
+
+				if ( ! empty( $response->error ) ) {
+					return [];
+				}
 			}
 
 			if ( is_array( $response->data ) ) {
@@ -484,7 +509,12 @@ class WC_Stripe_Customer {
 			return false;
 		}
 
-		$response = WC_Stripe_API::request( [], 'customers/' . $this->get_id() . '/sources/' . sanitize_text_field( $source_id ), 'DELETE' );
+		$response = null;
+		if ( substr( $source_id, 0, 3 ) === 'pm_' ) {
+			$response = WC_Stripe_API::request( [], 'payment_methods/' . sanitize_text_field( $source_id ) . '/detach', 'POST' );
+		} else {
+			$response = WC_Stripe_API::request( [], 'customers/' . $this->get_id() . '/sources/' . sanitize_text_field( $source_id ), 'DELETE' );
+		}
 
 		$this->clear_cache();
 
