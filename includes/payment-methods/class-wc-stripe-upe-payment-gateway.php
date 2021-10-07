@@ -441,19 +441,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				<div id="wc-stripe-upe-errors" role="alert"></div>
 				<input id="wc-stripe-payment-method-upe" type="hidden" name="wc-stripe-payment-method-upe" />
 				<input id="wc_stripe_selected_upe_payment_type" type="hidden" name="wc_stripe_selected_upe_payment_type" />
-
-				<?php
-				$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
-				if ( $this->is_saved_cards_enabled() && ! empty( $methods_enabled_for_saved_payments ) ) {
-					$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page();
-					if ( is_user_logged_in() ) {
-						$this->save_payment_method_checkbox( $force_save_payment );
-					}
-				}
-				?>
-
 			</fieldset>
 			<?php
+			$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
+			if ( $this->is_saved_cards_enabled() && ! empty( $methods_enabled_for_saved_payments ) ) {
+				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page();
+				if ( is_user_logged_in() ) {
+					$this->save_payment_method_checkbox( $force_save_payment );
+				}
+			}
 		} catch ( Exception $e ) {
 			// Output the error message.
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
