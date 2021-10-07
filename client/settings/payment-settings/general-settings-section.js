@@ -1,24 +1,25 @@
 import { __ } from '@wordpress/i18n';
-import { React, useState } from 'react';
+import { React } from 'react';
 import { Button, Card, CheckboxControl } from '@wordpress/components';
 import styled from '@emotion/styled';
 import CardBody from '../card-body';
 import CardFooter from '../card-footer';
 import TestModeCheckbox from './test-mode-checkbox';
+import { useIsStripeEnabled } from 'wcstripe/data';
 
 const StyledCard = styled( Card )`
 	margin-bottom: 12px;
 `;
 
 const GeneralSettingsSection = () => {
-	const [ enableStripe, setEnableStripe ] = useState( false );
+	const [ isStripeEnabled, setIsStripeEnabled ] = useIsStripeEnabled();
 
 	return (
 		<StyledCard>
 			<CardBody>
 				<CheckboxControl
-					checked={ enableStripe }
-					onChange={ setEnableStripe }
+					checked={ isStripeEnabled }
+					onChange={ setIsStripeEnabled }
 					label={ __(
 						'Enable Stripe',
 						'woocommerce-gateway-stripe'
@@ -28,7 +29,6 @@ const GeneralSettingsSection = () => {
 						'woocommerce-gateway-stripe'
 					) }
 				/>
-
 				<TestModeCheckbox />
 			</CardBody>
 			<CardFooter>
