@@ -401,23 +401,6 @@ trait WC_Stripe_Subscriptions_Trait {
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
 
-			if ( ! empty( $response->next_action ) && 'card_await_notification' === $response->next_action->type ) {
-				$charge_attempt_at = $response->next_action->card_await_notification->charge_attempt_at;
-				$date              = new DateTime();
-				$date->setTimestamp( $charge_attempt_at );
-				$date->setTimezone( wp_timezone() );
-				$charge_attempt_date_string = $date->format( 'Y-m-d' );
-				$charge_attempt_time_string = $date->format( 'H:i' );
-
-				$message = sprintf(
-					/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
-					__( 'The customer must authorize this payment off-session. An attempt will be made to charge the customer\'s card on %1$s at %1$s.', 'woocommerce-gateway-stripe' ),
-					$charge_attempt_date_string,
-					$charge_attempt_time_string
-				);
-				$renewal_order->add_order_note( $message );
-			}
-
 			// Either the charge was successfully captured, or it requires further authentication.
 			if ( $is_authentication_required ) {
 				do_action( 'wc_gateway_stripe_process_payment_authentication_required', $renewal_order, $response );
@@ -432,6 +415,25 @@ trait WC_Stripe_Subscriptions_Trait {
 				$renewal_order->set_transaction_id( $id );
 				/* translators: %s is the charge Id */
 				$renewal_order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
+				if ( is_callable( [ $renewal_order, 'save' ] ) ) {
+					$renewal_order->save();
+				}
+			} elseif ( $this->must_authorize_payment_off_session( $response ) ) {
+				$charge_attempt_at = $response->next_action->card_await_notification->charge_attempt_at;
+				$date              = new DateTime();
+				$date->setTimestamp( $charge_attempt_at );
+				$date->setTimezone( wp_timezone() );
+				$charge_attempt_date_string = $date->format( 'Y-m-d' );
+				$charge_attempt_time_string = $date->format( 'H:i' );
+
+				$message = sprintf(
+					/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
+					__( 'The customer must authorize this payment off-session. An attempt will be made to charge the customer\'s card on %1$s at %2$s.', 'woocommerce-gateway-stripe' ),
+					$charge_attempt_date_string,
+					$charge_attempt_time_string
+				);
+				$renewal_order->add_order_note( $message );
+				$renewal_order->update_status( 'pending' );
 				if ( is_callable( [ $renewal_order, 'save' ] ) ) {
 					$renewal_order->save();
 				}
@@ -455,6 +457,18 @@ trait WC_Stripe_Subscriptions_Trait {
 			/* translators: error message */
 			$renewal_order->update_status( 'failed' );
 		}
+	}
+
+	/**
+	 * Returns true if a subscription payment must be authorized by the customer off session.
+	 *
+	 * This is only valid when using mandates for Indian 3DS regulations.
+	 *
+	 * @param StdClass $payment_intent the Payment Intent to be evaluated.
+	 * @return bool true if payment intent must be authorized off session, false otherwise.
+	 */
+	private function must_authorize_payment_off_session( $payment_intent ) {
+		return ! empty( $payment_intent->next_action ) && 'card_await_notification' === $payment_intent->next_action->type;
 	}
 
 	/**

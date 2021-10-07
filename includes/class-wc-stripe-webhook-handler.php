@@ -733,8 +733,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		if ( ! $order->has_status(
 			apply_filters(
 				'wc_stripe_allowed_payment_processing_statuses',
-				// TODO: don't always allow on-hold status here.
-				[ 'on-hold', 'pending', 'failed' ]
+				[ 'pending', 'failed' ]
 			)
 		) ) {
 			return;
