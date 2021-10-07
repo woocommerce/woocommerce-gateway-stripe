@@ -541,7 +541,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			// If we are using a saved payment method that is PaymentMethod (pm_) and not a Source (src_) we need to use
 			// the process_payment() from the UPE gateway which uses the PaymentMethods API instead of Sources API.
 			// This happens when using a saved payment method that was added with the UPE gateway.
-			if ( $this->is_using_saved_payment_method() && ! empty( $prepared_source->source ) && substr( $prepared_source->source, 0, 3 ) === 'pm_' ) {
+			//
+			// TODO: Is this obselete now that the normal gateway can process card payment methods? -- @reykjalin
+			if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled()
+				&& $this->is_using_saved_payment_method()
+				&& ! empty( $prepared_source->source )
+				&& substr( $prepared_source->source, 0, 3 ) === 'pm_'
+			) {
 				$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
 				return $upe_gateway->process_payment_with_saved_payment_method( $order_id );
 			}
