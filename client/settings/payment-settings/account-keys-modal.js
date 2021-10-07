@@ -1,27 +1,37 @@
 import { __ } from '@wordpress/i18n';
-import { React, useState } from 'react';
+import { React, useRef, useState } from 'react';
 import { Button, TextControl } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
-import { useAccountKeys } from 'wcstripe/data/account-keys';
+import {
+	useAccountKeys,
+	useAccountKeysPublishableKey,
+	useAccountKeysSecretKey,
+	useAccountKeysWebhookSecret,
+	useAccountKeysTestPublishableKey,
+	useAccountKeysTestSecretKey,
+	useAccountKeysTestWebhookSecret,
+} from 'wcstripe/data/account-keys';
 import { useTestMode } from 'wcstripe/data';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import InlineNotice from 'wcstripe/components/inline-notice';
 
 export const AccountKeysModal = ( { type, onClose } ) => {
-	const [ , setTestMode ] = useTestMode();
-	const { accountKeys, isSaving } = useAccountKeys();
+	const [ testMode ] = useTestMode();
+	const { isSaving, saveAccountKeys } = useAccountKeys();
+	const formRef = useRef( null );
 
 	// @todo - make a higher-order component for these and pass in label and help?
 	const PublishableKey = () => {
+		const [ publishableKey ] = useAccountKeysPublishableKey();
+		const [ testPublishableKey ] = useAccountKeysTestPublishableKey();
 		const [ value, setValue ] = useState(
-			type === 'test'
-				? accountKeys.test_publishable_key
-				: accountKeys.publishable_key
+			testMode ? testPublishableKey : publishableKey
 		);
+
 		return (
 			<TextControl
 				label={
-					type === 'test'
+					testMode
 						? __(
 								'Test publishable key',
 								'woocommerce-gateway-stripe'
@@ -32,7 +42,7 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 						  )
 				}
 				help={
-					type === 'test'
+					testMode
 						? __(
 								'Only values starting with "pk_test_" will be saved.',
 								'woocommerce-gateway-stripe'
@@ -44,25 +54,27 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 				}
 				value={ value }
 				onChange={ ( val ) => setValue( val ) }
+				disabled={ isSaving }
+				name={ testMode ? 'test_publishable_key' : 'publishable_key' }
 			/>
 		);
 	};
 
 	const SecretKey = () => {
+		const [ testSecretKey ] = useAccountKeysTestSecretKey();
+		const [ secretKey ] = useAccountKeysSecretKey();
 		const [ value, setValue ] = useState(
-			type === 'test'
-				? accountKeys.test_secret_key
-				: accountKeys.secret_key
+			testMode ? testSecretKey : secretKey
 		);
 		return (
 			<TextControl
 				label={
-					type === 'test'
+					testMode
 						? __( 'Test secret key', 'woocommerce-gateway-stripe' )
 						: __( 'Live secret key', 'woocommerce-gateway-stripe' )
 				}
 				help={
-					type === 'test'
+					testMode
 						? __(
 								'Only values starting with "sk_test_" or "rk_test_" will be saved.',
 								'woocommerce-gateway-stripe'
@@ -74,15 +86,17 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 				}
 				value={ value }
 				onChange={ ( val ) => setValue( val ) }
+				disabled={ isSaving }
+				name={ testMode ? 'test_secret_key' : 'secret_key' }
 			/>
 		);
 	};
 
 	const WebhookSecret = () => {
+		const [ testWebhookSecret ] = useAccountKeysTestWebhookSecret();
+		const [ webhookSecret ] = useAccountKeysWebhookSecret();
 		const [ value, setValue ] = useState(
-			type === 'test'
-				? accountKeys.test_webhook_secret
-				: accountKeys.webhook_secret
+			testMode ? testWebhookSecret : webhookSecret
 		);
 		return (
 			<TextControl
@@ -93,13 +107,22 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 				) }
 				value={ value }
 				onChange={ ( val ) => setValue( val ) }
+				disabled={ isSaving }
+				name={ testMode ? 'test_webhook_secret' : 'webhook_secret' }
 			/>
 		);
 	};
 
 	const handleSave = () => {
-		setTestMode( type === 'test' );
-		onClose();
+		// Grab the HTMLCollection of elements of the HTML form, convert to array.
+		const elements = Array.from( formRef.current.elements );
+		// Convert HTML elements array to an object acceptable for saving keys.
+		const keysToSave = elements.reduce( ( acc, curr ) => {
+			const { name, value } = curr;
+			return { ...acc, [ name ]: value };
+		}, {} );
+		saveAccountKeys( keysToSave );
+		// @todo - automatically close once saving is done successfully. leave open if failed? onClose();
 	};
 
 	return (
@@ -107,7 +130,11 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 			onRequestClose={ onClose }
 			actions={
 				<>
-					<Button isSecondary onClick={ onClose }>
+					<Button
+						isSecondary
+						onClick={ onClose }
+						disabled={ isSaving }
+					>
 						{ __( 'Cancel', 'woocommerce-gateway-stripe' ) }
 					</Button>
 					<Button
@@ -159,9 +186,11 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 							},
 					  } ) }
 			</InlineNotice>
-			<PublishableKey />
-			<SecretKey />
-			<WebhookSecret />
+			<form ref={ formRef }>
+				<PublishableKey />
+				<SecretKey />
+				<WebhookSecret />
+			</form>
 		</ConfirmationModal>
 	);
 };

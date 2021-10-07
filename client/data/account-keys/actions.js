@@ -1,7 +1,7 @@
-import { dispatch, select } from '@wordpress/data';
+import { dispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import { apiFetch } from '@wordpress/data-controls';
-import { NAMESPACE, STORE_NAME } from '../constants';
+import { NAMESPACE } from '../constants';
 import ACTION_TYPES from './action-types';
 
 export function updateAccountKeysValues( payload ) {
@@ -26,11 +26,9 @@ export function updateIsSavingAccountKeys( isSaving, error ) {
 	};
 }
 
-export function* saveAccountKeys() {
+export function* saveAccountKeys( accountKeys ) {
 	let error = null;
 	try {
-		const accountKeys = select( STORE_NAME ).getAccountKeys();
-
 		yield updateIsSavingAccountKeys( true, null );
 
 		yield apiFetch( {
@@ -38,6 +36,8 @@ export function* saveAccountKeys() {
 			method: 'post',
 			data: accountKeys,
 		} );
+
+		yield updateAccountKeysValues( accountKeys );
 
 		yield dispatch( 'core/notices' ).createSuccessNotice(
 			__( 'Account keys saved.', 'woocommerce-gateway-stripe' )
