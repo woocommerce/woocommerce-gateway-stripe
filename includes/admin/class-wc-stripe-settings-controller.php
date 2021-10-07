@@ -54,6 +54,20 @@ class WC_Stripe_Settings_Controller {
 			return;
 		}
 
+		if ( ! is_admin() ) {
+			return;
+		}
+
+		global $current_tab, $current_section;
+
+		if ( ! isset( $current_tab ) || 'checkout' !== $current_tab ) {
+			return;
+		}
+
+		if ( ! isset( $current_section ) || 'stripe' !== $current_section ) {
+			return;
+		}
+
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
 		if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
