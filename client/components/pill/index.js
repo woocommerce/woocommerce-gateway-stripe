@@ -9,6 +9,7 @@ const Pill = styled.span`
 	font-weight: 400;
 	line-height: 1.4em;
 	padding: 2px 8px;
+	text-align: center;
 	width: fit-content;
 `;
 
