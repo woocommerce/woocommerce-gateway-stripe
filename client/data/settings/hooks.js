@@ -17,34 +17,20 @@ const makeReadOnlySettingsHook = (
 		[ fieldName, fieldDefaultValue ]
 	);
 
-const makeSettingsHookFromUpdateHandler = (
-	fieldName,
-	updateHandler,
-	fieldDefaultValue = false
-) => () => {
+const makeSettingsHook = ( fieldName, fieldDefaultValue = false ) => () => {
 	const { updateSettingsValues } = useDispatch( STORE_NAME );
 
 	const field = makeReadOnlySettingsHook( fieldName, fieldDefaultValue )();
 
 	const handler = useCallback(
-		( v ) => updateHandler( v, updateSettingsValues ),
+		( value ) =>
+			updateSettingsValues( {
+				[ fieldName ]: value,
+			} ),
 		[ updateSettingsValues ]
 	);
 
 	return [ field, handler ];
-};
-
-const makeSettingsHook = ( fieldName, fieldDefaultValue = false ) => {
-	const updateHandler = ( v, updateSettingsValues ) =>
-		updateSettingsValues( {
-			[ fieldName ]: v,
-		} );
-
-	return makeSettingsHookFromUpdateHandler(
-		fieldName,
-		updateHandler,
-		fieldDefaultValue
-	);
 };
 
 export const useSettings = () => {
@@ -93,6 +79,10 @@ export const usePaymentRequestButtonTheme = makeSettingsHook(
 	'payment_request_button_theme',
 	''
 );
+export const usePaymentRequestLocations = makeSettingsHook(
+	'payment_request_button_locations',
+	EMPTY_ARR
+);
 export const useIsStripeEnabled = makeSettingsHook( 'is_stripe_enabled' );
 export const useTestMode = makeSettingsHook( 'is_test_mode_enabled' );
 export const useSavedCards = makeSettingsHook( 'is_saved_cards_enabled' );
@@ -112,15 +102,6 @@ export const useShortAccountStatementDescriptor = makeSettingsHook(
 	''
 );
 export const useDebugLog = makeSettingsHook( 'is_debug_log_enabled' );
-
-export const usePaymentRequestLocations = makeSettingsHookFromUpdateHandler(
-	'payment_request_button_locations',
-	( v, updateSettingsValues ) =>
-		updateSettingsValues( {
-			payment_request_button_locations: [ ...v ],
-		} ),
-	EMPTY_ARR
-);
 
 export const useGetAvailablePaymentMethodIds = makeReadOnlySettingsHook(
 	'available_payment_method_ids',
