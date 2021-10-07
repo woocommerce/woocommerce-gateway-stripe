@@ -1,7 +1,7 @@
 import { __ } from '@wordpress/i18n';
 import { useDispatch } from '@wordpress/data';
 import { useCallback } from '@wordpress/element';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styled from '@emotion/styled';
 import { Modal, Button } from '@wordpress/components';
 import { OPTIONS_STORE_NAME } from '@woocommerce/data';
@@ -32,23 +32,43 @@ const UpeInformationOverlay = () => {
 	const [ isOverlayVisible, setIsOverlayVisible ] = useState( true );
 	const { updateOptions } = useDispatch( OPTIONS_STORE_NAME );
 
-	useEffect( () => {
-		// highlight the Stripe row
+	const scrollDown = setInterval( () => {
 		const stripeRow = document.querySelector(
 			'tr[data-gateway_id="stripe"]'
 		);
-		stripeRow.style.background = 'white';
-		stripeRow.style.position = 'relative';
-		stripeRow.style[ 'z-index' ] = 1000000;
+		const stripeRowTop = stripeRow.getBoundingClientRect().top;
+		const body = document.querySelector( 'body,html' );
+		const top = body.scrollTop + 50;
+		if ( top > stripeRowTop ) {
+			clearInterval( scrollDown );
+			changeElementStyles();
+		} else {
+			body.scrollTop = top;
+		}
+	}, 20 );
 
-		//position the modal
-		const stripeRowTop = stripeRow.getBoundingClientRect().bottom;
-
+	const changeElementStyles = () => {
 		const modal = document.querySelector(
 			'div[class^="components-modal__frame"]'
 		);
-		modal.style.top = `${ stripeRowTop + 30 }px`;
-	}, [] );
+
+		if ( ! modal ) {
+			return;
+		}
+
+		const stripeRow = document.querySelector(
+			'tr[data-gateway_id="stripe"]'
+		);
+
+		//position the modal
+		const stripeRowBottom = stripeRow.getBoundingClientRect().bottom;
+		modal.style.top = `${ stripeRowBottom + 30 }px`;
+
+		// highlight the Stripe row
+		stripeRow.style.background = 'white';
+		stripeRow.style.position = 'relative';
+		stripeRow.style[ 'z-index' ] = 1000000;
+	};
 
 	const handleDismiss = useCallback( () => {
 		updateOptions( {
