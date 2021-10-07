@@ -54,14 +54,11 @@ export const usePaymentProcessing = (
 				getBlocksConfiguration()?.inline_cc_form === 'yes'
 					? CardElement
 					: CardNumberElement;
-			return await stripe.createSource(
-				// @ts-ignore
-				elements?.getElement( elementToGet ),
-				{
-					type: 'card',
-					owner: ownerInfo,
-				}
-			);
+			return await stripe.createPaymentMethod( {
+				card: elements?.getElement( elementToGet ),
+				type: 'card',
+				billing_details: ownerInfo,
+			} );
 		};
 		const onSubmit = async () => {
 			try {
@@ -114,17 +111,24 @@ export const usePaymentProcessing = (
 						message: onStripeError( response ),
 					};
 				}
-				if ( ! response.source || ! response.source.id ) {
+				if (
+					( ! response.source || ! response.source.id ) &&
+					( ! response.paymentMethod || ! response.paymentMethod.id )
+				) {
 					throw new Error(
 						getErrorMessageForTypeAndCode( errorTypes.API_ERROR )
 					);
 				}
-				setSourceId( response.source.id );
+				setSourceId(
+					response?.source?.id ?? response?.paymentMethod?.id
+				);
 				return {
 					type: emitResponse.responseTypes.SUCCESS,
 					meta: {
 						paymentMethodData: {
-							stripe_source: response.source.id,
+							stripe_source:
+								response?.source?.id ??
+								response?.paymentMethod?.id,
 							// The billing information here is relevant to properly create the
 							// Stripe Customer object.
 							billing_email: ownerInfo.email,
