@@ -561,11 +561,13 @@ jQuery( function( $ ) {
 				}
 			};
 
+			const sourceId = response.source ? response.source.id : response.paymentMethod.id;
+
 			$.post( {
 				url: wc_stripe_form.getAjaxURL( 'create_setup_intent'),
 				dataType: 'json',
 				data: {
-					stripe_source_id: response.source.id,
+					stripe_source_id: sourceId,
 					nonce: wc_stripe_params.add_card_nonce,
 				},
 				error: function() {
@@ -583,7 +585,7 @@ jQuery( function( $ ) {
 					return;
 				}
 
-				stripe.confirmCardSetup( serverResponse.client_secret, { payment_method: response.source.id } )
+				stripe.confirmCardSetup( serverResponse.client_secret, { payment_method: sourceId } )
 					.then( function( result ) {
 						if ( result.error ) {
 							$( document.body ).trigger( 'stripeError', result );
