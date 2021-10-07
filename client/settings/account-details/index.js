@@ -1,9 +1,16 @@
 import { __ } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
 import React from 'react';
-import SectionStatus from '../../components/section-status';
 import './style.scss';
+import { Button } from '@wordpress/components';
+import useWebhookStateMessage from './use-webhook-state-message';
+import SectionStatus from './section-status';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
+import {
+	useAccountKeysTestWebhookSecret,
+	useAccountKeysWebhookSecret,
+} from 'wcstripe/data/account-keys';
+import { useTestMode } from 'wcstripe/data';
 
 const useIsCardPaymentsEnabled = () =>
 	useGetCapabilities().card_payments === 'active';
@@ -23,7 +30,11 @@ const PaymentsSection = () => {
 	return (
 		<div className="account-details__row">
 			<p>{ __( 'Payments:', 'woocommerce-gateway-stripe' ) }</p>
-			<SectionStatus isEnabled={ isEnabled } />
+			<SectionStatus isEnabled={ isEnabled }>
+				{ isEnabled
+					? __( 'Enabled', 'woocommerce-gateway-stripe' )
+					: __( 'Disabled', 'woocommerce-gateway-stripe' ) }
+			</SectionStatus>
 		</div>
 	);
 };
@@ -34,8 +45,50 @@ const DepositsSection = () => {
 	return (
 		<div className="account-details__row">
 			<p>{ __( 'Deposits:', 'woocommerce-gateway-stripe' ) }</p>
-			<SectionStatus isEnabled={ isEnabled } />
+			<SectionStatus isEnabled={ isEnabled }>
+				{ isEnabled
+					? __( 'Enabled', 'woocommerce-gateway-stripe' )
+					: __( 'Disabled', 'woocommerce-gateway-stripe' ) }
+			</SectionStatus>
 		</div>
+	);
+};
+
+const WebhooksSection = () => {
+	const [ testWebhookSecret ] = useAccountKeysTestWebhookSecret();
+	const [ webhookSecret ] = useAccountKeysWebhookSecret();
+	const [ isTestModeEnabled ] = useTestMode();
+
+	const isWebhookSecretEntered = Boolean(
+		isTestModeEnabled ? testWebhookSecret : webhookSecret
+	);
+
+	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
+
+	return (
+		<>
+			<div className="account-details__row">
+				<p>{ __( 'Webhooks:', 'woocommerce-gateway-stripe' ) }</p>
+				<SectionStatus isEnabled={ isWebhookSecretEntered }>
+					{ isWebhookSecretEntered
+						? __( 'Enabled', 'woocommerce-gateway-stripe' )
+						: __(
+								'Please enter the webhook secret key for this to work properly',
+								'woocommerce-gateway-stripe'
+						  ) }
+				</SectionStatus>
+			</div>
+			<div className="account-details__desc">
+				{ message }{ ' ' }
+				<Button
+					disabled={ requestStatus === 'pending' }
+					onClick={ refreshMessage }
+					isLink
+				>
+					{ __( 'Refresh', 'woocommerce-gateway-stripe' ) }
+				</Button>
+			</div>
+		</>
 	);
 };
 
@@ -84,8 +137,9 @@ const AccountDetails = () => {
 			<div className="account-details__flex-container">
 				<PaymentsSection />
 				<DepositsSection />
+				<MissingAccountDetailsDescription />
+				<WebhooksSection />
 			</div>
-			<MissingAccountDetailsDescription />
 		</div>
 	);
 };
