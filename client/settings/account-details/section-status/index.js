@@ -1,31 +1,43 @@
 import React from 'react';
 import { Icon } from '@wordpress/components';
+import Tooltip from 'wcstripe/components/tooltip';
 
 import './style.scss';
 
-const SectionStatusEnabled = ( { children } ) => {
+const MaybeAddTooltip = ( { children, tooltip } ) =>
+	tooltip ? <Tooltip content={ tooltip }>{ children }</Tooltip> : children;
+
+const SectionStatusEnabled = ( { children, tooltip } ) => {
 	return (
 		<span className="section-status__info--green">
-			<Icon icon="yes-alt" />
-			{ children }
+			<MaybeAddTooltip tooltip={ tooltip }>
+				<Icon icon="yes-alt" />
+				<span className="section-status__info-text">{ children }</span>
+			</MaybeAddTooltip>
 		</span>
 	);
 };
 
-const SectionStatusDisabled = ( { children } ) => {
+const SectionStatusDisabled = ( { children, tooltip } ) => {
 	return (
 		<span className="section-status__info--yellow">
-			<Icon icon="warning" />
-			{ children }
+			<MaybeAddTooltip tooltip={ tooltip }>
+				<Icon icon="warning" />
+				<span className="section-status__info-text">{ children }</span>
+			</MaybeAddTooltip>
 		</span>
 	);
 };
 
-const SectionStatus = ( { isEnabled, children } ) => {
+const SectionStatus = ( { isEnabled, children, tooltip } ) => {
 	return isEnabled ? (
-		<SectionStatusEnabled>{ children }</SectionStatusEnabled>
+		<SectionStatusEnabled tooltip={ tooltip }>
+			{ children }
+		</SectionStatusEnabled>
 	) : (
-		<SectionStatusDisabled>{ children }</SectionStatusDisabled>
+		<SectionStatusDisabled tooltip={ tooltip }>
+			{ children }
+		</SectionStatusDisabled>
 	);
 };
 

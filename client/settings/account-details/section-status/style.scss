@@ -2,12 +2,14 @@
 
 .section-status__info {
 	&--green {
-		fill: $alert-green;
-		color: $alert-green;
+		.section-status__info-text, .dashicon {
+			color: $alert-green;
+		}
 	}
 
 	&--yellow {
-		fill: $alert-yellow;
-		color: $alert-yellow;
+		.section-status__info-text, .dashicon {
+			color: $alert-yellow;
+		}
 	}
 }

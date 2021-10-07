@@ -1,4 +1,4 @@
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
 import React from 'react';
 import styled from '@emotion/styled';
@@ -30,6 +30,74 @@ const useAreDepositsEnabled = () => {
 	);
 };
 
+const translatedWeekNames = {
+	monday: __( 'Monday', 'woocommerce-gateway-stripe' ),
+	tuesday: __( 'Tuesday', 'woocommerce-gateway-stripe' ),
+	wednesday: __( 'Wednesday', 'woocommerce-gateway-stripe' ),
+	thursday: __( 'Thursday', 'woocommerce-gateway-stripe' ),
+	friday: __( 'Friday', 'woocommerce-gateway-stripe' ),
+	saturday: __( 'Saturday', 'woocommerce-gateway-stripe' ),
+	sunday: __( 'Sunday', 'woocommerce-gateway-stripe' ),
+};
+
+const useGetPayoutsDescription = () => {
+	// https://stripe.com/docs/api/accounts/object#account_object-settings
+	const { data } = useAccount();
+
+	if ( ! data.account?.settings?.payouts?.schedule?.interval ) {
+		return '';
+	}
+
+	const {
+		delay_days: delayDays,
+		interval,
+		monthly_anchor: monthlyAnchor,
+		weekly_anchor: weeklyAnchor,
+	} = data.account.settings.payouts.schedule;
+
+	if ( interval === 'manual' ) {
+		return __(
+			'Deposits are configured to be manual.',
+			'woocommerce-gateway-stripe'
+		);
+	}
+
+	if ( interval === 'daily' ) {
+		return sprintf(
+			/* translators: %d: Number of days between payments. */
+			__(
+				'Deposits are configured happen every %d days.',
+				'woocommerce-gateway-stripe'
+			),
+			delayDays
+		);
+	}
+
+	if ( interval === 'weekly' ) {
+		return sprintf(
+			/* translators: %s: day of the week. */
+			__(
+				'Deposits are configured happen weekly on %s.',
+				'woocommerce-gateway-stripe'
+			),
+			translatedWeekNames[ weeklyAnchor ]
+		);
+	}
+
+	if ( interval === 'monthly' ) {
+		return sprintf(
+			/* translators: %d: day of the month. */
+			__(
+				'Payouts are configured happen every month on the %d.',
+				'woocommerce-gateway-stripe'
+			),
+			monthlyAnchor
+		);
+	}
+
+	return '';
+};
+
 const PaymentsSection = () => {
 	const isEnabled = useIsCardPaymentsEnabled();
 
@@ -47,11 +115,15 @@ const PaymentsSection = () => {
 
 const DepositsSection = () => {
 	const isEnabled = useAreDepositsEnabled();
+	const tooltip = useGetPayoutsDescription();
 
 	return (
 		<div className="account-details__row">
 			<p>{ __( 'Deposits:', 'woocommerce-gateway-stripe' ) }</p>
-			<SectionStatus isEnabled={ isEnabled }>
+			<SectionStatus
+				isEnabled={ isEnabled }
+				tooltip={ isEnabled ? tooltip : '' }
+			>
 				{ isEnabled
 					? __( 'Enabled', 'woocommerce-gateway-stripe' )
 					: __( 'Disabled', 'woocommerce-gateway-stripe' ) }
