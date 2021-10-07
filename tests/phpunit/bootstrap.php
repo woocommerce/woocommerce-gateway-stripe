@@ -38,7 +38,9 @@ function _manually_load_plugin() {
 	$_plugin_dir = __DIR__ . '/../../';
 	require $_plugin_dir . 'woocommerce-gateway-stripe.php';
 
+	// REST API.
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-base-controller.php';
+	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
 }
 
@@ -48,6 +50,7 @@ require $_tests_dir . '/includes/bootstrap.php';
 
 # Load WooCommerce Helpers (https://github.com/woocommerce/woocommerce/tree/master/tests/legacy/framework/helpers)
 # To keep the plugin self-contained, copy any needed helper to the `helpers/` sub-folder.
+require_once __DIR__ . '/helpers/class-upe-test-helper.php';
 require_once __DIR__ . '/helpers/class-wc-helper-product.php';
 require_once __DIR__ . '/helpers/class-wc-helper-shipping.php';
 require_once __DIR__ . '/helpers/class-wc-helper-order.php';
