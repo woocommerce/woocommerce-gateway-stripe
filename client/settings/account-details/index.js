@@ -14,6 +14,7 @@ import {
 import { useTestMode } from 'wcstripe/data';
 
 const WebhookEndpointText = styled.strong`
+	padding: 0 2px;
 	background-color: #f6f7f7; // $studio-gray-0
 `;
 
