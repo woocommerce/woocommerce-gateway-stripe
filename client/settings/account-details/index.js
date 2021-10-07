@@ -1,6 +1,7 @@
 import { __ } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
 import React from 'react';
+import styled from '@emotion/styled';
 import './style.scss';
 import { Button, ExternalLink } from '@wordpress/components';
 import useWebhookStateMessage from './use-webhook-state-message';
@@ -11,6 +12,10 @@ import {
 	useAccountKeysWebhookSecret,
 } from 'wcstripe/data/account-keys';
 import { useTestMode } from 'wcstripe/data';
+
+const WebhookEndpointText = styled.strong`
+	background-color: #f6f7f7; // $studio-gray-0
+`;
 
 const useIsCardPaymentsEnabled = () =>
 	useGetCapabilities().card_payments === 'active';
@@ -58,6 +63,7 @@ const WebhooksSection = () => {
 	const [ testWebhookSecret ] = useAccountKeysTestWebhookSecret();
 	const [ webhookSecret ] = useAccountKeysWebhookSecret();
 	const [ isTestModeEnabled ] = useTestMode();
+	const { data } = useAccount();
 
 	const isWebhookSecretEntered = Boolean(
 		isTestModeEnabled ? testWebhookSecret : webhookSecret
@@ -79,6 +85,24 @@ const WebhooksSection = () => {
 				</SectionStatus>
 			</div>
 			<div className="account-details__desc">
+				{ createInterpolateElement(
+					__(
+						"You must add the following webhook endpoint <webhookEndpoint /> to your <a>Stripe account settings</a> (if there isn't one already enabled). This will enable you to receive notifications on the charge statuses.",
+						'woocommerce-gateway-stripe'
+					),
+					{
+						webhookEndpoint: (
+							<WebhookEndpointText>
+								{ data.webhook_url }
+							</WebhookEndpointText>
+						),
+						a: (
+							<ExternalLink href="https://dashboard.stripe.com/account/webhooks" />
+						),
+					}
+				) }
+				<br />
+				<br />
 				{ message }{ ' ' }
 				<Button
 					disabled={ requestStatus === 'pending' }
@@ -108,7 +132,6 @@ const MissingAccountDetailsDescription = () => {
 					'Payments/deposits may be disabled for this account until missing business information is updated. <a>Update now</a>',
 					'woocommerce-gateway-stripe'
 				),
-				// eslint-disable-next-line jsx-a11y/anchor-has-content
 				{ a: <ExternalLink href="https://stripe.com/support" /> }
 			) }
 		</div>
