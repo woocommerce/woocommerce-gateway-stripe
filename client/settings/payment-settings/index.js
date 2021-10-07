@@ -108,16 +108,18 @@ const AccountDetailsSection = () => {
 	return (
 		<Card className="account-details">
 			<CardHeader className="account-details__header">
-				{ data.account?.email && (
-					<h4 className="account-details__header">
-						{ data.account.email }
-					</h4>
-				) }
-				{ isTestModeEnabled && (
-					<Pill>
-						{ __( 'Test Mode', 'woocommerce-gateway-stripe' ) }
-					</Pill>
-				) }
+				<div>
+					{ data.account?.email && (
+						<h4 className="account-details__header">
+							{ data.account.email }
+						</h4>
+					) }
+					{ isTestModeEnabled && (
+						<Pill>
+							{ __( 'Test Mode', 'woocommerce-gateway-stripe' ) }
+						</Pill>
+					) }
+				</div>
 				<AccountSettingsDropdownMenu />
 			</CardHeader>
 			<CardBody>
