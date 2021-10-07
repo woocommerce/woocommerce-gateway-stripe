@@ -30,8 +30,8 @@ const EnableUpePreviewTask = () => {
 	] = useManualCapture();
 
 	const [
-		internalIsManualCaptureDisabled,
-		setInternalIsManualCaptureDisabled,
+		internalIsAutomaticCaptureEnabled,
+		setInternalIsAutomaticCaptureEnabled,
 	] = useState( ! initialIsManualCaptureEnabled );
 
 	const handleContinueClick = useCallback( () => {
@@ -148,13 +148,13 @@ const EnableUpePreviewTask = () => {
 				{ initialIsManualCaptureEnabled && (
 					<CheckboxControl
 						label={ __(
-							'Disable manual capture of payments',
+							'Enable automatic capture of payments',
 							'woocommerce-gateway-stripe'
 						) }
-						onChange={ setInternalIsManualCaptureDisabled }
-						checked={ internalIsManualCaptureDisabled }
+						onChange={ setInternalIsAutomaticCaptureEnabled }
+						checked={ internalIsAutomaticCaptureEnabled }
 						help={ __(
-							'In order to enable the new experience you need to disable the "manual capture" of payments.',
+							'In order to enable the new experience you need to enable the "automatic capture" of payments at checkout.',
 							'woocommerce-gateway-stripe'
 						) }
 					/>
@@ -162,7 +162,7 @@ const EnableUpePreviewTask = () => {
 				<Button
 					isBusy={ status === 'pending' || isSavingSettings }
 					disabled={
-						! internalIsManualCaptureDisabled ||
+						! internalIsAutomaticCaptureEnabled ||
 						status === 'pending' ||
 						isSavingSettings
 					}

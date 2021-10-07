@@ -60,12 +60,12 @@ describe( 'EnableUpePreviewTask', () => {
 		expect( enableButton ).toBeDisabled();
 
 		userEvent.click(
-			screen.getByText( 'Disable manual capture of payments' )
+			screen.getByText( 'Enable automatic capture of payments' )
 		);
 
 		expect( enableButton ).not.toBeDisabled();
 		expect(
-			screen.getByText( 'Disable manual capture of payments' )
+			screen.getByText( 'Enable automatic capture of payments' )
 		).toBeInTheDocument();
 
 		userEvent.click( screen.getByText( 'Enable' ) );
@@ -107,7 +107,7 @@ describe( 'EnableUpePreviewTask', () => {
 		);
 
 		expect(
-			screen.queryByText( 'Disable manual capture of payments' )
+			screen.queryByText( 'Enable automatic capture of payments' )
 		).not.toBeInTheDocument();
 		expect( setCompletedMock ).not.toHaveBeenCalled();
 		expect( setIsUpeEnabledMock ).not.toHaveBeenCalled();
