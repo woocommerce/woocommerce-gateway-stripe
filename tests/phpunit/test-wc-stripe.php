@@ -1,7 +1,15 @@
 <?php
 
 class WC_Stripe_Test extends WP_UnitTestCase {
-	use UPE_Test_Utils;
+
+	/**
+	 * @var UPE_Test_Helper
+	 */
+	private $upe_helper;
+
+	public function setUp() {
+		$this->upe_helper = new UPE_Test_Helper();
+	}
 
 	public function test_constants_defined() {
 		$this->assertTrue( defined( 'WC_STRIPE_VERSION' ) );
@@ -99,11 +107,11 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	}
 
 	public function test_legacy_payment_methods_supported_by_upe_are_not_loaded_when_upe_is_enabled() {
-		self::enable_upe_feature_flag();
+		$this->upe_helper->enable_upe_feature_flag();
 		$this->assertTrue( WC_Stripe_Feature_Flags::is_upe_preview_enabled() );
 
 		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );
-		self::reload_payment_gateways();
+		$this->upe_helper->reload_payment_gateways();
 
 		$this->assertTrue( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() );
 
@@ -122,7 +130,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	}
 
 	public function test_turning_on_upe_with_no_stripe_legacy_payment_methods_enabled_will_not_turn_on_the_upe_gateway_and_default_to_card_only() {
-		self::enable_upe_feature_flag();
+		$this->upe_helper->enable_upe_feature_flag();
 		// Store default stripe options
 		update_option( 'woocommerce_stripe_settings', [] );
 
@@ -142,12 +150,12 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	}
 
 	public function test_turning_on_upe_enables_the_correct_upe_methods_based_on_which_legacy_payment_methods_were_enabled_and_vice_versa() {
-		self::enable_upe_feature_flag();
+		$this->upe_helper->enable_upe_feature_flag();
 
 		// Enable Giropay and Ideal LPM gateways.
 		update_option( 'woocommerce_stripe_giropay_settings', [ 'enabled' => 'yes' ] );
 		update_option( 'woocommerce_stripe_ideal_settings', [ 'enabled' => 'yes' ] );
-		self::reload_payment_gateways();
+		$this->upe_helper->reload_payment_gateways();
 
 		// Initialize default stripe settings, turn on UPE.
 		update_option( 'woocommerce_stripe_settings', [ 'upe_checkout_experience_enabled' => 'yes' ] );

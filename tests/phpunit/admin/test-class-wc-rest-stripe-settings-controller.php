@@ -11,8 +11,6 @@ use Automattic\WooCommerce\Blocks\RestApi;
  */
 class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
-	use UPE_Test_Utils;
-
 	/**
 	 * Tested REST route.
 	 */
@@ -35,10 +33,12 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 * @see UPE_Test_Utils::reload_payment_gateways()
 	 */
 	public static function setUpBeforeClass() {
+		$upe_helper = new UPE_Test_Helper();
+
 		// All tests assume UPE is enabled.
 		update_option( '_wcstripe_feature_upe', 'yes' );
-		self::enable_upe();
-		self::reload_payment_gateways();
+		$upe_helper->enable_upe();
+		$upe_helper->reload_payment_gateways();
 		self::$gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe::ID ];
 	}
 

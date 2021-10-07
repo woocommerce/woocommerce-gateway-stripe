@@ -3,9 +3,9 @@
 /**
  * Provides methods useful when testing UPE-related logic.
  */
-trait UPE_Test_Utils {
+class UPE_Test_Helper {
 
-	public static function enable_upe_feature_flag() {
+	public function enable_upe_feature_flag() {
 		// Force the UPE feature flag on.
 		add_filter(
 			'pre_option__wcstripe_feature_upe',
@@ -14,10 +14,10 @@ trait UPE_Test_Utils {
 			}
 		);
 		delete_option( 'woocommerce_stripe_settings' );
-		self::reload_payment_gateways();
+		$this->reload_payment_gateways();
 	}
 
-	public static function reload_payment_gateways() {
+	public function reload_payment_gateways() {
 		$closure = Closure::bind(
 			function () {
 				$this->stripe_gateway = null;
@@ -30,7 +30,7 @@ trait UPE_Test_Utils {
 		WC()->payment_gateways()->init();
 	}
 
-	public static function enable_upe() {
+	public function enable_upe() {
 		$settings = get_option( 'woocommerce_stripe_settings', [] );
 		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'yes';
 		update_option( 'woocommerce_stripe_settings', $settings );
