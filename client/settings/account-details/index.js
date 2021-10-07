@@ -2,7 +2,7 @@ import { __ } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
 import React from 'react';
 import './style.scss';
-import { Button } from '@wordpress/components';
+import { Button, ExternalLink } from '@wordpress/components';
 import useWebhookStateMessage from './use-webhook-state-message';
 import SectionStatus from './section-status';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
@@ -109,7 +109,7 @@ const MissingAccountDetailsDescription = () => {
 					'woocommerce-gateway-stripe'
 				),
 				// eslint-disable-next-line jsx-a11y/anchor-has-content
-				{ a: <a href="https://stripe.com/support" /> }
+				{ a: <ExternalLink href="https://stripe.com/support" /> }
 			) }
 		</div>
 	);
