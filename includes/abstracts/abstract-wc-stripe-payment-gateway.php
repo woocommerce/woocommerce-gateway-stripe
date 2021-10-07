@@ -168,9 +168,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * they are worth retrying.
 	 *
 	 * @since 4.0.5
-	 * @param array $error
+	 * @param StdClass $error
 	 */
 	public function is_retryable_error( $error ) {
+		// We don't want to retry payments when a 3DS mandate is invalid; it doesn't make sense.
+		// Note that this check is requires since the error type is 'invalid_request_error' which
+		// would otherwise return true.
+		if ( 'payment_intent_mandate_invalid' === $error->code ) {
+			return false;
+		}
+
 		return (
 			'invalid_request_error' === $error->type ||
 			'idempotency_error' === $error->type ||
