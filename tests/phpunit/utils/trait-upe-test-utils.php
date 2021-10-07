@@ -3,7 +3,7 @@
 /**
  * Provides methods useful when testing UPE-related logic.
  */
-trait UPE_Utils {
+trait UPE_Test_Utils {
 
 	public static function enable_upe_feature_flag() {
 		// Force the UPE feature flag on.

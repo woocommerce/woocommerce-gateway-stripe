@@ -1,7 +1,7 @@
 <?php
 
 class WC_Stripe_Test extends WP_UnitTestCase {
-	use UPE_Utils;
+	use UPE_Test_Utils;
 
 	public function test_constants_defined() {
 		$this->assertTrue( defined( 'WC_STRIPE_VERSION' ) );

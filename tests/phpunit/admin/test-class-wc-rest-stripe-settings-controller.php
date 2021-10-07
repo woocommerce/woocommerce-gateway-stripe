@@ -11,7 +11,7 @@ use Automattic\WooCommerce\Blocks\RestApi;
  */
 class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
-	use UPE_Utils;
+	use UPE_Test_Utils;
 
 	/**
 	 * Tested REST route.
@@ -32,7 +32,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 * however the REST controller is instantiated only once. If we reloaded gateways then, WC()->payment_gateways()
 	 * would contain another gateway instance than the controller.
 	 *
-	 * @see UPE_Utils::reload_payment_gateways()
+	 * @see UPE_Test_Utils::reload_payment_gateways()
 	 */
 	public static function setUpBeforeClass() {
 		// All tests assume UPE is enabled.
