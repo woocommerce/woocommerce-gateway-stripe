@@ -5,7 +5,7 @@ import interpolateComponents from 'interpolate-components';
 import styled from '@emotion/styled';
 import CardBody from '../card-body';
 import CardFooter from '../card-footer';
-import { useDevMode, useIsStripeEnabled, useTestMode } from 'wcstripe/data';
+import { useIsStripeEnabled, useTestMode } from 'wcstripe/data';
 
 const StyledCard = styled( Card )`
 	margin-bottom: 12px;
@@ -14,7 +14,6 @@ const StyledCard = styled( Card )`
 const GeneralSettingsSection = () => {
 	const [ isStripeEnabled, setIsStripeEnabled ] = useIsStripeEnabled();
 	const [ isTestModeEnabled, setIsTestModeEnabled ] = useTestMode();
-	const isDevModeEnabled = useDevMode();
 
 	return (
 		<StyledCard>
@@ -33,21 +32,12 @@ const GeneralSettingsSection = () => {
 				/>
 
 				<CheckboxControl
-					checked={ isDevModeEnabled || isTestModeEnabled }
-					disabled={ isDevModeEnabled }
+					checked={ isTestModeEnabled }
 					onChange={ setIsTestModeEnabled }
-					label={
-						isDevModeEnabled
-							? __(
-									'Dev mode is active so all transactions will be in test mode. ' +
-										'This setting is only available to live accounts.',
-									'woocommerce-gateway-stripe'
-							  )
-							: __(
-									'Enable test mode',
-									'woocommerce-gateway-stripe'
-							  )
-					}
+					label={ __(
+						'Enable test mode',
+						'woocommerce-gateway-stripe'
+					) }
 					help={ interpolateComponents( {
 						mixedString: __(
 							'Use {{testCardNumbersLink /}} to simulate various transactions. {{learnMoreLink/}}',

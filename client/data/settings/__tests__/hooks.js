@@ -17,7 +17,6 @@ import {
 	useIsShortAccountStatementEnabled,
 	useShortAccountStatementDescriptor,
 	useDebugLog,
-	useDevMode,
 	useManualCapture,
 } from '../hooks';
 import { STORE_NAME } from '../../constants';
@@ -68,30 +67,6 @@ describe( 'Settings hooks tests', () => {
 			);
 
 			expect( result.current ).toEqual( [] );
-		} );
-	} );
-
-	describe( 'useDevMode()', () => {
-		test( 'returns the value of getSettings().is_dev_mode_enabled', () => {
-			selectors = {
-				getSettings: jest.fn( () => ( {
-					is_dev_mode_enabled: true,
-				} ) ),
-			};
-
-			const { result } = renderHook( () => useDevMode() );
-
-			expect( result.current ).toEqual( true );
-		} );
-
-		test( 'returns false if setting is missing', () => {
-			selectors = {
-				getSettings: jest.fn( () => ( {} ) ),
-			};
-
-			const { result } = renderHook( () => useDevMode() );
-
-			expect( result.current ).toEqual( false );
 		} );
 	} );
 

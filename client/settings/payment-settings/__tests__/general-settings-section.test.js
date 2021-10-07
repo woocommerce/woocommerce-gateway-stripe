@@ -1,17 +1,15 @@
 import React from 'react';
 import { fireEvent, screen, render } from '@testing-library/react';
 import GeneralSettingsSection from '../general-settings-section';
-import { useIsStripeEnabled, useDevMode, useTestMode } from 'wcstripe/data';
+import { useIsStripeEnabled, useTestMode } from 'wcstripe/data';
 
 jest.mock( 'wcstripe/data', () => ( {
-	useDevMode: jest.fn(),
 	useIsStripeEnabled: jest.fn(),
 	useTestMode: jest.fn(),
 } ) );
 
 describe( 'GeneralSettingsSection', () => {
 	beforeEach( () => {
-		useDevMode.mockReturnValue( false );
 		useIsStripeEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useTestMode.mockReturnValue( [ false, jest.fn() ] );
 	} );

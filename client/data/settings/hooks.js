@@ -133,7 +133,6 @@ export const useGetAvailablePaymentMethodIds = makeReadOnlySettingsHook(
 	'available_payment_method_ids',
 	EMPTY_ARR
 );
-export const useDevMode = makeReadOnlySettingsHook( 'is_dev_mode_enabled' );
 
 export const useGetSavingError = () => {
 	return useSelect( ( select ) => {
