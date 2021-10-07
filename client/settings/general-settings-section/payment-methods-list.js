@@ -65,7 +65,7 @@ const GeneralSettingsSection = () => {
 						<PaymentMethodCheckbox id={ method } />
 						<PaymentMethodWrapper>
 							<PaymentMethodDescription
-								id={ isUpeEnabled ? method : null }
+								id={ method }
 								Icon={ Icon }
 								description={ description }
 								label={ label }
