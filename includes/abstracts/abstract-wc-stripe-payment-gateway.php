@@ -103,10 +103,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return;
 		}
 
-		if ( ! is_admin() ) {
-			return;
-		}
-
 		if ( ! WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', $this->id ) ) {
 			return;
 		}
