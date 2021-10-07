@@ -7,6 +7,7 @@ import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
 } from 'wcstripe/data';
+import { useManualCapture } from 'wcstripe/settings/payments-and-transactions-section/data-mock';
 import { useAccount } from 'wcstripe/data/account';
 
 jest.mock( 'wcstripe/data', () => ( {
@@ -30,9 +31,16 @@ jest.mock(
 jest.mock( '../../loadable-settings-section', () => ( { children } ) =>
 	children
 );
+jest.mock(
+	'wcstripe/settings/payments-and-transactions-section/data-mock',
+	() => ( {
+		useManualCapture: jest.fn(),
+	} )
+);
 
 describe( 'GeneralSettingsSection', () => {
 	beforeEach( () => {
+		useManualCapture.mockReturnValue( [ false ] );
 		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card' ] );
 		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card' ], jest.fn() ] );
 		useAccount.mockReturnValue( { isRefreshing: false } );
@@ -281,6 +289,69 @@ describe( 'GeneralSettingsSection', () => {
 
 		expect(
 			screen.queryByText( /Without the new payments experience/ )
+		).toBeInTheDocument();
+	} );
+
+	it( 'does not display the payment method checkbox when manual capture is enabled', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			'card',
+			'giropay',
+		] );
+		useManualCapture.mockReturnValue( [ true ] );
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: /Credit card/,
+			} )
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: 'giropay',
+			} )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'does not display the payment method checkbox when UPE is disabled', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card' ] );
+		useManualCapture.mockReturnValue( [ true ] );
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: /Credit card/,
+			} )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'displays the payment method checkbox when manual capture is disabled', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			'card',
+			'giropay',
+		] );
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: /Credit card/,
+			} )
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: 'giropay',
+			} )
 		).toBeInTheDocument();
 	} );
 } );
