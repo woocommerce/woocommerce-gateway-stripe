@@ -844,11 +844,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$payment_method_object = $intent->payment_method;
 			}
 			$user                    = $this->get_user_from_order( $order );
-			$prepared_payment_method = $this->prepare_payment_method( $payment_method_object );
 			$customer                = new WC_Stripe_Customer( $user->ID );
+			$prepared_payment_method = $this->prepare_payment_method( $payment_method_object );
 
-			$customer->add_payment_method_actions( $payment_method_object );
+			$customer->clear_cache();
 			$this->save_payment_method_to_order( $order, $prepared_payment_method );
+			do_action( 'woocommerce_stripe_add_payment_method', $user->get_id(), $payment_method_object );
 		}
 
 		if ( $payment_needed ) {

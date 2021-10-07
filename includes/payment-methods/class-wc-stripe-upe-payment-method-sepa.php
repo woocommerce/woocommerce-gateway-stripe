@@ -37,16 +37,4 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 	public function get_retrievable_type() {
 		return $this->get_id();
 	}
-
-	/**
-	 * Add payment method to user and return WC payment token.
-	 *
-	 * @param WP_User $user           User to add payment token to.
-	 * @param object  $intent         JSON object for Stripe payment intent.
-	 *
-	 * @return WC_Payment_Token_CC WC object for payment token.
-	 */
-	public function add_token_to_user_from_intent( $user_id, $intent ) {
-		return $this->add_token_to_user_from_payment_method( $user_id, $intent->payment_method );
-	}
 }
