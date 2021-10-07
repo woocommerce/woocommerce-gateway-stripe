@@ -604,7 +604,7 @@ function woocommerce_gateway_stripe() {
 					$settings_controller = new WC_REST_Stripe_Settings_Controller( $this->get_main_stripe_gateway() );
 					$settings_controller->register_routes();
 
-					$stripe_account_keys_controller = new WC_REST_Stripe_Account_Keys_Controller();
+					$stripe_account_keys_controller = new WC_REST_Stripe_Account_Keys_Controller( $this->account );
 					$stripe_account_keys_controller->register_routes();
 
 					$stripe_account_controller = new WC_REST_Stripe_Account_Controller( $this->account );
