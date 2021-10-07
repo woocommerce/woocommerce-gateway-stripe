@@ -5,7 +5,7 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 5.6.1
+ * Version: 5.6.2
  * Requires at least: 5.6
  * Tested up to: 5.8
  * WC requires at least: 5.5
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '5.6.1' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '5.6.2' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '5.6.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '3.0' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '3.3' );
@@ -604,7 +604,7 @@ function woocommerce_gateway_stripe() {
 					$settings_controller = new WC_REST_Stripe_Settings_Controller( $this->get_main_stripe_gateway() );
 					$settings_controller->register_routes();
 
-					$stripe_account_keys_controller = new WC_REST_Stripe_Account_Keys_Controller();
+					$stripe_account_keys_controller = new WC_REST_Stripe_Account_Keys_Controller( $this->account );
 					$stripe_account_keys_controller->register_routes();
 
 					$stripe_account_controller = new WC_REST_Stripe_Account_Controller( $this->account );

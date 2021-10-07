@@ -1,98 +1,47 @@
 import React from 'react';
-import { fireEvent, screen, render } from '@testing-library/react';
+import { screen, render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import GeneralSettingsSection from '../general-settings-section';
 import { useIsStripeEnabled, useTestMode } from 'wcstripe/data';
+import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useIsStripeEnabled: jest.fn(),
 	useTestMode: jest.fn(),
 } ) );
 
+jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
+	useAccountKeys: jest.fn(),
+} ) );
+
 describe( 'GeneralSettingsSection', () => {
-	beforeEach( () => {
-		useIsStripeEnabled.mockReturnValue( [ false, jest.fn() ] );
-		useTestMode.mockReturnValue( [ false, jest.fn() ] );
+	it( 'should enable stripe when stripe checkbox is clicked', () => {
+		const setIsStripeEnabledMock = jest.fn();
+		const setTestModeMock = jest.fn();
+		useIsStripeEnabled.mockReturnValue( [ false, setIsStripeEnabledMock ] );
+		useTestMode.mockReturnValue( [ false, setTestModeMock ] );
+		useAccountKeys.mockReturnValue( {
+			accountKeys: {
+				test_publishable_key: 'test_pk',
+				test_secret_key: 'test_sk',
+				test_webhook_secret: 'test_whs',
+			},
+		} );
+
+		render( <GeneralSettingsSection /> );
+
+		const enableStripeCheckbox = screen.getByLabelText( 'Enable Stripe' );
+		const testModeCheckbox = screen.getByLabelText( 'Enable test mode' );
+
+		expect( enableStripeCheckbox ).not.toBeChecked();
+		expect( testModeCheckbox ).not.toBeChecked();
+
+		userEvent.click( enableStripeCheckbox );
+
+		expect( setIsStripeEnabledMock ).toHaveBeenCalledWith( true );
+
+		userEvent.click( testModeCheckbox );
+
+		expect( setTestModeMock ).toHaveBeenCalledWith( true );
 	} );
-
-	it.each( [ [ true ], [ false ] ] )(
-		'displays Stripe enabled = %s state from data store',
-		( isEnabled ) => {
-			useIsStripeEnabled.mockReturnValue( [ isEnabled ] );
-
-			render( <GeneralSettingsSection /> );
-
-			const enableStripeCheckbox = screen.getByLabelText(
-				'Enable Stripe'
-			);
-
-			let expectation = expect( enableStripeCheckbox );
-			if ( ! isEnabled ) {
-				expectation = expectation.not;
-			}
-			expectation.toBeChecked();
-		}
-	);
-
-	it.each( [ [ true ], [ false ] ] )(
-		'updates Stripe enabled state to %s when toggling checkbox',
-		( isEnabled ) => {
-			const updateIsStripeEnabledMock = jest.fn();
-			useIsStripeEnabled.mockReturnValue( [
-				isEnabled,
-				updateIsStripeEnabledMock,
-			] );
-
-			render( <GeneralSettingsSection /> );
-
-			const enableStripeCheckbox = screen.getByLabelText(
-				'Enable Stripe'
-			);
-
-			fireEvent.click( enableStripeCheckbox );
-			expect( updateIsStripeEnabledMock ).toHaveBeenCalledWith(
-				! isEnabled
-			);
-		}
-	);
-
-	it.each( [ [ true ], [ false ] ] )(
-		'displays test mode enabled = %s state from data store',
-		( isEnabled ) => {
-			useTestMode.mockReturnValue( [ isEnabled ] );
-
-			render( <GeneralSettingsSection /> );
-
-			const enableTestModeCheckbox = screen.getByLabelText(
-				'Enable test mode'
-			);
-
-			let expectation = expect( enableTestModeCheckbox );
-			if ( ! isEnabled ) {
-				expectation = expectation.not;
-			}
-			expectation.toBeChecked();
-		}
-	);
-
-	it.each( [ [ true ], [ false ] ] )(
-		'updates test mode enabled state to %s when toggling checkbox',
-		( isEnabled ) => {
-			const updateTestModeEnabledMock = jest.fn();
-			useTestMode.mockReturnValue( [
-				isEnabled,
-				updateTestModeEnabledMock,
-			] );
-
-			render( <GeneralSettingsSection /> );
-
-			const enableTestModeCheckbox = screen.getByLabelText(
-				'Enable test mode'
-			);
-
-			fireEvent.click( enableTestModeCheckbox );
-			expect( updateTestModeEnabledMock ).toHaveBeenCalledWith(
-				! isEnabled
-			);
-		}
-	);
 } );

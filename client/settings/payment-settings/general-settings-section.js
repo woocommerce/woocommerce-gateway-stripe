@@ -1,11 +1,11 @@
 import { __ } from '@wordpress/i18n';
 import { React } from 'react';
 import { Button, Card, CheckboxControl } from '@wordpress/components';
-import interpolateComponents from 'interpolate-components';
 import styled from '@emotion/styled';
 import CardBody from '../card-body';
 import CardFooter from '../card-footer';
-import { useIsStripeEnabled, useTestMode } from 'wcstripe/data';
+import TestModeCheckbox from './test-mode-checkbox';
+import { useIsStripeEnabled } from 'wcstripe/data';
 
 const StyledCard = styled( Card )`
 	margin-bottom: 12px;
@@ -13,7 +13,6 @@ const StyledCard = styled( Card )`
 
 const GeneralSettingsSection = () => {
 	const [ isStripeEnabled, setIsStripeEnabled ] = useIsStripeEnabled();
-	const [ isTestModeEnabled, setIsTestModeEnabled ] = useTestMode();
 
 	return (
 		<StyledCard>
@@ -30,33 +29,7 @@ const GeneralSettingsSection = () => {
 						'woocommerce-gateway-stripe'
 					) }
 				/>
-
-				<CheckboxControl
-					checked={ isTestModeEnabled }
-					onChange={ setIsTestModeEnabled }
-					label={ __(
-						'Enable test mode',
-						'woocommerce-gateway-stripe'
-					) }
-					help={ interpolateComponents( {
-						mixedString: __(
-							'Use {{testCardNumbersLink /}} to simulate various transactions. {{learnMoreLink/}}',
-							'woocommerce-gateway-stripe'
-						),
-						components: {
-							testCardNumbersLink: (
-								<a href="https://stripe.com/docs/testing#cards">
-									test card numbers
-								</a>
-							),
-							learnMoreLink: (
-								<a href="https://stripe.com/docs/testing">
-									Learn more
-								</a>
-							),
-						},
-					} ) }
-				/>
+				<TestModeCheckbox />
 			</CardBody>
 			<CardFooter>
 				<Button isSecondary href="?TODO">
