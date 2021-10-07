@@ -107,13 +107,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return;
 		}
 
-		global $current_tab, $current_section;
-
-		if ( ! isset( $current_tab ) || 'checkout' !== $current_tab ) {
-			return;
-		}
-
-		if ( ! isset( $current_section ) || $this->id !== $current_section ) {
+		if ( ! WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', $this->id ) ) {
 			return;
 		}
 
