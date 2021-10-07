@@ -1269,6 +1269,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Determines whether the "automatic" or "manual" capture setting is enabled.
+	 *
+	 * @return bool
+	 */
+	public function is_automatic_capture_enabled() {
+		return empty( $this->get_option( 'capture' ) ) || $this->get_option( 'capture' ) === 'yes';
+	}
+
+	/**
 	 * Validates statement descriptor value
 	 *
 	 * @param string $value Posted Value.

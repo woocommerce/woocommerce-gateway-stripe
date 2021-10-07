@@ -225,7 +225,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'payment_request_button_locations'      => $this->gateway->get_option( 'payment_request_button_locations' ),
 
 				/* Settings > Payments & transactions */
-				'is_manual_capture_enabled'             => 'no' === $this->gateway->get_option( 'capture' ),
+				'is_manual_capture_enabled'             => ! $this->gateway->is_automatic_capture_enabled(),
 				'is_saved_cards_enabled'                => 'yes' === $this->gateway->get_option( 'saved_cards' ),
 				'is_separate_card_form_enabled'         => 'no' === $this->gateway->get_option( 'inline_cc_form' ),
 				'statement_descriptor'                  => $this->gateway->get_option( 'statement_descriptor' ),
