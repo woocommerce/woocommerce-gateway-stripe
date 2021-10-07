@@ -86,6 +86,7 @@ describe( 'Settings reducer tests', () => {
 				quuz: 'corge',
 			} );
 		} );
+
 		test( 'overwrites existing settings in the `data` subtree', () => {
 			const oldState = {
 				data: {
@@ -100,6 +101,7 @@ describe( 'Settings reducer tests', () => {
 
 			expect( state.data ).toEqual( { foo: 'baz' } );
 		} );
+
 		test( 'changes only `data` fields specified in payload and leaves others unchanged', () => {
 			const oldState = {
 				quuz: 'corge',
@@ -126,6 +128,7 @@ describe( 'Settings reducer tests', () => {
 
 			expect( state ).toEqual( expectedState );
 		} );
+
 		test( 'sets savingError to null', () => {
 			const oldState = {
 				data: {
