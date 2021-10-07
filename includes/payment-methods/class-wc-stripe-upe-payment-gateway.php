@@ -838,7 +838,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( $save_payment_method && $payment_method->is_reusable() ) {
 			$user                    = $this->get_user_from_order( $order );
 			$token                   = $payment_method->add_token_to_user_from_intent( $user->ID, $intent );
-			$payment_method          = WC_Stripe_API::request( [], 'payment_methods/' . $token->get_token(), 'GET' );
+			$payment_method          = $this->stripe_request( 'payment_methods/' . $token->get_token(), [], null, 'GET' );
 			$prepared_payment_method = $this->prepare_payment_method( $payment_method, $token );
 
 			$this->save_payment_method_to_order( $order, $prepared_payment_method );
@@ -1045,7 +1045,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string
 	 */
 	public function generate_upe_checkout_experience_accepted_payments_html( $key, $data ) {
-		$stripe_account      = WC_Stripe_API::retrieve( 'account' );
+		$stripe_account      = $this->stripe_request( 'account' );
 		$stripe_capabilities = isset( $stripe_account->capabilities ) ? (array) $stripe_account->capabilities : [];
 		$data['description'] = '<p>' . __( "Select payments available to customers at checkout. We'll only show your customers the most relevant payment methods based on their currency and location.", 'woocommerce-gateway-stripe' ) . '</p>
 		<table class="wc_gateways widefat form-table wc-stripe-upe-method-selection" cellspacing="0" aria-describedby="wc_stripe_upe_method_selection">

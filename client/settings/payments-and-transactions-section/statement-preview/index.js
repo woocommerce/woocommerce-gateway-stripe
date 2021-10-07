@@ -1,13 +1,7 @@
-/**
- * External dependencies
- */
 import { __ } from '@wordpress/i18n';
 import React from 'react';
 import { Icon } from '@wordpress/components';
 import CurrencyFactory from '@woocommerce/currency';
-/**
- * Internal dependencies
- */
 import './style.scss';
 import { CreditCardIcon } from './icons/creditCard';
 import { BankIcon } from './icons/bank.js';
