@@ -94,7 +94,7 @@ class WC_Stripe_UPE_Payment_Method_CC extends WC_Stripe_UPE_Payment_Method {
 		$customer = new WC_Stripe_Customer( $user_id );
 		$token    = $this->create_payment_token_for_user( $user_id, $payment_method );
 
-		$customer->add_payment_method_actions( $token, $payment_method );
+		$customer->add_payment_method_actions( $payment_method );
 		return $token;
 	}
 

@@ -575,7 +575,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$token                   = WC_Stripe_Payment_Tokens::get_token_from_request( $_POST );
 			$payment_method          = $this->stripe_request( 'payment_methods/' . $token->get_token(), [], null, 'GET' );
-			$prepared_payment_method = $this->prepare_payment_method( $payment_method, $token );
+			$prepared_payment_method = $this->prepare_payment_method( $payment_method );
 
 			$this->maybe_disallow_prepaid_card( $payment_method );
 			$this->save_payment_method_to_order( $order, $prepared_payment_method );
@@ -819,7 +819,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$intent = $this->stripe_request( 'payment_intents/' . $intent_id . '?expand[]=payment_method' );
 			$error  = isset( $intent->last_payment_error ) ? $intent->last_payment_error : false;
 		} else {
-			$intent = $this->stripe_request( 'setup_intents/' . $intent_id . '?expand[]=payment_method' );
+			$intent = $this->stripe_request( 'setup_intents/' . $intent_id . '?expand[]=payment_method&expand[]=latest_attempt' );
 			$error  = isset( $intent->last_setup_error ) ? $intent->last_setup_error : false;
 		}
 
@@ -836,11 +836,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$payment_method = $this->payment_methods[ $payment_method_type ];
 
 		if ( $save_payment_method && $payment_method->is_reusable() ) {
+			$payment_method_object = null;
+			if ( $payment_method->get_id() !== $payment_method->get_retrievable_type() ) {
+				$generated_payment_method_id = $payment_method_details[ $payment_method_type ]->generated_sepa_debit;
+				$payment_method_object       = $this->stripe_request( "payment_methods/$generated_payment_method_id", [], null, 'GET' );
+			} else {
+				$payment_method_object = $intent->payment_method;
+			}
 			$user                    = $this->get_user_from_order( $order );
-			$token                   = $payment_method->add_token_to_user_from_intent( $user->ID, $intent );
-			$payment_method          = $this->stripe_request( 'payment_methods/' . $token->get_token(), [], null, 'GET' );
-			$prepared_payment_method = $this->prepare_payment_method( $payment_method, $token );
+			$prepared_payment_method = $this->prepare_payment_method( $payment_method_object );
+			$customer                = new WC_Stripe_Customer( $user->ID );
 
+			$customer->add_payment_method_actions( $payment_method_object );
 			$this->save_payment_method_to_order( $order, $prepared_payment_method );
 		}
 
@@ -861,13 +868,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * compatible with wc_stripe_payment_metadata and wc_stripe_generate_payment_request filters.
 	 *
 	 * @param object           $payment_method Stripe payment method object response.
-	 * @param WC_Payment_Token $token          WC Payment Token.
 	 *
 	 * @return object
 	 */
-	public function prepare_payment_method( $payment_method, $token ) {
+	public function prepare_payment_method( $payment_method ) {
 		return (object) [
-			'token_id'              => $token->get_id(),
 			'customer'              => $payment_method->customer,
 			'source'                => null,
 			'source_object'         => null,
@@ -1165,7 +1170,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$payment_method_type    = ! empty( $payment_method_details ) ? $payment_method_details['type'] : '';
 			}
 		} elseif ( 'setup_intent' === $intent->object ) {
-			if ( ! empty( $intent->payment_method ) ) {
+			if ( ! empty( $intent->latest_attempt ) ) {
+				$payment_method_details = (array) $intent->latest_attempt->payment_method_details;
+				$payment_method_type    = ! empty( $payment_method_details ) ? $payment_method_details['type'] : '';
+			} elseif ( ! empty( $intent->payment_method ) ) {
 				$payment_method_details = $intent->payment_method;
 				$payment_method_type    = $payment_method_details->type;
 			}

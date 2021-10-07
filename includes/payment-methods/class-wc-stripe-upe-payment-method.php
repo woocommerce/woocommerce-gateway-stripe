@@ -241,7 +241,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 		$customer = new WC_Stripe_Customer( $user_id );
 		$token    = $this->create_payment_token_for_user( $user_id, $payment_method->id, $payment_method->sepa_debit->last4 );
 
-		$customer->add_payment_method_actions( $token, $payment_method );
+		$customer->add_payment_method_actions( $payment_method );
 		return $token;
 	}
 
