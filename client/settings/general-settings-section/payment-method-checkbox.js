@@ -5,9 +5,8 @@ import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import { Icon, info } from '@wordpress/icons';
 import UpeToggleContext from '../upe-toggle/context';
 import RemoveMethodConfirmationModal from './remove-method-confirmation-modal';
-import { useEnabledPaymentMethodIds } from 'wcstripe/data';
+import { useEnabledPaymentMethodIds, useManualCapture } from 'wcstripe/data';
 import Tooltip from 'wcstripe/components/tooltip';
-import { useManualCapture } from 'wcstripe/settings/payments-and-transactions-section/data-mock';
 
 const StyledCheckbox = styled( CheckboxControl )`
 	.components-base-control__field {
