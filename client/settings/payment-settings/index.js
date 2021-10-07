@@ -92,7 +92,7 @@ const AccountSettingsDropdownMenu = () => {
 					onClick: () => console.log( 'Edit my details' ),
 				},
 				{
-					title: 'Disconnect',
+					title: __( 'Disconnect', 'woocommerce-gateway-stripe' ),
 					// eslint-disable-next-line no-console
 					onClick: () => console.log( 'Disconnecting' ),
 				},
