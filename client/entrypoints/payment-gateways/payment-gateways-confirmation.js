@@ -43,7 +43,7 @@ const PaymentGatewaysConfirmation = () => {
 				! settings.data.includes(
 					'action=woocommerce_toggle_gateway_enabled'
 				) ||
-				! settings.data.includes( 'gateway_id=stripe' )
+				settings.data.search( /gateway_id=stripe(&|$)/ ) === -1
 			) {
 				return;
 			}

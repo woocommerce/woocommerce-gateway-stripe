@@ -49,8 +49,12 @@ class WC_Stripe_Settings_Controller {
 	/**
 	 * Load admin scripts.
 	 */
-	public function admin_scripts() {
-		if ( 'woocommerce_page_wc-settings' !== get_current_screen()->id ) {
+	public function admin_scripts( $hook_suffix ) {
+		if ( 'woocommerce_page_wc-settings' !== $hook_suffix ) {
+			return;
+		}
+
+		if ( ! WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe' ) ) {
 			return;
 		}
 
