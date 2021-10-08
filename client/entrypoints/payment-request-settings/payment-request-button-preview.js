@@ -58,7 +58,9 @@ const PaymentRequestsButtonPreview = () => {
 	const [ theme ] = usePaymentRequestButtonTheme();
 
 	useEffect( () => {
+		// when `stripe` is falsy, it means that it didn't load because of some error.
 		if ( ! stripe ) {
+			setIsLoading( false );
 			return;
 		}
 

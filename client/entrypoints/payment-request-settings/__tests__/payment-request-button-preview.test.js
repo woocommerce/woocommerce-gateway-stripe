@@ -69,15 +69,19 @@ describe( 'PaymentRequestsButtonPreview', () => {
 		expect( screen.queryByText( /Google Chrome/ ) ).not.toBeInTheDocument();
 	} );
 
-	it( 'does not display anything if stripe is falsy', () => {
+	it( 'displays an info notice if stripe is falsy', async () => {
 		useStripe.mockReturnValue( null );
 
-		const { container } = render( <PaymentRequestsButtonPreview /> );
+		render( <PaymentRequestsButtonPreview /> );
 
 		expect(
 			screen.queryByText( 'Stripe button mock' )
 		).not.toBeInTheDocument();
-		expect( container.firstChild ).toBeNull();
+		expect(
+			await screen.findByText(
+				/To preview the buttons, ensure your device is configured/
+			)
+		).toBeInTheDocument();
 	} );
 
 	it( 'displays an info notice if stripe fails to load', async () => {
