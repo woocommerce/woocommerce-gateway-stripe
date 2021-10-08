@@ -26,7 +26,7 @@ export function updateIsSavingAccountKeys( isSaving, error ) {
 	};
 }
 
-export function* saveAccountKeys() {
+export function* saveAccountKeys( disconnecting = false ) {
 	let error = null;
 	try {
 		const accountKeys = select( STORE_NAME ).getAccountKeys();
@@ -46,12 +46,22 @@ export function* saveAccountKeys() {
 		);
 
 		yield dispatch( 'core/notices' ).createSuccessNotice(
-			__( 'Account keys saved.', 'woocommerce-gateway-stripe' )
+			disconnecting
+				? __( 'Account disconnected.', 'woocommerce-gateway-stripe' )
+				: __( 'Account keys saved.', 'woocommerce-gateway-stripe' )
 		);
 	} catch ( e ) {
 		error = e;
 		yield dispatch( 'core/notices' ).createErrorNotice(
-			__( 'Error saving account keys.', 'woocommerce-gateway-stripe' )
+			disconnecting
+				? __(
+						'Error disconnecting account.',
+						'woocommerce-gateway-stripe'
+				  )
+				: __(
+						'Error saving account keys.',
+						'woocommerce-gateway-stripe'
+				  )
 		);
 	} finally {
 		yield updateIsSavingAccountKeys( false, error );

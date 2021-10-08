@@ -3,9 +3,25 @@ import React from 'react';
 import { Button } from '@wordpress/components';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';
+import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
 
 const DisconnectStripeConfirmationModal = ( { onClose } ) => {
-	const handleDisconnect = () => {};
+	const { updateAccountKeys, saveAccountKeys } = useAccountKeys();
+
+	const handleDisconnect = () => {
+		onClose();
+		updateAccountKeys( {
+			publishable_key: '',
+			secret_key: '',
+			webhook_secret: '',
+			test_publishable_key: '',
+			test_secret_key: '',
+			test_webhook_secret: '',
+		} );
+		saveAccountKeys( true ).then( () => {
+			window.location.reload();
+		} );
+	};
 
 	return (
 		<>
