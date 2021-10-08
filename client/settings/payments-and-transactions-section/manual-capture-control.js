@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import React, { useContext, useState } from 'react';
 import { CheckboxControl, Button } from '@wordpress/components';
 import { Icon, info } from '@wordpress/icons';
-import { useManualCapture } from './data-mock';
+import { useManualCapture } from 'wcstripe/data';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 

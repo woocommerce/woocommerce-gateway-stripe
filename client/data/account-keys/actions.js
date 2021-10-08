@@ -39,6 +39,12 @@ export function* saveAccountKeys() {
 			data: accountKeys,
 		} );
 
+		// When new keys have been set, the user might have entered keys for a new account.
+		// So we need to clear the cached account information.
+		yield dispatch( STORE_NAME ).invalidateResolutionForStoreSelector(
+			'getAccountData'
+		);
+
 		yield dispatch( 'core/notices' ).createSuccessNotice(
 			__( 'Account keys saved.', 'woocommerce-gateway-stripe' )
 		);
