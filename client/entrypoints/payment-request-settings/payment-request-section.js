@@ -124,14 +124,13 @@ const PaymentRequestsSection = () => {
 	const [ testPublishableKey ] = useAccountKeysTestPublishableKey();
 
 	const stripePromise = useMemo( () => {
-		if ( ! publishableKey && ! testPublishableKey ) {
-			return null;
-		}
-
-		return loadStripe( publishableKey || testPublishableKey, {
-			stripeAccount: accountId,
-			locale: 'en',
-		} );
+		return loadStripe(
+			publishableKey || testPublishableKey || 'pk_test_123',
+			{
+				stripeAccount: accountId || '0001',
+				locale: 'en',
+			}
+		);
 	}, [ testPublishableKey, publishableKey, accountId ] );
 
 	return (
