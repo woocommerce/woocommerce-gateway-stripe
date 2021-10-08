@@ -15,36 +15,22 @@ import {
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import InlineNotice from 'wcstripe/components/inline-notice';
 
-const PublishableKey = ( { testMode } ) => {
+const PublishableKey = () => {
 	const [ publishableKey ] = useAccountKeysPublishableKey();
-	const [ testPublishableKey ] = useAccountKeysTestPublishableKey();
 	const { isSaving } = useAccountKeys();
-	const [ value, setValue ] = useState(
-		testMode ? testPublishableKey : publishableKey
-	);
+	const [ value, setValue ] = useState( publishableKey );
 
 	return (
 		<TextControl
-			label={
-				testMode
-					? __( 'Test publishable key', 'woocommerce-gateway-stripe' )
-					: __( 'Live publishable key', 'woocommerce-gateway-stripe' )
-			}
-			help={
-				testMode
-					? __(
-							'Only values starting with "pk_test_" will be saved.',
-							'woocommerce-gateway-stripe'
-					  )
-					: __(
-							'Only values starting with "pk_live_" will be saved.',
-							'woocommerce-gateway-stripe'
-					  )
-			}
+			label={ __( 'Live publishable key', 'woocommerce-gateway-stripe' ) }
+			help={ __(
+				'Only values starting with "pk_live_" will be saved.',
+				'woocommerce-gateway-stripe'
+			) }
 			value={ value }
 			onChange={ ( val ) => setValue( val ) }
 			disabled={ isSaving }
-			name={ testMode ? 'test_publishable_key' : 'publishable_key' }
+			name="publishable_key"
 		/>
 	);
 };
@@ -145,22 +131,12 @@ const TestWebhookSecret = () => {
 	);
 };
 
-const TestForm = ( { formRef } ) => {
+const Form = ( { formRef, testMode } ) => {
 	return (
 		<form ref={ formRef }>
-			<TestPublishableKey />
-			<TestSecretKey />
-			<TestWebhookSecret />
-		</form>
-	);
-};
-
-const LiveForm = ( { formRef } ) => {
-	return (
-		<form ref={ formRef }>
-			<PublishableKey />
-			<SecretKey />
-			<WebhookSecret />
+			{ testMode ? <TestPublishableKey /> : <PublishableKey /> }
+			{ testMode ? <TestSecretKey /> : <SecretKey /> }
+			{ testMode ? <TestWebhookSecret /> : <WebhookSecret /> }
 		</form>
 	);
 };
@@ -199,11 +175,9 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 	const testFormRef = useRef( null );
 	const testMode = openTab === 'test';
 
-	// @todo - make a higher-order component for these and pass in label and help?
-
-	const handleSave = () => {
+	const handleSave = ( ref ) => {
 		// Grab the HTMLCollection of elements of the HTML form, convert to array.
-		const elements = Array.from( formRef.current.elements );
+		const elements = Array.from( ref.current.elements );
 		// Convert HTML elements array to an object acceptable for saving keys.
 		const keysToSave = elements.reduce( ( acc, curr ) => {
 			const { name, value } = curr;
@@ -234,7 +208,9 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 						isPrimary
 						isBusy={ isSaving }
 						disabled={ isSaving }
-						onClick={ handleSave }
+						onClick={ () =>
+							handleSave( testMode ? testFormRef : formRef )
+						}
 					>
 						{ __( 'Save changes', 'woocommerce-gateway-stripe' ) }
 					</Button>
@@ -280,9 +256,6 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 					  } ) }
 			</InlineNotice>
 			<StyledTabPanel
-				// @todo className="my-tab-panel"
-				// @todo activeClass="active-tab"
-				// @todo - style it like in designs.
 				initialTabName={ type }
 				onSelect={ onTabSelect }
 				tabs={ [
@@ -298,13 +271,12 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 					},
 				] }
 			>
-				{ ( { name } ) =>
-					name === 'test' ? (
-						<TestForm formRef={ testFormRef } />
-					) : (
-						<LiveForm formRef={ formRef } />
-					)
-				}
+				{ () => (
+					<Form
+						formRef={ testMode ? testFormRef : formRef }
+						testMode={ testMode }
+					/>
+				) }
 			</StyledTabPanel>
 		</StyledConfirmationModal>
 	);
