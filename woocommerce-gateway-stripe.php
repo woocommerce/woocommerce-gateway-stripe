@@ -227,7 +227,7 @@ function woocommerce_gateway_stripe() {
 						new WC_Stripe_Onboarding_Controller();
 					}
 
-					if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+					if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-payment-gateways-controller.php';
 						new WC_Stripe_Payment_Gateways_Controller();
 					}
