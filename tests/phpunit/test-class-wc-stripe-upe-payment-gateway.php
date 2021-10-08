@@ -900,9 +900,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 */
 	public function test_if_free_trial_subscription_will_not_update_intent() {
 		$setup_intent_id = 'seti_mock';
-		$customer_id     = 'cus_mock';
 		$order           = WC_Helper_Order::create_order();
-		$currency        = $order->get_currency();
 		$order_id        = $order->get_id();
 
 		$order->set_total( 0 );
@@ -940,7 +938,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$payment_method_id = 'pm_mock';
 		$customer_id       = 'cus_mock';
 		$order             = WC_Helper_Order::create_order();
-		$currency          = $order->get_currency();
 		$order_id          = $order->get_id();
 		$prepared_source   = (object) [
 			'token_id'       => false,
@@ -1021,7 +1018,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$payment_method_id = 'pm_mock';
 		$customer_id       = 'cus_mock';
 		$order             = WC_Helper_Order::create_order();
-		$currency          = $order->get_currency();
 		$order_id          = $order->get_id();
 		$prepared_source   = (object) [
 			'token_id'       => false,
@@ -1094,6 +1090,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'failed', $final_order->get_status() );
 		$this->assertEquals( 'ch_mock', $final_order->get_transaction_id() );
+		$this->assertRegExp( '/pending/i', $note->content );
 		// Assert: Our hook was called once.
 		$this->assertEquals( 1, $mock_action_process_payment->get_call_count() );
 		// Assert: Only our hook was called.
