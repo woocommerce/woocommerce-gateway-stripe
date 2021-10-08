@@ -50,64 +50,74 @@ const ButtonWrapper = styled.div`
 	}
 `;
 
-const ConnectStripeAccount = ( props ) => (
-	<CardWrapper>
-		<StripeBanner />
-		<CardBody>
-			<h2>
-				{ __(
-					'Get started with Stripe',
-					'woocommerce-gateway-stripe'
-				) }
-			</h2>
-			<InformationText>
-				{ __(
-					'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDeal, SEPA, Sofort, and more international payment methods.',
-					'woocommerce-gateway-stripe'
-				) }
-			</InformationText>
-			<TermsOfServiceText>
-				{ interpolateComponents( {
-					mixedString: __(
-						'By clicking "Create or connect an account", you agree to the {{tosLink}}Terms of service.{{/tosLink}}',
-						'woocommerce-gateway-stripe'
-					),
-					components: {
-						tosLink: (
-							// eslint-disable-next-line jsx-a11y/anchor-has-content
-							<a
-								target="_blank"
-								rel="noreferrer"
-								href="https://wordpress.com/tos"
-							/>
-						),
-					},
-				} ) }
-			</TermsOfServiceText>
-			<ButtonWrapper>
-				<Button
-					isPrimary
-					href={ props.oauthUrl }
-					disabled={ ! props.oauthUrl }
-				>
+const ConnectStripeAccount = ( { oauthUrl } ) => {
+	return (
+		<CardWrapper>
+			<StripeBanner />
+			<CardBody>
+				<h2>
 					{ __(
-						'Create or connect an account',
+						'Get started with Stripe',
 						'woocommerce-gateway-stripe'
 					) }
-				</Button>
-				<Button
-					isSecondary
-					// eslint-disable-next-line no-alert, no-undef
-					onClick={ () => alert( 'Modal will be implemented later' ) }
-				>
+				</h2>
+				<InformationText>
 					{ __(
-						'Enter account keys (advanced)',
+						'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDeal, SEPA, Sofort, and more international payment methods.',
 						'woocommerce-gateway-stripe'
 					) }
-				</Button>
-			</ButtonWrapper>
-		</CardBody>
-	</CardWrapper>
-);
+				</InformationText>
+				{ oauthUrl && (
+					<TermsOfServiceText>
+						{ interpolateComponents( {
+							mixedString: __(
+								'By clicking "Create or connect an account", you agree to the {{tosLink}}Terms of service.{{/tosLink}}',
+								'woocommerce-gateway-stripe'
+							),
+							components: {
+								tosLink: (
+									// eslint-disable-next-line jsx-a11y/anchor-has-content
+									<a
+										target="_blank"
+										rel="noreferrer"
+										href="https://wordpress.com/tos"
+									/>
+								),
+							},
+						} ) }
+					</TermsOfServiceText>
+				) }
+				<ButtonWrapper>
+					{ oauthUrl && (
+						<Button isPrimary href={ oauthUrl }>
+							{ __(
+								'Create or connect an account',
+								'woocommerce-gateway-stripe'
+							) }
+						</Button>
+					) }
+					<Button
+						isPrimary={ ! oauthUrl }
+						isSecondary={ !! oauthUrl }
+						onClick={ () =>
+							// eslint-disable-next-line no-alert, no-undef
+							alert( 'Modal will be implemented later' )
+						}
+					>
+						{ oauthUrl
+							? __(
+									'Enter account keys (advanced)',
+									'woocommerce-gateway-stripe'
+							  )
+							: __(
+									'Enter account keys',
+									'woocommerce-gateway-stripe'
+							  ) }
+					</Button>
+				</ButtonWrapper>
+			</CardBody>
+		</CardWrapper>
+	);
+};
 
 export default ConnectStripeAccount;
