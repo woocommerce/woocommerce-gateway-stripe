@@ -670,7 +670,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$user_id  = get_current_user_id();
 		$customer = new WC_Stripe_Customer( $user_id );
 
-		if ( ( $user_id && 'reusable' === $source_object->usage ) ) {
+		if ( ( $user_id && ( substr( $source_object->id, 0, 3 ) === 'pm_' || 'reusable' === $source_object->usage ) ) ) {
 			$response = $customer->add_source( $source_object->id );
 
 			if ( ! empty( $response->error ) ) {

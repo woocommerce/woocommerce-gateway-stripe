@@ -138,8 +138,17 @@ class WC_Stripe_Intent_Controller {
 				} else {
 					$metadata = $intent->metadata;
 					if ( isset( $metadata->save_payment_method ) && 'true' === $metadata->save_payment_method ) {
-						$source_object = $gateway->get_source_object( $intent->source );
-						$gateway->save_payment_method( $source_object );
+						$source         = ! empty( $intent->source ) ? $intent->source : null;
+						$payment_method = ! empty( $intent->payment_method ) ? $intent->payment_method : null;
+
+						if ( null !== $source ) {
+							$source_object = $gateway->get_source_object( $source );
+							$gateway->save_payment_method( $source_object );
+						} elseif ( null !== $payment_method ) {
+							// $payment_method may be a string or an object, we need to be sure which one to use.
+							$source_object = $gateway->get_source_object( is_string( $payment_method ) ? $payment_method : $payment_method->id );
+							$gateway->save_payment_method( $source_object );
+						}
 					}
 				}
 			}

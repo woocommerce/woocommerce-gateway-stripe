@@ -808,7 +808,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			 * Criteria to save to file is they are logged in, they opted to save or product requirements and the source is
 			 * actually reusable. Either that or force_save_source is true.
 			 */
-			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && ( 'reusable' === $source_object->usage || substr( $source_object->id, 0, 3 ) === 'pm_' ) ) || $force_save_source ) {
+			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && ( substr( $source_object->id, 0, 3 ) === 'pm_' || 'reusable' === $source_object->usage ) ) || $force_save_source ) {
 				$response = $customer->attach_source( $source_object->id );
 
 				if ( ! empty( $response->error ) ) {
