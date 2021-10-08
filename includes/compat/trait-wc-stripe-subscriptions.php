@@ -126,10 +126,9 @@ trait WC_Stripe_Subscriptions_Trait {
 			$request['payment_method_options']['card']['mandate_options']['interval']    = 'sporadic';
 		}
 
-		$start_date = new DateTime( $sub->get_date( 'start', 'gmt' ) ); // TODO: Better to use site timezone?
 		$request['payment_method_options']['card']['mandate_options']['amount']     = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
 		$request['payment_method_options']['card']['mandate_options']['reference']  = $order->get_id();
-		$request['payment_method_options']['card']['mandate_options']['start_date'] = $start_date->getTimestamp();
+		$request['payment_method_options']['card']['mandate_options']['start_date'] = $sub->get_time( 'start' );
 
 		return $request;
 	}
