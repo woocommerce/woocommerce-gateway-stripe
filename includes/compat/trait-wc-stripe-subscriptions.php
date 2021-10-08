@@ -90,7 +90,6 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $request;
 		}
 
-		// TODO: what happens if there's more than one renewal order?
 		$renewals = wcs_get_subscriptions_for_renewal_order( $order->get_id() );
 		if ( 1 === count( $renewals ) ) {
 			$renewal_order   = reset( $renewals );
@@ -108,7 +107,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		$subscriptions = wcs_get_subscriptions_for_order( $order->get_id() );
 
-		// If there are no subscriptions we just return.
+		// If there are no subscriptions we just return since mandates aren't required.
 		if ( 0 === count( $subscriptions ) ) {
 			return $request;
 		}
@@ -128,13 +127,9 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		$start_date = new DateTime( $sub->get_date( 'start', 'gmt' ) ); // TODO: Better to use site timezone?
-		$request['payment_method_options']['card']['mandate_options']['amount'] = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
-		// TODO: Maybe the order ID isn't unique enough? What happens when there are multiple subscriptions
-		// with different payment intervals in the order?
+		$request['payment_method_options']['card']['mandate_options']['amount']     = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
 		$request['payment_method_options']['card']['mandate_options']['reference']  = $order->get_id();
 		$request['payment_method_options']['card']['mandate_options']['start_date'] = $start_date->getTimestamp();
-
-		// TODO: add optional mandate options? description, end_date.
 
 		return $request;
 	}
