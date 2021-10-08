@@ -305,7 +305,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			<!-- Used to display form errors -->
 			<div class="stripe-source-errors" role="alert"></div>
-			<br />
 			<?php do_action( 'woocommerce_credit_card_form_end', $this->id ); ?>
 			<div class="clear"></div>
 		</fieldset>
