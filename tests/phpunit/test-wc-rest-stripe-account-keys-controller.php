@@ -36,7 +36,11 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 		$settings['test_publishable_key'] = 'original-test-key-9999';
 		update_option( 'woocommerce_stripe_settings', $settings );
 
-		$this->controller = new WC_REST_Stripe_Account_Keys_Controller();
+		$mock_account = $this->getMockBuilder( WC_Stripe_Account::class )
+							 ->disableOriginalConstructor()
+							 ->getMock();
+
+		$this->controller = new WC_REST_Stripe_Account_Keys_Controller( $mock_account );
 	}
 
 	public function test_get_account_keys_returns_status_code_200() {

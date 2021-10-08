@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PaymentMethodSetupHelp from './payment-method-setup-help';
+import PaymentMethodCapabilityStatusPill from 'wcstripe/components/payment-method-capability-status-pill';
 
 const Wrapper = styled.div`
 	display: flex;
@@ -52,9 +52,10 @@ const PaymentMethodDescription = ( {
 			<div>
 				<LabelWrapper>
 					<Label>{ label }</Label>
-					{ id && (
-						<PaymentMethodSetupHelp id={ id } label={ label } />
-					) }
+					<PaymentMethodCapabilityStatusPill
+						id={ id }
+						label={ label }
+					/>
 				</LabelWrapper>
 				<Description>{ description }</Description>
 			</div>

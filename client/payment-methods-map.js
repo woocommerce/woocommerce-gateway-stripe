@@ -18,6 +18,8 @@ export default {
 		),
 		Icon: CreditCardIcon,
 		currencies: [],
+		capability: 'card_payments',
+		allows_manual_capture: true,
 	},
 	giropay: {
 		id: 'giropay',
@@ -28,6 +30,7 @@ export default {
 		),
 		Icon: GiropayIcon,
 		currencies: [ 'EUR' ],
+		capability: 'giropay_payments',
 	},
 	sepa_debit: {
 		id: 'sepa_debit',
@@ -38,6 +41,7 @@ export default {
 		),
 		Icon: SepaIcon,
 		currencies: [ 'EUR' ],
+		capability: 'sepa_debit_payments',
 	},
 	sofort: {
 		id: 'sofort',
@@ -48,6 +52,7 @@ export default {
 		),
 		Icon: SofortIcon,
 		currencies: [ 'EUR' ],
+		capability: 'sofort_payments',
 	},
 	eps: {
 		id: 'eps',
@@ -58,6 +63,7 @@ export default {
 		),
 		Icon: EpsIcon,
 		currencies: [ 'EUR' ],
+		capability: 'eps_payments',
 	},
 	bancontact: {
 		id: 'bancontact',
@@ -68,6 +74,7 @@ export default {
 		),
 		Icon: BancontactIcon,
 		currencies: [ 'EUR' ],
+		capability: 'bancontact_payments',
 	},
 	ideal: {
 		id: 'ideal',
@@ -78,6 +85,7 @@ export default {
 		),
 		Icon: IdealIcon,
 		currencies: [ 'EUR' ],
+		capability: 'ideal_payments',
 	},
 	p24: {
 		id: 'p24',
@@ -88,5 +96,6 @@ export default {
 		),
 		Icon: P24Icon,
 		currencies: [ 'EUR', 'PLN' ],
+		capability: 'p24_payments',
 	},
 };
