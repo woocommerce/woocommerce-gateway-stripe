@@ -1171,9 +1171,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$payment_method_type    = ! empty( $payment_method_details ) ? $payment_method_details['type'] : '';
 			}
 		} elseif ( 'setup_intent' === $intent->object ) {
-			if ( ! empty( $intent->latest_attempt ) ) {
+			if ( ! empty( $intent->latest_attempt ) && ! empty( $intent->latest_attempt->payment_method_details ) ) {
 				$payment_method_details = (array) $intent->latest_attempt->payment_method_details;
-				$payment_method_type    = ! empty( $payment_method_details ) ? $payment_method_details['type'] : '';
+				$payment_method_type    = $payment_method_details['type'];
 			} elseif ( ! empty( $intent->payment_method ) ) {
 				$payment_method_details = $intent->payment_method;
 				$payment_method_type    = $payment_method_details->type;
