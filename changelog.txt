@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 5.6.3 - 2021-xx-xx =
+* Add - Support for new regulatory requirements for cards issued in India when processing off-session payments.
+
 = 5.6.2 - 2021-10-06 =
 * Tweak - Remove animated credit card icons from payment method option on the checkout page.
 * Fix - Payments for pre-orders and subscriptions with an empty source token now work as intended.
