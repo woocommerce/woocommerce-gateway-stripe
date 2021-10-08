@@ -5,14 +5,14 @@ import CardBody from '../card-body';
 import TextLengthHelpInputWrapper from './text-length-help-input-wrapper';
 import StatementPreviewsWrapper from './statement-previews-wrapper';
 import StatementPreview from './statement-preview';
+import ManualCaptureControl from './manual-capture-control';
 import {
 	useSavedCards,
-	useShortAccountStatement,
 	useSeparateCardForm,
 	useAccountStatementDescriptor,
+	useIsShortAccountStatementEnabled,
 	useShortAccountStatementDescriptor,
-} from './data-mock';
-import ManualCaptureControl from './manual-capture-control';
+} from 'wcstripe/data';
 
 const PaymentsAndTransactionsSection = () => {
 	const [ isSavedCardsEnabled, setIsSavedCardsEnabled ] = useSavedCards();
@@ -27,7 +27,7 @@ const PaymentsAndTransactionsSection = () => {
 	const [
 		isShortAccountStatementEnabled,
 		setIsShortAccountStatementEnabled,
-	] = useShortAccountStatement();
+	] = useIsShortAccountStatementEnabled();
 	const [
 		shortAccountStatementDescriptor,
 		setShortAccountStatementDescriptor,

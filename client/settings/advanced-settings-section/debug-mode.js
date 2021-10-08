@@ -1,10 +1,9 @@
 import { __ } from '@wordpress/i18n';
 import React, { useEffect, useRef } from 'react';
 import { CheckboxControl } from '@wordpress/components';
-import { useDevMode, useDebugLog } from './data-mock';
+import { useDebugLog } from 'wcstripe/data';
 
 const DebugMode = () => {
-	const isDevModeEnabled = useDevMode();
 	const [ isLoggingChecked, setIsLoggingChecked ] = useDebugLog();
 	const headingRef = useRef( null );
 
@@ -23,23 +22,15 @@ const DebugMode = () => {
 			</h4>
 			<CheckboxControl
 				data-testid="logging-checkbox"
-				label={
-					isDevModeEnabled
-						? __(
-								'Dev mode is active so logging is on by default.',
-								'woocommerce-gateway-stripe'
-						  )
-						: __(
-								'Log error messages',
-								'woocommerce-gateway-stripe'
-						  )
-				}
+				label={ __(
+					'Log error messages',
+					'woocommerce-gateway-stripe'
+				) }
 				help={ __(
 					'When enabled, payment error logs will be saved to WooCommerce > Status > Logs.',
 					'woocommerce-gateway-stripe'
 				) }
-				disabled={ isDevModeEnabled }
-				checked={ isDevModeEnabled || isLoggingChecked }
+				checked={ isLoggingChecked }
 				onChange={ setIsLoggingChecked }
 			/>
 		</>

@@ -5,9 +5,11 @@ import UpeToggleContext from '../upe-toggle/context';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethodCheckbox from './payment-method-checkbox';
-import { useGetAvailablePaymentMethodIds } from 'wcstripe/data';
+import {
+	useGetAvailablePaymentMethodIds,
+	useManualCapture,
+} from 'wcstripe/data';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
-import { useManualCapture } from 'wcstripe/settings/payments-and-transactions-section/data-mock';
 
 const List = styled.ul`
 	margin: 0;

@@ -4,23 +4,12 @@ import userEvent from '@testing-library/user-event';
 import WizardTaskContext from '../../wizard/task/context';
 import EnableUpePreviewTask from '../enable-upe-preview-task';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
-// remove once manual capture hook is implemented
-import { useManualCapture } from 'wcstripe/settings/payments-and-transactions-section/data-mock';
-// import { useManualCapture, useSettings } from 'wcstripe/data';
-import { useSettings } from 'wcstripe/data';
+import { useManualCapture, useSettings } from 'wcstripe/data';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useSettings: jest.fn(),
 	useManualCapture: jest.fn(),
 } ) );
-
-// remove once manual capture hook is implemented
-jest.mock(
-	'wcstripe/settings/payments-and-transactions-section/data-mock',
-	() => ( {
-		useManualCapture: jest.fn(),
-	} )
-);
 
 describe( 'EnableUpePreviewTask', () => {
 	it( 'disables the "Enable" button while "Manual capture" is enabled', async () => {
