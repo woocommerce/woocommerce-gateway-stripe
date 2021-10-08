@@ -50,75 +50,7 @@ const ButtonWrapper = styled.div`
 	}
 `;
 
-const ConnectStripeAccount = ( props ) => {
-	const renderWithConnectEnabled = (
-		<>
-			<InformationText>
-				{ __(
-					'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDeal, SEPA, Sofort, and more international payment methods.',
-					'woocommerce-gateway-stripe'
-				) }
-			</InformationText>
-			<TermsOfServiceText>
-				{ interpolateComponents( {
-					mixedString: __(
-						'By clicking "Create or connect an account", you agree to the {{tosLink}}Terms of service.{{/tosLink}}',
-						'woocommerce-gateway-stripe'
-					),
-					components: {
-						tosLink: (
-							// eslint-disable-next-line jsx-a11y/anchor-has-content
-							<a
-								target="_blank"
-								rel="noreferrer"
-								href="https://wordpress.com/tos"
-							/>
-						),
-					},
-				} ) }
-			</TermsOfServiceText>
-			<ButtonWrapper>
-				<Button isPrimary href={ props.oauthUrl }>
-					{ __(
-						'Create or connect an account',
-						'woocommerce-gateway-stripe'
-					) }
-				</Button>
-				<Button
-					isSecondary
-					// eslint-disable-next-line no-alert, no-undef
-					onClick={ () => alert( 'Modal will be implemented later' ) }
-				>
-					{ __(
-						'Enter account keys (advanced)',
-						'woocommerce-gateway-stripe'
-					) }
-				</Button>
-			</ButtonWrapper>
-		</>
-	);
-
-	const renderWithManualKeysOnly = (
-		<>
-			<InformationText>
-				{ __(
-					'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDeal, SEPA, Sofort, and more international payment methods.',
-					'woocommerce-gateway-stripe'
-				) }
-			</InformationText>
-
-			<ButtonWrapper>
-				<Button
-					isPrimary
-					// eslint-disable-next-line no-alert, no-undef
-					onClick={ () => alert( 'Modal will be implemented later' ) }
-				>
-					{ __( 'Enter account keys', 'woocommerce-gateway-stripe' ) }
-				</Button>
-			</ButtonWrapper>
-		</>
-	);
-
+const ConnectStripeAccount = ( { oauthUrl } ) => {
 	return (
 		<CardWrapper>
 			<StripeBanner />
@@ -129,9 +61,60 @@ const ConnectStripeAccount = ( props ) => {
 						'woocommerce-gateway-stripe'
 					) }
 				</h2>
-				{ props.oauthUrl
-					? renderWithConnectEnabled
-					: renderWithManualKeysOnly }
+				<InformationText>
+					{ __(
+						'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDeal, SEPA, Sofort, and more international payment methods.',
+						'woocommerce-gateway-stripe'
+					) }
+				</InformationText>
+				{ oauthUrl && (
+					<TermsOfServiceText>
+						{ interpolateComponents( {
+							mixedString: __(
+								'By clicking "Create or connect an account", you agree to the {{tosLink}}Terms of service.{{/tosLink}}',
+								'woocommerce-gateway-stripe'
+							),
+							components: {
+								tosLink: (
+									// eslint-disable-next-line jsx-a11y/anchor-has-content
+									<a
+										target="_blank"
+										rel="noreferrer"
+										href="https://wordpress.com/tos"
+									/>
+								),
+							},
+						} ) }
+					</TermsOfServiceText>
+				) }
+				<ButtonWrapper>
+					{ oauthUrl && (
+						<Button isPrimary href={ oauthUrl }>
+							{ __(
+								'Create or connect an account',
+								'woocommerce-gateway-stripe'
+							) }
+						</Button>
+					) }
+					<Button
+						isPrimary={ ! oauthUrl }
+						isSecondary={ !! oauthUrl }
+						onClick={ () =>
+							// eslint-disable-next-line no-alert, no-undef
+							alert( 'Modal will be implemented later' )
+						}
+					>
+						{ oauthUrl
+							? __(
+									'Enter account keys (advanced)',
+									'woocommerce-gateway-stripe'
+							  )
+							: __(
+									'Enter account keys',
+									'woocommerce-gateway-stripe'
+							  ) }
+					</Button>
+				</ButtonWrapper>
 			</CardBody>
 		</CardWrapper>
 	);
