@@ -50,16 +50,9 @@ const ButtonWrapper = styled.div`
 	}
 `;
 
-const ConnectStripeAccount = ( props ) => (
-	<CardWrapper>
-		<StripeBanner />
-		<CardBody>
-			<h2>
-				{ __(
-					'Get started with Stripe',
-					'woocommerce-gateway-stripe'
-				) }
-			</h2>
+const ConnectStripeAccount = ( props ) => {
+	const renderWithConnectEnabled = (
+		<>
 			<InformationText>
 				{ __(
 					'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDeal, SEPA, Sofort, and more international payment methods.',
@@ -85,11 +78,7 @@ const ConnectStripeAccount = ( props ) => (
 				} ) }
 			</TermsOfServiceText>
 			<ButtonWrapper>
-				<Button
-					isPrimary
-					href={ props.oauthUrl }
-					disabled={ ! props.oauthUrl }
-				>
+				<Button isPrimary href={ props.oauthUrl }>
 					{ __(
 						'Create or connect an account',
 						'woocommerce-gateway-stripe'
@@ -106,8 +95,46 @@ const ConnectStripeAccount = ( props ) => (
 					) }
 				</Button>
 			</ButtonWrapper>
-		</CardBody>
-	</CardWrapper>
-);
+		</>
+	);
+
+	const renderWithManualKeysOnly = (
+		<>
+			<InformationText>
+				{ __(
+					'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDeal, SEPA, Sofort, and more international payment methods.',
+					'woocommerce-gateway-stripe'
+				) }
+			</InformationText>
+
+			<ButtonWrapper>
+				<Button
+					isPrimary
+					// eslint-disable-next-line no-alert, no-undef
+					onClick={ () => alert( 'Modal will be implemented later' ) }
+				>
+					{ __( 'Enter account keys', 'woocommerce-gateway-stripe' ) }
+				</Button>
+			</ButtonWrapper>
+		</>
+	);
+
+	return (
+		<CardWrapper>
+			<StripeBanner />
+			<CardBody>
+				<h2>
+					{ __(
+						'Get started with Stripe',
+						'woocommerce-gateway-stripe'
+					) }
+				</h2>
+				{ props.oauthUrl
+					? renderWithConnectEnabled
+					: renderWithManualKeysOnly }
+			</CardBody>
+		</CardWrapper>
+	);
+};
 
 export default ConnectStripeAccount;
