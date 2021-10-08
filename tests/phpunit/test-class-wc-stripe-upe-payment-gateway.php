@@ -39,6 +39,17 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	];
 
 	/**
+	 * Base template for SEPA Direct Debit payment method.
+	 */
+	const MOCK_SEPA_PAYMENT_METHOD_TEMPLATE = [
+		'type'       => 'sepa_debit',
+		'object'     => 'payment_method',
+		'sepa_debit' => [
+			'last4' => '7061',
+		],
+	];
+
+	/**
 	 * Base template for Stripe payment intent.
 	 */
 	const MOCK_CARD_PAYMENT_INTENT_TEMPLATE = [
@@ -343,18 +354,20 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'stripe_request' )
-			->with( "setup_intents/$setup_intent_id?expand[]=payment_method" )
+			->with( "setup_intents/$setup_intent_id?expand[]=payment_method&expand[]=latest_attempt" )
 			->will(
 				$this->returnValue(
 					$this->array_to_object( $setup_intent_mock )
 				)
 			);
 
-		$this->mock_gateway->process_upe_redirect_payment( $order_id, $setup_intent_id, false );
+		$this->mock_gateway->process_upe_redirect_payment( $order_id, $setup_intent_id, true );
 
 		$final_order = wc_get_order( $order_id );
 
 		$this->assertEquals( 'processing', $final_order->get_status() );
+		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
+		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
 		$this->assertEquals( 'Credit card / debit card', $final_order->get_payment_method_title() );
 	}
 
@@ -384,11 +397,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$payment_intent_mock['payment_method']     = $payment_method_mock;
 		$payment_intent_mock['charges']['data'][0]['payment_method_details'] = $payment_method_mock;
 
-		$this->mock_gateway->expects( $this->exactly( 2 ) )
+		$this->mock_gateway->expects( $this->once() )
 			->method( 'stripe_request' )
-			->willReturnOnConsecutiveCalls(
-				$this->array_to_object( $payment_intent_mock ),
-				$this->array_to_object( $payment_method_mock )
+			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->will(
+				$this->returnValue(
+					$this->array_to_object( $payment_intent_mock )
+				)
 			);
 
 		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, true );
@@ -399,6 +414,108 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
 		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
 		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
+	}
+
+	/**
+	 * Test checkout flow while saving payment method with SEPA generated payment method.
+	 */
+	public function test_checkout_saves_sepa_generated_payment_method_to_order() {
+		$payment_intent_id           = 'pi_mock';
+		$payment_method_id           = 'pm_mock';
+		$generated_payment_method_id = 'pm_gen_mock';
+		$customer_id                 = 'cus_mock';
+		$order                       = WC_Helper_Order::create_order();
+		$order_id                    = $order->get_id();
+
+		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$payment_method_mock             = self::MOCK_SEPA_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']       = $payment_method_id;
+		$payment_method_mock['customer'] = $customer_id;
+
+		$generated_payment_method_mock       = $payment_method_mock;
+		$generated_payment_method_mock['id'] = $generated_payment_method_id;
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['last_payment_error'] = [];
+		$payment_intent_mock['payment_method']     = $payment_method_mock;
+		$payment_intent_mock['charges']['data'][0]['payment_method_details'] = [
+			'type'       => 'bancontact',
+			'bancontact' => [
+				'generated_sepa_debit' => $generated_payment_method_id,
+			],
+		];
+
+		$this->mock_gateway->expects( $this->exactly( 2 ) )
+			->method( 'stripe_request' )
+			->willReturnOnConsecutiveCalls(
+				$this->array_to_object( $payment_intent_mock ),
+				$this->array_to_object( $generated_payment_method_mock )
+			);
+
+		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, true );
+
+		$final_order = wc_get_order( $order_id );
+
+		$this->assertEquals( 'processing', $final_order->get_status() );
+		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
+		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
+		$this->assertEquals( $generated_payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
+	}
+
+	/**
+	 * Test checkout flow while saving payment method with SEPA generated payment method AND setup intents.
+	 */
+	public function test_setup_intent_checkout_saves_sepa_generated_payment_method_to_order() {
+		$setup_intent_id             = 'seti_mock';
+		$payment_method_id           = 'pm_mock';
+		$generated_payment_method_id = 'pm_gen_mock';
+		$customer_id                 = 'cus_mock';
+		$order                       = WC_Helper_Order::create_order();
+		$order_id                    = $order->get_id();
+
+		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+		$order->set_total( 0 );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$payment_method_mock             = self::MOCK_SEPA_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']       = $payment_method_id;
+		$payment_method_mock['customer'] = $customer_id;
+
+		$generated_payment_method_mock       = $payment_method_mock;
+		$generated_payment_method_mock['id'] = $generated_payment_method_id;
+
+		$setup_intent_mock                   = self::MOCK_CARD_SETUP_INTENT_TEMPLATE;
+		$setup_intent_mock['id']             = $setup_intent_id;
+		$setup_intent_mock['payment_method'] = $payment_method_mock;
+		$setup_intent_mock['latest_attempt'] = [
+			'payment_method_details' => [
+				'type'       => 'bancontact',
+				'bancontact' => [
+					'generated_sepa_debit' => $generated_payment_method_id,
+				],
+			],
+		];
+
+		$this->mock_gateway->expects( $this->exactly( 2 ) )
+			->method( 'stripe_request' )
+			->willReturnOnConsecutiveCalls(
+				$this->array_to_object( $setup_intent_mock ),
+				$this->array_to_object( $generated_payment_method_mock )
+			);
+
+		$this->mock_gateway->process_upe_redirect_payment( $order_id, $setup_intent_id, true );
+
+		$final_order = wc_get_order( $order_id );
+
+		$this->assertEquals( 'processing', $final_order->get_status() );
+		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
+		$this->assertEquals( $generated_payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
 	}
 
 	/**
