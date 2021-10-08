@@ -13,10 +13,7 @@ import WizardTaskContext from '../wizard/task/context';
 import CollapsibleBody from '../wizard/collapsible-body';
 import WizardTaskItem from '../wizard/task-item';
 import Pill from '../../components/pill';
-// remove once manual capture hook is implemented
-import { useManualCapture } from 'wcstripe/settings/payments-and-transactions-section/data-mock';
-// import { useManualCapture, useSettings } from 'wcstripe/data';
-import { useSettings } from 'wcstripe/data';
+import { useManualCapture, useSettings } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import './style.scss';
 

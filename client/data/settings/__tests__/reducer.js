@@ -2,11 +2,7 @@ import reducer from '../reducer';
 import {
 	updateSettings,
 	updateIsSavingSettings,
-	// TODO Uncomment code below once settings data API is fully ported.
-	// updateIsManualCaptureEnabled,
-	// updateAccountStatementDescriptor,
-	// updatePaymentRequestLocations,
-	updateIsPaymentRequestEnabled,
+	updateSettingsValues,
 } from '../actions';
 
 describe( 'Settings reducer tests', () => {
@@ -72,6 +68,85 @@ describe( 'Settings reducer tests', () => {
 		} );
 	} );
 
+	describe( 'SET_SETTINGS_VALUES', () => {
+		test( 'adds specified new fields to the `data` subtree', () => {
+			const oldState = {
+				data: {
+					foo: 'bar',
+				},
+			};
+
+			const payload = { baz: 'quux', quuz: 'corge' };
+
+			const state = reducer( oldState, updateSettingsValues( payload ) );
+
+			expect( state.data ).toEqual( {
+				foo: 'bar',
+				baz: 'quux',
+				quuz: 'corge',
+			} );
+		} );
+
+		test( 'overwrites existing settings in the `data` subtree', () => {
+			const oldState = {
+				data: {
+					foo: 'bar',
+				},
+			};
+
+			const state = reducer(
+				oldState,
+				updateSettingsValues( { foo: 'baz' } )
+			);
+
+			expect( state.data ).toEqual( { foo: 'baz' } );
+		} );
+
+		test( 'changes only `data` fields specified in payload and leaves others unchanged', () => {
+			const oldState = {
+				quuz: 'corge',
+				data: {
+					foo: 'bar',
+					baz: 'quux',
+				},
+				savingError: null,
+			};
+
+			const state = reducer(
+				oldState,
+				updateSettingsValues( { foo: 'baz' } )
+			);
+
+			const expectedState = {
+				quuz: 'corge',
+				data: {
+					foo: 'baz',
+					baz: 'quux',
+				},
+				savingError: null,
+			};
+
+			expect( state ).toEqual( expectedState );
+		} );
+
+		test( 'sets savingError to null', () => {
+			const oldState = {
+				data: {
+					baz: 'quux',
+				},
+				savingError: 'baz',
+			};
+
+			const payload = {
+				quuz: 'corge',
+			};
+
+			const state = reducer( oldState, updateSettingsValues( payload ) );
+
+			expect( state.savingError ).toBeNull();
+		} );
+	} );
+
 	describe( 'SET_IS_SAVING', () => {
 		test( 'toggles isSaving', () => {
 			const oldState = {
@@ -107,183 +182,4 @@ describe( 'Settings reducer tests', () => {
 			} );
 		} );
 	} );
-
-	// TODO Uncomment code below once settings data API is fully ported.
-	// describe( 'SET_IS_MANUAL_CAPTURE_ENABLED', () => {
-	// 	test( 'toggles `data.is_manual_capture_enabled`', () => {
-	// 		const oldState = {
-	// 			data: {
-	// 				is_manual_capture_enabled: false,
-	// 			},
-	// 		};
-	//
-	// 		const state = reducer(
-	// 			oldState,
-	// 			updateIsManualCaptureEnabled( true )
-	// 		);
-	//
-	// 		expect( state.data.is_manual_capture_enabled ).toBeTruthy();
-	// 	} );
-	//
-	// 	test( 'leaves other fields unchanged', () => {
-	// 		const oldState = {
-	// 			foo: 'bar',
-	// 			data: {
-	// 				is_manual_capture_enabled: false,
-	// 				baz: 'quux',
-	// 			},
-	// 			savingError: {},
-	// 		};
-	//
-	// 		const state = reducer(
-	// 			oldState,
-	// 			updateIsManualCaptureEnabled( true )
-	// 		);
-	//
-	// 		expect( state ).toEqual( {
-	// 			savingError: null,
-	// 			foo: 'bar',
-	// 			data: {
-	// 				is_manual_capture_enabled: true,
-	// 				baz: 'quux',
-	// 			},
-	// 		} );
-	// 	} );
-	// } );
-
-	// TODO Uncomment code below once settings data API is fully ported.
-	// describe( 'SET_ACCOUNT_STATEMENT_DESCRIPTOR', () => {
-	// 	test( 'toggles `data.account_statement_descriptor`', () => {
-	// 		const oldState = {
-	// 			data: {
-	// 				account_statement_descriptor: 'Statement',
-	// 			},
-	// 		};
-	//
-	// 		const state = reducer(
-	// 			oldState,
-	// 			updateAccountStatementDescriptor( 'New Statement' )
-	// 		);
-	//
-	// 		expect( state.data.account_statement_descriptor ).toEqual(
-	// 			'New Statement'
-	// 		);
-	// 	} );
-	//
-	// 	test( 'leaves other fields unchanged', () => {
-	// 		const oldState = {
-	// 			foo: 'bar',
-	// 			data: {
-	// 				account_statement_descriptor: 'Statement',
-	// 				baz: 'quux',
-	// 			},
-	// 			savingError: {},
-	// 		};
-	//
-	// 		const state = reducer(
-	// 			oldState,
-	// 			updateAccountStatementDescriptor( 'New Statement' )
-	// 		);
-	//
-	// 		expect( state ).toEqual( {
-	// 			foo: 'bar',
-	// 			savingError: null,
-	// 			data: {
-	// 				account_statement_descriptor: 'New Statement',
-	// 				baz: 'quux',
-	// 			},
-	// 		} );
-	// 	} );
-	// } );
-
-	describe( 'SET_IS_PAYMENT_REQUEST_ENABLED', () => {
-		test( 'toggles `data.is_payment_request_enabled`', () => {
-			const oldState = {
-				data: {
-					is_payment_request_enabled: false,
-				},
-				savingError: null,
-			};
-
-			const state = reducer(
-				oldState,
-				updateIsPaymentRequestEnabled( true )
-			);
-
-			expect( state.data.is_payment_request_enabled ).toBeTruthy();
-		} );
-
-		test( 'leaves other fields unchanged', () => {
-			const oldState = {
-				foo: 'bar',
-				data: {
-					is_payment_request_enabled: false,
-					baz: 'quux',
-				},
-				savingError: {},
-			};
-
-			const state = reducer(
-				oldState,
-				updateIsPaymentRequestEnabled( true )
-			);
-
-			expect( state ).toEqual( {
-				foo: 'bar',
-				savingError: null,
-				data: {
-					is_payment_request_enabled: true,
-					baz: 'quux',
-				},
-			} );
-		} );
-	} );
-
-	// TODO Uncomment code below once settings data API is fully ported.
-	// describe( 'SET_PAYMENT_REQUEST_LOCATIONS', () => {
-	// 	const initPaymentRequestState = [ 'product' ];
-	// 	const enableAllpaymentRequestState = [ 'product', 'checkout', 'cart' ];
-	//
-	// 	test( 'toggle `data.payment_request_enabled_locations`', () => {
-	// 		const oldState = {
-	// 			data: {
-	// 				payment_request_enabled_locations: initPaymentRequestState,
-	// 			},
-	// 		};
-	//
-	// 		const state = reducer(
-	// 			oldState,
-	// 			updatePaymentRequestLocations( enableAllpaymentRequestState )
-	// 		);
-	//
-	// 		expect( state.data.payment_request_enabled_locations ).toEqual(
-	// 			enableAllpaymentRequestState
-	// 		);
-	// 	} );
-	//
-	// 	test( 'leaves other fields unchanged', () => {
-	// 		const oldState = {
-	// 			foo: 'bar',
-	// 			data: {
-	// 				payment_request_enabled_locations: initPaymentRequestState,
-	// 				baz: 'quux',
-	// 			},
-	// 			savingError: {},
-	// 		};
-	//
-	// 		const state = reducer(
-	// 			oldState,
-	// 			updatePaymentRequestLocations( enableAllpaymentRequestState )
-	// 		);
-	//
-	// 		expect( state ).toEqual( {
-	// 			foo: 'bar',
-	// 			data: {
-	// 				payment_request_enabled_locations: enableAllpaymentRequestState,
-	// 				baz: 'quux',
-	// 			},
-	// 			savingError: null,
-	// 		} );
-	// 	} );
-	// } );
 } );

@@ -6,13 +6,14 @@ import UpeToggleContext from '../../upe-toggle/context';
 import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
+	useManualCapture,
 } from 'wcstripe/data';
-import { useManualCapture } from 'wcstripe/settings/payments-and-transactions-section/data-mock';
 import { useAccount } from 'wcstripe/data/account';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useGetAvailablePaymentMethodIds: jest.fn(),
 	useEnabledPaymentMethodIds: jest.fn(),
+	useManualCapture: jest.fn(),
 } ) );
 
 jest.mock( 'wcstripe/data/account', () => ( {
@@ -30,12 +31,6 @@ jest.mock(
 );
 jest.mock( '../../loadable-settings-section', () => ( { children } ) =>
 	children
-);
-jest.mock(
-	'wcstripe/settings/payments-and-transactions-section/data-mock',
-	() => ( {
-		useManualCapture: jest.fn(),
-	} )
 );
 
 describe( 'GeneralSettingsSection', () => {
