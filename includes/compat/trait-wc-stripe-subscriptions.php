@@ -85,7 +85,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		//       so it's probably needed here too?
 		// If we've already created a mandate for this order; use that.
 		$mandate = $order->get_meta( '_stripe_mandate_id', true );
-		if ( 'true' === $request['confirm'] && isset( $mandate ) && '' !== $mandate ) {
+		if ( 'true' === $request['confirm'] && ! empty( $mandate ) ) {
 			$request['mandate'] = $mandate;
 			return $request;
 		}
@@ -97,7 +97,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			$parent_order    = wc_get_order( $parent_order_id );
 
 			$mandate = $parent_order->get_meta( '_stripe_mandate_id', true );
-			if ( 'true' === $request['confirm'] && isset( $mandate ) && '' !== $mandate ) {
+			if ( 'true' === $request['confirm'] && ! empty( $mandate ) ) {
 				$request['mandate'] = $mandate;
 				return $request;
 			}
