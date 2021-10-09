@@ -505,18 +505,14 @@ jQuery( function( $ ) {
 				extra_details.type     = 'sepa_debit';
 
 				return stripe.createSource( iban, extra_details ).then( wc_stripe_form.sourceResponse );
-			} else if ( wc_stripe_form.isStripeCardChosen() ) {
-				// Create payment method, not source.
-				return stripe.createPaymentMethod( {
-					type: 'card',
-					card: stripe_card,
-					billing_details: extra_details.owner,
-				} ).then( wc_stripe_form.sourceResponse );
 			}
 
-			// Handle card payments.
-			return stripe.createSource( stripe_card, extra_details )
-				.then( wc_stripe_form.sourceResponse );
+			// This part is exclusive to card payments so we create a payment method, not a source.
+			return stripe.createPaymentMethod( {
+				type: 'card',
+				card: stripe_card,
+				billing_details: extra_details.owner,
+			} ).then( wc_stripe_form.sourceResponse );
 		},
 
 		/**
