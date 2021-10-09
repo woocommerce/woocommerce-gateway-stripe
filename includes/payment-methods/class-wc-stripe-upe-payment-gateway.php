@@ -617,7 +617,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				}
 
 				// Add mandate information when necessary.
-				apply_filters(
+				$request = apply_filters(
 					'wc_stripe_generate_create_intent_request',
 					$request,
 					$order,
