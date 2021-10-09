@@ -526,6 +526,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				$request['metadata'] = $this->get_metadata_from_order( $order );
 
+				// Add mandate information when necessary.
+				$request = apply_filters(
+					'wc_stripe_generate_create_intent_request',
+					$request,
+					$order,
+					null // There is no payment method ID available.
+				);
+
 				$this->stripe_request(
 					"payment_intents/$payment_intent_id",
 					$request,
@@ -607,6 +615,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$request['capture_method'] = ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual';
 					$request['confirm']        = 'true';
 				}
+
+				// Add mandate information when necessary.
+				apply_filters(
+					'wc_stripe_generate_create_intent_request',
+					$request,
+					$order,
+					null // There is no payment method ID available.
+				);
 
 				$intent = $this->stripe_request(
 					$endpoint,
