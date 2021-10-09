@@ -1514,10 +1514,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		// Add the mandate id necessary for renewal payments with Indian cards.
-		if ( isset( $intent->charges ) && isset( $intent->charges->data ) ) {
+		if ( isset( $intent->charges->data ) ) {
 			$charge = end( $intent->charges->data );
 
-			if ( isset( $charge->payment_method_options ) && isset( $charge->payment_method_options->card ) && isset( $charge->payment_method_options->card->mandate ) ) {
+			if ( isset( $charge->payment_method_options->card->mandate ) ) {
 				$mandate_id = $charge->payment_method_options->card->mandate;
 				$order->update_meta_data( '_stripe_mandate_id', $mandate_id );
 			}
