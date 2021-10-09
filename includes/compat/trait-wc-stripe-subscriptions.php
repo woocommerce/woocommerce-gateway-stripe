@@ -428,17 +428,14 @@ trait WC_Stripe_Subscriptions_Trait {
 				}
 			} elseif ( $this->must_authorize_payment_off_session( $response ) ) {
 				$charge_attempt_at = $response->next_action->card_await_notification->charge_attempt_at;
-				$date              = new DateTime();
-				$date->setTimestamp( $charge_attempt_at );
-				$date->setTimezone( wp_timezone() );
-				$charge_attempt_date_string = $date->format( 'Y-m-d' );
-				$charge_attempt_time_string = $date->format( 'H:i' );
+				$attempt_date      = wp_date( get_option( 'date_format', 'F j, Y' ), $charge_attempt_at, wp_timezone() );
+				$attempt_time      = wp_date( get_option( 'time_format', 'g:i a' ), $charge_attempt_at, wp_timezone() );
 
 				$message = sprintf(
 					/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
-					__( 'The customer must authorize this payment via the pre-debit notification sent to them by their card issuing bank, before %1$s at %2$s, when the charge will be attempted.', 'woocommerce-gateway-stripe' ),
-					$charge_attempt_date_string,
-					$charge_attempt_time_string
+					__( 'The customer must authorize this payment off-session. An attempt will be made to charge the customer\'s card on %1$s at %2$s.', 'woocommerce-gateway-stripe' ),
+					$attempt_date,
+					$attempt_time
 				);
 				$renewal_order->add_order_note( $message );
 				$renewal_order->update_status( 'pending' );
