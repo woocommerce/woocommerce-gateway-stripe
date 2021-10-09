@@ -531,7 +531,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					'wc_stripe_generate_create_intent_request',
 					$request,
 					$order,
-					null // There is no payment method ID available.
+					null // Parameter is not necessary for adding mandate information.
 				);
 
 				$this->stripe_request(
@@ -621,7 +621,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					'wc_stripe_generate_create_intent_request',
 					$request,
 					$order,
-					null // There is no payment method ID available.
+					null // Parameter is not necessary for adding mandate information.
 				);
 
 				$intent = $this->stripe_request(
