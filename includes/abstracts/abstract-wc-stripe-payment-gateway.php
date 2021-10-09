@@ -568,7 +568,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$this->update_fees( $order, is_string( $response->balance_transaction ) ? $response->balance_transaction : $response->balance_transaction->id );
 		}
 
-		if ( isset( $response->payment_method_details ) && isset( $response->payment_method_details->card ) && isset( $response->payment_method_details->card->mandate ) ) {
+		if ( isset( $response->payment_method_details->card->mandate ) ) {
 			$order->update_meta_data( '_stripe_mandate_id', $response->payment_method_details->card->mandate );
 		}
 
