@@ -422,7 +422,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				$message = sprintf(
 					/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
-					__( 'The customer must authorize this payment off-session. An attempt will be made to charge the customer\'s card on %1$s at %2$s.', 'woocommerce-gateway-stripe' ),
+					__( 'The customer must authorize this payment via the pre-debit notification sent to them by their card issuing bank, before %1$s at %2$s, when the charge will be attempted.', 'woocommerce-gateway-stripe' ),
 					$charge_attempt_date_string,
 					$charge_attempt_time_string
 				);
