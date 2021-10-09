@@ -111,17 +111,15 @@ export const usePaymentProcessing = (
 						message: onStripeError( response ),
 					};
 				}
-				if (
-					( ! response.source || ! response.source.id ) &&
-					( ! response.paymentMethod || ! response.paymentMethod.id )
-				) {
+				const newSourceId =
+					response?.source?.id ?? response?.paymentMethod?.id;
+
+				if ( ! newSourceId ) {
 					throw new Error(
 						getErrorMessageForTypeAndCode( errorTypes.API_ERROR )
 					);
 				}
-				setSourceId(
-					response?.source?.id ?? response?.paymentMethod?.id
-				);
+				setSourceId( newSourceId );
 				return {
 					type: emitResponse.responseTypes.SUCCESS,
 					meta: {
