@@ -572,4 +572,36 @@ class WC_Stripe_Helper {
 	public static function has_cart_or_checkout_on_current_page() {
 		return is_cart() || is_checkout();
 	}
+
+	/**
+	 * Returns true if the id passed to this function is an ID for a Stripe Payment Method.
+	 *
+	 * @param string $id  The ID to be evaluated on whether it's for a Payment Method or not.
+	 * @return bool       Returns true if the ID is for a Stripe Payment Method; false otherwise.
+	 */
+	public static function is_id_for_payment_method( $id ) {
+		return ! empty( $id ) && is_string( $id ) && substr( $id, 0, 3 ) === 'pm_';
+	}
+
+	/**
+	 * Evaluates whether the object passed to this function is a Stripe Payment Method.
+	 *
+	 * @param stdClass $object  The object that should be evaluated.
+	 * @return bool             Returns true if the object is a Payment Method; false otherwise.
+	 */
+	public static function is_payment_method_object( $object ) {
+		return isset( $object->type ) && 'payment_method' === $object->type;
+	}
+
+	/**
+	 * Evaluates whether a given Stripe Source (or Stripe Payment Method) is reusable.
+	 * Payment Methods are always reusable; Sources are only reusable when the appropriate
+	 * usage metadata is provided.
+	 *
+	 * @param stdClass $source  The source or payment method to be evaluated.
+	 * @return bool             Returns true if the source is reusable; false otherwise.
+	 */
+	public static function is_reusable_source( $source ) {
+		return self::is_payment_method_object( $source ) || ( isset( $source->usage ) && 'reusable' === $source->usage );
+	}
 }

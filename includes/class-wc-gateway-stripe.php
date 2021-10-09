@@ -546,7 +546,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled()
 				&& $this->is_using_saved_payment_method()
 				&& ! empty( $prepared_source->source )
-				&& substr( $prepared_source->source, 0, 3 ) === 'pm_'
+				&& WC_Stripe_Helper::is_id_for_payment_method( $prepared_source->source )
 			) {
 				$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
 				return $upe_gateway->process_payment_with_saved_payment_method( $order_id );
@@ -670,7 +670,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$user_id  = get_current_user_id();
 		$customer = new WC_Stripe_Customer( $user_id );
 
-		if ( ( $user_id && ( substr( $source_object->id, 0, 3 ) === 'pm_' || 'reusable' === $source_object->usage ) ) ) {
+		if ( $user_id && WC_Stripe_Helper::is_reusable_source( $source_object ) ) {
 			$response = $customer->add_source( $source_object->id );
 
 			if ( ! empty( $response->error ) ) {
