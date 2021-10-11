@@ -81,7 +81,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function render_upe_settings() {
 		global $hide_save_button;
-		$hide_save_button = true;
+		$hide_save_button    = true;
 		$is_stripe_connected = woocommerce_gateway_stripe()->connect->is_connected();
 
 		echo $is_stripe_connected ? '<div id="wc-stripe-payment-gateway-container"></div>' : '<div id="wc-stripe-new-account-container"></div>';

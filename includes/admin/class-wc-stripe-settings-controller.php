@@ -54,7 +54,9 @@ class WC_Stripe_Settings_Controller {
 			return;
 		}
 
-		if ( ! WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe' ) ) {
+		if ( ! ( WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe' )
+			|| WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe_alipay' )
+			|| WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe_multibanco' ) ) ) {
 			return;
 		}
 
