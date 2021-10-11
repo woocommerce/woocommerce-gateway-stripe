@@ -108,6 +108,27 @@ export const useGetAvailablePaymentMethodIds = makeReadOnlySettingsHook(
 	EMPTY_ARR
 );
 
+export const useIsStripeAlipayEnabled = makeSettingsHook(
+	'is_stripe_alipay_enabled'
+);
+export const useStripeAlipayName = makeSettingsHook( 'stripe_alipay_name', '' );
+export const useStripeAlipayDescription = makeSettingsHook(
+	'stripe_alipay_description',
+	''
+);
+
+export const useIsStripeMultibancoEnabled = makeSettingsHook(
+	'is_stripe_multibanco_enabled'
+);
+export const useStripeMultibancoName = makeSettingsHook(
+	'stripe_multibanco_name',
+	''
+);
+export const useStripeMultibancoDescription = makeSettingsHook(
+	'stripe_multibanco_description',
+	''
+);
+
 export const useGetSavingError = () => {
 	return useSelect( ( select ) => {
 		const { getSavingError } = select( STORE_NAME );
