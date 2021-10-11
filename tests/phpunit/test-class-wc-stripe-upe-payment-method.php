@@ -360,6 +360,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$user_id = 1;
 
 		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
+			if ( ! $payment_method->is_resuable() ) {
+				continue;
+			}
+
 			if ( 'card' === $payment_method_id ) {
 				$card_payment_method_mock = $this->array_to_object( self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE );
 				$token                    = $payment_method->create_payment_token_for_user( $user_id, $card_payment_method_mock );
