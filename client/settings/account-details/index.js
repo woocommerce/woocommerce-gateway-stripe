@@ -108,6 +108,7 @@ const WebhooksSection = () => {
 				<Button
 					disabled={ requestStatus === 'pending' }
 					onClick={ refreshMessage }
+					isBusy={ requestStatus === 'pending' }
 					isLink
 				>
 					{ __( 'Refresh', 'woocommerce-gateway-stripe' ) }
