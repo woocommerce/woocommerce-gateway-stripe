@@ -1,22 +1,27 @@
 import { __ } from '@wordpress/i18n';
 import React from 'react';
 import { ExternalLink } from '@wordpress/components';
+import { getQuery } from '@woocommerce/navigation';
 import SettingsLayout from '../settings-layout';
 import SettingsSection from '../settings-section';
 import LoadableSettingsSection from '../loadable-settings-section';
 import PaymentGatewaySection from '../payment-gateway-section';
 import UpeOptInBanner from '../general-settings-section/upe-opt-in-banner';
 import SaveSettingsSection from '../save-settings-section';
+import { gatewaysDescriptions } from './constants';
 
 const GatewayDescription = () => {
+	const { section } = getQuery();
+	const description = gatewaysDescriptions[ section ];
 	return (
 		<>
-			<h2>Gateway</h2>
+			<h2>{ description.title }</h2>
+			<p>{ description.geography }</p>
 			<p>
-				{ __( 'Customer geography: .', 'woocommerce-gateway-stripe' ) }
-			</p>
-			<p>
-				<ExternalLink href="?TODO">
+				<ExternalLink
+					href="https://dashboard.stripe.com/account/payments/settings"
+					target="_blank"
+				>
 					{ __(
 						'Activate in your Stripe Dashboard',
 						'woocommerce-gateway-stripe'
@@ -24,7 +29,7 @@ const GatewayDescription = () => {
 				</ExternalLink>
 			</p>
 			<p>
-				<ExternalLink href="?TODO">
+				<ExternalLink href={ description.guide } target="_blank">
 					{ __(
 						'Payment Method Guide',
 						'woocommerce-gateway-stripe'
