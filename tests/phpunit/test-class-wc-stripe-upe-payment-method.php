@@ -30,18 +30,18 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * Base template for Stripe SEPA payment method.
 	 */
 	const MOCK_SEPA_PAYMENT_METHOD_TEMPLATE = [
-		'id'   => 'pm_mock_payment_method_id',
-		'type' => 'sepa_debit',
+		'id'         => 'pm_mock_payment_method_id',
+		'type'       => 'sepa_debit',
 		'sepa_debit' => [
-			'bank_code' => '00000000',
-			'branch_code' => '',
-			'country' => 'DE',
-			'fingerprint' => 'Fxxxxxxxxxxxxxxx',
+			'bank_code'      => '00000000',
+			'branch_code'    => '',
+			'country'        => 'DE',
+			'fingerprint'    => 'Fxxxxxxxxxxxxxxx',
 			'generated_from' => [
-				'charge' => null,
+				'charge'        => null,
 				'setup_attempt' => null,
 			],
-			'last4' => '4242',
+			'last4'          => '4242',
 		],
 	];
 
@@ -362,11 +362,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
 			if ( 'card' === $payment_method_id ) {
 				$card_payment_method_mock = $this->array_to_object( self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE );
-				$token = $payment_method->create_payment_token_for_user( $user_id, $card_payment_method_mock );
+				$token                    = $payment_method->create_payment_token_for_user( $user_id, $card_payment_method_mock );
 				$this->assertTrue( 'WC_Payment_Token_CC' === get_class( $token ) );
 			} else {
 				$sepa_payment_method_mock = $this->array_to_object( self::MOCK_SEPA_PAYMENT_METHOD_TEMPLATE );
-				$token = $payment_method->create_payment_token_for_user( $user_id, $sepa_payment_method_mock );
+				$token                    = $payment_method->create_payment_token_for_user( $user_id, $sepa_payment_method_mock );
 				$this->assertTrue( 'WC_Payment_Token_SEPA' === get_class( $token ) );
 			}
 		}
