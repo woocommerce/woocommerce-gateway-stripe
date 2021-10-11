@@ -3,6 +3,8 @@ import React from 'react';
 import { ExternalLink } from '@wordpress/components';
 import SettingsLayout from '../settings-layout';
 import SettingsSection from '../settings-section';
+import LoadableSettingsSection from '../loadable-settings-section';
+import PaymentGatewaySection from '../payment-gateway-section';
 import UpeOptInBanner from '../general-settings-section/upe-opt-in-banner';
 import SaveSettingsSection from '../save-settings-section';
 
@@ -36,7 +38,11 @@ const GatewayDescription = () => {
 const PaymentGatewayManager = () => {
 	return (
 		<SettingsLayout>
-			<SettingsSection Description={ GatewayDescription } />
+			<SettingsSection Description={ GatewayDescription }>
+				<LoadableSettingsSection numLines={ 34 }>
+					<PaymentGatewaySection />
+				</LoadableSettingsSection>
+			</SettingsSection>
 			<UpeOptInBanner />
 			<SaveSettingsSection />
 		</SettingsLayout>
