@@ -39,7 +39,7 @@ describe( 'Account keys actions tests', () => {
 
 			apiFetch.mockReturnValue( 'api response' );
 
-			const yielded = [ ...saveAccountKeys() ];
+			const yielded = [ ...saveAccountKeys( accountKeysMock ) ];
 
 			expect( apiFetch ).toHaveBeenCalledWith( {
 				method: 'post',

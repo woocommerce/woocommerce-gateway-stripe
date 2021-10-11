@@ -175,7 +175,7 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 	const testFormRef = useRef( null );
 	const testMode = openTab === 'test';
 
-	const handleSave = ( ref ) => {
+	const handleSave = async ( ref ) => {
 		// Grab the HTMLCollection of elements of the HTML form, convert to array.
 		const elements = Array.from( ref.current.elements );
 		// Convert HTML elements array to an object acceptable for saving keys.
@@ -183,8 +183,8 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 			const { name, value } = curr;
 			return { ...acc, [ name ]: value };
 		}, {} );
-		saveAccountKeys( keysToSave );
-		// @todo - automatically close once saving is done successfully. leave open if failed? onClose();
+		await saveAccountKeys( keysToSave );
+		onClose();
 	};
 
 	const onTabSelect = ( tabName ) => {

@@ -78,7 +78,9 @@ const PaymentsAndTransactionsDescription = () => (
 	</>
 );
 
+// @todo - remove setModalType as prop
 const AccountSettingsDropdownMenu = ( { setModalType } ) => {
+	// @todo - deconstruct setModalType from useModalType custom hook
 	const [ isTestModeEnabled ] = useTestMode();
 	return (
 		<DropdownMenu
@@ -107,6 +109,7 @@ const AccountSettingsDropdownMenu = ( { setModalType } ) => {
 	);
 };
 
+// @todo - remove setModalType as prop
 const AccountDetailsSection = ( { setModalType } ) => {
 	const [ isTestModeEnabled ] = useTestMode();
 	const { data } = useAccount();
@@ -134,6 +137,7 @@ const AccountDetailsSection = ( { setModalType } ) => {
 };
 
 const PaymentSettingsPanel = () => {
+	// @todo - deconstruct modalType and setModalType from useModalType custom hook
 	const [ modalType, setModalType ] = useState( '' );
 
 	const handleModalDismiss = () => {

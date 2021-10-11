@@ -1,5 +1,6 @@
 import React from 'react';
 import { screen, render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import ConnectStripeAccount from '..';
 
 describe( 'ConnectStripeAccount', () => {
@@ -47,5 +48,14 @@ describe( 'ConnectStripeAccount', () => {
 		expect(
 			screen.getByText( 'Create or connect an account' )
 		).toBeDisabled();
+	} );
+
+	it( 'should open the live account keys modal when clicking "enter acccount keys"', () => {
+		render( <ConnectStripeAccount oauthUrl="" /> );
+		const accountKeysButton = screen.queryByText( /enter account keys/i );
+		userEvent.click( accountKeysButton );
+		expect(
+			screen.queryByText( /edit live account keys & webhooks/i )
+		).toBeInTheDocument();
 	} );
 } );

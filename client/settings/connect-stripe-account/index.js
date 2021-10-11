@@ -1,9 +1,10 @@
 import { __ } from '@wordpress/i18n';
-import React from 'react';
+import { React, useState } from 'react';
 import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
 import { Button, Card } from '@wordpress/components';
 import CardBody from '../card-body';
+import { AccountKeysModal } from '../payment-settings/account-keys-modal';
 import StripeBanner from 'wcstripe/components/stripe-banner';
 
 const CardWrapper = styled( Card )`
@@ -50,64 +51,80 @@ const ButtonWrapper = styled.div`
 	}
 `;
 
-const ConnectStripeAccount = ( props ) => (
-	<CardWrapper>
-		<StripeBanner />
-		<CardBody>
-			<h2>
-				{ __(
-					'Get started with Stripe',
-					'woocommerce-gateway-stripe'
-				) }
-			</h2>
-			<InformationText>
-				{ __(
-					'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDeal, SEPA, Sofort, and more international payment methods.',
-					'woocommerce-gateway-stripe'
-				) }
-			</InformationText>
-			<TermsOfServiceText>
-				{ interpolateComponents( {
-					mixedString: __(
-						'By clicking "Create or connect an account", you agree to the {{tosLink}}Terms of service.{{/tosLink}}',
-						'woocommerce-gateway-stripe'
-					),
-					components: {
-						tosLink: (
-							// eslint-disable-next-line jsx-a11y/anchor-has-content
-							<a
-								target="_blank"
-								rel="noreferrer"
-								href="https://wordpress.com/tos"
-							/>
-						),
-					},
-				} ) }
-			</TermsOfServiceText>
-			<ButtonWrapper>
-				<Button
-					isPrimary
-					href={ props.oauthUrl }
-					disabled={ ! props.oauthUrl }
-				>
-					{ __(
-						'Create or connect an account',
-						'woocommerce-gateway-stripe'
-					) }
-				</Button>
-				<Button
-					isSecondary
-					// eslint-disable-next-line no-alert, no-undef
-					onClick={ () => alert( 'Modal will be implemented later' ) }
-				>
-					{ __(
-						'Enter account keys (advanced)',
-						'woocommerce-gateway-stripe'
-					) }
-				</Button>
-			</ButtonWrapper>
-		</CardBody>
-	</CardWrapper>
-);
+const ConnectStripeAccount = ( props ) => {
+	// @todo - deconstruct modalType and setModalType from useModalType custom hook
+	const [ modalType, setModalType ] = useState( '' );
+	const handleModalDismiss = () => {
+		setModalType( '' );
+	};
+
+	return (
+		<>
+			{ modalType && (
+				<AccountKeysModal
+					type={ modalType }
+					onClose={ handleModalDismiss }
+				/>
+			) }
+			<CardWrapper>
+				<StripeBanner />
+				<CardBody>
+					<h2>
+						{ __(
+							'Get started with Stripe',
+							'woocommerce-gateway-stripe'
+						) }
+					</h2>
+					<InformationText>
+						{ __(
+							'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDeal, SEPA, Sofort, and more international payment methods.',
+							'woocommerce-gateway-stripe'
+						) }
+					</InformationText>
+					<TermsOfServiceText>
+						{ interpolateComponents( {
+							mixedString: __(
+								'By clicking "Create or connect an account", you agree to the {{tosLink}}Terms of service.{{/tosLink}}',
+								'woocommerce-gateway-stripe'
+							),
+							components: {
+								tosLink: (
+									// eslint-disable-next-line jsx-a11y/anchor-has-content
+									<a
+										target="_blank"
+										rel="noreferrer"
+										href="https://wordpress.com/tos"
+									/>
+								),
+							},
+						} ) }
+					</TermsOfServiceText>
+					<ButtonWrapper>
+						<Button
+							isPrimary
+							href={ props.oauthUrl }
+							disabled={ ! props.oauthUrl }
+						>
+							{ __(
+								'Create or connect an account',
+								'woocommerce-gateway-stripe'
+							) }
+						</Button>
+						<Button
+							isSecondary
+							// eslint-disable-next-line no-alert, no-undef
+							onClick={ () => setModalType( 'live' ) }
+						>
+							{ __(
+								'Enter account keys (advanced)',
+								'woocommerce-gateway-stripe'
+							) }
+						</Button>
+					</ButtonWrapper>
+				</CardBody>
+			</CardWrapper>
+		</>
+	);
+};
 
 export default ConnectStripeAccount;
