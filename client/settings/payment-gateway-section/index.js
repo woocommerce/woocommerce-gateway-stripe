@@ -1,33 +1,45 @@
 import { __, sprintf } from '@wordpress/i18n';
-import { React, useState } from 'react';
+import { React } from 'react';
 import { Card, CheckboxControl, TextControl } from '@wordpress/components';
 import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
 import CardBody from '../card-body';
+import {
+	useEnabledGateway,
+	useGatewayName,
+	useGatewayDescription,
+} from './hooks';
+import { getGateway } from './helpers';
 
 const StyledCard = styled( Card )`
 	margin-bottom: 12px;
 `;
 
 const PaymentGatewaySection = () => {
-	const [ enableGateway, setEnableGateway ] = useState( false );
-	const [ gatewayName, setGatewayName ] = useState( 'Gateway' );
-	const [ gatewayDescription, setGatewayDescription ] = useState(
-		'You will be redirected to Gateway.'
-	);
+	const [ enableGateway, setEnableGateway ] = useEnabledGateway();
+	const [ gatewayName, setGatewayName ] = useGatewayName();
+	const [
+		gatewayDescription,
+		setGatewayDescription,
+	] = useGatewayDescription();
 	return (
 		<StyledCard>
 			<CardBody>
 				<CheckboxControl
 					checked={ enableGateway }
 					onChange={ setEnableGateway }
-					label={ __(
-						'Enable Gateway',
-						'woocommerce-gateway-stripe'
+					label={ sprintf(
+						/* translators: %s: Payment Gateway name */
+						__( 'Enable %s', 'woocommerce-gateway-stripe' ),
+						getGateway()
 					) }
-					help={ __(
-						'When enabled, Gateway will appear on checkout.',
-						'woocommerce-gateway-stripe'
+					help={ sprintf(
+						/* translators: %s: Payment Gateway name */
+						__(
+							'When enabled, %s will appear on checkout.',
+							'woocommerce-gateway-stripe'
+						),
+						getGateway()
 					) }
 				/>
 				<h4>
@@ -41,7 +53,6 @@ const PaymentGatewaySection = () => {
 					label={ __( 'Name', 'woocommerce-gateway-stripe' ) }
 					value={ gatewayName }
 					onChange={ setGatewayName }
-					maxLength={ 22 }
 				/>
 				<TextControl
 					help={ __(
@@ -51,7 +62,6 @@ const PaymentGatewaySection = () => {
 					label={ __( 'Description', 'woocommerce-gateway-stripe' ) }
 					value={ gatewayDescription }
 					onChange={ setGatewayDescription }
-					maxLength={ 22 }
 				/>
 				<h4>
 					{ __( 'Webhook endpoints', 'woocommerce-gateway-stripe' ) }
@@ -63,9 +73,15 @@ const PaymentGatewaySection = () => {
 							'woocommerce-gateway-stripe'
 						),
 						components: {
-							webhookLink: <a href="?TODO">XXX</a>,
+							webhookLink: (
+								<span className="code">{ `${ location.origin }/?wc-api=wc_stripe` }</span>
+							),
 							stripeSettingsLink: (
-								<a href="?TODO" target="_blank">
+								<a
+									href="https://dashboard.stripe.com/account/webhooks"
+									target="_blank"
+									rel="external noopener noreferrer"
+								>
 									{ __(
 										'Stripe account settings',
 										'woocommerce-gateway-stripe'
