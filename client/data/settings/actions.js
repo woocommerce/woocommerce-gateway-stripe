@@ -18,10 +18,6 @@ export function updateSettings( data ) {
 	};
 }
 
-export function updateIsPaymentRequestEnabled( isEnabled ) {
-	return updateSettingsValues( { is_payment_request_enabled: isEnabled } );
-}
-
 export function updateIsSavingSettings( isSaving, error ) {
 	return {
 		type: ACTION_TYPES.SET_IS_SAVING_SETTINGS,
@@ -42,6 +38,12 @@ export function* saveSettings() {
 			method: 'post',
 			data: settings,
 		} );
+
+		// when the settings are saved, the "test mode" flag might have changed.
+		// In that case, we also need to fetch the "account" data again, to make sure we have it up to date.
+		yield dispatch( STORE_NAME ).invalidateResolutionForStoreSelector(
+			'getAccountData'
+		);
 
 		yield dispatch( 'core/notices' ).createSuccessNotice(
 			__( 'Settings saved.', 'woocommerce-gateway-stripe' )
