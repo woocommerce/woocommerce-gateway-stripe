@@ -164,6 +164,16 @@ export const useStripeEpsDescription = makeSettingsHook(
 	''
 );
 
+// SOFORT
+export const useIsStripeSofortEnabled = makeSettingsHook(
+	'is_stripe_sofort_enabled'
+);
+export const useStripeSofortName = makeSettingsHook( 'stripe_sofort_name', '' );
+export const useStripeSofortDescription = makeSettingsHook(
+	'stripe_sofort_description',
+	''
+);
+
 // Alipay
 export const useIsStripeAlipayEnabled = makeSettingsHook(
 	'is_stripe_alipay_enabled'

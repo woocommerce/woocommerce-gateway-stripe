@@ -42,6 +42,14 @@ export const gatewaysInfo = {
 		),
 		guide: 'https://stripe.com/payments/payment-methods-guide#eps',
 	},
+	stripe_sofort: {
+		title: __( 'SOFORT', 'woocommerce-gateway-stripe' ),
+		geography: __(
+			'Customer Geography: Germany, Austria.',
+			'woocommerce-gateway-stripe'
+		),
+		guide: 'https://stripe.com/payments/payment-methods-guide#sofort',
+	},
 	stripe_alipay: {
 		title: __( 'Alipay', 'woocommerce-gateway-stripe' ),
 		geography: __(
