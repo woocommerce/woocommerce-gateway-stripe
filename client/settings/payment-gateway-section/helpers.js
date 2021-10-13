@@ -3,6 +3,8 @@ import { getQuery } from '@woocommerce/navigation';
 export const getGateway = () => {
 	const { section } = getQuery();
 	switch ( section ) {
+		case 'stripe_sepa':
+			return 'Sepa';
 		case 'stripe_alipay':
 			return 'Alipay';
 		case 'stripe_multibanco':

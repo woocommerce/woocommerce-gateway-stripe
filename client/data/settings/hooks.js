@@ -108,6 +108,15 @@ export const useGetAvailablePaymentMethodIds = makeReadOnlySettingsHook(
 	EMPTY_ARR
 );
 
+export const useIsStripeSepaEnabled = makeSettingsHook(
+	'is_stripe_sepa_enabled'
+);
+export const useStripeSepaName = makeSettingsHook( 'stripe_sepa_name', '' );
+export const useStripeSepaDescription = makeSettingsHook(
+	'stripe_sepa_description',
+	''
+);
+
 export const useIsStripeAlipayEnabled = makeSettingsHook(
 	'is_stripe_alipay_enabled'
 );
