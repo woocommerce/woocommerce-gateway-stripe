@@ -48,7 +48,9 @@ const PaymentGatewayManager = () => {
 					<PaymentGatewaySection />
 				</LoadableSettingsSection>
 			</SettingsSection>
-			<UpeOptInBanner />
+			<SettingsSection>
+				<UpeOptInBanner />
+			</SettingsSection>
 			<SaveSettingsSection />
 		</SettingsLayout>
 	);
