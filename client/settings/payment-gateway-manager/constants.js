@@ -26,6 +26,14 @@ export const gatewaysInfo = {
 		),
 		guide: 'https://stripe.com/payments/payment-methods-guide#ideal',
 	},
+	stripe_bancontact: {
+		title: __( 'Bancontact', 'woocommerce-gateway-stripe' ),
+		geography: __(
+			'Customer Geography: Belgium.',
+			'woocommerce-gateway-stripe'
+		),
+		guide: 'https://stripe.com/payments/payment-methods-guide#bancontact',
+	},
 	stripe_alipay: {
 		title: __( 'Alipay', 'woocommerce-gateway-stripe' ),
 		geography: __(

@@ -16,6 +16,8 @@ export const getGateway = () => {
 			return 'Giropay';
 		case 'stripe_ideal':
 			return 'Ideal';
+		case 'stripe_bancontact':
+			return 'Bancontact';
 		case 'stripe_alipay':
 			return 'Alipay';
 		case 'stripe_multibanco':

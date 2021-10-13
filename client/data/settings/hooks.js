@@ -141,6 +141,19 @@ export const useStripeIdealDescription = makeSettingsHook(
 	''
 );
 
+// Bancontact
+export const useIsStripeBancontactEnabled = makeSettingsHook(
+	'is_stripe_bancontact_enabled'
+);
+export const useStripeBancontactName = makeSettingsHook(
+	'stripe_bancontact_name',
+	''
+);
+export const useStripeBancontactDescription = makeSettingsHook(
+	'stripe_bancontact_description',
+	''
+);
+
 // Alipay
 export const useIsStripeAlipayEnabled = makeSettingsHook(
 	'is_stripe_alipay_enabled'
