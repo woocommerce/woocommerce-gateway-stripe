@@ -34,6 +34,14 @@ export const gatewaysInfo = {
 		),
 		guide: 'https://stripe.com/payments/payment-methods-guide#bancontact',
 	},
+	stripe_eps: {
+		title: __( 'EPS', 'woocommerce-gateway-stripe' ),
+		geography: __(
+			'Customer Geography: Austria.',
+			'woocommerce-gateway-stripe'
+		),
+		guide: 'https://stripe.com/payments/payment-methods-guide#eps',
+	},
 	stripe_alipay: {
 		title: __( 'Alipay', 'woocommerce-gateway-stripe' ),
 		geography: __(

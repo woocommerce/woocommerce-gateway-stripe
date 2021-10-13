@@ -154,6 +154,16 @@ export const useStripeBancontactDescription = makeSettingsHook(
 	''
 );
 
+// EPS
+export const useIsStripeEpsEnabled = makeSettingsHook(
+	'is_stripe_eps_enabled'
+);
+export const useStripeEpsName = makeSettingsHook( 'stripe_eps_name', '' );
+export const useStripeEpsDescription = makeSettingsHook(
+	'stripe_eps_description',
+	''
+);
+
 // Alipay
 export const useIsStripeAlipayEnabled = makeSettingsHook(
 	'is_stripe_alipay_enabled'
