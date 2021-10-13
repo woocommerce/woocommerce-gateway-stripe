@@ -9,20 +9,13 @@ import { getQuery } from '@woocommerce/navigation';
  */
 export const getGateway = () => {
 	const { section } = getQuery();
-	switch ( section ) {
-		case 'stripe_sepa':
-			return 'Sepa';
-		case 'stripe_giropay':
-			return 'Giropay';
-		case 'stripe_ideal':
-			return 'Ideal';
-		case 'stripe_bancontact':
-			return 'Bancontact';
-		case 'stripe_alipay':
-			return 'Alipay';
-		case 'stripe_multibanco':
-			return 'Multibanco';
-		default:
-			throw new Error( `${ section } is not being hooked.` );
+	const regex = /stripe_([a-z0-9]+)/;
+
+	if ( ! regex.test( section ) ) {
+		throw new Error( `${ section } is not being hooked.` );
 	}
+
+	return section
+		.replace( regex, '$1' )
+		.replace( /^\w/, ( letter ) => letter.toUpperCase() );
 };
