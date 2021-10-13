@@ -108,6 +108,7 @@ export const useGetAvailablePaymentMethodIds = makeReadOnlySettingsHook(
 	EMPTY_ARR
 );
 
+// SEPA
 export const useIsStripeSepaEnabled = makeSettingsHook(
 	'is_stripe_sepa_enabled'
 );
@@ -117,6 +118,7 @@ export const useStripeSepaDescription = makeSettingsHook(
 	''
 );
 
+// Alipay
 export const useIsStripeAlipayEnabled = makeSettingsHook(
 	'is_stripe_alipay_enabled'
 );
@@ -126,6 +128,7 @@ export const useStripeAlipayDescription = makeSettingsHook(
 	''
 );
 
+// Multibanco
 export const useIsStripeMultibancoEnabled = makeSettingsHook(
 	'is_stripe_multibanco_enabled'
 );
