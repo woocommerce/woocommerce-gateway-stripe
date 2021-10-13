@@ -118,6 +118,19 @@ export const useStripeSepaDescription = makeSettingsHook(
 	''
 );
 
+// giropay
+export const useIsStripeGiropayEnabled = makeSettingsHook(
+	'is_stripe_giropay_enabled'
+);
+export const useStripeGiropayName = makeSettingsHook(
+	'stripe_giropay_name',
+	''
+);
+export const useStripeGiropayDescription = makeSettingsHook(
+	'stripe_giropay_description',
+	''
+);
+
 // Alipay
 export const useIsStripeAlipayEnabled = makeSettingsHook(
 	'is_stripe_alipay_enabled'

@@ -10,6 +10,14 @@ export const gatewaysDescriptions = {
 		guide:
 			'https://stripe.com/payments/payment-methods-guide#sepa-direct-debit',
 	},
+	stripe_giropay: {
+		title: __( 'giropay', 'woocommerce-gateway-stripe' ),
+		geography: __(
+			'Customer Geography: Germany.',
+			'woocommerce-gateway-stripe'
+		),
+		guide: 'https://stripe.com/payments/payment-methods-guide#giropay',
+	},
 	stripe_alipay: {
 		title: __( 'Alipay', 'woocommerce-gateway-stripe' ),
 		geography: __(
