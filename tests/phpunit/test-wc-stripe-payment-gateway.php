@@ -38,7 +38,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Should print a placeholder div with id 'wc-stripe-upe-opt-in-banner'
+	 * Should print a placeholder div with id 'wc-stripe-payment-gateway-container'
 	 */
 	public function test_admin_options_when_stripe_is_connected() {
 		$stripe_settings                         = get_option( 'woocommerce_stripe_settings' );
@@ -52,7 +52,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		ob_start();
 		$this->giropay_gateway->admin_options();
 		$output = ob_get_clean();
-		$this->assertStringMatchesFormat( '%aid="wc-stripe-upe-opt-in-banner"%a', $output );
+		$this->assertStringMatchesFormat( '%aid="wc-stripe-payment-gateway-container"%a', $output );
 	}
 
 	/**
