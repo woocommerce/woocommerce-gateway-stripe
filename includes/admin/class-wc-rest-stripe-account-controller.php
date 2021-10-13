@@ -45,6 +45,16 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 
 		register_rest_route(
 			$this->namespace,
+			'/' . $this->rest_base . '/webhook-status-message',
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $this, 'get_webhook_status_message' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
+
+		register_rest_route(
+			$this->namespace,
 			'/' . $this->rest_base . '/refresh',
 			[
 				'methods'             => WP_REST_Server::EDITABLE,
@@ -62,9 +72,20 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 	public function get_account() {
 		return new WP_REST_Response(
 			[
-				'account' => $this->account->get_cached_account_data(),
+				'account'                => $this->account->get_cached_account_data(),
+				'webhook_status_message' => WC_Stripe_Webhook_State::get_webhook_status_message(),
+				'webhook_url'            => WC_Stripe_Helper::get_webhook_url(),
 			]
 		);
+	}
+
+	/**
+	 * Retrieve the webhook status information.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function get_webhook_status_message() {
+		return new WP_REST_Response( WC_Stripe_Webhook_State::get_webhook_status_message() );
 	}
 
 	/**
