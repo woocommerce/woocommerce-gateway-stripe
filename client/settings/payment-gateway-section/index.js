@@ -5,7 +5,7 @@ import { getQuery } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
 import CardBody from '../card-body';
-import { gatewaysDescriptions } from '../payment-gateway-manager/constants';
+import { gatewaysInfo } from '../payment-gateway-manager/constants';
 import {
 	useEnabledGateway,
 	useGatewayName,
@@ -18,7 +18,7 @@ const StyledCard = styled( Card )`
 
 const PaymentGatewaySection = () => {
 	const { section } = getQuery();
-	const description = gatewaysDescriptions[ section ];
+	const info = gatewaysInfo[ section ];
 	const [ enableGateway, setEnableGateway ] = useEnabledGateway();
 	const [ gatewayName, setGatewayName ] = useGatewayName();
 	const [
@@ -34,7 +34,7 @@ const PaymentGatewaySection = () => {
 					label={ sprintf(
 						/* translators: %s: Payment Gateway name */
 						__( 'Enable %s', 'woocommerce-gateway-stripe' ),
-						description.title
+						info.title
 					) }
 					help={ sprintf(
 						/* translators: %s: Payment Gateway name */
@@ -42,7 +42,7 @@ const PaymentGatewaySection = () => {
 							'When enabled, %s will appear on checkout.',
 							'woocommerce-gateway-stripe'
 						),
-						description.title
+						info.title
 					) }
 				/>
 				<h4>

@@ -8,7 +8,7 @@ jest.mock( '@woocommerce/navigation', () => ( {
 } ) );
 
 jest.mock( '../constants', () => ( {
-	gatewaysDescriptions: {
+	gatewaysInfo: {
 		sectionX: { title: 'Section X', geography: 'Brazil' },
 		sectionY: { title: 'Section Y', geography: 'Italy' },
 	},

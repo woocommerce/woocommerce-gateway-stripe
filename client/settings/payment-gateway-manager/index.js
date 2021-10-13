@@ -8,15 +8,15 @@ import LoadableSettingsSection from '../loadable-settings-section';
 import PaymentGatewaySection from '../payment-gateway-section';
 import UpeOptInBanner from '../general-settings-section/upe-opt-in-banner';
 import SaveSettingsSection from '../save-settings-section';
-import { gatewaysDescriptions } from './constants';
+import { gatewaysInfo } from './constants';
 
 const GatewayDescription = () => {
 	const { section } = getQuery();
-	const description = gatewaysDescriptions[ section ];
+	const info = gatewaysInfo[ section ];
 	return (
 		<>
-			<h2>{ description.title }</h2>
-			<p>{ description.geography }</p>
+			<h2>{ info.title }</h2>
+			<p>{ info.geography }</p>
 			<p>
 				<ExternalLink
 					href="https://dashboard.stripe.com/account/payments/settings"
@@ -29,7 +29,7 @@ const GatewayDescription = () => {
 				</ExternalLink>
 			</p>
 			<p>
-				<ExternalLink href={ description.guide } target="_blank">
+				<ExternalLink href={ info.guide } target="_blank">
 					{ __(
 						'Payment Method Guide',
 						'woocommerce-gateway-stripe'

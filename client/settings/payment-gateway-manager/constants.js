@@ -1,6 +1,6 @@
 import { __ } from '@wordpress/i18n';
 
-export const gatewaysDescriptions = {
+export const gatewaysInfo = {
 	stripe_sepa: {
 		title: __( 'SEPA Direct Debit', 'woocommerce-gateway-stripe' ),
 		geography: __(
