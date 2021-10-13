@@ -174,6 +174,16 @@ export const useStripeSofortDescription = makeSettingsHook(
 	''
 );
 
+// P24
+export const useIsStripeP24Enabled = makeSettingsHook(
+	'is_stripe_p24_enabled'
+);
+export const useStripeP24Name = makeSettingsHook( 'stripe_p24_name', '' );
+export const useStripeP24Description = makeSettingsHook(
+	'stripe_p24_description',
+	''
+);
+
 // Alipay
 export const useIsStripeAlipayEnabled = makeSettingsHook(
 	'is_stripe_alipay_enabled'

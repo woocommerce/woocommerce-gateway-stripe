@@ -50,6 +50,14 @@ export const gatewaysInfo = {
 		),
 		guide: 'https://stripe.com/payments/payment-methods-guide#sofort',
 	},
+	stripe_p24: {
+		title: __( 'P24', 'woocommerce-gateway-stripe' ),
+		geography: __(
+			'Customer Geography: Poland.',
+			'woocommerce-gateway-stripe'
+		),
+		guide: 'https://stripe.com/payments/payment-methods-guide#p24',
+	},
 	stripe_alipay: {
 		title: __( 'Alipay', 'woocommerce-gateway-stripe' ),
 		geography: __(
