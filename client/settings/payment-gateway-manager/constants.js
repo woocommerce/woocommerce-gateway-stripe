@@ -18,6 +18,14 @@ export const gatewaysDescriptions = {
 		),
 		guide: 'https://stripe.com/payments/payment-methods-guide#giropay',
 	},
+	stripe_ideal: {
+		title: __( 'iDeal', 'woocommerce-gateway-stripe' ),
+		geography: __(
+			'Customer Geography: The Netherlands.',
+			'woocommerce-gateway-stripe'
+		),
+		guide: 'https://stripe.com/payments/payment-methods-guide#ideal',
+	},
 	stripe_alipay: {
 		title: __( 'Alipay', 'woocommerce-gateway-stripe' ),
 		geography: __(

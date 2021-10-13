@@ -131,6 +131,16 @@ export const useStripeGiropayDescription = makeSettingsHook(
 	''
 );
 
+// iDeal
+export const useIsStripeIdealEnabled = makeSettingsHook(
+	'is_stripe_ideal_enabled'
+);
+export const useStripeIdealName = makeSettingsHook( 'stripe_ideal_name', '' );
+export const useStripeIdealDescription = makeSettingsHook(
+	'stripe_ideal_description',
+	''
+);
+
 // Alipay
 export const useIsStripeAlipayEnabled = makeSettingsHook(
 	'is_stripe_alipay_enabled'
