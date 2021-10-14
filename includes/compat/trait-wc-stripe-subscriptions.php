@@ -112,12 +112,8 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $request;
 		}
 
-		$has_sign_up_fee = false;
 		$sub_amount = 0;
 		foreach ( $subscriptions as $sub ) {
-			if ( 0 < $sub->get_sign_up_fee() ) {
-				$has_sign_up_fee = true;
-			}
 			$sub_amount += WC_Stripe_Helper::get_stripe_amount( $sub->get_total() );
 		}
 
@@ -135,12 +131,7 @@ trait WC_Stripe_Subscriptions_Trait {
 			$request['payment_method_options']['card']['mandate_options']['interval']    = 'sporadic';
 		}
 
-		$order_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
-		if ( $has_sign_up_fee || $sub_amount !== $order_amount ) {
-			$request['payment_method_options']['card']['mandate_options']['amount_type'] = 'maximum';
-		}
-
-		$request['payment_method_options']['card']['mandate_options']['amount']     = max( $sub_amount, $order_amount );
+		$request['payment_method_options']['card']['mandate_options']['amount']     = $sub_amount;
 		$request['payment_method_options']['card']['mandate_options']['reference']  = $order->get_id();
 		$request['payment_method_options']['card']['mandate_options']['start_date'] = $sub->get_time( 'start' );
 
