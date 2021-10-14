@@ -42,6 +42,29 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Checks whether the gateway is enabled.
+	 *
+	 * @return bool The result.
+	 */
+	public function is_enabled() {
+		return 'yes' === $this->get_option( 'enabled' );
+	}
+
+	/**
+	 * Disables gateway.
+	 */
+	public function disable() {
+		$this->update_option( 'enabled', 'no' );
+	}
+
+	/**
+	 * Enables gateway.
+	 */
+	public function enable() {
+		$this->update_option( 'enabled', 'yes' );
+	}
+
+	/**
 	 * Displays the admin settings webhook description.
 	 *
 	 * @since 4.1.0
