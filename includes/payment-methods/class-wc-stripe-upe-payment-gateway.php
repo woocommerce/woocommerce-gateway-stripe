@@ -718,8 +718,33 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				if ( isset( $_GET['redirect_status'] ) && 'succeeded' === $_GET['redirect_status'] ) {
 					$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
 					$customer->clear_cache();
-
 					wc_add_notice( __( 'Payment method successfully added.', 'woocommerce-gateway-stripe' ) );
+
+					// The newly created payment method does not inherit the customers' billing info, so we manually
+					// trigger an update.
+					try {
+						$setup_intent = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
+						$response = WC_Stripe_API::request( [], 'setup_intents/' . $setup_intent, 'GET' );
+
+						$billing_first_name = get_user_meta( wp_get_current_user()->ID, 'billing_first_name', true );
+						$billing_last_name  = get_user_meta( wp_get_current_user()->ID, 'billing_last_name', true );
+
+						$billing_details = [
+							'name'  => trim( $billing_first_name . ' ' . $billing_last_name ),
+							'email' => wp_get_current_user()->user_email,
+						];
+
+						WC_Stripe_API::request(
+							[
+								'billing_details' => $billing_details,
+							],
+							'payment_methods/' . $response->payment_method
+						);
+					} catch ( WC_Stripe_Exception $e ) {
+						// It's going to be updated when the customer uses the payment method, so we log the error
+						// and continue.
+						WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+					}
 				} else {
 					wc_add_notice( __( 'Failed to add payment method.', 'woocommerce-gateway-stripe' ), 'error', [ 'icon' => 'error' ] );
 				}
