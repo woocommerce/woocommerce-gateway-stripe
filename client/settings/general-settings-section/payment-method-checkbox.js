@@ -6,7 +6,7 @@ import { Icon, info } from '@wordpress/icons';
 import UpeToggleContext from '../upe-toggle/context';
 import RemoveMethodConfirmationModal from './remove-method-confirmation-modal';
 import { useEnabledPaymentMethodIds, useManualCapture } from 'wcstripe/data';
-import Tooltip from 'wcstripe/components/tooltip';
+import Popover from 'wcstripe/components/popover';
 
 const StyledCheckbox = styled( CheckboxControl )`
 	.components-base-control__field {
@@ -57,7 +57,7 @@ const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
 	return (
 		<>
 			{ isManualCaptureEnabled && ! isAllowingManualCapture ? (
-				<Tooltip
+				<Popover
 					content={ sprintf(
 						/* translators: %s: a payment method name. */
 						__(
@@ -67,7 +67,7 @@ const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
 						label
 					) }
 				>
-					{ /* a span element is added here to ensure the tooltip can get the correct content to position itself */ }
+					{ /* a span element is added here to ensure the popover can get the correct content to position itself */ }
 					<IconWrapper>
 						<AlertIcon icon={ info } />
 						<VisuallyHidden>
@@ -80,7 +80,7 @@ const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
 							) }
 						</VisuallyHidden>
 					</IconWrapper>
-				</Tooltip>
+				</Popover>
 			) : (
 				<StyledCheckbox
 					label={ <VisuallyHidden>{ label }</VisuallyHidden> }

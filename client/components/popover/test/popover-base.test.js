@@ -1,26 +1,26 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import TooltipBase from '../tooltip-base';
+import PopoverBase from '../popover-base';
 
 jest.useFakeTimers();
 
-describe( 'TooltipBase', () => {
+describe( 'PopoverBase', () => {
 	it( 'does not render its content when hidden', () => {
 		const handleHideMock = jest.fn();
 		render(
-			<TooltipBase
+			<PopoverBase
 				isVisible={ false }
-				content="Tooltip content"
+				content="Popover content"
 				onHide={ handleHideMock }
 			>
 				<span>Trigger element</span>
-			</TooltipBase>
+			</PopoverBase>
 		);
 
 		jest.runAllTimers();
 
 		expect(
-			screen.queryByText( 'Tooltip content' )
+			screen.queryByText( 'Popover content' )
 		).not.toBeInTheDocument();
 		expect( screen.queryByText( 'Trigger element' ) ).toBeInTheDocument();
 		expect( handleHideMock ).not.toHaveBeenCalled();
@@ -29,18 +29,18 @@ describe( 'TooltipBase', () => {
 	it( 'renders its content when opened', () => {
 		const handleHideMock = jest.fn();
 		render(
-			<TooltipBase
+			<PopoverBase
 				isVisible
-				content="Tooltip content"
+				content="Popover content"
 				onHide={ handleHideMock }
 			>
 				<span>Trigger element</span>
-			</TooltipBase>
+			</PopoverBase>
 		);
 
 		jest.runAllTimers();
 
-		expect( screen.queryByText( 'Tooltip content' ) ).toBeInTheDocument();
+		expect( screen.queryByText( 'Popover content' ) ).toBeInTheDocument();
 		expect( screen.queryByText( 'Trigger element' ) ).toBeInTheDocument();
 		expect( handleHideMock ).not.toHaveBeenCalled();
 	} );
@@ -48,16 +48,16 @@ describe( 'TooltipBase', () => {
 	it( 'does not call onHide when an internal element is clicked', () => {
 		const handleHideMock = jest.fn();
 		render(
-			<TooltipBase
+			<PopoverBase
 				isVisible
-				content="Tooltip content"
+				content="Popover content"
 				onHide={ handleHideMock }
 			>
 				<span>Trigger element</span>
-			</TooltipBase>
+			</PopoverBase>
 		);
 
-		userEvent.click( screen.getByText( 'Tooltip content' ) );
+		userEvent.click( screen.getByText( 'Popover content' ) );
 		jest.runAllTimers();
 
 		expect( screen.queryByText( 'Trigger element' ) ).toBeInTheDocument();
@@ -68,13 +68,13 @@ describe( 'TooltipBase', () => {
 		const handleHideMock = jest.fn();
 		render(
 			<>
-				<TooltipBase
+				<PopoverBase
 					isVisible
-					content="Tooltip content"
+					content="Popover content"
 					onHide={ handleHideMock }
 				>
 					<span>Trigger element</span>
-				</TooltipBase>
+				</PopoverBase>
 				<span>External element</span>
 			</>
 		);

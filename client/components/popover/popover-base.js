@@ -13,7 +13,7 @@ const isEventTriggeredWithin = ( event, element ) =>
 
 const useHideDelay = (
 	isVisibleProp,
-	{ hideDelayMs = 600, triggerRef, tooltipRef, onHide = noop }
+	{ hideDelayMs = 600, triggerRef, popoverRef, onHide = noop }
 ) => {
 	const [ isVisible, setIsVisible ] = useState( isVisibleProp );
 	// not using state for this, we don't need to cause a re-render
@@ -35,7 +35,7 @@ const useHideDelay = (
 
 		// element is marked as visible, no need to hide it
 		if ( isVisibleProp ) {
-			rootElement.dispatchEvent( new Event( 'wcstripe-tooltip-open' ) );
+			rootElement.dispatchEvent( new Event( 'wcstripe-popover-open' ) );
 			setIsVisible( true );
 			return;
 		}
@@ -59,20 +59,20 @@ const useHideDelay = (
 	useEffect( () => {
 		if ( ! isVisible ) return;
 
-		// immediately hide this tooltip if another one opens
+		// immediately hide this popover if another one opens
 		const handleHideElement = () => {
 			setIsVisible( false );
 			onHideCallbackRef.current();
 		};
 
-		// do not hide the tooltip if a click event has occurred and the click happened within the tooltip or within the wrapped element
+		// do not hide the popover if a click event has occurred and the click happened within the popover or within the wrapped element
 		const handleDocumentClick = ( event ) => {
 			if (
 				isEventTriggeredWithin(
 					event,
 					triggerRef.current?.firstChild
 				) ||
-				isEventTriggeredWithin( event, tooltipRef.current )
+				isEventTriggeredWithin( event, popoverRef.current )
 			) {
 				return;
 			}
@@ -83,23 +83,23 @@ const useHideDelay = (
 
 		document.addEventListener( 'click', handleDocumentClick );
 		rootElement.addEventListener(
-			'wcstripe-tooltip-open',
+			'wcstripe-popover-open',
 			handleHideElement
 		);
 
 		return () => {
 			document.removeEventListener( 'click', handleDocumentClick );
 			rootElement.removeEventListener(
-				'wcstripe-tooltip-open',
+				'wcstripe-popover-open',
 				handleHideElement
 			);
 		};
-	}, [ isVisibleProp, isVisible, triggerRef, tooltipRef ] );
+	}, [ isVisibleProp, isVisible, triggerRef, popoverRef ] );
 
 	return isVisible;
 };
 
-const TooltipPortal = memo( ( { children } ) => {
+const PopoverPortal = memo( ( { children } ) => {
 	const node = useRef( null );
 	if ( ! node.current ) {
 		node.current = document.createElement( 'div' );
@@ -117,7 +117,7 @@ const TooltipPortal = memo( ( { children } ) => {
 	return createPortal( children, node.current );
 } );
 
-const TooltipBase = ( {
+const PopoverBase = ( {
 	className,
 	children,
 	content,
@@ -127,53 +127,53 @@ const TooltipBase = ( {
 	maxWidth = '250px',
 } ) => {
 	const wrapperRef = useRef( null );
-	const tooltipWrapperRef = useRef( null );
+	const popoverWrapperRef = useRef( null );
 
 	// using a delayed hide, to allow the fade-out animation to complete
-	const isTooltipVisible = useHideDelay( isVisible, {
+	const isPopoverVisible = useHideDelay( isVisible, {
 		hideDelayMs,
 		triggerRef: wrapperRef,
-		tooltipRef: tooltipWrapperRef,
+		popoverRef: popoverWrapperRef,
 		onHide,
 	} );
 
 	useEffect( () => {
-		const calculateTooltipPosition = () => {
-			// calculate the position of the tooltip based on the wrapper's bounding rect
-			if ( ! isTooltipVisible ) {
+		const calculatePopoverPosition = () => {
+			// calculate the position of the popover based on the wrapper's bounding rect
+			if ( ! isPopoverVisible ) {
 				return;
 			}
 
-			const tooltipElement = tooltipWrapperRef.current;
+			const popoverElement = popoverWrapperRef.current;
 			const wrappedElement = wrapperRef.current?.firstChild;
-			if ( ! tooltipElement || ! wrappedElement ) {
+			if ( ! popoverElement || ! wrappedElement ) {
 				return;
 			}
 
-			tooltipElement.style.maxWidth = maxWidth;
+			popoverElement.style.maxWidth = maxWidth;
 
 			const wrappedElementRect = wrappedElement.getBoundingClientRect();
-			const tooltipElementRect = tooltipElement.getBoundingClientRect();
+			const popoverElementRect = popoverElement.getBoundingClientRect();
 
-			const tooltipHeight = tooltipElementRect.height;
-			tooltipElement.style.top = `${
-				wrappedElementRect.top - tooltipHeight - 8
+			const popoverHeight = popoverElementRect.height;
+			popoverElement.style.top = `${
+				wrappedElementRect.top - popoverHeight - 8
 			}px`;
 			const elementMiddle =
 				wrappedElement.offsetWidth / 2 + wrappedElementRect.left;
-			const tooltipWidth = tooltipElement.offsetWidth;
-			tooltipElement.style.left = `${
-				elementMiddle - tooltipWidth / 2
+			const popoverWidth = popoverElement.offsetWidth;
+			popoverElement.style.left = `${
+				elementMiddle - popoverWidth / 2
 			}px`;
 
 			// make it visible only after all the calculations are done.
-			tooltipElement.style.visibility = 'visible';
-			tooltipElement.style.opacity = 1;
+			popoverElement.style.visibility = 'visible';
+			popoverElement.style.opacity = 1;
 		};
 
-		calculateTooltipPosition();
+		calculatePopoverPosition();
 
-		const debouncedCalculation = debounce( calculateTooltipPosition, 150 );
+		const debouncedCalculation = debounce( calculatePopoverPosition, 150 );
 
 		window.addEventListener( 'resize', debouncedCalculation );
 		document.addEventListener( 'scroll', debouncedCalculation );
@@ -182,38 +182,38 @@ const TooltipBase = ( {
 			window.removeEventListener( 'resize', debouncedCalculation );
 			document.removeEventListener( 'scroll', debouncedCalculation );
 		};
-	}, [ isTooltipVisible, maxWidth ] );
+	}, [ isPopoverVisible, maxWidth ] );
 
 	return (
 		<>
 			<div
-				className="wcstripe-tooltip__content-wrapper"
+				className="wcstripe-popover__content-wrapper"
 				ref={ wrapperRef }
 			>
 				{ children }
 			</div>
-			{ isTooltipVisible && (
-				<TooltipPortal>
+			{ isPopoverVisible && (
+				<PopoverPortal>
 					<div
-						ref={ tooltipWrapperRef }
+						ref={ popoverWrapperRef }
 						className={ classNames(
-							'wcstripe-tooltip__tooltip-wrapper',
+							'wcstripe-popover__popover-wrapper',
 							{ 'is-hiding': ! isVisible }
 						) }
 					>
 						<div
 							className={ classNames(
-								'wcstripe-tooltip__tooltip',
+								'wcstripe-popover__popover',
 								className
 							) }
 						>
 							{ content }
 						</div>
 					</div>
-				</TooltipPortal>
+				</PopoverPortal>
 			) }
 		</>
 	);
 };
 
-export default TooltipBase;
+export default PopoverBase;

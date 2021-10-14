@@ -2,7 +2,7 @@ import { __, sprintf } from '@wordpress/i18n';
 import React, { useContext } from 'react';
 import styled from '@emotion/styled';
 import Pill from 'wcstripe/components/pill';
-import Tooltip from 'wcstripe/components/tooltip';
+import Popover from 'wcstripe/components/popover';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { useGetCapabilities } from 'wcstripe/data/account';
 
@@ -24,7 +24,7 @@ const PaymentMethodCapabilityStatusPill = ( { id, label } ) => {
 	const capabilityStatus = capabilities[ `${ id }_payments` ];
 	if ( capabilityStatus === 'pending' ) {
 		return (
-			<Tooltip
+			<Popover
 				content={ sprintf(
 					/* translators: %s: a payment method name. */
 					__(
@@ -36,7 +36,7 @@ const PaymentMethodCapabilityStatusPill = ( { id, label } ) => {
 				<StyledPill>
 					{ __( 'Pending activation', 'woocommerce-gateway-stripe' ) }
 				</StyledPill>
-			</Tooltip>
+			</Popover>
 		);
 	}
 

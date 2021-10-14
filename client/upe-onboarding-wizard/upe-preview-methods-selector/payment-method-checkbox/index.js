@@ -5,7 +5,7 @@ import React from 'react';
 import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import { Icon, info } from '@wordpress/icons';
 import PaymentMethodIcon from 'wcstripe/settings/payment-method-icon';
-import Tooltip from 'wcstripe/components/tooltip';
+import Popover from 'wcstripe/components/popover';
 import paymentMethodsMap from 'wcstripe/payment-methods-map';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 import PaymentMethodCapabilityStatusPill from 'wcstripe/components/payment-method-capability-status-pill';
@@ -28,7 +28,7 @@ const PaymentMethodDescription = ( { id } ) => {
 	}
 
 	return (
-		<Tooltip content={ description }>
+		<Popover content={ description }>
 			<InfoWrapper>
 				<InfoIcon icon={ info } size={ 20 } />
 				<VisuallyHidden>
@@ -38,7 +38,7 @@ const PaymentMethodDescription = ( { id } ) => {
 					) }
 				</VisuallyHidden>
 			</InfoWrapper>
-		</Tooltip>
+		</Popover>
 	);
 };
 

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { noop } from 'lodash';
-import TooltipBase from './tooltip-base';
+import PopoverBase from './popover-base';
 
-const Tooltip = ( { isVisible, onHide = noop, ...props } ) => {
+const Popover = ( { isVisible, onHide = noop, ...props } ) => {
 	const [ isHovered, setIsHovered ] = useState( false );
 	const [ isClicked, setIsClicked ] = useState( false );
 
@@ -28,16 +28,16 @@ const Tooltip = ( { isVisible, onHide = noop, ...props } ) => {
 
 	return (
 		<button
-			className="wcstripe-tooltip__content-wrapper"
+			className="wcstripe-popover__content-wrapper"
 			// on touch devices there's no mouse enter/leave, so we need to use a separate event (click/focus)
-			// this creates 2 different (desirable) states on non-touch devices: if you hover and then click, the tooltip will persist
+			// this creates 2 different (desirable) states on non-touch devices: if you hover and then click, the popover will persist
 			onMouseEnter={ handleMouseEnter }
 			onMouseLeave={ handleMouseLeave }
 			onFocus={ handleMouseEnter }
 			onBlur={ handleMouseLeave }
 			onClick={ handleMouseClick }
 		>
-			<TooltipBase
+			<PopoverBase
 				{ ...props }
 				onHide={ handleHide }
 				isVisible={ isVisible || isHovered || isClicked }
@@ -46,4 +46,4 @@ const Tooltip = ( { isVisible, onHide = noop, ...props } ) => {
 	);
 };
 
-export default Tooltip;
+export default Popover;

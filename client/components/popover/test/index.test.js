@@ -1,26 +1,26 @@
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import Tooltip from '..';
+import Popover from '..';
 
 jest.useFakeTimers();
 
-describe( 'Tooltip', () => {
+describe( 'Popover', () => {
 	it( 'does not render its content when hidden', () => {
 		const handleHideMock = jest.fn();
 		render(
-			<Tooltip
+			<Popover
 				isVisible={ false }
-				content="Tooltip content"
+				content="Popover content"
 				onHide={ handleHideMock }
 			>
 				<span>Trigger element</span>
-			</Tooltip>
+			</Popover>
 		);
 
 		jest.runAllTimers();
 
 		expect(
-			screen.queryByText( 'Tooltip content' )
+			screen.queryByText( 'Popover content' )
 		).not.toBeInTheDocument();
 		expect( screen.queryByText( 'Trigger element' ) ).toBeInTheDocument();
 		expect( handleHideMock ).not.toHaveBeenCalled();
@@ -29,18 +29,18 @@ describe( 'Tooltip', () => {
 	it( 'renders its content when opened', () => {
 		const handleHideMock = jest.fn();
 		render(
-			<Tooltip
+			<Popover
 				isVisible
-				content="Tooltip content"
+				content="Popover content"
 				onHide={ handleHideMock }
 			>
 				<span>Trigger element</span>
-			</Tooltip>
+			</Popover>
 		);
 
 		jest.runAllTimers();
 
-		expect( screen.queryByText( 'Tooltip content' ) ).toBeInTheDocument();
+		expect( screen.queryByText( 'Popover content' ) ).toBeInTheDocument();
 		expect( screen.queryByText( 'Trigger element' ) ).toBeInTheDocument();
 		expect( handleHideMock ).not.toHaveBeenCalled();
 	} );
@@ -48,22 +48,22 @@ describe( 'Tooltip', () => {
 	it( 'renders its content when clicked', () => {
 		const handleHideMock = jest.fn();
 		render(
-			<Tooltip content="Tooltip content" onHide={ handleHideMock }>
+			<Popover content="Popover content" onHide={ handleHideMock }>
 				<span>Trigger element</span>
-			</Tooltip>
+			</Popover>
 		);
 
 		jest.runAllTimers();
 
 		expect(
-			screen.queryByText( 'Tooltip content' )
+			screen.queryByText( 'Popover content' )
 		).not.toBeInTheDocument();
 
 		userEvent.click( screen.getByText( 'Trigger element' ) );
 
 		jest.runAllTimers();
 
-		expect( screen.queryByText( 'Tooltip content' ) ).toBeInTheDocument();
+		expect( screen.queryByText( 'Popover content' ) ).toBeInTheDocument();
 		expect( handleHideMock ).not.toHaveBeenCalled();
 
 		userEvent.click( screen.getByText( 'Trigger element' ) );
@@ -72,53 +72,53 @@ describe( 'Tooltip', () => {
 		expect( handleHideMock ).toHaveBeenCalled();
 	} );
 
-	it( 'asks other Tooltips to hide, when multiple are opened', () => {
+	it( 'asks other Popovers to hide, when multiple are opened', () => {
 		const handleHide1Mock = jest.fn();
 		const handleHide2Mock = jest.fn();
 		render(
 			<>
-				<Tooltip content="Tooltip 1 content" onHide={ handleHide1Mock }>
-					<span>Open tooltip 1</span>
-				</Tooltip>
-				<Tooltip content="Tooltip 2 content" onHide={ handleHide2Mock }>
-					<span>Open tooltip 2</span>
-				</Tooltip>
+				<Popover content="Popover 1 content" onHide={ handleHide1Mock }>
+					<span>Open popover 1</span>
+				</Popover>
+				<Popover content="Popover 2 content" onHide={ handleHide2Mock }>
+					<span>Open popover 2</span>
+				</Popover>
 			</>
 		);
 
 		jest.runAllTimers();
 
 		expect(
-			screen.queryByText( 'Tooltip 1 content' )
+			screen.queryByText( 'Popover 1 content' )
 		).not.toBeInTheDocument();
 		expect(
-			screen.queryByText( 'Tooltip 2 content' )
+			screen.queryByText( 'Popover 2 content' )
 		).not.toBeInTheDocument();
 		expect( handleHide1Mock ).not.toHaveBeenCalled();
 		expect( handleHide2Mock ).not.toHaveBeenCalled();
 
-		// opening the first tooltip, no need to call any hide handlers
-		act( () => userEvent.click( screen.getByText( 'Open tooltip 1' ) ) );
+		// opening the first popover, no need to call any hide handlers
+		act( () => userEvent.click( screen.getByText( 'Open popover 1' ) ) );
 
-		expect( screen.queryByText( 'Tooltip 1 content' ) ).toBeInTheDocument();
+		expect( screen.queryByText( 'Popover 1 content' ) ).toBeInTheDocument();
 		expect(
-			screen.queryByText( 'Tooltip 2 content' )
+			screen.queryByText( 'Popover 2 content' )
 		).not.toBeInTheDocument();
 		expect( handleHide1Mock ).not.toHaveBeenCalled();
 		expect( handleHide2Mock ).not.toHaveBeenCalled();
 
 		jest.runAllTimers();
 
-		// opening the second tooltip, only the first tooltip should not be visible anymore
+		// opening the second popover, only the first popover should not be visible anymore
 		act( () => {
-			userEvent.click( screen.getByText( 'Open tooltip 2' ) );
+			userEvent.click( screen.getByText( 'Open popover 2' ) );
 			jest.runAllTimers();
 		} );
 
 		expect(
-			screen.queryByText( 'Tooltip 1 content' )
+			screen.queryByText( 'Popover 1 content' )
 		).not.toBeInTheDocument();
-		expect( screen.queryByText( 'Tooltip 2 content' ) ).toBeInTheDocument();
+		expect( screen.queryByText( 'Popover 2 content' ) ).toBeInTheDocument();
 		expect( handleHide1Mock ).toHaveBeenCalled();
 		expect( handleHide2Mock ).not.toHaveBeenCalled();
 	} );
