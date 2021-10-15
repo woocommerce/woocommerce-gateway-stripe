@@ -721,28 +721,25 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					wc_add_notice( __( 'Payment method successfully added.', 'woocommerce-gateway-stripe' ) );
 
 					// The newly created payment method does not inherit the customers' billing info, so we manually
-					// trigger an update.
+					// trigger an update; in case of failure we log the error and continue because the payment method's
+					// billing info will be updated when the customer makes a purchase anyway.
 					try {
-						$setup_intent = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
-						$response = WC_Stripe_API::request( [], 'setup_intents/' . $setup_intent, 'GET' );
+						$setup_intent_id = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
+						$setup_intent = WC_Stripe_API::request( [], 'setup_intents/' . $setup_intent_id, 'GET' );
 
-						$billing_first_name = get_user_meta( wp_get_current_user()->ID, 'billing_first_name', true );
-						$billing_last_name  = get_user_meta( wp_get_current_user()->ID, 'billing_last_name', true );
-
-						$billing_details = [
-							'name'  => trim( $billing_first_name . ' ' . $billing_last_name ),
-							'email' => wp_get_current_user()->user_email,
-						];
-
+						$customer_data = WC_Stripe_Customer::map_customer_data( null, new WC_Customer( wp_get_current_user()->ID ) );
 						WC_Stripe_API::request(
 							[
-								'billing_details' => $billing_details,
+								'billing_details' => [
+									'name'    => $customer_data['name'],
+									'email'   => $customer_data['email'],
+									'phone'   => $customer_data['phone'],
+									'address' => $customer_data['address'],
+								],
 							],
-							'payment_methods/' . $response->payment_method
+							'payment_methods/' . $setup_intent->payment_method
 						);
-					} catch ( WC_Stripe_Exception $e ) {
-						// It's going to be updated when the customer uses the payment method, so we log the error
-						// and continue.
+					} catch ( Exception $e ) {
 						WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 					}
 				} else {
