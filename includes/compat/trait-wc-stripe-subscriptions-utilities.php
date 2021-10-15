@@ -7,14 +7,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Trait for Subscriptions utility functions.
  *
- * @since x.x.x
+ * @since 5.6.0
  */
 trait WC_Stripe_Subscriptions_Utilities_Trait {
 
 	/**
 	 * Checks if subscriptions are enabled on the site.
 	 *
-	 * @since x.x.x
+	 * @since 5.6.0
 	 *
 	 * @return bool Whether subscriptions is enabled or not.
 	 */
@@ -25,7 +25,7 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	/**
 	 * Is $order_id a subscription?
 	 *
-	 * @since x.x.x
+	 * @since 5.6.0
 	 *
 	 * @param  int $order_id
 	 * @return boolean
@@ -37,7 +37,7 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	/**
 	 * Returns whether this user is changing the payment method for a subscription.
 	 *
-	 * @since x.x.x
+	 * @since 5.6.0
 	 *
 	 * @return bool
 	 */
@@ -52,7 +52,7 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	 * Returns boolean value indicating whether payment for an order will be recurring,
 	 * as opposed to single.
 	 *
-	 * @since x.x.x
+	 * @since 5.6.0
 	 *
 	 * @param int $order_id ID for corresponding WC_Order in process.
 	 *
@@ -72,7 +72,7 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	 * Returns `false` if the cart currently has a subscriptions or if the request has a
 	 * `change_payment_method` GET parameter. Returns the value in `$display` otherwise.
 	 *
-	 * @since x.x.x
+	 * @since 5.6.0
 	 *
 	 * @param bool $display Bool indicating whether to show the save payment checkbox in the absence of subscriptions.
 	 *
@@ -90,7 +90,7 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	 * Returns boolean on whether current WC_Cart or WC_Subscriptions_Cart
 	 * contains a subscription or subscription renewal item
 	 *
-	 * @since x.x.x
+	 * @since 5.6.0
 	 *
 	 * @return bool
 	 */
@@ -104,7 +104,7 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 	/**
 	 * Checks the cart to see if it contains a subscription product renewal.
 	 *
-	 * @since x.x.x
+	 * @since 5.6.0
 	 *
 	 * @return mixed The cart item containing the renewal as an array, else false.
 	 */

@@ -1,0 +1,13 @@
+@import '../../../styles/abstracts/colors';
+
+.section-status__info {
+	&--green {
+		fill: $alert-green;
+		color: $alert-green;
+	}
+
+	&--yellow {
+		fill: $alert-yellow;
+		color: $alert-yellow;
+	}
+}

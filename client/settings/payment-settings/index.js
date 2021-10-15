@@ -1,4 +1,3 @@
-/* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
 import { React } from 'react';
 import {
@@ -16,7 +15,11 @@ import PaymentsAndTransactionsSection from '../payments-and-transactions-section
 import AdvancedSettingsSection from '../advanced-settings-section';
 import CustomizationOptionsNotice from '../customization-options-notice';
 import GeneralSettingsSection from './general-settings-section';
+import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import './style.scss';
+import { useTestMode } from 'wcstripe/data';
+import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
+import { useAccount } from 'wcstripe/data/account';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -89,7 +92,7 @@ const AccountSettingsDropdownMenu = () => {
 					onClick: () => console.log( 'Edit my details' ),
 				},
 				{
-					title: 'Disconnect',
+					title: __( 'Disconnect', 'woocommerce-gateway-stripe' ),
 					// eslint-disable-next-line no-console
 					onClick: () => console.log( 'Disconnecting' ),
 				},
@@ -99,21 +102,28 @@ const AccountSettingsDropdownMenu = () => {
 };
 
 const AccountDetailsSection = () => {
-	const accountStatus = wc_stripe_settings_params.accountStatus;
+	const [ isTestModeEnabled ] = useTestMode();
+	const { data } = useAccount();
 
 	return (
 		<Card className="account-details">
 			<CardHeader className="account-details__header">
-				{ accountStatus.email && (
-					<h4 className="account-details__header">
-						{ accountStatus.email }
-					</h4>
-				) }
-				{ accountStatus.mode === 'test' && <Pill>Test Mode</Pill> }
+				<div>
+					{ data.account?.email && (
+						<h4 className="account-details__header">
+							{ data.account.email }
+						</h4>
+					) }
+					{ isTestModeEnabled && (
+						<Pill>
+							{ __( 'Test Mode', 'woocommerce-gateway-stripe' ) }
+						</Pill>
+					) }
+				</div>
 				<AccountSettingsDropdownMenu />
 			</CardHeader>
 			<CardBody>
-				<AccountStatus accountStatus={ accountStatus } />
+				<AccountStatus />
 			</CardBody>
 		</Card>
 	);
@@ -123,14 +133,22 @@ const PaymentSettingsPanel = () => {
 	return (
 		<>
 			<SettingsSection Description={ GeneralSettingsDescription }>
-				<GeneralSettingsSection />
+				<LoadableSettingsSection numLines={ 20 }>
+					<LoadableAccountSection numLines={ 20 }>
+						<GeneralSettingsSection />
+					</LoadableAccountSection>
+				</LoadableSettingsSection>
 				<CustomizationOptionsNotice />
 			</SettingsSection>
 			<SettingsSection Description={ AccountDetailsDescription }>
-				<AccountDetailsSection />
+				<LoadableAccountSection numLines={ 20 }>
+					<AccountDetailsSection />
+				</LoadableAccountSection>
 			</SettingsSection>
 			<SettingsSection Description={ PaymentsAndTransactionsDescription }>
-				<PaymentsAndTransactionsSection />
+				<LoadableSettingsSection numLines={ 20 }>
+					<PaymentsAndTransactionsSection />
+				</LoadableSettingsSection>
 			</SettingsSection>
 			<AdvancedSettingsSection />
 		</>

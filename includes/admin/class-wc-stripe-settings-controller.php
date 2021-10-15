@@ -49,8 +49,12 @@ class WC_Stripe_Settings_Controller {
 	/**
 	 * Load admin scripts.
 	 */
-	public function admin_scripts() {
-		if ( 'woocommerce_page_wc-settings' !== get_current_screen()->id ) {
+	public function admin_scripts( $hook_suffix ) {
+		if ( 'woocommerce_page_wc-settings' !== $hook_suffix ) {
+			return;
+		}
+
+		if ( ! WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', 'stripe' ) ) {
 			return;
 		}
 
@@ -102,7 +106,6 @@ class WC_Stripe_Settings_Controller {
 			),
 			'is_upe_checkout_enabled' => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
 			'stripe_oauth_url'        => $oauth_url,
-			'accountStatus'           => $this->account->get_account_status(),
 		];
 		wp_localize_script( 'woocommerce_stripe_admin', 'wc_stripe_settings_params', $params );
 

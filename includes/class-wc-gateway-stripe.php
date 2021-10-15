@@ -172,22 +172,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Get_icon function.
 	 *
 	 * @since 1.0.0
-	 * @version x.x.x
-	 * @return string
+	 * @version 5.6.2
+	 * @return string|null
 	 */
 	public function get_icon() {
-		$icons                 = $this->payment_icons();
-		$supported_card_brands = WC_Stripe_Helper::get_supported_card_brands();
-
-		$icons_str = '<div class="card-brand-icons">';
-
-		foreach ( $supported_card_brands as $brand ) {
-			$icons_str .= isset( $icons[ $brand ] ) ? $icons[ $brand ] : '';
-		}
-
-		$icons_str .= '</div>';
-
-		return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
+		return apply_filters( 'woocommerce_gateway_icon', null, $this->id );
 	}
 
 	/**
@@ -316,7 +305,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			<!-- Used to display form errors -->
 			<div class="stripe-source-errors" role="alert"></div>
-			<br />
 			<?php do_action( 'woocommerce_credit_card_form_end', $this->id ); ?>
 			<div class="clear"></div>
 		</fieldset>
@@ -502,7 +490,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 1.0.0
 	 * @since 4.1.0 Add 4th parameter to track previous error.
-	 * @version x.x.x
+	 * @version 5.6.0
 	 *
 	 * @param int  $order_id Reference.
 	 * @param bool $retry Should we retry on fail.
@@ -547,6 +535,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$prepared_source = $this->prepare_order_source( $order );
 			} else {
 				$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source, $stripe_customer_id );
+			}
+
+			// If we are using a saved payment method that is PaymentMethod (pm_) and not a Source (src_) we need to use
+			// the process_payment() from the UPE gateway which uses the PaymentMethods API instead of Sources API.
+			// This happens when using a saved payment method that was added with the UPE gateway.
+			if ( $this->is_using_saved_payment_method() && ! empty( $prepared_source->source ) && substr( $prepared_source->source, 0, 3 ) === 'pm_' ) {
+				$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
+				return $upe_gateway->process_payment_with_saved_payment_method( $order_id );
 			}
 
 			$this->maybe_disallow_prepaid_card( $prepared_source->source_object );
@@ -1226,5 +1222,75 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 		$data['description'] = $api_credentials_text;
 		return $this->generate_title_html( $key, $data );
+	}
+
+	/**
+	 * Checks whether the gateway is enabled.
+	 *
+	 * @return bool The result.
+	 */
+	public function is_enabled() {
+		return 'yes' === $this->get_option( 'enabled' );
+	}
+
+	/**
+	 * Disables gateway.
+	 */
+	public function disable() {
+		$this->update_option( 'enabled', 'no' );
+	}
+
+	/**
+	 * Enables gateway.
+	 */
+	public function enable() {
+		$this->update_option( 'enabled', 'yes' );
+	}
+
+	/**
+	 * Returns whether test_mode is active for the gateway.
+	 *
+	 * @return boolean Test mode enabled if true, disabled if false.
+	 */
+	public function is_in_test_mode() {
+		return 'yes' === $this->get_option( 'testmode' );
+	}
+
+	/**
+	 * Determines whether the "automatic" or "manual" capture setting is enabled.
+	 *
+	 * @return bool
+	 */
+	public function is_automatic_capture_enabled() {
+		return empty( $this->get_option( 'capture' ) ) || $this->get_option( 'capture' ) === 'yes';
+	}
+
+	/**
+	 * Validates statement descriptor value
+	 *
+	 * @param string $value Posted Value.
+	 * @param int    $max_length Maximum statement length.
+	 *
+	 * @return string                   Sanitized statement descriptor.
+	 * @throws InvalidArgumentException When statement descriptor is invalid.
+	 */
+	public function validate_account_statement_descriptor_field( $value, $max_length ) {
+		// Since the value is escaped, and we are saving in a place that does not require escaping, apply stripslashes.
+		$value = trim( stripslashes( $value ) );
+
+		// Validation can be done with a single regex but splitting into multiple for better readability.
+		$valid_length   = '/^.{5,' . $max_length . '}$/';
+		$has_one_letter = '/^.*[a-zA-Z]+/';
+		$no_specials    = '/^[^*"\'<>]*$/';
+
+		if (
+			! preg_match( $valid_length, $value ) ||
+			! preg_match( $has_one_letter, $value ) ||
+			! preg_match( $no_specials, $value )
+		) {
+			throw new InvalidArgumentException( __( 'Customer bank statement is invalid. Statement should be between 5 and 22 characters long, contain at least single Latin character and does not contain special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' ) );
+		}
+
+		return $value;
 	}
 }
