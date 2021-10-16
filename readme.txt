@@ -127,7 +127,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 5.7.0 - 2021-xx-xx =
-* Fix - Confirmation modal showing up when disabling any payment method with "Stripe" in the name now correctly shows up only for the main Stripe payment method.
 * Fix - Enable use of saved payment methods converted to SEPA payments.
 * Tweak - "Save payment information" checkbox now has better alignment in store checkout.
 * Tweak - Error notices at checkout now have more consistent design.
