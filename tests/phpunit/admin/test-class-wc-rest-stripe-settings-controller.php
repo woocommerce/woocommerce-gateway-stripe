@@ -207,6 +207,24 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_short_statement_descriptor_is_not_updated() {
+		// It returns option value under expected key with HTTP code 200.
+		$this->get_gateway()->update_option( 'short_statement_descriptor', 'foobar' );
+		$response = $this->rest_get_settings();
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( 'foobar', $response->get_data()['short_statement_descriptor'] );
+
+		// test update does not fail since is_short_statement_descriptor_enabled is disabled
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_short_statement_descriptor_enabled', false );
+		$request->set_param( 'short_statement_descriptor', '123' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( 'foobar', $this->get_gateway()->get_option( 'short_statement_descriptor' ) );
+	}
+
 	public function test_get_settings_returns_available_payment_method_ids() {
 		$response = $this->rest_get_settings();
 
