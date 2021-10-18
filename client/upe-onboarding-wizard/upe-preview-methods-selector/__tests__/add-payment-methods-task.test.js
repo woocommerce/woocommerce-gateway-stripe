@@ -16,6 +16,10 @@ jest.mock( 'wcstripe/data', () => ( {
 	useSettings: jest.fn(),
 	useCurrencies: jest.fn(),
 } ) );
+jest.mock(
+	'wcstripe/components/payment-method-capability-status-pill',
+	() => () => null
+);
 
 const SettingsContextProvider = ( { children } ) => (
 	<WCPaySettingsContext.Provider

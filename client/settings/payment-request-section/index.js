@@ -1,5 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import React, { useState } from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 import {
 	Button,
@@ -10,7 +10,10 @@ import {
 import { addQueryArgs } from '@wordpress/url';
 import interpolateComponents from 'interpolate-components';
 import CardBody from '../card-body';
-import { usePaymentRequestEnabledSettings } from '../../data';
+import {
+	usePaymentRequestEnabledSettings,
+	usePaymentRequestLocations,
+} from '../../data';
 
 const customizeAppearanceURL = addQueryArgs( window.location.href, {
 	area: 'payment_requests',
@@ -38,21 +41,19 @@ const PaymentRequestSection = () => {
 		isPaymentRequestEnabled,
 		updateIsPaymentRequestEnabled,
 	] = usePaymentRequestEnabledSettings();
-
-	const [ paymentRequestLocations, setPaymentRequestLocations ] = useState( [
-		'cart',
-		'product',
-		'checkout',
-	] );
+	const [
+		paymentRequestLocations,
+		updatePaymentRequestLocations,
+	] = usePaymentRequestLocations();
 
 	const makeLocationChangeHandler = ( location ) => ( isChecked ) => {
 		if ( isChecked ) {
-			setPaymentRequestLocations( [
+			updatePaymentRequestLocations( [
 				...paymentRequestLocations,
 				location,
 			] );
 		} else {
-			setPaymentRequestLocations(
+			updatePaymentRequestLocations(
 				paymentRequestLocations.filter( ( name ) => name !== location )
 			);
 		}

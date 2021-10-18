@@ -35,7 +35,7 @@ class Allowed_Payment_Request_Button_Types_Update_Test extends WP_UnitTestCase {
 								   ->getMock();
 		$this->migration    = $this->getMockBuilder( Allowed_Payment_Request_Button_Types_Update::class )
 								   ->disableOriginalConstructor()
-								   ->setMethods( [ 'get_gateways' ] )
+								   ->setMethods( [ 'get_gateway' ] )
 								   ->getMock();
 	}
 
@@ -74,7 +74,7 @@ class Allowed_Payment_Request_Button_Types_Update_Test extends WP_UnitTestCase {
 								return isset( $settings[ $key ] ) ? $settings[ $key ] : '';
 							}
 						);
-		$this->migration->method( 'get_gateways' )->willReturn( [ 'stripe' => $this->gateway_mock ] );
+		$this->migration->method( 'get_gateway' )->willReturn( $this->gateway_mock );
 
 	}
 

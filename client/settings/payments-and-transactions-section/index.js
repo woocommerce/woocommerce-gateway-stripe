@@ -5,14 +5,16 @@ import CardBody from '../card-body';
 import TextLengthHelpInputWrapper from './text-length-help-input-wrapper';
 import StatementPreviewsWrapper from './statement-previews-wrapper';
 import StatementPreview from './statement-preview';
+import ManualCaptureControl from './manual-capture-control';
 import {
 	useSavedCards,
-	useShortAccountStatement,
 	useSeparateCardForm,
 	useAccountStatementDescriptor,
+	useIsShortAccountStatementEnabled,
 	useShortAccountStatementDescriptor,
-} from './data-mock';
-import ManualCaptureControl from './manual-capture-control';
+	useGetSavingError,
+} from 'wcstripe/data';
+import InlineNotice from 'wcstripe/components/inline-notice';
 
 const PaymentsAndTransactionsSection = () => {
 	const [ isSavedCardsEnabled, setIsSavedCardsEnabled ] = useSavedCards();
@@ -27,11 +29,15 @@ const PaymentsAndTransactionsSection = () => {
 	const [
 		isShortAccountStatementEnabled,
 		setIsShortAccountStatementEnabled,
-	] = useShortAccountStatement();
+	] = useIsShortAccountStatementEnabled();
 	const [
 		shortAccountStatementDescriptor,
 		setShortAccountStatementDescriptor,
 	] = useShortAccountStatementDescriptor();
+	const statementDescriptorErrorMessage = useGetSavingError()?.data?.details
+		?.statement_descriptor?.message;
+	const shortStatementDescriptorErrorMessage = useGetSavingError()?.data
+		?.details?.short_statement_descriptor?.message;
 
 	const translatedFullBankPreviewTitle = isShortAccountStatementEnabled
 		? __( 'All Other Payment Methods', 'woocommerce-gateway-stripe' )
@@ -80,6 +86,15 @@ const PaymentsAndTransactionsSection = () => {
 						'woocommerce-gateway-stripe'
 					) }
 				</h4>
+				{ statementDescriptorErrorMessage && (
+					<InlineNotice status="error" isDismissible={ false }>
+						<span
+							dangerouslySetInnerHTML={ {
+								__html: statementDescriptorErrorMessage,
+							} }
+						/>
+					</InlineNotice>
+				) }
 				<TextLengthHelpInputWrapper
 					textLength={ accountStatementDescriptor.length }
 					maxLength={ 22 }
@@ -111,24 +126,40 @@ const PaymentsAndTransactionsSection = () => {
 					) }
 				/>
 				{ isShortAccountStatementEnabled && (
-					<TextLengthHelpInputWrapper
-						textLength={ shortAccountStatementDescriptor.length }
-						maxLength={ 10 }
-					>
-						<TextControl
-							help={ __(
-								"We'll use the short version in combination with the customer order number.",
-								'woocommerce-gateway-stripe'
-							) }
-							label={ __(
-								'Shortened customer bank statement',
-								'woocommerce-gateway-stripe'
-							) }
-							value={ shortAccountStatementDescriptor }
-							onChange={ setShortAccountStatementDescriptor }
+					<>
+						{ shortStatementDescriptorErrorMessage && (
+							<InlineNotice
+								status="error"
+								isDismissible={ false }
+							>
+								<span
+									dangerouslySetInnerHTML={ {
+										__html: shortStatementDescriptorErrorMessage,
+									} }
+								/>
+							</InlineNotice>
+						) }
+						<TextLengthHelpInputWrapper
+							textLength={
+								shortAccountStatementDescriptor.length
+							}
 							maxLength={ 10 }
-						/>
-					</TextLengthHelpInputWrapper>
+						>
+							<TextControl
+								help={ __(
+									"We'll use the short version in combination with the customer order number.",
+									'woocommerce-gateway-stripe'
+								) }
+								label={ __(
+									'Shortened customer bank statement',
+									'woocommerce-gateway-stripe'
+								) }
+								value={ shortAccountStatementDescriptor }
+								onChange={ setShortAccountStatementDescriptor }
+								maxLength={ 10 }
+							/>
+						</TextLengthHelpInputWrapper>
+					</>
 				) }
 				<StatementPreviewsWrapper>
 					{ isShortAccountStatementEnabled && (

@@ -275,7 +275,7 @@ class WC_Stripe_Payment_Tokens {
 					}
 					// Create new token for new payment method and add to list.
 					$upe_payment_method         = $gateway->payment_methods[ $payment_method_type ];
-					$token                      = $upe_payment_method->add_token_to_user_from_payment_method( $user_id, $payment_method );
+					$token                      = $upe_payment_method->create_payment_token_for_user( $user_id, $payment_method );
 					$tokens[ $token->get_id() ] = $token;
 				} else {
 					// Count that existing token for payment method is still present on Stripe.

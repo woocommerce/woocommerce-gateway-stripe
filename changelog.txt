@@ -1,7 +1,14 @@
 *** Changelog ***
 
 = 5.x.x - 2021-xx-xx =
+
+= 5.6.2 - 2021-10-06 =
+* Tweak - Remove animated credit card icons from payment method option on the checkout page.
+* Fix - Payments for pre-orders and subscriptions with an empty source token now work as intended.
+
+= 5.6.1 - 2021-10-04 =
 * Fix - Naming conflict with other plugins on WC_Stripe_REST_Controller.
+* Fix - Fatal error on `WC_REST_Stripe_Settings_Controller` when Elementor and WooFunnels plugins are used.
 
 = 5.6.0 - 2021-09-30 =
 * Add - Pre-release preview of new checkout experience using Stripe Universal Payment Element.
