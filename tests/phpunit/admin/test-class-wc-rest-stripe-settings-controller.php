@@ -158,6 +158,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$this->get_gateway()->update_option( $option_name, 'foobar' );
 
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		if ( 'short_statement_descriptor' === $option_name ) {
+			$request->set_param( 'is_short_statement_descriptor_enabled', true );
+		}
 		$request->set_param( $option_name, 'quuxcorge' );
 		$response = rest_do_request( $request );
 
@@ -269,28 +272,28 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 	public function enum_field_provider() {
 		return [
-			'enabled_payment_method_ids' => [
+			'enabled_payment_method_ids'       => [
 				'enabled_payment_method_ids',
 				'upe_checkout_experience_accepted_payments',
 				[ 'card' ],
 				[ 'card', 'giropay' ],
 				[ 'foo' ],
 			],
-			'payment_request_button_theme' => [
+			'payment_request_button_theme'     => [
 				'payment_request_button_theme',
 				'payment_request_button_theme',
 				'dark',
 				'light',
 				'foo',
 			],
-			'payment_request_button_size' => [
+			'payment_request_button_size'      => [
 				'payment_request_button_size',
 				'payment_request_button_size',
 				'default',
 				'large',
 				'foo',
 			],
-			'payment_request_button_type' => [
+			'payment_request_button_type'      => [
 				'payment_request_button_type',
 				'payment_request_button_type',
 				'buy',
@@ -318,6 +321,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$this->get_gateway()->update_option( $option_name, 'foobar' );
 
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		if ( 'short_statement_descriptor' === $option_name ) {
+			$request->set_param( 'is_short_statement_descriptor_enabled', true );
+		}
 		$request->set_param( $option_name, $new_invalid_value );
 
 		$response = rest_do_request( $request );
