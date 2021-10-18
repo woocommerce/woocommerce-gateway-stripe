@@ -188,7 +188,6 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 	};
 
 	const onTabSelect = ( tabName ) => {
-		// @todo - use local state to change between live/test modals.
 		setOpenTab( tabName );
 	};
 
