@@ -6,21 +6,18 @@ import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';
 import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
 
 const DisconnectStripeConfirmationModal = ( { onClose } ) => {
-	const { updateAccountKeys, saveAccountKeys } = useAccountKeys();
+	const { saveAccountKeys } = useAccountKeys();
 
 	const handleDisconnect = () => {
-		onClose();
-		updateAccountKeys( {
+		const accountKeys = {
 			publishable_key: '',
 			secret_key: '',
 			webhook_secret: '',
 			test_publishable_key: '',
 			test_secret_key: '',
 			test_webhook_secret: '',
-		} );
-		saveAccountKeys( true ).then( () => {
-			window.location.reload();
-		} );
+		};
+		saveAccountKeys( accountKeys );
 	};
 
 	return (

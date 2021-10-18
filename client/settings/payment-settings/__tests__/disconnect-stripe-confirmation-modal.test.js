@@ -1,6 +1,6 @@
 import { useDispatch } from '@wordpress/data';
 import React from 'react';
-import { screen, render, waitFor } from '@testing-library/react';
+import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DisconnectStripeConfirmationModal from '../disconnect-stripe-confirmation-modal';
 import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
@@ -74,7 +74,7 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 		expect( handleCloseMock ).toHaveBeenCalled();
 	} );
 
-	it( 'should disconnect the account and close the modal', async () => {
+	it( 'should disconnect the account and close the modal', () => {
 		render(
 			<DisconnectStripeConfirmationModal onClose={ handleCloseMock } />
 		);
@@ -84,10 +84,6 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 
 		userEvent.click( screen.getByRole( 'button', { name: 'Disconnect' } ) );
 
-		expect( handleCloseMock ).toHaveBeenCalled();
 		expect( saveAccountKeysMock ).toHaveBeenCalled();
-		await waitFor( () =>
-			expect( window.location.reload ).toHaveBeenCalled()
-		);
 	} );
 } );
