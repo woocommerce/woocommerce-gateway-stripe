@@ -1288,7 +1288,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			! preg_match( $has_one_letter, $value ) ||
 			! preg_match( $no_specials, $value )
 		) {
-			throw new InvalidArgumentException( __( 'Customer bank statement is invalid. Statement should be between 5 and 22 characters long, contain at least single Latin character and does not contain special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' ) );
+			throw new InvalidArgumentException(
+				sprintf(
+					/* translators: %u Number of the maximum characters allowed */
+					__( 'Customer bank statement is invalid. Statement should be between 5 and %u characters long, contain at least single Latin character and does not contain special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' ),
+					$max_length
+				)
+			);
 		}
 
 		return $value;
