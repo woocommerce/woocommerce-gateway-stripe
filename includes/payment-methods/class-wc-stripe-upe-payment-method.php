@@ -205,9 +205,8 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Create new WC payment token and add to user.
 	 *
-	 * @param string $user_id           WP_User ID
-	 * @param string $payment_method_id Stripe payment method ID
-	 * @param string $last4             IBAN/SEPA Debit last 4 digits
+	 * @param int $user_id        WP_User ID
+	 * @param object $payment_method Stripe payment method object
 	 *
 	 * @return WC_Payment_Token_SEPA
 	 */

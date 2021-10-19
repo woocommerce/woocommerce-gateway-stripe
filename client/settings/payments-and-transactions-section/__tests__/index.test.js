@@ -7,6 +7,7 @@ import {
 	useSeparateCardForm,
 	useAccountStatementDescriptor,
 	useShortAccountStatementDescriptor,
+	useGetSavingError,
 } from 'wcstripe/data';
 
 jest.mock( 'wcstripe/data', () => ( {
@@ -16,6 +17,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useSeparateCardForm: jest.fn(),
 	useAccountStatementDescriptor: jest.fn(),
 	useShortAccountStatementDescriptor: jest.fn(),
+	useGetSavingError: jest.fn(),
 } ) );
 
 describe( 'PaymentsAndTransactionsSection', () => {
@@ -35,6 +37,7 @@ describe( 'PaymentsAndTransactionsSection', () => {
 			'WOOTESTING',
 			jest.fn(),
 		] );
+		useGetSavingError.mockReturnValue( null );
 	} );
 
 	it( 'displays the length of the bank statement input', () => {
@@ -136,5 +139,74 @@ describe( 'PaymentsAndTransactionsSection', () => {
 				'.shortened-bank-statement .transaction-detail.description'
 			)
 		).toBe( null );
+	} );
+
+	it( 'displays the error message for the statement input', () => {
+		useAccountStatementDescriptor.mockReturnValue( [ 'WOO', jest.fn() ] );
+		useGetSavingError.mockReturnValue( {
+			code: 'rest_invalid_param',
+			message: 'Invalid parameter(s): statement_descriptor',
+			data: {
+				status: 400,
+				params: {
+					statement_descriptor:
+						'Customer bank statement is invalid. No special characters: \' " * &lt; &gt;',
+				},
+				details: {
+					statement_descriptor: {
+						code: 'rest_invalid_pattern',
+						message:
+							'Customer bank statement is invalid. No special characters: \' " * &lt; &gt;',
+						data: null,
+					},
+				},
+			},
+		} );
+
+		render( <PaymentsAndTransactionsSection /> );
+
+		expect(
+			screen.getByText(
+				`Customer bank statement is invalid. No special characters: ' " * < >`
+			)
+		).toBeInTheDocument();
+	} );
+
+	it( 'displays the error message for the short statement input', () => {
+		useShortAccountStatementDescriptor.mockReturnValue( [
+			'WOO',
+			jest.fn(),
+		] );
+		useIsShortAccountStatementEnabled.mockReturnValue( [
+			true,
+			jest.fn(),
+		] );
+		useGetSavingError.mockReturnValue( {
+			code: 'rest_invalid_param',
+			message: 'Invalid parameter(s): short_statement_descriptor',
+			data: {
+				status: 400,
+				params: {
+					short_statement_descriptor:
+						'Customer bank statement is invalid. No special characters: \' " * &lt; &gt;',
+				},
+				details: {
+					short_statement_descriptor: {
+						code: 'rest_invalid_pattern',
+						message:
+							'Customer bank statement is invalid. No special characters: \' " * &lt; &gt;',
+						data: null,
+					},
+				},
+			},
+		} );
+
+		render( <PaymentsAndTransactionsSection /> );
+
+		expect(
+			screen.getByText(
+				`Customer bank statement is invalid. No special characters: ' " * < >`
+			)
+		).toBeInTheDocument();
 	} );
 } );
