@@ -58,10 +58,13 @@ const PaymentRequestsButtonPreview = () => {
 	const [ theme ] = usePaymentRequestButtonTheme();
 
 	useEffect( () => {
+		// when `stripe` is falsy, it means that it didn't load because of some error (like: the website wasn't loaded with HTTPS).
 		if ( ! stripe ) {
+			setIsLoading( false );
 			return;
 		}
 
+		setIsLoading( true );
 		// Create a preview for payment button. The label and its total are placeholders.
 		const stripePaymentRequest = stripe.paymentRequest( {
 			country: 'US',
