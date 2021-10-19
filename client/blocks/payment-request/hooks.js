@@ -8,6 +8,7 @@ import { displayLoginConfirmation } from './login-confirmation';
 import {
 	getBlocksConfiguration,
 	createPaymentRequestUsingCart,
+	updatePaymentRequestUsingCart,
 } from 'wcstripe/blocks/utils';
 import { getCartDetails } from 'wcstripe/api/blocks';
 
@@ -55,9 +56,20 @@ export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
 			}
 		};
 		createPaymentRequest();
+	}, [ stripe, needsShipping ] );
+
+	useEffect( () => {
+		if ( ! paymentRequest ) {
+			return;
+		}
+
+		const updatePaymentRequest = async () => {
+			const cart = await getCartDetails();
+			updatePaymentRequestUsingCart( paymentRequest, cart );
+		};
+		updatePaymentRequest();
 	}, [
-		stripe,
-		needsShipping,
+		paymentRequest,
 		billing.cartTotal,
 		billing.cartTotalItems,
 		billing.currency.code,
