@@ -4,13 +4,39 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Compatibility class for Pre-Orders.
+ * Trait for Pre-Orders compatibility.
  */
-class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
-	public $saved_cards;
+trait WC_Stripe_Pre_Orders_Trait {
 
-	public function __construct() {
-		$this->saved_cards = WC_Stripe_Helper::get_settings( 'stripe', 'saved_cards' );
+	/**
+	 * Initialize pre-orders hook.
+	 *
+	 * @since x.x.x
+	 */
+	public function maybe_init_pre_orders() {
+		if ( ! WC_Stripe_Helper::is_pre_orders_exists() ) {
+			return;
+		}
+
+		add_action( 'wc_pre_orders_process_pre_order_completion_payment_' . $this->id, [ $this, 'process_pre_order_release_payment' ] );
+	}
+
+	/**
+	 * Checks if we need to process pre orders when
+	 * pre orders is in the cart.
+	 *
+	 * @since x.x.x
+	 * @param int $order_id
+	 *
+	 * @return bool
+	 */
+	public function maybe_process_pre_orders( $order_id ) {
+		return (
+			WC_Stripe_Helper::is_pre_orders_exists() &&
+			$this->is_pre_order( $order_id ) &&
+			WC_Pre_Orders_Order::order_requires_payment_tokenization( $order_id ) &&
+			! is_wc_endpoint_url( 'order-pay' )
+		);
 	}
 
 	/**

@@ -69,13 +69,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public $inline_cc_form;
 
 	/**
-	 * Pre Orders Object
-	 *
-	 * @var object
-	 */
-	public $pre_orders;
-
-	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -100,6 +93,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();
+
+		// Check if pre-orders are enabled and add support for them.
+		$this->maybe_init_pre_orders();
 
 		// Get setting values.
 		$this->title                = $this->get_option( 'title' );
@@ -131,12 +127,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// Note: display error is in the parent class.
 		add_action( 'admin_notices', [ $this, 'display_errors' ], 9999 );
-
-		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
-			$this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
-
-			add_action( 'wc_pre_orders_process_pre_order_completion_payment_' . $this->id, [ $this->pre_orders, 'process_pre_order_release_payment' ] );
-		}
 	}
 
 	/**
@@ -516,7 +506,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			// ToDo: `process_pre_order` saves the source to the order for a later payment.
 			// This might not work well with PaymentIntents.
 			if ( $this->maybe_process_pre_orders( $order_id ) ) {
-				return $this->pre_orders->process_pre_order( $order_id );
+				return $this->process_pre_order( $order_id );
 			}
 
 			// Check whether there is an existing intent.

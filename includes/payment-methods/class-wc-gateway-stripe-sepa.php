@@ -108,11 +108,12 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts_for_banner' ] );
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
 
-		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
-			$this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
+		// if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
+			// - TODO: Add support for SEPA pre-orders.
+			// $this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
 
-			add_action( 'wc_pre_orders_process_pre_order_completion_payment_' . $this->id, [ $this->pre_orders, 'process_pre_order_release_payment' ] );
-		}
+			// add_action( 'wc_pre_orders_process_pre_order_completion_payment_' . $this->id, [ $this->pre_orders, 'process_pre_order_release_payment' ] );
+		// }
 	}
 
 	/**

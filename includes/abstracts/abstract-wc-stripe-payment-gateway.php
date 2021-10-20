@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 	use WC_Stripe_Subscriptions_Trait;
+	use WC_Stripe_Pre_Orders_Trait;
 
 	/**
 	 * The delay between retries.
@@ -300,23 +301,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$payment_method = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : 'stripe';
 
 		return isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
-	}
-
-	/**
-	 * Checks if we need to process pre orders when
-	 * pre orders is in the cart.
-	 *
-	 * @since 4.1.0
-	 * @param int $order_id
-	 * @return bool
-	 */
-	public function maybe_process_pre_orders( $order_id ) {
-		return (
-			WC_Stripe_Helper::is_pre_orders_exists() &&
-			$this->pre_orders->is_pre_order( $order_id ) &&
-			WC_Pre_Orders_Order::order_requires_payment_tokenization( $order_id ) &&
-			! is_wc_endpoint_url( 'order-pay' )
-		);
 	}
 
 	/**
