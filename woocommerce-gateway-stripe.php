@@ -8,8 +8,8 @@
  * Version: 5.6.2
  * Requires at least: 5.6
  * Tested up to: 5.8
- * WC requires at least: 5.5
- * WC tested up to: 5.6
+ * WC requires at least: 5.6
+ * WC tested up to: 5.8
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
