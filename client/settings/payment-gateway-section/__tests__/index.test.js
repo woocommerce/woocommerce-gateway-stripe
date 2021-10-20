@@ -12,6 +12,19 @@ jest.mock( '@woocommerce/navigation', () => ( {
 	getQuery: jest.fn().mockReturnValue( { section: 'stripe_alipay' } ),
 } ) );
 
+jest.mock( '../../../data/account/hooks', () => ( {
+	useAccount: jest.fn().mockReturnValue( { data: {} } ),
+} ) );
+
+jest.mock( '../../account-details/use-webhook-state-message', () => ( {
+	__esModule: true,
+	default: jest.fn().mockReturnValue( {
+		message: 'webhook is working',
+		requestStatus: '',
+		refreshMessage: jest.fn(),
+	} ),
+} ) );
+
 jest.mock( '../hooks', () => ( {
 	useEnabledGateway: jest.fn(),
 	useGatewayName: jest.fn(),
@@ -31,6 +44,13 @@ describe( 'PaymentGatewaySection', () => {
 		render( <PaymentGatewaySection /> );
 		expect( screen.getAllByRole( 'checkbox' ).length ).toEqual( 1 );
 		expect( screen.getAllByRole( 'textbox' ).length ).toEqual( 2 );
+	} );
+
+	it( 'should contain the webhook monitoring status', () => {
+		render( <PaymentGatewaySection /> );
+		expect(
+			screen.queryByText( 'webhook is working' )
+		).toBeInTheDocument();
 	} );
 
 	it( 'should be possible to enable/disable the payment gateway', () => {
