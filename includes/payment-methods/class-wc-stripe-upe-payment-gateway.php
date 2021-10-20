@@ -728,7 +728,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						$setup_intent    = WC_Stripe_API::request( [], 'setup_intents/' . $setup_intent_id, 'GET' );
 
 						$customer_data = WC_Stripe_Customer::map_customer_data( null, new WC_Customer( wp_get_current_user()->ID ) );
-						WC_Stripe_API::request(
+						$this->stripe_request(
+						    'payment_methods/' . $setup_intent->payment_method,
 							[
 								'billing_details' => [
 									'name'    => $customer_data['name'],
@@ -736,8 +737,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 									'phone'   => $customer_data['phone'],
 									'address' => $customer_data['address'],
 								],
-							],
-							'payment_methods/' . $setup_intent->payment_method
+							]
 						);
 					} catch ( Exception $e ) {
 						WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
