@@ -181,26 +181,23 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		if ( $this->gateway_settings ) {
 			$id            = $this->gateway_settings->id;
-			$editable_args = array_merge(
-				$editable_args,
-				[
-					'is_' . $id . '_enabled' => [
-						'description'       => __( 'If gateway should be enabled.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'boolean',
-						'validate_callback' => 'rest_validate_request_arg',
-					],
-					$id . '_name'            => [
-						'description'       => __( 'Gateway title', 'woocommerce-gateway-stripe' ),
-						'type'              => 'string',
-						'validate_callback' => 'rest_validate_request_arg',
-					],
-					$id . '_description'     => [
-						'description'       => __( 'Gateway description', 'woocommerce-gateway-stripe' ),
-						'type'              => 'string',
-						'validate_callback' => 'rest_validate_request_arg',
-					],
-				]
-			);
+			$editable_args = [
+				'is_' . $id . '_enabled' => [
+					'description'       => __( 'If gateway should be enabled.', 'woocommerce-gateway-stripe' ),
+					'type'              => 'boolean',
+					'validate_callback' => 'rest_validate_request_arg',
+				],
+				$id . '_name'            => [
+					'description'       => __( 'Gateway title', 'woocommerce-gateway-stripe' ),
+					'type'              => 'string',
+					'validate_callback' => 'rest_validate_request_arg',
+				],
+				$id . '_description'     => [
+					'description'       => __( 'Gateway description', 'woocommerce-gateway-stripe' ),
+					'type'              => 'string',
+					'validate_callback' => 'rest_validate_request_arg',
+				],
+			];
 		}
 
 		register_rest_route(
