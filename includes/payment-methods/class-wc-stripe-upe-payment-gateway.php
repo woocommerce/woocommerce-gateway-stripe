@@ -725,7 +725,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					// billing info will be updated when the customer makes a purchase anyway.
 					try {
 						$setup_intent_id = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
-						$setup_intent = WC_Stripe_API::request( [], 'setup_intents/' . $setup_intent_id, 'GET' );
+						$setup_intent    = WC_Stripe_API::request( [], 'setup_intents/' . $setup_intent_id, 'GET' );
 
 						$customer_data = WC_Stripe_Customer::map_customer_data( null, new WC_Customer( wp_get_current_user()->ID ) );
 						WC_Stripe_API::request(
