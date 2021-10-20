@@ -11,8 +11,12 @@ import {
 	usePaymentRequestButtonTheme,
 } from 'wcstripe/data';
 import CardBody from 'wcstripe/settings/card-body';
-// This will be used once we have data persistence.
-// import { getPaymentRequestData } from '../../payment-request/utils';
+import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
+import { useAccount } from 'wcstripe/data/account/hooks';
+import {
+	useAccountKeysPublishableKey,
+	useAccountKeysTestPublishableKey,
+} from 'wcstripe/data/account-keys/hooks';
 
 const makeButtonSizeText = ( string ) =>
 	interpolateComponents( {
@@ -115,22 +119,19 @@ const PaymentRequestsSection = () => {
 	const [ buttonType, setButtonType ] = usePaymentRequestButtonType();
 	const [ size, setSize ] = usePaymentRequestButtonSize();
 	const [ theme, setTheme ] = usePaymentRequestButtonTheme();
+	const accountId = useAccount().data?.account?.id;
+	const [ publishableKey ] = useAccountKeysPublishableKey();
+	const [ testPublishableKey ] = useAccountKeysTestPublishableKey();
 
 	const stripePromise = useMemo( () => {
-		// This will be linked to actual Stripe account data:
-		// const stripeSettings = getPaymentRequestData( 'stripe' );
-		// For now, use mock data.
-		const stripeSettings = {
-			publishableKey: 'pk_test_123',
-			accountId: '0001',
-			locale: 'en',
-		};
-
-		return loadStripe( stripeSettings.publishableKey, {
-			stripeAccount: stripeSettings.accountId,
-			locale: stripeSettings.locale,
-		} );
-	}, [] );
+		return loadStripe(
+			publishableKey || testPublishableKey || 'pk_test_123',
+			{
+				stripeAccount: accountId || '0001',
+				locale: 'en',
+			}
+		);
+	}, [ testPublishableKey, publishableKey, accountId ] );
 
 	return (
 		<Card>
@@ -171,9 +172,11 @@ const PaymentRequestsSection = () => {
 					onChange={ setTheme }
 				/>
 				<p>{ __( 'Preview', 'woocommerce-gateway-stripe' ) }</p>
-				<Elements stripe={ stripePromise }>
-					<PaymentRequestButtonPreview />
-				</Elements>
+				<LoadableAccountSection numLines={ 7 }>
+					<Elements stripe={ stripePromise }>
+						<PaymentRequestButtonPreview />
+					</Elements>
+				</LoadableAccountSection>
 			</CardBody>
 		</Card>
 	);

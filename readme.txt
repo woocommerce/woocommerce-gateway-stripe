@@ -127,5 +127,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 5.x.x - 2021-xx-xx =
+* Fix - Hong Kong addresses are now mapped more thoroughly to WooCommerce addresses when paying with Apple Pay.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
