@@ -123,9 +123,7 @@ const PaymentRequestExpressComponent = ( {
 		<PaymentRequestButtonElement
 			onClick={ onPaymentRequestButtonClick }
 			options={ {
-				// @ts-ignore
 				style: paymentRequestButtonStyle,
-				// @ts-ignore
 				paymentRequest,
 			} }
 		/>
