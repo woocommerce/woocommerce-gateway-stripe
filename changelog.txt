@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 5.x.x - 2021-xx-xx =
+* Fix - Hong Kong addresses are now mapped more thoroughly to WooCommerce addresses when paying with Apple Pay.
 
 = 5.6.2 - 2021-10-06 =
 * Tweak - Remove animated credit card icons from payment method option on the checkout page.
