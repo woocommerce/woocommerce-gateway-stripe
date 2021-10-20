@@ -1,4 +1,5 @@
 /* global Stripe */
+import { __ } from '@wordpress/i18n';
 
 /**
  * Handles generic connections to the server and Stripe.
@@ -27,6 +28,28 @@ export default class WCStripeAPI {
 		return this.options?.ajax_url
 			?.toString()
 			?.replace( '%%endpoint%%', prefix + endpoint );
+	}
+
+	getFriendlyErrorMessage( error ) {
+		// error is a jqXHR and statusText is one of "timeout", "error", "abort", and "parsererror".
+		switch ( error.statusText ) {
+			case 'timeout':
+				return __(
+					'A timeout occurred while connecting to the server. Please try again.',
+					'woocommerce-gateway-stripe'
+				);
+			case 'abort':
+				return __(
+					'The connection to the server was aborted. Please try again.',
+					'woocommerce-gateway-stripe'
+				);
+			case 'error':
+			default:
+				return __(
+					'An error occurred while connecting to the server. Please try again.',
+					'woocommerce-gateway-stripe'
+				);
+		}
 	}
 
 	/**
@@ -89,7 +112,9 @@ export default class WCStripeAPI {
 					throw error;
 				} else {
 					// Covers the case of error on the Ajax request.
-					throw new Error( error.statusText );
+					throw new Error(
+						this.getFriendlyErrorMessage( error.statusText )
+					);
 				}
 			} );
 	}
@@ -117,7 +142,9 @@ export default class WCStripeAPI {
 					throw error;
 				} else {
 					// Covers the case of error on the Ajax request.
-					throw new Error( error.statusText );
+					throw new Error(
+						this.getFriendlyErrorMessage( error.statusText )
+					);
 				}
 			} );
 	}
@@ -161,7 +188,9 @@ export default class WCStripeAPI {
 					throw error;
 				} else {
 					// Covers the case of error on the Ajaxrequest.
-					throw new Error( error.statusText );
+					throw new Error(
+						this.getFriendlyErrorMessage( error.statusText )
+					);
 				}
 			} );
 	}
@@ -280,7 +309,9 @@ export default class WCStripeAPI {
 					throw error;
 				} else {
 					// Covers the case of error on the Ajax request.
-					throw new Error( error.statusText );
+					throw new Error(
+						this.getFriendlyErrorMessage( error.statusText )
+					);
 				}
 			} );
 	}
@@ -308,7 +339,9 @@ export default class WCStripeAPI {
 					throw error;
 				} else {
 					// Covers the case of error on the Ajax request.
-					throw new Error( error.statusText );
+					throw new Error(
+						this.getFriendlyErrorMessage( error.statusText )
+					);
 				}
 			} );
 	}

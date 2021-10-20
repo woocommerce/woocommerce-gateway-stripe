@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 
-export const useDebugLog = () => {
-	const [ value, setValue ] = useState( false );
+const useToggle = ( initialValue = false ) => {
+	const [ value, setValue ] = useState( initialValue );
 	const toggleValue = useCallback(
 		() => setValue( ( oldValue ) => ! oldValue ),
 		[ setValue ]
@@ -10,4 +10,4 @@ export const useDebugLog = () => {
 	return [ value, toggleValue ];
 };
 
-export const useDevMode = () => false;
+export default useToggle;

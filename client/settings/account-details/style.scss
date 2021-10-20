@@ -1,11 +1,6 @@
 @import '../../styles/abstracts/colors';
 
 .account-details {
-
-	.is-size-large {
-		padding: 24px 32px;
-	}
-
 	&__flex-container {
 		display: flex;
 		flex-direction: column;
@@ -38,8 +33,9 @@
 	}
 
 	&__desc {
-		margin-top: 1rem;
-		font-style: italic;
+		font-size: 12px;
+		font-style: normal;
+		color: rgb(117, 117, 117);
 	}
 
 	&__error {

@@ -23,6 +23,22 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	protected $rest_base = 'wc_stripe/account_keys';
 
 	/**
+	 * The instance of the Stripe account.
+	 *
+	 * @var WC_Stripe_Account
+	 */
+	private $account;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param WC_Stripe_Account $account The instance of the Stripe account.
+	 */
+	public function __construct( WC_Stripe_Account $account ) {
+		$this->account = $account;
+	}
+
+	/**
 	 * Configure REST API routes.
 	 */
 	public function register_routes() {
@@ -183,6 +199,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$settings['test_webhook_secret']  = is_null( $test_webhook_secret ) ? $settings['test_webhook_secret'] : $test_webhook_secret;
 
 		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
+		$this->account->clear_cache();
 
 		return new WP_REST_Response( [], 200 );
 	}

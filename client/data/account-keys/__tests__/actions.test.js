@@ -19,7 +19,7 @@ describe( 'Account keys actions tests', () => {
 					return noticesDispatch;
 				}
 
-				return {};
+				return { invalidateResolutionForStoreSelector: () => null };
 			} );
 			select.mockImplementation( () => ( {
 				getAccountKeys: jest.fn(),

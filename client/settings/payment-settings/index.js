@@ -15,10 +15,10 @@ import PaymentsAndTransactionsSection from '../payments-and-transactions-section
 import AdvancedSettingsSection from '../advanced-settings-section';
 import CustomizationOptionsNotice from '../customization-options-notice';
 import GeneralSettingsSection from './general-settings-section';
+import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import './style.scss';
 import { useTestMode } from 'wcstripe/data';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
-import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import { useAccount } from 'wcstripe/data/account';
 
 const GeneralSettingsDescription = () => (
@@ -92,7 +92,7 @@ const AccountSettingsDropdownMenu = () => {
 					onClick: () => console.log( 'Edit my details' ),
 				},
 				{
-					title: 'Disconnect',
+					title: __( 'Disconnect', 'woocommerce-gateway-stripe' ),
 					// eslint-disable-next-line no-console
 					onClick: () => console.log( 'Disconnecting' ),
 				},
@@ -108,16 +108,18 @@ const AccountDetailsSection = () => {
 	return (
 		<Card className="account-details">
 			<CardHeader className="account-details__header">
-				{ data.account?.email && (
-					<h4 className="account-details__header">
-						{ data.account.email }
-					</h4>
-				) }
-				{ isTestModeEnabled && (
-					<Pill>
-						{ __( 'Test Mode', 'woocommerce-gateway-stripe' ) }
-					</Pill>
-				) }
+				<div>
+					{ data.account?.email && (
+						<h4 className="account-details__header">
+							{ data.account.email }
+						</h4>
+					) }
+					{ isTestModeEnabled && (
+						<Pill>
+							{ __( 'Test Mode', 'woocommerce-gateway-stripe' ) }
+						</Pill>
+					) }
+				</div>
 				<AccountSettingsDropdownMenu />
 			</CardHeader>
 			<CardBody>
@@ -144,7 +146,9 @@ const PaymentSettingsPanel = () => {
 				</LoadableAccountSection>
 			</SettingsSection>
 			<SettingsSection Description={ PaymentsAndTransactionsDescription }>
-				<PaymentsAndTransactionsSection />
+				<LoadableSettingsSection numLines={ 20 }>
+					<PaymentsAndTransactionsSection />
+				</LoadableSettingsSection>
 			</SettingsSection>
 			<AdvancedSettingsSection />
 		</>

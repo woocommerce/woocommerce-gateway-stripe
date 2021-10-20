@@ -4,6 +4,35 @@ import { STORE_NAME } from '../constants';
 
 const EMPTY_ARR = [];
 
+const makeReadOnlySettingsHook = (
+	fieldName,
+	fieldDefaultValue = false
+) => () =>
+	useSelect(
+		( select ) => {
+			const { getSettings } = select( STORE_NAME );
+
+			return getSettings()[ fieldName ] || fieldDefaultValue;
+		},
+		[ fieldName, fieldDefaultValue ]
+	);
+
+const makeSettingsHook = ( fieldName, fieldDefaultValue = false ) => () => {
+	const { updateSettingsValues } = useDispatch( STORE_NAME );
+
+	const field = makeReadOnlySettingsHook( fieldName, fieldDefaultValue )();
+
+	const handler = useCallback(
+		( value ) =>
+			updateSettingsValues( {
+				[ fieldName ]: value,
+			} ),
+		[ updateSettingsValues ]
+	);
+
+	return [ field, handler ];
+};
+
 export const useSettings = () => {
 	const { saveSettings } = useDispatch( STORE_NAME );
 
@@ -31,17 +60,53 @@ export const useSettings = () => {
 	return { settings, isLoading, isSaving, saveSettings };
 };
 
-export const usePaymentRequestEnabledSettings = () => {
-	const { updateIsPaymentRequestEnabled } = useDispatch( STORE_NAME );
+export const useEnabledPaymentMethodIds = makeSettingsHook(
+	'enabled_payment_method_ids',
+	EMPTY_ARR
+);
+export const usePaymentRequestEnabledSettings = makeSettingsHook(
+	'is_payment_request_enabled'
+);
+export const usePaymentRequestButtonSize = makeSettingsHook(
+	'payment_request_button_size',
+	''
+);
+export const usePaymentRequestButtonType = makeSettingsHook(
+	'payment_request_button_type',
+	''
+);
+export const usePaymentRequestButtonTheme = makeSettingsHook(
+	'payment_request_button_theme',
+	''
+);
+export const usePaymentRequestLocations = makeSettingsHook(
+	'payment_request_button_locations',
+	EMPTY_ARR
+);
+export const useIsStripeEnabled = makeSettingsHook( 'is_stripe_enabled' );
+export const useTestMode = makeSettingsHook( 'is_test_mode_enabled' );
+export const useSavedCards = makeSettingsHook( 'is_saved_cards_enabled' );
+export const useManualCapture = makeSettingsHook( 'is_manual_capture_enabled' );
+export const useSeparateCardForm = makeSettingsHook(
+	'is_separate_card_form_enabled'
+);
+export const useAccountStatementDescriptor = makeSettingsHook(
+	'statement_descriptor',
+	''
+);
+export const useIsShortAccountStatementEnabled = makeSettingsHook(
+	'is_short_statement_descriptor_enabled'
+);
+export const useShortAccountStatementDescriptor = makeSettingsHook(
+	'short_statement_descriptor',
+	''
+);
+export const useDebugLog = makeSettingsHook( 'is_debug_log_enabled' );
 
-	const isPaymentRequestEnabled = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().is_payment_request_enabled || false;
-	}, [] );
-
-	return [ isPaymentRequestEnabled, updateIsPaymentRequestEnabled ];
-};
+export const useGetAvailablePaymentMethodIds = makeReadOnlySettingsHook(
+	'available_payment_method_ids',
+	EMPTY_ARR
+);
 
 export const useGetSavingError = () => {
 	return useSelect( ( select ) => {
@@ -50,130 +115,3 @@ export const useGetSavingError = () => {
 		return getSavingError();
 	}, [] );
 };
-
-export const usePaymentRequestLocations = () => {
-	const { updateSettingsValues } = useDispatch( STORE_NAME );
-
-	const locations = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().payment_request_button_locations || EMPTY_ARR;
-	} );
-
-	const handler = useCallback(
-		( values ) =>
-			updateSettingsValues( {
-				payment_request_button_locations: values,
-			} ),
-		[ updateSettingsValues ]
-	);
-
-	return [ locations, handler ];
-};
-
-export const usePaymentRequestButtonType = () => {
-	const { updateSettingsValues } = useDispatch( STORE_NAME );
-
-	const type = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().payment_request_button_type || '';
-	} );
-
-	const handler = useCallback(
-		( value ) =>
-			updateSettingsValues( {
-				payment_request_button_type: value,
-			} ),
-		[ updateSettingsValues ]
-	);
-
-	return [ type, handler ];
-};
-
-export const usePaymentRequestButtonSize = () => {
-	const { updateSettingsValues } = useDispatch( STORE_NAME );
-
-	const size = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().payment_request_button_size || '';
-	} );
-
-	const handler = useCallback(
-		( value ) =>
-			updateSettingsValues( {
-				payment_request_button_size: value,
-			} ),
-		[ updateSettingsValues ]
-	);
-
-	return [ size, handler ];
-};
-
-export const usePaymentRequestButtonTheme = () => {
-	const { updateSettingsValues } = useDispatch( STORE_NAME );
-
-	const size = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().payment_request_button_theme || '';
-	} );
-
-	const handler = useCallback(
-		( value ) =>
-			updateSettingsValues( {
-				payment_request_button_theme: value,
-			} ),
-		[ updateSettingsValues ]
-	);
-
-	return [ size, handler ];
-};
-
-export const useEnabledPaymentMethodIds = () => {
-	const { updateSettingsValues } = useDispatch( STORE_NAME );
-
-	const methods = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().enabled_payment_method_ids || EMPTY_ARR;
-	} );
-
-	const handler = useCallback(
-		( value ) =>
-			updateSettingsValues( {
-				enabled_payment_method_ids: value,
-			} ),
-		[ updateSettingsValues ]
-	);
-
-	return [ methods, handler ];
-};
-
-export const useTestMode = () => {
-	const { updateSettingsValues } = useDispatch( STORE_NAME );
-
-	const methods = useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().is_test_mode_enabled || false;
-	} );
-
-	const handler = useCallback(
-		( value ) =>
-			updateSettingsValues( {
-				is_test_mode_enabled: value,
-			} ),
-		[ updateSettingsValues ]
-	);
-
-	return [ methods, handler ];
-};
-
-export const useGetAvailablePaymentMethodIds = () =>
-	useSelect( ( select ) => {
-		const { getSettings } = select( STORE_NAME );
-
-		return getSettings().available_payment_method_ids || EMPTY_ARR;
-	} );

@@ -5,7 +5,7 @@ import PaymentMethodsMap from '../../payment-methods-map';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';
 
-const RemoveMethodConfirmationModal = ( { method, onClose, handleRemove } ) => {
+const RemoveMethodConfirmationModal = ( { method, onClose, onConfirm } ) => {
 	const { label } = PaymentMethodsMap[ method ];
 	return (
 		<ConfirmationModal
@@ -27,7 +27,7 @@ const RemoveMethodConfirmationModal = ( { method, onClose, handleRemove } ) => {
 					<Button isSecondary onClick={ onClose }>
 						{ __( 'Cancel', 'woocommerce-gateway-stripe' ) }
 					</Button>
-					<Button isPrimary onClick={ handleRemove }>
+					<Button isPrimary onClick={ onConfirm }>
 						{ __( 'Remove', 'woocommerce-gateway-stripe' ) }
 					</Button>
 				</>

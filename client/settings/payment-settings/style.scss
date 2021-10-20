@@ -2,6 +2,17 @@
 	&__header {
 		justify-content: space-between;
 
+		> :first-child {
+			display: flex;
+			align-items: center;
+
+			> * {
+				&:not( :last-child ) {
+					margin-right: 4px;
+				}
+			}
+		}
+
 		.components-dropdown-menu__toggle.has-icon {
 			padding: 0;
 			min-width: unset;

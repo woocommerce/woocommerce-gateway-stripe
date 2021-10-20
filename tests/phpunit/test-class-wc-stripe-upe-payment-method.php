@@ -11,6 +11,41 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	private $mock_payment_methods = [];
 
 	/**
+	 * Base template for Stripe card payment method.
+	 */
+	const MOCK_CARD_PAYMENT_METHOD_TEMPLATE = [
+		'id'   => 'pm_mock_payment_method_id',
+		'type' => 'card',
+		'card' => [
+			'brand'     => 'visa',
+			'network'   => 'visa',
+			'exp_month' => '7',
+			'exp_year'  => '2099',
+			'funding'   => 'credit',
+			'last4'     => '4242',
+		],
+	];
+
+	/**
+	 * Base template for Stripe SEPA payment method.
+	 */
+	const MOCK_SEPA_PAYMENT_METHOD_TEMPLATE = [
+		'id'         => 'pm_mock_payment_method_id',
+		'type'       => 'sepa_debit',
+		'sepa_debit' => [
+			'bank_code'      => '00000000',
+			'branch_code'    => '',
+			'country'        => 'DE',
+			'fingerprint'    => 'Fxxxxxxxxxxxxxxx',
+			'generated_from' => [
+				'charge'        => null,
+				'setup_attempt' => null,
+			],
+			'last4'          => '4242',
+		],
+	];
+
+	/**
 	 * Mock capabilities object from Stripe response--all inactive.
 	 */
 	const MOCK_INACTIVE_CAPABILITIES_RESPONSE = [
@@ -197,21 +232,22 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'SOFORT', $sofort_method->get_label() );
 		$this->assertEquals( 'Pay with SOFORT', $sofort_method->get_title() );
 		$this->assertEquals( 'Pay with SOFORT', $sofort_method->get_title( $mock_sofort_details ) );
-		$this->assertFalse( $sofort_method->is_reusable() );
-		$this->assertEquals( null, $sofort_method->get_retrievable_type() );
+		$this->assertTrue( $sofort_method->is_reusable() );
+		$this->assertEquals( 'sepa_debit', $sofort_method->get_retrievable_type() );
 
 		$this->assertEquals( 'bancontact', $bancontact_method->get_id() );
 		$this->assertEquals( 'Bancontact', $bancontact_method->get_label() );
 		$this->assertEquals( 'Pay with Bancontact', $bancontact_method->get_title() );
 		$this->assertEquals( 'Pay with Bancontact', $bancontact_method->get_title( $mock_bancontact_details ) );
-		$this->assertFalse( $bancontact_method->is_reusable() );
-		$this->assertEquals( null, $bancontact_method->get_retrievable_type() );
+		$this->assertTrue( $bancontact_method->is_reusable() );
+		$this->assertEquals( 'sepa_debit', $bancontact_method->get_retrievable_type() );
 
 		$this->assertEquals( 'ideal', $ideal_method->get_id() );
 		$this->assertEquals( 'iDEAL', $ideal_method->get_label() );
 		$this->assertEquals( 'Pay with iDEAL', $ideal_method->get_title() );
 		$this->assertEquals( 'Pay with iDEAL', $ideal_method->get_title( $mock_ideal_details ) );
-		$this->assertFalse( $ideal_method->is_reusable() );
+		$this->assertTrue( $ideal_method->is_reusable() );
+		$this->assertEquals( 'sepa_debit', $ideal_method->get_retrievable_type() );
 	}
 
 	/**
@@ -313,6 +349,33 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 				$this->assertTrue( $payment_method->is_enabled_at_checkout() );
 			} else {
 				$this->assertFalse( $payment_method->is_enabled_at_checkout() );
+			}
+		}
+	}
+
+	/**
+	 * Test the type of payment token created for the user.
+	 */
+	public function test_create_payment_token_for_user() {
+		$user_id = 1;
+
+		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
+			if ( ! $payment_method->is_reusable() ) {
+				continue;
+			}
+
+			if ( 'card' === $payment_method_id ) {
+				$card_payment_method_mock = $this->array_to_object( self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE );
+				$token                    = $payment_method->create_payment_token_for_user( $user_id, $card_payment_method_mock );
+				$this->assertTrue( 'WC_Payment_Token_CC' === get_class( $token ) );
+				$this->assertEquals( $token->get_last4(), $card_payment_method_mock->card->last4 );
+				$this->assertEquals( $token->get_token(), $card_payment_method_mock->id );
+			} else {
+				$sepa_payment_method_mock = $this->array_to_object( self::MOCK_SEPA_PAYMENT_METHOD_TEMPLATE );
+				$token                    = $payment_method->create_payment_token_for_user( $user_id, $sepa_payment_method_mock );
+				$this->assertTrue( 'WC_Payment_Token_SEPA' === get_class( $token ) );
+				$this->assertEquals( $token->get_last4(), $sepa_payment_method_mock->sepa_debit->last4 );
+				$this->assertEquals( $token->get_token(), $sepa_payment_method_mock->id );
 			}
 		}
 	}

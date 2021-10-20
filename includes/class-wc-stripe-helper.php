@@ -572,4 +572,25 @@ class WC_Stripe_Helper {
 	public static function has_cart_or_checkout_on_current_page() {
 		return is_cart() || is_checkout();
 	}
+
+	/**
+	 * Return true if the current_tab and current_section match the ones we want to check against.
+	 *
+	 * @param string $tab
+	 * @param string $section
+	 * @return boolean
+	 */
+	public static function should_enqueue_in_current_tab_section( $tab, $section ) {
+		global $current_tab, $current_section;
+
+		if ( ! isset( $current_tab ) || $tab !== $current_tab ) {
+			return false;
+		}
+
+		if ( ! isset( $current_section ) || $section !== $current_section ) {
+			return false;
+		}
+
+		return true;
+	}
 }

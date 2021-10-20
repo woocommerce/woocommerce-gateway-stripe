@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.6
 Tested up to: 5.8
 Requires PHP: 5.6
-Stable tag: 5.6.2
+Stable tag: 5.7.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -126,8 +126,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.6.2 - 2021-10-06 =
-* Tweak - Remove animated credit card icons from payment method option on the checkout page.
-* Fix - Payments for pre-orders and subscriptions with an empty source token now work as intended.
+= 5.7.0 - 2021-10-20 =
+* Fix - Enable use of saved payment methods converted to SEPA payments.
+* Tweak - "Save payment information" checkbox now has better alignment in store checkout.
+* Tweak - Error notices at checkout now have more consistent design.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

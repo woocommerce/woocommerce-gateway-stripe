@@ -17,8 +17,7 @@ import {
 	useEnabledPaymentMethodIds,
 	useSettings,
 } from '../../data';
-import PaymentMethodCheckboxes from '../../components/payment-methods-checkboxes';
-import PaymentMethodCheckbox from '../../components/payment-methods-checkboxes/payment-method-checkbox';
+import PaymentMethodCheckbox from './payment-method-checkbox';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 
 const HeadingWrapper = styled.div`
@@ -202,12 +201,12 @@ const AddPaymentMethodsTask = () => {
 								</Button>
 							</HeadingWrapper>
 
-							<PaymentMethodCheckboxes>
+							<ul>
 								{ availablePaymentMethods.map(
 									( paymentMethodId ) => (
 										<PaymentMethodCheckbox
 											key={ paymentMethodId }
-											name={ paymentMethodId }
+											id={ paymentMethodId }
 											onChange={
 												handlePaymentMethodChange
 											}
@@ -219,7 +218,7 @@ const AddPaymentMethodsTask = () => {
 										/>
 									)
 								) }
-							</PaymentMethodCheckboxes>
+							</ul>
 						</LoadableSettingsSection>
 					</CardBody>
 				</Card>

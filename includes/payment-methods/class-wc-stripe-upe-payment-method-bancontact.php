@@ -19,7 +19,7 @@ class WC_Stripe_UPE_Payment_Method_Bancontact extends WC_Stripe_UPE_Payment_Meth
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = 'Pay with Bancontact';
-		$this->is_reusable          = false; // TODO: Enable it in a future release - Supported through Stripe via SEPA Direct Debit.
+		$this->is_reusable          = true;
 		$this->supported_currencies = [ 'EUR' ];
 		$this->label                = __( 'Bancontact', 'woocommerce-gateway-stripe' );
 		$this->description          = __(

@@ -541,14 +541,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_id = $order->get_id();
 
 		if ( 'stripe' === $order->get_payment_method() ) {
-			$charge    = $order->get_transaction_id();
-			$captured  = $order->get_meta( '_stripe_charge_captured', true );
-			$refund_id = $order->get_meta( '_stripe_refund_id', true );
+			$charge     = $order->get_transaction_id();
+			$captured   = $order->get_meta( '_stripe_charge_captured' );
+			$refund_id  = $order->get_meta( '_stripe_refund_id' );
+			$currency   = $order->get_currency();
+			$raw_amount = $notification->data->object->refunds->data[0]->amount;
 
-			$amount = wc_price( $notification->data->object->refunds->data[0]->amount / 100 );
-			if ( in_array( strtolower( $order->get_currency() ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
-				$amount = wc_price( $notification->data->object->refunds->data[0]->amount );
+			if ( ! in_array( strtolower( $currency ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+				$raw_amount /= 100;
 			}
+
+			$amount = wc_price( $raw_amount, [ 'currency' => $currency ] );
 
 			// If charge wasn't captured, skip creating a refund.
 			if ( 'yes' !== $captured ) {
@@ -592,6 +595,74 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 				/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund message */
 				$order->add_order_note( sprintf( __( 'Refunded %1$s - Refund ID: %2$s - %3$s', 'woocommerce-gateway-stripe' ), $amount, $notification->data->object->refunds->data[0]->id, $reason ) );
+			}
+		}
+	}
+
+	/**
+	 * Process a refund update.
+	 *
+	 * @param object $notification
+	 */
+	public function process_webhook_refund_updated( $notification ) {
+		$refund_object = $notification->data->object;
+		$order         = WC_Stripe_Helper::get_order_by_charge_id( $refund_object->charge );
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::log( 'Could not find order to update refund via charge ID: ' . $refund_object->charge );
+			return;
+		}
+
+		$order_id = $order->get_id();
+
+		if ( 'stripe' === $order->get_payment_method() ) {
+			$charge     = $order->get_transaction_id();
+			$refund_id  = $order->get_meta( '_stripe_refund_id' );
+			$currency   = $order->get_currency();
+			$raw_amount = $refund_object->amount;
+
+			if ( ! in_array( strtolower( $currency ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
+				$raw_amount /= 100;
+			}
+
+			$amount = wc_price( $raw_amount, [ 'currency' => $currency ] );
+
+			// If the refund IDs do not match stop.
+			if ( $refund_object->id !== $refund_id ) {
+				return;
+			}
+
+			if ( $charge ) {
+				$refunds = wc_get_orders(
+					[
+						'limit'  => 1,
+						'parent' => $order_id,
+					]
+				);
+
+				if ( empty( $refunds ) ) {
+					// No existing refunds nothing to update.
+					return;
+				}
+
+				$refund = $refunds[0];
+
+				if ( in_array( $refund_object->status, [ 'failed', 'canceled' ], true ) ) {
+					if ( isset( $refund_object->failure_balance_transaction ) ) {
+						$this->update_fees( $order, $refund_object->failure_balance_transaction );
+					}
+					$refund->delete( true );
+					do_action( 'woocommerce_refund_deleted', $refund_id, $order_id );
+					if ( 'failed' === $refund_object->status ) {
+						/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund failure code */
+						$note = sprintf( __( 'Refund failed for %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $amount, $refund_object->id, $refund_object->failure_reason );
+					} else {
+						/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund failure code */
+						$note = sprintf( __( 'Refund canceled for %1$s - Refund ID: %2$s - Reason: %3$s', 'woocommerce-gateway-stripe' ), $amount, $refund_object->id, $refund_object->failure_reason );
+					}
+
+					$order->add_order_note( $note );
+				}
 			}
 		}
 	}
@@ -862,6 +933,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 			case 'charge.refunded':
 				$this->process_webhook_refund( $notification );
+				break;
+
+			case 'charge.refund.updated':
+				$this->process_webhook_refund_updated( $notification );
 				break;
 
 			case 'review.opened':

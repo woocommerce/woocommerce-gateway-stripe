@@ -203,85 +203,22 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
-	 * Add payment method from intent to user and return WC payment token.
+	 * Create new WC payment token and add to user.
 	 *
-	 * By default we use WC_Payment_Token_SEPA, because most
-	 * payment methods support saving payment methods via
-	 * conversion to SEPA Direct Debit.
-	 *
-	 * @param WP_User $user User to add payment token to.
-	 * @param object $intent JSON object for Stripe payment intent.
-	 *
-	 * @return WC_Payment_Token_SEPA|null WC object for payment token.
-	 */
-	public function add_token_to_user_from_intent( $user_id, $intent ) {
-		if ( ! $this->is_reusable() ) {
-			return null;
-		}
-		$customer       = new WC_Stripe_Customer( $user_id );
-		$payment_method = $this->get_payment_method_details_from_intent( $intent );
-		$token          = $this->create_payment_token_for_user( $user_id, $payment_method->generated_sepa_debit, $payment_method->iban_last4 );
-
-		$customer->add_payment_method_actions( $token, $payment_method );
-		return $token;
-	}
-
-	/**
-	 * Add payment method to user and return WC payment token.
-	 *
-	 * This will be used from the WC_Stripe_Payment_Tokens service
-	 * as opposed to WC_Stripe_UPE_Payment_Gateway.
-	 *
-	 * @param string $user_id        WP_User ID
+	 * @param int $user_id        WP_User ID
 	 * @param object $payment_method Stripe payment method object
 	 *
 	 * @return WC_Payment_Token_SEPA
 	 */
-	public function add_token_to_user_from_payment_method( $user_id, $payment_method ) {
-		$customer = new WC_Stripe_Customer( $user_id );
-		$token    = $this->create_payment_token_for_user( $user_id, $payment_method->id, $payment_method->sepa_debit->last4 );
-
-		$customer->add_payment_method_actions( $token, $payment_method );
-		return $token;
-	}
-
-	/**
-	 * Create new WC payment token and add to user.
-	 *
-	 * @param string $user_id           WP_User ID
-	 * @param string $payment_method_id Stripe payment method ID
-	 * @param string $last4             IBAN/SEPA Debit last 4 digits
-	 *
-	 * @return WC_Payment_Token_SEPA
-	 */
-	private function create_payment_token_for_user( $user_id, $payment_method_id, $last4 ) {
+	public function create_payment_token_for_user( $user_id, $payment_method ) {
 		$token = new WC_Payment_Token_SEPA();
-		$token->set_last4( $last4 );
+		$token->set_last4( $payment_method->sepa_debit->last4 );
 		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
-		$token->set_token( $payment_method_id );
+		$token->set_token( $payment_method->id );
 		$token->set_payment_method_type( $this->get_id() );
 		$token->set_user_id( $user_id );
 		$token->save();
 		return $token;
-	}
-
-	/**
-	 * Returns payment method details from Payment Intent
-	 * in order to save payment method.
-	 *
-	 * @param object $intent JSON object for Stripe payment intent.
-	 *
-	 * @return object
-	 */
-	protected function get_payment_method_details_from_intent( $intent ) {
-		if ( 'payment_intent' === $intent->object ) {
-			$charge                 = end( $intent->charges->data );
-			$payment_method_details = (array) $charge->payment_method_details;
-			return $payment_method_details[ $this->stripe_id ];
-		} elseif ( 'setup_intent' === $intent->object ) {
-			// TODO: I think we will need to do something different here to get the generated SEPA pm...
-			return null;
-		}
 	}
 
 	/**
@@ -327,7 +264,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 			$text            = __( 'Pending activation', 'woocommerce-gateway-stripe' );
 			$tooltip_content = sprintf(
 				/* translators: %1: Payment method name */
-				esc_attr__( '%1$s won\'t be visible to your customers until you provide the required information. Follow the instructions Stripe has sent to your e-mail.', 'woocommerce-gateway-stripe' ),
+				esc_attr__( '%1$s won\'t be visible to your customers until you provide the required information. Follow the instructions Stripe has sent to your e-mail address.', 'woocommerce-gateway-stripe' ),
 				$this->get_label()
 			);
 			$messages[] = $text . '<span class="tips" data-tip="' . $tooltip_content . '"><span class="woocommerce-help-tip" style="margin-top: 0;"></span></span>';

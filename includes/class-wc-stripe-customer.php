@@ -723,20 +723,4 @@ class WC_Stripe_Customer {
 
 		return $data;
 	}
-
-	/**
-	 * Clears payment method transients and fires action to hook into
-	 * when new payment token is created.
-	 *
-	 * @param WC_Payment_Token_CC|WC_Payment_Token_SEPA $token The WC token for the payment method.
-	 * @param object $payment_method Payment method to be added.
-	 *
-	 * @since 5.6.0
-	 * @version 5.6.0
-	 */
-	public function add_payment_method_actions( $token, $payment_method ) {
-		// Clear cached payment methods.
-		$this->clear_cache();
-		do_action( 'woocommerce_stripe_add_payment_method', $this->get_id(), $token, $payment_method );
-	}
 }
