@@ -124,9 +124,7 @@ export const usePaymentProcessing = (
 					type: emitResponse.responseTypes.SUCCESS,
 					meta: {
 						paymentMethodData: {
-							stripe_source:
-								response?.source?.id ??
-								response?.paymentMethod?.id,
+							stripe_source: newSourceId,
 							// The billing information here is relevant to properly create the
 							// Stripe Customer object.
 							billing_email: ownerInfo.email,
