@@ -1,11 +1,19 @@
 import { __, sprintf } from '@wordpress/i18n';
+import { createInterpolateElement } from '@wordpress/element';
 import { React } from 'react';
-import { Card, CheckboxControl, TextControl } from '@wordpress/components';
+import {
+	Card,
+	CheckboxControl,
+	TextControl,
+	ExternalLink,
+	Button,
+} from '@wordpress/components';
 import { getQuery } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
-import interpolateComponents from 'interpolate-components';
 import CardBody from '../card-body';
 import { gatewaysInfo } from '../payment-gateway-manager/constants';
+import { useAccount } from '../../data/account/hooks';
+import useWebhookStateMessage from '../account-details/use-webhook-state-message';
 import {
 	useEnabledGateway,
 	useGatewayName,
@@ -14,6 +22,11 @@ import {
 
 const StyledCard = styled( Card )`
 	margin-bottom: 12px;
+`;
+
+const WebhookEndpointText = styled.strong`
+	padding: 0 2px;
+	background-color: #f6f7f7; // $studio-gray-0
 `;
 
 const PaymentGatewaySection = () => {
@@ -25,6 +38,8 @@ const PaymentGatewaySection = () => {
 		gatewayDescription,
 		setGatewayDescription,
 	] = useGatewayDescription();
+	const { data } = useAccount();
+	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
 	return (
 		<StyledCard>
 			<CardBody>
@@ -70,41 +85,33 @@ const PaymentGatewaySection = () => {
 					{ __( 'Webhook endpoints', 'woocommerce-gateway-stripe' ) }
 				</h4>
 				<p>
-					{ interpolateComponents( {
-						mixedString: __(
-							"You must add the following webhook endpoint {{webhookLink /}} to your {{stripeSettingsLink /}} (if there isn't one already enabled). This will enable you to receive notifications on the charge statuses.",
+					{ createInterpolateElement(
+						__(
+							"You must add the following webhook endpoint <webhookEndpoint /> to your <a>Stripe account settings</a> (if there isn't one already enabled). This will enable you to receive notifications on the charge statuses.",
 							'woocommerce-gateway-stripe'
 						),
-						components: {
-							webhookLink: (
-								<span className="code">{ `${ location.origin }/?wc-api=wc_stripe` }</span>
+						{
+							webhookEndpoint: (
+								<WebhookEndpointText>
+									{ data.webhook_url }
+								</WebhookEndpointText>
 							),
-							stripeSettingsLink: (
-								<a
-									href="https://dashboard.stripe.com/account/webhooks"
-									target="_blank"
-									rel="external noopener noreferrer"
-								>
-									{ __(
-										'Stripe account settings',
-										'woocommerce-gateway-stripe'
-									) }
-								</a>
+							a: (
+								<ExternalLink href="https://dashboard.stripe.com/account/webhooks" />
 							),
-						},
-					} ) }
+						}
+					) }
 				</p>
 				<p>
-					{ sprintf(
-						/* translators: %s: date */
-						__(
-							'No live webhooks have been received since monitoring began at %s.'
-						),
-						new Date()
-							.toISOString()
-							.replace( 'T', ' ' )
-							.replace( /:\d{2}\..*/, ' UTC' )
-					) }
+					{ message }{ ' ' }
+					<Button
+						disabled={ requestStatus === 'pending' }
+						onClick={ refreshMessage }
+						isBusy={ requestStatus === 'pending' }
+						isLink
+					>
+						{ __( 'Refresh', 'woocommerce-gateway-stripe' ) }
+					</Button>
 				</p>
 			</CardBody>
 		</StyledCard>
