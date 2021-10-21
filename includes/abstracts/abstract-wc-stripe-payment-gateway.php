@@ -1226,9 +1226,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// The request for a charge contains metadata for the intent.
 		$full_request = $this->generate_payment_request( $order, $prepared_source );
 
-		$payment_method_types = WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ?
-			$this->get_upe_enabled_at_checkout_payment_method_ids() :
-			[ 'card' ];
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			$payment_method_types = $this->get_upe_enabled_at_checkout_payment_method_ids();
+		} else {
+			$payment_method_types = [ ( 'stripe_sepa' === $this->id ) ? 'sepa_debit' : 'card' ];
+		}
 
 		$request = [
 			'source'               => $prepared_source->source,
@@ -1601,9 +1603,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// The request for a charge contains metadata for the intent.
 		$full_request = $this->generate_payment_request( $order, $prepared_source );
 
-		$payment_method_types = WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ?
-			$this->get_upe_enabled_at_checkout_payment_method_ids() :
-			[ 'card' ];
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			$payment_method_types = $this->get_upe_enabled_at_checkout_payment_method_ids();
+		} else {
+			$payment_method_types = [ ( 'stripe_sepa' === $this->id ) ? 'sepa_debit' : 'card' ];
+		}
 
 		$request = [
 			'amount'               => $amount ? WC_Stripe_Helper::get_stripe_amount( $amount, $full_request['currency'] ) : $full_request['amount'],
