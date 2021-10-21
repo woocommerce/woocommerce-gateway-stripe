@@ -1,4 +1,4 @@
-import { dispatch, select } from '@wordpress/data';
+import { dispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import { apiFetch } from '@wordpress/data-controls';
 import { NAMESPACE, STORE_NAME } from '../constants';
@@ -26,11 +26,11 @@ export function updateIsSavingAccountKeys( isSaving, error ) {
 	};
 }
 
-export function* saveAccountKeys() {
+export function* saveAccountKeys( accountKeys ) {
+	const isDisconnecting =
+		! accountKeys.publishable_key && ! accountKeys.test_publishable_key;
 	let error = null;
 	try {
-		const accountKeys = select( STORE_NAME ).getAccountKeys();
-
 		yield updateIsSavingAccountKeys( true, null );
 
 		yield apiFetch( {
@@ -45,13 +45,25 @@ export function* saveAccountKeys() {
 			'getAccountData'
 		);
 
+		yield updateAccountKeysValues( accountKeys );
+
 		yield dispatch( 'core/notices' ).createSuccessNotice(
-			__( 'Account keys saved.', 'woocommerce-gateway-stripe' )
+			isDisconnecting
+				? __( 'Account disconnected.', 'woocommerce-gateway-stripe' )
+				: __( 'Account keys saved.', 'woocommerce-gateway-stripe' )
 		);
 	} catch ( e ) {
 		error = e;
 		yield dispatch( 'core/notices' ).createErrorNotice(
-			__( 'Error saving account keys.', 'woocommerce-gateway-stripe' )
+			isDisconnecting
+				? __(
+						'Error disconnecting account.',
+						'woocommerce-gateway-stripe'
+				  )
+				: __(
+						'Error saving account keys.',
+						'woocommerce-gateway-stripe'
+				  )
 		);
 	} finally {
 		yield updateIsSavingAccountKeys( false, error );
