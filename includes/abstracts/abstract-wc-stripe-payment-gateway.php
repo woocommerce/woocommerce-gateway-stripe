@@ -1226,12 +1226,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// The request for a charge contains metadata for the intent.
 		$full_request = $this->generate_payment_request( $order, $prepared_source );
 
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			$payment_method_types = $this->get_upe_enabled_at_checkout_payment_method_ids();
-		} else {
-			$payment_method_types = [ ( 'stripe_sepa' === $this->id ) ? 'sepa_debit' : 'card' ];
-		}
-
 		$request = [
 			'source'               => $prepared_source->source,
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
@@ -1239,7 +1233,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'description'          => $full_request['description'],
 			'metadata'             => $full_request['metadata'],
 			'capture_method'       => ( 'true' === $full_request['capture'] ) ? 'automatic' : 'manual',
-			'payment_method_types' => $payment_method_types,
+			'payment_method_types' => [ $prepared_source->source_object->type ],
 		];
 
 		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->source );
@@ -1609,18 +1603,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// The request for a charge contains metadata for the intent.
 		$full_request = $this->generate_payment_request( $order, $prepared_source );
 
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			$payment_method_types = $this->get_upe_enabled_at_checkout_payment_method_ids();
-		} else {
-			$payment_method_types = [ ( 'stripe_sepa' === $this->id ) ? 'sepa_debit' : 'card' ];
-		}
-
 		$request = [
 			'amount'               => $amount ? WC_Stripe_Helper::get_stripe_amount( $amount, $full_request['currency'] ) : $full_request['amount'],
 			'currency'             => $full_request['currency'],
 			'description'          => $full_request['description'],
 			'metadata'             => $full_request['metadata'],
-			'payment_method_types' => $payment_method_types,
+			'payment_method_types' => [ $prepared_source->source_object->type ],
 			'off_session'          => 'true',
 			'confirm'              => 'true',
 			'confirmation_method'  => 'automatic',
