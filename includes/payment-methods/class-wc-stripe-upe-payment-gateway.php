@@ -115,6 +115,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();
 
+		// Check if pre-orders are enabled and add support for them.
+		$this->maybe_init_pre_orders();
+
 		$main_settings              = get_option( 'woocommerce_stripe_settings' );
 		$this->title                = $this->get_option( 'title_upe' );
 		$this->description          = '';
@@ -565,8 +568,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$order = wc_get_order( $order_id );
 
 			if ( $this->maybe_process_pre_orders( $order_id ) ) {
-				// TODO: Implement pre-orders using Intents API.
-				return;
+				return $this->process_pre_order( $order_id );
 			}
 
 			$token                   = WC_Stripe_Payment_Tokens::get_token_from_request( $_POST );

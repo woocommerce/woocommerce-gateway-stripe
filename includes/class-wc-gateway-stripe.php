@@ -82,7 +82,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			'refunds',
 			'tokenization',
 			'add_payment_method',
-			'pre-orders',
 		];
 
 		// Load the form fields.
@@ -503,8 +502,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				return $this->process_change_subscription_payment_method( $order_id );
 			}
 
-			// ToDo: `process_pre_order` saves the source to the order for a later payment.
-			// This might not work well with PaymentIntents.
 			if ( $this->maybe_process_pre_orders( $order_id ) ) {
 				return $this->process_pre_order( $order_id );
 			}

@@ -18,6 +18,8 @@ trait WC_Stripe_Pre_Orders_Trait {
 			return;
 		}
 
+		$this->supports[] = 'pre-orders';
+
 		add_action( 'wc_pre_orders_process_pre_order_completion_payment_' . $this->id, [ $this, 'process_pre_order_release_payment' ] );
 	}
 
@@ -33,20 +35,10 @@ trait WC_Stripe_Pre_Orders_Trait {
 	public function maybe_process_pre_orders( $order_id ) {
 		return (
 			WC_Stripe_Helper::is_pre_orders_exists() &&
-			$this->is_pre_order( $order_id ) &&
+			WC_Pre_Orders_Order::order_contains_pre_order( $order_id ) &&
 			WC_Pre_Orders_Order::order_requires_payment_tokenization( $order_id ) &&
 			! is_wc_endpoint_url( 'order-pay' )
 		);
-	}
-
-	/**
-	 * Is $order_id a pre-order?
-	 *
-	 * @param  int $order_id
-	 * @return boolean
-	 */
-	public function is_pre_order( $order_id ) {
-		return WC_Pre_Orders_Order::order_contains_pre_order( $order_id );
 	}
 
 	/**
