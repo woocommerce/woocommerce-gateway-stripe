@@ -161,7 +161,7 @@ function woocommerce_gateway_stripe() {
 				include_once dirname( __FILE__ ) . '/includes/class-wc-stripe-api.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-subscriptions-utilities.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-subscriptions.php';
-				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-pre-orders-compat.php';
+				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-pre-orders.php';
 				require_once dirname( __FILE__ ) . '/includes/abstracts/abstract-wc-stripe-payment-gateway.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-state.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-handler.php';
