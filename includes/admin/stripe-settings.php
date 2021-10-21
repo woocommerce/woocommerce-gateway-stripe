@@ -252,7 +252,7 @@ if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 	unset( $stripe_settings['payment_request_button_size'] );
 }
 
-if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && ! WC_Stripe_Helper::is_pre_orders_exists() ) {
+if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 	$upe_settings = [
 		WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => [
 			'title'       => __( 'New checkout experience', 'woocommerce-gateway-stripe' ),
