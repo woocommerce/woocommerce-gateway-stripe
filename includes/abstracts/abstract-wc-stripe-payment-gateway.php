@@ -1571,6 +1571,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return string                   The client secret of the intent, used for confirmation in JS.
 	 */
 	public function setup_intent( $order, $prepared_source ) {
+		// SEPA Direct Debit payments do not require any customer action after the source has been created.
+		// Once the customer has provided their IBAN details and accepted the mandate, no further action is needed and the resulting source is directly chargeable.
+		if ( 'sepa_debit' === $prepared_source->source_object->type ) {
+			return;
+		}
+
 		$order_id     = $order->get_id();
 		$setup_intent = WC_Stripe_API::request(
 			[
