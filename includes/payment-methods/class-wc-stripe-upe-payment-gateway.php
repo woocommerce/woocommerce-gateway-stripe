@@ -1246,6 +1246,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method_object = $this->stripe_request( 'payment_methods/' . $payment_method_id );
 
 			$payment_method = $this->payment_methods[ $payment_method_object->type ];
+
+			$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+			$customer->clear_cache();
+
 			return $payment_method->create_payment_token_for_user( $user->ID, $payment_method_object );
 		} catch ( Exception $e ) {
 			wc_add_notice( $e->getMessage(), 'error', [ 'icon' => 'error' ] );
