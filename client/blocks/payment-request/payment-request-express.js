@@ -47,11 +47,11 @@ const PaymentRequestExpressComponent = ( {
 	const { needsShipping } = shippingData;
 
 	/* Set up payment request and its event handlers. */
-	const [ paymentRequest, paymentRequestType ] = usePaymentRequest(
-		stripe,
-		needsShipping,
-		billing
-	);
+	const [
+		paymentRequest,
+		paymentRequestType,
+		isUpdatingPaymentRequest,
+	] = usePaymentRequest( stripe, needsShipping, billing );
 	useShippingAddressUpdateHandler( paymentRequest, paymentRequestType );
 	useShippingOptionChangeHandler( paymentRequest, paymentRequestType );
 	useProcessPaymentHandler(
@@ -62,6 +62,7 @@ const PaymentRequestExpressComponent = ( {
 	);
 	const onPaymentRequestButtonClick = useOnClickHandler(
 		paymentRequestType,
+		isUpdatingPaymentRequest,
 		setExpressPaymentError,
 		onClick
 	);
@@ -120,13 +121,31 @@ const PaymentRequestExpressComponent = ( {
 	}
 
 	return (
-		<PaymentRequestButtonElement
-			onClick={ onPaymentRequestButtonClick }
-			options={ {
-				style: paymentRequestButtonStyle,
-				paymentRequest,
-			} }
-		/>
+		// We wrap using a div because we can't pass a 'style' prop to PaymentRequestButtonElement.
+		// The pointerEvents hack here is an attempt to improve the UX while we're sending an API
+		// request for the cart. Instead of the button not being clickable and showing a mouse pointer
+		// that indicates that the button is clickable (the hand), instead we just show the regular
+		// mouse pointer.
+		// We'd prefer to just disable the ExpressPaymentButton through the Blocks API, but that's not
+		// possible at the moment.
+		// - @reykjalin
+		<div
+			style={
+				isUpdatingPaymentRequest
+					? {
+							pointerEvents: 'none',
+					  }
+					: {}
+			}
+		>
+			<PaymentRequestButtonElement
+				onClick={ onPaymentRequestButtonClick }
+				options={ {
+					style: paymentRequestButtonStyle,
+					paymentRequest,
+				} }
+			/>
+		</div>
 	);
 };
 

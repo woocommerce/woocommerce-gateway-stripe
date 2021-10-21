@@ -27,6 +27,9 @@ import { getCartDetails } from 'wcstripe/api/blocks';
 export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
 	const [ paymentRequest, setPaymentRequest ] = useState( null );
 	const [ paymentRequestType, setPaymentRequestType ] = useState( null );
+	const [ isUpdatingPaymentRequest, setIsUpdatingPaymentRequest ] = useState(
+		false
+	);
 
 	// Create a payment request if:
 	//   a) Stripe object is loaded; and
@@ -64,8 +67,10 @@ export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
 		}
 
 		const updatePaymentRequest = async () => {
+			setIsUpdatingPaymentRequest( true );
 			const cart = await getCartDetails();
 			updatePaymentRequestUsingCart( paymentRequest, cart );
+			setIsUpdatingPaymentRequest( false );
 		};
 		updatePaymentRequest();
 	}, [
@@ -75,7 +80,7 @@ export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
 		billing.currency.code,
 	] );
 
-	return [ paymentRequest, paymentRequestType ];
+	return [ paymentRequest, paymentRequestType, isUpdatingPaymentRequest ];
 };
 
 /**
@@ -83,6 +88,7 @@ export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
  * the error state, syncs the payment request with the block, and calls the provided click handler.
  *
  * @param {string} paymentRequestType - The payment request type.
+ * @param {boolean} isUpdatingPaymentRequest - True if the payment request is being updated.
  * @param {Function} setExpressPaymentError - Used to set the error state.
  * @param {Function} onClick - The onClick function that should be called on click.
  *
@@ -90,6 +96,7 @@ export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
  */
 export const useOnClickHandler = (
 	paymentRequestType,
+	isUpdatingPaymentRequest,
 	setExpressPaymentError,
 	onClick
 ) => {
@@ -99,6 +106,12 @@ export const useOnClickHandler = (
 			if ( getBlocksConfiguration()?.login_confirmation ) {
 				evt.preventDefault();
 				displayLoginConfirmation( paymentRequestType );
+				return;
+			}
+
+			// If the payment request is being updated, prevent clicks.
+			if ( isUpdatingPaymentRequest ) {
+				evt.preventDefault();
 				return;
 			}
 
@@ -113,7 +126,12 @@ export const useOnClickHandler = (
 				pr.show();
 			}
 		},
-		[ paymentRequestType, setExpressPaymentError, onClick ]
+		[
+			paymentRequestType,
+			isUpdatingPaymentRequest,
+			setExpressPaymentError,
+			onClick,
+		]
 	);
 };
 
