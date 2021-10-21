@@ -152,6 +152,13 @@ abstract class WC_Stripe_UPE_Payment_Method {
 			return $this->is_reusable();
 		}
 
+		// If cart or order contains pre-order, enable payment method if it's reusable.
+		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
+			if ( WC_Pre_Orders_Cart::cart_contains_pre_order() || ( ! empty( $order_id ) && WC_Pre_Orders_Order::order_contains_pre_order( $order_id ) ) ) {
+				return $this->is_reusable();
+			}
+		}
+
 		return true;
 	}
 
