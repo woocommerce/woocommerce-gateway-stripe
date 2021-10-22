@@ -214,7 +214,7 @@ const TooltipBase = ( {
 						<div
 							className={ classNames(
 								'wcstripe-tooltip__tooltip',
-								`wcstripe-tooltip__tooltip-${tooltipPosition}`,
+								`wcstripe-tooltip__tooltip-${ tooltipPosition }`,
 								className
 							) }
 						>
