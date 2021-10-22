@@ -1,4 +1,4 @@
-@import "../../styles/abstracts/styles.scss";
+@import '../../styles/abstracts/styles.scss';
 
 .wcstripe-tooltip {
 	&__content-wrapper {
@@ -29,7 +29,7 @@
 		text-align: center;
 
 		&::after {
-			content: " ";
+			content: ' ';
 			position: absolute;
 
 			// assuming all the tooltips are displayed at the top of the wrapped element.
