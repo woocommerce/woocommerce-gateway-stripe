@@ -24,11 +24,11 @@ const RemoveMethodConfirmationModal = ( { method, onClose, onConfirm } ) => {
 			onRequestClose={ onClose }
 			actions={
 				<>
+					<Button isPrimary isDestructive onClick={ onConfirm }>
+						{ __( 'Remove', 'woocommerce-gateway-stripe' ) }
+					</Button>
 					<Button isSecondary onClick={ onClose }>
 						{ __( 'Cancel', 'woocommerce-gateway-stripe' ) }
-					</Button>
-					<Button isPrimary onClick={ onConfirm }>
-						{ __( 'Remove', 'woocommerce-gateway-stripe' ) }
 					</Button>
 				</>
 			}
