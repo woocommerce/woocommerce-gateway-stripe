@@ -4,43 +4,6 @@ on:
   pull_request
 
 jobs:
-  woocommerce-compatibility:
-    name:    Release
-    runs-on: ubuntu-18.04
-    strategy:
-      fail-fast:    false
-      max-parallel: 10
-      matrix:
-        woocommerce: [ '4.0.0', '4.3.0', '4.4.0', '4.5.0', '4.6.0', '4.7.0', '4.8.0', '4.9.0' ]
-        wordpress:   [ 'latest' ]
-        php:         [ '7.4' ]
-        include:
-          # Edge case: oldest dependencies compatibility
-          - woocommerce: '3.3.0'
-            wordpress:   '4.7'
-            php:         '5.6'
-    env:
-      WP_VERSION: ${{ matrix.wordpress }}
-      WC_VERSION: ${{ matrix.woocommerce }}
-    steps:
-      # clone the repository
-      - uses: actions/checkout@v2
-      # enable dependencies caching
-      - uses: actions/cache@v2
-        with:
-          path: ~/.cache/composer/
-          key:  ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
-      # setup PHP, but without debug extensions for reasonable performance
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php }}
-          tools:       composer
-          coverage:    none
-      # run CI checks
-      - run: if [[ "${{ matrix.php }}" == '5.6' ]]; then wget https://phar.phpunit.de/phpunit-5.7.27.phar && mv phpunit-5.7.27.phar phpunit.phar; fi;
-      - run: if [[ "${{ matrix.php }}" == '7.0' ]]; then wget https://phar.phpunit.de/phpunit-6.5.14.phar && mv phpunit-6.5.14.phar phpunit.phar; fi;
-      - run: bash bin/run-ci-tests.bash
-
   # a dedicated job, as allowed to fail
   compatibility-woocommerce-beta:
     name:    Beta
