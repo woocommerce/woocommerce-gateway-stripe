@@ -129,6 +129,8 @@ const TooltipBase = ( {
 	const wrapperRef = useRef( null );
 	const tooltipWrapperRef = useRef( null );
 
+	const [ tooltipPosition, setTooltipPosition ] = useState( 'center-top' );
+
 	// using a delayed hide, to allow the fade-out animation to complete
 	const isTooltipVisible = useHideDelay( isVisible, {
 		hideDelayMs,
@@ -162,8 +164,16 @@ const TooltipBase = ( {
 			const elementMiddle =
 				wrappedElement.offsetWidth / 2 + wrappedElementRect.left;
 			const tooltipWidth = tooltipElement.offsetWidth;
+
+			const tooltipLeftPosition = elementMiddle - tooltipWidth / 2;
+			const alignLeft = tooltipLeftPosition < 0;
+
+			if ( alignLeft ) {
+				setTooltipPosition( 'left-top' );
+			}
+
 			tooltipElement.style.left = `${
-				elementMiddle - tooltipWidth / 2
+				alignLeft ? elementMiddle - 15 : tooltipLeftPosition
 			}px`;
 
 			// make it visible only after all the calculations are done.
@@ -204,6 +214,7 @@ const TooltipBase = ( {
 						<div
 							className={ classNames(
 								'wcstripe-tooltip__tooltip',
+								`wcstripe-tooltip__tooltip-${tooltipPosition}`,
 								className
 							) }
 						>

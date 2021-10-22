@@ -1,4 +1,4 @@
-@import '../../styles/abstracts/styles.scss';
+@import "../../styles/abstracts/styles.scss";
 
 .wcstripe-tooltip {
 	&__content-wrapper {
@@ -29,16 +29,23 @@
 		text-align: center;
 
 		&::after {
-			content: ' ';
+			content: " ";
 			position: absolute;
 
 			// assuming all the tooltips are displayed at the top of the wrapped element.
 			// no need to complicate things since that's the only use case at the moment.
 			bottom: 0;
 			left: 50%;
-			transform: translate( -50%, 22px );
+			transform: translate(-50%, 22px);
 			border: solid 15px transparent;
 			border-top-color: $gray-900;
+		}
+
+		&-left-top {
+			&::after {
+				left: 0;
+				transform: translate(0, 22px);
+			}
 		}
 	}
 }
