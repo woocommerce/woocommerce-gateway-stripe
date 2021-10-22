@@ -33,5 +33,5 @@ jobs:
           coverage:    none
       # run CI checks
       - run: if [[ "${{ matrix.php }}" == '7.0' ]]; then wget https://phar.phpunit.de/phpunit-6.5.14.phar && mv phpunit-6.5.14.phar phpunit.phar; fi;
-      - run: if [[ "${{ matrix.wordpress }}" >= '5.7' ]]; then composer require --dev yoast/phpunit-polyfills; fi;
+      - run: composer require --dev yoast/phpunit-polyfills
       - run: bash bin/run-ci-tests.bash
