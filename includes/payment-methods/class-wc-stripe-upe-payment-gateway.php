@@ -716,10 +716,35 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( $this->is_payment_methods_page() ) {
 			if ( $this->is_setup_intent_success_creation_redirection() ) {
 				if ( isset( $_GET['redirect_status'] ) && 'succeeded' === $_GET['redirect_status'] ) {
-					$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+					$user_id  = wp_get_current_user()->ID;
+					$customer = new WC_Stripe_Customer( $user_id );
 					$customer->clear_cache();
-
 					wc_add_notice( __( 'Payment method successfully added.', 'woocommerce-gateway-stripe' ) );
+
+					// The newly created payment method does not inherit the customers' billing info, so we manually
+					// trigger an update; in case of failure we log the error and continue because the payment method's
+					// billing info will be updated when the customer makes a purchase anyway.
+					try {
+						$setup_intent_id = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
+						$setup_intent    = $this->stripe_request( 'setup_intents/' . $setup_intent_id, [], null, 'GET' );
+
+						$customer_data         = WC_Stripe_Customer::map_customer_data( null, new WC_Customer( $user_id ) );
+						$payment_method_object = $this->stripe_request(
+							'payment_methods/' . $setup_intent->payment_method,
+							[
+								'billing_details' => [
+									'name'    => $customer_data['name'],
+									'email'   => $customer_data['email'],
+									'phone'   => $customer_data['phone'],
+									'address' => $customer_data['address'],
+								],
+							]
+						);
+
+						do_action( 'woocommerce_stripe_add_payment_method', $user_id, $payment_method_object );
+					} catch ( Exception $e ) {
+						WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+					}
 				} else {
 					wc_add_notice( __( 'Failed to add payment method.', 'woocommerce-gateway-stripe' ), 'error', [ 'icon' => 'error' ] );
 				}
@@ -1222,6 +1247,42 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	private function is_setup_intent_success_creation_redirection() {
 		return ( ! empty( $_GET['setup_intent_client_secret'] ) & ! empty( $_GET['setup_intent'] ) & ! empty( $_GET['redirect_status'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	}
+
+	/**
+	 * Adds a token to current user from a setup intent id.
+	 *
+	 * @param string  $setup_intent_id ID of the setup intent.
+	 * @param WP_User $user            User to add token to.
+	 *
+	 * @return WC_Payment_Token_CC|WC_Payment_Token_WCPay_SEPA The added token.
+	 *
+	 * @since x.x.x
+	 * @version x.x.x
+	 */
+	public function create_token_from_setup_intent( $setup_intent_id, $user ) {
+		try {
+			$setup_intent = $this->stripe_request( 'setup_intents/' . $setup_intent_id );
+			if ( ! empty( $setup_intent->last_payment_error ) ) {
+				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			$payment_method_id     = $setup_intent->payment_method;
+			$payment_method_object = $this->stripe_request( 'payment_methods/' . $payment_method_id );
+
+			$payment_method = $this->payment_methods[ $payment_method_object->type ];
+
+			$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+			$customer->clear_cache();
+
+			return $payment_method->create_payment_token_for_user( $user->ID, $payment_method_object );
+		} catch ( Exception $e ) {
+			wc_add_notice( $e->getMessage(), 'error', [ 'icon' => 'error' ] );
+			WC_Stripe_Logger::log( 'Error when adding payment method: ' . $e->getMessage() );
+			return [
+				'result' => 'error',
+			];
+		}
 	}
 
 	/**

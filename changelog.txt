@@ -2,6 +2,7 @@
 
 = 5.x.x - 2021-xx-xx =
 * Fix - Hong Kong addresses are now mapped more thoroughly to WooCommerce addresses when paying with Apple Pay.
+* Fix - Error when changing payment method for a subscription with new checkout experience.
 
 = 5.7.0 - 2021-10-20 =
 * Fix - Enable use of saved payment methods converted to SEPA payments.
