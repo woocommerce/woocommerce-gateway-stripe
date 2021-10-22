@@ -62,7 +62,6 @@ const PaymentRequestExpressComponent = ( {
 	);
 	const onPaymentRequestButtonClick = useOnClickHandler(
 		paymentRequestType,
-		isUpdatingPaymentRequest,
 		setExpressPaymentError,
 		onClick
 	);
@@ -94,21 +93,47 @@ const PaymentRequestExpressComponent = ( {
 
 	if ( isCustom ) {
 		return (
-			<CustomButton
-				onButtonClicked={ ( evt ) => {
-					onPaymentRequestButtonClick( evt, paymentRequest );
-				} }
-			/>
+			<div
+				className={
+					isUpdatingPaymentRequest
+						? 'wc-block-components-loading-mask'
+						: ''
+				}
+			>
+				<CustomButton
+					className={
+						isUpdatingPaymentRequest
+							? 'wc-block-components-loading-mask__children'
+							: ''
+					}
+					onButtonClicked={ ( evt ) => {
+						onPaymentRequestButtonClick( evt, paymentRequest );
+					} }
+				/>
+			</div>
 		);
 	}
 
 	if ( isBranded && shouldUseGooglePayBrand() ) {
 		return (
-			<GooglePayButton
-				onButtonClicked={ ( evt ) => {
-					onPaymentRequestButtonClick( evt, paymentRequest );
-				} }
-			/>
+			<div
+				className={
+					isUpdatingPaymentRequest
+						? 'wc-block-components-loading-mask'
+						: ''
+				}
+			>
+				<GooglePayButton
+					className={
+						isUpdatingPaymentRequest
+							? 'wc-block-components-loading-mask__children'
+							: ''
+					}
+					onButtonClicked={ ( evt ) => {
+						onPaymentRequestButtonClick( evt, paymentRequest );
+					} }
+				/>
+			</div>
 		);
 	}
 
@@ -121,24 +146,23 @@ const PaymentRequestExpressComponent = ( {
 	}
 
 	return (
-		// We wrap using a div because we can't pass a 'style' prop to PaymentRequestButtonElement.
-		// The pointerEvents hack here is an attempt to improve the UX while we're sending an API
-		// request for the cart. Instead of the button not being clickable and showing a mouse pointer
-		// that indicates that the button is clickable (the hand), instead we just show the regular
-		// mouse pointer.
-		// We'd prefer to just disable the ExpressPaymentButton through the Blocks API, but that's not
-		// possible at the moment.
+		// The classNames here manually trigger the loading state for the PRB. Hopefully we'll
+		// see an API introduced to WooCommerce Blocks that will let us control this without
+		// relying on a CSS class.
 		// - @reykjalin
 		<div
-			style={
+			className={
 				isUpdatingPaymentRequest
-					? {
-							pointerEvents: 'none',
-					  }
-					: {}
+					? 'wc-block-components-loading-mask'
+					: ''
 			}
 		>
 			<PaymentRequestButtonElement
+				className={
+					isUpdatingPaymentRequest
+						? 'wc-block-components-loading-mask__children'
+						: ''
+				}
 				onClick={ onPaymentRequestButtonClick }
 				options={ {
 					style: paymentRequestButtonStyle,

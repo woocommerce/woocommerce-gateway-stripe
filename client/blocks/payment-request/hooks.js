@@ -88,7 +88,6 @@ export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
  * the error state, syncs the payment request with the block, and calls the provided click handler.
  *
  * @param {string} paymentRequestType - The payment request type.
- * @param {boolean} isUpdatingPaymentRequest - True if the payment request is being updated.
  * @param {Function} setExpressPaymentError - Used to set the error state.
  * @param {Function} onClick - The onClick function that should be called on click.
  *
@@ -96,7 +95,6 @@ export const usePaymentRequest = ( stripe, needsShipping, billing ) => {
  */
 export const useOnClickHandler = (
 	paymentRequestType,
-	isUpdatingPaymentRequest,
 	setExpressPaymentError,
 	onClick
 ) => {
@@ -106,12 +104,6 @@ export const useOnClickHandler = (
 			if ( getBlocksConfiguration()?.login_confirmation ) {
 				evt.preventDefault();
 				displayLoginConfirmation( paymentRequestType );
-				return;
-			}
-
-			// If the payment request is being updated, prevent clicks.
-			if ( isUpdatingPaymentRequest ) {
-				evt.preventDefault();
 				return;
 			}
 
@@ -126,12 +118,7 @@ export const useOnClickHandler = (
 				pr.show();
 			}
 		},
-		[
-			paymentRequestType,
-			isUpdatingPaymentRequest,
-			setExpressPaymentError,
-			onClick,
-		]
+		[ paymentRequestType, setExpressPaymentError, onClick ]
 	);
 };
 
