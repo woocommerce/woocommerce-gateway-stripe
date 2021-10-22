@@ -852,6 +852,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 		$payment_method = $this->payment_methods[ $payment_method_type ];
 
+		if ( $this->maybe_process_pre_orders( $order->get_id() ) ) {
+			// If this is a pre-order, simply mark the order as pre-ordered and allow
+			// the following logic to save the payment method and proceed to complete the order.
+			WC_Pre_Orders_Order::mark_order_as_pre_ordered( $order->get_id() );
+			$save_payment_method = true;
+		}
+
 		if ( $save_payment_method && $payment_method->is_reusable() ) {
 			$payment_method_object = null;
 			if ( $payment_method->get_id() !== $payment_method->get_retrievable_type() ) {
