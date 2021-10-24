@@ -1268,15 +1268,21 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Validates statement descriptor value
 	 *
+	 * @param string $param Param name.
 	 * @param string $value Posted Value.
 	 * @param int    $max_length Maximum statement length.
 	 *
 	 * @return string                   Sanitized statement descriptor.
 	 * @throws InvalidArgumentException When statement descriptor is invalid.
 	 */
-	public function validate_account_statement_descriptor_field( $value, $max_length ) {
+	public function validate_account_statement_descriptor_field( $param, $value, $max_length ) {
 		// Since the value is escaped, and we are saving in a place that does not require escaping, apply stripslashes.
+		$field = __( 'Customer bank statement', 'woocommerce-gateway-stripe' );
 		$value = trim( stripslashes( $value ) );
+
+		if ( 'short_statement_descriptor' === $param ) {
+			$field = __( 'Shortened customer bank statement', 'woocommerce-gateway-stripe' );
+		}
 
 		// Validation can be done with a single regex but splitting into multiple for better readability.
 		$valid_length   = '/^.{5,' . $max_length . '}$/';
@@ -1290,8 +1296,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		) {
 			throw new InvalidArgumentException(
 				sprintf(
-					/* translators: %u Number of the maximum characters allowed */
-					__( 'Customer bank statement is invalid. Statement should be between 5 and %u characters long, contain at least single Latin character and does not contain special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' ),
+					/* translators: %1 field name, %2 Number of the maximum characters allowed */
+					__( '%1$s is invalid. Statement should be between 5 and %2$u characters long, contain at least single Latin character and does not contain special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' ),
+					$field,
 					$max_length
 				)
 			);

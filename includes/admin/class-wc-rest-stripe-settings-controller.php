@@ -197,7 +197,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		try {
-			$this->gateway->validate_account_statement_descriptor_field( $value, $max_length );
+			$this->gateway->validate_account_statement_descriptor_field( $param, $value, $max_length );
 		} catch ( Exception $exception ) {
 			return new WP_Error(
 				'rest_invalid_pattern',
