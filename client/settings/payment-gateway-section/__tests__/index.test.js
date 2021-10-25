@@ -3,10 +3,10 @@ import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PaymentGatewaySection from '..';
 import {
-	useEnabledGateway,
-	useGatewayName,
-	useGatewayDescription,
-} from '../hooks';
+	useEnabledPaymentGateway,
+	usePaymentGatewayName,
+	usePaymentGatewayDescription,
+} from '../../../data/payment-gateway/hooks';
 
 jest.mock( '@woocommerce/navigation', () => ( {
 	getQuery: jest.fn().mockReturnValue( { section: 'stripe_alipay' } ),
@@ -25,17 +25,21 @@ jest.mock( '../../account-details/use-webhook-state-message', () => ( {
 	} ),
 } ) );
 
-jest.mock( '../hooks', () => ( {
-	useEnabledGateway: jest.fn(),
-	useGatewayName: jest.fn(),
-	useGatewayDescription: jest.fn(),
+jest.mock( '../../../data/payment-gateway/hooks', () => ( {
+	useEnabledPaymentGateway: jest.fn(),
+	usePaymentGatewayName: jest.fn(),
+	usePaymentGatewayDescription: jest.fn(),
 } ) );
+
+jest.mock( '../../loadable-payment-gateway-section', () => ( { children } ) =>
+	children
+);
 
 describe( 'PaymentGatewaySection', () => {
 	beforeEach( () => {
-		useEnabledGateway.mockReturnValue( [ false ] );
-		useGatewayName.mockReturnValue( [ 'Alipay' ] );
-		useGatewayDescription.mockReturnValue( [
+		useEnabledPaymentGateway.mockReturnValue( [ false ] );
+		usePaymentGatewayName.mockReturnValue( [ 'Alipay' ] );
+		usePaymentGatewayDescription.mockReturnValue( [
 			'You will be redirected to Alipay',
 		] );
 	} );
@@ -55,7 +59,10 @@ describe( 'PaymentGatewaySection', () => {
 
 	it( 'should be possible to enable/disable the payment gateway', () => {
 		const enableGatewayMock = jest.fn();
-		useEnabledGateway.mockReturnValue( [ false, enableGatewayMock ] );
+		useEnabledPaymentGateway.mockReturnValue( [
+			false,
+			enableGatewayMock,
+		] );
 
 		render( <PaymentGatewaySection /> );
 
@@ -73,7 +80,7 @@ describe( 'PaymentGatewaySection', () => {
 
 	it( 'should be possible to update the gateway name', () => {
 		const setGatewayNameMock = jest.fn();
-		useGatewayName.mockReturnValue( [ '', setGatewayNameMock ] );
+		usePaymentGatewayName.mockReturnValue( [ '', setGatewayNameMock ] );
 
 		render( <PaymentGatewaySection /> );
 
@@ -91,7 +98,7 @@ describe( 'PaymentGatewaySection', () => {
 
 	it( 'should be possible to update the gateway description', () => {
 		const setGatewayDescriptionMock = jest.fn();
-		useGatewayDescription.mockReturnValue( [
+		usePaymentGatewayDescription.mockReturnValue( [
 			'',
 			setGatewayDescriptionMock,
 		] );
