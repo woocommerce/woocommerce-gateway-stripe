@@ -15,10 +15,10 @@ import { gatewaysInfo } from '../payment-gateway-manager/constants';
 import { useAccount } from '../../data/account/hooks';
 import useWebhookStateMessage from '../account-details/use-webhook-state-message';
 import {
-	useEnabledGateway,
-	useGatewayName,
-	useGatewayDescription,
-} from './hooks';
+	useEnabledPaymentGateway,
+	usePaymentGatewayName,
+	usePaymentGatewayDescription,
+} from '../../data/payment-gateway/hooks';
 
 const StyledCard = styled( Card )`
 	margin-bottom: 12px;
@@ -32,12 +32,12 @@ const WebhookEndpointText = styled.strong`
 const PaymentGatewaySection = () => {
 	const { section } = getQuery();
 	const info = gatewaysInfo[ section ];
-	const [ enableGateway, setEnableGateway ] = useEnabledGateway();
-	const [ gatewayName, setGatewayName ] = useGatewayName();
+	const [ enableGateway, setEnableGateway ] = useEnabledPaymentGateway();
+	const [ gatewayName, setGatewayName ] = usePaymentGatewayName();
 	const [
 		gatewayDescription,
 		setGatewayDescription,
-	] = useGatewayDescription();
+	] = usePaymentGatewayDescription();
 	const { data } = useAccount();
 	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
 	return (
