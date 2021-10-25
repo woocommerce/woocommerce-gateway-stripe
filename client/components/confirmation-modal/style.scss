@@ -4,7 +4,10 @@
 	// increasing the specificity of the styles, to ensure it is honored
 	&#{&} {
 		max-width: 600px;
-		min-width: 400px;
+		min-width: 100%;
+		@media ( min-width: 400px ) {
+			min-width: 400px;
+		}
 	}
 
 	// to ensure that the separator extends all the way, even with different versions of Gutenberg
