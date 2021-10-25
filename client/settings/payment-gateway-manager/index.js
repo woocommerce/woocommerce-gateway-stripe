@@ -6,8 +6,8 @@ import SettingsLayout from '../settings-layout';
 import SettingsSection from '../settings-section';
 import LoadableSettingsSection from '../loadable-settings-section';
 import PaymentGatewaySection from '../payment-gateway-section';
-import UpeOptInBanner from '../general-settings-section/upe-opt-in-banner';
 import SavePaymentGatewaySection from '../save-payment-gateway-section';
+import OptInBanner from './opt-in-banner';
 import { gatewaysInfo } from './constants';
 
 const GatewayDescription = () => {
@@ -47,9 +47,7 @@ const PaymentGatewayManager = () => {
 				<LoadableSettingsSection numLines={ 34 }>
 					<PaymentGatewaySection />
 				</LoadableSettingsSection>
-			</SettingsSection>
-			<SettingsSection>
-				<UpeOptInBanner />
+				<OptInBanner />
 			</SettingsSection>
 			<SavePaymentGatewaySection />
 		</SettingsLayout>
