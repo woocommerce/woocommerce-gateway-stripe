@@ -12,6 +12,7 @@ import { getQuery } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
 import CardBody from '../card-body';
 import { gatewaysInfo } from '../payment-gateway-manager/constants';
+import LoadablePaymentGatewaySection from '../loadable-payment-gateway-section';
 import { useAccount } from '../../data/account/hooks';
 import useWebhookStateMessage from '../account-details/use-webhook-state-message';
 import {
@@ -42,78 +43,89 @@ const PaymentGatewaySection = () => {
 	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
 	return (
 		<StyledCard>
-			<CardBody>
-				<CheckboxControl
-					checked={ enableGateway }
-					onChange={ setEnableGateway }
-					label={ sprintf(
-						/* translators: %s: Payment Gateway name */
-						__( 'Enable %s', 'woocommerce-gateway-stripe' ),
-						info.title
-					) }
-					help={ sprintf(
-						/* translators: %s: Payment Gateway name */
-						__(
-							'When enabled, %s will appear on checkout.',
-							'woocommerce-gateway-stripe'
-						),
-						info.title
-					) }
-				/>
-				<h4>
-					{ __( 'Display settings', 'woocommerce-gateway-stripe' ) }
-				</h4>
-				<TextControl
-					help={ __(
-						'Enter a name which customers will see during checkout.',
-						'woocommerce-gateway-stripe'
-					) }
-					label={ __( 'Name', 'woocommerce-gateway-stripe' ) }
-					value={ gatewayName }
-					onChange={ setGatewayName }
-				/>
-				<TextControl
-					help={ __(
-						'Describe how customers should use this payment method during checkout.',
-						'woocommerce-gateway-stripe'
-					) }
-					label={ __( 'Description', 'woocommerce-gateway-stripe' ) }
-					value={ gatewayDescription }
-					onChange={ setGatewayDescription }
-				/>
-				<h4>
-					{ __( 'Webhook endpoints', 'woocommerce-gateway-stripe' ) }
-				</h4>
-				<p>
-					{ createInterpolateElement(
-						__(
-							"You must add the following webhook endpoint <webhookEndpoint /> to your <a>Stripe account settings</a> (if there isn't one already enabled). This will enable you to receive notifications on the charge statuses.",
-							'woocommerce-gateway-stripe'
-						),
-						{
-							webhookEndpoint: (
-								<WebhookEndpointText>
-									{ data.webhook_url }
-								</WebhookEndpointText>
+			<LoadablePaymentGatewaySection numLines={ 34 }>
+				<CardBody>
+					<CheckboxControl
+						checked={ enableGateway }
+						onChange={ setEnableGateway }
+						label={ sprintf(
+							/* translators: %s: Payment Gateway name */
+							__( 'Enable %s', 'woocommerce-gateway-stripe' ),
+							info.title
+						) }
+						help={ sprintf(
+							/* translators: %s: Payment Gateway name */
+							__(
+								'When enabled, %s will appear on checkout.',
+								'woocommerce-gateway-stripe'
 							),
-							a: (
-								<ExternalLink href="https://dashboard.stripe.com/account/webhooks" />
+							info.title
+						) }
+					/>
+					<h4>
+						{ __(
+							'Display settings',
+							'woocommerce-gateway-stripe'
+						) }
+					</h4>
+					<TextControl
+						help={ __(
+							'Enter a name which customers will see during checkout.',
+							'woocommerce-gateway-stripe'
+						) }
+						label={ __( 'Name', 'woocommerce-gateway-stripe' ) }
+						value={ gatewayName }
+						onChange={ setGatewayName }
+					/>
+					<TextControl
+						help={ __(
+							'Describe how customers should use this payment method during checkout.',
+							'woocommerce-gateway-stripe'
+						) }
+						label={ __(
+							'Description',
+							'woocommerce-gateway-stripe'
+						) }
+						value={ gatewayDescription }
+						onChange={ setGatewayDescription }
+					/>
+					<h4>
+						{ __(
+							'Webhook endpoints',
+							'woocommerce-gateway-stripe'
+						) }
+					</h4>
+					<p>
+						{ createInterpolateElement(
+							__(
+								"You must add the following webhook endpoint <webhookEndpoint /> to your <a>Stripe account settings</a> (if there isn't one already enabled). This will enable you to receive notifications on the charge statuses.",
+								'woocommerce-gateway-stripe'
 							),
-						}
-					) }
-				</p>
-				<p>
-					{ message }{ ' ' }
-					<Button
-						disabled={ requestStatus === 'pending' }
-						onClick={ refreshMessage }
-						isBusy={ requestStatus === 'pending' }
-						isLink
-					>
-						{ __( 'Refresh', 'woocommerce-gateway-stripe' ) }
-					</Button>
-				</p>
-			</CardBody>
+							{
+								webhookEndpoint: (
+									<WebhookEndpointText>
+										{ data.webhook_url }
+									</WebhookEndpointText>
+								),
+								a: (
+									<ExternalLink href="https://dashboard.stripe.com/account/webhooks" />
+								),
+							}
+						) }
+					</p>
+					<p>
+						{ message }{ ' ' }
+						<Button
+							disabled={ requestStatus === 'pending' }
+							onClick={ refreshMessage }
+							isBusy={ requestStatus === 'pending' }
+							isLink
+						>
+							{ __( 'Refresh', 'woocommerce-gateway-stripe' ) }
+						</Button>
+					</p>
+				</CardBody>
+			</LoadablePaymentGatewaySection>
 		</StyledCard>
 	);
 };

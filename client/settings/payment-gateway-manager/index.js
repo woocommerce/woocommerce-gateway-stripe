@@ -4,7 +4,6 @@ import { ExternalLink } from '@wordpress/components';
 import { getQuery } from '@woocommerce/navigation';
 import SettingsLayout from '../settings-layout';
 import SettingsSection from '../settings-section';
-import LoadableSettingsSection from '../loadable-settings-section';
 import PaymentGatewaySection from '../payment-gateway-section';
 import SavePaymentGatewaySection from '../save-payment-gateway-section';
 import OptInBanner from './opt-in-banner';
@@ -44,9 +43,7 @@ const PaymentGatewayManager = () => {
 	return (
 		<SettingsLayout>
 			<SettingsSection Description={ GatewayDescription }>
-				<LoadableSettingsSection numLines={ 34 }>
-					<PaymentGatewaySection />
-				</LoadableSettingsSection>
+				<PaymentGatewaySection />
 				<OptInBanner />
 			</SettingsSection>
 			<SavePaymentGatewaySection />
