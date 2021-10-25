@@ -1277,8 +1277,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function validate_account_statement_descriptor_field( $param, $value, $max_length ) {
 		// Since the value is escaped, and we are saving in a place that does not require escaping, apply stripslashes.
-		$field = __( 'Customer bank statement', 'woocommerce-gateway-stripe' );
 		$value = trim( stripslashes( $value ) );
+		$field = __( 'Customer bank statement', 'woocommerce-gateway-stripe' );
 
 		if ( 'short_statement_descriptor' === $param ) {
 			$field = __( 'Shortened customer bank statement', 'woocommerce-gateway-stripe' );
