@@ -124,7 +124,7 @@ class WC_REST_Gateway_Settings_Controller extends WC_Stripe_REST_Base_Controller
 		$field_name = 'is_' . $this->gateway->id . '_enabled';
 		$is_enabled = $request->get_param( $field_name );
 
-		if ( null === $is_enabled ) {
+		if ( null === $is_enabled || ! is_bool( $is_enabled ) ) {
 			return;
 		}
 
