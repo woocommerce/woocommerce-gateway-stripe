@@ -41,6 +41,22 @@ export const createPaymentRequestUsingCart = ( stripe, cart ) => {
 };
 
 /**
+ * Updates the given PaymentRequest using the data in the cart object.
+ *
+ * @param {Object} paymentRequest  The payment request object.
+ * @param {Object} cart  The cart data response from the store's AJAX API.
+ */
+export const updatePaymentRequestUsingCart = ( paymentRequest, cart ) => {
+	const options = {
+		total: cart.order_data.total,
+		currency: cart.order_data.currency,
+		displayItems: cart.order_data.displayItems,
+	};
+
+	paymentRequest.update( options );
+};
+
+/**
  * Returns the public api key for the stripe payment method
  *
  * @throws Error
