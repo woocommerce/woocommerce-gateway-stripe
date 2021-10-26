@@ -269,28 +269,28 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 	public function enum_field_provider() {
 		return [
-			'enabled_payment_method_ids' => [
+			'enabled_payment_method_ids'       => [
 				'enabled_payment_method_ids',
 				'upe_checkout_experience_accepted_payments',
 				[ 'card' ],
 				[ 'card', 'giropay' ],
 				[ 'foo' ],
 			],
-			'payment_request_button_theme' => [
+			'payment_request_button_theme'     => [
 				'payment_request_button_theme',
 				'payment_request_button_theme',
 				'dark',
 				'light',
 				'foo',
 			],
-			'payment_request_button_size' => [
+			'payment_request_button_size'      => [
 				'payment_request_button_size',
 				'payment_request_button_size',
 				'default',
 				'large',
 				'foo',
 			],
-			'payment_request_button_type' => [
+			'payment_request_button_type'      => [
 				'payment_request_button_type',
 				'payment_request_button_type',
 				'buy',
