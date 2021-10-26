@@ -148,7 +148,8 @@ class WC_REST_Gateway_Settings_Controller extends WC_Stripe_REST_Base_Controller
 			return;
 		}
 
-		$this->gateway->update_option( 'title', $name );
+		$value = sanitize_text_field( $name );
+		$this->gateway->update_option( 'title', $value );
 	}
 
 	/**
@@ -164,6 +165,7 @@ class WC_REST_Gateway_Settings_Controller extends WC_Stripe_REST_Base_Controller
 			return;
 		}
 
-		$this->gateway->update_option( 'description', $description );
+		$value = sanitize_text_field( $description );
+		$this->gateway->update_option( 'description', $value );
 	}
 }
