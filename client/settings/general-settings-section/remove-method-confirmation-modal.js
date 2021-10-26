@@ -12,10 +12,10 @@ const RemoveMethodConfirmationModal = ( { method, onClose, onConfirm } ) => {
 	const confirmMethodRemovalString = sprintf(
 		/* translators: %1: payment method name (e.g.: giropay, EPS, Sofort, etc). */
 		__(
-			'Are you sure you want to remove %1$s? Your customers will no longer be able to pay using %1$s.',
+			'Are you sure you want to remove <strong>%1$s</strong>? Your customers will no longer be able to pay using <strong>%1$s</strong>.',
 			'woocommerce-gateway-stripe'
 		),
-		`<PaymentMethodTitle>${ label }</PaymentMethodTitle>`
+		label
 	);
 
 	return (
@@ -46,7 +46,7 @@ const RemoveMethodConfirmationModal = ( { method, onClose, onConfirm } ) => {
 		>
 			<p>
 				{ createInterpolateElement( confirmMethodRemovalString, {
-					PaymentMethodTitle: <strong />,
+					strong: <strong />,
 				} ) }
 			</p>
 			<p>
