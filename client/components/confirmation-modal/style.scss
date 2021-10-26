@@ -4,8 +4,7 @@
 	// increasing the specificity of the styles, to ensure it is honored
 	&#{&} {
 		max-width: 600px;
-		min-width: 100%;
-		@media ( min-width: 400px ) {
+		@media ( min-width: 600px ) {
 			min-width: 400px;
 		}
 	}
@@ -14,7 +13,7 @@
 	.components-modal__content {
 		padding: 0 $grid-unit-30 $grid-unit-30;
 
-		@media ( max-width: 600px ) {
+		@media ( max-width: 599px ) {
 			display: flex;
 			flex-direction: column;
 			
