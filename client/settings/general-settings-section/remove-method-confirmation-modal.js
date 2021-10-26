@@ -1,4 +1,5 @@
 import { __, sprintf } from '@wordpress/i18n';
+import { createInterpolateElement } from '@wordpress/element';
 import React from 'react';
 import { Button } from '@wordpress/components';
 import PaymentMethodsMap from '../../payment-methods-map';
@@ -14,7 +15,7 @@ const RemoveMethodConfirmationModal = ( { method, onClose, onConfirm } ) => {
 			'Are you sure you want to remove %1$s? Your customers will no longer be able to pay using %1$s.',
 			'woocommerce-gateway-stripe'
 		),
-		`<strong>${ label }</strong>`
+		`<PaymentMethodTitle>${ label }</PaymentMethodTitle>`
 	);
 
 	return (
@@ -43,11 +44,11 @@ const RemoveMethodConfirmationModal = ( { method, onClose, onConfirm } ) => {
 				</>
 			}
 		>
-			<p
-				dangerouslySetInnerHTML={ {
-					__html: confirmMethodRemovalString,
-				} }
-			/>
+			<p>
+				{ createInterpolateElement( confirmMethodRemovalString, {
+					PaymentMethodTitle: <strong />,
+				} ) }
+			</p>
 			<p>
 				{ __(
 					'You can add it again at any time in Stripe settings.',
