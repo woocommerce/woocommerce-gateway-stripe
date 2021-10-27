@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 4.6
 Tested up to: 5.8
 Requires PHP: 5.6
-Stable tag: 5.6.2
+Stable tag: 5.7.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,5 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 5.x.x - 2021-xx-xx =
 * Fix - Hong Kong addresses are now mapped more thoroughly to WooCommerce addresses when paying with Apple Pay.
+* Fix - Error when changing payment method for a subscription with new checkout experience.
+* Fix - Payment Requests are now updated correctly when updating items in the Cart Block.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
