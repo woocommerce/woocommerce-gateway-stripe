@@ -1008,8 +1008,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		if ( 'setup_intent' === $intent->object && 'succeeded' === $intent->status ) {
 			WC()->cart->empty_cart();
-			if ( WC_Stripe_Helper::is_pre_orders_exists() && WC_Pre_Orders_Order::order_contains_pre_order( $order ) ) {
-				WC_Pre_Orders_Order::mark_order_as_pre_ordered( $order );
+			if ( $this->has_pre_order( $order ) ) {
+				$this->mark_order_as_pre_ordered( $order );
 			} else {
 				$order->payment_complete();
 			}

@@ -854,8 +854,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		if ( $this->maybe_process_pre_orders( $order->get_id() ) ) {
 			// If this is a pre-order, simply mark the order as pre-ordered and allow
-			// the following logic to save the payment method and proceed to complete the order.
-			WC_Pre_Orders_Order::mark_order_as_pre_ordered( $order->get_id() );
+			// the subsequent logic to save the payment method and proceed to complete the order.
+			$this->mark_order_as_pre_ordered( $order->get_id() );
 			$save_payment_method = true;
 		}
 
@@ -968,13 +968,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool Whether a payment is necessary.
 	 */
 	public function is_payment_needed( $order_id = null ) {
-		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
-			if ( WC_Pre_Orders_Cart::cart_contains_pre_order() || ( ! empty( $order_id ) && WC_Pre_Orders_Order::order_contains_pre_order( $order_id ) ) ) {
-				$pre_order_product = ( ! empty( $order_id ) ) ? WC_Pre_Orders_Order::get_pre_order_product( $order_id ) : WC_Pre_Orders_Cart::get_pre_order_product();
-				// Only one pre-order product is allowed per cart,
-				// so we can return if it's charged upfront.
-				return WC_Pre_Orders_Product::product_is_charged_upfront( $pre_order_product );
-			}
+		if ( $this->is_pre_order_item_in_cart() || ( ! empty( $order_id ) && $this->has_pre_order( $order_id ) ) ) {
+			$pre_order_product = ( ! empty( $order_id ) ) ? $this->get_pre_order_product_from_order( $order_id ) : $this->get_pre_order_product_from_cart();
+			// Only one pre-order product is allowed per cart,
+			// so we can return if it's charged upfront.
+			return $this->is_pre_order_product_charged_upfront( $pre_order_product );
 		}
 
 		// Free trial subscriptions without a sign up fee, or any other type
