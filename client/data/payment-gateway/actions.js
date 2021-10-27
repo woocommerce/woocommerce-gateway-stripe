@@ -5,8 +5,6 @@ import { getQuery } from '@woocommerce/navigation';
 import { NAMESPACE, STORE_NAME } from '../constants';
 import ACTION_TYPES from './action-types';
 
-const { section } = getQuery();
-
 export function updatePaymentGatewayValues( payload ) {
 	return {
 		type: ACTION_TYPES.SET_PAYMENT_GATEWAY_VALUES,
@@ -31,6 +29,7 @@ export function updateIsSavingPaymentGateway( isSaving, error ) {
 
 export function* savePaymentGateway() {
 	let error = null;
+	const { section } = getQuery();
 	try {
 		const settings = select( STORE_NAME ).getPaymentGateway();
 
