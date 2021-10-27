@@ -67,21 +67,8 @@ export const usePaymentGateway = () => {
 	return { paymentGateway, isLoading, isSaving, savePaymentGateway };
 };
 
-export const makeIsPaymentGatewayEnabledHook = ( gatewayName ) =>
-	makePaymentGatewayHook( `is_${ gatewayName }_enabled` );
+export const useEnabledPaymentGateway = makePaymentGatewayHook( `is_${ section }_enabled` );
 
-export const makePaymentGatewayNameHook = ( gatewayName ) =>
-	makePaymentGatewayHook( `${ gatewayName }_name`, '' );
+export const usePaymentGatewayName = makePaymentGatewayHook( `${ section }_name`, '' );;
 
-export const makePaymentGatewayDescriptionHook = ( gatewayName ) =>
-	makePaymentGatewayHook( `${ gatewayName }_description`, '' );
-
-export const useEnabledPaymentGateway = makeIsPaymentGatewayEnabledHook(
-	section
-);
-
-export const usePaymentGatewayName = makePaymentGatewayNameHook( section );
-
-export const usePaymentGatewayDescription = makePaymentGatewayDescriptionHook(
-	section
-);
+export const usePaymentGatewayDescription = makePaymentGatewayHook( `${ section }_description`, '' )
