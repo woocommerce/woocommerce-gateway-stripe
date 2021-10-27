@@ -1,20 +1,20 @@
 <?php
 /**
- * Class WC_REST_Stripe_Gateway_Settings_Controller_Test
+ * Class WC_REST_Stripe_Payment_Gateway_Controller_Test
  */
 
 use Automattic\WooCommerce\Blocks\Package;
 use Automattic\WooCommerce\Blocks\RestApi;
 
 /**
- * WC_REST_Stripe_Gateway_Settings_Controller_Test unit tests.
+ * WC_REST_Stripe_Payment_Gateway_Controller_Test unit tests.
  */
-class WC_REST_Stripe_Gateway_Settings_Controller_Test extends WP_UnitTestCase {
+class WC_REST_Stripe_Payment_Gateway_Controller_Test extends WP_UnitTestCase {
 
 	/**
 	 * Tested REST route.
 	 */
-	const SETTINGS_ROUTE = '/wc/v3/wc_stripe/payment-gateway-settings/stripe_alipay';
+	const REST_ROUTE = '/wc/v3/wc_stripe/payment-gateway/stripe_alipay';
 
 	/**
 	 * Gateway instance that the controller uses.
@@ -61,7 +61,7 @@ class WC_REST_Stripe_Gateway_Settings_Controller_Test extends WP_UnitTestCase {
 
 		// Update if new value is boolean.
 		$this->get_gateway()->update_option( $option_name, $inverse ? 'yes' : 'no' );
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request = new WP_REST_Request( 'POST', self::REST_ROUTE );
 		$request->set_param( $rest_key, true );
 		$response = rest_do_request( $request );
 
@@ -70,7 +70,7 @@ class WC_REST_Stripe_Gateway_Settings_Controller_Test extends WP_UnitTestCase {
 
 		// Do not update if rest key not present in update request.
 		$status_before_request = $this->rest_get_settings()->get_data()[ $rest_key ];
-		$request               = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request               = new WP_REST_Request( 'POST', self::REST_ROUTE );
 		$response              = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
@@ -78,7 +78,7 @@ class WC_REST_Stripe_Gateway_Settings_Controller_Test extends WP_UnitTestCase {
 
 		// Do not update if REST value is not boolean.
 		$status_before_request = $this->rest_get_settings()->get_data()[ $rest_key ];
-		$request               = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request               = new WP_REST_Request( 'POST', self::REST_ROUTE );
 		$request->set_param( $rest_key, 'foo' );
 		$response = rest_do_request( $request );
 		$this->assertEquals( 200, $response->get_status() );
@@ -97,7 +97,7 @@ class WC_REST_Stripe_Gateway_Settings_Controller_Test extends WP_UnitTestCase {
 
 		// Update it if new value is provided.
 		$this->get_gateway()->update_option( $option_name, 'foo' );
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request = new WP_REST_Request( 'POST', self::REST_ROUTE );
 		$request->set_param( $rest_key, 'bar' );
 		$response = rest_do_request( $request );
 
@@ -106,14 +106,14 @@ class WC_REST_Stripe_Gateway_Settings_Controller_Test extends WP_UnitTestCase {
 
 		// Do not update if rest key not present in update request.
 		$value_before_request = $this->rest_get_settings()->get_data()[ $rest_key ];
-		$request              = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request              = new WP_REST_Request( 'POST', self::REST_ROUTE );
 		$response             = rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertEquals( $value_before_request, $this->rest_get_settings()->get_data()[ $rest_key ] );
 
 		// Update to an empty string if REST value is not a valid text.
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request = new WP_REST_Request( 'POST', self::REST_ROUTE );
 		$request->set_param( $rest_key, false );
 		$response = rest_do_request( $request );
 		$this->assertEquals( 200, $response->get_status() );
@@ -137,13 +137,13 @@ class WC_REST_Stripe_Gateway_Settings_Controller_Test extends WP_UnitTestCase {
 	public function test_update_settings_fails_if_user_cannot_manage_woocommerce() {
 		$cb = $this->create_can_manage_woocommerce_cap_override( false );
 		add_filter( 'user_has_cap', $cb );
-		$response = rest_do_request( new WP_REST_Request( 'POST', self::SETTINGS_ROUTE ) );
+		$response = rest_do_request( new WP_REST_Request( 'POST', self::REST_ROUTE ) );
 		$this->assertEquals( 403, $response->get_status() );
 		remove_filter( 'user_has_cap', $cb );
 
 		$cb = $this->create_can_manage_woocommerce_cap_override( true );
 		add_filter( 'user_has_cap', $cb );
-		$response = rest_do_request( new WP_REST_Request( 'POST', self::SETTINGS_ROUTE ) );
+		$response = rest_do_request( new WP_REST_Request( 'POST', self::REST_ROUTE ) );
 		$this->assertEquals( 200, $response->get_status() );
 		remove_filter( 'user_has_cap', $cb );
 	}
@@ -197,7 +197,7 @@ class WC_REST_Stripe_Gateway_Settings_Controller_Test extends WP_UnitTestCase {
 	 * @return WP_REST_Response
 	 */
 	private function rest_get_settings() {
-		$request = new WP_REST_Request( 'GET', self::SETTINGS_ROUTE );
+		$request = new WP_REST_Request( 'GET', self::REST_ROUTE );
 
 		return rest_do_request( $request );
 	}
