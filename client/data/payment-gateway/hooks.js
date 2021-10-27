@@ -67,14 +67,14 @@ export const usePaymentGateway = () => {
 
 export const useEnabledPaymentGateway = () => {
 	const { section } = getQuery();
-	makePaymentGatewayHook( `is_${ section }_enabled` );
+	return makePaymentGatewayHook( `is_${ section }_enabled` );
 };
 export const usePaymentGatewayName = () => {
 	const { section } = getQuery();
-	makePaymentGatewayHook( `${ section }_name`, '' );
+	return makePaymentGatewayHook( `${ section }_name`, '' );
 };
 
 export const usePaymentGatewayDescription = () => {
 	const { section } = getQuery();
-	makePaymentGatewayHook( `${ section }_description`, '' );
+	return makePaymentGatewayHook( `${ section }_description`, '' );
 };
