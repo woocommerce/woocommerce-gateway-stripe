@@ -3,8 +3,6 @@ import { useCallback } from 'react';
 import { getQuery } from '@woocommerce/navigation';
 import { STORE_NAME } from '../constants';
 
-const { section } = getQuery();
-
 const makeReadOnlyPaymentGatewayHook = (
 	fieldName,
 	fieldDefaultValue = false
@@ -67,8 +65,16 @@ export const usePaymentGateway = () => {
 	return { paymentGateway, isLoading, isSaving, savePaymentGateway };
 };
 
-export const useEnabledPaymentGateway = makePaymentGatewayHook( `is_${ section }_enabled` );
+export const useEnabledPaymentGateway = () => {
+	const { section } = getQuery();
+	makePaymentGatewayHook( `is_${ section }_enabled` );
+};
+export const usePaymentGatewayName = () => {
+	const { section } = getQuery();
+	makePaymentGatewayHook( `${ section }_name`, '' );
+};
 
-export const usePaymentGatewayName = makePaymentGatewayHook( `${ section }_name`, '' );;
-
-export const usePaymentGatewayDescription = makePaymentGatewayHook( `${ section }_description`, '' )
+export const usePaymentGatewayDescription = () => {
+	const { section } = getQuery();
+	makePaymentGatewayHook( `${ section }_description`, '' );
+};
