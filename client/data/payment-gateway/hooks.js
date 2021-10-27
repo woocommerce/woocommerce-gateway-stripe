@@ -65,16 +65,22 @@ export const usePaymentGateway = () => {
 	return { paymentGateway, isLoading, isSaving, savePaymentGateway };
 };
 
-export const useEnabledPaymentGateway = () => {
-	const { section } = getQuery();
-	return makePaymentGatewayHook( `is_${ section }_enabled` );
-};
-export const usePaymentGatewayName = () => {
-	const { section } = getQuery();
-	return makePaymentGatewayHook( `${ section }_name`, '' );
-};
+const makeFieldName = ( name ) =>
+	name.replace( '%s', () => {
+		const { section } = getQuery();
+		return section;
+	} );
 
-export const usePaymentGatewayDescription = () => {
-	const { section } = getQuery();
-	return makePaymentGatewayHook( `${ section }_description`, '' );
-};
+export const useEnabledPaymentGateway = makePaymentGatewayHook(
+	makeFieldName( 'is_%s_enabled' )
+);
+
+export const usePaymentGatewayName = makePaymentGatewayHook(
+	makeFieldName( '%s_name' ),
+	''
+);
+
+export const usePaymentGatewayDescription = makePaymentGatewayHook(
+	makeFieldName( '%s_description' ),
+	''
+);
