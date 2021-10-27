@@ -11,7 +11,7 @@ const { section } = getQuery();
  * Retrieve payment gateway settings from the site's REST API.
  */
 export function* getPaymentGateway() {
-	const path = `${ NAMESPACE }/payment-gateway-settings/${ section }`;
+	const path = `${ NAMESPACE }/payment-gateway/${ section }`;
 
 	try {
 		const result = yield apiFetch( { path } );

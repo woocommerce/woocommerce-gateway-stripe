@@ -36,7 +36,7 @@ export function* savePaymentGateway() {
 		yield updateIsSavingPaymentGateway( true, null );
 
 		yield apiFetch( {
-			path: `${ NAMESPACE }/payment-gateway-settings/${ section }`,
+			path: `${ NAMESPACE }/payment-gateway/${ section }`,
 			method: 'post',
 			data: settings,
 		} );

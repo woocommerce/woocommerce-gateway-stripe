@@ -58,7 +58,7 @@ describe( 'Payment gateway resolvers tests', () => {
 			const yielded = [ ...getPaymentGateway() ];
 
 			const expectedAction = {
-				path: '/wc/v3/wc_stripe/payment-gateway-settings/stripe_alipay',
+				path: '/wc/v3/wc_stripe/payment-gateway/stripe_alipay',
 			};
 
 			expect( apiFetch ).toHaveBeenCalledWith( expectedAction );

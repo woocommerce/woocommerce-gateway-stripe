@@ -46,7 +46,7 @@ describe( 'Payment gateway actions tests', () => {
 
 			expect( apiFetch ).toHaveBeenCalledWith( {
 				method: 'post',
-				path: '/wc/v3/wc_stripe/payment-gateway-settings/stripe_alipay',
+				path: '/wc/v3/wc_stripe/payment-gateway/stripe_alipay',
 				data: alipaySettingsMock,
 			} );
 			expect( yielded ).toContainEqual( 'api response' );
