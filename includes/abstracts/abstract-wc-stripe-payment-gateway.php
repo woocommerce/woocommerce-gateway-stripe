@@ -1233,7 +1233,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'description'          => $full_request['description'],
 			'metadata'             => $full_request['metadata'],
 			'capture_method'       => ( 'true' === $full_request['capture'] ) ? 'automatic' : 'manual',
-			'payment_method_types' => [ $prepared_source->source_object->type ],
+			'payment_method_types' => [ isset( $prepared_source->source_object->type ) ? $prepared_source->source_object->type : 'card' ],
 		];
 
 		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->source );
@@ -1608,7 +1608,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'currency'             => $full_request['currency'],
 			'description'          => $full_request['description'],
 			'metadata'             => $full_request['metadata'],
-			'payment_method_types' => [ $prepared_source->source_object->type ],
+			'payment_method_types' => [ isset( $prepared_source->source_object->type ) ? $prepared_source->source_object->type : 'card' ],
 			'off_session'          => 'true',
 			'confirm'              => 'true',
 			'confirmation_method'  => 'automatic',
