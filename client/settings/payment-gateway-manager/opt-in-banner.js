@@ -10,8 +10,12 @@ export default () => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const { section } = getQuery();
 	const info = gatewaysInfo[ section ];
+	// hide banner on payment methods that are not available on UPE yet
+	const hideBanner = [ 'stripe_alipay', 'stripe_multibanco' ].includes(
+		section
+	);
 
-	if ( isUpeEnabled ) {
+	if ( isUpeEnabled || hideBanner ) {
 		return null;
 	}
 
