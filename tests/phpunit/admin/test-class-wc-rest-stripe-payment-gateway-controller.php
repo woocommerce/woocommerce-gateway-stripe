@@ -8,6 +8,16 @@ use Automattic\WooCommerce\Blocks\RestApi;
 
 /**
  * WC_REST_Stripe_Payment_Gateway_Controller_Test unit tests.
+ *
+ * Adding both @runTestsInSeparateProcesses and @preserveGlobalState annotations
+ * to prevent the global state to leak between these and WC_REST_Stripe_Settings_Controller_Test
+ * tests.
+ *
+ * TODO: Find a way to isolate the gateway so it does not affect the Stripe settings
+ * tests.
+ *
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class WC_REST_Stripe_Payment_Gateway_Controller_Test extends WP_UnitTestCase {
 
