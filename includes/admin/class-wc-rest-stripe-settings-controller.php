@@ -169,6 +169,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return true|WP_Error
 	 */
 	public function validate_short_statement_descriptor( $value, $request, $param ) {
+		$is_short_account_statement_enabled = $request->get_param( 'is_short_statement_descriptor_enabled' );
+
+		// bypassing validation to avoid errors in the client, it won't be updated under this condition
+		if ( ! $is_short_account_statement_enabled ) {
+			return true;
+		}
+
 		return $this->validate_statement_descriptor( $value, $request, $param, 10 );
 	}
 
@@ -190,7 +197,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		try {
-			$this->gateway->validate_account_statement_descriptor_field( $value, $max_length );
+			$this->gateway->validate_account_statement_descriptor_field( $param, $value, $max_length );
 		} catch ( Exception $exception ) {
 			return new WP_Error(
 				'rest_invalid_pattern',
@@ -399,7 +406,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @param WP_REST_Request $request Request object.
 	 */
 	private function update_short_account_statement_descriptor( WP_REST_Request $request ) {
+		$is_short_account_statement_enabled = $request->get_param( 'is_short_statement_descriptor_enabled' );
 		$short_account_statement_descriptor = $request->get_param( 'short_statement_descriptor' );
+
+		// since we're bypassing the validation on the same condition, we shouldn't update it
+		if ( ! $is_short_account_statement_enabled ) {
+			return;
+		}
 
 		if ( null === $short_account_statement_descriptor ) {
 			return;

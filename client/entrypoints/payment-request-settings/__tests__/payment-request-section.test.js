@@ -6,12 +6,20 @@ import {
 	usePaymentRequestButtonType,
 	usePaymentRequestButtonSize,
 	usePaymentRequestButtonTheme,
-} from '../../../data';
+} from 'wcstripe/data';
 
-jest.mock( '../../../data', () => ( {
+jest.mock( 'wcstripe/data', () => ( {
 	usePaymentRequestButtonType: jest.fn().mockReturnValue( [ 'buy' ] ),
 	usePaymentRequestButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
 	usePaymentRequestButtonTheme: jest.fn().mockReturnValue( [ 'dark' ] ),
+} ) );
+jest.mock( 'wcstripe/data/account/hooks', () => ( {
+	useAccount: jest.fn().mockReturnValue( { data: {} } ),
+} ) );
+jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
+	useAccountKeys: jest.fn().mockReturnValue( {} ),
+	useAccountKeysPublishableKey: jest.fn().mockReturnValue( [ '' ] ),
+	useAccountKeysTestPublishableKey: jest.fn().mockReturnValue( [ '' ] ),
 } ) );
 
 jest.mock( '../payment-request-button-preview' );
