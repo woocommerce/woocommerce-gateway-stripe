@@ -869,8 +869,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_id = $order->get_id();
 		if ( 'setup_intent.succeeded' === $notification->type ) {
 			WC_Stripe_Logger::log( "Stripe SetupIntent $intent->id succeeded for order $order_id" );
-			if ( WC_Stripe_Helper::is_pre_orders_exists() && WC_Pre_Orders_Order::order_contains_pre_order( $order ) ) {
-				WC_Pre_Orders_Order::mark_order_as_pre_ordered( $order );
+			if ( $this->has_pre_order( $order ) ) {
+				$this->mark_order_as_pre_ordered( $order );
 			} else {
 				$order->payment_complete();
 			}
