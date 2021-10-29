@@ -16,6 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * WC_Stripe_Payment_Request class.
  */
 class WC_Stripe_Payment_Request {
+
+	use WC_Stripe_Pre_Orders_Trait;
+
 	/**
 	 * Enabled.
 	 *
@@ -573,7 +576,7 @@ class WC_Stripe_Payment_Request {
 	 */
 	public function allowed_items_in_cart() {
 		// Pre Orders compatibility where we don't support charge upon release.
-		if ( class_exists( 'WC_Pre_Orders_Cart' ) && WC_Pre_Orders_Cart::cart_contains_pre_order() && class_exists( 'WC_Pre_Orders_Product' ) && WC_Pre_Orders_Product::product_is_charged_upon_release( WC_Pre_Orders_Cart::get_pre_order_product() ) ) {
+		if ( $this->is_pre_order_item_in_cart() && $this->is_pre_order_product_charged_upon_release( $this->get_pre_order_product_from_cart() ) ) {
 			return false;
 		}
 
@@ -1006,7 +1009,7 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// Pre Orders charge upon release not supported.
-		if ( class_exists( 'WC_Pre_Orders_Product' ) && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
+		if ( $this->is_pre_order_product_charged_upon_release( $product ) ) {
 			return false;
 		}
 

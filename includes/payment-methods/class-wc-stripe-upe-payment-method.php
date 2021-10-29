@@ -16,6 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 abstract class WC_Stripe_UPE_Payment_Method {
 
 	use WC_Stripe_Subscriptions_Utilities_Trait;
+	use WC_Stripe_Pre_Orders_Trait;
 
 	/**
 	 * Stripe key name
@@ -149,6 +150,11 @@ abstract class WC_Stripe_UPE_Payment_Method {
 
 		// If cart or order contains subscription, enable payment method if it's reusable.
 		if ( $this->is_subscription_item_in_cart() || ( ! empty( $order_id ) && $this->has_subscription( $order_id ) ) ) {
+			return $this->is_reusable();
+		}
+
+		// If cart or order contains pre-order, enable payment method if it's reusable.
+		if ( $this->is_pre_order_item_in_cart() || ( ! empty( $order_id ) && $this->has_pre_order( $order_id ) ) ) {
 			return $this->is_reusable();
 		}
 
