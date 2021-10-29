@@ -15,11 +15,12 @@ import PaymentsAndTransactionsSection from '../payments-and-transactions-section
 import AdvancedSettingsSection from '../advanced-settings-section';
 import CustomizationOptionsNotice from '../customization-options-notice';
 import GeneralSettingsSection from './general-settings-section';
-import './style.scss';
+import DisconnectStripeConfirmationModal from './disconnect-stripe-confirmation-modal';
 import { AccountKeysModal } from './account-keys-modal';
+import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
+import './style.scss';
 import { useTestMode } from 'wcstripe/data';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
-import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import { useAccount } from 'wcstripe/data/account';
 
 const GeneralSettingsDescription = () => (
@@ -82,30 +83,42 @@ const PaymentsAndTransactionsDescription = () => (
 const AccountSettingsDropdownMenu = ( { setModalType } ) => {
 	// @todo - deconstruct setModalType from useModalType custom hook
 	const [ isTestModeEnabled ] = useTestMode();
+	const [
+		isConfirmationModalVisible,
+		setIsConfirmationModalVisible,
+	] = useState( false );
+
 	return (
-		<DropdownMenu
-			icon={ moreVertical }
-			label={ __(
-				'Edit details or disconnect account',
-				'woocommerce-gateway-stripe'
+		<>
+			<DropdownMenu
+				icon={ moreVertical }
+				label={ __(
+					'Edit details or disconnect account',
+					'woocommerce-gateway-stripe'
+				) }
+				controls={ [
+					{
+						title: __(
+							'Edit account keys',
+							'woocommerce-gateway-stripe'
+						),
+						// eslint-disable-next-line no-console
+						onClick: () =>
+							setModalType( isTestModeEnabled ? 'test' : 'live' ),
+					},
+					{
+						title: __( 'Disconnect', 'woocommerce-gateway-stripe' ),
+						// eslint-disable-next-line no-console
+						onClick: () => setIsConfirmationModalVisible( true ),
+					},
+				] }
+			/>
+			{ isConfirmationModalVisible && (
+				<DisconnectStripeConfirmationModal
+					onClose={ () => setIsConfirmationModalVisible( false ) }
+				/>
 			) }
-			controls={ [
-				{
-					title: __(
-						'Edit account keys',
-						'woocommerce-gateway-stripe'
-					),
-					// eslint-disable-next-line no-console
-					onClick: () =>
-						setModalType( isTestModeEnabled ? 'test' : 'live' ),
-				},
-				{
-					title: 'Disconnect',
-					// eslint-disable-next-line no-console
-					onClick: () => console.log( 'Disconnecting' ),
-				},
-			] }
-		/>
+		</>
 	);
 };
 
@@ -117,16 +130,18 @@ const AccountDetailsSection = ( { setModalType } ) => {
 	return (
 		<Card className="account-details">
 			<CardHeader className="account-details__header">
-				{ data.account?.email && (
-					<h4 className="account-details__header">
-						{ data.account.email }
-					</h4>
-				) }
-				{ isTestModeEnabled && (
-					<Pill>
-						{ __( 'Test Mode', 'woocommerce-gateway-stripe' ) }
-					</Pill>
-				) }
+				<div>
+					{ data.account?.email && (
+						<h4 className="account-details__header">
+							{ data.account.email }
+						</h4>
+					) }
+					{ isTestModeEnabled && (
+						<Pill>
+							{ __( 'Test Mode', 'woocommerce-gateway-stripe' ) }
+						</Pill>
+					) }
+				</div>
 				<AccountSettingsDropdownMenu setModalType={ setModalType } />
 			</CardHeader>
 			<CardBody>
@@ -166,7 +181,9 @@ const PaymentSettingsPanel = () => {
 				</LoadableAccountSection>
 			</SettingsSection>
 			<SettingsSection Description={ PaymentsAndTransactionsDescription }>
-				<PaymentsAndTransactionsSection />
+				<LoadableSettingsSection numLines={ 20 }>
+					<PaymentsAndTransactionsSection />
+				</LoadableSettingsSection>
 			</SettingsSection>
 			<AdvancedSettingsSection />
 		</>

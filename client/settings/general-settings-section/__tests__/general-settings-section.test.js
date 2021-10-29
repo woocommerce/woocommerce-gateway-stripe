@@ -6,11 +6,18 @@ import UpeToggleContext from '../../upe-toggle/context';
 import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
+	useManualCapture,
 } from 'wcstripe/data';
+import { useAccount } from 'wcstripe/data/account';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useGetAvailablePaymentMethodIds: jest.fn(),
 	useEnabledPaymentMethodIds: jest.fn(),
+	useManualCapture: jest.fn(),
+} ) );
+
+jest.mock( 'wcstripe/data/account', () => ( {
+	useAccount: jest.fn(),
 } ) );
 jest.mock( '@wordpress/data', () => ( {
 	useDispatch: jest.fn().mockReturnValue( {} ),
@@ -18,14 +25,20 @@ jest.mock( '@wordpress/data', () => ( {
 	register: jest.fn(),
 	combineReducers: jest.fn(),
 } ) );
+jest.mock(
+	'wcstripe/components/payment-method-capability-status-pill',
+	() => () => null
+);
 jest.mock( '../../loadable-settings-section', () => ( { children } ) =>
 	children
 );
 
 describe( 'GeneralSettingsSection', () => {
 	beforeEach( () => {
+		useManualCapture.mockReturnValue( [ false ] );
 		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card' ] );
 		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card' ], jest.fn() ] );
+		useAccount.mockReturnValue( { isRefreshing: false } );
 	} );
 
 	it( 'should render the card information and the opt-in banner with action elements if UPE is disabled', () => {
@@ -49,9 +62,45 @@ describe( 'GeneralSettingsSection', () => {
 		).not.toBeInTheDocument();
 		expect(
 			screen.queryByRole( 'button', {
-				name: 'Disable the new Payment Experience',
+				name: 'Payment methods menu',
 			} )
 		).not.toBeInTheDocument();
+	} );
+
+	it( 'should show information to screen readers about the payment methods being updated', () => {
+		const refreshAccountMock = jest.fn();
+		useAccount.mockReturnValue( {
+			isRefreshing: true,
+			refreshAccount: refreshAccountMock,
+		} );
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		expect( refreshAccountMock ).not.toHaveBeenCalled();
+
+		expect(
+			screen.queryByText(
+				'Updating payment methods information, please wait.'
+			)
+		).toBeInTheDocument();
+
+		userEvent.click(
+			screen.getByRole( 'button', {
+				name: 'Payment methods menu',
+			} )
+		);
+
+		expect( refreshAccountMock ).not.toHaveBeenCalled();
+
+		userEvent.click(
+			screen.getByRole( 'menuitem', {
+				name: 'Refresh payment methods',
+			} )
+		);
+		expect( refreshAccountMock ).toHaveBeenCalled();
 	} );
 
 	it( 'should not render the opt-in banner if UPE is enabled', () => {
@@ -69,7 +118,7 @@ describe( 'GeneralSettingsSection', () => {
 		).toBeInTheDocument();
 		expect(
 			screen.queryByRole( 'button', {
-				name: 'Disable the new Payment Experience',
+				name: 'Payment methods menu',
 			} )
 		).toBeInTheDocument();
 	} );
@@ -224,7 +273,7 @@ describe( 'GeneralSettingsSection', () => {
 
 		userEvent.click(
 			screen.getByRole( 'button', {
-				name: 'Disable the new Payment Experience',
+				name: 'Payment methods menu',
 			} )
 		);
 		userEvent.click(
@@ -235,6 +284,69 @@ describe( 'GeneralSettingsSection', () => {
 
 		expect(
 			screen.queryByText( /Without the new payments experience/ )
+		).toBeInTheDocument();
+	} );
+
+	it( 'does not display the payment method checkbox when manual capture is enabled', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			'card',
+			'giropay',
+		] );
+		useManualCapture.mockReturnValue( [ true ] );
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: /Credit card/,
+			} )
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: 'giropay',
+			} )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'does not display the payment method checkbox when UPE is disabled', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card' ] );
+		useManualCapture.mockReturnValue( [ true ] );
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: /Credit card/,
+			} )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'displays the payment method checkbox when manual capture is disabled', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			'card',
+			'giropay',
+		] );
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: /Credit card/,
+			} )
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: 'giropay',
+			} )
 		).toBeInTheDocument();
 	} );
 } );

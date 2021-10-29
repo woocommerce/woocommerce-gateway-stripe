@@ -1,10 +1,12 @@
 import { __ } from '@wordpress/i18n';
-import React, { useState } from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 import { CardHeader, DropdownMenu } from '@wordpress/components';
 import { moreVertical } from '@wordpress/icons';
 import DisableUpeConfirmationModal from './disable-upe-confirmation-modal';
 import Pill from 'wcstripe/components/pill';
+import { useAccount } from 'wcstripe/data/account';
+import useToggle from 'wcstripe/hooks/use-toggle';
 
 const StyledHeader = styled( CardHeader )`
 	justify-content: space-between;
@@ -35,9 +37,11 @@ const Title = styled.h4`
 `;
 
 const SectionHeading = () => {
-	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] = useState(
+	const [ isConfirmationModalOpen, toggleConfirmationModal ] = useToggle(
 		false
 	);
+
+	const { refreshAccount } = useAccount();
 
 	return (
 		<StyledHeader>
@@ -51,19 +55,35 @@ const SectionHeading = () => {
 			</Title>
 			{ isConfirmationModalOpen && (
 				<DisableUpeConfirmationModal
-					onClose={ () => setIsConfirmationModalOpen( false ) }
+					onClose={ toggleConfirmationModal }
 				/>
 			) }
 			<DropdownMenu
 				icon={ moreVertical }
 				label={ __(
-					'Disable the new Payment Experience',
+					'Payment methods menu',
 					'woocommerce-gateway-stripe'
 				) }
 				controls={ [
 					{
+						title: __(
+							'Refresh payment methods',
+							'woocommerce-gateway-stripe'
+						),
+						onClick: refreshAccount,
+					},
+					{
+						title: __(
+							'Provide feedback',
+							'woocommerce-gateway-stripe'
+						),
+						onClick: () =>
+							( window.location.href =
+								'https://woocommerce.survey.fm/woocommerce-stripe-upe-opt-out-survey' ),
+					},
+					{
 						title: __( 'Disable', 'woocommerce-gateway-stripe' ),
-						onClick: () => setIsConfirmationModalOpen( true ),
+						onClick: toggleConfirmationModal,
 					},
 				] }
 			/>

@@ -2,10 +2,11 @@ import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import GeneralSettingsSection from '../general-settings-section';
-import { useTestMode } from 'wcstripe/data';
+import { useIsStripeEnabled, useTestMode } from 'wcstripe/data';
 import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
 
 jest.mock( 'wcstripe/data', () => ( {
+	useIsStripeEnabled: jest.fn(),
 	useTestMode: jest.fn(),
 } ) );
 
@@ -15,7 +16,10 @@ jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 
 describe( 'GeneralSettingsSection', () => {
 	it( 'should enable stripe when stripe checkbox is clicked', () => {
+		const setIsStripeEnabledMock = jest.fn();
 		const setTestModeMock = jest.fn();
+		useIsStripeEnabled.mockReturnValue( [ false, setIsStripeEnabledMock ] );
+
 		useTestMode.mockReturnValue( [ false, setTestModeMock ] );
 		useAccountKeys.mockReturnValue( {
 			accountKeys: {
@@ -35,8 +39,7 @@ describe( 'GeneralSettingsSection', () => {
 
 		userEvent.click( enableStripeCheckbox );
 
-		expect( enableStripeCheckbox ).toBeChecked();
-		expect( testModeCheckbox ).not.toBeChecked();
+		expect( setIsStripeEnabledMock ).toHaveBeenCalledWith( true );
 
 		userEvent.click( testModeCheckbox );
 

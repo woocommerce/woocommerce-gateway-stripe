@@ -6,6 +6,10 @@
 			// there's so much text that on mobile the text overflows the max-height set on the collapsible body.
 			max-height: 1000px;
 		}
+
+		.components-base-control__help {
+			margin-top: unset;
+		}
 	}
 
 	&__advantages-wrapper {

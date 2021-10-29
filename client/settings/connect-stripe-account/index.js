@@ -51,7 +51,7 @@ const ButtonWrapper = styled.div`
 	}
 `;
 
-const ConnectStripeAccount = ( props ) => {
+const ConnectStripeAccount = ( { oauthUrl } ) => {
 	// @todo - deconstruct modalType and setModalType from useModalType custom hook
 	const [ modalType, setModalType ] = useState( '' );
 	const handleModalDismiss = () => {
@@ -81,44 +81,51 @@ const ConnectStripeAccount = ( props ) => {
 							'woocommerce-gateway-stripe'
 						) }
 					</InformationText>
-					<TermsOfServiceText>
-						{ interpolateComponents( {
-							mixedString: __(
-								'By clicking "Create or connect an account", you agree to the {{tosLink}}Terms of service.{{/tosLink}}',
-								'woocommerce-gateway-stripe'
-							),
-							components: {
-								tosLink: (
-									// eslint-disable-next-line jsx-a11y/anchor-has-content
-									<a
-										target="_blank"
-										rel="noreferrer"
-										href="https://wordpress.com/tos"
-									/>
+
+					{ oauthUrl && (
+						<TermsOfServiceText>
+							{ interpolateComponents( {
+								mixedString: __(
+									'By clicking "Create or connect an account", you agree to the {{tosLink}}Terms of service.{{/tosLink}}',
+									'woocommerce-gateway-stripe'
 								),
-							},
-						} ) }
-					</TermsOfServiceText>
+								components: {
+									tosLink: (
+										// eslint-disable-next-line jsx-a11y/anchor-has-content
+										<a
+											target="_blank"
+											rel="noreferrer"
+											href="https://wordpress.com/tos"
+										/>
+									),
+								},
+							} ) }
+						</TermsOfServiceText>
+					) }
 					<ButtonWrapper>
+						{ oauthUrl && (
+							<Button isPrimary href={ oauthUrl }>
+								{ __(
+									'Create or connect an account',
+									'woocommerce-gateway-stripe'
+								) }
+							</Button>
+						) }
 						<Button
-							isPrimary
-							href={ props.oauthUrl }
-							disabled={ ! props.oauthUrl }
-						>
-							{ __(
-								'Create or connect an account',
-								'woocommerce-gateway-stripe'
-							) }
-						</Button>
-						<Button
-							isSecondary
+							isPrimary={ ! oauthUrl }
+							isSecondary={ !! oauthUrl }
 							// eslint-disable-next-line no-alert, no-undef
 							onClick={ () => setModalType( 'live' ) }
 						>
-							{ __(
-								'Enter account keys (advanced)',
-								'woocommerce-gateway-stripe'
-							) }
+							{ oauthUrl
+								? __(
+										'Enter account keys (advanced)',
+										'woocommerce-gateway-stripe'
+								  )
+								: __(
+										'Enter account keys',
+										'woocommerce-gateway-stripe'
+								  ) }
 						</Button>
 					</ButtonWrapper>
 				</CardBody>

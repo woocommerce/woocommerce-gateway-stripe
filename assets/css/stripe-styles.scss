@@ -168,35 +168,6 @@
 	position: relative;
 }
 
-.woocommerce-checkout {
-	#payment {
-		ul.payment_methods {
-			li {
-				.card-brand-icons {
-					display: block;
-					float: right;
-					width: 40px;
-					height: 24px;
-
-					img {
-						position: absolute;
-						opacity: 0;
-						transition: .3s;
-					}
-
-					img.icon-visible {
-						opacity: 1;
-					}
-				}
-
-				img {
-					float: right;
-				}
-			}
-		}
-	}
-}
-
 .woocommerce-SavedPaymentMethods-token
 	.stripe-source-errors
 	.woocommerce-error {

@@ -47,11 +47,11 @@ const PaymentRequestExpressComponent = ( {
 	const { needsShipping } = shippingData;
 
 	/* Set up payment request and its event handlers. */
-	const [ paymentRequest, paymentRequestType ] = usePaymentRequest(
-		stripe,
-		needsShipping,
-		billing
-	);
+	const [
+		paymentRequest,
+		paymentRequestType,
+		isUpdatingPaymentRequest,
+	] = usePaymentRequest( stripe, needsShipping, billing );
 	useShippingAddressUpdateHandler( paymentRequest, paymentRequestType );
 	useShippingOptionChangeHandler( paymentRequest, paymentRequestType );
 	useProcessPaymentHandler(
@@ -93,21 +93,47 @@ const PaymentRequestExpressComponent = ( {
 
 	if ( isCustom ) {
 		return (
-			<CustomButton
-				onButtonClicked={ ( evt ) => {
-					onPaymentRequestButtonClick( evt, paymentRequest );
-				} }
-			/>
+			<div
+				className={
+					isUpdatingPaymentRequest
+						? 'wc-block-components-loading-mask'
+						: ''
+				}
+			>
+				<CustomButton
+					className={
+						isUpdatingPaymentRequest
+							? 'wc-block-components-loading-mask__children'
+							: ''
+					}
+					onButtonClicked={ ( evt ) => {
+						onPaymentRequestButtonClick( evt, paymentRequest );
+					} }
+				/>
+			</div>
 		);
 	}
 
 	if ( isBranded && shouldUseGooglePayBrand() ) {
 		return (
-			<GooglePayButton
-				onButtonClicked={ ( evt ) => {
-					onPaymentRequestButtonClick( evt, paymentRequest );
-				} }
-			/>
+			<div
+				className={
+					isUpdatingPaymentRequest
+						? 'wc-block-components-loading-mask'
+						: ''
+				}
+			>
+				<GooglePayButton
+					className={
+						isUpdatingPaymentRequest
+							? 'wc-block-components-loading-mask__children'
+							: ''
+					}
+					onButtonClicked={ ( evt ) => {
+						onPaymentRequestButtonClick( evt, paymentRequest );
+					} }
+				/>
+			</div>
 		);
 	}
 
@@ -120,15 +146,30 @@ const PaymentRequestExpressComponent = ( {
 	}
 
 	return (
-		<PaymentRequestButtonElement
-			onClick={ onPaymentRequestButtonClick }
-			options={ {
-				// @ts-ignore
-				style: paymentRequestButtonStyle,
-				// @ts-ignore
-				paymentRequest,
-			} }
-		/>
+		// The classNames here manually trigger the loading state for the PRB. Hopefully we'll
+		// see an API introduced to WooCommerce Blocks that will let us control this without
+		// relying on a CSS class.
+		// - @reykjalin
+		<div
+			className={
+				isUpdatingPaymentRequest
+					? 'wc-block-components-loading-mask'
+					: ''
+			}
+		>
+			<PaymentRequestButtonElement
+				className={
+					isUpdatingPaymentRequest
+						? 'wc-block-components-loading-mask__children'
+						: ''
+				}
+				onClick={ onPaymentRequestButtonClick }
+				options={ {
+					style: paymentRequestButtonStyle,
+					paymentRequest,
+				} }
+			/>
+		</div>
 	);
 };
 

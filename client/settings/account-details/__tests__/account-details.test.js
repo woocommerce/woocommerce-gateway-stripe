@@ -6,6 +6,13 @@ jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
 	useGetCapabilities: jest.fn(),
 } ) );
+jest.mock( 'wcstripe/data', () => ( {
+	useTestMode: jest.fn().mockReturnValue( [ false ] ),
+} ) );
+jest.mock( 'wcstripe/data/account-keys', () => ( {
+	useAccountKeysTestWebhookSecret: jest.fn().mockReturnValue( [ '' ] ),
+	useAccountKeysWebhookSecret: jest.fn().mockReturnValue( [ '' ] ),
+} ) );
 
 describe( 'AccountDetails', () => {
 	it( 'renders enabled payments and deposits on account', () => {

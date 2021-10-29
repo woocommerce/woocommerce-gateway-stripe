@@ -18,8 +18,7 @@ jQuery( function( $ ) {
 		iban                    = elements.create( 'iban', sepa_elements_options ),
 		stripe_card,
 		stripe_exp,
-		stripe_cvc,
-		cardIconsInterval;
+		stripe_cvc;
 
 	/**
 	 * Object to handle Stripe elements payment form.
@@ -54,8 +53,6 @@ jQuery( function( $ ) {
 		 * Mounts all elements to their DOM nodes on initial loads and updates.
 		 */
 		mountElements: function() {
-			this.iterateCreditCardIcons();
-
 			if ( ! $( '#stripe-card-element' ).length ) {
 				return;
 			}
@@ -68,23 +65,6 @@ jQuery( function( $ ) {
 			stripe_card.mount( '#stripe-card-element' );
 			stripe_exp.mount( '#stripe-exp-element' );
 			stripe_cvc.mount( '#stripe-cvc-element' );
-		},
-
-		iterateCreditCardIcons: function() {
-			if ( cardIconsInterval ) {
-				clearInterval( cardIconsInterval );
-			}
-			const icons = $( '#payment .card-brand-icons img' );
-			if ( icons.length ) {
-				$( icons[ 0 ] ).addClass( 'icon-visible' );
-				let i = 0;
-				cardIconsInterval = setInterval( function() {
-					i = i % icons.length;
-					icons.removeClass( 'icon-visible' );
-					$( icons[ i ] ).addClass( 'icon-visible' );
-					i++;
-				}, 3300 );
-			}
 		},
 
 		/**

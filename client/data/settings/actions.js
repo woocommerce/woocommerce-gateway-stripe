@@ -18,10 +18,6 @@ export function updateSettings( data ) {
 	};
 }
 
-export function updateIsPaymentRequestEnabled( isEnabled ) {
-	return updateSettingsValues( { is_payment_request_enabled: isEnabled } );
-}
-
 export function updateIsSavingSettings( isSaving, error ) {
 	return {
 		type: ACTION_TYPES.SET_IS_SAVING_SETTINGS,

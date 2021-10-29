@@ -15,18 +15,6 @@ describe( 'ConnectStripeAccount', () => {
 				'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDeal, SEPA, Sofort, and more international payment methods.'
 			)
 		).toBeInTheDocument();
-		expect( screen.queryByText( 'Terms of service.' ) ).toBeInTheDocument();
-	} );
-
-	it( 'should render the buttons', () => {
-		render( <ConnectStripeAccount /> );
-
-		expect(
-			screen.queryByText( 'Create or connect an account' )
-		).toBeInTheDocument();
-		expect(
-			screen.queryByText( 'Enter account keys (advanced)' )
-		).toBeInTheDocument();
 	} );
 
 	it( 'should have a Stripe OAuth link for "Create or connect an account" button', () => {
@@ -34,20 +22,28 @@ describe( 'ConnectStripeAccount', () => {
 			<ConnectStripeAccount oauthUrl="https://connect.stripe.com/oauth/v2/authorize?response_type=code&client_id=ca_1234&scope=read_write&state=1234" />
 		);
 
+		expect( screen.queryByText( 'Terms of service.' ) ).toBeInTheDocument();
 		expect(
 			screen.getByText( 'Create or connect an account' )
 		).toHaveAttribute(
 			'href',
 			'https://connect.stripe.com/oauth/v2/authorize?response_type=code&client_id=ca_1234&scope=read_write&state=1234'
 		);
+		expect(
+			screen.queryByText( 'Enter account keys (advanced)' )
+		).toBeInTheDocument();
 	} );
 
-	it( 'should not be able to click button "Create or connect an account" if OAuth URL is blank', () => {
+	it( 'should only have the "Enter account keys" button if OAuth URL is blank', () => {
 		render( <ConnectStripeAccount oauthUrl="" /> );
 
 		expect(
-			screen.getByText( 'Create or connect an account' )
-		).toBeDisabled();
+			screen.queryByText( 'Terms of service.' )
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByText( 'Create or connect an account' )
+		).not.toBeInTheDocument();
+		expect( screen.getByText( 'Enter account keys' ) ).toBeInTheDocument();
 	} );
 
 	it( 'should open the live account keys modal when clicking "enter acccount keys"', () => {

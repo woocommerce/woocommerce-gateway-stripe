@@ -1,10 +1,14 @@
 import React, { useContext } from 'react';
 import styled from '@emotion/styled';
+import classnames from 'classnames';
 import UpeToggleContext from '../upe-toggle/context';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethodCheckbox from './payment-method-checkbox';
-import { useGetAvailablePaymentMethodIds } from 'wcstripe/data';
+import {
+	useGetAvailablePaymentMethodIds,
+	useManualCapture,
+} from 'wcstripe/data';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 
 const List = styled.ul`
@@ -31,6 +35,24 @@ const ListElement = styled.li`
 	@media ( min-width: 660px ) {
 		align-items: center;
 	}
+
+	&.has-overlay {
+		position: relative;
+
+		&:after {
+			content: '';
+			position: absolute;
+			// adds some spacing for the borders, so that they're not part of the opacity
+			top: 1px;
+			bottom: 1px;
+			// ensures that the info icon isn't part of the opacity
+			left: 55px;
+			right: 0;
+			background: white;
+			opacity: 0.5;
+			pointer-events: none;
+		}
+	}
 `;
 
 const PaymentMethodWrapper = styled.div`
@@ -52,20 +74,35 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 const GeneralSettingsSection = () => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const availablePaymentMethods = useGetAvailablePaymentMethodIds();
+	const [ isManualCaptureEnabled ] = useManualCapture();
 
 	return (
 		<List>
 			{ availablePaymentMethods.map( ( method ) => {
-				const { Icon, label, description } = PaymentMethodsMap[
-					method
-				];
+				const {
+					Icon,
+					label,
+					description,
+					allows_manual_capture: isAllowingManualCapture,
+				} = PaymentMethodsMap[ method ];
 
 				return (
-					<ListElement key={ method }>
-						<PaymentMethodCheckbox id={ method } />
+					<ListElement
+						key={ method }
+						className={ classnames( {
+							'has-overlay':
+								! isAllowingManualCapture &&
+								isManualCaptureEnabled,
+						} ) }
+					>
+						<PaymentMethodCheckbox
+							id={ method }
+							label={ label }
+							isAllowingManualCapture={ isAllowingManualCapture }
+						/>
 						<PaymentMethodWrapper>
 							<PaymentMethodDescription
-								id={ isUpeEnabled ? method : null }
+								id={ method }
 								Icon={ Icon }
 								description={ description }
 								label={ label }

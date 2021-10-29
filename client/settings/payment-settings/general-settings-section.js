@@ -6,16 +6,16 @@ import CardBody from '../card-body';
 import CardFooter from '../card-footer';
 import { AccountKeysModal } from './account-keys-modal';
 import TestModeCheckbox from './test-mode-checkbox';
-import { useTestMode } from 'wcstripe/data';
+import { useTestMode, useIsStripeEnabled } from 'wcstripe/data';
 
 const StyledCard = styled( Card )`
 	margin-bottom: 12px;
 `;
 
 const GeneralSettingsSection = () => {
-	const [ enableStripe, setEnableStripe ] = useState( false );
-	const [ modalType, setModalType ] = useState( '' );
 	const [ isTestMode ] = useTestMode();
+	const [ isStripeEnabled, setIsStripeEnabled ] = useIsStripeEnabled();
+	const [ modalType, setModalType ] = useState( '' );
 
 	const handleModalDismiss = () => {
 		setModalType( '' );
@@ -32,8 +32,8 @@ const GeneralSettingsSection = () => {
 			<StyledCard>
 				<CardBody>
 					<CheckboxControl
-						checked={ enableStripe }
-						onChange={ setEnableStripe }
+						checked={ isStripeEnabled }
+						onChange={ setIsStripeEnabled }
 						label={ __(
 							'Enable Stripe',
 							'woocommerce-gateway-stripe'
@@ -43,7 +43,6 @@ const GeneralSettingsSection = () => {
 							'woocommerce-gateway-stripe'
 						) }
 					/>
-
 					<TestModeCheckbox />
 				</CardBody>
 				<CardFooter>

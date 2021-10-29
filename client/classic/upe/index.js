@@ -178,13 +178,11 @@ jQuery( function ( $ ) {
 			messageWrapper = errorMessage;
 		} else {
 			messageWrapper =
-				'<ul class="woocommerce-error" role="alert">' +
+				'<ul class="woocommerce-error" role="alert"><li>' +
 				errorMessage +
-				'</ul>';
+				'</li></ul>';
 		}
-		const $container = $(
-			'.woocommerce-notices-wrapper, form.checkout'
-		).first();
+		const $container = $( '.woocommerce-notices-wrapper' ).first();
 
 		if ( ! $container.length ) {
 			return;
@@ -194,22 +192,13 @@ jQuery( function ( $ ) {
 		$(
 			'.woocommerce-NoticeGroup-checkout, .woocommerce-error, .woocommerce-message'
 		).remove();
-		$container.prepend(
-			'<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout">' +
-				messageWrapper +
-				'</div>'
-		);
-		$container
+		$container.prepend( messageWrapper );
+		$( 'form.checkout' )
 			.find( '.input-text, select, input:checkbox' )
 			.trigger( 'validate' )
 			.blur();
 
-		let scrollElement = $( '.woocommerce-NoticeGroup-checkout' );
-		if ( ! scrollElement.length ) {
-			scrollElement = $container;
-		}
-
-		$.scroll_to_notices( scrollElement );
+		$.scroll_to_notices( $container );
 		$( document.body ).trigger( 'checkout_error' );
 	};
 
