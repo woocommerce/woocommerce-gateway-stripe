@@ -643,7 +643,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$this->throw_localized_message( $intent, $order );
 			}
 
-			if ( 'requires_action' === $intent->status ) {
+			if ( 'requires_action' === $intent->status || 'requires_confirmation' === $intent->status ) {
 				if ( isset( $intent->next_action->type ) && 'redirect_to_url' === $intent->next_action->type && ! empty( $intent->next_action->redirect_to_url->url ) ) {
 					return [
 						'result'   => 'success',
