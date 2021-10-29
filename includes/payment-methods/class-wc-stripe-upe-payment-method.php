@@ -172,6 +172,15 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 * @return bool
 	 */
 	public function is_capability_active() {
+		// Treat all capabilities as active when in test mode.
+		$plugin_settings   = get_option( 'woocommerce_stripe_settings' );
+		$test_mode_setting = ! empty( $plugin_settings['testmode'] ) ? $plugin_settings['testmode'] : 'no';
+
+		if ( 'yes' === $test_mode_setting ) {
+			return true;
+		}
+
+		// Otherwise, make sure the capability is available.
 		$capabilities = $this->get_capabilities_response();
 		if ( empty( $capabilities ) ) {
 			return false;
