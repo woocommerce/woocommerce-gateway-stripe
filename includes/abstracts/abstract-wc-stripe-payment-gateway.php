@@ -1569,7 +1569,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @param WC_Order $order           The ID of the (free/pre- order).
 	 * @param object   $prepared_source The source, entered/chosen by the customer.
-	 * @return string                   The client secret of the intent, used for confirmation in JS.
+	 * @return string|null              The client secret of the intent, used for confirmation in JS.
 	 */
 	public function setup_intent( $order, $prepared_source ) {
 		// SEPA Direct Debit payments do not require any customer action after the source has been created.
