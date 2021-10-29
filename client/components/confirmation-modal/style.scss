@@ -4,17 +4,33 @@
 	// increasing the specificity of the styles, to ensure it is honored
 	&#{&} {
 		max-width: 600px;
-		min-width: 400px;
+		@media ( min-width: 600px ) {
+			min-width: 400px;
+		}
 	}
 
 	// to ensure that the separator extends all the way, even with different versions of Gutenberg
 	.components-modal__content {
 		padding: 0 $grid-unit-30 $grid-unit-30;
+
+		@media ( max-width: 599px ) {
+			display: flex;
+			flex-direction: column;
+			
+			hr:last-of-type {
+				margin-top:  auto;
+			}
+		}
 	}
 
 	.components-modal__header {
 		margin: 0 -#{$grid-unit-30} $grid-unit-30;
 		padding: 0 $grid-unit-30;
+		@media ( max-width: 599px ) {
+			button {
+				display: none;
+			}
+		}
 	}
 
 	&__separator {
