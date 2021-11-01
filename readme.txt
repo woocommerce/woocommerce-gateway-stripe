@@ -24,6 +24,7 @@ Stripe is available for Store Owners and Merchants in:
 * Australia
 * Austria
 * Belgium
+* Brazil
 * Bulgaria
 * Canada
 * Cyprus
