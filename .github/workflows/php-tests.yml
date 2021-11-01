@@ -17,7 +17,6 @@ jobs:
     env:
       WP_VERSION: ${{ matrix.wordpress }}
       WC_VERSION: ${{ matrix.woocommerce }}
-      WP_TESTS_PHPUNIT_POLYFILLS_PATH: ${{ github.workspace }}/vendor/yoast/phpunit-polyfills
     steps:
       # clone the repository
       - uses: actions/checkout@v2
