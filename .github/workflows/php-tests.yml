@@ -20,7 +20,7 @@ jobs:
     env:
       WP_VERSION: ${{ matrix.wordpress }}
       WC_VERSION: ${{ matrix.woocommerce }}
-      WP_TESTS_PHPUNIT_POLYFILLS_PATH: vendor/yoast/phpunit-polyfills
+      WP_TESTS_PHPUNIT_POLYFILLS_PATH: ${{ github.workspace }}/vendor/yoast/phpunit-polyfills
     steps:
       # clone the repository
       - uses: actions/checkout@v2
@@ -33,11 +33,8 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          tools:       composer, phpunit-polyfills
           coverage:    none
       # run CI checks
-      - run: pwd
-      - run: ls -la
-      - run: echo ${{ github.workspace }}
       - run: if [[ "${{ matrix.php }}" == '7.0' ]]; then wget https://phar.phpunit.de/phpunit-6.5.14.phar && mv phpunit-6.5.14.phar phpunit.phar; fi;
+      - run: composer require --dev yoast/phpunit-polyfills
       - run: bash bin/run-ci-tests.bash
