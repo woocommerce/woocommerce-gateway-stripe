@@ -129,5 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 5.x.x - 2021-xx-xx =
 * Fix - Hong Kong addresses are now mapped more thoroughly to WooCommerce addresses when paying with Apple Pay.
 * Fix - Error when changing payment method for a subscription with new checkout experience.
+* Fix - Payment Requests are now updated correctly when updating items in the Cart Block.
+* Add - Support for WooCommerce Pre-Orders with new checkout experience.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

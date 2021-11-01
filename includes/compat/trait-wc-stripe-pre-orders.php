@@ -4,27 +4,135 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Compatibility class for Pre-Orders.
+ * Trait for Pre-Orders compatibility.
  */
-class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
-	public $saved_cards;
+trait WC_Stripe_Pre_Orders_Trait {
 
-	public function __construct() {
-		$this->saved_cards = WC_Stripe_Helper::get_settings( 'stripe', 'saved_cards' );
+	/**
+	 * Initialize pre-orders hook.
+	 *
+	 * @since x.x.x
+	 */
+	public function maybe_init_pre_orders() {
+		if ( ! $this->is_pre_orders_enabled() ) {
+			return;
+		}
+
+		$this->supports[] = 'pre-orders';
+
+		add_action( 'wc_pre_orders_process_pre_order_completion_payment_' . $this->id, [ $this, 'process_pre_order_release_payment' ] );
+	}
+
+	/**
+	 * Checks if pre-orders are enabled on the site.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return bool
+	 */
+	public function is_pre_orders_enabled() {
+		return class_exists( 'WC_Pre_Orders' );
 	}
 
 	/**
 	 * Is $order_id a pre-order?
 	 *
+	 * @since x.x.x
+	 *
 	 * @param  int $order_id
-	 * @return boolean
+	 * @return bool
 	 */
-	public function is_pre_order( $order_id ) {
-		return WC_Pre_Orders_Order::order_contains_pre_order( $order_id );
+	public function has_pre_order( $order_id ) {
+		return $this->is_pre_orders_enabled() && class_exists( 'WC_Pre_Orders_Order' ) && WC_Pre_Orders_Order::order_contains_pre_order( $order_id );
 	}
 
 	/**
-	 * Remove order meta
+	 * Returns boolean on whether current cart contains a pre-order item.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return bool
+	 */
+	public function is_pre_order_item_in_cart() {
+		return $this->is_pre_orders_enabled() && class_exists( 'WC_Pre_Orders_Cart' ) && WC_Pre_Orders_Cart::cart_contains_pre_order();
+	}
+
+	/**
+	 * Returns pre-order product from cart.
+	 *
+	 * @since x.x.x
+	 *
+	 * @return object|null
+	 */
+	public function get_pre_order_product_from_cart() {
+		if ( ! $this->is_pre_orders_enabled() || ! class_exists( 'WC_Pre_Orders_Cart' ) ) {
+			return false;
+		}
+		return WC_Pre_Orders_Cart::get_pre_order_product();
+	}
+
+	/**
+	 * Returns pre-order product from order.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param int $order_id
+	 *
+	 * @return object|null
+	 */
+	public function get_pre_order_product_from_order( $order_id ) {
+		if ( ! $this->is_pre_orders_enabled() || ! class_exists( 'WC_Pre_Orders_Order' ) ) {
+			return false;
+		}
+		return WC_Pre_Orders_Order::get_pre_order_product( $order_id );
+	}
+
+	/**
+	 * Returns boolean on whether product is charged upon release.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param object $product
+	 *
+	 * @return bool
+	 */
+	public function is_pre_order_product_charged_upon_release( $product ) {
+		return $this->is_pre_orders_enabled() && class_exists( 'WC_Pre_Orders_Product' ) && WC_Pre_Orders_Product::product_is_charged_upon_release( $product );
+	}
+
+	/**
+	 * Returns boolean on whether product is charged upfront.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param object $product
+	 *
+	 * @return bool
+	 */
+	public function is_pre_order_product_charged_upfront( $product ) {
+		return $this->is_pre_orders_enabled() && class_exists( 'WC_Pre_Orders_Product' ) && WC_Pre_Orders_Product::product_is_charged_upfront( $product );
+	}
+
+	/**
+	 * Checks if we need to process pre-orders when
+	 * a pre-order product is in the cart.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param int $order_id
+	 *
+	 * @return bool
+	 */
+	public function maybe_process_pre_orders( $order_id ) {
+		return (
+			$this->has_pre_order( $order_id ) &&
+			WC_Pre_Orders_Order::order_requires_payment_tokenization( $order_id ) &&
+			! is_wc_endpoint_url( 'order-pay' )
+		);
+	}
+
+	/**
+	 * Remove order meta.
 	 *
 	 * @param object $order
 	 */
@@ -35,9 +143,24 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Marks the order as pre-ordered.
+	 * The native function is wrapped so we can call it separately and more easily mock it in our tests.
+	 *
+	 * @param object $order
+	 */
+	public function mark_order_as_pre_ordered( $order ) {
+		if ( ! class_exists( 'WC_Pre_Orders_Order' ) ) {
+			return;
+		}
+		WC_Pre_Orders_Order::mark_order_as_pre_ordered( $order );
+	}
+
+	/**
 	 * Process the pre-order when pay upon release is used.
 	 *
 	 * @param int $order_id
+	 *
+	 * @return array
 	 */
 	public function process_pre_order( $order_id ) {
 		try {
@@ -72,7 +195,7 @@ class WC_Stripe_Pre_Orders_Compat extends WC_Stripe_Payment_Gateway {
 			WC()->cart->empty_cart();
 
 			// Is pre ordered!
-			WC_Pre_Orders_Order::mark_order_as_pre_ordered( $order );
+			$this->mark_order_as_pre_ordered( $order );
 
 			// Return thank you page redirect
 			return $response;

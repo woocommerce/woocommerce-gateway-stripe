@@ -115,6 +115,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();
 
+		// Check if pre-orders are enabled and add support for them.
+		$this->maybe_init_pre_orders();
+
 		$main_settings              = get_option( 'woocommerce_stripe_settings' );
 		$this->title                = $this->get_option( 'title_upe' );
 		$this->description          = '';
@@ -319,15 +322,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 		}
 
-		$amount = is_null( WC()->cart ) ? 0 : WC()->cart->get_total( false );
-		$order  = isset( $order_id ) ? wc_get_order( $order_id ) : null;
-		if ( is_a( $order, 'WC_Order' ) ) {
-			$amount = $order->get_total();
-		}
-
-		$converted_amount = WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( get_woocommerce_currency() ) );
 		// Pre-orders and free trial subscriptions don't require payments.
-		$stripe_params['isPaymentRequired'] = 0 < $converted_amount;
+		$stripe_params['isPaymentNeeded'] = $this->is_payment_needed( isset( $order_id ) ? $order_id : null );
 
 		return $stripe_params;
 	}
@@ -485,15 +481,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$payment_intent_id         = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$order                     = wc_get_order( $order_id );
-		$amount                    = $order->get_total();
-		$currency                  = $order->get_currency();
-		$converted_amount          = WC_Stripe_Helper::get_stripe_amount( $amount, $currency );
-		$payment_needed            = 0 < $converted_amount;
+		$payment_needed            = $this->is_payment_needed( $order_id );
 		$save_payment_method       = $this->has_subscription( $order_id ) || ! empty( $_POST[ 'wc-' . self::ID . '-new-payment-method' ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_upe_payment_type = ! empty( $_POST['wc_stripe_selected_upe_payment_type'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 		if ( $payment_intent_id ) {
 			if ( $payment_needed ) {
+				$amount           = $order->get_total();
+				$currency         = $order->get_currency();
+				$converted_amount = WC_Stripe_Helper::get_stripe_amount( $amount, $currency );
+
 				$request = [
 					'amount'      => $converted_amount,
 					'currency'    => $currency,
@@ -565,8 +562,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$order = wc_get_order( $order_id );
 
 			if ( $this->maybe_process_pre_orders( $order_id ) ) {
-				// TODO: Implement pre-orders using Intents API.
-				return;
+				return $this->process_pre_order( $order_id );
 			}
 
 			$token                   = WC_Stripe_Payment_Tokens::get_token_from_request( $_POST );
@@ -582,7 +578,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$intent = $this->get_intent_from_order( $order );
 
 			$enabled_payment_methods = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_at_checkout' ] );
-			$payment_needed          = 0 < $order->get_total();
+			$payment_needed          = $this->is_payment_needed( $order_id );
 
 			if ( $payment_needed ) {
 				// This will throw exception if not valid.
@@ -647,7 +643,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$this->throw_localized_message( $intent, $order );
 			}
 
-			if ( 'requires_action' === $intent->status ) {
+			if ( 'requires_action' === $intent->status || 'requires_confirmation' === $intent->status ) {
 				if ( isset( $intent->next_action->type ) && 'redirect_to_url' === $intent->next_action->type && ! empty( $intent->next_action->redirect_to_url->url ) ) {
 					return [
 						'result'   => 'success',
@@ -833,7 +829,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param bool     $save_payment_method Boolean representing whether payment method for order should be saved.
 	 */
 	public function process_order_for_confirmed_intent( $order, $intent_id, $save_payment_method ) {
-		$payment_needed = 0 < $order->get_total();
+		$payment_needed = $this->is_payment_needed( $order->get_id() );
 
 		// Get payment intent to confirm status.
 		if ( $payment_needed ) {
@@ -855,6 +851,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 		$payment_method = $this->payment_methods[ $payment_method_type ];
+
+		if ( $this->maybe_process_pre_orders( $order->get_id() ) ) {
+			// If this is a pre-order, simply mark the order as pre-ordered and allow
+			// the subsequent logic to save the payment method and proceed to complete the order.
+			$this->mark_order_as_pre_ordered( $order->get_id() );
+			$save_payment_method = true;
+		}
 
 		if ( $save_payment_method && $payment_method->is_reusable() ) {
 			$payment_method_object = null;
@@ -951,6 +954,38 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->retry_interval++;
 
 		return $this->process_payment_with_saved_payment_method( $order->get_id(), true );
+	}
+
+	/**
+	 * Returns true if a payment is needed for the current cart or order.
+	 * Pre-Orders and Subscriptions may not require an upfront payment, so we need to check whether
+	 * or not the payment is necessary to decide for either a setup intent or a payment intent.
+	 *
+	 * @since x.x.x
+	 *
+	 * @param int $order_id The order ID being processed.
+	 *
+	 * @return bool Whether a payment is necessary.
+	 */
+	public function is_payment_needed( $order_id = null ) {
+		if ( $this->is_pre_order_item_in_cart() || ( ! empty( $order_id ) && $this->has_pre_order( $order_id ) ) ) {
+			$pre_order_product = ( ! empty( $order_id ) ) ? $this->get_pre_order_product_from_order( $order_id ) : $this->get_pre_order_product_from_cart();
+			// Only one pre-order product is allowed per cart,
+			// so we can return if it's charged upfront.
+			return $this->is_pre_order_product_charged_upfront( $pre_order_product );
+		}
+
+		// Free trial subscriptions without a sign up fee, or any other type
+		// of order with a `0` amount should fall into the logic below.
+		$amount = is_null( WC()->cart ) ? 0 : WC()->cart->get_total( false );
+		$order  = isset( $order_id ) ? wc_get_order( $order_id ) : null;
+		if ( is_a( $order, 'WC_Order' ) ) {
+			$amount = $order->get_total();
+		}
+
+		$converted_amount = WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( get_woocommerce_currency() ) );
+
+		return 0 < $converted_amount;
 	}
 
 	/**

@@ -40,9 +40,8 @@ const UPEField = ( {
 
 		async function createIntent() {
 			try {
-				const paymentRequired = getBlocksConfiguration()
-					?.isPaymentRequired;
-				const response = paymentRequired
+				const paymentNeeded = getBlocksConfiguration()?.isPaymentNeeded;
+				const response = paymentNeeded
 					? await api.createIntent(
 							getBlocksConfiguration()?.orderId
 					  )

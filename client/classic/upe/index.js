@@ -341,7 +341,7 @@ jQuery( function ( $ ) {
 			isUPEEnabled
 		) {
 			const isSetupIntent = ! (
-				getStripeServerData()?.isPaymentRequired ?? true
+				getStripeServerData()?.isPaymentNeeded ?? true
 			);
 			mountUPEElement( isSetupIntent );
 		}
