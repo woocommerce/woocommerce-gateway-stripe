@@ -42,7 +42,6 @@ const ButtonWrapper = styled.div`
 		&:focus:not( :disabled ),
 		&:hover:not( :disabled ) {
 			box-shadow: none;
-			background: none;
 		}
 
 		@media ( max-width: 660px ) {
