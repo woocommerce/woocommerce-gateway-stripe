@@ -11,12 +11,16 @@ jobs:
       fail-fast:    false
       max-parallel: 10
       matrix:
-        woocommerce: [ 'latest', '5.7.1', '5.6.1' ]
-        wordpress:   [ 'latest', '5.7', '5.6' ]
-        php:         [ '8.0', '7.4', '7.0' ]
+#        woocommerce: [ 'latest', '5.7.1', '5.6.1' ]
+#        wordpress:   [ 'latest', '5.7', '5.6' ]
+#        php:         [ '8.0', '7.4', '7.0' ]
+        woocommerce: [ '5.6.1' ]
+        wordpress:   [ '5.6' ]
+        php:         [ '7.0' ]
     env:
       WP_VERSION: ${{ matrix.wordpress }}
       WC_VERSION: ${{ matrix.woocommerce }}
+      WP_TESTS_PHPUNIT_POLYFILLS_PATH: vendor/yoast/phpunit-polyfills
     steps:
       # clone the repository
       - uses: actions/checkout@v2
@@ -32,5 +36,8 @@ jobs:
           tools:       composer, phpunit-polyfills
           coverage:    none
       # run CI checks
+      - run: pwd
+      - run: ls -la
+      - run: echo ${{ github.workspace }}
       - run: if [[ "${{ matrix.php }}" == '7.0' ]]; then wget https://phar.phpunit.de/phpunit-6.5.14.phar && mv phpunit-6.5.14.phar phpunit.phar; fi;
       - run: bash bin/run-ci-tests.bash
