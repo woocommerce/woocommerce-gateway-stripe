@@ -98,6 +98,7 @@ class WC_Stripe_Admin_Notices {
 			'P24'        => 'WC_Gateway_Stripe_p24',
 			'SEPA'       => 'WC_Gateway_Stripe_Sepa',
 			'SOFORT'     => 'WC_Gateway_Stripe_Sofort',
+			'BOLETO'     => 'WC_Gateway_Stripe_Boleto',
 		];
 	}
 

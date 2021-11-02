@@ -174,6 +174,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-giropay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-boleto.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-eps.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-p24.php';
@@ -187,6 +188,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-alipay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sepa.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-multibanco.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-boleto.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-payment-request.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-woo-compat-utils.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect.php';
@@ -386,6 +388,7 @@ function woocommerce_gateway_stripe() {
 				// These payment gateways will always be visible, regardless if UPE is enabled or disabled:
 				$methods[] = WC_Gateway_Stripe_Alipay::class;
 				$methods[] = WC_Gateway_Stripe_Multibanco::class;
+				$methods[] = WC_Gateway_Stripe_Boleto::class;
 
 				return $methods;
 			}
