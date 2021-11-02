@@ -13,7 +13,7 @@ class WC_Stripe_UPE_Payment_Method_Boleto extends WC_Stripe_UPE_Payment_Method {
 	const LPM_GATEWAY_CLASS = WC_Gateway_Stripe_Boleto::class;
 
 	/**
-	 * Constructor for Bancontact payment method
+	 * Constructor for Boleto payment method
 	 */
 	public function __construct() {
 		parent::__construct();

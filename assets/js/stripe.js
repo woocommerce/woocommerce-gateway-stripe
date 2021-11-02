@@ -211,7 +211,7 @@ jQuery( function( $ ) {
 
 			$( 'form.woocommerce-checkout' )
 				.on(
-					'checkout_place_order_stripe checkout_place_order_stripe_bancontact checkout_place_order_stripe_sofort checkout_place_order_stripe_giropay checkout_place_order_stripe_ideal checkout_place_order_stripe_alipay checkout_place_order_stripe_sepa',
+					'checkout_place_order_stripe checkout_place_order_stripe_bancontact checkout_place_order_stripe_sofort checkout_place_order_stripe_giropay checkout_place_order_stripe_ideal checkout_place_order_stripe_alipay checkout_place_order_stripe_sepa checkout_place_order_stripe_boleto',
 					this.onSubmit
 				);
 
@@ -272,7 +272,7 @@ jQuery( function( $ ) {
 		 * @return {boolean}
 		 */
 		isStripeChosen: function() {
-			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_giropay, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa, #payment_method_stripe_eps, #payment_method_stripe_multibanco' ).is( ':checked' ) || ( $( '#payment_method_stripe' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() ) || ( $( '#payment_method_stripe_sepa' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() );
+			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_giropay, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa, #payment_method_stripe_eps, #payment_method_stripe_multibanco, #payment_method_stripe_boleto' ).is( ':checked' ) || ( $( '#payment_method_stripe' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() ) || ( $( '#payment_method_stripe_sepa' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() );
 		},
 
 		/**
@@ -293,7 +293,7 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Check if Stripe credit card is being used used.
+		 * Check if Stripe credit card is being used.
 		 *
 		 * @return {boolean}
 		 */
@@ -302,7 +302,7 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Check if Stripe Bancontact is being used used.
+		 * Check if Stripe Bancontact is being used.
 		 *
 		 * @return {boolean}
 		 */
@@ -311,7 +311,7 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Check if Stripe Giropay is being used used.
+		 * Check if Stripe Giropay is being used.
 		 *
 		 * @return {boolean}
 		 */
@@ -320,7 +320,7 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Check if Stripe iDeal is being used used.
+		 * Check if Stripe iDeal is being used.
 		 *
 		 * @return {boolean}
 		 */
@@ -329,7 +329,7 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Check if Stripe SOFORT is being used used.
+		 * Check if Stripe SOFORT is being used.
 		 *
 		 * @return {boolean}
 		 */
@@ -338,7 +338,7 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Check if Stripe Alipay is being used used.
+		 * Check if Stripe Alipay is being used.
 		 *
 		 * @return {boolean}
 		 */
@@ -347,7 +347,7 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Check if Stripe SEPA Direct Debit is being used used.
+		 * Check if Stripe SEPA Direct Debit is being used.
 		 *
 		 * @return {boolean}
 		 */
@@ -356,7 +356,7 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Check if Stripe P24 is being used used.
+		 * Check if Stripe P24 is being used.
 		 *
 		 * @return {boolean}
 		 */
@@ -365,7 +365,7 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Check if Stripe EPS is being used used.
+		 * Check if Stripe EPS is being used.
 		 *
 		 * @return {boolean}
 		 */
@@ -374,12 +374,21 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Check if Stripe Multibanco is being used used.
+		 * Check if Stripe Multibanco is being used.
 		 *
 		 * @return {boolean}
 		 */
 		isMultibancoChosen: function() {
 			return $( '#payment_method_stripe_multibanco' ).is( ':checked' );
+		},
+
+		/**
+		 * Check if Stripe Boleto is being used.
+		 *
+		 * @return {boolean}
+		 */
+		isBoletoChosen: function() {
+			return $( '#payment_method_stripe_boleto' ).is( ':checked' );
 		},
 
 		/**
@@ -624,7 +633,74 @@ jQuery( function( $ ) {
 			}
 
 			wc_stripe_form.block();
-			wc_stripe_form.createSource();
+
+			if ( wc_stripe_form.isBoletoChosen() ) {
+				if(document.getElementById('stripe-boleto-payment-intent')){
+					return true;
+				}
+
+				const data = new FormData();
+				// data.append( 'action', 'wc_stripe_create_payment_intent' );
+				data.append('_ajax_nonce', wc_stripe_params.create_payment_intent_nonce);
+
+				fetch(wc_stripe_form.getAjaxURL('boleto_create_payment_intent'), {
+					method: 'POST',
+					credentials: 'same-origin',
+					body: data,
+				})
+					.then((response) => response.json())
+					.then(( { data } ) => {
+
+						stripe.confirmBoletoPayment(
+							data.client_secret,
+							{
+								payment_method: {
+									boleto: {
+										tax_id: document.getElementById('billing_cpf').value,
+									},
+									billing_details: {
+										name: document.getElementById('billing_first_name').value + ' ' + document.getElementById('billing_last_name').value,
+										email: document.getElementById('billing_email').value,
+										address: {
+											line1: document.getElementById('billing_address_1').value,
+											city: document.getElementById('billing_city').value,
+											state: document.getElementById('billing_state').value,
+											postal_code: document.getElementById('billing_postcode').value,
+											country: 'BR',
+										},
+									},
+								},
+							}) // Stripe.js will open a modal to display the Boleto voucher to your customer
+							.then(function (response) {
+								// wc_stripe_form.unblock();
+
+								if ( response.error ) {
+									$( document.body ).trigger( 'stripeError', response );
+									return;
+								}
+
+								wc_stripe_form.reset();
+
+								wc_stripe_form.form.append(
+									$( '<input type="hidden" />' )
+										.attr( 'id', 'stripe-boleto-payment-intent' )
+										.attr( 'name', 'stripe_boleto_payment_intent' )
+										.val( response.paymentIntent.id )
+								);
+
+								if ( $( 'form#add_payment_method' ).length || $( '#wc-stripe-change-payment-method' ).length ) {
+									wc_stripe_form.sourceSetup( response );
+									return;
+								}
+
+								wc_stripe_form.form.trigger( 'submit' );
+							});
+					});
+			} else {
+				wc_stripe_form.createSource();
+			}
+
+
 
 			return false;
 		},

@@ -354,28 +354,29 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			]
 		);
 
-		$stripe_params['stripe_locale']             = WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() );
-		$stripe_params['no_prepaid_card_msg']       = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charged. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
-		$stripe_params['no_sepa_owner_msg']         = __( 'Please enter your IBAN account name.', 'woocommerce-gateway-stripe' );
-		$stripe_params['no_sepa_iban_msg']          = __( 'Please enter your IBAN account number.', 'woocommerce-gateway-stripe' );
-		$stripe_params['payment_intent_error']      = __( 'We couldn\'t initiate the payment. Please try again.', 'woocommerce-gateway-stripe' );
-		$stripe_params['sepa_mandate_notification'] = apply_filters( 'wc_stripe_sepa_mandate_notification', 'email' );
-		$stripe_params['allow_prepaid_card']        = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
-		$stripe_params['inline_cc_form']            = $this->inline_cc_form ? 'yes' : 'no';
-		$stripe_params['is_checkout']               = ( is_checkout() && empty( $_GET['pay_for_order'] ) ) ? 'yes' : 'no'; // wpcs: csrf ok.
-		$stripe_params['return_url']                = $this->get_stripe_return_url();
-		$stripe_params['ajaxurl']                   = WC_AJAX::get_endpoint( '%%endpoint%%' );
-		$stripe_params['stripe_nonce']              = wp_create_nonce( '_wc_stripe_nonce' );
-		$stripe_params['statement_descriptor']      = $this->statement_descriptor;
-		$stripe_params['elements_options']          = apply_filters( 'wc_stripe_elements_options', [] );
-		$stripe_params['sepa_elements_options']     = $sepa_elements_options;
-		$stripe_params['invalid_owner_name']        = __( 'Billing First Name and Last Name are required.', 'woocommerce-gateway-stripe' );
-		$stripe_params['is_change_payment_page']    = isset( $_GET['change_payment_method'] ) ? 'yes' : 'no'; // wpcs: csrf ok.
-		$stripe_params['is_add_payment_page']       = is_wc_endpoint_url( 'add-payment-method' ) ? 'yes' : 'no';
-		$stripe_params['is_pay_for_order_page']     = is_wc_endpoint_url( 'order-pay' ) ? 'yes' : 'no';
-		$stripe_params['elements_styling']          = apply_filters( 'wc_stripe_elements_styling', false );
-		$stripe_params['elements_classes']          = apply_filters( 'wc_stripe_elements_classes', false );
-		$stripe_params['add_card_nonce']            = wp_create_nonce( 'wc_stripe_create_si' );
+		$stripe_params['stripe_locale']               = WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() );
+		$stripe_params['no_prepaid_card_msg']         = __( 'Sorry, we\'re not accepting prepaid cards at this time. Your credit card has not been charged. Please try with alternative payment method.', 'woocommerce-gateway-stripe' );
+		$stripe_params['no_sepa_owner_msg']           = __( 'Please enter your IBAN account name.', 'woocommerce-gateway-stripe' );
+		$stripe_params['no_sepa_iban_msg']            = __( 'Please enter your IBAN account number.', 'woocommerce-gateway-stripe' );
+		$stripe_params['payment_intent_error']        = __( 'We couldn\'t initiate the payment. Please try again.', 'woocommerce-gateway-stripe' );
+		$stripe_params['sepa_mandate_notification']   = apply_filters( 'wc_stripe_sepa_mandate_notification', 'email' );
+		$stripe_params['allow_prepaid_card']          = apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no';
+		$stripe_params['inline_cc_form']              = $this->inline_cc_form ? 'yes' : 'no';
+		$stripe_params['is_checkout']                 = ( is_checkout() && empty( $_GET['pay_for_order'] ) ) ? 'yes' : 'no'; // wpcs: csrf ok.
+		$stripe_params['return_url']                  = $this->get_stripe_return_url();
+		$stripe_params['ajaxurl']                     = WC_AJAX::get_endpoint( '%%endpoint%%' );
+		$stripe_params['stripe_nonce']                = wp_create_nonce( '_wc_stripe_nonce' );
+		$stripe_params['statement_descriptor']        = $this->statement_descriptor;
+		$stripe_params['elements_options']            = apply_filters( 'wc_stripe_elements_options', [] );
+		$stripe_params['sepa_elements_options']       = $sepa_elements_options;
+		$stripe_params['invalid_owner_name']          = __( 'Billing First Name and Last Name are required.', 'woocommerce-gateway-stripe' );
+		$stripe_params['is_change_payment_page']      = isset( $_GET['change_payment_method'] ) ? 'yes' : 'no'; // wpcs: csrf ok.
+		$stripe_params['is_add_payment_page']         = is_wc_endpoint_url( 'add-payment-method' ) ? 'yes' : 'no';
+		$stripe_params['is_pay_for_order_page']       = is_wc_endpoint_url( 'order-pay' ) ? 'yes' : 'no';
+		$stripe_params['elements_styling']            = apply_filters( 'wc_stripe_elements_styling', false );
+		$stripe_params['elements_classes']            = apply_filters( 'wc_stripe_elements_classes', false );
+		$stripe_params['add_card_nonce']              = wp_create_nonce( 'wc_stripe_create_si' );
+		$stripe_params['create_payment_intent_nonce'] = wp_create_nonce( 'wc_stripe_boleto_create_payment_intent_nonce' );
 
 		// Merge localized messages to be use in JS.
 		$stripe_params = array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );

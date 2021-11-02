@@ -90,7 +90,75 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
+
+		add_action( 'wc_ajax_wc_stripe_boleto_create_payment_intent', [ $this, 'create_payment_intent_ajax' ] );
+		add_action( 'wp_ajax_nopriv_wc_stripe_boleto_create_payment_intent', [ $this, 'create_payment_intent_ajax' ] );
 	}
+
+	/**
+	 * Handle AJAX requests for creating a payment intent for Stripe UPE.
+	 */
+	public function create_payment_intent_ajax() {
+		try {
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_boleto_create_payment_intent_nonce', false, false );
+			if ( ! $is_nonce_valid ) {
+				throw new Exception( __( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			// If paying from order, we need to get the total from the order instead of the cart.
+			$order_id = isset( $_POST['stripe_order_id'] ) ? absint( $_POST['stripe_order_id'] ) : null;
+
+			wp_send_json_success( $this->create_payment_intent( $order_id ), 200 );
+		} catch ( Exception $e ) {
+			WC_Stripe_Logger::log( 'Create payment intent error: ' . $e->getMessage() );
+			// Send back error so it can be displayed to the customer.
+			wp_send_json_error(
+				[
+					'error' => [
+						'message' => $e->getMessage(),
+					],
+				]
+			);
+		}
+	}
+
+	/**
+	 * Creates payment intent using current cart or order and store details.
+	 *
+	 * @param {int} $order_id The id of the order if intent created from Order.
+	 * @throws Exception - If the create intent call returns with an error.
+	 * @return array
+	 */
+	public function create_payment_intent( $order_id = null ) {
+		$amount   = WC()->cart->get_total( false );
+		$currency = 'BRL';
+		$order    = wc_get_order( $order_id );
+		if ( is_a( $order, 'WC_Order' ) ) {
+			$amount = $order->get_total();
+		}
+
+		$payment_intent = WC_Stripe_API::request(
+			[
+				'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
+				'currency'             => strtolower( $currency ),
+				'payment_method_types' => [ 'boleto' ],
+			],
+			'payment_intents'
+		);
+
+		if ( ! empty( $payment_intent->error ) ) {
+			throw new Exception( $payment_intent->error->message );
+		}
+
+		return [
+			'id'            => $payment_intent->id,
+			'client_secret' => $payment_intent->client_secret,
+		];
+	}
+
+
+
+
 
 	/**
 	 * Returns all supported currencies for this payment method.
@@ -205,22 +273,12 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	 * @return mixed
 	 */
 	public function create_source( WC_Order $order ) {
-		$currency                          = $order->get_currency();
-		$return_url                        = $this->get_stripe_return_url( $order );
-		$post_data                         = [];
-		$post_data['amount']               = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
-		$post_data['currency']             = strtolower( $currency );
-		$post_data['payment_method_types'] = [ 'boleto' ];
-		//      $post_data['name']                 = $order->get_formatted_billing_full_name();
-		//      $post_data['email']                = $order->get_billing_email();
-		//      $post_data['tax_id']               = '052.669.869-13';
-		//      $post_data['address']              = $order->get_billing_address_1() . ' ' . $order->get_billing_address_2();
-		//      $post_data['city']              = $order->get_billing_city();
-		//      $post_data['state']              = $order->get_billing_state();
-		//      $post_data['postal_code']              = $order->get_billing_postcode();
-
-		//      $post_data['owner']                = $this->get_owner_details( $order );
-		//      $post_data['redirect']             = [ 'return_url' => $return_url ];
+		$currency  = $order->get_currency();
+		$post_data = [
+			'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency ),
+			'currency'             => strtolower( $currency ),
+			'payment_method_types' => [ 'boleto' ],
+		];
 
 		if ( ! empty( $this->statement_descriptor ) ) {
 			$post_data['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $this->statement_descriptor );
@@ -260,37 +318,26 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_save = false ) {
 		try {
+			global $woocommerce;
+
 			$order = wc_get_order( $order_id );
+			$order->update_status( 'on-hold', __( 'Awaiting boleto payment.', 'woocommerce-gateway-stripe' ) );
 
-			// This will throw exception if not valid.
-			$this->validate_amount_limits( $order );
-
-			// This comes from the create account checkbox in the checkout page.
-			$create_account = ! empty( $_POST['createaccount'] ) ? true : false;
-
-			if ( $create_account ) {
-				$new_customer_id     = $order->get_customer_id();
-				$new_stripe_customer = new WC_Stripe_Customer( $new_customer_id );
-				$new_stripe_customer->create_customer();
-			}
-
-			$response = $this->create_source( $order );
-
-			if ( ! empty( $response->error ) ) {
-				$order->add_order_note( $response->error->message );
-
-				throw new WC_Stripe_Exception( print_r( $response, true ), $response->error->message );
-			}
-
-			$order->update_meta_data( '_stripe_source_id', $response->id );
-			$order->save();
-
-			WC_Stripe_Logger::log( 'Info: Redirecting to Alipay...' );
+			wc_reduce_stock_levels( $order_id );
+			$woocommerce->cart->empty_cart();
 
 			return [
 				'result'   => 'success',
-				'redirect' => esc_url_raw( $response->redirect->url ),
+				'redirect' => $this->get_return_url( $order ),
 			];
+
+			// This will throw exception if not valid.
+			//          $this->validate_amount_limits( $order );
+
+			//          $order->update_meta_data( '_stripe_source_id', $response->id );
+			//          $order->save();
+
+			//          WC_Stripe_Logger::log( 'Info: Redirecting to Alipay...' );
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
