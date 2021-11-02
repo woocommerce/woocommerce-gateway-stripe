@@ -5,6 +5,7 @@
 * Fix - Error when changing payment method for a subscription with new checkout experience.
 * Fix - Payment Requests are now updated correctly when updating items in the Cart Block.
 * Add - Support for WooCommerce Pre-Orders with new checkout experience.
+* Fix - Stripe JS is no longer loaded on cart and product pages when PRBs are disabled on those pages.
 
 = 5.7.0 - 2021-10-20 =
 * Fix - Enable use of saved payment methods converted to SEPA payments.
