@@ -7,6 +7,7 @@ import EpsIcon from './payment-method-icons/eps';
 import BancontactIcon from './payment-method-icons/bancontact';
 import IdealIcon from './payment-method-icons/ideal';
 import P24Icon from './payment-method-icons/p24';
+import BoletoIcon from './payment-method-icons/boleto';
 
 export default {
 	card: {
@@ -97,5 +98,16 @@ export default {
 		Icon: P24Icon,
 		currencies: [ 'EUR', 'PLN' ],
 		capability: 'p24_payments',
+	},
+	boleto: {
+		id: 'boleto',
+		label: __( 'Boleto', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Boleto is one of the most popular payment method in Brazil',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: BoletoIcon,
+		currencies: [ 'BRL' ],
+		capability: 'boleto',
 	},
 };
