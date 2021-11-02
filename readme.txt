@@ -131,5 +131,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Error when changing payment method for a subscription with new checkout experience.
 * Fix - Payment Requests are now updated correctly when updating items in the Cart Block.
 * Add - Support for WooCommerce Pre-Orders with new checkout experience.
+* Tweak - Update the minimum required PHP version to 7.0 to reflect our L-2 support policy.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
