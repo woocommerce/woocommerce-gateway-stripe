@@ -415,6 +415,17 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		if (
+			is_cart()
+			&& ! in_array(
+				'cart',
+				$this->get_option( 'payment_request_button_locations', [ 'product', 'cart' ] ),
+				true
+			)
+		) {
+			return;
+		}
+
 		// If Stripe is not enabled bail.
 		if ( 'no' === $this->enabled ) {
 			return;
