@@ -260,12 +260,12 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 				tabs={ [
 					{
 						name: 'live',
-						title: 'Live',
+						title: __( 'Live', 'woocommerce-gateway-stripe' ),
 						className: 'live-tab',
 					},
 					{
 						name: 'test',
-						title: 'Test',
+						title: __( 'Test', 'woocommerce-gateway-stripe' ),
 						className: 'test-tab',
 					},
 				] }
