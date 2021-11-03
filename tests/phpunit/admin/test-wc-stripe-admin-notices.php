@@ -5,6 +5,12 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 	public function setUp() {
 		parent::setUp();
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
+		add_option( 'wc_stripe_show_wcver_notice', 'no' );
+	}
+
+	public function tearDown() {
+		parent::tearDown();
+		delete_option( 'wc_stripe_show_wcver_notice' );
 	}
 
 	public function test_no_notices_are_shown_when_user_is_not_admin() {
