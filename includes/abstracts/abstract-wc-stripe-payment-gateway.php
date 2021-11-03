@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 	use WC_Stripe_Subscriptions_Trait;
+	use WC_Stripe_Pre_Orders_Trait;
 
 	/**
 	 * The delay between retries.
@@ -277,23 +278,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$payment_method = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : 'stripe';
 
 		return isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
-	}
-
-	/**
-	 * Checks if we need to process pre orders when
-	 * pre orders is in the cart.
-	 *
-	 * @since 4.1.0
-	 * @param int $order_id
-	 * @return bool
-	 */
-	public function maybe_process_pre_orders( $order_id ) {
-		return (
-			WC_Stripe_Helper::is_pre_orders_exists() &&
-			$this->pre_orders->is_pre_order( $order_id ) &&
-			WC_Pre_Orders_Order::order_requires_payment_tokenization( $order_id ) &&
-			! is_wc_endpoint_url( 'order-pay' )
-		);
 	}
 
 	/**
@@ -1219,9 +1203,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// The request for a charge contains metadata for the intent.
 		$full_request = $this->generate_payment_request( $order, $prepared_source );
 
-		$payment_method_types = WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ?
-			$this->get_upe_enabled_at_checkout_payment_method_ids() :
-			[ 'card' ];
+		$payment_method_types = [ 'card' ];
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			$payment_method_types = $this->get_upe_enabled_at_checkout_payment_method_ids();
+		} elseif ( isset( $prepared_source->source_object->type ) ) {
+			$payment_method_types = [ $prepared_source->source_object->type ];
+		}
 
 		$request = [
 			'source'               => $prepared_source->source,
@@ -1559,9 +1546,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @param WC_Order $order           The ID of the (free/pre- order).
 	 * @param object   $prepared_source The source, entered/chosen by the customer.
-	 * @return string                   The client secret of the intent, used for confirmation in JS.
+	 * @return string|null              The client secret of the intent, used for confirmation in JS.
 	 */
 	public function setup_intent( $order, $prepared_source ) {
+		// SEPA Direct Debit payments do not require any customer action after the source has been created.
+		// Once the customer has provided their IBAN details and accepted the mandate, no further action is needed and the resulting source is directly chargeable.
+		if ( 'sepa_debit' === $prepared_source->source_object->type ) {
+			return;
+		}
+
 		$order_id     = $order->get_id();
 		$setup_intent = WC_Stripe_API::request(
 			[
@@ -1594,9 +1587,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// The request for a charge contains metadata for the intent.
 		$full_request = $this->generate_payment_request( $order, $prepared_source );
 
-		$payment_method_types = WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ?
-			$this->get_upe_enabled_at_checkout_payment_method_ids() :
-			[ 'card' ];
+		$payment_method_types = [ 'card' ];
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			$payment_method_types = $this->get_upe_enabled_at_checkout_payment_method_ids();
+		} elseif ( isset( $prepared_source->source_object->type ) ) {
+			$payment_method_types = [ $prepared_source->source_object->type ];
+		}
 
 		$request = [
 			'amount'               => $amount ? WC_Stripe_Helper::get_stripe_amount( $amount, $full_request['currency'] ) : $full_request['amount'],
