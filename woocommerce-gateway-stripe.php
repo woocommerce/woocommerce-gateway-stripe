@@ -590,6 +590,7 @@ function woocommerce_gateway_stripe() {
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-controller.php';
+					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-payment-gateway-controller.php';
 
 					$upe_flag_toggle_controller = new WC_Stripe_REST_UPE_Flag_Toggle_Controller();
 					$upe_flag_toggle_controller->register_routes();
@@ -602,6 +603,9 @@ function woocommerce_gateway_stripe() {
 
 					$stripe_account_controller = new WC_REST_Stripe_Account_Controller( $this->account );
 					$stripe_account_controller->register_routes();
+
+					$settings_controller = new WC_REST_Stripe_Payment_Gateway_Controller();
+					$settings_controller->register_routes();
 				}
 			}
 
