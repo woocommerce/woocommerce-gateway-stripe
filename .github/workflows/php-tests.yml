@@ -1,21 +1,22 @@
-name: PHP unit tests
+name: PHP tests
 
 on:
   pull_request
 
-env:
-  WP_VERSION: latest
-  WC_VERSION: 4.5.0  # the most used version here
-
 jobs:
   test:
-    name:    PHP testing
     runs-on: ubuntu-18.04
     strategy:
       fail-fast:    false
       max-parallel: 10
       matrix:
-        php: [ '7.1', '7.2', '7.3', '7.4' ]
+        woocommerce: [ 'latest', '5.7.1', '5.6.1' ]
+        wordpress:   [ 'latest', '5.7', '5.6' ]
+        php:         [ '8.0', '7.4', '7.0' ]
+    name: Stable [PHP=${{ matrix.php }}, WP=${{ matrix.wordpress }}, WC=${{ matrix.woocommerce }}]
+    env:
+      WP_VERSION: ${{ matrix.wordpress }}
+      WC_VERSION: ${{ matrix.woocommerce }}
     steps:
       # clone the repository
       - uses: actions/checkout@v2
@@ -28,7 +29,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          tools:       composer
           coverage:    none
       # run CI checks
+      - run: if [[ "${{ matrix.php }}" == '7.0' ]]; then wget https://phar.phpunit.de/phpunit-6.5.14.phar && mv phpunit-6.5.14.phar phpunit.phar; fi;
       - run: bash bin/run-ci-tests.bash

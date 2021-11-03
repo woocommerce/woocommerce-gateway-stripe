@@ -101,7 +101,9 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 						'token_id'       => false,
 						'customer'       => $customer,
 						'source'         => $source,
-						'source_object'  => (object) [],
+						'source_object'  => (object) [
+							'type' => 'card',
+						],
 						'payment_method' => null,
 					]
 				)
@@ -282,7 +284,9 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 						'token_id'       => false,
 						'customer'       => $customer,
 						'source'         => $source,
-						'source_object'  => (object) [],
+						'source_object'  => (object) [
+							'type' => 'card',
+						],
 						'payment_method' => null,
 					]
 				)
