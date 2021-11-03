@@ -231,6 +231,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 
 		wp_enqueue_style( 'stripe_styles' );
 		wp_enqueue_script( 'woocommerce_stripe' );
+		wp_enqueue_script( 'jquery-mask', plugins_url( 'assets/js/jquery.mask.min.js', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );
 	}
 
 	/**
@@ -245,8 +246,8 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	 */
 	public function payment_fields() {
 		?>
-			<label>CPF: <abbr class="required" title="required">*</abbr></label><br>
-			<input id="stripe_boleto_cpf" name="stripe_boleto_cpf" type="text" maxlength="14"><br><br>
+			<label>CPF/CNPJ: <abbr class="required" title="required">*</abbr></label><br>
+			<input id="stripe_boleto_tax_id" name="stripe_boleto_tax_id" type="text"><br><br>
 		<?php
 
 		global $wp;

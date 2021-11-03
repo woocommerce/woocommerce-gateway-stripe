@@ -265,15 +265,21 @@ jQuery( function( $ ) {
 			window.addEventListener( 'hashchange', wc_stripe_form.onHashChange );
 			wc_stripe_form.maybeConfirmIntent();
 
-			$(document).on('keydown','#stripe_boleto_cpf',function(event) {
-				if(event.keyCode !== 46 && event.keyCode !== 8){
-					var i = $(this).val().length;
-					if (i === 3 || i === 7) {
-						$(this).val($(this).val() + '.');
-					} else if (i === 11) {
-						$(this).val($(this).val() + '-');
-					}
+			$(document).on('change', 'form.woocommerce-checkout .woocommerce-checkout-payment input[name="payment_method"]', function (){
+				if ( $(this).attr('id') !== 'payment_method_stripe_boleto' ) {
+					return;
 				}
+
+				var TaxIdMaskBehavior = function (val) {
+						return val.replace(/\D/g, '').length >= 12 ? '00.000.000/0000-00' : '000.000.000-009';
+					},
+					spOptions = {
+						onKeyPress: function(val, e, field, options) {
+							field.mask(TaxIdMaskBehavior.apply({}, arguments), options);
+						}
+					};
+
+				$('#stripe_boleto_tax_id').mask(TaxIdMaskBehavior, spOptions);
 			});
 		},
 
@@ -686,7 +692,7 @@ jQuery( function( $ ) {
 						{
 							payment_method: {
 								boleto: {
-									tax_id: document.getElementById('stripe_boleto_cpf').value,
+									tax_id: document.getElementById('stripe_boleto_tax_id').value,
 								},
 								billing_details: {
 									name: document.getElementById('billing_first_name').value + ' ' + document.getElementById('billing_last_name').value,
