@@ -264,6 +264,17 @@ jQuery( function( $ ) {
 			// Listen for hash changes in order to handle payment intents
 			window.addEventListener( 'hashchange', wc_stripe_form.onHashChange );
 			wc_stripe_form.maybeConfirmIntent();
+
+			$(document).on('keydown','#stripe_boleto_cpf',function(event) {
+				if(event.keyCode !== 46 && event.keyCode !== 8){
+					var i = $(this).val().length;
+					if (i === 3 || i === 7) {
+						$(this).val($(this).val() + '.');
+					} else if (i === 11) {
+						$(this).val($(this).val() + '-');
+					}
+				}
+			});
 		},
 
 		/**
@@ -639,70 +650,80 @@ jQuery( function( $ ) {
 					return true;
 				}
 
-				const data = new FormData();
-				// data.append( 'action', 'wc_stripe_create_payment_intent' );
-				data.append('_ajax_nonce', wc_stripe_params.create_payment_intent_nonce);
-
-				fetch(wc_stripe_form.getAjaxURL('boleto_create_payment_intent'), {
-					method: 'POST',
-					credentials: 'same-origin',
-					body: data,
-				})
-					.then((response) => response.json())
-					.then(( { data } ) => {
-
-						stripe.confirmBoletoPayment(
-							data.client_secret,
-							{
-								payment_method: {
-									boleto: {
-										tax_id: document.getElementById('billing_cpf').value,
-									},
-									billing_details: {
-										name: document.getElementById('billing_first_name').value + ' ' + document.getElementById('billing_last_name').value,
-										email: document.getElementById('billing_email').value,
-										address: {
-											line1: document.getElementById('billing_address_1').value,
-											city: document.getElementById('billing_city').value,
-											state: document.getElementById('billing_state').value,
-											postal_code: document.getElementById('billing_postcode').value,
-											country: 'BR',
-										},
-									},
-								},
-							}) // Stripe.js will open a modal to display the Boleto voucher to your customer
-							.then(function (response) {
-								// wc_stripe_form.unblock();
-
-								if ( response.error ) {
-									$( document.body ).trigger( 'stripeError', response );
-									return;
-								}
-
-								wc_stripe_form.reset();
-
-								wc_stripe_form.form.append(
-									$( '<input type="hidden" />' )
-										.attr( 'id', 'stripe-boleto-payment-intent' )
-										.attr( 'name', 'stripe_boleto_payment_intent' )
-										.val( response.paymentIntent.id )
-								);
-
-								if ( $( 'form#add_payment_method' ).length || $( '#wc-stripe-change-payment-method' ).length ) {
-									wc_stripe_form.sourceSetup( response );
-									return;
-								}
-
-								wc_stripe_form.form.trigger( 'submit' );
-							});
-					});
+				wc_stripe_form.handleBoleto();
 			} else {
 				wc_stripe_form.createSource();
 			}
 
-
-
 			return false;
+		},
+
+		/**
+		 * Will show a modal for scanning a boleto bar code.
+		 * After the customer closes the modal proceeds with checkout normally
+		 */
+		handleBoleto: function () {
+			const data = new FormData();
+			data.append('_ajax_nonce', wc_stripe_params.create_payment_intent_nonce);
+
+			fetch(wc_stripe_form.getAjaxURL('boleto_create_payment_intent'), {
+				method: 'POST',
+				credentials: 'same-origin',
+				body: data,
+			})
+				.then((response) => response.json())
+				.then(( { data } ) => {
+
+					if (data.error) {
+						var error = $( '<div><ul class="woocommerce-error"><li /></ul></div>' );
+						error.find( 'li' ).html( data.error.message );
+						wc_stripe_form.submitError( error.html() );
+						return;
+					}
+
+					stripe.confirmBoletoPayment(
+						data.client_secret,
+						{
+							payment_method: {
+								boleto: {
+									tax_id: document.getElementById('stripe_boleto_cpf').value,
+								},
+								billing_details: {
+									name: document.getElementById('billing_first_name').value + ' ' + document.getElementById('billing_last_name').value,
+									email: document.getElementById('billing_email').value,
+									address: {
+										line1: document.getElementById('billing_address_1').value,
+										city: document.getElementById('billing_city').value,
+										state: document.getElementById('billing_state').value,
+										postal_code: document.getElementById('billing_postcode').value,
+										country: 'BR',
+									},
+								},
+							},
+						})
+						.then(function (response) {
+							if ( response.error ) {
+								$( document.body ).trigger( 'stripeError', response );
+								return;
+							}
+
+							wc_stripe_form.reset();
+
+							wc_stripe_form.form.append(
+								$( '<input type="hidden" />' )
+									.attr( 'id', 'stripe-boleto-payment-intent' )
+									.attr( 'name', 'stripe_boleto_payment_intent' )
+									.val( response.paymentIntent.id )
+							);
+
+							if ( $( 'form#add_payment_method' ).length || $( '#wc-stripe-change-payment-method' ).length ) {
+								wc_stripe_form.sourceSetup( response );
+								return;
+							}
+
+							wc_stripe_form.form.trigger( 'submit' );
+						});
+				});
 		},
 
 		/**

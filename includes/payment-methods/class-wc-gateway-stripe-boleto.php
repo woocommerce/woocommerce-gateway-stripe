@@ -57,6 +57,13 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	public $saved_cards;
 
 	/**
+	 * Gateway has additional fields during checktout
+	 *
+	 * @var bool
+	 */
+	public $has_fields = true;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -133,9 +140,12 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 		$amount   = WC()->cart->get_total( false );
 		$currency = 'BRL';
 		$order    = wc_get_order( $order_id );
+
 		if ( is_a( $order, 'WC_Order' ) ) {
 			$amount = $order->get_total();
 		}
+
+		$this->validate_amount_limits( $amount );
 
 		$payment_intent = WC_Stripe_API::request(
 			[
@@ -234,6 +244,11 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	 * Payment form on checkout page
 	 */
 	public function payment_fields() {
+		?>
+			<label>CPF: <abbr class="required" title="required">*</abbr></label><br>
+			<input id="stripe_boleto_cpf" name="stripe_boleto_cpf" type="text" maxlength="14"><br><br>
+		<?php
+
 		global $wp;
 		$user        = wp_get_current_user();
 		$total       = WC()->cart->total;
@@ -243,13 +258,6 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) {
 			$order = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) );
 			$total = $order->get_total();
-		}
-
-		if ( is_add_payment_method_page() ) {
-			$pay_button_text = __( 'Add Payment', 'woocommerce-gateway-stripe' );
-			$total           = '';
-		} else {
-			$pay_button_text = '';
 		}
 
 		echo '<div
@@ -264,43 +272,16 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 		echo '</div>';
 	}
 
-	/**
-	 * Creates the source for charge.
-	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
-	 * @param object $order
-	 * @return mixed
-	 */
-	public function create_source( WC_Order $order ) {
-		$currency  = $order->get_currency();
-		$post_data = [
-			'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency ),
-			'currency'             => strtolower( $currency ),
-			'payment_method_types' => [ 'boleto' ],
-		];
+	private function validate_amount_limits( $amount ) {
 
-		if ( ! empty( $this->statement_descriptor ) ) {
-			$post_data['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $this->statement_descriptor );
+		if ( $amount < 5.00 ) {
+			/* translators: 1) amount (including currency symbol) */
+			throw new WC_Stripe_Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( 5.00 ) ) );
 		}
 
-		WC_Stripe_Logger::log( 'Info: Begin creating Boleto source' );
-		$adf = WC_Stripe_API::request( apply_filters( 'wc_stripe_boleto_source', $post_data, $order ), 'payment_intents' );
-
-		return $adf;
-	}
-
-	private function validate_amount_limits( $order ) {
-		$this->validate_minimum_order_amount( $order );
-
-		if ( $order->get_total() < 5.00 ) {
+		if ( $amount > 49999.99 ) {
 			/* translators: 1) amount (including currency symbol) */
-			throw new WC_Stripe_Exception( 'Did not meet limit amount', sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( 5.00 ) ) );
-		}
-
-		if ( $order->get_total() > 49999.99 ) {
-			/* translators: 1) amount (including currency symbol) */
-			throw new WC_Stripe_Exception( 'Did not meet maximum amount', sprintf( __( 'Sorry, the maximum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( 49999.99 ) ) );
+			throw new WC_Stripe_Exception( sprintf( __( 'Sorry, the maximum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( 49999.99 ) ) );
 		}
 	}
 
@@ -321,23 +302,29 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 			global $woocommerce;
 
 			$order = wc_get_order( $order_id );
-			$order->update_status( 'on-hold', __( 'Awaiting boleto payment.', 'woocommerce-gateway-stripe' ) );
+			$order->update_status( 'pending', __( 'Awaiting boleto payment.', 'woocommerce-gateway-stripe' ) );
 
 			wc_reduce_stock_levels( $order_id );
 			$woocommerce->cart->empty_cart();
+
+			if ( isset( $_POST['stripe_boleto_payment_intent'] ) && ! empty( $_POST['stripe_boleto_payment_intent'] ) ) {
+				$payment_intent_id = wc_clean( wp_unslash( $_POST['stripe_boleto_payment_intent'] ) );
+				$order->add_order_note(
+					sprintf(
+					/* translators: $1%s payment intent ID */
+						__( 'Stripe payment intent created (Payment Intent ID: %1$s)', 'woocommerce-gateway-stripe' ),
+						$payment_intent_id
+					)
+				);
+
+				$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
+				$order->save();
+			}
 
 			return [
 				'result'   => 'success',
 				'redirect' => $this->get_return_url( $order ),
 			];
-
-			// This will throw exception if not valid.
-			//          $this->validate_amount_limits( $order );
-
-			//          $order->update_meta_data( '_stripe_source_id', $response->id );
-			//          $order->save();
-
-			//          WC_Stripe_Logger::log( 'Info: Redirecting to Alipay...' );
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
