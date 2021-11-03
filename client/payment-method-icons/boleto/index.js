@@ -4,8 +4,8 @@ import IconWithShell from '../styles/icon-with-shell';
 import icon from './icon.svg';
 
 const Wrapper = styled( IconWithShell )`
-	padding-top: 0;
-	padding-bottom: 0;
+	padding-top: 4px;
+	padding-bottom: 4px;
 `;
 
 const BoletoIcon = ( props ) => <Wrapper { ...props } src={ icon } />;
