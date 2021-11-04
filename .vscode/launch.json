@@ -13,12 +13,6 @@
                 "/var/www/html/": "${workspaceFolder}/docker/wordpress",
                 "/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/": "${workspaceFolder}"
             }
-        },
-        {
-            "name": "Xdebug local",
-            "type": "php",
-            "request": "launch",
-            "port": 9000,
         }
     ]
 }
