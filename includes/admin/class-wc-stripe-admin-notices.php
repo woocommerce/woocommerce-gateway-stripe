@@ -99,6 +99,7 @@ class WC_Stripe_Admin_Notices {
 			'SEPA'       => 'WC_Gateway_Stripe_Sepa',
 			'SOFORT'     => 'WC_Gateway_Stripe_Sofort',
 			'BOLETO'     => 'WC_Gateway_Stripe_Boleto',
+			'OXXO'     => 'WC_Gateway_Stripe_Oxxo',
 		];
 	}
 
