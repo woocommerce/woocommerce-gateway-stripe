@@ -404,30 +404,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		if (
-			is_product()
-			&& ! in_array(
-				'product',
-				$this->get_option( 'payment_request_button_locations', [ 'product', 'cart' ] ),
-				true
-			)
-		) {
-			if ( apply_filters( 'wc_stripe_remove_scripts_on_product_page_when_prbs_disabled', false ) ) {
-				return;
-			}
+		if ( is_product() && ! WC_Stripe_Helper::should_load_scripts_on_product_page() ) {
+			return;
 		}
 
-		if (
-			is_cart()
-			&& ! in_array(
-				'cart',
-				$this->get_option( 'payment_request_button_locations', [ 'product', 'cart' ] ),
-				true
-			)
-		) {
-			if ( apply_filters( 'wc_stripe_remove_scripts_on_cart_page_when_prbs_disabled', false ) ) {
-				return;
-			}
+		if ( is_cart() && ! WC_Stripe_Helper::should_load_scripts_on_cart_page() ) {
+			return;
 		}
 
 		// If Stripe is not enabled bail.
