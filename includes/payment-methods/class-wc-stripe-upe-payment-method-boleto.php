@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Bancontact Payment Method class extending UPE base class
+ * Boleto Payment Method class extending UPE base class
  */
 class WC_Stripe_UPE_Payment_Method_Boleto extends WC_Stripe_UPE_Payment_Method {
 
@@ -14,6 +14,8 @@ class WC_Stripe_UPE_Payment_Method_Boleto extends WC_Stripe_UPE_Payment_Method {
 
 	/**
 	 * Constructor for Boleto payment method
+	 *
+	 * @since 5.8.0
 	 */
 	public function __construct() {
 		parent::__construct();

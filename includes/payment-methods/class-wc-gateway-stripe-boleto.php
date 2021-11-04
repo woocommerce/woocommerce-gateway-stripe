@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @extends WC_Gateway_Stripe
  *
- * @since 4.0.0
+ * @since 5.8.0
  */
 class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 
@@ -65,6 +65,8 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Constructor
+	 *
+	 * @since 5.8.0
 	 */
 	public function __construct() {
 		$this->id           = self::ID;
@@ -104,6 +106,8 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Handle AJAX requests for creating a payment intent for Stripe UPE.
+	 *
+	 * @since 5.8.0
 	 */
 	public function create_payment_intent_ajax() {
 		try {
@@ -132,6 +136,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Creates payment intent using current cart or order and store details.
 	 *
+	 * @since 5.8.0
 	 * @param {int} $order_id The id of the order if intent created from Order.
 	 * @throws Exception - If the create intent call returns with an error.
 	 * @return array
@@ -166,15 +171,10 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 		];
 	}
 
-
-
-
-
 	/**
 	 * Returns all supported currencies for this payment method.
 	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @since 5.8.0
 	 * @return array
 	 */
 	public function get_supported_currency() {
@@ -189,8 +189,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Checks to see if all criteria is met before showing payment method.
 	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @since 5.8.0
 	 * @return bool
 	 */
 	public function is_available() {
@@ -204,8 +203,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Get_icon function.
 	 *
-	 * @since 1.0.0
-	 * @version 4.0.0
+	 * @since 5.8.0
 	 * @return string
 	 */
 	public function get_icon() {
@@ -221,8 +219,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Payment_scripts function.
 	 *
-	 * @since 4.0.0
-	 * @version 4.0.0
+	 * @since 5.8.0
 	 */
 	public function payment_scripts() {
 		if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() ) {
@@ -236,6 +233,8 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Initialize Gateway Settings Form Fields.
+	 *
+	 * @since 5.8.0
 	 */
 	public function init_form_fields() {
 		$this->form_fields = require WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-boleto-settings.php';
@@ -243,6 +242,8 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Payment form on checkout page
+	 *
+	 * @since 5.8.0
 	 */
 	public function payment_fields() {
 		?>
@@ -273,6 +274,15 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 		echo '</div>';
 	}
 
+	/**
+	 * Validates the minimum and maximum amount. Throws exception when out of range value is added
+	 *
+	 * @since 5.8.0
+	 *
+	 * @param $amount
+	 *
+	 * @throws WC_Stripe_Exception
+	 */
 	private function validate_amount_limits( $amount ) {
 
 		if ( $amount < 5.00 ) {
@@ -286,10 +296,10 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 		}
 	}
 
-
 	/**
 	 * Process the payment
 	 *
+	 * @since 5.8.0
 	 * @param int  $order_id Reference.
 	 * @param bool $retry Should we retry on fail.
 	 * @param bool $force_save_source Force payment source to be saved.
