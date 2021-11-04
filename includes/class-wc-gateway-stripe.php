@@ -427,6 +427,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		wp_enqueue_style( 'stripe_styles' );
 
 		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
+		wp_script_add_data( 'stripe', 'async', true );
 		wp_register_script( 'woocommerce_stripe', plugins_url( 'assets/js/stripe' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [ 'jquery-payment', 'stripe' ], WC_STRIPE_VERSION, true );
 
 		wp_localize_script(
