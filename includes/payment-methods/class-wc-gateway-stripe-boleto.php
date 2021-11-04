@@ -105,7 +105,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Handle AJAX requests for creating a payment intent for Stripe UPE.
+	 * Handle AJAX requests for creating a payment intent for Stripe Boleto.
 	 *
 	 * @since 5.8.0
 	 */
