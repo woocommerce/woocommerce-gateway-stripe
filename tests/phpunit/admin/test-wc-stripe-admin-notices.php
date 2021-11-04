@@ -40,10 +40,12 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		$notices = new WC_Stripe_Admin_Notices();
 		ob_start();
 		$notices->admin_notices();
-
 		if ( WC_Stripe_Helper::is_wc_lt( WC_STRIPE_FUTURE_MIN_WC_VER ) ) {
-			// This means a version support notice will be added.
-			$expected_notices[] = [ 'wcver' ];
+			// Displaying the style notice results in an early return.
+			if ( ! in_array( 'style', $expected_notices, true ) ) {
+				// This means a version support notice will be added.
+				$expected_notices[] = 'wcver';
+			}
 		}
 
 		if ( $expected_output ) {
@@ -95,10 +97,11 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		ob_start();
 		$notices->admin_notices();
 		ob_end_clean();
-		$this->assertCount( 3, $notices->notices );
+		$this->assertCount( 4, $notices->notices );
 		$this->assertArrayHasKey( 'giropay_upe', $notices->notices );
 		$this->assertArrayHasKey( 'bancontact_upe', $notices->notices );
 		$this->assertArrayHasKey( 'eps_upe', $notices->notices );
+		$this->assertArrayHasKey( 'wcver', $notices->notices );
 	}
 
 	public function options_to_notices_map() {
