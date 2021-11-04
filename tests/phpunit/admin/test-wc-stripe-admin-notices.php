@@ -40,6 +40,16 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		$notices = new WC_Stripe_Admin_Notices();
 		ob_start();
 		$notices->admin_notices();
+
+		if ( WC_Stripe_Helper::is_wc_lt( WC_STRIPE_FUTURE_MIN_WC_VER ) ) {
+			// This means a version support notice will be added.
+			if ( ! $expected_output ) {
+				$expected_output = [ 'wcver' ];
+			} else {
+				$expected_output[] = [ 'wcver' ];
+			}
+		}
+
 		if ( $expected_output ) {
 			$this->assertRegexp( $expected_output, ob_get_contents() );
 		}
