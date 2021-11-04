@@ -9,6 +9,9 @@
 
 } )( function( fnCallback, arg ) {
 	// waitForStripeScript
+
+	// This code is duplicated in "stripe-payment-request.js".
+
 	'use strict';
 	if ( window.Stripe ) {
 		fnCallback( arg );
