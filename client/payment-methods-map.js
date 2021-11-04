@@ -120,6 +120,6 @@ export default {
 		),
 		Icon: OxxoIcon,
 		currencies: [ 'MXN' ],
-		capability: 'oxxo',
+		capability: 'oxxo_payments',
 	},
 };

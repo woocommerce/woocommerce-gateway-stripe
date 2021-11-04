@@ -22,7 +22,7 @@ class WC_Stripe_UPE_Payment_Method_Oxxo extends WC_Stripe_UPE_Payment_Method {
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->title                = 'Pay with OXXO';
 		$this->is_reusable          = false;
-		$this->supported_currencies = [ 'BRL' ];
+		$this->supported_currencies = [ 'MXN' ];
 		$this->label                = __( 'OXXO', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
 			'OXXO is a voucher payment widely used in Mexico',

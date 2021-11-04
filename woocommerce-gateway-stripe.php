@@ -385,13 +385,13 @@ function woocommerce_gateway_stripe() {
 					$methods[] = WC_Gateway_Stripe_Eps::class;
 					$methods[] = WC_Gateway_Stripe_Sofort::class;
 					$methods[] = WC_Gateway_Stripe_P24::class;
+					$methods[] = WC_Gateway_Stripe_Boleto::class;
+					$methods[] = WC_Gateway_Stripe_Oxxo::class;
 				}
 
 				// These payment gateways will always be visible, regardless if UPE is enabled or disabled:
 				$methods[] = WC_Gateway_Stripe_Alipay::class;
 				$methods[] = WC_Gateway_Stripe_Multibanco::class;
-				$methods[] = WC_Gateway_Stripe_Boleto::class;
-				$methods[] = WC_Gateway_Stripe_Oxxo::class;
 
 				return $methods;
 			}
