@@ -43,6 +43,29 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Checks whether the gateway is enabled.
+	 *
+	 * @return bool The result.
+	 */
+	public function is_enabled() {
+		return 'yes' === $this->get_option( 'enabled' );
+	}
+
+	/**
+	 * Disables gateway.
+	 */
+	public function disable() {
+		$this->update_option( 'enabled', 'no' );
+	}
+
+	/**
+	 * Enables gateway.
+	 */
+	public function enable() {
+		$this->update_option( 'enabled', 'yes' );
+	}
+
+	/**
 	 * Displays the admin settings webhook description.
 	 *
 	 * @since 4.1.0
@@ -82,56 +105,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function render_upe_settings() {
 		global $hide_save_button;
-		$form_fields         = $this->get_form_fields();
-		$target_index        = array_search( 'activation', array_keys( $form_fields ), true ) + 1;
+		$hide_save_button    = true;
 		$is_stripe_connected = woocommerce_gateway_stripe()->connect->is_connected();
 
-		if ( ! $is_stripe_connected ) {
-			$hide_save_button = true;
-			echo '<div id="wc-stripe-new-account-container"></div>';
-		} else {
-			echo '<table class="form-table">' . $this->generate_settings_html( array_slice( $form_fields, 0, $target_index, true ), false ) . '</table>';
-			echo '<div id="wc-stripe-upe-opt-in-banner"></div>';
-			echo '<table class="form-table">' . $this->generate_settings_html( array_slice( $form_fields, $target_index, null, true ), false ) . '</table>';
-		}
-	}
-
-	/**
-	 * Outputs scripts used for upe opt-in banner
-	 */
-	public function admin_scripts_for_banner() {
-		if ( ! WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
-			return;
-		}
-
-		if ( ! WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', $this->id ) ) {
-			return;
-		}
-
-		// Webpack generates an assets file containing a dependencies array for our built JS file.
-		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe_opt_in_banner.asset.php';
-		$script_asset      = file_exists( $script_asset_path )
-			? require $script_asset_path
-			: [
-				'dependencies' => [],
-				'version'      => WC_STRIPE_VERSION,
-			];
-
-		wp_register_script(
-			'woocommerce_stripe_upe_opt_in',
-			plugins_url( 'build/upe_opt_in_banner.js', WC_STRIPE_MAIN_FILE ),
-			$script_asset['dependencies'],
-			$script_asset['version'],
-			true
-		);
-		wp_localize_script(
-			'woocommerce_stripe_upe_opt_in',
-			'wc_stripe_upe_opt_in_params',
-			[
-				'method_name' => $this->get_method_title(),
-			]
-		);
-		wp_enqueue_script( 'woocommerce_stripe_upe_opt_in' );
+		echo $is_stripe_connected ? '<div id="wc-stripe-payment-gateway-container"></div>' : '<div id="wc-stripe-new-account-container"></div>';
 	}
 
 	/**
