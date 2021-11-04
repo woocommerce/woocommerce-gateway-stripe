@@ -265,11 +265,7 @@ jQuery( function( $ ) {
 			window.addEventListener( 'hashchange', wc_stripe_form.onHashChange );
 			wc_stripe_form.maybeConfirmIntent();
 
-			$(document).on('change', 'form.woocommerce-checkout .woocommerce-checkout-payment input[name="payment_method"]', function (){
-				if ( $(this).attr('id') !== 'payment_method_stripe_boleto' ) {
-					return;
-				}
-
+			$(document).on('change', '.woocommerce-checkout-payment', function() {
 				var TaxIdMaskBehavior = function (val) {
 						return val.replace(/\D/g, '').length >= 12 ? '00.000.000/0000-00' : '000.000.000-009';
 					},
