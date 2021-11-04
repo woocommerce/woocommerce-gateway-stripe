@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class that handles oxxo payment method.
+ * Class that handles OXXO payment method.
  *
  * @extends WC_Gateway_Stripe
  *
@@ -57,7 +57,7 @@ class WC_Gateway_Stripe_Oxxo extends WC_Stripe_Payment_Gateway {
 	public $saved_cards;
 
 	/**
-	 * Gateway has additional fields during checktout
+	 * Gateway has additional fields during checkout
 	 *
 	 * @var bool
 	 */
