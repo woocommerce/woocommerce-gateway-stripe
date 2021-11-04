@@ -211,7 +211,15 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 							handleSave( testMode ? testFormRef : formRef )
 						}
 					>
-						{ __( 'Save changes', 'woocommerce-gateway-stripe' ) }
+						{ testMode
+							? __(
+									'Save test keys',
+									'woocommerce-gateway-stripe'
+							  )
+							: __(
+									'Save live keys',
+									'woocommerce-gateway-stripe'
+							  ) }
 					</Button>
 				</>
 			}
@@ -231,7 +239,7 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 				{ testMode
 					? interpolateComponents( {
 							mixedString: __(
-								"To enable the test mode, get the test account keys from your {{accountLink}}Stripe Account{{/accountLink}} (we'll save them for you so you won't have to do this every time).",
+								'To enable the test mode, get the test account keys from your {{accountLink}}Stripe Account{{/accountLink}}.',
 								'woocommerce-gateway-stripe'
 							),
 							components: {
@@ -243,7 +251,7 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 					  } )
 					: interpolateComponents( {
 							mixedString: __(
-								"To enable the live mode, get the account keys from your {{accountLink}}Stripe Account{{/accountLink}} (we'll save them for you so you won't have to do this every time).",
+								'To enable the live mode, get the account keys from your {{accountLink}}Stripe Account{{/accountLink}}.',
 								'woocommerce-gateway-stripe'
 							),
 							components: {
