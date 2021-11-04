@@ -761,6 +761,7 @@ class WC_Stripe_Payment_Request {
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
 		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
+		wp_script_add_data( 'stripe', 'async', true );
 		wp_register_script( 'wc_stripe_payment_request', plugins_url( 'assets/js/stripe-payment-request' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [ 'jquery', 'stripe' ], WC_STRIPE_VERSION, true );
 
 		wp_localize_script(
