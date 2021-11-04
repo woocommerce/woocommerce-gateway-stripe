@@ -97,11 +97,15 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		ob_start();
 		$notices->admin_notices();
 		ob_end_clean();
-		$this->assertCount( 4, $notices->notices );
+		if ( WC_Stripe_Helper::is_wc_lt( WC_STRIPE_FUTURE_MIN_WC_VER ) ) {
+			$this->assertCount( 4, $notices->notices );
+			$this->assertArrayHasKey( 'wcver', $notices->notices );
+		} else {
+			$this->assertCount( 3, $notices->notices );
+		}
 		$this->assertArrayHasKey( 'giropay_upe', $notices->notices );
 		$this->assertArrayHasKey( 'bancontact_upe', $notices->notices );
 		$this->assertArrayHasKey( 'eps_upe', $notices->notices );
-		$this->assertArrayHasKey( 'wcver', $notices->notices );
 	}
 
 	public function options_to_notices_map() {
