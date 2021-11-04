@@ -1,6 +1,6 @@
 ## Stripe Alipay
 
-### Go to WooCommerce > Settings > Payments > Stripe Boleto
+### Go to WooCommerce > Settings > Payments > Stripe OXXO
 
 #### Click Enable/Disable checkbox
 
@@ -12,9 +12,9 @@ Be sure to also copy the webhook endpoint provided on the settings page and add 
 
 ### Go to WooCommerce > Settings > General
 
-#### Set currency to Brazilian Real (R$)
+#### Set currency to Mexican Peso ($)
 
-#### Set country to Brazil
+#### Set country to Mexico
 
 #### Click Save changes button at the bottom
 
@@ -24,23 +24,15 @@ I see **Your settings have been saved** notice.
 
 ### Go to the checkout page
 
-I see Stripe Boleto is available as a payment method.
+I see Stripe OXXO is available as a payment method.
 
 #### Fill in all required details
 
-#### Select Stripe Boleto as payment method if not selected already
-
-#### Fill in the cpf/cnpj field with 75993088060
-
-I see this mask was applied xxx.xxx.xxx-xx
-
-#### Fill in the cpf/cnpj field with 26920537000163
-
-I see this mask was applied xx.xxx.xxx/xxxx-xx
+#### Select Stripe OXX as payment method if not selected already
 
 #### Click on **Place order** button
 
-I see a boleto barcode on a modal
+I see a OXXO barcode on a modal
 
 #### Close modal
 
