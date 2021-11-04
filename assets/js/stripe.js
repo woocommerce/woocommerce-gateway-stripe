@@ -211,7 +211,7 @@ jQuery( function( $ ) {
 
 			$( 'form.woocommerce-checkout' )
 				.on(
-					'checkout_place_order_stripe checkout_place_order_stripe_bancontact checkout_place_order_stripe_sofort checkout_place_order_stripe_giropay checkout_place_order_stripe_ideal checkout_place_order_stripe_alipay checkout_place_order_stripe_sepa checkout_place_order_stripe_boleto',
+					'checkout_place_order_stripe checkout_place_order_stripe_bancontact checkout_place_order_stripe_sofort checkout_place_order_stripe_giropay checkout_place_order_stripe_ideal checkout_place_order_stripe_alipay checkout_place_order_stripe_sepa checkout_place_order_stripe_boleto checkout_place_order_stripe_oxxo',
 					this.onSubmit
 				);
 
@@ -285,7 +285,7 @@ jQuery( function( $ ) {
 		 * @return {boolean}
 		 */
 		isStripeChosen: function() {
-			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_giropay, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa, #payment_method_stripe_eps, #payment_method_stripe_multibanco, #payment_method_stripe_boleto' ).is( ':checked' ) || ( $( '#payment_method_stripe' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() ) || ( $( '#payment_method_stripe_sepa' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() );
+			return $( '#payment_method_stripe, #payment_method_stripe_bancontact, #payment_method_stripe_sofort, #payment_method_stripe_giropay, #payment_method_stripe_ideal, #payment_method_stripe_alipay, #payment_method_stripe_sepa, #payment_method_stripe_eps, #payment_method_stripe_multibanco, #payment_method_stripe_boleto, #payment_method_stripe_oxxo' ).is( ':checked' ) || ( $( '#payment_method_stripe' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() ) || ( $( '#payment_method_stripe_sepa' ).is( ':checked' ) && 'new' === $( 'input[name="wc-stripe-payment-token"]:checked' ).val() );
 		},
 
 		/**
@@ -402,6 +402,15 @@ jQuery( function( $ ) {
 		 */
 		isBoletoChosen: function() {
 			return $( '#payment_method_stripe_boleto' ).is( ':checked' );
+		},
+
+		/**
+		 * Check if Stripe OXXO is being used.
+		 *
+		 * @return {boolean}
+		 */
+		isOxxoChosen: function() {
+			return $( '#payment_method_stripe_oxxo' ).is( ':checked' );
 		},
 
 		/**
@@ -653,6 +662,12 @@ jQuery( function( $ ) {
 				}
 
 				wc_stripe_form.handleBoleto();
+			} else if (wc_stripe_form.isOxxoChosen()) {
+				if(document.getElementById('stripe-oxxo-payment-intent')){
+					return true;
+				}
+
+				wc_stripe_form.handleOxxo();
 			} else {
 				wc_stripe_form.createSource();
 			}
@@ -715,6 +730,64 @@ jQuery( function( $ ) {
 								$( '<input type="hidden" />' )
 									.attr( 'id', 'stripe-boleto-payment-intent' )
 									.attr( 'name', 'stripe_boleto_payment_intent' )
+									.val( response.paymentIntent.id )
+							);
+
+							if ( $( 'form#add_payment_method' ).length || $( '#wc-stripe-change-payment-method' ).length ) {
+								wc_stripe_form.sourceSetup( response );
+								return;
+							}
+
+							wc_stripe_form.form.trigger( 'submit' );
+						});
+				});
+		},
+
+		/**
+		 * Will show a modal for printing the OXXO Voucher.
+		 * After the customer closes the modal proceeds with checkout normally
+		 */
+		handleOxxo: function () {
+			const data = new FormData();
+			data.append('_ajax_nonce', wc_stripe_params.create_payment_intent_nonce);
+
+			fetch(wc_stripe_form.getAjaxURL('oxxo_create_payment_intent'), {
+				method: 'POST',
+				credentials: 'same-origin',
+				body: data,
+			})
+				.then((response) => response.json())
+				.then(( { data } ) => {
+
+					if (data.error) {
+						var error = $( '<div><ul class="woocommerce-error"><li /></ul></div>' );
+						error.find( 'li' ).html( data.error.message );
+						wc_stripe_form.submitError( error.html() );
+						return;
+					}
+
+					stripe.confirmOxxoPayment(
+						data.client_secret,
+						{
+							payment_method: {
+								billing_details: {
+									name: document.getElementById('billing_first_name').value + ' ' + document.getElementById('billing_last_name').value,
+									email: document.getElementById('billing_email').value,
+								},
+							},
+						})
+						.then(function (response) {
+							if ( response.error ) {
+								$( document.body ).trigger( 'stripeError', response );
+								return;
+							}
+
+							wc_stripe_form.reset();
+
+							wc_stripe_form.form.append(
+								$( '<input type="hidden" />' )
+									.attr( 'id', 'stripe-oxxo-payment-intent' )
+									.attr( 'name', 'stripe_oxxo_payment_intent' )
 									.val( response.paymentIntent.id )
 							);
 

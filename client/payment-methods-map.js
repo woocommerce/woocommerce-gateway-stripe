@@ -8,6 +8,7 @@ import BancontactIcon from './payment-method-icons/bancontact';
 import IdealIcon from './payment-method-icons/ideal';
 import P24Icon from './payment-method-icons/p24';
 import BoletoIcon from './payment-method-icons/boleto';
+import OxxoIcon from './payment-method-icons/oxxo';
 
 export default {
 	card: {
@@ -109,5 +110,16 @@ export default {
 		Icon: BoletoIcon,
 		currencies: [ 'BRL' ],
 		capability: 'boleto',
+	},
+	oxxo: {
+		id: 'oxxo',
+		label: __( 'OXXO', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'OXXO is a voucher payment widely used in Mexico',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: OxxoIcon,
+		currencies: [ 'MXN' ],
+		capability: 'oxxo',
 	},
 };
