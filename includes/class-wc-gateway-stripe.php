@@ -412,7 +412,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				true
 			)
 		) {
-			return;
+			if ( apply_filters( 'wc_stripe_remove_scripts_on_product_page_when_prbs_disabled', false ) ) {
+				return;
+			}
 		}
 
 		if (
@@ -423,7 +425,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				true
 			)
 		) {
-			return;
+			if ( apply_filters( 'wc_stripe_remove_scripts_on_cart_page_when_prbs_disabled', false ) ) {
+				return;
+			}
 		}
 
 		// If Stripe is not enabled bail.
