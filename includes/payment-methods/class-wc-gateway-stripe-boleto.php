@@ -57,7 +57,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	public $saved_cards;
 
 	/**
-	 * Gateway has additional fields during checktout
+	 * Gateway has additional fields during checkout
 	 *
 	 * @var bool
 	 */
