@@ -58,6 +58,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'sepa_debit_payments' => 'inactive',
 		'sofort_payments'     => 'inactive',
 		'transfers'           => 'inactive',
+		'boleto_payments'     => 'inactive',
+		'oxxo_payments'       => 'inactive',
 	];
 
 	/**
@@ -73,6 +75,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'sepa_debit_payments' => 'active',
 		'sofort_payments'     => 'active',
 		'transfers'           => 'active',
+		'boleto_payments'     => 'active',
+		'oxxo_payments'       => 'active',
 	];
 
 	/**
@@ -284,7 +288,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	public function test_payment_methods_are_only_enabled_when_capability_is_active() {
 		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
 		foreach ( $payment_method_ids as $id ) {
-			if ( 'card' === $id ) {
+			if ( 'card' === $id || 'boleto' === $id || 'oxxo' === $id ) {
 				continue;
 			}
 

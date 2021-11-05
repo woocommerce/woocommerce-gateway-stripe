@@ -109,7 +109,7 @@ export default {
 		),
 		Icon: BoletoIcon,
 		currencies: [ 'BRL' ],
-		capability: 'boleto',
+		capability: 'boleto_payments',
 	},
 	oxxo: {
 		id: 'oxxo',

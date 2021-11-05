@@ -145,13 +145,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$order_key    = $order->get_order_key();
 		$amount       = WC_Stripe_Helper::get_stripe_amount( $total, $currency );
 		$description  = "Test Blog - Order $order_number";
-		$metadata     = [
-			'customer_name'  => 'Jeroen Sormani',
-			'customer_email' => 'admin@example.org',
-			'site_url'       => 'http://example.org',
-			'order_id'       => $order_id,
-			'order_key'      => $order_key,
-			'payment_type'   => 'single',
+		$metadata = [
+			'customer_name'     => 'Jeroen Sormani',
+			'customer_email'    => 'admin@example.org',
+			'site_url'          => 'http://example.org',
+			'order_id'          => $order_id,
+			'order_key'         => $order_key,
+			'payment_type'      => 'single',
 		];
 		return [ $amount, $description, $metadata ];
 	}
@@ -177,6 +177,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$order             = WC_Helper_Order::create_order();
 		$currency          = $order->get_currency();
 		$order_id          = $order->get_id();
+
+		$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
+		$order->save();
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 
@@ -970,6 +973,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$order             = WC_Helper_Order::create_order();
 		$currency          = $order->get_currency();
 		$order_id          = $order->get_id();
+
+		$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
+		$order->save();
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 
