@@ -2,7 +2,7 @@
     "name": "woocommerce/woocommerce-gateway-stripe",
     "description": "Take credit card payments on your store using Stripe.",
     "homepage": "https://woocommerce.com/products/woocommerce-gateway-stripe/",
-		"license": "GPL-2.0",
+		"license": "GPL-2.0-or-later",
 		"config": {
       "platform": {
         "php": "7.1"
@@ -11,6 +11,7 @@
     "require-dev": {
 				"composer/installers": "1.9.0",
 				"phpunit/phpunit": "7.5.20",
+				"yoast/phpunit-polyfills": "1.0.2",
 				"woocommerce/woocommerce-sniffs": "0.1.0"
     },
     "extra": {

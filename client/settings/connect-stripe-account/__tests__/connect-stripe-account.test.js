@@ -1,6 +1,20 @@
 import React from 'react';
 import { screen, render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import ConnectStripeAccount from '..';
+import {
+	useAccountKeys,
+	useAccountKeysPublishableKey,
+	useAccountKeysSecretKey,
+	useAccountKeysWebhookSecret,
+} from 'wcstripe/data/account-keys/hooks';
+
+jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
+	useAccountKeys: jest.fn(),
+	useAccountKeysPublishableKey: jest.fn(),
+	useAccountKeysSecretKey: jest.fn(),
+	useAccountKeysWebhookSecret: jest.fn(),
+} ) );
 
 describe( 'ConnectStripeAccount', () => {
 	it( 'should render the information', () => {
@@ -43,5 +57,31 @@ describe( 'ConnectStripeAccount', () => {
 			screen.queryByText( 'Create or connect an account' )
 		).not.toBeInTheDocument();
 		expect( screen.getByText( 'Enter account keys' ) ).toBeInTheDocument();
+	} );
+
+	it( 'should open the live account keys modal when clicking "enter acccount keys"', () => {
+		useAccountKeys.mockReturnValue( {
+			accountKeys: {
+				publishable_key: 'live_pk',
+				secret_key: 'live_sk',
+				webhook_secret: 'live_whs',
+			},
+		} );
+		useAccountKeysPublishableKey.mockReturnValue( [
+			'live_pk',
+			jest.fn(),
+		] );
+		useAccountKeysSecretKey.mockReturnValue( [ 'live_sk', jest.fn() ] );
+		useAccountKeysWebhookSecret.mockReturnValue( [
+			'live_whs',
+			jest.fn(),
+		] );
+
+		render( <ConnectStripeAccount oauthUrl="" /> );
+		const accountKeysButton = screen.queryByText( /enter account keys/i );
+		userEvent.click( accountKeysButton );
+		expect(
+			screen.queryByText( /edit live account keys & webhooks/i )
+		).toBeInTheDocument();
 	} );
 } );

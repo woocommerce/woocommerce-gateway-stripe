@@ -29,6 +29,7 @@ export function updateIsSavingAccountKeys( isSaving, error ) {
 export function* saveAccountKeys( accountKeys ) {
 	const isDisconnecting =
 		! accountKeys.publishable_key && ! accountKeys.test_publishable_key;
+
 	let error = null;
 	try {
 		yield updateIsSavingAccountKeys( true, null );

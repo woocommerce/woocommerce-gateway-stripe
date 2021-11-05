@@ -1,9 +1,9 @@
 # WooCommerce Stripe Payment Gateway
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic\
-Requires at least: 4.6\
+Requires at least: 5.6\
 Tested up to: 5.8\
-Requires PHP: 5.6\
+Requires PHP: 7.0\
 Stable tag: 5.7.0\
 License: GPLv3\
 License URI: https://www.gnu.org/licenses/gpl-3.0.html\
@@ -132,5 +132,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Error when changing payment method for a subscription with new checkout experience.
 * Fix - Payment Requests are now updated correctly when updating items in the Cart Block.
 * Add - Support for WooCommerce Pre-Orders with new checkout experience.
+* Tweak - Update the minimum required PHP version to 7.0 to reflect our L-2 support policy.
+* Fix - Add support for MYR (Malaysian ringgit) for Alipay.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

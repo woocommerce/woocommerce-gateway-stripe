@@ -16,6 +16,7 @@ import AdvancedSettingsSection from '../advanced-settings-section';
 import CustomizationOptionsNotice from '../customization-options-notice';
 import GeneralSettingsSection from './general-settings-section';
 import DisconnectStripeConfirmationModal from './disconnect-stripe-confirmation-modal';
+import { AccountKeysModal } from './account-keys-modal';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import './style.scss';
 import { useTestMode } from 'wcstripe/data';
@@ -78,11 +79,15 @@ const PaymentsAndTransactionsDescription = () => (
 	</>
 );
 
-const AccountSettingsDropdownMenu = () => {
+// @todo - remove setModalType as prop
+const AccountSettingsDropdownMenu = ( { setModalType } ) => {
+	// @todo - deconstruct setModalType from useModalType custom hook
+	const [ isTestModeEnabled ] = useTestMode();
 	const [
 		isConfirmationModalVisible,
 		setIsConfirmationModalVisible,
 	] = useState( false );
+
 	return (
 		<>
 			<DropdownMenu
@@ -94,11 +99,12 @@ const AccountSettingsDropdownMenu = () => {
 				controls={ [
 					{
 						title: __(
-							'Edit Details',
+							'Edit account keys',
 							'woocommerce-gateway-stripe'
 						),
 						// eslint-disable-next-line no-console
-						onClick: () => console.log( 'Edit my details' ),
+						onClick: () =>
+							setModalType( isTestModeEnabled ? 'test' : 'live' ),
 					},
 					{
 						title: __( 'Disconnect', 'woocommerce-gateway-stripe' ),
@@ -116,7 +122,8 @@ const AccountSettingsDropdownMenu = () => {
 	);
 };
 
-const AccountDetailsSection = () => {
+// @todo - remove setModalType as prop
+const AccountDetailsSection = ( { setModalType } ) => {
 	const [ isTestModeEnabled ] = useTestMode();
 	const { data } = useAccount();
 
@@ -135,7 +142,7 @@ const AccountDetailsSection = () => {
 						</Pill>
 					) }
 				</div>
-				<AccountSettingsDropdownMenu />
+				<AccountSettingsDropdownMenu setModalType={ setModalType } />
 			</CardHeader>
 			<CardBody>
 				<AccountStatus />
@@ -145,8 +152,21 @@ const AccountDetailsSection = () => {
 };
 
 const PaymentSettingsPanel = () => {
+	// @todo - deconstruct modalType and setModalType from useModalType custom hook
+	const [ modalType, setModalType ] = useState( '' );
+
+	const handleModalDismiss = () => {
+		setModalType( '' );
+	};
+
 	return (
 		<>
+			{ modalType && (
+				<AccountKeysModal
+					type={ modalType }
+					onClose={ handleModalDismiss }
+				/>
+			) }
 			<SettingsSection Description={ GeneralSettingsDescription }>
 				<LoadableSettingsSection numLines={ 20 }>
 					<LoadableAccountSection numLines={ 20 }>
@@ -157,7 +177,7 @@ const PaymentSettingsPanel = () => {
 			</SettingsSection>
 			<SettingsSection Description={ AccountDetailsDescription }>
 				<LoadableAccountSection numLines={ 20 }>
-					<AccountDetailsSection />
+					<AccountDetailsSection setModalType={ setModalType } />
 				</LoadableAccountSection>
 			</SettingsSection>
 			<SettingsSection Description={ PaymentsAndTransactionsDescription }>
