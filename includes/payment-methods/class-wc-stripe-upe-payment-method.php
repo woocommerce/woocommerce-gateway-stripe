@@ -61,6 +61,13 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	protected $supported_currencies;
 
 	/**
+	 * Can this payment method be refunded?
+	 *
+	 * @var array
+	 */
+	public $can_refund = true;
+
+	/**
 	 * Wether this UPE method is enabled
 	 *
 	 * @var bool

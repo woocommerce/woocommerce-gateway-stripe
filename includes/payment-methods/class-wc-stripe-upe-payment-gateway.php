@@ -158,6 +158,23 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
+	 * Hides refund through stripe when payment method does not allow refund
+	 *
+	 * @param WC_Order $order
+	 *
+	 * @return array|bool
+	 */
+	public function can_refund_order( $order ) {
+		$upe_payment_type = $order->get_meta( '_stripe_upe_payment_type' );
+
+		if ( ! $upe_payment_type ) {
+			return true;
+		}
+
+		return $this->payment_methods[ $upe_payment_type ]->can_refund;
+	}
+
+	/**
 	 * Return the gateway icon - None for UPE.
 	 */
 	public function get_icon() {
@@ -530,6 +547,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				);
 
 				$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
+				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
 				$order->save();
 
 				$this->stripe_request(
