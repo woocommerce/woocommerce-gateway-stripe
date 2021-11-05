@@ -126,12 +126,13 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.x.x - 2021-xx-xx =
+= 5.8.0 - 2021-xx-xx =
 * Fix - Hong Kong addresses are now mapped more thoroughly to WooCommerce addresses when paying with Apple Pay.
 * Fix - Error when changing payment method for a subscription with new checkout experience.
 * Fix - Payment Requests are now updated correctly when updating items in the Cart Block.
 * Add - Support for WooCommerce Pre-Orders with new checkout experience.
 * Tweak - Update the minimum required PHP version to 7.0 to reflect our L-2 support policy.
 * Fix - Add support for MYR (Malaysian ringgit) for Alipay.
+* Add - Pre-release preview of new settings experience.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
