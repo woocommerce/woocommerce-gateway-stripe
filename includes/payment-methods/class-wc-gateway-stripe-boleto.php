@@ -250,28 +250,6 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 			<label>CPF/CNPJ: <abbr class="required" title="required">*</abbr></label><br>
 			<input id="stripe_boleto_tax_id" name="stripe_boleto_tax_id" type="text"><br><br>
 		<?php
-
-		global $wp;
-		$user        = wp_get_current_user();
-		$total       = WC()->cart->total;
-		$description = $this->get_description();
-
-		// If paying from order, we need to get total from order not cart.
-		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) {
-			$order = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) );
-			$total = $order->get_total();
-		}
-
-		echo '<div
-			id="stripe-boleto-payment-data"
-			data-amount="' . esc_attr( WC_Stripe_Helper::get_stripe_amount( $total ) ) . '"
-			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '">';
-
-		if ( $description ) {
-			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $description ) ), $this->id );
-		}
-
-		echo '</div>';
 	}
 
 	/**

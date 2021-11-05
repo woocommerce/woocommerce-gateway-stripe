@@ -61,7 +61,7 @@ class WC_Gateway_Stripe_Oxxo extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @var bool
 	 */
-	public $has_fields = true;
+	public $has_fields = false;
 
 	/**
 	 * Constructor
@@ -235,35 +235,6 @@ class WC_Gateway_Stripe_Oxxo extends WC_Stripe_Payment_Gateway {
 	 */
 	public function init_form_fields() {
 		$this->form_fields = require WC_STRIPE_PLUGIN_PATH . '/includes/admin/stripe-oxxo-settings.php';
-	}
-
-	/**
-	 * Payment form on checkout page
-	 *
-	 * @since 5.8.0
-	 */
-	public function payment_fields() {
-		global $wp;
-		$user        = wp_get_current_user();
-		$total       = WC()->cart->total;
-		$description = $this->get_description();
-
-		// If paying from order, we need to get total from order not cart.
-		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) {
-			$order = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) );
-			$total = $order->get_total();
-		}
-
-		echo '<div
-			id="stripe-oxxo-payment-data"
-			data-amount="' . esc_attr( WC_Stripe_Helper::get_stripe_amount( $total ) ) . '"
-			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '">';
-
-		if ( $description ) {
-			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $description ) ), $this->id );
-		}
-
-		echo '</div>';
 	}
 
 	/**
