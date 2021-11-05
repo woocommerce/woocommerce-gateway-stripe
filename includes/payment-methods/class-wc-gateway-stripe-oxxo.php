@@ -150,6 +150,8 @@ class WC_Gateway_Stripe_Oxxo extends WC_Stripe_Payment_Gateway {
 			$amount = $order->get_total();
 		}
 
+		$this->validate_amount_limits( $amount );
+
 		$payment_intent = WC_Stripe_API::request(
 			[
 				'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
@@ -244,6 +246,28 @@ class WC_Gateway_Stripe_Oxxo extends WC_Stripe_Payment_Gateway {
 	 */
 	public function payment_fields() {
 
+	}
+
+	/**
+	 * Validates the minimum and maximum amount. Throws exception when out of range value is added
+	 *
+	 * @since 5.8.0
+	 *
+	 * @param $amount
+	 *
+	 * @throws WC_Stripe_Exception
+	 */
+	private function validate_amount_limits( $amount ) {
+
+		if ( $amount < 10.00 ) {
+			/* translators: 1) amount (including currency symbol) */
+			throw new WC_Stripe_Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( 10.0 ) ) );
+		}
+
+		if ( $amount > 10000.00 ) {
+			/* translators: 1) amount (including currency symbol) */
+			throw new WC_Stripe_Exception( sprintf( __( 'Sorry, the maximum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( 10000.00 ) ) );
+		}
 	}
 
 	/**
