@@ -186,6 +186,12 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$mock_ideal_details      = [
 			'type' => 'ideal',
 		];
+		$mock_boleto_details      = [
+			'type' => 'boleto',
+		];
+		$mock_oxxo_details      = [
+			'type' => 'oxxo',
+		];
 
 		$card_method       = $this->mock_payment_methods['card'];
 		$giropay_method    = $this->mock_payment_methods['giropay'];
@@ -195,6 +201,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$sofort_method     = $this->mock_payment_methods['sofort'];
 		$bancontact_method = $this->mock_payment_methods['bancontact'];
 		$ideal_method      = $this->mock_payment_methods['ideal'];
+		$boleto_method     = $this->mock_payment_methods['boleto'];
+		$oxxo_method       = $this->mock_payment_methods['oxxo'];
 
 		$this->assertEquals( 'card', $card_method->get_id() );
 		$this->assertEquals( 'Credit card / debit card', $card_method->get_label() );
@@ -252,6 +260,20 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Pay with iDEAL', $ideal_method->get_title( $mock_ideal_details ) );
 		$this->assertTrue( $ideal_method->is_reusable() );
 		$this->assertEquals( 'sepa_debit', $ideal_method->get_retrievable_type() );
+
+		$this->assertEquals( 'boleto', $boleto_method->get_id() );
+		$this->assertEquals( 'Boleto', $boleto_method->get_label() );
+		$this->assertEquals( 'Pay with Boleto', $boleto_method->get_title() );
+		$this->assertEquals( 'Pay with Boleto', $boleto_method->get_title( $mock_boleto_details ) );
+		$this->assertFalse( $boleto_method->is_reusable() );
+		$this->assertEquals( null, $boleto_method->get_retrievable_type() );
+
+		$this->assertEquals( 'oxxo', $oxxo_method->get_id() );
+		$this->assertEquals( 'OXXO', $oxxo_method->get_label() );
+		$this->assertEquals( 'Pay with OXXO', $oxxo_method->get_title() );
+		$this->assertEquals( 'Pay with OXXO', $oxxo_method->get_title( $mock_oxxo_details ) );
+		$this->assertFalse( $oxxo_method->is_reusable() );
+		$this->assertEquals( null, $oxxo_method->get_retrievable_type() );
 	}
 
 	/**
@@ -271,6 +293,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$sofort_method     = $this->mock_payment_methods['sofort'];
 		$bancontact_method = $this->mock_payment_methods['bancontact'];
 		$ideal_method      = $this->mock_payment_methods['ideal'];
+		$boleto_method      = $this->mock_payment_methods['boleto'];
+		$oxxo_method      = $this->mock_payment_methods['boleto'];
 
 		$this->assertTrue( $card_method->is_enabled_at_checkout() );
 		$this->assertFalse( $giropay_method->is_enabled_at_checkout() );
@@ -280,6 +304,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertFalse( $sofort_method->is_enabled_at_checkout() );
 		$this->assertFalse( $bancontact_method->is_enabled_at_checkout() );
 		$this->assertFalse( $ideal_method->is_enabled_at_checkout() );
+		$this->assertFalse( $boleto_method->is_enabled_at_checkout() );
+		$this->assertFalse( $oxxo_method->is_enabled_at_checkout() );
 	}
 
 	/**
