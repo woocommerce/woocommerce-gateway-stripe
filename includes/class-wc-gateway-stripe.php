@@ -692,7 +692,13 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			</td>
 			<td width="1%"></td>
 			<td class="total">
-				-<?php echo wc_price( $fee, [ 'currency' => $currency ] ); // wpcs: xss ok. ?>
+				-<?php
+				$wcml_disabled = $this->disable_wcml_filtering();
+				echo wc_price( $fee, [ 'currency' => $currency ] ); // wpcs: xss ok.
+				if ( $wcml_disabled ) {
+					$this->enable_wcml_filtering();
+				}
+				?>
 			</td>
 		</tr>
 
@@ -729,11 +735,44 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			</td>
 			<td width="1%"></td>
 			<td class="total">
-				<?php echo wc_price( $net, [ 'currency' => $currency ] ); // wpcs: xss ok. ?>
+				<?php
+				$wcml_disabled = $this->disable_wcml_filtering();
+				echo wc_price( $net, [ 'currency' => $currency ] ); // wpcs: xss ok.
+				if ( $wcml_disabled ) {
+					$this->enable_wcml_filtering();
+				}
+				?>
 			</td>
 		</tr>
 
 		<?php
+	}
+
+	/**
+	 * Removes WooCommerce Multilingual filter for replacing order currency symbol.
+	 *
+	 * WCML filters currency symbols on order screen and replaces them with the default currency set in
+	 * WCML multicurrency module. Currency settings on Stripe account might be different, then filter should be
+	 * de-registered for the moment when Stripe Gateway plugin runs `wc_price`.
+	 *
+	 * @return bool Whether filter was removed
+	 */
+	private function disable_wcml_filtering() {
+		global $woocommerce_wpml;
+		if ( isset( $woocommerce_wpml->multi_currency->orders ) ) {
+			return remove_filter( 'woocommerce_currency_symbol', [ $woocommerce_wpml->multi_currency->orders, '_use_order_currency_symbol' ] );
+		}
+		return false;
+	}
+
+	/**
+	 * Registers back WooCommerce Multilingual filter for replacing order currency symbol.
+	 */
+	private function enable_wcml_filtering() {
+		global $woocommerce_wpml;
+		if ( isset( $woocommerce_wpml->multi_currency->orders ) ) {
+			add_filter( 'woocommerce_currency_symbol', [ $woocommerce_wpml->multi_currency->orders, '_use_order_currency_symbol' ] );
+		}
 	}
 
 	/**
