@@ -118,16 +118,16 @@ For help setting up and configuring, please refer to our [documentation](https:/
 
 If you get stuck, you can ask for help in the Plugin Forum.
 
-## Screenshots ##
+## Screenshots
 
 1. The Stripe payment gateway settings screen used to configure the main Stripe gateway.
 2. Offer a range of payment methods such as local and alternative payment methods.
 3. Pay with a saved payment method, a new card, and allow customers to save the payment card for future transactions.
 4. Apple Pay and other Payment Request buttons can be used on the Product Page and Checkout for express checkout.
 
-## Changelog ##
+## Changelog
 
-# 5.x.x - 2021-xx-xx #
+### 5.x.x - 2021-xx-xx
 * Fix - Hong Kong addresses are now mapped more thoroughly to WooCommerce addresses when paying with Apple Pay.
 * Fix - Error when changing payment method for a subscription with new checkout experience.
 * Fix - Payment Requests are now updated correctly when updating items in the Cart Block.
