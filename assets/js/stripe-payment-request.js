@@ -631,6 +631,10 @@ jQuery( function( $ ) {
 				wc_stripe_payment_request.unblockPaymentRequestButton();
 			} );
 
+			$( document.body ).on( 'wc_stripe_hide_payment_request_button', function () {
+				wc_stripe_payment_request.hidePaymentRequestButton();
+			} );
+
 			$( document.body ).on( 'wc_stripe_block_payment_request_button', function () {
 				wc_stripe_payment_request.blockPaymentRequestButton( 'wc_request_button_is_blocked' );
 			} );
@@ -649,7 +653,11 @@ jQuery( function( $ ) {
 							displayItems: response.displayItems,
 						} )
 					).then( function () {
-						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
+						if (response.is_in_stock) {
+							$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
+						} else {
+							$( document.body ).trigger( 'wc_stripe_hide_payment_request_button' );
+						}
 					} );
 				});
 			} );
@@ -675,7 +683,11 @@ jQuery( function( $ ) {
 								displayItems: response.displayItems,
 							} )
 						).then( function () {
-							$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
+							if (response.is_in_stock) {
+								$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
+							} else {
+								$( document.body ).trigger( 'wc_stripe_hide_payment_request_button' );
+							}
 						});
 					}
 				} );
@@ -718,6 +730,20 @@ jQuery( function( $ ) {
 			}
 		},
 
+		hidePaymentRequestButton: function () {
+			$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).hide();
+		},
+
+		unhidePaymentRequestButton: function () {
+			const stripe_wrapper_ele = $( '#wc-stripe-payment-request-wrapper' );
+			const stripe_separator_ele = $( '#wc-stripe-payment-request-button-separator' );
+			// If either element is hidden, ensure both show.
+			if ( stripe_wrapper_ele.is(':hidden') || stripe_separator_ele.is(':hidden') ) {
+				stripe_wrapper_ele.show();
+				stripe_separator_ele.show();
+			}
+		},
+
 		blockPaymentRequestButton: function( cssClassname ) {
 			// check if element isn't already blocked before calling block() to avoid blinking overlay issues
 			// blockUI.isBlocked is either undefined or 0 when element is not blocked
@@ -731,6 +757,9 @@ jQuery( function( $ ) {
 		},
 
 		unblockPaymentRequestButton: function() {
+			// Assure PRB is showing.
+			wc_stripe_payment_request.unhidePaymentRequestButton();
+
 			$( '#wc-stripe-payment-request-button' )
 				.removeClass( ['wc_request_button_is_blocked', 'wc_request_button_is_disabled'] )
 				.unblock();

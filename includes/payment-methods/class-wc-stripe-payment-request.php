@@ -1354,6 +1354,7 @@ class WC_Stripe_Payment_Request {
 			$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
 			$data['currency']        = strtolower( get_woocommerce_currency() );
 			$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
+			$data['is_in_stock']     = $product->is_in_stock();
 
 			wp_send_json( $data );
 		} catch ( Exception $e ) {
