@@ -59,11 +59,11 @@
 
 	'use strict';
 
-	try{
+	try {
 		var stripe = Stripe( wc_stripe_params.key, {
 			locale: wc_stripe_params.stripe_locale || 'auto',
 		} );
-	} catch ( error ){
+	} catch( error ) {
 		console.log( error );
 		return;
 	}
@@ -88,8 +88,8 @@
 		 */
 		getAjaxURL: function( endpoint ) {
 			return wc_stripe_params.ajaxurl
-								   .toString()
-								   .replace( '%%endpoint%%', 'wc_stripe_' + endpoint );
+				.toString()
+				.replace( '%%endpoint%%', 'wc_stripe_' + endpoint );
 		},
 
 		/**
@@ -133,7 +133,7 @@
 					color: '#31325F',
 					fontSize: '15px',
 					'::placeholder': {
-						color: '#CFD7E0',
+				  		color: '#CFD7E0',
 					}
 				}
 			};
@@ -237,7 +237,7 @@
 			};
 
 			var imageElement = $( '.stripe-card-brand' ),
-				imageClass   = 'stripe-credit-card-brand';
+				imageClass = 'stripe-credit-card-brand';
 
 			if ( brand in brandClass ) {
 				imageClass = brandClass[ brand ];
@@ -309,10 +309,10 @@
 			);
 
 			// Subscription early renewals modal.
-			if ( $( '#early_renewal_modal_submit[data-payment-method]' ).length ) {
-				$( '#early_renewal_modal_submit[data-payment-method=stripe]' ).on( 'click', this.onEarlyRenewalSubmit );
+			if ($('#early_renewal_modal_submit[data-payment-method]').length) {
+				$('#early_renewal_modal_submit[data-payment-method=stripe]').on('click', this.onEarlyRenewalSubmit);
 			} else {
-				$( '#early_renewal_modal_submit' ).on( 'click', this.onEarlyRenewalSubmit );
+				$('#early_renewal_modal_submit').on('click', this.onEarlyRenewalSubmit);
 			}
 
 			wc_stripe_form.createElements();
@@ -338,14 +338,14 @@
 		 */
 		isStripeSaveCardChosen: function() {
 			return (
-					   $( '#payment_method_stripe' ).is( ':checked' )
-					   && $( 'input[name="wc-stripe-payment-token"]' ).is( ':checked' )
-					   && 'new' !== $( 'input[name="wc-stripe-payment-token"]:checked' ).val()
-				   ) || (
-					   $( '#payment_method_stripe_sepa' ).is( ':checked' )
-					   && $( 'input[name="wc-stripe_sepa-payment-token"]' ).is( ':checked' )
-					   && 'new' !== $( 'input[name="wc-stripe_sepa-payment-token"]:checked' ).val()
-				   );
+				$( '#payment_method_stripe' ).is( ':checked' )
+				&& $( 'input[name="wc-stripe-payment-token"]' ).is( ':checked' )
+				&& 'new' !== $( 'input[name="wc-stripe-payment-token"]:checked' ).val()
+			) || (
+				$( '#payment_method_stripe_sepa' ).is( ':checked' )
+				&& $( 'input[name="wc-stripe_sepa-payment-token"]' ).is( ':checked' )
+				&& 'new' !== $( 'input[name="wc-stripe_sepa-payment-token"]:checked' ).val()
+			);
 		},
 
 		/**
@@ -454,7 +454,7 @@
 		 * @return {boolean}
 		 */
 		isMobile: function() {
-			if ( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test( navigator.userAgent ) ) {
+			if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test( navigator.userAgent ) ) {
 				return true;
 			}
 
@@ -535,10 +535,10 @@
 
 			owner.address.line1       = $( '#billing_address_1' ).val() || wc_stripe_params.billing_address_1;
 			owner.address.line2       = $( '#billing_address_2' ).val() || wc_stripe_params.billing_address_2;
-			owner.address.state       = $( '#billing_state' ).val() || wc_stripe_params.billing_state;
-			owner.address.city        = $( '#billing_city' ).val() || wc_stripe_params.billing_city;
-			owner.address.postal_code = $( '#billing_postcode' ).val() || wc_stripe_params.billing_postcode;
-			owner.address.country     = $( '#billing_country' ).val() || wc_stripe_params.billing_country;
+			owner.address.state       = $( '#billing_state' ).val()     || wc_stripe_params.billing_state;
+			owner.address.city        = $( '#billing_city' ).val()      || wc_stripe_params.billing_city;
+			owner.address.postal_code = $( '#billing_postcode' ).val()  || wc_stripe_params.billing_postcode;
+			owner.address.country     = $( '#billing_country' ).val()   || wc_stripe_params.billing_country;
 
 			return {
 				owner: owner,
@@ -565,7 +565,7 @@
 
 			// Handle card payments.
 			return stripe.createSource( stripe_card, extra_details )
-						 .then( wc_stripe_form.sourceResponse );
+				.then( wc_stripe_form.sourceResponse );
 		},
 
 		/**
@@ -609,7 +609,7 @@
 			};
 
 			$.post( {
-				url: wc_stripe_form.getAjaxURL( 'create_setup_intent' ),
+				url: wc_stripe_form.getAjaxURL( 'create_setup_intent'),
 				dataType: 'json',
 				data: {
 					stripe_source_id: response.source.id,
@@ -631,21 +631,21 @@
 				}
 
 				stripe.confirmCardSetup( serverResponse.client_secret, { payment_method: response.source.id } )
-					  .then( function( result ) {
-						  if ( result.error ) {
-							  $( document.body ).trigger( 'stripeError', result );
-							  return;
-						  }
+					.then( function( result ) {
+						if ( result.error ) {
+							$( document.body ).trigger( 'stripeError', result );
+							return;
+						}
 
-						  if ( $( 'form#add_payment_method' ).length ) {
-							  $( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
-						  }
-						  wc_stripe_form.form.trigger( 'submit' );
-					  } )
-					  .catch( function( err ) {
-						  console.log( err );
-						  $( document.body ).trigger( 'stripeError', { error: err } );
-					  } );
+						if ( $( 'form#add_payment_method' ).length ) {
+							$( wc_stripe_form.form ).off( 'submit', wc_stripe_form.form.onSubmit );
+						}
+						wc_stripe_form.form.trigger( 'submit' );
+					} )
+					.catch( function( err ) {
+						console.log( err );
+						$( document.body ).trigger( 'stripeError', { error: err } );
+					} );
 			} );
 		},
 
@@ -724,9 +724,9 @@
 		 * @param {Object} result The result of Stripe call.
 		 */
 		onError: function( e, result ) {
-			var message               = result.error.message;
+			var message = result.error.message;
 			var selectedMethodElement = wc_stripe_form.getSelectedPaymentElement().closest( 'li' );
-			var savedTokens           = selectedMethodElement.find( '.woocommerce-SavedPaymentMethods-tokenInput' );
+			var savedTokens = selectedMethodElement.find( '.woocommerce-SavedPaymentMethods-tokenInput' );
 			var errorContainer;
 
 			var prButtonClicked = $( 'body' ).hasClass( 'woocommerce-stripe-prb-clicked' );
@@ -774,10 +774,10 @@
 				 * therefore return a generic localizable error message.
 				 */
 				'invalid_request_error' === result.error.type ||
-				'api_connection_error' === result.error.type ||
-				'api_error' === result.error.type ||
-				'authentication_error' === result.error.type ||
-				'rate_limit_error' === result.error.type
+				'api_connection_error'  === result.error.type ||
+				'api_error'             === result.error.type ||
+				'authentication_error'  === result.error.type ||
+				'rate_limit_error'      === result.error.type
 			) {
 				message = wc_stripe_params.invalid_request_error;
 			}
@@ -797,7 +797,7 @@
 			$( errorContainer ).find( 'li' ).text( message ); // Prevent XSS
 
 			if ( $( '.wc-stripe-error' ).length ) {
-				$( 'html, body' ).animate( {
+				$( 'html, body' ).animate({
 					scrollTop: ( $( '.wc-stripe-error' ).offset().top - 200 )
 				}, 200 );
 			}
@@ -831,7 +831,7 @@
 			}
 
 			if ( selector.length ) {
-				$( 'html, body' ).animate( {
+				$( 'html, body' ).animate({
 					scrollTop: ( selector.offset().top - 100 )
 				}, 500 );
 			}
@@ -859,9 +859,9 @@
 				return;
 			}
 
-			var type               = partials[ 1 ];
-			var intentClientSecret = partials[ 2 ];
-			var redirectURL        = decodeURIComponent( partials[ 3 ] );
+			var type               = partials[1];
+			var intentClientSecret = partials[2];
+			var redirectURL        = decodeURIComponent( partials[3] );
 
 			// Cleanup the URL
 			window.location.hash = '';
