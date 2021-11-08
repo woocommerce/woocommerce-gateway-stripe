@@ -1,5 +1,7 @@
 ## Stripe Alipay
 
+### Set Country to Mexico on your Stripe account Dashboard
+
 ### Go to WooCommerce > Settings > Payments > Stripe OXXO
 
 #### Click Enable/Disable checkbox
