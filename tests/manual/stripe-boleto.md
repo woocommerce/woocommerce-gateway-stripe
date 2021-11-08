@@ -1,5 +1,7 @@
 ## Stripe Alipay
 
+### Set Country to Brazil on your Stripe account Dashboard
+
 ### Go to WooCommerce > Settings > Payments > Stripe Boleto
 
 #### Click Enable/Disable checkbox
