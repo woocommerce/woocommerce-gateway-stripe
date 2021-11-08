@@ -249,6 +249,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 		?>
 			<label>CPF/CNPJ: <abbr class="required" title="required">*</abbr></label><br>
 			<input id="stripe_boleto_tax_id" name="stripe_boleto_tax_id" type="text"><br><br>
+			<div class="stripe-source-errors" role="alert"></div>
 		<?php
 	}
 
