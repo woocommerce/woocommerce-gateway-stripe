@@ -704,6 +704,11 @@ jQuery( function( $ ) {
 		 * After the customer closes the modal proceeds with checkout normally
 		 */
 		handleBoleto: function () {
+			if( ! document.getElementById( 'stripe_boleto_tax_id' ).value ) {
+				wc_stripe_form.submitError( wc_stripe_params.cpf_cnpj_required_msg );
+				return;
+			}
+
 			const data = new FormData();
 			data.append( '_ajax_nonce', wc_stripe_params.create_payment_intent_nonce );
 
