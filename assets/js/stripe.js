@@ -657,7 +657,7 @@ jQuery( function( $ ) {
 
 			wc_stripe_form.block();
 
-			if(! wc_stripe_form.validateRequiredFields()) {
+			if( ! wc_stripe_form.validateRequiredFields() ) {
 				return false;
 			}
 
@@ -693,7 +693,7 @@ jQuery( function( $ ) {
 			}
 
 			if( ! all_required_fields_are_filled ) {
-				wc_stripe_form.submitError( 'Please fill all required fields before placing an order' );
+				wc_stripe_form.submitError( wc_stripe_params.fill_required_fields_msg );
 			}
 
 			return all_required_fields_are_filled;
