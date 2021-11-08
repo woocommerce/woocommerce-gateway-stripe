@@ -60,14 +60,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array
 	 */
 	public function get_payment_method_script_handles() {
-		if ( is_product() && ! WC_Stripe_Helper::should_load_scripts_on_product_page() ) {
-			return [];
-		}
-
-		if ( is_cart() && ! WC_Stripe_Helper::should_load_scripts_on_cart_page() ) {
-			return [];
-		}
-
 		// Ensure Stripe JS is enqueued
 		wp_register_script(
 			'stripe',
