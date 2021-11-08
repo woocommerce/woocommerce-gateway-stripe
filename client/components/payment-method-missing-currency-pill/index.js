@@ -22,6 +22,10 @@ const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 		return null;
 	}
 
+	const neededCurrency = paymentMethodCurrencies.find(
+		( currency ) => currency !== storeCurrency
+	);
+
 	if (
 		id !== 'card' &&
 		! paymentMethodCurrencies.includes( storeCurrency )
@@ -34,7 +38,7 @@ const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 						"%1$s won't be visible to your customers until you add %2$s to your store."
 					),
 					label,
-					paymentMethodCurrencies[ 0 ]
+					neededCurrency
 				) }
 			>
 				<StyledPill>
