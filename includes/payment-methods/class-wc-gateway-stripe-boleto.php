@@ -100,46 +100,17 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
 
-		add_action( 'wc_ajax_wc_stripe_boleto_create_payment_intent', [ $this, 'create_payment_intent_ajax' ] );
-		add_action( 'wp_ajax_nopriv_wc_stripe_boleto_create_payment_intent', [ $this, 'create_payment_intent_ajax' ] );
-	}
-
-	/**
-	 * Handle AJAX requests for creating a payment intent for Stripe Boleto.
-	 *
-	 * @since 5.8.0
-	 */
-	public function create_payment_intent_ajax() {
-		try {
-			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_payment_intent_nonce', false, false );
-			if ( ! $is_nonce_valid ) {
-				throw new Exception( __( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
-			}
-
-			// If paying from order, we need to get the total from the order instead of the cart.
-			$order_id = isset( $_POST['stripe_order_id'] ) ? absint( $_POST['stripe_order_id'] ) : null;
-
-			wp_send_json_success( $this->create_payment_intent( $order_id ), 200 );
-		} catch ( Exception $e ) {
-			WC_Stripe_Logger::log( 'Create payment intent error: ' . $e->getMessage() );
-			// Send back error so it can be displayed to the customer.
-			wp_send_json_error(
-				[
-					'error' => [
-						'message' => $e->getMessage(),
-					],
-				]
-			);
-		}
+		add_action( 'woocommerce_thankyou_' . $this->id, [ $this, 'thankyou_page' ] );
 	}
 
 	/**
 	 * Creates payment intent using current cart or order and store details.
 	 *
-	 * @since 5.8.0
 	 * @param {int} $order_id The id of the order if intent created from Order.
-	 * @throws Exception - If the create intent call returns with an error.
+	 *
 	 * @return array
+	 * @throws Exception - If the create intent call returns with an error.
+	 * @since 5.8.0
 	 */
 	public function create_payment_intent( $order_id = null ) {
 		$amount   = WC()->cart->get_total( false );
@@ -174,8 +145,8 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Returns all supported currencies for this payment method.
 	 *
-	 * @since 5.8.0
 	 * @return array
+	 * @since 5.8.0
 	 */
 	public function get_supported_currency() {
 		return apply_filters(
@@ -189,8 +160,8 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Checks to see if all criteria is met before showing payment method.
 	 *
-	 * @since 5.8.0
 	 * @return bool
+	 * @since 5.8.0
 	 */
 	public function is_available() {
 		if ( ! in_array( get_woocommerce_currency(), $this->get_supported_currency() ) ) {
@@ -203,8 +174,8 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Get_icon function.
 	 *
-	 * @since 5.8.0
 	 * @return string
+	 * @since 5.8.0
 	 */
 	public function get_icon() {
 		$icons = $this->payment_icons();
@@ -246,21 +217,25 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	 * @since 5.8.0
 	 */
 	public function payment_fields() {
+		$description = $this->get_description();
+		apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $description ) ), $this->id )
+
 		?>
-			<label>CPF/CNPJ: <abbr class="required" title="required">*</abbr></label><br>
-			<input id="stripe_boleto_tax_id" name="stripe_boleto_tax_id" type="text"><br><br>
-			<div class="stripe-source-errors" role="alert"></div>
+		<label>CPF/CNPJ: <abbr class="required" title="required">*</abbr></label><br>
+		<input id="stripe_boleto_tax_id" name="stripe_boleto_tax_id" type="text"><br><br>
+		<div class="stripe-source-errors" role="alert"></div>
+
+		<div id="stripe-boleto-payment-data"><?php echo $description; ?></div>
 		<?php
 	}
 
 	/**
 	 * Validates the minimum and maximum amount. Throws exception when out of range value is added
 	 *
-	 * @since 5.8.0
-	 *
 	 * @param $amount
 	 *
 	 * @throws WC_Stripe_Exception
+	 * @since 5.8.0
 	 */
 	private function validate_amount_limits( $amount ) {
 
@@ -278,18 +253,20 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Process the payment
 	 *
-	 * @since 5.8.0
-	 * @param int  $order_id Reference.
+	 * @param int $order_id Reference.
 	 * @param bool $retry Should we retry on fail.
 	 * @param bool $force_save_source Force payment source to be saved.
 	 *
+	 * @return array|void
 	 * @throws Exception If payment will not be accepted.
 	 *
-	 * @return array|void
+	 * @since 5.8.0
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_save = false ) {
 		try {
 			global $woocommerce;
+
+			$intent = $this->create_payment_intent( $order_id );
 
 			$order = wc_get_order( $order_id );
 			$order->update_status( 'pending', __( 'Awaiting boleto payment.', 'woocommerce-gateway-stripe' ) );
@@ -297,17 +274,18 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 			wc_reduce_stock_levels( $order_id );
 			$woocommerce->cart->empty_cart();
 
-			if ( isset( $_POST['stripe_boleto_payment_intent'] ) && ! empty( $_POST['stripe_boleto_payment_intent'] ) ) {
-				$payment_intent_id = wc_clean( wp_unslash( $_POST['stripe_boleto_payment_intent'] ) );
-				$order->add_order_note(
-					sprintf(
-					/* translators: $1%s payment intent ID */
-						__( 'Stripe payment intent created (Payment Intent ID: %1$s)', 'woocommerce-gateway-stripe' ),
-						$payment_intent_id
-					)
-				);
+			$order->add_order_note(
+				sprintf(
+				/* translators: $1%s payment intent ID */
+					__( 'Stripe payment intent created (Payment Intent ID: %1$s)', 'woocommerce-gateway-stripe' ),
+					$intent['id']
+				)
+			);
 
-				$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
+			$order->update_meta_data( '_stripe_intent_id', $intent['id'] );
+			$order->update_meta_data( '_stripe_client_secret', $intent['client_secret'] );
+			if ( isset( $_POST['stripe_boleto_tax_id'] ) ) {
+				$order->update_meta_data( '_customer_tax_id', wc_clean( wp_unslash( $_POST['stripe_boleto_tax_id'] ) ) );
 				$order->save();
 			}
 
@@ -335,5 +313,51 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 				'redirect' => '',
 			];
 		}
+	}
+
+	/**
+	 * Thank You page message.
+	 *
+	 * @param int $order_id Order ID.
+	 */
+	public function thankyou_page( $order_id ) {
+		$order = wc_get_order( $order_id );
+
+		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+		wp_enqueue_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
+		wp_enqueue_script(
+			'woocommerce_stripe_success',
+			plugins_url( 'assets/js/success' . $suffix . '.js', WC_STRIPE_MAIN_FILE ),
+			[
+				'jquery',
+				'stripe',
+			],
+			WC_STRIPE_VERSION,
+			true
+		);
+
+		$stripe_params = [
+			'key'                    => $this->publishable_key,
+			'stripe_locale'          => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+			'customer_name'          => $order->get_formatted_billing_full_name(),
+			'customer_email'         => $order->get_billing_email(),
+			'customer_address_line1' => $order->get_billing_address_1(),
+			'customer_city'          => $order->get_billing_city(),
+			'customer_state'         => $order->get_billing_state(),
+			'customer_postal_code'   => $order->get_billing_postcode(),
+			'tax_id'                 => $order->get_meta( '_customer_tax_id' ),
+			'payment_intent_id'      => $order->get_meta( '_stripe_intent_id' ),
+			'client_secret'          => $order->get_meta( '_stripe_client_secret' ),
+			'cpf_cnpj_required_msg'  => __( 'CPF/CNPJ is a required field', 'woocommerce-gateway-stripe' ),
+			'default_error_message'  => __( 'Could not create Boleto. Please reload the page or contact us if the problem persists', 'woocommerce-gateway-stripe' ),
+		];
+
+		$stripe_params = array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
+
+		wp_localize_script(
+			'woocommerce_stripe_success',
+			'wc_stripe_success_params',
+			$stripe_params
+		);
 	}
 }

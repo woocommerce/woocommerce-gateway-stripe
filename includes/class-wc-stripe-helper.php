@@ -217,7 +217,8 @@ class WC_Stripe_Helper {
 					: __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ),
 				'amount_too_large'         => __( 'The order total is too high for this payment method', 'woocommerce-gateway-stripe' ),
 				'amount_too_small'         => __( 'The order total is too low for this payment method', 'woocommerce-gateway-stripe' ),
-				'country_code_invalid'     => __( 'Country code invalid, plese correct and try again', 'woocommerce-gateway-stripe' ),
+				'country_code_invalid'     => __( 'Invalid country code, please try again with a valid country code', 'woocommerce-gateway-stripe' ),
+				'tax_id_invalid'           => __( 'Invalid Tax Id, please try again with a valid tax id', 'woocommerce-gateway-stripe' ),
 			]
 		);
 	}

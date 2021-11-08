@@ -377,8 +377,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$stripe_params['elements_classes']            = apply_filters( 'wc_stripe_elements_classes', false );
 		$stripe_params['add_card_nonce']              = wp_create_nonce( 'wc_stripe_create_si' );
 		$stripe_params['create_payment_intent_nonce'] = wp_create_nonce( 'wc_stripe_create_payment_intent_nonce' );
-		$stripe_params['fill_required_fields_msg']    = __( 'Please fill all required fields before placing an order', 'woocommerce-gateway-stripe' );
-		$stripe_params['cpf_cnpj_required_msg']       = __( 'CPF/CNPJ is a required field', 'woocommerce-gateway-stripe' );
 
 		// Merge localized messages to be use in JS.
 		$stripe_params = array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );

@@ -641,6 +641,11 @@ jQuery( function( $ ) {
 				return true;
 			}
 
+			if( wc_stripe_form.isBoletoChosen() && ! $('#stripe_boleto_tax_id').val() ) {
+				wc_stripe_form.submitError( wc_stripe_params.cpf_cnpj_required_msg );
+				return false;
+			}
+
 			// For methods that needs redirect, we will create the source server side so we can obtain the order ID.
 			if (
 				wc_stripe_form.isBancontactChosen() ||
@@ -650,24 +655,15 @@ jQuery( function( $ ) {
 				wc_stripe_form.isSofortChosen() ||
 				wc_stripe_form.isP24Chosen() ||
 				wc_stripe_form.isEpsChosen() ||
-				wc_stripe_form.isMultibancoChosen()
+				wc_stripe_form.isMultibancoChosen() ||
+				wc_stripe_form.isBoletoChosen()
 			) {
 				return true;
 			}
 
 			wc_stripe_form.block();
 
-			if( ! wc_stripe_form.validateRequiredFields() ) {
-				return false;
-			}
-
-			if ( wc_stripe_form.isBoletoChosen() ) {
-				if( document.getElementById( 'stripe-boleto-payment-intent' ) ) {
-					return true;
-				}
-
-				wc_stripe_form.handleBoleto();
-			} else if ( wc_stripe_form.isOxxoChosen() ) {
+			if ( wc_stripe_form.isOxxoChosen() ) {
 				if( document.getElementById( 'stripe-oxxo-payment-intent' ) ) {
 					return true;
 				}
@@ -678,96 +674,6 @@ jQuery( function( $ ) {
 			}
 
 			return false;
-		},
-
-		validateRequiredFields: function () {
-			var $required_inputs = wc_stripe_form.form.find( '.validate-required:visible' );
-			var all_required_fields_are_filled = true;
-
-			if ( $required_inputs.length ) {
-				$required_inputs.each( function() {
-					if ( $( this ).find( 'input, select, textarea' ).val() === '' ) {
-						all_required_fields_are_filled = false;
-					}
-				});
-			}
-
-			if( ! all_required_fields_are_filled ) {
-				wc_stripe_form.submitError( wc_stripe_params.fill_required_fields_msg );
-			}
-
-			return all_required_fields_are_filled;
-		},
-
-		/**
-		 * Will show a modal for scanning a boleto bar code.
-		 * After the customer closes the modal proceeds with checkout normally
-		 */
-		handleBoleto: function () {
-			if( ! document.getElementById( 'stripe_boleto_tax_id' ).value ) {
-				wc_stripe_form.submitError( wc_stripe_params.cpf_cnpj_required_msg );
-				return;
-			}
-
-			const data = new FormData();
-			data.append( '_ajax_nonce', wc_stripe_params.create_payment_intent_nonce );
-
-			fetch( wc_stripe_form.getAjaxURL( 'boleto_create_payment_intent' ), {
-				method: 'POST',
-				credentials: 'same-origin',
-				body: data,
-			} )
-				.then( ( response) => response.json() )
-				.then( ( { data } ) => {
-
-					if ( data.error ) {
-						wc_stripe_form.submitError( data.error.message );
-						return;
-					}
-
-					stripe.confirmBoletoPayment(
-						data.client_secret,
-						{
-							payment_method: {
-								boleto: {
-									tax_id: document.getElementById( 'stripe_boleto_tax_id' ).value,
-								},
-								billing_details: {
-									name: document.getElementById( 'billing_first_name' ).value + ' ' + document.getElementById( 'billing_last_name' ).value,
-									email: document.getElementById( 'billing_email' ).value,
-									address: {
-										line1: document.getElementById( 'billing_address_1' ).value,
-										city: document.getElementById( 'billing_city' ).value,
-										state: document.getElementById( 'billing_state' ).value,
-										postal_code: document.getElementById( 'billing_postcode' ).value,
-										country: 'BR',
-									},
-								},
-							},
-						})
-						.then( function ( response ) {
-							if ( response.error ) {
-								$( document.body ).trigger( 'stripeError', response );
-								return;
-							}
-
-							wc_stripe_form.reset();
-
-							wc_stripe_form.form.append(
-								$( '<input type="hidden" />' )
-									.attr( 'id', 'stripe-boleto-payment-intent' )
-									.attr( 'name', 'stripe_boleto_payment_intent' )
-									.val( response.paymentIntent.id )
-							);
-
-							if ( $( 'form#add_payment_method' ).length || $( '#wc-stripe-change-payment-method' ).length ) {
-								wc_stripe_form.sourceSetup( response );
-								return;
-							}
-
-							wc_stripe_form.form.trigger( 'submit' );
-						} );
-				} );
 		},
 
 		/**
