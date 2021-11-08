@@ -1,7 +1,6 @@
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import PaymentMethodMissingCurrencyPill from '..';
-import WCPaySettingsContext from '../../../settings/wcpay-settings-context';
 import UpeToggleContext from '../../../settings/upe-toggle/context';
 
 jest.mock( '../../../payment-methods-map', () => ( {
@@ -61,38 +60,6 @@ describe( 'PaymentMethodMissingCurrencyPill', () => {
 					id="giropay"
 					label="giropay"
 				/>
-			</UpeToggleContext.Provider>
-		);
-
-		expect( screen.queryByText( 'Requires currency' ) ).toBeInTheDocument();
-	} );
-
-	it( 'should not render with multi-currency enabled and currency matches', () => {
-		const multiCurrency = { enabled: { USD: {}, EUR: {} } };
-		const { container } = render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<WCPaySettingsContext.Provider value={ { multiCurrency } }>
-					<PaymentMethodMissingCurrencyPill
-						id="giropay"
-						label="giropay"
-					/>
-				</WCPaySettingsContext.Provider>
-			</UpeToggleContext.Provider>
-		);
-
-		expect( container.firstChild ).toBeNull();
-	} );
-
-	it( 'should render with multi-currency enabled and currency is not listed', () => {
-		const multiCurrency = { enabled: { USD: {}, BRL: {} } };
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<WCPaySettingsContext.Provider value={ { multiCurrency } }>
-					<PaymentMethodMissingCurrencyPill
-						id="giropay"
-						label="giropay"
-					/>
-				</WCPaySettingsContext.Provider>
 			</UpeToggleContext.Provider>
 		);
 
