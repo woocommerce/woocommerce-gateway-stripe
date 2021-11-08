@@ -205,6 +205,7 @@ class WC_Stripe_Helper {
 				'expired_card'             => __( 'The card has expired.', 'woocommerce-gateway-stripe' ),
 				'incorrect_cvc'            => __( 'The card\'s security code is incorrect.', 'woocommerce-gateway-stripe' ),
 				'incorrect_zip'            => __( 'The card\'s zip code failed validation.', 'woocommerce-gateway-stripe' ),
+				'postal_code_invalid'      => __( 'Invalid zip code, please correct and try again', 'woocommerce-gateway-stripe' ),
 				'invalid_expiry_year_past' => __( 'The card\'s expiration year is in the past', 'woocommerce-gateway-stripe' ),
 				'card_declined'            => __( 'The card was declined.', 'woocommerce-gateway-stripe' ),
 				'missing'                  => __( 'There is no card on a customer that is being charged.', 'woocommerce-gateway-stripe' ),

@@ -899,11 +899,7 @@ jQuery( function( $ ) {
 				message = wc_stripe_params.invalid_request_error;
 			}
 
-			if ( 'card_error' === result.error.type && wc_stripe_params.hasOwnProperty( result.error.code ) ) {
-				message = wc_stripe_params[ result.error.code ];
-			}
-
-			if ( 'validation_error' === result.error.type && wc_stripe_params.hasOwnProperty( result.error.code ) ) {
+			if ( wc_stripe_params.hasOwnProperty(result.error.code) ) {
 				message = wc_stripe_params[ result.error.code ];
 			}
 
