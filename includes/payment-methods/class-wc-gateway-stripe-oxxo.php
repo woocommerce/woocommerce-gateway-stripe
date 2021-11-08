@@ -245,7 +245,9 @@ class WC_Gateway_Stripe_Oxxo extends WC_Stripe_Payment_Gateway {
 	 * @since 5.8.0
 	 */
 	public function payment_fields() {
-
+		?>
+		<div class="stripe-source-errors" role="alert"></div>
+		<?php
 	}
 
 	/**
