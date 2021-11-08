@@ -3,7 +3,15 @@ import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import GeneralSettingsSection from '../general-settings-section';
 import { useIsStripeEnabled, useTestMode } from 'wcstripe/data';
-import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
+import {
+	useAccountKeys,
+	useAccountKeysPublishableKey,
+	useAccountKeysSecretKey,
+	useAccountKeysWebhookSecret,
+	useAccountKeysTestPublishableKey,
+	useAccountKeysTestSecretKey,
+	useAccountKeysTestWebhookSecret,
+} from 'wcstripe/data/account-keys/hooks';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useIsStripeEnabled: jest.fn(),
@@ -12,6 +20,12 @@ jest.mock( 'wcstripe/data', () => ( {
 
 jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 	useAccountKeys: jest.fn(),
+	useAccountKeysPublishableKey: jest.fn(),
+	useAccountKeysSecretKey: jest.fn(),
+	useAccountKeysWebhookSecret: jest.fn(),
+	useAccountKeysTestPublishableKey: jest.fn(),
+	useAccountKeysTestSecretKey: jest.fn(),
+	useAccountKeysTestWebhookSecret: jest.fn(),
 } ) );
 
 describe( 'GeneralSettingsSection', () => {
@@ -19,6 +33,7 @@ describe( 'GeneralSettingsSection', () => {
 		const setIsStripeEnabledMock = jest.fn();
 		const setTestModeMock = jest.fn();
 		useIsStripeEnabled.mockReturnValue( [ false, setIsStripeEnabledMock ] );
+
 		useTestMode.mockReturnValue( [ false, setTestModeMock ] );
 		useAccountKeys.mockReturnValue( {
 			accountKeys: {
@@ -43,5 +58,55 @@ describe( 'GeneralSettingsSection', () => {
 		userEvent.click( testModeCheckbox );
 
 		expect( setTestModeMock ).toHaveBeenCalledWith( true );
+	} );
+
+	it( 'should open live account keys modal when edit account keys clicked in live mode', () => {
+		useTestMode.mockReturnValue( [ false, jest.fn() ] );
+
+		useAccountKeysPublishableKey.mockReturnValue( [
+			'live_pk',
+			jest.fn(),
+		] );
+		useAccountKeysSecretKey.mockReturnValue( [ 'live_sk', jest.fn() ] );
+		useAccountKeysWebhookSecret.mockReturnValue( [
+			'live_whs',
+			jest.fn(),
+		] );
+
+		render( <GeneralSettingsSection /> );
+
+		const editKeysButton = screen.getByRole( 'button', {
+			text: /edit account keys/i,
+		} );
+		userEvent.click( editKeysButton );
+		const accountKeysModal = screen.getByLabelText(
+			/edit live account keys & webhooks/i
+		);
+		expect( accountKeysModal ).toBeInTheDocument();
+	} );
+
+	it( 'should open test account keys modal when edit account keys clicked in test mode', () => {
+		useTestMode.mockReturnValue( [ true, jest.fn() ] );
+
+		useAccountKeysTestPublishableKey.mockReturnValue( [
+			'test_pk',
+			jest.fn(),
+		] );
+		useAccountKeysTestSecretKey.mockReturnValue( [ 'test_sk', jest.fn() ] );
+		useAccountKeysTestWebhookSecret.mockReturnValue( [
+			'test_whs',
+			jest.fn(),
+		] );
+
+		render( <GeneralSettingsSection /> );
+
+		const editKeysButton = screen.getByRole( 'button', {
+			text: /edit account keys/i,
+		} );
+		userEvent.click( editKeysButton );
+		const accountKeysModal = screen.getByLabelText(
+			/edit test account keys & webhooks/i
+		);
+		expect( accountKeysModal ).toBeInTheDocument();
 	} );
 } );

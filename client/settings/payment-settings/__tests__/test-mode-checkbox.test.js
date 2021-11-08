@@ -3,7 +3,15 @@ import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TestModeCheckbox from '../test-mode-checkbox';
 import { useTestMode } from 'wcstripe/data';
-import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
+import {
+	useAccountKeys,
+	useAccountKeysPublishableKey,
+	useAccountKeysSecretKey,
+	useAccountKeysWebhookSecret,
+	useAccountKeysTestPublishableKey,
+	useAccountKeysTestSecretKey,
+	useAccountKeysTestWebhookSecret,
+} from 'wcstripe/data/account-keys/hooks';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useTestMode: jest.fn(),
@@ -11,6 +19,12 @@ jest.mock( 'wcstripe/data', () => ( {
 
 jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 	useAccountKeys: jest.fn(),
+	useAccountKeysPublishableKey: jest.fn(),
+	useAccountKeysSecretKey: jest.fn(),
+	useAccountKeysWebhookSecret: jest.fn(),
+	useAccountKeysTestPublishableKey: jest.fn(),
+	useAccountKeysTestSecretKey: jest.fn(),
+	useAccountKeysTestWebhookSecret: jest.fn(),
 } ) );
 
 describe( 'TestModeCheckbox', () => {
@@ -56,7 +70,7 @@ describe( 'TestModeCheckbox', () => {
 		expect( setTestModeMock ).toHaveBeenCalledWith( false );
 	} );
 
-	it( 'should show a modal when the live keys are not present', () => {
+	it( 'should show a modal when the test keys are not present', () => {
 		const setTestModeMock = jest.fn();
 		useTestMode.mockReturnValue( [ false, setTestModeMock ] );
 		useAccountKeys.mockReturnValue( {
@@ -66,6 +80,15 @@ describe( 'TestModeCheckbox', () => {
 				test_webhook_secret: '',
 			},
 		} );
+		useAccountKeysTestPublishableKey.mockReturnValue( [
+			'test_pk',
+			jest.fn(),
+		] );
+		useAccountKeysTestSecretKey.mockReturnValue( [ 'test_sk', jest.fn() ] );
+		useAccountKeysTestWebhookSecret.mockReturnValue( [
+			'test_whs',
+			jest.fn(),
+		] );
 
 		render( <TestModeCheckbox /> );
 
@@ -79,7 +102,7 @@ describe( 'TestModeCheckbox', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( 'should show a modal when the test keys are not present', () => {
+	it( 'should show a modal when the live keys are not present', () => {
 		const setTestModeMock = jest.fn();
 		useTestMode.mockReturnValue( [ true, setTestModeMock ] );
 		useAccountKeys.mockReturnValue( {
@@ -89,6 +112,15 @@ describe( 'TestModeCheckbox', () => {
 				webhook_secret: '',
 			},
 		} );
+		useAccountKeysPublishableKey.mockReturnValue( [
+			'live_pk',
+			jest.fn(),
+		] );
+		useAccountKeysSecretKey.mockReturnValue( [ 'live_sk', jest.fn() ] );
+		useAccountKeysWebhookSecret.mockReturnValue( [
+			'live_whs',
+			jest.fn(),
+		] );
 
 		render( <TestModeCheckbox /> );
 
