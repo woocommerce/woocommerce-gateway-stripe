@@ -215,6 +215,9 @@ class WC_Stripe_Helper {
 				'invalid_request_error'    => is_add_payment_method_page()
 					? __( 'Unable to save this payment method, please try again or use alternative method.', 'woocommerce-gateway-stripe' )
 					: __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ),
+				'amount_too_large'         => __( 'The order total is too high for this payment method', 'woocommerce-gateway-stripe' ),
+				'amount_too_small'         => __( 'The order total is too low for this payment method', 'woocommerce-gateway-stripe' ),
+				'country_code_invalid'     => __( 'Country code invalid, plese correct and try again', 'woocommerce-gateway-stripe' ),
 			]
 		);
 	}
