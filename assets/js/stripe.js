@@ -657,6 +657,10 @@ jQuery( function( $ ) {
 
 			wc_stripe_form.block();
 
+			if(! wc_stripe_form.validateRequiredFields()) {
+				return false;
+			}
+
 			if ( wc_stripe_form.isBoletoChosen() ) {
 				if( document.getElementById( 'stripe-boleto-payment-intent' ) ) {
 					return true;
@@ -676,6 +680,25 @@ jQuery( function( $ ) {
 			return false;
 		},
 
+		validateRequiredFields: function () {
+			var $required_inputs = wc_stripe_form.form.find( '.validate-required:visible' );
+			var all_required_fields_are_filled = true;
+
+			if ( $required_inputs.length ) {
+				$required_inputs.each( function() {
+					if ( $( this ).find( 'input, select, textarea' ).val() === '' ) {
+						all_required_fields_are_filled = false;
+					}
+				});
+			}
+
+			if( ! all_required_fields_are_filled ) {
+				wc_stripe_form.submitError( 'Please fill all required fields before placing an order' );
+			}
+
+			return all_required_fields_are_filled;
+		},
+
 		/**
 		 * Will show a modal for scanning a boleto bar code.
 		 * After the customer closes the modal proceeds with checkout normally
@@ -693,9 +716,7 @@ jQuery( function( $ ) {
 				.then( ( { data } ) => {
 
 					if ( data.error ) {
-						var error = $( '<div><ul class="woocommerce-error"><li /></ul></div>' );
-						error.find( 'li' ).html( data.error.message );
-						wc_stripe_form.submitError( error.html() );
+						wc_stripe_form.submitError( data.error.message );
 						return;
 					}
 
@@ -761,9 +782,7 @@ jQuery( function( $ ) {
 				.then( ( { data } ) => {
 
 					if ( data.error ) {
-						var error = $( '<div><ul class="woocommerce-error"><li /></ul></div>' );
-						error.find( 'li' ).html( data.error.message );
-						wc_stripe_form.submitError( error.html() );
+						wc_stripe_form.submitError( data.error.message );
 						return;
 					}
 
@@ -875,9 +894,7 @@ jQuery( function( $ ) {
 			 */
 			if ( wc_stripe_form.isSepaChosen() ) {
 				if ( 'invalid_owner_name' === result.error.code && wc_stripe_params.hasOwnProperty( result.error.code ) ) {
-					var error = $( '<div><ul class="woocommerce-error"><li /></ul></div>' );
-					error.find( 'li' ).text( wc_stripe_params[ result.error.code ] ); // Prevent XSS
-					wc_stripe_form.submitError( error.html() );
+					wc_stripe_form.submitError( wc_stripe_params[ result.error.code ] );
 					return;
 				}
 			}
@@ -924,6 +941,10 @@ jQuery( function( $ ) {
 		 * @param {Object} error_message An error message jQuery object.
 		 */
 		submitError: function( error_message ) {
+			var error = $( '<div><ul class="woocommerce-error"><li /></ul></div>' );
+			error.find( 'li' ).text( error_message ); // Prevent XSS
+			error_message = error.html();
+
 			$( '.woocommerce-NoticeGroup-checkout, .woocommerce-error, .woocommerce-message' ).remove();
 			wc_stripe_form.form.prepend( '<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout">' + error_message + '</div>' );
 			wc_stripe_form.form.removeClass( 'processing' ).unblock();
