@@ -1,11 +1,10 @@
 import { __, sprintf } from '@wordpress/i18n';
-import React, { useContext, useMemo } from 'react';
+import React, { useContext } from 'react';
 import styled from '@emotion/styled';
 import PaymentMethodsMap from '../../payment-methods-map';
-import WCPaySettingsContext from '../../settings/wcpay-settings-context';
-import UpeToggleContext from '../../settings/upe-toggle/context';
 import Pill from 'wcstripe/components/pill';
 import Tooltip from 'wcstripe/components/tooltip';
+import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 const StyledPill = styled( Pill )`
 	border: 1px solid #f0b849;
@@ -16,28 +15,8 @@ const StyledPill = styled( Pill )`
 
 const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
-	const { multiCurrency } = useContext( WCPaySettingsContext );
-	const paymentMethodCurrencies = useMemo(
-		() => PaymentMethodsMap[ id ]?.currencies || [],
-		[ id ]
-	);
+	const paymentMethodCurrencies = PaymentMethodsMap[ id ]?.currencies || [];
 	const storeCurrency = window?.wcSettings?.currency?.code;
-
-	// adding support to multi-currency in case WooCommerce Payments is installed
-	const enabledCurrencies = useMemo(
-		() => Object.keys( multiCurrency?.enabled || {} ),
-		[ multiCurrency ]
-	);
-	const isMultiCurrencyEnabled = enabledCurrencies.length > 0;
-	// intersect all enabled currencies with the payment method currencies
-	const multiCurrencyIntersection = useMemo( () => {
-		if ( isMultiCurrencyEnabled ) {
-			return enabledCurrencies.filter( ( currency ) =>
-				paymentMethodCurrencies.includes( currency )
-			);
-		}
-		return [];
-	}, [ isMultiCurrencyEnabled, enabledCurrencies, paymentMethodCurrencies ] );
 
 	if ( ! isUpeEnabled ) {
 		return null;
@@ -45,10 +24,7 @@ const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 
 	if (
 		id !== 'card' &&
-		! (
-			paymentMethodCurrencies.includes( storeCurrency ) ||
-			multiCurrencyIntersection.length
-		)
+		! paymentMethodCurrencies.includes( storeCurrency )
 	) {
 		return (
 			<Tooltip
