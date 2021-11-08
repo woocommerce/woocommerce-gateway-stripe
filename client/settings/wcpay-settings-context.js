@@ -4,6 +4,7 @@ const WCPaySettingsContext = createContext( {
 	accountFees: {},
 	accountStatus: {},
 	featureFlags: {},
+	multiCurrency: {},
 } );
 
 export default WCPaySettingsContext;
