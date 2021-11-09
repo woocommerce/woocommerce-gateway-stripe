@@ -42,6 +42,20 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 		);
 		register_rest_route(
 			$this->namespace,
+			'/' . $this->rest_base,
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $this, 'get_all_locations' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+				'args'                => [
+					'ending_before'  => [ 'type' => 'string' ],
+					'limit'          => [ 'type' => 'integer' ],
+					'starting_after' => [ 'type' => 'string' ],
+				],
+			]
+		);
+		register_rest_route(
+			$this->namespace,
 			'/' . $this->rest_base . '/(?P<location_id>\w+)',
 			[
 				'methods'             => WP_REST_Server::READABLE,
@@ -64,7 +78,16 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 			],
 			'terminal/locations'
 		);
-		return new WP_Rest_Response( [ 'data' => $response ] );
+		return rest_ensure_response( $response );
+	}
+
+	/**
+	 * Get all terminal locations via Stripe API.
+	 *
+	 * @param WP_REST_Request $request Full data about the request.
+	 */
+	public function get_all_locations( $request ) {
+		return rest_ensure_response( $this->fetch_locations() );
 	}
 
 	/**
@@ -73,7 +96,15 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * @param WP_REST_Request $request Full data about the request.
 	 */
 	public function get_location( $request ) {
-		$response = WC_Stripe_API::request( [], 'terminal/locations/' . urlencode( $request['location_id'] ) );
-		return new WP_Rest_Response( [ 'data' => $response ] );
+		$response = WC_Stripe_API::request( [], 'terminal/locations/' . urlencode( $request['location_id'] ), 'GET' );
+		return rest_ensure_response( $response );
+	}
+
+	/**
+	 * Fetch terminal locations from Stripe API.
+	 */
+	private function fetch_locations() {
+		$response = WC_Stripe_API::request( [], 'terminal/locations', 'GET' );
+		return $response->data;
 	}
 }
