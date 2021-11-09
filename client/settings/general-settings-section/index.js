@@ -15,7 +15,7 @@ const StyledCard = styled( Card )`
 	margin-bottom: 12px;
 `;
 
-const AccountRefreshingOverlay = styled.div`
+export const AccountRefreshingOverlay = styled.div`
 	position: relative;
 	&.has-overlay {
 		animation: loading-fade 1.6s ease-in-out infinite;
