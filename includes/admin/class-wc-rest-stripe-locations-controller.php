@@ -67,6 +67,15 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 			$this->namespace,
 			'/' . $this->rest_base . '/(?P<location_id>\w+)',
 			[
+				'methods'             => WP_REST_Server::DELETABLE,
+				'callback'            => [ $this, 'delete_location' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/(?P<location_id>\w+)',
+			[
 				'methods'             => WP_REST_Server::READABLE,
 				'callback'            => [ $this, 'get_location' ],
 				'permission_callback' => [ $this, 'check_permission' ],
@@ -116,6 +125,16 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 */
 	public function get_all_locations( $request ) {
 		return rest_ensure_response( $this->fetch_locations() );
+	}
+
+	/**
+	 * Delete a terminal location via Stripe API.
+	 *
+	 * @param WP_REST_Request $request Full data about the request.
+	 */
+	public function delete_location( $request ) {
+		$response = WC_Stripe_API::request( [], 'terminal/locations/' . urlencode( $request['location_id'] ), 'DELETE' );
+		return rest_ensure_response( $response );
 	}
 
 	/**
