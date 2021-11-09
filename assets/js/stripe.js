@@ -641,11 +641,6 @@ jQuery( function( $ ) {
 				return true;
 			}
 
-			if( wc_stripe_form.isBoletoChosen() && ! $('#stripe_boleto_tax_id').val() ) {
-				wc_stripe_form.submitError( wc_stripe_params.cpf_cnpj_required_msg );
-				return false;
-			}
-
 			// For methods that needs redirect, we will create the source server side so we can obtain the order ID.
 			if (
 				wc_stripe_form.isBancontactChosen() ||
@@ -655,15 +650,22 @@ jQuery( function( $ ) {
 				wc_stripe_form.isSofortChosen() ||
 				wc_stripe_form.isP24Chosen() ||
 				wc_stripe_form.isEpsChosen() ||
-				wc_stripe_form.isMultibancoChosen() ||
-				wc_stripe_form.isBoletoChosen()
+				wc_stripe_form.isMultibancoChosen()
 			) {
 				return true;
 			}
 
 			wc_stripe_form.block();
 
-			if ( wc_stripe_form.isOxxoChosen() ) {
+			if( wc_stripe_form.isBoletoChosen() ) {
+				if( ! $( '#stripe_boleto_tax_id' ).val() ) {
+					wc_stripe_form.submitError( wc_stripe_params.cpf_cnpj_required_msg );
+					wc_stripe_form.unblock();
+					return false;
+				}
+
+				wc_stripe_form.handleBoleto();
+			} else if ( wc_stripe_form.isOxxoChosen() ) {
 				if( document.getElementById( 'stripe-oxxo-payment-intent' ) ) {
 					return true;
 				}
@@ -674,6 +676,74 @@ jQuery( function( $ ) {
 			}
 
 			return false;
+		},
+
+		/**
+		 * Will show a modal for printing the Boleto.
+		 * After the customer closes the modal proceeds with checkout normally
+		 */
+		handleBoleto: function () {
+			const formFields = wc_stripe_form.form.serializeArray().reduce( ( obj, field ) => {
+				obj[ field.name ] = field.value;
+				return obj;
+			}, {} );
+			$.ajax({
+				url: wc_stripe_params.checkout_url,
+				type: 'POST',
+				data: formFields,
+				success: function ( checkout_response ) {
+
+					if( 'success' !== checkout_response.result ) {
+						wc_stripe_form.submitError( checkout_response.messages, true );
+						wc_stripe_form.unblock();
+						return;
+					}
+
+					stripe.confirmBoletoPayment(
+						checkout_response.client_secret,
+						{
+							payment_method: {
+								boleto: {
+									tax_id: document.getElementById( 'stripe_boleto_tax_id' ).value,
+								},
+								billing_details: {
+									name: document.getElementById( 'billing_first_name' ).value + ' ' + document.getElementById('billing_last_name').value,
+									email: document.getElementById( 'billing_email' ).value,
+									address: {
+										line1: document.getElementById( 'billing_address_1' ).value,
+										city: document.getElementById( 'billing_city' ).value,
+										state: document.getElementById( 'billing_state' ).value,
+										postal_code: document.getElementById( 'billing_postcode' ).value,
+										country: 'BR',
+									},
+								},
+							},
+						})
+						.then(function ( response ) {
+							if ( response.error ) {
+								$( document.body ).trigger( 'stripeError', response );
+
+								$.ajax( {
+									url: wc_stripe_form.getAjaxURL( 'update_failed_order' ),
+									type: 'POST',
+									data: {
+										_ajax_nonce: wc_stripe_params.updateFailedOrderNonce,
+										intent_id: checkout_response.intent_id,
+										order_id: checkout_response.order_id,
+									}
+								} );
+
+								return;
+							}
+
+							if ( -1 === checkout_response.redirect.indexOf( 'https://' ) || -1 === checkout_response.redirect.indexOf( 'http://' ) ) {
+								window.location = checkout_response.redirect;
+							} else {
+								window.location = decodeURI( checkout_response.redirect );
+							}
+						});
+				}
+			});
 		},
 
 		/**
@@ -851,10 +921,12 @@ jQuery( function( $ ) {
 		 *
 		 * @param {Object} error_message An error message jQuery object.
 		 */
-		submitError: function( error_message ) {
-			var error = $( '<div><ul class="woocommerce-error"><li /></ul></div>' );
-			error.find( 'li' ).text( error_message ); // Prevent XSS
-			error_message = error.html();
+		submitError: function( error_message, is_html = false ) {
+			if( ! is_html ) {
+				var error = $( '<div><ul class="woocommerce-error"><li /></ul></div>' );
+				error.find( 'li' ).text( error_message ); // Prevent XSS
+				error_message = error.html();
+			}
 
 			$( '.woocommerce-NoticeGroup-checkout, .woocommerce-error, .woocommerce-message' ).remove();
 			wc_stripe_form.form.prepend( '<div class="woocommerce-NoticeGroup woocommerce-NoticeGroup-checkout">' + error_message + '</div>' );

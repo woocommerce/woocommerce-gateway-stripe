@@ -99,8 +99,6 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
-
-		add_action( 'woocommerce_thankyou_' . $this->id, [ $this, 'thankyou_page' ] );
 	}
 
 	/**
@@ -290,8 +288,11 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 			}
 
 			return [
-				'result'   => 'success',
-				'redirect' => $this->get_return_url( $order ),
+				'result'        => 'success',
+				'redirect'      => $this->get_return_url( $order ),
+				'intent_id'     => $intent['id'],
+				'client_secret' => $intent['client_secret'],
+				'order_id'      => $order_id,
 			];
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
@@ -313,51 +314,5 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 				'redirect' => '',
 			];
 		}
-	}
-
-	/**
-	 * Thank You page message.
-	 *
-	 * @param int $order_id Order ID.
-	 */
-	public function thankyou_page( $order_id ) {
-		$order = wc_get_order( $order_id );
-
-		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
-		wp_enqueue_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
-		wp_enqueue_script(
-			'woocommerce_stripe_success',
-			plugins_url( 'assets/js/success' . $suffix . '.js', WC_STRIPE_MAIN_FILE ),
-			[
-				'jquery',
-				'stripe',
-			],
-			WC_STRIPE_VERSION,
-			true
-		);
-
-		$stripe_params = [
-			'key'                    => $this->publishable_key,
-			'stripe_locale'          => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
-			'customer_name'          => $order->get_formatted_billing_full_name(),
-			'customer_email'         => $order->get_billing_email(),
-			'customer_address_line1' => $order->get_billing_address_1(),
-			'customer_city'          => $order->get_billing_city(),
-			'customer_state'         => $order->get_billing_state(),
-			'customer_postal_code'   => $order->get_billing_postcode(),
-			'tax_id'                 => $order->get_meta( '_customer_tax_id' ),
-			'payment_intent_id'      => $order->get_meta( '_stripe_intent_id' ),
-			'client_secret'          => $order->get_meta( '_stripe_client_secret' ),
-			'cpf_cnpj_required_msg'  => __( 'CPF/CNPJ is a required field', 'woocommerce-gateway-stripe' ),
-			'default_error_message'  => __( 'Could not create Boleto. Please reload the page or contact us if the problem persists', 'woocommerce-gateway-stripe' ),
-		];
-
-		$stripe_params = array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
-
-		wp_localize_script(
-			'woocommerce_stripe_success',
-			'wc_stripe_success_params',
-			$stripe_params
-		);
 	}
 }
