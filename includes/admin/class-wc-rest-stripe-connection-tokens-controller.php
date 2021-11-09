@@ -61,6 +61,6 @@ class WC_REST_Stripe_Connection_Tokens_Controller extends WC_Stripe_REST_Base_Co
 		}
 
 		$response->test_mode = $this->gateway->is_in_test_mode();
-		return $response;
+		return rest_ensure_response( $response );
 	}
 }
