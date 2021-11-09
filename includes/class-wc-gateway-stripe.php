@@ -404,6 +404,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		if ( is_product() && ! WC_Stripe_Helper::should_load_scripts_on_product_page() ) {
+			return;
+		}
+
+		if ( is_cart() && ! WC_Stripe_Helper::should_load_scripts_on_cart_page() ) {
+			return;
+		}
+
 		// If Stripe is not enabled bail.
 		if ( 'no' === $this->enabled ) {
 			return;
