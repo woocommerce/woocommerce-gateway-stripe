@@ -278,11 +278,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 			);
 
 			$order->update_meta_data( '_stripe_intent_id', $intent['id'] );
-			$order->update_meta_data( '_stripe_client_secret', $intent['client_secret'] );
-			if ( isset( $_POST['stripe_boleto_tax_id'] ) ) {
-				$order->update_meta_data( '_customer_tax_id', wc_clean( wp_unslash( $_POST['stripe_boleto_tax_id'] ) ) );
-				$order->save();
-			}
+			$order->save();
 
 			return [
 				'result'        => 'success',
