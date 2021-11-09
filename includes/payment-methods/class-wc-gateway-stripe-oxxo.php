@@ -99,38 +99,6 @@ class WC_Gateway_Stripe_Oxxo extends WC_Stripe_Payment_Gateway {
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
-
-		add_action( 'wc_ajax_wc_stripe_oxxo_create_payment_intent', [ $this, 'create_payment_intent_ajax' ] );
-		add_action( 'wp_ajax_nopriv_wc_stripe_oxxo_create_payment_intent', [ $this, 'create_payment_intent_ajax' ] );
-	}
-
-	/**
-	 * Handle AJAX requests for creating a payment intent for Stripe OXXO.
-	 *
-	 * @since 5.8.0
-	 */
-	public function create_payment_intent_ajax() {
-		try {
-			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_payment_intent_nonce', false, false );
-			if ( ! $is_nonce_valid ) {
-				throw new Exception( __( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
-			}
-
-			// If paying from order, we need to get the total from the order instead of the cart.
-			$order_id = isset( $_POST['stripe_order_id'] ) ? absint( $_POST['stripe_order_id'] ) : null;
-
-			wp_send_json_success( $this->create_payment_intent( $order_id ), 200 );
-		} catch ( Exception $e ) {
-			WC_Stripe_Logger::log( 'Create payment intent error: ' . $e->getMessage() );
-			// Send back error so it can be displayed to the customer.
-			wp_send_json_error(
-				[
-					'error' => [
-						'message' => $e->getMessage(),
-					],
-				]
-			);
-		}
 	}
 
 	/**
@@ -157,6 +125,7 @@ class WC_Gateway_Stripe_Oxxo extends WC_Stripe_Payment_Gateway {
 				'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
 				'currency'             => strtolower( $currency ),
 				'payment_method_types' => [ 'oxxo' ],
+				'description'          => __( 'stripe - Order', 'woocommerce-gateway-stripe' ) . ' ' . $order_id,
 			],
 			'payment_intents'
 		);
@@ -288,29 +257,31 @@ class WC_Gateway_Stripe_Oxxo extends WC_Stripe_Payment_Gateway {
 		try {
 			global $woocommerce;
 
+			$intent = $this->create_payment_intent( $order_id );
+
 			$order = wc_get_order( $order_id );
-			$order->update_status( 'pending', __( 'Awaiting oxxo payment.', 'woocommerce-gateway-stripe' ) );
+			$order->update_status( 'pending', __( 'Awaiting OXXO payment.', 'woocommerce-gateway-stripe' ) );
 
 			wc_reduce_stock_levels( $order_id );
 			$woocommerce->cart->empty_cart();
 
-			if ( isset( $_POST['stripe_oxxo_payment_intent'] ) && ! empty( $_POST['stripe_oxxo_payment_intent'] ) ) {
-				$payment_intent_id = wc_clean( wp_unslash( $_POST['stripe_oxxo_payment_intent'] ) );
-				$order->add_order_note(
-					sprintf(
-					/* translators: $1%s payment intent ID */
-						__( 'Stripe payment intent created (Payment Intent ID: %1$s)', 'woocommerce-gateway-stripe' ),
-						$payment_intent_id
-					)
-				);
+			$order->add_order_note(
+				sprintf(
+				/* translators: $1%s payment intent ID */
+					__( 'Stripe payment intent created (Payment Intent ID: %1$s)', 'woocommerce-gateway-stripe' ),
+					$intent['id']
+				)
+			);
 
-				$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
-				$order->save();
-			}
+			$order->update_meta_data( '_stripe_intent_id', $intent['id'] );
+			$order->save();
 
 			return [
-				'result'   => 'success',
-				'redirect' => $this->get_return_url( $order ),
+				'result'        => 'success',
+				'redirect'      => $this->get_return_url( $order ),
+				'intent_id'     => $intent['id'],
+				'client_secret' => $intent['client_secret'],
+				'order_id'      => $order_id,
 			];
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );

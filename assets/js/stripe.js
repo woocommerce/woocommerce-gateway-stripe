@@ -296,13 +296,13 @@ jQuery( function( $ ) {
 		 */
 		isStripeSaveCardChosen: function() {
 			return (
-				$( '#payment_method_stripe' ).is( ':checked' )
-				&& $( 'input[name="wc-stripe-payment-token"]' ).is( ':checked' )
-				&& 'new' !== $( 'input[name="wc-stripe-payment-token"]:checked' ).val()
+				$( '#payment_method_stripe' ).is( ':checked' ) &&
+				$( 'input[name="wc-stripe-payment-token"]' ).is( ':checked' ) &&
+				'new' !== $( 'input[name="wc-stripe-payment-token"]:checked' ).val()
 			) || (
-				$( '#payment_method_stripe_sepa' ).is( ':checked' )
-				&& $( 'input[name="wc-stripe_sepa-payment-token"]' ).is( ':checked' )
-				&& 'new' !== $( 'input[name="wc-stripe_sepa-payment-token"]:checked' ).val()
+				$( '#payment_method_stripe_sepa' ).is( ':checked' ) &&
+				$( 'input[name="wc-stripe_sepa-payment-token"]' ).is( ':checked' ) &&
+				'new' !== $( 'input[name="wc-stripe_sepa-payment-token"]:checked' ).val()
 			);
 		},
 
@@ -666,10 +666,6 @@ jQuery( function( $ ) {
 
 				wc_stripe_form.handleBoleto();
 			} else if ( wc_stripe_form.isOxxoChosen() ) {
-				if( document.getElementById( 'stripe-oxxo-payment-intent' ) ) {
-					return true;
-				}
-
 				wc_stripe_form.handleOxxo();
 			} else {
 				wc_stripe_form.createSource();
@@ -683,6 +679,34 @@ jQuery( function( $ ) {
 		 * After the customer closes the modal proceeds with checkout normally
 		 */
 		handleBoleto: function () {
+			wc_stripe_form.executeCheckout( function ( checkout_response ) {
+				stripe.confirmBoletoPayment(
+					checkout_response.client_secret,
+					{
+						payment_method: {
+							boleto: {
+								tax_id: document.getElementById( 'stripe_boleto_tax_id' ).value,
+							},
+							billing_details: {
+								name: document.getElementById( 'billing_first_name' ).value + ' ' + document.getElementById('billing_last_name').value,
+								email: document.getElementById( 'billing_email' ).value,
+								address: {
+									line1: document.getElementById( 'billing_address_1' ).value,
+									city: document.getElementById( 'billing_city' ).value,
+									state: document.getElementById( 'billing_state' ).value,
+									postal_code: document.getElementById( 'billing_postcode' ).value,
+									country: 'BR',
+								},
+							},
+						},
+					})
+					.then(function ( response ) {
+						wc_stripe_form.handleConfirmResponse( checkout_response, response );
+					});
+			} );
+		},
+
+		executeCheckout: function ( callback ) {
 			const formFields = wc_stripe_form.form.serializeArray().reduce( ( obj, field ) => {
 				obj[ field.name ] = field.value;
 				return obj;
@@ -699,51 +723,33 @@ jQuery( function( $ ) {
 						return;
 					}
 
-					stripe.confirmBoletoPayment(
-						checkout_response.client_secret,
-						{
-							payment_method: {
-								boleto: {
-									tax_id: document.getElementById( 'stripe_boleto_tax_id' ).value,
-								},
-								billing_details: {
-									name: document.getElementById( 'billing_first_name' ).value + ' ' + document.getElementById('billing_last_name').value,
-									email: document.getElementById( 'billing_email' ).value,
-									address: {
-										line1: document.getElementById( 'billing_address_1' ).value,
-										city: document.getElementById( 'billing_city' ).value,
-										state: document.getElementById( 'billing_state' ).value,
-										postal_code: document.getElementById( 'billing_postcode' ).value,
-										country: 'BR',
-									},
-								},
-							},
-						})
-						.then(function ( response ) {
-							if ( response.error ) {
-								$( document.body ).trigger( 'stripeError', response );
-
-								$.ajax( {
-									url: wc_stripe_form.getAjaxURL( 'update_failed_order' ),
-									type: 'POST',
-									data: {
-										_ajax_nonce: wc_stripe_params.updateFailedOrderNonce,
-										intent_id: checkout_response.intent_id,
-										order_id: checkout_response.order_id,
-									}
-								} );
-
-								return;
-							}
-
-							if ( -1 === checkout_response.redirect.indexOf( 'https://' ) || -1 === checkout_response.redirect.indexOf( 'http://' ) ) {
-								window.location = checkout_response.redirect;
-							} else {
-								window.location = decodeURI( checkout_response.redirect );
-							}
-						});
+					callback( checkout_response );
 				}
 			});
+		},
+
+		handleConfirmResponse: function ( checkout_response, response ) {
+			if ( response.error ) {
+				$( document.body ).trigger( 'stripeError', response );
+
+				$.ajax( {
+					url: wc_stripe_form.getAjaxURL( 'update_failed_order' ),
+					type: 'POST',
+					data: {
+						_ajax_nonce: wc_stripe_params.updateFailedOrderNonce,
+						intent_id: checkout_response.intent_id,
+						order_id: checkout_response.order_id,
+					}
+				} );
+
+				return;
+			}
+
+			if ( -1 === checkout_response.redirect.indexOf( 'https://' ) || -1 === checkout_response.redirect.indexOf( 'http://' ) ) {
+				window.location = checkout_response.redirect;
+			} else {
+				window.location = decodeURI( checkout_response.redirect );
+			}
 		},
 
 		/**
@@ -751,55 +757,21 @@ jQuery( function( $ ) {
 		 * After the customer closes the modal proceeds with checkout normally
 		 */
 		handleOxxo: function () {
-			const data = new FormData();
-			data.append( '_ajax_nonce', wc_stripe_params.create_payment_intent_nonce );
-
-			fetch( wc_stripe_form.getAjaxURL( 'oxxo_create_payment_intent' ), {
-				method: 'POST',
-				credentials: 'same-origin',
-				body: data,
-			} )
-				.then( ( response ) => response.json() )
-				.then( ( { data } ) => {
-
-					if ( data.error ) {
-						wc_stripe_form.submitError( data.error.message );
-						return;
-					}
-
-					stripe.confirmOxxoPayment(
-						data.client_secret,
-						{
-							payment_method: {
-								billing_details: {
-									name: document.getElementById( 'billing_first_name' ).value + ' ' + document.getElementById( 'billing_last_name' ).value,
-									email: document.getElementById( 'billing_email' ).value,
-								},
+			wc_stripe_form.executeCheckout( function ( checkout_response ) {
+				stripe.confirmOxxoPayment(
+					checkout_response.client_secret,
+					{
+						payment_method: {
+							billing_details: {
+								name: document.getElementById( 'billing_first_name' ).value + ' ' + document.getElementById( 'billing_last_name' ).value,
+								email: document.getElementById( 'billing_email' ).value,
 							},
-						})
-						.then(function (response) {
-							if ( response.error ) {
-								$( document.body ).trigger( 'stripeError', response );
-								return;
-							}
-
-							wc_stripe_form.reset();
-
-							wc_stripe_form.form.append(
-								$( '<input type="hidden" />' )
-									.attr( 'id', 'stripe-oxxo-payment-intent' )
-									.attr( 'name', 'stripe_oxxo_payment_intent' )
-									.val( response.paymentIntent.id )
-							);
-
-							if ( $( 'form#add_payment_method' ).length || $( '#wc-stripe-change-payment-method' ).length ) {
-								wc_stripe_form.sourceSetup( response );
-								return;
-							}
-
-							wc_stripe_form.form.trigger( 'submit' );
-						} );
-				} );
+						},
+					})
+					.then(function (response) {
+						wc_stripe_form.handleConfirmResponse( checkout_response, response );
+					} );
+			} );
 		},
 
 		/**
