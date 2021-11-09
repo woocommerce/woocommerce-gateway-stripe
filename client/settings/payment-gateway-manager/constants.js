@@ -2,6 +2,7 @@ import { __ } from '@wordpress/i18n';
 
 export const gatewaysInfo = {
 	stripe_sepa: {
+		id: 'sepa_debit',
 		title: __( 'SEPA Direct Debit', 'woocommerce-gateway-stripe' ),
 		geography: __(
 			'Customer Geography: France, Germany, Spain, Belgium, Netherlands, Luxembourg, Italy, Portugal, Austria, Ireland.',
@@ -11,6 +12,7 @@ export const gatewaysInfo = {
 			'https://stripe.com/payments/payment-methods-guide#sepa-direct-debit',
 	},
 	stripe_giropay: {
+		id: 'giropay',
 		title: __( 'giropay', 'woocommerce-gateway-stripe' ),
 		geography: __(
 			'Customer Geography: Germany.',
@@ -19,6 +21,7 @@ export const gatewaysInfo = {
 		guide: 'https://stripe.com/payments/payment-methods-guide#giropay',
 	},
 	stripe_ideal: {
+		id: 'ideal',
 		title: __( 'iDeal', 'woocommerce-gateway-stripe' ),
 		geography: __(
 			'Customer Geography: The Netherlands.',
@@ -27,6 +30,7 @@ export const gatewaysInfo = {
 		guide: 'https://stripe.com/payments/payment-methods-guide#ideal',
 	},
 	stripe_bancontact: {
+		id: 'bancontact',
 		title: __( 'Bancontact', 'woocommerce-gateway-stripe' ),
 		geography: __(
 			'Customer Geography: Belgium.',
@@ -35,6 +39,7 @@ export const gatewaysInfo = {
 		guide: 'https://stripe.com/payments/payment-methods-guide#bancontact',
 	},
 	stripe_eps: {
+		id: 'eps',
 		title: __( 'EPS', 'woocommerce-gateway-stripe' ),
 		geography: __(
 			'Customer Geography: Austria.',
@@ -43,6 +48,7 @@ export const gatewaysInfo = {
 		guide: 'https://stripe.com/payments/payment-methods-guide#eps',
 	},
 	stripe_sofort: {
+		id: 'sofort',
 		title: __( 'SOFORT', 'woocommerce-gateway-stripe' ),
 		geography: __(
 			'Customer Geography: Germany, Austria.',
@@ -51,6 +57,7 @@ export const gatewaysInfo = {
 		guide: 'https://stripe.com/payments/payment-methods-guide#sofort',
 	},
 	stripe_p24: {
+		id: 'p24',
 		title: __( 'P24', 'woocommerce-gateway-stripe' ),
 		geography: __(
 			'Customer Geography: Poland.',
@@ -59,6 +66,7 @@ export const gatewaysInfo = {
 		guide: 'https://stripe.com/payments/payment-methods-guide#p24',
 	},
 	stripe_alipay: {
+		id: 'alipay',
 		title: __( 'Alipay', 'woocommerce-gateway-stripe' ),
 		geography: __(
 			'Customer Geography: China.',
@@ -67,6 +75,7 @@ export const gatewaysInfo = {
 		guide: 'https://stripe.com/payments/payment-methods-guide#alipay',
 	},
 	stripe_multibanco: {
+		id: 'multibanco',
 		title: __( 'Multibanco', 'woocommerce-gateway-stripe' ),
 		geography: __(
 			'Customer Geography: Portugal.',
