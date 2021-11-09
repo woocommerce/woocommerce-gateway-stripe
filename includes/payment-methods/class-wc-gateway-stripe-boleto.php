@@ -111,13 +111,9 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	 * @since 5.8.0
 	 */
 	public function create_payment_intent( $order_id = null ) {
-		$amount   = WC()->cart->get_total( false );
 		$currency = 'BRL';
 		$order    = wc_get_order( $order_id );
-
-		if ( is_a( $order, 'WC_Order' ) ) {
-			$amount = $order->get_total();
-		}
+		$amount   = $order->get_total();
 
 		$this->validate_amount_limits( $amount );
 
@@ -126,6 +122,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 				'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
 				'currency'             => strtolower( $currency ),
 				'payment_method_types' => [ 'boleto' ],
+				'description'          => __( 'stripe - Order', 'woocommerce-gateway-stripe' ) . ' ' . $order_id,
 			],
 			'payment_intents'
 		);
