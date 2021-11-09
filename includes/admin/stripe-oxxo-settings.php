@@ -28,6 +28,13 @@ return apply_filters(
 			'default'     => __( 'OXXO', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		],
+		'description' => [
+			'title'       => __( 'Description', 'woocommerce-gateway-stripe' ),
+			'type'        => 'text',
+			'description' => __( 'This controls the description which the user sees during checkout.', 'woocommerce-gateway-stripe' ),
+			'default'     => __( "You'll be able to download or print the OXXO voucher after checkout.", 'woocommerce-gateway-stripe' ),
+			'desc_tip'    => true,
+		],
 		'webhook'     => [
 			'title'       => __( 'Webhook Endpoints', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',

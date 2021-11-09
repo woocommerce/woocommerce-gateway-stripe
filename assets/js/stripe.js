@@ -706,6 +706,10 @@ jQuery( function( $ ) {
 			} );
 		},
 
+		/**
+		 * Executes the checkout and then execute the callback instead of redirect to success page
+		 * @param callback
+		 */
 		executeCheckout: function ( callback ) {
 			const formFields = wc_stripe_form.form.serializeArray().reduce( ( obj, field ) => {
 				obj[ field.name ] = field.value;
@@ -728,6 +732,11 @@ jQuery( function( $ ) {
 			});
 		},
 
+		/**
+		 * Handles response of the Confirm<payment_method>Payment like confirmBoletoPayment and confirmOxxoPayment
+		 * @param checkout_response
+		 * @param response
+		 */
 		handleConfirmResponse: function ( checkout_response, response ) {
 			if ( response.error ) {
 				$( document.body ).trigger( 'stripeError', response );

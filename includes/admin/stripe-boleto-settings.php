@@ -32,7 +32,7 @@ return apply_filters(
 			'title'       => __( 'Description', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
 			'description' => __( 'This controls the description which the user sees during checkout.', 'woocommerce-gateway-stripe' ),
-			'default'     => __( "You'll be able to download or print the Boleto after checkout", 'woocommerce-gateway-stripe' ),
+			'default'     => __( "You'll be able to download or print the Boleto after checkout.", 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		],
 		'webhook'     => [
