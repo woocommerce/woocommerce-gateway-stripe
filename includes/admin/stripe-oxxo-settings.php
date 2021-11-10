@@ -10,6 +10,10 @@ return apply_filters(
 			'description' => __( 'Customer Geography: Mexico', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
 		],
+		'guide'       => [
+			'description' => __( '<a href="https://stripe.com/payments/payment-methods-guide#oxxo" target="_blank">Payment Method Guide</a>', 'woocommerce-gateway-stripe' ),
+			'type'        => 'title',
+		],
 		'activation'  => [
 			'description' => __( 'Must be activated from your Stripe Dashboard Settings <a href="https://dashboard.stripe.com/account/payments/settings" target="_blank">here</a>', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',
