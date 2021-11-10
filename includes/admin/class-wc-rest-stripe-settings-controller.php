@@ -196,6 +196,10 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return $string_validation_result;
 		}
 
+		if ( '' === $value ) {
+			return true;
+		}
+
 		try {
 			$this->gateway->validate_account_statement_descriptor_field( $param, $value, $max_length );
 		} catch ( Exception $exception ) {
