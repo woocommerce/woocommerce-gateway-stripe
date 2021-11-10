@@ -70,7 +70,7 @@ const PaymentsAndTransactionsDescription = () => (
 				'woocommerce-gateway-stripe'
 			) }
 		</p>
-		<ExternalLink href="?TODO">
+		<ExternalLink href="https://woocommerce.com/document/stripe/#faq">
 			{ __(
 				'View Frequently Asked Questions',
 				'woocommerce-gateway-stripe'
