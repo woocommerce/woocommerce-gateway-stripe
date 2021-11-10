@@ -592,7 +592,6 @@ function woocommerce_gateway_stripe() {
 				$oauth_connect->register_routes();
 
 				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
-					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-base-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
