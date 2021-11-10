@@ -196,6 +196,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return $string_validation_result;
 		}
 
+		// Relaxing validation because it's blocking the user from saving it when they're on another tab of the settings screen
+		// TODO: work that out with either a UX approach or handling the validations of each tab separately
+		if ( '' === $value ) {
+			return true;
+		}
+
 		try {
 			$this->gateway->validate_account_statement_descriptor_field( $param, $value, $max_length );
 		} catch ( Exception $exception ) {
