@@ -174,7 +174,9 @@ const AddPaymentMethodsTask = () => {
 							'woocommerce-gateway-stripe'
 						),
 						components: {
-							learnMoreLink: <ExternalLink href="TODO?" />,
+							learnMoreLink: (
+								<ExternalLink href="https://woocommerce.com/document/stripe/#additional-payment-methods" />
+							),
 						},
 					} ) }
 				</p>

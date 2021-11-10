@@ -35,12 +35,12 @@ const GeneralSettingsDescription = () => (
 			) }
 		</p>
 		<p>
-			<ExternalLink href="?TODO">
+			<ExternalLink href="https://woocommerce.com/document/stripe/">
 				{ __( 'View Stripe docs', 'woocommerce-gateway-stripe' ) }
 			</ExternalLink>
 		</p>
 		<p>
-			<ExternalLink href="?TODO">
+			<ExternalLink href="https://woocommerce.com/contact-us/">
 				{ __( 'Get support', 'woocommerce-gateway-stripe' ) }
 			</ExternalLink>
 		</p>
@@ -70,7 +70,7 @@ const PaymentsAndTransactionsDescription = () => (
 				'woocommerce-gateway-stripe'
 			) }
 		</p>
-		<ExternalLink href="?TODO">
+		<ExternalLink href="https://woocommerce.com/document/stripe/#faq">
 			{ __(
 				'View Frequently Asked Questions',
 				'woocommerce-gateway-stripe'
