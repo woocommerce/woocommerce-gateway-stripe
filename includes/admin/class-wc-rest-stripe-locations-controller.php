@@ -65,6 +65,15 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 		);
 		register_rest_route(
 			$this->namespace,
+			'/' . $this->rest_base . '/store',
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => [ $this, 'get_store_location' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
+		register_rest_route(
+			$this->namespace,
 			'/' . $this->rest_base . '/(?P<location_id>\w+)',
 			[
 				'methods'             => WP_REST_Server::DELETABLE,
@@ -148,6 +157,64 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	}
 
 	/**
+	 * Get default terminal location.
+	 *
+	 * @param WP_REST_Request $request Full data about the request.
+	 */
+	public function get_store_location( $request ) {
+		$name = get_bloginfo();
+		$store_address = WC()->countries;
+		$address = array_filter(
+			[
+				'city'        => $store_address->get_base_city(),
+				'country'     => $store_address->get_base_country(),
+				'line1'       => $store_address->get_base_address(),
+				'line2'       => $store_address->get_base_address_2(),
+				'postal_code' => $store_address->get_base_postcode(),
+				'state'       => $store_address->get_base_state(),
+			]
+		);
+
+		// Return an error if store doesn't have a location.
+		$is_address_populated = isset( $address['country'], $address['city'], $address['postal_code'], $address['line1'] );
+		if ( ! $is_address_populated ) {
+			return rest_ensure_response(
+				new WP_Error(
+					'store_address_is_incomplete',
+					admin_url(
+						add_query_arg(
+							[
+								'page' => 'wc-settings',
+								'tab'  => 'general',
+							],
+							'admin.php'
+						)
+					)
+				)
+			);
+		}
+
+		foreach ( $this->fetch_locations() as $location ) {
+			if (
+				$location->display_name === $name
+				&& count( array_intersect( (array) $location->address, $address ) ) === count( $address )
+			) {
+				return rest_ensure_response( $location );
+			}
+		}
+
+		// Create new location if no location matches display name and address.
+		$response = WC_Stripe_API::request(
+			[
+				'display_name' => $name,
+				'address' => $address,
+			],
+			'terminal/locations'
+		);
+		return rest_ensure_response( $response );
+	}
+
+	/**
 	 * Update a terminal location via Stripe API.
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
@@ -168,7 +235,7 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * Fetch terminal locations from Stripe API.
 	 */
 	private function fetch_locations() {
-		$response = WC_Stripe_API::request( [], 'terminal/locations', 'GET' );
-		return $response->data;
+		$response = (array) WC_Stripe_API::request( [], 'terminal/locations', 'GET' );
+		return $response['data'];
 	}
 }
