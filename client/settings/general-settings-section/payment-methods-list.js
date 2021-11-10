@@ -9,6 +9,7 @@ import {
 	useGetAvailablePaymentMethodIds,
 	useManualCapture,
 } from 'wcstripe/data';
+import { useGetCapabilities } from 'wcstripe/data/account';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 
 const List = styled.ul`
@@ -73,8 +74,14 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 
 const GeneralSettingsSection = () => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
-	const availablePaymentMethods = useGetAvailablePaymentMethodIds();
+	const upePaymentMethods = useGetAvailablePaymentMethodIds();
+	const capabilities = useGetCapabilities();
 	const [ isManualCaptureEnabled ] = useManualCapture();
+
+	// Hide payment methods that are not part of the account capabilities.
+	const availablePaymentMethods = upePaymentMethods.filter( ( method ) =>
+		capabilities.hasOwnProperty( `${ method }_payments` )
+	);
 
 	return (
 		<List>
