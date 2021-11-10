@@ -162,7 +162,7 @@ const DisableUpeConfirmationModal = ( { onClose } ) => {
 						),
 						components: {
 							docsLink: (
-								<ExternalLink href="?TODO">
+								<ExternalLink href="https://woocommerce.com/document/stripe/">
 									{ __(
 										'Stripe docs',
 										'woocommerce-gateway-stripe'
