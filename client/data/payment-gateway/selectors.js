@@ -16,6 +16,6 @@ export const isSavingPaymentGateway = ( state ) => {
 	return getPaymentGatewayState( state ).isSaving || false;
 };
 
-export const getSavingError = ( state ) => {
+export const getPaymentGatewaySavingError = ( state ) => {
 	return getPaymentGatewayState( state ).savingError;
 };
