@@ -76,7 +76,7 @@ const EnableUpePreviewTask = () => {
 						components: {
 							learnMoreLink: (
 								// eslint-disable-next-line max-len
-								<ExternalLink href="TODO?">
+								<ExternalLink href="https://woocommerce.com/document/stripe/#new-checkout-experience">
 									{ __(
 										'Learn more',
 										'woocommerce-gateway-stripe'
