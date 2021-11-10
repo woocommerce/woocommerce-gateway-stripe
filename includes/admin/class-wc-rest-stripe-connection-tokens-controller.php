@@ -57,7 +57,7 @@ class WC_REST_Stripe_Connection_Tokens_Controller extends WC_Stripe_REST_Base_Co
 		$response = WC_Stripe_API::request( [], 'terminal/connection_tokens' );
 
 		if ( ! isset( $response->secret ) ) {
-			return new WP_Error( 'wc_stripe_no_token', __( 'Stripe API did not return a connection token.', 'woocommerce-gateway-stripe' ) );
+			return rest_ensure_response( new WP_Error( 'wc_stripe_no_token', __( 'Stripe API did not return a connection token.', 'woocommerce-gateway-stripe' ) ) );
 		}
 
 		$response->test_mode = $this->gateway->is_in_test_mode();
