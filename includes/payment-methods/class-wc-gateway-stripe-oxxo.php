@@ -195,8 +195,7 @@ class WC_Gateway_Stripe_Oxxo extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		wp_enqueue_style( 'stripe_styles' );
-		wp_enqueue_script( 'woocommerce_stripe' );
+		parent::payment_scripts();
 	}
 
 	/**
@@ -261,9 +260,14 @@ class WC_Gateway_Stripe_Oxxo extends WC_Stripe_Payment_Gateway {
 		try {
 			global $woocommerce;
 
+			$order = wc_get_order( $order_id );
+
+			if ( 'MX' !== $order->get_billing_country() ) {
+				throw new \Exception( __( 'OXXO is only available in Mexico', 'woocommerce-gateway-stripe' ) );
+			}
+
 			$intent = $this->create_payment_intent( $order_id );
 
-			$order = wc_get_order( $order_id );
 			$order->update_status( 'pending', __( 'Awaiting OXXO payment.', 'woocommerce-gateway-stripe' ) );
 
 			wc_reduce_stock_levels( $order_id );

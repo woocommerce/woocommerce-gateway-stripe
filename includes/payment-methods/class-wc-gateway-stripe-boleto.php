@@ -192,8 +192,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		wp_enqueue_style( 'stripe_styles' );
-		wp_enqueue_script( 'woocommerce_stripe' );
+		parent::payment_scripts();
 		wp_enqueue_script( 'jquery-mask', plugins_url( 'assets/js/jquery.mask.min.js', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );
 	}
 
@@ -261,9 +260,14 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 		try {
 			global $woocommerce;
 
+			$order = wc_get_order( $order_id );
+
+			if ( 'BR' !== $order->get_billing_country() ) {
+				throw new \Exception( __( 'Boleto is only available in Brazil', 'woocommerce-gateway-stripe' ) );
+			}
+
 			$intent = $this->create_payment_intent( $order_id );
 
-			$order = wc_get_order( $order_id );
 			$order->update_status( 'pending', __( 'Awaiting boleto payment.', 'woocommerce-gateway-stripe' ) );
 
 			wc_reduce_stock_levels( $order_id );
