@@ -1,4 +1,4 @@
-import { __, sprintf } from '@wordpress/i18n';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import React, { useContext } from 'react';
 import styled from '@emotion/styled';
 import PaymentMethodsMap from '../../payment-methods-map';
@@ -22,10 +22,6 @@ const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 		return null;
 	}
 
-	const neededCurrency = paymentMethodCurrencies.find(
-		( currency ) => currency !== storeCurrency
-	);
-
 	if (
 		id !== 'card' &&
 		! paymentMethodCurrencies.includes( storeCurrency )
@@ -33,12 +29,15 @@ const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
 		return (
 			<Tooltip
 				content={ sprintf(
-					/* translators: $1: a payment method name. %2: Currency. */
-					__(
-						"%1$s won't be visible to your customers until you add %2$s to your store."
+					/* translators: $1: a payment method name. %2: Currency(ies). */
+					_n(
+						"%1$s won't be visible to your customers until you add %2$s to your store.",
+						"%1$s won't be visible to your customers until you add one of these currencies to your store: %2$s.",
+						paymentMethodCurrencies.length,
+						'woocommerce-gateway-stripe'
 					),
 					label,
-					neededCurrency
+					paymentMethodCurrencies.join( ', ' )
 				) }
 			>
 				<StyledPill>
