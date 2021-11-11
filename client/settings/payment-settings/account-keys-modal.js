@@ -184,7 +184,7 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 			return { ...acc, [ name ]: value };
 		}, {} );
 		await saveAccountKeys( keysToSave );
-		onClose();
+		onClose( { saveSuccess: true } );
 	};
 
 	const onTabSelect = ( tabName ) => {
