@@ -53,12 +53,8 @@ const ButtonWrapper = styled.div`
 const ConnectStripeAccount = ( { oauthUrl } ) => {
 	// @todo - deconstruct modalType and setModalType from useModalType custom hook
 	const [ modalType, setModalType ] = useState( '' );
-	const handleModalDismiss = ( { saveSuccess } ) => {
-		if ( saveSuccess ) {
-			window.location.reload();
-		} else {
-			setModalType( '' );
-		}
+	const handleModalDismiss = () => {
+		setModalType( '' );
 	};
 
 	return (
@@ -67,6 +63,7 @@ const ConnectStripeAccount = ( { oauthUrl } ) => {
 				<AccountKeysModal
 					type={ modalType }
 					onClose={ handleModalDismiss }
+					forcePageReloadOnSave
 				/>
 			) }
 			<CardWrapper>

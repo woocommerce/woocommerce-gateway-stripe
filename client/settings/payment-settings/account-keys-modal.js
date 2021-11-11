@@ -168,14 +168,20 @@ const StyledConfirmationModal = styled( ConfirmationModal )`
 	}
 `;
 
-export const AccountKeysModal = ( { type, onClose } ) => {
+export const AccountKeysModal = ( {
+	type,
+	onClose,
+	forcePageReloadOnSave,
+} ) => {
 	const [ openTab, setOpenTab ] = useState( type );
 	const { isSaving, saveAccountKeys } = useAccountKeys();
+	const [ isDisabled, setDisabled ] = useState( false );
 	const formRef = useRef( null );
 	const testFormRef = useRef( null );
 	const testMode = openTab === 'test';
 
 	const handleSave = async ( ref ) => {
+		setDisabled( true );
 		// Grab the HTMLCollection of elements of the HTML form, convert to array.
 		const elements = Array.from( ref.current.elements );
 		// Convert HTML elements array to an object acceptable for saving keys.
@@ -184,7 +190,13 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 			return { ...acc, [ name ]: value };
 		}, {} );
 		await saveAccountKeys( keysToSave );
-		onClose( { saveSuccess: true } );
+		if ( forcePageReloadOnSave ) {
+			// When forcing a redirect, we keep the modal open and disabled while the page reloads.
+			window.location.reload();
+		} else {
+			setDisabled( false );
+			onClose();
+		}
 	};
 
 	const onTabSelect = ( tabName ) => {
@@ -199,14 +211,14 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 					<Button
 						isSecondary
 						onClick={ onClose }
-						disabled={ isSaving }
+						disabled={ isDisabled }
 					>
 						{ __( 'Cancel', 'woocommerce-gateway-stripe' ) }
 					</Button>
 					<Button
 						isPrimary
-						isBusy={ isSaving }
-						disabled={ isSaving }
+						isBusy={ isSaving || isDisabled }
+						disabled={ isDisabled }
 						onClick={ () =>
 							handleSave( testMode ? testFormRef : formRef )
 						}
