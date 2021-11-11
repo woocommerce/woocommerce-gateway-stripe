@@ -198,10 +198,13 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$settings['test_secret_key']      = is_null( $test_secret_key ) ? $settings['test_secret_key'] : $test_secret_key;
 		$settings['test_webhook_secret']  = is_null( $test_webhook_secret ) ? $settings['test_webhook_secret'] : $test_webhook_secret;
 
-		// If we have a live key but no test key, then disable testmode.
+		// If we only have test keys, enable testmode.
 		if ( ! trim( $settings['publishable_key'] ) && ! trim( $settings['secret_key'] ) && trim( $settings['test_publishable_key'] ) && trim( $settings['test_secret_key'] ) ) {
 			$settings['testmode'] = 'yes';
-		} else {
+		}
+
+		// If we only have live keys, disable testmode.
+		if ( trim( $settings['publishable_key'] ) && trim( $settings['secret_key'] ) && ! trim( $settings['test_publishable_key'] ) && ! trim( $settings['test_secret_key'] ) ) {
 			$settings['testmode'] = 'no';
 		}
 
