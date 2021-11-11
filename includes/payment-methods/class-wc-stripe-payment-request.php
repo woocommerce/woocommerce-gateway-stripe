@@ -907,27 +907,9 @@ class WC_Stripe_Payment_Request {
 		}
 
 		if ( $this->is_product() && in_array( $this->get_product()->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
-			$valid_stock_statuses = array_filter(
-				array_keys( wc_get_product_stock_status_options() ),
-				function ( $stock_status ) {
-					return 'outofstock' !== $stock_status;
-				}
-			);
-			$product_args         = [
-				'status'       => 'publish',
-				'parent'       => $this->get_product()->get_id(),
-				'type'         => 'variation',
-				'stock_status' => $valid_stock_statuses,
-				// All we need is for 1 variation to exist to determine
-				// whether product is "instock" or "onbackorder".
-				'limit'        => 1,
-			];
-
-			// Retrieve variable product's variations that are not 'outofstock' (e.g. 'instock', 'onbackorder').
-			$variations = wc_get_products( $product_args );
-
-			// Don't show if product doesn't have any variations in stock.
-			if ( count( $variations ) === 0 ) {
+			$stock_availability = array_column( $this->get_product()->get_available_variations(), 'is_in_stock' );
+			// Don't show if all product variations are out-of-stock.
+			if ( ! in_array( true, $stock_availability, true ) ) {
 				return false;
 			}
 		}
