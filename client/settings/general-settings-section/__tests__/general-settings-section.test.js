@@ -8,16 +8,16 @@ import {
 	useGetAvailablePaymentMethodIds,
 	useManualCapture,
 } from 'wcstripe/data';
-import { useAccount } from 'wcstripe/data/account';
+import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useGetAvailablePaymentMethodIds: jest.fn(),
 	useEnabledPaymentMethodIds: jest.fn(),
 	useManualCapture: jest.fn(),
 } ) );
-
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
+	useGetCapabilities: jest.fn(),
 } ) );
 jest.mock( '@wordpress/data', () => ( {
 	useDispatch: jest.fn().mockReturnValue( {} ),
@@ -35,6 +35,10 @@ jest.mock( '../../loadable-settings-section', () => ( { children } ) =>
 
 describe( 'GeneralSettingsSection', () => {
 	beforeEach( () => {
+		useGetCapabilities.mockReturnValue( {
+			card_payments: 'active',
+			giropay_payments: 'active',
+		} );
 		useManualCapture.mockReturnValue( [ false ] );
 		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card' ] );
 		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card' ], jest.fn() ] );

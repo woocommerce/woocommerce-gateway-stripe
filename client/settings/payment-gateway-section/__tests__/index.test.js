@@ -14,6 +14,7 @@ jest.mock( '@woocommerce/navigation', () => ( {
 
 jest.mock( '../../../data/account/hooks', () => ( {
 	useAccount: jest.fn().mockReturnValue( { data: {} } ),
+	useGetCapabilities: jest.fn().mockReturnValue( {} ),
 } ) );
 
 jest.mock( '../../account-details/use-webhook-state-message', () => ( {
