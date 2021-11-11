@@ -27,6 +27,7 @@ const GeneralSettingsSection = () => {
 				<AccountKeysModal
 					type={ modalType }
 					onClose={ handleModalDismiss }
+					forcePageReloadOnSave
 				/>
 			) }
 			<StyledCard>

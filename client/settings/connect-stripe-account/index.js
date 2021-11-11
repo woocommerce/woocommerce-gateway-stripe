@@ -63,6 +63,7 @@ const ConnectStripeAccount = ( { oauthUrl } ) => {
 				<AccountKeysModal
 					type={ modalType }
 					onClose={ handleModalDismiss }
+					forcePageReloadOnSave
 				/>
 			) }
 			<CardWrapper>

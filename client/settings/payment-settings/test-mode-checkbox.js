@@ -11,25 +11,20 @@ const TestModeCheckbox = () => {
 	const [ isTestModeEnabled, setTestMode ] = useTestMode();
 	const { accountKeys } = useAccountKeys();
 
+	const missingLiveKeys =
+		! accountKeys.publishable_key || ! accountKeys.secret_key;
+	const missingTestKeys =
+		! accountKeys.test_publishable_key || ! accountKeys.test_secret_key;
+
 	const handleCheckboxChange = ( isChecked ) => {
 		// are we enabling test mode without the necessary keys?
-		if (
-			isChecked &&
-			( ! accountKeys.test_publishable_key ||
-				! accountKeys.test_secret_key ||
-				! accountKeys.test_webhook_secret )
-		) {
+		if ( isChecked && missingTestKeys ) {
 			setModalType( 'test' );
 			return;
 		}
 
 		// are we enabling live mode without the necessary keys?
-		if (
-			! isChecked &&
-			( ! accountKeys.publishable_key ||
-				! accountKeys.secret_key ||
-				! accountKeys.webhook_secret )
-		) {
+		if ( ! isChecked && missingLiveKeys ) {
 			setModalType( 'live' );
 			return;
 		}
@@ -48,6 +43,7 @@ const TestModeCheckbox = () => {
 				<AccountKeysModal
 					type={ modalType }
 					onClose={ handleModalDismiss }
+					forcePageReloadOnSave
 				/>
 			) }
 			<CheckboxControl
