@@ -117,14 +117,18 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * @param WP_REST_Request $request Full data about the request.
 	 */
 	public function create_location( $request ) {
-		$response = WC_Stripe_API::request(
-			[
-				'display_name' => $request['display_name'],
-				'address'      => $request['address'],
-			],
-			'terminal/locations'
-		);
-		return rest_ensure_response( $response );
+		try {
+			$response = WC_Stripe_API::request(
+				[
+					'display_name' => $request['display_name'],
+					'address'      => $request['address'],
+				],
+				'terminal/locations'
+			);
+			return rest_ensure_response( $response );
+		} catch ( WC_Stripe_Exception $e ) {
+			return rest_ensure_response( new WP_Error( 'stripe_error', $e->getMessage() ) );
+		}
 	}
 
 	/**
@@ -133,7 +137,11 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * @param WP_REST_Request $request Full data about the request.
 	 */
 	public function get_all_locations( $request ) {
-		return rest_ensure_response( $this->fetch_locations() );
+		try {
+			return rest_ensure_response( $this->fetch_locations() );
+		} catch ( WC_Stripe_Exception $e ) {
+			return rest_ensure_response( new WP_Error( 'stripe_error', $e->getMessage() ) );
+		}
 	}
 
 	/**
@@ -142,8 +150,12 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * @param WP_REST_Request $request Full data about the request.
 	 */
 	public function delete_location( $request ) {
-		$response = WC_Stripe_API::request( [], 'terminal/locations/' . urlencode( $request['location_id'] ), 'DELETE' );
-		return rest_ensure_response( $response );
+		try {
+			$response = WC_Stripe_API::request( [], 'terminal/locations/' . urlencode( $request['location_id'] ), 'DELETE' );
+			return rest_ensure_response( $response );
+		} catch ( WC_Stripe_Exception $e ) {
+			return rest_ensure_response( new WP_Error( 'stripe_error', $e->getMessage() ) );
+		}
 	}
 
 	/**
@@ -152,8 +164,12 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * @param WP_REST_Request $request Full data about the request.
 	 */
 	public function get_location( $request ) {
-		$response = WC_Stripe_API::request( [], 'terminal/locations/' . urlencode( $request['location_id'] ), 'GET' );
-		return rest_ensure_response( $response );
+		try {
+			$response = WC_Stripe_API::request( [], 'terminal/locations/' . urlencode( $request['location_id'] ), 'GET' );
+			return rest_ensure_response( $response );
+		} catch ( WC_Stripe_Exception $e ) {
+			return rest_ensure_response( new WP_Error( 'stripe_error', $e->getMessage() ) );
+		}
 	}
 
 	/**
@@ -194,24 +210,28 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 			);
 		}
 
-		foreach ( $this->fetch_locations() as $location ) {
-			if (
-				$location->display_name === $name
-				&& count( array_intersect( (array) $location->address, $address ) ) === count( $address )
-			) {
-				return rest_ensure_response( $location );
+		try {
+			foreach ( $this->fetch_locations() as $location ) {
+				if (
+					$location->display_name === $name
+					&& count( array_intersect( (array) $location->address, $address ) ) === count( $address )
+				) {
+					return rest_ensure_response( $location );
+				}
 			}
-		}
 
-		// Create new location if no location matches display name and address.
-		$response = WC_Stripe_API::request(
-			[
-				'display_name' => $name,
-				'address' => $address,
-			],
-			'terminal/locations'
-		);
-		return rest_ensure_response( $response );
+			// Create new location if no location matches display name and address.
+			$response = WC_Stripe_API::request(
+				[
+					'display_name' => $name,
+					'address' => $address,
+				],
+				'terminal/locations'
+			);
+			return rest_ensure_response( $response );
+		} catch ( WC_Stripe_Exception $e ) {
+			return rest_ensure_response( new WP_Error( 'stripe_error', $e->getMessage() ) );
+		}
 	}
 
 	/**
@@ -227,8 +247,12 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 		if ( isset( $request['address'] ) ) {
 			$body['address'] = $request['address'];
 		}
-		$response = WC_Stripe_API::request( $body, 'terminal/locations/' . urlencode( $request['location_id'] ), 'POST' );
-		return rest_ensure_response( $response );
+		try {
+			$response = WC_Stripe_API::request( $body, 'terminal/locations/' . urlencode( $request['location_id'] ), 'POST' );
+			return rest_ensure_response( $response );
+		} catch ( WC_Stripe_Exception $e ) {
+			return rest_ensure_response( new WP_Error( 'stripe_error', $e->getMessage() ) );
+		}
 	}
 
 	/**
