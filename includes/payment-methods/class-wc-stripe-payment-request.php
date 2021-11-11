@@ -906,7 +906,7 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
-		if ( $this->is_product() && $this->get_product()->get_type() === 'variable' ) {
+		if ( $this->is_product() && in_array( $this->get_product()->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
 			$valid_stock_statuses = array_filter(
 				array_keys( wc_get_product_stock_status_options() ),
 				function ( $stock_status ) {
