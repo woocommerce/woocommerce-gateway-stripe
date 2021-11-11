@@ -8,6 +8,7 @@ import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
 } from 'wcstripe/data';
+import { useGetCapabilities } from 'wcstripe/data/account';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useGetAvailablePaymentMethodIds: jest.fn(),
@@ -19,6 +20,9 @@ jest.mock( '@wordpress/data', () => ( {
 	register: jest.fn(),
 	combineReducers: jest.fn(),
 } ) );
+jest.mock( 'wcstripe/data/account', () => ( {
+	useGetCapabilities: jest.fn(),
+} ) );
 
 describe( 'DisableUpeConfirmationModal', () => {
 	beforeEach( () => {
@@ -26,6 +30,10 @@ describe( 'DisableUpeConfirmationModal', () => {
 			'card',
 			'giropay',
 		] );
+		useGetCapabilities.mockReturnValue( {
+			card_payments: 'active',
+			giropay_payments: 'active',
+		} );
 		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card' ], jest.fn() ] );
 		useDispatch.mockReturnValue( {} );
 	} );
