@@ -453,6 +453,53 @@ jQuery( function( $ ) {
 			} );
 		},
 
+		getSelectedVariationCachedData: function () {
+			const product_variations = $('.variations_form.cart').data('product_variations');
+			const chosen_variation = wc_stripe_payment_request.getAttributes();
+			// If all attributes have not been selected, product variation cannot be identified.
+			if ( chosen_variation.chosenCount !== chosen_variation.count ) {
+				return null;
+			}
+
+			const chosen_variation_attributes = chosen_variation.data;
+			const attribute_names = Object.keys(chosen_variation_attributes);
+			const selected_variation = product_variations.find((product_variation) => {
+				const has_attributes = 'attributes' in product_variation;
+				// Ensure 'attributes' key/val pair exists.
+				if ( ! has_attributes) {
+					return false;
+				}
+				// Find product variation data that matches all chosen attributes.
+				let is_matching_all_attributes = true;
+				for (let idx = 0; idx < attribute_names.length; idx++) {
+					const attribute_name = attribute_names[idx];
+					if ( chosen_variation_attributes[attribute_name] !== product_variation.attributes[attribute_name]) {
+						is_matching_all_attributes = false;
+						break;
+					}
+				}
+
+				return is_matching_all_attributes;
+			});
+			// Avoid returning "undefined" by defaulting to "null".
+			return selected_variation || null;
+		},
+
+		/**
+		 * Hides or shows the payment request button (PRB) based on whether the selected
+		 * product variation is out-of-stock.
+		 */
+		resolveDisplayForPaymentRequestButton: function () {
+			const selected_variation = wc_stripe_payment_request.getSelectedVariationCachedData();
+			if ( ! selected_variation || ! selected_variation.is_in_stock) {
+				// Hide payment request button if product variation is not "is_in_stock".
+				wc_stripe_payment_request.hidePaymentRequestButton();
+			} else if (selected_variation && selected_variation.is_in_stock) {
+				// Display if product variation "is_in_stock".
+				wc_stripe_payment_request.unhidePaymentRequestButton();
+			}
+		},
+
 
 		/**
 		 * Creates a wrapper around a function that ensures a function can not
@@ -631,10 +678,6 @@ jQuery( function( $ ) {
 				wc_stripe_payment_request.unblockPaymentRequestButton();
 			} );
 
-			$( document.body ).on( 'wc_stripe_hide_payment_request_button', function () {
-				wc_stripe_payment_request.hidePaymentRequestButton();
-			} );
-
 			$( document.body ).on( 'wc_stripe_block_payment_request_button', function () {
 				wc_stripe_payment_request.blockPaymentRequestButton( 'wc_request_button_is_blocked' );
 			} );
@@ -644,6 +687,8 @@ jQuery( function( $ ) {
 			} );
 
 			$( document.body ).on( 'woocommerce_variation_has_changed', function () {
+				wc_stripe_payment_request.resolveDisplayForPaymentRequestButton();
+
 				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 
 				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
@@ -653,11 +698,7 @@ jQuery( function( $ ) {
 							displayItems: response.displayItems,
 						} )
 					).then( function () {
-						if (response.is_in_stock) {
-							$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-						} else {
-							$( document.body ).trigger( 'wc_stripe_hide_payment_request_button' );
-						}
+						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
 					} );
 				});
 			} );
@@ -665,6 +706,8 @@ jQuery( function( $ ) {
 			// Block the payment request button as soon as an "input" event is fired, to avoid sync issues
 			// when the customer clicks on the button before the debounced event is processed.
 			$( '.quantity' ).on( 'input', '.qty', function() {
+				wc_stripe_payment_request.resolveDisplayForPaymentRequestButton();
+
 				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 			} );
 
@@ -683,11 +726,7 @@ jQuery( function( $ ) {
 								displayItems: response.displayItems,
 							} )
 						).then( function () {
-							if (response.is_in_stock) {
-								$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-							} else {
-								$( document.body ).trigger( 'wc_stripe_hide_payment_request_button' );
-							}
+							$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
 						});
 					}
 				} );
@@ -757,9 +796,6 @@ jQuery( function( $ ) {
 		},
 
 		unblockPaymentRequestButton: function() {
-			// Assure PRB is showing.
-			wc_stripe_payment_request.unhidePaymentRequestButton();
-
 			$( '#wc-stripe-payment-request-button' )
 				.removeClass( ['wc_request_button_is_blocked', 'wc_request_button_is_disabled'] )
 				.unblock();
