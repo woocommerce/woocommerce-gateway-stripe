@@ -59,28 +59,29 @@ class WC_REST_Stripe_Locations_Controller_Test extends WP_UnitTestCase {
 					[
 						'id'           => 'tml_12345678901234567890123',
 						'object'       => 'terminal.location',
-						'display_name' => $parsed_args['body']['display_name'],
+						'display_name' => isset( $parsed_args['body']['display_name'] ) ? $parsed_args['body']['display_name'] : 'No Display Name',
 						'address'      => [
-							'line1' => $parsed_args['body']['address']['line1'],
+							'line1' => isset( $parsed_args['body']['address']['line1'] ) ? $parsed_args['body']['address']['line1'] : 'No Address',
 						],
 					]
 				),
 			];
 		};
-			add_filter( 'pre_http_request', $test_request, 10, 3 );
 
-			$request = new WP_REST_Request( 'POST', self::LOCATIONS_REST_BASE );
-			$request->set_param( 'display_name', 'Test Store' );
-			$request->set_param(
-				'address',
-				[
-					'line1'       => '1 Example St.',
-					'city'        => 'Example City',
-					'country'     => 'US',
-					'state'       => 'CA',
-					'postal_code' => '12345',
-				]
-			);
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$request = new WP_REST_Request( 'POST', self::LOCATIONS_REST_BASE );
+		$request->set_param( 'display_name', 'Test Store' );
+		$request->set_param(
+			'address',
+			[
+				'line1'       => '1 Example St.',
+				'city'        => 'Example City',
+				'country'     => 'US',
+				'state'       => 'CA',
+				'postal_code' => '12345',
+			]
+		);
 
 		$response = rest_do_request( $request );
 		$this->assertEquals( 200, $response->get_status() );
@@ -119,19 +120,20 @@ class WC_REST_Stripe_Locations_Controller_Test extends WP_UnitTestCase {
 				),
 			];
 		};
-			add_filter( 'pre_http_request', $test_request, 10, 3 );
 
-			$request = new WP_REST_Request( 'POST', self::LOCATIONS_REST_BASE . '/tml_12345' );
-			$request->set_param( 'display_name', 'New Store Name' );
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
 
-			$response = rest_do_request( $request );
-			$this->assertEquals( 200, $response->get_status() );
-			$this->assertEquals( 'terminal.location', $response->get_data()->object );
-			$this->assertEquals( 'tml_12345678901234567890123', $response->get_data()->id );
-			$this->assertEquals( 'New Store Name', $response->get_data()->display_name );
-			$this->assertEquals( 'Not Changed', $response->get_data()->address->line1 );
+		$request = new WP_REST_Request( 'POST', self::LOCATIONS_REST_BASE . '/tml_12345' );
+		$request->set_param( 'display_name', 'New Store Name' );
 
-			remove_filter( 'pre_http_request', $test_request, 10, 3 );
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( 'terminal.location', $response->get_data()->object );
+		$this->assertEquals( 'tml_12345678901234567890123', $response->get_data()->id );
+		$this->assertEquals( 'New Store Name', $response->get_data()->display_name );
+		$this->assertEquals( 'Not Changed', $response->get_data()->address->line1 );
+
+		remove_filter( 'pre_http_request', $test_request, 10, 3 );
 	}
 
 	public function test_get_store_location_requires_auth() {
@@ -204,34 +206,34 @@ class WC_REST_Stripe_Locations_Controller_Test extends WP_UnitTestCase {
 			}
 		};
 
-			add_filter( 'pre_http_request', $test_request, 10, 3 );
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
 
-			// Test an existing store, ensure existing location is returned.
-			update_option( 'blogname', 'Test Store' );
-			update_option( 'woocommerce_store_address', '1 Example St.' );
-			update_option( 'woocommerce_store_city', 'Example City' );
-			update_option( 'woocommerce_store_postcode', '12345' );
-			update_option( 'woocommerce_default_country', 'US:CA' );
+		// Test an existing store, ensure existing location is returned.
+		update_option( 'blogname', 'Test Store' );
+		update_option( 'woocommerce_store_address', '1 Example St.' );
+		update_option( 'woocommerce_store_city', 'Example City' );
+		update_option( 'woocommerce_store_postcode', '12345' );
+		update_option( 'woocommerce_default_country', 'US:CA' );
 
-			$request  = new WP_REST_Request( 'GET', self::LOCATIONS_REST_BASE . '/store' );
-			$response = rest_do_request( $request );
-			$this->assertEquals( 200, $response->get_status() );
-			$this->assertEquals( 'tml_00002', $response->get_data()->id );
-			$this->assertEquals( 'Test Store', $response->get_data()->display_name );
-			$this->assertEquals( '1 Example St.', $response->get_data()->address->line1 );
+		$request  = new WP_REST_Request( 'GET', self::LOCATIONS_REST_BASE . '/store' );
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( 'tml_00002', $response->get_data()->id );
+		$this->assertEquals( 'Test Store', $response->get_data()->display_name );
+		$this->assertEquals( '1 Example St.', $response->get_data()->address->line1 );
 
-			// Test a new store, ensure a new location is returned.
-			update_option( 'blogname', 'New Test Store' );
-			update_option( 'woocommerce_store_address', '3 Example St.' );
+		// Test a new store, ensure a new location is returned.
+		update_option( 'blogname', 'New Test Store' );
+		update_option( 'woocommerce_store_address', '3 Example St.' );
 
-			$request  = new WP_REST_Request( 'GET', self::LOCATIONS_REST_BASE . '/store' );
-			$response = rest_do_request( $request );
-			$this->assertEquals( 200, $response->get_status() );
-			$this->assertEquals( 'tml_00003', $response->get_data()->id );
-			$this->assertEquals( 'New Test Store', $response->get_data()->display_name );
-			$this->assertEquals( '3 Example St.', $response->get_data()->address->line1 );
+		$request  = new WP_REST_Request( 'GET', self::LOCATIONS_REST_BASE . '/store' );
+		$response = rest_do_request( $request );
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( 'tml_00003', $response->get_data()->id );
+		$this->assertEquals( 'New Test Store', $response->get_data()->display_name );
+		$this->assertEquals( '3 Example St.', $response->get_data()->address->line1 );
 
-			remove_filter( 'pre_http_request', $test_request, 10, 3 );
+		remove_filter( 'pre_http_request', $test_request, 10, 3 );
 	}
 
 }
