@@ -5,6 +5,7 @@ import { useGetCapabilities } from 'wcstripe/data/account';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 jest.mock( 'wcstripe/data/account', () => ( {
+	useAccount: jest.fn().mockReturnValue( {} ),
 	useGetCapabilities: jest.fn(),
 } ) );
 
@@ -30,23 +31,6 @@ describe( 'PaymentMethodCapabilityStatusPill', () => {
 		expect(
 			screen.queryByText( 'Pending activation' )
 		).toBeInTheDocument();
-	} );
-
-	it( 'should not render when UPE is disabled', () => {
-		useGetCapabilities.mockReturnValue( {
-			giropay_payments: 'pending',
-			card_payments: 'pending',
-		} );
-		const { container } = render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<PaymentMethodCapabilityStatusPill
-					id="giropay"
-					label="giropay"
-				/>
-			</UpeToggleContext.Provider>
-		);
-
-		expect( container.firstChild ).toBeNull();
 	} );
 
 	it( 'should not render when the capability is "active"', () => {
