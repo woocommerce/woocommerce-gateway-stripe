@@ -774,12 +774,12 @@ jQuery( function( $ ) {
 		},
 
 		unhidePaymentRequestButton: function () {
-			const stripe_wrapper_ele = $( '#wc-stripe-payment-request-wrapper' );
-			const stripe_separator_ele = $( '#wc-stripe-payment-request-button-separator' );
+			const stripe_wrapper = $( '#wc-stripe-payment-request-wrapper' );
+			const stripe_separator = $( '#wc-stripe-payment-request-button-separator' );
 			// If either element is hidden, ensure both show.
-			if ( stripe_wrapper_ele.is(':hidden') || stripe_separator_ele.is(':hidden') ) {
-				stripe_wrapper_ele.show();
-				stripe_separator_ele.show();
+			if ( stripe_wrapper.is(':hidden') || stripe_separator.is(':hidden') ) {
+				stripe_wrapper.show();
+				stripe_separator.show();
 			}
 		},
 
