@@ -219,6 +219,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > General */
 				'is_stripe_enabled'                     => $this->gateway->is_enabled(),
 				'is_test_mode_enabled'                  => $this->gateway->is_in_test_mode(),
+				'title'                                 => $this->gateway->get_option( 'title' ),
+				'title_upe'                             => $this->gateway->get_option( 'title_upe' ),
+				'description'                           => $this->gateway->get_option( 'description' ),
 
 				/* Settings > Payments accepted on checkout */
 				'enabled_payment_method_ids'            => $this->gateway->get_upe_enabled_payment_method_ids(),
