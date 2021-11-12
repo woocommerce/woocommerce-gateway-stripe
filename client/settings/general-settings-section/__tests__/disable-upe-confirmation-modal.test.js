@@ -50,7 +50,26 @@ describe( 'DisableUpeConfirmationModal', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'should not render the list of payment methods when there are multiple payments enabled', () => {
+	it( 'should not render payment methods that are not part of the account capabilities', () => {
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ 'giropay' ],
+			jest.fn(),
+		] );
+
+		useGetCapabilities.mockReturnValue( {
+			card_payments: 'active',
+		} );
+
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
+				<DisableUpeConfirmationModal />
+			</UpeToggleContext.Provider>
+		);
+
+		expect( screen.queryByText( /giropay/ ) ).not.toBeInTheDocument();
+	} );
+
+	it( 'should render the list of payment methods when there are multiple payments enabled', () => {
 		useEnabledPaymentMethodIds.mockReturnValue( [
 			[ 'giropay' ],
 			jest.fn(),

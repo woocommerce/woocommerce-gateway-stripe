@@ -14,8 +14,7 @@ const StyledPill = styled( Pill )`
 `;
 
 const StyledLink = styled.a`
-	color: white;
-
+	&,
 	&:hover,
 	&:visited {
 		color: white;

@@ -353,4 +353,26 @@ describe( 'GeneralSettingsSection', () => {
 			} )
 		).toBeInTheDocument();
 	} );
+
+	it( 'should not render payment methods that are not part of the account capabilities', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			'card',
+			'giropay',
+		] );
+		useGetCapabilities.mockReturnValue( {
+			card_payments: 'active',
+		} );
+
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: 'giropay',
+			} )
+		).not.toBeInTheDocument();
+	} );
 } );
