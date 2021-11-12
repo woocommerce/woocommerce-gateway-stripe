@@ -7,9 +7,10 @@ import {
 	usePaymentGatewayName,
 	usePaymentGatewayDescription,
 } from '../../../data/payment-gateway/hooks';
+import { useGetCapabilities } from 'wcstripe/data/account';
 
 jest.mock( '@woocommerce/navigation', () => ( {
-	getQuery: jest.fn().mockReturnValue( { section: 'stripe_alipay' } ),
+	getQuery: jest.fn().mockReturnValue( { section: 'stripe_ideal' } ),
 } ) );
 
 jest.mock( '../../../data/account/hooks', () => ( {
@@ -39,9 +40,9 @@ jest.mock( '../../loadable-payment-gateway-section', () => ( { children } ) =>
 describe( 'PaymentGatewaySection', () => {
 	beforeEach( () => {
 		useEnabledPaymentGateway.mockReturnValue( [ false ] );
-		usePaymentGatewayName.mockReturnValue( [ 'Alipay' ] );
+		usePaymentGatewayName.mockReturnValue( [ 'iDeal' ] );
 		usePaymentGatewayDescription.mockReturnValue( [
-			'You will be redirected to Alipay',
+			'You will be redirected to iDeal',
 		] );
 	} );
 
@@ -49,6 +50,14 @@ describe( 'PaymentGatewaySection', () => {
 		render( <PaymentGatewaySection /> );
 		expect( screen.getAllByRole( 'checkbox' ).length ).toEqual( 1 );
 		expect( screen.getAllByRole( 'textbox' ).length ).toEqual( 2 );
+	} );
+
+	it( 'should render "pending" capability status pill', () => {
+		useGetCapabilities.mockReturnValue( { ideal_payments: 'pending' } );
+		render( <PaymentGatewaySection /> );
+		expect(
+			screen.queryByText( 'Pending activation' )
+		).toBeInTheDocument();
 	} );
 
 	it( 'should contain the webhook monitoring status', () => {
@@ -68,7 +77,7 @@ describe( 'PaymentGatewaySection', () => {
 		render( <PaymentGatewaySection /> );
 
 		const enableCheckbox = screen.getByRole( 'checkbox', {
-			name: /Enable Alipay/,
+			name: /Enable iDeal/,
 		} );
 
 		expect( enableGatewayMock ).not.toHaveBeenCalled();
@@ -92,9 +101,9 @@ describe( 'PaymentGatewaySection', () => {
 		expect( setGatewayNameMock ).not.toHaveBeenCalled();
 		expect( nameInput.value ).toEqual( '' );
 
-		userEvent.type( nameInput, 'Buy with Alipay' ); // 15 characters
+		userEvent.type( nameInput, 'Buy with iDeal' ); // 14 characters
 
-		expect( setGatewayNameMock ).toHaveBeenCalledTimes( 15 );
+		expect( setGatewayNameMock ).toHaveBeenCalledTimes( 14 );
 	} );
 
 	it( 'should be possible to update the gateway description', () => {
@@ -113,8 +122,8 @@ describe( 'PaymentGatewaySection', () => {
 		expect( setGatewayDescriptionMock ).not.toHaveBeenCalled();
 		expect( descriptionInput.value ).toEqual( '' );
 
-		userEvent.type( descriptionInput, 'You will be redirected to Alipay' ); // 32 characters
+		userEvent.type( descriptionInput, 'You will be redirected to iDeal' ); // 31 characters
 
-		expect( setGatewayDescriptionMock ).toHaveBeenCalledTimes( 32 );
+		expect( setGatewayDescriptionMock ).toHaveBeenCalledTimes( 31 );
 	} );
 } );
