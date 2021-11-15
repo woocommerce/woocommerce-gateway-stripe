@@ -1,10 +1,9 @@
 import { __, _n, sprintf } from '@wordpress/i18n';
-import React, { useContext } from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 import PaymentMethodsMap from '../../payment-methods-map';
 import Pill from 'wcstripe/components/pill';
 import Tooltip from 'wcstripe/components/tooltip';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 const StyledPill = styled( Pill )`
 	border: 1px solid #f0b849;
@@ -14,13 +13,8 @@ const StyledPill = styled( Pill )`
 `;
 
 const PaymentMethodMissingCurrencyPill = ( { id, label } ) => {
-	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const paymentMethodCurrencies = PaymentMethodsMap[ id ]?.currencies || [];
 	const storeCurrency = window?.wcSettings?.currency?.code;
-
-	if ( ! isUpeEnabled ) {
-		return null;
-	}
 
 	if (
 		id !== 'card' &&
