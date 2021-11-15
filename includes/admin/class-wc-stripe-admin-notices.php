@@ -218,7 +218,7 @@ class WC_Stripe_Admin_Notices {
 
 			if ( 'yes' === $changed_keys_notice ) {
 				// translators: %s is a the URL for the link.
-				$this->add_admin_notice( 'changed_keys', 'notice notice-warning', sprintf( __( 'The public and/or secret keys for the Stripe gateway have been changed. This might cause errors for existing customers and saved payment methods. <a href="%s" target="_blank">Click here to learn more</a>.', 'woocommerce-gateway-stripe' ), 'https://docs.woocommerce.com/document/stripe-fixing-customer-errors/' ), true );
+				$this->add_admin_notice( 'changed_keys', 'notice notice-warning', sprintf( __( 'The public and/or secret keys for the Stripe gateway have been changed. This might cause errors for existing customers and saved payment methods. <a href="%s" target="_blank">Click here to learn more</a>.', 'woocommerce-gateway-stripe' ), 'https://woocommerce.com/document/stripe-fixing-customer-errors' ), true );
 			}
 		}
 	}

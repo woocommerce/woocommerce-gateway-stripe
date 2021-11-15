@@ -111,7 +111,7 @@ Yes, it does - production and Test (sandbox) mode is driven by the API keys you 
 
 = Where can I find documentation? =
 
-For help setting up and configuring, please refer to our [documentation](https://docs.woocommerce.com/document/stripe/).
+For help setting up and configuring, please refer to our [documentation](https://woocommerce.com/document/stripe/).
 
 = Where can I get support or talk to other users? =
 
