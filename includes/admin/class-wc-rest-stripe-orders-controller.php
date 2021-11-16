@@ -90,7 +90,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 				$customer_id = $customer->create_customer( $customer_data );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
-			return rest_ensure_response( new WP_Error( 'stripe_error', $e->getMessage() ) );
+			return new WP_Error( 'stripe_error', $e->getMessage() );
 		}
 
 		$order->update_meta_data( '_stripe_customer_id', $customer_id );
