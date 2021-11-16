@@ -143,5 +143,6 @@ describe( 'GeneralSettingsSection', () => {
 		);
 
 		expect( screen.getByDisplayValue( 'UPE title' ) ).toBeInTheDocument();
+		expect( screen.queryByText( 'Description' ) ).not.toBeInTheDocument();
 	} );
 } );
