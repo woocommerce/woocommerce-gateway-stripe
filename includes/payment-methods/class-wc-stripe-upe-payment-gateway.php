@@ -171,7 +171,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return true;
 		}
 
-		return $this->payment_methods[ $upe_payment_type ]->can_refund;
+		return $this->payment_methods[ $upe_payment_type ]->can_refund_via_stripe();
 	}
 
 	/**

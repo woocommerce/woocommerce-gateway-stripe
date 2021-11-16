@@ -65,7 +65,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 *
 	 * @var array
 	 */
-	public $can_refund = true;
+	protected $can_refund = true;
 
 	/**
 	 * Wether this UPE method is enabled
@@ -302,5 +302,14 @@ abstract class WC_Stripe_UPE_Payment_Method {
 		}
 
 		return count( $messages ) > 0 ? join( '&nbsp;–&nbsp;', $messages ) : '';
+	}
+
+	/**
+	 * Checks if payment method allows refund via stripe
+	 *
+	 * @return bool
+	 */
+	public function can_refund_via_stripe() {
+		return $this->can_refund;
 	}
 }
