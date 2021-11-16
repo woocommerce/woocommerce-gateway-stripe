@@ -71,10 +71,15 @@ const GeneralSettingsSection = () => {
 						) }
 					</h4>
 					<Description>
-						{ __(
-							'Enter payment method details that will be displayed at checkout, in the order confirmation screen and in the order notes.',
-							'woocommerce-gateway-stripe'
-						) }
+						{ isUpeEnabled
+							? __(
+									'Enter the payment method name that will be displayed at checkout when there are multiple available payment methods.',
+									'woocommerce-gateway-stripe'
+							  )
+							: __(
+									'Enter payment method details that will be displayed at checkout, in the order confirmation screen and in the order notes.',
+									'woocommerce-gateway-stripe'
+							  ) }
 					</Description>
 					<TextControl
 						label={ __( 'Name', 'woocommerce-gateway-stripe' ) }
