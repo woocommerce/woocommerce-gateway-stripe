@@ -43,7 +43,6 @@ const TestModeCheckbox = () => {
 				<AccountKeysModal
 					type={ modalType }
 					onClose={ handleModalDismiss }
-					forcePageReloadOnSave
 				/>
 			) }
 			<CheckboxControl
