@@ -1,4 +1,4 @@
-## Stripe Alipay
+## Stripe Boleto
 
 ### Set Country to Brazil on your Stripe account Dashboard
 

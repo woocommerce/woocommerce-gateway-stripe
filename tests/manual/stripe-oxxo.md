@@ -1,4 +1,4 @@
-## Stripe Alipay
+## Stripe OXXO
 
 ### Set Country to Mexico on your Stripe account Dashboard
 
