@@ -124,8 +124,8 @@ const AccountSettingsDropdownMenu = ( { setModalType } ) => {
 
 // @todo - remove setModalType as prop
 const AccountDetailsSection = ( { setModalType } ) => {
-	const [ isTestModeEnabled ] = useTestMode();
 	const { data } = useAccount();
+	const isTestModeEnabled = Boolean( data.testmode );
 
 	return (
 		<Card className="account-details">
