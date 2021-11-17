@@ -20,6 +20,7 @@ import {
 	usePaymentGatewayName,
 	usePaymentGatewayDescription,
 } from '../../data/payment-gateway/hooks';
+import PaymentMethodCapabilityStatusPill from 'wcstripe/components/payment-method-capability-status-pill';
 
 const StyledCard = styled( Card )`
 	margin-bottom: 12px;
@@ -28,6 +29,12 @@ const StyledCard = styled( Card )`
 const WebhookEndpointText = styled.strong`
 	padding: 0 2px;
 	background-color: #f6f7f7; // $studio-gray-0
+`;
+
+const StyledCheckboxLabel = styled.span`
+	display: inline-flex;
+	gap: 8px;
+	align-items: center;
 `;
 
 const PaymentGatewaySection = () => {
@@ -41,6 +48,7 @@ const PaymentGatewaySection = () => {
 	] = usePaymentGatewayDescription();
 	const { data } = useAccount();
 	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
+
 	return (
 		<StyledCard>
 			<LoadablePaymentGatewaySection numLines={ 34 }>
@@ -48,11 +56,23 @@ const PaymentGatewaySection = () => {
 					<CheckboxControl
 						checked={ enableGateway }
 						onChange={ setEnableGateway }
-						label={ sprintf(
-							/* translators: %s: Payment Gateway name */
-							__( 'Enable %s', 'woocommerce-gateway-stripe' ),
-							info.title
-						) }
+						label={
+							<StyledCheckboxLabel>
+								{ sprintf(
+									/* translators: %s: Payment Gateway name */
+									__(
+										'Enable %s',
+										'woocommerce-gateway-stripe'
+									),
+									info.title
+								) }
+
+								<PaymentMethodCapabilityStatusPill
+									id={ info.id }
+									label={ info.title }
+								/>
+							</StyledCheckboxLabel>
+						}
 						help={ sprintf(
 							/* translators: %s: Payment Gateway name */
 							__(

@@ -8,8 +8,9 @@ import PaymentMethodsMap from '../../payment-methods-map';
 import UpeToggleContext from '../upe-toggle/context';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import InlineNotice from 'wcstripe/components/inline-notice';
-import { useEnabledPaymentMethodIds } from 'wcstripe/data';
 import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';
+import { useEnabledPaymentMethodIds } from 'wcstripe/data';
+import { useGetCapabilities } from 'wcstripe/data/account';
 
 const DeactivatingPaymentMethodsList = styled.ul`
 	min-height: 150px;
@@ -82,9 +83,14 @@ const DisableUpeConfirmationModal = ( { onClose } ) => {
 	};
 
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
-	const upePaymentMethods = enabledPaymentMethodIds.filter(
-		( method ) => method !== 'card'
-	);
+	const capabilities = useGetCapabilities();
+
+	const upePaymentMethods = enabledPaymentMethodIds.filter( ( method ) => {
+		return (
+			method !== 'card' &&
+			capabilities.hasOwnProperty( `${ method }_payments` )
+		);
+	} );
 
 	return (
 		<>

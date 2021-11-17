@@ -11,6 +11,10 @@ jest.mock( 'wcstripe/data', () => ( {
 	useManualCapture: jest.fn(),
 } ) );
 
+jest.mock( 'wcstripe/data/account', () => ( {
+	useGetCapabilities: jest.fn(),
+} ) );
+
 describe( 'EnableUpePreviewTask', () => {
 	it( 'disables the "Enable" button while "Manual capture" is enabled', async () => {
 		const setCompletedMock = jest.fn();
