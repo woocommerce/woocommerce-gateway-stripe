@@ -29,7 +29,7 @@ describe( 'PaymentMethodCapabilityStatusPill', () => {
 		);
 
 		expect(
-			screen.queryByText( 'Pending activation' )
+			screen.queryByText( 'Requires activation' )
 		).toBeInTheDocument();
 	} );
 
@@ -48,7 +48,7 @@ describe( 'PaymentMethodCapabilityStatusPill', () => {
 		);
 
 		expect(
-			screen.queryByText( 'Pending activation' )
+			screen.queryByText( 'Requires activation' )
 		).toBeInTheDocument();
 	} );
 

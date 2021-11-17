@@ -57,7 +57,10 @@ const PaymentMethodCapabilityStatusPill = ( { id, label } ) => {
 				} ) }
 			>
 				<StyledPill>
-					{ __( 'Pending activation', 'woocommerce-gateway-stripe' ) }
+					{ __(
+						'Requires activation',
+						'woocommerce-gateway-stripe'
+					) }
 				</StyledPill>
 			</Tooltip>
 		);

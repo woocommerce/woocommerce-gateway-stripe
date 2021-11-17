@@ -56,7 +56,7 @@ describe( 'PaymentGatewaySection', () => {
 		useGetCapabilities.mockReturnValue( { ideal_payments: 'pending' } );
 		render( <PaymentGatewaySection /> );
 		expect(
-			screen.queryByText( 'Pending activation' )
+			screen.queryByText( 'Requires activation' )
 		).toBeInTheDocument();
 	} );
 
