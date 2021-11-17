@@ -13,6 +13,7 @@ import styled from '@emotion/styled';
 import CardBody from '../card-body';
 import { gatewaysInfo } from '../payment-gateway-manager/constants';
 import LoadablePaymentGatewaySection from '../loadable-payment-gateway-section';
+import PaymentMethodMissingCurrencyPill from '../../components/payment-method-missing-currency-pill';
 import { useAccount } from '../../data/account/hooks';
 import useWebhookStateMessage from '../account-details/use-webhook-state-message';
 import {
@@ -68,6 +69,10 @@ const PaymentGatewaySection = () => {
 								) }
 
 								<PaymentMethodCapabilityStatusPill
+									id={ info.id }
+									label={ info.title }
+								/>
+								<PaymentMethodMissingCurrencyPill
 									id={ info.id }
 									label={ info.title }
 								/>
