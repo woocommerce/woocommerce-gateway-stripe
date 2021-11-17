@@ -348,7 +348,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Pre-orders and free trial subscriptions don't require payments.
 		$stripe_params['isPaymentNeeded'] = $this->is_payment_needed( isset( $order_id ) ? $order_id : null );
 
-		return $stripe_params;
+		return array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
 	}
 
 	/**
@@ -534,6 +534,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				if ( '' !== $selected_upe_payment_type ) {
 					// Only update the payment_method_types if we have a reference to the payment type the customer selected.
 					$request['payment_method_types'] = [ $selected_upe_payment_type ];
+					if ( ! $this->payment_methods[ $selected_upe_payment_type ]->is_allowed_on_country( $order->get_billing_country() ) ) {
+						throw new \Exception( __( 'This payment method is not availeble on the selected country', 'woocommerce-gateway-stripe' ) );
+					}
 				}
 
 				if ( $save_payment_method ) {

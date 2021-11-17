@@ -75,6 +75,13 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	protected $enabled;
 
 	/**
+	 * List of supported countries
+	 *
+	 * @var array
+	 */
+	protected $supported_countries;
+
+	/**
 	 * Create instance of payment method
 	 */
 	public function __construct() {
@@ -163,6 +170,14 @@ abstract class WC_Stripe_UPE_Payment_Method {
 		// If cart or order contains pre-order, enable payment method if it's reusable.
 		if ( $this->is_pre_order_item_in_cart() || ( ! empty( $order_id ) && $this->has_pre_order( $order_id ) ) ) {
 			return $this->is_reusable();
+		}
+
+		return true;
+	}
+
+	public function is_allowed_on_country( $country ) {
+		if ( ! empty( $this->supported_countries ) ) {
+			return in_array( $country, $this->supported_countries );
 		}
 
 		return true;

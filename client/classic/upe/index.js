@@ -173,6 +173,20 @@ jQuery( function ( $ ) {
 
 	// Show error notice at top of checkout form.
 	const showError = ( errorMessage ) => {
+		if (
+			typeof errorMessage !== 'string' &&
+			! ( errorMessage instanceof String )
+		) {
+			if (
+				errorMessage.code &&
+				getStripeServerData()[ errorMessage.code ]
+			) {
+				errorMessage = getStripeServerData()[ errorMessage.code ];
+			} else {
+				errorMessage = errorMessage.message;
+			}
+		}
+
 		let messageWrapper = '';
 		if ( errorMessage.includes( 'woocommerce-error' ) ) {
 			messageWrapper = errorMessage;
@@ -543,7 +557,7 @@ jQuery( function ( $ ) {
 			}
 		} catch ( error ) {
 			$form.removeClass( 'processing' ).unblock();
-			showError( error.message );
+			showError( error );
 		}
 	};
 

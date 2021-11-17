@@ -24,6 +24,7 @@ class WC_Stripe_UPE_Payment_Method_Boleto extends WC_Stripe_UPE_Payment_Method {
 		$this->title                = 'Pay with Boleto';
 		$this->is_reusable          = false;
 		$this->supported_currencies = [ 'BRL' ];
+		$this->supported_countries  = [ 'BR' ];
 		$this->label                = __( 'Boleto', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
 			'Boleto is one of the most popular payment method in Brazil',
