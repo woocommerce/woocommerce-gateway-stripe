@@ -174,7 +174,7 @@ export const AccountKeysModal = ( {
 	forcePageReloadOnSave,
 } ) => {
 	const [ openTab, setOpenTab ] = useState( type );
-	const { isSaving, saveAccountKeys } = useAccountKeys();
+	const { isSaving, accountKeys, saveAccountKeys } = useAccountKeys();
 	const [ isDisabled, setDisabled ] = useState( false );
 	const formRef = useRef( null );
 	const testFormRef = useRef( null );
@@ -189,6 +189,25 @@ export const AccountKeysModal = ( {
 			const { name, value } = curr;
 			return { ...acc, [ name ]: value };
 		}, {} );
+
+		// If we are deleting keys for this mode and there are no other keys set, we need to reload to render the connect page.
+		const savingEmptyKeys =
+			! keysToSave.publishable_key &&
+			! keysToSave.secret_key &&
+			! keysToSave.test_publishable_key &&
+			! keysToSave.test_secret_key;
+		const noLiveKeysSaved =
+			! accountKeys.publishable_key && ! accountKeys.secret_key;
+		const noTestKeysSaved =
+			! accountKeys.test_publishable_key && ! accountKeys.test_secret_key;
+		if (
+			savingEmptyKeys &&
+			( ( testMode && noLiveKeysSaved ) ||
+				( ! testMode && noTestKeysSaved ) )
+		) {
+			forcePageReloadOnSave = true;
+		}
+
 		await saveAccountKeys( keysToSave );
 		if ( forcePageReloadOnSave ) {
 			// When forcing a redirect, we keep the modal open and disabled while the page reloads.

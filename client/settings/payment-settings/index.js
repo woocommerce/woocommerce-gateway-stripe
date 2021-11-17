@@ -165,7 +165,6 @@ const PaymentSettingsPanel = () => {
 				<AccountKeysModal
 					type={ modalType }
 					onClose={ handleModalDismiss }
-					forcePageReloadOnSave
 				/>
 			) }
 			<SettingsSection Description={ GeneralSettingsDescription }>
