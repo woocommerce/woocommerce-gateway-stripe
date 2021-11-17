@@ -204,7 +204,7 @@ class WC_Stripe_Admin_Notices {
 
 				// Check if Stripe Account data was successfully fetched.
 				$account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
-				if ( empty( $account_data ) ) {
+				if ( ! empty( $secret ) && empty( $account_data ) ) {
 					$setting_link = $this->get_setting_link();
 					/* translators: 1) link */
 					$this->add_admin_notice( 'keys', 'notice notice-error', sprintf( __( 'Your customers cannot use Stripe on checkout, because we couldn\'t connect to your account. Please go to your settings and, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ), true );
