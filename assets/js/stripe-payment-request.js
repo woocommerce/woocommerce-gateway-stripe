@@ -453,7 +453,6 @@ jQuery( function( $ ) {
 			} );
 		},
 
-
 		/**
 		 * Creates a wrapper around a function that ensures a function can not
 		 * called in rappid succesion. The function can only be executed once and then agin after
@@ -680,6 +679,16 @@ jQuery( function( $ ) {
 					}
 				} );
 			}));
+
+			if ( $('.variations_form').length ) {
+				$( '.variations_form' ).on( 'found_variation.wc-variation-form', function ( evt, variation ) {
+					if ( variation.is_in_stock ) {
+						wc_stripe_payment_request.unhidePaymentRequestButton();
+					} else {
+						wc_stripe_payment_request.hidePaymentRequestButton();
+					}
+				} );
+			}
 		},
 
 		attachCartPageEventListeners: function ( prButton, paymentRequest ) {
@@ -715,6 +724,20 @@ jQuery( function( $ ) {
 			} else if ( $( '#wc-stripe-payment-request-button' ).length ) {
 				$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).show();
 				prButton.mount( '#wc-stripe-payment-request-button' );
+			}
+		},
+
+		hidePaymentRequestButton: function () {
+			$( '#wc-stripe-payment-request-wrapper, #wc-stripe-payment-request-button-separator' ).hide();
+		},
+
+		unhidePaymentRequestButton: function () {
+			const stripe_wrapper = $( '#wc-stripe-payment-request-wrapper' );
+			const stripe_separator = $( '#wc-stripe-payment-request-button-separator' );
+			// If either element is hidden, ensure both show.
+			if ( stripe_wrapper.is(':hidden') || stripe_separator.is(':hidden') ) {
+				stripe_wrapper.show();
+				stripe_separator.show();
 			}
 		},
 
