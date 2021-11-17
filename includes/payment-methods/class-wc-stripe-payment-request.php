@@ -906,6 +906,14 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
+		if ( $this->is_product() && in_array( $this->get_product()->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
+			$stock_availability = array_column( $this->get_product()->get_available_variations(), 'is_in_stock' );
+			// Don't show if all product variations are out-of-stock.
+			if ( ! in_array( true, $stock_availability, true ) ) {
+				return false;
+			}
+		}
+
 		return true;
 	}
 
