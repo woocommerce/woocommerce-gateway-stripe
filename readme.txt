@@ -136,6 +136,5 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Stripe JS is no longer loaded on cart and product pages when PRBs are disabled on those pages.
 * Tweak - Update the minimum required PHP version to 7.0 to reflect our L-2 support policy.
 * Fix - Add support for MYR (Malaysian ringgit) for Alipay.
-* Fix - Hide payment request button when variations of a variable product are out-of-stock.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
