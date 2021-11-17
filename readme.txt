@@ -137,5 +137,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Update the minimum required PHP version to 7.0 to reflect our L-2 support policy.
 * Fix - Add support for MYR (Malaysian ringgit) for Alipay.
 * Add - New Settings UI.
+* Fix - Hide payment request button when variations of a variable product are out-of-stock.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
