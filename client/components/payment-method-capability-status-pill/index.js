@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import interpolateComponents from 'interpolate-components';
 import Pill from 'wcstripe/components/pill';
 import Tooltip from 'wcstripe/components/tooltip';
-import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
+import { useGetCapabilities } from 'wcstripe/data/account';
 
 const StyledPill = styled( Pill )`
 	border: 1px solid #f0b849;
@@ -24,7 +24,6 @@ const StyledLink = styled.a`
 const PaymentMethodCapabilityStatusPill = ( { id, label } ) => {
 	const capabilities = useGetCapabilities();
 	const capabilityStatus = capabilities[ `${ id }_payments` ];
-	const { refreshAccount } = useAccount();
 
 	if ( capabilityStatus === 'pending' || capabilityStatus === 'inactive' ) {
 		return (
@@ -33,7 +32,7 @@ const PaymentMethodCapabilityStatusPill = ( { id, label } ) => {
 					mixedString: sprintf(
 						/* translators: %s: a payment method name. */
 						__(
-							"%s must be activated from the {{stripeDashboardLink}}Stripe dashboard{{/stripeDashboardLink}}. Once it's activated, click {{refreshPaymentMethods}}here{{/refreshPaymentMethods}} to dismiss this notice.",
+							'%s requires activation in your {{stripeDashboardLink}}Stripe dashboard{{/stripeDashboardLink}}. Follow the instructions there and check back soon.',
 							'woocommerce-gateway-stripe'
 						),
 						label
@@ -49,9 +48,6 @@ const PaymentMethodCapabilityStatusPill = ( { id, label } ) => {
 									ev.stopPropagation();
 								} }
 							/>
-						),
-						refreshPaymentMethods: (
-							<StyledLink href="#" onClick={ refreshAccount } />
 						),
 					},
 				} ) }

@@ -5,7 +5,6 @@ import { useGetCapabilities } from 'wcstripe/data/account';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 jest.mock( 'wcstripe/data/account', () => ( {
-	useAccount: jest.fn().mockReturnValue( {} ),
 	useGetCapabilities: jest.fn(),
 } ) );
 
