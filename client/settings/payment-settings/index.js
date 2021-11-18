@@ -1,5 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import { React } from 'react';
+import { React, useState } from 'react';
 import {
 	Card,
 	CardHeader,
@@ -15,6 +15,8 @@ import PaymentsAndTransactionsSection from '../payments-and-transactions-section
 import AdvancedSettingsSection from '../advanced-settings-section';
 import CustomizationOptionsNotice from '../customization-options-notice';
 import GeneralSettingsSection from './general-settings-section';
+import DisconnectStripeConfirmationModal from './disconnect-stripe-confirmation-modal';
+import { AccountKeysModal } from './account-keys-modal';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import './style.scss';
 import { useTestMode } from 'wcstripe/data';
@@ -33,12 +35,12 @@ const GeneralSettingsDescription = () => (
 			) }
 		</p>
 		<p>
-			<ExternalLink href="?TODO">
+			<ExternalLink href="https://woocommerce.com/document/stripe/">
 				{ __( 'View Stripe docs', 'woocommerce-gateway-stripe' ) }
 			</ExternalLink>
 		</p>
 		<p>
-			<ExternalLink href="?TODO">
+			<ExternalLink href="https://woocommerce.com/contact-us/">
 				{ __( 'Get support', 'woocommerce-gateway-stripe' ) }
 			</ExternalLink>
 		</p>
@@ -68,7 +70,7 @@ const PaymentsAndTransactionsDescription = () => (
 				'woocommerce-gateway-stripe'
 			) }
 		</p>
-		<ExternalLink href="?TODO">
+		<ExternalLink href="https://woocommerce.com/document/stripe/#faq">
 			{ __(
 				'View Frequently Asked Questions',
 				'woocommerce-gateway-stripe'
@@ -77,33 +79,55 @@ const PaymentsAndTransactionsDescription = () => (
 	</>
 );
 
-const AccountSettingsDropdownMenu = () => {
+// @todo - remove setModalType as prop
+const AccountSettingsDropdownMenu = ( {
+	setModalType,
+	setKeepModalContent,
+} ) => {
+	// @todo - deconstruct setModalType from useModalType custom hook
+	const [ isTestModeEnabled ] = useTestMode();
+	const [
+		isConfirmationModalVisible,
+		setIsConfirmationModalVisible,
+	] = useState( false );
+
 	return (
-		<DropdownMenu
-			icon={ moreVertical }
-			label={ __(
-				'Edit details or disconnect account',
-				'woocommerce-gateway-stripe'
+		<>
+			<DropdownMenu
+				icon={ moreVertical }
+				label={ __(
+					'Edit details or disconnect account',
+					'woocommerce-gateway-stripe'
+				) }
+				controls={ [
+					{
+						title: __(
+							'Edit account keys',
+							'woocommerce-gateway-stripe'
+						),
+						onClick: () =>
+							setModalType( isTestModeEnabled ? 'test' : 'live' ),
+					},
+					{
+						title: __( 'Disconnect', 'woocommerce-gateway-stripe' ),
+						onClick: () => setIsConfirmationModalVisible( true ),
+					},
+				] }
+			/>
+			{ isConfirmationModalVisible && (
+				<DisconnectStripeConfirmationModal
+					onClose={ () => setIsConfirmationModalVisible( false ) }
+					setKeepModalContent={ setKeepModalContent }
+				/>
 			) }
-			controls={ [
-				{
-					title: __( 'Edit Details', 'woocommerce-gateway-stripe' ),
-					// eslint-disable-next-line no-console
-					onClick: () => console.log( 'Edit my details' ),
-				},
-				{
-					title: __( 'Disconnect', 'woocommerce-gateway-stripe' ),
-					// eslint-disable-next-line no-console
-					onClick: () => console.log( 'Disconnecting' ),
-				},
-			] }
-		/>
+		</>
 	);
 };
 
-const AccountDetailsSection = () => {
-	const [ isTestModeEnabled ] = useTestMode();
+// @todo - remove setModalType as prop
+const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 	const { data } = useAccount();
+	const isTestModeEnabled = Boolean( data.testmode );
 
 	return (
 		<Card className="account-details">
@@ -120,7 +144,10 @@ const AccountDetailsSection = () => {
 						</Pill>
 					) }
 				</div>
-				<AccountSettingsDropdownMenu />
+				<AccountSettingsDropdownMenu
+					setModalType={ setModalType }
+					setKeepModalContent={ setKeepModalContent }
+				/>
 			</CardHeader>
 			<CardBody>
 				<AccountStatus />
@@ -130,19 +157,45 @@ const AccountDetailsSection = () => {
 };
 
 const PaymentSettingsPanel = () => {
+	// @todo - deconstruct modalType and setModalType from useModalType custom hook
+	const [ modalType, setModalType ] = useState( '' );
+	const [ keepModalContent, setKeepModalContent ] = useState( false );
+
+	const handleModalDismiss = () => {
+		setModalType( '' );
+	};
+
 	return (
 		<>
+			{ modalType && (
+				<AccountKeysModal
+					type={ modalType }
+					onClose={ handleModalDismiss }
+					setKeepModalContent={ setKeepModalContent }
+				/>
+			) }
 			<SettingsSection Description={ GeneralSettingsDescription }>
 				<LoadableSettingsSection numLines={ 20 }>
-					<LoadableAccountSection numLines={ 20 }>
-						<GeneralSettingsSection />
+					<LoadableAccountSection
+						numLines={ 20 }
+						keepContent={ keepModalContent }
+					>
+						<GeneralSettingsSection
+							setKeepModalContent={ setKeepModalContent }
+						/>
 					</LoadableAccountSection>
 				</LoadableSettingsSection>
 				<CustomizationOptionsNotice />
 			</SettingsSection>
 			<SettingsSection Description={ AccountDetailsDescription }>
-				<LoadableAccountSection numLines={ 20 }>
-					<AccountDetailsSection />
+				<LoadableAccountSection
+					numLines={ 20 }
+					keepContent={ keepModalContent }
+				>
+					<AccountDetailsSection
+						setModalType={ setModalType }
+						setKeepModalContent={ setKeepModalContent }
+					/>
 				</LoadableAccountSection>
 			</SettingsSection>
 			<SettingsSection Description={ PaymentsAndTransactionsDescription }>

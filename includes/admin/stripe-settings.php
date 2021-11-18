@@ -252,7 +252,7 @@ if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 	unset( $stripe_settings['payment_request_button_size'] );
 }
 
-if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && ! WC_Stripe_Helper::is_pre_orders_exists() ) {
+if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 	$upe_settings = [
 		WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => [
 			'title'       => __( 'New checkout experience', 'woocommerce-gateway-stripe' ),
@@ -261,7 +261,7 @@ if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && ! WC_Stripe_Helper::is
 				__( 'Try the new payment experience (Early access) %1$sGet early access to a new, smarter payment experience on checkout and let us know what you think by %2$s. We recommend this feature for experienced merchants as the functionality is currently limited. %3$s', 'woocommerce-gateway-stripe' ),
 				'<br />',
 				'<a href="https://woocommerce.survey.fm/woocommerce-stripe-upe-opt-out-survey" target="_blank">submitting your feedback</a>',
-				'<a href="https://docs.woocommerce.com/document/stripe/#new-checkout-experience" target="_blank">Learn more</a>'
+				'<a href="https://woocommerce.com/document/stripe/#new-checkout-experience" target="_blank">Learn more</a>'
 			),
 			'type'        => 'checkbox',
 			'description' => __( 'New checkout experience allows you to manage all payment methods on one screen and display them to customers based on their currency and location.', 'woocommerce-gateway-stripe' ),

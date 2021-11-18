@@ -94,6 +94,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					'get_return_url',
 					'get_stripe_customer_id',
 					'has_subscription',
+					'maybe_process_pre_orders',
+					'mark_order_as_pre_ordered',
+					'is_pre_order_item_in_cart',
+					'is_pre_order_product_charged_upfront',
 					'prepare_order_source',
 					'stripe_request',
 				]
@@ -1212,5 +1216,120 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 1, $mock_action_process_payment->get_call_count() );
 		// Assert: Only our hook was called.
 		$this->assertEquals( [ 'wc_gateway_stripe_process_payment_authentication_required' ], $mock_action_process_payment->get_tags() );
+	}
+
+	/**
+	 * TESTS FOR PRE-ORDERS.
+	 */
+
+	/**
+	 * Pre-order payment is successful.
+	 */
+	public function test_pre_order_payment_is_successful() {
+		$payment_intent_id = 'pi_mock';
+		$payment_method_id = 'pm_mock';
+		$customer_id       = 'cus_mock';
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+
+		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']               = $payment_method_id;
+		$payment_method_mock['customer']         = $customer_id;
+		$payment_method_mock['card']['exp_year'] = intval( gmdate( 'Y' ) ) + 1;
+
+		$payment_intent_mock                       = self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE;
+		$payment_intent_mock['id']                 = $payment_intent_id;
+		$payment_intent_mock['amount']             = $amount;
+		$payment_intent_mock['last_payment_error'] = [];
+		$payment_intent_mock['payment_method']     = $payment_method_mock;
+		$payment_intent_mock['charges']['data'][0]['payment_method_details'] = $payment_method_mock;
+
+		// Mock order has pre-order product.
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'maybe_process_pre_orders' )
+			->will( $this->returnValue( true ) );
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( "payment_intents/$payment_intent_id?expand[]=payment_method" )
+			->will(
+				$this->returnValue(
+					$this->array_to_object( $payment_intent_mock )
+				)
+			);
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'mark_order_as_pre_ordered' );
+
+		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
+
+		$final_order = wc_get_order( $order_id );
+
+		$this->assertEquals( 'Credit card / debit card', $final_order->get_payment_method_title() );
+		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
+		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
+		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
+		$this->assertTrue( (bool) $final_order->get_meta( '_stripe_upe_redirect_processed', true ) );
+	}
+
+	/**
+	 * Pre-order with no required payment uses setup intents.
+	 */
+	public function test_pre_order_without_payment_uses_setup_intents() {
+		$setup_intent_id   = 'seti_mock';
+		$payment_method_id = 'pm_mock';
+		$customer_id       = 'cus_mock';
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+
+		$order->set_total( 0 );
+		$order->set_payment_method( WC_Stripe_UPE_Payment_Gateway::ID );
+		$order->save();
+
+		$payment_method_mock                     = self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE;
+		$payment_method_mock['id']               = $payment_method_id;
+		$payment_method_mock['customer']         = $customer_id;
+		$payment_method_mock['card']['exp_year'] = intval( gmdate( 'Y' ) ) + 1;
+
+		$setup_intent_mock                   = self::MOCK_CARD_SETUP_INTENT_TEMPLATE;
+		$setup_intent_mock['id']             = $setup_intent_id;
+		$setup_intent_mock['payment_method'] = $payment_method_mock;
+
+		// Mock order has pre-order product.
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'maybe_process_pre_orders' )
+			->will( $this->returnValue( true ) );
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'is_pre_order_item_in_cart' )
+			->will( $this->returnValue( true ) );
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'is_pre_order_product_charged_upfront' )
+			->will( $this->returnValue( false ) );
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'stripe_request' )
+			->with( "setup_intents/$setup_intent_id?expand[]=payment_method&expand[]=latest_attempt" )
+			->will(
+				$this->returnValue(
+					$this->array_to_object( $setup_intent_mock )
+				)
+			);
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'mark_order_as_pre_ordered' );
+
+		$this->mock_gateway->process_upe_redirect_payment( $order_id, $setup_intent_id, true );
+
+		$final_order = wc_get_order( $order_id );
+
+		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
+		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
+		$this->assertTrue( (bool) $final_order->get_meta( '_stripe_upe_redirect_processed', true ) );
 	}
 }

@@ -73,15 +73,6 @@ const SectionHeading = () => {
 						onClick: refreshAccount,
 					},
 					{
-						title: __(
-							'Provide feedback',
-							'woocommerce-gateway-stripe'
-						),
-						onClick: () =>
-							( window.location.href =
-								'https://woocommerce.survey.fm/woocommerce-stripe-upe-opt-out-survey' ),
-					},
-					{
 						title: __( 'Disable', 'woocommerce-gateway-stripe' ),
 						onClick: toggleConfirmationModal,
 					},

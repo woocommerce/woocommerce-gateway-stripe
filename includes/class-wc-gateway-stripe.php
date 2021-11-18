@@ -69,13 +69,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public $inline_cc_form;
 
 	/**
-	 * Pre Orders Object
-	 *
-	 * @var object
-	 */
-	public $pre_orders;
-
-	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -89,7 +82,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			'refunds',
 			'tokenization',
 			'add_payment_method',
-			'pre-orders',
 		];
 
 		// Load the form fields.
@@ -100,6 +92,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();
+
+		// Check if pre-orders are enabled and add support for them.
+		$this->maybe_init_pre_orders();
 
 		// Get setting values.
 		$this->title                = $this->get_option( 'title' );
@@ -131,12 +126,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// Note: display error is in the parent class.
 		add_action( 'admin_notices', [ $this, 'display_errors' ], 9999 );
-
-		if ( WC_Stripe_Helper::is_pre_orders_exists() ) {
-			$this->pre_orders = new WC_Stripe_Pre_Orders_Compat();
-
-			add_action( 'wc_pre_orders_process_pre_order_completion_payment_' . $this->id, [ $this->pre_orders, 'process_pre_order_release_payment' ] );
-		}
 	}
 
 	/**
@@ -415,6 +404,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		if ( is_product() && ! WC_Stripe_Helper::should_load_scripts_on_product_page() ) {
+			return;
+		}
+
+		if ( is_cart() && ! WC_Stripe_Helper::should_load_scripts_on_cart_page() ) {
+			return;
+		}
+
 		// If Stripe is not enabled bail.
 		if ( 'no' === $this->enabled ) {
 			return;
@@ -513,10 +510,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				return $this->process_change_subscription_payment_method( $order_id );
 			}
 
-			// ToDo: `process_pre_order` saves the source to the order for a later payment.
-			// This might not work well with PaymentIntents.
 			if ( $this->maybe_process_pre_orders( $order_id ) ) {
-				return $this->pre_orders->process_pre_order( $order_id );
+				return $this->process_pre_order( $order_id );
 			}
 
 			// Check whether there is an existing intent.
@@ -1021,8 +1016,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		if ( 'setup_intent' === $intent->object && 'succeeded' === $intent->status ) {
 			WC()->cart->empty_cart();
-			if ( WC_Stripe_Helper::is_pre_orders_exists() && WC_Pre_Orders_Order::order_contains_pre_order( $order ) ) {
-				WC_Pre_Orders_Order::mark_order_as_pre_ordered( $order );
+			if ( $this->has_pre_order( $order ) ) {
+				$this->mark_order_as_pre_ordered( $order );
 			} else {
 				$order->payment_complete();
 			}
@@ -1268,15 +1263,21 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Validates statement descriptor value
 	 *
+	 * @param string $param Param name.
 	 * @param string $value Posted Value.
 	 * @param int    $max_length Maximum statement length.
 	 *
 	 * @return string                   Sanitized statement descriptor.
 	 * @throws InvalidArgumentException When statement descriptor is invalid.
 	 */
-	public function validate_account_statement_descriptor_field( $value, $max_length ) {
+	public function validate_account_statement_descriptor_field( $param, $value, $max_length ) {
 		// Since the value is escaped, and we are saving in a place that does not require escaping, apply stripslashes.
 		$value = trim( stripslashes( $value ) );
+		$field = __( 'Customer bank statement', 'woocommerce-gateway-stripe' );
+
+		if ( 'short_statement_descriptor' === $param ) {
+			$field = __( 'Shortened customer bank statement', 'woocommerce-gateway-stripe' );
+		}
 
 		// Validation can be done with a single regex but splitting into multiple for better readability.
 		$valid_length   = '/^.{5,' . $max_length . '}$/';
@@ -1288,7 +1289,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			! preg_match( $has_one_letter, $value ) ||
 			! preg_match( $no_specials, $value )
 		) {
-			throw new InvalidArgumentException( __( 'Customer bank statement is invalid. Statement should be between 5 and 22 characters long, contain at least single Latin character and does not contain special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' ) );
+			throw new InvalidArgumentException(
+				sprintf(
+					/* translators: %1 field name, %2 Number of the maximum characters allowed */
+					__( '%1$s is invalid. Statement should be between 5 and %2$u characters long, contain at least single Latin character and does not contain special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' ),
+					$field,
+					$max_length
+				)
+			);
 		}
 
 		return $value;

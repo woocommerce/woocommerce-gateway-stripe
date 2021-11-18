@@ -18,11 +18,12 @@ services:
       - ./docker/wordpress:/var/www/html/
       - ./docker/logs/apache2/:/var/log/apache2
       - .:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe
+      - ./tests/phpunit:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/phpunit
       - ./docker/dev-php.ini:/usr/local/etc/php/conf.d/dev-php.ini
       - ./docker/bin:/var/scripts
   db:
     container_name: woocommerce_stripe_mysql
-    image: mysql:5.7
+    image: mariadb:10.5.8
     ports:
       - "5678:3306"
     env_file:

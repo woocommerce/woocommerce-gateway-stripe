@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 	use WC_Stripe_Subscriptions_Trait;
+	use WC_Stripe_Pre_Orders_Trait;
 
 	/**
 	 * The delay between retries.
@@ -39,6 +40,29 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function get_upe_available_payment_methods() {
 		return [ 'card' ];
+	}
+
+	/**
+	 * Checks whether the gateway is enabled.
+	 *
+	 * @return bool The result.
+	 */
+	public function is_enabled() {
+		return 'yes' === $this->get_option( 'enabled' );
+	}
+
+	/**
+	 * Disables gateway.
+	 */
+	public function disable() {
+		$this->update_option( 'enabled', 'no' );
+	}
+
+	/**
+	 * Enables gateway.
+	 */
+	public function enable() {
+		$this->update_option( 'enabled', 'yes' );
 	}
 
 	/**
@@ -81,56 +105,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function render_upe_settings() {
 		global $hide_save_button;
-		$form_fields         = $this->get_form_fields();
-		$target_index        = array_search( 'activation', array_keys( $form_fields ), true ) + 1;
+		$hide_save_button    = true;
 		$is_stripe_connected = woocommerce_gateway_stripe()->connect->is_connected();
 
-		if ( ! $is_stripe_connected ) {
-			$hide_save_button = true;
-			echo '<div id="wc-stripe-new-account-container"></div>';
-		} else {
-			echo '<table class="form-table">' . $this->generate_settings_html( array_slice( $form_fields, 0, $target_index, true ), false ) . '</table>';
-			echo '<div id="wc-stripe-upe-opt-in-banner"></div>';
-			echo '<table class="form-table">' . $this->generate_settings_html( array_slice( $form_fields, $target_index, null, true ), false ) . '</table>';
-		}
-	}
-
-	/**
-	 * Outputs scripts used for upe opt-in banner
-	 */
-	public function admin_scripts_for_banner() {
-		if ( ! WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
-			return;
-		}
-
-		if ( ! WC_Stripe_Helper::should_enqueue_in_current_tab_section( 'checkout', $this->id ) ) {
-			return;
-		}
-
-		// Webpack generates an assets file containing a dependencies array for our built JS file.
-		$script_asset_path = WC_STRIPE_PLUGIN_PATH . '/build/upe_opt_in_banner.asset.php';
-		$script_asset      = file_exists( $script_asset_path )
-			? require $script_asset_path
-			: [
-				'dependencies' => [],
-				'version'      => WC_STRIPE_VERSION,
-			];
-
-		wp_register_script(
-			'woocommerce_stripe_upe_opt_in',
-			plugins_url( 'build/upe_opt_in_banner.js', WC_STRIPE_MAIN_FILE ),
-			$script_asset['dependencies'],
-			$script_asset['version'],
-			true
-		);
-		wp_localize_script(
-			'woocommerce_stripe_upe_opt_in',
-			'wc_stripe_upe_opt_in_params',
-			[
-				'method_name' => $this->get_method_title(),
-			]
-		);
-		wp_enqueue_script( 'woocommerce_stripe_upe_opt_in' );
+		echo $is_stripe_connected ? '<div id="wc-stripe-payment-gateway-container"></div>' : '<div id="wc-stripe-new-account-container"></div>';
 	}
 
 	/**
@@ -300,23 +278,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$payment_method = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : 'stripe';
 
 		return isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
-	}
-
-	/**
-	 * Checks if we need to process pre orders when
-	 * pre orders is in the cart.
-	 *
-	 * @since 4.1.0
-	 * @param int $order_id
-	 * @return bool
-	 */
-	public function maybe_process_pre_orders( $order_id ) {
-		return (
-			WC_Stripe_Helper::is_pre_orders_exists() &&
-			$this->pre_orders->is_pre_order( $order_id ) &&
-			WC_Pre_Orders_Order::order_requires_payment_tokenization( $order_id ) &&
-			! is_wc_endpoint_url( 'order-pay' )
-		);
 	}
 
 	/**
@@ -1242,9 +1203,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// The request for a charge contains metadata for the intent.
 		$full_request = $this->generate_payment_request( $order, $prepared_source );
 
-		$payment_method_types = WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ?
-			$this->get_upe_enabled_at_checkout_payment_method_ids() :
-			[ 'card' ];
+		$payment_method_types = [ 'card' ];
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			$payment_method_types = $this->get_upe_enabled_at_checkout_payment_method_ids();
+		} elseif ( isset( $prepared_source->source_object->type ) ) {
+			$payment_method_types = [ $prepared_source->source_object->type ];
+		}
 
 		$request = [
 			'source'               => $prepared_source->source,
@@ -1582,9 +1546,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @param WC_Order $order           The ID of the (free/pre- order).
 	 * @param object   $prepared_source The source, entered/chosen by the customer.
-	 * @return string                   The client secret of the intent, used for confirmation in JS.
+	 * @return string|null              The client secret of the intent, used for confirmation in JS.
 	 */
 	public function setup_intent( $order, $prepared_source ) {
+		// SEPA Direct Debit payments do not require any customer action after the source has been created.
+		// Once the customer has provided their IBAN details and accepted the mandate, no further action is needed and the resulting source is directly chargeable.
+		if ( 'sepa_debit' === $prepared_source->source_object->type ) {
+			return;
+		}
+
 		$order_id     = $order->get_id();
 		$setup_intent = WC_Stripe_API::request(
 			[
@@ -1617,9 +1587,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		// The request for a charge contains metadata for the intent.
 		$full_request = $this->generate_payment_request( $order, $prepared_source );
 
-		$payment_method_types = WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ?
-			$this->get_upe_enabled_at_checkout_payment_method_ids() :
-			[ 'card' ];
+		$payment_method_types = [ 'card' ];
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			$payment_method_types = $this->get_upe_enabled_at_checkout_payment_method_ids();
+		} elseif ( isset( $prepared_source->source_object->type ) ) {
+			$payment_method_types = [ $prepared_source->source_object->type ];
+		}
 
 		$request = [
 			'amount'               => $amount ? WC_Stripe_Helper::get_stripe_amount( $amount, $full_request['currency'] ) : $full_request['amount'],

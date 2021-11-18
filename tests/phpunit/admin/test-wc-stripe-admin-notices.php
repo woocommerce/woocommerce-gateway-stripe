@@ -5,6 +5,21 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 	public function setUp() {
 		parent::setUp();
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
+
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+				->disableOriginalConstructor()
+				->setMethods(
+					[
+						'get_cached_account_data',
+					]
+				)
+				->getMock();
+
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
+			[
+				'test' => 'test',
+			]
+		);
 	}
 
 	public function test_no_notices_are_shown_when_user_is_not_admin() {
@@ -40,6 +55,14 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		$notices = new WC_Stripe_Admin_Notices();
 		ob_start();
 		$notices->admin_notices();
+		if ( WC_Stripe_Helper::is_wc_lt( WC_STRIPE_FUTURE_MIN_WC_VER ) ) {
+			// Displaying the style notice results in an early return.
+			if ( ! in_array( 'style', $expected_notices, true ) ) {
+				// This means a version support notice will be added.
+				$expected_notices[] = 'wcver';
+			}
+		}
+
 		if ( $expected_output ) {
 			$this->assertRegexp( $expected_output, ob_get_contents() );
 		}
@@ -89,10 +112,57 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		ob_start();
 		$notices->admin_notices();
 		ob_end_clean();
-		$this->assertCount( 3, $notices->notices );
+		if ( WC_Stripe_Helper::is_wc_lt( WC_STRIPE_FUTURE_MIN_WC_VER ) ) {
+			$this->assertCount( 4, $notices->notices );
+			$this->assertArrayHasKey( 'wcver', $notices->notices );
+		} else {
+			$this->assertCount( 3, $notices->notices );
+		}
 		$this->assertArrayHasKey( 'giropay_upe', $notices->notices );
 		$this->assertArrayHasKey( 'bancontact_upe', $notices->notices );
 		$this->assertArrayHasKey( 'eps_upe', $notices->notices );
+	}
+
+	public function test_invalid_keys_notice_is_shown_when_account_data_is_not_valid() {
+		// We need to re-create the mock object to override the mocked 'get_cached_account_data' function.
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+			->disableOriginalConstructor()
+			->setMethods(
+				[
+					'get_cached_account_data',
+				]
+			)
+			->getMock();
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( null );
+
+		wp_set_current_user( $this->factory->user->create( [ 'role' => 'administrator' ] ) );
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'enabled'         => 'yes',
+				'testmode'        => 'no',
+				'publishable_key' => 'pk_live_invalid_test_key',
+				'secret_key'      => 'sk_live_invalid_test_secret',
+			]
+		);
+		update_option( 'wc_stripe_show_style_notice', 'no' );
+		update_option( 'wc_stripe_show_sca_notice', 'no' );
+		update_option( 'home', 'https://...' );
+
+		$notices = new WC_Stripe_Admin_Notices();
+		ob_start();
+		$notices->admin_notices();
+		ob_end_clean();
+
+		if ( WC_Stripe_Helper::is_wc_lt( WC_STRIPE_FUTURE_MIN_WC_VER ) ) {
+			$this->assertCount( 2, $notices->notices );
+			$this->assertArrayHasKey( 'wcver', $notices->notices );
+		} else {
+			$this->assertCount( 1, $notices->notices );
+		}
+
+		$this->assertArrayHasKey( 'keys', $notices->notices );
+		$this->assertRegexp( '/Your customers cannot use Stripe on checkout/', $notices->notices['keys']['message'] );
 	}
 
 	public function options_to_notices_map() {

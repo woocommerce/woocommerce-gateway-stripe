@@ -113,66 +113,74 @@ const PaymentsAndTransactionsSection = () => {
 						maxLength={ 22 }
 					/>
 				</TextLengthHelpInputWrapper>
-				<CheckboxControl
-					checked={ isShortAccountStatementEnabled }
-					onChange={ setIsShortAccountStatementEnabled }
-					label={ __(
-						'Add customer order number to the bank statement',
-						'woocommerce-gateway-stripe'
-					) }
-					help={ __(
-						"When enabled, we'll include the order number for card and express checkout transactions.",
-						'woocommerce-gateway-stripe'
-					) }
-				/>
-				{ isShortAccountStatementEnabled && (
-					<>
-						{ shortStatementDescriptorErrorMessage && (
-							<InlineNotice
-								status="error"
-								isDismissible={ false }
-							>
-								<span
-									dangerouslySetInnerHTML={ {
-										__html: shortStatementDescriptorErrorMessage,
-									} }
-								/>
-							</InlineNotice>
+				{ /* TODO: Hiding the Short Account Statement fields until it's included in the POST to Stripe */ }
+				<div style={ { display: 'none' } }>
+					<CheckboxControl
+						checked={ isShortAccountStatementEnabled }
+						onChange={ setIsShortAccountStatementEnabled }
+						label={ __(
+							'Add customer order number to the bank statement',
+							'woocommerce-gateway-stripe'
 						) }
-						<TextLengthHelpInputWrapper
-							textLength={
-								shortAccountStatementDescriptor.length
-							}
-							maxLength={ 10 }
-						>
-							<TextControl
-								help={ __(
-									"We'll use the short version in combination with the customer order number.",
-									'woocommerce-gateway-stripe'
-								) }
-								label={ __(
-									'Shortened customer bank statement',
-									'woocommerce-gateway-stripe'
-								) }
-								value={ shortAccountStatementDescriptor }
-								onChange={ setShortAccountStatementDescriptor }
-								maxLength={ 10 }
-							/>
-						</TextLengthHelpInputWrapper>
-					</>
-				) }
-				<StatementPreviewsWrapper>
+						help={ __(
+							"When enabled, we'll include the order number for card and express checkout transactions.",
+							'woocommerce-gateway-stripe'
+						) }
+					/>
 					{ isShortAccountStatementEnabled && (
-						<StatementPreview
-							icon="creditCard"
-							title={ __(
-								'Cards & Express Checkouts',
-								'woocommerce-gateway-stripe'
+						<>
+							{ shortStatementDescriptorErrorMessage && (
+								<InlineNotice
+									status="error"
+									isDismissible={ false }
+								>
+									<span
+										dangerouslySetInnerHTML={ {
+											__html: shortStatementDescriptorErrorMessage,
+										} }
+									/>
+								</InlineNotice>
 							) }
-							text={ `${ shortAccountStatementDescriptor }* #123456` }
-							className="shortened-bank-statement"
-						/>
+							<TextLengthHelpInputWrapper
+								textLength={
+									shortAccountStatementDescriptor.length
+								}
+								maxLength={ 10 }
+							>
+								<TextControl
+									help={ __(
+										"We'll use the short version in combination with the customer order number.",
+										'woocommerce-gateway-stripe'
+									) }
+									label={ __(
+										'Shortened customer bank statement',
+										'woocommerce-gateway-stripe'
+									) }
+									value={ shortAccountStatementDescriptor }
+									onChange={
+										setShortAccountStatementDescriptor
+									}
+									maxLength={ 10 }
+								/>
+							</TextLengthHelpInputWrapper>
+						</>
 					) }
+				</div>
+				<StatementPreviewsWrapper>
+					{ /* TODO: Hiding the Short Account Statement fields until it's included in the POST to Stripe */ }
+					<div style={ { display: 'none' } }>
+						{ isShortAccountStatementEnabled && (
+							<StatementPreview
+								icon="creditCard"
+								title={ __(
+									'Cards & Express Checkouts',
+									'woocommerce-gateway-stripe'
+								) }
+								text={ `${ shortAccountStatementDescriptor }* #123456` }
+								className="shortened-bank-statement"
+							/>
+						) }
+					</div>
 					<StatementPreview
 						icon="bank"
 						title={ translatedFullBankPreviewTitle }

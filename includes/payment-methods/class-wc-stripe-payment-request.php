@@ -16,6 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * WC_Stripe_Payment_Request class.
  */
 class WC_Stripe_Payment_Request {
+
+	use WC_Stripe_Pre_Orders_Trait;
+
 	/**
 	 * Enabled.
 	 *
@@ -573,7 +576,7 @@ class WC_Stripe_Payment_Request {
 	 */
 	public function allowed_items_in_cart() {
 		// Pre Orders compatibility where we don't support charge upon release.
-		if ( class_exists( 'WC_Pre_Orders_Cart' ) && WC_Pre_Orders_Cart::cart_contains_pre_order() && class_exists( 'WC_Pre_Orders_Product' ) && WC_Pre_Orders_Product::product_is_charged_upon_release( WC_Pre_Orders_Cart::get_pre_order_product() ) ) {
+		if ( $this->is_pre_order_item_in_cart() && $this->is_pre_order_product_charged_upon_release( $this->get_pre_order_product_from_cart() ) ) {
 			return false;
 		}
 
@@ -903,6 +906,14 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
+		if ( $this->is_product() && in_array( $this->get_product()->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
+			$stock_availability = array_column( $this->get_product()->get_available_variations(), 'is_in_stock' );
+			// Don't show if all product variations are out-of-stock.
+			if ( ! in_array( true, $stock_availability, true ) ) {
+				return false;
+			}
+		}
+
 		return true;
 	}
 
@@ -1006,7 +1017,7 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// Pre Orders charge upon release not supported.
-		if ( class_exists( 'WC_Pre_Orders_Product' ) && WC_Pre_Orders_Product::product_is_charged_upon_release( $product ) ) {
+		if ( $this->is_pre_order_product_charged_upon_release( $product ) ) {
 			return false;
 		}
 
@@ -1390,6 +1401,46 @@ class WC_Stripe_Payment_Request {
 		$billing_state    = ! empty( $_POST['billing_state'] ) ? wc_clean( wp_unslash( $_POST['billing_state'] ) ) : '';
 		$shipping_state   = ! empty( $_POST['shipping_state'] ) ? wc_clean( wp_unslash( $_POST['shipping_state'] ) ) : '';
 
+		// Due to a bug in Apple Pay, the "Region" part of a Hong Kong address is delivered in
+		// `shipping_postcode`, so we need some special case handling for that. According to
+		// our sources at Apple Pay people will sometimes use the district or even sub-district
+		// for this value. As such we check against all regions, districts, and sub-districts
+		// with both English and Mandarin spelling.
+		//
+		// @reykjalin: The check here is quite elaborate in an attempt to make sure this doesn't break once
+		// Apple Pay fixes the bug that causes address values to be in the wrong place. Because of that the
+		// algorithm becomes:
+		//   1. Use the supplied state if it's valid (in case Apple Pay bug is fixed)
+		//   2. Use the value supplied in the postcode if it's a valid HK region (equivalent to a WC state).
+		//   3. Fall back to the value supplied in the state. This will likely cause a validation error, in
+		//      which case a merchant can reach out to us so we can either: 1) add whatever the customer used
+		//      as a state to our list of valid states; or 2) let them know the customer must spell the state
+		//      in some way that matches our list of valid states.
+		//
+		// @reykjalin: This HK specific sanitazation *should be removed* once Apple Pay fix
+		// the address bug. More info on that in pc4etw-bY-p2.
+		if ( 'HK' === $billing_country ) {
+			include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-hong-kong-states.php';
+
+			if ( ! WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $billing_state ) ) ) {
+				$billing_postcode = ! empty( $_POST['billing_postcode'] ) ? wc_clean( wp_unslash( $_POST['billing_postcode'] ) ) : '';
+				if ( WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $billing_postcode ) ) ) {
+					$billing_state = $billing_postcode;
+				}
+			}
+		}
+		if ( 'HK' === $shipping_country ) {
+			include_once WC_STRIPE_PLUGIN_PATH . '/includes/constants/class-wc-stripe-hong-kong-states.php';
+
+			if ( ! WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $shipping_state ) ) ) {
+				$shipping_postcode = ! empty( $_POST['shipping_postcode'] ) ? wc_clean( wp_unslash( $_POST['shipping_postcode'] ) ) : '';
+				if ( WC_Stripe_Hong_Kong_States::is_valid_state( strtolower( $shipping_postcode ) ) ) {
+					$shipping_state = $shipping_postcode;
+				}
+			}
+		}
+
+		// Finally we normalize the state value we want to process.
 		if ( $billing_state && $billing_country ) {
 			$_POST['billing_state'] = $this->get_normalized_state( $billing_state, $billing_country );
 		}
@@ -1572,11 +1623,11 @@ class WC_Stripe_Payment_Request {
 			define( 'WOOCOMMERCE_CHECKOUT', true );
 		}
 
-		// In case the state is required, but is missing, add a more descriptive error notice.
-		$this->validate_state();
-
 		// Normalizes billing and shipping state values.
 		$this->normalize_state();
+
+		// In case the state is required, but is missing, add a more descriptive error notice.
+		$this->validate_state();
 
 		WC()->checkout()->process_checkout();
 

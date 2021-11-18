@@ -335,16 +335,6 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Checks if Pre Orders is available.
-	 *
-	 * @since 4.1.0
-	 * @return bool
-	 */
-	public static function is_pre_orders_exists() {
-		return class_exists( 'WC_Pre_Orders' );
-	}
-
-	/**
 	 * Checks if WC version is less than passed in version.
 	 *
 	 * @since 4.1.11
@@ -589,6 +579,24 @@ class WC_Stripe_Helper {
 
 		if ( ! isset( $current_section ) || $section !== $current_section ) {
 			return false;
+		}
+
+		return true;
+	}
+
+	public static function should_load_scripts_on_product_page() {
+		$prb_locations = self::get_settings( null, 'payment_request_button_locations' ) ?? [ 'product', 'cart' ];
+		if ( ! in_array( 'product', $prb_locations, true ) ) {
+			return apply_filters( 'wc_stripe_load_scripts_on_product_page_when_prbs_disabled', true );
+		}
+
+		return true;
+	}
+
+	public static function should_load_scripts_on_cart_page() {
+		$prb_locations = self::get_settings( null, 'payment_request_button_locations' ) ?? [ 'product', 'cart' ];
+		if ( ! in_array( 'cart', $prb_locations, true ) ) {
+			return apply_filters( 'wc_stripe_load_scripts_on_cart_page_when_prbs_disabled', true );
 		}
 
 		return true;

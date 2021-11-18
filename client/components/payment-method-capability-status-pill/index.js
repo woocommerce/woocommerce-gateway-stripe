@@ -1,9 +1,9 @@
 import { __, sprintf } from '@wordpress/i18n';
-import React, { useContext } from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
+import interpolateComponents from 'interpolate-components';
 import Pill from 'wcstripe/components/pill';
 import Tooltip from 'wcstripe/components/tooltip';
-import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { useGetCapabilities } from 'wcstripe/data/account';
 
 const StyledPill = styled( Pill )`
@@ -13,28 +13,50 @@ const StyledPill = styled( Pill )`
 	line-height: 16px;
 `;
 
+const StyledLink = styled.a`
+	&,
+	&:hover,
+	&:visited {
+		color: white;
+	}
+`;
+
 const PaymentMethodCapabilityStatusPill = ( { id, label } ) => {
 	const capabilities = useGetCapabilities();
-	const { isUpeEnabled } = useContext( UpeToggleContext );
-
-	if ( ! isUpeEnabled ) {
-		return null;
-	}
-
 	const capabilityStatus = capabilities[ `${ id }_payments` ];
-	if ( capabilityStatus === 'pending' ) {
+
+	if ( capabilityStatus === 'pending' || capabilityStatus === 'inactive' ) {
 		return (
 			<Tooltip
-				content={ sprintf(
-					/* translators: %s: a payment method name. */
-					__(
-						"%s won't be visible to your customers until you provide the required information. Follow the instructions Stripe has sent to your e-mail address."
+				content={ interpolateComponents( {
+					mixedString: sprintf(
+						/* translators: %s: a payment method name. */
+						__(
+							'%s requires activation in your {{stripeDashboardLink}}Stripe dashboard{{/stripeDashboardLink}}. Follow the instructions there and check back soon.',
+							'woocommerce-gateway-stripe'
+						),
+						label
 					),
-					label
-				) }
+					components: {
+						stripeDashboardLink: (
+							<StyledLink
+								href="https://dashboard.stripe.com/settings/payments"
+								target="_blank"
+								rel="noreferrer"
+								onClick={ ( ev ) => {
+									// Stop propagation is necessary so it doesn't trigger the tooltip click event.
+									ev.stopPropagation();
+								} }
+							/>
+						),
+					},
+				} ) }
 			>
 				<StyledPill>
-					{ __( 'Pending activation', 'woocommerce-gateway-stripe' ) }
+					{ __(
+						'Requires activation',
+						'woocommerce-gateway-stripe'
+					) }
 				</StyledPill>
 			</Tooltip>
 		);

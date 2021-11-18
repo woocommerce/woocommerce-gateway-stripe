@@ -1,5 +1,16 @@
 *** Changelog ***
 
+= 5.8.0 - 2021-11-18 =
+* Fix - Hong Kong addresses are now mapped more thoroughly to WooCommerce addresses when paying with Apple Pay.
+* Fix - Error when changing payment method for a subscription with new checkout experience.
+* Fix - Payment Requests are now updated correctly when updating items in the Cart Block.
+* Add - Support for WooCommerce Pre-Orders with new checkout experience.
+* Fix - Stripe JS is no longer loaded on cart and product pages when PRBs are disabled on those pages.
+* Tweak - Update the minimum required PHP version to 7.0 to reflect our L-2 support policy.
+* Fix - Add support for MYR (Malaysian ringgit) for Alipay.
+* Add - New Settings UI.
+* Fix - Hide payment request button when variations of a variable product are out-of-stock.
+
 = 5.7.0 - 2021-10-20 =
 * Fix - Enable use of saved payment methods converted to SEPA payments.
 * Tweak - "Save payment information" checkbox now has better alignment in store checkout.

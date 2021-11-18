@@ -91,7 +91,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->id           = self::ID;
 		$this->method_title = __( 'Stripe', 'woocommerce-gateway-stripe' );
 		/* translators: link */
-		$this->method_description = __( 'Accept debit and credit cards in 135+ currencies, methods such as Alipay, and one-touch checkout with Apple Pay.', 'woocommerce-gateway-stripe' );
+		$this->method_description = __( 'Accept debit and credit cards in 135+ currencies, methods such as SEPA, and one-touch checkout with Apple Pay.', 'woocommerce-gateway-stripe' );
 		$this->has_fields         = true;
 		$this->supports           = [
 			'products',
@@ -114,6 +114,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Check if subscriptions are enabled and add support for them.
 		$this->maybe_init_subscriptions();
+
+		// Check if pre-orders are enabled and add support for them.
+		$this->maybe_init_pre_orders();
 
 		$main_settings              = get_option( 'woocommerce_stripe_settings' );
 		$this->title                = $this->get_option( 'title_upe' );
@@ -187,6 +190,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function payment_scripts() {
 		if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() ) {
+			return;
+		}
+
+		if ( is_cart() && ! WC_Stripe_Helper::should_load_scripts_on_cart_page() ) {
 			return;
 		}
 
@@ -319,15 +326,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 		}
 
-		$amount = is_null( WC()->cart ) ? 0 : WC()->cart->get_total( false );
-		$order  = isset( $order_id ) ? wc_get_order( $order_id ) : null;
-		if ( is_a( $order, 'WC_Order' ) ) {
-			$amount = $order->get_total();
-		}
-
-		$converted_amount = WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( get_woocommerce_currency() ) );
 		// Pre-orders and free trial subscriptions don't require payments.
-		$stripe_params['isPaymentRequired'] = 0 < $converted_amount;
+		$stripe_params['isPaymentNeeded'] = $this->is_payment_needed( isset( $order_id ) ? $order_id : null );
 
 		return $stripe_params;
 	}
@@ -485,15 +485,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$payment_intent_id         = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$order                     = wc_get_order( $order_id );
-		$amount                    = $order->get_total();
-		$currency                  = $order->get_currency();
-		$converted_amount          = WC_Stripe_Helper::get_stripe_amount( $amount, $currency );
-		$payment_needed            = 0 < $converted_amount;
+		$payment_needed            = $this->is_payment_needed( $order_id );
 		$save_payment_method       = $this->has_subscription( $order_id ) || ! empty( $_POST[ 'wc-' . self::ID . '-new-payment-method' ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_upe_payment_type = ! empty( $_POST['wc_stripe_selected_upe_payment_type'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
 		if ( $payment_intent_id ) {
 			if ( $payment_needed ) {
+				$amount           = $order->get_total();
+				$currency         = $order->get_currency();
+				$converted_amount = WC_Stripe_Helper::get_stripe_amount( $amount, $currency );
+
 				$request = [
 					'amount'      => $converted_amount,
 					'currency'    => $currency,
@@ -565,8 +566,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$order = wc_get_order( $order_id );
 
 			if ( $this->maybe_process_pre_orders( $order_id ) ) {
-				// TODO: Implement pre-orders using Intents API.
-				return;
+				return $this->process_pre_order( $order_id );
 			}
 
 			$token                   = WC_Stripe_Payment_Tokens::get_token_from_request( $_POST );
@@ -582,7 +582,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$intent = $this->get_intent_from_order( $order );
 
 			$enabled_payment_methods = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_at_checkout' ] );
-			$payment_needed          = 0 < $order->get_total();
+			$payment_needed          = $this->is_payment_needed( $order_id );
 
 			if ( $payment_needed ) {
 				// This will throw exception if not valid.
@@ -647,7 +647,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$this->throw_localized_message( $intent, $order );
 			}
 
-			if ( 'requires_action' === $intent->status ) {
+			if ( 'requires_action' === $intent->status || 'requires_confirmation' === $intent->status ) {
 				if ( isset( $intent->next_action->type ) && 'redirect_to_url' === $intent->next_action->type && ! empty( $intent->next_action->redirect_to_url->url ) ) {
 					return [
 						'result'   => 'success',
@@ -716,10 +716,35 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( $this->is_payment_methods_page() ) {
 			if ( $this->is_setup_intent_success_creation_redirection() ) {
 				if ( isset( $_GET['redirect_status'] ) && 'succeeded' === $_GET['redirect_status'] ) {
-					$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+					$user_id  = wp_get_current_user()->ID;
+					$customer = new WC_Stripe_Customer( $user_id );
 					$customer->clear_cache();
-
 					wc_add_notice( __( 'Payment method successfully added.', 'woocommerce-gateway-stripe' ) );
+
+					// The newly created payment method does not inherit the customers' billing info, so we manually
+					// trigger an update; in case of failure we log the error and continue because the payment method's
+					// billing info will be updated when the customer makes a purchase anyway.
+					try {
+						$setup_intent_id = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
+						$setup_intent    = $this->stripe_request( 'setup_intents/' . $setup_intent_id, [], null, 'GET' );
+
+						$customer_data         = WC_Stripe_Customer::map_customer_data( null, new WC_Customer( $user_id ) );
+						$payment_method_object = $this->stripe_request(
+							'payment_methods/' . $setup_intent->payment_method,
+							[
+								'billing_details' => [
+									'name'    => $customer_data['name'],
+									'email'   => $customer_data['email'],
+									'phone'   => $customer_data['phone'],
+									'address' => $customer_data['address'],
+								],
+							]
+						);
+
+						do_action( 'woocommerce_stripe_add_payment_method', $user_id, $payment_method_object );
+					} catch ( Exception $e ) {
+						WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+					}
 				} else {
 					wc_add_notice( __( 'Failed to add payment method.', 'woocommerce-gateway-stripe' ), 'error', [ 'icon' => 'error' ] );
 				}
@@ -808,7 +833,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param bool     $save_payment_method Boolean representing whether payment method for order should be saved.
 	 */
 	public function process_order_for_confirmed_intent( $order, $intent_id, $save_payment_method ) {
-		$payment_needed = 0 < $order->get_total();
+		$payment_needed = $this->is_payment_needed( $order->get_id() );
 
 		// Get payment intent to confirm status.
 		if ( $payment_needed ) {
@@ -830,6 +855,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 		$payment_method = $this->payment_methods[ $payment_method_type ];
+
+		if ( $this->maybe_process_pre_orders( $order->get_id() ) ) {
+			// If this is a pre-order, simply mark the order as pre-ordered and allow
+			// the subsequent logic to save the payment method and proceed to complete the order.
+			$this->mark_order_as_pre_ordered( $order->get_id() );
+			$save_payment_method = true;
+		}
 
 		if ( $save_payment_method && $payment_method->is_reusable() ) {
 			$payment_method_object = null;
@@ -926,6 +958,38 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->retry_interval++;
 
 		return $this->process_payment_with_saved_payment_method( $order->get_id(), true );
+	}
+
+	/**
+	 * Returns true if a payment is needed for the current cart or order.
+	 * Pre-Orders and Subscriptions may not require an upfront payment, so we need to check whether
+	 * or not the payment is necessary to decide for either a setup intent or a payment intent.
+	 *
+	 * @since 5.8.0
+	 *
+	 * @param int $order_id The order ID being processed.
+	 *
+	 * @return bool Whether a payment is necessary.
+	 */
+	public function is_payment_needed( $order_id = null ) {
+		if ( $this->is_pre_order_item_in_cart() || ( ! empty( $order_id ) && $this->has_pre_order( $order_id ) ) ) {
+			$pre_order_product = ( ! empty( $order_id ) ) ? $this->get_pre_order_product_from_order( $order_id ) : $this->get_pre_order_product_from_cart();
+			// Only one pre-order product is allowed per cart,
+			// so we can return if it's charged upfront.
+			return $this->is_pre_order_product_charged_upfront( $pre_order_product );
+		}
+
+		// Free trial subscriptions without a sign up fee, or any other type
+		// of order with a `0` amount should fall into the logic below.
+		$amount = is_null( WC()->cart ) ? 0 : WC()->cart->get_total( false );
+		$order  = isset( $order_id ) ? wc_get_order( $order_id ) : null;
+		if ( is_a( $order, 'WC_Order' ) ) {
+			$amount = $order->get_total();
+		}
+
+		$converted_amount = WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( get_woocommerce_currency() ) );
+
+		return 0 < $converted_amount;
 	}
 
 	/**
@@ -1222,6 +1286,42 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	private function is_setup_intent_success_creation_redirection() {
 		return ( ! empty( $_GET['setup_intent_client_secret'] ) & ! empty( $_GET['setup_intent'] ) & ! empty( $_GET['redirect_status'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+	}
+
+	/**
+	 * Adds a token to current user from a setup intent id.
+	 *
+	 * @param string  $setup_intent_id ID of the setup intent.
+	 * @param WP_User $user            User to add token to.
+	 *
+	 * @return WC_Payment_Token_CC|WC_Payment_Token_WCPay_SEPA The added token.
+	 *
+	 * @since 5.8.0
+	 * @version 5.8.0
+	 */
+	public function create_token_from_setup_intent( $setup_intent_id, $user ) {
+		try {
+			$setup_intent = $this->stripe_request( 'setup_intents/' . $setup_intent_id );
+			if ( ! empty( $setup_intent->last_payment_error ) ) {
+				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			$payment_method_id     = $setup_intent->payment_method;
+			$payment_method_object = $this->stripe_request( 'payment_methods/' . $payment_method_id );
+
+			$payment_method = $this->payment_methods[ $payment_method_object->type ];
+
+			$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+			$customer->clear_cache();
+
+			return $payment_method->create_payment_token_for_user( $user->ID, $payment_method_object );
+		} catch ( Exception $e ) {
+			wc_add_notice( $e->getMessage(), 'error', [ 'icon' => 'error' ] );
+			WC_Stripe_Logger::log( 'Error when adding payment method: ' . $e->getMessage() );
+			return [
+				'result' => 'error',
+			];
+		}
 	}
 
 	/**
