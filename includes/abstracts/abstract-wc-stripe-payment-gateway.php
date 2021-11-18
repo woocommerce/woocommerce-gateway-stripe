@@ -1367,6 +1367,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$request['customer'] = $prepared_source->customer;
 		}
 
+		$request['payment_method_types'] = [ 'card' ];
+
 		if ( $this->has_subscription( $order->get_id() ) ) {
 			// If this is a failed subscription order payment, the intent should be
 			// prepared for future usage.
@@ -1782,13 +1784,17 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function javascript_params() {
 		global $wp;
 
+		$order_id = absint( get_query_var( 'order-pay' ) );
+
 		$stripe_params = [
-			'title'                  => $this->title,
-			'key'                    => $this->publishable_key,
-			'i18n_terms'             => __( 'Please accept the terms and conditions first', 'woocommerce-gateway-stripe' ),
-			'i18n_required_fields'   => __( 'Please fill in required checkout fields first', 'woocommerce-gateway-stripe' ),
-			'updateFailedOrderNonce' => wp_create_nonce( 'wc_stripe_update_failed_order_nonce' ),
-			'checkout_url'           => WC_AJAX::get_endpoint( 'checkout' ),
+			'title'                    => $this->title,
+			'key'                      => $this->publishable_key,
+			'i18n_terms'               => __( 'Please accept the terms and conditions first', 'woocommerce-gateway-stripe' ),
+			'i18n_required_fields'     => __( 'Please fill in required checkout fields first', 'woocommerce-gateway-stripe' ),
+			'updateFailedOrderNonce'   => wp_create_nonce( 'wc_stripe_update_failed_order_nonce' ),
+			'updatePaymentIntentNonce' => wp_create_nonce( 'wc_stripe_update_payment_intent_nonce' ),
+			'orderId'                  => $order_id,
+			'checkout_url'             => WC_AJAX::get_endpoint( 'checkout' ),
 		];
 
 		// If we're on the pay page we need to pass stripe.js the address of the order.

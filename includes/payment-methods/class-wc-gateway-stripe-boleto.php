@@ -99,6 +99,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
 		add_action( 'wc_ajax_wc_stripe_boleto_update_failed_order', [ $this, 'update_failed_order_ajax' ] );
+		add_action( 'wc_ajax_wc_stripe_boleto_update_payment_intent', [ $this, 'update_payment_intent' ] );
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
 	}
 
@@ -293,11 +294,12 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 			$order->save();
 
 			return [
-				'result'        => 'success',
-				'redirect'      => $this->get_return_url( $order ),
-				'intent_id'     => $intent->id,
-				'client_secret' => $intent->client_secret,
-				'order_id'      => $order_id,
+				'result'               => 'success',
+				'redirect'             => $this->get_return_url( $order ),
+				'intent_id'            => $intent->id,
+				'client_secret'        => $intent->client_secret,
+				'order_id'             => $order_id,
+				'confirm_payment_data' => $this->get_confirm_payment_data( $order ),
 			];
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
@@ -328,14 +330,93 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	 * @throws WC_Stripe_Exception
 	 */
 	public function update_failed_order_ajax() {
-		$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_failed_order_nonce', false, false );
-		if ( ! $is_nonce_valid ) {
-			throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
+		try {
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_failed_order_nonce', false, false );
+			if ( ! $is_nonce_valid ) {
+				throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			$order_id = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : null;
+			$order    = wc_get_order( $order_id );
+
+			wc_increase_stock_levels( $order );
+
+			wp_send_json(
+				[
+					'result' => 'success',
+				]
+			);
+		} catch ( Exception $e ) {
+			// Send back error so it can be displayed to the customer.
+			wp_send_json_error(
+				[
+					[
+						'result'   => 'fail',
+						'messages' => __( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ),
+					],
+				]
+			);
 		}
+	}
 
-		$order_id = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : null;
-		$order    = wc_get_order( $order_id );
+	public function update_payment_intent() {
+		try {
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_payment_intent_nonce', false, false );
+			if ( ! $is_nonce_valid ) {
+				throw new Exception( __( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+			}
 
-		wc_increase_stock_levels( $order );
+			$order_id = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : null;
+
+			if ( ! $order_id ) {
+				throw new \Exception( __( 'Order Id not found, send an order id', 'woocommerce-gateway-stripe' ) );
+			}
+
+			$order  = wc_get_order( $order_id );
+			$intent = $this->create_or_update_payment_intent( $order );
+
+			$order->update_status( 'pending', __( 'Awaiting Boleto payment.', 'woocommerce-gateway-stripe' ) );
+			$order->save();
+
+			wp_send_json(
+				[
+					'redirect'             => $this->get_return_url( $order ),
+					'intent_id'            => $intent->id,
+					'client_secret'        => $intent->client_secret,
+					'order_id'             => $order_id,
+					'result'               => 'success',
+					'confirm_payment_data' => $this->get_confirm_payment_data( $order ),
+				]
+			);
+		} catch ( Exception $e ) {
+			// Send back error so it can be displayed to the customer.
+			wp_send_json(
+				[
+					'result'   => 'fail',
+					'messages' => __( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ),
+				]
+			);
+		}
+	}
+
+	private function get_confirm_payment_data( $order ) {
+		return [
+			'payment_method' => [
+				'boleto'          => [
+					'tax_id' => isset( $_POST['stripe_boleto_tax_id'] ) ? wc_clean( wp_unslash( $_POST['stripe_boleto_tax_id'] ) ) : null,
+				],
+				'billing_details' => [
+					'name'    => $order->get_formatted_billing_full_name(),
+					'email'   => $order->get_billing_email(),
+					'address' => [
+						'line1'       => $order->get_billing_address_1(),
+						'city'        => $order->get_billing_city(),
+						'state'       => $order->get_billing_state(),
+						'postal_code' => $order->get_billing_postcode(),
+						'country'     => $order->get_billing_country(),
+					],
+				],
+			],
+		];
 	}
 }

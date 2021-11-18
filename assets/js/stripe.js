@@ -682,24 +682,8 @@ jQuery( function( $ ) {
 			wc_stripe_form.executeCheckout( function ( checkout_response ) {
 				stripe.confirmBoletoPayment(
 					checkout_response.client_secret,
-					{
-						payment_method: {
-							boleto: {
-								tax_id: document.getElementById( 'stripe_boleto_tax_id' ).value,
-							},
-							billing_details: {
-								name: document.getElementById( 'billing_first_name' ).value + ' ' + document.getElementById('billing_last_name').value,
-								email: document.getElementById( 'billing_email' ).value,
-								address: {
-									line1: document.getElementById( 'billing_address_1' ).value,
-									city: document.getElementById( 'billing_city' ).value,
-									state: document.getElementById( 'billing_state' ).value,
-									postal_code: document.getElementById( 'billing_postcode' ).value,
-									country: 'BR',
-								},
-							},
-						},
-					})
+					checkout_response.confirm_payment_data
+				)
 					.then(function ( response ) {
 						wc_stripe_form.handleConfirmResponse( checkout_response, response, 'boleto' );
 					});
@@ -715,21 +699,45 @@ jQuery( function( $ ) {
 				obj[ field.name ] = field.value;
 				return obj;
 			}, {} );
-			$.ajax({
-				url: wc_stripe_params.checkout_url,
-				type: 'POST',
-				data: formFields,
-				success: function ( checkout_response ) {
 
-					if( 'success' !== checkout_response.result ) {
-						wc_stripe_form.submitError( checkout_response.messages, true );
-						wc_stripe_form.unblock();
-						return;
+			if( wc_stripe_form.form.attr('id') === 'order_review' ) {
+				formFields._ajax_nonce = wc_stripe_params.updatePaymentIntentNonce;
+				formFields.order_id = wc_stripe_params.orderId;
+				// formField.refer = formFields._wp_http_referer;
+
+				$.ajax( {
+					url: wc_stripe_form.getAjaxURL( 'boleto_update_payment_intent' ),
+					type: 'POST',
+					data: formFields,
+					success: function ( response ) {
+
+						if( 'success' !== response.result ) {
+							wc_stripe_form.submitError( response.messages );
+							wc_stripe_form.unblock();
+							return;
+						}
+
+						callback( response );
 					}
+				} );
 
-					callback( checkout_response );
-				}
-			});
+			} else {
+				$.ajax( {
+					url: wc_stripe_params.checkout_url,
+					type: 'POST',
+					data: formFields,
+					success: function ( checkout_response ) {
+
+						if( 'success' !== checkout_response.result ) {
+							wc_stripe_form.submitError( checkout_response.messages, true );
+							wc_stripe_form.unblock();
+							return;
+						}
+
+						callback( checkout_response );
+					}
+				} );
+			}
 		},
 
 		/**
@@ -748,6 +756,12 @@ jQuery( function( $ ) {
 						_ajax_nonce: wc_stripe_params.updateFailedOrderNonce,
 						intent_id: checkout_response.intent_id,
 						order_id: checkout_response.order_id,
+					},
+					success: function ( response ) {
+						if( 'success' !== response.result ) {
+							wc_stripe_form.submitError( checkout_response.messages );
+							wc_stripe_form.unblock();
+						}
 					}
 				} );
 
