@@ -180,7 +180,9 @@ const PaymentSettingsPanel = () => {
 						numLines={ 20 }
 						keepContent={ keepModalContent }
 					>
-						<GeneralSettingsSection />
+						<GeneralSettingsSection
+							setKeepModalContent={ setKeepModalContent }
+						/>
 					</LoadableAccountSection>
 				</LoadableSettingsSection>
 				<CustomizationOptionsNotice />

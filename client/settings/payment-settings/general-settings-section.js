@@ -29,7 +29,7 @@ const Description = styled.div`
 	font-size: 12px;
 `;
 
-const GeneralSettingsSection = () => {
+const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 	const [ isTestMode ] = useTestMode();
 	const [ isStripeEnabled, setIsStripeEnabled ] = useIsStripeEnabled();
 	const [ title, setTitle ] = useTitle();
@@ -48,6 +48,7 @@ const GeneralSettingsSection = () => {
 				<AccountKeysModal
 					type={ modalType }
 					onClose={ handleModalDismiss }
+					setKeepModalContent={ setKeepModalContent }
 				/>
 			) }
 			<StyledCard>
