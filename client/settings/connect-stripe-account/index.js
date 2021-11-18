@@ -43,10 +43,6 @@ const ButtonWrapper = styled.div`
 		&:hover:not( :disabled ) {
 			box-shadow: none;
 		}
-
-		@media ( max-width: 660px ) {
-			padding-left: 0;
-		}
 	}
 `;
 

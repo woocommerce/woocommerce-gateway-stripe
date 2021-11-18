@@ -37,13 +37,15 @@ class WC_Stripe_Settings_Controller {
 	public function admin_options( WC_Stripe_Payment_Gateway $gateway ) {
 		global $hide_save_button;
 		$hide_save_button    = true;
-		$is_stripe_connected = woocommerce_gateway_stripe()->connect->is_connected();
 
 		echo '<h2>' . esc_html( $gateway->get_method_title() );
 		wc_back_link( __( 'Return to payments', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ) );
 		echo '</h2>';
 
-		echo $is_stripe_connected ? '<div id="wc-stripe-account-settings-container"></div>' : '<div id="wc-stripe-new-account-container"></div>';
+		$settings = get_option( WC_Stripe_Connect::SETTINGS_OPTION, [] );
+
+		$account_data_exists = ( trim( $settings['publishable_key'] ) && trim( $settings['secret_key'] ) ) || ( trim( $settings['test_publishable_key'] ) && trim( $settings['test_secret_key'] ) );
+		echo $account_data_exists ? '<div id="wc-stripe-account-settings-container"></div>' : '<div id="wc-stripe-new-account-container"></div>';
 	}
 
 	/**

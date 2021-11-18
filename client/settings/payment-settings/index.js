@@ -126,8 +126,8 @@ const AccountSettingsDropdownMenu = ( {
 
 // @todo - remove setModalType as prop
 const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
-	const [ isTestModeEnabled ] = useTestMode();
 	const { data } = useAccount();
+	const isTestModeEnabled = Boolean( data.testmode );
 
 	return (
 		<Card className="account-details">
@@ -171,13 +171,18 @@ const PaymentSettingsPanel = () => {
 				<AccountKeysModal
 					type={ modalType }
 					onClose={ handleModalDismiss }
-					forcePageReloadOnSave
+					setKeepModalContent={ setKeepModalContent }
 				/>
 			) }
 			<SettingsSection Description={ GeneralSettingsDescription }>
 				<LoadableSettingsSection numLines={ 20 }>
-					<LoadableAccountSection numLines={ 20 }>
-						<GeneralSettingsSection />
+					<LoadableAccountSection
+						numLines={ 20 }
+						keepContent={ keepModalContent }
+					>
+						<GeneralSettingsSection
+							setKeepModalContent={ setKeepModalContent }
+						/>
 					</LoadableAccountSection>
 				</LoadableSettingsSection>
 				<CustomizationOptionsNotice />

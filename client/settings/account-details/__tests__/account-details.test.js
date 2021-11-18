@@ -46,7 +46,7 @@ describe( 'AccountDetails', () => {
 		} );
 		render( <AccountDetails /> );
 
-		expect( screen.queryByText( /error/i ) ).toBeInTheDocument();
+		expect( screen.queryByText( /no longer valid/i ) ).toBeInTheDocument();
 		expect(
 			screen.queryByText( /may be disabled/i )
 		).not.toBeInTheDocument();
