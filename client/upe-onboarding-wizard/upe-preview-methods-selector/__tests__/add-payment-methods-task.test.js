@@ -9,6 +9,7 @@ import {
 	useEnabledPaymentMethodIds,
 	useSettings,
 } from 'wcstripe/data';
+import { useGetCapabilities } from 'wcstripe/data/account';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useGetAvailablePaymentMethodIds: jest.fn(),
@@ -16,6 +17,11 @@ jest.mock( 'wcstripe/data', () => ( {
 	useSettings: jest.fn(),
 	useCurrencies: jest.fn(),
 } ) );
+
+jest.mock( 'wcstripe/data/account', () => ( {
+	useGetCapabilities: jest.fn().mockReturnValue( {} ),
+} ) );
+
 jest.mock(
 	'wcstripe/components/payment-method-capability-status-pill',
 	() => () => null
@@ -31,6 +37,10 @@ const SettingsContextProvider = ( { children } ) => (
 
 describe( 'AddPaymentMethodsTask', () => {
 	beforeEach( () => {
+		useGetCapabilities.mockReturnValue( {
+			card_payments: 'active',
+			giropay_payments: 'active',
+		} );
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			'card',
 			'bancontact',

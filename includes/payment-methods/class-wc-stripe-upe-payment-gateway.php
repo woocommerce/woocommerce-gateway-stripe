@@ -91,7 +91,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->id           = self::ID;
 		$this->method_title = __( 'Stripe', 'woocommerce-gateway-stripe' );
 		/* translators: link */
-		$this->method_description = __( 'Accept debit and credit cards in 135+ currencies, methods such as Alipay, and one-touch checkout with Apple Pay.', 'woocommerce-gateway-stripe' );
+		$this->method_description = __( 'Accept debit and credit cards in 135+ currencies, methods such as SEPA, and one-touch checkout with Apple Pay.', 'woocommerce-gateway-stripe' );
 		$this->has_fields         = true;
 		$this->supports           = [
 			'products',
