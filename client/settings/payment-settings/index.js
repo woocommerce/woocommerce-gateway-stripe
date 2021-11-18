@@ -171,12 +171,16 @@ const PaymentSettingsPanel = () => {
 				<AccountKeysModal
 					type={ modalType }
 					onClose={ handleModalDismiss }
+					setKeepModalContent={ setKeepModalContent }
 				/>
 			) }
 			<SettingsSection Description={ GeneralSettingsDescription }>
 				<LoadableSettingsSection numLines={ 20 }>
-					<LoadableAccountSection numLines={ 20 }>
-						<GeneralSettingsSection />
+					<LoadableAccountSection
+						numLines={ 20 }
+						keepContent={ keepModalContent }
+					>
+						<GeneralSettingsSection setModalType={ setModalType } />
 					</LoadableAccountSection>
 				</LoadableSettingsSection>
 				<CustomizationOptionsNotice />

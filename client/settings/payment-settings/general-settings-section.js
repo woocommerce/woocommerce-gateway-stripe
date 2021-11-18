@@ -1,5 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import { React, useState, useContext } from 'react';
+import { React, useContext } from 'react';
 import {
 	Button,
 	Card,
@@ -9,7 +9,6 @@ import {
 import styled from '@emotion/styled';
 import CardBody from '../card-body';
 import CardFooter from '../card-footer';
-import { AccountKeysModal } from './account-keys-modal';
 import TestModeCheckbox from './test-mode-checkbox';
 import {
 	useTestMode,
@@ -29,27 +28,16 @@ const Description = styled.div`
 	font-size: 12px;
 `;
 
-const GeneralSettingsSection = () => {
+const GeneralSettingsSection = ( { setModalType } ) => {
 	const [ isTestMode ] = useTestMode();
 	const [ isStripeEnabled, setIsStripeEnabled ] = useIsStripeEnabled();
 	const [ title, setTitle ] = useTitle();
 	const [ upeTitle, setUpeTitle ] = useUpeTitle();
 	const [ description, setDescription ] = useDescription();
-	const [ modalType, setModalType ] = useState( '' );
 	const { isUpeEnabled } = useContext( UpeToggleContext );
-
-	const handleModalDismiss = () => {
-		setModalType( '' );
-	};
 
 	return (
 		<>
-			{ modalType && (
-				<AccountKeysModal
-					type={ modalType }
-					onClose={ handleModalDismiss }
-				/>
-			) }
 			<StyledCard>
 				<CardBody>
 					<CheckboxControl

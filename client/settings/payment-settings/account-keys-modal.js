@@ -171,6 +171,7 @@ const StyledConfirmationModal = styled( ConfirmationModal )`
 export const AccountKeysModal = ( {
 	type,
 	onClose,
+	setKeepModalContent,
 	forcePageReloadOnSave,
 } ) => {
 	const [ openTab, setOpenTab ] = useState( type );
@@ -208,9 +209,14 @@ export const AccountKeysModal = ( {
 			forcePageReloadOnSave = true;
 		}
 
-		await saveAccountKeys( keysToSave );
-		if ( forcePageReloadOnSave ) {
+		const saveSuccess = await saveAccountKeys( keysToSave );
+		if ( ! saveSuccess ) {
+			setDisabled( false );
+		} else if ( forcePageReloadOnSave ) {
 			// When forcing a redirect, we keep the modal open and disabled while the page reloads.
+			if ( setKeepModalContent ) {
+				setKeepModalContent( true );
+			}
 			window.location.reload();
 		} else {
 			setDisabled( false );
