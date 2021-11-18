@@ -701,7 +701,7 @@ jQuery( function( $ ) {
 						},
 					})
 					.then(function ( response ) {
-						wc_stripe_form.handleConfirmResponse( checkout_response, response );
+						wc_stripe_form.handleConfirmResponse( checkout_response, response, 'boleto' );
 					});
 			} );
 		},
@@ -737,12 +737,12 @@ jQuery( function( $ ) {
 		 * @param checkout_response
 		 * @param response
 		 */
-		handleConfirmResponse: function ( checkout_response, response ) {
+		handleConfirmResponse: function ( checkout_response, response, payment_method ) {
 			if ( response.error ) {
 				$( document.body ).trigger( 'stripeError', response );
 
 				$.ajax( {
-					url: wc_stripe_form.getAjaxURL( 'update_failed_order' ),
+					url: wc_stripe_form.getAjaxURL( payment_method + '_update_failed_order' ),
 					type: 'POST',
 					data: {
 						_ajax_nonce: wc_stripe_params.updateFailedOrderNonce,

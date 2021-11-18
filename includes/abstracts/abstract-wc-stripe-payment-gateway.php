@@ -545,7 +545,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$order->add_order_note( $localized_message );
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
-		} else {
+		} elseif ( 'requires_payment_method' !== $response->status ) {
 			$order->set_transaction_id( $response->id );
 
 			if ( $order->has_status( [ 'pending', 'failed' ] ) ) {

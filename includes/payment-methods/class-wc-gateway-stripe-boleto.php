@@ -98,43 +98,49 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 		}
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
+		add_action( 'wc_ajax_wc_stripe_boleto_update_failed_order', [ $this, 'update_failed_order_ajax' ] );
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
 	}
 
 	/**
 	 * Creates payment intent using current cart or order and store details.
+	 * If the order already has a Payment Intent it gets updated
 	 *
-	 * @param {int} $order_id The id of the order if intent created from Order.
+	 * @param {int} $order The order.
 	 *
 	 * @return array
 	 * @throws Exception - If the create intent call returns with an error.
 	 * @since 5.8.0
 	 */
-	public function create_payment_intent( $order_id = null ) {
+	public function create_or_update_payment_intent( $order ) {
 		$currency = 'BRL';
-		$order    = wc_get_order( $order_id );
 		$amount   = $order->get_total();
 
 		$this->validate_amount_limits( $amount );
+
+		$intent = $this->get_intent_from_order( $order );
+
+		$intent_to_be_updated = '';
+
+		if ( $intent ) {
+			$intent_to_be_updated = '/' . $intent->id;
+		}
 
 		$payment_intent = WC_Stripe_API::request(
 			[
 				'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
 				'currency'             => strtolower( $currency ),
 				'payment_method_types' => [ 'boleto' ],
-				'description'          => __( 'stripe - Order', 'woocommerce-gateway-stripe' ) . ' ' . $order_id,
+				'description'          => __( 'stripe - Order', 'woocommerce-gateway-stripe' ) . ' ' . $order->id,
 			],
-			'payment_intents'
+			'payment_intents' . $intent_to_be_updated
 		);
 
 		if ( ! empty( $payment_intent->error ) ) {
 			throw new Exception( $payment_intent->error->message );
 		}
 
-		return [
-			'id'            => $payment_intent->id,
-			'client_secret' => $payment_intent->client_secret,
-		];
+		return $payment_intent;
 	}
 
 	/**
@@ -142,6 +148,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return array
 	 * @since 5.8.0
+	 * @return array
 	 */
 	public function get_supported_currency() {
 		return apply_filters(
@@ -157,6 +164,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @return bool
 	 * @since 5.8.0
+	 * @return bool
 	 */
 	public function is_available() {
 		if ( ! in_array( get_woocommerce_currency(), $this->get_supported_currency() ) ) {
@@ -169,8 +177,8 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Get_icon function.
 	 *
-	 * @return string
 	 * @since 5.8.0
+	 * @return string
 	 */
 	public function get_icon() {
 		$icons = $this->payment_icons();
@@ -226,10 +234,11 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Validates the minimum and maximum amount. Throws exception when out of range value is added
 	 *
+	 * @since 5.8.0
+	 *
 	 * @param $amount
 	 *
 	 * @throws WC_Stripe_Exception
-	 * @since 5.8.0
 	 */
 	private function validate_amount_limits( $amount ) {
 
@@ -247,11 +256,11 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Process the payment
 	 *
-	 * @param int $order_id Reference.
+	 * @since 5.8.0
+	 * @param int  $order_id Reference.
 	 * @param bool $retry Should we retry on fail.
 	 * @param bool $force_save_source Force payment source to be saved.
 	 *
-	 * @return array|void
 	 * @throws Exception If payment will not be accepted.
 	 *
 	 * @since 5.8.0
@@ -266,29 +275,28 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 				throw new \Exception( __( 'Boleto is only available in Brazil', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$intent = $this->create_payment_intent( $order_id );
+			$intent = $this->create_or_update_payment_intent( $order );
 
-			$order->update_status( 'pending', __( 'Awaiting boleto payment.', 'woocommerce-gateway-stripe' ) );
+			$order->update_status( 'pending', __( 'Awaiting Boleto payment.', 'woocommerce-gateway-stripe' ) );
 
-			wc_reduce_stock_levels( $order_id );
-			$woocommerce->cart->empty_cart();
+			wc_reduce_stock_levels( $order );
 
 			$order->add_order_note(
 				sprintf(
 				/* translators: $1%s payment intent ID */
 					__( 'Stripe payment intent created (Payment Intent ID: %1$s)', 'woocommerce-gateway-stripe' ),
-					$intent['id']
+					$intent->id
 				)
 			);
 
-			$order->update_meta_data( '_stripe_intent_id', $intent['id'] );
+			$order->update_meta_data( '_stripe_intent_id', $intent->id );
 			$order->save();
 
 			return [
 				'result'        => 'success',
 				'redirect'      => $this->get_return_url( $order ),
-				'intent_id'     => $intent['id'],
-				'client_secret' => $intent['client_secret'],
+				'intent_id'     => $intent->id,
+				'client_secret' => $intent->client_secret,
 				'order_id'      => $order_id,
 			];
 		} catch ( WC_Stripe_Exception $e ) {
@@ -311,5 +319,23 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway {
 				'redirect' => '',
 			];
 		}
+	}
+
+	/**
+	 * Increase stock in case of a failure during checkout
+	 *
+	 * @since 5.8.0
+	 * @throws WC_Stripe_Exception
+	 */
+	public function update_failed_order_ajax() {
+		$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_failed_order_nonce', false, false );
+		if ( ! $is_nonce_valid ) {
+			throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
+		}
+
+		$order_id = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : null;
+		$order    = wc_get_order( $order_id );
+
+		wc_increase_stock_levels( $order );
 	}
 }
