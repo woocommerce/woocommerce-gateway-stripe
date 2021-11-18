@@ -7,7 +7,7 @@ const SectionFooter = () => (
 	<CardFooter>
 		<ExternalLink
 			className="components-button is-secondary"
-			href="https://dashboard.stripe.com/account/payments/settings"
+			href="https://dashboard.stripe.com/settings/payments"
 		>
 			{ __( 'Get more payment methods', 'woocommerce-gateway-stripe' ) }
 		</ExternalLink>

@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * More info in pc4etw-bY-p2.
  *
- * @since x.x.x
+ * @since 5.8.0
  */
 class WC_Stripe_Hong_Kong_States {
 	// Source: https://www.rvd.gov.hk/doc/tc/hkpr13/06.pdf

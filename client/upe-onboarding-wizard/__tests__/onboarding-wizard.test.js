@@ -13,6 +13,10 @@ jest.mock( 'wcstripe/data', () => ( {
 	useGetAvailablePaymentMethodIds: jest.fn().mockReturnValue( [] ),
 } ) );
 
+jest.mock( 'wcstripe/data/account', () => ( {
+	useGetCapabilities: jest.fn(),
+} ) );
+
 describe( 'OnboardingWizard', () => {
 	it( 'should render the onboarding wizard', () => {
 		render( <OnboardingWizard /> );

@@ -66,6 +66,21 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
+					'title'                            => [
+						'description'       => __( 'Stripe display title.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'title_upe'                        => [
+						'description'       => __( 'New checkout experience title.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'description'                      => [
+						'description'       => __( 'Stripe display description.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
 					'enabled_payment_method_ids'       => [
 						'description'       => __( 'Payment method IDs that should be enabled. Other methods will be disabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'array',
@@ -196,6 +211,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return $string_validation_result;
 		}
 
+		// Relaxing validation because it's blocking the user from saving it when they're on another tab of the settings screen
+		// TODO: work that out with either a UX approach or handling the validations of each tab separately
+		if ( '' === $value ) {
+			return true;
+		}
+
 		try {
 			$this->gateway->validate_account_statement_descriptor_field( $param, $value, $max_length );
 		} catch ( Exception $exception ) {
@@ -219,6 +240,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > General */
 				'is_stripe_enabled'                     => $this->gateway->is_enabled(),
 				'is_test_mode_enabled'                  => $this->gateway->is_in_test_mode(),
+				'title'                                 => $this->gateway->get_option( 'title' ),
+				'title_upe'                             => $this->gateway->get_option( 'title_upe' ),
+				'description'                           => $this->gateway->get_option( 'description' ),
 
 				/* Settings > Payments accepted on checkout */
 				'enabled_payment_method_ids'            => $this->gateway->get_upe_enabled_payment_method_ids(),
@@ -253,6 +277,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	public function update_settings( WP_REST_Request $request ) {
 		/* Settings > General */
 		$this->update_is_stripe_enabled( $request );
+		$this->update_title( $request );
+		$this->update_title_upe( $request );
+		$this->update_description( $request );
 		$this->update_is_test_mode_enabled( $request );
 
 		/* Settings > Payments accepted on checkout */
@@ -293,6 +320,51 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		} else {
 			$this->gateway->disable();
 		}
+	}
+
+	/**
+	 * Updates title.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_title( WP_REST_Request $request ) {
+		$title = $request->get_param( 'title' );
+
+		if ( null === $title ) {
+			return;
+		}
+
+		$this->gateway->update_option( 'title', $title );
+	}
+
+	/**
+	 * Updates UPE title.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_title_upe( WP_REST_Request $request ) {
+		$title_upe = $request->get_param( 'title_upe' );
+
+		if ( null === $title_upe ) {
+			return;
+		}
+
+		$this->gateway->update_option( 'title_upe', $title_upe );
+	}
+
+	/**
+	 * Updates description.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_description( WP_REST_Request $request ) {
+		$description = $request->get_param( 'description' );
+
+		if ( null === $description ) {
+			return;
+		}
+
+		$this->gateway->update_option( 'description', $description );
 	}
 
 	/**

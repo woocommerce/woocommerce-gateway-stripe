@@ -18,7 +18,7 @@ const GatewayDescription = () => {
 			<p>{ info.geography }</p>
 			<p>
 				<ExternalLink
-					href="https://dashboard.stripe.com/account/payments/settings"
+					href="https://dashboard.stripe.com/settings/payments"
 					target="_blank"
 				>
 					{ __(

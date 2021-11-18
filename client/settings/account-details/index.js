@@ -4,6 +4,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 import './style.scss';
 import { Button, ExternalLink } from '@wordpress/components';
+import interpolateComponents from 'interpolate-components';
 import useWebhookStateMessage from './use-webhook-state-message';
 import SectionStatus from './section-status';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
@@ -11,7 +12,6 @@ import {
 	useAccountKeysTestWebhookSecret,
 	useAccountKeysWebhookSecret,
 } from 'wcstripe/data/account-keys';
-import { useTestMode } from 'wcstripe/data';
 
 const WebhookEndpointText = styled.strong`
 	padding: 0 2px;
@@ -63,8 +63,8 @@ const DepositsSection = () => {
 const WebhooksSection = () => {
 	const [ testWebhookSecret ] = useAccountKeysTestWebhookSecret();
 	const [ webhookSecret ] = useAccountKeysWebhookSecret();
-	const [ isTestModeEnabled ] = useTestMode();
 	const { data } = useAccount();
+	const isTestModeEnabled = Boolean( data.testmode );
 
 	const isWebhookSecretEntered = Boolean(
 		isTestModeEnabled ? testWebhookSecret : webhookSecret
@@ -142,16 +142,36 @@ const MissingAccountDetailsDescription = () => {
 
 const AccountDetails = () => {
 	const { data } = useAccount();
+	const isTestModeEnabled = Boolean( data.testmode );
 
 	const hasAccountError = Object.keys( data.account ?? {} ).length === 0;
 	if ( hasAccountError ) {
 		return (
 			<div>
 				<p className="account-details__error">
-					{ __(
-						'Error determining the account connection status.',
-						'woocommerce-gateway-stripe'
-					) }
+					{ isTestModeEnabled
+						? interpolateComponents( {
+								mixedString: __(
+									"Seems like the test keys we've saved for you are no longer valid. If you recently updated them, enter the new test keys from your {{accountLink}}Stripe Account{{/accountLink}}.",
+									'woocommerce-gateway-stripe'
+								),
+								components: {
+									accountLink: (
+										<ExternalLink href="https://dashboard.stripe.com/test/apikeys" />
+									),
+								},
+						  } )
+						: interpolateComponents( {
+								mixedString: __(
+									"Seems like the live keys we've saved for you are no longer valid. If you recently updated them, enter the new live keys from your {{accountLink}}Stripe Account{{/accountLink}}.",
+									'woocommerce-gateway-stripe'
+								),
+								components: {
+									accountLink: (
+										<ExternalLink href="https://dashboard.stripe.com/apikeys" />
+									),
+								},
+						  } ) }
 				</p>
 			</div>
 		);

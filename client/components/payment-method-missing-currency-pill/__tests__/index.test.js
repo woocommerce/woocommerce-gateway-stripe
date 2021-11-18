@@ -1,7 +1,6 @@
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import PaymentMethodMissingCurrencyPill from '..';
-import UpeToggleContext from '../../../settings/upe-toggle/context';
 
 jest.mock( '../../../payment-methods-map', () => ( {
 	card: { currencies: [] },
@@ -15,39 +14,16 @@ describe( 'PaymentMethodMissingCurrencyPill', () => {
 
 	it( 'should render the "Requires currency" text', () => {
 		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<PaymentMethodMissingCurrencyPill
-					id="giropay"
-					label="giropay"
-				/>
-			</UpeToggleContext.Provider>
+			<PaymentMethodMissingCurrencyPill id="giropay" label="giropay" />
 		);
 
 		expect( screen.queryByText( 'Requires currency' ) ).toBeInTheDocument();
 	} );
 
-	it( 'should not render when UPE is disabled', () => {
-		const { container } = render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<PaymentMethodMissingCurrencyPill
-					id="giropay"
-					label="giropay"
-				/>
-			</UpeToggleContext.Provider>
-		);
-
-		expect( container.firstChild ).toBeNull();
-	} );
-
 	it( 'should not render when currency matches', () => {
 		global.wcSettings = { currency: { code: 'EUR' } };
 		const { container } = render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<PaymentMethodMissingCurrencyPill
-					id="giropay"
-					label="giropay"
-				/>
-			</UpeToggleContext.Provider>
+			<PaymentMethodMissingCurrencyPill id="giropay" label="giropay" />
 		);
 
 		expect( container.firstChild ).toBeNull();
@@ -55,12 +31,7 @@ describe( 'PaymentMethodMissingCurrencyPill', () => {
 
 	it( 'should render when currency differs', () => {
 		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
-				<PaymentMethodMissingCurrencyPill
-					id="giropay"
-					label="giropay"
-				/>
-			</UpeToggleContext.Provider>
+			<PaymentMethodMissingCurrencyPill id="giropay" label="giropay" />
 		);
 
 		expect( screen.queryByText( 'Requires currency' ) ).toBeInTheDocument();
