@@ -80,7 +80,10 @@ const PaymentsAndTransactionsDescription = () => (
 );
 
 // @todo - remove setModalType as prop
-const AccountSettingsDropdownMenu = ( { setModalType } ) => {
+const AccountSettingsDropdownMenu = ( {
+	setModalType,
+	setKeepModalContent,
+} ) => {
 	// @todo - deconstruct setModalType from useModalType custom hook
 	const [ isTestModeEnabled ] = useTestMode();
 	const [
@@ -102,13 +105,11 @@ const AccountSettingsDropdownMenu = ( { setModalType } ) => {
 							'Edit account keys',
 							'woocommerce-gateway-stripe'
 						),
-						// eslint-disable-next-line no-console
 						onClick: () =>
 							setModalType( isTestModeEnabled ? 'test' : 'live' ),
 					},
 					{
 						title: __( 'Disconnect', 'woocommerce-gateway-stripe' ),
-						// eslint-disable-next-line no-console
 						onClick: () => setIsConfirmationModalVisible( true ),
 					},
 				] }
@@ -116,6 +117,7 @@ const AccountSettingsDropdownMenu = ( { setModalType } ) => {
 			{ isConfirmationModalVisible && (
 				<DisconnectStripeConfirmationModal
 					onClose={ () => setIsConfirmationModalVisible( false ) }
+					setKeepModalContent={ setKeepModalContent }
 				/>
 			) }
 		</>
@@ -123,7 +125,7 @@ const AccountSettingsDropdownMenu = ( { setModalType } ) => {
 };
 
 // @todo - remove setModalType as prop
-const AccountDetailsSection = ( { setModalType } ) => {
+const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 	const { data } = useAccount();
 	const isTestModeEnabled = Boolean( data.testmode );
 
@@ -142,7 +144,10 @@ const AccountDetailsSection = ( { setModalType } ) => {
 						</Pill>
 					) }
 				</div>
-				<AccountSettingsDropdownMenu setModalType={ setModalType } />
+				<AccountSettingsDropdownMenu
+					setModalType={ setModalType }
+					setKeepModalContent={ setKeepModalContent }
+				/>
 			</CardHeader>
 			<CardBody>
 				<AccountStatus />
@@ -154,6 +159,7 @@ const AccountDetailsSection = ( { setModalType } ) => {
 const PaymentSettingsPanel = () => {
 	// @todo - deconstruct modalType and setModalType from useModalType custom hook
 	const [ modalType, setModalType ] = useState( '' );
+	const [ keepModalContent, setKeepModalContent ] = useState( false );
 
 	const handleModalDismiss = () => {
 		setModalType( '' );
@@ -176,8 +182,14 @@ const PaymentSettingsPanel = () => {
 				<CustomizationOptionsNotice />
 			</SettingsSection>
 			<SettingsSection Description={ AccountDetailsDescription }>
-				<LoadableAccountSection numLines={ 20 }>
-					<AccountDetailsSection setModalType={ setModalType } />
+				<LoadableAccountSection
+					numLines={ 20 }
+					keepContent={ keepModalContent }
+				>
+					<AccountDetailsSection
+						setModalType={ setModalType }
+						setKeepModalContent={ setKeepModalContent }
+					/>
 				</LoadableAccountSection>
 			</SettingsSection>
 			<SettingsSection Description={ PaymentsAndTransactionsDescription }>

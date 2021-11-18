@@ -128,7 +128,7 @@ const EnableUpePreviewTask = () => {
 								</li>
 								<li>
 									{ __(
-										'Customers see only payment methods most relevent for them.',
+										'Customers see only payment methods most relevant for them.',
 										'woocommerce-gateway-stripe'
 									) }
 								</li>

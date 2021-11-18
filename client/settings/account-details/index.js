@@ -157,8 +157,7 @@ const AccountDetails = () => {
 								),
 								components: {
 									accountLink: (
-										// eslint-disable-next-line jsx-a11y/anchor-has-content
-										<a href="https://dashboard.stripe.com/test/apikeys" />
+										<ExternalLink href="https://dashboard.stripe.com/test/apikeys" />
 									),
 								},
 						  } )
@@ -169,8 +168,7 @@ const AccountDetails = () => {
 								),
 								components: {
 									accountLink: (
-										// eslint-disable-next-line jsx-a11y/anchor-has-content
-										<a href="https://dashboard.stripe.com/apikeys" />
+										<ExternalLink href="https://dashboard.stripe.com/apikeys" />
 									),
 								},
 						  } ) }
