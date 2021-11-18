@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 5.8.0 - 2021-xx-xx =
+= 5.8.0 - 2021-11-18 =
 * Fix - Hong Kong addresses are now mapped more thoroughly to WooCommerce addresses when paying with Apple Pay.
 * Fix - Error when changing payment method for a subscription with new checkout experience.
 * Fix - Payment Requests are now updated correctly when updating items in the Cart Block.

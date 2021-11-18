@@ -11,7 +11,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 	/**
 	 * Initialize pre-orders hook.
 	 *
-	 * @since x.x.x
+	 * @since 5.8.0
 	 */
 	public function maybe_init_pre_orders() {
 		if ( ! $this->is_pre_orders_enabled() ) {
@@ -26,7 +26,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 	/**
 	 * Checks if pre-orders are enabled on the site.
 	 *
-	 * @since x.x.x
+	 * @since 5.8.0
 	 *
 	 * @return bool
 	 */
@@ -37,7 +37,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 	/**
 	 * Is $order_id a pre-order?
 	 *
-	 * @since x.x.x
+	 * @since 5.8.0
 	 *
 	 * @param  int $order_id
 	 * @return bool
@@ -49,7 +49,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 	/**
 	 * Returns boolean on whether current cart contains a pre-order item.
 	 *
-	 * @since x.x.x
+	 * @since 5.8.0
 	 *
 	 * @return bool
 	 */
@@ -60,7 +60,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 	/**
 	 * Returns pre-order product from cart.
 	 *
-	 * @since x.x.x
+	 * @since 5.8.0
 	 *
 	 * @return object|null
 	 */
@@ -74,7 +74,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 	/**
 	 * Returns pre-order product from order.
 	 *
-	 * @since x.x.x
+	 * @since 5.8.0
 	 *
 	 * @param int $order_id
 	 *
@@ -90,7 +90,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 	/**
 	 * Returns boolean on whether product is charged upon release.
 	 *
-	 * @since x.x.x
+	 * @since 5.8.0
 	 *
 	 * @param object $product
 	 *
@@ -103,7 +103,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 	/**
 	 * Returns boolean on whether product is charged upfront.
 	 *
-	 * @since x.x.x
+	 * @since 5.8.0
 	 *
 	 * @param object $product
 	 *
@@ -117,7 +117,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 	 * Checks if we need to process pre-orders when
 	 * a pre-order product is in the cart.
 	 *
-	 * @since x.x.x
+	 * @since 5.8.0
 	 *
 	 * @param int $order_id
 	 *

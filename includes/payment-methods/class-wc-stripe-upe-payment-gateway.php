@@ -965,7 +965,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * Pre-Orders and Subscriptions may not require an upfront payment, so we need to check whether
 	 * or not the payment is necessary to decide for either a setup intent or a payment intent.
 	 *
-	 * @since x.x.x
+	 * @since 5.8.0
 	 *
 	 * @param int $order_id The order ID being processed.
 	 *
@@ -1296,8 +1296,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 *
 	 * @return WC_Payment_Token_CC|WC_Payment_Token_WCPay_SEPA The added token.
 	 *
-	 * @since x.x.x
-	 * @version x.x.x
+	 * @since 5.8.0
+	 * @version 5.8.0
 	 */
 	public function create_token_from_setup_intent( $setup_intent_id, $user ) {
 		try {

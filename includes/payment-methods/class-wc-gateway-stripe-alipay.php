@@ -98,7 +98,7 @@ class WC_Gateway_Stripe_Alipay extends WC_Stripe_Payment_Gateway {
 	 * Returns all supported currencies for this payment method.
 	 *
 	 * @since 4.0.0
-	 * @version x.x.x
+	 * @version 5.8.0
 	 * @return array
 	 */
 	public function get_supported_currency() {
