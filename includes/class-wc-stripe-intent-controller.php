@@ -404,9 +404,10 @@ class WC_Stripe_Intent_Controller {
 		if ( $payment_intent_id ) {
 
 			$request = [
-				'amount'   => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
-				'currency' => strtolower( $currency ),
-				'metadata' => $gateway->get_metadata_from_order( $order ),
+				'amount'      => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
+				'currency'    => strtolower( $currency ),
+				'metadata'    => $gateway->get_metadata_from_order( $order ),
+				'description' => __( 'stripe - Order', 'woocommerce-gateway-stripe' ) . ' ' . $order->get_id(),
 			];
 
 			if ( '' !== $selected_upe_payment_type ) {
@@ -428,6 +429,9 @@ class WC_Stripe_Intent_Controller {
 				$level3_data,
 				$order
 			);
+
+			$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+			WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
 		}
 
 		return [

@@ -252,16 +252,7 @@ class WC_Gateway_Stripe_Voucher extends WC_Stripe_Payment_Gateway {
 
 			wc_reduce_stock_levels( $order );
 
-			$order->add_order_note(
-				sprintf(
-				/* translators: $1%s payment intent ID */
-					__( 'Stripe payment intent created (Payment Intent ID: %1$s)', 'woocommerce-gateway-stripe' ),
-					$intent->id
-				)
-			);
-
-			$order->update_meta_data( '_stripe_intent_id', $intent->id );
-			$order->save();
+			WC_Stripe_Helper::add_payment_intent_to_order( $intent->id, $order );
 
 			return [
 				'result'               => 'success',
@@ -398,7 +389,7 @@ class WC_Gateway_Stripe_Voucher extends WC_Stripe_Payment_Gateway {
 				throw new \Exception( __( 'Order Id not found, send an order id', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$order  = wc_get_order( $order_id );
+			$order = wc_get_order( $order_id );
 			$order->set_payment_method( $this );
 			$intent = $this->create_or_update_payment_intent( $order );
 

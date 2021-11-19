@@ -1439,7 +1439,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function save_intent_to_order( $order, $intent ) {
 		if ( 'payment_intent' === $intent->object ) {
-			$order->update_meta_data( '_stripe_intent_id', $intent->id );
+			WC_Stripe_Helper::add_payment_intent_to_order( $intent->id, $order );
 		} elseif ( 'setup_intent' === $intent->object ) {
 			$order->update_meta_data( '_stripe_setup_intent', $intent->id );
 		}

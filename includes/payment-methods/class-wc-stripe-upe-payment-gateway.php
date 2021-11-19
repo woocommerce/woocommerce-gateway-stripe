@@ -545,15 +545,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				$request['metadata'] = $this->get_metadata_from_order( $order );
 
-				$order->add_order_note(
-					sprintf(
-					/* translators: $1%s payment intent ID */
-						__( 'Stripe payment intent created (Payment Intent ID: %1$s)', 'woocommerce-gateway-stripe' ),
-						$payment_intent_id
-					)
-				);
-
-				$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
+				WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
 				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
 				$order->save();
 

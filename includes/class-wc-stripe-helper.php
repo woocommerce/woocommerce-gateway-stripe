@@ -606,4 +606,30 @@ class WC_Stripe_Helper {
 
 		return true;
 	}
+
+	/**
+	 * Adds payment intent id and order note to order if payment intent is not already saved
+	 *
+	 * @param $payment_intent_id
+	 * @param $order
+	 */
+	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
+
+		$old_intent_id = $order->get_meta( '_stripe_intent_id' );
+
+		if ( $old_intent_id === $payment_intent_id ) {
+			return;
+		}
+
+		$order->add_order_note(
+			sprintf(
+			/* translators: $1%s payment intent ID */
+				__( 'Stripe payment intent created (Payment Intent ID: %1$s)', 'woocommerce-gateway-stripe' ),
+				$payment_intent_id
+			)
+		);
+
+		$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
+		$order->save();
+	}
 }
