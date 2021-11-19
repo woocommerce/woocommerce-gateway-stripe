@@ -679,7 +679,7 @@ jQuery( function( $ ) {
 		 * After the customer closes the modal proceeds with checkout normally
 		 */
 		handleBoleto: function () {
-			wc_stripe_form.executeCheckout( function ( checkout_response ) {
+			wc_stripe_form.executeCheckout( 'boleto', function ( checkout_response ) {
 				stripe.confirmBoletoPayment(
 					checkout_response.client_secret,
 					checkout_response.confirm_payment_data
@@ -694,7 +694,7 @@ jQuery( function( $ ) {
 		 * Executes the checkout and then execute the callback instead of redirect to success page
 		 * @param callback
 		 */
-		executeCheckout: function ( callback ) {
+		executeCheckout: function ( payment_method, callback ) {
 			const formFields = wc_stripe_form.form.serializeArray().reduce( ( obj, field ) => {
 				obj[ field.name ] = field.value;
 				return obj;
@@ -705,7 +705,7 @@ jQuery( function( $ ) {
 				formFields.order_id = wc_stripe_params.orderId;
 
 				$.ajax( {
-					url: wc_stripe_form.getAjaxURL( 'boleto_update_payment_intent' ),
+					url: wc_stripe_form.getAjaxURL( payment_method + '_update_payment_intent' ),
 					type: 'POST',
 					data: formFields,
 					success: function ( response ) {
@@ -779,17 +779,11 @@ jQuery( function( $ ) {
 		 * After the customer closes the modal proceeds with checkout normally
 		 */
 		handleOxxo: function () {
-			wc_stripe_form.executeCheckout( function ( checkout_response ) {
+			wc_stripe_form.executeCheckout( 'oxxo', function ( checkout_response ) {
 				stripe.confirmOxxoPayment(
 					checkout_response.client_secret,
-					{
-						payment_method: {
-							billing_details: {
-								name: document.getElementById( 'billing_first_name' ).value + ' ' + document.getElementById( 'billing_last_name' ).value,
-								email: document.getElementById( 'billing_email' ).value,
-							},
-						},
-					})
+					checkout_response.confirm_payment_data
+				)
 					.then(function (response) {
 						wc_stripe_form.handleConfirmResponse( checkout_response, response );
 					} );

@@ -104,7 +104,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Gateway_Stripe_Voucher {
 	 * Gather the data necessary to confirm the payment via javascript
 	 * Override this when extending the class
 	 *
-	 * @param $order
+	 * @param WC_Order $order
 	 *
 	 * @return array
 	 */
