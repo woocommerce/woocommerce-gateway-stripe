@@ -60,3 +60,5 @@ I see the order status is pending payment and from Order notes there's **Stripe 
 
 #### Reload page
 I see the order is processing/completed (This will only happen when using a development mode. In production mode the customer has to pay the boleto and wait up to 2 days to compensate)
+
+### Execute the test again using UPE
