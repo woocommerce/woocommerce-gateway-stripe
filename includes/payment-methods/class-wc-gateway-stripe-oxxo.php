@@ -13,6 +13,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Gateway_Stripe_Oxxo extends WC_Gateway_Stripe_Voucher {
 
 	/**
+	 * ID used by UPE
+	 *
+	 * @var string
+	 */
+	const ID = 'stripe_boleto';
+
+	/**
 	 * ID used by WooCommerce to identify the payment method
 	 *
 	 * @var string

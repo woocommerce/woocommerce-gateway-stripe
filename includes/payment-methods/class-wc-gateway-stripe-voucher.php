@@ -15,6 +15,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Gateway_Stripe_Voucher extends WC_Stripe_Payment_Gateway {
 
 	/**
+	 * ID used by UPE
+	 *
+	 * @var string
+	 */
+	const ID = '';
+
+	/**
 	 * ID used by WooCommerce to identify the payment method
 	 * Override this when extending the class
 	 *
