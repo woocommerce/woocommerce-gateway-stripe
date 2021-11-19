@@ -16,8 +16,6 @@ Be sure to also copy the webhook endpoint provided on the settings page and add 
 
 #### Set currency to Brazilian Real (R$)
 
-#### Set country to Brazil
-
 #### Click Save changes button at the bottom
 
 I see **Your settings have been saved** notice.
