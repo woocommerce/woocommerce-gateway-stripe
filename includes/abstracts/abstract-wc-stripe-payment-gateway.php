@@ -92,11 +92,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		wc_back_link( __( 'Return to payments', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ) );
 		echo '</h2>';
 
-		if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
-			$this->render_upe_settings();
-		} else {
-			echo '<table class="form-table">' . $this->generate_settings_html( $form_fields, false ) . '</table>';
-		}
+		$this->render_upe_settings();
 	}
 
 	/**
