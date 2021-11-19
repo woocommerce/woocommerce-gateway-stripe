@@ -157,6 +157,17 @@ class WC_Gateway_Stripe_Voucher extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Hides refund through stripe when payment method does not allow refund
+	 *
+	 * @param WC_Order $order
+	 *
+	 * @return array|bool
+	 */
+	public function can_refund_order( $order ) {
+		return false;
+	}
+
+	/**
 	 * Returns all supported currencies for this payment method.
 	 *
 	 * @return array
@@ -381,6 +392,7 @@ class WC_Gateway_Stripe_Voucher extends WC_Stripe_Payment_Gateway {
 			}
 
 			$order  = wc_get_order( $order_id );
+			$order->set_payment_method( $this );
 			$intent = $this->create_or_update_payment_intent( $order );
 
 			$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
