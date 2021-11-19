@@ -703,7 +703,6 @@ jQuery( function( $ ) {
 			if( wc_stripe_form.form.attr('id') === 'order_review' ) {
 				formFields._ajax_nonce = wc_stripe_params.updatePaymentIntentNonce;
 				formFields.order_id = wc_stripe_params.orderId;
-				// formField.refer = formFields._wp_http_referer;
 
 				$.ajax( {
 					url: wc_stripe_form.getAjaxURL( 'boleto_update_payment_intent' ),
