@@ -104,7 +104,7 @@ export default {
 		id: 'boleto',
 		label: __( 'Boleto', 'woocommerce-gateway-stripe' ),
 		description: __(
-			'Boleto is one of the most popular payment method in Brazil',
+			'Boleto is one of the most popular payment methods in Brazil',
 			'woocommerce-gateway-stripe'
 		),
 		Icon: BoletoIcon,
