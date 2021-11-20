@@ -266,7 +266,7 @@ jQuery( function( $ ) {
 			wc_stripe_form.maybeConfirmIntent();
 
 			//Mask CPF/CNPJ field when using Boleto
-			$( document ).on( 'change', '.woocommerce-checkout-payment', function () {
+			$( document ).on( 'change', '.wc_payment_methods', function () {
 				var TaxIdMaskBehavior = function ( val ) {
 						return val.replace( /\D/g, '' ).length >= 12 ? '00.000.000/0000-00' : '000.000.000-009999';
 					},
