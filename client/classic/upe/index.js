@@ -463,8 +463,16 @@ jQuery( function ( $ ) {
 					return_url: returnUrl,
 				},
 			} );
+
 			if ( error ) {
-				await api.updateFailedOrder( paymentIntentId, orderId );
+				const upeType = $(
+					'#wc_stripe_selected_upe_payment_type'
+				).val();
+
+				if ( upeType !== 'boleto' && upeType !== 'oxxo' ) {
+					await api.updateFailedOrder( paymentIntentId, orderId );
+				}
+
 				throw error;
 			}
 		} catch ( error ) {
@@ -548,11 +556,17 @@ jQuery( function ( $ ) {
 			} else {
 				( { error } = await api.getStripe().confirmSetup( upeConfig ) );
 			}
+
 			if ( error ) {
-				await api.updateFailedOrder(
-					paymentIntentId,
-					response.order_id
-				);
+				const upeType = formFields.wc_stripe_selected_upe_payment_type;
+
+				if ( upeType !== 'boleto' && upeType !== 'oxxo' ) {
+					await api.updateFailedOrder(
+						paymentIntentId,
+						response.order_id
+					);
+				}
+
 				throw error;
 			}
 		} catch ( error ) {
