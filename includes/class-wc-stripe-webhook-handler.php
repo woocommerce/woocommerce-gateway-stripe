@@ -815,7 +815,10 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$order_id = $order->get_id();
-		if ( 'payment_intent.succeeded' === $notification->type || 'payment_intent.amount_capturable_updated' === $notification->type ) {
+
+		if ( 'payment_intent.requires_action' == $notification->type && in_array( $intent->next_action->type, [ 'boleto_display_details', 'oxxo_display_details' ] ) ) {
+			wc_reduce_stock_levels( $order_id );
+		} elseif ( 'payment_intent.succeeded' === $notification->type || 'payment_intent.amount_capturable_updated' === $notification->type ) {
 			$charge = end( $intent->charges->data );
 			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
 
@@ -950,6 +953,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			case 'payment_intent.succeeded':
 			case 'payment_intent.payment_failed':
 			case 'payment_intent.amount_capturable_updated':
+			case 'payment_intent.requires_action':
 				$this->process_payment_intent_success( $notification );
 				break;
 

@@ -132,13 +132,6 @@ class WC_Gateway_Stripe_Voucher extends WC_Stripe_Payment_Gateway {
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
 		add_action(
-			'wc_ajax_wc_stripe_' . $this->stripe_id . '_update_failed_order',
-			[
-				$this,
-				'update_failed_order_ajax',
-			]
-		);
-		add_action(
 			'wc_ajax_wc_stripe_' . $this->stripe_id . '_update_payment_intent',
 			[
 				$this,
@@ -250,8 +243,6 @@ class WC_Gateway_Stripe_Voucher extends WC_Stripe_Payment_Gateway {
 
 			$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 
-			wc_reduce_stock_levels( $order );
-
 			WC_Stripe_Helper::add_payment_intent_to_order( $intent->id, $order );
 
 			return [
@@ -338,42 +329,6 @@ class WC_Gateway_Stripe_Voucher extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Increase stock in case of a failure during checkout
-	 *
-	 * @throws WC_Stripe_Exception
-	 * @since 5.8.0
-	 */
-	public function update_failed_order_ajax() {
-		try {
-			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_failed_order_nonce', false, false );
-			if ( ! $is_nonce_valid ) {
-				throw new WC_Stripe_Exception( 'missing-nonce', __( 'CSRF verification failed.', 'woocommerce-gateway-stripe' ) );
-			}
-
-			$order_id = isset( $_POST['order_id'] ) ? absint( $_POST['order_id'] ) : null;
-			$order    = wc_get_order( $order_id );
-
-			wc_increase_stock_levels( $order );
-
-			wp_send_json(
-				[
-					'result' => 'success',
-				]
-			);
-		} catch ( Exception $e ) {
-			// Send back error so it can be displayed to the customer.
-			wp_send_json_error(
-				[
-					[
-						'result'   => 'fail',
-						'messages' => __( "We're not able to process this payment. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ),
-					],
-				]
-			);
-		}
-	}
-
-	/**
 	 * Updates the payment intent when trying to pay again via Pay Order Page
 	 */
 	public function update_payment_intent_ajax() {
@@ -393,6 +348,7 @@ class WC_Gateway_Stripe_Voucher extends WC_Stripe_Payment_Gateway {
 			$order->set_payment_method( $this );
 			$intent = $this->create_or_update_payment_intent( $order );
 
+			wc_reduce_stock_levels( $order );
 			$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 			$order->save();
 
