@@ -546,6 +546,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$request['metadata'] = $this->get_metadata_from_order( $order );
 
 				WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
+				$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
 				$order->save();
 
