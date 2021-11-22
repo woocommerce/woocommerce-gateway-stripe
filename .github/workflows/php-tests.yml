@@ -59,7 +59,7 @@ jobs:
 
       - name: Set up PHPUnit 6.5 for PHP 7.0 compatibility
         if: ${{ matrix.php == '7.0' }}
-        run: wget https://phar.phpunit.de/phpunit-6.5.14.phar && mv phpunit-6.5.14.phar phpunit.phar; fi;
+        run: wget https://phar.phpunit.de/phpunit-6.5.14.phar && mv phpunit-6.5.14.phar phpunit.phar
 
       - name: Run CI checks
         run: bash bin/run-ci-tests.bash
