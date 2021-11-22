@@ -21,7 +21,7 @@ jobs:
             woocommerce: '5.8.0'
           - woocommerce_L: L-2
             woocommerce: '5.7.1'
-          # Worpress
+          # WordPress
           - wordpress_L: L
             wordpress: 'latest'
           - wordpress_L: L-1
@@ -42,7 +42,7 @@ jobs:
       WP_VERSION:  ${{ matrix.wordpress }}
       WC_VERSION:  ${{ matrix.woocommerce }}
     steps:
-      - name: Testing with [PHP=${{ matrix.php }}, WP=${{ matrix.wordpress }}, WC=${{ matrix.woocommerce }}
+      - name: Testing with PHP=${{ matrix.php }}, WP=${{ matrix.wordpress }}, WC=${{ matrix.woocommerce }}
         uses: actions/checkout@v2
 
       - name: Set up dependencies caching
@@ -57,7 +57,7 @@ jobs:
           php-version: ${{ matrix.php }}
           coverage:    none
 
-      - name: Set up PHPUnit 6.5 for PHP 7.0 compatibility
+      - name: If PHP 7.0, set up PHPUnit 6.5 for legacy compatibility
         if: ${{ matrix.php == '7.0' }}
         run: wget https://phar.phpunit.de/phpunit-6.5.14.phar && mv phpunit-6.5.14.phar phpunit.phar
 
