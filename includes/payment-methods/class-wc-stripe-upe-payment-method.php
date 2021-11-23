@@ -175,6 +175,13 @@ abstract class WC_Stripe_UPE_Payment_Method {
 		return true;
 	}
 
+	/**
+	 * Validates if a payment method is available on a given country
+	 *
+	 * @param string $country a two-letter country code
+	 *
+	 * @return bool Will return true if supported_countries is empty on payment method
+	 */
 	public function is_allowed_on_country( $country ) {
 		if ( ! empty( $this->supported_countries ) ) {
 			return in_array( $country, $this->supported_countries );
