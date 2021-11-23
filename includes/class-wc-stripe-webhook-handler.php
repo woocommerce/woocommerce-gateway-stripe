@@ -801,10 +801,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		$is_voucher_payment = in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'boleto', 'oxxo' ] );
+		$allowed_status     = [ 'pending', 'failed' ];
+
+		if ( $is_voucher_payment ) {
+			$allowed_status[] = 'on-hold';
+		}
+
 		if ( ! $order->has_status(
 			apply_filters(
 				'wc_stripe_allowed_payment_processing_statuses',
-				[ 'pending', 'failed' ]
+				$allowed_status
 			)
 		) ) {
 			return;
@@ -816,32 +823,39 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order_id = $order->get_id();
 
-		if ( 'payment_intent.requires_action' == $notification->type && in_array( $intent->next_action->type, [ 'boleto_display_details', 'oxxo_display_details' ] ) ) {
-			wc_reduce_stock_levels( $order_id );
-		} elseif ( 'payment_intent.succeeded' === $notification->type || 'payment_intent.amount_capturable_updated' === $notification->type ) {
-			$charge = end( $intent->charges->data );
-			WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
+		switch ( $notification->type ) {
+			case 'payment_intent.requires_action':
+				if ( $is_voucher_payment ) {
+					$order->update_status( 'on-hold', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+					wc_reduce_stock_levels( $order_id );
+				}
+				break;
+			case 'payment_intent.succeeded':
+			case 'payment_intent.amount_capturable_updated':
+				$charge = end( $intent->charges->data );
+				WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
 
-			do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
+				do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
 
-			// Process valid response.
-			$this->process_response( $charge, $order );
+				// Process valid response.
+				$this->process_response( $charge, $order );
+				break;
+			default:
+				$error_message = $intent->last_payment_error ? $intent->last_payment_error->message : '';
 
-		} else {
-			$error_message = $intent->last_payment_error ? $intent->last_payment_error->message : '';
+				/* translators: 1) The error message that was received from Stripe. */
+				$message = sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message );
 
-			/* translators: 1) The error message that was received from Stripe. */
-			$message = sprintf( __( 'Stripe SCA authentication failed. Reason: %s', 'woocommerce-gateway-stripe' ), $error_message );
+				if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
+					$order->update_status( 'failed', $message );
+				} else {
+					$order->add_order_note( $message );
+				}
 
-			if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
-				$order->update_status( 'failed', $message );
-			} else {
-				$order->add_order_note( $message );
-			}
+				do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
 
-			do_action( 'wc_gateway_stripe_process_webhook_payment_error', $order, $notification );
-
-			$this->send_failed_order_email( $order_id );
+				$this->send_failed_order_email( $order_id );
+				break;
 		}
 
 		$this->unlock_order_payment( $order );
