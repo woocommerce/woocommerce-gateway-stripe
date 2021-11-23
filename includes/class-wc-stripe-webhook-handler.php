@@ -841,6 +841,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$this->process_response( $charge, $order );
 				break;
 			default:
+				if ( $is_voucher_payment && 'payment_intent.payment_failed' === $notification->type ) {
+					$order->update_status( 'failed', __( 'Payment not completed in time', 'woocommerce-gateway-stripe' ) );
+					wc_increase_stock_levels( $order_id );
+					break;
+				}
+
 				$error_message = $intent->last_payment_error ? $intent->last_payment_error->message : '';
 
 				/* translators: 1) The error message that was received from Stripe. */
