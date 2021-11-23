@@ -241,7 +241,9 @@ class WC_Gateway_Stripe_Voucher extends WC_Stripe_Payment_Gateway {
 
 			$intent = $this->create_or_update_payment_intent( $order );
 
+			$order->update_meta_data( '_stripe_upe_payment_type', $this->stripe_id );
 			$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+			$order->save();
 
 			WC_Stripe_Helper::add_payment_intent_to_order( $intent->id, $order );
 
@@ -348,8 +350,8 @@ class WC_Gateway_Stripe_Voucher extends WC_Stripe_Payment_Gateway {
 			$order->set_payment_method( $this );
 			$intent = $this->create_or_update_payment_intent( $order );
 
-			wc_reduce_stock_levels( $order );
 			$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+			$order->update_meta_data( '_stripe_upe_payment_type', $this->stripe_id );
 			$order->save();
 
 			wp_send_json(
