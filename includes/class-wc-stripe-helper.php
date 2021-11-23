@@ -590,8 +590,9 @@ class WC_Stripe_Helper {
 
 		// We run the filter when 1 of the following is true:
 		//   1. The PRBs are disabled; or
-		//   2. The PRBs are disabled on product pages.
-		if ( 'yes' !== $are_prbs_enabled || ! in_array( 'product', $prb_locations, true ) ) {
+		//   2. The PRB location settings are emptied and saved in the GUI (results in a non-array value).
+		//   3. The PRBs are disabled on product pages.
+		if ( 'yes' !== $are_prbs_enabled || ! is_array( $prb_locations ) || ! in_array( 'product', $prb_locations, true ) ) {
 			return apply_filters( 'wc_stripe_load_scripts_on_product_page_when_prbs_disabled', true );
 		}
 
@@ -604,8 +605,9 @@ class WC_Stripe_Helper {
 
 		// We run the filter when 1 of the following is true:
 		//   1. The PRBs are disabled; or
-		//   2. The PRBs are disabled on the cart page.
-		if ( 'yes' !== $are_prbs_enabled || ! in_array( 'cart', $prb_locations, true ) ) {
+		//   2. The PRB location settings are emptied and saved in the GUI (results in a non-array value).
+		//   3. The PRBs are disabled on the cart page.
+		if ( 'yes' !== $are_prbs_enabled || ! is_array( $prb_locations ) || ! in_array( 'cart', $prb_locations, true ) ) {
 			return apply_filters( 'wc_stripe_load_scripts_on_cart_page_when_prbs_disabled', true );
 		}
 
