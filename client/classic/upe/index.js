@@ -171,7 +171,12 @@ jQuery( function ( $ ) {
 		);
 	};
 
-	// Show error notice at top of checkout form.
+	/**
+	 * Show error notice at top of checkout form.
+	 * Will try to use a translatable message using the message code if available
+	 *
+	 * @param {string} errorMessage
+	 */
 	const showError = ( errorMessage ) => {
 		if (
 			typeof errorMessage !== 'string' &&
