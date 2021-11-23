@@ -262,9 +262,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$note        = wc_get_order_notes(
 			[
 				'order_id' => $order_id,
-				'limit'    => 1,
+				'limit'    => 2,
 			]
-		)[0];
+		)[1];
 
 		$this->assertEquals( 'processing', $final_order->get_status() );
 		$this->assertEquals( 'Credit card / debit card', $final_order->get_payment_method_title() );
@@ -311,12 +311,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
 
 		$success_order = wc_get_order( $order_id );
+
 		$note          = wc_get_order_notes(
 			[
 				'order_id' => $order_id,
-				'limit'    => 1,
+				'limit'    => 2,
 			]
-		)[0];
+		)[1];
 
 		// assert successful order processing
 		$this->assertEquals( 'processing', $success_order->get_status() );
