@@ -104,7 +104,7 @@ export default {
 		id: 'boleto',
 		label: __( 'Boleto', 'woocommerce-gateway-stripe' ),
 		description: __(
-			'Boleto is one of the most popular payment methods in Brazil',
+			'Boleto is an official payment method in Brazil. Customers receive a voucher that can be paid at authorized agencies or banks, ATMs, or online bank portals.',
 			'woocommerce-gateway-stripe'
 		),
 		Icon: BoletoIcon,
@@ -115,7 +115,7 @@ export default {
 		id: 'oxxo',
 		label: __( 'OXXO', 'woocommerce-gateway-stripe' ),
 		description: __(
-			'OXXO is a voucher payment widely used in Mexico',
+			'OXXO is a Mexican chain of convenience stores that allows customers to pay bills and online purchases in-store with cash.',
 			'woocommerce-gateway-stripe'
 		),
 		Icon: OxxoIcon,

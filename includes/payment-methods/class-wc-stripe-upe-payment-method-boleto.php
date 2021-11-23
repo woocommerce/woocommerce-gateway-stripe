@@ -27,7 +27,7 @@ class WC_Stripe_UPE_Payment_Method_Boleto extends WC_Stripe_UPE_Payment_Method {
 		$this->supported_countries  = [ 'BR' ];
 		$this->label                = __( 'Boleto', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
-			'Boleto is one of the most popular payment method in Brazil',
+			'Boleto is an official payment method in Brazil. Customers receive a voucher that can be paid at authorized agencies or banks, ATMs, or online bank portals.',
 			'woocommerce-gateway-stripe'
 		);
 	}

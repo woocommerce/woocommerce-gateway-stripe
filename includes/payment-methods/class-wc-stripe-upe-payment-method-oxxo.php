@@ -27,7 +27,7 @@ class WC_Stripe_UPE_Payment_Method_Oxxo extends WC_Stripe_UPE_Payment_Method {
 		$this->supported_countries  = [ 'MX' ];
 		$this->label                = __( 'OXXO', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
-			'OXXO is a voucher payment widely used in Mexico',
+			'OXXO is a Mexican chain of convenience stores that allows customers to pay bills and online purchases in-store with cash.',
 			'woocommerce-gateway-stripe'
 		);
 	}
