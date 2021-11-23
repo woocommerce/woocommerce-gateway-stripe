@@ -18,10 +18,12 @@ jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 
 describe( 'DisconnectStripeConfirmationModal', () => {
 	const windowLocation = window.location;
-	let handleCloseMock, saveAccountKeysMock;
+	let handleCloseMock, saveAccountKeysMock, setKeepModalContentMock;
 
 	beforeEach( () => {
 		handleCloseMock = jest.fn();
+		setKeepModalContentMock = jest.fn();
+
 		saveAccountKeysMock = jest
 			.fn()
 			.mockImplementation( () => Promise.resolve() );
@@ -44,7 +46,10 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 
 	it( 'should render the message for confirmation', () => {
 		render(
-			<DisconnectStripeConfirmationModal onClose={ handleCloseMock } />
+			<DisconnectStripeConfirmationModal
+				onClose={ handleCloseMock }
+				setKeepModalContent={ setKeepModalContentMock }
+			/>
 		);
 
 		expect(
@@ -64,7 +69,10 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 
 	it( 'should call onClose when the action is cancelled', () => {
 		render(
-			<DisconnectStripeConfirmationModal onClose={ handleCloseMock } />
+			<DisconnectStripeConfirmationModal
+				onClose={ handleCloseMock }
+				setKeepModalContent={ setKeepModalContentMock }
+			/>
 		);
 
 		expect( handleCloseMock ).not.toHaveBeenCalled();
@@ -74,16 +82,24 @@ describe( 'DisconnectStripeConfirmationModal', () => {
 		expect( handleCloseMock ).toHaveBeenCalled();
 	} );
 
-	it( 'should disconnect the account and close the modal', () => {
+	it( 'should disconnect the account and reload the page', async () => {
 		render(
-			<DisconnectStripeConfirmationModal onClose={ handleCloseMock } />
+			<DisconnectStripeConfirmationModal
+				onClose={ handleCloseMock }
+				setKeepModalContent={ setKeepModalContentMock }
+			/>
 		);
 
 		expect( handleCloseMock ).not.toHaveBeenCalled();
 		expect( saveAccountKeysMock ).not.toHaveBeenCalled();
+		expect( setKeepModalContentMock ).not.toHaveBeenCalled();
 
 		userEvent.click( screen.getByRole( 'button', { name: 'Disconnect' } ) );
 
-		expect( saveAccountKeysMock ).toHaveBeenCalled();
+		await expect( saveAccountKeysMock ).toHaveBeenCalled();
+
+		expect( handleCloseMock ).not.toHaveBeenCalled();
+		expect( window.location.reload ).toHaveBeenCalled();
+		expect( setKeepModalContentMock ).toHaveBeenCalled();
 	} );
 } );

@@ -8,6 +8,7 @@ import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
 } from 'wcstripe/data';
+import { useGetCapabilities } from 'wcstripe/data/account';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useGetAvailablePaymentMethodIds: jest.fn(),
@@ -19,6 +20,9 @@ jest.mock( '@wordpress/data', () => ( {
 	register: jest.fn(),
 	combineReducers: jest.fn(),
 } ) );
+jest.mock( 'wcstripe/data/account', () => ( {
+	useGetCapabilities: jest.fn(),
+} ) );
 
 describe( 'DisableUpeConfirmationModal', () => {
 	beforeEach( () => {
@@ -26,6 +30,10 @@ describe( 'DisableUpeConfirmationModal', () => {
 			'card',
 			'giropay',
 		] );
+		useGetCapabilities.mockReturnValue( {
+			card_payments: 'active',
+			giropay_payments: 'active',
+		} );
 		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card' ], jest.fn() ] );
 		useDispatch.mockReturnValue( {} );
 	} );
@@ -42,7 +50,26 @@ describe( 'DisableUpeConfirmationModal', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'should not render the list of payment methods when there are multiple payments enabled', () => {
+	it( 'should not render payment methods that are not part of the account capabilities', () => {
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ 'giropay' ],
+			jest.fn(),
+		] );
+
+		useGetCapabilities.mockReturnValue( {
+			card_payments: 'active',
+		} );
+
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
+				<DisableUpeConfirmationModal />
+			</UpeToggleContext.Provider>
+		);
+
+		expect( screen.queryByText( /giropay/ ) ).not.toBeInTheDocument();
+	} );
+
+	it( 'should render the list of payment methods when there are multiple payments enabled', () => {
 		useEnabledPaymentMethodIds.mockReturnValue( [
 			[ 'giropay' ],
 			jest.fn(),

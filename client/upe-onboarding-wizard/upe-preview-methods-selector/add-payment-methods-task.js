@@ -18,6 +18,7 @@ import {
 	useSettings,
 } from '../../data';
 import PaymentMethodCheckbox from './payment-method-checkbox';
+import { useGetCapabilities } from 'wcstripe/data/account';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 
 const HeadingWrapper = styled.div`
@@ -138,7 +139,13 @@ const ContinueButton = ( { paymentMethodsState } ) => {
 };
 
 const AddPaymentMethodsTask = () => {
-	const availablePaymentMethods = useGetAvailablePaymentMethodIds();
+	const upePaymentMethods = useGetAvailablePaymentMethodIds();
+	const capabilities = useGetCapabilities();
+
+	// Hide payment methods that are not part of the account capabilities.
+	const availablePaymentMethods = upePaymentMethods.filter( ( method ) =>
+		capabilities.hasOwnProperty( `${ method }_payments` )
+	);
 
 	// I am using internal state in this component
 	// and committing the changes on `initialEnabledPaymentMethodIds` only when the "continue" button is clicked.
@@ -174,7 +181,9 @@ const AddPaymentMethodsTask = () => {
 							'woocommerce-gateway-stripe'
 						),
 						components: {
-							learnMoreLink: <ExternalLink href="TODO?" />,
+							learnMoreLink: (
+								<ExternalLink href="https://woocommerce.com/document/stripe/#additional-payment-methods" />
+							),
 						},
 					} ) }
 				</p>
