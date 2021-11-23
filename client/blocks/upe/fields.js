@@ -112,7 +112,12 @@ const UPEField = ( {
 				};
 			} ),
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-		[ activePaymentMethod, isUpeComplete, shouldSavePayment ]
+		[
+			activePaymentMethod,
+			isUpeComplete,
+			shouldSavePayment,
+			selectedUpePaymentType,
+		]
 	);
 
 	useEffect(
