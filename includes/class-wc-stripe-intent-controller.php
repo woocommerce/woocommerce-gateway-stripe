@@ -413,6 +413,7 @@ class WC_Stripe_Intent_Controller {
 			if ( '' !== $selected_upe_payment_type ) {
 				// Only update the payment_method_types if we have a reference to the payment type the customer selected.
 				$request['payment_method_types'] = [ $selected_upe_payment_type ];
+				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
 			}
 			if ( ! empty( $customer ) && $customer->get_id() ) {
 				$request['customer'] = $customer->get_id();
@@ -431,6 +432,7 @@ class WC_Stripe_Intent_Controller {
 			);
 
 			$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+			$order->save();
 			WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
 		}
 
