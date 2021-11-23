@@ -584,6 +584,15 @@ class WC_Stripe_Helper {
 		return true;
 	}
 
+	/**
+	 * Returns true if the Stripe JS should be loaded on product pages.
+	 *
+	 * The critical part here is running the filter to allow merchants to disable Stripe's JS to
+	 * improve their store's performance when PRBs are disabled.
+	 *
+	 * @since 5.8.0
+	 * @return boolean True if Stripe's JS should be loaded, false otherwise.
+	 */
 	public static function should_load_scripts_on_product_page() {
 		if ( self::should_load_scripts_for_prb_location( 'product' ) ) {
 			return true;
@@ -592,6 +601,15 @@ class WC_Stripe_Helper {
 		return apply_filters( 'wc_stripe_load_scripts_on_product_page_when_prbs_disabled', true );
 	}
 
+	/**
+	 * Returns true if the Stripe JS should be loaded on the cart page.
+	 *
+	 * The critical part here is running the filter to allow merchants to disable Stripe's JS to
+	 * improve their store's performance when PRBs are disabled.
+	 *
+	 * @since 5.8.0
+	 * @return boolean True if Stripe's JS should be loaded, false otherwise.
+	 */
 	public static function should_load_scripts_on_cart_page() {
 		if ( self::should_load_scripts_for_prb_location( 'cart' ) ) {
 			return true;
@@ -600,6 +618,13 @@ class WC_Stripe_Helper {
 		return apply_filters( 'wc_stripe_load_scripts_on_cart_page_when_prbs_disabled', true );
 	}
 
+	/**
+	 * Returns true if the Stripe JS should be loaded for the provided location.
+	 *
+	 * @since 5.8.1
+	 * @param string $location  Either 'product' or 'cart'. Used to specify which location to check.
+	 * @return boolean True if Stripe's JS should be loaded for the provided location, false otherwise.
+	 */
 	private static function should_load_scripts_for_prb_location( $location ) {
 		// Make sure location parameter is sanitized.
 		$location         = in_array( $location, [ 'product', 'cart' ], true ) ? $location : '';
