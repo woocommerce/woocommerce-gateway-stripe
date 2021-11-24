@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * @since 5.8.0
  */
-class WC_Gateway_Stripe_Oxxo extends WC_Gateway_Stripe_Voucher {
+class WC_Gateway_Stripe_Oxxo extends WC_Stripe_Payment_Gateway_Voucher {
 
 	/**
 	 * ID used by UPE

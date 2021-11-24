@@ -163,6 +163,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-subscriptions.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-pre-orders.php';
 				require_once dirname( __FILE__ ) . '/includes/abstracts/abstract-wc-stripe-payment-gateway.php';
+				require_once dirname( __FILE__ ) . '/includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-state.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-handler.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-sepa-payment-token.php';
@@ -189,7 +190,6 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-alipay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sepa.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-multibanco.php';
-				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-voucher.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-boleto.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-oxxo.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-payment-request.php';

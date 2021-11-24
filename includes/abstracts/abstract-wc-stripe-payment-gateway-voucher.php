@@ -3,16 +3,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// phpcs:disable WordPress.Files.FileName
 /**
- * Class used to handle Voucher based payments.
- * Extend this class to add specific logic.
+ * Abstract class that will be inherited by voucher payment methods.
  * Used by Boleto and OXXO
  *
  * @extends WC_Gateway_Stripe
  *
  * @since 5.8.0
  */
-class WC_Gateway_Stripe_Voucher extends WC_Stripe_Payment_Gateway {
+abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * ID used by UPE
@@ -347,8 +347,7 @@ class WC_Gateway_Stripe_Voucher extends WC_Stripe_Payment_Gateway {
 	 * @throws WC_Stripe_Exception when amount is out of range
 	 * @since 5.8.0
 	 */
-	protected function validate_amount_limits( $amount ) {
-	}
+	abstract protected function validate_amount_limits( $amount );
 
 	/**
 	 * Updates the payment intent when trying to pay again via Pay Order Page
