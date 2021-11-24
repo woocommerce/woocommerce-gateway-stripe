@@ -82,9 +82,7 @@ class WC_Gateway_Stripe_Oxxo extends WC_Gateway_Stripe_Voucher {
 		if ( $amount < 10.00 ) {
 			/* translators: 1) amount (including currency symbol) */
 			throw new WC_Stripe_Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( 10.0 ) ) );
-		}
-
-		if ( $amount > 10000.00 ) {
+		} elseif ( $amount > 10000.00 ) {
 			/* translators: 1) amount (including currency symbol) */
 			throw new WC_Stripe_Exception( sprintf( __( 'Sorry, the maximum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( 10000.00 ) ) );
 		}

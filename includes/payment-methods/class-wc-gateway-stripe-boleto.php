@@ -99,9 +99,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Gateway_Stripe_Voucher {
 		if ( $amount < 5.00 ) {
 			/* translators: 1) amount (including currency symbol) */
 			throw new WC_Stripe_Exception( sprintf( __( 'Sorry, the minimum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( 5.00 ) ) );
-		}
-
-		if ( $amount > 49999.99 ) {
+		} else if ( $amount > 49999.99 ) {
 			/* translators: 1) amount (including currency symbol) */
 			throw new WC_Stripe_Exception( sprintf( __( 'Sorry, the maximum allowed order total is %1$s to use this payment method.', 'woocommerce-gateway-stripe' ), wc_price( 49999.99 ) ) );
 		}
