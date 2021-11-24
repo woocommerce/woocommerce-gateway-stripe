@@ -584,21 +584,57 @@ class WC_Stripe_Helper {
 		return true;
 	}
 
+	/**
+	 * Returns true if the Stripe JS should be loaded on product pages.
+	 *
+	 * The critical part here is running the filter to allow merchants to disable Stripe's JS to
+	 * improve their store's performance when PRBs are disabled.
+	 *
+	 * @since 5.8.0
+	 * @return boolean True if Stripe's JS should be loaded, false otherwise.
+	 */
 	public static function should_load_scripts_on_product_page() {
-		$prb_locations = self::get_settings( null, 'payment_request_button_locations' ) ?? [ 'product', 'cart' ];
-		if ( ! in_array( 'product', $prb_locations, true ) ) {
-			return apply_filters( 'wc_stripe_load_scripts_on_product_page_when_prbs_disabled', true );
+		if ( self::should_load_scripts_for_prb_location( 'product' ) ) {
+			return true;
 		}
 
-		return true;
+		return apply_filters( 'wc_stripe_load_scripts_on_product_page_when_prbs_disabled', true );
 	}
 
+	/**
+	 * Returns true if the Stripe JS should be loaded on the cart page.
+	 *
+	 * The critical part here is running the filter to allow merchants to disable Stripe's JS to
+	 * improve their store's performance when PRBs are disabled.
+	 *
+	 * @since 5.8.0
+	 * @return boolean True if Stripe's JS should be loaded, false otherwise.
+	 */
 	public static function should_load_scripts_on_cart_page() {
-		$prb_locations = self::get_settings( null, 'payment_request_button_locations' ) ?? [ 'product', 'cart' ];
-		if ( ! in_array( 'cart', $prb_locations, true ) ) {
-			return apply_filters( 'wc_stripe_load_scripts_on_cart_page_when_prbs_disabled', true );
+		if ( self::should_load_scripts_for_prb_location( 'cart' ) ) {
+			return true;
 		}
 
-		return true;
+		return apply_filters( 'wc_stripe_load_scripts_on_cart_page_when_prbs_disabled', true );
+	}
+
+	/**
+	 * Returns true if the Stripe JS should be loaded for the provided location.
+	 *
+	 * @since 5.8.1
+	 * @param string $location  Either 'product' or 'cart'. Used to specify which location to check.
+	 * @return boolean True if Stripe's JS should be loaded for the provided location, false otherwise.
+	 */
+	private static function should_load_scripts_for_prb_location( $location ) {
+		// Make sure location parameter is sanitized.
+		$location         = in_array( $location, [ 'product', 'cart' ], true ) ? $location : '';
+		$are_prbs_enabled = self::get_settings( null, 'payment_request' ) ?? 'yes';
+		$prb_locations    = self::get_settings( null, 'payment_request_button_locations' ) ?? [ 'product', 'cart' ];
+
+		// The scripts should be loaded when all of the following are true:
+		//   1. The PRBs are enabled; and
+		//   2. The PRB location settings have an array value (saving an empty option in the GUI results in non-array value); and
+		//   3. The PRBs are enabled at $location.
+		return 'yes' === $are_prbs_enabled && is_array( $prb_locations ) && in_array( $location, $prb_locations, true );
 	}
 }
