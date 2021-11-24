@@ -407,7 +407,7 @@ class WC_Stripe_Intent_Controller {
 				'amount'      => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
 				'currency'    => strtolower( $currency ),
 				'metadata'    => $gateway->get_metadata_from_order( $order ),
-				'description' => __( 'stripe - Order', 'woocommerce-gateway-stripe' ) . ' ' . $order->get_id(),
+				'description' => __( 'Stripe - Order', 'woocommerce-gateway-stripe' ) . ' ' . $order->get_id(),
 			];
 
 			if ( '' !== $selected_upe_payment_type ) {
