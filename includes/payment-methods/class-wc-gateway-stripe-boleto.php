@@ -41,7 +41,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Gateway_Stripe_Voucher {
 	/**
 	 * List of accepted countries
 	 */
-	protected $supported_coutries = [ 'BR' ];
+	protected $supported_countries = [ 'BR' ];
 
 	/**
 	 * Constructor

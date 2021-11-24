@@ -41,7 +41,7 @@ class WC_Gateway_Stripe_Oxxo extends WC_Gateway_Stripe_Voucher {
 	/**
 	 * List of accepted countries
 	 */
-	protected $supported_coutries = [ 'MX' ];
+	protected $supported_countries = [ 'MX' ];
 
 	/**
 	 * Constructor

@@ -47,7 +47,7 @@ class WC_Gateway_Stripe_Voucher extends WC_Stripe_Payment_Gateway {
 	 * List of accepted countries
 	 * Change this when extending this class
 	 */
-	protected $supported_coutries = [];
+	protected $supported_countries = [];
 
 	/**
 	 * Notices (array)
@@ -254,7 +254,7 @@ class WC_Gateway_Stripe_Voucher extends WC_Stripe_Payment_Gateway {
 		try {
 			$order = wc_get_order( $order_id );
 
-			if ( ! in_array( $order->get_billing_country(), $this->supported_coutries ) ) {
+			if ( ! in_array( $order->get_billing_country(), $this->supported_countries ) ) {
 				throw new \Exception( __( 'This payment method is not available in the selected country', 'woocommerce-gateway-stripe' ) );
 			}
 
