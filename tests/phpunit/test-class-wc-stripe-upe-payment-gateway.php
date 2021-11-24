@@ -146,12 +146,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$amount       = WC_Stripe_Helper::get_stripe_amount( $total, $currency );
 		$description  = "Test Blog - Order $order_number";
 		$metadata = [
-			'customer_name'     => 'Jeroen Sormani',
-			'customer_email'    => 'admin@example.org',
-			'site_url'          => 'http://example.org',
-			'order_id'          => $order_id,
-			'order_key'         => $order_key,
-			'payment_type'      => 'single',
+			'customer_name'  => 'Jeroen Sormani',
+			'customer_email' => 'admin@example.org',
+			'site_url'       => 'http://example.org',
+			'order_id'       => $order_id,
+			'order_key'      => $order_key,
+			'payment_type'   => 'single',
 		];
 		return [ $amount, $description, $metadata ];
 	}
