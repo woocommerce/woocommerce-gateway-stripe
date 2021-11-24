@@ -11,7 +11,12 @@ return apply_filters(
 			'type'        => 'title',
 		],
 		'activation'  => [
-			'description' => __( 'Must be activated from your Stripe Dashboard Settings <a href="https://dashboard.stripe.com/account/payments/settings" target="_blank">here</a>', 'woocommerce-gateway-stripe' ),
+			'description' => sprintf(
+				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+				esc_html__( 'Must be activated from your Stripe Dashboard Settings %1$shere%2$s', 'woocommerce-gateway-stripe' ),
+				'<a href="https://dashboard.stripe.com/account/payments/settings" target="_blank">',
+				'</a>'
+			),
 			'type'        => 'title',
 		],
 		'enabled'     => [

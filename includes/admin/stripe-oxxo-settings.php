@@ -11,11 +11,21 @@ return apply_filters(
 			'type'        => 'title',
 		],
 		'guide'       => [
-			'description' => __( '<a href="https://stripe.com/payments/payment-methods-guide#oxxo" target="_blank">Payment Method Guide</a>', 'woocommerce-gateway-stripe' ),
+			'description' => sprintf(
+				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+				esc_html__( '%1$sPayment Method Guide%2$s', 'woocommerce-gateway-stripe' ),
+				'<a href="https://stripe.com/payments/payment-methods-guide#oxxo" target="_blank">',
+				'</a>'
+			),
 			'type'        => 'title',
 		],
 		'activation'  => [
-			'description' => __( 'Must be activated from your Stripe Dashboard Settings <a href="https://dashboard.stripe.com/account/payments/settings" target="_blank">here</a>', 'woocommerce-gateway-stripe' ),
+			'description' => sprintf(
+			/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+				esc_html__( 'Must be activated from your Stripe Dashboard Settings %1$shere%2$s', 'woocommerce-gateway-stripe' ),
+				'<a href="https://dashboard.stripe.com/account/payments/settings" target="_blank">',
+				'</a>'
+			),
 			'type'        => 'title',
 		],
 		'enabled'     => [
