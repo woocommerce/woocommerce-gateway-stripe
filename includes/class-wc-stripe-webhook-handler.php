@@ -801,17 +801,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$is_voucher_payment = in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'boleto', 'oxxo' ] );
-		$allowed_status     = [ 'pending', 'failed' ];
-
-		if ( $is_voucher_payment ) {
-			$allowed_status[] = 'on-hold';
-		}
-
 		if ( ! $order->has_status(
 			apply_filters(
 				'wc_stripe_allowed_payment_processing_statuses',
-				$allowed_status
+				[ 'pending', 'failed' ],
+				$order
 			)
 		) ) {
 			return;
@@ -822,6 +816,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		$order_id = $order->get_id();
+		$is_voucher_payment = in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'boleto', 'oxxo' ] );
 
 		switch ( $notification->type ) {
 			case 'payment_intent.requires_action':
