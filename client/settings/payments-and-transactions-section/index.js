@@ -44,7 +44,7 @@ const PaymentsAndTransactionsSection = () => {
 		: __( 'All Payment Methods', 'woocommerce-gateway-stripe' );
 
 	return (
-		<Card className="transactions-and-deposits">
+		<Card className="transactions-and-payouts">
 			<CardBody>
 				<h4>
 					{ __( 'Payments settings', 'woocommerce-gateway-stripe' ) }
