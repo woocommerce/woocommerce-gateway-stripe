@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 5.8.1 - 2021-11-23 =
+* Fix - Run filters that disable Stripe JS on cart and product pages when PRBs are disabled.
+
 = 5.8.0 - 2021-11-18 =
 * Fix - Hong Kong addresses are now mapped more thoroughly to WooCommerce addresses when paying with Apple Pay.
 * Fix - Error when changing payment method for a subscription with new checkout experience.
