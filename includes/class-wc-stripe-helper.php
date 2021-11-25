@@ -631,6 +631,10 @@ class WC_Stripe_Helper {
 		$are_prbs_enabled = self::get_settings( null, 'payment_request' ) ?? 'yes';
 		$prb_locations    = self::get_settings( null, 'payment_request_button_locations' ) ?? [ 'product', 'cart' ];
 
+		if ( getType($prb_locations) == 'string') {
+			$prb_locations = array($prb_locations);
+		}
+
 		// The scripts should be loaded when all of the following are true:
 		//   1. The PRBs are enabled; and
 		//   2. The PRB location settings have an array value (saving an empty option in the GUI results in non-array value); and
