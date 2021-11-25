@@ -74,7 +74,7 @@ const UpeOptInBanner = ( { title, description, Image, ...props } ) => (
 						'woocommerce-gateway-stripe'
 					) }
 				</Button>
-				<ExternalLink href="?TODO">
+				<ExternalLink href="https://woocommerce.com/document/stripe/#new-checkout-experience">
 					{ __( 'Learn more', 'woocommerce-gateway-stripe' ) }
 				</ExternalLink>
 			</Actions>

@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 5.6
 Tested up to: 5.8
 Requires PHP: 7.0
-Stable tag: 5.7.0
+Stable tag: 5.8.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -113,7 +113,7 @@ Yes, it does - production and Test (sandbox) mode is driven by the API keys you 
 
 = Where can I find documentation? =
 
-For help setting up and configuring, please refer to our [documentation](https://docs.woocommerce.com/document/stripe/).
+For help setting up and configuring, please refer to our [documentation](https://woocommerce.com/document/stripe/).
 
 = Where can I get support or talk to other users? =
 
@@ -129,12 +129,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 5.x.x - 2021-xx-xx =
-* Fix - Hong Kong addresses are now mapped more thoroughly to WooCommerce addresses when paying with Apple Pay.
-* Fix - Error when changing payment method for a subscription with new checkout experience.
-* Fix - Payment Requests are now updated correctly when updating items in the Cart Block.
-* Add - Support for WooCommerce Pre-Orders with new checkout experience.
-* Fix - Stripe JS is no longer loaded on cart and product pages when PRBs are disabled on those pages.
-* Tweak - Update the minimum required PHP version to 7.0 to reflect our L-2 support policy.
-* Fix - Add support for MYR (Malaysian ringgit) for Alipay.
+* Add - Add Stripe API to generate connection tokens, manage terminal locations.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -168,14 +168,21 @@ const StyledConfirmationModal = styled( ConfirmationModal )`
 	}
 `;
 
-export const AccountKeysModal = ( { type, onClose } ) => {
+export const AccountKeysModal = ( {
+	type,
+	onClose,
+	setKeepModalContent,
+	forcePageReloadOnSave,
+} ) => {
 	const [ openTab, setOpenTab ] = useState( type );
-	const { isSaving, saveAccountKeys } = useAccountKeys();
+	const { isSaving, accountKeys, saveAccountKeys } = useAccountKeys();
+	const [ isDisabled, setDisabled ] = useState( false );
 	const formRef = useRef( null );
 	const testFormRef = useRef( null );
 	const testMode = openTab === 'test';
 
 	const handleSave = async ( ref ) => {
+		setDisabled( true );
 		// Grab the HTMLCollection of elements of the HTML form, convert to array.
 		const elements = Array.from( ref.current.elements );
 		// Convert HTML elements array to an object acceptable for saving keys.
@@ -183,8 +190,38 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 			const { name, value } = curr;
 			return { ...acc, [ name ]: value };
 		}, {} );
-		await saveAccountKeys( keysToSave );
-		onClose();
+
+		// If we are deleting keys for this mode and there are no other keys set, we need to reload to render the connect page.
+		const savingEmptyKeys =
+			! keysToSave.publishable_key &&
+			! keysToSave.secret_key &&
+			! keysToSave.test_publishable_key &&
+			! keysToSave.test_secret_key;
+		const noLiveKeysSaved =
+			! accountKeys.publishable_key && ! accountKeys.secret_key;
+		const noTestKeysSaved =
+			! accountKeys.test_publishable_key && ! accountKeys.test_secret_key;
+		if (
+			savingEmptyKeys &&
+			( ( testMode && noLiveKeysSaved ) ||
+				( ! testMode && noTestKeysSaved ) )
+		) {
+			forcePageReloadOnSave = true;
+		}
+
+		const saveSuccess = await saveAccountKeys( keysToSave );
+		if ( ! saveSuccess ) {
+			setDisabled( false );
+		} else if ( forcePageReloadOnSave ) {
+			// When forcing a redirect, we keep the modal open and disabled while the page reloads.
+			if ( setKeepModalContent ) {
+				setKeepModalContent( true );
+			}
+			window.location.reload();
+		} else {
+			setDisabled( false );
+			onClose();
+		}
 	};
 
 	const onTabSelect = ( tabName ) => {
@@ -199,14 +236,14 @@ export const AccountKeysModal = ( { type, onClose } ) => {
 					<Button
 						isSecondary
 						onClick={ onClose }
-						disabled={ isSaving }
+						disabled={ isDisabled }
 					>
 						{ __( 'Cancel', 'woocommerce-gateway-stripe' ) }
 					</Button>
 					<Button
 						isPrimary
-						isBusy={ isSaving }
-						disabled={ isSaving }
+						isBusy={ isSaving || isDisabled }
+						disabled={ isDisabled }
 						onClick={ () =>
 							handleSave( testMode ? testFormRef : formRef )
 						}

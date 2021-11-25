@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import React from 'react';
 import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import { Icon, info } from '@wordpress/icons';
+import PaymentMethodMissingCurrencyPill from '../../../components/payment-method-missing-currency-pill';
 import PaymentMethodIcon from 'wcstripe/settings/payment-method-icon';
 import Tooltip from 'wcstripe/components/tooltip';
 import paymentMethodsMap from 'wcstripe/payment-methods-map';
@@ -53,6 +54,7 @@ const PaymentMethodCheckbox = ( { onChange, id, checked = false } ) => {
 	const label = useMemo( () => <PaymentMethodIcon name={ id } showName />, [
 		id,
 	] );
+	const pillLabel = paymentMethodsMap[ id ]?.label;
 
 	return (
 		<li className="payment-method-checkbox">
@@ -64,7 +66,11 @@ const PaymentMethodCheckbox = ( { onChange, id, checked = false } ) => {
 				/>
 				<PaymentMethodCapabilityStatusPill
 					id={ id }
-					label={ paymentMethodsMap[ id ]?.label }
+					label={ pillLabel }
+				/>
+				<PaymentMethodMissingCurrencyPill
+					id={ id }
+					label={ pillLabel }
 				/>
 			</div>
 

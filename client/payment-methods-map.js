@@ -98,4 +98,37 @@ export default {
 		currencies: [ 'EUR', 'PLN' ],
 		capability: 'p24_payments',
 	},
+	alipay: {
+		id: 'alipay',
+		label: __( 'Alipay', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Alipay is a popular wallet in China, operated by Ant Financial Services Group, a financial services provider affiliated with Alibaba.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: () => null,
+		currencies: [
+			'AUD',
+			'CAD',
+			'CNY',
+			'EUR',
+			'GBP',
+			'HKD',
+			'JPY',
+			'MYR',
+			'NZD',
+			'USD',
+		],
+		capability: undefined,
+	},
+	multibanco: {
+		id: 'multibanco',
+		label: __( 'Multibanco', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Multibanco is an interbank network that links the ATMs of all major banks in Portugal, allowing customers to pay through either their ATM or online banking environment.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: () => null,
+		currencies: [ 'EUR' ],
+		capability: undefined,
+	},
 };
