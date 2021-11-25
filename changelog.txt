@@ -1,7 +1,7 @@
 *** Changelog ***
 
 = 5.x.x - 2021-xx-xx =
-* Add - Add Stripe API to generate connection tokens, manage terminal locations, create customers.
+* Add - Add Stripe API to generate connection tokens, manage terminal locations, create customers, get account summary.
 
 = 5.8.1 - 2021-11-23 =
 * Fix - Run filters that disable Stripe JS on cart and product pages when PRBs are disabled.
