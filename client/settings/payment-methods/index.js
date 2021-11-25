@@ -61,7 +61,7 @@ const PaymentRequestDescription = () => (
 				'woocommerce-gateway-stripe'
 			) }
 		</p>
-		<ExternalLink href="?TODO">
+		<ExternalLink href="https://woocommerce.com/document/stripe/#payment-request-buttons">
 			{ __( 'Learn more', 'woocommerce-gateway-stripe' ) }
 		</ExternalLink>
 	</>

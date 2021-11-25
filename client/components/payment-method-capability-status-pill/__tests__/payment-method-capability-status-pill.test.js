@@ -13,7 +13,7 @@ describe( 'PaymentMethodCapabilityStatusPill', () => {
 		useGetCapabilities.mockReturnValue( {} );
 	} );
 
-	it( 'should render the "Pending activation" text', () => {
+	it( 'should render for "pending" statuses', () => {
 		useGetCapabilities.mockReturnValue( {
 			giropay_payments: 'pending',
 			card_payments: 'active',
@@ -28,17 +28,17 @@ describe( 'PaymentMethodCapabilityStatusPill', () => {
 		);
 
 		expect(
-			screen.queryByText( 'Pending activation' )
+			screen.queryByText( 'Requires activation' )
 		).toBeInTheDocument();
 	} );
 
-	it( 'should not render when UPE is disabled', () => {
+	it( 'should render for "inactive" statuses', () => {
 		useGetCapabilities.mockReturnValue( {
-			giropay_payments: 'pending',
-			card_payments: 'pending',
+			giropay_payments: 'inactive',
+			card_payments: 'active',
 		} );
-		const { container } = render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
 				<PaymentMethodCapabilityStatusPill
 					id="giropay"
 					label="giropay"
@@ -46,7 +46,9 @@ describe( 'PaymentMethodCapabilityStatusPill', () => {
 			</UpeToggleContext.Provider>
 		);
 
-		expect( container.firstChild ).toBeNull();
+		expect(
+			screen.queryByText( 'Requires activation' )
+		).toBeInTheDocument();
 	} );
 
 	it( 'should not render when the capability is "active"', () => {

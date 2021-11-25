@@ -36,7 +36,7 @@ class WC_Stripe_UPE_Availability_Note {
 		$note       = new $note_class();
 
 		$note->set_title( __( 'Boost your sales with the new payment experience in Stripe', 'woocommerce-gateway-stripe' ) );
-		$note->set_content( __( 'Get early access to an improved checkout experience, now available to select merchants. <a href="?TODO" target="_blank">Learn more</a>.', 'woocommerce-gateway-stripe' ) );
+		$note->set_content( __( 'Get early access to an improved checkout experience, now available to select merchants. <a href="https://woocommerce.com/document/stripe/#new-checkout-experience" target="_blank">Learn more</a>.', 'woocommerce-gateway-stripe' ) );
 		$note->set_type( $note_class::E_WC_ADMIN_NOTE_INFORMATIONAL );
 		$note->set_name( self::NOTE_NAME );
 		$note->set_source( 'woocommerce-gateway-stripe' );

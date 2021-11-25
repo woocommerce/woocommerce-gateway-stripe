@@ -1,14 +1,21 @@
 import { __ } from '@wordpress/i18n';
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@wordpress/components';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import AlertTitle from 'wcstripe/components/confirmation-modal/alert-title';
 import { useAccountKeys } from 'wcstripe/data/account-keys/hooks';
 
-const DisconnectStripeConfirmationModal = ( { onClose } ) => {
+const DisconnectStripeConfirmationModal = ( {
+	onClose,
+	setKeepModalContent,
+} ) => {
 	const { saveAccountKeys } = useAccountKeys();
+	const [ status, setStatus ] = useState( false );
 
-	const handleDisconnect = () => {
+	const handleDisconnect = async () => {
+		setStatus( 'pending' );
+		setKeepModalContent( true );
+
 		const accountKeys = {
 			publishable_key: '',
 			secret_key: '',
@@ -17,7 +24,9 @@ const DisconnectStripeConfirmationModal = ( { onClose } ) => {
 			test_secret_key: '',
 			test_webhook_secret: '',
 		};
-		saveAccountKeys( accountKeys );
+		await saveAccountKeys( accountKeys );
+
+		window.location.reload();
 	};
 
 	return (
@@ -31,7 +40,14 @@ const DisconnectStripeConfirmationModal = ( { onClose } ) => {
 						) }
 					/>
 				}
-				onRequestClose={ onClose }
+				onRequestClose={ () => {
+					// Do not allow to close the modal after clicking the "Disconnect" button
+					if ( status === 'pending' ) {
+						return;
+					}
+
+					onClose();
+				} }
 				actions={
 					<>
 						<Button

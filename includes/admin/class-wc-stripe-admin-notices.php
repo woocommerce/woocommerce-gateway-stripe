@@ -138,7 +138,7 @@ class WC_Stripe_Admin_Notices {
 
 			if ( empty( $show_style_notice ) ) {
 				/* translators: 1) int version 2) int version */
-				$message = __( 'WooCommerce Stripe - We recently made changes to Stripe that may impact the appearance of your checkout. If your checkout has changed unexpectedly, please follow these <a href="https://docs.woocommerce.com/document/stripe/#styling" target="_blank">instructions</a> to fix.', 'woocommerce-gateway-stripe' );
+				$message = __( 'WooCommerce Stripe - We recently made changes to Stripe that may impact the appearance of your checkout. If your checkout has changed unexpectedly, please follow these <a href="https://woocommerce.com/document/stripe/#new-checkout-experience" target="_blank">instructions</a> to fix.', 'woocommerce-gateway-stripe' );
 
 				$this->add_admin_notice( 'style', 'notice notice-warning', $message, true );
 
@@ -160,7 +160,7 @@ class WC_Stripe_Admin_Notices {
 			if ( empty( $show_wcver_notice ) ) {
 				if ( WC_Stripe_Helper::is_wc_lt( WC_STRIPE_FUTURE_MIN_WC_VER ) ) {
 					/* translators: 1) int version 2) int version */
-					$message = __( 'WooCommerce Stripe - This is the last version of the plugin compatible with WooCommerce %1$s. All furture versions of the plugin will require WooCommerce %2$s or greater.', 'woocommerce-gateway-stripe' );
+					$message = __( 'WooCommerce Stripe - This is the last version of the plugin compatible with WooCommerce %1$s. All future versions of the plugin will require WooCommerce %2$s or greater.', 'woocommerce-gateway-stripe' );
 					$this->add_admin_notice( 'wcver', 'notice notice-warning', sprintf( $message, WC_VERSION, WC_STRIPE_FUTURE_MIN_WC_VER ), true );
 				}
 			}
@@ -201,6 +201,14 @@ class WC_Stripe_Admin_Notices {
 						$this->add_admin_notice( 'keys', 'notice notice-error', sprintf( __( 'Stripe is in live mode however your live keys may not be valid. Live keys start with pk_live and sk_live or rk_live. Please go to your settings and, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ), true );
 					}
 				}
+
+				// Check if Stripe Account data was successfully fetched.
+				$account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
+				if ( ! empty( $secret ) && empty( $account_data ) ) {
+					$setting_link = $this->get_setting_link();
+					/* translators: 1) link */
+					$this->add_admin_notice( 'keys', 'notice notice-error', sprintf( __( 'Your customers cannot use Stripe on checkout, because we couldn\'t connect to your account. Please go to your settings and, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ), true );
+				}
 			}
 
 			if ( empty( $show_ssl_notice ) ) {
@@ -218,7 +226,7 @@ class WC_Stripe_Admin_Notices {
 
 			if ( 'yes' === $changed_keys_notice ) {
 				// translators: %s is a the URL for the link.
-				$this->add_admin_notice( 'changed_keys', 'notice notice-warning', sprintf( __( 'The public and/or secret keys for the Stripe gateway have been changed. This might cause errors for existing customers and saved payment methods. <a href="%s" target="_blank">Click here to learn more</a>.', 'woocommerce-gateway-stripe' ), 'https://docs.woocommerce.com/document/stripe-fixing-customer-errors/' ), true );
+				$this->add_admin_notice( 'changed_keys', 'notice notice-warning', sprintf( __( 'The public and/or secret keys for the Stripe gateway have been changed. This might cause errors for existing customers and saved payment methods. <a href="%s" target="_blank">Click here to learn more</a>.', 'woocommerce-gateway-stripe' ), 'https://woocommerce.com/document/stripe-fixing-customer-errors' ), true );
 			}
 		}
 	}
@@ -356,7 +364,7 @@ class WC_Stripe_Admin_Notices {
 	 * @return string Setting link
 	 */
 	public function get_setting_link() {
-		return admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' );
+		return admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings' );
 	}
 
 	/**

@@ -1,10 +1,10 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
-Requires at least: 4.6
+Requires at least: 5.6
 Tested up to: 5.8
-Requires PHP: 5.6
-Stable tag: 5.7.0
+Requires PHP: 7.0
+Stable tag: 5.8.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -24,6 +24,7 @@ Stripe is available for Store Owners and Merchants in:
 * Australia
 * Austria
 * Belgium
+* Brazil
 * Bulgaria
 * Canada
 * Cyprus
@@ -77,6 +78,7 @@ WooCommerce Stripe includes [Apple Pay](https://woocommerce.com/apple-pay) suppo
 WooCommerce Stripe includes [Web Payments API](https://www.w3.org/TR/payment-request/) support, which means customers can pay using payment details associated to their mobile devices, in browsers supporting the Web Payments API (Chrome for Android, amongst others). Checkout is now just a few taps away on mobile. Only supports simple, variable, and Subscription products for now. More support to come.
 
 == Installation ==
+
 You can download an [older version of this gateway for older versions of WooCommerce from here](https://wordpress.org/plugins/woocommerce-gateway-stripe/developers/).
 
 Please note, v4 of this gateway requires WooCommerce 3.0 and above.
@@ -111,7 +113,7 @@ Yes, it does - production and Test (sandbox) mode is driven by the API keys you 
 
 = Where can I find documentation? =
 
-For help setting up and configuring, please refer to our [documentation](https://docs.woocommerce.com/document/stripe/).
+For help setting up and configuring, please refer to our [documentation](https://woocommerce.com/document/stripe/).
 
 = Where can I get support or talk to other users? =
 
@@ -127,9 +129,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 5.x.x - 2021-xx-xx =
-* Fix - Hong Kong addresses are now mapped more thoroughly to WooCommerce addresses when paying with Apple Pay.
-* Fix - Error when changing payment method for a subscription with new checkout experience.
-* Fix - Payment Requests are now updated correctly when updating items in the Cart Block.
-* Add - Support for WooCommerce Pre-Orders with new checkout experience.
+* Add - Add Stripe API to generate connection tokens, manage terminal locations.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -11,6 +11,12 @@ jest.mock( 'wcstripe/data', () => ( {
 
 jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 	useAccountKeys: jest.fn(),
+	useAccountKeysPublishableKey: jest.fn(),
+	useAccountKeysSecretKey: jest.fn(),
+	useAccountKeysWebhookSecret: jest.fn(),
+	useAccountKeysTestPublishableKey: jest.fn(),
+	useAccountKeysTestSecretKey: jest.fn(),
+	useAccountKeysTestWebhookSecret: jest.fn(),
 } ) );
 
 describe( 'TestModeCheckbox', () => {
@@ -54,51 +60,5 @@ describe( 'TestModeCheckbox', () => {
 		userEvent.click( testModeCheckbox );
 
 		expect( setTestModeMock ).toHaveBeenCalledWith( false );
-	} );
-
-	it( 'should show a modal when the live keys are not present', () => {
-		const setTestModeMock = jest.fn();
-		useTestMode.mockReturnValue( [ false, setTestModeMock ] );
-		useAccountKeys.mockReturnValue( {
-			accountKeys: {
-				test_publishable_key: '',
-				test_secret_key: '',
-				test_webhook_secret: '',
-			},
-		} );
-
-		render( <TestModeCheckbox /> );
-
-		const testModeCheckbox = screen.getByLabelText( 'Enable test mode' );
-
-		userEvent.click( testModeCheckbox );
-
-		expect( setTestModeMock ).not.toHaveBeenCalled();
-		expect(
-			screen.getByText( 'Edit test account keys & webhooks' )
-		).toBeInTheDocument();
-	} );
-
-	it( 'should show a modal when the test keys are not present', () => {
-		const setTestModeMock = jest.fn();
-		useTestMode.mockReturnValue( [ true, setTestModeMock ] );
-		useAccountKeys.mockReturnValue( {
-			accountKeys: {
-				publishable_key: '',
-				secret_key: '',
-				webhook_secret: '',
-			},
-		} );
-
-		render( <TestModeCheckbox /> );
-
-		const testModeCheckbox = screen.getByLabelText( 'Enable test mode' );
-
-		userEvent.click( testModeCheckbox );
-
-		expect( setTestModeMock ).not.toHaveBeenCalled();
-		expect(
-			screen.getByText( 'Edit live account keys & webhooks' )
-		).toBeInTheDocument();
 	} );
 } );

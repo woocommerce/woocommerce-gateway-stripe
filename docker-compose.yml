@@ -23,7 +23,7 @@ services:
       - ./docker/bin:/var/scripts
   db:
     container_name: woocommerce_stripe_mysql
-    image: mysql:5.7
+    image: mariadb:10.5.8
     ports:
       - "5678:3306"
     env_file:
