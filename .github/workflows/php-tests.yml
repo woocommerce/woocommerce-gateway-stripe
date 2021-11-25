@@ -36,7 +36,7 @@ jobs:
           - php_support_policy: L-2
             php: '7.0'
 
-    name: Stable PHP=${{ matrix.php_support_policy }}, WP=${{ matrix.wordpress_support_policy }}, WC=${{ matrix.woocommerce_support_policy }}
+    name: Stable (PHP=${{ matrix.php_support_policy }}, WP=${{ matrix.wordpress_support_policy }}, WC=${{ matrix.woocommerce_support_policy }})
     env:
       PHP_VERSION: ${{ matrix.php }} 
       WP_VERSION:  ${{ matrix.wordpress }}
