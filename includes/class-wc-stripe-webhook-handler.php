@@ -815,7 +815,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		$order_id = $order->get_id();
+		$order_id           = $order->get_id();
 		$is_voucher_payment = in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'boleto', 'oxxo' ] );
 
 		switch ( $notification->type ) {
