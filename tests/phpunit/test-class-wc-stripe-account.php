@@ -108,8 +108,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'id'           => '1234',
 			'email'        => 'test@example.com',
 			'requirements' => [
-				'currently_due' => ['example']
-			]
+				'currently_due' => [ 'example' ],
+			],
 		];
 		set_transient( 'wcstripe_account_data_test', $account );
 		$this->assertTrue( $this->account->has_pending_requirements() );
@@ -121,8 +121,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'id'           => '1234',
 			'email'        => 'test@example.com',
 			'requirements' => [
-				'currently_due' => ['example']
-			]
+				'currently_due' => [ 'example' ],
+			],
 		];
 		set_transient( 'wcstripe_account_data_test', $account );
 		$this->assertFalse( $this->account->has_overdue_requirements() );
@@ -134,8 +134,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'id'           => '1234',
 			'email'        => 'test@example.com',
 			'requirements' => [
-				'past_due' => ['example']
-			]
+				'past_due' => [ 'example' ],
+			],
 		];
 		set_transient( 'wcstripe_account_data_test', $account );
 		$this->assertTrue( $this->account->has_overdue_requirements() );
@@ -158,7 +158,7 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'email'        => 'test@example.com',
 			'requirements' => [
 				'disabled_reason' => 'other',
-			]
+			],
 		];
 		set_transient( 'wcstripe_account_data_test', $account );
 		$this->assertEquals( 'restricted', $this->account->get_account_status() );
@@ -170,8 +170,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 			'id'           => '1234',
 			'email'        => 'test@example.com',
 			'requirements' => [
-				'eventually_due' => 'example',
-			]
+				'eventually_due' => [ 'example' ],
+			],
 		];
 		set_transient( 'wcstripe_account_data_test', $account );
 		$this->assertEquals( 'restricted_soon', $this->account->get_account_status() );

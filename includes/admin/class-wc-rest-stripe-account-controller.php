@@ -53,7 +53,6 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 			]
 		);
 
-
 		register_rest_route(
 			$this->namespace,
 			'/' . $this->rest_base . '/webhook-status-message',
