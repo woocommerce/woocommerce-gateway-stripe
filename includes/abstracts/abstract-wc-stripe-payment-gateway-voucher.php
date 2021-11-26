@@ -139,25 +139,6 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 			]
 		);
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
-		add_filter( 'wc_stripe_allowed_payment_processing_statuses', [ $this, 'add_allowed_payment_processing_statuses' ], 10, 2 );
-	}
-
-	/**
-	 * Adds on-hold as accepted status during webhook handling on orders paid with voucher
-	 *
-	 * @param $allowed_statuses
-	 * @param $order
-	 *
-	 * @return mixed
-	 */
-	public function add_allowed_payment_processing_statuses( $allowed_statuses, $order ) {
-		$is_voucher_payment = in_array( $order->get_meta( '_stripe_upe_payment_type' ), [ 'boleto', 'oxxo' ] );
-
-		if ( $is_voucher_payment && ! in_array( 'on-hold', $allowed_statuses ) ) {
-			$allowed_statuses[] = 'on-hold';
-		}
-
-		return $allowed_statuses;
 	}
 
 	/**
