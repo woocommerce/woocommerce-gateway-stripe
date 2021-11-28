@@ -1,6 +1,62 @@
 /* global wc_stripe_params */
 
-jQuery( function( $ ) {
+
+( function( waitForStripeScript, dependenciesLoadedCallback, $ ) {
+	'use strict';
+
+	// jQuery as the callback ensures both Stripe and jQuery are ready.
+	waitForStripeScript( $, dependenciesLoadedCallback );
+
+} )( function( fnCallback, arg ) {
+	// waitForStripeScript
+
+	// This code is duplicated in "stripe-payment-request.js".
+
+	'use strict';
+	if ( window.Stripe ) {
+		fnCallback( arg );
+		return;
+	}
+	var findScript = function() {
+		var V3_URL       = 'https://js.stripe.com/v3';
+		var V3_URL_REGEX = /^https:\/\/js\.stripe\.com\/v3\/?(\?.*)?$/;
+		var scripts      = document.querySelectorAll( "script[src^=\"" + V3_URL + "\"]" );
+		for ( var i = 0; i < scripts.length; i++ ) {
+			var scriptEl = scripts[ i ];
+			if ( ! V3_URL_REGEX.test( scriptEl.src ) ) {
+				continue;
+			}
+			return scriptEl;
+		}
+		return null;
+	};
+	var script     = findScript();
+	if ( ! script ) {
+		console.error( 'Stripe.js not included in page' );
+		return;
+	}
+	var fnCleanup = function() {
+		script.removeEventListener( 'load', fnLoad );
+		script.removeEventListener( 'error', fnError );
+	};
+	var fnLoad    = function() {
+		fnCleanup();
+		if ( window.Stripe ) {
+			fnCallback( arg );
+		} else {
+			console.error( 'Stripe.js not available' );
+		}
+	};
+	var fnError   = function() {
+		fnCleanup();
+		console.error( 'Failed to load Stripe.js' );
+	};
+	// Would use "once" parameter, but again IE11 support.
+	script.addEventListener( 'load', fnLoad );
+	script.addEventListener( 'error', fnError );
+}, function( $ ) {
+	// dependenciesLoadedCallback
+
 	'use strict';
 
 	try {
@@ -890,4 +946,5 @@ jQuery( function( $ ) {
 	};
 
 	wc_stripe_form.init();
-} );
+
+}, jQuery );
