@@ -192,19 +192,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Maybe override the parent admin_options method.
-	 */
-	public function admin_options() {
-		if ( ! WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
-			parent::admin_options();
-
-			return;
-		}
-
-		do_action( 'wc_stripe_gateway_admin_options_wrapper', $this );
-	}
-
-	/**
 	 * Outputs scripts used for stripe payment
 	 */
 	public function payment_scripts() {

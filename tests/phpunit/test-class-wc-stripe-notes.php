@@ -29,7 +29,6 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 			return;
 		}
 
-		update_option( '_wcstripe_feature_upe_settings', 'yes' );
 		update_option( '_wcstripe_feature_upe', 'yes' );
 		update_option(
 			'woocommerce_stripe_settings',
@@ -44,7 +43,6 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 		parent::tearDown();
 
 		woocommerce_gateway_stripe()->connect = $this->stripe_connect_original;
-		delete_option( '_wcstripe_feature_upe_settings' );
 		delete_option( '_wcstripe_feature_upe' );
 		delete_option( 'woocommerce_stripe_settings' );
 	}
@@ -58,7 +56,6 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 	}
 
 	public function test_create_upe_availability_note_does_not_create_note_when_upe_preview_is_disabled() {
-		update_option( '_wcstripe_feature_upe_settings', 'no' );
 		update_option( '_wcstripe_feature_upe', 'no' );
 
 		WC_Stripe_Inbox_Notes::create_upe_availability_note();
