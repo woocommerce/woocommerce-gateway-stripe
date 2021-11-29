@@ -61,11 +61,25 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	protected $supported_currencies;
 
 	/**
+	 * Can this payment method be refunded?
+	 *
+	 * @var array
+	 */
+	protected $can_refund = true;
+
+	/**
 	 * Wether this UPE method is enabled
 	 *
 	 * @var bool
 	 */
 	protected $enabled;
+
+	/**
+	 * List of supported countries
+	 *
+	 * @var array
+	 */
+	protected $supported_countries;
 
 	/**
 	 * Create instance of payment method
@@ -156,6 +170,21 @@ abstract class WC_Stripe_UPE_Payment_Method {
 		// If cart or order contains pre-order, enable payment method if it's reusable.
 		if ( $this->is_pre_order_item_in_cart() || ( ! empty( $order_id ) && $this->has_pre_order( $order_id ) ) ) {
 			return $this->is_reusable();
+		}
+
+		return true;
+	}
+
+	/**
+	 * Validates if a payment method is available on a given country
+	 *
+	 * @param string $country a two-letter country code
+	 *
+	 * @return bool Will return true if supported_countries is empty on payment method
+	 */
+	public function is_allowed_on_country( $country ) {
+		if ( ! empty( $this->supported_countries ) ) {
+			return in_array( $country, $this->supported_countries );
 		}
 
 		return true;
@@ -295,5 +324,14 @@ abstract class WC_Stripe_UPE_Payment_Method {
 		}
 
 		return count( $messages ) > 0 ? join( '&nbsp;–&nbsp;', $messages ) : '';
+	}
+
+	/**
+	 * Checks if payment method allows refund via stripe
+	 *
+	 * @return bool
+	 */
+	public function can_refund_via_stripe() {
+		return $this->can_refund;
 	}
 }

@@ -163,6 +163,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-subscriptions.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/trait-wc-stripe-pre-orders.php';
 				require_once dirname( __FILE__ ) . '/includes/abstracts/abstract-wc-stripe-payment-gateway.php';
+				require_once dirname( __FILE__ ) . '/includes/abstracts/abstract-wc-stripe-payment-gateway-voucher.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-state.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-handler.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-sepa-payment-token.php';
@@ -174,6 +175,8 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-giropay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-boleto.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-oxxo.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-eps.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-p24.php';
@@ -187,6 +190,8 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-alipay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sepa.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-multibanco.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-boleto.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-oxxo.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-payment-request.php';
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-woo-compat-utils.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect.php';
@@ -381,6 +386,8 @@ function woocommerce_gateway_stripe() {
 					$methods[] = WC_Gateway_Stripe_Eps::class;
 					$methods[] = WC_Gateway_Stripe_Sofort::class;
 					$methods[] = WC_Gateway_Stripe_P24::class;
+					$methods[] = WC_Gateway_Stripe_Boleto::class;
+					$methods[] = WC_Gateway_Stripe_Oxxo::class;
 				}
 
 				// These payment gateways will always be visible, regardless if UPE is enabled or disabled:

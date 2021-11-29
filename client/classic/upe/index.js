@@ -171,8 +171,27 @@ jQuery( function ( $ ) {
 		);
 	};
 
-	// Show error notice at top of checkout form.
+	/**
+	 * Show error notice at top of checkout form.
+	 * Will try to use a translatable message using the message code if available
+	 *
+	 * @param {string} errorMessage
+	 */
 	const showError = ( errorMessage ) => {
+		if (
+			typeof errorMessage !== 'string' &&
+			! ( errorMessage instanceof String )
+		) {
+			if (
+				errorMessage.code &&
+				getStripeServerData()[ errorMessage.code ]
+			) {
+				errorMessage = getStripeServerData()[ errorMessage.code ];
+			} else {
+				errorMessage = errorMessage.message;
+			}
+		}
+
 		let messageWrapper = '';
 		if ( errorMessage.includes( 'woocommerce-error' ) ) {
 			messageWrapper = errorMessage;
@@ -449,8 +468,16 @@ jQuery( function ( $ ) {
 					return_url: returnUrl,
 				},
 			} );
+
 			if ( error ) {
-				await api.updateFailedOrder( paymentIntentId, orderId );
+				const upeType = $(
+					'#wc_stripe_selected_upe_payment_type'
+				).val();
+
+				if ( upeType !== 'boleto' && upeType !== 'oxxo' ) {
+					await api.updateFailedOrder( paymentIntentId, orderId );
+				}
+
 				throw error;
 			}
 		} catch ( error ) {
@@ -534,16 +561,22 @@ jQuery( function ( $ ) {
 			} else {
 				( { error } = await api.getStripe().confirmSetup( upeConfig ) );
 			}
+
 			if ( error ) {
-				await api.updateFailedOrder(
-					paymentIntentId,
-					response.order_id
-				);
+				const upeType = formFields.wc_stripe_selected_upe_payment_type;
+
+				if ( upeType !== 'boleto' && upeType !== 'oxxo' ) {
+					await api.updateFailedOrder(
+						paymentIntentId,
+						response.order_id
+					);
+				}
+
 				throw error;
 			}
 		} catch ( error ) {
 			$form.removeClass( 'processing' ).unblock();
-			showError( error.message );
+			showError( error );
 		}
 	};
 
