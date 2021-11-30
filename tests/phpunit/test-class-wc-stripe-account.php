@@ -91,4 +91,89 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$this->assertFalse( get_transient( 'wcstripe_account_data_test' ) );
 		$this->assertFalse( get_transient( 'wcstripe_account_data_live' ) );
 	}
+
+	public function test_no_pending_requirements() {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
+		$account = [
+			'id'    => '1234',
+			'email' => 'test@example.com',
+		];
+		set_transient( 'wcstripe_account_data_test', $account );
+		$this->assertFalse( $this->account->has_pending_requirements() );
+	}
+
+	public function test_has_pending_requirements() {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
+		$account = [
+			'id'           => '1234',
+			'email'        => 'test@example.com',
+			'requirements' => [
+				'currently_due' => [ 'example' ],
+			],
+		];
+		set_transient( 'wcstripe_account_data_test', $account );
+		$this->assertTrue( $this->account->has_pending_requirements() );
+	}
+
+	public function test_has_no_overdue_requirements() {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
+		$account = [
+			'id'           => '1234',
+			'email'        => 'test@example.com',
+			'requirements' => [
+				'currently_due' => [ 'example' ],
+			],
+		];
+		set_transient( 'wcstripe_account_data_test', $account );
+		$this->assertFalse( $this->account->has_overdue_requirements() );
+	}
+
+	public function test_has_overdue_requirements() {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
+		$account = [
+			'id'           => '1234',
+			'email'        => 'test@example.com',
+			'requirements' => [
+				'past_due' => [ 'example' ],
+			],
+		];
+		set_transient( 'wcstripe_account_data_test', $account );
+		$this->assertTrue( $this->account->has_overdue_requirements() );
+	}
+
+	public function test_account_status_complete() {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
+		$account = [
+			'id'    => '1234',
+			'email' => 'test@example.com',
+		];
+		set_transient( 'wcstripe_account_data_test', $account );
+		$this->assertEquals( 'complete', $this->account->get_account_status() );
+	}
+
+	public function test_account_status_restricted() {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
+		$account = [
+			'id'           => '1234',
+			'email'        => 'test@example.com',
+			'requirements' => [
+				'disabled_reason' => 'other',
+			],
+		];
+		set_transient( 'wcstripe_account_data_test', $account );
+		$this->assertEquals( 'restricted', $this->account->get_account_status() );
+	}
+
+	public function test_account_status_restricted_soon() {
+		$this->mock_connect->method( 'is_connected' )->willReturn( true );
+		$account = [
+			'id'           => '1234',
+			'email'        => 'test@example.com',
+			'requirements' => [
+				'eventually_due' => [ 'example' ],
+			],
+		];
+		set_transient( 'wcstripe_account_data_test', $account );
+		$this->assertEquals( 'restricted_soon', $this->account->get_account_status() );
+	}
 }

@@ -12,7 +12,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_UPE_Compatibility_Controller {
 	public function __construct() {
 		add_action( 'admin_notices', [ $this, 'add_compatibility_notice' ] );
-		add_action( 'admin_init', [ $this, 'add_inbox_note' ] );
 	}
 
 	/**
@@ -22,23 +21,6 @@ class WC_Stripe_UPE_Compatibility_Controller {
 	 */
 	public function get_wc_version() {
 		return WC_VERSION;
-	}
-
-	/**
-	 * Adds an inbox note to alert merchants of the upcoming UPE compatibility change.
-	 */
-	public function add_inbox_note() {
-		// no need to display the admin inbox note when the new settings are already active.
-		// please delete this code once the new settings are launched.
-		if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
-			return;
-		}
-
-		// admin notes are not supported on older versions of WooCommerce.
-		if ( WC_Stripe_UPE_Compatibility::are_inbox_notes_supported() ) {
-			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-compatibility-note.php';
-			WC_Stripe_UPE_Compatibility_Note::init();
-		}
 	}
 
 	/**
@@ -84,13 +66,7 @@ class WC_Stripe_UPE_Compatibility_Controller {
 			return;
 		}
 
-		if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
-			$this->show_current_compatibility_notice( $unsatisfied_requirements );
-
-			return;
-		}
-
-		$this->show_upe_settings_compatibility_notice( $unsatisfied_requirements );
+		$this->show_current_compatibility_notice( $unsatisfied_requirements );
 	}
 
 	private function get_installed_versions_message( $unsatisfied_requirements ) {
@@ -141,36 +117,6 @@ class WC_Stripe_UPE_Compatibility_Controller {
 				),
 				$unsatisfied_requirements_message,
 				$unsatisfied_requirements_versions
-			)
-		);
-		echo '</strong></p></div>';
-	}
-
-	private function show_upe_settings_compatibility_notice( $unsatisfied_requirements ) {
-		/*
-		 * The following might be hard to read, but here's what I'm trying to do:
-		 * - If WP and WC are both supported -> nothing to do
-		 * - If WC is not supported -> construct message saying "Stripe will require WooCommerce 5.4 or greater to be installed and active. Your version of WooCommerce [X.X] will no longer be supported"
-		 * - If WP is not supported -> construct message saying "Stripe will require WordPress 5.6 or greater. Your version of WordPress [X.X] will no longer be supported"
-		 * - If WC & WP are both not supported -> construct message saying "Stripe will require WordPress 5.6 or greater and WooCommerce 5.4 or greater to be installed and active. Your versions of WordPress [X.X] and WooCommerce [X.X] will no longer be supported"
-		 */
-		$unsatisfied_requirements_message = $this->get_unsatisfied_requirements_message( $unsatisfied_requirements );
-
-		$unsatisfied_requirements_versions = $this->get_installed_versions_message( $unsatisfied_requirements );
-
-		echo '<div class="error"><p><strong>';
-		echo wp_kses_post(
-			sprintf(
-			/* translators: $1. Minimum WooCommerce and/or WordPress versions. $2. Current WooCommerce and/or versions. $3 Learn more link. */
-				_n(
-					'Starting with version 5.6.0, Stripe will require %1$s. Your version of %2$s will no longer be supported. <a href="%3$s" target="_blank">Learn more here</a>.',
-					'Starting with version 5.6.0, Stripe will require %1$s. Your versions of %2$s will no longer be supported. <a href="%3$s" target="_blank">Learn more here</a>.',
-					count( $unsatisfied_requirements ),
-					'woocommerce-gateway-stripe'
-				),
-				$unsatisfied_requirements_message,
-				$unsatisfied_requirements_versions,
-				WC_Stripe_UPE_Compatibility::LEARN_MORE_LINK
 			)
 		);
 		echo '</strong></p></div>';

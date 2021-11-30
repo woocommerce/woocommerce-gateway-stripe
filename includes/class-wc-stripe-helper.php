@@ -205,6 +205,7 @@ class WC_Stripe_Helper {
 				'expired_card'             => __( 'The card has expired.', 'woocommerce-gateway-stripe' ),
 				'incorrect_cvc'            => __( 'The card\'s security code is incorrect.', 'woocommerce-gateway-stripe' ),
 				'incorrect_zip'            => __( 'The card\'s zip code failed validation.', 'woocommerce-gateway-stripe' ),
+				'postal_code_invalid'      => __( 'Invalid zip code, please correct and try again', 'woocommerce-gateway-stripe' ),
 				'invalid_expiry_year_past' => __( 'The card\'s expiration year is in the past', 'woocommerce-gateway-stripe' ),
 				'card_declined'            => __( 'The card was declined.', 'woocommerce-gateway-stripe' ),
 				'missing'                  => __( 'There is no card on a customer that is being charged.', 'woocommerce-gateway-stripe' ),
@@ -214,6 +215,10 @@ class WC_Stripe_Helper {
 				'invalid_request_error'    => is_add_payment_method_page()
 					? __( 'Unable to save this payment method, please try again or use alternative method.', 'woocommerce-gateway-stripe' )
 					: __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ),
+				'amount_too_large'         => __( 'The order total is too high for this payment method', 'woocommerce-gateway-stripe' ),
+				'amount_too_small'         => __( 'The order total is too low for this payment method', 'woocommerce-gateway-stripe' ),
+				'country_code_invalid'     => __( 'Invalid country code, please try again with a valid country code', 'woocommerce-gateway-stripe' ),
+				'tax_id_invalid'           => __( 'Invalid Tax Id, please try again with a valid tax id', 'woocommerce-gateway-stripe' ),
 			]
 		);
 	}
@@ -636,5 +641,31 @@ class WC_Stripe_Helper {
 		//   2. The PRB location settings have an array value (saving an empty option in the GUI results in non-array value); and
 		//   3. The PRBs are enabled at $location.
 		return 'yes' === $are_prbs_enabled && is_array( $prb_locations ) && in_array( $location, $prb_locations, true );
+	}
+
+	/**
+	 * Adds payment intent id and order note to order if payment intent is not already saved
+	 *
+	 * @param $payment_intent_id
+	 * @param $order
+	 */
+	public static function add_payment_intent_to_order( $payment_intent_id, $order ) {
+
+		$old_intent_id = $order->get_meta( '_stripe_intent_id' );
+
+		if ( $old_intent_id === $payment_intent_id ) {
+			return;
+		}
+
+		$order->add_order_note(
+			sprintf(
+			/* translators: $1%s payment intent ID */
+				__( 'Stripe payment intent created (Payment Intent ID: %1$s)', 'woocommerce-gateway-stripe' ),
+				$payment_intent_id
+			)
+		);
+
+		$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
+		$order->save();
 	}
 }

@@ -129,6 +129,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 5.x.x - 2021-xx-xx =
-* Add - Add Stripe API to generate connection tokens, manage terminal locations, capture payment.
+* Add - Add Stripe API to generate connection tokens, manage terminal locations, create customers, get account summary, capture payment.
+* Add - Add Stripe API to generate connection tokens, manage terminal locations.
+* Tweak - Remove `_wcstripe_feature_upe` flag and all traces of old settings.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
