@@ -89,8 +89,15 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 	 * Gets the message of the privacy to display.
 	 */
 	public function get_privacy_message() {
-		/* translators: %s URL to docs */
-		return wpautop( sprintf( __( 'By using this extension, you may be storing personal data or sharing data with an external service. <a href="%s" target="_blank">Learn more about how this works, including what you may want to include in your privacy policy.</a>', 'woocommerce-gateway-stripe' ), 'https://woocommerce.com/document/privacy-payments/#section-3' ) );
+
+		$message = sprintf(
+		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+			esc_html__( 'By using this extension, you may be storing personal data or sharing data with an external service. %1$sLearn more about how this works, including what you may want to include in your privacy policy%2$s.', 'woocommerce-gateway-stripe' ),
+			'<a href="https://woocommerce.com/document/privacy-payments/#section-3" target="_blank">',
+			'</a>'
+		);
+
+		return wpautop( $message );
 	}
 
 	/**
