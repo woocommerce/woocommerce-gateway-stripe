@@ -39,7 +39,7 @@ const PaymentMethodsDisabledList = () => {
 					data-testid="disabled-payment-methods-more"
 				>
 					{ sprintf(
-						/* translators: %d: Number of icons to display. */
+						/* translators: %d: Number of unavailable payment methods not displayed. */
 						__( '+ %d more', 'woocommerce-gateway-stripe' ),
 						disabledMethodIds.length - countToDisplay
 					) }
