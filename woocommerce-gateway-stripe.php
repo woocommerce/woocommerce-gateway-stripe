@@ -215,7 +215,7 @@ function woocommerce_gateway_stripe() {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-settings-controller.php';
 
-					if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() && ! WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
+					if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-old-settings-upe-toggle-controller.php';
 						new WC_Stripe_Old_Settings_UPE_Toggle_Controller();
 					}
@@ -227,12 +227,10 @@ function woocommerce_gateway_stripe() {
 						new WC_Stripe_Settings_Controller( $this->account );
 					}
 
-					if ( WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
-						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-onboarding-controller.php';
-						new WC_Stripe_Onboarding_Controller();
-					}
+					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-onboarding-controller.php';
+					new WC_Stripe_Onboarding_Controller();
 
-					if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
+					if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-payment-gateways-controller.php';
 						new WC_Stripe_Payment_Gateways_Controller();
 					}
@@ -693,9 +691,6 @@ function wcstripe_deactivated() {
 	if ( WC_Stripe_UPE_Compatibility::are_inbox_notes_supported() ) {
 		// requirements for the note
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
-		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-compatibility-note.php';
-		WC_Stripe_UPE_Compatibility_Note::possibly_delete_note();
-
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
 		WC_Stripe_UPE_Availability_Note::possibly_delete_note();
 	}

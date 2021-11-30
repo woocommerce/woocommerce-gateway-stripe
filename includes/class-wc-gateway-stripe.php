@@ -301,15 +301,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Maybe override the parent admin_options method.
+	 * Override the parent admin_options method.
 	 */
 	public function admin_options() {
-		if ( ! WC_Stripe_Feature_Flags::is_upe_settings_redesign_enabled() ) {
-			parent::admin_options();
-
-			return;
-		}
-
 		do_action( 'wc_stripe_gateway_admin_options_wrapper', $this );
 	}
 
@@ -433,10 +427,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 			$force_save_source_value = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $prepared_source->source );
 
-			if ( 'succeeded' === $intent->status && ! $this->is_using_saved_payment_method() && ( $this->save_payment_method_requested() || $force_save_source_value ) ) {
-				$this->save_payment_method( $prepared_source->source_object );
-			}
-
 			if ( ! empty( $intent->error ) ) {
 				$this->maybe_remove_non_existent_customer( $intent->error, $order );
 
@@ -447,6 +437,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 				$this->unlock_order_payment( $order );
 				$this->throw_localized_message( $intent, $order );
+			}
+
+			if ( 'succeeded' === $intent->status && ! $this->is_using_saved_payment_method() && ( $this->save_payment_method_requested() || $force_save_source_value ) ) {
+				$this->save_payment_method( $prepared_source->source_object );
 			}
 
 			if ( ! empty( $intent ) ) {
