@@ -20,7 +20,10 @@ const PaymentMethodsDisabledList = () => {
 		.map( ( methodId ) => methodsConfiguration[ methodId ] );
 
 	return (
-		<ul className="payment-methods__available-methods">
+		<ul
+			className="payment-methods__available-methods"
+			data-testid="disabled-payment-methods-list"
+		>
 			{ disabledMethods.map( ( { id, label, Icon } ) => (
 				<li
 					key={ id }
@@ -31,7 +34,10 @@ const PaymentMethodsDisabledList = () => {
 				</li>
 			) ) }
 			{ disabledMethodIds.length > countToDisplay && (
-				<li style={ { margin: '0', lineHeight: '1.5rem' } }>
+				<li
+					style={ { margin: '0', lineHeight: '1.5rem' } }
+					data-testid="disabled-payment-methods-more"
+				>
 					{ sprintf(
 						/* translators: %d: Number of icons to display. */
 						__( '+ %d more', 'woocommerce-gateway-stripe' ),
