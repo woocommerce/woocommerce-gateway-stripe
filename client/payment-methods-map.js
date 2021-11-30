@@ -7,6 +7,8 @@ import EpsIcon from './payment-method-icons/eps';
 import BancontactIcon from './payment-method-icons/bancontact';
 import IdealIcon from './payment-method-icons/ideal';
 import P24Icon from './payment-method-icons/p24';
+import BoletoIcon from './payment-method-icons/boleto';
+import OxxoIcon from './payment-method-icons/oxxo';
 
 export default {
 	card: {
@@ -97,6 +99,28 @@ export default {
 		Icon: P24Icon,
 		currencies: [ 'EUR', 'PLN' ],
 		capability: 'p24_payments',
+	},
+	boleto: {
+		id: 'boleto',
+		label: __( 'Boleto', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Boleto is an official payment method in Brazil. Customers receive a voucher that can be paid at authorized agencies or banks, ATMs, or online bank portals.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: BoletoIcon,
+		currencies: [ 'BRL' ],
+		capability: 'boleto_payments',
+	},
+	oxxo: {
+		id: 'oxxo',
+		label: __( 'OXXO', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'OXXO is a Mexican chain of convenience stores that allows customers to pay bills and online purchases in-store with cash.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: OxxoIcon,
+		currencies: [ 'MXN' ],
+		capability: 'oxxo_payments',
 	},
 	alipay: {
 		id: 'alipay',

@@ -83,4 +83,21 @@ export const gatewaysInfo = {
 		),
 		guide: 'https://stripe.com/payments/payment-methods-guide#multibanco',
 	},
+	stripe_boleto: {
+		title: __( 'Boleto', 'woocommerce-gateway-stripe' ),
+		geography: __(
+			'Customer Geography: Brazil.',
+			'woocommerce-gateway-stripe'
+		),
+		guide:
+			'https://stripe.com/docs/payments/payment-methods/overview#vouchers',
+	},
+	stripe_oxxo: {
+		title: __( 'OXXO', 'woocommerce-gateway-stripe' ),
+		geography: __(
+			'Customer Geography: Mexico.',
+			'woocommerce-gateway-stripe'
+		),
+		guide: 'https://stripe.com/payments/payment-methods-guide#oxxo',
+	},
 };

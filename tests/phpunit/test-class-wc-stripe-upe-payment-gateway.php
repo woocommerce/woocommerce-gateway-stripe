@@ -145,7 +145,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$order_key    = $order->get_order_key();
 		$amount       = WC_Stripe_Helper::get_stripe_amount( $total, $currency );
 		$description  = "Test Blog - Order $order_number";
-		$metadata     = [
+		$metadata = [
 			'customer_name'  => 'Jeroen Sormani',
 			'customer_email' => 'admin@example.org',
 			'site_url'       => 'http://example.org',
@@ -177,6 +177,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$order             = WC_Helper_Order::create_order();
 		$currency          = $order->get_currency();
 		$order_id          = $order->get_id();
+
+		$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
+		$order->update_meta_data( '_stripe_upe_payment_type', '' );
+		$order->save();
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 
@@ -258,9 +262,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$note        = wc_get_order_notes(
 			[
 				'order_id' => $order_id,
-				'limit'    => 1,
+				'limit'    => 2,
 			]
-		)[0];
+		)[1];
 
 		$this->assertEquals( 'processing', $final_order->get_status() );
 		$this->assertEquals( 'Credit card / debit card', $final_order->get_payment_method_title() );
@@ -307,12 +311,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
 
 		$success_order = wc_get_order( $order_id );
+
 		$note          = wc_get_order_notes(
 			[
 				'order_id' => $order_id,
-				'limit'    => 1,
+				'limit'    => 2,
 			]
-		)[0];
+		)[1];
 
 		// assert successful order processing
 		$this->assertEquals( 'processing', $success_order->get_status() );
@@ -970,6 +975,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$order             = WC_Helper_Order::create_order();
 		$currency          = $order->get_currency();
 		$order_id          = $order->get_id();
+
+		$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
+		$order->update_meta_data( '_stripe_upe_payment_type', '' );
+		$order->save();
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 

@@ -15,7 +15,7 @@ describe( 'SettingsManager', () => {
 				email: 'test@example.com',
 				mode: 'test',
 				paymentsEnabled: true,
-				depositsEnabled: true,
+				payoutsEnabled: true,
 				accountLink: 'https://stripe.com/support',
 			},
 		};

@@ -21,7 +21,7 @@ const WebhookEndpointText = styled.strong`
 const useIsCardPaymentsEnabled = () =>
 	useGetCapabilities().card_payments === 'active';
 
-const useAreDepositsEnabled = () => {
+const useArePayoutsEnabled = () => {
 	const { data } = useAccount();
 
 	return (
@@ -45,12 +45,12 @@ const PaymentsSection = () => {
 	);
 };
 
-const DepositsSection = () => {
-	const isEnabled = useAreDepositsEnabled();
+const PayoutsSection = () => {
+	const isEnabled = useArePayoutsEnabled();
 
 	return (
 		<div className="account-details__row">
-			<p>{ __( 'Deposits:', 'woocommerce-gateway-stripe' ) }</p>
+			<p>{ __( 'Payouts:', 'woocommerce-gateway-stripe' ) }</p>
 			<SectionStatus isEnabled={ isEnabled }>
 				{ isEnabled
 					? __( 'Enabled', 'woocommerce-gateway-stripe' )
@@ -120,9 +120,9 @@ const WebhooksSection = () => {
 
 const MissingAccountDetailsDescription = () => {
 	const isPaymentsEnabled = useIsCardPaymentsEnabled();
-	const areDepositsEnabled = useAreDepositsEnabled();
+	const arePayoutsEnabled = useArePayoutsEnabled();
 
-	if ( isPaymentsEnabled && areDepositsEnabled ) {
+	if ( isPaymentsEnabled && arePayoutsEnabled ) {
 		return null;
 	}
 
@@ -131,7 +131,7 @@ const MissingAccountDetailsDescription = () => {
 			{ createInterpolateElement(
 				/* translators: <a> - dashboard login URL */
 				__(
-					'Payments/deposits may be disabled for this account until missing business information is updated. <a>Update now</a>',
+					'Payments/payouts may be disabled for this account until missing business information is updated. <a>Update now</a>',
 					'woocommerce-gateway-stripe'
 				),
 				{ a: <ExternalLink href="https://stripe.com/support" /> }
@@ -181,7 +181,7 @@ const AccountDetails = () => {
 		<div>
 			<div className="account-details__flex-container">
 				<PaymentsSection />
-				<DepositsSection />
+				<PayoutsSection />
 				<MissingAccountDetailsDescription />
 				<WebhooksSection />
 			</div>
