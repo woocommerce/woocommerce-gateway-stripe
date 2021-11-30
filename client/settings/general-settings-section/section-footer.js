@@ -2,7 +2,7 @@ import { __ } from '@wordpress/i18n';
 import React from 'react';
 import { ExternalLink } from '@wordpress/components';
 import CardFooter from 'wcstripe/settings/card-footer';
-import PaymentMethodsDisabledList from 'wcstripe/settings/general-settings-section/payment-methods-disabled-list';
+import PaymentMethodsUnavailableList from 'wcstripe/settings/general-settings-section/payment-methods-unavailable-list';
 
 const SectionFooter = () => (
 	<CardFooter>
@@ -16,7 +16,7 @@ const SectionFooter = () => (
 					'woocommerce-gateway-stripe'
 				) }
 			</ExternalLink>
-			<PaymentMethodsDisabledList />
+			<PaymentMethodsUnavailableList />
 		</div>
 	</CardFooter>
 );

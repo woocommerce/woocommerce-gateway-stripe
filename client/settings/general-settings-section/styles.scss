@@ -1,7 +1,7 @@
 @import '../../styles/abstracts/breakpoints';
 
 .payment-methods {
-	&__available-methods {
+	&__unavailable-methods {
 		display: none;
 		margin: 0 0 0 1.5rem;
 
@@ -10,7 +10,7 @@
 		}
 	}
 
-	&__available-method {
+	&__unavailable-method {
 		border-radius: 2px;
 		width: 38px;
 		height: 24px;

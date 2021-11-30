@@ -377,6 +377,9 @@ describe( 'GeneralSettingsSection', () => {
 	} );
 
 	it( 'should render the list of missing payment methods if UPE is enabled', () => {
+		useGetCapabilities.mockReturnValue( {
+			card_payments: 'active',
+		} );
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			'card',
 			'giropay',
@@ -393,11 +396,11 @@ describe( 'GeneralSettingsSection', () => {
 		);
 
 		expect(
-			screen.queryByTestId( 'disabled-payment-methods-list' )
+			screen.queryByTestId( 'unavailable-payment-methods-list' )
 		).toBeInTheDocument();
 
 		expect(
-			screen.queryByTestId( 'disabled-payment-methods-more' )
+			screen.queryByTestId( 'unavailable-payment-methods-more' )
 		).toBeInTheDocument();
 	} );
 
@@ -409,7 +412,7 @@ describe( 'GeneralSettingsSection', () => {
 		);
 
 		expect(
-			screen.queryByTestId( 'disabled-payment-methods-list' )
+			screen.queryByTestId( 'unavailable-payment-methods-list' )
 		).not.toBeInTheDocument();
 	} );
 } );
