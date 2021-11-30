@@ -155,6 +155,7 @@ const UPEField = ( {
 			elements,
 			paymentIntentId,
 			selectedUpePaymentType,
+			billingData,
 			shouldSavePayment,
 			stripe,
 		]
