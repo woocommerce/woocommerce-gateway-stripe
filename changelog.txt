@@ -1,7 +1,12 @@
 *** Changelog ***
 
 = 5.x.x - 2021-xx-xx =
-* Add - Add Stripe API to generate connection tokens, manage terminal locations.
+* Add - Add Stripe API to generate connection tokens, manage terminal locations, create customers.
+* Tweak - Remove `_wcstripe_feature_upe` flag and all traces of old settings.
+* Fix - Fixed unhandled php error when invalid card is used on Pay Order page.
+
+= 5.8.1 - 2021-11-23 =
+* Fix - Run filters that disable Stripe JS on cart and product pages when PRBs are disabled.
 
 = 5.8.0 - 2021-11-18 =
 * Fix - Hong Kong addresses are now mapped more thoroughly to WooCommerce addresses when paying with Apple Pay.
@@ -13,6 +18,7 @@
 * Fix - Add support for MYR (Malaysian ringgit) for Alipay.
 * Add - New Settings UI.
 * Fix - Hide payment request button when variations of a variable product are out-of-stock.
+* Add - Support for Boleto and OXXO payment methods
 
 = 5.7.0 - 2021-10-20 =
 * Fix - Enable use of saved payment methods converted to SEPA payments.

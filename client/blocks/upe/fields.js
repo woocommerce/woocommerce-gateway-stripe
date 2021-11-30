@@ -106,12 +106,18 @@ const UPEField = ( {
 						paymentMethodData: {
 							paymentMethod: PAYMENT_METHOD_NAME,
 							wc_payment_intent_id: paymentIntentId,
+							wc_stripe_selected_upe_payment_type: selectedUpePaymentType,
 						},
 					},
 				};
 			} ),
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-		[ activePaymentMethod, isUpeComplete, shouldSavePayment ]
+		[
+			activePaymentMethod,
+			isUpeComplete,
+			shouldSavePayment,
+			selectedUpePaymentType,
+		]
 	);
 
 	useEffect(
