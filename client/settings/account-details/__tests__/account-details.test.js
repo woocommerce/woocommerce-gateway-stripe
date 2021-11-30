@@ -15,7 +15,7 @@ jest.mock( 'wcstripe/data/account-keys', () => ( {
 } ) );
 
 describe( 'AccountDetails', () => {
-	it( 'renders enabled payments and deposits on account', () => {
+	it( 'renders enabled payments and payouts on account', () => {
 		useGetCapabilities.mockReturnValue( {
 			card_payments: 'active',
 		} );
@@ -52,7 +52,7 @@ describe( 'AccountDetails', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'renders disabled deposits and payments on account', () => {
+	it( 'renders disabled payouts and payments on account', () => {
 		useGetCapabilities.mockReturnValue( {
 			card_payments: 'disabled',
 		} );
