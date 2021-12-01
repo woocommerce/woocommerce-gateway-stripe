@@ -10,6 +10,7 @@ import SectionFooter from './section-footer';
 import PaymentMethodsList from './payment-methods-list';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { useAccount } from 'wcstripe/data/account';
+import './styles.scss';
 
 const StyledCard = styled( Card )`
 	margin-bottom: 12px;

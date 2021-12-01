@@ -375,4 +375,44 @@ describe( 'GeneralSettingsSection', () => {
 			} )
 		).not.toBeInTheDocument();
 	} );
+
+	it( 'should render the list of missing payment methods if UPE is enabled', () => {
+		useGetCapabilities.mockReturnValue( {
+			card_payments: 'active',
+		} );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			'card',
+			'giropay',
+			'sepa_debit',
+			'sofort',
+			'eps',
+		] );
+		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card' ] ] );
+
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		expect(
+			screen.queryByTestId( 'unavailable-payment-methods-list' )
+		).toBeInTheDocument();
+
+		expect(
+			screen.queryByTestId( 'unavailable-payment-methods-more' )
+		).toBeInTheDocument();
+	} );
+
+	it( 'should not render the list of missing payment methods if UPE is disabled', () => {
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		expect(
+			screen.queryByTestId( 'unavailable-payment-methods-list' )
+		).not.toBeInTheDocument();
+	} );
 } );
