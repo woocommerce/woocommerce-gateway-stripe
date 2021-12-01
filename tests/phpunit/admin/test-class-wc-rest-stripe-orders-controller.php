@@ -159,7 +159,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( 404, $response->get_status() );
 	}
 
-	public function test_capture_payment_invaild_status() {
+	public function test_capture_payment_invalid_status() {
 		wp_set_current_user( 1 );
 		$order = WC_Helper_Order::create_order();
 
