@@ -132,5 +132,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - Add Stripe API to generate connection tokens, manage terminal locations, create customers, get account summary, capture payment.
 * Add - Add Stripe API to generate connection tokens, manage terminal locations.
 * Tweak - Remove `_wcstripe_feature_upe` flag and all traces of old settings.
+* Add - Text to explain how to enable webhooks when manually entering your API keys in the new Stripe settings.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
