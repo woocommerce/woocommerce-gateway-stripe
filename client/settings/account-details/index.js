@@ -88,7 +88,7 @@ const WebhooksSection = () => {
 			<div className="account-details__desc">
 				{ createInterpolateElement(
 					__(
-						"You must add the following webhook endpoint <webhookEndpoint /> to your <a>Stripe account settings</a> (if there isn't one already enabled). This will enable you to receive notifications on the charge statuses.",
+						"Add the following webhook endpoint <webhookEndpoint /> to your <a>Stripe account settings</a> (if there isn't one already). This will enable you to receive notifications on the charge statuses.",
 						'woocommerce-gateway-stripe'
 					),
 					{
