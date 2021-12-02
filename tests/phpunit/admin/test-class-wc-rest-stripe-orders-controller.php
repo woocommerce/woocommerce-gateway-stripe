@@ -188,4 +188,63 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
 	}
+
+	public function test_capture_payment_refunded_order() {
+		wp_set_current_user( 1 );
+		$order = WC_Helper_Order::create_order();
+		wc_create_refund(
+			[
+				'order_id' => $order->get_id(),
+				'amount'   => 1,
+			]
+		);
+
+		$endpoint = self::ORDERS_REST_BASE . '/' . strval( $order->get_id() ) . '/capture_terminal_payment';
+		$request = new WP_REST_Request( 'POST', $endpoint );
+		$request->set_param( 'payment_intent_id', 'pi_12345' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 400, $response->get_status() );
+	}
+
+	public function test_capture_payment_stripe_error() {
+		wp_set_current_user( 1 );
+		$order = WC_Helper_Order::create_order();
+
+		// Mock response from Stripe API.
+		$test_request = function ( $preempt, $parsed_args, $url ) {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode(
+					[
+						'id'      => 'pi_12345',
+						'object'  => 'payment_intent',
+						'status'  => 'requires_capture',
+						'charges' => [
+							'data' => [
+								[
+									'id'                  => 'ch_12345',
+									'balance_transaction' => [
+										'id' => 'txn_12345',
+									],
+									'status'              => 'failed',
+								],
+							],
+						],
+					]
+				),
+			];
+		};
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$endpoint = self::ORDERS_REST_BASE . '/' . strval( $order->get_id() ) . '/capture_terminal_payment';
+		$request = new WP_REST_Request( 'POST', $endpoint );
+		$request->set_param( 'payment_intent_id', 'pi_12345' );
+		$response = rest_do_request( $request );
+
+		$this->assertEquals( 502, $response->get_status() );
+
+		remove_filter( 'pre_http_request', $test_request, 10, 3 );
+	}
 }
