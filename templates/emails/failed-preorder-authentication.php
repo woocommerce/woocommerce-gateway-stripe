@@ -15,8 +15,8 @@ $billing_phone = $order->get_billing_phone();
 <?php
 	echo wp_kses(
 		sprintf(
-			// translators: %s is a link to the payment re-authentication URL.
-			_x( 'Your pre-order is now available, but payment cannot be completed automatically. %s', 'In failed SCA authentication for a pre-order.', 'woocommerce-gateway-stripe' ),
+			// translators: 1) is a link to the payment re-authentication URL.
+			_x( 'Your pre-order is now available, but payment cannot be completed automatically. %1$s', 'In failed SCA authentication for a pre-order.', 'woocommerce-gateway-stripe' ),
 			'<a href="' . esc_url( $authorization_url ) . '">' . esc_html__( 'Authorize the payment now &raquo;', 'woocommerce-gateway-stripe' ) . '</a>'
 		),
 		[ 'a' => [ 'href' => true ] ]

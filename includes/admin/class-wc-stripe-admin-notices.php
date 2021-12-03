@@ -303,7 +303,7 @@ class WC_Stripe_Admin_Notices {
 			}
 
 			if ( ! in_array( get_woocommerce_currency(), $gateway->get_supported_currency(), true ) ) {
-				/* translators: %1$s Payment method, %2$s List of supported currencies */
+				/* translators: 1) Payment method, 2) List of supported currencies */
 				$this->add_admin_notice( $method, 'notice notice-error', sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s', 'woocommerce-gateway-stripe' ), $method, implode( ', ', $gateway->get_supported_currency() ) ), true );
 			}
 		}
