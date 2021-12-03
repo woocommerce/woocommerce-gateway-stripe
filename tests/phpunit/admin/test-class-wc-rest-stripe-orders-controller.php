@@ -156,6 +156,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 		$request->set_param( 'payment_intent_id', 'pi_12345' );
 		$response = rest_do_request( $request );
 
+		$this->assertEquals( 'wc_stripe_missing_order', $response->get_data()['code'] );
 		$this->assertEquals( 404, $response->get_status() );
 	}
 
@@ -184,6 +185,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 		$request->set_param( 'payment_intent_id', 'pi_12345' );
 		$response = rest_do_request( $request );
 
+		$this->assertEquals( 'wc_stripe_payment_uncapturable', $response->get_data()['code'] );
 		$this->assertEquals( 409, $response->get_status() );
 
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
@@ -204,6 +206,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 		$request->set_param( 'payment_intent_id', 'pi_12345' );
 		$response = rest_do_request( $request );
 
+		$this->assertEquals( 'wc_stripe_refunded_order_uncapturable', $response->get_data()['code'] );
 		$this->assertEquals( 400, $response->get_status() );
 	}
 
@@ -243,6 +246,7 @@ class WC_REST_Stripe_Orders_Controller_Test extends WP_UnitTestCase {
 		$request->set_param( 'payment_intent_id', 'pi_12345' );
 		$response = rest_do_request( $request );
 
+		$this->assertEquals( 'wc_stripe_capture_error', $response->get_data()['code'] );
 		$this->assertEquals( 502, $response->get_status() );
 
 		remove_filter( 'pre_http_request', $test_request, 10, 3 );
