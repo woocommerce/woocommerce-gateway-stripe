@@ -40,7 +40,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		public function get_oauth_url( $return_url = '' ) {
 
 			if ( empty( $return_url ) ) {
-				$return_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' );
+				$return_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings' );
 			}
 
 			if ( substr( $return_url, 0, 8 ) !== 'https://' ) {
