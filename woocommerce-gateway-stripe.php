@@ -581,6 +581,7 @@ function woocommerce_gateway_stripe() {
 				/** API includes */
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-base-controller.php';
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/abstracts/abstract-wc-stripe-connect-rest-controller.php';
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-controller.php';
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-connection-tokens-controller.php';
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-locations-controller.php';
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-orders-controller.php';
@@ -592,18 +593,19 @@ function woocommerce_gateway_stripe() {
 				$orders_controller            = new WC_REST_Stripe_Orders_Controller( $this->get_main_stripe_gateway() );
 				$oauth_init                   = new WC_Stripe_Connect_REST_Oauth_Init_Controller( $this->connect, $this->api );
 				$oauth_connect                = new WC_Stripe_Connect_REST_Oauth_Connect_Controller( $this->connect, $this->api );
+				$stripe_account_controller    = new WC_REST_Stripe_Account_Controller( $this->account );
 
 				$connection_tokens_controller->register_routes();
 				$locations_controller->register_routes();
 				$orders_controller->register_routes();
 				$oauth_init->register_routes();
 				$oauth_connect->register_routes();
+				$stripe_account_controller->register_routes();
 
 				if ( WC_Stripe_Feature_Flags::is_upe_preview_enabled() ) {
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
-					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-payment-gateway-controller.php';
 
 					$upe_flag_toggle_controller = new WC_Stripe_REST_UPE_Flag_Toggle_Controller();
@@ -614,9 +616,6 @@ function woocommerce_gateway_stripe() {
 
 					$stripe_account_keys_controller = new WC_REST_Stripe_Account_Keys_Controller( $this->account );
 					$stripe_account_keys_controller->register_routes();
-
-					$stripe_account_controller = new WC_REST_Stripe_Account_Controller( $this->account );
-					$stripe_account_controller->register_routes();
 
 					$settings_controller = new WC_REST_Stripe_Payment_Gateway_Controller();
 					$settings_controller->register_routes();
