@@ -111,10 +111,7 @@ class WC_Stripe_Settings_Controller {
 
 		$params = [
 			'time'                    => time(),
-			'i18n_out_of_sync'        => wp_kses(
-				$message,
-				[ 'strong' => [] ]
-			),
+			'i18n_out_of_sync'        => $message,
 			'is_upe_checkout_enabled' => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
 			'stripe_oauth_url'        => $oauth_url,
 		];

@@ -38,7 +38,7 @@ class WC_Stripe_UPE_Availability_Note {
 		$note->set_title( __( 'Boost your sales with the new payment experience in Stripe', 'woocommerce-gateway-stripe' ) );
 		$message = sprintf(
 		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-			esc_html__( 'Get early access to an improved checkout experience, now available to select merchants. %1$sLearn more%2$s.', 'woocommerce-gateway-stripe' ),
+			__( 'Get early access to an improved checkout experience, now available to select merchants. %1$sLearn more%2$s.', 'woocommerce-gateway-stripe' ),
 			'<a href="https://woocommerce.com/document/stripe/#new-checkout-experience" target="_blank">',
 			'</a>'
 		);
