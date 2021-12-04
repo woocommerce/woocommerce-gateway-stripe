@@ -23,7 +23,6 @@ const StyledLink = styled.a`
 
 const PaymentMethodCapabilityStatusPill = ( { id, label } ) => {
 	const capabilities = useGetCapabilities();
-	// console.log(capabilities);
 	const capabilityStatus = capabilities[ `${ id }_payments` ];
 
 	if ( capabilityStatus === 'pending' || capabilityStatus === 'inactive' ) {
