@@ -455,15 +455,15 @@ msgid "<a href=\"https://stripe.com/payments/payment-methods-guide#giropay\" tar
 msgstr ""
 
 #: includes/admin/stripe-giropay-settings.php:23
-msgid "Enable Stripe Giropay"
+msgid "Enable Stripe giropay"
 msgstr ""
 
 #: includes/admin/stripe-giropay-settings.php:32
-msgid "Giropay"
+msgid "giropay"
 msgstr ""
 
 #: includes/admin/stripe-giropay-settings.php:39
-msgid "You will be redirected to Giropay."
+msgid "You will be redirected to giropay."
 msgstr ""
 
 #: includes/admin/stripe-ideal-settings.php:10
@@ -475,15 +475,15 @@ msgid "<a href=\"https://stripe.com/payments/payment-methods-guide#ideal\" targe
 msgstr ""
 
 #: includes/admin/stripe-ideal-settings.php:23
-msgid "Enable Stripe iDeal"
+msgid "Enable Stripe iDEAL"
 msgstr ""
 
 #: includes/admin/stripe-ideal-settings.php:32
-msgid "iDeal"
+msgid "iDEAL"
 msgstr ""
 
 #: includes/admin/stripe-ideal-settings.php:39
-msgid "You will be redirected to iDeal."
+msgid "You will be redirected to iDEAL."
 msgstr ""
 
 #: includes/admin/stripe-multibanco-settings.php:10
@@ -805,15 +805,15 @@ msgid "<a href=\"https://stripe.com/payments/payment-methods-guide#sofort\" targ
 msgstr ""
 
 #: includes/admin/stripe-sofort-settings.php:23
-msgid "Enable Stripe SOFORT"
+msgid "Enable Stripe Sofort"
 msgstr ""
 
 #: includes/admin/stripe-sofort-settings.php:32
-msgid "SOFORT"
+msgid "Sofort"
 msgstr ""
 
 #: includes/admin/stripe-sofort-settings.php:39
-msgid "You will be redirected to SOFORT."
+msgid "You will be redirected to Sofort."
 msgstr ""
 
 #. translators: 1) link to Stripe register page 2) link to Stripe api keys page
