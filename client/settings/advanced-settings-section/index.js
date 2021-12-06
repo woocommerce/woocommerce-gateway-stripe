@@ -5,6 +5,7 @@ import { Card, Button } from '@wordpress/components';
 import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
 import DebugMode from './debug-mode';
+import ExperimentalFeatures from './experimental-features';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import useToggle from 'wcstripe/hooks/use-toggle';
 
@@ -27,6 +28,7 @@ const AdvancedSettings = () => {
 						<Card>
 							<CardBody>
 								<DebugMode />
+								<ExperimentalFeatures />
 							</CardBody>
 						</Card>
 					</LoadableSettingsSection>
