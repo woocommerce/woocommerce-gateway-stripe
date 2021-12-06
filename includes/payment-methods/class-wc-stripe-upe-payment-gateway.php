@@ -438,9 +438,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			<?php
 			if ( $display_tokenization ) {
 				$this->tokenization_script();
-				if ( $this->get_tokens() ) {
-					$this->saved_payment_methods();
-				}
+				$this->saved_payment_methods();
 			}
 			?>
 
