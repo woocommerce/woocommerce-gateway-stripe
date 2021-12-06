@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class that handles Giropay payment method.
+ * Class that handles giropay payment method.
  *
  * @extends WC_Gateway_Stripe
  *

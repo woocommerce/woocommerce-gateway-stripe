@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class that handles SOFORT payment method.
+ * Class that handles Sofort payment method.
  *
  * @extends WC_Gateway_Stripe
  *

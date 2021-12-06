@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class that handles iDeal payment method.
+ * Class that handles iDEAL payment method.
  *
  * @extends WC_Gateway_Stripe
  *
