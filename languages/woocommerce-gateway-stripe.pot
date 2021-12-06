@@ -1525,13 +1525,13 @@ msgid "Stripe EPS"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-giropay.php:61
-#: woocommerce-gateway-stripe.php:302
-msgid "Stripe Giropay"
+#: woocommerce-gateway-stripe.php:425
+msgid "Stripe giropay"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-ideal.php:61
-#: woocommerce-gateway-stripe.php:304
-msgid "Stripe iDeal"
+#: woocommerce-gateway-stripe.php:427
+msgid "Stripe iDEAL"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:61
@@ -1587,8 +1587,8 @@ msgid "TEST MODE ENABLED. In test mode, you can use IBAN number DE89370400440532
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-sofort.php:61
-#: woocommerce-gateway-stripe.php:301
-msgid "Stripe SOFORT"
+#: woocommerce-gateway-stripe.php:424
+msgid "Stripe Sofort"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:362
