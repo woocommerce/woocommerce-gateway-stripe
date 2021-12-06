@@ -1128,8 +1128,8 @@ msgstr ""
 msgid "An error occurred while processing the card."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:212
-msgid "The billing country is not accepted by SOFORT. Please try another country."
+#: includes/class-wc-stripe-helper.php:213
+msgid "The billing country is not accepted by Sofort. Please try another country."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:213
