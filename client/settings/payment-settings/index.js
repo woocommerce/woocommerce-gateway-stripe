@@ -36,7 +36,10 @@ const GeneralSettingsDescription = () => (
 		</p>
 		<p>
 			<ExternalLink href="https://woocommerce.com/document/stripe/">
-				{ __( 'View Stripe docs', 'woocommerce-gateway-stripe' ) }
+				{ __(
+					'View Stripe plugin docs',
+					'woocommerce-gateway-stripe'
+				) }
 			</ExternalLink>
 		</p>
 		<p>
