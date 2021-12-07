@@ -15,12 +15,24 @@ const ExperimentalFeatures = () => {
 	const savingError = useGetSavingError();
 	const { setIsUpeEnabledLocally } = useContext( UpeToggleContext );
 	const isUpeEnabledBeforeSaving = useRef( isUpeEnabled );
+	const headingRef = useRef( null );
 	const setIsUpeEnabledBeforeSaving = useCallback( ( value ) => {
 		isUpeEnabledBeforeSaving.current = value;
 	}, [] );
 	const hasSavedSettings = useRef( false );
 	const setHasSavedSettings = useCallback( ( value ) => {
 		hasSavedSettings.current = value;
+	}, [] );
+
+	useEffect( () => {
+		if ( ! headingRef.current ) {
+			return;
+		}
+
+		const { highlight } = getQuery();
+		if ( highlight === 'enable-upe' ) {
+			headingRef.current.focus();
+		}
 	}, [] );
 
 	useEffect( () => {
@@ -80,7 +92,7 @@ const ExperimentalFeatures = () => {
 
 	return (
 		<>
-			<h4 tabIndex="-1">
+			<h4 ref={ headingRef } tabIndex="-1">
 				{ __( 'Experimental features', 'woocommerce-gateway-stripe' ) }
 			</h4>
 			<CheckboxControl

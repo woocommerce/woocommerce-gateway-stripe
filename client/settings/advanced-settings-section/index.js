@@ -1,7 +1,8 @@
 import { __ } from '@wordpress/i18n';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Icon, chevronDown, chevronUp } from '@wordpress/icons';
 import { Card, Button } from '@wordpress/components';
+import { getQuery } from '@woocommerce/navigation';
 import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
 import DebugMode from './debug-mode';
@@ -11,6 +12,13 @@ import useToggle from 'wcstripe/hooks/use-toggle';
 
 const AdvancedSettings = () => {
 	const [ isSectionExpanded, toggleIsSectionExpanded ] = useToggle( false );
+
+	useEffect( () => {
+		const { highlight } = getQuery();
+		if ( highlight === 'enable-upe' ) {
+			toggleIsSectionExpanded( true );
+		}
+	}, [ toggleIsSectionExpanded ] );
 
 	return (
 		<>
