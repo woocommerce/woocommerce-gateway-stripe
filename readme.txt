@@ -130,7 +130,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 5.9.0 - 2021-xx-xx =
 * Add - Add Stripe API to generate connection tokens, manage terminal locations, create customers, get account summary, capture payment.
-* Add - Add Stripe API to generate connection tokens, manage terminal locations.
 * Tweak - Remove `_wcstripe_feature_upe` flag and all traces of old settings.
+* Fix - Fixed unhandled php error when invalid card is used on Pay Order page.
+* Fix - Fixed bug that would send outdated data when using Blocks Checkout.
+* Add - List of payment methods that are not included for the merchant.
+* Tweak - Update how the new checkout experience is enabled.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
