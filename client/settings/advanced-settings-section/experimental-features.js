@@ -67,14 +67,14 @@ const ExperimentalFeatures = () => {
 							],
 						}
 					);
-				} else {
-					// Since it won't reload, it needs to retrieve the available
-					// payment methods based on the new UPE enabled status
-					dispatch( STORE_NAME ).invalidateResolutionForStoreSelector(
-						'getSettings'
-					);
-					setIsUpeEnabledLocally( isUpeEnabled );
 				}
+				// It needs to retrieve the available payment methods based on
+				// the new UPE enabled status in order to have the payment methods
+				// list up-to-date.
+				dispatch( STORE_NAME ).invalidateResolutionForStoreSelector(
+					'getSettings'
+				);
+				setIsUpeEnabledLocally( isUpeEnabled );
 			}
 
 			setHasSavedSettings( false );
