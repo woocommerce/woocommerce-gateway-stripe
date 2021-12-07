@@ -227,9 +227,6 @@ function woocommerce_gateway_stripe() {
 						new WC_Stripe_Settings_Controller( $this->account );
 					}
 
-					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-onboarding-controller.php';
-					new WC_Stripe_Onboarding_Controller();
-
 					if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 						require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-payment-gateways-controller.php';
 						new WC_Stripe_Payment_Gateways_Controller();
