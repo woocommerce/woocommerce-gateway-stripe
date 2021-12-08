@@ -39,10 +39,12 @@ class WC_Stripe_API {
 	 */
 	public static function get_secret_key() {
 		if ( ! self::$secret_key ) {
-			$options = get_option( 'woocommerce_stripe_settings' );
+			$options         = get_option( 'woocommerce_stripe_settings' );
+			$secret_key      = $options['secret_key'] ?? '';
+			$test_secret_key = $options['test_secret_key'] ?? '';
 
-			if ( isset( $options['testmode'], $options['secret_key'], $options['test_secret_key'] ) ) {
-				self::set_secret_key( 'yes' === $options['testmode'] ? $options['test_secret_key'] : $options['secret_key'] );
+			if ( isset( $options['testmode'] ) ) {
+				self::set_secret_key( 'yes' === $options['testmode'] ? $test_secret_key : $secret_key );
 			}
 		}
 		return self::$secret_key;

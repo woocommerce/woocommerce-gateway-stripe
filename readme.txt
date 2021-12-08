@@ -135,5 +135,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Fixed bug that would send outdated data when using Blocks Checkout.
 * Add - List of payment methods that are not included for the merchant.
 * Tweak - Update how the new checkout experience is enabled.
+* Fix - Error on UPE checkout depending on the account keys set.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
