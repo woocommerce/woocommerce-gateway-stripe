@@ -7,6 +7,7 @@
 * Fix - Fixed bug that would send outdated data when using Blocks Checkout.
 * Add - List of payment methods that are not included for the merchant.
 * Tweak - Update how the new checkout experience is enabled.
+* Fix - Error on checkout depending on the account keys set.
 
 = 5.8.1 - 2021-11-23 =
 * Fix - Run filters that disable Stripe JS on cart and product pages when PRBs are disabled.
