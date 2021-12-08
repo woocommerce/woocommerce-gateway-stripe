@@ -241,9 +241,9 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'sepa_debit', $sepa_method->get_retrievable_type() );
 
 		$this->assertEquals( 'sofort', $sofort_method->get_id() );
-		$this->assertEquals( 'SOFORT', $sofort_method->get_label() );
-		$this->assertEquals( 'Pay with SOFORT', $sofort_method->get_title() );
-		$this->assertEquals( 'Pay with SOFORT', $sofort_method->get_title( $mock_sofort_details ) );
+		$this->assertEquals( 'Sofort', $sofort_method->get_label() );
+		$this->assertEquals( 'Pay with Sofort', $sofort_method->get_title() );
+		$this->assertEquals( 'Pay with Sofort', $sofort_method->get_title( $mock_sofort_details ) );
 		$this->assertTrue( $sofort_method->is_reusable() );
 		$this->assertEquals( 'sepa_debit', $sofort_method->get_retrievable_type() );
 

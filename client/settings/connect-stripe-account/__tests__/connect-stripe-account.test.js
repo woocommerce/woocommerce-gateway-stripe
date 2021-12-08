@@ -25,7 +25,7 @@ describe( 'ConnectStripeAccount', () => {
 		).toBeInTheDocument();
 		expect(
 			screen.queryByText(
-				'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDeal, SEPA, Sofort, and more international payment methods.'
+				'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDEAL, SEPA, Sofort, and more international payment methods.'
 			)
 		).toBeInTheDocument();
 	} );

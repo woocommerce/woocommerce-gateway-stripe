@@ -40,9 +40,9 @@ jest.mock( '../../loadable-payment-gateway-section', () => ( { children } ) =>
 describe( 'PaymentGatewaySection', () => {
 	beforeEach( () => {
 		useEnabledPaymentGateway.mockReturnValue( [ false ] );
-		usePaymentGatewayName.mockReturnValue( [ 'iDeal' ] );
+		usePaymentGatewayName.mockReturnValue( [ 'iDEAL' ] );
 		usePaymentGatewayDescription.mockReturnValue( [
-			'You will be redirected to iDeal',
+			'You will be redirected to iDEAL',
 		] );
 	} );
 
@@ -77,7 +77,7 @@ describe( 'PaymentGatewaySection', () => {
 		render( <PaymentGatewaySection /> );
 
 		const enableCheckbox = screen.getByRole( 'checkbox', {
-			name: /Enable iDeal/,
+			name: /Enable iDEAL/,
 		} );
 
 		expect( enableGatewayMock ).not.toHaveBeenCalled();
@@ -101,7 +101,7 @@ describe( 'PaymentGatewaySection', () => {
 		expect( setGatewayNameMock ).not.toHaveBeenCalled();
 		expect( nameInput.value ).toEqual( '' );
 
-		userEvent.type( nameInput, 'Buy with iDeal' ); // 14 characters
+		userEvent.type( nameInput, 'Buy with iDEAL' ); // 14 characters
 
 		expect( setGatewayNameMock ).toHaveBeenCalledTimes( 14 );
 	} );
@@ -122,7 +122,7 @@ describe( 'PaymentGatewaySection', () => {
 		expect( setGatewayDescriptionMock ).not.toHaveBeenCalled();
 		expect( descriptionInput.value ).toEqual( '' );
 
-		userEvent.type( descriptionInput, 'You will be redirected to iDeal' ); // 31 characters
+		userEvent.type( descriptionInput, 'You will be redirected to iDEAL' ); // 31 characters
 
 		expect( setGatewayDescriptionMock ).toHaveBeenCalledTimes( 31 );
 	} );

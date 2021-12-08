@@ -325,7 +325,7 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Check if Stripe Giropay is being used.
+		 * Check if Stripe giropay is being used.
 		 *
 		 * @return {boolean}
 		 */
@@ -334,7 +334,7 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Check if Stripe iDeal is being used.
+		 * Check if Stripe iDEAL is being used.
 		 *
 		 * @return {boolean}
 		 */
@@ -343,7 +343,7 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Check if Stripe SOFORT is being used.
+		 * Check if Stripe Sofort is being used.
 		 *
 		 * @return {boolean}
 		 */
