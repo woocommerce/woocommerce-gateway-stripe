@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Ideal Payment Method class extending UPE base class
+ * The iDEAL Payment Method class extending UPE base class
  */
 class WC_Stripe_UPE_Payment_Method_Ideal extends WC_Stripe_UPE_Payment_Method {
 

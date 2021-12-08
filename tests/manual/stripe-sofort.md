@@ -1,6 +1,6 @@
-## Stripe SOFORT
+## Stripe Sofort
 
-### Go to WooCommerce Settings > Payments > Stripe SOFORT
+### Go to WooCommerce Settings > Payments > Stripe Sofort
 
 #### Click Enable/Disable checkbox
 
@@ -8,7 +8,7 @@
 
 I see **Your settings have been saved** notice.
 
-I see **SOFORT is enabled - it requires store currency to be set to EUR** notice if my store currency is not set to Euro (€)
+I see **Sofort is enabled - it requires store currency to be set to EUR** notice if my store currency is not set to Euro (€)
 
 Be sure to also copy the webhook endpoint provided on the settings page and add it to your Stripe Dashboard API/Webhook setting.
 
@@ -24,13 +24,13 @@ I see **Your settings have been saved** notice.
 
 ### Go to the checkout page
 
-I see Stripe SOFORT is available as a payment method.
+I see Stripe Sofort is available as a payment method.
 
 ### Fill in all required details
 
-### Select Stripe SOFORT as payment method if not selected already
+### Select Stripe Sofort as payment method if not selected already
 
-### Select a SOFORT ***Country origin of your bank.***
+### Select a Sofort ***Country origin of your bank.***
 
 ### Click on **Place order** button
 

@@ -421,10 +421,10 @@ function woocommerce_gateway_stripe() {
 					$sections['stripe_upe'] = 'Stripe checkout experience';
 				}
 				$sections['stripe_bancontact'] = __( 'Stripe Bancontact', 'woocommerce-gateway-stripe' );
-				$sections['stripe_sofort']     = __( 'Stripe SOFORT', 'woocommerce-gateway-stripe' );
-				$sections['stripe_giropay']    = __( 'Stripe Giropay', 'woocommerce-gateway-stripe' );
+				$sections['stripe_sofort']     = __( 'Stripe Sofort', 'woocommerce-gateway-stripe' );
+				$sections['stripe_giropay']    = __( 'Stripe giropay', 'woocommerce-gateway-stripe' );
 				$sections['stripe_eps']        = __( 'Stripe EPS', 'woocommerce-gateway-stripe' );
-				$sections['stripe_ideal']      = __( 'Stripe iDeal', 'woocommerce-gateway-stripe' );
+				$sections['stripe_ideal']      = __( 'Stripe iDEAL', 'woocommerce-gateway-stripe' );
 				$sections['stripe_p24']        = __( 'Stripe P24', 'woocommerce-gateway-stripe' );
 				$sections['stripe_alipay']     = __( 'Stripe Alipay', 'woocommerce-gateway-stripe' );
 				$sections['stripe_sepa']       = __( 'Stripe SEPA Direct Debit', 'woocommerce-gateway-stripe' );

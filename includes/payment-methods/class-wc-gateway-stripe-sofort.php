@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class that handles SOFORT payment method.
+ * Class that handles Sofort payment method.
  *
  * @extends WC_Gateway_Stripe
  *
@@ -61,7 +61,7 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 	 */
 	public function __construct() {
 		$this->id           = 'stripe_sofort';
-		$this->method_title = __( 'Stripe SOFORT', 'woocommerce-gateway-stripe' );
+		$this->method_title = __( 'Stripe Sofort', 'woocommerce-gateway-stripe' );
 		/* translators: link */
 		$this->method_description = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 		$this->supports           = [
@@ -222,7 +222,7 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 			$post_data['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $this->statement_descriptor );
 		}
 
-		WC_Stripe_Logger::log( 'Info: Begin creating SOFORT source' );
+		WC_Stripe_Logger::log( 'Info: Begin creating Sofort source' );
 
 		return WC_Stripe_API::request( apply_filters( 'wc_stripe_sofort_source', $post_data, $order ), 'sources' );
 	}
@@ -273,7 +273,7 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 			$order->update_meta_data( '_stripe_source_id', $response->id );
 			$order->save();
 
-			WC_Stripe_Logger::log( 'Info: Redirecting to SOFORT...' );
+			WC_Stripe_Logger::log( 'Info: Redirecting to Sofort...' );
 
 			return [
 				'result'   => 'success',
