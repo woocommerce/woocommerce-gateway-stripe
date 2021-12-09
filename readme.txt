@@ -128,14 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.9.0 - 2021-12-09 =
-* Add - Add Stripe API to generate connection tokens, manage terminal locations, create customers, get account summary, capture payment.
-* Tweak - Remove `_wcstripe_feature_upe` flag and all traces of old settings.
-* Fix - Fix error when invalid card is used on Pay Order page.
-* Fix - Fix outdated data when using Blocks Checkout.
-* Add - List of payment methods that are not included for the merchant.
-* Tweak - Update how the new checkout experience is enabled.
-* Fix - Error on UPE checkout depending on the account keys set.
-* Tweak - Hide separate credit card form setting when UPE is enabled.
+= 6.x.x - 2022-xx-xx =
+* Fix - Fixed capitalization for payment method names: iDEAL, giropay, and Sofort.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
