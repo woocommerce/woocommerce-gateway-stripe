@@ -37,6 +37,7 @@ describe( 'UpeToggleContextProvider', () => {
 		expect( childrenMock ).toHaveBeenCalledWith( {
 			isUpeEnabled: false,
 			setIsUpeEnabled: expect.any( Function ),
+			setIsUpeEnabledLocally: expect.any( Function ),
 			status: 'resolved',
 		} );
 		expect( apiFetch ).not.toHaveBeenCalled();
@@ -60,6 +61,37 @@ describe( 'UpeToggleContextProvider', () => {
 		);
 		expect( apiFetch ).not.toHaveBeenCalled();
 		expect( recordEvent ).not.toHaveBeenCalled();
+	} );
+
+	it( 'should locally update the value for isUpeEnabled', () => {
+		const childrenMock = jest.fn().mockReturnValue( null );
+
+		const LocallyUpdateUpeDisabledFlagMock = () => {
+			const { setIsUpeEnabledLocally } = useContext( UpeToggleContext );
+			useEffect( () => {
+				setIsUpeEnabledLocally( false );
+			}, [ setIsUpeEnabledLocally ] );
+
+			return null;
+		};
+
+		render(
+			<UpeToggleContextProvider defaultIsUpeEnabled={ true }>
+				<LocallyUpdateUpeDisabledFlagMock />
+				<UpeToggleContext.Consumer>
+					{ childrenMock }
+				</UpeToggleContext.Consumer>
+			</UpeToggleContextProvider>
+		);
+
+		expect( apiFetch ).not.toHaveBeenCalled();
+		expect( recordEvent ).toHaveBeenCalledWith( 'wcstripe_upe_disabled' );
+		expect( childrenMock ).toHaveBeenCalledWith( {
+			isUpeEnabled: false,
+			setIsUpeEnabled: expect.any( Function ),
+			setIsUpeEnabledLocally: expect.any( Function ),
+			status: 'resolved',
+		} );
 	} );
 
 	it( 'should call the API and resolve when setIsUpeEnabled has been called', async () => {
@@ -86,12 +118,14 @@ describe( 'UpeToggleContextProvider', () => {
 		expect( childrenMock ).toHaveBeenCalledWith( {
 			isUpeEnabled: true,
 			setIsUpeEnabled: expect.any( Function ),
+			setIsUpeEnabledLocally: expect.any( Function ),
 			status: 'resolved',
 		} );
 
 		expect( childrenMock ).toHaveBeenCalledWith( {
 			isUpeEnabled: true,
 			setIsUpeEnabled: expect.any( Function ),
+			setIsUpeEnabledLocally: expect.any( Function ),
 			status: 'pending',
 		} );
 
@@ -110,6 +144,7 @@ describe( 'UpeToggleContextProvider', () => {
 		expect( childrenMock ).toHaveBeenCalledWith( {
 			isUpeEnabled: false,
 			setIsUpeEnabled: expect.any( Function ),
+			setIsUpeEnabledLocally: expect.any( Function ),
 			status: 'resolved',
 		} );
 	} );

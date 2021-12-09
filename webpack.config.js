@@ -38,7 +38,6 @@ module.exports = {
 			'./client/entrypoints/payment-request-settings/index.js',
 		upe_classic: './client/classic/upe/index.js',
 		upe_blocks: './client/blocks/upe/index.js',
-		upe_onboarding_wizard: './client/upe-onboarding-wizard/index.js',
 		upe_settings: './client/settings/index.js',
 		payment_gateways: './client/entrypoints/payment-gateways/index.js',
 	},
