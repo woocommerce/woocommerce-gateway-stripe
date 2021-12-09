@@ -26,6 +26,10 @@ wp plugin install wordpress-importer --activate
 echo "Importing WooCommerce sample products..."
 wp import wp-content/plugins/woocommerce/sample-data/sample_products.xml --authors=skip
 
+# TODO: Build a zip and use it to install plugin to make sure production build is under test.
+echo "Activating the WooCommerce Stripe Gateway plugin..."
+wp plugin activate woocommerce-gateway-stripe
+
 # echo "Activate <your-extension>"
 # wp plugin activate your-extension
 
