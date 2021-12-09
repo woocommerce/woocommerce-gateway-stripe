@@ -1,5 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import React from 'react';
+import React, { useContext } from 'react';
 import { Card, CheckboxControl, TextControl } from '@wordpress/components';
 import CardBody from '../card-body';
 import TextLengthHelpInputWrapper from './text-length-help-input-wrapper';
@@ -15,6 +15,7 @@ import {
 	useGetSavingError,
 } from 'wcstripe/data';
 import InlineNotice from 'wcstripe/components/inline-notice';
+import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 const PaymentsAndTransactionsSection = () => {
 	const [ isSavedCardsEnabled, setIsSavedCardsEnabled ] = useSavedCards();
@@ -34,6 +35,9 @@ const PaymentsAndTransactionsSection = () => {
 		shortAccountStatementDescriptor,
 		setShortAccountStatementDescriptor,
 	] = useShortAccountStatementDescriptor();
+
+	const { isUpeEnabled } = useContext( UpeToggleContext );
+
 	const statementDescriptorErrorMessage = useGetSavingError()?.data?.details
 		?.statement_descriptor?.message;
 	const shortStatementDescriptorErrorMessage = useGetSavingError()?.data
@@ -44,7 +48,7 @@ const PaymentsAndTransactionsSection = () => {
 		: __( 'All Payment Methods', 'woocommerce-gateway-stripe' );
 
 	return (
-		<Card className="transactions-and-deposits">
+		<Card className="transactions-and-payouts">
 			<CardBody>
 				<h4>
 					{ __( 'Payments settings', 'woocommerce-gateway-stripe' ) }
@@ -61,18 +65,20 @@ const PaymentsAndTransactionsSection = () => {
 						'woocommerce-gateway-stripe'
 					) }
 				/>
-				<CheckboxControl
-					checked={ isSeparateCardFormEnabled }
-					onChange={ setIsSeparateCardFormEnabled }
-					label={ __(
-						'Enable separate credit card form',
-						'woocommerce-gateway-stripe'
-					) }
-					help={ __(
-						'If enabled, the credit card form will display separate credit card number field, expiry date field and CVC field.',
-						'woocommerce-gateway-stripe'
-					) }
-				/>
+				{ ! isUpeEnabled && (
+					<CheckboxControl
+						checked={ isSeparateCardFormEnabled }
+						onChange={ setIsSeparateCardFormEnabled }
+						label={ __(
+							'Enable separate credit card form',
+							'woocommerce-gateway-stripe'
+						) }
+						help={ __(
+							'If enabled, the credit card form will display separate credit card number field, expiry date field and CVC field.',
+							'woocommerce-gateway-stripe'
+						) }
+					/>
+				) }
 				<h4>
 					{ __(
 						'Transaction preferences',

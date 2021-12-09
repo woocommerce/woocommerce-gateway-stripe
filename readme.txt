@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 5.6
 Tested up to: 5.8
 Requires PHP: 7.0
-Stable tag: 5.8.1
+Stable tag: 5.9.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,7 +128,14 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.8.1 - 2021-11-23 =
-* Fix - Run filters that disable Stripe JS on cart and product pages when PRBs are disabled.
+= 5.9.0 - 2021-12-09 =
+* Add - Add Stripe API to generate connection tokens, manage terminal locations, create customers, get account summary, capture payment.
+* Tweak - Remove `_wcstripe_feature_upe` flag and all traces of old settings.
+* Fix - Fix error when invalid card is used on Pay Order page.
+* Fix - Fix outdated data when using Blocks Checkout.
+* Add - List of payment methods that are not included for the merchant.
+* Tweak - Update how the new checkout experience is enabled.
+* Fix - Error on UPE checkout depending on the account keys set.
+* Tweak - Hide separate credit card form setting when UPE is enabled.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

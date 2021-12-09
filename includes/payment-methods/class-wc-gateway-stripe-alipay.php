@@ -287,7 +287,8 @@ class WC_Gateway_Stripe_Alipay extends WC_Stripe_Payment_Gateway {
 
 			$statuses = apply_filters(
 				'wc_stripe_allowed_payment_processing_statuses',
-				[ 'pending', 'failed' ]
+				[ 'pending', 'failed' ],
+				$order
 			);
 
 			if ( $order->has_status( $statuses ) ) {

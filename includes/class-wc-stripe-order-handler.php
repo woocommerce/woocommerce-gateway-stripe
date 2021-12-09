@@ -212,6 +212,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	 * @since 3.1.0
 	 * @version 4.0.0
 	 * @param  int $order_id
+	 * @return stdClass|void Result of payment capture.
 	 */
 	public function capture_payment( $order_id ) {
 		$order = wc_get_order( $order_id );
@@ -305,6 +306,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 
 				// This hook fires when admin manually changes order status to processing or completed.
 				do_action( 'woocommerce_stripe_process_manual_capture', $order, $result );
+				return $result;
 			}
 		}
 	}
