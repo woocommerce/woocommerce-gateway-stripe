@@ -14,6 +14,7 @@ describe( 'Store Owner', () => {
 	it(
 		'Store owner can log in',
 		async () => {
+			console.log( config.get( 'url' ) );
 			await StoreOwnerFlow.login();
 		},
 		TIMEOUT
