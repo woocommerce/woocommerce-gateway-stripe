@@ -14,6 +14,7 @@ import {
 } from 'wcstripe/data/account-keys';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import InlineNotice from 'wcstripe/components/inline-notice';
+import { WebhookInformation } from 'wcstripe/components/webhook-information';
 
 const PublishableKey = () => {
 	const [ publishableKey ] = useAccountKeysPublishableKey();
@@ -136,6 +137,7 @@ const Form = ( { formRef, testMode } ) => {
 		<form ref={ formRef }>
 			{ testMode ? <TestPublishableKey /> : <PublishableKey /> }
 			{ testMode ? <TestSecretKey /> : <SecretKey /> }
+			<WebhookInformation />
 			{ testMode ? <TestWebhookSecret /> : <WebhookSecret /> }
 		</form>
 	);

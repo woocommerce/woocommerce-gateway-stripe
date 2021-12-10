@@ -46,6 +46,21 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 				'permission_callback' => [ $this, 'check_permission' ],
 			]
 		);
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/(?P<order_id>\w+)/capture_terminal_payment',
+			[
+				'methods'             => WP_REST_Server::CREATABLE,
+				'callback'            => [ $this, 'capture_terminal_payment' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+				'args'                => [
+					'payment_intent_id' => [
+						'required' => true,
+					],
+				],
+			]
+		);
 	}
 
 	/**
@@ -97,5 +112,71 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 		$order->save();
 
 		return rest_ensure_response( [ 'id' => $customer_id ] );
+	}
+
+	public function capture_terminal_payment( $request ) {
+		try {
+			$intent_id = $request['payment_intent_id'];
+			$order_id  = $request['order_id'];
+			$order     = wc_get_order( $order_id );
+
+			// Check that order exists before capturing payment.
+			if ( ! $order ) {
+				return new WP_Error( 'wc_stripe_missing_order', __( 'Order not found', 'woocommerce-gateway-stripe' ), [ 'status' => 404 ] );
+			}
+
+			// Do not process refunded orders.
+			if ( 0 < $order->get_total_refunded() ) {
+				return new WP_Error( 'wc_stripe_refunded_order_uncapturable', __( 'Payment cannot be captured for partially or fully refunded orders.', 'woocommerce-gateway-stripe' ), [ 'status' => 400 ] );
+			}
+
+			// Retrieve intent from Stripe.
+			$intent = WC_Stripe_API::retrieve( "payment_intents/$intent_id" );
+
+			// Check that intent exists.
+			if ( ! empty( $intent->error ) ) {
+				return new WP_Error( 'stripe_error', $intent->error->message );
+			}
+
+			// Ensure that intent can be captured.
+			if ( ! in_array( $intent->status, [ 'processing', 'requires_capture' ], true ) ) {
+				return new WP_Error( 'wc_stripe_payment_uncapturable', __( 'The payment cannot be captured', 'woocommerce-gateway-stripe' ), [ 'status' => 409 ] );
+			}
+
+			// Update order with payment method and intent details.
+			$order->set_payment_method( WC_Gateway_Stripe::ID );
+			$order->set_payment_method_title( __( 'WooCommerce Stripe In-Person Payments', 'woocommerce-gateway-stripe' ) );
+			$this->gateway->save_intent_to_order( $order, $intent );
+
+			// Capture payment intent.
+			$charge = end( $intent->charges->data );
+			$this->gateway->process_response( $charge, $order );
+			$result = WC_Stripe_Order_Handler::get_instance()->capture_payment( $order );
+
+			// Check for failure to capture payment.
+			if ( empty( $result ) || empty( $result->status ) || 'succeeded' !== $result->status ) {
+				return new WP_Error(
+					'wc_stripe_capture_error',
+					sprintf(
+						// translators: %s: the error message.
+						__( 'Payment capture failed to complete with the following message: %s', 'woocommerce-gateway-stripe' ),
+						$result->error->message ?? __( 'Unknown error', 'woocommerce-gateway-stripe' )
+					),
+					[ 'status' => 502 ]
+				);
+			}
+
+			// Successfully captured.
+			$order->update_status( 'completed' );
+			return rest_ensure_response(
+				[
+					'status' => $result->status,
+					'id'     => $result->id,
+				]
+			);
+		} catch ( WC_Stripe_Exception $e ) {
+			return rest_ensure_response( new WP_Error( 'stripe_error', $e->getMessage() ) );
+		}
+
 	}
 }
