@@ -25,7 +25,7 @@ class WC_Stripe_UPE_Availability_Note {
 	/**
 	 * Link to enable the UPE in store.
 	 */
-	const ENABLE_IN_STORE_LINK = '?page=wc_stripe-onboarding_wizard';
+	const ENABLE_IN_STORE_LINK = '?page=wc-settings&tab=checkout&section=stripe&panel=settings&highlight=enable-upe';
 
 
 	/**
