@@ -1,4 +1,4 @@
-export const buttons = {
+export const buttonsUtils = {
 	clickButtonWithText: async ( text ) => {
 		await page.waitForXPath( '//*[text() = "' + text + '"]', {
 			visible: true,
