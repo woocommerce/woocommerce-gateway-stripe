@@ -16,7 +16,8 @@ module.exports = {
 				[
 					'@wordpress/babel-plugin-makepot',
 					{
-						output: 'languages/woocommerce-gateway-stripe.pot',
+						output:
+							'languages/woocommerce-gateway-stripe-client.pot',
 					},
 				],
 			],
