@@ -474,7 +474,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 					],
 				],
 				[
-					'Giropay',
+					'giropay',
 				],
 			],
 		];

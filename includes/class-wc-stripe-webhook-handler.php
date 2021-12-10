@@ -416,7 +416,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Process webhook charge succeeded. This is used for payment methods
-	 * that takes time to clear which is asynchronous. e.g. SEPA, SOFORT.
+	 * that takes time to clear which is asynchronous. e.g. SEPA, Sofort.
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
@@ -436,6 +436,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( ! $order->has_status( 'on-hold' ) ) {
+			return;
+		}
+
+		// When the plugin's "Issue an authorization on checkout, and capture later"
+		// setting is enabled, Stripe API still sends a "charge.succeeded" webhook but
+		// the payment has not been captured, yet. This ensures that the payment has been
+		// captured, before completing the payment.
+		if ( ! $notification->data->object->captured ) {
 			return;
 		}
 

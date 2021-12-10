@@ -20,7 +20,7 @@ return apply_filters(
 		],
 		'enabled'     => [
 			'title'       => __( 'Enable/Disable', 'woocommerce-gateway-stripe' ),
-			'label'       => __( 'Enable Stripe Giropay', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Enable Stripe giropay', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
 			'description' => '',
 			'default'     => 'no',
@@ -29,14 +29,14 @@ return apply_filters(
 			'title'       => __( 'Title', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
 			'description' => __( 'This controls the title which the user sees during checkout.', 'woocommerce-gateway-stripe' ),
-			'default'     => __( 'Giropay', 'woocommerce-gateway-stripe' ),
+			'default'     => __( 'giropay', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		],
 		'description' => [
 			'title'       => __( 'Description', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
 			'description' => __( 'This controls the description which the user sees during checkout.', 'woocommerce-gateway-stripe' ),
-			'default'     => __( 'You will be redirected to Giropay.', 'woocommerce-gateway-stripe' ),
+			'default'     => __( 'You will be redirected to giropay.', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		],
 		'webhook'     => [

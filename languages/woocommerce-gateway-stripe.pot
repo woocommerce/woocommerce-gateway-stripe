@@ -455,15 +455,15 @@ msgid "<a href=\"https://stripe.com/payments/payment-methods-guide#giropay\" tar
 msgstr ""
 
 #: includes/admin/stripe-giropay-settings.php:23
-msgid "Enable Stripe Giropay"
+msgid "Enable Stripe giropay"
 msgstr ""
 
 #: includes/admin/stripe-giropay-settings.php:32
-msgid "Giropay"
+msgid "giropay"
 msgstr ""
 
 #: includes/admin/stripe-giropay-settings.php:39
-msgid "You will be redirected to Giropay."
+msgid "You will be redirected to giropay."
 msgstr ""
 
 #: includes/admin/stripe-ideal-settings.php:10
@@ -475,15 +475,15 @@ msgid "<a href=\"https://stripe.com/payments/payment-methods-guide#ideal\" targe
 msgstr ""
 
 #: includes/admin/stripe-ideal-settings.php:23
-msgid "Enable Stripe iDeal"
+msgid "Enable Stripe iDEAL"
 msgstr ""
 
 #: includes/admin/stripe-ideal-settings.php:32
-msgid "iDeal"
+msgid "iDEAL"
 msgstr ""
 
 #: includes/admin/stripe-ideal-settings.php:39
-msgid "You will be redirected to iDeal."
+msgid "You will be redirected to iDEAL."
 msgstr ""
 
 #: includes/admin/stripe-multibanco-settings.php:10
@@ -805,15 +805,15 @@ msgid "<a href=\"https://stripe.com/payments/payment-methods-guide#sofort\" targ
 msgstr ""
 
 #: includes/admin/stripe-sofort-settings.php:23
-msgid "Enable Stripe SOFORT"
+msgid "Enable Stripe Sofort"
 msgstr ""
 
 #: includes/admin/stripe-sofort-settings.php:32
-msgid "SOFORT"
+msgid "Sofort"
 msgstr ""
 
 #: includes/admin/stripe-sofort-settings.php:39
-msgid "You will be redirected to SOFORT."
+msgid "You will be redirected to Sofort."
 msgstr ""
 
 #. translators: 1) link to Stripe register page 2) link to Stripe api keys page
@@ -1128,8 +1128,8 @@ msgstr ""
 msgid "An error occurred while processing the card."
 msgstr ""
 
-#: includes/class-wc-stripe-helper.php:212
-msgid "The billing country is not accepted by SOFORT. Please try another country."
+#: includes/class-wc-stripe-helper.php:213
+msgid "The billing country is not accepted by Sofort. Please try another country."
 msgstr ""
 
 #: includes/class-wc-stripe-helper.php:213
@@ -1524,14 +1524,14 @@ msgstr ""
 msgid "Stripe EPS"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-giropay.php:61
-#: woocommerce-gateway-stripe.php:302
-msgid "Stripe Giropay"
+#: includes/payment-methods/class-wc-gateway-stripe-giropay.php:64
+#: woocommerce-gateway-stripe.php:425
+msgid "Stripe giropay"
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-ideal.php:61
-#: woocommerce-gateway-stripe.php:304
-msgid "Stripe iDeal"
+#: includes/payment-methods/class-wc-gateway-stripe-ideal.php:64
+#: woocommerce-gateway-stripe.php:427
+msgid "Stripe iDEAL"
 msgstr ""
 
 #: includes/payment-methods/class-wc-gateway-stripe-multibanco.php:61
@@ -1586,9 +1586,9 @@ msgstr ""
 msgid "TEST MODE ENABLED. In test mode, you can use IBAN number DE89370400440532013000."
 msgstr ""
 
-#: includes/payment-methods/class-wc-gateway-stripe-sofort.php:61
-#: woocommerce-gateway-stripe.php:301
-msgid "Stripe SOFORT"
+#: includes/payment-methods/class-wc-gateway-stripe-sofort.php:64
+#: woocommerce-gateway-stripe.php:424
+msgid "Stripe Sofort"
 msgstr ""
 
 #: includes/payment-methods/class-wc-stripe-payment-request.php:362

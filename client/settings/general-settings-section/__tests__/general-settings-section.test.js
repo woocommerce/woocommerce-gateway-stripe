@@ -45,7 +45,7 @@ describe( 'GeneralSettingsSection', () => {
 		useAccount.mockReturnValue( { isRefreshing: false } );
 	} );
 
-	it( 'should render the card information and the opt-in banner with action elements if UPE is disabled', () => {
+	it( 'should render the card information with action elements if UPE is disabled', () => {
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
 				<GeneralSettingsSection />
@@ -60,7 +60,6 @@ describe( 'GeneralSettingsSection', () => {
 				'Let your customers pay with major credit and debit cards without leaving your store.'
 			)
 		).toBeInTheDocument();
-		expect( screen.queryByTestId( 'opt-in-banner' ) ).toBeInTheDocument();
 		expect(
 			screen.queryByText( 'Get more payment methods' )
 		).not.toBeInTheDocument();

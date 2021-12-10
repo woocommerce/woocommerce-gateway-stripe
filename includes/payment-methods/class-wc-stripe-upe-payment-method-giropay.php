@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Giropay Payment Method class extending UPE base class
+ * The giropay Payment Method class extending UPE base class
  */
 class WC_Stripe_UPE_Payment_Method_Giropay extends WC_Stripe_UPE_Payment_Method {
 
