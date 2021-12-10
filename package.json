@@ -57,7 +57,7 @@
     "classnames": "^2.3.1",
     "clean-css-cli": "^4.1.10",
     "colors": "^1.4.0",
-    "config": "^1.24.0",
+    "config": "3.3.3",
     "cross-env": "^5.1.6",
     "eslint-import-resolver-webpack": "0.13.1",
     "eslint-plugin-react-hooks": "4.2.0",
