@@ -1,6 +1,6 @@
 import { merchant } from '@woocommerce/e2e-utils';
 
-import { stripeSettings } from '../../utils/settings';
+import { stripeSettingsUtils } from '../../utils/settings';
 
 describe( 'WooCommerce > Settings > Stripe (UPE)', () => {
 	beforeAll( async () => {
@@ -13,6 +13,6 @@ describe( 'WooCommerce > Settings > Stripe (UPE)', () => {
 	} );
 
 	it( 'can activate UPE', async () => {
-		await stripeSettings.activateUpe();
+		await stripeSettingsUtils.activateUpe();
 	} );
 } );
