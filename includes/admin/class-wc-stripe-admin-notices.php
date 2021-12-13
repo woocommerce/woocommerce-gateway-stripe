@@ -92,12 +92,12 @@ class WC_Stripe_Admin_Notices {
 			'Alipay'     => 'WC_Gateway_Stripe_Alipay',
 			'Bancontact' => 'WC_Gateway_Stripe_Bancontact',
 			'EPS'        => 'WC_Gateway_Stripe_EPS',
-			'Giropay'    => 'WC_Gateway_Stripe_Giropay',
-			'iDeal'      => 'WC_Gateway_Stripe_Ideal',
+			'giropay'    => 'WC_Gateway_Stripe_Giropay',
+			'iDEAL'      => 'WC_Gateway_Stripe_Ideal',
 			'Multibanco' => 'WC_Gateway_Stripe_Multibanco',
 			'P24'        => 'WC_Gateway_Stripe_p24',
 			'SEPA'       => 'WC_Gateway_Stripe_Sepa',
-			'SOFORT'     => 'WC_Gateway_Stripe_Sofort',
+			'Sofort'     => 'WC_Gateway_Stripe_Sofort',
 			'BOLETO'     => 'WC_Gateway_Stripe_Boleto',
 			'OXXO'       => 'WC_Gateway_Stripe_Oxxo',
 		];
@@ -325,10 +325,10 @@ class WC_Stripe_Admin_Notices {
 				case 'EPS':
 					update_option( 'wc_stripe_show_eps_notice', 'no' );
 					break;
-				case 'Giropay':
+				case 'giropay':
 					update_option( 'wc_stripe_show_giropay_notice', 'no' );
 					break;
-				case 'iDeal':
+				case 'iDEAL':
 					update_option( 'wc_stripe_show_ideal_notice', 'no' );
 					break;
 				case 'Multibanco':
@@ -340,7 +340,7 @@ class WC_Stripe_Admin_Notices {
 				case 'SEPA':
 					update_option( 'wc_stripe_show_sepa_notice', 'no' );
 					break;
-				case 'SOFORT':
+				case 'Sofort':
 					update_option( 'wc_stripe_show_sofort_notice', 'no' );
 					break;
 				case 'sca':

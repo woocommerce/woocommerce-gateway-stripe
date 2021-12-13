@@ -1,6 +1,6 @@
-## Stripe Giropay
+## Stripe giropay
 
-### Go to WooCommerce > Settings > Payments > Stripe Giropay
+### Go to WooCommerce > Settings > Payments > Stripe giropay
 
 #### Click Enable/Disable checkbox
 
@@ -23,11 +23,11 @@ I see **Your settings have been saved** notice.
 
 ### Go to the checkout page
 
-I see Stripe Giropay is available as a payment method.
+I see Stripe giropay is available as a payment method.
 
 #### Fill in all required details
 
-### Select Stripe Giropay as payment method if not selected already
+### Select Stripe giropay as payment method if not selected already
 
 #### Click on **Place order** button
 
