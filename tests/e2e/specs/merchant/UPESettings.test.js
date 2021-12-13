@@ -15,4 +15,8 @@ describe( 'WooCommerce > Settings > Stripe (UPE)', () => {
 	it( 'can activate UPE', async () => {
 		await stripeSettingsUtils.activateUpe();
 	} );
+
+	it( 'can deactivate UPE', async () => {
+		await stripeSettingsUtils.deactivateUpe();
+	} );
 } );
