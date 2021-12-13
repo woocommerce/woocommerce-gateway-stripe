@@ -1,15 +1,18 @@
 export const buttonsUtils = {
-	clickButtonWithText: async ( text ) => {
-		await page.waitForXPath(
-			'//*[text() = "' + text + '"]|//*[@aria-label="' + text + '"]',
-			{
-				visible: true,
-			}
-		);
+	clickButtonWithText: async ( text, parent ) => {
+		const selector =
+			parent +
+			'//*[text() = "' +
+			text +
+			'"]|//*[@aria-label="' +
+			text +
+			'"]';
 
-		const [ button ] = await page.$x(
-			'//*[text() = "' + text + '"]|//*[@aria-label="' + text + '"]'
-		);
+		await page.waitForXPath( selector, {
+			visible: true,
+		} );
+
+		const [ button ] = await page.$x( selector );
 
 		if ( ! button ) {
 			throw new Error( 'Button not found' );

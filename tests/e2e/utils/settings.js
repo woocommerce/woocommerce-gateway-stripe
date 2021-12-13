@@ -46,4 +46,24 @@ export const stripeSettingsUtils = {
 		);
 		await expect( page ).toMatch( 'giropay' );
 	},
+
+	/**
+	 * Deactivates Upe using the new settings page
+	 */
+	deactivateUpe: async () => {
+		await stripeSettingsUtils.openUpeSettingsPage();
+		await buttonsUtils.clickButtonWithText( 'Payment methods menu' );
+		await buttonsUtils.clickButtonWithText(
+			'Disable',
+			'//*[@class="components-dropdown-menu__menu"]'
+		);
+		await buttonsUtils.clickButtonWithText(
+			'Disable',
+			'//*[@class="wcstripe-confirmation-modal__footer"]'
+		);
+
+		await expect( page ).toMatch(
+			'Enable the new Stripe checkout experience'
+		);
+	},
 };
