@@ -123,7 +123,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'set_logged_in_cookie', [ $this, 'set_cookie_on_current_request' ] );
 		add_filter( 'woocommerce_get_checkout_payment_url', [ $this, 'get_checkout_payment_url' ], 10, 2 );
 		add_filter( 'woocommerce_settings_api_sanitized_fields_' . $this->id, [ $this, 'settings_api_sanitized_fields' ] );
-		add_filter( 'woocommerce_gateway_' . $this->id . '_settings_values', array( $this, 'update_onboarding_settings' ) );
+		add_filter( 'woocommerce_gateway_' . $this->id . '_settings_values', [ $this, 'update_onboarding_settings' ] );
 
 		// Note: display error is in the parent class.
 		add_action( 'admin_notices', [ $this, 'display_errors' ], 9999 );
@@ -1170,7 +1170,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return array Array of setting keys used for setup.
 	 */
 	public function get_required_settings_keys() {
-		return array( 'publishable_key', 'secret_key' );
+		return [ 'publishable_key', 'secret_key' ];
 	}
 
 	/**
