@@ -140,9 +140,9 @@
     "jt:setup": "npm run up && ./bin/jurassic-tube-setup.sh",
     "jt:start": "./docker/bin/jt/tunnel.sh",
     "jt:stop": "./docker/bin/jt/tunnel.sh break",
-    "docker:down": "npx wc-e2e docker:down",
-    "docker:ssh": "npx wc-e2e docker:ssh",
-    "docker:up": "npx wc-e2e docker:up",
+    "test:e2e-down": "npx wc-e2e docker:down",
+    "test:e2e-ssh": "npx wc-e2e docker:ssh",
+    "test:e2e-up": "npx wc-e2e docker:up",
     "test:e2e": "npx wc-e2e test:e2e",
     "test:e2e-debug": "npx wc-e2e test:e2e-debug",
     "test:e2e-dev": "npx wc-e2e test:e2e-dev"
