@@ -1219,14 +1219,14 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
-		parse_str( wp_parse_url( $_SERVER['HTTP_REFERER'], PHP_URL_QUERY ), $queries );
+		parse_str( wp_parse_url( $_SERVER['HTTP_REFERER'], PHP_URL_QUERY ), $queries ); // phpcs:ignore sanitization ok.
 
 		if (
 			! isset( $queries ) ||
 			! isset( $queries['page'] ) ||
 			! isset( $queries['task'] ) ||
-			$queries['page'] !== 'wc-admin' ||
-			$queries['task'] !== 'payments'
+			'wc-admin' !== $queries['page'] ||
+			'payments' !== $queries['task']
 		) {
 			return;
 		}
