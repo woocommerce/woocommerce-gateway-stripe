@@ -25,22 +25,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	protected $retry_interval = 1;
 
 	/**
-	 * Gateway label
-	 *
-	 * @var string
-	 */
-	protected $label;
-
-	/**
-	 * Returns payment gateway label
-	 *
-	 * @return string
-	 */
-	public function get_label() {
-		return $this->label;
-	}
-
-	/**
 	 * Fallback method to be inherited by all payment methods. Stripe UPE will override it.
 	 *
 	 * @return string[]
