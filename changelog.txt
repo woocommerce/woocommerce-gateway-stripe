@@ -3,6 +3,7 @@
 = 6.x.x - 2022-xx-xx =
 * Fix - Fixed capitalization for payment method names: iDEAL, giropay, and Sofort.
 * Add - Text to explain how to enable webhooks when manually entering your API keys in the new Stripe settings.
+* Fix - JS error on checkout when Boleto method was not active  
 
 = 5.9.0 - 2021-12-09 =
 * Add - Add Stripe API to generate connection tokens, manage terminal locations, create customers, get account summary, capture payment.
