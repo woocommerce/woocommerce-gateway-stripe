@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import { Card, VisuallyHidden } from '@wordpress/components';
 import LoadableSettingsSection from '../loadable-settings-section';
-import UpeOptInBanner from './upe-opt-in-banner';
 import SectionHeading from './section-heading';
 import SectionFooter from './section-footer';
 import PaymentMethodsList from './payment-methods-list';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 import { useAccount } from 'wcstripe/data/account';
+import './styles.scss';
 
 const StyledCard = styled( Card )`
 	margin-bottom: 12px;
@@ -60,7 +60,6 @@ const GeneralSettingsSection = () => {
 					{ isUpeEnabled && <SectionFooter /> }
 				</LoadableSettingsSection>
 			</StyledCard>
-			<UpeOptInBanner />
 		</>
 	);
 };

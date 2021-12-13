@@ -10,8 +10,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Account {
 
-	const LIVE_ACCOUNT_OPTION = 'wcstripe_account_data_live';
-	const TEST_ACCOUNT_OPTION = 'wcstripe_account_data_test';
+	const LIVE_ACCOUNT_OPTION    = 'wcstripe_account_data_live';
+	const TEST_ACCOUNT_OPTION    = 'wcstripe_account_data_test';
+
+	const STATUS_COMPLETE        = 'complete';
+	const STATUS_RESTRICTED_SOON = 'restricted_soon';
+	const STATUS_RESTRICTED      = 'restricted';
 
 	/**
 	 * The Stripe connect instance.
@@ -108,5 +112,87 @@ class WC_Stripe_Account {
 	public function clear_cache() {
 		delete_transient( self::LIVE_ACCOUNT_OPTION );
 		delete_transient( self::TEST_ACCOUNT_OPTION );
+	}
+
+	/**
+	 * Indicates whether the account has any pending requirements that could cause the account to be restricted.
+	 *
+	 * @return bool True if account has pending restrictions, false otherwise.
+	 */
+	public function has_pending_requirements() {
+		$requirements = $this->get_cached_account_data()['requirements'] ?? [];
+
+		if ( empty( $requirements ) ) {
+			return false;
+		}
+
+		$currently_due  = $requirements['currently_due'] ?? [];
+		$past_due       = $requirements['past_due'] ?? [];
+		$eventually_due = $requirements['eventually_due'] ?? [];
+
+		return (
+			! empty( $currently_due ) ||
+			! empty( $past_due ) ||
+			! empty( $eventually_due )
+		);
+	}
+
+	/**
+	 * Indicates whether the account has any overdue requirements that could cause the account to be restricted.
+	 *
+	 * @return bool True if account has overdue restrictions, false otherwise.
+	 */
+	public function has_overdue_requirements() {
+		$requirements = $this->get_cached_account_data()['requirements'] ?? [];
+		return ! empty( $requirements['past_due'] );
+	}
+
+	/**
+	 * Returns the account's Stripe status (completed, restricted_soon, restricted).
+	 *
+	 * @return string The account's status.
+	 */
+	public function get_account_status() {
+		$requirements = $this->get_cached_account_data()['requirements'] ?? [];
+
+		if ( empty( $requirements ) ) {
+			return self::STATUS_COMPLETE;
+		}
+
+		if ( isset( $requirements['disabled_reason'] ) && is_string( $requirements['disabled_reason'] ) ) {
+			// If an account has been rejected, then disabled_reason will have a value like "rejected.<reason>"
+			if ( strpos( $requirements['disabled_reason'], 'rejected' ) === 0 ) {
+				return $requirements['disabled_reason'];
+			}
+			// If disabled_reason is not empty, then the account has been restricted.
+			if ( ! empty( $requirements['disabled_reason'] ) ) {
+				return self::STATUS_RESTRICTED;
+			}
+		}
+		// Should be covered by the non-empty disabled_reason, but past due requirements also restrict the account.
+		if ( isset( $requirements['past_due'] ) && ! empty( $requirements['past_due'] ) ) {
+			return self::STATUS_RESTRICTED;
+		}
+		// Any other pending requirments indicate restricted soon.
+		if ( $this->has_pending_requirements() ) {
+			return self::STATUS_RESTRICTED_SOON;
+		}
+
+		return self::STATUS_COMPLETE;
+	}
+
+	/**
+	 * Returns the Stripe's account supported currencies.
+	 *
+	 * @return string[] Supported store currencies.
+	 */
+	public function get_supported_store_currencies(): array {
+		$account = $this->get_cached_account_data();
+		if ( ! isset( $account['external_accounts']['data'] ) ) {
+			return [ $account['default_currency'] ?? '' ];
+		}
+
+		$currencies = array_filter( array_column( $account['external_accounts']['data'], 'currency' ) );
+		return array_values( array_unique( $currencies ) );
 	}
 }

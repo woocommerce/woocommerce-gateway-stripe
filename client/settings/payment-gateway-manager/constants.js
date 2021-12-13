@@ -22,7 +22,7 @@ export const gatewaysInfo = {
 	},
 	stripe_ideal: {
 		id: 'ideal',
-		title: __( 'iDeal', 'woocommerce-gateway-stripe' ),
+		title: __( 'iDEAL', 'woocommerce-gateway-stripe' ),
 		geography: __(
 			'Customer Geography: The Netherlands.',
 			'woocommerce-gateway-stripe'
@@ -49,7 +49,7 @@ export const gatewaysInfo = {
 	},
 	stripe_sofort: {
 		id: 'sofort',
-		title: __( 'SOFORT', 'woocommerce-gateway-stripe' ),
+		title: __( 'Sofort', 'woocommerce-gateway-stripe' ),
 		geography: __(
 			'Customer Geography: Germany, Austria.',
 			'woocommerce-gateway-stripe'
@@ -82,5 +82,22 @@ export const gatewaysInfo = {
 			'woocommerce-gateway-stripe'
 		),
 		guide: 'https://stripe.com/payments/payment-methods-guide#multibanco',
+	},
+	stripe_boleto: {
+		title: __( 'Boleto', 'woocommerce-gateway-stripe' ),
+		geography: __(
+			'Customer Geography: Brazil.',
+			'woocommerce-gateway-stripe'
+		),
+		guide:
+			'https://stripe.com/docs/payments/payment-methods/overview#vouchers',
+	},
+	stripe_oxxo: {
+		title: __( 'OXXO', 'woocommerce-gateway-stripe' ),
+		geography: __(
+			'Customer Geography: Mexico.',
+			'woocommerce-gateway-stripe'
+		),
+		guide: 'https://stripe.com/payments/payment-methods-guide#oxxo',
 	},
 };

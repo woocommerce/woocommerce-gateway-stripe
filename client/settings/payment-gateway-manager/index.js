@@ -6,7 +6,6 @@ import SettingsLayout from '../settings-layout';
 import SettingsSection from '../settings-section';
 import PaymentGatewaySection from '../payment-gateway-section';
 import SavePaymentGatewaySection from '../save-payment-gateway-section';
-import OptInBanner from './opt-in-banner';
 import { gatewaysInfo } from './constants';
 
 const GatewayDescription = () => {
@@ -44,7 +43,6 @@ const PaymentGatewayManager = () => {
 		<SettingsLayout>
 			<SettingsSection Description={ GatewayDescription }>
 				<PaymentGatewaySection />
-				<OptInBanner />
 			</SettingsSection>
 			<SavePaymentGatewaySection />
 		</SettingsLayout>

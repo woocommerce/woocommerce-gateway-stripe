@@ -14,7 +14,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	private $gateway;
 
 	/**
-	 * Giropay Gateway under test.
+	 * giropay Gateway under test.
 	 *
 	 * @var WC_Gateway_Stripe_Giropay
 	 */
@@ -47,7 +47,6 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$stripe_settings['test_publishable_key'] = 'pk_test_key';
 		$stripe_settings['test_secret_key']      = 'sk_test_key';
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
-		update_option( '_wcstripe_feature_upe_settings', 'yes' );
 
 		ob_start();
 		$this->giropay_gateway->admin_options();
@@ -65,7 +64,6 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 		$stripe_settings['test_publishable_key'] = '';
 		$stripe_settings['test_secret_key']      = '';
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
-		update_option( '_wcstripe_feature_upe_settings', 'yes' );
 
 		ob_start();
 		$this->giropay_gateway->admin_options();

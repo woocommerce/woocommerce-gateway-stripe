@@ -39,6 +39,8 @@ class WC_REST_Stripe_Payment_Gateway_Controller extends WC_Stripe_REST_Base_Cont
 		'stripe_p24'        => WC_Gateway_Stripe_P24::class,
 		'stripe_alipay'     => WC_Gateway_Stripe_Alipay::class,
 		'stripe_multibanco' => WC_Gateway_Stripe_Multibanco::class,
+		'stripe_oxxo'       => WC_Gateway_Stripe_Oxxo::class,
+		'stripe_boleto'     => WC_Gateway_Stripe_Boleto::class,
 	];
 
 	/**

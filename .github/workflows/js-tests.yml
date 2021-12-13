@@ -10,6 +10,10 @@ jobs:
     steps:
       # clone the repository
       - uses: actions/checkout@v2
+      # use the node version defined in nvmrc
+      - uses: actions/setup-node@v2
+        with:
+          node-version-file: '.nvmrc'
       # enable dependencies caching
       - uses: actions/cache@v2
         with:

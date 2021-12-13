@@ -1,0 +1,23 @@
+@import '../../styles/abstracts/breakpoints';
+
+.payment-methods {
+	&__unavailable-methods {
+		display: none;
+		margin: 0 0 0 1.5rem;
+
+		@include breakpoint( '>660px' ) {
+			display: flex;
+		}
+	}
+
+	&__unavailable-method {
+		border-radius: 2px;
+		width: 38px;
+		height: 24px;
+		margin: 1px 5px 1px 1px;
+
+		&:last-child {
+			margin-right: 1px;
+		}
+	}
+}
