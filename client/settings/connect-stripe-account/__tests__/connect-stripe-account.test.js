@@ -8,12 +8,17 @@ import {
 	useAccountKeysSecretKey,
 	useAccountKeysWebhookSecret,
 } from 'wcstripe/data/account-keys/hooks';
+import { useAccount } from 'wcstripe/data/account';
 
 jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 	useAccountKeys: jest.fn(),
 	useAccountKeysPublishableKey: jest.fn(),
 	useAccountKeysSecretKey: jest.fn(),
 	useAccountKeysWebhookSecret: jest.fn(),
+} ) );
+
+jest.mock( 'wcstripe/data/account', () => ( {
+	useAccount: jest.fn(),
 } ) );
 
 describe( 'ConnectStripeAccount', () => {
@@ -76,6 +81,9 @@ describe( 'ConnectStripeAccount', () => {
 			'live_whs',
 			jest.fn(),
 		] );
+		useAccount.mockReturnValue( {
+			data: { webhook_url: 'example.com' },
+		} );
 
 		render( <ConnectStripeAccount oauthUrl="" /> );
 		const accountKeysButton = screen.queryByText( /enter account keys/i );

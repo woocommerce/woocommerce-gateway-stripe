@@ -18,6 +18,7 @@ import {
 	useAccountKeysTestSecretKey,
 	useAccountKeysTestWebhookSecret,
 } from 'wcstripe/data/account-keys/hooks';
+import { useAccount } from 'wcstripe/data/account';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 jest.mock( 'wcstripe/data', () => ( {
@@ -36,6 +37,10 @@ jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 	useAccountKeysTestPublishableKey: jest.fn(),
 	useAccountKeysTestSecretKey: jest.fn(),
 	useAccountKeysTestWebhookSecret: jest.fn(),
+} ) );
+
+jest.mock( 'wcstripe/data/account', () => ( {
+	useAccount: jest.fn(),
 } ) );
 
 describe( 'GeneralSettingsSection', () => {
@@ -72,6 +77,9 @@ describe( 'GeneralSettingsSection', () => {
 
 	it( 'should open live account keys modal when edit account keys clicked in live mode', () => {
 		useTestMode.mockReturnValue( [ false, jest.fn() ] );
+		useAccount.mockReturnValue( {
+			data: { webhook_url: 'example.com' },
+		} );
 
 		useAccountKeysPublishableKey.mockReturnValue( [
 			'live_pk',

@@ -20,6 +20,18 @@ const UpeToggleContextProvider = ( { children, defaultIsUpeEnabled } ) => {
 	const [ status, setStatus ] = useState( 'resolved' );
 	const { invalidateResolutionForStoreSelector } = useDispatch( STORE_NAME );
 
+	// We're now allowing to update UPE enabled status through the settings REST
+	// API, for that reason we need to create a way to keep track of those changes
+	// in here.
+	const updateFlagLocally = useCallback(
+		( value ) => {
+			const sanitizedValue = Boolean( value );
+			trackUpeToggle( sanitizedValue );
+			setIsUpeEnabled( sanitizedValue );
+		},
+		[ setIsUpeEnabled ]
+	);
+
 	const updateFlag = useCallback(
 		( value ) => {
 			setStatus( 'pending' );
@@ -45,8 +57,13 @@ const UpeToggleContextProvider = ( { children, defaultIsUpeEnabled } ) => {
 	);
 
 	const contextValue = useMemo(
-		() => ( { isUpeEnabled, setIsUpeEnabled: updateFlag, status } ),
-		[ isUpeEnabled, updateFlag, status ]
+		() => ( {
+			isUpeEnabled,
+			setIsUpeEnabled: updateFlag,
+			setIsUpeEnabledLocally: updateFlagLocally,
+			status,
+		} ),
+		[ isUpeEnabled, updateFlag, updateFlagLocally, status ]
 	);
 
 	return (
