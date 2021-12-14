@@ -174,7 +174,7 @@ export const AccountKeysModal = ( {
 	type,
 	onClose,
 	setKeepModalContent,
-	forcePageReloadOnSave,
+	redirectOnSave,
 } ) => {
 	const [ openTab, setOpenTab ] = useState( type );
 	const { isSaving, accountKeys, saveAccountKeys } = useAccountKeys();
@@ -208,18 +208,18 @@ export const AccountKeysModal = ( {
 			( ( testMode && noLiveKeysSaved ) ||
 				( ! testMode && noTestKeysSaved ) )
 		) {
-			forcePageReloadOnSave = true;
+			redirectOnSave = window.location.href;
 		}
 
 		const saveSuccess = await saveAccountKeys( keysToSave );
 		if ( ! saveSuccess ) {
 			setDisabled( false );
-		} else if ( forcePageReloadOnSave ) {
+		} else if ( redirectOnSave ) {
 			// When forcing a redirect, we keep the modal open and disabled while the page reloads.
 			if ( setKeepModalContent ) {
 				setKeepModalContent( true );
 			}
-			window.location.reload();
+			window.location.href = redirectOnSave;
 		} else {
 			setDisabled( false );
 			onClose();
