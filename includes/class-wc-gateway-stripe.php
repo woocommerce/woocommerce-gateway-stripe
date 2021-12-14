@@ -1194,8 +1194,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_setup_help_text() {
 		return sprintf(
-			__( 'Your API details can be obtained from your <a href="%s">Stripe account</a>. Don’t have a Stripe account? <a href="%s">Create one.</a>', 'woocommerce-gateway-stripe' ),
-			'https://stripe.com/docs/keys',
+			/* translators: %1$s Link to Stripe API details, %2$s Link to register a Stripe account */
+			__( 'Your API details can be obtained from your <a href="%1$s">Stripe account</a>. Don’t have a Stripe account? <a href="%2$s">Create one.</a>', 'woocommerce-gateway-stripe' ),
+			'https://dashboard.stripe.com/apikeys',
 			'https://dashboard.stripe.com/register'
 		);
 	}
@@ -1234,7 +1235,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		if ( ! empty( $settings['publishable_key'] ) && ! empty( $settings['secret_key'] ) ) {
 			if ( strpos( $settings['publishable_key'], 'pk_test_' ) === 0 || strpos( $settings['secret_key'], 'sk_test_' ) === 0 ) {
 				$settings['test_publishable_key'] = $settings['publishable_key'];
-				$settings['test_secret_key'] = $settings['secret_key'];
+				$settings['test_secret_key']      = $settings['secret_key'];
 				unset( $settings['publishable_key'] );
 				unset( $settings['secret_key'] );
 				$settings['testmode'] = 'yes';
