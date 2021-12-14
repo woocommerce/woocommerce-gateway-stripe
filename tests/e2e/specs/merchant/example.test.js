@@ -6,7 +6,7 @@ import config from 'config';
 /**
  * Internal dependencies
  */
-import { StoreOwnerFlow } from '@woocommerce/e2e-utils';
+import { merchant } from '@woocommerce/e2e-utils';
 
 const TIMEOUT = 20000;
 
@@ -15,7 +15,7 @@ describe( 'Store Owner', () => {
 		'Store owner can log in',
 		async () => {
 			console.log( config.get( 'url' ) );
-			await StoreOwnerFlow.login();
+			await merchant.login();
 		},
 		TIMEOUT
 	);

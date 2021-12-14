@@ -439,6 +439,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		// When the plugin's "Issue an authorization on checkout, and capture later"
+		// setting is enabled, Stripe API still sends a "charge.succeeded" webhook but
+		// the payment has not been captured, yet. This ensures that the payment has been
+		// captured, before completing the payment.
+		if ( ! $notification->data->object->captured ) {
+			return;
+		}
+
 		// Store other data such as fees
 		$order->set_transaction_id( $notification->data->object->id );
 
