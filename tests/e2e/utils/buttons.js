@@ -1,5 +1,5 @@
 export const buttonsUtils = {
-	clickButtonWithText: async ( text, parent ) => {
+	clickButtonWithText: async ( text, parent = '' ) => {
 		const selector =
 			parent +
 			'//*[text() = "' +

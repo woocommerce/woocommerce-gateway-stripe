@@ -6,11 +6,11 @@ const baseUrl = config.get( 'url' );
 const UPE_SETTINGS_PAGE =
 	baseUrl + 'wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe';
 
-export const stripeSettingsUtils = {
+export const stripeUPESettingsUtils = {
 	/**
 	 * Opens Upe settings page
 	 */
-	openUpeSettingsPage: async () => {
+	openSettingsPage: async () => {
 		await page.goto( UPE_SETTINGS_PAGE, {
 			waitUntil: 'networkidle0',
 		} );
@@ -20,7 +20,7 @@ export const stripeSettingsUtils = {
 	 * Activates Upe using the new settings page
 	 */
 	activateUpe: async () => {
-		await stripeSettingsUtils.openUpeSettingsPage();
+		await stripeUPESettingsUtils.openSettingsPage();
 		await buttonsUtils.clickButtonWithText( 'Enable in your store' );
 		await page.waitForSelector( '#wc-stripe-onboarding-wizard-container' );
 
@@ -51,7 +51,7 @@ export const stripeSettingsUtils = {
 	 * Deactivates Upe using the new settings page
 	 */
 	deactivateUpe: async () => {
-		await stripeSettingsUtils.openUpeSettingsPage();
+		await stripeUPESettingsUtils.openSettingsPage();
 		await buttonsUtils.clickButtonWithText( 'Payment methods menu' );
 		await buttonsUtils.clickButtonWithText(
 			'Disable',
@@ -65,5 +65,42 @@ export const stripeSettingsUtils = {
 		await expect( page ).toMatch(
 			'Enable the new Stripe checkout experience'
 		);
+	},
+
+	/**
+	 * Activates a UPE payment method
+	 * @param methodName checkbox input name
+	 */
+	activatePaymentMethod: async ( methodName ) => {
+		await stripeUPESettingsUtils.openSettingsPage();
+		await stripeUPESettingsUtils.clickOnPaymentMethodCheckbox( methodName );
+		await buttonsUtils.clickButtonWithText( 'Save changes' );
+	},
+
+	/**
+	 * Deactivates a UPE payment method
+	 * @param methodName checkbox input name
+	 */
+	deactivatePaymentMethod: async ( methodName ) => {
+		await stripeUPESettingsUtils.openSettingsPage();
+		await stripeUPESettingsUtils.clickOnPaymentMethodCheckbox( methodName );
+		await buttonsUtils.clickButtonWithText( 'Remove' );
+		await buttonsUtils.clickButtonWithText( 'Save changes' );
+	},
+
+	/**
+	 * Clicks on the payment method checkbox
+	 * @param methodName checkbox input name
+	 */
+	clickOnPaymentMethodCheckbox: async ( methodName ) => {
+		const [ checkbox ] = await page.$x(
+			'//input[@name="' + methodName + '"]'
+		);
+
+		if ( ! checkbox ) {
+			throw new Error( 'Method not found' );
+		}
+
+		await checkbox.click();
 	},
 };
