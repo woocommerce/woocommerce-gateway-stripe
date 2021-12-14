@@ -86,6 +86,7 @@ const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
 					label={ <VisuallyHidden>{ label }</VisuallyHidden> }
 					onChange={ handleCheckboxChange }
 					checked={ enabledPaymentMethods.includes( id ) }
+					name={ id }
 				/>
 			) }
 			{ isConfirmationModalOpen && (
