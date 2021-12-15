@@ -114,7 +114,11 @@ const MissingAccountDetailsDescription = () => {
 					'Payments/payouts may be disabled for this account until missing business information is updated. <a>Update now</a>',
 					'woocommerce-gateway-stripe'
 				),
-				{ a: <ExternalLink href="https://dashboard.stripe.com/account" /> }
+				{
+					a: (
+						<ExternalLink href="https://dashboard.stripe.com/account" />
+					),
+				}
 			) }
 		</div>
 	);
