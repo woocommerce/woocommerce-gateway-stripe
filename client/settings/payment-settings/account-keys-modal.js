@@ -32,6 +32,7 @@ const PublishableKey = () => {
 			onChange={ ( val ) => setValue( val ) }
 			disabled={ isSaving }
 			name="publishable_key"
+			autoComplete="off"
 		/>
 	);
 };
@@ -52,6 +53,7 @@ const TestPublishableKey = () => {
 			onChange={ ( val ) => setValue( val ) }
 			disabled={ isSaving }
 			name="test_publishable_key"
+			autoComplete="off"
 		/>
 	);
 };
@@ -71,6 +73,7 @@ const SecretKey = () => {
 			onChange={ ( val ) => setValue( val ) }
 			disabled={ isSaving }
 			name="secret_key"
+			autoComplete="off"
 		/>
 	);
 };
@@ -90,6 +93,7 @@ const TestSecretKey = () => {
 			onChange={ ( val ) => setValue( val ) }
 			disabled={ isSaving }
 			name="test_secret_key"
+			autoComplete="off"
 		/>
 	);
 };
