@@ -140,8 +140,9 @@ export const useShippingAddressUpdateHandler = (
 		);
 
 		return () => {
-			// Need to use `?.` here in case paymentRequest is null.
-			handler?.removeEventListener( 'shippingaddresschange' );
+			if ( handler ) {
+				handler.removeEventListener( 'shippingaddresschange' );
+			}
 		};
 	}, [ paymentRequest, paymentRequestType ] );
 };
@@ -163,8 +164,9 @@ export const useShippingOptionChangeHandler = (
 		);
 
 		return () => {
-			// Need to use `?.` here in case paymentRequest is null.
-			handler?.removeEventListener( 'shippingoptionchange' );
+			if ( handler ) {
+				handler.removeEventListener( 'shippingoptionchange' );
+			}
 		};
 	}, [ paymentRequest, paymentRequestType ] );
 };
@@ -195,8 +197,9 @@ export const useProcessPaymentHandler = (
 		);
 
 		return () => {
-			// Need to use `?.` here in case paymentRequest is null.
-			handler?.removeEventListener( 'source' );
+			if ( handler ) {
+				handler.removeEventListener( 'source' );
+			}
 		};
 	}, [ stripe, paymentRequest, paymentRequestType, setExpressPaymentError ] );
 };
@@ -212,8 +215,9 @@ export const useCancelHandler = ( paymentRequest, onClose ) => {
 		const handler = paymentRequest?.on( 'cancel', onClose );
 
 		return () => {
-			// Need to use `?.` here in case paymentRequest is null.
-			handler?.removeEventListener( 'cancel' );
+			if ( handler ) {
+				handler.removeEventListener( 'cancel' );
+			}
 		};
 	}, [ paymentRequest, onClose ] );
 };
