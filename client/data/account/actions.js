@@ -51,7 +51,7 @@ export function* refreshAccount() {
 		if ( newPaymentMethods.length ) {
 			yield dispatch( 'core/notices' ).createSuccessNotice(
 				sprintf(
-					/* translators: %s: payment method name (e.g.: giropay, EPS, Sofort, etc). */
+					/* translators: %s: one or more payment method names separated by commas (e.g.: giropay, EPS, Sofort, etc). */
 					__(
 						'You can now accept payments with %s.',
 						'woocommerce-gateway-stripe'
