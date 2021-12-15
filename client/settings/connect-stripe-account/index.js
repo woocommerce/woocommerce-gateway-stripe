@@ -59,7 +59,7 @@ const ConnectStripeAccount = ( { oauthUrl } ) => {
 				<AccountKeysModal
 					type={ modalType }
 					onClose={ handleModalDismiss }
-					forcePageReloadOnSave
+					redirectOnSave={ `${ window.location.pathname }?page=wc-settings&tab=checkout&section=stripe&panel=settings` }
 				/>
 			) }
 			<CardWrapper>
