@@ -1,26 +1,26 @@
 import { useEffect, useCallback, useRef } from '@wordpress/element';
-import { getHistory } from '@woocommerce/navigation';
 
 /**
  * Hook for displaying an optional confirmation message.
  *
  * Usage:
- * - const callback = useConfirmNavigation( () => 'Are you sure you want to leave?' );
+ * - const callback = useConfirmNavigation( true );
  *   useEffect( callback , [ callback, otherDependency ] );
  *
- * @param {Function} getMessage returns confirmation message string if one should appear
+ * @param {boolean} displayPrompt Wether we should prompt the message or not
  * @return {Function} The callback to execute
  */
-const useConfirmNavigation = ( getMessage ) => {
-	const savedCallback = useRef();
+const useConfirmNavigation = ( displayPrompt ) => {
+	const savedDisplayPrompt = useRef();
 
 	useEffect( () => {
-		savedCallback.current = getMessage;
+		savedDisplayPrompt.current = displayPrompt;
 	} );
 
 	return useCallback( () => {
-		const message = savedCallback.current();
-		if ( ! message ) {
+		const doDisplayPrompt = savedDisplayPrompt.current;
+
+		if ( ! doDisplayPrompt ) {
 			return;
 		}
 
@@ -29,11 +29,9 @@ const useConfirmNavigation = ( getMessage ) => {
 			event.returnValue = '';
 		};
 		window.addEventListener( 'beforeunload', handler );
-		const unblock = getHistory().block( message );
 
 		return () => {
 			window.removeEventListener( 'beforeunload', handler );
-			unblock();
 		};
 	}, [] );
 };

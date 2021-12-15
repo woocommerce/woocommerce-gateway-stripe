@@ -40,22 +40,16 @@ const SettingsManager = () => {
 		}
 	}, [ isLoading, settings ] );
 
-	const pristine =
+	const isPristine =
 		! isEmpty( initialSettings.current ) &&
 		isEqual( initialSettings.current, settings );
-	const confirmationNavigationCallback = useConfirmNavigation( () => {
-		if ( pristine ) {
-			return;
-		}
-
-		return __(
-			'There are unsaved changes on this page. Are you sure you want to leave and discard the unsaved changes?',
-			'woocommerce-payments'
-		);
-	} );
+	const displayPrompt = ! isPristine;
+	const confirmationNavigationCallback = useConfirmNavigation(
+		displayPrompt
+	);
 
 	useEffect( confirmationNavigationCallback, [
-		pristine,
+		displayPrompt,
 		confirmationNavigationCallback,
 	] );
 
