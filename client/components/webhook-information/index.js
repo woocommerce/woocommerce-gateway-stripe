@@ -15,7 +15,7 @@ export const WebhookInformation = () => {
 		<p>
 			{ interpolateComponents( {
 				mixedString: __(
-					"You must add the following webhook endpoint {{webhookUrl/}} to your {{settingsLink}}Stripe account settings{{/settingsLink}} (if there isn't one already). This will enable you to receive notifications on the charge statuses.",
+					"Add the following webhook endpoint {{webhookUrl/}} to your {{settingsLink}}Stripe account settings{{/settingsLink}} (if there isn't one already). This will enable you to receive notifications on the charge statuses.",
 					'woocommerce-gateway-stripe'
 				),
 				components: {
