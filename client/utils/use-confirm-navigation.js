@@ -7,7 +7,7 @@ import { useEffect, useCallback, useRef } from '@wordpress/element';
  * - const callback = useConfirmNavigation( true );
  *   useEffect( callback , [ callback, otherDependency ] );
  *
- * @param {boolean} displayPrompt Wether we should prompt the message or not
+ * @param {boolean} displayPrompt Whether we should prompt the message or not
  * @return {Function} The callback to execute
  */
 const useConfirmNavigation = ( displayPrompt ) => {
