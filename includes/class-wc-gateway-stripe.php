@@ -1222,6 +1222,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		parse_str( wp_parse_url( $_SERVER['HTTP_REFERER'], PHP_URL_QUERY ), $queries ); // phpcs:ignore sanitization ok.
 
+		// Determine if merchant is onboarding (page='wc-admin' and task='payments').
 		if (
 			! isset( $queries ) ||
 			! isset( $queries['page'] ) ||
