@@ -1,6 +1,6 @@
 import { __ } from '@wordpress/i18n';
 import { useEffect } from '@wordpress/element';
-import React, { useRef } from 'react';
+import React, { useState } from 'react';
 import { TabPanel } from '@wordpress/components';
 import { getQuery, updateQueryString } from '@woocommerce/navigation';
 import styled from '@emotion/styled';
@@ -32,17 +32,20 @@ const TABS_CONTENT = [
 
 const SettingsManager = () => {
 	const { settings, isLoading } = useSettings();
-	const initialSettings = useRef();
+	const [ initialSettings, setInitialSettings ] = useState( settings );
 
 	useEffect( () => {
 		if ( isLoading && ! isEmpty( settings ) ) {
-			initialSettings.current = settings;
+			setInitialSettings( settings );
 		}
 	}, [ isLoading, settings ] );
 
+	const onSettingsSave = () => {
+		setInitialSettings( settings );
+	};
+
 	const isPristine =
-		! isEmpty( initialSettings.current ) &&
-		isEqual( initialSettings.current, settings );
+		! isEmpty( initialSettings ) && isEqual( initialSettings, settings );
 	const displayPrompt = ! isPristine;
 	const confirmationNavigationCallback = useConfirmNavigation(
 		displayPrompt
@@ -75,7 +78,9 @@ const SettingsManager = () => {
 						) : (
 							<PaymentMethodsPanel />
 						) }
-						<SaveSettingsSection />
+						<SaveSettingsSection
+							onSettingsSave={ onSettingsSave }
+						/>
 					</div>
 				) }
 			</StyledTabPanel>
