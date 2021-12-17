@@ -42,7 +42,7 @@ Please follow the following guidelines when writing testing instructions:
 ---
 
 -   [ ] Covered with tests (or have a good reason not to test in description ☝️)
--   [ ] Added changelog entry (or does not apply)
+-   [ ] Added changelog entry **in both** `changelog.txt` and `readme.txt` (or does not apply)
 -   [ ] Tested on mobile (or does not apply)
 
 **Post merge**
