@@ -113,6 +113,7 @@ const WebhookSecret = () => {
 			onChange={ ( val ) => setValue( val ) }
 			disabled={ isSaving }
 			name="webhook_secret"
+			autoComplete="off"
 		/>
 	);
 };
@@ -132,6 +133,7 @@ const TestWebhookSecret = () => {
 			onChange={ ( val ) => setValue( val ) }
 			disabled={ isSaving }
 			name="test_webhook_secret"
+			autoComplete="off"
 		/>
 	);
 };
