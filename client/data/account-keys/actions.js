@@ -34,11 +34,15 @@ export function* saveAccountKeys( accountKeys ) {
 	try {
 		yield updateIsSavingAccountKeys( true, null );
 
-		yield apiFetch( {
+		const accountData = yield apiFetch( {
 			path: `${ NAMESPACE }/account_keys`,
 			method: 'post',
 			data: accountKeys,
 		} );
+
+		if ( ! accountData?.id ) {
+			throw 'Account not Found';
+		}
 
 		// When new keys have been set, the user might have entered keys for a new account.
 		// So we need to clear the cached account information.
