@@ -1,7 +1,8 @@
 import { dispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import { apiFetch } from '@wordpress/data-controls';
-import { NAMESPACE, STORE_NAME } from '../constants';
+import { NAMESPACE } from '../constants';
+import { refreshAccount } from '../account/actions';
 import ACTION_TYPES from './action-types';
 
 export function updateAccountKeysValues( payload ) {
@@ -44,12 +45,10 @@ export function* saveAccountKeys( accountKeys ) {
 			throw 'Account not Found';
 		}
 
-		// When new keys have been set, the user might have entered keys for a new account.
-		// So we need to clear the cached account information.
-		yield dispatch( STORE_NAME ).invalidateResolutionForStoreSelector(
-			'getAccountData'
-		);
+		// refresh account data after keys are updated in the database
+		yield refreshAccount();
 
+		// update keys on the state
 		yield updateAccountKeysValues( accountKeys );
 
 		yield dispatch( 'core/notices' ).createSuccessNotice(
