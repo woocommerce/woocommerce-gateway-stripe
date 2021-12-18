@@ -5,6 +5,7 @@
 * Add - Text to explain how to enable webhooks when manually entering your API keys in the new Stripe settings.
 * Tweak - Redirect to the settings tab after an account is connected
 * Tweak - Show toast when payment methods list is updated with new payment methods.
+* Tweak - Use the newly exposed LoadableMask component provided by WooCommerce Blocks to trigger the loading state for Payment Request Buttons.
 * Fix - JS error on checkout when Boleto method was not active  
 
 =======
