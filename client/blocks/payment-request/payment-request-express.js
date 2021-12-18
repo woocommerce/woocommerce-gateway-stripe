@@ -1,3 +1,4 @@
+import { __ } from '@wordpress/i18n';
 import {
 	Elements,
 	PaymentRequestButtonElement,
@@ -38,6 +39,7 @@ import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
  */
 const PaymentRequestExpressComponent = ( {
 	billing,
+	components,
 	shippingData,
 	onClick,
 	onClose,
@@ -91,49 +93,41 @@ const PaymentRequestExpressComponent = ( {
 		return null;
 	}
 
+	const { LoadingMask } = components;
+
 	if ( isCustom ) {
 		return (
-			<div
-				className={
-					isUpdatingPaymentRequest
-						? 'wc-block-components-loading-mask'
-						: ''
-				}
+			<LoadingMask
+				isLoading={ isUpdatingPaymentRequest }
+				screenReaderLabel={ __(
+					'Loading payment request…',
+					'woocommerce-gateway-stripe'
+				) }
 			>
 				<CustomButton
-					className={
-						isUpdatingPaymentRequest
-							? 'wc-block-components-loading-mask__children'
-							: ''
-					}
 					onButtonClicked={ ( evt ) => {
 						onPaymentRequestButtonClick( evt, paymentRequest );
 					} }
 				/>
-			</div>
+			</LoadingMask>
 		);
 	}
 
 	if ( isBranded && shouldUseGooglePayBrand() ) {
 		return (
-			<div
-				className={
-					isUpdatingPaymentRequest
-						? 'wc-block-components-loading-mask'
-						: ''
-				}
+			<LoadingMask
+				isLoading={ isUpdatingPaymentRequest }
+				screenReaderLabel={ __(
+					'Loading payment request…',
+					'woocommerce-gateway-stripe'
+				) }
 			>
 				<GooglePayButton
-					className={
-						isUpdatingPaymentRequest
-							? 'wc-block-components-loading-mask__children'
-							: ''
-					}
 					onButtonClicked={ ( evt ) => {
 						onPaymentRequestButtonClick( evt, paymentRequest );
 					} }
 				/>
-			</div>
+			</LoadingMask>
 		);
 	}
 
@@ -146,30 +140,21 @@ const PaymentRequestExpressComponent = ( {
 	}
 
 	return (
-		// The classNames here manually trigger the loading state for the PRB. Hopefully we'll
-		// see an API introduced to WooCommerce Blocks that will let us control this without
-		// relying on a CSS class.
-		// - @reykjalin
-		<div
-			className={
-				isUpdatingPaymentRequest
-					? 'wc-block-components-loading-mask'
-					: ''
-			}
+		<LoadingMask
+			isLoading={ isUpdatingPaymentRequest }
+			screenReaderLabel={ __(
+				'Loading payment request…',
+				'woocommerce-gateway-stripe'
+			) }
 		>
 			<PaymentRequestButtonElement
-				className={
-					isUpdatingPaymentRequest
-						? 'wc-block-components-loading-mask__children'
-						: ''
-				}
 				onClick={ onPaymentRequestButtonClick }
 				options={ {
 					style: paymentRequestButtonStyle,
 					paymentRequest,
 				} }
 			/>
-		</div>
+		</LoadingMask>
 	);
 };
 
