@@ -12,17 +12,14 @@ module.exports = {
 	optimization: {
 		...defaultConfig.optimization,
 		minimizer: [
-			...defaultConfig.optimization.minimizer.map(
-				( plugin ) => {
-					if ( plugin.constructor.name === 'TerserPlugin' ) {
-						// wp-scripts does not allow to override the Terser minimizer sourceMap option, without this
-						// `devtool: 'hidden-source-map'` is not generated for js files.
-						plugin.options.sourceMap = true;
-					}
-					return plugin;
+			...defaultConfig.optimization.minimizer.map( ( plugin ) => {
+				if ( plugin.constructor.name === 'TerserPlugin' ) {
+					// wp-scripts does not allow to override the Terser minimizer sourceMap option, without this
+					// `devtool: 'hidden-source-map'` is not generated for js files.
+					plugin.options.sourceMap = true;
 				}
-				// plugin.constructor.name !== 'DependencyExtractionWebpackPlugin'
-			),
+				return plugin;
+			} ),
 		],
 		splitChunks: undefined,
 	},
