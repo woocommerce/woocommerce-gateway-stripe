@@ -42,6 +42,10 @@ describe( 'PaymentRequestsButtonPreview', () => {
 		canMakePaymentMock.mockResolvedValue( {} );
 	} );
 
+	afterEach( () => {
+		jest.clearAllMocks();
+	} );
+
 	it( 'displays Google Chrome and Google Pay when page is in Safari', async () => {
 		shouldUseGooglePayBrand.mockReturnValue( false );
 
