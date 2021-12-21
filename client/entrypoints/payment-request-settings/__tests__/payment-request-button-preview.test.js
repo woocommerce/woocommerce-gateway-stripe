@@ -7,6 +7,7 @@ import { shouldUseGooglePayBrand } from '../utils/utils';
 jest.mock(
 	'@wordpress/a11y',
 	() => ( {
+		__esModule: true,
 		speak: jest.fn(),
 	} ),
 	{ virtual: true }
