@@ -43,9 +43,7 @@ describe( 'PaymentRequestsButtonPreview', () => {
 	} );
 
 	afterEach( () => {
-		shouldUseGooglePayBrand.mockClear();
-		useStripe.mockClear();
-		canMakePaymentMock.mockClear();
+		jest.clearAllMocks();
 	} );
 
 	it( 'displays Google Chrome and Google Pay when page is in Safari', async () => {
