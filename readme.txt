@@ -136,5 +136,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Show toast when payment methods list is updated with new payment methods.
 * Fix - JS error on checkout when Boleto method was not active
 * Fix - Fixed bug that show "Use new payment method" on pay order page when there were no saved card was.
+* Add - Add filter call when updating an existent intent (wc_stripe_update_existing_intent_request).
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
