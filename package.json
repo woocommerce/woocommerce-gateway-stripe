@@ -109,7 +109,7 @@
     "build:release": "node tasks/release.js && mv release/woocommerce-gateway-stripe.zip .",
     "build:webpack": "wp-scripts build",
     "i18n:makepot": "wpi18n makepot --domain-path languages --pot-file woocommerce-gateway-stripe.pot --type plugin --main-file woocommerce-gateway-stripe.php --exclude bin,build,docker,docs,node_modules,release,tests,vendor",
-    "i18n:combine": "php bin/combine-pot-files.php languages/woocommerce-gateway-stripe-client.pot languages/woocommerce-gateway-stripe.pot",
+    "i18n:combine": "php bin/combine-pot-files.php languages/woocommerce-gateway-stripe-babel.pot languages/woocommerce-gateway-stripe.pot",
     "start": "npm run start:webpack",
     "start:webpack": "rimraf build/* && wp-scripts start",
     "preuglify": "rm -f $npm_package_assets_js_min",

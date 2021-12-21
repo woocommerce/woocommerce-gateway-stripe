@@ -9,18 +9,4 @@ module.exports = {
 		'@babel/plugin-proposal-optional-chaining',
 		'@babel/plugin-proposal-nullish-coalescing-operator',
 	],
-	env: {
-		production: {
-			plugins: [
-				'@emotion',
-				[
-					'@wordpress/babel-plugin-makepot',
-					{
-						output:
-							'languages/woocommerce-gateway-stripe-client.pot',
-					},
-				],
-			],
-		},
-	},
 };

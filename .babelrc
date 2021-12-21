@@ -1,0 +1,14 @@
+{
+	"env": {
+		"production": {
+			"plugins": [
+				[
+					"@wordpress/babel-plugin-makepot",
+					{
+						"output": "languages/woocommerce-gateway-stripe-babel.pot"
+					}
+				]
+			]
+		}
+	}
+}
