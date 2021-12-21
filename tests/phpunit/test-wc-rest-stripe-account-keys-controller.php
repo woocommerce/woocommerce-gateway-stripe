@@ -72,7 +72,6 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 		$response = $this->controller->set_account_keys( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
-		$this->assertIsArray( $response->get_data() );
 
 		$settings = get_option( 'woocommerce_stripe_settings' );
 
@@ -96,7 +95,6 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 		$response = $this->controller->set_account_keys( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
-		$this->assertIsArray( $response->get_data() );
 
 		$settings = get_option( 'woocommerce_stripe_settings' );
 
@@ -118,7 +116,6 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 		$response = $this->controller->set_account_keys( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
-		$this->assertIsArray( $response->get_data() );
 
 		$settings = get_option( 'woocommerce_stripe_settings' );
 
@@ -137,7 +134,6 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 		$response = $this->controller->set_account_keys( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
-		$this->assertIsArray( $response->get_data() );
 
 		$settings = get_option( 'woocommerce_stripe_settings' );
 
