@@ -2,6 +2,7 @@ import { __ } from '@wordpress/i18n';
 import React, { useContext } from 'react';
 import { Card, CheckboxControl, TextControl } from '@wordpress/components';
 import CardBody from '../card-body';
+import { useAccount } from '../../data/account';
 import TextLengthHelpInputWrapper from './text-length-help-input-wrapper';
 import StatementPreviewsWrapper from './statement-previews-wrapper';
 import StatementPreview from './statement-preview';
@@ -46,6 +47,15 @@ const PaymentsAndTransactionsSection = () => {
 	const translatedFullBankPreviewTitle = isShortAccountStatementEnabled
 		? __( 'All Other Payment Methods', 'woocommerce-gateway-stripe' )
 		: __( 'All Payment Methods', 'woocommerce-gateway-stripe' );
+
+	const { data } = useAccount();
+	const statementDescriptorPlaceholder =
+		data?.account?.settings?.payments?.statement_descriptor || '';
+	// 10 is the input's maximum length and the same of what we're using when passing it to the payment intent
+	const shortenedStatementDescriptorPlaceholder = statementDescriptorPlaceholder.substring(
+		0,
+		10
+	);
 
 	return (
 		<Card className="transactions-and-payouts">
@@ -116,6 +126,7 @@ const PaymentsAndTransactionsSection = () => {
 						) }
 						value={ accountStatementDescriptor }
 						onChange={ setAccountStatementDescriptor }
+						placeholder={ statementDescriptorPlaceholder }
 						maxLength={ 22 }
 					/>
 				</TextLengthHelpInputWrapper>
@@ -163,6 +174,9 @@ const PaymentsAndTransactionsSection = () => {
 								) }
 								value={ shortAccountStatementDescriptor }
 								onChange={ setShortAccountStatementDescriptor }
+								placeholder={
+									shortenedStatementDescriptorPlaceholder
+								}
 								maxLength={ 10 }
 							/>
 						</TextLengthHelpInputWrapper>
