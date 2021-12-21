@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useRef } from '@wordpress/element';
 
 /**
- * Hook for displaying an optional confirmation message.
+ * Hook for displaying a confirmation message before navigate.
  *
  * Usage:
  * - const callback = useConfirmNavigation( true );
