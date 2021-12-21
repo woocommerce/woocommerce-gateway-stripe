@@ -70,10 +70,9 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 		$request->set_param( 'webhook_secret', 'webhook-secret-12345' );
 
 		$response = $this->controller->set_account_keys( $request );
-		$expected = [];
 
 		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( $expected, $response->get_data() );
+		$this->assertIsArray( $response->get_data() );
 
 		$settings = get_option( 'woocommerce_stripe_settings' );
 
@@ -95,10 +94,9 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 		$request->set_param( 'test_webhook_secret', 'test-webhook-secret-12345' );
 
 		$response = $this->controller->set_account_keys( $request );
-		$expected = [];
 
 		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( $expected, $response->get_data() );
+		$this->assertIsArray( $response->get_data() );
 
 		$settings = get_option( 'woocommerce_stripe_settings' );
 
@@ -118,10 +116,9 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 		$request->set_param( 'publishable_key', 'pk_live-key-12345' );
 
 		$response = $this->controller->set_account_keys( $request );
-		$expected = [];
 
 		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( $expected, $response->get_data() );
+		$this->assertIsArray( $response->get_data() );
 
 		$settings = get_option( 'woocommerce_stripe_settings' );
 
@@ -138,10 +135,9 @@ class WC_REST_Stripe_Account_Keys_Controller_Test extends WP_UnitTestCase {
 		$request->set_param( 'publishable_key', '' );
 
 		$response = $this->controller->set_account_keys( $request );
-		$expected = [];
 
 		$this->assertEquals( 200, $response->get_status() );
-		$this->assertEquals( $expected, $response->get_data() );
+		$this->assertIsArray( $response->get_data() );
 
 		$settings = get_option( 'woocommerce_stripe_settings' );
 
