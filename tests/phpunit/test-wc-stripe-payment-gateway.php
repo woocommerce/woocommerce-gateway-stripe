@@ -14,7 +14,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	private $gateway;
 
 	/**
-	 * Giropay Gateway under test.
+	 * giropay Gateway under test.
 	 *
 	 * @var WC_Gateway_Stripe_Giropay
 	 */

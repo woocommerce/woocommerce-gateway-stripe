@@ -89,17 +89,17 @@ class WC_Stripe_Admin_Notices {
 	 */
 	public function get_payment_methods() {
 		return [
-			'Alipay'     => 'WC_Gateway_Stripe_Alipay',
-			'Bancontact' => 'WC_Gateway_Stripe_Bancontact',
-			'EPS'        => 'WC_Gateway_Stripe_EPS',
-			'Giropay'    => 'WC_Gateway_Stripe_Giropay',
-			'iDeal'      => 'WC_Gateway_Stripe_Ideal',
-			'Multibanco' => 'WC_Gateway_Stripe_Multibanco',
-			'P24'        => 'WC_Gateway_Stripe_p24',
-			'SEPA'       => 'WC_Gateway_Stripe_Sepa',
-			'SOFORT'     => 'WC_Gateway_Stripe_Sofort',
-			'BOLETO'     => 'WC_Gateway_Stripe_Boleto',
-			'OXXO'       => 'WC_Gateway_Stripe_Oxxo',
+			'alipay'     => 'WC_Gateway_Stripe_Alipay',
+			'bancontact' => 'WC_Gateway_Stripe_Bancontact',
+			'eps'        => 'WC_Gateway_Stripe_EPS',
+			'giropay'    => 'WC_Gateway_Stripe_Giropay',
+			'ideal'      => 'WC_Gateway_Stripe_Ideal',
+			'multibanco' => 'WC_Gateway_Stripe_Multibanco',
+			'p24'        => 'WC_Gateway_Stripe_p24',
+			'sepa'       => 'WC_Gateway_Stripe_Sepa',
+			'sofort'     => 'WC_Gateway_Stripe_Sofort',
+			'boleto'     => 'WC_Gateway_Stripe_Boleto',
+			'oxxo'       => 'WC_Gateway_Stripe_Oxxo',
 		];
 	}
 
@@ -242,7 +242,7 @@ class WC_Stripe_Admin_Notices {
 		$payment_methods = $this->get_payment_methods();
 
 		foreach ( $payment_methods as $method => $class ) {
-			$show_notice = get_option( 'wc_stripe_show_' . strtolower( $method ) . '_notice' );
+			$show_notice = get_option( 'wc_stripe_show_' . $method . '_notice' );
 			$gateway     = new $class();
 
 			if ( 'yes' !== $gateway->enabled || 'no' === $show_notice ) {
@@ -251,7 +251,7 @@ class WC_Stripe_Admin_Notices {
 
 			if ( ! in_array( get_woocommerce_currency(), $gateway->get_supported_currency(), true ) ) {
 				/* translators: %1$s Payment method, %2$s List of supported currencies */
-				$this->add_admin_notice( $method, 'notice notice-error', sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s', 'woocommerce-gateway-stripe' ), $method, implode( ', ', $gateway->get_supported_currency() ) ), true );
+				$this->add_admin_notice( $method, 'notice notice-error', sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s', 'woocommerce-gateway-stripe' ), $gateway->get_method_title(), implode( ', ', $gateway->get_supported_currency() ) ), true );
 			}
 		}
 
@@ -264,7 +264,7 @@ class WC_Stripe_Admin_Notices {
 				continue;
 			}
 			$method      = $method_class::STRIPE_ID;
-			$show_notice = get_option( 'wc_stripe_show_' . strtolower( $method ) . '_upe_notice' );
+			$show_notice = get_option( 'wc_stripe_show_' . $method . '_upe_notice' );
 			$upe_method  = new $method_class();
 			if ( ! $upe_method->is_enabled() || 'no' === $show_notice ) {
 				continue;
@@ -316,31 +316,31 @@ class WC_Stripe_Admin_Notices {
 				case '3ds':
 					update_option( 'wc_stripe_show_3ds_notice', 'no' );
 					break;
-				case 'Alipay':
+				case 'alipay':
 					update_option( 'wc_stripe_show_alipay_notice', 'no' );
 					break;
-				case 'Bancontact':
+				case 'bancontact':
 					update_option( 'wc_stripe_show_bancontact_notice', 'no' );
 					break;
-				case 'EPS':
+				case 'eps':
 					update_option( 'wc_stripe_show_eps_notice', 'no' );
 					break;
-				case 'Giropay':
+				case 'giropay':
 					update_option( 'wc_stripe_show_giropay_notice', 'no' );
 					break;
-				case 'iDeal':
+				case 'ideal':
 					update_option( 'wc_stripe_show_ideal_notice', 'no' );
 					break;
-				case 'Multibanco':
+				case 'multibanco':
 					update_option( 'wc_stripe_show_multibanco_notice', 'no' );
 					break;
-				case 'P24':
+				case 'p24':
 					update_option( 'wc_stripe_show_p24_notice', 'no' );
 					break;
-				case 'SEPA':
+				case 'sepa':
 					update_option( 'wc_stripe_show_sepa_notice', 'no' );
 					break;
-				case 'SOFORT':
+				case 'sofort':
 					update_option( 'wc_stripe_show_sofort_notice', 'no' );
 					break;
 				case 'sca':

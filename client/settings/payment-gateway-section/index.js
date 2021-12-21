@@ -1,11 +1,9 @@
 import { __, sprintf } from '@wordpress/i18n';
-import { createInterpolateElement } from '@wordpress/element';
 import { React } from 'react';
 import {
 	Card,
 	CheckboxControl,
 	TextControl,
-	ExternalLink,
 	Button,
 } from '@wordpress/components';
 import { getQuery } from '@woocommerce/navigation';
@@ -14,7 +12,6 @@ import CardBody from '../card-body';
 import { gatewaysInfo } from '../payment-gateway-manager/constants';
 import LoadablePaymentGatewaySection from '../loadable-payment-gateway-section';
 import PaymentMethodMissingCurrencyPill from '../../components/payment-method-missing-currency-pill';
-import { useAccount } from '../../data/account/hooks';
 import useWebhookStateMessage from '../account-details/use-webhook-state-message';
 import {
 	useEnabledPaymentGateway,
@@ -22,14 +19,10 @@ import {
 	usePaymentGatewayDescription,
 } from '../../data/payment-gateway/hooks';
 import PaymentMethodCapabilityStatusPill from 'wcstripe/components/payment-method-capability-status-pill';
+import { WebhookInformation } from 'wcstripe/components/webhook-information';
 
 const StyledCard = styled( Card )`
 	margin-bottom: 12px;
-`;
-
-const WebhookEndpointText = styled.strong`
-	padding: 0 2px;
-	background-color: #f6f7f7; // $studio-gray-0
 `;
 
 const StyledCheckboxLabel = styled.span`
@@ -47,7 +40,6 @@ const PaymentGatewaySection = () => {
 		gatewayDescription,
 		setGatewayDescription,
 	] = usePaymentGatewayDescription();
-	const { data } = useAccount();
 	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
 
 	return (
@@ -120,24 +112,7 @@ const PaymentGatewaySection = () => {
 							'woocommerce-gateway-stripe'
 						) }
 					</h4>
-					<p>
-						{ createInterpolateElement(
-							__(
-								"You must add the following webhook endpoint <webhookEndpoint /> to your <a>Stripe account settings</a> (if there isn't one already enabled). This will enable you to receive notifications on the charge statuses.",
-								'woocommerce-gateway-stripe'
-							),
-							{
-								webhookEndpoint: (
-									<WebhookEndpointText>
-										{ data.webhook_url }
-									</WebhookEndpointText>
-								),
-								a: (
-									<ExternalLink href="https://dashboard.stripe.com/account/webhooks" />
-								),
-							}
-						) }
-					</p>
+					<WebhookInformation />
 					<p>
 						{ message }{ ' ' }
 						<Button

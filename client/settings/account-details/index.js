@@ -1,7 +1,6 @@
 import { __ } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
 import React from 'react';
-import styled from '@emotion/styled';
 import './style.scss';
 import { Button, ExternalLink } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
@@ -12,11 +11,7 @@ import {
 	useAccountKeysTestWebhookSecret,
 	useAccountKeysWebhookSecret,
 } from 'wcstripe/data/account-keys';
-
-const WebhookEndpointText = styled.strong`
-	padding: 0 2px;
-	background-color: #f6f7f7; // $studio-gray-0
-`;
+import { WebhookInformation } from 'wcstripe/components/webhook-information';
 
 const useIsCardPaymentsEnabled = () =>
 	useGetCapabilities().card_payments === 'active';
@@ -86,22 +81,7 @@ const WebhooksSection = () => {
 				</SectionStatus>
 			</div>
 			<div className="account-details__desc">
-				{ createInterpolateElement(
-					__(
-						"You must add the following webhook endpoint <webhookEndpoint /> to your <a>Stripe account settings</a> (if there isn't one already enabled). This will enable you to receive notifications on the charge statuses.",
-						'woocommerce-gateway-stripe'
-					),
-					{
-						webhookEndpoint: (
-							<WebhookEndpointText>
-								{ data.webhook_url }
-							</WebhookEndpointText>
-						),
-						a: (
-							<ExternalLink href="https://dashboard.stripe.com/account/webhooks" />
-						),
-					}
-				) }
+				<WebhookInformation />
 				<br />
 				<br />
 				{ message }{ ' ' }
@@ -134,7 +114,11 @@ const MissingAccountDetailsDescription = () => {
 					'Payments/payouts may be disabled for this account until missing business information is updated. <a>Update now</a>',
 					'woocommerce-gateway-stripe'
 				),
-				{ a: <ExternalLink href="https://stripe.com/support" /> }
+				{
+					a: (
+						<ExternalLink href="https://dashboard.stripe.com/account" />
+					),
+				}
 			) }
 		</div>
 	);

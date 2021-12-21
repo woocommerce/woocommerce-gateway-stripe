@@ -1,6 +1,6 @@
-## Stripe iDeal
+## Stripe iDEAL
 
-### Go to WooCommerce > Settings > Payments > Stripe iDeal
+### Go to WooCommerce > Settings > Payments > Stripe iDEAL
 
 #### Click Enable/Disable checkbox
 
@@ -23,11 +23,11 @@ I see **Your settings have been saved** notice.
 
 ### Go to the checkout page
 
-I see Stripe iDeal is available as a payment method.
+I see Stripe iDEAL is available as a payment method.
 
 #### Fill in all required details
 
-### Select Stripe iDeal as payment method if not selected already
+### Select Stripe iDEAL as payment method if not selected already
 
 #### Click on **Place order** button
 

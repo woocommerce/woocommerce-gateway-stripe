@@ -20,7 +20,7 @@ return apply_filters(
 		],
 		'enabled'     => [
 			'title'       => __( 'Enable/Disable', 'woocommerce-gateway-stripe' ),
-			'label'       => __( 'Enable Stripe iDeal', 'woocommerce-gateway-stripe' ),
+			'label'       => __( 'Enable Stripe iDEAL', 'woocommerce-gateway-stripe' ),
 			'type'        => 'checkbox',
 			'description' => '',
 			'default'     => 'no',
@@ -29,14 +29,14 @@ return apply_filters(
 			'title'       => __( 'Title', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
 			'description' => __( 'This controls the title which the user sees during checkout.', 'woocommerce-gateway-stripe' ),
-			'default'     => __( 'iDeal', 'woocommerce-gateway-stripe' ),
+			'default'     => __( 'iDEAL', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		],
 		'description' => [
 			'title'       => __( 'Description', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
 			'description' => __( 'This controls the description which the user sees during checkout.', 'woocommerce-gateway-stripe' ),
-			'default'     => __( 'You will be redirected to iDeal.', 'woocommerce-gateway-stripe' ),
+			'default'     => __( 'You will be redirected to iDEAL.', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		],
 		'webhook'     => [
