@@ -2,26 +2,23 @@
 // phpcs:ignoreFile - This is an auxiliary build tool, and not part of the plugin.
 
 /**
- * Command line script for merging two .pot files.
+ * Command line script for updating the file references of JS files in a .pot file.
  */
 
 /**
- * Get the two file names from the command line.
+ * Get the file name from the command line.
  */
-if ( $argc < 2 ) {
-	echo "Usage: php -f {$argv[0]} source-file.pot destination-file.pot\n";
+if ( $argc !== 2 ) {
+	echo "Usage: {$argc} php -f {$argv[0]} file.pot\n";
 	exit;
 }
 
-for ( $index = 1; $index <= 2; $index++ ) {
-	if ( ! is_file( $argv[ $index ] ) ) {
-		echo "[ERROR] File not found: {$argv[ $index ]}\n";
-		exit;
-	}
-}
+$pot_filename = $argv[1];
 
-// Merge all translation messages into the second file.
-$target_file = $argv[2];
+if ( ! is_file( $pot_filename ) ) {
+	echo "[ERROR] File not found: {$pot_filename}\n";
+	exit;
+}
 
 /**
  * Parses a .pot file into an array.
@@ -141,39 +138,23 @@ function add_transpiled_filepath_reference_to_comments( array $js_mappings, arra
 	return $translations;
 }
 
-// Read the translation .pot files.
-$originals_1 = read_pot_translations( $argv[1] );
-$originals_2 = read_pot_translations( $argv[2] );
+// Read the translation .pot file.
+$originals = read_pot_translations( $pot_filename );
 
 // For transpiled JS client files, we need to add a reference to the generated build file.
 $js_source_maps = load_js_transpiling_source_maps();
-$originals_1 = add_transpiled_filepath_reference_to_comments( $js_source_maps, $originals_1 );
-$originals_2 = add_transpiled_filepath_reference_to_comments( $js_source_maps, $originals_2 );
+$originals = add_transpiled_filepath_reference_to_comments( $js_source_maps, $originals );
 
-// Delete the original sources.
-unlink( $argv[1] );
-unlink( $argv[2] );
+// Delete the original source.
+unlink( $pot_filename );
 
-// We don't want two .pot headers in the output.
-array_shift( $originals_1 );
+$fh = fopen( $pot_filename, 'w' );
 
-$fh = fopen( $target_file, 'w' );
-foreach ( $originals_2 as $message => $original ) {
-	// Use the complete message section to match strings to be translated.
-	if ( isset( $originals_1[ $message ] ) ) {
-		$original = array_merge( $original, $originals_1[ $message ] );
-		unset( $originals_1[ $message ] );
-	}
-
-	fwrite( $fh, implode( "\n", $original ) );
-	fwrite( $fh, "\n" . $message . "\n\n" );
-}
-
-foreach ( $originals_1 as $message => $original ) {
+foreach ( $originals as $message => $original ) {
 	fwrite( $fh, implode( "\n", $original ) );
 	fwrite( $fh, "\n" . $message . "\n\n" );
 }
 
 fclose( $fh );
 
-echo "Created {$target_file}\n";
+echo "Updated {$pot_filename}\n";
