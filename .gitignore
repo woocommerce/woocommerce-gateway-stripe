@@ -15,6 +15,7 @@ vendor
 release/
 build/
 woocommerce-gateway-stripe.zip
+languages/woocommerce-gateway-stripe.pot
 
 # Ignore all log files except for .htaccess
 /logs/*
