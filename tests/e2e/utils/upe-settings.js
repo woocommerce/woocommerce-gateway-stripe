@@ -17,33 +17,31 @@ export const stripeUPESettingsUtils = {
 	},
 
 	/**
+	 * Toggles UPE between active and inactive state
+	 */
+	toggleUpe: async () => {
+		await stripeUPESettingsUtils.openSettingsPage();
+		await buttonsUtils.clickButtonWithText(
+			'Settings',
+			'//*[@id="wc-stripe-account-settings-container"]'
+		);
+		await buttonsUtils.clickButtonWithText(
+			'Advanced settings',
+			'//*[@id="wc-stripe-account-settings-container"]'
+		);
+		await buttonsUtils.toggleCheckbox(
+			'//input[@data-testid="new-checkout-experience-checkbox"]'
+		);
+		await buttonsUtils.clickButtonWithText( 'Save changes' );
+		await expect( page ).toMatch( 'Settings saved.' );
+		await stripeUPESettingsUtils.openSettingsPage();
+	},
+
+	/**
 	 * Activates Upe using the new settings page
 	 */
 	activateUpe: async () => {
-		await stripeUPESettingsUtils.openSettingsPage();
-		await buttonsUtils.clickButtonWithText( 'Enable in your store' );
-		await page.waitForSelector( '#wc-stripe-onboarding-wizard-container' );
-
-		await buttonsUtils.clickButtonWithText( 'Enable' );
-		await page.waitForSelector(
-			'.add-payment-methods-task__payment-selector-title',
-			{ visible: true }
-		);
-
-		await buttonsUtils.clickButtonWithText( 'Add payment methods' );
-		await page.waitForSelector(
-			'.setup-complete-task__enabled-methods-list',
-			{ visible: true }
-		);
-
-		await buttonsUtils.clickButtonWithText( 'Go to Stripe settings' );
-		await page.waitForSelector( '#wc-stripe-account-settings-container', {
-			visible: true,
-		} );
-
-		await expect( page ).not.toMatch(
-			'Enable the new Stripe checkout experience'
-		);
+		await stripeUPESettingsUtils.toggleUpe();
 		await expect( page ).toMatch( 'giropay' );
 	},
 
@@ -51,20 +49,8 @@ export const stripeUPESettingsUtils = {
 	 * Deactivates Upe using the new settings page
 	 */
 	deactivateUpe: async () => {
-		await stripeUPESettingsUtils.openSettingsPage();
-		await buttonsUtils.clickButtonWithText( 'Payment methods menu' );
-		await buttonsUtils.clickButtonWithText(
-			'Disable',
-			'//*[@class="components-dropdown-menu__menu"]'
-		);
-		await buttonsUtils.clickButtonWithText(
-			'Disable',
-			'//*[@class="wcstripe-confirmation-modal__footer"]'
-		);
-
-		await expect( page ).toMatch(
-			'Enable the new Stripe checkout experience'
-		);
+		await stripeUPESettingsUtils.toggleUpe();
+		await expect( page ).not.toMatch( 'giropay' );
 	},
 
 	/**
@@ -93,14 +79,8 @@ export const stripeUPESettingsUtils = {
 	 * @param methodName checkbox input name
 	 */
 	clickOnPaymentMethodCheckbox: async ( methodName ) => {
-		const [ checkbox ] = await page.$x(
+		await buttonsUtils.toggleCheckbox(
 			'//input[@name="' + methodName + '"]'
 		);
-
-		if ( ! checkbox ) {
-			throw new Error( 'Method not found' );
-		}
-
-		await checkbox.click();
 	},
 };
