@@ -33,6 +33,9 @@ rm( '-rf', releaseFolder );
 mkdir( releaseFolder );
 mkdir( targetFolder );
 
+// remove the 'hidden' source maps; they are used to generate the POT file and are not referenced in the source files.
+rm( 'build/*.map' );
+
 // copy the directories to the release folder
 cp( '-Rf', filesToCopy, targetFolder );
 
