@@ -28,10 +28,10 @@ export const buttonsUtils = {
 
 	/**
 	 * Clicks on a checkbox to change the state
-	 * @param checkbox XPath
+	 * @param checkboxSelector XPath
 	 */
-	toggleCheckbox: async ( checkbox ) => {
-		const [ checkbox ] = await page.$x( checkbox );
+	toggleCheckbox: async ( checkboxSelector ) => {
+		const [ checkbox ] = await page.$x( checkboxSelector );
 
 		if ( ! checkbox ) {
 			throw new Error( 'Checkbox not found' );
