@@ -97,7 +97,7 @@ function load_js_transpiling_source_maps(): array {
 	}
 
 	if ( empty( $mappings ) ) {
-		echo "[ERROR] Unable to load JS transpiling mappings from 'build/*.js.map' files. Make sure the JS assets compilation was successful.\n";
+		echo "[ERROR] Unable to load JS transpiling mappings from 'build/*.js.map' files. Make sure the JS assets compilation was successful (e.g. npm run build:webpack).\n";
 		die();
 	}
 
