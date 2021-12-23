@@ -1,5 +1,9 @@
 import config from 'config';
 import { buttonsUtils } from './buttons';
+import { withRestApi } from '@woocommerce/e2e-utils/build/flows/with-rest-api';
+import { factories } from '@woocommerce/e2e-utils';
+
+const client = factories.api.withDefaultPermalinks;
 
 const baseUrl = config.get( 'url' );
 
@@ -7,6 +11,58 @@ const UPE_SETTINGS_PAGE =
 	baseUrl + 'wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe';
 
 export const stripeUPESettingsUtils = {
+	/**
+	 * Resets Stripe and store settings to always run tests with the same starting point
+	 */
+	resetSettings: async () => {
+		await withRestApi.deleteCustomerByEmail(
+			config.get( 'addresses.customer.billing.email' )
+		);
+		await withRestApi.updateSettingOption(
+			'general',
+			'woocommerce_currency',
+			{ value: 'USD' }
+		);
+		await withRestApi.updateSettingOption(
+			'general',
+			'woocommerce_default_country',
+			{ value: 'US:CA' }
+		);
+
+		let response = await client.post( 'wc/v3/wc_stripe/settings', {
+			is_stripe_enabled: true,
+			is_test_mode_enabled: true,
+			title: '',
+			title_upe: '',
+			description: '',
+			enabled_payment_method_ids: [ 'card' ],
+			available_payment_method_ids: [ 'card' ],
+			is_payment_request_enabled: true,
+			payment_request_button_type: 'buy',
+			payment_request_button_theme: 'dark',
+			payment_request_button_size: 'default',
+			payment_request_button_locations: [ 'product', 'cart', 'checkout' ],
+			is_manual_capture_enabled: false,
+			is_saved_cards_enabled: true,
+			is_separate_card_form_enabled: true,
+			statement_descriptor: 'wcstripe',
+			is_short_statement_descriptor_enabled: false,
+			short_statement_descriptor: '',
+			is_debug_log_enabled: false,
+			is_upe_enabled: false,
+		} );
+		expect( response.statusCode ).toEqual( 200 );
+
+		response = await client.post( 'wc/v3/wc_stripe/account_keys', {
+			test_publishable_key:
+				'pk_test_51Jr8gSIBzNsfvChPTfZIjIqyDk5kle22WUWNuo0ehVTG7xrYmBaCghcbXhTIh0w3rUSRMuDYqrxjZhObQk3QzVxK00PKhuMcqr',
+			test_secret_key:
+				'sk_test_51Jr8gSIBzNsfvChPfrt1EwKEpoT2i4t5VJ8Kdk7wneO4MfP7pvhzq12FnA1AxGWAbcvMhGk5wf9mlTtosRUPL7v000OVp9w5hN',
+			test_webhook_secret: 'whsec_nhHU9RprMmja7XciZfzRArlvFCPaR1KX',
+		} );
+		expect( response.statusCode ).toEqual( 200 );
+	},
+
 	/**
 	 * Opens Upe settings page
 	 */
