@@ -773,11 +773,6 @@ class WC_Stripe_Payment_Request {
 		);
 
 		wp_enqueue_script( 'wc_stripe_payment_request' );
-
-		$gateways = WC()->payment_gateways->get_available_payment_gateways();
-		if ( isset( $gateways['stripe'] ) ) {
-			$gateways['stripe']->payment_scripts();
-		}
 	}
 
 	/**
