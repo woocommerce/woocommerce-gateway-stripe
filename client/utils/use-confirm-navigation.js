@@ -28,9 +28,12 @@ const useConfirmNavigation = ( displayPrompt ) => {
 			event.preventDefault();
 			event.returnValue = '';
 		};
+
+		// eslint-disable-next-line @wordpress/no-global-event-listener
 		window.addEventListener( 'beforeunload', handler );
 
 		return () => {
+			// eslint-disable-next-line @wordpress/no-global-event-listener
 			window.removeEventListener( 'beforeunload', handler );
 		};
 	}, [] );
