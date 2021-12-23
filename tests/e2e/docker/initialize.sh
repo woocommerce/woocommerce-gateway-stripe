@@ -30,7 +30,8 @@ wp import wp-content/plugins/woocommerce/sample-data/sample_products.xml --autho
 echo "Activating the WooCommerce Stripe Gateway plugin..."
 wp plugin activate woocommerce-gateway-stripe
 
-# echo "Activate <your-extension>"
-# wp plugin activate your-extension
+echo "Installing basic auth plugin for interfacing with the API"
+wp plugin install https://github.com/WP-API/Basic-Auth/archive/master.zip --activate
+
 
 echo "Success! Your E2E Test Environment is now ready."
