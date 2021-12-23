@@ -12,7 +12,7 @@
     },
     "products": {
       "simple": {
-        "name": "Simple product"
+        "name": "Album"
       },
       "variable": {
         "name": "Variable Product with Three Attributes",
@@ -181,6 +181,17 @@
         }
       }
     },
+		"cards": {
+			"basic": {
+				"number": "4242424242424242",
+				"expires": {
+					"month": "02",
+					"year": "24"
+				},
+				"cvc": "424",
+				"label": "Visa ending in 4242"
+			}
+		},
     "orders": {
       "basicPaidOrder": {
         "paymentMethod": "cod",
