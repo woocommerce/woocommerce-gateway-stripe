@@ -5,7 +5,7 @@ import { stripeUPESettingsUtils } from '../../utils/upe-settings';
 describe( 'WooCommerce > Settings > Stripe (UPE)', () => {
 	beforeAll( async () => {
 		await merchant.login();
-		//Todo: make sure upe is disabled first
+		await stripeUPESettingsUtils.resetSettings();
 	} );
 
 	afterAll( async () => {

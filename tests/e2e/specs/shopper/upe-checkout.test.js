@@ -6,20 +6,22 @@ import config from 'config';
 // import { stripeUPESettingsUtils } from '../../utils/upe-settings';
 import { fillUpeCard, setupProductCheckout } from '../../utils/payments';
 import { buttonsUtils } from '../../utils/buttons';
+import { stripeUPESettingsUtils } from '../../utils/upe-settings';
+import { merchant } from '@woocommerce/e2e-utils';
 
 describe( 'Successfull Purchase', () => {
-	// beforeAll( async () => {
-	// 	await merchant.login();
-	// 	//Todo: make sure upe is disabled first
-	// } );
+	beforeAll( async () => {
+		await merchant.login();
+		await stripeUPESettingsUtils.resetSettings();
+		await stripeUPESettingsUtils.activateUpe();
+	} );
 
-	// afterAll( async () => {
-	// 	await merchant.logout();
-	// } );
+	afterAll( async () => {
+		await merchant.logout();
+	} );
 
 	it( 'using a basic card', async () => {
-		// await stripeUPESettingsUtils.activateUpe();
-		// await stripeUPESettingsUtils.activatePaymentMethod( 'card' );
+		await stripeUPESettingsUtils.activatePaymentMethod( 'card' );
 		await setupProductCheckout(
 			config.get( 'addresses.customer.billing' )
 		);
