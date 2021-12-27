@@ -190,6 +190,15 @@
 				},
 				"cvc": "424",
 				"label": "Visa ending in 4242"
+			},
+			"sca": {
+				"number": "4000002500003155",
+				"expires": {
+					"month": "02",
+					"year": "24"
+				},
+				"cvc": "424",
+				"label": "Needs SCA"
 			}
 		},
     "orders": {
