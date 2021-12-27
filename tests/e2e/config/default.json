@@ -131,6 +131,23 @@
         "externalUrl": "https://wordpress.org/plugins/woocommerce"
       }
     },
+		"stripe": {
+			"default": {
+				"test_publishable_key": "pk_test_...",
+				"test_secret_key": "sk_test_...",
+				"test_webhook_secret": "whsec_..."
+			},
+			"brazil": {
+				"test_publishable_key": "pk_test_...",
+				"test_secret_key": "sk_test_...",
+				"test_webhook_secret": "whsec_..."
+			},
+			"mexico": {
+				"test_publishable_key": "pk_test_...",
+				"test_secret_key": "sk_test_...",
+				"test_webhook_secret": "whsec_..."
+			}
+		},
     "coupons": {
       "percentage": {
         "code": "20percent",
@@ -190,6 +207,15 @@
 				},
 				"cvc": "424",
 				"label": "Visa ending in 4242"
+			},
+			"sca": {
+				"number": "4000002500003155",
+				"expires": {
+					"month": "02",
+					"year": "24"
+				},
+				"cvc": "424",
+				"label": "Needs SCA"
 			}
 		},
     "orders": {

@@ -53,13 +53,10 @@ export const stripeUPESettingsUtils = {
 		} );
 		expect( response.statusCode ).toEqual( 200 );
 
-		response = await client.post( 'wc/v3/wc_stripe/account_keys', {
-			test_publishable_key:
-				'pk_test_51Jr8gSIBzNsfvChPTfZIjIqyDk5kle22WUWNuo0ehVTG7xrYmBaCghcbXhTIh0w3rUSRMuDYqrxjZhObQk3QzVxK00PKhuMcqr',
-			test_secret_key:
-				'sk_test_51Jr8gSIBzNsfvChPfrt1EwKEpoT2i4t5VJ8Kdk7wneO4MfP7pvhzq12FnA1AxGWAbcvMhGk5wf9mlTtosRUPL7v000OVp9w5hN',
-			test_webhook_secret: 'whsec_nhHU9RprMmja7XciZfzRArlvFCPaR1KX',
-		} );
+		response = await client.post(
+			'wc/v3/wc_stripe/account_keys',
+			config.get( 'stripe' )
+		);
 		expect( response.statusCode ).toEqual( 200 );
 	},
 
