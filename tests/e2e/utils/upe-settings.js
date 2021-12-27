@@ -52,7 +52,7 @@ export async function resetSettings() {
 
 	response = await client.post(
 		'wc/v3/wc_stripe/account_keys',
-		config.get( 'stripe' )
+		config.get( 'stripe.default' )
 	);
 	expect( response.statusCode ).toEqual( 200 );
 }
