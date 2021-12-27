@@ -9,12 +9,22 @@ import {
 const baseUrl = config.get( 'url' );
 
 const MY_ACCOUNT_ADD_PAYMENT_METHOD = baseUrl + 'my-account/add-payment-method';
+const MY_ACCOUNT_PAYMENT_METHODS = baseUrl + 'my-account/payment-methods';
 
 /**
  * Opens the Add Payment Method page
  */
 export async function goToAddPaymentMethodPage() {
 	await page.goto( MY_ACCOUNT_ADD_PAYMENT_METHOD, {
+		waitUntil: 'networkidle0',
+	} );
+}
+
+/**
+ * Opens the Add Payment Method page
+ */
+export async function goToPaymentMethodsPage() {
+	await page.goto( MY_ACCOUNT_PAYMENT_METHODS, {
 		waitUntil: 'networkidle0',
 	} );
 }
@@ -46,4 +56,20 @@ export async function addNewPaymentMethod( cardType, card ) {
 	await page.waitForNavigation( {
 		waitUntil: 'networkidle0',
 	} );
+}
+
+/**
+ * Removes all saved cards from account
+ */
+export async function removedPaymentMethods() {
+	await goToPaymentMethodsPage();
+	const savedCards = await page.$$( '.payment-method .delete' );
+
+	for ( const card of savedCards ) {
+		await card.click();
+		await page.waitForNavigation( {
+			waitUntil: 'networkidle0',
+		} );
+		await expect( page ).toMatch( 'Payment method deleted.' );
+	}
 }
