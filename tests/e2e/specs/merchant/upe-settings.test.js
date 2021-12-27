@@ -1,11 +1,17 @@
 import { merchant } from '@woocommerce/e2e-utils';
 
-import { stripeUPESettingsUtils } from '../../utils/upe-settings';
+import {
+	activatePaymentMethod,
+	activateUpe,
+	deactivatePaymentMethod,
+	deactivateUpe,
+	resetSettings,
+} from '../../utils/upe-settings';
 
 describe( 'WooCommerce > Settings > Stripe (UPE)', () => {
 	beforeAll( async () => {
 		await merchant.login();
-		await stripeUPESettingsUtils.resetSettings();
+		await resetSettings();
 	} );
 
 	afterAll( async () => {
@@ -13,18 +19,18 @@ describe( 'WooCommerce > Settings > Stripe (UPE)', () => {
 	} );
 
 	it( 'can activate UPE', async () => {
-		await stripeUPESettingsUtils.activateUpe();
+		await activateUpe();
 	} );
 
 	it( 'can activate UPE method', async () => {
-		await stripeUPESettingsUtils.activatePaymentMethod( 'giropay' );
+		await activatePaymentMethod( 'giropay' );
 	} );
 
 	it( 'can deactivate UPE method', async () => {
-		await stripeUPESettingsUtils.deactivatePaymentMethod( 'giropay' );
+		await deactivatePaymentMethod( 'giropay' );
 	} );
 
 	it( 'can deactivate UPE', async () => {
-		await stripeUPESettingsUtils.deactivateUpe();
+		await deactivateUpe();
 	} );
 } );

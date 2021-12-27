@@ -5,7 +5,11 @@ import {
 	fillUpeCard,
 	setupProductCheckout,
 } from '../../utils/payments';
-import { stripeUPESettingsUtils } from '../../utils/upe-settings';
+import {
+	activatePaymentMethod,
+	activateUpe,
+	resetSettings,
+} from '../../utils/upe-settings';
 import { confirmCardAuthentication } from '../../utils/payments';
 import { merchant } from '@woocommerce/e2e-utils';
 import { addNewPaymentMethod } from '../../utils/shopper/account';
@@ -13,8 +17,8 @@ import { addNewPaymentMethod } from '../../utils/shopper/account';
 describe( 'Successfull Purchase', () => {
 	beforeAll( async () => {
 		await merchant.login();
-		await stripeUPESettingsUtils.resetSettings();
-		await stripeUPESettingsUtils.activateUpe();
+		await resetSettings();
+		await activateUpe();
 	} );
 
 	afterAll( async () => {
@@ -22,7 +26,7 @@ describe( 'Successfull Purchase', () => {
 	} );
 
 	it( 'using a basic card', async () => {
-		await stripeUPESettingsUtils.activatePaymentMethod( 'card' );
+		await activatePaymentMethod( 'card' );
 		await setupProductCheckout(
 			config.get( 'addresses.customer.billing' )
 		);
@@ -38,7 +42,7 @@ describe( 'Successfull Purchase', () => {
 	} );
 
 	it( 'using a SCA card', async () => {
-		await stripeUPESettingsUtils.activatePaymentMethod( 'card' );
+		await activatePaymentMethod( 'card' );
 		await setupProductCheckout(
 			config.get( 'addresses.customer.billing' )
 		);
