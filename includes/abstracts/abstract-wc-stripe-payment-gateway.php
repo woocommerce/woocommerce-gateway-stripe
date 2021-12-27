@@ -1379,9 +1379,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		 * Filter the value of the request.
 		 *
 		 * @since x.x.x
-		 * @param array $request
-		 * @param WC_Order $order
-		 * @param object $source
+		 * @param array $request  Request to send to Stripe API.
+		 * @param WC_Order $order Order that the intent is associated with.
+		 * @param object $source  Currently selected source.
 		 */
 		$request = apply_filters( 'wc_stripe_update_existing_intent_request', $request, $order, $prepared_source );
 
