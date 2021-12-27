@@ -8,11 +8,13 @@ import {
 
 const baseUrl = config.get( 'url' );
 
-const MY_ACCOUNT_ADD_PAYMENT_METHODS =
-	baseUrl + 'my-account/add-payment-method';
+const MY_ACCOUNT_ADD_PAYMENT_METHOD = baseUrl + 'my-account/add-payment-method';
 
-export async function goToPaymentMethodsPage() {
-	await page.goto( MY_ACCOUNT_ADD_PAYMENT_METHODS, {
+/**
+ * Opens the Add Payment Method page
+ */
+export async function goToAddPaymentMethodPage() {
+	await page.goto( MY_ACCOUNT_ADD_PAYMENT_METHOD, {
 		waitUntil: 'networkidle0',
 	} );
 }
@@ -25,7 +27,7 @@ export async function goToPaymentMethodsPage() {
  * @param {*} card Card object that you want to add as the new payment method.
  */
 export async function addNewPaymentMethod( cardType, card ) {
-	await goToPaymentMethodsPage();
+	await goToAddPaymentMethodPage();
 	await checkUseNewPaymentMethod();
 	await fillUpeCard( card );
 
