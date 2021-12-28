@@ -12,12 +12,14 @@ import {
 } from '../../utils/upe-settings';
 import { confirmCardAuthentication } from '../../utils/payments';
 import { merchant } from '@woocommerce/e2e-utils';
+import { addNewPaymentMethod } from '../../utils/shopper/account';
 
 describe( 'Checkout', () => {
 	beforeAll( async () => {
 		await merchant.login();
 		await resetSettings();
 		await activateUpe();
+		await activatePaymentMethod( 'card' );
 	} );
 
 	afterAll( async () => {
@@ -25,7 +27,6 @@ describe( 'Checkout', () => {
 	} );
 
 	it( 'using a basic card', async () => {
-		await activatePaymentMethod( 'card' );
 		await setupProductCheckout(
 			config.get( 'addresses.customer.billing' )
 		);
@@ -41,7 +42,6 @@ describe( 'Checkout', () => {
 	} );
 
 	it( 'using a SCA card', async () => {
-		await activatePaymentMethod( 'card' );
 		await setupProductCheckout(
 			config.get( 'addresses.customer.billing' )
 		);
@@ -51,6 +51,20 @@ describe( 'Checkout', () => {
 		await expect( page ).toClick( '#place_order' );
 
 		await confirmCardAuthentication();
+		await page.waitForNavigation( {
+			waitUntil: 'networkidle0',
+		} );
+
+		await expect( page ).toMatch( 'Order received' );
+	} );
+
+	it( 'using a saved card', async () => {
+		await addNewPaymentMethod( 'basic', config.get( 'cards.basic' ) );
+		await setupProductCheckout(
+			config.get( 'addresses.customer.billing' )
+		);
+		await expect( page ).toClick( '#place_order' );
+
 		await page.waitForNavigation( {
 			waitUntil: 'networkidle0',
 		} );
