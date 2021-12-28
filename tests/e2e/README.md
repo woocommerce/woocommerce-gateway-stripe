@@ -14,7 +14,7 @@ Test site will be available at localhost:8084/wp-admin
 
 ## Running
 - `$ npm run test:e2e` to run in headless mode
-- `$ npm run test:e2e-dev` to run in non headless mode
+- `$ npm run test:e2e-dev` to run in non-headless mode
 
 
 
