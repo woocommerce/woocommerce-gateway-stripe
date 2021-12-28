@@ -61,7 +61,7 @@ export async function addNewPaymentMethod( cardType, card ) {
 /**
  * Removes all saved cards from account
  */
-export async function removedPaymentMethods() {
+export async function removeSavedPaymentMethods() {
 	await goToPaymentMethodsPage();
 
 	let savedCard = await page.$( '.payment-method .delete' );
