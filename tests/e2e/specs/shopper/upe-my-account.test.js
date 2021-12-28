@@ -1,6 +1,6 @@
 import {
 	addNewPaymentMethod,
-	removedPaymentMethods,
+	removeSavedPaymentMethods,
 } from '../../utils/shopper/account';
 import config from 'config';
 import { merchant } from '@woocommerce/e2e-utils';
@@ -24,7 +24,7 @@ describe( 'My Account', () => {
 	} );
 
 	it( 'should remove saved cards', async () => {
-		await removedPaymentMethods();
+		await removeSavedPaymentMethods();
 
 		await expect( page ).toMatch( 'No saved methods found.' );
 	} );

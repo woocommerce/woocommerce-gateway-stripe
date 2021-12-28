@@ -11,8 +11,11 @@ import {
 	resetSettings,
 } from '../../utils/upe-settings';
 import { confirmCardAuthentication } from '../../utils/payments';
-import { merchant } from '@woocommerce/e2e-utils';
-import { addNewPaymentMethod } from '../../utils/shopper/account';
+import { merchant, shopper } from '@woocommerce/e2e-utils';
+import {
+	addNewPaymentMethod,
+	removeSavedPaymentMethods,
+} from '../../utils/shopper/account';
 
 describe( 'Checkout', () => {
 	beforeAll( async () => {
@@ -20,10 +23,14 @@ describe( 'Checkout', () => {
 		await resetSettings();
 		await activateUpe();
 		await activatePaymentMethod( 'card' );
+		await merchant.logout();
+
+		await shopper.login();
+		await removeSavedPaymentMethods();
 	} );
 
 	afterAll( async () => {
-		await merchant.logout();
+		await shopper.logout();
 	} );
 
 	it( 'using a basic card', async () => {
