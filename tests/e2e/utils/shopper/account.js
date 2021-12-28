@@ -63,13 +63,17 @@ export async function addNewPaymentMethod( cardType, card ) {
  */
 export async function removedPaymentMethods() {
 	await goToPaymentMethodsPage();
-	const savedCards = await page.$$( '.payment-method .delete' );
 
-	for ( const card of savedCards ) {
-		await card.click();
+	let savedCard = await page.$( '.payment-method .delete' );
+
+	while ( savedCard ) {
+		await savedCard.click();
 		await page.waitForNavigation( {
 			waitUntil: 'networkidle0',
 		} );
 		await expect( page ).toMatch( 'Payment method deleted.' );
+		savedCard = await page.$( '.payment-method .delete' );
 	}
+
+	await expect( page ).toMatch( 'No saved methods found.' );
 }
