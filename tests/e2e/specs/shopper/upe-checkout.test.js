@@ -25,7 +25,7 @@ describe( 'Successfull Purchase', () => {
 	} );
 
 	afterAll( async () => {
-		// await merchant.logout();
+		await merchant.logout();
 	} );
 
 	// it( 'using a basic card', async () => {
@@ -67,6 +67,6 @@ describe( 'Successfull Purchase', () => {
 	it( 'use saved card', async () => {
 		await removedPaymentMethods();
 
-		await expect( page ).toMatch( 'Payment method deleted.' );
+		await expect( page ).toMatch( 'No saved methods found.' );
 	} );
 } );
