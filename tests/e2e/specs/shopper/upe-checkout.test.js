@@ -12,12 +12,8 @@ import {
 } from '../../utils/upe-settings';
 import { confirmCardAuthentication } from '../../utils/payments';
 import { merchant } from '@woocommerce/e2e-utils';
-import {
-	addNewPaymentMethod,
-	removedPaymentMethods,
-} from '../../utils/shopper/account';
 
-describe( 'Successfull Purchase', () => {
+describe( 'Checkout', () => {
 	beforeAll( async () => {
 		await merchant.login();
 		await resetSettings();
@@ -28,45 +24,37 @@ describe( 'Successfull Purchase', () => {
 		await merchant.logout();
 	} );
 
-	// it( 'using a basic card', async () => {
-	// 	await activatePaymentMethod( 'card' );
-	// 	await setupProductCheckout( config.get( 'addresses.customer.billing' ) );
-	// 	await checkUseNewPaymentMethod();
-	// 	await fillUpeCard( config.get( 'cards.basic' ) );
-	//
-	// 	await expect( page ).toClick( '#place_order' );
-	// 	await page.waitForNavigation( {
-	// 		waitUntil: 'networkidle0',
-	// 	} );
-	//
-	// 	await expect( page ).toMatch( 'Order received' );
-	// } );
-	//
-	// it( 'using a SCA card', async () => {
-	// 	await activatePaymentMethod( 'card' );
-	// 	await setupProductCheckout( config.get( 'addresses.customer.billing' ) );
-	// 	await checkUseNewPaymentMethod();
-	// 	await fillUpeCard( config.get( 'cards.sca' ) );
-	//
-	// 	await expect( page ).toClick( '#place_order' );
-	//
-	// 	await confirmCardAuthentication();
-	// 	await page.waitForNavigation( {
-	// 		waitUntil: 'networkidle0',
-	// 	} );
-	//
-	// 	await expect( page ).toMatch( 'Order received' );
-	// } );
+	it( 'using a basic card', async () => {
+		await activatePaymentMethod( 'card' );
+		await setupProductCheckout(
+			config.get( 'addresses.customer.billing' )
+		);
+		await checkUseNewPaymentMethod();
+		await fillUpeCard( config.get( 'cards.basic' ) );
 
-	it( 'save card', async () => {
-		await addNewPaymentMethod( 'basic', config.get( 'cards.basic' ) );
+		await expect( page ).toClick( '#place_order' );
+		await page.waitForNavigation( {
+			waitUntil: 'networkidle0',
+		} );
 
-		await expect( page ).toMatch( 'Payment method successfully added' );
+		await expect( page ).toMatch( 'Order received' );
 	} );
 
-	it( 'use saved card', async () => {
-		await removedPaymentMethods();
+	it( 'using a SCA card', async () => {
+		await activatePaymentMethod( 'card' );
+		await setupProductCheckout(
+			config.get( 'addresses.customer.billing' )
+		);
+		await checkUseNewPaymentMethod();
+		await fillUpeCard( config.get( 'cards.sca' ) );
 
-		await expect( page ).toMatch( 'No saved methods found.' );
+		await expect( page ).toClick( '#place_order' );
+
+		await confirmCardAuthentication();
+		await page.waitForNavigation( {
+			waitUntil: 'networkidle0',
+		} );
+
+		await expect( page ).toMatch( 'Order received' );
 	} );
 } );
