@@ -33,8 +33,10 @@ wp plugin activate woocommerce-gateway-stripe
 echo "Installing basic auth plugin for interfacing with the API"
 wp plugin install https://github.com/WP-API/Basic-Auth/archive/master.zip --activate
 
+echo "Installing gutenberg checkout"
+wp plugin install woo-gutenberg-products-block --activate
+
 echo "Updating permalink structure"
 wp rewrite structure '/%postname%/'
-
 
 echo "Success! Your E2E Test Environment is now ready."
