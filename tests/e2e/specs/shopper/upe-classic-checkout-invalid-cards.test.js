@@ -2,7 +2,7 @@ import {
 	checkUseNewPaymentMethod,
 	fillUpeCard,
 	setupProductCheckout,
-} from '../../utils/payments';
+} from '../../utils/shopper/classic-checkout';
 import config from 'config';
 
 describe( 'Checkout with invalid cards', () => {

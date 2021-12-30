@@ -4,18 +4,18 @@ import {
 	checkUseNewPaymentMethod,
 	fillUpeCard,
 	setupProductCheckout,
-} from '../../utils/payments';
+} from '../../utils/shopper/classic-checkout';
 import {
 	activatePaymentMethod,
 	activateUpe,
 	resetSettings,
 } from '../../utils/upe-settings';
-import { confirmCardAuthentication } from '../../utils/payments';
 import { merchant, shopper } from '@woocommerce/e2e-utils';
 import {
 	addNewPaymentMethod,
 	removeSavedPaymentMethods,
 } from '../../utils/shopper/account';
+import { confirmCardAuthentication } from '../../utils/shopper/payment';
 
 describe( 'Checkout', () => {
 	beforeAll( async () => {
