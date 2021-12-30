@@ -53,7 +53,7 @@
     "classnames": "^2.3.1",
     "clean-css-cli": "^4.1.10",
     "colors": "^1.4.0",
-    "config": "^1.24.0",
+    "config": "3.3.3",
     "cross-env": "^5.1.6",
     "eslint-import-resolver-webpack": "0.13.1",
     "eslint-plugin-react-hooks": "4.2.0",
@@ -135,7 +135,13 @@
     "format:js": "prettier --write '**/*.js'",
     "jt:setup": "npm run up && ./bin/jurassic-tube-setup.sh",
     "jt:start": "./docker/bin/jt/tunnel.sh",
-    "jt:stop": "./docker/bin/jt/tunnel.sh break"
+    "jt:stop": "./docker/bin/jt/tunnel.sh break",
+    "test:e2e-down": "npx wc-e2e docker:down",
+    "test:e2e-ssh": "npx wc-e2e docker:ssh",
+    "test:e2e-up": "npx wc-e2e docker:up",
+    "test:e2e": "npx wc-e2e test:e2e",
+    "test:e2e-debug": "npx wc-e2e test:e2e-debug",
+    "test:e2e-dev": "npx wc-e2e test:e2e-dev"
   },
   "engines": {
     "node": ">=12.0.0",
