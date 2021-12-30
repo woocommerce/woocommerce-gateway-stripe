@@ -194,7 +194,8 @@
           "addresssecondline": "addr 2",
           "city": "San Francisco",
           "state": "CA",
-          "postcode": "94107"
+          "postcode": "94107",
+					"email": "john.doe@example.com"
         }
       }
     },
