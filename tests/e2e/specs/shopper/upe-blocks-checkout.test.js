@@ -50,11 +50,6 @@ describe( 'Checkout', () => {
 		await expect( page ).toClick( 'button', { text: 'Place Order' } );
 		await page.waitForSelector( 'div.woocommerce-order' );
 
-		await page.screenshot( {
-			path: __dirname + `/error5.png`,
-			fullPage: true,
-		} );
-
 		await expect( page ).toMatch( 'p', {
 			text: 'Thank you. Your order has been received.',
 		} );
