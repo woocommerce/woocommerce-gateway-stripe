@@ -4,8 +4,20 @@ import {
 	setupProductCheckout,
 } from '../../utils/shopper/classic-checkout';
 import config from 'config';
+import { merchant } from '@woocommerce/e2e-utils';
+import { activateUpe, resetSettings } from '../../utils/upe-settings';
 
 describe( 'Checkout with invalid cards', () => {
+	beforeAll( async () => {
+		await merchant.login();
+		await resetSettings();
+		await activateUpe();
+	} );
+
+	afterAll( async () => {
+		await merchant.logout();
+	} );
+
 	it( 'using declined card', async () => {
 		await setupProductCheckout(
 			config.get( 'addresses.customer.billing' )
