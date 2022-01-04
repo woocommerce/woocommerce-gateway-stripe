@@ -216,9 +216,8 @@ describe( 'PaymentsAndTransactionsSection', () => {
 		).toBeInTheDocument();
 	} );
 
-	it( "shows the account's statement descriptor placeholders", () => {
+	it( "shows the account's statement descriptor placeholder", () => {
 		const mockValue = 'WOOTESTING, LTD';
-		const shortenedMockValue = 'WOOTESTING';
 
 		useAccount.mockReturnValue( {
 			data: {
@@ -236,9 +235,5 @@ describe( 'PaymentsAndTransactionsSection', () => {
 		expect(
 			screen.queryByText( 'Full bank statement' ).nextElementSibling
 		).toHaveAttribute( 'placeholder', mockValue );
-		expect(
-			screen.queryByText( 'Shortened customer bank statement' )
-				.nextElementSibling
-		).toHaveAttribute( 'placeholder', shortenedMockValue );
 	} );
 } );
