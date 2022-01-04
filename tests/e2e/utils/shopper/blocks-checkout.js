@@ -68,11 +68,6 @@ export async function fillUpeCardWCB( card ) {
  * This is useful for when a credit card is already saved and you need to checkout with a new one
  */
 export async function checkUseNewPaymentMethodWCB() {
-	await page.screenshot( {
-		path: __dirname + `/finish.png`,
-		fullPage: true,
-	} );
-
 	if (
 		( await page.$$( '.wc-block-components-radio-control__input' ) )
 			.length > 1
