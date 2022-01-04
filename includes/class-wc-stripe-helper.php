@@ -444,6 +444,25 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Sanizite and retrieve a shortened statement descriptor.
+	 *
+	 * The descriptor will be used as prefix and the order ID will be concatenated, acting as a suffix.
+	 *
+	 * @param string $statement_descriptor
+	 * @param WC_Order $order
+	 * @return string $statement_descriptor Final shortened statement descriptor
+	 */
+	public static function get_shortened_statement_descriptor( $statement_descriptor = '', $order ) {
+		$statement_descriptor = self::clean_statement_descriptor( $statement_descriptor );
+
+		if ( method_exists( $order, 'get_id' ) && ! empty( $order->get_id() ) ) {
+			$statement_descriptor = $statement_descriptor . '* #' . $order->get_id();
+		}
+
+		return $statement_descriptor;
+	}
+
+	/**
 	 * Sanitize statement descriptor text.
 	 *
 	 * Stripe requires max of 22 characters and no special characters.
