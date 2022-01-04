@@ -51,11 +51,6 @@ const PaymentsAndTransactionsSection = () => {
 	const { data } = useAccount();
 	const statementDescriptorPlaceholder =
 		data?.account?.settings?.payments?.statement_descriptor || '';
-	// 10 is the input's maximum length and the same of what we're using when passing it to the payment intent
-	const shortenedStatementDescriptorPlaceholder = statementDescriptorPlaceholder.substring(
-		0,
-		10
-	);
 
 	return (
 		<Card className="transactions-and-payouts">
@@ -174,9 +169,6 @@ const PaymentsAndTransactionsSection = () => {
 								) }
 								value={ shortAccountStatementDescriptor }
 								onChange={ setShortAccountStatementDescriptor }
-								placeholder={
-									shortenedStatementDescriptorPlaceholder
-								}
 								maxLength={ 10 }
 							/>
 						</TextLengthHelpInputWrapper>
