@@ -189,7 +189,10 @@ const PaymentsAndTransactionsSection = () => {
 					<StatementPreview
 						icon="bank"
 						title={ translatedFullBankPreviewTitle }
-						text={ accountStatementDescriptor }
+						text={
+							accountStatementDescriptor ||
+							statementDescriptorPlaceholder
+						}
 						className="full-bank-statement"
 					/>
 				</StatementPreviewsWrapper>
