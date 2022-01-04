@@ -4,13 +4,10 @@ import { useStripe } from '@stripe/react-stripe-js';
 import PaymentRequestsButtonPreview from '../payment-request-button-preview';
 import { shouldUseGooglePayBrand } from '../utils/utils';
 
-jest.mock(
-	'@wordpress/a11y',
-	() => ( {
-		speak: jest.fn(),
-	} ),
-	{ virtual: true }
-);
+jest.mock( '@wordpress/a11y', () => ( {
+	...jest.requireActual( '@wordpress/a11y' ),
+	speak: jest.fn(),
+} ) );
 
 jest.mock( '../utils/utils', () => ( {
 	shouldUseGooglePayBrand: jest.fn(),
