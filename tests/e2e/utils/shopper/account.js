@@ -2,9 +2,9 @@ import config from 'config';
 
 import {
 	checkUseNewPaymentMethod,
-	confirmCardAuthentication,
 	fillUpeCard,
-} from '../payments';
+} from '../shopper/classic-checkout';
+import { confirmCardAuthentication } from './payment';
 
 const baseUrl = config.get( 'url' );
 
