@@ -12,7 +12,7 @@
     },
     "products": {
       "simple": {
-        "name": "Album"
+        "name": "Simple product"
       },
       "variable": {
         "name": "Variable Product with Three Attributes",
@@ -217,6 +217,60 @@
 				},
 				"cvc": "424",
 				"label": "Needs SCA"
+			},
+			"declined": {
+				"number": "4000000000000002",
+				"expires": {
+					"month": "02",
+					"year": "24"
+				},
+				"cvc": "424",
+				"label": "Declined"
+			},
+			"insufficient-funds": {
+				"number": "4000000000009995",
+				"expires": {
+					"month": "02",
+					"year": "24"
+				},
+				"cvc": "424",
+				"label": "Insufficient Funds"
+			},
+			"expired": {
+				"number": "4000000000000069",
+				"expires": {
+					"month": "02",
+					"year": "24"
+				},
+				"cvc": "424",
+				"label": "Expired"
+			},
+			"incorrect-security-code": {
+				"number": "4000000000000127",
+				"expires": {
+					"month": "02",
+					"year": "24"
+				},
+				"cvc": "424",
+				"label": "Incorrect Security Code"
+			},
+			"generic-error": {
+				"number": "4000000000000119",
+				"expires": {
+					"month": "02",
+					"year": "24"
+				},
+				"cvc": "424",
+				"label": "Generic Error"
+			},
+			"invalid": {
+				"number": "4242424242424241",
+				"expires": {
+					"month": "02",
+					"year": "24"
+				},
+				"cvc": "424",
+				"label": "Invalid Card"
 			}
 		},
     "orders": {
