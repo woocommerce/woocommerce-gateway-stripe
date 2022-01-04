@@ -16,6 +16,7 @@ import {
 	fillUpeCardWCB,
 	openCheckoutWCB,
 } from '../../utils/shopper/blocks-checkout';
+import { confirmCardAuthentication } from '../../utils/shopper/payment';
 
 describe( 'Checkout', () => {
 	beforeAll( async () => {
