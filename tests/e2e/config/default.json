@@ -12,7 +12,7 @@
     },
     "products": {
       "simple": {
-        "name": "Album"
+        "name": "Simple product"
       },
       "variable": {
         "name": "Variable Product with Three Attributes",
