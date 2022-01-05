@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 6.0.0 - 2021-xx-xx =
+= 6.0.0 - 2022-xx-xx =
 * Fix - Fixed capitalization for payment method names: iDEAL, giropay, and Sofort.
 * Add - Text to explain how to enable webhooks when manually entering your API keys in the new Stripe settings.
 * Tweak - Redirect to the settings tab after an account is connected
