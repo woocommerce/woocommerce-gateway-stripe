@@ -59,7 +59,7 @@ const ConnectStripeAccount = ( { oauthUrl } ) => {
 				<AccountKeysModal
 					type={ modalType }
 					onClose={ handleModalDismiss }
-					forcePageReloadOnSave
+					redirectOnSave={ `${ window.location.pathname }?page=wc-settings&tab=checkout&section=stripe&panel=settings` }
 				/>
 			) }
 			<CardWrapper>
@@ -73,7 +73,7 @@ const ConnectStripeAccount = ( { oauthUrl } ) => {
 					</h2>
 					<InformationText>
 						{ __(
-							'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDeal, SEPA, Sofort, and more international payment methods.',
+							'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDEAL, SEPA, Sofort, and more international payment methods.',
 							'woocommerce-gateway-stripe'
 						) }
 					</InformationText>

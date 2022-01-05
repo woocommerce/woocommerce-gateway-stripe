@@ -213,6 +213,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
 		$this->account->clear_cache();
 
-		return new WP_REST_Response( [], 200 );
+		// Gives an instant reply if the connection was succesful or not + rebuild the cache for the next request
+		$account = $this->account->get_cached_account_data();
+
+		return new WP_REST_Response( $account, 200 );
 	}
 }

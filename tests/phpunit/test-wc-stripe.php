@@ -152,7 +152,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	public function test_turning_on_upe_enables_the_correct_upe_methods_based_on_which_legacy_payment_methods_were_enabled_and_vice_versa() {
 		$this->upe_helper->enable_upe_feature_flag();
 
-		// Enable Giropay and Ideal LPM gateways.
+		// Enable giropay and iDEAL LPM gateways.
 		update_option( 'woocommerce_stripe_giropay_settings', [ 'enabled' => 'yes' ] );
 		update_option( 'woocommerce_stripe_ideal_settings', [ 'enabled' => 'yes' ] );
 		$this->upe_helper->reload_payment_gateways();
@@ -167,7 +167,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		$this->assertContains( 'giropay', $stripe_settings['upe_checkout_experience_accepted_payments'] );
 		$this->assertContains( 'ideal', $stripe_settings['upe_checkout_experience_accepted_payments'] );
 
-		// Make sure the Giropay and Ideal LPMs were disabled.
+		// Make sure the giropay and iDEAL LPMs were disabled.
 		$giropay_settings = get_option( 'woocommerce_stripe_giropay_settings' );
 		$this->assertEquals( 'no', $giropay_settings['enabled'] );
 		$ideal_settings = get_option( 'woocommerce_stripe_ideal_settings' );

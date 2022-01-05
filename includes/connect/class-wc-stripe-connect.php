@@ -40,7 +40,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		public function get_oauth_url( $return_url = '' ) {
 
 			if ( empty( $return_url ) ) {
-				$return_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' );
+				$return_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings' );
 			}
 
 			if ( substr( $return_url, 0, 8 ) !== 'https://' ) {
@@ -128,7 +128,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			$prefix                                 = $is_test ? 'test_' : '';
 			$default_options                        = $this->get_default_stripe_config();
 			$options                                = array_merge( $default_options, get_option( self::SETTINGS_OPTION, [] ) );
-			$options['enabled']                     = 'yes';
 			$options['testmode']                    = $is_test ? 'yes' : 'no';
 			$options[ $prefix . 'publishable_key' ] = $result->publishableKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			$options[ $prefix . 'secret_key' ]      = $result->secretKey; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase

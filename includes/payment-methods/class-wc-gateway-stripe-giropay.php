@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class that handles Giropay payment method.
+ * Class that handles giropay payment method.
  *
  * @extends WC_Gateway_Stripe
  *
@@ -61,7 +61,7 @@ class WC_Gateway_Stripe_Giropay extends WC_Stripe_Payment_Gateway {
 	 */
 	public function __construct() {
 		$this->id           = self::ID;
-		$this->method_title = __( 'Stripe Giropay', 'woocommerce-gateway-stripe' );
+		$this->method_title = __( 'Stripe giropay', 'woocommerce-gateway-stripe' );
 		/* translators: link */
 		$this->method_description = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
 		$this->supports           = [
@@ -217,7 +217,7 @@ class WC_Gateway_Stripe_Giropay extends WC_Stripe_Payment_Gateway {
 			$post_data['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $this->statement_descriptor );
 		}
 
-		WC_Stripe_Logger::log( 'Info: Begin creating Giropay source' );
+		WC_Stripe_Logger::log( 'Info: Begin creating giropay source' );
 
 		return WC_Stripe_API::request( apply_filters( 'wc_stripe_giropay_source', $post_data, $order ), 'sources' );
 	}
@@ -260,7 +260,7 @@ class WC_Gateway_Stripe_Giropay extends WC_Stripe_Payment_Gateway {
 			$order->update_meta_data( '_stripe_source_id', $response->id );
 			$order->save();
 
-			WC_Stripe_Logger::log( 'Info: Redirecting to Giropay...' );
+			WC_Stripe_Logger::log( 'Info: Redirecting to giropay...' );
 
 			return [
 				'result'   => 'success',

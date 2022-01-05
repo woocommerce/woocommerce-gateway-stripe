@@ -14,6 +14,7 @@ import {
 } from 'wcstripe/data/account-keys';
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import InlineNotice from 'wcstripe/components/inline-notice';
+import { WebhookInformation } from 'wcstripe/components/webhook-information';
 
 const PublishableKey = () => {
 	const [ publishableKey ] = useAccountKeysPublishableKey();
@@ -31,6 +32,7 @@ const PublishableKey = () => {
 			onChange={ ( val ) => setValue( val ) }
 			disabled={ isSaving }
 			name="publishable_key"
+			autoComplete="off"
 		/>
 	);
 };
@@ -51,6 +53,7 @@ const TestPublishableKey = () => {
 			onChange={ ( val ) => setValue( val ) }
 			disabled={ isSaving }
 			name="test_publishable_key"
+			autoComplete="off"
 		/>
 	);
 };
@@ -70,6 +73,7 @@ const SecretKey = () => {
 			onChange={ ( val ) => setValue( val ) }
 			disabled={ isSaving }
 			name="secret_key"
+			autoComplete="off"
 		/>
 	);
 };
@@ -89,6 +93,7 @@ const TestSecretKey = () => {
 			onChange={ ( val ) => setValue( val ) }
 			disabled={ isSaving }
 			name="test_secret_key"
+			autoComplete="off"
 		/>
 	);
 };
@@ -108,6 +113,7 @@ const WebhookSecret = () => {
 			onChange={ ( val ) => setValue( val ) }
 			disabled={ isSaving }
 			name="webhook_secret"
+			autoComplete="off"
 		/>
 	);
 };
@@ -127,6 +133,7 @@ const TestWebhookSecret = () => {
 			onChange={ ( val ) => setValue( val ) }
 			disabled={ isSaving }
 			name="test_webhook_secret"
+			autoComplete="off"
 		/>
 	);
 };
@@ -136,6 +143,7 @@ const Form = ( { formRef, testMode } ) => {
 		<form ref={ formRef }>
 			{ testMode ? <TestPublishableKey /> : <PublishableKey /> }
 			{ testMode ? <TestSecretKey /> : <SecretKey /> }
+			<WebhookInformation />
 			{ testMode ? <TestWebhookSecret /> : <WebhookSecret /> }
 		</form>
 	);
@@ -172,7 +180,7 @@ export const AccountKeysModal = ( {
 	type,
 	onClose,
 	setKeepModalContent,
-	forcePageReloadOnSave,
+	redirectOnSave,
 } ) => {
 	const [ openTab, setOpenTab ] = useState( type );
 	const { isSaving, accountKeys, saveAccountKeys } = useAccountKeys();
@@ -206,18 +214,18 @@ export const AccountKeysModal = ( {
 			( ( testMode && noLiveKeysSaved ) ||
 				( ! testMode && noTestKeysSaved ) )
 		) {
-			forcePageReloadOnSave = true;
+			redirectOnSave = window.location.href;
 		}
 
 		const saveSuccess = await saveAccountKeys( keysToSave );
 		if ( ! saveSuccess ) {
 			setDisabled( false );
-		} else if ( forcePageReloadOnSave ) {
+		} else if ( redirectOnSave ) {
 			// When forcing a redirect, we keep the modal open and disabled while the page reloads.
 			if ( setKeepModalContent ) {
 				setKeepModalContent( true );
 			}
-			window.location.reload();
+			window.location.href = redirectOnSave;
 		} else {
 			setDisabled( false );
 			onClose();
