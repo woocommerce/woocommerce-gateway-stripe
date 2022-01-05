@@ -1,4 +1,4 @@
-import { dispatch } from '@wordpress/data';
+import { select, dispatch } from '@wordpress/data';
 import { apiFetch } from '@wordpress/data-controls';
 import { refreshAccount } from '../actions';
 
@@ -10,6 +10,7 @@ describe( 'Account actions tests', () => {
 		beforeEach( () => {
 			const noticesDispatch = {
 				createErrorNotice: jest.fn(),
+				createSuccessNotice: jest.fn(),
 			};
 
 			apiFetch.mockImplementation( () => {} );
@@ -19,6 +20,14 @@ describe( 'Account actions tests', () => {
 				}
 
 				return {};
+			} );
+
+			select.mockImplementation( () => {
+				return {
+					getAccountCapabilitiesByStatus: () => {
+						return [];
+					},
+				};
 			} );
 		} );
 

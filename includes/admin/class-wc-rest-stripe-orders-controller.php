@@ -127,7 +127,7 @@ class WC_REST_Stripe_Orders_Controller extends WC_Stripe_REST_Base_Controller {
 
 			// Do not process refunded orders.
 			if ( 0 < $order->get_total_refunded() ) {
-				return new WP_Error( 'wc_stripe_missing_order', __( 'Payment cannot be captured for partially or fully refunded orders.', 'woocommerce-gateway-stripe' ), [ 'status' => 400 ] );
+				return new WP_Error( 'wc_stripe_refunded_order_uncapturable', __( 'Payment cannot be captured for partially or fully refunded orders.', 'woocommerce-gateway-stripe' ), [ 'status' => 400 ] );
 			}
 
 			// Retrieve intent from Stripe.

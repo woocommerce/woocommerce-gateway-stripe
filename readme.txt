@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 5.6
 Tested up to: 5.8
 Requires PHP: 7.0
-Stable tag: 5.9.0
+Stable tag: 6.0.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -13,7 +13,7 @@ Take credit card payments on your store using Stripe.
 
 == Description ==
 
-Accept Visa, MasterCard, American Express, Discover, JCB, Diners Club, SEPA, Sofort, iDeal, Giropay, Alipay, and more directly on your store with the Stripe payment gateway for WooCommerce, including Apple Pay, Google Pay, and Microsoft Pay for mobile and desktop.
+Accept Visa, MasterCard, American Express, Discover, JCB, Diners Club, SEPA, Sofort, iDEAL, giropay, Alipay, and more directly on your store with the Stripe payment gateway for WooCommerce, including Apple Pay, Google Pay, and Microsoft Pay for mobile and desktop.
 
 = Take Credit card payments easily and directly on your store =
 
@@ -128,14 +128,15 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.9.0 - 2021-12-09 =
-* Add - Add Stripe API to generate connection tokens, manage terminal locations, create customers, get account summary, capture payment.
-* Tweak - Remove `_wcstripe_feature_upe` flag and all traces of old settings.
-* Fix - Fix error when invalid card is used on Pay Order page.
-* Fix - Fix outdated data when using Blocks Checkout.
-* Add - List of payment methods that are not included for the merchant.
-* Tweak - Update how the new checkout experience is enabled.
-* Fix - Error on UPE checkout depending on the account keys set.
-* Tweak - Hide separate credit card form setting when UPE is enabled.
+= 6.0.0 - 2022-01-05 =
+* Fix - Fixed capitalization for payment method names: iDEAL, giropay, and Sofort.
+* Add - Text to explain how to enable webhooks when manually entering your API keys in the new Stripe settings.
+* Tweak - Redirect to the settings tab after an account is connected
+* Tweak - Prompt message when navigating out Stripe settings with unsaved changes
+* Tweak - Show toast when payment methods list is updated with new payment methods.
+* Fix - JS error on checkout when Boleto method was not active
+* Fix - Fixed bug that show "Use new payment method" on pay order page when there were no saved card was.
+* Tweak - Autocomplete for account keys and webhooks fields were disabled.
+* Fix - The settings page is not reloaded when the user enters invalid account keys.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

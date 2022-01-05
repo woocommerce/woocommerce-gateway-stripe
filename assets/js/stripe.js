@@ -267,6 +267,10 @@ jQuery( function( $ ) {
 
 			//Mask CPF/CNPJ field when using Boleto
 			$( document ).on( 'change', '.wc_payment_methods', function () {
+				if ( ! $( '#stripe_boleto_tax_id' ).length ) {
+					return;
+				}
+
 				var TaxIdMaskBehavior = function ( val ) {
 						return val.replace( /\D/g, '' ).length >= 12 ? '00.000.000/0000-00' : '000.000.000-009999';
 					},
@@ -325,7 +329,7 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Check if Stripe Giropay is being used.
+		 * Check if Stripe giropay is being used.
 		 *
 		 * @return {boolean}
 		 */
@@ -334,7 +338,7 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Check if Stripe iDeal is being used.
+		 * Check if Stripe iDEAL is being used.
 		 *
 		 * @return {boolean}
 		 */
@@ -343,7 +347,7 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Check if Stripe SOFORT is being used.
+		 * Check if Stripe Sofort is being used.
 		 *
 		 * @return {boolean}
 		 */

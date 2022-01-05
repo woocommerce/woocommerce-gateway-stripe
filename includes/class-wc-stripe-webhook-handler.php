@@ -416,7 +416,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 	/**
 	 * Process webhook charge succeeded. This is used for payment methods
-	 * that takes time to clear which is asynchronous. e.g. SEPA, SOFORT.
+	 * that takes time to clear which is asynchronous. e.g. SEPA, Sofort.
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
