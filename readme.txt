@@ -128,16 +128,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 6.0.0 - 2022-01-05 =
-* Fix - Fixed capitalization for payment method names: iDEAL, giropay, and Sofort.
-* Add - Text to explain how to enable webhooks when manually entering your API keys in the new Stripe settings.
+= 6.x.x - 2022-xx-xx =
 * Tweak - Use the newly exposed LoadableMask component provided by WooCommerce Blocks to trigger the loading state for Payment Request Buttons.
-* Tweak - Redirect to the settings tab after an account is connected
-* Tweak - Prompt message when navigating out Stripe settings with unsaved changes
-* Tweak - Show toast when payment methods list is updated with new payment methods.
-* Fix - JS error on checkout when Boleto method was not active
-* Fix - Fixed bug that show "Use new payment method" on pay order page when there were no saved card was.
-* Tweak - Autocomplete for account keys and webhooks fields were disabled.
-* Fix - The settings page is not reloaded when the user enters invalid account keys.
+
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
