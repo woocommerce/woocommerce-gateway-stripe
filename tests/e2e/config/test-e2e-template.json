@@ -1,0 +1,19 @@
+{
+	"stripe": {
+		"default": {
+			"test_publishable_key": "pk_test_...",
+			"test_secret_key": "sk_test_...",
+			"test_webhook_secret": "whsec_..."
+		},
+		"brazil": {
+			"test_publishable_key": "pk_test_...",
+			"test_secret_key": "sk_test_...",
+			"test_webhook_secret": "whsec_..."
+		},
+		"mexico": {
+			"test_publishable_key": "pk_test_...",
+			"test_secret_key": "sk_test_...",
+			"test_webhook_secret": "whsec_..."
+		}
+	}
+}
