@@ -145,7 +145,7 @@ class WC_Stripe_Admin_Notices {
 			if ( empty( $show_style_notice ) ) {
 				$message = sprintf(
 				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-					esc_html__( 'WooCommerce Stripe - We recently made changes to Stripe that may impact the appearance of your checkout. If your checkout has changed unexpectedly, please follow these %1$sinstructions%2$s to fix.', 'woocommerce-gateway-stripe' ),
+					__( 'WooCommerce Stripe - We recently made changes to Stripe that may impact the appearance of your checkout. If your checkout has changed unexpectedly, please follow these %1$sinstructions%2$s to fix.', 'woocommerce-gateway-stripe' ),
 					'<a href="https://woocommerce.com/document/stripe/#new-checkout-experience" target="_blank">',
 					'</a>'
 				);
@@ -192,7 +192,7 @@ class WC_Stripe_Admin_Notices {
 
 					$notice_message = sprintf(
 					/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-						esc_html__( 'Stripe is almost ready. To get started, %1$sset your Stripe account keys%2$s.', 'woocommerce-gateway-stripe' ),
+						__( 'Stripe is almost ready. To get started, %1$sset your Stripe account keys%2$s.', 'woocommerce-gateway-stripe' ),
 						'<a href="' . $setting_link . '">',
 						'</a>'
 					);
@@ -208,7 +208,7 @@ class WC_Stripe_Admin_Notices {
 
 						$notice_message = sprintf(
 						/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-							esc_html__( 'Stripe is in test mode however your test keys may not be valid. Test keys start with pk_test and sk_test or rk_test. Please go to your settings and, %1$sset your Stripe account keys%2$s.', 'woocommerce-gateway-stripe' ),
+							__( 'Stripe is in test mode however your test keys may not be valid. Test keys start with pk_test and sk_test or rk_test. Please go to your settings and, %1$sset your Stripe account keys%2$s.', 'woocommerce-gateway-stripe' ),
 							'<a href="' . $setting_link . '">',
 							'</a>'
 						);
@@ -223,7 +223,7 @@ class WC_Stripe_Admin_Notices {
 
 						$message = sprintf(
 						/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-							esc_html__( 'Stripe is in live mode however your live keys may not be valid. Live keys start with pk_live and sk_live or rk_live. Please go to your settings and, %1$sset your Stripe account keys%2$s.', 'woocommerce-gateway-stripe' ),
+							__( 'Stripe is in live mode however your live keys may not be valid. Live keys start with pk_live and sk_live or rk_live. Please go to your settings and, %1$sset your Stripe account keys%2$s.', 'woocommerce-gateway-stripe' ),
 							'<a href="' . $setting_link . '">',
 							'</a>'
 						);
@@ -239,7 +239,7 @@ class WC_Stripe_Admin_Notices {
 
 					$message = sprintf(
 					/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-						esc_html__( 'Your customers cannot use Stripe on checkout, because we couldn\'t connect to your account. Please go to your settings and, %1$sset your Stripe account keys%2$s.', 'woocommerce-gateway-stripe' ),
+						__( 'Your customers cannot use Stripe on checkout, because we couldn\'t connect to your account. Please go to your settings and, %1$sset your Stripe account keys%2$s.', 'woocommerce-gateway-stripe' ),
 						'<a href="' . $setting_link . '">',
 						'</a>'
 					);
@@ -253,7 +253,7 @@ class WC_Stripe_Admin_Notices {
 				if ( ! wc_checkout_is_https() ) {
 					$message = sprintf(
 					/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-						esc_html__( 'Stripe is enabled, but a SSL certificate is not detected. Your checkout may not be secure! Please ensure your server has a valid %1$sSSL certificate%2$s.', 'woocommerce-gateway-stripe' ),
+						__( 'Stripe is enabled, but a SSL certificate is not detected. Your checkout may not be secure! Please ensure your server has a valid %1$sSSL certificate%2$s.', 'woocommerce-gateway-stripe' ),
 						'<a href="https://en.wikipedia.org/wiki/Transport_Layer_Security" target="_blank">',
 						'</a>'
 					);
@@ -265,7 +265,7 @@ class WC_Stripe_Admin_Notices {
 			if ( empty( $show_sca_notice ) ) {
 				$message = sprintf(
 				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-					esc_html__( 'Stripe is now ready for Strong Customer Authentication (SCA) and 3D Secure 2! %1$sRead about SCA%2$s.', 'woocommerce-gateway-stripe' ),
+					__( 'Stripe is now ready for Strong Customer Authentication (SCA) and 3D Secure 2! %1$sRead about SCA%2$s.', 'woocommerce-gateway-stripe' ),
 					'<a href="https://woocommerce.com/posts/introducing-strong-customer-authentication-sca/" target="_blank">',
 					'</a>'
 				);
@@ -276,7 +276,7 @@ class WC_Stripe_Admin_Notices {
 			if ( 'yes' === $changed_keys_notice ) {
 				$message = sprintf(
 				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-					esc_html__( 'The public and/or secret keys for the Stripe gateway have been changed. This might cause errors for existing customers and saved payment methods. %1$sClick here to learn more%2$s.', 'woocommerce-gateway-stripe' ),
+					__( 'The public and/or secret keys for the Stripe gateway have been changed. This might cause errors for existing customers and saved payment methods. %1$sClick here to learn more%2$s.', 'woocommerce-gateway-stripe' ),
 					'<a href="https://woocommerce.com/document/stripe-fixing-customer-errors" target="_blank">',
 					'</a>'
 				);

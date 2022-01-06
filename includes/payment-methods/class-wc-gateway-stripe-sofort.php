@@ -64,8 +64,8 @@ class WC_Gateway_Stripe_Sofort extends WC_Stripe_Payment_Gateway {
 		$this->method_title       = __( 'Stripe Sofort', 'woocommerce-gateway-stripe' );
 		$this->method_description = sprintf(
 		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
-			esc_html__( 'All other general Stripe settings can be adjusted %1$shere%2$s.', 'woocommerce-gateway-stripe' ),
-			'<a href="' . admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) . '">',
+			__( 'All other general Stripe settings can be adjusted %1$shere%2$s.', 'woocommerce-gateway-stripe' ),
+			'<a href="' . esc_url( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) ) . '">',
 			'</a>'
 		);
 		$this->supports = [
