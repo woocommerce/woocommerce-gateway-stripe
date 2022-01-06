@@ -88,6 +88,12 @@ export async function fillUpeCard( card ) {
 
 	const cardCvcInput = await stripeFrame.waitForSelector( '[name="cvc"]' );
 	await cardCvcInput.type( card.cvc, { delay: 20 } );
+
+	const postCodeInput = await stripeFrame.$( 'input[name="postcode"]' );
+
+	if ( postCodeInput ) {
+		await postCodeInput.type( card.postcode, { delay: 20 } );
+	}
 }
 
 /**
