@@ -459,6 +459,9 @@ class WC_Stripe_Helper {
 			$statement_descriptor = $statement_descriptor . '* #' . $order->get_order_number();
 		}
 
+		// Limit it to 22 characters just in case
+		$statement_descriptor = substr( $statement_descriptor, 0, 22 );
+
 		return $statement_descriptor;
 	}
 
