@@ -9,8 +9,13 @@ const SaveSettingsSectionWrapper = styled( SettingsSection )`
 	text-align: right;
 `;
 
-const SaveSettingsSection = () => {
+const SaveSettingsSection = ( { onSettingsSave } ) => {
 	const { saveSettings, isSaving, isLoading } = useSettings();
+
+	const onClickHandler = async () => {
+		await saveSettings();
+		onSettingsSave();
+	};
 
 	return (
 		<SaveSettingsSectionWrapper>
@@ -18,7 +23,7 @@ const SaveSettingsSection = () => {
 				isPrimary
 				isBusy={ isSaving }
 				disabled={ isSaving || isLoading }
-				onClick={ saveSettings }
+				onClick={ onClickHandler }
 			>
 				{ __( 'Save changes', 'woocommerce-gateway-stripe' ) }
 			</Button>

@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 5.6
 Tested up to: 5.8
 Requires PHP: 7.0
-Stable tag: 5.9.0
+Stable tag: 6.0.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -129,7 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 6.x.x - 2022-xx-xx =
-* Fix - Fixed capitalization for payment method names: iDEAL, giropay, and Sofort.
-* Add - Text to explain how to enable webhooks when manually entering your API keys in the new Stripe settings.
+* Tweak - Use the newly exposed LoadableMask component provided by WooCommerce Blocks to trigger the loading state for Payment Request Buttons.
+
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
