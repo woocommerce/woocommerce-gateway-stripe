@@ -27,6 +27,7 @@ deploy-to-wp-org.sh
 # Test configs
 tests/e2e/config/local-*
 tests/e2e/config/test-e2e.json
+tests/e2e/config/.env
 
 # Volumes mounted by Docker containers
 docker/bin/jt

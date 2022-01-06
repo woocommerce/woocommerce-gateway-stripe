@@ -50,10 +50,11 @@ export async function resetSettings() {
 	} );
 	expect( response.statusCode ).toEqual( 200 );
 
-	response = await client.post(
-		'wc/v3/wc_stripe/account_keys',
-		config.get( 'stripe.default' )
-	);
+	response = await client.post( 'wc/v3/wc_stripe/account_keys', {
+		test_publishable_key: process.env.DEFAULT_STRIPE_TEST_PUBLISHABLE_KEY,
+		test_secret_key: process.env.DEFAULT_STRIPE_TEST_SECRET_KEY,
+		test_webhook_secret: process.env.DEFAULT_STRIPE_TEST_WEBHOOK_SECRET,
+	} );
 	expect( response.statusCode ).toEqual( 200 );
 }
 
