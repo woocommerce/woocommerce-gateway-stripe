@@ -419,7 +419,7 @@ class WC_Stripe_Admin_Notices {
 	 * @return string Setting link
 	 */
 	public function get_setting_link() {
-		return admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings' );
+		return esc_url( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe&panel=settings' ) );
 	}
 
 	/**
