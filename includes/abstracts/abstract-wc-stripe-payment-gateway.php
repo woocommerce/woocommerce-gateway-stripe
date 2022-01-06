@@ -1237,10 +1237,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$request['statement_descriptor'] = $full_request['statement_descriptor'];
 		}
 
-		if ( isset( $full_request['statement_descriptor_suffix'] ) ) {
-			$request['statement_descriptor_suffix'] = $full_request['statement_descriptor_suffix'];
-		}
-
 		if ( isset( $full_request['shipping'] ) ) {
 			$request['shipping'] = $full_request['shipping'];
 		}
