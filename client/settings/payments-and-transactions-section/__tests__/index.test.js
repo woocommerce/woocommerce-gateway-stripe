@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import PaymentsAndTransactionsSection from '..';
-import { useAccount } from '../../../data/account';
+import { useAccount } from 'wcstripe/data/account';
 import {
 	useManualCapture,
 	useSavedCards,
@@ -11,7 +11,7 @@ import {
 	useGetSavingError,
 } from 'wcstripe/data';
 
-jest.mock( '../../../data/account', () => ( {
+jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
 } ) );
 
