@@ -455,8 +455,8 @@ class WC_Stripe_Helper {
 	public static function get_shortened_statement_descriptor( $statement_descriptor = '', $order = null ) {
 		$statement_descriptor = self::clean_statement_descriptor( $statement_descriptor );
 
-		if ( method_exists( $order, 'get_id' ) && ! empty( $order->get_id() ) ) {
-			$statement_descriptor = $statement_descriptor . '* #' . $order->get_id();
+		if ( method_exists( $order, 'get_order_number' ) && ! empty( $order->get_order_number() ) ) {
+			$statement_descriptor = $statement_descriptor . '* #' . $order->get_order_number();
 		}
 
 		return $statement_descriptor;
