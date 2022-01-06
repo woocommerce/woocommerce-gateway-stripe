@@ -36,7 +36,7 @@ class WC_Stripe_Settings_Controller {
 	 */
 	public function admin_options( WC_Stripe_Payment_Gateway $gateway ) {
 		global $hide_save_button;
-		$hide_save_button    = true;
+		$hide_save_button = true;
 
 		echo '<h2>' . esc_html( $gateway->get_method_title() );
 		wc_back_link( __( 'Return to payments', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout' ) );
@@ -102,12 +102,16 @@ class WC_Stripe_Settings_Controller {
 			$oauth_url = '';
 		}
 
+		$message = sprintf(
+		/* translators: 1) Html strong opening tag 2) Html strong closing tag */
+			esc_html__( '%1$sWarning:%2$s your site\'s time does not match the time on your browser and may be incorrect. Some payment methods depend on webhook verification and verifying webhooks with a signing secret depends on your site\'s time being correct, so please check your site\'s time before setting a webhook secret. You may need to contact your site\'s hosting provider to correct the site\'s time.', 'woocommerce-gateway-stripe' ),
+			'<strong>',
+			'</strong>'
+		);
+
 		$params = [
 			'time'                    => time(),
-			'i18n_out_of_sync'        => wp_kses(
-				__( '<strong>Warning:</strong> your site\'s time does not match the time on your browser and may be incorrect. Some payment methods depend on webhook verification and verifying webhooks with a signing secret depends on your site\'s time being correct, so please check your site\'s time before setting a webhook secret. You may need to contact your site\'s hosting provider to correct the site\'s time.', 'woocommerce-gateway-stripe' ),
-				[ 'strong' => [] ]
-			),
+			'i18n_out_of_sync'        => $message,
 			'is_upe_checkout_enabled' => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
 			'stripe_oauth_url'        => $oauth_url,
 		];
