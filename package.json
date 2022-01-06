@@ -45,7 +45,6 @@
     "@wordpress/scripts": "^13.0.2",
     "@wordpress/url": "^3.2.1",
     "archiver": "^5.0.0",
-    "chromedriver": "^2.40.0",
     "classnames": "^2.3.1",
     "clean-css-cli": "^4.1.10",
     "colors": "^1.4.0",
