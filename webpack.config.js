@@ -5,8 +5,22 @@ const DependencyExtractionWebpackPlugin = require( '@woocommerce/dependency-extr
 
 module.exports = {
 	...defaultConfig,
+	devtool:
+		process.env.NODE_ENV === 'production'
+			? 'hidden-source-map'
+			: defaultConfig.devtool,
 	optimization: {
 		...defaultConfig.optimization,
+		minimizer: [
+			...defaultConfig.optimization.minimizer.map( ( plugin ) => {
+				if ( plugin.constructor.name === 'TerserPlugin' ) {
+					// wp-scripts does not allow to override the Terser minimizer sourceMap option, without this
+					// `devtool: 'hidden-source-map'` is not generated for js files.
+					plugin.options.sourceMap = true;
+				}
+				return plugin;
+			} ),
+		],
 		splitChunks: undefined,
 	},
 	plugins: [
@@ -38,7 +52,6 @@ module.exports = {
 			'./client/entrypoints/payment-request-settings/index.js',
 		upe_classic: './client/classic/upe/index.js',
 		upe_blocks: './client/blocks/upe/index.js',
-		upe_onboarding_wizard: './client/upe-onboarding-wizard/index.js',
 		upe_settings: './client/settings/index.js',
 		payment_gateways: './client/entrypoints/payment-gateways/index.js',
 	},

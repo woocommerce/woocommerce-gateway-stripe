@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 5.6
 Tested up to: 5.8
 Requires PHP: 7.0
-Stable tag: 5.8.1
+Stable tag: 5.9.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,9 +128,13 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 5.x.x - 2021-xx-xx =
-* Add - Add Stripe API to generate connection tokens, manage terminal locations, create customers, get account summary, capture payment.
-* Add - Add Stripe API to generate connection tokens, manage terminal locations.
-* Tweak - Remove `_wcstripe_feature_upe` flag and all traces of old settings.
+= 6.x.x - 2022-xx-xx =
+* Fix - Fixed capitalization for payment method names: iDEAL, giropay, and Sofort.
+* Add - Text to explain how to enable webhooks when manually entering your API keys in the new Stripe settings.
+* Tweak - Redirect to the settings tab after an account is connected
+* Tweak - Prompt message when navigating out Stripe settings with unsaved changes
+* Tweak - Show toast when payment methods list is updated with new payment methods.
+* Fix - JS error on checkout when Boleto method was not active
+* Fix - Fixed bug that show "Use new payment method" on pay order page when there were no saved card was.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
