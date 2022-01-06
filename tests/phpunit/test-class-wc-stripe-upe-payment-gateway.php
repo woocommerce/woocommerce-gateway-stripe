@@ -145,7 +145,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$order_key    = $order->get_order_key();
 		$amount       = WC_Stripe_Helper::get_stripe_amount( $total, $currency );
 		$description  = "Test Blog - Order $order_number";
-		$metadata = [
+		$metadata     = [
 			'customer_name'  => 'Jeroen Sormani',
 			'customer_email' => 'admin@example.org',
 			'site_url'       => 'http://example.org',
@@ -185,11 +185,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 
 		$expected_request = [
-			'amount'      => $amount,
-			'currency'    => $currency,
-			'description' => $description,
-			'customer'    => $customer_id,
-			'metadata'    => $metadata,
+			'amount'               => $amount,
+			'currency'             => $currency,
+			'description'          => $description,
+			'customer'             => $customer_id,
+			'metadata'             => $metadata,
 			'statement_descriptor' => null,
 		];
 
@@ -313,7 +313,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$success_order = wc_get_order( $order_id );
 
-		$note          = wc_get_order_notes(
+		$note = wc_get_order_notes(
 			[
 				'order_id' => $order_id,
 				'limit'    => 2,
@@ -984,12 +984,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
 
 		$expected_request = [
-			'amount'             => $amount,
-			'currency'           => $currency,
-			'description'        => $description,
-			'customer'           => $customer_id,
-			'metadata'           => $metadata,
-			'setup_future_usage' => 'off_session',
+			'amount'               => $amount,
+			'currency'             => $currency,
+			'description'          => $description,
+			'customer'             => $customer_id,
+			'metadata'             => $metadata,
+			'setup_future_usage'   => 'off_session',
 			'statement_descriptor' => null,
 		];
 
