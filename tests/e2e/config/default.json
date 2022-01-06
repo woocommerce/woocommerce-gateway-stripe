@@ -12,7 +12,7 @@
     },
     "products": {
       "simple": {
-        "name": "Simple product"
+        "name": "Album"
       },
       "variable": {
         "name": "Variable Product with Three Attributes",
@@ -190,7 +190,8 @@
 					"year": "24"
 				},
 				"cvc": "424",
-				"label": "Visa ending in 4242"
+				"label": "Visa ending in 4242",
+				"postcode": "94107"
 			},
 			"sca": {
 				"number": "4000002500003155",
@@ -199,7 +200,8 @@
 					"year": "24"
 				},
 				"cvc": "424",
-				"label": "Needs SCA"
+				"label": "Needs SCA",
+				"postcode": "94107"
 			},
 			"declined": {
 				"number": "4000000000000002",
@@ -208,7 +210,8 @@
 					"year": "24"
 				},
 				"cvc": "424",
-				"label": "Declined"
+				"label": "Declined",
+				"postcode": "94107"
 			},
 			"insufficient-funds": {
 				"number": "4000000000009995",
@@ -217,7 +220,8 @@
 					"year": "24"
 				},
 				"cvc": "424",
-				"label": "Insufficient Funds"
+				"label": "Insufficient Funds",
+				"postcode": "94107"
 			},
 			"expired": {
 				"number": "4000000000000069",
@@ -226,7 +230,8 @@
 					"year": "24"
 				},
 				"cvc": "424",
-				"label": "Expired"
+				"label": "Expired",
+				"postcode": "94107"
 			},
 			"incorrect-security-code": {
 				"number": "4000000000000127",
@@ -235,7 +240,8 @@
 					"year": "24"
 				},
 				"cvc": "424",
-				"label": "Incorrect Security Code"
+				"label": "Incorrect Security Code",
+				"postcode": "94107"
 			},
 			"generic-error": {
 				"number": "4000000000000119",
@@ -244,7 +250,8 @@
 					"year": "24"
 				},
 				"cvc": "424",
-				"label": "Generic Error"
+				"label": "Generic Error",
+				"postcode": "94107"
 			},
 			"invalid": {
 				"number": "4242424242424241",
@@ -253,7 +260,8 @@
 					"year": "24"
 				},
 				"cvc": "424",
-				"label": "Invalid Card"
+				"label": "Invalid Card",
+				"postcode": "94107"
 			}
 		},
     "orders": {
