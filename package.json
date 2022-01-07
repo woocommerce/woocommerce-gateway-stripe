@@ -146,7 +146,7 @@
     "test:e2e-up": "npx wc-e2e docker:up",
     "test:e2e": "npx wc-e2e test:e2e",
     "test:e2e-debug": "npx wc-e2e test:e2e-debug",
-    "test:e2e-dev": "npx wc-e2e test:e2e-dev"
+    "test:e2e-dev": "PUPPETEER_SLOWMO=0 npx wc-e2e test:e2e-dev"
   },
   "engines": {
     "node": ">=12.0.0",
