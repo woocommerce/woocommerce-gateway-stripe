@@ -2,11 +2,11 @@ import { __ } from '@wordpress/i18n';
 import React, { useContext } from 'react';
 import { Card, CheckboxControl, TextControl } from '@wordpress/components';
 import CardBody from '../card-body';
-import { useAccount } from '../../data/account';
 import TextLengthHelpInputWrapper from './text-length-help-input-wrapper';
 import StatementPreviewsWrapper from './statement-previews-wrapper';
 import StatementPreview from './statement-preview';
 import ManualCaptureControl from './manual-capture-control';
+import { useAccount } from 'wcstripe/data/account';
 import {
 	useSavedCards,
 	useSeparateCardForm,
