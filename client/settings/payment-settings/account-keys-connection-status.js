@@ -5,7 +5,18 @@ import apiFetch from '@wordpress/api-fetch';
 import { loadStripe } from '@stripe/stripe-js';
 import { useAccountKeys } from 'wcstripe/data/account-keys';
 
-const SpanLink = styled.span`
+const SpanConnectionText = styled.span`
+	margin-right: 0.3rem;
+
+	@media ( min-width: 600px ) and ( max-width: 930px ) {
+		max-width: 4.5rem;
+	}
+	@media ( max-width: 464px ) {
+		max-width: 4.5rem;
+	}
+`;
+
+const SpanConnectionLink = styled.span`
 	color: var( --wp-admin-theme-color );
 	cursor: pointer;
 `;
@@ -106,13 +117,17 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 					} }
 				>
 					<DivSpinner />
-					Testing connection...
+					<SpanConnectionText>
+						Testing connection...
+					</SpanConnectionText>
 				</div>
 			) }
 			{ ! isTesting && isValid === null && (
-				<SpanLink onClick={ () => handleTestConnection( formRef ) }>
+				<SpanConnectionLink
+					onClick={ () => handleTestConnection( formRef ) }
+				>
 					Test connection
-				</SpanLink>
+				</SpanConnectionLink>
 			) }
 			{ ! isTesting && isValid === true && (
 				<div
@@ -127,12 +142,14 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 						size={ 18 }
 						style={ { marginRight: '0.5rem', fill: '#4AB866' } }
 					/>
-					<span style={ { marginRight: '0.3rem' } }>
+					<SpanConnectionText>
 						Connection successful!
-					</span>
-					<SpanLink onClick={ () => handleTestConnection( formRef ) }>
+					</SpanConnectionText>
+					<SpanConnectionLink
+						onClick={ () => handleTestConnection( formRef ) }
+					>
 						Test again
-					</SpanLink>
+					</SpanConnectionLink>
 				</div>
 			) }
 			{ ! isTesting && isValid === false && (
@@ -148,12 +165,14 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 						size={ 18 }
 						style={ { marginRight: '0.5rem', fill: '#CC1818' } }
 					/>
-					<span style={ { marginRight: '0.3rem' } }>
+					<SpanConnectionText>
 						We couldn&apos;t connect.
-					</span>
-					<SpanLink onClick={ () => handleTestConnection( formRef ) }>
+					</SpanConnectionText>
+					<SpanConnectionLink
+						onClick={ () => handleTestConnection( formRef ) }
+					>
 						Try again
-					</SpanLink>
+					</SpanConnectionLink>
 				</div>
 			) }
 		</div>
