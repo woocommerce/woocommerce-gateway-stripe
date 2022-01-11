@@ -27,6 +27,20 @@ export function updateIsSavingAccountKeys( isSaving, error ) {
 	};
 }
 
+export function updateIsTestingAccountKeys( isTesting ) {
+	return {
+		type: ACTION_TYPES.SET_IS_TESTING_ACCOUNT_KEYS,
+		isTesting,
+	};
+}
+
+export function updateIsValidAccountKeys( isValid ) {
+	return {
+		type: ACTION_TYPES.SET_IS_VALID_KEYS,
+		isValid,
+	};
+}
+
 export function* saveAccountKeys( accountKeys ) {
 	const isDisconnecting =
 		! accountKeys.publishable_key && ! accountKeys.test_publishable_key;
