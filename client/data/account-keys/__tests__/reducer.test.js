@@ -7,6 +7,8 @@ describe( 'Account keys reducer tests', () => {
 
 		expect( defaultState ).toEqual( {
 			isSaving: false,
+			isTesting: false,
+			isValid: null,
 			data: {},
 			savingError: null,
 		} );
