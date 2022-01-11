@@ -38,7 +38,7 @@ describe( 'Account actions tests', () => {
 
 			expect( apiFetch ).toHaveBeenCalledWith( {
 				path: '/wc/v3/wc_stripe/account/refresh',
-				method: 'post',
+				method: 'POST',
 			} );
 			expect( yielded ).toContainEqual(
 				expect.objectContaining( {

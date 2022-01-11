@@ -37,7 +37,7 @@ export function* saveAccountKeys( accountKeys ) {
 
 		const accountData = yield apiFetch( {
 			path: `${ NAMESPACE }/account_keys`,
-			method: 'post',
+			method: 'POST',
 			data: accountKeys,
 		} );
 
