@@ -1,3 +1,4 @@
+import { __ } from '@wordpress/i18n';
 import { React } from 'react';
 import styled from '@emotion/styled';
 import GridIcon from 'gridicons';
@@ -119,7 +120,10 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 				>
 					<DivSpinner />
 					<SpanConnectionText>
-						Testing connection...
+						{ __(
+							'Testing connection…',
+							'woocommerce-gateway-stripe'
+						) }
 					</SpanConnectionText>
 				</div>
 			) }
@@ -127,7 +131,7 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 				<SpanConnectionLink
 					onClick={ () => handleTestConnection( formRef ) }
 				>
-					Test connection
+					{ __( 'Test connection', 'woocommerce-gateway-stripe' ) }
 				</SpanConnectionLink>
 			) }
 			{ ! isTesting && isValid === true && (
@@ -144,12 +148,15 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 						style={ { marginRight: '0.5rem', fill: '#4AB866' } }
 					/>
 					<SpanConnectionText>
-						Connection successful!
+						{ __(
+							'Connection successful!',
+							'woocommerce-gateway-stripe'
+						) }
 					</SpanConnectionText>
 					<SpanConnectionLink
 						onClick={ () => handleTestConnection( formRef ) }
 					>
-						Test again
+						{ __( 'Test again', 'woocommerce-gateway-stripe' ) }
 					</SpanConnectionLink>
 				</div>
 			) }
@@ -167,12 +174,15 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 						style={ { marginRight: '0.5rem', fill: '#CC1818' } }
 					/>
 					<SpanConnectionText>
-						We couldn&apos;t connect.
+						{ __(
+							"We couldn't connect.",
+							'woocommerce-gateway-stripe'
+						) }
 					</SpanConnectionText>
 					<SpanConnectionLink
 						onClick={ () => handleTestConnection( formRef ) }
 					>
-						Try again
+						{ __( 'Try again', 'woocommerce-gateway-stripe' ) }
 					</SpanConnectionLink>
 				</div>
 			) }
