@@ -1,0 +1,17 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "type": "shell",
+        "command": "docker-compose exec wordpress sh -c 'sed -i \"/xdebug.mode=off/c\\xdebug.mode=debug\" /usr/local/etc/php/php.ini && /etc/init.d/apache2 reload'",
+        "label": "enable:xdebug"
+      },
+      {
+        "type": "shell",
+        "command": "docker-compose exec wordpress sh -c 'sed -i \"/xdebug.mode=debug/c\\xdebug.mode=off\" /usr/local/etc/php/php.ini && /etc/init.d/apache2 reload'",
+        "label": "disable:xdebug"
+      }
+    ]
+  }
