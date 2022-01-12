@@ -43,11 +43,6 @@ class WC_REST_Stripe_Tokens_Controller extends WC_Stripe_REST_Base_Controller {
 		$token_id   = $request->get_param( 'token_id' );
 		$secret_key = $request->get_header( 'X-WCStripe-Secret-Key' );
 
-		// Ensure secret_key is validated.
-		if ( ! preg_match( '/^\w+$/', $secret_key ) ) {
-			return new WP_REST_Response( [ 'result' => 'bad_request' ], 400 );
-		}
-
 		try {
 			WC_Stripe_API::set_secret_key( $secret_key );
 			$response = WC_Stripe_API::request( [], "tokens/$token_id", 'GET' );
