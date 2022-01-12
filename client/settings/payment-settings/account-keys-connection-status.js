@@ -129,6 +129,15 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 			}
 		} catch ( err ) {
 			updateIsValidAccountKeys( false );
+
+			if ( err.name === 'IntegrationError' ) {
+				dispatch( 'core/notices' ).createErrorNotice(
+					__(
+						'Live account keys must use a HTTPS connection.',
+						'woocommerce-gateway-stripe'
+					)
+				);
+			}
 		} finally {
 			updateIsTestingAccountKeys( false );
 		}
