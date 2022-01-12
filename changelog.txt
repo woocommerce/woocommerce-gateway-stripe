@@ -3,6 +3,7 @@
 = 6.1.0 - 2022-xx-xx =
 * Tweak - Use the newly exposed LoadableMask component provided by WooCommerce Blocks to trigger the loading state for Payment Request Buttons.
 * Fix - Response type for account summary API.
+* Fix - Invalid response in account summary API when missing account data.
 
 = 6.0.0 - 2022-01-05 =
 * Fix - Fixed capitalization for payment method names: iDEAL, giropay, and Sofort.
