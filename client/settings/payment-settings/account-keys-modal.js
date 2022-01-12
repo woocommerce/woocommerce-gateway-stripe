@@ -245,6 +245,8 @@ export const AccountKeysModal = ( {
 	};
 
 	const onTabSelect = ( tabName ) => {
+		// Reset AccountKeysConnectionStatus to default state.
+		updateIsValidAccountKeys( null );
 		setOpenTab( tabName );
 	};
 
