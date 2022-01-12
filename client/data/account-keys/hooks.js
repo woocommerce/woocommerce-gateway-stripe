@@ -64,15 +64,6 @@ export const useGetSavingError = () => {
 	}, [] );
 };
 
-export const useGetAccountKeysValidity = () => {
-	const accountKeysValidity = useSelect( ( select ) => {
-		const { getAccountKeysValidity } = select( STORE_NAME );
-
-		return getAccountKeysValidity( null, null );
-	}, [] );
-	return [ accountKeysValidity ];
-};
-
 const makeAccountKeysValueHook = ( attribute ) => () => {
 	const { updateAccountKeysValues } = useDispatch( STORE_NAME );
 
