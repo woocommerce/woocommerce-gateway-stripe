@@ -4,6 +4,7 @@ import GridIcon from 'gridicons';
 import apiFetch from '@wordpress/api-fetch';
 import { loadStripe } from '@stripe/stripe-js';
 import { useAccountKeys } from 'wcstripe/data/account-keys';
+import { NAMESPACE } from 'wcstripe/data/constants';
 
 const SpanConnectionText = styled.span`
 	margin-right: 0.3rem;
@@ -81,7 +82,7 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 			}
 
 			const tokenResult = await apiFetch( {
-				path: `/wc/v3/wc_stripe/tokens/${ tokenId }`,
+				path: `${ NAMESPACE }/tokens/${ tokenId }`,
 				method: 'GET',
 				headers: {
 					'X-WCStripe-Secret-Key': secretKey,
