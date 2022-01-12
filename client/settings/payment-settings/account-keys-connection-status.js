@@ -1,4 +1,5 @@
 import { __ } from '@wordpress/i18n';
+import { useDispatch } from '@wordpress/data';
 import { React } from 'react';
 import styled from '@emotion/styled';
 import GridIcon from 'gridicons';
@@ -32,6 +33,7 @@ const DivSpinner = styled.div`
 `;
 
 export const AccountKeysConnectionStatus = ( { formRef } ) => {
+	const dispatch = useDispatch();
 	const {
 		isTesting,
 		isValid,
@@ -60,9 +62,39 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 		if ( isTestingLiveConnection ) {
 			publishableKey = keysToSave.publishable_key;
 			secretKey = keysToSave.secret_key;
+			if (
+				! publishableKey.startsWith( 'pk_live_' ) ||
+				! secretKey.startsWith( 'sk_live_' )
+			) {
+				updateIsTestingAccountKeys( false );
+				updateIsValidAccountKeys( false );
+
+				dispatch( 'core/notices' ).createErrorNotice(
+					__(
+						'Only live account keys should be entered.',
+						'woocommerce-gateway-stripe'
+					)
+				);
+				return;
+			}
 		} else if ( isTestingTestConnection ) {
 			publishableKey = keysToSave.test_publishable_key;
 			secretKey = keysToSave.test_secret_key;
+			if (
+				! publishableKey.startsWith( 'pk_test_' ) ||
+				! secretKey.startsWith( 'sk_test_' )
+			) {
+				updateIsTestingAccountKeys( false );
+				updateIsValidAccountKeys( false );
+
+				dispatch( 'core/notices' ).createErrorNotice(
+					__(
+						'Only test account keys should be entered.',
+						'woocommerce-gateway-stripe'
+					)
+				);
+				return;
+			}
 		} else {
 			updateIsTestingAccountKeys( false );
 			updateIsValidAccountKeys( false );
