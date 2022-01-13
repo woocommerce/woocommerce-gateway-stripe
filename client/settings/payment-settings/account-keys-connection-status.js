@@ -64,7 +64,10 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 			secretKey = keysToSave.secret_key;
 			if (
 				! publishableKey.startsWith( 'pk_live_' ) ||
-				! secretKey.startsWith( 'sk_live_' )
+				! (
+					secretKey.startsWith( 'sk_live_' ) ||
+					secretKey.startsWith( 'rk_live_' )
+				)
 			) {
 				updateIsTestingAccountKeys( false );
 				updateIsValidAccountKeys( false );
@@ -82,7 +85,10 @@ export const AccountKeysConnectionStatus = ( { formRef } ) => {
 			secretKey = keysToSave.test_secret_key;
 			if (
 				! publishableKey.startsWith( 'pk_test_' ) ||
-				! secretKey.startsWith( 'sk_test_' )
+				! (
+					secretKey.startsWith( 'sk_test_' ) ||
+					secretKey.startsWith( 'rk_test_' )
+				)
 			) {
 				updateIsTestingAccountKeys( false );
 				updateIsValidAccountKeys( false );
