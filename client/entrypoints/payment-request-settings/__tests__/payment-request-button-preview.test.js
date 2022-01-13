@@ -4,13 +4,14 @@ import { useStripe } from '@stripe/react-stripe-js';
 import PaymentRequestsButtonPreview from '../payment-request-button-preview';
 import { shouldUseGooglePayBrand } from '../utils/utils';
 
-jest.mock( '@wordpress/components', () => {
-	return {
-		Notice: jest.fn().mockImplementation( ( { children } ) => {
-			return children;
-		} ),
-	};
-} );
+// We need to mock the actual module being used by `<Notice />` in the `@wordpress/components` module
+const realPathToA11yModule =
+	'../../../../node_modules/@wordpress/components/node_modules/@wordpress/a11y';
+
+jest.mock( realPathToA11yModule, () => ( {
+	...jest.requireActual( realPathToA11yModule ),
+	speak: jest.fn(),
+} ) );
 
 jest.mock( '../utils/utils', () => ( {
 	shouldUseGooglePayBrand: jest.fn(),
