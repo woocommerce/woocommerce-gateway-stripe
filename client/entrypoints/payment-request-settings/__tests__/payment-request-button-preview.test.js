@@ -6,7 +6,7 @@ import { shouldUseGooglePayBrand } from '../utils/utils';
 
 // We need to mock the actual module being used by `<Notice />` in the `@wordpress/components` module
 const realPathToA11yModule =
-	'../../../../node_modules/@wordpress/components/node_modules/@wordpress/a11y';
+	'@wordpress/components/node_modules/@wordpress/a11y';
 
 jest.mock( realPathToA11yModule, () => ( {
 	...jest.requireActual( realPathToA11yModule ),
