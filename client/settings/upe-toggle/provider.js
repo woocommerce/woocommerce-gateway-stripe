@@ -2,7 +2,7 @@ import { useDispatch } from '@wordpress/data';
 import { useCallback, useMemo, useState } from 'react';
 import apiFetch from '@wordpress/api-fetch';
 import UpeToggleContext from './context';
-import { STORE_NAME } from 'wcstripe/data/constants';
+import { NAMESPACE, STORE_NAME } from 'wcstripe/data/constants';
 import { recordEvent } from 'wcstripe/tracking';
 
 function trackUpeToggle( isEnabled ) {
@@ -39,7 +39,7 @@ const UpeToggleContextProvider = ( { children, defaultIsUpeEnabled } ) => {
 			const sanitizedValue = Boolean( value );
 
 			return apiFetch( {
-				path: `/wc/v3/wc_stripe/upe_flag_toggle`,
+				path: `${ NAMESPACE }/upe_flag_toggle`,
 				method: 'POST',
 				data: { is_upe_enabled: sanitizedValue },
 			} )
