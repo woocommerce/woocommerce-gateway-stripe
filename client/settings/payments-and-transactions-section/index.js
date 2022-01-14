@@ -1,11 +1,13 @@
 import { __ } from '@wordpress/i18n';
 import React, { useContext } from 'react';
 import { Card, CheckboxControl, TextControl } from '@wordpress/components';
+import { Icon, help } from '@wordpress/icons';
 import CardBody from '../card-body';
 import TextLengthHelpInputWrapper from './text-length-help-input-wrapper';
 import StatementPreviewsWrapper from './statement-previews-wrapper';
 import StatementPreview from './statement-preview';
 import ManualCaptureControl from './manual-capture-control';
+import Tooltip from 'wcstripe/components/tooltip';
 import {
 	useSavedCards,
 	useSeparateCardForm,
@@ -16,6 +18,19 @@ import {
 } from 'wcstripe/data';
 import InlineNotice from 'wcstripe/components/inline-notice';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
+
+const TooltipBankStatementHelp = () => (
+	<Tooltip
+		content={ __(
+			'Bank statement must consist of at least 1 Latin letter and cannot contain special characters.',
+			'woocommerce-gateway-stripe'
+		) }
+	>
+		<span style={ { flexShrink: 0 } }>
+			<Icon style={ { fill: '#949494' } } icon={ help } />
+		</span>
+	</Tooltip>
+);
 
 const PaymentsAndTransactionsSection = () => {
 	const [ isSavedCardsEnabled, setIsSavedCardsEnabled ] = useSavedCards();
@@ -104,6 +119,7 @@ const PaymentsAndTransactionsSection = () => {
 				<TextLengthHelpInputWrapper
 					textLength={ accountStatementDescriptor.length }
 					maxLength={ 22 }
+					iconSlot={ <TooltipBankStatementHelp /> }
 				>
 					<TextControl
 						help={ __(
