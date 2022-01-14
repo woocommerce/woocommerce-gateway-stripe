@@ -107,7 +107,7 @@ const PaymentsAndTransactionsSection = () => {
 				>
 					<TextControl
 						help={ __(
-							'Enter the name your customers will see on their transactions. Use a recognizable name – e.g. the legal entity name or website address–to avoid potential disputes and chargebacks.',
+							'Enter the name your customers will see on their transactions. Use a recognizable name – e.g. the legal entity name or website address – to avoid potential disputes and chargebacks.',
 							'woocommerce-gateway-stripe'
 						) }
 						label={ __(
