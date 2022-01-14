@@ -1,7 +1,10 @@
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import apiFetch from '@wordpress/api-fetch';
+import { loadStripe } from '@stripe/stripe-js';
 import GeneralSettingsSection from '../general-settings-section';
+import { AccountKeysModal } from 'wcstripe/settings/payment-settings/account-keys-modal';
 import {
 	useIsStripeEnabled,
 	useTestMode,
@@ -41,6 +44,15 @@ jest.mock( 'wcstripe/data/account-keys/hooks', () => ( {
 
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
+} ) );
+
+jest.mock( '@stripe/stripe-js', () => ( {
+	loadStripe: jest.fn(),
+} ) );
+
+jest.mock( '@wordpress/api-fetch', () => ( {
+	__esModule: true,
+	default: jest.fn(),
 } ) );
 
 describe( 'GeneralSettingsSection', () => {
@@ -126,6 +138,62 @@ describe( 'GeneralSettingsSection', () => {
 			/edit test account keys & webhooks/i
 		);
 		expect( accountKeysModal ).toBeInTheDocument();
+	} );
+
+	it( 'should test the account keys when test connection clicked', () => {
+		return new Promise( ( resolve ) => {
+			const updateIsTestingAccountKeysExpectations = ( function* () {
+				// Because updateIsTestingAccountKeys is called asynchronously and
+				// from within a finally-block, a generator function in combination
+				// with the resolve() call are necessary to properly test things.
+				yield true;
+				return false;
+			} )();
+			const updateIsTestingAccountKeys = jest.fn( ( val ) => {
+				const expected = updateIsTestingAccountKeysExpectations.next();
+				expect( val ).toBe( expected.value );
+				// Note, ultimately, the test ends here.
+				if ( expected.done ) {
+					resolve();
+				}
+			} );
+			const updateIsValidAccountKeysExpectations = ( function* () {
+				yield null;
+				return true;
+			} )();
+			const updateIsValidAccountKeys = jest.fn( ( val ) => {
+				expect( val ).toBe(
+					updateIsValidAccountKeysExpectations.next().value
+				);
+			} );
+			useAccount.mockReturnValue( {
+				data: { webhook_url: 'example.com' },
+			} );
+			useAccountKeys.mockReturnValue( {
+				isValid: null,
+				updateIsTestingAccountKeys,
+				updateIsValidAccountKeys,
+			} );
+
+			apiFetch.mockReturnValue( { id: 'random_token_id' } );
+			loadStripe.mockReturnValue( {
+				createToken: jest.fn( () => ( {
+					token: { id: 'random_token_id' },
+				} ) ),
+			} );
+			useAccountKeysWebhookSecret.mockReturnValue( [ '', jest.fn() ] );
+			useAccountKeysSecretKey.mockReturnValue( [ 'live_sk', jest.fn() ] );
+			useAccountKeysPublishableKey.mockReturnValue( [
+				'live_pk',
+				jest.fn(),
+			] );
+
+			render( <AccountKeysModal /> );
+
+			const testConnectionLink = screen.getByText( /Test connection/i );
+			expect( testConnectionLink ).toBeInTheDocument();
+			userEvent.click( testConnectionLink );
+		} );
 	} );
 
 	it( 'should render gateway title and description fields when UPE is disabled', () => {

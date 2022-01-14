@@ -3,12 +3,29 @@ import { useCallback } from 'react';
 import { STORE_NAME } from '../constants';
 
 export const useAccountKeys = () => {
-	const { saveAccountKeys, updateAccountKeys } = useDispatch( STORE_NAME );
+	const {
+		saveAccountKeys,
+		updateAccountKeys,
+		updateIsTestingAccountKeys,
+		updateIsValidAccountKeys,
+	} = useDispatch( STORE_NAME );
 
 	const accountKeys = useSelect( ( select ) => {
 		const { getAccountKeys } = select( STORE_NAME );
 
 		return getAccountKeys();
+	}, [] );
+
+	const isTesting = useSelect( ( select ) => {
+		const { getIsTestingAccountKeys } = select( STORE_NAME );
+
+		return getIsTestingAccountKeys();
+	}, [] );
+
+	const isValid = useSelect( ( select ) => {
+		const { getIsValidAccountKeys } = select( STORE_NAME );
+
+		return getIsValidAccountKeys();
 	}, [] );
 
 	const isLoading = useSelect( ( select ) => {
@@ -30,7 +47,11 @@ export const useAccountKeys = () => {
 		accountKeys,
 		isLoading,
 		isSaving,
+		isTesting,
+		isValid,
 		updateAccountKeys,
+		updateIsTestingAccountKeys,
+		updateIsValidAccountKeys,
 		saveAccountKeys,
 	};
 };
