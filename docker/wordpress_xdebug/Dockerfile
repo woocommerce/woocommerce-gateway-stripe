@@ -4,6 +4,7 @@ RUN pecl install xdebug \
 	&& echo 'xdebug.start_with_request=yes' >> $PHP_INI_DIR/php.ini \
 	&& echo 'xdebug.client_host=host.docker.internal' >> $PHP_INI_DIR/php.ini \
 	&& echo 'xdebug.discover_client_host=1' >> $PHP_INI_DIR/php.ini \
+	&& echo 'xdebug.client_port=9000' >> $PHP_INI_DIR/php.ini \
 	&& echo 'xdebug.log=/tmp/xdebug.log' >> $PHP_INI_DIR/php.ini \
 	&& docker-php-ext-enable xdebug
 RUN apt-get update \

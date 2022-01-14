@@ -5,12 +5,12 @@
     "tasks": [
       {
         "type": "shell",
-        "command": "docker-compose exec wordpress sh -c 'sed -i \"/xdebug.mode=off/c\\xdebug.mode=debug\" /usr/local/etc/php/php.ini && /etc/init.d/apache2 reload'",
+        "command": "npm run xdebug:start",
         "label": "enable:xdebug"
       },
       {
         "type": "shell",
-        "command": "docker-compose exec wordpress sh -c 'sed -i \"/xdebug.mode=debug/c\\xdebug.mode=off\" /usr/local/etc/php/php.ini && /etc/init.d/apache2 reload'",
+        "command": "npm run xdebug:stop",
         "label": "disable:xdebug"
       }
     ]
