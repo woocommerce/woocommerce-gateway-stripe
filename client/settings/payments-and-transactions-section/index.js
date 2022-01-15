@@ -22,7 +22,7 @@ import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 const TooltipBankStatementHelp = () => (
 	<Tooltip
 		content={ __(
-			'Bank statement must consist of at least 1 Latin letter and cannot contain special characters.',
+			'The bank statement must contain only Latin characters, be between 5 and 22 characters, and not contain any of the special characters: \' " * < >',
 			'woocommerce-gateway-stripe'
 		) }
 	>
