@@ -70,7 +70,7 @@
     "react": "16.13.1",
     "react-dom": "16.13.1",
     "rimraf": "^3.0.2",
-    "shelljs": "^0.8.4",
+    "shelljs": "^0.8.5",
     "stylelint": "13.11.0",
     "stylelint-config-prettier": "8.0.2",
     "stylelint-config-wordpress": "17.0.0",
