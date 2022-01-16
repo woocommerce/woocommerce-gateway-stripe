@@ -26,7 +26,7 @@ const TooltipBankStatementHelp = () => (
 			'woocommerce-gateway-stripe'
 		) }
 	>
-		<span style={ { flexShrink: 0 } }>
+		<span>
 			<Icon style={ { fill: '#949494' } } icon={ help } />
 		</span>
 	</Tooltip>
