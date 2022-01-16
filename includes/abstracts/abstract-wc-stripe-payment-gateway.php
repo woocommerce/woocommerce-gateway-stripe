@@ -429,8 +429,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		switch ( $order->get_payment_method() ) {
 			case 'stripe':
-				if ( $is_short_statement_descriptor_enabled && ! empty( $short_statement_descriptor ) ) {
-					$post_data['statement_descriptor'] = WC_Stripe_Helper::get_dynamic_statement_descriptor( $short_statement_descriptor, $order );
+				if ( $is_short_statement_descriptor_enabled && ! ( empty( $short_statement_descriptor ) && empty( $statement_descriptor ) ) ) {
+					$post_data['statement_descriptor'] = WC_Stripe_Helper::get_dynamic_statement_descriptor( $short_statement_descriptor, $order, $statement_descriptor );
 				} elseif ( ! empty( $statement_descriptor ) ) {
 					$post_data['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor );
 				}

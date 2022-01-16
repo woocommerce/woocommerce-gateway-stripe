@@ -448,10 +448,12 @@ class WC_Stripe_Helper {
 	 *
 	 * @param string   $statement_descriptor Shortened statement descriptor.
 	 * @param WC_Order $order Order.
+	 * @param string   $fallback_descriptor (optional) Fallback of the shortened statement descriptor in case it's blank.
 	 * @return string $statement_descriptor Final shortened statement descriptor.
 	 */
-	public static function get_dynamic_statement_descriptor( $statement_descriptor = '', $order = null ) {
-		$statement_descriptor = self::clean_statement_descriptor( $statement_descriptor );
+	public static function get_dynamic_statement_descriptor( $statement_descriptor = '', $order = null, $fallback_descriptor = '' ) {
+		$actual_descriptor = ! empty( $statement_descriptor ) ? $statement_descriptor : $fallback_descriptor;
+		$statement_descriptor = self::clean_statement_descriptor( $actual_descriptor );
 
 		if ( method_exists( $order, 'get_order_number' ) && ! empty( $order->get_order_number() ) ) {
 			$statement_descriptor = $statement_descriptor . '* #' . $order->get_order_number();

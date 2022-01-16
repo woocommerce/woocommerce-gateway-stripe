@@ -499,9 +499,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$short_statement_descriptor            = ! empty( $this->get_option( 'short_statement_descriptor' ) ) ? str_replace( "'", '', $this->get_option( 'short_statement_descriptor' ) ) : '';
 		$is_short_statement_descriptor_enabled = ! empty( $this->get_option( 'is_short_statement_descriptor_enabled' ) ) && 'yes' === $this->get_option( 'is_short_statement_descriptor_enabled' );
 		$descriptor                            = null;
-		if ( 'card' === $selected_upe_payment_type && $is_short_statement_descriptor_enabled && ! empty( $short_statement_descriptor ) ) {
+		if ( 'card' === $selected_upe_payment_type && $is_short_statement_descriptor_enabled && ! ( empty( $short_statement_descriptor ) && empty( $statement_descriptor ) ) ) {
 			// Use the shortened statement descriptor for card transactions only
-			$descriptor = WC_Stripe_Helper::get_dynamic_statement_descriptor( $short_statement_descriptor, $order );
+			$descriptor = WC_Stripe_Helper::get_dynamic_statement_descriptor( $short_statement_descriptor, $order, $statement_descriptor );
 		} elseif ( ! empty( $statement_descriptor ) ) {
 			$descriptor = WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor );
 		}
