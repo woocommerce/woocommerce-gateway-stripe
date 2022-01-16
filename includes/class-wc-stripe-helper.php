@@ -444,22 +444,20 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Sanizite and retrieve a shortened statement descriptor.
+	 * Sanitize and retrieve the shortened statement descriptor concatenated with the order number.
 	 *
-	 * The descriptor will be used as prefix and the order ID will be concatenated, acting as a suffix.
-	 *
-	 * @param string $statement_descriptor
-	 * @param WC_Order $order
-	 * @return string $statement_descriptor Final shortened statement descriptor
+	 * @param string   $statement_descriptor Shortened statement descriptor.
+	 * @param WC_Order $order Order.
+	 * @return string $statement_descriptor Final shortened statement descriptor.
 	 */
-	public static function get_shortened_statement_descriptor( $statement_descriptor = '', $order = null ) {
+	public static function get_dynamic_statement_descriptor( $statement_descriptor = '', $order = null ) {
 		$statement_descriptor = self::clean_statement_descriptor( $statement_descriptor );
 
 		if ( method_exists( $order, 'get_order_number' ) && ! empty( $order->get_order_number() ) ) {
 			$statement_descriptor = $statement_descriptor . '* #' . $order->get_order_number();
 		}
 
-		// Limit it to 22 characters just in case
+		// Limit it to 22 characters just in case.
 		$statement_descriptor = substr( $statement_descriptor, 0, 22 );
 
 		return $statement_descriptor;
@@ -471,8 +469,8 @@ class WC_Stripe_Helper {
 	 * Stripe requires max of 22 characters and no special characters.
 	 *
 	 * @since 4.0.0
-	 * @param string $statement_descriptor
-	 * @return string $statement_descriptor Sanitized statement descriptor
+	 * @param string $statement_descriptor Statement descriptor.
+	 * @return string $statement_descriptor Sanitized statement descriptor.
 	 */
 	public static function clean_statement_descriptor( $statement_descriptor = '' ) {
 		$disallowed_characters = [ '<', '>', '\\', '*', '"', "'", '/', '(', ')', '{', '}' ];
