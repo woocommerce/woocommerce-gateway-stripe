@@ -106,10 +106,10 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 				'status'                   => $this->account->get_account_status(),
 				'statement_descriptor'     => $account['settings']['payments']['statement_descriptor'] ?? '',
 				'store_currencies'         => [
-					'default'   => $account['default_currency'] ?? '',
+					'default'   => $account['default_currency'] ?? get_woocommerce_currency(),
 					'supported' => $this->account->get_supported_store_currencies(),
 				],
-				'country'                  => $account['country'] ?? '',
+				'country'                  => $account['country'] ?? WC()->countries->get_base_country(),
 				'is_live'                  => $account['charges_enabled'] ?? false,
 				'test_mode'                => WC_Stripe_Webhook_State::get_testmode(),
 			]
