@@ -110,6 +110,8 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 					'supported' => $this->account->get_supported_store_currencies(),
 				],
 				'country'                  => $account['country'] ?? '',
+				'is_live'                  => $account['charges_enabled'] ?? false,
+				'test_mode'                => WC_Stripe_Webhook_State::get_testmode(),
 			]
 		);
 	}

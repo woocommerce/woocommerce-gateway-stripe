@@ -131,6 +131,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 6.x.x - 2022-xx-xx =
 * Tweak - Use the newly exposed LoadableMask component provided by WooCommerce Blocks to trigger the loading state for Payment Request Buttons.
 * Fix - Response type for account summary API.
+* Add - Live and test mode information in account summary API.
 
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
