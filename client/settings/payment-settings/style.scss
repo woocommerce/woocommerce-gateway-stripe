@@ -1,3 +1,9 @@
+@import '../../styles/abstracts/styles.scss';
+
+.ml-unit-20 {
+	margin-left: $grid-unit-20;
+}
+
 .account-details {
 	&__header {
 		justify-content: space-between;

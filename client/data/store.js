@@ -6,6 +6,16 @@ import * as account from './account';
 import * as accountKeys from './account-keys';
 import * as paymentGateway from './payment-gateway';
 
+const actions = {};
+const selectors = {};
+const resolvers = {};
+
+[ settings, account, accountKeys, paymentGateway ].forEach( ( item ) => {
+	Object.assign( actions, { ...item.actions } );
+	Object.assign( selectors, { ...item.selectors } );
+	Object.assign( resolvers, { ...item.resolvers } );
+} );
+
 // Extracted into wrapper function to facilitate testing.
 export const initStore = () =>
 	registerStore( STORE_NAME, {
@@ -15,23 +25,8 @@ export const initStore = () =>
 			accountKeys: accountKeys.reducer,
 			paymentGateway: paymentGateway.reducer,
 		} ),
-		actions: {
-			...settings.actions,
-			...account.actions,
-			...accountKeys.actions,
-			...paymentGateway.actions,
-		},
 		controls,
-		selectors: {
-			...settings.selectors,
-			...account.selectors,
-			...accountKeys.selectors,
-			...paymentGateway.selectors,
-		},
-		resolvers: {
-			...settings.resolvers,
-			...account.resolvers,
-			...accountKeys.resolvers,
-			...paymentGateway.resolvers,
-		},
+		actions,
+		selectors,
+		resolvers,
 	} );

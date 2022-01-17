@@ -133,6 +133,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Response type for account summary API.
 * Fix - Invalid response in account summary API when missing account data.
 * Add - Live and test mode information in account summary API.
-
+* Add - Add filter call when updating an existent intent (wc_stripe_update_existing_intent_request).
+* Add - Add ability to test Stripe account keys' validity.
+* Fix - Fixed full bank statement field description.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

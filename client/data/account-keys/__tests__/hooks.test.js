@@ -32,6 +32,8 @@ describe( 'Account keys hooks tests', () => {
 
 			selectors = {
 				getAccountKeys: jest.fn( () => ( { foo: 'bar' } ) ),
+				getIsTestingAccountKeys: jest.fn(),
+				getIsValidAccountKeys: jest.fn(),
 				hasFinishedResolution: jest.fn(),
 				isResolving: jest.fn(),
 				isSavingAccountKeys: jest.fn(),
