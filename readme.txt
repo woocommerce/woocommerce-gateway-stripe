@@ -136,5 +136,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - Add filter call when updating an existent intent (wc_stripe_update_existing_intent_request).
 * Add - Add ability to test Stripe account keys' validity.
 * Fix - Fixed full bank statement field description.
+* Fix - Notification messages are placed on top of the account keys modal.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
