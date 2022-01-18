@@ -69,6 +69,10 @@ class WC_Stripe_Old_Settings_UPE_Toggle_Controller {
 				'is_upe_enabled'  => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
 			]
 		);
+		wp_set_script_translations(
+			'woocommerce_stripe_old_settings_upe_toggle',
+			'woocommerce-gateway-stripe'
+		);
 		wp_enqueue_script( 'woocommerce_stripe_old_settings_upe_toggle' );
 	}
 }

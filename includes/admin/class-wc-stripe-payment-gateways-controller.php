@@ -43,6 +43,10 @@ class WC_Stripe_Payment_Gateways_Controller {
 			$payment_gateways_script_asset['version'],
 			true
 		);
+		wp_set_script_translations(
+			'woocommerce_stripe_payment_gateways_page',
+			'woocommerce-gateway-stripe'
+		);
 		wp_register_style(
 			'woocommerce_stripe_payment_gateways_page',
 			plugins_url( 'build/payment_gateways.css', WC_STRIPE_MAIN_FILE ),
