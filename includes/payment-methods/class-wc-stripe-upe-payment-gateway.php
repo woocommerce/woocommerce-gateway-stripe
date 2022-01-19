@@ -195,7 +195,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * Outputs scripts used for stripe payment
 	 */
 	public function payment_scripts() {
-		if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() ) {
+		if (
+			! is_product()
+			&& ! WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
+			&& ! isset( $_GET['pay_for_order'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			&& ! is_add_payment_method_page() ) {
+			return;
+		}
+
+		if ( is_product() && ! WC_Stripe_Helper::should_load_scripts_on_product_page() ) {
 			return;
 		}
 
