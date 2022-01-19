@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import PaymentsAndTransactionsSection from '..';
+import { useAccount } from 'wcstripe/data/account';
 import {
 	useManualCapture,
 	useSavedCards,
@@ -9,6 +10,10 @@ import {
 	useShortAccountStatementDescriptor,
 	useGetSavingError,
 } from 'wcstripe/data';
+
+jest.mock( 'wcstripe/data/account', () => ( {
+	useAccount: jest.fn(),
+} ) );
 
 jest.mock( 'wcstripe/data', () => ( {
 	useManualCapture: jest.fn(),
@@ -38,6 +43,7 @@ describe( 'PaymentsAndTransactionsSection', () => {
 			jest.fn(),
 		] );
 		useGetSavingError.mockReturnValue( null );
+		useAccount.mockReturnValue( { data: {} } );
 	} );
 
 	it( 'displays the length of the bank statement input', () => {
@@ -208,5 +214,26 @@ describe( 'PaymentsAndTransactionsSection', () => {
 				`Customer bank statement is invalid. No special characters: ' " * < >`
 			)
 		).toBeInTheDocument();
+	} );
+
+	it( "shows the account's statement descriptor placeholder", () => {
+		const mockValue = 'WOOTESTING, LTD';
+
+		useAccount.mockReturnValue( {
+			data: {
+				account: {
+					settings: { payments: { statement_descriptor: mockValue } },
+				},
+			},
+		} );
+		useIsShortAccountStatementEnabled.mockReturnValue( [
+			true,
+			jest.fn(),
+		] );
+		render( <PaymentsAndTransactionsSection /> );
+
+		expect(
+			screen.queryByText( 'Full bank statement' ).nextElementSibling
+		).toHaveAttribute( 'placeholder', mockValue );
 	} );
 } );
