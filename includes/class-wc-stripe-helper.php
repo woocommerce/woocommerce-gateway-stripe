@@ -464,13 +464,8 @@ class WC_Stripe_Helper {
 			$suffix = '* #' . $order->get_order_number();
 		}
 
-		$statement_descriptor = $prefix . $suffix;
-
-		// Truncate the prefix instead of the order if necessary.
-		if ( strlen( $statement_descriptor ) > 22 ) {
-			$truncated_prefix     = substr( $prefix, 0, 22 - strlen( $suffix ) );
-			$statement_descriptor = $truncated_prefix . $suffix;
-		}
+		// Make sure it is limited at 22 characters.
+		$statement_descriptor = substr( $prefix . $suffix, 0, 22 );
 
 		return $statement_descriptor;
 	}
