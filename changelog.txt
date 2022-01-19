@@ -11,6 +11,7 @@
 * Fix - Notification messages are placed on top of the account keys modal.
 * Fix - Express checkout with 3DS card on product page when new checkout experience is enabled.
 * Fix - Remove duplicate call to `payment_scripts`.
+* Fix - Send bank statement descriptors to payment intents.
 
 = 6.0.0 - 2022-01-05 =
 * Fix - Fixed capitalization for payment method names: iDEAL, giropay, and Sofort.
