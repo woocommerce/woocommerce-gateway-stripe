@@ -1,12 +1,14 @@
 import { __ } from '@wordpress/i18n';
 import React, { useContext } from 'react';
 import { Card, CheckboxControl, TextControl } from '@wordpress/components';
+import { Icon, help } from '@wordpress/icons';
 import CardBody from '../card-body';
 import TextLengthHelpInputWrapper from './text-length-help-input-wrapper';
 import StatementPreviewsWrapper from './statement-previews-wrapper';
 import StatementPreview from './statement-preview';
 import ManualCaptureControl from './manual-capture-control';
 import { useAccount } from 'wcstripe/data/account';
+import Tooltip from 'wcstripe/components/tooltip';
 import {
 	useSavedCards,
 	useSeparateCardForm,
@@ -17,6 +19,19 @@ import {
 } from 'wcstripe/data';
 import InlineNotice from 'wcstripe/components/inline-notice';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
+
+const TooltipBankStatementHelp = () => (
+	<Tooltip
+		content={ __(
+			'The bank statement must contain only Latin characters, be between 5 and 22 characters, and not contain any of the special characters: \' " * < >',
+			'woocommerce-gateway-stripe'
+		) }
+	>
+		<span>
+			<Icon style={ { fill: '#949494' } } icon={ help } />
+		</span>
+	</Tooltip>
+);
 
 const PaymentsAndTransactionsSection = () => {
 	const [ isSavedCardsEnabled, setIsSavedCardsEnabled ] = useSavedCards();
@@ -109,10 +124,11 @@ const PaymentsAndTransactionsSection = () => {
 				<TextLengthHelpInputWrapper
 					textLength={ accountStatementDescriptor.length }
 					maxLength={ 22 }
+					iconSlot={ <TooltipBankStatementHelp /> }
 				>
 					<TextControl
 						help={ __(
-							'Enter the name your customers will see on their transactions. Use a recognizable name – e.g. the legal entity name or website address–to avoid potential disputes and chargebacks.',
+							'Enter the name your customers will see on their transactions. Use a recognizable name – e.g. the legal entity name or website address – to avoid potential disputes and chargebacks.',
 							'woocommerce-gateway-stripe'
 						) }
 						label={ __(

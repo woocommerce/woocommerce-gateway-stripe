@@ -44,3 +44,9 @@
 		}
 	}
 }
+
+.components-modal__screen-overlay {
+	// This value should be lower than .woocommerce-transient-notices's z-index
+	// to be able to see snackbar's messages
+	z-index: 99998;
+}
