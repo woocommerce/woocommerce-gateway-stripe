@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 6.x.x - 2022-xx-xx =
+= 6.1.0 - 2022-xx-xx =
 * Tweak - Use the newly exposed LoadableMask component provided by WooCommerce Blocks to trigger the loading state for Payment Request Buttons.
 * Fix - Response type for account summary API.
 * Fix - Invalid response in account summary API when missing account data.
