@@ -453,14 +453,24 @@ class WC_Stripe_Helper {
 	 */
 	public static function get_dynamic_statement_descriptor( $statement_descriptor = '', $order = null, $fallback_descriptor = '' ) {
 		$actual_descriptor = ! empty( $statement_descriptor ) ? $statement_descriptor : $fallback_descriptor;
-		$statement_descriptor = self::clean_statement_descriptor( $actual_descriptor );
+		$prefix            = self::clean_statement_descriptor( $actual_descriptor );
+		$suffix            = '';
 
-		if ( method_exists( $order, 'get_order_number' ) && ! empty( $order->get_order_number() ) ) {
-			$statement_descriptor = $statement_descriptor . '* #' . $order->get_order_number();
+		if ( empty( $prefix ) ) {
+			return '';
 		}
 
-		// Limit it to 22 characters just in case.
-		$statement_descriptor = substr( $statement_descriptor, 0, 22 );
+		if ( method_exists( $order, 'get_order_number' ) && ! empty( $order->get_order_number() ) ) {
+			$suffix = '* #' . $order->get_order_number();
+		}
+
+		$statement_descriptor = $prefix . $suffix;
+
+		// Truncate the prefix instead of the order if necessary.
+		if ( strlen( $statement_descriptor ) > 22 ) {
+			$truncated_prefix     = substr( $prefix, 0, 22 - strlen( $suffix ) );
+			$statement_descriptor = $truncated_prefix . $suffix;
+		}
 
 		return $statement_descriptor;
 	}
