@@ -137,5 +137,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - Add ability to test Stripe account keys' validity.
 * Fix - Fixed full bank statement field description.
 * Fix - Notification messages are placed on top of the account keys modal.
+* Fix - Express checkout with 3DS card on product page when new checkout experience is enabled.
+* Fix - Remove duplicate call to `payment_scripts`.
+* Fix - Send bank statement descriptors to payment intents.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
