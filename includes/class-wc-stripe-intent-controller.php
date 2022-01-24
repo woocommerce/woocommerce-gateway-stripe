@@ -407,7 +407,8 @@ class WC_Stripe_Intent_Controller {
 				'amount'      => WC_Stripe_Helper::get_stripe_amount( $amount, strtolower( $currency ) ),
 				'currency'    => strtolower( $currency ),
 				'metadata'    => $gateway->get_metadata_from_order( $order ),
-				'description' => __( 'Stripe - Order', 'woocommerce-gateway-stripe' ) . ' ' . $order->get_id(),
+				/* translators: 1) blog name 2) order number */
+				'description' => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
 			];
 
 			if ( '' !== $selected_upe_payment_type ) {
