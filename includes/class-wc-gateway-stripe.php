@@ -1134,10 +1134,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public function validate_account_statement_descriptor_field( $param, $value, $max_length ) {
 		// Since the value is escaped, and we are saving in a place that does not require escaping, apply stripslashes.
 		$value = trim( stripslashes( $value ) );
-		$field = __( 'Customer bank statement', 'woocommerce-gateway-stripe' );
+		$field = __( 'customer bank statement', 'woocommerce-gateway-stripe' );
 
 		if ( 'short_statement_descriptor' === $param ) {
-			$field = __( 'Shortened customer bank statement', 'woocommerce-gateway-stripe' );
+			$field = __( 'shortened customer bank statement', 'woocommerce-gateway-stripe' );
 		}
 
 		// Validation can be done with a single regex but splitting into multiple for better readability.
@@ -1153,7 +1153,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			throw new InvalidArgumentException(
 				sprintf(
 					/* translators: %1 field name, %2 Number of the maximum characters allowed */
-					__( '%1$s is invalid. Statement should be between 5 and %2$u characters long, contain at least single Latin character and does not contain special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' ),
+					__( 'The %1$s is invalid. The bank statement must contain only Latin characters, be between 5 and %2$u characters, contain at least one letter, and not contain any of the special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' ),
 					$field,
 					$max_length
 				)

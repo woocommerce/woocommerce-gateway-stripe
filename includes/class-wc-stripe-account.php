@@ -14,6 +14,7 @@ class WC_Stripe_Account {
 	const TEST_ACCOUNT_OPTION    = 'wcstripe_account_data_test';
 
 	const STATUS_COMPLETE        = 'complete';
+	const STATUS_NO_ACCOUNT      = 'NOACCOUNT';
 	const STATUS_RESTRICTED_SOON = 'restricted_soon';
 	const STATUS_RESTRICTED      = 'restricted';
 
@@ -153,8 +154,12 @@ class WC_Stripe_Account {
 	 * @return string The account's status.
 	 */
 	public function get_account_status() {
-		$requirements = $this->get_cached_account_data()['requirements'] ?? [];
+		$account = $this->get_cached_account_data();
+		if ( empty( $account ) ) {
+			return self::STATUS_NO_ACCOUNT;
+		}
 
+		$requirements = $account['requirements'] ?? [];
 		if ( empty( $requirements ) ) {
 			return self::STATUS_COMPLETE;
 		}
@@ -189,7 +194,7 @@ class WC_Stripe_Account {
 	public function get_supported_store_currencies(): array {
 		$account = $this->get_cached_account_data();
 		if ( ! isset( $account['external_accounts']['data'] ) ) {
-			return [ $account['default_currency'] ?? '' ];
+			return [ $account['default_currency'] ?? get_woocommerce_currency() ];
 		}
 
 		$currencies = array_filter( array_column( $account['external_accounts']['data'], 'currency' ) );

@@ -2,9 +2,9 @@
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
 Requires at least: 5.6
-Tested up to: 5.8
+Tested up to: 5.9
 Requires PHP: 7.0
-Stable tag: 6.0.0
+Stable tag: 6.1.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,15 +128,17 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 6.0.0 - 2022-01-05 =
-* Fix - Fixed capitalization for payment method names: iDEAL, giropay, and Sofort.
-* Add - Text to explain how to enable webhooks when manually entering your API keys in the new Stripe settings.
-* Tweak - Redirect to the settings tab after an account is connected
-* Tweak - Prompt message when navigating out Stripe settings with unsaved changes
-* Tweak - Show toast when payment methods list is updated with new payment methods.
-* Fix - JS error on checkout when Boleto method was not active
-* Fix - Fixed bug that show "Use new payment method" on pay order page when there were no saved card was.
-* Tweak - Autocomplete for account keys and webhooks fields were disabled.
-* Fix - The settings page is not reloaded when the user enters invalid account keys.
+= 6.1.0 - 2022-01-26 =
+* Tweak - Use the newly exposed LoadableMask component provided by WooCommerce Blocks to trigger the loading state for Payment Request Buttons.
+* Fix - Response type for account summary API.
+* Fix - Invalid response in account summary API when missing account data.
+* Add - Live and test mode information in account summary API.
+* Add - Add filter call when updating an existent intent (wc_stripe_update_existing_intent_request).
+* Add - Add ability to test Stripe account keys' validity.
+* Fix - Fixed full bank statement field description.
+* Fix - Notification messages are placed on top of the account keys modal.
+* Fix - Express checkout with 3DS card on product page when new checkout experience is enabled.
+* Fix - Remove duplicate call to `payment_scripts`.
+* Fix - Send bank statement descriptors to payment intents.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

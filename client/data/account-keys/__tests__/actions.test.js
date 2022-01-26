@@ -41,7 +41,7 @@ describe( 'Account keys actions tests', () => {
 			const yielded = [ ...saveAccountKeys( accountKeysMock ) ];
 
 			expect( apiFetch ).toHaveBeenCalledWith( {
-				method: 'post',
+				method: 'POST',
 				path: '/wc/v3/wc_stripe/account_keys',
 				data: accountKeysMock,
 			} );

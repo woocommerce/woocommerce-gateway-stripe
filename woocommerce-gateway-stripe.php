@@ -5,11 +5,11 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 6.0.0
+ * Version: 6.1.0
  * Requires at least: 5.6
- * Tested up to: 5.8
+ * Tested up to: 5.9
  * WC requires at least: 5.7
- * WC tested up to: 5.9
+ * WC tested up to: 6.1.1
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '6.0.0' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '6.1.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.0.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '5.7' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '5.8' );
@@ -582,12 +582,14 @@ function woocommerce_gateway_stripe() {
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-connection-tokens-controller.php';
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-locations-controller.php';
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-orders-controller.php';
+				require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-tokens-controller.php';
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-rest-oauth-init-controller.php';
 				require_once WC_STRIPE_PLUGIN_PATH . '/includes/connect/class-wc-stripe-connect-rest-oauth-connect-controller.php';
 
 				$connection_tokens_controller = new WC_REST_Stripe_Connection_Tokens_Controller( $this->get_main_stripe_gateway() );
 				$locations_controller         = new WC_REST_Stripe_Locations_Controller();
 				$orders_controller            = new WC_REST_Stripe_Orders_Controller( $this->get_main_stripe_gateway() );
+				$stripe_tokens_controller     = new WC_REST_Stripe_Tokens_Controller();
 				$oauth_init                   = new WC_Stripe_Connect_REST_Oauth_Init_Controller( $this->connect, $this->api );
 				$oauth_connect                = new WC_Stripe_Connect_REST_Oauth_Connect_Controller( $this->connect, $this->api );
 				$stripe_account_controller    = new WC_REST_Stripe_Account_Controller( $this->account );
@@ -595,6 +597,7 @@ function woocommerce_gateway_stripe() {
 				$connection_tokens_controller->register_routes();
 				$locations_controller->register_routes();
 				$orders_controller->register_routes();
+				$stripe_tokens_controller->register_routes();
 				$oauth_init->register_routes();
 				$oauth_connect->register_routes();
 				$stripe_account_controller->register_routes();

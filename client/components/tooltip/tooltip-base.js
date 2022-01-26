@@ -81,14 +81,16 @@ const useHideDelay = (
 			onHideCallbackRef.current();
 		};
 
-		document.addEventListener( 'click', handleDocumentClick );
+		const { ownerDocument } = triggerRef.current;
+
+		ownerDocument.addEventListener( 'click', handleDocumentClick );
 		rootElement.addEventListener(
 			'wcstripe-tooltip-open',
 			handleHideElement
 		);
 
 		return () => {
-			document.removeEventListener( 'click', handleDocumentClick );
+			ownerDocument.removeEventListener( 'click', handleDocumentClick );
 			rootElement.removeEventListener(
 				'wcstripe-tooltip-open',
 				handleHideElement
@@ -185,14 +187,22 @@ const TooltipBase = ( {
 
 		const debouncedCalculation = debounce( calculateTooltipPosition, 150 );
 
-		window.addEventListener( 'resize', debouncedCalculation );
-		document.addEventListener( 'scroll', debouncedCalculation );
+		const { ownerDocument } = wrapperRef.current;
+
+		ownerDocument.defaultView.addEventListener(
+			'resize',
+			debouncedCalculation
+		);
+		ownerDocument.addEventListener( 'scroll', debouncedCalculation );
 
 		return () => {
-			window.removeEventListener( 'resize', debouncedCalculation );
-			document.removeEventListener( 'scroll', debouncedCalculation );
+			ownerDocument.defaultView.removeEventListener(
+				'resize',
+				debouncedCalculation
+			);
+			ownerDocument.removeEventListener( 'scroll', debouncedCalculation );
 		};
-	}, [ isTooltipVisible, maxWidth ] );
+	}, [ isTooltipVisible, maxWidth, wrapperRef ] );
 
 	return (
 		<>
