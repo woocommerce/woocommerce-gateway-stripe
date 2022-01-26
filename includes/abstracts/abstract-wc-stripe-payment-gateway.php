@@ -1382,7 +1382,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		/**
 		 * Filter the value of the request.
 		 *
-		 * @since x.x.x
+		 * @since 6.1.0
 		 * @param array $request  Request to send to Stripe API.
 		 * @param WC_Order $order Order that the intent is associated with.
 		 * @param object $source  Currently selected source.
