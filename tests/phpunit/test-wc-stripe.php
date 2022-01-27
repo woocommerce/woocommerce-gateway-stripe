@@ -29,7 +29,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		$this->assertEquals( 10050, WC_Stripe_Helper::get_stripe_amount( 10050, 'JPY' ) );
 		$this->assertEquals( 100, WC_Stripe_Helper::get_stripe_amount( 100.50, 'JPY' ) );
 		$this->assertEquals( 10050, WC_Stripe_Helper::get_stripe_amount( 100.50 ) );
-		$this->assertInternalType( 'int', WC_Stripe_Helper::get_stripe_amount( 100.50, 'USD' ) );
+		$this->assertIsInt( WC_Stripe_Helper::get_stripe_amount( 100.50, 'USD' ) );
 	}
 
 	/**
@@ -73,7 +73,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 105.00, WC_Stripe_Helper::format_balance_fee( $balance_fee5 ) );
 
-		$this->assertInternalType( 'string', WC_Stripe_Helper::format_balance_fee( $balance_fee5 ) );
+		$this->assertIsString( WC_Stripe_Helper::format_balance_fee( $balance_fee5 ) );
 	}
 
 	/**
