@@ -14,8 +14,8 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 	public $stripe_connect_mock;
 	public $stripe_connect_original;
 
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		// overriding the `WC_Stripe_Connect` in woocommerce_gateway_stripe(),
 		// because the method we're calling is static and we don't really have a way of injecting it all the way down to this class.
@@ -39,8 +39,8 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 		);
 	}
 
-	public function tearDown() {
-		parent::tearDown();
+	public function tear_down() {
+		parent::tear_down();
 
 		woocommerce_gateway_stripe()->connect = $this->stripe_connect_original;
 		delete_option( '_wcstripe_feature_upe' );

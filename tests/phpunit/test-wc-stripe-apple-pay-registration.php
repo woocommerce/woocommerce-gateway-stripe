@@ -34,8 +34,8 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WP_UnitTestCase {
 	/**
 	 * Pre-test setup
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		$this->wc_apple_pay_registration = new WC_Stripe_Apple_Pay_Registration();
 
@@ -43,8 +43,8 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WP_UnitTestCase {
 		$this->initial_file_contents = file_get_contents( WC_STRIPE_PLUGIN_PATH . '/' . $this->file_name ); // @codingStandardsIgnoreLine
 	}
 
-	public function tearDown() {
-		parent::tearDown();
+	public function tear_down() {
+		parent::tear_down();
 
 		$path     = untrailingslashit( ABSPATH );
 		$dir      = '.well-known';

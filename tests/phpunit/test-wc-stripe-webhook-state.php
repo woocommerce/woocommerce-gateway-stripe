@@ -41,8 +41,8 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	/**
 	 * Sets up things all tests need.
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 		$this->webhook_secret            = 'whsec_123';
 		$this->wc_stripe_webhook_handler = new WC_Stripe_Webhook_Handler();
 	}
@@ -50,8 +50,8 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	/**
 	 * Tears down the stuff we set up.
 	 */
-	public function tearDown() {
-		parent::tearDown();
+	public function tear_down() {
+		parent::tear_down();
 		$stripe_settings                        = get_option( 'woocommerce_stripe_settings', [] );
 		$stripe_settings['webhook_secret']      = $this->webhook_secret;
 		$stripe_settings['test_webhook_secret'] = $this->webhook_secret;

@@ -2,8 +2,8 @@
 
 class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
 
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )

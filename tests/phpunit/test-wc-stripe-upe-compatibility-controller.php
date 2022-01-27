@@ -22,8 +22,8 @@ class WC_Stripe_UPE_Compatibility_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * Pre-test setup
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		// saving these values to that they can be restored after the test runs
 		global $wp_version;
@@ -37,8 +37,8 @@ class WC_Stripe_UPE_Compatibility_Controller_Test extends WP_UnitTestCase {
 								 ->getMock();
 	}
 
-	public function tearDown() {
-		parent::tearDown();
+	public function tear_down() {
+		parent::tear_down();
 
 		// restore the overwritten values
 		global $wp_version;

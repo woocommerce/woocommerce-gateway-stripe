@@ -31,8 +31,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	/**
 	 * Sets up things all tests need.
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		$this->wc_gateway_stripe = $this->getMockBuilder( 'WC_Gateway_Stripe' )
 			->disableOriginalConstructor()
@@ -59,8 +59,8 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	/**
 	 * Tears down the stuff we set up.
 	 */
-	public function tearDown() {
-		parent::tearDown();
+	public function tear_down() {
+		parent::tear_down();
 
 		delete_option( 'woocommerce_stripe_settings' );
 	}

@@ -82,8 +82,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	/**
 	 * Initial setup
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 		$this->reset_payment_method_mocks();
 	}
 
