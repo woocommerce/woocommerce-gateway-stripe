@@ -45,11 +45,11 @@ jobs:
       - name: Testing with PHP=${{ matrix.php }}, WP=${{ matrix.wordpress }}, WC=${{ matrix.woocommerce }}
         uses: actions/checkout@v2
 
-      - name: Set up dependencies caching
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/composer/
-          key:  ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+#      - name: Set up dependencies caching
+#        uses: actions/cache@v2
+#        with:
+#          path: ~/.cache/composer/
+#          key:  ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
