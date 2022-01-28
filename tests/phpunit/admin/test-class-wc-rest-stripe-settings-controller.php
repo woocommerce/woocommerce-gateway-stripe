@@ -33,6 +33,8 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 * @see UPE_Test_Utils::reload_payment_gateways()
 	 */
 	public static function set_up_before_class() {
+		parent::set_up_before_class();
+
 		$upe_helper = new UPE_Test_Helper();
 
 		// All tests assume UPE is enabled.

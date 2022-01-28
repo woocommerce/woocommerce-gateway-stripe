@@ -8,6 +8,7 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 	private $upe_helper;
 
 	public function set_up() {
+		parent::set_up();
 		$this->upe_helper = new UPE_Test_Helper();
 	}
 
