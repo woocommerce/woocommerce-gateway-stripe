@@ -40,11 +40,11 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 	}
 
 	public function tear_down() {
-		parent::tear_down();
-
 		woocommerce_gateway_stripe()->connect = $this->stripe_connect_original;
 		delete_option( '_wcstripe_feature_upe' );
 		delete_option( 'woocommerce_stripe_settings' );
+
+		parent::tear_down();
 	}
 
 	public function test_create_upe_availability_note() {

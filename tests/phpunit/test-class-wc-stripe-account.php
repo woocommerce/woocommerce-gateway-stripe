@@ -40,11 +40,11 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	}
 
 	public function tear_down() {
-		parent::tear_down();
-
 		delete_transient( 'wcstripe_account_data_test' );
 		delete_transient( 'wcstripe_account_data_live' );
 		delete_option( 'woocommerce_stripe_settings' );
+
+		parent::tear_down();
 	}
 
 	public function test_get_cached_account_data_returns_empty_when_stripe_is_not_connected() {

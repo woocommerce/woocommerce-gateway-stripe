@@ -53,8 +53,9 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 	 * Tears down the stuff we set up.
 	 */
 	public function tear_down() {
-		parent::tear_down();
 		delete_option( 'woocommerce_stripe_settings' );
+
+		parent::tear_down();
 	}
 
 	/**

@@ -51,7 +51,6 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	 * Tears down the stuff we set up.
 	 */
 	public function tear_down() {
-		parent::tear_down();
 		$stripe_settings                        = get_option( 'woocommerce_stripe_settings', [] );
 		$stripe_settings['webhook_secret']      = $this->webhook_secret;
 		$stripe_settings['test_webhook_secret'] = $this->webhook_secret;
@@ -70,6 +69,8 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		delete_option( WC_Stripe_Webhook_State::OPTION_TEST_LAST_SUCCESS_AT );
 		delete_option( WC_Stripe_Webhook_State::OPTION_TEST_LAST_FAILURE_AT );
 		delete_option( WC_Stripe_Webhook_State::OPTION_TEST_LAST_ERROR );
+
+		parent::tear_down();
 	}
 
 	private function cleanup_webhook_secret() {

@@ -33,8 +33,9 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	}
 
 	public function tear_down() {
-		parent::tear_down();
 		delete_option( 'woocommerce_stripe_settings' );
+
+		parent::tear_down();
 	}
 
 	/**

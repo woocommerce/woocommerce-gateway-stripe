@@ -44,13 +44,13 @@ class WC_Stripe_Apple_Pay_Registration_Test extends WP_UnitTestCase {
 	}
 
 	public function tear_down() {
-		parent::tear_down();
-
 		$path     = untrailingslashit( ABSPATH );
 		$dir      = '.well-known';
 		$fullpath = $path . '/' . $dir . '/' . $this->file_name;
 		// Unlink domain association file before tests.
 		@unlink( $fullpath ); // @codingStandardsIgnoreLine
+
+		parent::tear_down();
 	}
 
 	public function test_update_domain_association_file() {

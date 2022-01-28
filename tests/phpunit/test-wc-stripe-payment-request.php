@@ -82,10 +82,11 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 	}
 
 	public function tear_down() {
-		parent::tear_down();
 		WC()->cart->empty_cart();
 		WC()->session->cleanup_sessions();
 		$this->zone->delete();
+
+		parent::tear_down();
 	}
 
 	/**
