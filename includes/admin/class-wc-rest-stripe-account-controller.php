@@ -112,7 +112,7 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 			$statement_descriptor = $account['settings']['payments']['statement_descriptor'];
 		}
 		if ( empty( $statement_descriptor ) ) {
-			$statement_descriptor = WC_Stripe_Helper::clean_statement_descriptor( get_bloginfo( 'name' ) );
+			$statement_descriptor = null;
 		}
 
 		return new WP_REST_Response(
