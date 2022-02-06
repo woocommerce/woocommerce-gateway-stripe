@@ -197,6 +197,11 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 					&& ! trim( $settings['secret_key'] )
 					&& ! trim( $settings['test_publishable_key'] )
 					&& ! trim( $settings['test_secret_key'] );
+		// If all new keys are empty, then account is being deleted. We should disable the payment gateway.
+		$is_deleting_account = ! trim( $publishable_key )
+							&& ! trim( $secret_key )
+							&& ! trim( $test_publishable_key )
+							&& ! trim( $test_secret_key );
 
 		$settings['publishable_key']      = is_null( $publishable_key ) ? $settings['publishable_key'] : $publishable_key;
 		$settings['secret_key']           = is_null( $secret_key ) ? $settings['secret_key'] : $secret_key;
@@ -212,6 +217,8 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			} elseif ( trim( $settings['test_publishable_key'] ) && trim( $settings['test_secret_key'] ) ) {
 				$settings['testmode'] = 'yes';
 			}
+		} elseif ( $is_deleting_account ) {
+			$settings['enabled'] = 'no';
 		}
 
 		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
