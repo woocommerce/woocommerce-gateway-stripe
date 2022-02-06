@@ -193,7 +193,10 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$settings = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
 
 		// If all keys were empty, then is a new account; we need to set the test/live mode.
-		$new_account = ! trim( $settings['publishable_key'] ) && ! trim( $settings['secret_key'] ) && ! trim( $settings['test_publishable_key'] ) && ! trim( $settings['test_secret_key'] );
+		$new_account = ! trim( $settings['publishable_key'] )
+					&& ! trim( $settings['secret_key'] )
+					&& ! trim( $settings['test_publishable_key'] )
+					&& ! trim( $settings['test_secret_key'] );
 
 		$settings['publishable_key']      = is_null( $publishable_key ) ? $settings['publishable_key'] : $publishable_key;
 		$settings['secret_key']           = is_null( $secret_key ) ? $settings['secret_key'] : $secret_key;
@@ -205,7 +208,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		if ( $new_account ) {
 			if ( trim( $settings['publishable_key'] ) && trim( $settings['secret_key'] ) ) {
 				$settings['testmode'] = 'no';
-			} else if ( trim( $settings['test_publishable_key'] ) && trim( $settings['test_secret_key'] ) ) {
+			} elseif ( trim( $settings['test_publishable_key'] ) && trim( $settings['test_secret_key'] ) ) {
 				$settings['testmode'] = 'yes';
 			}
 		}
