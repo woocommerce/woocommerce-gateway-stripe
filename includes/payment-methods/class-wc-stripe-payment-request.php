@@ -708,6 +708,7 @@ class WC_Stripe_Payment_Request {
 			'stripe'             => [
 				'key'                => $this->publishable_key,
 				'allow_prepaid_card' => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
+				'locale'             => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
 			],
 			'nonce'              => [
 				'payment'                   => wp_create_nonce( 'wc-stripe-payment-request' ),
@@ -773,11 +774,6 @@ class WC_Stripe_Payment_Request {
 		);
 
 		wp_enqueue_script( 'wc_stripe_payment_request' );
-
-		$gateways = WC()->payment_gateways->get_available_payment_gateways();
-		if ( isset( $gateways['stripe'] ) ) {
-			$gateways['stripe']->payment_scripts();
-		}
 	}
 
 	/**

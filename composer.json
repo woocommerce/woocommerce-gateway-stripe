@@ -6,13 +6,18 @@
 		"config": {
       "platform": {
         "php": "7.1"
-      }
+      },
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "composer/installers": true
+        }
     },
     "require-dev": {
 				"composer/installers": "1.9.0",
 				"phpunit/phpunit": "7.5.20",
 				"yoast/phpunit-polyfills": "1.0.2",
-				"woocommerce/woocommerce-sniffs": "0.1.0"
+				"woocommerce/woocommerce-sniffs": "0.1.0",
+				"wp-cli/wp-cli-bundle": "2.5.0"
     },
     "extra": {
       "installer-disable": true

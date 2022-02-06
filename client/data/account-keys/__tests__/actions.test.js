@@ -14,6 +14,7 @@ describe( 'Account keys actions tests', () => {
 			};
 
 			apiFetch.mockImplementation( () => {} );
+
 			dispatch.mockImplementation( ( storeName ) => {
 				if ( storeName === 'core/notices' ) {
 					return noticesDispatch;
@@ -37,12 +38,10 @@ describe( 'Account keys actions tests', () => {
 				getAccountKeys: () => accountKeysMock,
 			} );
 
-			apiFetch.mockReturnValue( 'api response' );
-
 			const yielded = [ ...saveAccountKeys( accountKeysMock ) ];
 
 			expect( apiFetch ).toHaveBeenCalledWith( {
-				method: 'post',
+				method: 'POST',
 				path: '/wc/v3/wc_stripe/account_keys',
 				data: accountKeysMock,
 			} );
@@ -54,7 +53,6 @@ describe( 'Account keys actions tests', () => {
 					} ),
 				] )
 			);
-			expect( yielded ).toContainEqual( 'api response' );
 			expect( yielded ).toEqual(
 				expect.arrayContaining( [
 					expect.objectContaining( {
@@ -63,9 +61,6 @@ describe( 'Account keys actions tests', () => {
 					} ),
 				] )
 			);
-			expect(
-				dispatch( 'core/notices' ).createSuccessNotice
-			).toHaveBeenCalledWith( 'Account keys saved.' );
 		} );
 	} );
 } );

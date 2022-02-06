@@ -29,16 +29,32 @@ const HelpText = styled.span`
 	}
 `;
 
+const DivIcon = styled.div`
+	position: absolute;
+	top: 33px;
+	right: -24px;
+
+	width: 1.5rem;
+	height: 1.5rem;
+
+	@media ( min-width: 783px ) {
+		top: 28px;
+		right: calc( 50% - 28px );
+	}
+`;
+
 const TextLengthHelpInputWrapper = ( {
 	children,
 	textLength = 0,
 	maxLength,
+	iconSlot = null,
 } ) => (
-	<Wrapper>
+	<Wrapper style={ { width: iconSlot ? 'calc( 100% - 24px )' : null } }>
 		{ children }
 		<HelpText aria-hidden="true">
 			{ `${ textLength } / ${ maxLength }` }
 		</HelpText>
+		{ iconSlot && <DivIcon>{ iconSlot }</DivIcon> }
 	</Wrapper>
 );
 
