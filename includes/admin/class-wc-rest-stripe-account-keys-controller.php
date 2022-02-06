@@ -206,6 +206,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$settings['test_webhook_secret']  = is_null( $test_webhook_secret ) ? $settings['test_webhook_secret'] : $test_webhook_secret;
 
 		if ( $new_account ) {
+			$settings['enabled'] = 'yes';
 			if ( trim( $settings['publishable_key'] ) && trim( $settings['secret_key'] ) ) {
 				$settings['testmode'] = 'no';
 			} elseif ( trim( $settings['test_publishable_key'] ) && trim( $settings['test_secret_key'] ) ) {
