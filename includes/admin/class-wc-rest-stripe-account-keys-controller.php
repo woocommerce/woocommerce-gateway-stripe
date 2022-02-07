@@ -197,7 +197,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 					&& ! trim( $settings['secret_key'] )
 					&& ! trim( $settings['test_publishable_key'] )
 					&& ! trim( $settings['test_secret_key'] );
-		// If all new keys are empty, then account is being deleted. We should disable the payment gateway.
+		// If all new keys are empty, then account is being disconnected. We should disable the payment gateway.
 		$is_deleting_account = ! trim( $publishable_key )
 							&& ! trim( $secret_key )
 							&& ! trim( $test_publishable_key )
