@@ -43,7 +43,15 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	 */
 	public function set_up() {
 		parent::set_up();
-		$this->webhook_secret            = 'whsec_123';
+		$this->webhook_secret = 'whsec_123';
+
+		// Resets settings.
+		$stripe_settings                        = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings['webhook_secret']      = $this->webhook_secret;
+		$stripe_settings['test_webhook_secret'] = $this->webhook_secret;
+		unset( $stripe_settings['testmode'] );
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+
 		$this->wc_stripe_webhook_handler = new WC_Stripe_Webhook_Handler();
 	}
 
@@ -51,14 +59,6 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	 * Tears down the stuff we set up.
 	 */
 	public function tear_down() {
-		$stripe_settings                        = get_option( 'woocommerce_stripe_settings', [] );
-		$stripe_settings['webhook_secret']      = $this->webhook_secret;
-		$stripe_settings['test_webhook_secret'] = $this->webhook_secret;
-		unset( $stripe_settings['testmode'] );
-
-		// Resets settings.
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
-
 		// Deletes all webhook options.
 		delete_option( WC_Stripe_Webhook_State::OPTION_LIVE_MONITORING_BEGAN_AT );
 		delete_option( WC_Stripe_Webhook_State::OPTION_LIVE_LAST_SUCCESS_AT );
@@ -103,9 +103,9 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		];
 	}
 
-	private function set_testmode() {
+	private function set_testmode( $testmode = 'yes' ) {
 		$stripe_settings             = get_option( 'woocommerce_stripe_settings', [] );
-		$stripe_settings['testmode'] = 'yes';
+		$stripe_settings['testmode'] = $testmode;
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 	}
 
@@ -133,6 +133,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$expected_message = '/The most recent [mode] webhook, timestamped (.*), was processed successfully/';
 
 		// Live
+		$this->set_testmode( 'no' );
 		$this->process_webhook();
 		$message = WC_Stripe_Webhook_State::get_webhook_status_message();
 		$this->assertMatchesRegularExpression( str_replace( '[mode]', 'live', $expected_message ), $message );
@@ -148,6 +149,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$expected_message = '/No [mode] webhooks have been received since monitoring began at/';
 
 		// Live
+		$this->set_testmode( 'no' );
 		$message = WC_Stripe_Webhook_State::get_webhook_status_message();
 		$this->assertMatchesRegularExpression( str_replace( '[mode]', 'live', $expected_message ), $message );
 		// Test
@@ -161,6 +163,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->set_valid_request_data();
 		$expected_message = '/Warning: The most recent [mode] webhook, received at (.*), could not be processed. Reason: (.*) \(The last [mode] webhook to process successfully was timestamped/';
 		// Live
+		$this->set_testmode( 'no' );
 		// Process successful webhook.
 		$this->process_webhook();
 		// Fail next webhook.
@@ -186,6 +189,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->set_valid_request_data();
 		$expected_message = '/Warning: The most recent [mode] webhook, received at (.*), could not be processed. Reason: (.*) \(No [mode] webhooks have been processed successfully since monitoring began at/';
 		// Live
+		$this->set_testmode( 'no' );
 		// Fail webhook.
 		$this->request_headers = [];
 		$this->process_webhook();
