@@ -186,10 +186,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$mock_ideal_details      = [
 			'type' => 'ideal',
 		];
-		$mock_boleto_details      = [
+		$mock_boleto_details     = [
 			'type' => 'boleto',
 		];
-		$mock_oxxo_details      = [
+		$mock_oxxo_details       = [
 			'type' => 'oxxo',
 		];
 
@@ -293,8 +293,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$sofort_method     = $this->mock_payment_methods['sofort'];
 		$bancontact_method = $this->mock_payment_methods['bancontact'];
 		$ideal_method      = $this->mock_payment_methods['ideal'];
-		$boleto_method      = $this->mock_payment_methods['boleto'];
 		$oxxo_method      = $this->mock_payment_methods['boleto'];
+		$boleto_method     = $this->mock_payment_methods['boleto'];
 
 		$this->assertTrue( $card_method->is_enabled_at_checkout() );
 		$this->assertFalse( $giropay_method->is_enabled_at_checkout() );
