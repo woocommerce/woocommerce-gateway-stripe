@@ -592,7 +592,7 @@ function woocommerce_gateway_stripe() {
 				$stripe_tokens_controller     = new WC_REST_Stripe_Tokens_Controller();
 				$oauth_init                   = new WC_Stripe_Connect_REST_Oauth_Init_Controller( $this->connect, $this->api );
 				$oauth_connect                = new WC_Stripe_Connect_REST_Oauth_Connect_Controller( $this->connect, $this->api );
-				$stripe_account_controller    = new WC_REST_Stripe_Account_Controller( $this->account );
+				$stripe_account_controller    = new WC_REST_Stripe_Account_Controller( $this->get_main_stripe_gateway(), $this->account );
 
 				$connection_tokens_controller->register_routes();
 				$locations_controller->register_routes();
