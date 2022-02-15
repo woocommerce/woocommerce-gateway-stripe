@@ -193,7 +193,15 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$settings = get_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, [] );
 
 		// If all keys were empty, then is a new account; we need to set the test/live mode.
-		$new_account = ! trim( $settings['publishable_key'] ) && ! trim( $settings['secret_key'] ) && ! trim( $settings['test_publishable_key'] ) && ! trim( $settings['test_secret_key'] );
+		$new_account = ! trim( $settings['publishable_key'] )
+					&& ! trim( $settings['secret_key'] )
+					&& ! trim( $settings['test_publishable_key'] )
+					&& ! trim( $settings['test_secret_key'] );
+		// If all new keys are empty, then account is being disconnected. We should disable the payment gateway.
+		$is_deleting_account = ! trim( $publishable_key )
+							&& ! trim( $secret_key )
+							&& ! trim( $test_publishable_key )
+							&& ! trim( $test_secret_key );
 
 		$settings['publishable_key']      = is_null( $publishable_key ) ? $settings['publishable_key'] : $publishable_key;
 		$settings['secret_key']           = is_null( $secret_key ) ? $settings['secret_key'] : $secret_key;
@@ -203,11 +211,14 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$settings['test_webhook_secret']  = is_null( $test_webhook_secret ) ? $settings['test_webhook_secret'] : $test_webhook_secret;
 
 		if ( $new_account ) {
+			$settings['enabled'] = 'yes';
 			if ( trim( $settings['publishable_key'] ) && trim( $settings['secret_key'] ) ) {
 				$settings['testmode'] = 'no';
-			} else if ( trim( $settings['test_publishable_key'] ) && trim( $settings['test_secret_key'] ) ) {
+			} elseif ( trim( $settings['test_publishable_key'] ) && trim( $settings['test_secret_key'] ) ) {
 				$settings['testmode'] = 'yes';
 			}
+		} elseif ( $is_deleting_account ) {
+			$settings['enabled'] = 'no';
 		}
 
 		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
