@@ -80,7 +80,7 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
 
 		$settings = get_option( 'woocommerce_stripe_settings' );
 
-		$this->assertEquals( 'no', $settings['upe_checkout_experience_enabled'] );
+		$this->assertEquals( 'disabled', $settings['upe_checkout_experience_enabled'] );
 	}
 
 	public function test_set_flag_missing_request_returns_status_code_400() {
