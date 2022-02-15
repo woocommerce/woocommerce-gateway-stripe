@@ -202,8 +202,10 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 			[
 				[
 					'woocommerce_stripe_settings' => [
-						'enabled'        => 'yes',
-						'three_d_secure' => 'yes',
+						'enabled'         => 'yes',
+						'three_d_secure'  => 'yes',
+						'publishable_key' => 'pk_live_valid_test_key',
+						'secret_key'      => 'sk_live_valid_test_key',
 					],
 					'wc_stripe_show_style_notice' => 'no',
 					'wc_stripe_show_sca_notice'   => 'no',
@@ -235,7 +237,9 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 			[
 				[
 					'woocommerce_stripe_settings'    => [
-						'enabled' => 'yes',
+						'enabled'         => 'yes',
+						'publishable_key' => 'pk_live_valid_test_key',
+						'secret_key'      => 'sk_live_valid_test_key',
 					],
 					'wc_stripe_show_style_notice'    => 'no',
 					'wc_stripe_show_sca_notice'      => 'no',
