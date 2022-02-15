@@ -25,7 +25,15 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 	 */
 	private $account;
 
-	public function __construct( WC_Stripe_Account $account ) {
+	/**
+	 * Stripe payment gateway.
+	 *
+	 * @var WC_Gateway_Stripe
+	 */
+	private $gateway;
+
+	public function __construct( WC_Gateway_Stripe $gateway, WC_Stripe_Account $account ) {
+		$this->gateway = $gateway;
 		$this->account = $account;
 	}
 
@@ -98,18 +106,31 @@ class WC_REST_Stripe_Account_Controller extends WC_Stripe_REST_Base_Controller {
 	public function get_account_summary() {
 		$account = $this->account->get_cached_account_data();
 
-		return [
-			'has_pending_requirements' => $this->account->has_pending_requirements(),
-			'has_overdue_requirements' => $this->account->has_overdue_requirements(),
-			'current_deadline'         => $account['requirements']['current_deadline'] ?? null,
-			'status'                   => $this->account->get_account_status(),
-			'statement_descriptor'     => $account['settings']['payments']['statement_descriptor'] ?? '',
-			'store_currencies'         => [
-				'default'   => $account['default_currency'] ?? '',
-				'supported' => $this->account->get_supported_store_currencies(),
-			],
-			'country'                  => $account['country'] ?? '',
-		];
+		// Use statement descriptor from settings, falling back to Stripe account statement descriptor if needed.
+		$statement_descriptor = WC_Stripe_Helper::clean_statement_descriptor( $this->gateway->get_option( 'statement_descriptor' ) );
+		if ( empty( $statement_descriptor ) ) {
+			$statement_descriptor = $account['settings']['payments']['statement_descriptor'];
+		}
+		if ( empty( $statement_descriptor ) ) {
+			$statement_descriptor = null;
+		}
+
+		return new WP_REST_Response(
+			[
+				'has_pending_requirements' => $this->account->has_pending_requirements(),
+				'has_overdue_requirements' => $this->account->has_overdue_requirements(),
+				'current_deadline'         => $account['requirements']['current_deadline'] ?? null,
+				'status'                   => $this->account->get_account_status(),
+				'statement_descriptor'     => $statement_descriptor,
+				'store_currencies'         => [
+					'default'   => $account['default_currency'] ?? get_woocommerce_currency(),
+					'supported' => $this->account->get_supported_store_currencies(),
+				],
+				'country'                  => $account['country'] ?? WC()->countries->get_base_country(),
+				'is_live'                  => $account['charges_enabled'] ?? false,
+				'test_mode'                => WC_Stripe_Webhook_State::get_testmode(),
+			]
+		);
 	}
 
 	/**

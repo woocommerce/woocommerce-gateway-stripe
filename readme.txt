@@ -2,9 +2,9 @@
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
 Requires at least: 5.6
-Tested up to: 5.8
+Tested up to: 5.9
 Requires PHP: 7.0
-Stable tag: 5.9.0
+Stable tag: 6.1.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,13 +128,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 6.x.x - 2022-xx-xx =
-* Fix - Fixed capitalization for payment method names: iDEAL, giropay, and Sofort.
-* Add - Text to explain how to enable webhooks when manually entering your API keys in the new Stripe settings.
-* Tweak - Redirect to the settings tab after an account is connected
-* Tweak - Prompt message when navigating out Stripe settings with unsaved changes
-* Tweak - Show toast when payment methods list is updated with new payment methods.
-* Fix - JS error on checkout when Boleto method was not active
-* Fix - Fixed bug that show "Use new payment method" on pay order page when there were no saved card was.
+= 6.2.0 - 2022-xx-xx =
+* Add - Add onboarding payment gateway setup methods.
+* Fix - Enable Stripe payment method after connecting account.
+* Fix - Missing statement descriptor in account summary API when not set in Stripe.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

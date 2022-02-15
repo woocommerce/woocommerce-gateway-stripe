@@ -1,6 +1,8 @@
 import ACTION_TYPES from './action-types';
 
 const defaultState = {
+	isTesting: false,
+	isValid: null,
 	isSaving: false,
 	savingError: null,
 	data: {},
@@ -32,6 +34,18 @@ export const accountKeysReducer = (
 				...state,
 				isSaving: action.isSaving,
 				savingError: action.error,
+			};
+
+		case ACTION_TYPES.SET_IS_TESTING_ACCOUNT_KEYS:
+			return {
+				...state,
+				isTesting: action.isTesting,
+			};
+
+		case ACTION_TYPES.SET_IS_VALID_KEYS:
+			return {
+				...state,
+				isValid: action.isValid,
 			};
 	}
 
