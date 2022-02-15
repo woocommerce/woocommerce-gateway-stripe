@@ -64,7 +64,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		}
 
 		if ( $expected_output ) {
-			$this->assertRegexp( $expected_output, ob_get_contents() );
+			$this->assertMatchesRegularExpression( $expected_output, ob_get_contents() );
 		}
 		ob_end_clean();
 		$this->assertCount( count( $expected_notices ), $notices->notices );
@@ -162,7 +162,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		}
 
 		$this->assertArrayHasKey( 'keys', $notices->notices );
-		$this->assertRegexp( '/Your customers cannot use Stripe on checkout/', $notices->notices['keys']['message'] );
+		$this->assertMatchesRegularExpression( '/Your customers cannot use Stripe on checkout/', $notices->notices['keys']['message'] );
 	}
 
 	public function options_to_notices_map() {
