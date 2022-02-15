@@ -54,6 +54,11 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				'statement_descriptor' => $this->statement_descriptor,
 			]
 		);
+
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		// Disable UPE.
+		$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 	}
 
 	/**
