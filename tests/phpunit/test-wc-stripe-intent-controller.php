@@ -30,8 +30,8 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * Sets up things all tests need.
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		$this->order           = WC_Helper_Order::create_order();
 		$this->gateway         = $this->getMockBuilder( 'WC_Stripe_UPE_Payment_Gateway' )

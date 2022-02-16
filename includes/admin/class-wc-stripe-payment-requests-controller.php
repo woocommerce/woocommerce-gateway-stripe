@@ -33,6 +33,10 @@ class WC_Stripe_Payment_Requests_Controller {
 			$asset_metadata['version'],
 			true
 		);
+		wp_set_script_translations(
+			'wc-stripe-payment-request-settings',
+			'woocommerce-gateway-stripe'
+		);
 		wp_enqueue_script( 'wc-stripe-payment-request-settings' );
 
 		wp_register_style(

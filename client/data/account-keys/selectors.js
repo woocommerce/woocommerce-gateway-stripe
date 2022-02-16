@@ -19,3 +19,11 @@ export const isSavingAccountKeys = ( state ) => {
 export const getAccountKeysSavingError = ( state ) => {
 	return getAccountKeysState( state ).savingError;
 };
+
+export const getIsTestingAccountKeys = ( state ) => {
+	return getAccountKeysState( state ).isTesting || false;
+};
+
+export const getIsValidAccountKeys = ( state ) => {
+	return getAccountKeysState( state ).isValid;
+};

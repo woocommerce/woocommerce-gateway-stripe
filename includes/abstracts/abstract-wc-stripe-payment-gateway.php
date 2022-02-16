@@ -409,12 +409,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return array()
 	 */
 	public function generate_payment_request( $order, $prepared_payment_method ) {
-		$settings              = get_option( 'woocommerce_stripe_settings', [] );
-		$statement_descriptor  = ! empty( $settings['statement_descriptor'] ) ? str_replace( "'", '', $settings['statement_descriptor'] ) : '';
-		$capture               = ! empty( $settings['capture'] ) && 'yes' === $settings['capture'] ? true : false;
-		$post_data             = [];
-		$post_data['currency'] = strtolower( $order->get_currency() );
-		$post_data['amount']   = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $post_data['currency'] );
+		$settings                              = get_option( 'woocommerce_stripe_settings', [] );
+		$statement_descriptor                  = ! empty( $settings['statement_descriptor'] ) ? str_replace( "'", '', $settings['statement_descriptor'] ) : '';
+		$short_statement_descriptor            = ! empty( $settings['short_statement_descriptor'] ) ? str_replace( "'", '', $settings['short_statement_descriptor'] ) : '';
+		$is_short_statement_descriptor_enabled = ! empty( $settings['is_short_statement_descriptor_enabled'] ) && 'yes' === $settings['is_short_statement_descriptor_enabled'];
+		$capture                               = ! empty( $settings['capture'] ) && 'yes' === $settings['capture'] ? true : false;
+		$post_data                             = [];
+		$post_data['currency']                 = strtolower( $order->get_currency() );
+		$post_data['amount']                   = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $post_data['currency'] );
 		/* translators: 1) blog name 2) order number */
 		$post_data['description'] = sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() );
 		$billing_email            = $order->get_billing_email();
@@ -427,7 +429,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		switch ( $order->get_payment_method() ) {
 			case 'stripe':
-				if ( ! empty( $statement_descriptor ) ) {
+				if ( $is_short_statement_descriptor_enabled && ! ( empty( $short_statement_descriptor ) && empty( $statement_descriptor ) ) ) {
+					$post_data['statement_descriptor'] = WC_Stripe_Helper::get_dynamic_statement_descriptor( $short_statement_descriptor, $order, $statement_descriptor );
+				} elseif ( ! empty( $statement_descriptor ) ) {
 					$post_data['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor );
 				}
 
@@ -437,7 +441,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				if ( ! empty( $statement_descriptor ) ) {
 					$post_data['statement_descriptor'] = WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor );
 				}
-				break;
+				// other payment methods error if we try to add a statement descriptor in the request
 		}
 
 		if ( method_exists( $order, 'get_shipping_postcode' ) && ! empty( $order->get_shipping_postcode() ) ) {
@@ -1374,6 +1378,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( empty( $request ) ) {
 			return $intent;
 		}
+
+		/**
+		 * Filter the value of the request.
+		 *
+		 * @since 6.1.0
+		 * @param array $request  Request to send to Stripe API.
+		 * @param WC_Order $order Order that the intent is associated with.
+		 * @param object $source  Currently selected source.
+		 */
+		$request = apply_filters( 'wc_stripe_update_existing_intent_request', $request, $order, $prepared_source );
 
 		$level3_data = $this->get_level3_data_from_order( $order );
 		return WC_Stripe_API::request_with_level3_data(

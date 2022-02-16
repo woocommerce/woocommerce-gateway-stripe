@@ -31,12 +31,12 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 	/**
 	 * Sets up things all tests need.
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		$this->wc_gateway_stripe = $this->getMockBuilder( 'WC_Gateway_Stripe' )
 			->disableOriginalConstructor()
-			->setMethods( [ 'prepare_order_source', 'has_subscription', 'ensure_subscription_has_customer_id' ] )
+			->setMethods( [ 'prepare_order_source', 'has_subscription' ] )
 			->getMock();
 
 		// Mocked in order to get metadata[payment_type] = recurring in the HTTP request.
@@ -48,21 +48,22 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			);
 
 		$this->statement_descriptor = 'This is a statement descriptor.';
-		add_option(
-			'woocommerce_stripe_settings',
-			[
-				'statement_descriptor' => $this->statement_descriptor,
-			]
-		);
+
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		// Disable UPE.
+		$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
+		// Set statement descriptor.
+		$stripe_settings['statement_descriptor'] = $this->statement_descriptor;
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 	}
 
 	/**
 	 * Tears down the stuff we set up.
 	 */
-	public function tearDown() {
-		parent::tearDown();
-
+	public function tear_down() {
 		delete_option( 'woocommerce_stripe_settings' );
+
+		parent::tear_down();
 	}
 
 	/**

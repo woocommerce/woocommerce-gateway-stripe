@@ -187,17 +187,17 @@ class WC_Stripe_Admin_Notices {
 
 				// Check if keys are entered properly per live/test mode.
 				if ( $testmode ) {
-					if (
-						! empty( $test_pub_key ) && ! preg_match( '/^pk_test_/', $test_pub_key )
-						|| ! empty( $test_secret_key ) && ! preg_match( '/^[rs]k_test_/', $test_secret_key ) ) {
+					$is_test_pub_key    = ! empty( $test_pub_key ) && preg_match( '/^pk_test_/', $test_pub_key );
+					$is_test_secret_key = ! empty( $test_secret_key ) && preg_match( '/^[rs]k_test_/', $test_secret_key );
+					if ( ! $is_test_pub_key || ! $is_test_secret_key ) {
 						$setting_link = $this->get_setting_link();
 						/* translators: 1) link */
 						$this->add_admin_notice( 'keys', 'notice notice-error', sprintf( __( 'Stripe is in test mode however your test keys may not be valid. Test keys start with pk_test and sk_test or rk_test. Please go to your settings and, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ), true );
 					}
 				} else {
-					if (
-						! empty( $live_pub_key ) && ! preg_match( '/^pk_live_/', $live_pub_key )
-						|| ! empty( $live_secret_key ) && ! preg_match( '/^[rs]k_live_/', $live_secret_key ) ) {
+					$is_live_pub_key    = ! empty( $live_pub_key ) && preg_match( '/^pk_live_/', $live_pub_key );
+					$is_live_secret_key = ! empty( $live_secret_key ) && preg_match( '/^[rs]k_live_/', $live_secret_key );
+					if ( ! $is_live_pub_key || ! $is_live_secret_key ) {
 						$setting_link = $this->get_setting_link();
 						/* translators: 1) link */
 						$this->add_admin_notice( 'keys', 'notice notice-error', sprintf( __( 'Stripe is in live mode however your live keys may not be valid. Live keys start with pk_live and sk_live or rk_live. Please go to your settings and, <a href="%s">set your Stripe account keys</a>.', 'woocommerce-gateway-stripe' ), $setting_link ), true );

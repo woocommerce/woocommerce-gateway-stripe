@@ -123,6 +123,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'set_logged_in_cookie', [ $this, 'set_cookie_on_current_request' ] );
 		add_filter( 'woocommerce_get_checkout_payment_url', [ $this, 'get_checkout_payment_url' ], 10, 2 );
 		add_filter( 'woocommerce_settings_api_sanitized_fields_' . $this->id, [ $this, 'settings_api_sanitized_fields' ] );
+		add_filter( 'woocommerce_gateway_' . $this->id . '_settings_values', [ $this, 'update_onboarding_settings' ] );
 
 		// Note: display error is in the parent class.
 		add_action( 'admin_notices', [ $this, 'display_errors' ], 9999 );
@@ -1134,10 +1135,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public function validate_account_statement_descriptor_field( $param, $value, $max_length ) {
 		// Since the value is escaped, and we are saving in a place that does not require escaping, apply stripslashes.
 		$value = trim( stripslashes( $value ) );
-		$field = __( 'Customer bank statement', 'woocommerce-gateway-stripe' );
+		$field = __( 'customer bank statement', 'woocommerce-gateway-stripe' );
 
 		if ( 'short_statement_descriptor' === $param ) {
-			$field = __( 'Shortened customer bank statement', 'woocommerce-gateway-stripe' );
+			$field = __( 'shortened customer bank statement', 'woocommerce-gateway-stripe' );
 		}
 
 		// Validation can be done with a single regex but splitting into multiple for better readability.
@@ -1153,7 +1154,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			throw new InvalidArgumentException(
 				sprintf(
 					/* translators: %1 field name, %2 Number of the maximum characters allowed */
-					__( '%1$s is invalid. Statement should be between 5 and %2$u characters long, contain at least single Latin character and does not contain special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' ),
+					__( 'The %1$s is invalid. The bank statement must contain only Latin characters, be between 5 and %2$u characters, contain at least one letter, and not contain any of the special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' ),
 					$field,
 					$max_length
 				)
@@ -1161,5 +1162,89 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $value;
+	}
+
+	/**
+	 * Get required setting keys for setup.
+	 *
+	 * @return array Array of setting keys used for setup.
+	 */
+	public function get_required_settings_keys() {
+		return [ 'publishable_key', 'secret_key' ];
+	}
+
+	/**
+	 * Get the connection URL.
+	 *
+	 * @return string Connection URL.
+	 */
+	public function get_connection_url( $return_url = '' ) {
+		$api     = new WC_Stripe_Connect_API();
+		$connect = new WC_Stripe_Connect( $api );
+
+		$url = $connect->get_oauth_url( $return_url );
+
+		return is_wp_error( $url ) ? null : $url;
+	}
+
+	/**
+	 * Get help text to display during quick setup.
+	 *
+	 * @return string
+	 */
+	public function get_setup_help_text() {
+		return sprintf(
+			/* translators: %1$s Link to Stripe API details, %2$s Link to register a Stripe account */
+			__( 'Your API details can be obtained from your <a href="%1$s">Stripe account</a>. Don’t have a Stripe account? <a href="%2$s">Create one.</a>', 'woocommerce-gateway-stripe' ),
+			'https://dashboard.stripe.com/apikeys',
+			'https://dashboard.stripe.com/register'
+		);
+	}
+
+	/**
+	 * Determine if the gateway still requires setup.
+	 *
+	 * @return bool
+	 */
+	public function needs_setup() {
+		return ! $this->get_option( 'publishable_key' ) || ! $this->get_option( 'secret_key' );
+	}
+
+	/**
+	 * Updates the test mode based on keys provided when setting up the gateway via onboarding.
+	 *
+	 * @return array
+	 */
+	public function update_onboarding_settings( $settings ) {
+		if ( ! isset( $_SERVER['HTTP_REFERER'] ) ) {
+			return;
+		}
+
+		parse_str( wp_parse_url( $_SERVER['HTTP_REFERER'], PHP_URL_QUERY ), $queries ); // phpcs:ignore sanitization ok.
+
+		// Determine if merchant is onboarding (page='wc-admin' and task='payments').
+		if (
+			! isset( $queries ) ||
+			! isset( $queries['page'] ) ||
+			! isset( $queries['task'] ) ||
+			'wc-admin' !== $queries['page'] ||
+			'payments' !== $queries['task']
+		) {
+			return;
+		}
+
+		if ( ! empty( $settings['publishable_key'] ) && ! empty( $settings['secret_key'] ) ) {
+			if ( strpos( $settings['publishable_key'], 'pk_test_' ) === 0 || strpos( $settings['secret_key'], 'sk_test_' ) === 0 ) {
+				$settings['test_publishable_key'] = $settings['publishable_key'];
+				$settings['test_secret_key']      = $settings['secret_key'];
+				unset( $settings['publishable_key'] );
+				unset( $settings['secret_key'] );
+				$settings['testmode'] = 'yes';
+			} else {
+				$settings['testmode'] = 'no';
+			}
+		}
+
+		return $settings;
 	}
 }

@@ -9,11 +9,6 @@ jest.mock( '@woocommerce/data', () => ( {
 	OPTIONS_STORE_NAME: 'wc/admin/options',
 } ) );
 
-jest.mock( '@wordpress/a11y', () => ( {
-	...jest.requireActual( '@wordpress/a11y' ),
-	speak: jest.fn(),
-} ) );
-
 describe( 'CustomizationOptionsNotice', () => {
 	beforeEach( () => {
 		useDispatch.mockImplementation( () => ( {
