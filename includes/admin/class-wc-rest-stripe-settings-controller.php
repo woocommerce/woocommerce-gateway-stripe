@@ -525,7 +525,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		$settings = get_option( 'woocommerce_stripe_settings', [] );
 		$settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = $is_upe_enabled ? 'yes' : 'disabled';
-
 		update_option( 'woocommerce_stripe_settings', $settings );
 
 		// including the class again because otherwise it's not present.

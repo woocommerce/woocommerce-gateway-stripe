@@ -41,25 +41,24 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 	/**
 	 * Sets up things all tests need.
 	 */
-	public function setUp() {
-		parent::setUp();
-		$this->webhook_secret            = 'whsec_123';
+	public function set_up() {
+		parent::set_up();
+		$this->webhook_secret = 'whsec_123';
+
+		// Resets settings.
+		$stripe_settings                        = get_option( 'woocommerce_stripe_settings', [] );
+		$stripe_settings['webhook_secret']      = $this->webhook_secret;
+		$stripe_settings['test_webhook_secret'] = $this->webhook_secret;
+		unset( $stripe_settings['testmode'] );
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+
 		$this->wc_stripe_webhook_handler = new WC_Stripe_Webhook_Handler();
 	}
 
 	/**
 	 * Tears down the stuff we set up.
 	 */
-	public function tearDown() {
-		parent::tearDown();
-		$stripe_settings                        = get_option( 'woocommerce_stripe_settings', [] );
-		$stripe_settings['webhook_secret']      = $this->webhook_secret;
-		$stripe_settings['test_webhook_secret'] = $this->webhook_secret;
-		unset( $stripe_settings['testmode'] );
-
-		// Resets settings.
-		update_option( 'woocommerce_stripe_settings', $stripe_settings );
-
+	public function tear_down() {
 		// Deletes all webhook options.
 		delete_option( WC_Stripe_Webhook_State::OPTION_LIVE_MONITORING_BEGAN_AT );
 		delete_option( WC_Stripe_Webhook_State::OPTION_LIVE_LAST_SUCCESS_AT );
@@ -70,6 +69,8 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		delete_option( WC_Stripe_Webhook_State::OPTION_TEST_LAST_SUCCESS_AT );
 		delete_option( WC_Stripe_Webhook_State::OPTION_TEST_LAST_FAILURE_AT );
 		delete_option( WC_Stripe_Webhook_State::OPTION_TEST_LAST_ERROR );
+
+		parent::tear_down();
 	}
 
 	private function cleanup_webhook_secret() {
@@ -102,9 +103,9 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		];
 	}
 
-	private function set_testmode() {
+	private function set_testmode( $testmode = 'yes' ) {
 		$stripe_settings             = get_option( 'woocommerce_stripe_settings', [] );
-		$stripe_settings['testmode'] = 'yes';
+		$stripe_settings['testmode'] = $testmode;
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 	}
 
@@ -132,14 +133,15 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$expected_message = '/The most recent [mode] webhook, timestamped (.*), was processed successfully/';
 
 		// Live
+		$this->set_testmode( 'no' );
 		$this->process_webhook();
 		$message = WC_Stripe_Webhook_State::get_webhook_status_message();
-		$this->assertRegExp( str_replace( '[mode]', 'live', $expected_message ), $message );
+		$this->assertMatchesRegularExpression( str_replace( '[mode]', 'live', $expected_message ), $message );
 		// Test
 		$this->set_testmode();
 		$this->process_webhook();
 		$message = WC_Stripe_Webhook_State::get_webhook_status_message();
-		$this->assertRegExp( str_replace( '[mode]', 'test', $expected_message ), $message );
+		$this->assertMatchesRegularExpression( str_replace( '[mode]', 'test', $expected_message ), $message );
 	}
 
 	// Case 2: No webhooks received yet.
@@ -147,12 +149,13 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$expected_message = '/No [mode] webhooks have been received since monitoring began at/';
 
 		// Live
+		$this->set_testmode( 'no' );
 		$message = WC_Stripe_Webhook_State::get_webhook_status_message();
-		$this->assertRegExp( str_replace( '[mode]', 'live', $expected_message ), $message );
+		$this->assertMatchesRegularExpression( str_replace( '[mode]', 'live', $expected_message ), $message );
 		// Test
 		$this->set_testmode();
 		$message = WC_Stripe_Webhook_State::get_webhook_status_message();
-		$this->assertRegExp( str_replace( '[mode]', 'test', $expected_message ), $message );
+		$this->assertMatchesRegularExpression( str_replace( '[mode]', 'test', $expected_message ), $message );
 	}
 
 	// Case 3: Failure after success.
@@ -160,13 +163,14 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->set_valid_request_data();
 		$expected_message = '/Warning: The most recent [mode] webhook, received at (.*), could not be processed. Reason: (.*) \(The last [mode] webhook to process successfully was timestamped/';
 		// Live
+		$this->set_testmode( 'no' );
 		// Process successful webhook.
 		$this->process_webhook();
 		// Fail next webhook.
 		$this->request_headers = [];
 		$this->process_webhook();
 		$message = WC_Stripe_Webhook_State::get_webhook_status_message();
-		$this->assertRegExp( str_replace( '[mode]', 'live', $expected_message ), $message );
+		$this->assertMatchesRegularExpression( str_replace( '[mode]', 'live', $expected_message ), $message );
 
 		// Test
 		$this->set_testmode();
@@ -177,7 +181,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->request_headers = [];
 		$this->process_webhook();
 		$message = WC_Stripe_Webhook_State::get_webhook_status_message();
-		$this->assertRegExp( str_replace( '[mode]', 'test', $expected_message ), $message );
+		$this->assertMatchesRegularExpression( str_replace( '[mode]', 'test', $expected_message ), $message );
 	}
 
 	// Case 4: Failure with no prior success.
@@ -185,18 +189,19 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->set_valid_request_data();
 		$expected_message = '/Warning: The most recent [mode] webhook, received at (.*), could not be processed. Reason: (.*) \(No [mode] webhooks have been processed successfully since monitoring began at/';
 		// Live
+		$this->set_testmode( 'no' );
 		// Fail webhook.
 		$this->request_headers = [];
 		$this->process_webhook();
 		$message = WC_Stripe_Webhook_State::get_webhook_status_message();
-		$this->assertRegExp( str_replace( '[mode]', 'live', $expected_message ), $message );
+		$this->assertMatchesRegularExpression( str_replace( '[mode]', 'live', $expected_message ), $message );
 
 		// Test
 		$this->set_testmode();
 		// Fail webhook.
 		$this->process_webhook();
 		$message = WC_Stripe_Webhook_State::get_webhook_status_message();
-		$this->assertRegExp( str_replace( '[mode]', 'test', $expected_message ), $message );
+		$this->assertMatchesRegularExpression( str_replace( '[mode]', 'test', $expected_message ), $message );
 	}
 
 	// Test failure reason: no error.
@@ -211,7 +216,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->set_valid_request_data();
 		$this->request_headers = [];
 		$this->process_webhook();
-		$this->assertRegExp( '/missing expected headers/', WC_Stripe_Webhook_State::get_last_error_reason() );
+		$this->assertMatchesRegularExpression( '/missing expected headers/', WC_Stripe_Webhook_State::get_last_error_reason() );
 	}
 
 	// Test failure reason: empty body.
@@ -219,7 +224,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->set_valid_request_data();
 		$this->request_body = '';
 		$this->process_webhook();
-		$this->assertRegExp( '/missing expected body/', WC_Stripe_Webhook_State::get_last_error_reason() );
+		$this->assertMatchesRegularExpression( '/missing expected body/', WC_Stripe_Webhook_State::get_last_error_reason() );
 	}
 
 	// Test custom user agent validator
@@ -234,7 +239,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 
 		$this->set_valid_request_data();
 		$this->process_webhook();
-		$this->assertRegExp( '/did not come from Stripe/', WC_Stripe_Webhook_State::get_last_error_reason() );
+		$this->assertMatchesRegularExpression( '/did not come from Stripe/', WC_Stripe_Webhook_State::get_last_error_reason() );
 	}
 
 	// Test user agent validation ignored
@@ -259,7 +264,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->set_valid_request_data();
 		$this->request_headers['USER-AGENT'] = 'Other';
 		$this->process_webhook();
-		$this->assertRegExp( '/did not come from Stripe/', WC_Stripe_Webhook_State::get_last_error_reason() );
+		$this->assertMatchesRegularExpression( '/did not come from Stripe/', WC_Stripe_Webhook_State::get_last_error_reason() );
 	}
 
 	// Test failure reason: invalid signature.
@@ -267,7 +272,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->set_valid_request_data();
 		$this->request_headers['STRIPE-SIGNATURE'] = 'foo';
 		$this->process_webhook();
-		$this->assertRegExp( '/signature was missing or was incorrectly formatted/', WC_Stripe_Webhook_State::get_last_error_reason() );
+		$this->assertMatchesRegularExpression( '/signature was missing or was incorrectly formatted/', WC_Stripe_Webhook_State::get_last_error_reason() );
 	}
 
 	// Test failure reason: timestamp mismatch.
@@ -275,7 +280,7 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$timestamp = time() - 600; // 10 minutes ago.
 		$this->set_valid_request_data( $timestamp );
 		$this->process_webhook();
-		$this->assertRegExp( '/timestamp in the webhook differed more than five minutes/', WC_Stripe_Webhook_State::get_last_error_reason() );
+		$this->assertMatchesRegularExpression( '/timestamp in the webhook differed more than five minutes/', WC_Stripe_Webhook_State::get_last_error_reason() );
 	}
 
 	// Test failure reason: signature mismatch.
@@ -283,6 +288,6 @@ class WC_Stripe_Webhook_State_Test extends WP_UnitTestCase {
 		$this->set_valid_request_data();
 		$this->request_headers['STRIPE-SIGNATURE'] = 't=' . time() . ',v1=0';
 		$this->process_webhook();
-		$this->assertRegExp( '/was not signed with the expected signing secret/', WC_Stripe_Webhook_State::get_last_error_reason() );
+		$this->assertMatchesRegularExpression( '/was not signed with the expected signing secret/', WC_Stripe_Webhook_State::get_last_error_reason() );
 	}
 }
