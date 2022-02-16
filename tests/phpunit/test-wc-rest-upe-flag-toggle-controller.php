@@ -24,13 +24,18 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * Pre-test setup
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php';
 
 		// Set the user so that we can pass the authentication.
 		wp_set_current_user( 1 );
+
+		// Disable UPE.
+		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings[ WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] = 'no';
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 
 		$this->controller = new WC_Stripe_REST_UPE_Flag_Toggle_Controller();
 	}
@@ -75,7 +80,7 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller_Test extends WP_UnitTestCase {
 
 		$settings = get_option( 'woocommerce_stripe_settings' );
 
-		$this->assertEquals( 'no', $settings['upe_checkout_experience_enabled'] );
+		$this->assertEquals( 'disabled', $settings['upe_checkout_experience_enabled'] );
 	}
 
 	public function test_set_flag_missing_request_returns_status_code_400() {

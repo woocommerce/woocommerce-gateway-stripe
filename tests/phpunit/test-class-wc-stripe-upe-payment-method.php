@@ -82,8 +82,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	/**
 	 * Initial setup
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 		$this->reset_payment_method_mocks();
 	}
 
@@ -186,10 +186,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$mock_ideal_details      = [
 			'type' => 'ideal',
 		];
-		$mock_boleto_details      = [
+		$mock_boleto_details     = [
 			'type' => 'boleto',
 		];
-		$mock_oxxo_details      = [
+		$mock_oxxo_details       = [
 			'type' => 'oxxo',
 		];
 
@@ -285,6 +285,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_INACTIVE_CAPABILITIES_RESPONSE );
 
+		// Disable testmode.
+		$stripe_settings             = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings['testmode'] = 'no';
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+
 		$card_method       = $this->mock_payment_methods['card'];
 		$giropay_method    = $this->mock_payment_methods['giropay'];
 		$p24_method        = $this->mock_payment_methods['p24'];
@@ -293,8 +298,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$sofort_method     = $this->mock_payment_methods['sofort'];
 		$bancontact_method = $this->mock_payment_methods['bancontact'];
 		$ideal_method      = $this->mock_payment_methods['ideal'];
-		$boleto_method      = $this->mock_payment_methods['boleto'];
-		$oxxo_method      = $this->mock_payment_methods['boleto'];
+		$boleto_method     = $this->mock_payment_methods['boleto'];
+		$oxxo_method       = $this->mock_payment_methods['oxxo'];
 
 		$this->assertTrue( $card_method->is_enabled_at_checkout() );
 		$this->assertFalse( $giropay_method->is_enabled_at_checkout() );
@@ -312,6 +317,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * Payment method is only enabled when capability response contains active for payment method.
 	 */
 	public function test_payment_methods_are_only_enabled_when_capability_is_active() {
+		// Disable testmode.
+		$stripe_settings             = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings['testmode'] = 'no';
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+
 		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
 		foreach ( $payment_method_ids as $id ) {
 			if ( 'card' === $id || 'boleto' === $id || 'oxxo' === $id ) {
