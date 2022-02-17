@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 5.6
 Tested up to: 5.9
 Requires PHP: 7.0
-Stable tag: 6.1.0
+Stable tag: 6.2.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 6.2.0 - 2022-xx-xx =
+= 6.2.0 - 2022-02-17 =
 * Add - Add onboarding payment gateway setup methods.
 * Fix - Enable Stripe payment method after connecting account.
 * Fix - Missing statement descriptor in account summary API when not set in Stripe.
