@@ -1,5 +1,10 @@
 *** Changelog ***
 
+= 6.2.0 - 2022-02-17 =
+* Add - Add onboarding payment gateway setup methods.
+* Fix - Enable Stripe payment method after connecting account.
+* Fix - Missing statement descriptor in account summary API when not set in Stripe.
+
 = 6.1.0 - 2022-01-26 =
 * Tweak - Use the newly exposed LoadableMask component provided by WooCommerce Blocks to trigger the loading state for Payment Request Buttons.
 * Fix - Response type for account summary API.
