@@ -16,8 +16,8 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 	 */
 	private $account;
 
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		$stripe_settings                         = get_option( 'woocommerce_stripe_settings' );
 		$stripe_settings['enabled']              = 'yes';
@@ -39,12 +39,12 @@ class WC_Stripe_Account_Test extends WP_UnitTestCase {
 		$this->account = new WC_Stripe_Account( $this->mock_connect, 'WC_Helper_Stripe_Api' );
 	}
 
-	public function tearDown() {
-		parent::tearDown();
-
+	public function tear_down() {
 		delete_transient( 'wcstripe_account_data_test' );
 		delete_transient( 'wcstripe_account_data_live' );
 		delete_option( 'woocommerce_stripe_settings' );
+
+		parent::tear_down();
 	}
 
 	public function test_get_cached_account_data_returns_empty_when_stripe_is_not_connected() {

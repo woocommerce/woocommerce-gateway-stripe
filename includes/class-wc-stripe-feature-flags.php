@@ -23,7 +23,8 @@ class WC_Stripe_Feature_Flags {
 	 */
 	public static function is_upe_checkout_enabled() {
 		$stripe_settings = get_option( 'woocommerce_stripe_settings', null );
-		return ! empty( $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] ) && 'yes' === $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ];
+		return ! empty( $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ] )
+			&& 'yes' === $stripe_settings[ self::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME ];
 	}
 
 	/**

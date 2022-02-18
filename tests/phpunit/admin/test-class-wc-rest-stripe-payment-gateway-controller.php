@@ -36,8 +36,8 @@ class WC_REST_Stripe_Payment_Gateway_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * Pre-test setup
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		$this->gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe_Alipay::ID ];
 

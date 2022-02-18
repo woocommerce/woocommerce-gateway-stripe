@@ -55,8 +55,8 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 	/**
 	 * Sets up things all tests need.
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		$this->pr = new WC_Stripe_Payment_Request();
 
@@ -81,11 +81,12 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 		WC()->cart->calculate_totals();
 	}
 
-	public function tearDown() {
-		parent::tearDown();
+	public function tear_down() {
 		WC()->cart->empty_cart();
 		WC()->session->cleanup_sessions();
 		$this->zone->delete();
+
+		parent::tear_down();
 	}
 
 	/**

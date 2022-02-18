@@ -15,6 +15,7 @@ import {
 import ConfirmationModal from 'wcstripe/components/confirmation-modal';
 import InlineNotice from 'wcstripe/components/inline-notice';
 import { WebhookInformation } from 'wcstripe/components/webhook-information';
+import { AccountKeysConnectionStatus } from 'wcstripe/settings/payment-settings/account-keys-connection-status';
 
 const PublishableKey = () => {
 	const [ publishableKey ] = useAccountKeysPublishableKey();
@@ -166,6 +167,7 @@ const StyledConfirmationModal = styled( ConfirmationModal )`
 		margin: 0 -24px 24px;
 	}
 	.wcstripe-inline-notice {
+		margin-top: -24px;
 		margin-bottom: 0;
 	}
 	.wcstripe-confirmation-modal__separator {
@@ -183,11 +185,22 @@ export const AccountKeysModal = ( {
 	redirectOnSave,
 } ) => {
 	const [ openTab, setOpenTab ] = useState( type );
-	const { isSaving, accountKeys, saveAccountKeys } = useAccountKeys();
+	const {
+		isSaving,
+		accountKeys,
+		saveAccountKeys,
+		updateIsValidAccountKeys,
+	} = useAccountKeys();
 	const [ isDisabled, setDisabled ] = useState( false );
 	const formRef = useRef( null );
 	const testFormRef = useRef( null );
 	const testMode = openTab === 'test';
+
+	const onCloseHelper = () => {
+		// Reset AccountKeysConnectionStatus to default state.
+		updateIsValidAccountKeys( null );
+		onClose();
+	};
 
 	const handleSave = async ( ref ) => {
 		setDisabled( true );
@@ -228,45 +241,59 @@ export const AccountKeysModal = ( {
 			window.location.href = redirectOnSave;
 		} else {
 			setDisabled( false );
-			onClose();
+			onCloseHelper();
 		}
 	};
 
 	const onTabSelect = ( tabName ) => {
+		// Reset AccountKeysConnectionStatus to default state.
+		updateIsValidAccountKeys( null );
 		setOpenTab( tabName );
 	};
 
 	return (
 		<StyledConfirmationModal
-			onRequestClose={ onClose }
+			onRequestClose={ onCloseHelper }
 			actions={
-				<>
-					<Button
-						isSecondary
-						onClick={ onClose }
-						disabled={ isDisabled }
-					>
-						{ __( 'Cancel', 'woocommerce-gateway-stripe' ) }
-					</Button>
-					<Button
-						isPrimary
-						isBusy={ isSaving || isDisabled }
-						disabled={ isDisabled }
-						onClick={ () =>
-							handleSave( testMode ? testFormRef : formRef )
-						}
-					>
-						{ testMode
-							? __(
-									'Save test keys',
-									'woocommerce-gateway-stripe'
-							  )
-							: __(
-									'Save live keys',
-									'woocommerce-gateway-stripe'
-							  ) }
-					</Button>
-				</>
+				<div
+					style={ {
+						display: 'flex',
+						justifyContent: 'space-between',
+						width: '100%',
+					} }
+				>
+					<AccountKeysConnectionStatus
+						formRef={ testMode ? testFormRef : formRef }
+					/>
+					<div>
+						<Button
+							isSecondary
+							onClick={ onCloseHelper }
+							disabled={ isDisabled }
+						>
+							{ __( 'Cancel', 'woocommerce-gateway-stripe' ) }
+						</Button>
+						<Button
+							className="ml-unit-20"
+							isPrimary
+							isBusy={ isSaving || isDisabled }
+							disabled={ isDisabled }
+							onClick={ () =>
+								handleSave( testMode ? testFormRef : formRef )
+							}
+						>
+							{ testMode
+								? __(
+										'Save test keys',
+										'woocommerce-gateway-stripe'
+								  )
+								: __(
+										'Save live keys',
+										'woocommerce-gateway-stripe'
+								  ) }
+						</Button>
+					</div>
+				</div>
 			}
 			title={
 				testMode

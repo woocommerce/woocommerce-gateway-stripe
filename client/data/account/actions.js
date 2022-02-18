@@ -28,7 +28,7 @@ export function* refreshAccount() {
 		).getAccountCapabilitiesByStatus( 'active' );
 
 		const data = yield apiFetch( {
-			method: 'post',
+			method: 'POST',
 			path: `${ NAMESPACE }/account/refresh`,
 		} );
 

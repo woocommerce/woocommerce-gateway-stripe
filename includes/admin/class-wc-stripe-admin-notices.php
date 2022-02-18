@@ -201,9 +201,9 @@ class WC_Stripe_Admin_Notices {
 
 				// Check if keys are entered properly per live/test mode.
 				if ( $testmode ) {
-					if (
-						! empty( $test_pub_key ) && ! preg_match( '/^pk_test_/', $test_pub_key )
-						|| ! empty( $test_secret_key ) && ! preg_match( '/^[rs]k_test_/', $test_secret_key ) ) {
+					$is_test_pub_key    = ! empty( $test_pub_key ) && preg_match( '/^pk_test_/', $test_pub_key );
+					$is_test_secret_key = ! empty( $test_secret_key ) && preg_match( '/^[rs]k_test_/', $test_secret_key );
+					if ( ! $is_test_pub_key || ! $is_test_secret_key ) {
 						$setting_link = $this->get_setting_link();
 
 						$notice_message = sprintf(
@@ -216,9 +216,9 @@ class WC_Stripe_Admin_Notices {
 						$this->add_admin_notice( 'keys', 'notice notice-error', $notice_message, true );
 					}
 				} else {
-					if (
-						! empty( $live_pub_key ) && ! preg_match( '/^pk_live_/', $live_pub_key )
-						|| ! empty( $live_secret_key ) && ! preg_match( '/^[rs]k_live_/', $live_secret_key ) ) {
+					$is_live_pub_key    = ! empty( $live_pub_key ) && preg_match( '/^pk_live_/', $live_pub_key );
+					$is_live_secret_key = ! empty( $live_secret_key ) && preg_match( '/^[rs]k_live_/', $live_secret_key );
+					if ( ! $is_live_pub_key || ! $is_live_secret_key ) {
 						$setting_link = $this->get_setting_link();
 
 						$message = sprintf(
