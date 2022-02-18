@@ -1262,8 +1262,8 @@ class WC_Stripe_Payment_Request {
 			$variation_id = null;
 
 			if ( ! is_a( $product, 'WC_Product' ) ) {
-				/* translators: %d is the product Id */
-				throw new Exception( sprintf( __( 'Product with the ID (%d) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
+				/* translators: 1) The product Id */
+				throw new Exception( sprintf( __( 'Product with the ID (%1$s) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
 			}
 
 			if ( 'variable' === $product->get_type() && isset( $_POST['attributes'] ) ) {
@@ -1283,7 +1283,7 @@ class WC_Stripe_Payment_Request {
 			}
 
 			if ( ! $product->has_enough_stock( $qty ) ) {
-				/* translators: 1: product name 2: quantity in stock */
+				/* translators: 1) product name 2) quantity in stock */
 				throw new Exception( sprintf( __( 'You cannot add that amount of "%1$s"; to the cart because there is not enough stock (%2$s remaining).', 'woocommerce-gateway-stripe' ), $product->get_name(), wc_format_stock_quantity_for_display( $product->get_stock_quantity(), $product ) ) );
 			}
 
@@ -1595,8 +1595,8 @@ class WC_Stripe_Payment_Request {
 		if ( ! $is_supported ) {
 			wc_add_notice(
 				sprintf(
-					/* translators: %s: country. */
-					__( 'The Payment Request button is not supported in %s because some required fields couldn\'t be verified. Please proceed to the checkout page and try again.', 'woocommerce-gateway-stripe' ),
+					/* translators: 1) country. */
+					__( 'The Payment Request button is not supported in %1$s because some required fields couldn\'t be verified. Please proceed to the checkout page and try again.', 'woocommerce-gateway-stripe' ),
 					isset( $countries[ $posted_data['billing_country'] ] ) ? $countries[ $posted_data['billing_country'] ] : $posted_data['billing_country']
 				),
 				'error'

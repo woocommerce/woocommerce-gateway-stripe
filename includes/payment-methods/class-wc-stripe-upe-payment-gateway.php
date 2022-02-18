@@ -434,10 +434,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			<?php if ( $this->testmode ) : ?>
 				<p class="testmode-info">
 					<?php
-					echo sprintf(
-						/* translators: link to Stripe testing page */
-						__( '<strong>Test mode:</strong> use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="%s" target="_blank">here</a>.', 'woocommerce-gateway-stripe' ),
-						'https://stripe.com/docs/testing'
+					printf(
+					/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) HTML anchor open tag 2) HTML anchor closing tag */
+						esc_html__( '%1$sTest mode:%2$s use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed %3$shere%4$s.', 'woocommerce-gateway-stripe' ),
+						'<strong>',
+						'</strong>',
+						'<a href="https://stripe.com/docs/testing" target="_blank">',
+						'</a>'
 					);
 					?>
 				</p>

@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 6.3.0 - 2022-xx-xx =
+* Tweak - Remove html from translatable strings
 
 = 6.2.0 - 2022-02-17 =
 * Add - Add onboarding payment gateway setup methods.

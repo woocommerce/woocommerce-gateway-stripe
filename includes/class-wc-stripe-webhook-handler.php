@@ -312,8 +312,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order->update_meta_data( '_stripe_status_before_hold', $order->get_status() );
 
-		/* translators: 1) The URL to the order. */
-		$message = sprintf( __( 'A dispute was created for this order. Response is needed. Please go to your <a href="%s" title="Stripe Dashboard" target="_blank">Stripe Dashboard</a> to review this dispute.', 'woocommerce-gateway-stripe' ), $this->get_transaction_url( $order ) );
+		$message = sprintf(
+		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+			__( 'A dispute was created for this order. Response is needed. Please go to your %1$sStripe Dashboard%2$s to review this dispute.', 'woocommerce-gateway-stripe' ),
+			'<a href="' . esc_url( $this->get_transaction_url( $order ) ) . '" title="Stripe Dashboard" target="_blank">',
+			'</a>'
+		);
+
 		if ( ! $order->get_meta( '_stripe_status_final', false ) ) {
 			$order->update_status( 'on-hold', $message );
 		} else {
@@ -700,8 +705,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 
 		$order->update_meta_data( '_stripe_status_before_hold', $order->get_status() );
 
-		/* translators: 1) The URL to the order. 2) The reason type. */
-		$message = sprintf( __( 'A review has been opened for this order. Action is needed. Please go to your <a href="%1$s" title="Stripe Dashboard" target="_blank">Stripe Dashboard</a> to review the issue. Reason: (%2$s)', 'woocommerce-gateway-stripe' ), $this->get_transaction_url( $order ), $notification->data->object->reason );
+		$message = sprintf(
+		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag 3) The reason type. */
+			__( 'A review has been opened for this order. Action is needed. Please go to your %1$sStripe Dashboard%2$s to review the issue. Reason: (%3$s).', 'woocommerce-gateway-stripe' ),
+			'<a href="' . esc_url( $this->get_transaction_url( $order ) ) . '" title="Stripe Dashboard" target="_blank">',
+			'</a>',
+			esc_html( $notification->data->object->reason )
+		);
 
 		if ( apply_filters( 'wc_stripe_webhook_review_change_order_status', true, $order, $notification ) && ! $order->get_meta( '_stripe_status_final', false ) ) {
 			$order->update_status( 'on-hold', $message );

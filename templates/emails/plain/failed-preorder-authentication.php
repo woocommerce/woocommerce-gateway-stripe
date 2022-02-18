@@ -6,8 +6,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 echo $email_heading . "\n\n";
 
 printf(
-	// translators: %s is a link to the payment re-authentication URL.
-	__( 'Your pre-order is now available, but payment cannot be completed automatically. Please complete the payment now: %s', 'woocommerce-gateway-stripe' ),
+	// translators: 1) is a link to the payment re-authentication URL.
+	__( 'Your pre-order is now available, but payment cannot be completed automatically. Please complete the payment now: %1$s', 'woocommerce-gateway-stripe' ),
 	$authorization_url
 );
 
