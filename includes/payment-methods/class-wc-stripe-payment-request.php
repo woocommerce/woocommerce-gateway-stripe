@@ -922,19 +922,11 @@ class WC_Stripe_Payment_Request {
 	 * @return  boolean  True if PRBs are enabled on the cart page, false otherwise
 	 */
 	public function should_show_prb_on_cart_page() {
-		// Message we show for the deprecated PRB location filters. Intended for support so we
-		// don't provide translations.
-		$deprecation_message      =
-			'Please configure Payment Request Button locations through the Stripe plugin settings.';
 		$should_show_on_cart_page = in_array( 'cart', $this->get_button_locations(), true );
 
-		// Respect the deprecated filters, but add a deprecation notice.
-		return apply_filters_deprecated(
+		return apply_filters(
 			'wc_stripe_show_payment_request_on_cart',
-			[ $should_show_on_cart_page ],
-			'5.5.0',
-			'', // There is no replacement.
-			$deprecation_message
+			$should_show_on_cart_page
 		);
 	}
 
@@ -949,19 +941,12 @@ class WC_Stripe_Payment_Request {
 	public function should_show_prb_on_checkout_page() {
 		global $post;
 
-		// Message we show for the deprecated PRB location filters. Intended for support so we
-		// don't provide translations.
-		$deprecation_message          =
-			'Please configure Payment Request Button locations through the Stripe plugin settings.';
 		$should_show_on_checkout_page = in_array( 'checkout', $this->get_button_locations(), true );
 
-		// Respect the deprecated filters, but add a deprecation notice.
-		return apply_filters_deprecated(
+		return apply_filters(
 			'wc_stripe_show_payment_request_on_checkout',
-			[ $should_show_on_checkout_page, $post ],
-			'5.5.0',
-			'', // There is no replacement.
-			$deprecation_message
+			$should_show_on_checkout_page,
+			$post
 		);
 	}
 
@@ -976,20 +961,13 @@ class WC_Stripe_Payment_Request {
 	public function should_show_prb_on_product_pages() {
 		global $post;
 
-		// Message we show for the deprecated PRB location filters. Intended for support so we
-		// don't provide translations.
-		$deprecation_message         =
-			'Please configure Payment Request Button locations through the Stripe plugin settings.';
 		$should_show_on_product_page = in_array( 'product', $this->get_button_locations(), true );
 
-		// Respect the deprecated filters, but add a deprecation notice.
 		// Note the negation because if the filter returns `true` that means we should hide the PRB.
-		return ! apply_filters_deprecated(
+		return ! apply_filters(
 			'wc_stripe_hide_payment_request_on_product_page',
-			[ ! $should_show_on_product_page, $post ],
-			'5.5.0',
-			'', // There is no replacement.
-			$deprecation_message
+			! $should_show_on_product_page,
+			$post
 		);
 	}
 
