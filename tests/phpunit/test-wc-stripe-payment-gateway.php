@@ -23,8 +23,8 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 	/**
 	 * Sets up things all tests need.
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		$this->gateway         = new WC_Gateway_Stripe();
 		$this->giropay_gateway = new WC_Gateway_Stripe_Giropay();

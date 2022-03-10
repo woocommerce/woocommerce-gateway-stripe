@@ -60,12 +60,16 @@ class WC_Gateway_Stripe_Sepa extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->id           = self::ID;
-		$this->method_title = __( 'Stripe SEPA Direct Debit', 'woocommerce-gateway-stripe' );
-		/* translators: link */
-		$this->method_description = sprintf( __( 'All other general Stripe settings can be adjusted <a href="%s">here</a>.', 'woocommerce-gateway-stripe' ), admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) );
-		$this->has_fields         = true;
-		$this->supports           = [
+		$this->id                 = self::ID;
+		$this->method_title       = __( 'Stripe SEPA Direct Debit', 'woocommerce-gateway-stripe' );
+		$this->method_description = sprintf(
+		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+			__( 'All other general Stripe settings can be adjusted %1$shere%2$s.', 'woocommerce-gateway-stripe' ),
+			'<a href="' . esc_url( admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' ) ) . '">',
+			'</a>'
+		);
+		$this->has_fields = true;
+		$this->supports   = [
 			'products',
 			'refunds',
 			'tokenization',

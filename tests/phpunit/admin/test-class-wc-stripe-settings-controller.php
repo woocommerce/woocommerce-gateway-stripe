@@ -19,8 +19,8 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	 */
 	private $gateway;
 
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		$mock_account = $this->getMockBuilder( 'WC_Stripe_Account' )
 									->disableOriginalConstructor()
@@ -32,9 +32,10 @@ class WC_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 
 	}
 
-	public function tearDown() {
-		parent::tearDown();
+	public function tear_down() {
 		delete_option( 'woocommerce_stripe_settings' );
+
+		parent::tear_down();
 	}
 
 	/**

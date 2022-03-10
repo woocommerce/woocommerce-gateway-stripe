@@ -82,17 +82,17 @@ const WebhooksSection = () => {
 			</div>
 			<div className="account-details__desc">
 				<WebhookInformation />
-				<br />
-				<br />
-				{ message }{ ' ' }
-				<Button
-					disabled={ requestStatus === 'pending' }
-					onClick={ refreshMessage }
-					isBusy={ requestStatus === 'pending' }
-					isLink
-				>
-					{ __( 'Refresh', 'woocommerce-gateway-stripe' ) }
-				</Button>
+				<p>
+					{ message }{ ' ' }
+					<Button
+						disabled={ requestStatus === 'pending' }
+						onClick={ refreshMessage }
+						isBusy={ requestStatus === 'pending' }
+						isLink
+					>
+						{ __( 'Refresh', 'woocommerce-gateway-stripe' ) }
+					</Button>
+				</p>
 			</div>
 		</>
 	);

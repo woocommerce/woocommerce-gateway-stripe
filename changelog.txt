@@ -1,5 +1,10 @@
 *** Changelog ***
 
+= 6.3.0 - 2022-03-10 =
+* Tweak - Remove html from translatable strings.
+* Tweak - Revert the deprecation of the 'wc_stripe_hide_payment_request_on_product_page', 'wc_stripe_show_payment_request_on_checkout', and 'wc_stripe_show_payment_request_on_cart' filters.
+* Tweak - Address minor styling issues in settings.
+
 = 6.2.0 - 2022-02-17 =
 * Add - Add onboarding payment gateway setup methods.
 * Fix - Enable Stripe payment method after connecting account.

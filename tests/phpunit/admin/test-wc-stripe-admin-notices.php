@@ -2,8 +2,8 @@
 
 class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-admin-notices.php';
 
 		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
@@ -64,7 +64,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		}
 
 		if ( $expected_output ) {
-			$this->assertRegexp( $expected_output, ob_get_contents() );
+			$this->assertMatchesRegularExpression( $expected_output, ob_get_contents() );
 		}
 		ob_end_clean();
 		$this->assertCount( count( $expected_notices ), $notices->notices );
@@ -162,7 +162,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		}
 
 		$this->assertArrayHasKey( 'keys', $notices->notices );
-		$this->assertRegexp( '/Your customers cannot use Stripe on checkout/', $notices->notices['keys']['message'] );
+		$this->assertMatchesRegularExpression( '/Your customers cannot use Stripe on checkout/', $notices->notices['keys']['message'] );
 	}
 
 	public function options_to_notices_map() {
@@ -202,8 +202,10 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 			[
 				[
 					'woocommerce_stripe_settings' => [
-						'enabled'        => 'yes',
-						'three_d_secure' => 'yes',
+						'enabled'         => 'yes',
+						'three_d_secure'  => 'yes',
+						'publishable_key' => 'pk_live_valid_test_key',
+						'secret_key'      => 'sk_live_valid_test_key',
 					],
 					'wc_stripe_show_style_notice' => 'no',
 					'wc_stripe_show_sca_notice'   => 'no',
@@ -235,7 +237,9 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 			[
 				[
 					'woocommerce_stripe_settings'    => [
-						'enabled' => 'yes',
+						'enabled'         => 'yes',
+						'publishable_key' => 'pk_live_valid_test_key',
+						'secret_key'      => 'sk_live_valid_test_key',
 					],
 					'wc_stripe_show_style_notice'    => 'no',
 					'wc_stripe_show_sca_notice'      => 'no',

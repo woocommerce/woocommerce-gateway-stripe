@@ -83,8 +83,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	/**
 	 * Initial setup.
 	 */
-	public function setUp() {
-		parent::setUp();
+	public function set_up() {
+		parent::set_up();
 
 		$this->mock_gateway = $this->getMockBuilder( WC_Stripe_UPE_Payment_Gateway::class )
 			->setMethods(
@@ -217,9 +217,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'success', $response['result'] );
 		$this->assertTrue( $response['payment_needed'] );
 		$this->assertEquals( $order_id, $response['order_id'] );
-		$this->assertRegExp( "/order_id=$order_id/", $response['redirect_url'] );
-		$this->assertRegExp( '/wc_payment_method=stripe/', $response['redirect_url'] );
-		$this->assertRegExp( '/save_payment_method=no/', $response['redirect_url'] );
+		$this->assertMatchesRegularExpression( "/order_id=$order_id/", $response['redirect_url'] );
+		$this->assertMatchesRegularExpression( '/wc_payment_method=stripe/', $response['redirect_url'] );
+		$this->assertMatchesRegularExpression( '/save_payment_method=no/', $response['redirect_url'] );
 	}
 
 	/**
@@ -271,7 +271,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Credit card / debit card', $final_order->get_payment_method_title() );
 		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
 		$this->assertTrue( (bool) $final_order->get_meta( '_stripe_upe_redirect_processed', true ) );
-		$this->assertRegExp( '/Charge ID: ch_mock/', $note->content );
+		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
 	}
 
 	/**
@@ -325,7 +325,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Credit card / debit card', $success_order->get_payment_method_title() );
 		$this->assertEquals( $payment_intent_id, $success_order->get_meta( '_stripe_intent_id', true ) );
 		$this->assertTrue( (bool) $success_order->get_meta( '_stripe_upe_redirect_processed', true ) );
-		$this->assertRegExp( '/Charge ID: ch_mock/', $note->content );
+		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
 
 		// simulate an order getting marked as failed as if from a webhook
 		$order->set_status( 'failed' );
@@ -564,7 +564,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			// Test exception thrown.
 			$exception = $e;
 		}
-		$this->assertRegExp( '/not able to process this payment./', $exception->getMessage() );
+		$this->assertMatchesRegularExpression( '/not able to process this payment./', $exception->getMessage() );
 
 		$exception = null;
 		$order->set_total( 0 );
@@ -575,7 +575,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			// Test exception thrown.
 			$exception = $e;
 		}
-		$this->assertRegExp( '/not able to process this payment./', $exception->getMessage() );
+		$this->assertMatchesRegularExpression( '/not able to process this payment./', $exception->getMessage() );
 	}
 
 	/**
@@ -641,8 +641,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 				'limit'    => 1,
 			]
 		)[0];
-		$this->assertRegExp( '/Payment processing failed./', $note->content );
-		$this->assertRegExp( '/Payment processing failed./', $exception->getLocalizedMessage() );
+		$this->assertMatchesRegularExpression( '/Payment processing failed./', $note->content );
+		$this->assertMatchesRegularExpression( '/Payment processing failed./', $exception->getLocalizedMessage() );
 	}
 
 	/**
@@ -708,7 +708,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
 		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
 		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
-		$this->assertRegExp( '/Charge ID: ch_mock/', $note->content );
+		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
 	}
 
 	/**
@@ -766,7 +766,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
 		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
 		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
-		$this->assertRegExp( "/#wc-stripe-confirm-pi:$order_id:$client_secret/", $response['redirect'] );
+		$this->assertMatchesRegularExpression( "/#wc-stripe-confirm-pi:$order_id:$client_secret/", $response['redirect'] );
 	}
 
 	/**
@@ -893,7 +893,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
 		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
 		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
-		$this->assertRegExp( '/Charge ID: ch_mock/', $note->content );
+		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
 	}
 
 	/**
@@ -1022,9 +1022,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'success', $response['result'] );
 		$this->assertTrue( $response['payment_needed'] );
 		$this->assertEquals( $order_id, $response['order_id'] );
-		$this->assertRegExp( "/order_id=$order_id/", $response['redirect_url'] );
-		$this->assertRegExp( '/wc_payment_method=stripe/', $response['redirect_url'] );
-		$this->assertRegExp( '/save_payment_method=yes/', $response['redirect_url'] );
+		$this->assertMatchesRegularExpression( "/order_id=$order_id/", $response['redirect_url'] );
+		$this->assertMatchesRegularExpression( '/wc_payment_method=stripe/', $response['redirect_url'] );
+		$this->assertMatchesRegularExpression( '/save_payment_method=yes/', $response['redirect_url'] );
 	}
 
 	/**
@@ -1055,9 +1055,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'success', $response['result'] );
 		$this->assertFalse( $response['payment_needed'] );
 		$this->assertEquals( $order_id, $response['order_id'] );
-		$this->assertRegExp( "/order_id=$order_id/", $response['redirect_url'] );
-		$this->assertRegExp( '/wc_payment_method=stripe/', $response['redirect_url'] );
-		$this->assertRegExp( '/save_payment_method=yes/', $response['redirect_url'] );
+		$this->assertMatchesRegularExpression( "/order_id=$order_id/", $response['redirect_url'] );
+		$this->assertMatchesRegularExpression( '/wc_payment_method=stripe/', $response['redirect_url'] );
+		$this->assertMatchesRegularExpression( '/save_payment_method=yes/', $response['redirect_url'] );
 	}
 
 	/**
@@ -1133,7 +1133,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		)[0];
 
 		$this->assertEquals( 'processing', $final_order->get_status() );
-		$this->assertRegExp( '/Charge ID: ch_mock/', $note->content );
+		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
 		// Assert: Our hook was called once.
 		$this->assertEquals( 1, $mock_action_process_payment->get_call_count() );
 		// Assert: Only our hook was called.
@@ -1222,7 +1222,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'failed', $final_order->get_status() );
 		$this->assertEquals( 'ch_mock', $final_order->get_transaction_id() );
-		$this->assertRegExp( '/pending/i', $note->content );
+		$this->assertMatchesRegularExpression( '/pending/i', $note->content );
 		// Assert: Our hook was called once.
 		$this->assertEquals( 1, $mock_action_process_payment->get_call_count() );
 		// Assert: Only our hook was called.
