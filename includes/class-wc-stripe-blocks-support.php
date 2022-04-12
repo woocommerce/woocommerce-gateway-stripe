@@ -185,7 +185,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		// TODO: Remove the `function_exists()` check once the minimum WP version has been bumped
 		//       to version 5.0.
 		if ( function_exists( 'has_block' ) ) {
-
 			// Don't show if PRBs are turned off entirely.
 			if ( ! isset( $this->settings['payment_request'] ) || 'yes' !== $this->settings['payment_request'] ) {
 				return false;
