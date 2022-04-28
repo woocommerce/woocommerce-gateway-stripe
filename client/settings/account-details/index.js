@@ -6,15 +6,18 @@ import { Button, ExternalLink } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
 import useWebhookStateMessage from './use-webhook-state-message';
 import SectionStatus from './section-status';
-import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
+import { useAccount } from 'wcstripe/data/account';
 import {
 	useAccountKeysTestWebhookSecret,
 	useAccountKeysWebhookSecret,
 } from 'wcstripe/data/account-keys';
 import { WebhookInformation } from 'wcstripe/components/webhook-information';
 
-const useIsCardPaymentsEnabled = () =>
-	useGetCapabilities().card_payments === 'active';
+const useIsCardPaymentsEnabled = () => {
+	const { data } = useAccount();
+
+	return data.account?.charges_enabled;
+};
 
 const useArePayoutsEnabled = () => {
 	const { data } = useAccount();
