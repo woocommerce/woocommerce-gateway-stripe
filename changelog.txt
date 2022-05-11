@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 6.4.0 - 2022-xx-xx =
+* Fix - Changed logic for how 'Enabled/Disabled' statuses are shown for payments and payouts capabilities in settings.
 
 = 6.3.0 - 2022-03-10 =
 * Tweak - Remove html from translatable strings.
