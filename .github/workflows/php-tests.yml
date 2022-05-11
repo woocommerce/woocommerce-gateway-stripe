@@ -16,11 +16,11 @@ jobs:
         include:
           # WooCommerce
           - woocommerce_support_policy: L
-            woocommerce: '6.2.0'
+            woocommerce: '6.5.0'
           - woocommerce_support_policy: L-1
-            woocommerce: '6.1.0'
+            woocommerce: '6.4.1'
           - woocommerce_support_policy: L-2
-            woocommerce: '6.0.0'
+            woocommerce: '6.3.1'
           # WordPress
           - wordpress_support_policy: L
             wordpress: '5.9'
@@ -35,6 +35,9 @@ jobs:
             php: '7.4'
           - php_support_policy: L-2
             php: '7.0'
+        exclude:
+          - woocommerce_support_policy: L
+            php_support_policy: L-2
 
     name: Stable (PHP=${{ matrix.php_support_policy }}, WP=${{ matrix.wordpress_support_policy }}, WC=${{ matrix.woocommerce_support_policy }})
     env:
