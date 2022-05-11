@@ -16,9 +16,6 @@ jest.mock( 'wcstripe/data/account-keys', () => ( {
 
 describe( 'AccountDetails', () => {
 	it( 'renders enabled payments and payouts on account', () => {
-		useGetCapabilities.mockReturnValue( {
-			card_payments: 'active',
-		} );
 		useAccount.mockReturnValue( {
 			data: {
 				account: {
@@ -28,6 +25,7 @@ describe( 'AccountDetails', () => {
 						},
 					},
 					payouts_enabled: true,
+					charges_enabled: true,
 				},
 			},
 		} );
@@ -53,9 +51,6 @@ describe( 'AccountDetails', () => {
 	} );
 
 	it( 'renders disabled payouts and payments on account', () => {
-		useGetCapabilities.mockReturnValue( {
-			card_payments: 'disabled',
-		} );
 		useAccount.mockReturnValue( {
 			data: {
 				account: {
@@ -63,6 +58,7 @@ describe( 'AccountDetails', () => {
 						payouts: {},
 					},
 					payouts_enabled: false,
+					charges_enabled: false,
 				},
 			},
 		} );
