@@ -24,7 +24,9 @@ class WC_Stripe_UPE_Availability_Note_Test extends WP_UnitTestCase {
 			$this->assertSame( 'wc-stripe-upe-availability-note', $enable_upe_action->name );
 			$this->assertSame( 'Enable in your store', $enable_upe_action->label );
 			$this->assertSame( '?page=wc-settings&tab=checkout&section=stripe&panel=settings&highlight=enable-upe', $enable_upe_action->query );
-			$this->assertSame( true, $enable_upe_action->primary );
+			if ( version_compare( WC_VERSION, '6.5.0', '<' ) ) {
+				$this->assertSame( true, $enable_upe_action->primary );
+			}
 		} else {
 			$this->markTestSkipped( 'The used WC components are not backward compatible' );
 		}
