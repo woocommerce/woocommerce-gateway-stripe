@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         woocommerce: [ 'beta' ]
-        wordpress:   [ 'latest', '6.0-RC1' ]
+        wordpress:   [ 'latest' ]
         php:         [ '7.2', '7.4', '8.0' ]
           
     
