@@ -22,10 +22,7 @@ const useIsCardPaymentsEnabled = () => {
 const useArePayoutsEnabled = () => {
 	const { data } = useAccount();
 
-	return (
-		data.account?.payouts_enabled &&
-		Boolean( data.account?.settings?.payouts?.schedule?.interval )
-	);
+	return data.account?.payouts_enabled;
 };
 
 const PaymentsSection = () => {
