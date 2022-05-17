@@ -695,4 +695,27 @@ class WC_Stripe_Helper {
 		$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
 		$order->save();
 	}
+
+	/**
+	 * Check if a note content does already exist in the order.
+	 *
+	 * @param WC_Order $order        The order object to add the note.
+	 * @param string   $note_content Note content.
+	 *
+	 * @return bool true if the note content exists, false otherwise.
+	 */
+	public static function order_note_exists( WC_Order $order, string $note_content ): bool {
+		// Get current notes of the order.
+		$current_notes = wc_get_order_notes(
+			[ 'order_id' => $order->get_id() ]
+		);
+
+		foreach ( $current_notes as $current_note ) {
+			if ( $current_note->content === $note_content ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
 }
