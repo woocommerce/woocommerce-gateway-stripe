@@ -1,5 +1,9 @@
 *** Changelog ***
 
+= 6.4.0 - 2022-05-20 =
+* Fix - Changed logic for how 'Enabled/Disabled' statuses are shown for payments and payouts capabilities in settings.
+* Tweak - Updated the minimum supported versions of WordPress and WooCommerce.
+
 = 6.3.0 - 2022-03-10 =
 * Tweak - Remove html from translatable strings.
 * Tweak - Revert the deprecation of the 'wc_stripe_hide_payment_request_on_product_page', 'wc_stripe_show_payment_request_on_checkout', and 'wc_stripe_show_payment_request_on_cart' filters.
