@@ -1,6 +1,7 @@
 *** Changelog ***
 
-= 6.5.0 - 2022-xx-xx =
+= 6.4.1 - 2022-xx-xx =
+* Fix - Escape all URIs generated with add_query_arg and remove_query_arg.
 
 = 6.4.0 - 2022-05-20 =
 * Fix - Changed logic for how 'Enabled/Disabled' statuses are shown for payments and payouts capabilities in settings.

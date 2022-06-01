@@ -128,6 +128,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 6.5.0 - 2022-xx-xx =
+= 6.4.1 - 2022-xx-xx =
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
