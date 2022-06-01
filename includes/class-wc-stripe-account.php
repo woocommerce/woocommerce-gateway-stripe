@@ -10,8 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class WC_Stripe_Account {
 
-	const LIVE_ACCOUNT_OPTION    = 'wcstripe_account_data_live';
-	const TEST_ACCOUNT_OPTION    = 'wcstripe_account_data_test';
+	const LIVE_ACCOUNT_OPTION = 'wcstripe_account_data_live';
+	const TEST_ACCOUNT_OPTION = 'wcstripe_account_data_test';
 
 	const STATUS_COMPLETE        = 'complete';
 	const STATUS_NO_ACCOUNT      = 'NOACCOUNT';
