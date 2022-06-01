@@ -287,25 +287,9 @@ jQuery( function( $ ) {
 				security: wc_stripe_payment_request_params.nonce.add_to_cart,
 				product_id: product_id,
 				qty: $( '.quantity .qty' ).val(),
-				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : []
+				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : [],
+				custom_data: wc_stripe_payment_request.getCustomData()
 			};
-
-			// add addons data to the POST body
-			var formData = $( 'form.cart' ).serializeArray();
-			$.each( formData, function( i, field ) {
-				if ( /^addon-/.test( field.name ) ) {
-					if ( /\[\]$/.test( field.name ) ) {
-						var fieldName = field.name.substring( 0, field.name.length - 2);
-						if ( data[ fieldName ] ) {
-							data[ fieldName ].push( field.value );
-						} else {
-							data[ fieldName ] = [ field.value ];
-						}
-					} else {
-						data[ field.name ] = field.value;
-					}
-				}
-			} );
 
 			return $.ajax( {
 				type: 'POST',
@@ -624,7 +608,7 @@ jQuery( function( $ ) {
 					return;
 				}
 
-				if ( 0 < paymentRequestError.length ) {
+				if ( 'string' === typeof paymentRequestError ) {
 					evt.preventDefault();
 					window.alert( paymentRequestError );
 					return;

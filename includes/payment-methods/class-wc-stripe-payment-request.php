@@ -1351,6 +1351,8 @@ class WC_Stripe_Payment_Request {
 			define( 'WOOCOMMERCE_CART', true );
 		}
 
+		$this->populate_post();
+
 		WC()->shipping->reset_shipping();
 
 		$product_id   = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
