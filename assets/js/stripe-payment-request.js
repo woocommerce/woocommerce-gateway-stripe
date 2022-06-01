@@ -638,7 +638,7 @@ jQuery( function( $ ) {
 				wc_stripe_payment_request.blockPaymentRequestButton( 'wc_request_button_is_disabled' );
 			} );
 
-			$( document.body ).on( 'woocommerce_variation_has_changed', function () {
+			$( document.body ).on( 'wc_stripe_update_selected_product_data woocommerce_variation_has_changed', function () {
 				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 
 				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
