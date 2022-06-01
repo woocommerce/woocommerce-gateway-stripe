@@ -87,7 +87,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			if ( isset( $_GET['wcs_stripe_code'], $_GET['wcs_stripe_state'] ) ) {
 
 				$response = $this->connect_oauth( wc_clean( wp_unslash( $_GET['wcs_stripe_state'] ) ), wc_clean( wp_unslash( $_GET['wcs_stripe_code'] ) ) );
-				wp_safe_redirect( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code' ] ) );
+				wp_safe_redirect( esc_url_raw( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code' ] ) ) );
 				exit;
 
 				// redirect from credentials reset
@@ -99,11 +99,13 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 				$this->clear_stripe_keys();
 				wp_safe_redirect(
-					remove_query_arg(
-						[
-							'_wpnonce',
-							'reset_stripe_api_credentials',
-						]
+					esc_url_raw(
+						remove_query_arg(
+							[
+								'_wpnonce',
+								'reset_stripe_api_credentials',
+							]
+						)
 					)
 				);
 				exit;

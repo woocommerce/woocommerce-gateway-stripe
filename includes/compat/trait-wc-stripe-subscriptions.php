@@ -214,7 +214,7 @@ trait WC_Stripe_Subscriptions_Trait {
 						[
 							'order'         => $order_id,
 							'nonce'         => wp_create_nonce( 'wc_stripe_confirm_pi' ),
-							'redirect_to'   => remove_query_arg( [ 'process_early_renewal', 'subscription_id', 'wcs_nonce' ] ),
+							'redirect_to'   => esc_url_raw( remove_query_arg( [ 'process_early_renewal', 'subscription_id', 'wcs_nonce' ] ) ),
 							'early_renewal' => true,
 						],
 						WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' )
