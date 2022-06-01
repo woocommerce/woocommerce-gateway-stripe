@@ -49,15 +49,15 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 				'permission_callback' => [ $this, 'check_permission' ],
 				'args'                => [
 					'ending_before'  => [
-						'type' => 'string',
+						'type'     => 'string',
 						'required' => false,
 					],
 					'limit'          => [
-						'type' => 'integer',
+						'type'     => 'integer',
 						'required' => false,
 					],
 					'starting_after' => [
-						'type' => 'string',
+						'type'     => 'string',
 						'required' => false,
 					],
 				],
@@ -178,9 +178,9 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 * @param WP_REST_Request $request Full data about the request.
 	 */
 	public function get_store_location( $request ) {
-		$name = get_bloginfo();
+		$name          = get_bloginfo();
 		$store_address = WC()->countries;
-		$address = array_filter(
+		$address       = array_filter(
 			[
 				'city'        => $store_address->get_base_city(),
 				'country'     => $store_address->get_base_country(),
@@ -224,7 +224,7 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 			$response = WC_Stripe_API::request(
 				[
 					'display_name' => $name,
-					'address' => $address,
+					'address'      => $address,
 				],
 				'terminal/locations'
 			);
