@@ -369,14 +369,14 @@ class WC_Stripe_Payment_Request {
 		}
 
 		/**
-		 * `wc_stripe_payment_request_product_amount` filter.
+		 * `wc_stripe_payment_request_product_price` filter.
 		 *
 		 * @since   7.0.0
 		 * @param   integer $product_price The total price.
 		 * @param   object $product WC_Product_* The product being purchased.
 		 * @return  integer
 		 */
-		return apply_filters( 'wc_stripe_payment_request_product_amount', $product_price, $product );
+		return apply_filters( 'wc_stripe_payment_request_product_price', $product_price, $product );
 	}
 
 	/**
@@ -770,7 +770,7 @@ class WC_Stripe_Payment_Request {
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
 		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
-		wp_register_script( 'wc_stripe_payment_request', plugins_url( 'assets/js/stripe-payment-request' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [ 'jquery', 'stripe' ], WC_STRIPE_VERSION, true );
+		wp_register_script( 'wc_stripe_payment_request', plugins_url( 'assets/js/stripe-payment-request' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [ 'jquery', 'stripe' ], time(), true );
 
 		wp_localize_script(
 			'wc_stripe_payment_request',
