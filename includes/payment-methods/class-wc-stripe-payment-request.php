@@ -1312,6 +1312,16 @@ class WC_Stripe_Payment_Request {
 			$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
 			$data['currency']        = strtolower( get_woocommerce_currency() );
 			$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
+			
+			/**
+			 * `wc_stripe_payment_request_get_selected_product_data` filter.
+			 *
+			 * @since   7.0.0
+			 * @param   array $data The formatted response data.
+			 * @param   object $product WC_Product_* The product being purchased.
+			 * @return  array
+			 */
+			$data = apply_filters( 'wc_stripe_payment_request_get_selected_product_data', $data, $product );
 
 			wp_send_json( $data );
 		} catch ( Exception $e ) {
