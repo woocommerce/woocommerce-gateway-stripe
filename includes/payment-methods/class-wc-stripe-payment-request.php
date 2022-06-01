@@ -368,7 +368,15 @@ class WC_Stripe_Payment_Request {
 			$product_price = $product->get_price() + WC_Subscriptions_Product::get_sign_up_fee( $product );
 		}
 
-		return $product_price;
+		/**
+		 * `wc_stripe_payment_request_product_amount` filter.
+		 *
+		 * @since   7.0.0
+		 * @param   integer $product_price The total price.
+		 * @param   object $product WC_Product_* The product being purchased.
+		 * @return  integer
+		 */
+		return apply_filters( 'wc_stripe_payment_request_product_amount', $product_price, $product );
 	}
 
 	/**
