@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 6.4.1 - 2022-xx-xx =
+= 6.4.1 - 2022-06-01 =
 * Fix - Ensure proper URL formatting.
 
 = 6.4.0 - 2022-05-20 =
