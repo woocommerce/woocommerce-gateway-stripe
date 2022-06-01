@@ -1239,6 +1239,8 @@ class WC_Stripe_Payment_Request {
 			$product      = wc_get_product( $product_id );
 			$variation_id = null;
 
+			$this->populate_post();
+
 			if ( ! is_a( $product, 'WC_Product' ) ) {
 				/* translators: 1) The product Id */
 				throw new Exception( sprintf( __( 'Product with the ID (%1$s) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
@@ -1880,5 +1882,32 @@ class WC_Stripe_Payment_Request {
 		}
 
 		return $this->stripe_settings['payment_request_button_locations'];
+	}
+
+
+	/**
+	 * Populate $_POST with all form input data to allow 3rd party code to validate.
+	 *
+	 * @since   7.0.0
+	 */
+	private function populate_post() {
+		if ( isset( $_POST['custom_data'] ) ) {
+
+			parse_str( $_POST['custom_data'], $custom_data );
+
+			if ( $custom_data ) {
+
+				foreach ( $custom_data as $input_name => $input_value ) {
+
+					// Write to $_POST only if key does not exist
+					if ( ! isset( $_POST[ $input_name ] ) ) {
+						$_REQUEST[ $input_name ] = $input_value;
+						$_POST[ $input_name ]    = $input_value;
+					}
+				}
+			}
+			
+			unset( $_POST['custom_data'] );
+		}
 	}
 }

@@ -63,6 +63,17 @@ jQuery( function( $ ) {
 			};
 		},
 
+		/**
+		 * Get add to cart custom fields data.
+		 *
+		 * @since 7.0.0
+		 *
+		 * @return string
+		 */
+		getCustomData: function() {
+			return $( 'form.cart' ).find( 'input[name!="variation_id"][name!="product_id"][name!="add-to-cart"][name!="quantity"], select, textarea' ).not('[name^="attribute_"]').serialize();
+		},
+
 		processSource: function( source, paymentRequestType ) {
 			var data = wc_stripe_payment_request.getOrderData( source, paymentRequestType );
 
@@ -444,6 +455,7 @@ jQuery( function( $ ) {
 				qty: $( '.quantity .qty' ).val(),
 				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : [],
 				addon_value: addon_value,
+				custom_data: wc_stripe_payment_request.getCustomData()
 			};
 
 			return $.ajax( {
