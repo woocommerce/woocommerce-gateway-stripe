@@ -179,7 +179,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	 */
 	public function get_store_location( $request ) {
 		// Originally `get_bloginfo` was used for location name, later switched to `site_url` as the former may be blank.
-		$possible_names = [ get_bloginfo(), site_url() ];
+		$store_hostname = str_replace( [ 'https://', 'http://' ], '', get_site_url() );
+		$possible_names = [ get_bloginfo(), $store_hostname ];
 		$store_address = WC()->countries;
 		$address       = array_filter(
 			[
@@ -224,7 +225,7 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 			// Create new location if no location matches display name and address.
 			$response = WC_Stripe_API::request(
 				[
-					'display_name' => site_url(),
+					'display_name' => $store_hostname,
 					'address'      => $address,
 				],
 				'terminal/locations'
