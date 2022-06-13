@@ -107,6 +107,13 @@ $stripe_settings = apply_filters(
 			'default'     => '',
 			'desc_tip'    => true,
 		],
+		'short_statement_descriptor'          => [
+			'title'       => __( 'Short Statement Descriptor', 'woocommerce-gateway-stripe' ),
+			'type'        => 'text',
+			'description' => __( 'Shortened version of the statement descriptor in combination with the customer order number.', 'woocommerce-gateway-stripe' ),
+			'default'     => '',
+			'desc_tip'    => true,
+		],
 		'capture'                             => [
 			'title'       => __( 'Capture', 'woocommerce-gateway-stripe' ),
 			'label'       => __( 'Capture charge immediately', 'woocommerce-gateway-stripe' ),
