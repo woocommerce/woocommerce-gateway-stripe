@@ -191,7 +191,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Processses the orders that are redirected.
+	 * Processes the orders that are redirected.
 	 *
 	 * @since 4.0.0
 	 * @version 4.0.0
