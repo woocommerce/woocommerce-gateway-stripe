@@ -2,7 +2,7 @@
 
 = 6.5.0 - 2022-xx-xx =
 * Fix - Fix terminal location creation if site title is missing.
-* Fix - Add compatibility with Woocommerce 6.6.
+* Fix - Add compatibility with WooCommerce 6.6.
 
 = 6.4.1 - 2022-06-01 =
 * Fix - Ensure proper URL formatting.
