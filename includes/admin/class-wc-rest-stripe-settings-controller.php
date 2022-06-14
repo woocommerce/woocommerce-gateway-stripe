@@ -276,13 +276,11 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @param WP_REST_Request $request Full data about the request.
 	 */
 	public function update_settings( WP_REST_Request $request ) {
-		$form_fields = $this->gateway->get_form_fields();
-
 		/* Settings > General */
 		$this->update_is_stripe_enabled( $request );
-		$this->update_title( $request, $form_fields );
-		$this->update_title_upe( $request, $form_fields );
-		$this->update_description( $request, $form_fields );
+		$this->update_title( $request );
+		$this->update_title_upe( $request );
+		$this->update_description( $request );
 		$this->update_is_test_mode_enabled( $request );
 
 		/* Settings > Payments accepted on checkout */
@@ -296,9 +294,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$this->update_is_manual_capture_enabled( $request );
 		$this->update_is_saved_cards_enabled( $request );
 		$this->update_is_separate_card_form_enabled( $request );
-		$this->update_account_statement_descriptor( $request, $form_fields );
+		$this->update_account_statement_descriptor( $request );
 		$this->update_is_short_account_statement_enabled( $request );
-		$this->update_short_account_statement_descriptor( $request, $form_fields );
+		$this->update_short_account_statement_descriptor( $request );
 
 		/* Settings > Advanced settings */
 		$this->update_is_debug_log_enabled( $request );
@@ -330,16 +328,15 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * Updates title.
 	 *
 	 * @param WP_REST_Request $request Request object.
-	 * @param array $form_fields stripe form fields.
 	 */
-	private function update_title( WP_REST_Request $request, array $form_fields ) {
+	private function update_title( WP_REST_Request $request ) {
 		$title = $request->get_param( 'title' );
 
 		if ( null === $title ) {
 			return;
 		}
 
-		$validated_title = $this->validate_field( 'title', $title, $form_fields );
+		$validated_title = $this->validate_field( 'title', $title );
 
 		$this->gateway->update_option( 'title', $validated_title );
 	}
@@ -349,15 +346,15 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 *
 	 * @param string $field_key the form field key.
 	 * @param string $field_value the form field value.
-	 * @param array $form_fields stripe form fields.
 	 *
 	 * @return string validated field value.
 	 */
-	private function validate_field( $field_key, $field_value, $form_fields ) {
+	private function validate_field( $field_key, $field_value ) {
 		if ( is_callable( [ $this->gateway, 'validate_' . $field_key . '_field' ] ) ) {
 			return $this->gateway->{'validate_' . $field_key . '_field'}( $field_key, $field_value );
 		}
 
+		$form_fields = $this->gateway->get_form_fields();
 		if ( key_exists( $field_key, $form_fields ) ) {
 			$field_type = $form_fields[ $field_key ]['type'];
 
@@ -373,16 +370,15 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * Updates UPE title.
 	 *
 	 * @param WP_REST_Request $request Request object.
-	 * @param array $form_fields stripe form fields.
 	 */
-	private function update_title_upe( WP_REST_Request $request, array $form_fields ) {
+	private function update_title_upe( WP_REST_Request $request ) {
 		$title_upe = $request->get_param( 'title_upe' );
 
 		if ( null === $title_upe ) {
 			return;
 		}
 
-		$validated_title_upe = $this->validate_field( 'title_upe', $title_upe, $form_fields );
+		$validated_title_upe = $this->validate_field( 'title_upe', $title_upe );
 
 		$this->gateway->update_option( 'title_upe', $validated_title_upe );
 	}
@@ -391,16 +387,15 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * Updates description.
 	 *
 	 * @param WP_REST_Request $request Request object.
-	 * @param array $form_fields stripe form fields.
 	 */
-	private function update_description( WP_REST_Request $request, array $form_fields ) {
+	private function update_description( WP_REST_Request $request ) {
 		$description = $request->get_param( 'description' );
 
 		if ( null === $description ) {
 			return;
 		}
 
-		$validated_description = $this->validate_field( 'description', $description, $form_fields );
+		$validated_description = $this->validate_field( 'description', $description );
 
 		$this->gateway->update_option( 'description', $validated_description );
 	}
@@ -484,9 +479,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * Updates account statement descriptor.
 	 *
 	 * @param WP_REST_Request $request Request object.
-	 * @param array $form_fields stripe form fields.
 	 */
-	private function update_account_statement_descriptor( WP_REST_Request $request, array $form_fields ) {
+	private function update_account_statement_descriptor( WP_REST_Request $request ) {
 		$account_statement_descriptor = $request->get_param( 'statement_descriptor' );
 
 		if ( null === $account_statement_descriptor ) {
@@ -495,8 +489,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		$validated_account_statement_descriptor = $this->validate_field(
 			'statement_descriptor',
-			$account_statement_descriptor,
-			$form_fields
+			$account_statement_descriptor
 		);
 
 		$this->gateway->update_option( 'statement_descriptor', $validated_account_statement_descriptor );
@@ -521,9 +514,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * Updates short account statement descriptor.
 	 *
 	 * @param WP_REST_Request $request Request object.
-	 * @param array $form_fields stripe form fields.
 	 */
-	private function update_short_account_statement_descriptor( WP_REST_Request $request, array $form_fields ) {
+	private function update_short_account_statement_descriptor( WP_REST_Request $request ) {
 		$is_short_account_statement_enabled = $request->get_param( 'is_short_statement_descriptor_enabled' );
 		$short_account_statement_descriptor = $request->get_param( 'short_statement_descriptor' );
 
@@ -538,8 +530,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		$validated_short_account_statement_descriptor = $this->validate_field(
 			'short_statement_descriptor',
-			$short_account_statement_descriptor,
-			$form_fields
+			$short_account_statement_descriptor
 		);
 
 		$this->gateway->update_option( 'short_statement_descriptor', $validated_short_account_statement_descriptor );
