@@ -441,7 +441,6 @@ class WC_Stripe_Payment_Request {
 		$data['total']        = [
 			'label'   => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
 			'amount'  => WC_Stripe_Helper::get_stripe_amount( $this->get_product_price( $product ) ),
-			'pending' => true,
 		];
 
 		$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() && 0 !== wc_get_shipping_method_count( true ) );
@@ -1304,7 +1303,6 @@ class WC_Stripe_Payment_Request {
 			$data['total']        = [
 				'label'   => $this->total_label,
 				'amount'  => WC_Stripe_Helper::get_stripe_amount( $total ),
-				'pending' => true,
 			];
 
 			$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
