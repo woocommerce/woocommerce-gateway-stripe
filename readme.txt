@@ -130,5 +130,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 6.5.0 - 2022-xx-xx =
 * Fix - Fix terminal location creation if site title is missing.
+* Fix - Add compatibility with WooCommerce 6.6.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
