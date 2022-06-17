@@ -240,9 +240,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > General */
 				'is_stripe_enabled'                     => $this->gateway->is_enabled(),
 				'is_test_mode_enabled'                  => $this->gateway->is_in_test_mode(),
-				'title'                                 => $this->gateway->get_option( 'title' ),
-				'title_upe'                             => $this->gateway->get_option( 'title_upe' ),
-				'description'                           => $this->gateway->get_option( 'description' ),
+				'title'                                 => $this->gateway->get_validated_option( 'title' ),
+				'title_upe'                             => $this->gateway->get_validated_option( 'title_upe' ),
+				'description'                           => $this->gateway->get_validated_option( 'description' ),
 
 				/* Settings > Payments accepted on checkout */
 				'enabled_payment_method_ids'            => $this->gateway->get_upe_enabled_payment_method_ids(),
@@ -250,18 +250,18 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 				/* Settings > Express checkouts */
 				'is_payment_request_enabled'            => 'yes' === $this->gateway->get_option( 'payment_request' ),
-				'payment_request_button_type'           => $this->gateway->get_option( 'payment_request_button_type' ),
-				'payment_request_button_theme'          => $this->gateway->get_option( 'payment_request_button_theme' ),
-				'payment_request_button_size'           => $this->gateway->get_option( 'payment_request_button_size' ),
-				'payment_request_button_locations'      => $this->gateway->get_option( 'payment_request_button_locations' ),
+				'payment_request_button_type'           => $this->gateway->get_validated_option( 'payment_request_button_type' ),
+				'payment_request_button_theme'          => $this->gateway->get_validated_option( 'payment_request_button_theme' ),
+				'payment_request_button_size'           => $this->gateway->get_validated_option( 'payment_request_button_size' ),
+				'payment_request_button_locations'      => $this->gateway->get_validated_option( 'payment_request_button_locations' ),
 
 				/* Settings > Payments & transactions */
 				'is_manual_capture_enabled'             => ! $this->gateway->is_automatic_capture_enabled(),
 				'is_saved_cards_enabled'                => 'yes' === $this->gateway->get_option( 'saved_cards' ),
 				'is_separate_card_form_enabled'         => 'no' === $this->gateway->get_option( 'inline_cc_form' ),
-				'statement_descriptor'                  => $this->gateway->get_option( 'statement_descriptor' ),
+				'statement_descriptor'                  => $this->gateway->get_validated_option( 'statement_descriptor' ),
 				'is_short_statement_descriptor_enabled' => 'yes' === $this->gateway->get_option( 'is_short_statement_descriptor_enabled' ),
-				'short_statement_descriptor'            => $this->gateway->get_option( 'short_statement_descriptor' ),
+				'short_statement_descriptor'            => $this->gateway->get_validated_option( 'short_statement_descriptor' ),
 
 				/* Settings > Advanced settings */
 				'is_debug_log_enabled'                  => 'yes' === $this->gateway->get_option( 'logging' ),
@@ -336,34 +336,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		$validated_title = $this->validate_field( 'title', $title );
-
-		$this->gateway->update_option( 'title', $validated_title );
-	}
-
-	/**
-	 * Ensures validated values.
-	 *
-	 * @param string $field_key the form field key.
-	 * @param string $field_value the form field value.
-	 *
-	 * @return string validated field value.
-	 */
-	private function validate_field( $field_key, $field_value ) {
-		if ( is_callable( [ $this->gateway, 'validate_' . $field_key . '_field' ] ) ) {
-			return $this->gateway->{'validate_' . $field_key . '_field'}( $field_key, $field_value );
-		}
-
-		$form_fields = $this->gateway->get_form_fields();
-		if ( key_exists( $field_key, $form_fields ) ) {
-			$field_type = $form_fields[ $field_key ]['type'];
-
-			if ( is_callable( [ $this->gateway, 'validate_' . $field_type . '_field' ] ) ) {
-				return $this->gateway->{'validate_' . $field_type . '_field'}( $field_key, $field_value );
-			}
-		}
-
-		return $this->gateway->validate_text_field( $field_key, $field_value );
+		$this->gateway->update_validated_option( 'title', $title );
 	}
 
 	/**
@@ -378,9 +351,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		$validated_title_upe = $this->validate_field( 'title_upe', $title_upe );
-
-		$this->gateway->update_option( 'title_upe', $validated_title_upe );
+		$this->gateway->update_validated_option( 'title_upe', $title_upe );
 	}
 
 	/**
@@ -395,9 +366,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		$validated_description = $this->validate_field( 'description', $description );
-
-		$this->gateway->update_option( 'description', $validated_description );
+		$this->gateway->update_validated_option( 'description', $description );
 	}
 
 	/**
@@ -487,12 +456,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		$validated_account_statement_descriptor = $this->validate_field(
-			'statement_descriptor',
-			$account_statement_descriptor
-		);
-
-		$this->gateway->update_option( 'statement_descriptor', $validated_account_statement_descriptor );
+		$this->gateway->update_validated_option( 'statement_descriptor', $account_statement_descriptor );
 	}
 
 	/**
@@ -528,12 +492,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			return;
 		}
 
-		$validated_short_account_statement_descriptor = $this->validate_field(
-			'short_statement_descriptor',
-			$short_account_statement_descriptor
-		);
-
-		$this->gateway->update_option( 'short_statement_descriptor', $validated_short_account_statement_descriptor );
+		$this->gateway->update_validated_option( 'short_statement_descriptor', $short_account_statement_descriptor );
 	}
 
 	/**
@@ -594,7 +553,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			}
 
 			$value = $request->get_param( $request_key );
-			$this->gateway->update_option( $attribute, $value );
+			$this->gateway->update_validated_option( $attribute, $value );
 		}
 	}
 

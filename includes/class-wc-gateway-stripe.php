@@ -97,16 +97,16 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$this->maybe_init_pre_orders();
 
 		// Get setting values.
-		$this->title                = $this->get_option( 'title' );
-		$this->description          = $this->get_option( 'description' );
+		$this->title                = $this->get_validated_option( 'title' );
+		$this->description          = $this->get_validated_option( 'description' );
 		$this->enabled              = $this->get_option( 'enabled' );
 		$this->testmode             = 'yes' === $this->get_option( 'testmode' );
 		$this->inline_cc_form       = 'yes' === $this->get_option( 'inline_cc_form' );
 		$this->capture              = 'yes' === $this->get_option( 'capture', 'yes' );
-		$this->statement_descriptor = WC_Stripe_Helper::clean_statement_descriptor( $this->get_option( 'statement_descriptor' ) );
+		$this->statement_descriptor = WC_Stripe_Helper::clean_statement_descriptor( $this->get_validated_option( 'statement_descriptor' ) );
 		$this->saved_cards          = 'yes' === $this->get_option( 'saved_cards' );
-		$this->secret_key           = $this->testmode ? $this->get_option( 'test_secret_key' ) : $this->get_option( 'secret_key' );
-		$this->publishable_key      = $this->testmode ? $this->get_option( 'test_publishable_key' ) : $this->get_option( 'publishable_key' );
+		$this->secret_key           = $this->testmode ? $this->get_validated_option( 'test_secret_key' ) : $this->get_validated_option( 'secret_key' );
+		$this->publishable_key      = $this->testmode ? $this->get_validated_option( 'test_publishable_key' ) : $this->get_validated_option( 'publishable_key' );
 		$this->payment_request      = 'yes' === $this->get_option( 'payment_request', 'yes' );
 
 		WC_Stripe_API::set_secret_key( $this->secret_key );
@@ -1246,5 +1246,58 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		return $settings;
+	}
+
+	/**
+	 * Validates a field value before updating.
+	 *
+	 * @param string $field_key the form field key.
+	 * @param string $field_value the form field value.
+	 *
+	 * @return bool True if the value was updated, false otherwise.
+	 */
+	public function update_validated_option( $field_key, $field_value ) {
+		$validated_field_value = $this->validate_field( $field_key, $field_value );
+		return $this->update_option( $field_key, $validated_field_value );
+	}
+
+	/**
+	 * Retrieves validated field value.
+	 *
+	 * @param string $field_key the form field key.
+	 * @param mixed $empty_value fallback value.
+	 *
+	 * @return string validated field value.
+	 */
+	public function get_validated_option( $field_key, $empty_value = null ) {
+		$value = parent::get_option( $field_key, $empty_value );
+		return $this->validate_field( $field_key, $value );
+	}
+
+	/**
+	 * Ensures validated field values.
+	 *
+	 * @param string $field_key the form field key.
+	 * @param string $field_value the form field value.
+	 *
+	 * @return string validated field value.
+	 */
+	private function validate_field( $field_key, $field_value ) {
+		if ( is_callable( [ $this, 'validate_' . $field_key . '_field' ] ) ) {
+			return $this->{'validate_' . $field_key . '_field'}( $field_key, $field_value );
+		}
+
+		if ( empty( $this->form_fields ) ) {
+			$this->init_form_fields();
+		}
+		if ( key_exists( $field_key, $this->form_fields ) ) {
+			$field_type = $this->form_fields[ $field_key ]['type'];
+
+			if ( is_callable( [ $this, 'validate_' . $field_type . '_field' ] ) ) {
+				return $this->{'validate_' . $field_type . '_field'}( $field_key, $field_value );
+			}
+		}
+
+		return $this->validate_text_field( $field_key, $field_value );
 	}
 }
