@@ -181,6 +181,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-p24.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-link.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-bancontact.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sofort.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-giropay.php';
@@ -485,6 +486,10 @@ function woocommerce_gateway_stripe() {
 				$settings['upe_checkout_experience_accepted_payments'] = [];
 				$payment_gateways                                      = WC()->payment_gateways->payment_gateways();
 				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
+					if ( WC_Stripe_UPE_Payment_Method_Link::class === $method_class ) {
+						continue;
+					}
+
 					$lpm_gateway_id = constant( $method_class::LPM_GATEWAY_CLASS . '::ID' );
 					if ( isset( $payment_gateways[ $lpm_gateway_id ] ) && 'yes' === $payment_gateways[ $lpm_gateway_id ]->enabled ) {
 						// DISABLE LPM
@@ -522,6 +527,10 @@ function woocommerce_gateway_stripe() {
 				$upe_gateway            = new WC_Stripe_UPE_Payment_Gateway();
 				$upe_enabled_method_ids = $upe_gateway->get_upe_enabled_payment_method_ids();
 				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
+					if ( WC_Stripe_UPE_Payment_Method_Link::class === $method_class ) {
+						continue;
+					}
+
 					if ( ! defined( "$method_class::LPM_GATEWAY_CLASS" ) || ! in_array( $method_class::STRIPE_ID, $upe_enabled_method_ids, true ) ) {
 						continue;
 					}

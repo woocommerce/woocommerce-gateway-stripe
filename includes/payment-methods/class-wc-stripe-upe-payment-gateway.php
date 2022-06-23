@@ -26,6 +26,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_Sepa::class,
 		WC_Stripe_UPE_Payment_Method_P24::class,
 		WC_Stripe_UPE_Payment_Method_Sofort::class,
+		WC_Stripe_UPE_Payment_Method_Link::class,
 	];
 
 	const UPE_APPEARANCE_TRANSIENT = 'wc_stripe_upe_appearance';
@@ -362,15 +363,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		return $settings;
-	}
-
-	/**
-	 * Returns the list of enabled payment method types for UPE.
-	 *
-	 * @return string[]
-	 */
-	public function get_upe_enabled_payment_method_ids() {
-		return $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] );
 	}
 
 	/**

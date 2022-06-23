@@ -60,6 +60,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'transfers'           => 'inactive',
 		'boleto_payments'     => 'inactive',
 		'oxxo_payments'       => 'inactive',
+		'link_payments'       => 'inactive',
 	];
 
 	/**
@@ -77,6 +78,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		'transfers'           => 'active',
 		'boleto_payments'     => 'active',
 		'oxxo_payments'       => 'active',
+		'link_payments'       => 'active',
 	];
 
 	/**
@@ -329,9 +331,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			}
 
 			$mock_capabilities_response = self::MOCK_INACTIVE_CAPABILITIES_RESPONSE;
+			$currency = 'link' === $id ? 'USD' : 'EUR';
 
 			$this->set_mock_payment_method_return_value( 'get_capabilities_response', $mock_capabilities_response, true );
-			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'EUR' );
+			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', $currency );
 			$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
 
 			$payment_method = $this->mock_payment_methods[ $id ];
@@ -341,7 +344,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			$mock_capabilities_response[ $capability_key ] = 'active';
 
 			$this->set_mock_payment_method_return_value( 'get_capabilities_response', $mock_capabilities_response, true );
-			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'EUR' );
+			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', $currency );
 			$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
 
 			$payment_method = $this->mock_payment_methods[ $id ];
@@ -382,9 +385,11 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	public function test_payment_methods_are_reusable_if_cart_contains_subscription() {
 		$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', true );
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
-		$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'EUR' );
 
-		foreach ( $this->mock_payment_methods as $payment_method ) {
+		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
+			$currency = 'link' === $payment_method_id ? 'USD' : 'EUR';
+			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', $currency );
+
 			if ( $payment_method->is_reusable() ) {
 				$this->assertTrue( $payment_method->is_enabled_at_checkout() );
 			} else {

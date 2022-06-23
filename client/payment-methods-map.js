@@ -1,4 +1,5 @@
 import { __ } from '@wordpress/i18n';
+import interpolateComponents from 'interpolate-components';
 import CreditCardIcon from './payment-method-icons/cards';
 import GiropayIcon from './payment-method-icons/giropay';
 import SofortIcon from './payment-method-icons/sofort';
@@ -9,6 +10,7 @@ import IdealIcon from './payment-method-icons/ideal';
 import P24Icon from './payment-method-icons/p24';
 import BoletoIcon from './payment-method-icons/boleto';
 import OxxoIcon from './payment-method-icons/oxxo';
+import LinkIcon from './payment-method-icons/link';
 
 export default {
 	card: {
@@ -21,6 +23,40 @@ export default {
 		Icon: CreditCardIcon,
 		currencies: [],
 		capability: 'card_payments',
+		allows_manual_capture: true,
+	},
+	link: {
+		id: 'link',
+		label: __( 'Stripe Link', 'woocommerce-gateway-stripe' ),
+		description: interpolateComponents( {
+			mixedString: __(
+				'By enabling this feature, you agree to the ' +
+					'{{stripeLinkTerms}}Link Terms{{/stripeLinkTerms}}, ' +
+					'and {{privacyPolicy}}Privacy Policy{{/privacyPolicy}}',
+				'woocommerce-payments'
+			),
+			components: {
+				stripeLinkTerms: (
+					// eslint-disable-next-line jsx-a11y/anchor-has-content
+					<a
+						target="_blank"
+						rel="noreferrer"
+						href="https://link.co/terms"
+					/>
+				),
+				privacyPolicy: (
+					// eslint-disable-next-line jsx-a11y/anchor-has-content
+					<a
+						target="_blank"
+						rel="noreferrer"
+						href="https://link.co/privacy"
+					/>
+				),
+			},
+		} ),
+		Icon: LinkIcon,
+		currencies: [ 'USD' ],
+		capability: 'link_payments',
 		allows_manual_capture: true,
 	},
 	giropay: {
