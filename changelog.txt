@@ -2,6 +2,7 @@
 
 = 6.5.0 - 2022-xx-xx =
 * Fix - Fix terminal location creation if site title is missing.
+* Add - Stripe Link payment method option in admin
 
 = 6.4.1 - 2022-06-01 =
 * Fix - Ensure proper URL formatting.

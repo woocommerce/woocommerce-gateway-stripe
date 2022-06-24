@@ -130,5 +130,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 6.5.0 - 2022-xx-xx =
 * Fix - Fix terminal location creation if site title is missing.
+* Add - Stripe Link payment method option in admin
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
