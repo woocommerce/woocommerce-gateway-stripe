@@ -3,6 +3,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+$is_gte_wc6_6 = defined( WC_VERSION ) && version_compare( WC_VERSION, '6.6', '>=' );
+
 $stripe_settings = apply_filters(
 	'wc_stripe_settings',
 	[
@@ -15,14 +17,14 @@ $stripe_settings = apply_filters(
 		],
 		'title'                               => [
 			'title'       => __( 'Title', 'woocommerce-gateway-stripe' ),
-			'type'        => 'text',
+			'type'        => $is_gte_wc6_6 ? 'safe_text' : 'text',
 			'description' => __( 'This controls the title which the user sees during checkout.', 'woocommerce-gateway-stripe' ),
 			'default'     => __( 'Credit Card (Stripe)', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		],
 		'title_upe'                           => [
 			'title'       => __( 'Title', 'woocommerce-gateway-stripe' ),
-			'type'        => 'text',
+			'type'        => $is_gte_wc6_6 ? 'safe_text' : 'text',
 			'description' => __( 'This controls the title which the user sees during checkout when multiple payment methods are enabled.', 'woocommerce-gateway-stripe' ),
 			'default'     => __( 'Popular payment methods', 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
@@ -104,6 +106,13 @@ $stripe_settings = apply_filters(
 			'title'       => __( 'Statement Descriptor', 'woocommerce-gateway-stripe' ),
 			'type'        => 'text',
 			'description' => __( 'Statement descriptors are limited to 22 characters, cannot use the special characters >, <, ", \, \', *, /, (, ), {, }, and must not consist solely of numbers. This will appear on your customer\'s statement in capital letters.', 'woocommerce-gateway-stripe' ),
+			'default'     => '',
+			'desc_tip'    => true,
+		],
+		'short_statement_descriptor'          => [
+			'title'       => __( 'Short Statement Descriptor', 'woocommerce-gateway-stripe' ),
+			'type'        => 'text',
+			'description' => __( 'Shortened version of the statement descriptor in combination with the customer order number.', 'woocommerce-gateway-stripe' ),
 			'default'     => '',
 			'desc_tip'    => true,
 		],
