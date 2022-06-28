@@ -487,6 +487,8 @@ function woocommerce_gateway_stripe() {
 				$payment_gateways                                      = WC()->payment_gateways->payment_gateways();
 				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
 					if ( WC_Stripe_UPE_Payment_Method_Link::class === $method_class ) {
+						// ENABLE UPE METHOD
+						$settings['upe_checkout_experience_accepted_payments'][] = $method_class::STRIPE_ID;
 						continue;
 					}
 
