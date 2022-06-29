@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 6.5.0 - 2022-xx-xx =
+= 6.4.2 - 2022-xx-xx =
 * Fix - Fix terminal location creation if site title is missing.
 * Fix - Add compatibility with WooCommerce 6.6.
 
