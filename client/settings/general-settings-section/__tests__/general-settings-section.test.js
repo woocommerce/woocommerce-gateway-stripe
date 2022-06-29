@@ -29,8 +29,11 @@ jest.mock(
 	'wcstripe/components/payment-method-capability-status-pill',
 	() => () => null
 );
-jest.mock( '../../loadable-settings-section', () => ( { children } ) =>
-	children
+jest.mock(
+	'../../loadable-settings-section',
+	() =>
+		( { children } ) =>
+			children
 );
 
 describe( 'GeneralSettingsSection', () => {
@@ -47,33 +50,6 @@ describe( 'GeneralSettingsSection', () => {
 			jest.fn(),
 		] );
 		useAccount.mockReturnValue( { isRefreshing: false } );
-	} );
-
-	it( 'should render the card information with action elements if UPE is disabled', () => {
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
-
-		expect(
-			screen.queryByText( 'Credit card / debit card' )
-		).toBeInTheDocument();
-		expect( screen.getByLabelText( 'Stripe Link' ) ).toBeInTheDocument();
-		expect( screen.getByLabelText( 'Stripe Link' ) ).toBeChecked();
-		expect(
-			screen.queryByText(
-				'Let your customers pay with major credit and debit cards without leaving your store.'
-			)
-		).toBeInTheDocument();
-		expect(
-			screen.queryByText( 'Get more payment methods' )
-		).not.toBeInTheDocument();
-		expect(
-			screen.queryByRole( 'button', {
-				name: 'Payment methods menu',
-			} )
-		).not.toBeInTheDocument();
 	} );
 
 	it( 'should show information to screen readers about the payment methods being updated', () => {
