@@ -1,13 +1,13 @@
 *** Changelog ***
 
 = 6.5.0 - 2022-xx-xx =
+* Add - Stripe Link payment method option in admin
 
 = 6.4.3 - 2022-06-30 =
 * Fix - Replace unnecessary throws with empty string when keys are invalid.
 
 = 6.4.2 - 2022-06-29 =
 * Fix - Fix terminal location creation if site title is missing.
-* Add - Stripe Link payment method option in admin
 * Fix - Add compatibility with WooCommerce 6.6.
 
 = 6.4.1 - 2022-06-01 =
