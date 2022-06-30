@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 6.5.0 - 2022-xx-xx =
+= 6.4.3 - 2022-xx-xx =
 * Fix - Replace unnecessary throws with empty string when keys are invalid.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
