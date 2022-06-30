@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 6.5.0 - 2022-xx-xx =
+= 6.4.3 - 2022-06-30 =
 * Fix - Replace unnecessary throws with empty string when keys are invalid.
 
 = 6.4.2 - 2022-06-29 =
