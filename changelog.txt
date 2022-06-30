@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 6.5.0 - 2022-xx-xx =
+* Fix - Replace unnecessary throws with empty string when keys are invalid.
 
 = 6.4.2 - 2022-06-29 =
 * Fix - Fix terminal location creation if site title is missing.
