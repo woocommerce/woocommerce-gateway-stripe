@@ -70,10 +70,7 @@ export default class WCStripeAPI {
 
 		if ( ! this.stripe ) {
 			if ( isUPEEnabled ) {
-				let betas = [];
-				if ( isUPEEnabled ) {
-					betas.push( 'payment_element_beta_1' );
-				}
+				let betas = [ 'payment_element_beta_1' ];
 				if ( isStripeLinkEnabled ) {
 					betas = betas.concat( [
 						'link_autofill_modal_beta_1',
