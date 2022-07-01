@@ -58,7 +58,8 @@ export default class WCStripeAPI {
 	 * @return {Object} The Stripe Object.
 	 */
 	getStripe() {
-		const { key, locale, isUPEEnabled, paymentMethodsConfig } = this.options;
+		const { key, locale, isUPEEnabled, paymentMethodsConfig } =
+			this.options;
 		const isStripeLinkEnabled =
 			undefined !== paymentMethodsConfig.card &&
 			undefined !== paymentMethodsConfig.link;
@@ -87,7 +88,7 @@ export default class WCStripeAPI {
 	createStripe( key, locale, betas = [] ) {
 		const options = { locale };
 
-		if ( betas ) {
+		if ( betas.length ) {
 			options.betas = betas;
 		}
 
