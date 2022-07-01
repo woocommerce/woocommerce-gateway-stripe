@@ -62,7 +62,7 @@ export default class WCStripeAPI {
 			key,
 			locale,
 			isUPEEnabled,
-			paymentMethodsConfig
+			paymentMethodsConfig,
 		} = this.options;
 		const isStripeLinkEnabled =
 			undefined !== paymentMethodsConfig.card &&
