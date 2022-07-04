@@ -10,8 +10,6 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 
 	const STRIPE_ID = 'link';
 
-	const LPM_GATEWAY_CLASS = null;
-
 	/**
 	 * Constructor for Link payment method
 	 */
@@ -23,7 +21,8 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 		$this->supported_currencies = [ 'USD' ];
 		$this->label                = __( 'Stripe Link', 'woocommerce-gateway-stripe' );
 		$this->description          = __(
-			'Pay with Stripe Link',
+			'Link is a payment method that allows customers to save payment information  and use the payment details
+			for further payments.',
 			'woocommerce-gateway-stripe'
 		);
 	}

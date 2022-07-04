@@ -124,6 +124,9 @@ class WC_Stripe_Test extends WP_UnitTestCase {
 		);
 
 		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $upe_method ) {
+			if ( ! defined( "$upe_method::LPM_GATEWAY_CLASS" ) ) {
+				continue;
+			}
 			$this->assertNotContains( $upe_method::LPM_GATEWAY_CLASS, $loaded_gateway_classes );
 		}
 

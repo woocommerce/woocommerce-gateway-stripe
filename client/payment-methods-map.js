@@ -1,5 +1,4 @@
 import { __ } from '@wordpress/i18n';
-import interpolateComponents from 'interpolate-components';
 import CreditCardIcon from './payment-method-icons/cards';
 import GiropayIcon from './payment-method-icons/giropay';
 import SofortIcon from './payment-method-icons/sofort';
@@ -28,32 +27,11 @@ export default {
 	link: {
 		id: 'link',
 		label: __( 'Stripe Link', 'woocommerce-gateway-stripe' ),
-		description: interpolateComponents( {
-			mixedString: __(
-				'By enabling this feature, you agree to the ' +
-					'{{stripeLinkTerms}}Link Terms{{/stripeLinkTerms}}, ' +
-					'and {{privacyPolicy}}Privacy Policy{{/privacyPolicy}}',
-				'woocommerce-payments'
-			),
-			components: {
-				stripeLinkTerms: (
-					// eslint-disable-next-line jsx-a11y/anchor-has-content
-					<a
-						target="_blank"
-						rel="noreferrer"
-						href="https://link.co/terms"
-					/>
-				),
-				privacyPolicy: (
-					// eslint-disable-next-line jsx-a11y/anchor-has-content
-					<a
-						target="_blank"
-						rel="noreferrer"
-						href="https://link.co/privacy"
-					/>
-				),
-			},
-		} ),
+		description: __(
+			'Link is a payment method that allows customers to save payment information ' +
+				'and use the payment details for further payments.',
+			'woocommerce-gateway-stripe'
+		),
 		Icon: LinkIcon,
 		currencies: [ 'USD' ],
 		capability: 'link_payments',

@@ -413,9 +413,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$available_payment_methods = [];
 
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+			//@TODO remove this when Stripe Link is fully implemented
+			if (
+				WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID === $payment_method_class::STRIPE_ID &&
+				! get_option( '_wc_stripe_feature_link' )
+			) {
+				continue;
+			}
+
 			$available_payment_methods[] = $payment_method_class::STRIPE_ID;
 		}
-
 		return $available_payment_methods;
 	}
 
