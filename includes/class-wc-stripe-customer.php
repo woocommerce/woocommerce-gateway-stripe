@@ -625,6 +625,7 @@ class WC_Stripe_Customer {
 			'ar'    => 'ar-AR',
 			'da_DK' => 'da-DK',
 			'de_DE' => 'de-DE',
+			'de_DE_formal' => 'de-DE',
 			'en'    => 'en-US',
 			'es_ES' => 'es-ES',
 			'es_CL' => 'es-419',
