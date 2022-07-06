@@ -371,7 +371,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string[]
 	 */
 	public function get_upe_enabled_payment_method_ids() {
-			return $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] );
+		return $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] );
 	}
 
 	/**

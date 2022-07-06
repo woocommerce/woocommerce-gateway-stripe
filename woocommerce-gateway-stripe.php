@@ -514,7 +514,7 @@ function woocommerce_gateway_stripe() {
 					}
 				}
 				if ( empty( $settings['upe_checkout_experience_accepted_payments'] ) ) {
-						$settings['upe_checkout_experience_accepted_payments'] = [ 'card' ];
+					$settings['upe_checkout_experience_accepted_payments'] = [ 'card' ];
 				} else {
 					// The 'stripe' gateway must be enabled for UPE if any LPMs were enabled.
 					$settings['enabled'] = 'yes';
