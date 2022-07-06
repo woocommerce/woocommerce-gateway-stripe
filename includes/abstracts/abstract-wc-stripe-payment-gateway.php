@@ -507,14 +507,34 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$order_id = $order->get_id();
 		$captured = ( isset( $response->captured ) && $response->captured ) ? 'yes' : 'no';
 
+		/**
+		 * Avoid order note race condition with webhooks when using UPE.
+		 *
+		 * Sometimes the Stripe webhook notifying about payment being captured
+		 * comes while the request to place an order is still in progress,
+		 * causing a race condition where the order meta data isn't updated in
+		 * the DB yet for the webhook request.
+		 *
+		 * This greatly reduces the chance of this race condition happening:
+		 *
+		 * 1. Save order meta data in case any metadata has been set and isn't saved yet.
+		 * 2. Force reload order metadata. (This would wipe out unsaved metadata if we didn't save first.)
+		 * 3. Set a variable that indicates whether this order's payment has been captured yet.
+		 * 4. Save order meta data again to make sure the captured status is up-to-date in the DB ASAP.
+		 */
+		$order->save_meta_data();
+		$order->read_meta_data( true );
+		$was_already_captured = $order->get_meta( '_stripe_charge_captured', true );
+
 		// Store charge data.
 		$order->update_meta_data( '_stripe_charge_captured', $captured );
+		$order->save_meta_data();
 
 		if ( isset( $response->balance_transaction ) ) {
 			$this->update_fees( $order, is_string( $response->balance_transaction ) ? $response->balance_transaction : $response->balance_transaction->id );
 		}
 
-		if ( 'yes' === $captured ) {
+		if ( 'yes' === $captured && 'yes' !== $was_already_captured ) {
 			/**
 			 * Charge can be captured but in a pending state. Payment methods
 			 * that are asynchronous may take couple days to clear. Webhook will
@@ -545,7 +565,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$order->add_order_note( $localized_message );
 				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
 			}
-		} else {
+		} elseif ( 'no' === $captured ) {
 			$order->set_transaction_id( $response->id );
 
 			if ( $order->has_status( [ 'pending', 'failed' ] ) ) {
