@@ -13,7 +13,6 @@ jQuery( function($ ) {
 	} ),
 		paymentRequestType;
 
-	// console.log('plm');
 	// console.log(wc_stripe_payment_request_params)
 	// ;
 	/**
@@ -782,15 +781,6 @@ jQuery( function($ ) {
 			} else {
 				console.log('init! 2');
 				wc_stripe_payment_request.getCartDetails();
-				//
-				// var elements = stripe.elements( { locale: wc_stripe_payment_request_params.button.locale } );
-				// const linkAutofill = stripe.linkAutofillModal( elements );
-				// console.log(linkAutofill);
-				// // linkAutofill.launch( { email: 'dan.paun@automattic.com' } );
-				// $( '#billing_email' ).on( 'keyup', ( event ) => {
-				// 	console.log('test key up');
-				// 	linkAutofill.launch( { email: event.target.value } );
-				// } );
 
 
 			}
