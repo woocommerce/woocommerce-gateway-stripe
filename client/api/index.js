@@ -67,7 +67,7 @@ export default class WCStripeAPI {
 		const isStripeLinkEnabled =
 			undefined !== paymentMethodsConfig.card &&
 			undefined !== paymentMethodsConfig.link;
-
+console.log('here123');
 		if ( ! this.stripe ) {
 			if ( isUPEEnabled ) {
 				let betas = [ 'payment_element_beta_1' ];
@@ -77,9 +77,10 @@ export default class WCStripeAPI {
 						'link_beta_2',
 					] );
 				}
-
+console.log(betas);
 				this.stripe = this.createStripe( key, locale, betas );
 			} else {
+console.log('no betas');
 				this.stripe = this.createStripe( key, locale );
 			}
 		}
@@ -96,7 +97,7 @@ export default class WCStripeAPI {
 		if ( betas.includes( 'link_beta_2' ) ) {
 			options.apiVersion = '2020-08-27;link_beta=v1';
 		}
-
+console.log(options);
 		return new Stripe( key, options );
 	}
 
@@ -319,6 +320,7 @@ export default class WCStripeAPI {
 	 * @return {Promise} The final promise for the request to the server.
 	 */
 	saveUPEAppearance( appearance ) {
+console.log('save upe');console.log(appearance);
 		return this.request( this.getAjaxUrl( 'save_upe_appearance' ), {
 			appearance,
 			_ajax_nonce: this.options?.saveUPEAppearanceNonce,

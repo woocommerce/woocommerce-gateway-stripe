@@ -108,7 +108,7 @@ export const getAppearance = () => {
 		color: selectedTabHoverRules.color,
 	};
 
-	const appearance = {
+	let appearance = {
 		rules: {
 			'.Input': inputRules,
 			'.Input:focus': inputFocusRules,
@@ -121,8 +121,21 @@ export const getAppearance = () => {
 			'.TabIcon:hover': tabIconHoverRules,
 			'.TabIcon--selected': selectedTabIconRules,
 			'.TabIcon--selected:hover': selectedTabIconHoverRules,
-		},
+			'.CheckboxInput': {
+				'backgroundColor': 'var(--colorBackground)',
+				'borderRadius': 'min(5px, var(--borderRadius))',
+				'boxShadow': '0px 1px 1px rgb(0 0 0 / 3%), 0px 3px 6px rgb(0 0 0 / 2%)',
+				'transition': 'background 0.15s ease, border 0.15s ease, box-shadow 0.15s ease',
+				'border': '1px solid var(--p-colorBackgroundDeemphasize10)'
+			},
+			'.CheckboxInput--checked': {
+				'backgroundColor': 'var(--colorPrimary)	',
+				'borderColor': 'var(--colorPrimary)'
+			},
+			'.p-Checkmark-arm': {
+				'background': 'white'
+			}
+		}
 	};
-
 	return appearance;
 };

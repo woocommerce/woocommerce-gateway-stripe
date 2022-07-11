@@ -1,12 +1,21 @@
 /* global wc_stripe_payment_request_params, Stripe */
-jQuery( function( $ ) {
-	'use strict';
 
+
+jQuery( function($ ) {
+	'use strict';
 	var stripe = Stripe( wc_stripe_payment_request_params.stripe.key, {
 		locale: wc_stripe_payment_request_params.stripe.locale
+		// betas: [
+		// 	'link_autofill_modal_beta_1',
+		// 	'link_beta_2',
+		// ],
+		// apiVersion: '2020-08-27;link_beta=v1'
 	} ),
 		paymentRequestType;
 
+	// console.log('plm');
+	// console.log(wc_stripe_payment_request_params)
+	// ;
 	/**
 	 * Object to handle Stripe payment forms.
 	 */
@@ -766,15 +775,29 @@ jQuery( function( $ ) {
 		 * @version 4.0.0
 		 */
 		init: function() {
+			console.log('init!');
 			if ( wc_stripe_payment_request_params.is_product_page ) {
 				wc_stripe_payment_request.startPaymentRequest( '' );
+				console.log('init! 1');
 			} else {
+				console.log('init! 2');
 				wc_stripe_payment_request.getCartDetails();
+				//
+				// var elements = stripe.elements( { locale: wc_stripe_payment_request_params.button.locale } );
+				// const linkAutofill = stripe.linkAutofillModal( elements );
+				// console.log(linkAutofill);
+				// // linkAutofill.launch( { email: 'dan.paun@automattic.com' } );
+				// $( '#billing_email' ).on( 'keyup', ( event ) => {
+				// 	console.log('test key up');
+				// 	linkAutofill.launch( { email: event.target.value } );
+				// } );
+
+
 			}
 
 		},
 	};
-
+	console.log('initzzzzzz!');
 	wc_stripe_payment_request.init();
 
 	// We need to refresh payment request data when total is updated.
