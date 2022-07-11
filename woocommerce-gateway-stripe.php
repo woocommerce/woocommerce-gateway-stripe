@@ -242,6 +242,9 @@ function woocommerce_gateway_stripe() {
 				add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), [ $this, 'plugin_action_links' ] );
 				add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
 
+				// Update the email field position.
+				add_filter( 'woocommerce_billing_fields', [ $this, 'checkout_update_email_field_priority' ], 50 );
+
 				// Modify emails emails.
 				add_filter( 'woocommerce_email_classes', [ $this, 'add_emails' ], 20 );
 
@@ -646,6 +649,35 @@ function woocommerce_gateway_stripe() {
 				$this->stripe_gateway = new WC_Gateway_Stripe();
 
 				return $this->stripe_gateway;
+			}
+
+			/**
+			 * Move the email field to the top of the Checkout page.
+			 *
+			 * @param array $fields WooCommerce checkout fields.
+			 *
+			 * @return array WooCommerce checkout fields.
+			 */
+			public function checkout_update_email_field_priority( $fields ) {
+				$is_link_enabled = in_array(
+					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+					$this->stripe_gateway->get_upe_enabled_payment_method_ids(),
+					true
+				);
+
+				if ( $is_link_enabled ) {
+					// Update the field priority.
+					$fields['billing_email']['priority'] = 1;
+
+					// Add extra `wcpay-checkout-email-field` class.
+					$fields['billing_email']['class'][] = 'stripe-gateway-checkout-email-field';
+
+					// Append StripeLink modal trigger button for logged in users.
+					$fields['billing_email']['label'] = $fields['billing_email']['label']
+						. ' <button class="stripe-gateway-stripelink-modal-trigger"></button>';
+				}
+
+				return $fields;
 			}
 		}
 
