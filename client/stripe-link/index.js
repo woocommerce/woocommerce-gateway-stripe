@@ -1,8 +1,6 @@
-/* global jQuery */
-
 const showLinkButton = ( linkAutofill ) => {
 	// Display StripeLink button if email field is prefilled.
-	if ( '' !== jQuery( '#billing_email' ).val() ) {
+	if ( jQuery( '#billing_email' ).val() !== '' ) {
 		const linkButtonTop =
 			jQuery( '#billing_email' ).position().top +
 			( jQuery( '#billing_email' ).outerHeight() - 40 ) / 2;
