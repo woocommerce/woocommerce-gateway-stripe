@@ -123,5 +123,6 @@ export const getAppearance = () => {
 			'.TabIcon--selected:hover': selectedTabIconHoverRules,
 		},
 	};
+
 	return appearance;
 };

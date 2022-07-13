@@ -1,8 +1,7 @@
 /* global wc_stripe_payment_request_params, Stripe */
-
-
 jQuery( function($ ) {
 	'use strict';
+
 	var stripe = Stripe( wc_stripe_payment_request_params.stripe.key, {
 		locale: wc_stripe_payment_request_params.stripe.locale
 	} ),
@@ -775,6 +774,7 @@ jQuery( function($ ) {
 
 		},
 	};
+
 	wc_stripe_payment_request.init();
 
 	// We need to refresh payment request data when total is updated.
