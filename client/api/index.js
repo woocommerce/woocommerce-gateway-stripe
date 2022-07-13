@@ -58,29 +58,19 @@ export default class WCStripeAPI {
 	 * @return {Object} The Stripe Object.
 	 */
 	getStripe() {
-		const {
-			key,
-			locale,
-			isUPEEnabled,
-			paymentMethodsConfig,
-		} = this.options;
+		const { key, locale, isUPEEnabled, paymentMethodsConfig } =
+			this.options;
 		const isStripeLinkEnabled =
 			undefined !== paymentMethodsConfig.card &&
 			undefined !== paymentMethodsConfig.link;
-console.log('here123');
 		if ( ! this.stripe ) {
 			if ( isUPEEnabled ) {
 				let betas = [ 'payment_element_beta_1' ];
 				if ( isStripeLinkEnabled ) {
-					betas = betas.concat( [
-						'link_autofill_modal_beta_1',
-						'link_beta_2',
-					] );
+					betas = betas.concat( [ 'link_autofill_modal_beta_1' ] );
 				}
-console.log(betas);
 				this.stripe = this.createStripe( key, locale, betas );
 			} else {
-console.log('no betas');
 				this.stripe = this.createStripe( key, locale );
 			}
 		}
@@ -94,10 +84,9 @@ console.log('no betas');
 			options.betas = betas;
 		}
 
-		if ( betas.includes( 'link_beta_2' ) ) {
+		if ( betas.includes( 'link_autofill_modal_beta_1' ) ) {
 			options.apiVersion = '2020-08-27;link_beta=v1';
 		}
-console.log(options);
 		return new Stripe( key, options );
 	}
 
@@ -320,7 +309,6 @@ console.log(options);
 	 * @return {Promise} The final promise for the request to the server.
 	 */
 	saveUPEAppearance( appearance ) {
-console.log('save upe');console.log(appearance);
 		return this.request( this.getAjaxUrl( 'save_upe_appearance' ), {
 			appearance,
 			_ajax_nonce: this.options?.saveUPEAppearanceNonce,

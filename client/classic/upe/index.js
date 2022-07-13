@@ -2,9 +2,9 @@ import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
 import { getStripeServerData, getUPETerms } from '../../stripe-utils';
 import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
+import enableStripeLinkPaymentMethod from '../../stripe-link';
 import { legacyHashchangeHandler } from './legacy-support';
 import './style.scss';
-import enableStripeLinkPaymentMethod from "../../stripe-link";
 
 jQuery( function ( $ ) {
 	const key = getStripeServerData()?.key;
@@ -14,9 +14,6 @@ jQuery( function ( $ ) {
 	const isStripeLinkEnabled =
 		undefined !== paymentMethodsConfig.card &&
 		undefined !== paymentMethodsConfig.link;
-console.log(isUPEEnabled)
-	;
-console.log('here2');
 	if ( ! key ) {
 		// If no configuration is present, probably this is not the checkout page.
 		return;
@@ -99,47 +96,6 @@ console.log('here2');
 	const elements = api.getStripe().elements( {
 		fonts: getFontRulesFromPage(),
 	} );
-console.log('elements:');
-console.log(elements)
-
-
-
-	if ( isStripeLinkEnabled ) {
-		enableStripeLinkPaymentMethod( {
-			api: api,
-			elements: elements,
-			emailId: 'billing_email',
-			complete_billing: true,
-			complete_shipping: () => {
-				return ! document.getElementById(
-					'ship-to-different-address-checkbox'
-				).checked;
-			},
-			shipping_fields: {
-				line1: 'shipping_address_1',
-				line2: 'shipping_address_2',
-				city: 'shipping_city',
-				state: 'shipping_state',
-				postal_code: 'shipping_postcode',
-				country: 'shipping_country',
-			},
-			billing_fields: {
-				line1: 'billing_address_1',
-				line2: 'billing_address_2',
-				city: 'billing_city',
-				state: 'billing_state',
-				postal_code: 'billing_postcode',
-				country: 'billing_country',
-			},
-		} );
-	}
-
-	// const linkAutofill = api.getStripe().linkAutofillModal( elements );
-	// console.log('upe key yp! init');
-	// $( '#billing_email' ).on( 'keyup', ( event ) => {
-	// 	console.log('upe key yp!');
-	// 	linkAutofill.launch( { email: event.target.value } );
-	// } );
 
 	const sepaElementsOptions =
 		getStripeServerData()?.sepaElementsOptions ?? {};
@@ -349,207 +305,13 @@ console.log(elements)
 				paymentIntentId = id;
 
 				let appearance = getStripeServerData()?.upeAppeareance;
-console.log('app:');
-				// appearance = {
-				// 	"rules": {
-				// 		".Input": {
-				// 			"backgroundColor": "rgb(242, 242, 242)",
-				// 			"borderBottomColor": "rgb(67, 69, 75)",
-				// 			"borderBottomLeftRadius": "0px",
-				// 			"borderBottomRightRadius": "0px",
-				// 			"borderBottomStyle": "none",
-				// 			"borderBottomWidth": "0px",
-				// 			"borderLeftColor": "rgb(67, 69, 75)",
-				// 			"borderLeftStyle": "none",
-				// 			"borderLeftWidth": "0px",
-				// 			"borderRightColor": "rgb(67, 69, 75)",
-				// 			"borderRightStyle": "none",
-				// 			"borderRightWidth": "0px",
-				// 			"borderTopColor": "rgb(67, 69, 75)",
-				// 			"borderTopLeftRadius": "0px",
-				// 			"borderTopRightRadius": "0px",
-				// 			"borderTopStyle": "none",
-				// 			"borderTopWidth": "0px",
-				// 			"boxShadow": "rgba(0, 0, 0, 0.125) 0px 1px 1px 0px inset",
-				// 			"color": "rgb(67, 69, 75)",
-				// 			"fontFamily": "\"Source Sans Pro\", HelveticaNeue-Light, \"Helvetica Neue Light\", \"Helvetica Neue\", Helvetica, Arial, \"Lucida Grande\", sans-serif",
-				// 			"fontSize": "16px",
-				// 			"fontWeight": "400",
-				// 			"letterSpacing": "normal",
-				// 			"lineHeight": "25.888px",
-				// 			"outlineOffset": "0px",
-				// 			"paddingBottom": "9.88875px",
-				// 			"paddingLeft": "9.88875px",
-				// 			"paddingRight": "9.88875px",
-				// 			"paddingTop": "9.88875px",
-				// 			"textDecoration": "none solid rgb(67, 69, 75)",
-				// 			"textShadow": "none",
-				// 			"textTransform": "none",
-				// 			"outline": "0px none rgb(67, 69, 75)"
-				// 		},
-				// 		".Input:focus": {
-				// 			"backgroundColor": "rgb(237, 237, 237)",
-				// 			"borderBottomColor": "rgb(67, 69, 75)",
-				// 			"borderBottomLeftRadius": "0px",
-				// 			"borderBottomRightRadius": "0px",
-				// 			"borderBottomStyle": "none",
-				// 			"borderBottomWidth": "0px",
-				// 			"borderLeftColor": "rgb(67, 69, 75)",
-				// 			"borderLeftStyle": "none",
-				// 			"borderLeftWidth": "0px",
-				// 			"borderRightColor": "rgb(67, 69, 75)",
-				// 			"borderRightStyle": "none",
-				// 			"borderRightWidth": "0px",
-				// 			"borderTopColor": "rgb(67, 69, 75)",
-				// 			"borderTopLeftRadius": "0px",
-				// 			"borderTopRightRadius": "0px",
-				// 			"borderTopStyle": "none",
-				// 			"borderTopWidth": "0px",
-				// 			"boxShadow": "rgba(0, 0, 0, 0.125) 0px 1px 1px 0px inset",
-				// 			"color": "rgb(67, 69, 75)",
-				// 			"fontFamily": "\"Source Sans Pro\", HelveticaNeue-Light, \"Helvetica Neue Light\", \"Helvetica Neue\", Helvetica, Arial, \"Lucida Grande\", sans-serif",
-				// 			"fontSize": "16px",
-				// 			"fontWeight": "400",
-				// 			"letterSpacing": "normal",
-				// 			"lineHeight": "25.888px",
-				// 			"outlineOffset": "0px",
-				// 			"paddingBottom": "9.88875px",
-				// 			"paddingLeft": "9.88875px",
-				// 			"paddingRight": "9.88875px",
-				// 			"paddingTop": "9.88875px",
-				// 			"textDecoration": "none solid rgb(67, 69, 75)",
-				// 			"textShadow": "none",
-				// 			"textTransform": "none",
-				// 			"outline": "2px solid rgb(150, 88, 138)"
-				// 		},
-				// 		".Input--invalid": {
-				// 			"backgroundColor": "rgb(242, 242, 242)",
-				// 			"borderBottomColor": "rgb(67, 69, 75)",
-				// 			"borderBottomLeftRadius": "0px",
-				// 			"borderBottomRightRadius": "0px",
-				// 			"borderBottomStyle": "none",
-				// 			"borderBottomWidth": "0px",
-				// 			"borderLeftColor": "rgb(67, 69, 75)",
-				// 			"borderLeftStyle": "none",
-				// 			"borderLeftWidth": "0px",
-				// 			"borderRightColor": "rgb(67, 69, 75)",
-				// 			"borderRightStyle": "none",
-				// 			"borderRightWidth": "0px",
-				// 			"borderTopColor": "rgb(67, 69, 75)",
-				// 			"borderTopLeftRadius": "0px",
-				// 			"borderTopRightRadius": "0px",
-				// 			"borderTopStyle": "none",
-				// 			"borderTopWidth": "0px",
-				// 			"boxShadow": "rgb(226, 64, 28) 2px 0px 0px 0px inset",
-				// 			"color": "rgb(67, 69, 75)",
-				// 			"fontFamily": "\"Source Sans Pro\", HelveticaNeue-Light, \"Helvetica Neue Light\", \"Helvetica Neue\", Helvetica, Arial, \"Lucida Grande\", sans-serif",
-				// 			"fontSize": "16px",
-				// 			"fontWeight": "400",
-				// 			"letterSpacing": "normal",
-				// 			"lineHeight": "25.888px",
-				// 			"outlineOffset": "0px",
-				// 			"paddingBottom": "9.88875px",
-				// 			"paddingLeft": "9.88875px",
-				// 			"paddingRight": "9.88875px",
-				// 			"paddingTop": "9.88875px",
-				// 			"textDecoration": "none solid rgb(67, 69, 75)",
-				// 			"textShadow": "none",
-				// 			"textTransform": "none",
-				// 			"outline": "0px none rgb(67, 69, 75)"
-				// 		},
-				// 		".Label": {
-				// 			"color": "rgb(109, 109, 109)",
-				// 			"fontFamily": "\"Source Sans Pro\", HelveticaNeue-Light, \"Helvetica Neue Light\", \"Helvetica Neue\", Helvetica, Arial, \"Lucida Grande\", sans-serif",
-				// 			"fontSize": "16px",
-				// 			"fontWeight": "400",
-				// 			"letterSpacing": "normal",
-				// 			"lineHeight": "25.888px",
-				// 			"paddingBottom": "0px",
-				// 			"paddingLeft": "0px",
-				// 			"paddingRight": "0px",
-				// 			"paddingTop": "0px",
-				// 			"textDecoration": "none solid rgb(109, 109, 109)",
-				// 			"textShadow": "none",
-				// 			"textTransform": "none"
-				// 		},
-				// 		".Tab": {
-				// 			"backgroundColor": "rgb(242, 242, 242)",
-				// 			"color": "rgb(67, 69, 75)",
-				// 			"fontFamily": "\"Source Sans Pro\", HelveticaNeue-Light, \"Helvetica Neue Light\", \"Helvetica Neue\", Helvetica, Arial, \"Lucida Grande\", sans-serif"
-				// 		},
-				// 		".Tab:hover": {
-				// 			"backgroundColor": "rgb(224, 224, 224)",
-				// 			"color": "rgb(67, 69, 75)",
-				// 			"fontFamily": "\"Source Sans Pro\", HelveticaNeue-Light, \"Helvetica Neue Light\", \"Helvetica Neue\", Helvetica, Arial, \"Lucida Grande\", sans-serif"
-				// 		},
-				// 		".Tab--selected": {
-				// 			"backgroundColor": "rgb(237, 237, 237)",
-				// 			"color": "rgb(67, 69, 75)",
-				// 			"outline": "2px solid rgb(150, 88, 138)"
-				// 		},
-				// 		".TabIcon:hover": {
-				// 			"color": "rgb(67, 69, 75)"
-				// 		},
-				// 		".TabIcon--selected": {
-				// 			"color": "rgb(67, 69, 75)"
-				// 		},
-				// 		".Text": {
-				// 			"color": "rgb(109, 109, 109)",
-				// 			"fontFamily": "\"Source Sans Pro\", HelveticaNeue-Light, \"Helvetica Neue Light\", \"Helvetica Neue\", Helvetica, Arial, \"Lucida Grande\", sans-serif",
-				// 			"fontSize": "16px",
-				// 			"fontWeight": "400",
-				// 			"letterSpacing": "normal",
-				// 			"lineHeight": "25.888px",
-				// 			"paddingBottom": "0px",
-				// 			"paddingLeft": "0px",
-				// 			"paddingRight": "0px",
-				// 			"paddingTop": "0px",
-				// 			"textDecoration": "none solid rgb(109, 109, 109)",
-				// 			"textShadow": "none",
-				// 			"textTransform": "none"
-				// 		},
-				// 		".Text--redirect": {
-				// 			"color": "rgb(109, 109, 109)",
-				// 			"fontFamily": "\"Source Sans Pro\", HelveticaNeue-Light, \"Helvetica Neue Light\", \"Helvetica Neue\", Helvetica, Arial, \"Lucida Grande\", sans-serif",
-				// 			"fontSize": "16px",
-				// 			"fontWeight": "400",
-				// 			"letterSpacing": "normal",
-				// 			"lineHeight": "25.888px",
-				// 			"paddingBottom": "0px",
-				// 			"paddingLeft": "0px",
-				// 			"paddingRight": "0px",
-				// 			"paddingTop": "0px",
-				// 			"textDecoration": "none solid rgb(109, 109, 109)",
-				// 			"textShadow": "none",
-				// 			"textTransform": "none"
-				// 		},
-				// 		".CheckboxInput": {
-				// 			"background-color": "var(--colorBackground)",
-				// 			"border-radius": "min(5px, var(--borderRadius))",
-				// 			"transition": "background 0.15s ease, border 0.15s ease, box-shadow 0.15s ease",
-				// 			"border": "1px solid var(--p-colorBackgroundDeemphasize10)",
-				// 			"box-shadow": "0px 1px 1px rgb(0 0 0 / 3%), 0px 3px 6px rgb(0 0 0 / 2%)"
-				// 		},
-				// 		".CheckboxInput--checked": {
-				// 			"background-color": "var(--colorPrimary)",
-				// 			"border-color": "var(--colorPrimary)"
-				// 		}
-				//
-				// 	}
-				// }
-				appearance = getAppearance();
-				hiddenElementsForUPE.init();
-				hiddenElementsForUPE.cleanup();
 
-console.log(appearance);
-				api.saveUPEAppearance( appearance );
 				if ( ! appearance ) {
 					hiddenElementsForUPE.init();
 					appearance = getAppearance();
 					hiddenElementsForUPE.cleanup();
 					api.saveUPEAppearance( appearance );
 				}
-
 				const businessName = getStripeServerData()?.accountDescriptor;
 				const upeSettings = {
 					clientSecret,
@@ -560,6 +322,36 @@ console.log(appearance);
 					upeSettings.fields = {
 						billingDetails: hiddenBillingFields,
 					};
+				}
+
+				if ( isStripeLinkEnabled ) {
+					enableStripeLinkPaymentMethod( {
+						api,
+						elements,
+						emailId: 'billing_email',
+						complete_billing: true,
+						complete_shipping: () => {
+							return ! document.getElementById(
+								'ship-to-different-address-checkbox'
+							).checked;
+						},
+						shipping_fields: {
+							line1: 'shipping_address_1',
+							line2: 'shipping_address_2',
+							city: 'shipping_city',
+							state: 'shipping_state',
+							postal_code: 'shipping_postcode',
+							country: 'shipping_country',
+						},
+						billing_fields: {
+							line1: 'billing_address_1',
+							line2: 'billing_address_2',
+							city: 'billing_city',
+							state: 'billing_state',
+							postal_code: 'billing_postcode',
+							country: 'billing_country',
+						},
+					} );
 				}
 
 				upeElement = elements.create( 'payment', upeSettings );
