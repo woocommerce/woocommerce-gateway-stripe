@@ -2,6 +2,7 @@
 
 = 6.4.3 - 2022-06-30 =
 * Fix - Replace unnecessary throws with empty string when keys are invalid.
+* Fix - Fix "Pending" text instead of numeric amount on Payment Request button on iOS.
 
 = 6.4.2 - 2022-06-29 =
 * Fix - Fix terminal location creation if site title is missing.
