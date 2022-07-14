@@ -42,8 +42,10 @@ const enableStripeLinkPaymentMethod = ( options ) => {
 		const fillWith = options.fill_field_method
 			? options.fill_field_method
 			: ( address, nodeId, key ) => {
-					document.getElementById( nodeId ).value =
-						address.address[ key ];
+					if ( document.getElementById( nodeId ) !== null ) {
+						document.getElementById( nodeId ).value =
+							address.address[ key ];
+					}
 			  };
 
 		if ( options.complete_shipping ) {
