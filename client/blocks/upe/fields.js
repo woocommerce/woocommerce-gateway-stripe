@@ -1,4 +1,5 @@
 import { useState, useEffect } from '@wordpress/element';
+import { useDispatch, useSelect } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import {
 	Elements,
@@ -7,7 +8,31 @@ import {
 } from '@stripe/react-stripe-js';
 import { confirmUpePayment } from './confirm-upe-payment';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
-import { PAYMENT_METHOD_NAME } from 'wcstripe/blocks/credit-card/constants';
+import {
+	PAYMENT_METHOD_NAME,
+	WC_STORE_CART,
+} from 'wcstripe/blocks/credit-card/constants';
+import enableStripeLinkPaymentMethod from 'wcstripe/stripe-link';
+import './styles.scss';
+
+const useCustomerData = () => {
+	const { customerData, isInitialized } = useSelect( ( select ) => {
+		const store = select( WC_STORE_CART );
+		return {
+			customerData: store.getCustomerData(),
+			isInitialized: store.hasFinishedResolution( 'getCartData' ),
+		};
+	} );
+	const { setShippingAddress, setBillingData } = useDispatch( WC_STORE_CART );
+
+	return {
+		isInitialized,
+		billingData: customerData.billingData,
+		shippingAddress: customerData.shippingAddress,
+		setBillingData,
+		setShippingAddress,
+	};
+};
 
 const UPEField = ( {
 	api,
@@ -24,9 +49,8 @@ const UPEField = ( {
 } ) => {
 	const [ clientSecret, setClientSecret ] = useState( null );
 	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
-	const [ selectedUpePaymentType, setSelectedUpePaymentType ] = useState(
-		''
-	);
+	const [ selectedUpePaymentType, setSelectedUpePaymentType ] =
+		useState( '' );
 	const [ hasRequestedIntent, setHasRequestedIntent ] = useState( false );
 	const [ isUpeComplete, setIsUpeComplete ] = useState( false );
 	const [ errorMessage, setErrorMessage ] = useState( null );
@@ -62,6 +86,99 @@ const UPEField = ( {
 		setHasRequestedIntent( true );
 		createIntent();
 	}, [ paymentIntentId, hasRequestedIntent, api, errorMessage ] );
+
+	const customerData = useCustomerData();
+
+	useEffect( () => {
+		if (
+			paymentMethodsConfig.link !== undefined &&
+			paymentMethodsConfig.card !== undefined
+		) {
+			const shippingAddressFields = {
+				line1: 'shipping-address_1',
+				line2: 'shipping-address_2',
+				city: 'shipping-city',
+				state: 'components-form-token-input-1',
+				postal_code: 'shipping-postcode',
+				country: 'components-form-token-input-0',
+			};
+			const billingAddressFields = {
+				line1: 'billing-address_1',
+				line2: 'billing-address_2',
+				city: 'billing-city',
+				state: 'components-form-token-input-3',
+				postal_code: 'billing-postcode',
+				country: 'components-form-token-input-2',
+			};
+
+			enableStripeLinkPaymentMethod( {
+				api,
+				elements,
+				emailId: 'email',
+				fill_field_method: ( address, nodeId, key ) => {
+					const setAddress =
+						shippingAddressFields[ key ] === nodeId
+							? customerData.setShippingAddress
+							: customerData.setBillingData;
+					const customerAddress =
+						shippingAddressFields[ key ] === nodeId
+							? customerData.shippingAddress
+							: customerData.billingData;
+
+					if ( key === 'line1' ) {
+						customerAddress.address_1 = address.address[ key ];
+					} else if ( key === 'line2' ) {
+						customerAddress.address_2 = address.address[ key ];
+					} else if ( key === 'postal_code' ) {
+						customerAddress.postcode = address.address[ key ];
+					} else {
+						customerAddress[ key ] = address.address[ key ];
+					}
+
+					setAddress( customerAddress );
+
+					function getEmail() {
+						return document.getElementById( 'email' ).value;
+					}
+
+					customerData.billingData.email = getEmail();
+					customerData.setBillingData( customerData.billingData );
+				},
+				show_button: ( linkAutofill ) => {
+					jQuery( '#email' )
+						.parent()
+						.append(
+							'<button class="stripe-gateway-stripelink-modal-trigger"></button>'
+						);
+					if ( jQuery( '#email' ).val() !== '' ) {
+						jQuery(
+							'.stripe-gateway-stripelink-modal-trigger'
+						).show();
+					}
+
+					//Handle StripeLink button click.
+					jQuery( '.stripe-gateway-stripelink-modal-trigger' ).on(
+						'click',
+						( event ) => {
+							event.preventDefault();
+							// Trigger modal.
+							linkAutofill.launch( {
+								email: jQuery( '#email' ).val(),
+							} );
+						}
+					);
+				},
+				complete_shipping: true,
+				shipping_fields: shippingAddressFields,
+				billing_fields: billingAddressFields,
+				complete_billing: () => {
+					return ! document.getElementById( 'checkbox-control-0' )
+						.checked;
+				},
+			} );
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ elements ] );
 
 	useEffect(
 		() =>
@@ -106,7 +223,8 @@ const UPEField = ( {
 						paymentMethodData: {
 							paymentMethod: PAYMENT_METHOD_NAME,
 							wc_payment_intent_id: paymentIntentId,
-							wc_stripe_selected_upe_payment_type: selectedUpePaymentType,
+							wc_stripe_selected_upe_payment_type:
+								selectedUpePaymentType,
 						},
 					},
 				};
@@ -132,9 +250,8 @@ const UPEField = ( {
 							selectedUpePaymentType
 						);
 
-						const paymentElement = elements.getElement(
-							PaymentElement
-						);
+						const paymentElement =
+							elements.getElement( PaymentElement );
 
 						return confirmUpePayment(
 							api,
