@@ -1,5 +1,5 @@
 /* global wc_stripe_payment_request_params, Stripe */
-jQuery( function($ ) {
+jQuery( function( $ ) {
 	'use strict';
 
 	var stripe = Stripe( wc_stripe_payment_request_params.stripe.key, {
