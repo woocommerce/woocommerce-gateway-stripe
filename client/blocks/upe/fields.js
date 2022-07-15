@@ -154,6 +154,16 @@ const UPEField = ( {
 						jQuery(
 							'.stripe-gateway-stripelink-modal-trigger'
 						).show();
+
+						const linkButtonTop =
+							jQuery( '#email' ).position().top +
+							( jQuery( '#email' ).outerHeight() - 40 ) / 2;
+						jQuery(
+							'.stripe-gateway-stripelink-modal-trigger'
+						).show();
+						jQuery(
+							'.stripe-gateway-stripelink-modal-trigger'
+						).css( 'top', linkButtonTop + 'px' );
 					}
 
 					//Handle StripeLink button click.
