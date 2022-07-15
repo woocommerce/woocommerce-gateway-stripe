@@ -363,6 +363,7 @@ class WC_Stripe_Intent_Controller {
 			$save_payment_method       = isset( $_POST['save_payment_method'] ) ? 'yes' === wc_clean( wp_unslash( $_POST['save_payment_method'] ) ) : false;
 			$selected_upe_payment_type = ! empty( $_POST['selected_upe_payment_type'] ) ? wc_clean( wp_unslash( $_POST['selected_upe_payment_type'] ) ) : '';
 
+
 			wp_send_json_success( $this->update_payment_intent( $payment_intent_id, $order_id, $save_payment_method, $selected_upe_payment_type ), 200 );
 		} catch ( Exception $e ) {
 			// Send back error so it can be displayed to the customer.
@@ -414,6 +415,18 @@ class WC_Stripe_Intent_Controller {
 			if ( '' !== $selected_upe_payment_type ) {
 				// Only update the payment_method_types if we have a reference to the payment type the customer selected.
 				$request['payment_method_types'] = [ $selected_upe_payment_type ];
+				if ( WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID === $selected_upe_payment_type ) {
+					if ( in_array(
+						WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+						$gateway->get_upe_enabled_payment_method_ids(),
+						true
+					) ) {
+						$request['payment_method_types'] = [
+							WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+							WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+						];
+					}
+				}
 				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
 			}
 			if ( ! empty( $customer ) && $customer->get_id() ) {

@@ -14,6 +14,7 @@ import {
 } from 'wcstripe/blocks/credit-card/constants';
 import enableStripeLinkPaymentMethod from 'wcstripe/stripe-link';
 import './styles.scss';
+import { getAppearance } from '../../styles/upe';
 
 const useCustomerData = () => {
 	const { customerData, isInitialized } = useSelect( ( select ) => {
@@ -111,6 +112,9 @@ const UPEField = ( {
 				country: 'components-form-token-input-2',
 			};
 
+			const appearance = getAppearance();
+			elements.update( { 'appearance': appearance } );
+
 			enableStripeLinkPaymentMethod( {
 				api,
 				elements,
@@ -124,6 +128,14 @@ const UPEField = ( {
 						shippingAddressFields[ key ] === nodeId
 							? customerData.shippingAddress
 							: customerData.billingData;
+
+					if ( undefined === customerAddress ) {
+						return;
+					}
+
+					if ( null === address.address[ key ] ) {
+						address.address[ key ] = '';
+					}
 
 					if ( key === 'line1' ) {
 						customerAddress.address_1 = address.address[ key ];
@@ -141,8 +153,10 @@ const UPEField = ( {
 						return document.getElementById( 'email' ).value;
 					}
 
-					customerData.billingData.email = getEmail();
-					customerData.setBillingData( customerData.billingData );
+					if ( undefined !== customerData.billingData ) {
+						customerData.billingData.email = getEmail();
+						customerData.setBillingData( customerData.billingData );
+					}
 				},
 				show_button: ( linkAutofill ) => {
 					jQuery( '#email' )
