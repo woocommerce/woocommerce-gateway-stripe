@@ -50,7 +50,9 @@ const UPEField = ( {
 } ) => {
 	const [ clientSecret, setClientSecret ] = useState( null );
 	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
-	const [ selectedUpePaymentType, setSelectedUpePaymentType ] = useState( '' );
+	const [ selectedUpePaymentType, setSelectedUpePaymentType ] = useState(
+		''
+	);
 	const [ hasRequestedIntent, setHasRequestedIntent ] = useState( false );
 	const [ isUpeComplete, setIsUpeComplete ] = useState( false );
 	const [ errorMessage, setErrorMessage ] = useState( null );
@@ -272,7 +274,9 @@ const UPEField = ( {
 							selectedUpePaymentType
 						);
 
-						const paymentElement = elements.getElement( PaymentElement );
+						const paymentElement = elements.getElement(
+							PaymentElement
+						);
 
 						return confirmUpePayment(
 							api,
