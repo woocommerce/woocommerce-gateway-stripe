@@ -6,6 +6,7 @@ import {
 	ElementsConsumer,
 	PaymentElement,
 } from '@stripe/react-stripe-js';
+import { getAppearance } from '../../styles/upe';
 import { confirmUpePayment } from './confirm-upe-payment';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import {
@@ -14,7 +15,6 @@ import {
 } from 'wcstripe/blocks/credit-card/constants';
 import enableStripeLinkPaymentMethod from 'wcstripe/stripe-link';
 import './styles.scss';
-import { getAppearance } from '../../styles/upe';
 
 const useCustomerData = () => {
 	const { customerData, isInitialized } = useSelect( ( select ) => {
@@ -50,8 +50,7 @@ const UPEField = ( {
 } ) => {
 	const [ clientSecret, setClientSecret ] = useState( null );
 	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
-	const [ selectedUpePaymentType, setSelectedUpePaymentType ] =
-		useState( '' );
+	const [ selectedUpePaymentType, setSelectedUpePaymentType ] = useState( '' );
 	const [ hasRequestedIntent, setHasRequestedIntent ] = useState( false );
 	const [ isUpeComplete, setIsUpeComplete ] = useState( false );
 	const [ errorMessage, setErrorMessage ] = useState( null );
@@ -113,7 +112,7 @@ const UPEField = ( {
 			};
 
 			const appearance = getAppearance();
-			elements.update( { 'appearance': appearance } );
+			elements.update( { appearance } );
 
 			enableStripeLinkPaymentMethod( {
 				api,
@@ -133,7 +132,7 @@ const UPEField = ( {
 						return;
 					}
 
-					if ( null === address.address[ key ] ) {
+					if ( address.address[ key ] === null ) {
 						address.address[ key ] = '';
 					}
 
@@ -247,8 +246,7 @@ const UPEField = ( {
 						paymentMethodData: {
 							paymentMethod: PAYMENT_METHOD_NAME,
 							wc_payment_intent_id: paymentIntentId,
-							wc_stripe_selected_upe_payment_type:
-								selectedUpePaymentType,
+							wc_stripe_selected_upe_payment_type: selectedUpePaymentType,
 						},
 					},
 				};
@@ -274,8 +272,7 @@ const UPEField = ( {
 							selectedUpePaymentType
 						);
 
-						const paymentElement =
-							elements.getElement( PaymentElement );
+						const paymentElement = elements.getElement( PaymentElement );
 
 						return confirmUpePayment(
 							api,
