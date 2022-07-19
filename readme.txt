@@ -131,5 +131,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 6.5.0 - 2022-xx-xx =
 * Add - Stripe Link payment method option in admin
 * Add - Stripe Link: Add beta headers for Stripe server requests
+* Add - Stripe Link payment method on checkout form
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

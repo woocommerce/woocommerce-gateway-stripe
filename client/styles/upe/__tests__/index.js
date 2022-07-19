@@ -168,6 +168,17 @@ describe( 'Getting styles for automated theming', () => {
 				'.TabIcon--selected:hover': {
 					color: 'rgb(255, 255, 255)',
 				},
+				'.CheckboxInput': {
+					backgroundColor: 'var(--colorBackground)',
+					borderRadius: 'min(5px, var(--borderRadius))',
+					transition:
+						'background 0.15s ease, border 0.15s ease, box-shadow 0.15s ease',
+					border: '1px solid var(--p-colorBackgroundDeemphasize10)',
+				},
+				'.CheckboxInput--checked': {
+					backgroundColor: 'var(--colorPrimary)	',
+					borderColor: 'var(--colorPrimary)',
+				},
 			},
 		} );
 	} );

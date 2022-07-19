@@ -555,6 +555,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				if ( '' !== $selected_upe_payment_type ) {
 					// Only update the payment_method_types if we have a reference to the payment type the customer selected.
 					$request['payment_method_types'] = [ $selected_upe_payment_type ];
+					if ( WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID === $selected_upe_payment_type ) {
+						if ( in_array(
+							WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+							$this->get_upe_enabled_payment_method_ids(),
+							true
+						) ) {
+							$request['payment_method_types'] = [
+								WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+								WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+							];
+						}
+					}
 					$this->set_payment_method_title_for_order( $order, $selected_upe_payment_type );
 					if ( ! $this->payment_methods[ $selected_upe_payment_type ]->is_allowed_on_country( $order->get_billing_country() ) ) {
 						throw new \Exception( __( 'This payment method is not available on the selected country', 'woocommerce-gateway-stripe' ) );
