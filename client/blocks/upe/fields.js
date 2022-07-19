@@ -24,13 +24,13 @@ const useCustomerData = () => {
 			isInitialized: store.hasFinishedResolution( 'getCartData' ),
 		};
 	} );
-	const { setShippingAddress, setBillingData } = useDispatch( WC_STORE_CART );
+	const { setShippingAddress, setBillingAddress } = useDispatch( WC_STORE_CART );
 
 	return {
 		isInitialized,
-		billingData: customerData.billingData,
+		billingAddress: customerData.billingAddress,
 		shippingAddress: customerData.shippingAddress,
-		setBillingData,
+		setBillingAddress,
 		setShippingAddress,
 	};
 };
@@ -124,11 +124,11 @@ const UPEField = ( {
 					const setAddress =
 						shippingAddressFields[ key ] === nodeId
 							? customerData.setShippingAddress
-							: customerData.setBillingData;
+							: customerData.setBillingAddress;
 					const customerAddress =
 						shippingAddressFields[ key ] === nodeId
 							? customerData.shippingAddress
-							: customerData.billingData;
+							: customerData.billingAddress;
 
 					if ( undefined === customerAddress ) {
 						return;
@@ -154,9 +154,9 @@ const UPEField = ( {
 						return document.getElementById( 'email' ).value;
 					}
 
-					if ( undefined !== customerData.billingData ) {
-						customerData.billingData.email = getEmail();
-						customerData.setBillingData( customerData.billingData );
+					if ( undefined !== customerData.billingAddress ) {
+						customerData.billingAddress.email = getEmail();
+						customerData.setBillingAddress( customerData.billingAddress );
 					}
 				},
 				show_button: ( linkAutofill ) => {
@@ -193,18 +193,10 @@ const UPEField = ( {
 						}
 					);
 				},
-				complete_shipping: () => {
-					return (
-						document.getElementById( 'shipping-address_1' ) !== null
-					);
-				},
+				complete_shipping: document.getElementById( 'shipping-address_1' ) !== null,
 				shipping_fields: shippingAddressFields,
 				billing_fields: billingAddressFields,
-				complete_billing: () => {
-					return (
-						document.getElementById( 'billing-address_1' ) !== null
-					);
-				},
+				complete_billing: document.getElementById( 'billing-address_1' ) !== null,
 			} );
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
