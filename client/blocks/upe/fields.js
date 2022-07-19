@@ -197,12 +197,12 @@ const UPEField = ( {
 						}
 					);
 				},
-				complete_shipping: document
-					.getElementById( 'shipping-address_1' ) !== null,
+				complete_shipping:
+					document.getElementById( 'shipping-address_1' ) !== null,
 				shipping_fields: shippingAddressFields,
 				billing_fields: billingAddressFields,
-				complete_billing: document
-					.getElementById( 'billing-address_1' ) !== null,
+				complete_billing:
+					document.getElementById( 'billing-address_1' ) !== null,
 			} );
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
