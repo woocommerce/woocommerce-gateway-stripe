@@ -50,8 +50,9 @@ const UPEField = ( {
 } ) => {
 	const [ clientSecret, setClientSecret ] = useState( null );
 	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
-	const [ selectedUpePaymentType, setSelectedUpePaymentType ] =
-		useState( '' );
+	const [ selectedUpePaymentType, setSelectedUpePaymentType ] = useState(
+		''
+	);
 	const [ hasRequestedIntent, setHasRequestedIntent ] = useState( false );
 	const [ isUpeComplete, setIsUpeComplete ] = useState( false );
 	const [ errorMessage, setErrorMessage ] = useState( null );
@@ -252,8 +253,7 @@ const UPEField = ( {
 						paymentMethodData: {
 							paymentMethod: PAYMENT_METHOD_NAME,
 							wc_payment_intent_id: paymentIntentId,
-							wc_stripe_selected_upe_payment_type:
-								selectedUpePaymentType,
+							wc_stripe_selected_upe_payment_type: selectedUpePaymentType,
 						},
 					},
 				};
@@ -279,8 +279,9 @@ const UPEField = ( {
 							selectedUpePaymentType
 						);
 
-						const paymentElement =
-							elements.getElement( PaymentElement );
+						const paymentElement = elements.getElement(
+							PaymentElement
+						);
 
 						return confirmUpePayment(
 							api,
