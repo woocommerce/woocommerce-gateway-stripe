@@ -50,9 +50,8 @@ const UPEField = ( {
 } ) => {
 	const [ clientSecret, setClientSecret ] = useState( null );
 	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
-	const [ selectedUpePaymentType, setSelectedUpePaymentType ] = useState(
-		''
-	);
+	const [ selectedUpePaymentType, setSelectedUpePaymentType ] =
+		useState( '' );
 	const [ hasRequestedIntent, setHasRequestedIntent ] = useState( false );
 	const [ isUpeComplete, setIsUpeComplete ] = useState( false );
 	const [ errorMessage, setErrorMessage ] = useState( null );
@@ -193,12 +192,17 @@ const UPEField = ( {
 						}
 					);
 				},
-				complete_shipping: true,
+				complete_shipping: () => {
+					return (
+						document.getElementById( 'shipping-address_1' ) !== null
+					);
+				},
 				shipping_fields: shippingAddressFields,
 				billing_fields: billingAddressFields,
 				complete_billing: () => {
-					return ! document.getElementById( 'checkbox-control-0' )
-						.checked;
+					return (
+						document.getElementById( 'billing-address_1' ) !== null
+					);
 				},
 			} );
 		}
@@ -248,7 +252,8 @@ const UPEField = ( {
 						paymentMethodData: {
 							paymentMethod: PAYMENT_METHOD_NAME,
 							wc_payment_intent_id: paymentIntentId,
-							wc_stripe_selected_upe_payment_type: selectedUpePaymentType,
+							wc_stripe_selected_upe_payment_type:
+								selectedUpePaymentType,
 						},
 					},
 				};
@@ -274,9 +279,8 @@ const UPEField = ( {
 							selectedUpePaymentType
 						);
 
-						const paymentElement = elements.getElement(
-							PaymentElement
-						);
+						const paymentElement =
+							elements.getElement( PaymentElement );
 
 						return confirmUpePayment(
 							api,
