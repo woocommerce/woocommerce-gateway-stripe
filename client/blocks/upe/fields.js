@@ -24,7 +24,9 @@ const useCustomerData = () => {
 			isInitialized: store.hasFinishedResolution( 'getCartData' ),
 		};
 	} );
-	const { setShippingAddress, setBillingAddress } = useDispatch( WC_STORE_CART );
+	const { setShippingAddress, setBillingAddress } = useDispatch(
+		WC_STORE_CART
+	);
 
 	return {
 		isInitialized,
@@ -156,7 +158,9 @@ const UPEField = ( {
 
 					if ( undefined !== customerData.billingAddress ) {
 						customerData.billingAddress.email = getEmail();
-						customerData.setBillingAddress( customerData.billingAddress );
+						customerData.setBillingAddress(
+							customerData.billingAddress
+						);
 					}
 				},
 				show_button: ( linkAutofill ) => {
@@ -193,10 +197,12 @@ const UPEField = ( {
 						}
 					);
 				},
-				complete_shipping: document.getElementById( 'shipping-address_1' ) !== null,
+				complete_shipping: document
+					.getElementById( 'shipping-address_1' ) !== null,
 				shipping_fields: shippingAddressFields,
 				billing_fields: billingAddressFields,
-				complete_billing: document.getElementById( 'billing-address_1' ) !== null,
+				complete_billing: document
+					.getElementById( 'billing-address_1' ) !== null,
 			} );
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
