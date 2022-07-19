@@ -3,7 +3,7 @@
 = 6.5.0 - 2022-xx-xx =
 * Add - Stripe Link: Add beta headers for Stripe server requests
 * Add - Stripe Link payment method option in admin
-* Tweak - Stripe Link - remove feature flag
+* Add - Stripe Link payment method on checkout form
 
 = 6.4.3 - 2022-06-30 =
 * Fix - Replace unnecessary throws with empty string when keys are invalid.

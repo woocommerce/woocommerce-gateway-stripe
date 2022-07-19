@@ -61,8 +61,7 @@ describe( 'Getting styles for automated theming', () => {
 		const mockStyleSheets = {
 			length: 3,
 			0: {
-				href:
-					'https://not-supported-fonts-domain.com/style.css?ver=1.1.1',
+				href: 'https://not-supported-fonts-domain.com/style.css?ver=1.1.1',
 			},
 			1: { href: null },
 			2: {
@@ -89,8 +88,7 @@ describe( 'Getting styles for automated theming', () => {
 		const mockStyleSheets = {
 			length: 2,
 			0: {
-				href:
-					'https://not-supported-fonts-domain.com/style.css?ver=1.1.1',
+				href: 'https://not-supported-fonts-domain.com/style.css?ver=1.1.1',
 			},
 			1: { href: null },
 		};
@@ -167,6 +165,17 @@ describe( 'Getting styles for automated theming', () => {
 				},
 				'.TabIcon--selected:hover': {
 					color: 'rgb(255, 255, 255)',
+				},
+				'.CheckboxInput': {
+					backgroundColor: 'var(--colorBackground)',
+					borderRadius: 'min(5px, var(--borderRadius))',
+					transition:
+						'background 0.15s ease, border 0.15s ease, box-shadow 0.15s ease',
+					border: '1px solid var(--p-colorBackgroundDeemphasize10)',
+				},
+				'.CheckboxInput--checked': {
+					backgroundColor: 'var(--colorPrimary)	',
+					borderColor: 'var(--colorPrimary)',
 				},
 			},
 		} );

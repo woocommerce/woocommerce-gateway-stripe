@@ -121,6 +121,17 @@ export const getAppearance = () => {
 			'.TabIcon:hover': tabIconHoverRules,
 			'.TabIcon--selected': selectedTabIconRules,
 			'.TabIcon--selected:hover': selectedTabIconHoverRules,
+			'.CheckboxInput': {
+				backgroundColor: 'var(--colorBackground)',
+				borderRadius: 'min(5px, var(--borderRadius))',
+				transition:
+					'background 0.15s ease, border 0.15s ease, box-shadow 0.15s ease',
+				border: '1px solid var(--p-colorBackgroundDeemphasize10)',
+			},
+			'.CheckboxInput--checked': {
+				backgroundColor: 'var(--colorPrimary)	',
+				borderColor: 'var(--colorPrimary)',
+			},
 		},
 	};
 
