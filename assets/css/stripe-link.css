@@ -10,7 +10,7 @@
 	height: 40px;
 	background: no-repeat
 		url( '../../client/payment-method-icons/link/icon.svg' );
-	background-color: none;
+	background-color: transparent !important;
 	cursor: pointer;
 	border: none;
 }
