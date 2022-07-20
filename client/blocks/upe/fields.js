@@ -33,6 +33,7 @@ const useCustomerData = () => {
 	let customerBillingAddress = customerData.billingData;
 	let setCustomerBillingAddress = setBillingData;
 
+	//added for backwards compatibility -> billingData was renamed to billingAddress
 	if ( customerData.billingData === undefined ) {
 		customerBillingAddress = customerData.billingAddress;
 		setCustomerBillingAddress = setBillingAddress;
