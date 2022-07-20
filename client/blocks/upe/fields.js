@@ -24,15 +24,24 @@ const useCustomerData = () => {
 			isInitialized: store.hasFinishedResolution( 'getCartData' ),
 		};
 	} );
-	const { setShippingAddress, setBillingAddress } = useDispatch(
+	const { setShippingAddress, setBillingAddress, setBillingData } = useDispatch(
 		WC_STORE_CART
 	);
 
+	let customerBillingAddress = customerData.billingData;
+	let setCustomerBillingAddress = setBillingData;
+
+	if ( customerData.billingData === undefined ) {
+		customerBillingAddress = customerData.billingAddress;
+		setCustomerBillingAddress = setBillingAddress;
+	}
+
+
 	return {
 		isInitialized,
-		billingAddress: customerData.billingAddress,
+		billingAddress: customerBillingAddress,
 		shippingAddress: customerData.shippingAddress,
-		setBillingAddress,
+		setBillingAddress: setCustomerBillingAddress,
 		setShippingAddress,
 	};
 };
@@ -150,18 +159,20 @@ const UPEField = ( {
 						customerAddress[ key ] = address.address[ key ];
 					}
 
+					if ( undefined !== customerData.billingAddress ) {
+						customerAddress.email = getEmail();
+					}
+
 					setAddress( customerAddress );
 
 					function getEmail() {
 						return document.getElementById( 'email' ).value;
 					}
 
-					if ( undefined !== customerData.billingAddress ) {
-						customerData.billingAddress.email = getEmail();
-						customerData.setBillingAddress(
-							customerData.billingAddress
-						);
-					}
+					customerData.billingAddress.email = getEmail();
+					customerData.setBillingAddress(
+						customerData.billingAddress
+					);
 				},
 				show_button: ( linkAutofill ) => {
 					jQuery( '#email' )
