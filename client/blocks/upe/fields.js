@@ -27,10 +27,8 @@ const useCustomerData = () => {
 	const {
 		setShippingAddress,
 		setBillingAddress,
-		setBillingData
-	} = useDispatch(
-		WC_STORE_CART
-	);
+		setBillingData,
+	} = useDispatch( WC_STORE_CART );
 
 	let customerBillingAddress = customerData.billingData;
 	let setCustomerBillingAddress = setBillingData;
