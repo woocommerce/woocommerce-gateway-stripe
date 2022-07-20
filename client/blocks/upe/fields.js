@@ -24,7 +24,11 @@ const useCustomerData = () => {
 			isInitialized: store.hasFinishedResolution( 'getCartData' ),
 		};
 	} );
-	const { setShippingAddress, setBillingAddress, setBillingData } = useDispatch(
+	const {
+		setShippingAddress,
+		setBillingAddress,
+		setBillingData
+	} = useDispatch(
 		WC_STORE_CART
 	);
 
