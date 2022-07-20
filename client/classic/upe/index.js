@@ -329,7 +329,9 @@ jQuery( function ( $ ) {
 						api,
 						elements,
 						emailId: 'billing_email',
-						complete_billing: true,
+						complete_billing: () => {
+							return true;
+						},
 						complete_shipping: () => {
 							return ! document.getElementById(
 								'ship-to-different-address-checkbox'
