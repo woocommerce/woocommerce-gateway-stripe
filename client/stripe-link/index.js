@@ -48,7 +48,7 @@ const enableStripeLinkPaymentMethod = ( options ) => {
 					}
 			  };
 
-		if ( options.complete_shipping ) {
+		if ( options.complete_shipping() ) {
 			fillWith( shippingAddress, options.shipping_fields.line1, 'line1' );
 			fillWith( shippingAddress, options.shipping_fields.line2, 'line2' );
 			fillWith( shippingAddress, options.shipping_fields.city, 'city' );
@@ -64,7 +64,8 @@ const enableStripeLinkPaymentMethod = ( options ) => {
 				'country'
 			);
 		}
-		if ( options.complete_billing ) {
+
+		if ( options.complete_billing() ) {
 			fillWith( billingAddress, options.billing_fields.line1, 'line1' );
 			fillWith( billingAddress, options.billing_fields.line2, 'line2' );
 			fillWith( billingAddress, options.billing_fields.city, 'city' );
