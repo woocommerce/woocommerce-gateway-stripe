@@ -333,9 +333,13 @@ jQuery( function ( $ ) {
 							return true;
 						},
 						complete_shipping: () => {
-							return document.getElementById(
-								'ship-to-different-address-checkbox'
-							).checked;
+							return (
+								document.getElementById(
+									'ship-to-different-address-checkbox'
+								) && document.getElementById(
+									'ship-to-different-address-checkbox'
+								).checked
+							);
 						},
 						shipping_fields: {
 							line1: 'shipping_address_1',
