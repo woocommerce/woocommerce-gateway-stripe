@@ -4,19 +4,22 @@ const showLinkButton = ( linkAutofill ) => {
 		const linkButtonTop =
 			jQuery( '#billing_email' ).position().top +
 			( jQuery( '#billing_email' ).outerHeight() - 40 ) / 2;
-		jQuery( '.wcpay-stripelink-modal-trigger' ).show();
-		jQuery( '.wcpay-stripelink-modal-trigger' ).css(
+		jQuery( '.stripe-gateway-stripelink-modal-trigger' ).show();
+		jQuery( '.stripe-gateway-stripelink-modal-trigger' ).css(
 			'top',
 			linkButtonTop + 'px'
 		);
 	}
 
 	// Handle StripeLink button click.
-	jQuery( '.wcpay-stripelink-modal-trigger' ).on( 'click', ( event ) => {
-		event.preventDefault();
-		// Trigger modal.
-		linkAutofill.launch( { email: jQuery( '#billing_email' ).val() } );
-	} );
+	jQuery( '.stripe-gateway-stripelink-modal-trigger' ).on(
+		'click',
+		( event ) => {
+			event.preventDefault();
+			// Trigger modal.
+			linkAutofill.launch( { email: jQuery( '#billing_email' ).val() } );
+		}
+	);
 };
 
 const enableStripeLinkPaymentMethod = ( options ) => {
