@@ -38,7 +38,6 @@ const useCustomerData = () => {
 		setCustomerBillingAddress = setBillingAddress;
 	}
 
-
 	return {
 		isInitialized,
 		billingAddress: customerBillingAddress,
