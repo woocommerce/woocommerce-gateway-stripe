@@ -210,13 +210,17 @@ const UPEField = ( {
 					);
 				},
 				complete_shipping: () => {
-					return document.getElementById( 'shipping-address_1' ) !== null;
+					return (
+						document.getElementById( 'shipping-address_1' ) !== null
+					);
 				},
 				shipping_fields: shippingAddressFields,
 				billing_fields: billingAddressFields,
 				complete_billing: () => {
-					return document.getElementById( 'billing-address_1' ) !== null;
-				}
+					return (
+						document.getElementById( 'billing-address_1' ) !== null
+					);
+				},
 			} );
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
