@@ -333,7 +333,7 @@ jQuery( function ( $ ) {
 							return true;
 						},
 						complete_shipping: () => {
-							return ! document.getElementById(
+							return document.getElementById(
 								'ship-to-different-address-checkbox'
 							).checked;
 						},
