@@ -81,7 +81,7 @@ const enableStripeLinkPaymentMethod = ( options ) => {
 				'country'
 			);
 		}
-		jQuery('select').trigger('change');
+		jQuery( 'select' ).trigger( 'change' );
 	} );
 };
 

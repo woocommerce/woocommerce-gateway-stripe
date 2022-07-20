@@ -336,7 +336,8 @@ jQuery( function ( $ ) {
 							return (
 								document.getElementById(
 									'ship-to-different-address-checkbox'
-								) && document.getElementById(
+								) &&
+								document.getElementById(
 									'ship-to-different-address-checkbox'
 								).checked
 							);
