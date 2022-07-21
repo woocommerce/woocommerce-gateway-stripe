@@ -329,11 +329,18 @@ jQuery( function ( $ ) {
 						api,
 						elements,
 						emailId: 'billing_email',
-						complete_billing: true,
+						complete_billing: () => {
+							return true;
+						},
 						complete_shipping: () => {
-							return ! document.getElementById(
-								'ship-to-different-address-checkbox'
-							).checked;
+							return (
+								document.getElementById(
+									'ship-to-different-address-checkbox'
+								) &&
+								document.getElementById(
+									'ship-to-different-address-checkbox'
+								).checked
+							);
 						},
 						shipping_fields: {
 							line1: 'shipping_address_1',

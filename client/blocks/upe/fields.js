@@ -1,13 +1,52 @@
 import { useState, useEffect } from '@wordpress/element';
+import { useDispatch, useSelect } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import {
 	Elements,
 	ElementsConsumer,
 	PaymentElement,
 } from '@stripe/react-stripe-js';
+import { getAppearance } from '../../styles/upe';
 import { confirmUpePayment } from './confirm-upe-payment';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
-import { PAYMENT_METHOD_NAME } from 'wcstripe/blocks/credit-card/constants';
+import {
+	PAYMENT_METHOD_NAME,
+	WC_STORE_CART,
+} from 'wcstripe/blocks/credit-card/constants';
+import enableStripeLinkPaymentMethod from 'wcstripe/stripe-link';
+import './styles.scss';
+
+const useCustomerData = () => {
+	const { customerData, isInitialized } = useSelect( ( select ) => {
+		const store = select( WC_STORE_CART );
+		return {
+			customerData: store.getCustomerData(),
+			isInitialized: store.hasFinishedResolution( 'getCartData' ),
+		};
+	} );
+	const {
+		setShippingAddress,
+		setBillingAddress,
+		setBillingData,
+	} = useDispatch( WC_STORE_CART );
+
+	let customerBillingAddress = customerData.billingData;
+	let setCustomerBillingAddress = setBillingData;
+
+	//added for backwards compatibility -> billingData was renamed to billingAddress
+	if ( customerData.billingData === undefined ) {
+		customerBillingAddress = customerData.billingAddress;
+		setCustomerBillingAddress = setBillingAddress;
+	}
+
+	return {
+		isInitialized,
+		billingAddress: customerBillingAddress,
+		shippingAddress: customerData.shippingAddress,
+		setBillingAddress: setCustomerBillingAddress,
+		setShippingAddress,
+	};
+};
 
 const UPEField = ( {
 	api,
@@ -62,6 +101,131 @@ const UPEField = ( {
 		setHasRequestedIntent( true );
 		createIntent();
 	}, [ paymentIntentId, hasRequestedIntent, api, errorMessage ] );
+
+	const customerData = useCustomerData();
+
+	useEffect( () => {
+		if (
+			paymentMethodsConfig.link !== undefined &&
+			paymentMethodsConfig.card !== undefined
+		) {
+			const shippingAddressFields = {
+				line1: 'shipping-address_1',
+				line2: 'shipping-address_2',
+				city: 'shipping-city',
+				state: 'components-form-token-input-1',
+				postal_code: 'shipping-postcode',
+				country: 'components-form-token-input-0',
+			};
+			const billingAddressFields = {
+				line1: 'billing-address_1',
+				line2: 'billing-address_2',
+				city: 'billing-city',
+				state: 'components-form-token-input-3',
+				postal_code: 'billing-postcode',
+				country: 'components-form-token-input-2',
+			};
+
+			const appearance = getAppearance();
+			elements.update( { appearance } );
+
+			enableStripeLinkPaymentMethod( {
+				api,
+				elements,
+				emailId: 'email',
+				fill_field_method: ( address, nodeId, key ) => {
+					const setAddress =
+						shippingAddressFields[ key ] === nodeId
+							? customerData.setShippingAddress
+							: customerData.setBillingAddress;
+					const customerAddress =
+						shippingAddressFields[ key ] === nodeId
+							? customerData.shippingAddress
+							: customerData.billingAddress;
+
+					if ( undefined === customerAddress ) {
+						return;
+					}
+
+					if ( address.address[ key ] === null ) {
+						address.address[ key ] = '';
+					}
+
+					if ( key === 'line1' ) {
+						customerAddress.address_1 = address.address[ key ];
+					} else if ( key === 'line2' ) {
+						customerAddress.address_2 = address.address[ key ];
+					} else if ( key === 'postal_code' ) {
+						customerAddress.postcode = address.address[ key ];
+					} else {
+						customerAddress[ key ] = address.address[ key ];
+					}
+
+					if ( undefined !== customerData.billingAddress ) {
+						customerAddress.email = getEmail();
+					}
+
+					setAddress( customerAddress );
+
+					function getEmail() {
+						return document.getElementById( 'email' ).value;
+					}
+
+					customerData.billingAddress.email = getEmail();
+					customerData.setBillingAddress(
+						customerData.billingAddress
+					);
+				},
+				show_button: ( linkAutofill ) => {
+					jQuery( '#email' )
+						.parent()
+						.append(
+							'<button class="stripe-gateway-stripelink-modal-trigger"></button>'
+						);
+					if ( jQuery( '#email' ).val() !== '' ) {
+						jQuery(
+							'.stripe-gateway-stripelink-modal-trigger'
+						).show();
+
+						const linkButtonTop =
+							jQuery( '#email' ).position().top +
+							( jQuery( '#email' ).outerHeight() - 40 ) / 2;
+						jQuery(
+							'.stripe-gateway-stripelink-modal-trigger'
+						).show();
+						jQuery(
+							'.stripe-gateway-stripelink-modal-trigger'
+						).css( 'top', linkButtonTop + 'px' );
+					}
+
+					//Handle StripeLink button click.
+					jQuery( '.stripe-gateway-stripelink-modal-trigger' ).on(
+						'click',
+						( event ) => {
+							event.preventDefault();
+							// Trigger modal.
+							linkAutofill.launch( {
+								email: jQuery( '#email' ).val(),
+							} );
+						}
+					);
+				},
+				complete_shipping: () => {
+					return (
+						document.getElementById( 'shipping-address_1' ) !== null
+					);
+				},
+				shipping_fields: shippingAddressFields,
+				billing_fields: billingAddressFields,
+				complete_billing: () => {
+					return (
+						document.getElementById( 'billing-address_1' ) !== null
+					);
+				},
+			} );
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [ elements ] );
 
 	useEffect(
 		() =>

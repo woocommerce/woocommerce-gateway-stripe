@@ -1,0 +1,17 @@
+button.stripe-gateway-stripelink-modal-trigger {
+	display: none;
+	position: absolute;
+	right: 5px;
+	width: 64px;
+	height: 40px;
+	background: no-repeat
+		url( '../../payment-method-icons/link/icon.svg' );
+	background-color: transparent !important;
+	cursor: pointer;
+	border: none;
+}
+
+button.stripe-gateway-stripelink-modal-trigger:hover {
+	background-color: transparent;
+	border-color: transparent;
+}
