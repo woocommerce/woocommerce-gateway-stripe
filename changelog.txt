@@ -1,5 +1,7 @@
 *** Changelog ***
 
+= 6.6.0 - 2022-xx-xx =
+
 = 6.5.0 - 2022-07-28 =
 * Add - Stripe Link: Add beta headers for Stripe server requests
 * Add - Stripe Link payment method option in admin
