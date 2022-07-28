@@ -2,6 +2,7 @@ import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
 import { getStripeServerData, getUPETerms } from '../../stripe-utils';
 import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
+import enableStripeLinkPaymentMethod from '../../stripe-link';
 import { legacyHashchangeHandler } from './legacy-support';
 import './style.scss';
 
@@ -10,7 +11,9 @@ jQuery( function ( $ ) {
 	const isUPEEnabled = getStripeServerData()?.isUPEEnabled;
 	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
 	const enabledBillingFields = getStripeServerData()?.enabledBillingFields;
-
+	const isStripeLinkEnabled =
+		undefined !== paymentMethodsConfig.card &&
+		undefined !== paymentMethodsConfig.link;
 	if ( ! key ) {
 		// If no configuration is present, probably this is not the checkout page.
 		return;
@@ -93,6 +96,7 @@ jQuery( function ( $ ) {
 	const elements = api.getStripe().elements( {
 		fonts: getFontRulesFromPage(),
 	} );
+
 	const sepaElementsOptions =
 		getStripeServerData()?.sepaElementsOptions ?? {};
 	const iban = elements.create( 'iban', sepaElementsOptions );
@@ -308,7 +312,6 @@ jQuery( function ( $ ) {
 					hiddenElementsForUPE.cleanup();
 					api.saveUPEAppearance( appearance );
 				}
-
 				const businessName = getStripeServerData()?.accountDescriptor;
 				const upeSettings = {
 					clientSecret,
@@ -319,6 +322,43 @@ jQuery( function ( $ ) {
 					upeSettings.fields = {
 						billingDetails: hiddenBillingFields,
 					};
+				}
+
+				if ( isStripeLinkEnabled ) {
+					enableStripeLinkPaymentMethod( {
+						api,
+						elements,
+						emailId: 'billing_email',
+						complete_billing: () => {
+							return true;
+						},
+						complete_shipping: () => {
+							return (
+								document.getElementById(
+									'ship-to-different-address-checkbox'
+								) &&
+								document.getElementById(
+									'ship-to-different-address-checkbox'
+								).checked
+							);
+						},
+						shipping_fields: {
+							line1: 'shipping_address_1',
+							line2: 'shipping_address_2',
+							city: 'shipping_city',
+							state: 'shipping_state',
+							postal_code: 'shipping_postcode',
+							country: 'shipping_country',
+						},
+						billing_fields: {
+							line1: 'billing_address_1',
+							line2: 'billing_address_2',
+							city: 'billing_city',
+							state: 'billing_state',
+							postal_code: 'billing_postcode',
+							country: 'billing_country',
+						},
+					} );
 				}
 
 				upeElement = elements.create( 'payment', upeSettings );

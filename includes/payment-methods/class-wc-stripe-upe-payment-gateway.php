@@ -26,6 +26,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		WC_Stripe_UPE_Payment_Method_Sepa::class,
 		WC_Stripe_UPE_Payment_Method_P24::class,
 		WC_Stripe_UPE_Payment_Method_Sofort::class,
+		WC_Stripe_UPE_Payment_Method_Link::class,
 	];
 
 	const UPE_APPEARANCE_TRANSIENT = 'wc_stripe_upe_appearance';
@@ -259,6 +260,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		wp_enqueue_script( 'wc-stripe-upe-classic' );
 		wp_enqueue_style( 'wc-stripe-upe-classic' );
+
+		wp_register_style( 'stripelink_styles', plugins_url( 'assets/css/stripe-link.css', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );
+		wp_enqueue_style( 'stripelink_styles' );
 	}
 
 	/**
@@ -414,7 +418,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
 			$available_payment_methods[] = $payment_method_class::STRIPE_ID;
 		}
-
 		return $available_payment_methods;
 	}
 
@@ -544,6 +547,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				if ( '' !== $selected_upe_payment_type ) {
 					// Only update the payment_method_types if we have a reference to the payment type the customer selected.
 					$request['payment_method_types'] = [ $selected_upe_payment_type ];
+					if ( WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID === $selected_upe_payment_type ) {
+						if ( in_array(
+							WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+							$this->get_upe_enabled_payment_method_ids(),
+							true
+						) ) {
+							$request['payment_method_types'] = [
+								WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+								WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+							];
+						}
+					}
 					$this->set_payment_method_title_for_order( $order, $selected_upe_payment_type );
 					if ( ! $this->payment_methods[ $selected_upe_payment_type ]->is_allowed_on_country( $order->get_billing_country() ) ) {
 						throw new \Exception( __( 'This payment method is not available on the selected country', 'woocommerce-gateway-stripe' ) );

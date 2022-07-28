@@ -38,36 +38,15 @@ describe( 'GeneralSettingsSection', () => {
 		useGetCapabilities.mockReturnValue( {
 			card_payments: 'active',
 			giropay_payments: 'active',
+			link_payments: 'active',
 		} );
 		useManualCapture.mockReturnValue( [ false ] );
-		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card' ] );
-		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card' ], jest.fn() ] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card', 'link' ] );
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ 'card', 'link' ],
+			jest.fn(),
+		] );
 		useAccount.mockReturnValue( { isRefreshing: false } );
-	} );
-
-	it( 'should render the card information with action elements if UPE is disabled', () => {
-		render(
-			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<GeneralSettingsSection />
-			</UpeToggleContext.Provider>
-		);
-
-		expect(
-			screen.queryByText( 'Credit card / debit card' )
-		).toBeInTheDocument();
-		expect(
-			screen.queryByText(
-				'Let your customers pay with major credit and debit cards without leaving your store.'
-			)
-		).toBeInTheDocument();
-		expect(
-			screen.queryByText( 'Get more payment methods' )
-		).not.toBeInTheDocument();
-		expect(
-			screen.queryByRole( 'button', {
-				name: 'Payment methods menu',
-			} )
-		).not.toBeInTheDocument();
 	} );
 
 	it( 'should show information to screen readers about the payment methods being updated', () => {
@@ -132,6 +111,7 @@ describe( 'GeneralSettingsSection', () => {
 			'giropay',
 			'sofort',
 			'sepa_debit',
+			'link',
 		] );
 		const updateEnabledMethodsMock = jest.fn();
 		useEnabledPaymentMethodIds.mockReturnValue( [

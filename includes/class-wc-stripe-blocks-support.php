@@ -95,6 +95,13 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				: $dependencies;
 		}
 
+		wp_enqueue_style(
+			'wc-stripe-blocks-checkout-style',
+			WC_STRIPE_PLUGIN_URL . '/build/upe_blocks.css',
+			[],
+			$version
+		);
+
 		wp_register_script(
 			'wc-stripe-blocks-integration',
 			WC_STRIPE_PLUGIN_URL . '/build/upe_blocks.js',

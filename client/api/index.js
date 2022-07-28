@@ -58,21 +58,40 @@ export default class WCStripeAPI {
 	 * @return {Object} The Stripe Object.
 	 */
 	getStripe() {
-		const { key, locale, isUPEEnabled } = this.options;
-
+		const {
+			key,
+			locale,
+			isUPEEnabled,
+			paymentMethodsConfig,
+		} = this.options;
+		const isStripeLinkEnabled =
+			undefined !== paymentMethodsConfig.card &&
+			undefined !== paymentMethodsConfig.link;
 		if ( ! this.stripe ) {
 			if ( isUPEEnabled ) {
-				this.stripe = new Stripe( key, {
-					betas: [ 'payment_element_beta_1' ],
-					locale,
-				} );
+				let betas = [ 'payment_element_beta_1' ];
+				if ( isStripeLinkEnabled ) {
+					betas = betas.concat( [ 'link_autofill_modal_beta_1' ] );
+				}
+				this.stripe = this.createStripe( key, locale, betas );
 			} else {
-				this.stripe = new Stripe( key, {
-					locale,
-				} );
+				this.stripe = this.createStripe( key, locale );
 			}
 		}
 		return this.stripe;
+	}
+
+	createStripe( key, locale, betas = [] ) {
+		const options = { locale };
+
+		if ( betas.length ) {
+			options.betas = betas;
+		}
+
+		if ( betas.includes( 'link_autofill_modal_beta_1' ) ) {
+			options.apiVersion = '2020-08-27;link_beta=v1';
+		}
+		return new Stripe( key, options );
 	}
 
 	/**

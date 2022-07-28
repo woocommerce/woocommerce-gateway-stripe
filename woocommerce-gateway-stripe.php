@@ -5,11 +5,11 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 6.4.3
+ * Version: 6.5.0
  * Requires at least: 5.7
- * Tested up to: 5.9
+ * Tested up to: 6.0
  * WC requires at least: 6.2
- * WC tested up to: 6.4
+ * WC tested up to: 6.7
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '6.4.3' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '6.5.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.0.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '6.2' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '6.3' );
@@ -181,6 +181,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sepa.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-p24.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-sofort.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-link.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-bancontact.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-sofort.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-gateway-stripe-giropay.php';
@@ -240,6 +241,9 @@ function woocommerce_gateway_stripe() {
 				add_filter( 'pre_update_option_woocommerce_stripe_settings', [ $this, 'gateway_settings_update' ], 10, 2 );
 				add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), [ $this, 'plugin_action_links' ] );
 				add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
+
+				// Update the email field position.
+				add_filter( 'woocommerce_billing_fields', [ $this, 'checkout_update_email_field_priority' ], 50 );
 
 				// Modify emails emails.
 				add_filter( 'woocommerce_email_classes', [ $this, 'add_emails' ], 20 );
@@ -485,6 +489,10 @@ function woocommerce_gateway_stripe() {
 				$settings['upe_checkout_experience_accepted_payments'] = [];
 				$payment_gateways                                      = WC()->payment_gateways->payment_gateways();
 				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
+					if ( ! defined( "$method_class::LPM_GATEWAY_CLASS" ) ) {
+						continue;
+					}
+
 					$lpm_gateway_id = constant( $method_class::LPM_GATEWAY_CLASS . '::ID' );
 					if ( isset( $payment_gateways[ $lpm_gateway_id ] ) && 'yes' === $payment_gateways[ $lpm_gateway_id ]->enabled ) {
 						// DISABLE LPM
@@ -641,6 +649,35 @@ function woocommerce_gateway_stripe() {
 				$this->stripe_gateway = new WC_Gateway_Stripe();
 
 				return $this->stripe_gateway;
+			}
+
+			/**
+			 * Move the email field to the top of the Checkout page.
+			 *
+			 * @param array $fields WooCommerce checkout fields.
+			 *
+			 * @return array WooCommerce checkout fields.
+			 */
+			public function checkout_update_email_field_priority( $fields ) {
+				$is_link_enabled = in_array(
+					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+					$this->stripe_gateway->get_upe_enabled_payment_method_ids(),
+					true
+				);
+
+				if ( $is_link_enabled ) {
+					// Update the field priority.
+					$fields['billing_email']['priority'] = 1;
+
+					// Add extra `wcpay-checkout-email-field` class.
+					$fields['billing_email']['class'][] = 'stripe-gateway-checkout-email-field';
+
+					// Append StripeLink modal trigger button for logged in users.
+					$fields['billing_email']['label'] = $fields['billing_email']['label']
+						. ' <button class="stripe-gateway-stripelink-modal-trigger"></button>';
+				}
+
+				return $fields;
 			}
 		}
 
