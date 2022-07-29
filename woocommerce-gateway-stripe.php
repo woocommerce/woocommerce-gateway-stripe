@@ -661,7 +661,7 @@ function woocommerce_gateway_stripe() {
 			public function checkout_update_email_field_priority( $fields ) {
 				$is_link_enabled = in_array(
 					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
-					$this->stripe_gateway->get_upe_enabled_payment_method_ids(),
+					$this->get_main_stripe_gateway()->get_upe_enabled_payment_method_ids(),
 					true
 				);
 
