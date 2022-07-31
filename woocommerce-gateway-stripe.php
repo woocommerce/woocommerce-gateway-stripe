@@ -243,7 +243,9 @@ function woocommerce_gateway_stripe() {
 				add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
 
 				// Update the email field position.
-				add_filter( 'woocommerce_billing_fields', [ $this, 'checkout_update_email_field_priority' ], 50 );
+				if ( ! is_admin() && WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+					add_filter( 'woocommerce_billing_fields', [ $this, 'checkout_update_email_field_priority' ], 50 );
+				}
 
 				// Modify emails emails.
 				add_filter( 'woocommerce_email_classes', [ $this, 'add_emails' ], 20 );
@@ -661,11 +663,11 @@ function woocommerce_gateway_stripe() {
 			public function checkout_update_email_field_priority( $fields ) {
 				$is_link_enabled = in_array(
 					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
-					$this->stripe_gateway->get_upe_enabled_payment_method_ids(),
+					$this->get_main_stripe_gateway()->get_upe_enabled_payment_method_ids(),
 					true
 				);
 
-				if ( $is_link_enabled ) {
+				if ( isset( $fields['billing_email'] ) && $is_link_enabled ) {
 					// Update the field priority.
 					$fields['billing_email']['priority'] = 1;
 
