@@ -1,0 +1,16 @@
+.stripe-gateway-checkout-email-field {
+	position: relative;
+}
+
+.stripe-gateway-checkout-email-field button.stripe-gateway-stripelink-modal-trigger {
+	display: none;
+	position: absolute;
+	right: 5px;
+	width: 64px;
+	height: 40px;
+	background: no-repeat
+		url( '../images/link.svg' );
+	background-color: transparent;
+	cursor: pointer;
+	border: none;
+}
