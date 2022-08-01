@@ -242,8 +242,8 @@ function woocommerce_gateway_stripe() {
 				add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), [ $this, 'plugin_action_links' ] );
 				add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
 
+				// Update the email field position.
 				if ( ! is_admin() ) {
-					// Update the email field position.
 					add_filter( 'woocommerce_billing_fields', [ $this, 'checkout_update_email_field_priority' ], 50 );
 				}
 
