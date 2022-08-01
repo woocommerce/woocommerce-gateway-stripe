@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 6.6.0 - 2022-xx-xx =
+= 6.5.1 - 2022-08-01 =
 
 = 6.5.1 - 2022-xx-xx =
 * Fix - Stripe Link missing styles and logo for email trigger button.
