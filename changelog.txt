@@ -2,8 +2,8 @@
 
 = 6.6.0 - 2022-xx-xx =
 
-= 6.5.1 - 2022-08-01 =
-* Fix - Stripe Link missing styles and logo for email trigger button 
+= 6.5.1 - 2022-xx-xx =
+* Fix - Stripe Link missing styles and logo for email trigger button.
 * Fix - Stripe Link fatal error on `get_upe_enabled_payment_method_ids` method.
 * Fix - Remove Link beta headers on checkout.
 
