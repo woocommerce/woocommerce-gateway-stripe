@@ -26,4 +26,22 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 			'woocommerce-gateway-stripe'
 		);
 	}
+
+	/**
+	 * Return if Stripe Link is enabled
+	 *
+	 * @return bool
+	 */
+	public static function is_link_enabled() {
+		// Assume Link is disabled if UPE is disabled.
+		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			return false;
+		}
+
+		return in_array(
+			self::STRIPE_ID,
+			woocommerce_gateway_stripe()->get_main_stripe_gateway()->get_upe_enabled_payment_method_ids(),
+			true
+		);
+	}
 }
