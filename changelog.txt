@@ -1,7 +1,6 @@
 *** Changelog ***
 
-= 6.6.0 - 2022-xx-xx =
-* Fix - Fix "Pending" text instead of numeric amount on Payment Request button on iOS.
+= 6.7.0 - 2022-xx-xx =
 
 = 6.5.1 - 2022-08-01 =
 * Fix - Stripe Link missing styles and logo for email trigger button.
