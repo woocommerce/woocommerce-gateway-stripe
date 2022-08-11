@@ -522,7 +522,7 @@ class WC_Stripe_Payment_Request {
 	 * @return  void
 	 */
 	public function add_order_meta( $order_id, $posted_data ) {
-		if ( empty( $_POST['payment_request_type'] ) ) {
+		if ( empty( $_POST['payment_request_type'] ) || ! isset( $_POST['payment_method'] ) || 'stripe' !== $_POST['payment_method'] ) {
 			return;
 		}
 
