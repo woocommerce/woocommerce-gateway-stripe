@@ -112,6 +112,9 @@ const PaymentGatewaySection = () => {
 						onChange={ setGatewayDescription }
 					/>
 					<TextControl
+						type="number"
+						min="0"
+						max="60"
 						help={ __(
 							'Set the number of days until expiration from 0 to 60 days. The default is 3 days.',
 							'woocommerce-gateway-stripe'
