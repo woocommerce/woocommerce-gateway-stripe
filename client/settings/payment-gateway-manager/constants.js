@@ -1,4 +1,6 @@
 import { __ } from '@wordpress/i18n';
+import { TextControl } from '@wordpress/components';
+import { usePaymentGatewayExpiration } from '../../data/payment-gateway/hooks';
 
 export const gatewaysInfo = {
 	stripe_sepa: {
@@ -91,6 +93,30 @@ export const gatewaysInfo = {
 		),
 		guide:
 			'https://stripe.com/docs/payments/payment-methods/overview#vouchers',
+		Fields: () => {
+			const [
+				gatewayExpiration,
+				setGatewayExpiration,
+			] = usePaymentGatewayExpiration();
+
+			return (
+				<TextControl
+					type="number"
+					min="0"
+					max="60"
+					help={ __(
+						'Set the number of days until expiration from 0 to 60 days. The default is 3 days.',
+						'woocommerce-gateway-stripe'
+					) }
+					label={ __(
+						'Expiration',
+						'woocommerce-gateway-stripe'
+					) }
+					value={ gatewayExpiration }
+					onChange={ setGatewayExpiration }
+				/>
+			);
+		}
 	},
 	stripe_oxxo: {
 		title: __( 'OXXO', 'woocommerce-gateway-stripe' ),

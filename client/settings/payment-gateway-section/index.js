@@ -35,16 +35,13 @@ const StyledCheckboxLabel = styled.span`
 const PaymentGatewaySection = () => {
 	const { section } = getQuery();
 	const info = gatewaysInfo[ section ];
+	const { Fields } = info;
 	const [ enableGateway, setEnableGateway ] = useEnabledPaymentGateway();
 	const [ gatewayName, setGatewayName ] = usePaymentGatewayName();
 	const [
 		gatewayDescription,
 		setGatewayDescription,
 	] = usePaymentGatewayDescription();
-	const [
-		gatewayExpiration,
-		setGatewayExpiration,
-	] = usePaymentGatewayExpiration();
 	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
 
 	return (
@@ -111,21 +108,7 @@ const PaymentGatewaySection = () => {
 						value={ gatewayDescription }
 						onChange={ setGatewayDescription }
 					/>
-					<TextControl
-						type="number"
-						min="0"
-						max="60"
-						help={ __(
-							'Set the number of days until expiration from 0 to 60 days. The default is 3 days.',
-							'woocommerce-gateway-stripe'
-						) }
-						label={ __(
-							'Expiration',
-							'woocommerce-gateway-stripe'
-						) }
-						value={ gatewayExpiration }
-						onChange={ setGatewayExpiration }
-					/>
+					{ Fields && <Fields /> }
 					<h4>
 						{ __(
 							'Webhook endpoints',
