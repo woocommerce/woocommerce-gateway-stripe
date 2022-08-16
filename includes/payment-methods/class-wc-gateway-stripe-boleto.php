@@ -53,6 +53,47 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 		parent::__construct();
 
 		add_filter( 'wc_stripe_allowed_payment_processing_statuses', [ $this, 'add_allowed_payment_processing_statuses' ], 10, 2 );
+		add_filter( 'wc_stripe_payment_gateway_settings', [ $this, 'add_expiration_option' ], 10, 2 );
+		add_action( 'wc_stripe_update_payment_gateway_settings', [ $this, 'update_expiration_option'], 10, 2 );
+	}
+
+	/**
+	 * Add payment gateway voucher expiration.
+	 * 
+	 * @param array $options Payment gateway options.
+	 * @param string $id Payment gateway ID.
+	 * @return array
+	 */
+	public function add_expiration_option( $options, $id ) {
+		if ( $id === $this->id ) {
+			$options[ $id . '_expiration' ] = $this->get_option( 'expiration' );
+		}
+		return $options;
+	}
+
+	/**
+	 * Updates payment gateway voucher expiration.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @param string $id Payment gateway ID.
+	 * @return void
+	 */
+	public function update_expiration_option( WP_REST_Request $request, $id ) {
+		if ( $id !== $this->id ) {
+			return;
+		}
+		
+		$field_name  = $this->id . '_expiration';
+		$expiration = $request->get_param( $field_name );
+
+		if ( null === $expiration ) {
+			return;
+		}
+
+		$value = absint( $expiration );
+		$value = min( 60, $value );
+		$value = max( 0, $value );
+		$this->update_option( 'expiration', $value );
 	}
 
 	/**
