@@ -187,6 +187,8 @@ class WC_REST_Stripe_Payment_Gateway_Controller extends WC_Stripe_REST_Base_Cont
 		}
 
 		$value = absint( $expiration );
+		$value = min( 60, $value );
+		$value = max( 0, $value );
 		$this->gateway->update_option( 'expiration', $value );
 	}
 }
