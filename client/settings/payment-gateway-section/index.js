@@ -17,6 +17,7 @@ import {
 	useEnabledPaymentGateway,
 	usePaymentGatewayName,
 	usePaymentGatewayDescription,
+	usePaymentGatewayExpiration,
 } from '../../data/payment-gateway/hooks';
 import PaymentMethodCapabilityStatusPill from 'wcstripe/components/payment-method-capability-status-pill';
 import { WebhookInformation } from 'wcstripe/components/webhook-information';
@@ -40,6 +41,10 @@ const PaymentGatewaySection = () => {
 		gatewayDescription,
 		setGatewayDescription,
 	] = usePaymentGatewayDescription();
+	const [
+		gatewayExpiration,
+		setGatewayExpiration,
+	] = usePaymentGatewayExpiration();
 	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
 
 	return (
@@ -105,6 +110,18 @@ const PaymentGatewaySection = () => {
 						) }
 						value={ gatewayDescription }
 						onChange={ setGatewayDescription }
+					/>
+					<TextControl
+						help={ __(
+							'Set the number of days until expiration from 0 to 60 days. The default is 3 days.',
+							'woocommerce-gateway-stripe'
+						) }
+						label={ __(
+							'Expiration',
+							'woocommerce-gateway-stripe'
+						) }
+						value={ gatewayExpiration }
+						onChange={ setGatewayExpiration }
 					/>
 					<h4>
 						{ __(
