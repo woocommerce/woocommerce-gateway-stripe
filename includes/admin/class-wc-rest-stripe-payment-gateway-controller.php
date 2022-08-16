@@ -91,6 +91,7 @@ class WC_REST_Stripe_Payment_Gateway_Controller extends WC_Stripe_REST_Base_Cont
 					'is_' . $id . '_enabled' => $this->gateway->is_enabled(),
 					$id . '_name'            => $this->gateway->get_option( 'title' ),
 					$id . '_description'     => $this->gateway->get_option( 'description' ),
+					$id . '_expiration'      => $this->gateway->get_option( 'expiration' ),
 				]
 			);
 		} catch ( Exception $exception ) {
@@ -110,6 +111,7 @@ class WC_REST_Stripe_Payment_Gateway_Controller extends WC_Stripe_REST_Base_Cont
 			$this->update_is_gateway_enabled( $request );
 			$this->update_gateway_name( $request );
 			$this->update_gateway_description( $request );
+			$this->update_gateway_expiration( $request );
 
 			return new WP_REST_Response( [], 200 );
 		} catch ( Exception $exception ) {
@@ -155,7 +157,7 @@ class WC_REST_Stripe_Payment_Gateway_Controller extends WC_Stripe_REST_Base_Cont
 	}
 
 	/**
-	 * Updates payment gateway title.
+	 * Updates payment gateway description.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 */
@@ -169,5 +171,22 @@ class WC_REST_Stripe_Payment_Gateway_Controller extends WC_Stripe_REST_Base_Cont
 
 		$value = sanitize_text_field( $description );
 		$this->gateway->update_option( 'description', $value );
+	}
+
+	/**
+	 * Updates payment gateway voucher expiration.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	private function update_gateway_expiration( WP_REST_Request $request ) {
+		$field_name  = $this->gateway->id . '_expiration';
+		$expiration = $request->get_param( $field_name );
+
+		if ( null === $expiration ) {
+			return;
+		}
+
+		$value = absint( $expiration );
+		$this->gateway->update_option( 'expiration', $value );
 	}
 }
