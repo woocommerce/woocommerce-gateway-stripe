@@ -54,12 +54,12 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 
 		add_filter( 'wc_stripe_allowed_payment_processing_statuses', [ $this, 'add_allowed_payment_processing_statuses' ], 10, 2 );
 		add_filter( 'wc_stripe_payment_gateway_settings', [ $this, 'add_expiration_option' ], 10, 2 );
-		add_action( 'wc_stripe_update_payment_gateway_settings', [ $this, 'update_expiration_option'], 10, 2 );
+		add_action( 'wc_stripe_update_payment_gateway_settings', [ $this, 'update_expiration_option' ], 10, 2 );
 	}
 
 	/**
 	 * Add payment gateway voucher expiration.
-	 * 
+	 *
 	 * @param array $options Payment gateway options.
 	 * @param string $id Payment gateway ID.
 	 * @return array
@@ -82,7 +82,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 		if ( $id !== $this->id ) {
 			return;
 		}
-		
+
 		$field_name  = $this->id . '_expiration';
 		$expiration = $request->get_param( $field_name );
 
