@@ -96,18 +96,29 @@ export const gatewaysInfo = {
 				usePaymentGatewayExpiration();
 
 			return (
-				<TextControl
-					type="number"
-					min="0"
-					max="60"
-					help={ __(
-						'Set the number of days until expiration from 0 to 60 days. The default is 3 days.',
-						'woocommerce-gateway-stripe'
-					) }
-					label={ __( 'Expiration', 'woocommerce-gateway-stripe' ) }
-					value={ gatewayExpiration }
-					onChange={ setGatewayExpiration }
-				/>
+				<>
+					<h4>
+						{ __(
+							'Voucher settings',
+							'woocommerce-gateway-stripe'
+						) }
+					</h4>
+					<TextControl
+						type="number"
+						min="0"
+						max="60"
+						help={ __(
+							'Set the number of days until expiration from 0 to 60 days. The default is 3 days.',
+							'woocommerce-gateway-stripe'
+						) }
+						label={ __(
+							'Expiration',
+							'woocommerce-gateway-stripe'
+						) }
+						value={ gatewayExpiration }
+						onChange={ setGatewayExpiration }
+					/>
+				</>
 			);
 		},
 	},
