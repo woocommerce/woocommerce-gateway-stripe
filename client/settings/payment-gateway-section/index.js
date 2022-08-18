@@ -17,7 +17,6 @@ import {
 	useEnabledPaymentGateway,
 	usePaymentGatewayName,
 	usePaymentGatewayDescription,
-	usePaymentGatewayExpiration,
 } from '../../data/payment-gateway/hooks';
 import PaymentMethodCapabilityStatusPill from 'wcstripe/components/payment-method-capability-status-pill';
 import { WebhookInformation } from 'wcstripe/components/webhook-information';
@@ -38,10 +37,8 @@ const PaymentGatewaySection = () => {
 	const { Fields } = info;
 	const [ enableGateway, setEnableGateway ] = useEnabledPaymentGateway();
 	const [ gatewayName, setGatewayName ] = usePaymentGatewayName();
-	const [
-		gatewayDescription,
-		setGatewayDescription,
-	] = usePaymentGatewayDescription();
+	const [ gatewayDescription, setGatewayDescription ] =
+		usePaymentGatewayDescription();
 	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
 
 	return (
