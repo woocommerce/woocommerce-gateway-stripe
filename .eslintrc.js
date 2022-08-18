@@ -1,4 +1,5 @@
 module.exports = {
+	root: true,
 	parser: '@babel/eslint-parser',
 	extends: [ 'plugin:@woocommerce/eslint-plugin/recommended' ],
 	globals: {
