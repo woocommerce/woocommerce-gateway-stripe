@@ -130,5 +130,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 6.7.0 - 2022-xx-xx =
 * Fix - Check payment method before updating payment method title.
+* Add - Add actions to the process_webhook function to allow other plugins access to Stripe webhooks
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

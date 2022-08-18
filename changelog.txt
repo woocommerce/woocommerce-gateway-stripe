@@ -2,6 +2,7 @@
 
 = 6.7.0 - 2022-xx-xx
 * Fix - Check payment method before updating payment method title.
+* Add - Add actions to the process_webhook function to allow other plugins access to Stripe webhooks
 
 = 6.6.0 - 2022-08-17 =
 * Fix - Fix "Pending" text instead of numeric amount on Payment Request button on iOS.
