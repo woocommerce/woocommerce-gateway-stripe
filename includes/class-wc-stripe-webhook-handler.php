@@ -937,8 +937,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function process_webhook( $request_body ) {
 		$notification = json_decode( $request_body );
+		$event_type   = $notification->type;
 
-		switch ( $notification->type ) {
+		do_action( 'wc_gateway_stripe_before_webhook_delivery', $event_type, $notification );
+
+		switch ( $event_type ) {
 			case 'source.chargeable':
 				$this->process_webhook_payment( $notification );
 				break;
@@ -995,6 +998,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				$this->process_setup_intent( $notification );
 
 		}
+
+		do_action( 'wc_gateway_stripe_after_webhook_delivery', $event_type, $notification );
 	}
 }
 
