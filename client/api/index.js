@@ -82,9 +82,6 @@ export default class WCStripeAPI {
 			options.betas = betas;
 		}
 
-		if ( betas.includes( 'link_autofill_modal_beta_1' ) ) {
-			options.apiVersion = '2020-08-27;link_beta=v1';
-		}
 		return new Stripe( key, options );
 	}
 

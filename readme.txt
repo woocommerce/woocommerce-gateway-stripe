@@ -2,9 +2,9 @@
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
 Requires at least: 5.7
-Tested up to: 5.9
+Tested up to: 6.0
 Requires PHP: 7.0
-Stable tag: 6.4.3
+Stable tag: 6.6.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,10 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 6.5.0 - 2022-xx-xx =
-* Add - Stripe Link payment method option in admin
-* Add - Stripe Link: Add beta headers for Stripe server requests
-* Add - Stripe Link payment method on checkout form
-* Add - Stripe Link payment method on blocks checkout form
+= 6.7.0 - 2022-xx-xx =
+* Fix - Check payment method before updating payment method title.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

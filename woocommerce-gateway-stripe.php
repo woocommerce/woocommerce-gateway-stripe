@@ -5,11 +5,11 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 6.4.3
+ * Version: 6.6.0
  * Requires at least: 5.7
- * Tested up to: 5.9
+ * Tested up to: 6.0
  * WC requires at least: 6.2
- * WC tested up to: 6.4
+ * WC tested up to: 6.7
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '6.4.3' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '6.6.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.0.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '6.2' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '6.3' );
@@ -243,7 +243,9 @@ function woocommerce_gateway_stripe() {
 				add_filter( 'plugin_row_meta', [ $this, 'plugin_row_meta' ], 10, 2 );
 
 				// Update the email field position.
-				add_filter( 'woocommerce_billing_fields', [ $this, 'checkout_update_email_field_priority' ], 50 );
+				if ( ! is_admin() ) {
+					add_filter( 'woocommerce_billing_fields', [ $this, 'checkout_update_email_field_priority' ], 50 );
+				}
 
 				// Modify emails emails.
 				add_filter( 'woocommerce_email_classes', [ $this, 'add_emails' ], 20 );
@@ -659,13 +661,7 @@ function woocommerce_gateway_stripe() {
 			 * @return array WooCommerce checkout fields.
 			 */
 			public function checkout_update_email_field_priority( $fields ) {
-				$is_link_enabled = in_array(
-					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
-					$this->stripe_gateway->get_upe_enabled_payment_method_ids(),
-					true
-				);
-
-				if ( $is_link_enabled ) {
+				if ( isset( $fields['billing_email'] ) && WC_Stripe_UPE_Payment_Method_Link::is_link_enabled() ) {
 					// Update the field priority.
 					$fields['billing_email']['priority'] = 1;
 

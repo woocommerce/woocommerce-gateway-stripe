@@ -1,6 +1,17 @@
 *** Changelog ***
 
-= 6.5.0 - 2022-xx-xx =
+= 6.7.0 - 2022-xx-xx
+* Fix - Check payment method before updating payment method title.
+
+= 6.6.0 - 2022-08-17 =
+* Fix - Fix "Pending" text instead of numeric amount on Payment Request button on iOS.
+
+= 6.5.1 - 2022-08-01 =
+* Fix - Stripe Link missing styles and logo for email trigger button.
+* Fix - Stripe Link fatal error on `get_upe_enabled_payment_method_ids` method.
+* Fix - Remove Link beta headers on checkout.
+
+= 6.5.0 - 2022-07-28 =
 * Add - Stripe Link: Add beta headers for Stripe server requests
 * Add - Stripe Link payment method option in admin
 * Add - Stripe Link payment method on checkout form
