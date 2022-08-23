@@ -97,10 +97,6 @@ jQuery( function ( $ ) {
 		fonts: getFontRulesFromPage(),
 	} );
 
-	const sepaElementsOptions =
-		getStripeServerData()?.sepaElementsOptions ?? {};
-	const iban = elements.create( 'iban', sepaElementsOptions );
-
 	let upeElement = null;
 	let paymentIntentId = null;
 	let isUPEComplete = false;
@@ -161,18 +157,6 @@ jQuery( function ( $ ) {
 	 */
 	const unblockUI = ( $form ) => {
 		$form.removeClass( 'processing' ).unblock();
-	};
-
-	/**
-	 * Checks whether SEPA IBAN element is present in the DOM and needs to be mounted
-	 *
-	 * @return {boolean} Whether IBAN needs to be mounted
-	 */
-	const doesIbanNeedToBeMounted = () => {
-		return (
-			$( '#stripe-iban-element' ).length &&
-			! $( '#stripe-iban-element' ).children().length
-		);
 	};
 
 	/**
@@ -415,10 +399,6 @@ jQuery( function ( $ ) {
 			);
 			mountUPEElement( isSetupIntent );
 		}
-
-		if ( doesIbanNeedToBeMounted() ) {
-			iban.mount( '#stripe-iban-element' );
-		}
 	} );
 
 	if (
@@ -446,10 +426,6 @@ jQuery( function ( $ ) {
 				$( 'form#order_review' ).submit();
 			}
 			mountUPEElement( isSetupIntent );
-		}
-
-		if ( doesIbanNeedToBeMounted() ) {
-			iban.mount( '#stripe-iban-element' );
 		}
 	}
 
