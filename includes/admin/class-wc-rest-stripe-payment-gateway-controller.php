@@ -141,10 +141,6 @@ class WC_REST_Stripe_Payment_Gateway_Controller extends WC_Stripe_REST_Base_Cont
 		}
 	}
 
-	function update_unique_settings( WP_REST_Request $request) {
-		$this->gateway->update_unique_settings( $request );
-	}
-
 	/**
 	 * Updates payment gateway title.
 	 *
