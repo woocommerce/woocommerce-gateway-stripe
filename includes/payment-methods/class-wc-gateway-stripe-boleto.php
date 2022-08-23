@@ -66,11 +66,12 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 	 * @return array
 	 */
 	public function add_expires_after_days( $request, $api ) {
-		if ( $api === 'payment_intents' && isset( $request[ 'payment_method_types' ] ) && in_array( $this->id, $request[ 'payment_method_types' ] ) ) {
-			$request[ 'payment_method_options' ] = [
+		$api_pieces = explode( '/', $api );
+		if ( 'payment_intents' === $api_pieces[0] && isset( $request[ 'payment_method_types' ] ) && in_array( $this->stripe_id, $request['payment_method_types'] ) ) {
+			$request['payment_method_options'] = [
 				'boleto' => [
-					'expires_after_days' => $gateway->get_option( 'expiration' ),
-				]
+					'expires_after_days' => $this->get_option( 'expiration' ),
+				],
 			];
 		}
 		return $request;
