@@ -289,7 +289,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 
 		$order_id = $order->get_id();
 
-		update_post_meta( $order_id, '_stripe_multibanco', $data );
+		$order->update_meta_data( '_stripe_multibanco', $data );
 	}
 
 	/**
