@@ -532,7 +532,7 @@ jQuery( function ( $ ) {
 			const returnUrl = getStripeServerData()?.addPaymentReturnURL;
 
 			const { error } = await api.getStripe().confirmSetup( {
-				element: upeElement,
+				elements,
 				confirmParams: {
 					return_url: returnUrl,
 				},
