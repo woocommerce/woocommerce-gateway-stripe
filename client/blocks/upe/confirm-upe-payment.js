@@ -4,7 +4,7 @@
  * @param {Object}   api            The API used for connection both with the server and Stripe.
  * @param {string}   redirectUrl    The URL to redirect to after confirming the intent on Stripe.
  * @param {boolean}  paymentNeeded  A boolean whether a payment or a setup confirmation is needed.
- * @param {Object}   paymentElement Reference to the UPE element mounted on the page.
+ * @param {Object}   elements       Reference to the Stripe elements.
  * @param {Object}   billingData    An object containing the customer's billing data.
  * @param {Object}   emitResponse   Various helpers for usage with observer response objects.
  * @return {Object}                An object, which contains the result from the action.
@@ -13,11 +13,12 @@ export const confirmUpePayment = async (
 	api,
 	redirectUrl,
 	paymentNeeded,
-	paymentElement,
+	elements,
 	billingData,
 	emitResponse
 ) => {
-	const name = `${ billingData.first_name } ${ billingData.last_name }`.trim();
+	const name =
+		`${ billingData.first_name } ${ billingData.last_name }`.trim();
 
 	try {
 		const confirmParams = {
@@ -41,7 +42,7 @@ export const confirmUpePayment = async (
 
 		if ( paymentNeeded ) {
 			const { error } = await api.getStripe().confirmPayment( {
-				element: paymentElement,
+				elements,
 				confirmParams,
 			} );
 
@@ -50,7 +51,7 @@ export const confirmUpePayment = async (
 			}
 		} else {
 			const { error } = await api.getStripe().confirmSetup( {
-				element: paymentElement,
+				elements,
 				confirmParams,
 			} );
 
