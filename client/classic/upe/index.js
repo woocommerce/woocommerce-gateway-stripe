@@ -285,7 +285,7 @@ jQuery( function ( $ ) {
 				const { client_secret: clientSecret, id: id } = response;
 				paymentIntentId = id;
 
-				let appearance = getStripeServerData()?.upeAppeareance;
+				let appearance = getStripeServerData()?.upeAppearance;
 
 				if ( ! appearance ) {
 					hiddenElementsForUPE.init();
