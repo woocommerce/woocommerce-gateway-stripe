@@ -93,10 +93,7 @@ jQuery( function ( $ ) {
 		},
 	};
 
-	const elements = api.getStripe().elements( {
-		fonts: getFontRulesFromPage(),
-	} );
-
+	let elements = null;
 	let upeElement = null;
 	let paymentIntentId = null;
 	let isUPEComplete = false;
@@ -298,8 +295,6 @@ jQuery( function ( $ ) {
 				}
 				const businessName = getStripeServerData()?.accountDescriptor;
 				const upeSettings = {
-					clientSecret,
-					appearance,
 					business: { name: businessName },
 				};
 				if ( isCheckout && ! isOrderPay ) {
@@ -307,6 +302,11 @@ jQuery( function ( $ ) {
 						billingDetails: hiddenBillingFields,
 					};
 				}
+				elements = api.getStripe().elements( {
+					clientSecret,
+					appearance,
+					fonts: getFontRulesFromPage(),
+				} );
 
 				if ( isStripeLinkEnabled ) {
 					enableStripeLinkPaymentMethod( {
@@ -443,7 +443,7 @@ jQuery( function ( $ ) {
 		if ( ! isUPEComplete ) {
 			// If UPE fields are not filled, confirm payment to trigger validation errors
 			const { error } = await api.getStripe().confirmPayment( {
-				element: upeElement,
+				elements,
 				confirmParams: {
 					return_url: '#',
 				},
@@ -490,7 +490,7 @@ jQuery( function ( $ ) {
 			);
 
 			const { error } = await api.getStripe().confirmPayment( {
-				element: upeElement,
+				elements,
 				confirmParams: {
 					return_url: returnUrl,
 				},
@@ -572,7 +572,7 @@ jQuery( function ( $ ) {
 			);
 			const redirectUrl = response.redirect_url;
 			const upeConfig = {
-				element: upeElement,
+				elements,
 				confirmParams: {
 					return_url: redirectUrl,
 					payment_method_data: {
