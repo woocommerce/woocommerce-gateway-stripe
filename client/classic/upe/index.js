@@ -30,69 +30,6 @@ jQuery( function ( $ ) {
 		}
 	);
 
-	// Object to add hidden elements to compute focus and invalid states for UPE.
-	const hiddenElementsForUPE = {
-		getHiddenContainer() {
-			const hiddenDiv = document.createElement( 'div' );
-			hiddenDiv.setAttribute( 'id', 'wc-stripe-hidden-div' );
-			hiddenDiv.style.border = 0;
-			hiddenDiv.style.clip = 'rect(0 0 0 0)';
-			hiddenDiv.style.height = '1px';
-			hiddenDiv.style.margin = '-1px';
-			hiddenDiv.style.overflow = 'hidden';
-			hiddenDiv.style.padding = '0';
-			hiddenDiv.style.position = 'absolute';
-			hiddenDiv.style.width = '1px';
-			return hiddenDiv;
-		},
-		getHiddenInvalidRow() {
-			const hiddenInvalidRow = document.createElement( 'p' );
-			hiddenInvalidRow.classList.add(
-				'form-row',
-				'woocommerce-invalid',
-				'woocommerce-invalid-required-field'
-			);
-			return hiddenInvalidRow;
-		},
-		appendHiddenClone( container, idToClone, hiddenCloneId ) {
-			const hiddenInput = jQuery( idToClone )
-				.clone()
-				.prop( 'id', hiddenCloneId );
-			container.appendChild( hiddenInput.get( 0 ) );
-			return hiddenInput;
-		},
-		init() {
-			if ( ! $( ' #billing_first_name' ).length ) {
-				return;
-			}
-			const hiddenDiv = this.getHiddenContainer();
-
-			// // Hidden focusable element.
-			$( hiddenDiv ).insertAfter( '#billing_first_name' );
-			this.appendHiddenClone(
-				hiddenDiv,
-				'#billing_first_name',
-				'wc-stripe-hidden-input'
-			);
-			$( '#wc-stripe-hidden-input' ).trigger( 'focus' );
-
-			// Hidden invalid element.
-			const hiddenInvalidRow = this.getHiddenInvalidRow();
-			this.appendHiddenClone(
-				hiddenInvalidRow,
-				'#billing_first_name',
-				'wc-stripe-hidden-invalid-input'
-			);
-			hiddenDiv.appendChild( hiddenInvalidRow );
-
-			// Remove transitions.
-			$( '#wc-stripe-hidden-input' ).css( 'transition', 'none' );
-		},
-		cleanup() {
-			$( '#wc-stripe-hidden-div' ).remove();
-		},
-	};
-
 	let elements = null;
 	let upeElement = null;
 	let paymentIntentId = null;
@@ -288,9 +225,7 @@ jQuery( function ( $ ) {
 				let appearance = getStripeServerData()?.upeAppearance;
 
 				if ( ! appearance ) {
-					hiddenElementsForUPE.init();
 					appearance = getAppearance();
-					hiddenElementsForUPE.cleanup();
 					api.saveUPEAppearance( appearance );
 				}
 				const businessName = getStripeServerData()?.accountDescriptor;
