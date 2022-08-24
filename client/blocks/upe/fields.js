@@ -25,8 +25,11 @@ const useCustomerData = () => {
 			isInitialized: store.hasFinishedResolution( 'getCartData' ),
 		};
 	} );
-	const { setShippingAddress, setBillingAddress, setBillingData } =
-		useDispatch( WC_STORE_CART );
+	const {
+		setShippingAddress,
+		setBillingAddress,
+		setBillingData,
+	} = useDispatch( WC_STORE_CART );
 
 	let customerBillingAddress = customerData.billingData;
 	let setCustomerBillingAddress = setBillingData;
@@ -62,8 +65,9 @@ const UPEField = ( {
 	const stripe = useStripe();
 	const elements = useElements();
 
-	const [ selectedUpePaymentType, setSelectedUpePaymentType ] =
-		useState( '' );
+	const [ selectedUpePaymentType, setSelectedUpePaymentType ] = useState(
+		''
+	);
 	const [ isUpeComplete, setIsUpeComplete ] = useState( false );
 
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
@@ -232,8 +236,7 @@ const UPEField = ( {
 						paymentMethodData: {
 							paymentMethod: PAYMENT_METHOD_NAME,
 							wc_payment_intent_id: paymentIntentId,
-							wc_stripe_selected_upe_payment_type:
-								selectedUpePaymentType,
+							wc_stripe_selected_upe_payment_type: selectedUpePaymentType,
 						},
 					},
 				};
