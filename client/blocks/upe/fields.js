@@ -347,8 +347,23 @@ export const UPEPaymentForm = ( { api, ...props } ) => {
 	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
 	const [ hasRequestedIntent, setHasRequestedIntent ] = useState( false );
 	const [ errorMessage, setErrorMessage ] = useState( null );
+	const [ appearance, setAppearance ] = useState(
+		getBlocksConfiguration()?.wcBlocksUPEAppearance
+	);
 
 	useEffect( () => {
+		async function generateUPEAppearance() {
+			// Generate UPE input styles.
+			const upeAppearance = getAppearance( true );
+			await api.saveUPEAppearance( upeAppearance, true );
+
+			// Update appearance state
+			setAppearance( upeAppearance );
+		}
+		if ( ! appearance ) {
+			generateUPEAppearance();
+		}
+
 		if ( paymentIntentId || hasRequestedIntent ) {
 			return;
 		}
@@ -376,7 +391,7 @@ export const UPEPaymentForm = ( { api, ...props } ) => {
 
 		setHasRequestedIntent( true );
 		createIntent();
-	}, [ paymentIntentId, hasRequestedIntent, api, errorMessage ] );
+	}, [ paymentIntentId, hasRequestedIntent, api, errorMessage, appearance ] );
 
 	if ( ! clientSecret ) {
 		if ( errorMessage ) {
@@ -394,7 +409,7 @@ export const UPEPaymentForm = ( { api, ...props } ) => {
 
 	const options = {
 		clientSecret,
-		appearance: getAppearance(),
+		appearance,
 		fonts: getFontRulesFromPage(),
 	};
 
