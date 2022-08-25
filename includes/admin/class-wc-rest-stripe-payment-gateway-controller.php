@@ -92,7 +92,7 @@ class WC_REST_Stripe_Payment_Gateway_Controller extends WC_Stripe_REST_Base_Cont
 				$id . '_description'     => $this->gateway->get_option( 'description' ),
 			];
 			if ( method_exists( $this->gateway, 'get_unique_settings' ) ) {
-				$settings = $this->$gateway->get_unique_settings( $settings );
+				$settings = $this->gateway->get_unique_settings( $settings );
 			}
 			return new WP_REST_Response( $settings );
 		} catch ( Exception $exception ) {
@@ -113,7 +113,7 @@ class WC_REST_Stripe_Payment_Gateway_Controller extends WC_Stripe_REST_Base_Cont
 			$this->update_gateway_name( $request );
 			$this->update_gateway_description( $request );
 			if ( method_exists( $this->gateway, 'update_unique_settings' ) ) {
-				$this->$gateway->update_unique_settings( $request );
+				$this->gateway->update_unique_settings( $request );
 			}
 			return new WP_REST_Response( [], 200 );
 		} catch ( Exception $exception ) {

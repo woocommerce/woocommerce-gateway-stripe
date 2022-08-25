@@ -53,26 +53,21 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 		parent::__construct();
 
 		add_filter( 'wc_stripe_allowed_payment_processing_statuses', [ $this, 'add_allowed_payment_processing_statuses' ], 10, 2 );
-		add_filter( 'woocommerce_stripe_request_body', [ $this, 'add_expires_after_days' ], 10, 2 );
 	}
 
 	/**
 	 * Add payment gateway voucher expiration to API request body.
 	 *
-	 * @param array $request API request body.
-	 * @param string $api API endpoint.
+	 * @param array $body API request body.
 	 * @return array
 	 */
-	public function add_expires_after_days( $request, $api ) {
-		$api_pieces = explode( '/', $api );
-		if ( 'payment_intents' === $api_pieces[0] && isset( $request['payment_method_types'] ) && in_array( $this->stripe_id, $request['payment_method_types'] ) ) {
-			$request['payment_method_options'] = [
-				'boleto' => [
-					'expires_after_days' => $this->get_option( 'expiration' ),
-				],
-			];
-		}
-		return $request;
+	public function update_request_body_on_create_or_update_payment_intent( $body ) {
+		$body['payment_method_options'] = [
+			'boleto' => [
+				'expires_after_days' => $this->get_option( 'expiration' ),
+			],
+		];
+		return $body;
 	}
 
 	/**
