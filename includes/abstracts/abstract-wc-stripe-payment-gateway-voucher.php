@@ -313,7 +313,7 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 			'description'          => __( 'stripe - Order', 'woocommerce-gateway-stripe' ) . ' ' . $order->get_id(),
 		];
 
-		if ( method_exists( $this, 'update_request_body_on_create_or_update_payment_intent' )) {
+		if ( method_exists( $this, 'update_request_body_on_create_or_update_payment_intent' ) ) {
 			$body = $this->update_request_body_on_create_or_update_payment_intent( $body );
 		}
 
