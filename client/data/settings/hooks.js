@@ -4,38 +4,34 @@ import { STORE_NAME } from '../constants';
 
 const EMPTY_ARR = [];
 
-const makeReadOnlySettingsHook =
-	( fieldName, fieldDefaultValue = false ) =>
-	() =>
-		useSelect(
-			( select ) => {
-				const { getSettings } = select( STORE_NAME );
+const makeReadOnlySettingsHook = (
+	fieldName,
+	fieldDefaultValue = false
+) => () =>
+	useSelect(
+		( select ) => {
+			const { getSettings } = select( STORE_NAME );
 
-				return getSettings()[ fieldName ] || fieldDefaultValue;
-			},
-			[ fieldName, fieldDefaultValue ]
-		);
+			return getSettings()[ fieldName ] || fieldDefaultValue;
+		},
+		[ fieldName, fieldDefaultValue ]
+	);
 
-const makeSettingsHook =
-	( fieldName, fieldDefaultValue = false ) =>
-	() => {
-		const { updateSettingsValues } = useDispatch( STORE_NAME );
+const makeSettingsHook = ( fieldName, fieldDefaultValue = false ) => () => {
+	const { updateSettingsValues } = useDispatch( STORE_NAME );
 
-		const field = makeReadOnlySettingsHook(
-			fieldName,
-			fieldDefaultValue
-		)();
+	const field = makeReadOnlySettingsHook( fieldName, fieldDefaultValue )();
 
-		const handler = useCallback(
-			( value ) =>
-				updateSettingsValues( {
-					[ fieldName ]: value,
-				} ),
-			[ updateSettingsValues ]
-		);
+	const handler = useCallback(
+		( value ) =>
+			updateSettingsValues( {
+				[ fieldName ]: value,
+			} ),
+		[ updateSettingsValues ]
+	);
 
-		return [ field, handler ];
-	};
+	return [ field, handler ];
+};
 
 export const useSettings = () => {
 	const { saveSettings } = useDispatch( STORE_NAME );

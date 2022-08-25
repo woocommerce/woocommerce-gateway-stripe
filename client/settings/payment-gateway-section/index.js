@@ -37,8 +37,10 @@ const PaymentGatewaySection = () => {
 	const { Fields } = info;
 	const [ enableGateway, setEnableGateway ] = useEnabledPaymentGateway();
 	const [ gatewayName, setGatewayName ] = usePaymentGatewayName();
-	const [ gatewayDescription, setGatewayDescription ] =
-		usePaymentGatewayDescription();
+	const [
+		gatewayDescription,
+		setGatewayDescription,
+	] = usePaymentGatewayDescription();
 	const { message, requestStatus, refreshMessage } = useWebhookStateMessage();
 
 	return (
