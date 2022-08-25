@@ -61,7 +61,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 	 * @param array $body API request body.
 	 * @return array
 	 */
-	public function update_request_body_on_create_or_update_payment_intent( $body ) {
+	protected function update_request_body_on_create_or_update_payment_intent( $body ) {
 		$body['payment_method_options'] = [
 			'boleto' => [
 				'expires_after_days' => $this->get_option( 'expiration' ),
