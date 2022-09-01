@@ -655,11 +655,11 @@ jQuery( function( $ ) {
 
 			// Block the payment request button as soon as an "input" event is fired, to avoid sync issues
 			// when the customer clicks on the button before the debounced event is processed.
-			$( '.quantity' ).on( 'input', '.qty', function() {
+			$( '.quantity, .wc-pao-addons-container' ).on( 'input', '.qty, .wc-pao-addon-field', function() {
 				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 			} );
 
-			$( '.quantity' ).on( 'input', '.qty', wc_stripe_payment_request.debounce( 250, function() {
+			$( '.quantity, .wc-pao-addons-container' ).on( 'input', '.qty, .wc-pao-addon-field', wc_stripe_payment_request.debounce( 250, function() {
 				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 				paymentRequestError = [];
 
