@@ -26,6 +26,25 @@ class WC_Stripe_Settings_Controller {
 		$this->account = $account;
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wc_stripe_gateway_admin_options_wrapper', [ $this, 'admin_options' ] );
+		add_action( 'woocommerce_order_item_add_action_buttons', [ $this, 'hide_refund_button_for_uncaptured_orders' ] );
+	}
+
+	/**
+	* This replaces the refund button with a disabled 'Refunding unavailable' button in the same place for orders that have been authorized but not captured.
+	*
+	* A help tooltip explains that refunds are not available for orders which have not been captured yet.
+	*
+	* @param WC_Order $order The order that is being viewed.
+	*/
+	public function hide_refund_button_for_uncaptured_orders( $order ) {
+		$intent = WC_Stripe_Order_Handler::get_instance()->get_intent_from_order( $order );
+
+		if ( $intent && 'requires_capture' === $intent->status ) {
+			$no_refunds_button  = __( 'Refunding unavailable', 'woocommerce-gateway-stripe' );
+			$no_refunds_tooltip = __( 'Refunding via Stripe is unavailable because funds have not been captured for this order. Process order to take payment, or cancel to remove the pre-authorization.', 'woocommerce-gateway-stripe' );
+			echo '<style>.button.refund-items { display: none; }</style>';
+			echo '<span class="button button-disabled">' . $no_refunds_button . wc_help_tip( $no_refunds_tooltip ) . '</span>';
+		}
 	}
 
 	/**
