@@ -411,7 +411,17 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $charge_id, '_transaction_id' ) );
+		if ( OrderUtil::custom_orders_table_usage_is_enabled() ) {
+			$orders   = wc_get_orders(
+				[
+					'transaction_id' => $charge_id,
+					'limit'          => 1,
+				]
+			);
+			$order_id = current( $orders )->get_id();
+		} else {
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $charge_id, '_transaction_id' ) );
+		}
 
 		if ( ! empty( $order_id ) ) {
 			return wc_get_order( $order_id );
