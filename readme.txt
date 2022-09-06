@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 5.7
 Tested up to: 6.0
 Requires PHP: 7.0
-Stable tag: 6.6.0
+Stable tag: 6.7.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,7 +128,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 6.6.0 - 2022-08-17 =
-* Fix - Fix "Pending" text instead of numeric amount on Payment Request button on iOS.
+= 6.7.0 - 2022-09-06 =
+* Fix - Check payment method before updating payment method title.
+* Fix - Use the eslint config at the root of the repo.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
