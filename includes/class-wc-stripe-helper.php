@@ -375,7 +375,7 @@ class WC_Stripe_Helper {
 	public static function get_order_by_source_id( $source_id ) {
 		global $wpdb;
 
-		if ( OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		if ( class_exists( 'OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
 			$orders   = wc_get_orders(
 				[
 					'limit'      => 1,
@@ -411,7 +411,7 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		if ( OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		if ( class_exists( 'OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
 			$orders   = wc_get_orders(
 				[
 					'transaction_id' => $charge_id,
@@ -440,7 +440,7 @@ class WC_Stripe_Helper {
 	public static function get_order_by_intent_id( $intent_id ) {
 		global $wpdb;
 
-		if ( OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		if ( class_exists( 'OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
 			$orders   = wc_get_orders(
 				[
 					'limit'      => 1,
@@ -472,7 +472,7 @@ class WC_Stripe_Helper {
 	public static function get_order_by_setup_intent_id( $intent_id ) {
 		global $wpdb;
 
-		if ( OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		if ( class_exists( 'OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
 			$orders   = wc_get_orders(
 				[
 					'limit'      => 1,
