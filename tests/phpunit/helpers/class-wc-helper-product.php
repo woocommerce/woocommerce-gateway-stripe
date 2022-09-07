@@ -346,23 +346,6 @@ class WC_Helper_Product {
 	}
 
 	/**
-	 * Delete an attribute.
-	 *
-	 * @param int $attribute_id ID to delete.
-	 *
-	 * @since 2.3
-	 */
-	public static function delete_attribute( $attribute_id ) {
-		global $wpdb;
-
-		$attribute_id = absint( $attribute_id );
-
-		$wpdb->query(
-			$wpdb->prepare( "DELETE FROM {$wpdb->prefix}woocommerce_attribute_taxonomies WHERE attribute_id = %d", $attribute_id )
-		);
-	}
-
-	/**
 	 * Creates a new product review on a specific product.
 	 *
 	 * @since 3.0
