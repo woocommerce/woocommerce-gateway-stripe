@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 6.8.0 - 2022-xx-xx =
+* Fix - Minor adjustments for Custom Order Tables compatibility.
 
 = 6.7.0 - 2022-09-06 =
 * Fix - Check payment method before updating payment method title.

@@ -3,6 +3,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Automattic\WooCommerce\Utilities\OrderUtil;
+
 /**
  * Provides static methods as helpers.
  *
@@ -373,7 +375,20 @@ class WC_Stripe_Helper {
 	public static function get_order_by_source_id( $source_id ) {
 		global $wpdb;
 
-		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $source_id, '_stripe_source_id' ) );
+		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+			$orders   = wc_get_orders(
+				[
+					'limit'      => 1,
+					'meta_query' => [
+						'key'   => '_stripe_source_id',
+						'value' => $source_id,
+					],
+				]
+			);
+			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
+		} else {
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $source_id, '_stripe_source_id' ) );
+		}
 
 		if ( ! empty( $order_id ) ) {
 			return wc_get_order( $order_id );
@@ -396,7 +411,17 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $charge_id, '_transaction_id' ) );
+		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+			$orders   = wc_get_orders(
+				[
+					'transaction_id' => $charge_id,
+					'limit'          => 1,
+				]
+			);
+			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
+		} else {
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $charge_id, '_transaction_id' ) );
+		}
 
 		if ( ! empty( $order_id ) ) {
 			return wc_get_order( $order_id );
@@ -415,7 +440,20 @@ class WC_Stripe_Helper {
 	public static function get_order_by_intent_id( $intent_id ) {
 		global $wpdb;
 
-		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $intent_id, '_stripe_intent_id' ) );
+		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+			$orders   = wc_get_orders(
+				[
+					'limit'      => 1,
+					'meta_query' => [
+						'key'   => '_stripe_intent_id',
+						'value' => $intent_id,
+					],
+				]
+			);
+			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
+		} else {
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $intent_id, '_stripe_intent_id' ) );
+		}
 
 		if ( ! empty( $order_id ) ) {
 			return wc_get_order( $order_id );
@@ -434,7 +472,20 @@ class WC_Stripe_Helper {
 	public static function get_order_by_setup_intent_id( $intent_id ) {
 		global $wpdb;
 
-		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $intent_id, '_stripe_setup_intent' ) );
+		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+			$orders   = wc_get_orders(
+				[
+					'limit'      => 1,
+					'meta_query' => [
+						'key'   => '_stripe_setup_intent',
+						'value' => $intent_id,
+					],
+				]
+			);
+			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
+		} else {
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $intent_id, '_stripe_setup_intent' ) );
+		}
 
 		if ( ! empty( $order_id ) ) {
 			return wc_get_order( $order_id );
