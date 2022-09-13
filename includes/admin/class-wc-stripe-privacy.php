@@ -405,7 +405,7 @@ class WC_Stripe_Privacy extends WC_Abstract_Privacy {
 		$retention  = wc_parse_relative_date_option( get_option( 'woocommerce_gateway_stripe_retention' ) );
 		$is_expired = false;
 		$time_span  = time() - strtotime( $created_date );
-		if ( empty( $retention ) || empty( $created_date ) ) {
+		if ( empty( $retention['number'] ) || empty( $created_date ) ) {
 			return false;
 		}
 		switch ( $retention['unit'] ) {
