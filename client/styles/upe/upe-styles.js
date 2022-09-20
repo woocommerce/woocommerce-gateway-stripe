@@ -75,39 +75,12 @@ const upeSupportedProperties = {
 };
 
 // Restricted properties allowed to generate the automated theming of UPE.
-const restrictedTabProperties = [
-	'borderStyle',
-	'borderBottomStyle',
-	'borderTopStyle',
-	'borderRightStyle',
-	'borderLeftStyle',
-	'borderColor',
-	'borderBottomColor',
-	'borderTopColor',
-	'borderRightColor',
-	'borderLeftColor',
-	'borderWidth',
-	'borderBottomWidth',
-	'borderTopWidth',
-	'borderRightWidth',
-	'borderLeftWidth',
-	'backgroundColor',
-	'color',
-	'fontFamily',
-];
+const restrictedTabProperties = [ 'backgroundColor', 'color', 'fontFamily' ];
 
 const restrictedTabSelectedProperties = [
-	'borderStyle',
-	'borderStyle',
-	'borderBottomStyle',
-	'borderTopStyle',
-	'borderRightStyle',
-	'borderLeftStyle',
-	'borderWidth',
-	'borderBottomWidth',
-	'borderTopWidth',
-	'borderRightWidth',
-	'borderLeftWidth',
+	'outlineColor',
+	'outlineWidth',
+	'outlineStyle',
 	'backgroundColor',
 	'color',
 ];
@@ -124,7 +97,10 @@ export const upeRestrictedProperties = {
 	],
 	'.Error': upeSupportedProperties[ '.Error' ],
 	'.Tab': [ ...restrictedTabProperties ],
-	'.Tab--selected': [ ...restrictedTabSelectedProperties ],
+	'.Tab--selected': [
+		...restrictedTabSelectedProperties,
+		borderOutlineBackgroundProps,
+	],
 	'.TabIcon': upeSupportedProperties[ '.TabIcon' ],
 	'.TabIcon--selected': [ ...restrictedTabIconSelectedProperties ],
 	'.TabLabel': upeSupportedProperties[ '.TabLabel' ],

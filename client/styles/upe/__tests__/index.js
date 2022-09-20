@@ -154,10 +154,7 @@ describe( 'Getting styles for automated theming', () => {
 				'.Tab--selected': {
 					backgroundColor: 'rgba(0, 0, 0, 0)',
 					color: 'rgb(109, 109, 109)',
-				},
-				'.Tab--selected:hover': {
-					backgroundColor: 'rgba(18, 18, 18, 0)',
-					color: 'rgb(255, 255, 255)',
+					outline: '1px solid rgb(150, 88, 138)',
 				},
 				'.TabIcon:hover': {
 					color: 'rgb(255, 255, 255)',
@@ -165,8 +162,15 @@ describe( 'Getting styles for automated theming', () => {
 				'.TabIcon--selected': {
 					color: 'rgb(109, 109, 109)',
 				},
-				'.TabIcon--selected:hover': {
-					color: 'rgb(255, 255, 255)',
+				'.Text': {
+					color: 'rgb(109, 109, 109)',
+					fontFamily:
+						'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
+				},
+				'.Text--redirect': {
+					color: 'rgb(109, 109, 109)',
+					fontFamily:
+						'"Source Sans Pro", HelveticaNeue-Light, "Helvetica Neue Light"',
 				},
 				'.CheckboxInput': {
 					backgroundColor: 'var(--colorBackground)',
