@@ -84,3 +84,8 @@ export const usePaymentGatewayDescription = makePaymentGatewayHook(
 	makeFieldName( '%s_description' ),
 	''
 );
+
+export const usePaymentGatewayExpiration = makePaymentGatewayHook(
+	makeFieldName( '%s_expiration' ),
+	''
+);

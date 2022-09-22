@@ -34,6 +34,7 @@ const StyledCheckboxLabel = styled.span`
 const PaymentGatewaySection = () => {
 	const { section } = getQuery();
 	const info = gatewaysInfo[ section ];
+	const { Fields } = info;
 	const [ enableGateway, setEnableGateway ] = useEnabledPaymentGateway();
 	const [ gatewayName, setGatewayName ] = usePaymentGatewayName();
 	const [
@@ -106,6 +107,7 @@ const PaymentGatewaySection = () => {
 						value={ gatewayDescription }
 						onChange={ setGatewayDescription }
 					/>
+					{ Fields && <Fields /> }
 					<h4>
 						{ __(
 							'Webhook endpoints',
