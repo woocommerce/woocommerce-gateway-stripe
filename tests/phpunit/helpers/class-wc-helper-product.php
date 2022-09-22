@@ -346,23 +346,6 @@ class WC_Helper_Product {
 	}
 
 	/**
-	 * Delete an attribute.
-	 *
-	 * @param int $attribute_id ID to delete.
-	 *
-	 * @since 2.3
-	 */
-	public static function delete_attribute( $attribute_id ) {
-		global $wpdb;
-
-		$attribute_id = absint( $attribute_id );
-
-		$wpdb->query(
-			$wpdb->prepare( "DELETE FROM {$wpdb->prefix}woocommerce_attribute_taxonomies WHERE attribute_id = %d", $attribute_id )
-		);
-	}
-
-	/**
 	 * Creates a new product review on a specific product.
 	 *
 	 * @since 3.0
@@ -382,15 +365,5 @@ class WC_Helper_Product {
 			'comment_type'         => 'review',
 		];
 		return wp_insert_comment( $data );
-	}
-
-	/**
-	 * A helper function for hooking into save_post during the test_product_meta_save_post test.
-	 * @since 3.0.1
-	 *
-	 * @param int $id ID to update.
-	 */
-	public static function save_post_test_update_meta_data_direct( $id ) {
-		update_post_meta( $id, '_test2', 'world' );
 	}
 }

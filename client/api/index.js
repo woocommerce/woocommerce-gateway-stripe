@@ -68,12 +68,10 @@ export default class WCStripeAPI {
 			undefined !== paymentMethodsConfig.card &&
 			undefined !== paymentMethodsConfig.link;
 		if ( ! this.stripe ) {
-			if ( isUPEEnabled ) {
-				let betas = [ 'payment_element_beta_1' ];
-				if ( isStripeLinkEnabled ) {
-					betas = betas.concat( [ 'link_autofill_modal_beta_1' ] );
-				}
-				this.stripe = this.createStripe( key, locale, betas );
+			if ( isUPEEnabled && isStripeLinkEnabled ) {
+				this.stripe = this.createStripe( key, locale, [
+					'link_autofill_modal_beta_1',
+				] );
 			} else {
 				this.stripe = this.createStripe( key, locale );
 			}
@@ -306,12 +304,14 @@ export default class WCStripeAPI {
 	 * Saves the calculated UPE appearance values in a transient.
 	 *
 	 * @param {Object} appearance The UPE appearance object with style values
+	 * @param {boolean} isBlocksCheckout True if save request is for Blocks Checkout. Default false.
 	 *
 	 * @return {Promise} The final promise for the request to the server.
 	 */
-	saveUPEAppearance( appearance ) {
+	saveUPEAppearance( appearance, isBlocksCheckout = false ) {
 		return this.request( this.getAjaxUrl( 'save_upe_appearance' ), {
-			appearance,
+			is_blocks_checkout: isBlocksCheckout,
+			appearance: JSON.stringify( appearance ),
 			_ajax_nonce: this.options?.saveUPEAppearanceNonce,
 		} )
 			.then( ( response ) => {

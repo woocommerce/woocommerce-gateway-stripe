@@ -30,77 +30,7 @@ jQuery( function ( $ ) {
 		}
 	);
 
-	// Object to add hidden elements to compute focus and invalid states for UPE.
-	const hiddenElementsForUPE = {
-		getHiddenContainer() {
-			const hiddenDiv = document.createElement( 'div' );
-			hiddenDiv.setAttribute( 'id', 'wc-stripe-hidden-div' );
-			hiddenDiv.style.border = 0;
-			hiddenDiv.style.clip = 'rect(0 0 0 0)';
-			hiddenDiv.style.height = '1px';
-			hiddenDiv.style.margin = '-1px';
-			hiddenDiv.style.overflow = 'hidden';
-			hiddenDiv.style.padding = '0';
-			hiddenDiv.style.position = 'absolute';
-			hiddenDiv.style.width = '1px';
-			return hiddenDiv;
-		},
-		getHiddenInvalidRow() {
-			const hiddenInvalidRow = document.createElement( 'p' );
-			hiddenInvalidRow.classList.add(
-				'form-row',
-				'woocommerce-invalid',
-				'woocommerce-invalid-required-field'
-			);
-			return hiddenInvalidRow;
-		},
-		appendHiddenClone( container, idToClone, hiddenCloneId ) {
-			const hiddenInput = jQuery( idToClone )
-				.clone()
-				.prop( 'id', hiddenCloneId );
-			container.appendChild( hiddenInput.get( 0 ) );
-			return hiddenInput;
-		},
-		init() {
-			if ( ! $( ' #billing_first_name' ).length ) {
-				return;
-			}
-			const hiddenDiv = this.getHiddenContainer();
-
-			// // Hidden focusable element.
-			$( hiddenDiv ).insertAfter( '#billing_first_name' );
-			this.appendHiddenClone(
-				hiddenDiv,
-				'#billing_first_name',
-				'wc-stripe-hidden-input'
-			);
-			$( '#wc-stripe-hidden-input' ).trigger( 'focus' );
-
-			// Hidden invalid element.
-			const hiddenInvalidRow = this.getHiddenInvalidRow();
-			this.appendHiddenClone(
-				hiddenInvalidRow,
-				'#billing_first_name',
-				'wc-stripe-hidden-invalid-input'
-			);
-			hiddenDiv.appendChild( hiddenInvalidRow );
-
-			// Remove transitions.
-			$( '#wc-stripe-hidden-input' ).css( 'transition', 'none' );
-		},
-		cleanup() {
-			$( '#wc-stripe-hidden-div' ).remove();
-		},
-	};
-
-	const elements = api.getStripe().elements( {
-		fonts: getFontRulesFromPage(),
-	} );
-
-	const sepaElementsOptions =
-		getStripeServerData()?.sepaElementsOptions ?? {};
-	const iban = elements.create( 'iban', sepaElementsOptions );
-
+	let elements = null;
 	let upeElement = null;
 	let paymentIntentId = null;
 	let isUPEComplete = false;
@@ -161,18 +91,6 @@ jQuery( function ( $ ) {
 	 */
 	const unblockUI = ( $form ) => {
 		$form.removeClass( 'processing' ).unblock();
-	};
-
-	/**
-	 * Checks whether SEPA IBAN element is present in the DOM and needs to be mounted
-	 *
-	 * @return {boolean} Whether IBAN needs to be mounted
-	 */
-	const doesIbanNeedToBeMounted = () => {
-		return (
-			$( '#stripe-iban-element' ).length &&
-			! $( '#stripe-iban-element' ).children().length
-		);
 	};
 
 	/**
@@ -304,18 +222,14 @@ jQuery( function ( $ ) {
 				const { client_secret: clientSecret, id: id } = response;
 				paymentIntentId = id;
 
-				let appearance = getStripeServerData()?.upeAppeareance;
+				let appearance = getStripeServerData()?.upeAppearance;
 
 				if ( ! appearance ) {
-					hiddenElementsForUPE.init();
 					appearance = getAppearance();
-					hiddenElementsForUPE.cleanup();
 					api.saveUPEAppearance( appearance );
 				}
 				const businessName = getStripeServerData()?.accountDescriptor;
 				const upeSettings = {
-					clientSecret,
-					appearance,
 					business: { name: businessName },
 				};
 				if ( isCheckout && ! isOrderPay ) {
@@ -323,6 +237,11 @@ jQuery( function ( $ ) {
 						billingDetails: hiddenBillingFields,
 					};
 				}
+				elements = api.getStripe().elements( {
+					clientSecret,
+					appearance,
+					fonts: getFontRulesFromPage(),
+				} );
 
 				if ( isStripeLinkEnabled ) {
 					enableStripeLinkPaymentMethod( {
@@ -415,10 +334,6 @@ jQuery( function ( $ ) {
 			);
 			mountUPEElement( isSetupIntent );
 		}
-
-		if ( doesIbanNeedToBeMounted() ) {
-			iban.mount( '#stripe-iban-element' );
-		}
 	} );
 
 	if (
@@ -447,10 +362,6 @@ jQuery( function ( $ ) {
 			}
 			mountUPEElement( isSetupIntent );
 		}
-
-		if ( doesIbanNeedToBeMounted() ) {
-			iban.mount( '#stripe-iban-element' );
-		}
 	}
 
 	/**
@@ -467,7 +378,7 @@ jQuery( function ( $ ) {
 		if ( ! isUPEComplete ) {
 			// If UPE fields are not filled, confirm payment to trigger validation errors
 			const { error } = await api.getStripe().confirmPayment( {
-				element: upeElement,
+				elements,
 				confirmParams: {
 					return_url: '#',
 				},
@@ -514,7 +425,7 @@ jQuery( function ( $ ) {
 			);
 
 			const { error } = await api.getStripe().confirmPayment( {
-				element: upeElement,
+				elements,
 				confirmParams: {
 					return_url: returnUrl,
 				},
@@ -556,7 +467,7 @@ jQuery( function ( $ ) {
 			const returnUrl = getStripeServerData()?.addPaymentReturnURL;
 
 			const { error } = await api.getStripe().confirmSetup( {
-				element: upeElement,
+				elements,
 				confirmParams: {
 					return_url: returnUrl,
 				},
@@ -596,7 +507,7 @@ jQuery( function ( $ ) {
 			);
 			const redirectUrl = response.redirect_url;
 			const upeConfig = {
-				element: upeElement,
+				elements,
 				confirmParams: {
 					return_url: redirectUrl,
 					payment_method_data: {
