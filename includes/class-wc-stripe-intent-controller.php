@@ -535,9 +535,13 @@ class WC_Stripe_Intent_Controller {
 				);
 			}
 
-			$appearance = isset( $_POST['appearance'] ) ? wc_clean( wp_unslash( $_POST['appearance'] ) ) : null;
+			$is_blocks_checkout = isset( $_POST['is_blocks_checkout'] ) ? rest_sanitize_boolean( wc_clean( wp_unslash( $_POST['is_blocks_checkout'] ) ) ) : false;
+			$appearance         = isset( $_POST['appearance'] ) ? json_decode( wc_clean( wp_unslash( $_POST['appearance'] ) ) ) : null;
+
+			$appearance_transient = $is_blocks_checkout ? WC_Stripe_UPE_Payment_Gateway::WC_BLOCKS_UPE_APPEARANCE_TRANSIENT : WC_Stripe_UPE_Payment_Gateway::UPE_APPEARANCE_TRANSIENT;
+
 			if ( null !== $appearance ) {
-				set_transient( WC_Stripe_UPE_Payment_Gateway::UPE_APPEARANCE_TRANSIENT, $appearance, DAY_IN_SECONDS );
+				set_transient( $appearance_transient, $appearance, DAY_IN_SECONDS );
 			}
 			wp_send_json_success( $appearance, 200 );
 		} catch ( Exception $e ) {
@@ -557,6 +561,7 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function clear_upe_appearance_transient() {
 		delete_transient( WC_Stripe_UPE_Payment_Gateway::UPE_APPEARANCE_TRANSIENT );
+		delete_transient( WC_Stripe_UPE_Payment_Gateway::WC_BLOCKS_UPE_APPEARANCE_TRANSIENT );
 	}
 
 	/**
