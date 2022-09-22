@@ -3,10 +3,11 @@ import { useDispatch, useSelect } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import {
 	Elements,
-	ElementsConsumer,
+	useStripe,
+	useElements,
 	PaymentElement,
 } from '@stripe/react-stripe-js';
-import { getAppearance } from '../../styles/upe';
+import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
 import { confirmUpePayment } from './confirm-upe-payment';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import {
@@ -52,58 +53,26 @@ const UPEField = ( {
 	api,
 	activePaymentMethod,
 	billing: { billingData },
-	elements,
-	emitResponse,
 	eventRegistration: {
 		onPaymentProcessing,
 		onCheckoutAfterProcessingWithSuccess,
 	},
+	emitResponse,
+	paymentIntentId,
+	errorMessage,
 	shouldSavePayment,
-	stripe,
 } ) => {
-	const [ clientSecret, setClientSecret ] = useState( null );
-	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
+	const stripe = useStripe();
+	const elements = useElements();
+
 	const [ selectedUpePaymentType, setSelectedUpePaymentType ] = useState(
 		''
 	);
-	const [ hasRequestedIntent, setHasRequestedIntent ] = useState( false );
 	const [ isUpeComplete, setIsUpeComplete ] = useState( false );
-	const [ errorMessage, setErrorMessage ] = useState( null );
 
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 
-	useEffect( () => {
-		if ( paymentIntentId || hasRequestedIntent ) {
-			return;
-		}
-
-		async function createIntent() {
-			try {
-				const paymentNeeded = getBlocksConfiguration()?.isPaymentNeeded;
-				const response = paymentNeeded
-					? await api.createIntent(
-							getBlocksConfiguration()?.orderId
-					  )
-					: await api.initSetupIntent();
-				setPaymentIntentId( response.id );
-				setClientSecret( response.client_secret );
-			} catch ( error ) {
-				setErrorMessage(
-					error?.message ??
-						__(
-							'There was an error loading the payment gateway',
-							'woocommerce-gateway-stripe'
-						)
-				);
-			}
-		}
-
-		setHasRequestedIntent( true );
-		createIntent();
-	}, [ paymentIntentId, hasRequestedIntent, api, errorMessage ] );
-
 	const customerData = useCustomerData();
-
 	useEffect( () => {
 		if (
 			paymentMethodsConfig.link !== undefined &&
@@ -125,9 +94,6 @@ const UPEField = ( {
 				postal_code: 'billing-postcode',
 				country: 'components-form-token-input-2',
 			};
-
-			const appearance = getAppearance();
-			elements.update( { appearance } );
 
 			enableStripeLinkPaymentMethod( {
 				api,
@@ -296,15 +262,11 @@ const UPEField = ( {
 							selectedUpePaymentType
 						);
 
-						const paymentElement = elements.getElement(
-							PaymentElement
-						);
-
 						return confirmUpePayment(
 							api,
 							paymentDetails.redirect_url,
 							paymentDetails.payment_needed,
-							paymentElement,
+							elements,
 							billingData,
 							emitResponse
 						);
@@ -327,7 +289,6 @@ const UPEField = ( {
 
 	const enabledBillingFields = getBlocksConfiguration().enabledBillingFields;
 	const elementOptions = {
-		clientSecret,
 		business: { name: getBlocksConfiguration()?.accountDescriptor },
 		fields: {
 			billingDetails: {
@@ -368,20 +329,6 @@ const UPEField = ( {
 		},
 	};
 
-	if ( ! clientSecret ) {
-		if ( errorMessage ) {
-			return (
-				<div className="woocommerce-error">
-					<div className="components-notice__content">
-						{ errorMessage }
-					</div>
-				</div>
-			);
-		}
-
-		return null;
-	}
-
 	return (
 		<div className="wc-block-gateway-container">
 			<PaymentElement
@@ -396,18 +343,84 @@ const UPEField = ( {
 };
 
 export const UPEPaymentForm = ( { api, ...props } ) => {
+	const [ clientSecret, setClientSecret ] = useState( null );
+	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
+	const [ hasRequestedIntent, setHasRequestedIntent ] = useState( false );
+	const [ errorMessage, setErrorMessage ] = useState( null );
+	const [ appearance, setAppearance ] = useState(
+		getBlocksConfiguration()?.wcBlocksUPEAppearance
+	);
+
+	useEffect( () => {
+		async function generateUPEAppearance() {
+			// Generate UPE input styles.
+			const upeAppearance = getAppearance( true );
+			await api.saveUPEAppearance( upeAppearance, true );
+
+			// Update appearance state
+			setAppearance( upeAppearance );
+		}
+		if ( ! appearance ) {
+			generateUPEAppearance();
+		}
+
+		if ( paymentIntentId || hasRequestedIntent ) {
+			return;
+		}
+
+		async function createIntent() {
+			try {
+				const paymentNeeded = getBlocksConfiguration()?.isPaymentNeeded;
+				const response = paymentNeeded
+					? await api.createIntent(
+							getBlocksConfiguration()?.orderId
+					  )
+					: await api.initSetupIntent();
+				setPaymentIntentId( response.id );
+				setClientSecret( response.client_secret );
+			} catch ( error ) {
+				setErrorMessage(
+					error?.message ??
+						__(
+							'There was an error loading the payment gateway',
+							'woocommerce-gateway-stripe'
+						)
+				);
+			}
+		}
+
+		setHasRequestedIntent( true );
+		createIntent();
+	}, [ paymentIntentId, hasRequestedIntent, api, errorMessage, appearance ] );
+
+	if ( ! clientSecret ) {
+		if ( errorMessage ) {
+			return (
+				<div className="woocommerce-error">
+					<div className="components-notice__content">
+						{ errorMessage }
+					</div>
+				</div>
+			);
+		}
+
+		return null;
+	}
+
+	const options = {
+		clientSecret,
+		appearance,
+		fonts: getFontRulesFromPage(),
+	};
+
 	return (
-		<Elements stripe={ api.getStripe() }>
-			<ElementsConsumer>
-				{ ( { stripe, elements } ) => (
-					<UPEField
-						api={ api }
-						elements={ elements }
-						stripe={ stripe }
-						{ ...props }
-					/>
-				) }
-			</ElementsConsumer>
+		<Elements stripe={ api.getStripe() } options={ options }>
+			<UPEField
+				api={ api }
+				paymentIntentId={ paymentIntentId }
+				errorMessage={ errorMessage }
+				{ ...props }
+			/>
 		</Elements>
 	);
 };
