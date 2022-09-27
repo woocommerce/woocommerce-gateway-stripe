@@ -89,28 +89,7 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				$response = $this->connect_oauth( wc_clean( wp_unslash( $_GET['wcs_stripe_state'] ) ), wc_clean( wp_unslash( $_GET['wcs_stripe_code'] ) ) );
 				wp_safe_redirect( esc_url_raw( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code' ] ) ) );
 				exit;
-
-				// redirect from credentials reset
-			} elseif ( isset( $_GET['reset_stripe_api_credentials'], $_GET['_wpnonce'] ) ) {
-
-				if ( ! wp_verify_nonce( wc_clean( wp_unslash( $_GET['_wpnonce'] ) ), 'reset_stripe_api_credentials' ) ) {
-					die( __( 'You are not authorized to clear Stripe account keys.', 'woocommerce-gateway-stripe' ) );
-				}
-
-				$this->clear_stripe_keys();
-				wp_safe_redirect(
-					esc_url_raw(
-						remove_query_arg(
-							[
-								'_wpnonce',
-								'reset_stripe_api_credentials',
-							]
-						)
-					)
-				);
-				exit;
 			}
-
 		}
 
 		/**
