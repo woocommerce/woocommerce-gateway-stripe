@@ -89,7 +89,6 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				$response = $this->connect_oauth( wc_clean( wp_unslash( $_GET['wcs_stripe_state'] ) ), wc_clean( wp_unslash( $_GET['wcs_stripe_code'] ) ) );
 				wp_safe_redirect( esc_url_raw( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code' ] ) ) );
 				exit;
-
 			}
 		}
 
