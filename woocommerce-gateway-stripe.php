@@ -772,5 +772,20 @@ function woocommerce_gateway_stripe_woocommerce_block_support() {
 add_action( 'before_woocommerce_init', 'declare_hpos_compatibility' );
 
 function declare_hpos_compatibility() {
-	\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, false );
+	if ( ! class_exists( 'Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
+		return;
+	}
+
+	$is_wc_subscriptions_active = is_plugin_active( 'woocommerce-subscriptions/woocommerce-subscriptions.php' );
+
+	if ( $is_wc_subscriptions_active ) {
+		$plugins_compatible_with_cot = Automattic\WooCommerce\Utilities\FeaturesUtil::get_compatible_plugins_for_feature( 'custom_order_tables' );
+
+		$is_wc_subsriptions_compatible = in_array( 'woocommerce-subscriptions/woocommerce-subscriptions.php', $plugins_compatible_with_cot['compatible'] );
+
+		// If WC Subscription is compatible then WC Stripe will also be compatible.
+		Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, $is_wc_subsriptions_compatible );
+	} else {
+		Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+	}
 }
