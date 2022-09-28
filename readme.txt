@@ -128,9 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 6.8.0 - 2022-09-28 =
-* Fix - Minor adjustments for Custom Order Tables compatibility.
-* Fix - Upgrade from Payment Element beta.
+= 6.9.0 - 2022-xx-xx =
 * Tweak - Remove remaining traces of old Stripe settings.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
