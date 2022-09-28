@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 6.8.0 - 2022-xx-xx =
+= 6.8.0 - 2022-09-28 =
 * Fix - Minor adjustments for Custom Order Tables compatibility.
 * Fix - Upgrade from Payment Element beta.
 * Tweak - Remove remaining traces of old Stripe settings.
