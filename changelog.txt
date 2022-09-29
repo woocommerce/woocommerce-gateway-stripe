@@ -2,6 +2,7 @@
 
 = 6.9.0 - 2022-xx-xx =
 * Tweak - Remove remaining traces of old Stripe settings.
+* Add - Add Boleto expiration setting.
 
 = 6.8.0 - 2022-09-28 =
 * Fix - Minor adjustments for Custom Order Tables compatibility.
@@ -10,7 +11,6 @@
 = 6.7.0 - 2022-09-06 =
 * Fix - Check payment method before updating payment method title.
 * Fix - Use the eslint config at the root of the repo.
-* Add - Add Boleto expiration setting.
 
 = 6.6.0 - 2022-08-17 =
 * Fix - Fix "Pending" text instead of numeric amount on Payment Request button on iOS.
