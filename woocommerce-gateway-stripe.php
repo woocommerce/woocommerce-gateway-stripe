@@ -785,7 +785,15 @@ function declare_hpos_compatibility() {
 
 		// If WC Subscription is compatible then WC Stripe will also be compatible.
 		Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, $is_wc_subsriptions_compatible );
+
+		if ( ! $is_wc_subsriptions_compatible ) {
+			add_action( 'admin_notices', 'woocommerce_stripe_not_compatible_with_wc_subs_and_hpos' );
+		}
 	} else {
 		Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
 	}
+}
+
+function woocommerce_stripe_not_compatible_with_wc_subs_and_hpos() {
+	echo '<div class="error"><p><strong>' . sprintf( __( 'WooCommerce Stripe Gateway is not compatible with WooCommerce Subscriptions when High Performance Order Storage is enabled.', 'woocommerce-gateway-stripe' ) ) . '</strong></p></div>';
 }
