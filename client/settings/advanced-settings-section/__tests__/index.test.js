@@ -30,15 +30,11 @@ describe( 'AdvancedSettings', () => {
 		render( <AdvancedSettings /> );
 
 		expect( screen.queryByText( 'Debug mode' ) ).not.toBeInTheDocument();
-		expect(
-			screen.queryByText( 'Experimental features' )
-		).not.toBeInTheDocument();
+		expect( screen.queryByText( 'New' ) ).not.toBeInTheDocument();
 
 		userEvent.click( screen.getByText( 'Advanced settings' ) );
 
 		expect( screen.queryByText( 'Debug mode' ) ).toBeInTheDocument();
-		expect(
-			screen.queryByText( 'Experimental features' )
-		).toBeInTheDocument();
+		expect( screen.queryByText( 'New' ) ).toBeInTheDocument();
 	} );
 } );

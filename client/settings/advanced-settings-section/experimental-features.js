@@ -93,17 +93,17 @@ const ExperimentalFeatures = () => {
 	return (
 		<>
 			<h4 ref={ headingRef } tabIndex="-1">
-				{ __( 'Experimental features', 'woocommerce-gateway-stripe' ) }
+				{ __( 'New', 'woocommerce-gateway-stripe' ) }
 			</h4>
 			<CheckboxControl
 				data-testid="new-checkout-experience-checkbox"
 				label={ __(
-					'Try the new checkout experience (early access)',
+					'Try the updated checkout experience',
 					'woocommerce-gateway-stripe'
 				) }
 				help={ createInterpolateElement(
 					__(
-						'Get early access to a new, smarter payment experience on checkout and let us know what you think by <feedbackLink>submitting your feedback</feedbackLink>. We recommend this feature for experienced merchants as the functionality is currently limited. <learnMoreLink>Learn more</learnMoreLink>',
+						'Get access to a smarter payment experience on checkout and let us know what you think by <feedbackLink>submitting your feedback</feedbackLink>. We recommend this feature for experienced merchants as the functionality is currently limited. <learnMoreLink>Learn more</learnMoreLink>',
 						'woocommerce-gateway-stripe'
 					),
 					{

@@ -131,5 +131,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 6.9.0 - 2022-xx-xx =
 * Tweak - Remove remaining traces of old Stripe settings.
 * Add - Add Boleto expiration setting.
+* Tweak - Adjust texts and links in WC admin advanced settings.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
