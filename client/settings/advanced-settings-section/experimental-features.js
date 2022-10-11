@@ -93,12 +93,15 @@ const ExperimentalFeatures = () => {
 	return (
 		<>
 			<h4 ref={ headingRef } tabIndex="-1">
-				{ __( 'New', 'woocommerce-gateway-stripe' ) }
+				{ __(
+					'New checkout experience',
+					'woocommerce-gateway-stripe'
+				) }
 			</h4>
 			<CheckboxControl
 				data-testid="new-checkout-experience-checkbox"
 				label={ __(
-					'Try the updated checkout experience',
+					'Enable the updated checkout experience',
 					'woocommerce-gateway-stripe'
 				) }
 				help={ createInterpolateElement(
