@@ -157,6 +157,83 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @dataProvider get_upe_available_payment_methods_provider
+	 */
+	public function test_get_upe_available_payment_methods( $country, $available_payment_methods ) {
+		$this->set_stripe_account_data( [ 'country' => $country ] );
+		$this->assertSame( $available_payment_methods, $this->mock_gateway->get_upe_available_payment_methods() );
+	}
+
+	/**
+	 * @dataProvider get_upe_enabled_at_checkout_payment_method_ids_provider
+	 */
+	public function test_get_upe_enabled_at_checkout_payment_method_ids( $country, $available_payment_methods ) {
+		$this->set_stripe_account_data( [ 'country' => $country ] );
+		$this->mock_gateway->update_option(
+			'upe_checkout_experience_accepted_payments',
+			[
+				'card',
+				'link',
+			]
+		);
+		$this->assertSame( $available_payment_methods, $this->mock_gateway->get_upe_enabled_at_checkout_payment_method_ids() );
+	}
+
+	public function get_upe_enabled_at_checkout_payment_method_ids_provider() {
+		return [
+			[
+				'US',
+				[
+					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+				],
+			],
+			[
+				'NON_US',
+				[
+					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+				],
+			],
+		];
+	}
+
+	public function get_upe_available_payment_methods_provider() {
+		return [
+			[
+				'US',
+				[
+					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Giropay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Eps::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Boleto::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+				],
+			],
+			[
+				'NON_US',
+				[
+					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Giropay::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Eps::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Boleto::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Oxxo::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_P24::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID,
+				],
+			],
+		];
+	}
+
+	/**
 	 * CLASSIC CHECKOUT TESTS.
 	 */
 
@@ -1342,5 +1419,19 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
 		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
 		$this->assertTrue( (bool) $final_order->get_meta( '_stripe_upe_redirect_processed', true ) );
+	}
+
+
+	/**
+	 * @param array $account_data
+	 *
+	 * @return void
+	 */
+	private function set_stripe_account_data( $account_data ) {
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+												->disableOriginalConstructor()
+												->setMethods( [ 'get_cached_account_data' ] )
+												->getMock();
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( $account_data );
 	}
 }

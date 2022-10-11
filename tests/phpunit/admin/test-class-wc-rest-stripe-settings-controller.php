@@ -230,7 +230,12 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	public function test_get_settings_returns_available_payment_method_ids() {
 		$response = $this->rest_get_settings();
 
-		$expected_method_ids = WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS;
+		$expected_method_ids = array_filter(
+			WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS,
+			function ( $method_class ) {
+				return WC_Stripe_UPE_Payment_Method_Link::class !== $method_class;
+			}
+		);
 		$expected_method_ids = array_map(
 			function ( $method_class ) {
 				return $method_class::STRIPE_ID;
