@@ -3,6 +3,7 @@
 = 6.9.0 - 2022-xx-xx =
 * Tweak - Remove remaining traces of old Stripe settings.
 * Add - Add Boleto expiration setting.
+* Add - Restrict the Link payment method only for US merchants.
 
 = 6.8.0 - 2022-09-28 =
 * Fix - Minor adjustments for Custom Order Tables compatibility.
