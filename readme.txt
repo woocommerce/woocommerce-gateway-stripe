@@ -132,5 +132,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Remove remaining traces of old Stripe settings.
 * Add - Add Boleto expiration setting.
 * Add - Restrict the Link payment method only for US merchants.
+* Add - Declare incompatibility with HPOS.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
