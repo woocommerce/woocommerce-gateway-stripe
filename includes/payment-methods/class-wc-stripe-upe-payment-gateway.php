@@ -15,6 +15,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 	const ID = 'stripe';
 
+	/**
+	 * Upe Available Methods
+	 *
+	 * @type WC_Stripe_UPE_Payment_Method[]
+	 */
 	const UPE_AVAILABLE_METHODS = [
 		WC_Stripe_UPE_Payment_Method_CC::class,
 		WC_Stripe_UPE_Payment_Method_Giropay::class,
@@ -392,12 +397,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			if ( ! $is_automatic_capture_enabled && $method->requires_automatic_capture() ) {
 				continue;
 			}
-			//if merchant is outside US, Link payment method should not be available
-			$account = WC_Stripe::get_instance()->account;
-			if (
-				WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID === $payment_method_id &&
-				( ! isset( $account->get_cached_account_data()['country'] ) || 'US' !== $account->get_cached_account_data()['country'] )
-			) {
+			if ( ! $this->payment_methods[ $payment_method_id ]::is_available() ) {
 				continue;
 			}
 
@@ -417,12 +417,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$available_payment_methods = [];
 
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-			//if merchant is outside US, Link payment method should not be available
-			$account = WC_Stripe::get_instance()->account;
-			if (
-				WC_Stripe_UPE_Payment_Method_Link::class === $payment_method_class &&
-				( ! isset( $account->get_cached_account_data()['country'] ) || 'US' !== $account->get_cached_account_data()['country'] )
-			) {
+			if ( ! $payment_method_class::is_available() ) {
 				continue;
 			}
 			$available_payment_methods[] = $payment_method_class::STRIPE_ID;

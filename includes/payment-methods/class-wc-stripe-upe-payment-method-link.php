@@ -33,6 +33,11 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	 * @return bool
 	 */
 	public static function is_link_enabled() {
+
+		if ( ! self::is_available() ) {
+			return false;
+		}
+
 		// Assume Link is disabled if UPE is disabled.
 		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			return false;
@@ -43,5 +48,23 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 			woocommerce_gateway_stripe()->get_main_stripe_gateway()->get_upe_enabled_payment_method_ids(),
 			true
 		);
+	}
+
+	/**
+	 * Returns true if the UPE method is available.
+	 *
+	 * @return bool
+	 */
+	public static function is_available() {
+		//if merchant is outside US, Link payment method should not be available
+		$account = WC_Stripe::get_instance()->account;
+		if (
+			! isset( $account->get_cached_account_data()['country'] ) ||
+			'US' !== $account->get_cached_account_data()['country']
+		) {
+			return false;
+		}
+
+		return parent::is_available();
 	}
 }
