@@ -132,5 +132,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Remove remaining traces of old Stripe settings.
 * Add - Add Boleto expiration setting.
 * Add - Declare incompatibility with HPOS.
+* Add - Allow subscription orders to be paid with Link payment method.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
