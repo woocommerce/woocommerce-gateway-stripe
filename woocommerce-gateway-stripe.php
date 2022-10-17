@@ -205,6 +205,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-upe-compatibility-controller.php';
 				require_once dirname( __FILE__ ) . '/includes/migrations/class-allowed-payment-request-button-types-update.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-account.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-link-payment-token.php';
 				new Allowed_Payment_Request_Button_Types_Update();
 
 				$this->api                           = new WC_Stripe_Connect_API();
