@@ -25,11 +25,8 @@ const useCustomerData = () => {
 			isInitialized: store.hasFinishedResolution( 'getCartData' ),
 		};
 	} );
-	const {
-		setShippingAddress,
-		setBillingAddress,
-		setBillingData,
-	} = useDispatch( WC_STORE_CART );
+	const { setShippingAddress, setBillingAddress, setBillingData } =
+		useDispatch( WC_STORE_CART );
 
 	let customerBillingAddress = customerData.billingData;
 	let setCustomerBillingAddress = setBillingData;
@@ -65,9 +62,8 @@ const UPEField = ( {
 	const stripe = useStripe();
 	const elements = useElements();
 
-	const [ selectedUpePaymentType, setSelectedUpePaymentType ] = useState(
-		''
-	);
+	const [ selectedUpePaymentType, setSelectedUpePaymentType ] =
+		useState( '' );
 	const [ isUpeComplete, setIsUpeComplete ] = useState( false );
 
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
@@ -85,6 +81,8 @@ const UPEField = ( {
 				state: 'components-form-token-input-1',
 				postal_code: 'shipping-postcode',
 				country: 'components-form-token-input-0',
+				first_name: 'shipping-first_name',
+				last_name: 'shipping-last_name',
 			};
 			const billingAddressFields = {
 				line1: 'billing-address_1',
@@ -93,6 +91,8 @@ const UPEField = ( {
 				state: 'components-form-token-input-3',
 				postal_code: 'billing-postcode',
 				country: 'components-form-token-input-2',
+				first_name: 'billing-first_name',
+				last_name: 'billing-last_name',
 			};
 
 			enableStripeLinkPaymentMethod( {
@@ -236,7 +236,8 @@ const UPEField = ( {
 						paymentMethodData: {
 							paymentMethod: PAYMENT_METHOD_NAME,
 							wc_payment_intent_id: paymentIntentId,
-							wc_stripe_selected_upe_payment_type: selectedUpePaymentType,
+							wc_stripe_selected_upe_payment_type:
+								selectedUpePaymentType,
 						},
 					},
 				};

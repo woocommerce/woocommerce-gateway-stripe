@@ -268,6 +268,8 @@ jQuery( function ( $ ) {
 							state: 'shipping_state',
 							postal_code: 'shipping_postcode',
 							country: 'shipping_country',
+							first_name: 'shipping_first_name',
+							last_name: 'shipping_last_name',
 						},
 						billing_fields: {
 							line1: 'billing_address_1',
@@ -276,6 +278,8 @@ jQuery( function ( $ ) {
 							state: 'billing_state',
 							postal_code: 'billing_postcode',
 							country: 'billing_country',
+							first_name: 'billing_first_name',
+							last_name: 'billing_last_name',
 						},
 					} );
 				}
