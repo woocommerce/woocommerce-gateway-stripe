@@ -7,6 +7,64 @@ jQuery( function( $ ) {
 	} ),
 		paymentRequestType;
 
+	function get_cart_using_store_api() {
+		return $.ajax({
+			type: 'GET',
+			url: 'https://localhost:8009/wp-json/wc/store/v1/cart',
+			headers: {
+				"Access-Control-Request-Private-Network": true,
+			}
+		}).then(function (response, textStatus, jqXHR) {
+			var cartToken = jqXHR.getResponseHeader('cart-token');
+			window.cartToken = cartToken;
+			return response;
+		} );
+	}
+
+	function add_item_to_cart_using_store_api(item_id, quantity) {
+		var data = {
+			id: item_id,
+			quantity: quantity
+		}
+
+		return $.ajax({
+			type: 'POST',
+			url: 'https://localhost:8009/wp-json/wc/store/v1/cart/add-item',
+			headers: {
+				"Access-Control-Request-Private-Network": true,
+				"Cart-Token": window.cartToken,
+			},
+			data: data
+		}).then(function(response, textStatus, jqXHR) {
+			var cartToken = jqXHR.getResponseHeader('Cart-Token');
+			window.cartToken = cartToken;
+			window.itemKey = response.items[0].key;
+			return response;
+		});
+	}
+
+	function update_cart_item_using_store_api(item_key, quantity) {
+		var data = {
+			key: item_key,
+			quantity: quantity
+		};
+		return $.ajax({
+			type: 'POST',
+			url: 'https://localhost:8009/wp-json/wc/store/v1/cart/update-item',
+			headers: {
+				// "Access-Control-Request-Private-Network": true,
+				"Cart-Token": window.cartToken,
+				"Foo-Bar": "Baz",
+			},
+			data: data
+		}).then(function (response, textStatus, jqXHR) {
+			var cartToken = jqXHR.getResponseHeader('Cart-Token');
+			window.cartToken = cartToken;
+			window.itemKey = response.items[0].key;
+			return response;
+		});
+	}
+
 	/**
 	 * Object to handle Stripe payment forms.
 	 */
@@ -341,7 +399,6 @@ jQuery( function( $ ) {
 
 			if ( wc_stripe_payment_request_params.is_product_page ) {
 				options = wc_stripe_payment_request.getRequestOptionsFromLocal();
-
 				paymentDetails = options;
 			} else {
 				options = {
@@ -618,7 +675,7 @@ jQuery( function( $ ) {
 					return;
 				}
 
-				wc_stripe_payment_request.addToCart();
+				// wc_stripe_payment_request.addToCart();
 
 				if ( wc_stripe_payment_request.isCustomPaymentRequestButton( prButton ) || wc_stripe_payment_request.isBrandedPaymentRequestButton( prButton ) ) {
 					evt.preventDefault();
@@ -640,17 +697,6 @@ jQuery( function( $ ) {
 
 			$( document.body ).on( 'woocommerce_variation_has_changed', function () {
 				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
-
-				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
-					$.when(
-						paymentRequest.update( {
-							total: response.total,
-							displayItems: response.displayItems,
-						} )
-					).then( function () {
-						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-					} );
-				});
 			} );
 
 			// Block the payment request button as soon as an "input" event is fired, to avoid sync issues
@@ -663,21 +709,33 @@ jQuery( function( $ ) {
 				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 				paymentRequestError = [];
 
-				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
-					if ( response.error ) {
-						paymentRequestError = [ response.error ];
-						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-					} else {
-						$.when(
-							paymentRequest.update( {
-								total: response.total,
-								displayItems: response.displayItems,
-							} )
-						).then( function () {
-							$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
+				var quantity =  $( '.quantity .qty' ).val();
+				var itemKey = window.itemKey;
+				update_cart_item_using_store_api(itemKey, quantity)
+					.then(function (response) {
+						const displayItems = [];
+
+						response.items.forEach(item => {
+							displayItems.push({
+								amount: item.totals.line_total,
+								label: 'A soft cotton shirt',
+							})
 						});
-					}
-				} );
+						var totalObj =  {
+							label: "WCStripe (via WooCommerce)",
+							amount:  Number(response.totals.total_price),
+						};
+
+						paymentRequest.update( {
+							total:totalObj,
+							displayItems: displayItems,
+						} );
+					}, function() {
+						// Set errors if request errors out
+						// paymentRequestError = [ response.error ];
+					}).always(function () {
+						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
+					});
 			}));
 
 			if ( $('.variations_form').length ) {
@@ -692,26 +750,26 @@ jQuery( function( $ ) {
 		},
 
 		attachCartPageEventListeners: function ( prButton, paymentRequest ) {
-			prButton.on( 'click', function ( evt ) {
-				// If login is required for checkout, display redirect confirmation dialog.
-				if ( wc_stripe_payment_request_params.login_confirmation ) {
-					evt.preventDefault();
-					displayLoginConfirmation( paymentRequestType );
-					return;
-				}
+			// prButton.on( 'click', function ( evt ) {
+			// 	// If login is required for checkout, display redirect confirmation dialog.
+			// 	if ( wc_stripe_payment_request_params.login_confirmation ) {
+			// 		evt.preventDefault();
+			// 		displayLoginConfirmation( paymentRequestType );
+			// 		return;
+			// 	}
 
-				if (
-					wc_stripe_payment_request.isCustomPaymentRequestButton(
-						prButton
-					) ||
-					wc_stripe_payment_request.isBrandedPaymentRequestButton(
-						prButton
-					)
-				) {
-					evt.preventDefault();
-					paymentRequest.show();
-				}
-			} );
+			// 	if (
+			// 		wc_stripe_payment_request.isCustomPaymentRequestButton(
+			// 			prButton
+			// 		) ||
+			// 		wc_stripe_payment_request.isBrandedPaymentRequestButton(
+			// 			prButton
+			// 		)
+			// 	) {
+			// 		evt.preventDefault();
+			// 		paymentRequest.show();
+			// 	}
+			// } );
 		},
 
 		showPaymentRequestButton: function( prButton ) {
@@ -767,7 +825,17 @@ jQuery( function( $ ) {
 		 */
 		init: function() {
 			if ( wc_stripe_payment_request_params.is_product_page ) {
-				wc_stripe_payment_request.startPaymentRequest( '' );
+				// Add product to temporary cart to get the cart token
+				var product_id = $( '.single_add_to_cart_button' ).val();
+				var quantity = $( '.quantity .qty' ).val();
+
+				get_cart_using_store_api()
+					.then(function () {
+						return add_item_to_cart_using_store_api(product_id, quantity)
+					})
+					.then(function() {
+						wc_stripe_payment_request.startPaymentRequest();
+					});
 			} else {
 				wc_stripe_payment_request.getCartDetails();
 			}
