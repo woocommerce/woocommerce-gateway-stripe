@@ -56,6 +56,52 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 	}
 
 	/**
+	 * Add payment gateway voucher expiration to API request body.
+	 *
+	 * @param array $body API request body.
+	 * @return array
+	 */
+	protected function update_request_body_on_create_or_update_payment_intent( $body ) {
+		$body['payment_method_options'] = [
+			'boleto' => [
+				'expires_after_days' => $this->get_option( 'expiration' ),
+			],
+		];
+		return $body;
+	}
+
+	/**
+	 * Add payment gateway voucher expiration.
+	 *
+	 * @param array $settings Settings array.
+	 * @return array
+	 */
+	public function get_unique_settings( $settings ) {
+		$settings[ $this->id . '_expiration' ] = $this->get_option( 'expiration' );
+		return $settings;
+	}
+
+	/**
+	 * Updates payment gateway voucher expiration.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return void
+	 */
+	public function update_unique_settings( WP_REST_Request $request ) {
+		$field_name  = $this->id . '_expiration';
+		$expiration = $request->get_param( $field_name );
+
+		if ( null === $expiration ) {
+			return;
+		}
+
+		$value = absint( $expiration );
+		$value = min( 60, $value );
+		$value = max( 0, $value );
+		$this->update_option( 'expiration', $value );
+	}
+
+	/**
 	 * Adds on-hold as accepted status during webhook handling on orders paid with voucher
 	 *
 	 * @param $allowed_statuses

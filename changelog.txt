@@ -1,5 +1,10 @@
 *** Changelog ***
 
+= 6.9.0 - 2022-10-19 =
+* Tweak - Remove remaining traces of old Stripe settings.
+* Add - Add Boleto expiration setting.
+* Add - Declare incompatibility with HPOS.
+
 = 6.8.0 - 2022-09-28 =
 * Fix - Minor adjustments for Custom Order Tables compatibility.
 * Fix - Upgrade from Payment Element beta.

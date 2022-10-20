@@ -86,13 +86,15 @@ class WC_REST_Stripe_Payment_Gateway_Controller extends WC_Stripe_REST_Base_Cont
 		try {
 			$id = $request->get_param( 'payment_gateway_id' );
 			$this->instantiate_gateway( $id );
-			return new WP_REST_Response(
-				[
-					'is_' . $id . '_enabled' => $this->gateway->is_enabled(),
-					$id . '_name'            => $this->gateway->get_option( 'title' ),
-					$id . '_description'     => $this->gateway->get_option( 'description' ),
-				]
-			);
+			$settings = [
+				'is_' . $id . '_enabled' => $this->gateway->is_enabled(),
+				$id . '_name'            => $this->gateway->get_option( 'title' ),
+				$id . '_description'     => $this->gateway->get_option( 'description' ),
+			];
+			if ( method_exists( $this->gateway, 'get_unique_settings' ) ) {
+				$settings = $this->gateway->get_unique_settings( $settings );
+			}
+			return new WP_REST_Response( $settings );
 		} catch ( Exception $exception ) {
 			return new WP_REST_Response( [ 'result' => 'bad_request' ], 400 );
 		}
@@ -110,7 +112,9 @@ class WC_REST_Stripe_Payment_Gateway_Controller extends WC_Stripe_REST_Base_Cont
 			$this->update_is_gateway_enabled( $request );
 			$this->update_gateway_name( $request );
 			$this->update_gateway_description( $request );
-
+			if ( method_exists( $this->gateway, 'update_unique_settings' ) ) {
+				$this->gateway->update_unique_settings( $request );
+			}
 			return new WP_REST_Response( [], 200 );
 		} catch ( Exception $exception ) {
 			return new WP_REST_Response( [ 'result' => 'bad_request' ], 400 );
@@ -155,7 +159,7 @@ class WC_REST_Stripe_Payment_Gateway_Controller extends WC_Stripe_REST_Base_Cont
 	}
 
 	/**
-	 * Updates payment gateway title.
+	 * Updates payment gateway description.
 	 *
 	 * @param WP_REST_Request $request Request object.
 	 */
