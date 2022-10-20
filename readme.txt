@@ -128,9 +128,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 6.9.0 - 2022-10-19 =
-* Tweak - Remove remaining traces of old Stripe settings.
-* Add - Add Boleto expiration setting.
-* Add - Declare incompatibility with HPOS.
+= 7.0.0 - 2022-xx-xx =
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
