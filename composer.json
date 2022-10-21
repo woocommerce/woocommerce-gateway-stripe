@@ -5,7 +5,7 @@
 		"license": "GPL-2.0-or-later",
 		"config": {
       "platform": {
-        "php": "7.1"
+        "php": "7.4"
       },
         "allow-plugins": {
             "dealerdirect/phpcodesniffer-composer-installer": true,
@@ -14,7 +14,7 @@
     },
     "require-dev": {
 				"composer/installers": "1.9.0",
-				"phpunit/phpunit": "7.5.20",
+				"phpunit/phpunit": "8.5.23",
 				"yoast/phpunit-polyfills": "^1.0",
 				"woocommerce/woocommerce-sniffs": "0.1.0",
 				"wp-cli/wp-cli-bundle": "2.5.0"
