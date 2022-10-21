@@ -18,14 +18,6 @@ if ( ! file_exists( $_tests_dir . '/includes/functions.php' ) ) {
 	exit( 1 );
 }
 
-if ( PHP_VERSION_ID >= 80000 && file_exists( $_tests_dir . '/includes/phpunit7/MockObject' ) ) {
-	// WP Core test library includes patches for PHPUnit 7 to make it compatible with PHP8.
-	require_once $_tests_dir . '/includes/phpunit7/MockObject/Builder/NamespaceMatch.php';
-	require_once $_tests_dir . '/includes/phpunit7/MockObject/Builder/ParametersMatch.php';
-	require_once $_tests_dir . '/includes/phpunit7/MockObject/InvocationMocker.php';
-	require_once $_tests_dir . '/includes/phpunit7/MockObject/MockMethod.php';
-}
-
 // Give access to tests_add_filter() function.
 require_once $_tests_dir . '/includes/functions.php';
 
