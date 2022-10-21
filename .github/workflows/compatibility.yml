@@ -35,12 +35,8 @@ jobs:
           php-version: ${{ matrix.php }}
           coverage:    none
           
-      - name: If PHP 7.0, set up PHPUnit 6.5 for legacy compatibility
-        if: ${{ matrix.php == '7.0' }}
-        run: wget https://phar.phpunit.de/phpunit-6.5.14.phar && mv phpunit-6.5.14.phar phpunit.phar
-
       - name: If PHP 8.0, set up PHPUnit 9.5 for compatibility
-        if: ${{ matrix.php == '8.0' }}
+        if: ${{ matrix.php >= '8.0' }}
         run: wget https://phar.phpunit.de/phpunit-9.5.13.phar && mv phpunit-9.5.13.phar phpunit.phar
 
       - name: Run CI checks
