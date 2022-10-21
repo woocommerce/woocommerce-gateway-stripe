@@ -16,25 +16,25 @@ jobs:
         include:
           # WooCommerce
           - woocommerce_support_policy: L
-            woocommerce: '6.5.0'
+            woocommerce: '7.0.0'
           - woocommerce_support_policy: L-1
-            woocommerce: '6.4.1'
+            woocommerce: '6.9.4'
           - woocommerce_support_policy: L-2
-            woocommerce: '6.3.1'
+            woocommerce: '6.8.2'
           # WordPress
           - wordpress_support_policy: L
-            wordpress: '5.9'
+            wordpress: '6.0'
           - wordpress_support_policy: L-1
-            wordpress: '5.8'
+            wordpress: '5.9'
           - wordpress_support_policy: L-2
-            wordpress: '5.7'
+            wordpress: '5.8'
           # PHP
           - php_support_policy: L
-            php: '8.0'
+            php: '8.1'
           - php_support_policy: L-1
-            php: '7.4'
+            php: '8.0'
           - php_support_policy: L-2
-            php: '7.0'
+            php: '7.4'
         exclude:
           - woocommerce_support_policy: L
             php_support_policy: L-2
