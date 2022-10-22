@@ -12,7 +12,7 @@ jQuery( function( $ ) {
 			type: 'GET',
 			url: 'https://localhost:8009/wp-json/wc/store/v1/cart',
 			headers: {
-				"Access-Control-Request-Private-Network": true,
+				// "Access-Control-Request-Private-Network": true,
 			}
 		}).then(function (response, textStatus, jqXHR) {
 			var cartToken = jqXHR.getResponseHeader('cart-token');
@@ -31,7 +31,7 @@ jQuery( function( $ ) {
 			type: 'POST',
 			url: 'https://localhost:8009/wp-json/wc/store/v1/cart/add-item',
 			headers: {
-				"Access-Control-Request-Private-Network": true,
+				// "Access-Control-Request-Private-Network": true,
 				"Cart-Token": window.cartToken,
 			},
 			data: data
@@ -54,7 +54,6 @@ jQuery( function( $ ) {
 			headers: {
 				// "Access-Control-Request-Private-Network": true,
 				"Cart-Token": window.cartToken,
-				"Foo-Bar": "Baz",
 			},
 			data: data
 		}).then(function (response, textStatus, jqXHR) {
@@ -717,7 +716,7 @@ jQuery( function( $ ) {
 
 						response.items.forEach(item => {
 							displayItems.push({
-								amount: item.totals.line_total,
+								amount: Number(item.totals.line_total),
 								label: 'A soft cotton shirt',
 							})
 						});
@@ -750,26 +749,26 @@ jQuery( function( $ ) {
 		},
 
 		attachCartPageEventListeners: function ( prButton, paymentRequest ) {
-			// prButton.on( 'click', function ( evt ) {
-			// 	// If login is required for checkout, display redirect confirmation dialog.
-			// 	if ( wc_stripe_payment_request_params.login_confirmation ) {
-			// 		evt.preventDefault();
-			// 		displayLoginConfirmation( paymentRequestType );
-			// 		return;
-			// 	}
+			prButton.on( 'click', function ( evt ) {
+				// If login is required for checkout, display redirect confirmation dialog.
+				if ( wc_stripe_payment_request_params.login_confirmation ) {
+					evt.preventDefault();
+					displayLoginConfirmation( paymentRequestType );
+					return;
+				}
 
-			// 	if (
-			// 		wc_stripe_payment_request.isCustomPaymentRequestButton(
-			// 			prButton
-			// 		) ||
-			// 		wc_stripe_payment_request.isBrandedPaymentRequestButton(
-			// 			prButton
-			// 		)
-			// 	) {
-			// 		evt.preventDefault();
-			// 		paymentRequest.show();
-			// 	}
-			// } );
+				if (
+					wc_stripe_payment_request.isCustomPaymentRequestButton(
+						prButton
+					) ||
+					wc_stripe_payment_request.isBrandedPaymentRequestButton(
+						prButton
+					)
+				) {
+					evt.preventDefault();
+					paymentRequest.show();
+				}
+			} );
 		},
 
 		showPaymentRequestButton: function( prButton ) {
