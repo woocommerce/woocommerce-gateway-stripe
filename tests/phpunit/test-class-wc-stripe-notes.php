@@ -147,7 +147,7 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 				'enabled'                         => 'yes',
 				'upe_checkout_experience_enabled' => 'yes',
 				'testmode'                        => 'yes',
-			],
+			]
 		);
 
 		$this->set_enabled_payment_methods( [ 'card', 'link' ] );
