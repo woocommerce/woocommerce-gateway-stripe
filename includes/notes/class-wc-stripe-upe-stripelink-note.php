@@ -25,7 +25,7 @@ class WC_Stripe_UPE_StripeLink_Note {
 	/**
 	 * Link to enable the UPE in store.
 	 */
-	const NOTE_DOCUMENTATION_URL = 'https://woocommerce.com/document/payments/woocommerce-payments-stripe-link/';
+	const NOTE_DOCUMENTATION_URL = 'https://woocommerce.com/document/stripe/#section-11';
 
 	/**
 	 * Get the note.
