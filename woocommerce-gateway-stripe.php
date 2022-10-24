@@ -725,6 +725,9 @@ function wcstripe_deactivated() {
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
 		WC_Stripe_UPE_Availability_Note::possibly_delete_note();
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-stripelink-note.php';
+		WC_Stripe_UPE_StripeLink_Note::possibly_delete_note();
 	}
 }
 register_deactivation_hook( __FILE__, 'wcstripe_deactivated' );

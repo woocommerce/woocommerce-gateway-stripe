@@ -81,6 +81,9 @@ class WC_Stripe_REST_UPE_Flag_Toggle_Controller extends WC_Stripe_REST_Base_Cont
 		if ( WC_Stripe_UPE_Compatibility::are_inbox_notes_supported() ) {
 			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
 			WC_Stripe_UPE_Availability_Note::possibly_delete_note();
+
+			require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-stripelink-note.php';
+			WC_Stripe_UPE_StripeLink_Note::possibly_delete_note();
 		}
 
 		return new WP_REST_Response( [ 'result' => 'success' ], 200 );
