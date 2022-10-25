@@ -32,8 +32,22 @@ class WC_Stripe_Inbox_Notes {
 		}
 	}
 
+	public static function are_inbox_notes_supported() {
+		if ( ! class_exists( 'WC_Data_Store' ) ) {
+			return false;
+		}
+
+		try {
+			WC_Data_Store::load( 'admin-note' );
+		} catch ( Exception $e ) {
+			return false;
+		}
+
+		return trait_exists( 'Automattic\WooCommerce\Admin\Notes\NoteTraits' ) && class_exists( 'Automattic\WooCommerce\Admin\Notes\Note' );
+	}
+
 	public static function create_upe_notes() {
-		if ( ! WC_Stripe_UPE_Compatibility::are_inbox_notes_supported() ) {
+		if ( ! self::are_inbox_notes_supported() ) {
 			return;
 		}
 
@@ -124,7 +138,7 @@ class WC_Stripe_Inbox_Notes {
 	 */
 	public static function create_marketing_note() {
 		// Make sure conditions for this note still hold.
-		if ( ! self::should_show_marketing_note() || ! WC_Stripe_UPE_Compatibility::are_inbox_notes_supported() ) {
+		if ( ! self::should_show_marketing_note() || ! self::are_inbox_notes_supported() ) {
 			return;
 		}
 
@@ -172,7 +186,7 @@ class WC_Stripe_Inbox_Notes {
 	 * on/about 2020 Dec 22.
 	 */
 	public static function cleanup_campaign_2020() {
-		if ( ! WC_Stripe_UPE_Compatibility::are_inbox_notes_supported() ) {
+		if ( ! self::are_inbox_notes_supported() ) {
 			return;
 		}
 

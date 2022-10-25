@@ -1,6 +1,6 @@
 <?php
 /**
- * Display a notice to merchants to inform about UPE.
+ * Display a notice to merchants to inform about Stripe Link.
  *
  * @package WooCommerce\Payments\Admin
  */
@@ -35,14 +35,14 @@ class WC_Stripe_UPE_StripeLink_Note {
 		$note       = new $note_class();
 
 		$note->set_title( __( 'Increase conversion at checkout', 'woocommerce-gateway-stripe' ) );
-		$note->set_content( __( 'Reduce cart abandonment and create a frictionless checkout experience with Link by Stripe. Link autofills your customer’s payment and shipping details so they can check out in just six seconds with the Link optimized experience. That’s 9x faster than shoppers who don’t use Link. Link increases conversion rates by over 7% for logged-in Link customers.', 'woocommerce-gateway-stripe' ) );
+		$note->set_content( __( 'Reduce cart abandonment and create a frictionless checkout experience with Link by Stripe. Link autofills your customer’s payment and shipping details so they can check out in just six seconds with the Link optimized experience.', 'woocommerce-gateway-stripe' ) );
 
 		$note->set_type( $note_class::E_WC_ADMIN_NOTE_INFORMATIONAL );
 		$note->set_name( self::NOTE_NAME );
 		$note->set_source( 'woocommerce-gateway-stripe' );
 		$note->add_action(
 			self::NOTE_NAME,
-			__( 'Enable in your store', 'woocommerce-gateway-stripe' ),
+			__( 'Set up now', 'woocommerce-gateway-stripe' ),
 			self::NOTE_DOCUMENTATION_URL,
 			$note_class::E_WC_ADMIN_NOTE_UNACTIONED,
 			true
@@ -86,7 +86,6 @@ class WC_Stripe_UPE_StripeLink_Note {
 
 		// Retrieve enabled payment methods at checkout.
 		$enabled_payment_methods = $gateway->get_upe_enabled_at_checkout_payment_method_ids();
-
 		// If card payment method is not enabled, skip. If Link payment method is enabled, skip.
 		if (
 			! in_array( WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, $enabled_payment_methods, true ) ||

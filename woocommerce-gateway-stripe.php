@@ -720,7 +720,7 @@ register_activation_hook( __FILE__, 'add_woocommerce_inbox_variant' );
 function wcstripe_deactivated() {
 	// admin notes are not supported on older versions of WooCommerce.
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-upe-compatibility.php';
-	if ( WC_Stripe_UPE_Compatibility::are_inbox_notes_supported() ) {
+	if ( WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
 		// requirements for the note
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
