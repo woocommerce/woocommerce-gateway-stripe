@@ -84,6 +84,11 @@ class WC_Stripe_UPE_StripeLink_Note {
 			return;
 		}
 
+		// If store currency is not USD, skip
+		if ( 'USD' !== get_woocommerce_currency() ) {
+			return;
+		}
+
 		// Retrieve enabled payment methods at checkout.
 		$enabled_payment_methods = $gateway->get_upe_enabled_at_checkout_payment_method_ids();
 		// If card payment method is not enabled, skip. If Link payment method is enabled, skip.
