@@ -29,8 +29,11 @@ jest.mock(
 	'wcstripe/components/payment-method-capability-status-pill',
 	() => () => null
 );
-jest.mock( '../../loadable-settings-section', () => ( { children } ) =>
-	children
+jest.mock(
+	'../../loadable-settings-section',
+	() =>
+		( { children } ) =>
+			children
 );
 
 describe( 'GeneralSettingsSection', () => {
@@ -38,7 +41,6 @@ describe( 'GeneralSettingsSection', () => {
 		useGetCapabilities.mockReturnValue( {
 			card_payments: 'active',
 			giropay_payments: 'active',
-			link_payments: 'active',
 		} );
 		useManualCapture.mockReturnValue( [ false ] );
 		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card', 'link' ] );
@@ -111,7 +113,6 @@ describe( 'GeneralSettingsSection', () => {
 			'giropay',
 			'sofort',
 			'sepa_debit',
-			'link',
 		] );
 		const updateEnabledMethodsMock = jest.fn();
 		useEnabledPaymentMethodIds.mockReturnValue( [
