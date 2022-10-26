@@ -25,7 +25,7 @@ class WC_Stripe_UPE_StripeLink_Note {
 	/**
 	 * Link to Stripe Link documentation.
 	 */
-	const NOTE_DOCUMENTATION_URL = 'https://woocommerce.com/document/stripe/#section-11';
+	const NOTE_DOCUMENTATION_URL = 'https://woocommerce.com/document/stripe/#stripe-link';
 
 	/**
 	 * Get the note.
