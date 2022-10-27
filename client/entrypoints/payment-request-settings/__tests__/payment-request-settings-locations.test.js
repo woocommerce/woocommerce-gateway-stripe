@@ -69,9 +69,9 @@ describe( 'PaymentRequestsSettingsSection', () => {
 		render( <PaymentRequestsSettingsSection /> );
 
 		const [
-			checkoutCheckbox, 
-			productPageCheckbox, 
-			cartCheckbox
+			checkoutCheckbox,
+			productPageCheckbox,
+			cartCheckbox,
 		] = screen.getAllByRole( 'checkbox' );
 
 		expect( checkoutCheckbox ).not.toBeDisabled();
@@ -99,17 +99,17 @@ describe( 'PaymentRequestsSettingsSection', () => {
 		// Uncheck each checkbox, and verify them what kind of action should have been called
 		userEvent.click( screen.getByText( 'Product page' ) );
 		expect(
-			updatePaymentRequestLocationsHandler 
+			updatePaymentRequestLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'checkout', 'cart' ] );
 
 		userEvent.click( screen.getByText( 'Checkout' ) );
 		expect(
-			updatePaymentRequestLocationsHandler 
+			updatePaymentRequestLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'product', 'cart' ] );
 
 		userEvent.click( screen.getByText( 'Cart' ) );
 		expect(
-			updatePaymentRequestLocationsHandler 
+			updatePaymentRequestLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'checkout', 'product' ] );
 	} );
 
@@ -129,17 +129,17 @@ describe( 'PaymentRequestsSettingsSection', () => {
 
 		userEvent.click( screen.getByText( 'Cart' ) );
 		expect(
-			updatePaymentRequestLocationsHandler 
+			updatePaymentRequestLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'cart' ] );
 
 		userEvent.click( screen.getByText( 'Product page' ) );
 		expect(
-			updatePaymentRequestLocationsHandler 
+			updatePaymentRequestLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'product' ] );
 
 		userEvent.click( screen.getByText( 'Checkout' ) );
 		expect(
-			updatePaymentRequestLocationsHandler 
+			updatePaymentRequestLocationsHandler
 		).toHaveBeenLastCalledWith( [ 'checkout' ] );
 	} );
 } );

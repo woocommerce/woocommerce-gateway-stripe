@@ -16,15 +16,15 @@ import './styles.scss';
 
 const PaymentRequestSection = () => {
 	const [
-		isPaymentRequestEnabled, 
-		updateIsPaymentRequestEnabled
+		isPaymentRequestEnabled,
+		updateIsPaymentRequestEnabled,
 	] = usePaymentRequestEnabledSettings();
 
 	const availablePaymentMethodIds = useGetAvailablePaymentMethodIds();
 
 	const [
 		enabledMethodIds,
-		updateEnabledMethodIds
+		updateEnabledMethodIds,
 	] = useEnabledPaymentMethodIds();
 
 	const updateStripeLinkCheckout = ( isEnabled ) => {

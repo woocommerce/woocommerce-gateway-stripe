@@ -139,7 +139,7 @@ const PaymentRequestsSettingsSection = () => {
 
 	const [
 		paymentRequestLocations,
-		updatePaymentRequestLocations
+		updatePaymentRequestLocations,
 	] = usePaymentRequestLocations();
 
 	const makeLocationChangeHandler = ( location ) => ( isChecked ) => {

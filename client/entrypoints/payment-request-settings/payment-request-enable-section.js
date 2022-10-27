@@ -6,7 +6,7 @@ import CardBody from 'wcstripe/settings/card-body';
 const PaymentRequestsEnableSection = () => {
 	const [
 		isPaymentRequestEnabled,
-		updateIsPaymentRequestEnabled
+		updateIsPaymentRequestEnabled,
 	] = usePaymentRequestEnabledSettings();
 
 	return (
