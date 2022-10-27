@@ -30,7 +30,7 @@ jest.mock(
 	() => () => null
 );
 jest.mock( '../../loadable-settings-section', () => ( { children } ) =>
-	children 
+	children
 );
 
 describe( 'GeneralSettingsSection', () => {
