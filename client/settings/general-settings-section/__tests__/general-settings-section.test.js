@@ -29,10 +29,7 @@ jest.mock(
 	'wcstripe/components/payment-method-capability-status-pill',
 	() => () => null
 );
-jest.mock( '../../loadable-settings-section',
-	() =>
-		( { children } ) => children
-);
+jest.mock( '../../loadable-settings-section', () => ( { children } ) => children );
 
 describe( 'GeneralSettingsSection', () => {
 	beforeEach( () => {
