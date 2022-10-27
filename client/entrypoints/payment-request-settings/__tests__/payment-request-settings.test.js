@@ -70,7 +70,7 @@ describe( 'PaymentRequestsSettingsSection', () => {
 	it( 'renders settings with defaults', () => {
 		render( <PaymentRequestsSettingsSection /> );
 
-		// confirm settings headings
+		// confirm settings headings.
 		expect(
 			screen.queryByRole( 'heading', { name: 'Call to action' } )
 		).toBeInTheDocument();
@@ -78,7 +78,7 @@ describe( 'PaymentRequestsSettingsSection', () => {
 			screen.queryByRole( 'heading', { name: 'Appearance' } )
 		).toBeInTheDocument();
 
-		// confirm radio button groups displayed
+		// confirm radio button groups displayed.
 		const [ ctaRadio, sizeRadio, themeRadio ] =
 			screen.queryAllByRole( 'radio' );
 
@@ -86,7 +86,7 @@ describe( 'PaymentRequestsSettingsSection', () => {
 		expect( sizeRadio ).toBeInTheDocument();
 		expect( themeRadio ).toBeInTheDocument();
 
-		// confirm default values
+		// confirm default values.
 		expect( screen.getByLabelText( 'Buy' ) ).toBeChecked();
 		expect( screen.getByLabelText( 'Default (40 px)' ) ).toBeChecked();
 		expect( screen.getByLabelText( /Dark/ ) ).toBeChecked();
@@ -96,6 +96,7 @@ describe( 'PaymentRequestsSettingsSection', () => {
 		const setButtonTypeMock = jest.fn();
 		const setButtonSizeMock = jest.fn();
 		const setButtonThemeMock = jest.fn();
+
 		usePaymentRequestButtonType.mockReturnValue( [
 			'buy',
 			setButtonTypeMock,
