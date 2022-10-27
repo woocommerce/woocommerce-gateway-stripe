@@ -131,5 +131,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 7.0.0 - 2022-xx-xx =
 * Add - Auto-complete first and last name on checkout form when using Link payment method.
 * Add - Allow subscription orders to be paid with Link payment method.
+* Add - Add inbox notification for Link payment method.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
