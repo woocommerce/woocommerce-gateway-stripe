@@ -1,12 +1,13 @@
 *** Changelog ***
 
 = 7.0.0 - 2022-xx-xx =
+* Add - Auto-complete first and last name on checkout form when using Link payment method.
+* Add - Allow subscription orders to be paid with Link payment method.
 
 = 6.9.0 - 2022-10-19 =
 * Tweak - Remove remaining traces of old Stripe settings.
 * Add - Add Boleto expiration setting.
 * Add - Declare incompatibility with HPOS.
-* Add - Auto-complete first and last name on checkout form when using Link payment method.
 
 = 6.8.0 - 2022-09-28 =
 * Fix - Minor adjustments for Custom Order Tables compatibility.
