@@ -4,8 +4,10 @@ import { Card, CheckboxControl } from '@wordpress/components';
 import { usePaymentRequestEnabledSettings } from 'wcstripe/data';
 import CardBody from 'wcstripe/settings/card-body';
 const PaymentRequestsEnableSection = () => {
-	const [ isPaymentRequestEnabled, updateIsPaymentRequestEnabled ] =
-		usePaymentRequestEnabledSettings();
+	const [
+		isPaymentRequestEnabled,
+		updateIsPaymentRequestEnabled
+	] = usePaymentRequestEnabledSettings();
 
 	return (
 		<Card className="express-checkout-settings">

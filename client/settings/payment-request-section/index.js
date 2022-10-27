@@ -15,13 +15,17 @@ import {
 import './styles.scss';
 
 const PaymentRequestSection = () => {
-	const [ isPaymentRequestEnabled, updateIsPaymentRequestEnabled ] =
-		usePaymentRequestEnabledSettings();
+	const [
+		isPaymentRequestEnabled, 
+		updateIsPaymentRequestEnabled
+	] = usePaymentRequestEnabledSettings();
 
 	const availablePaymentMethodIds = useGetAvailablePaymentMethodIds();
 
-	const [ enabledMethodIds, updateEnabledMethodIds ] =
-		useEnabledPaymentMethodIds();
+	const [
+		enabledMethodIds,
+		updateEnabledMethodIds
+	] = useEnabledPaymentMethodIds();
 
 	const updateStripeLinkCheckout = ( isEnabled ) => {
 		//this handles the link payment method checkbox. If it's enable we should add link to the rest of the

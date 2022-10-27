@@ -137,8 +137,10 @@ const PaymentRequestsSettingsSection = () => {
 
 	const [ isPaymentRequestEnabled ] = usePaymentRequestEnabledSettings();
 
-	const [ paymentRequestLocations, updatePaymentRequestLocations ] =
-		usePaymentRequestLocations();
+	const [
+		paymentRequestLocations,
+		updatePaymentRequestLocations
+	] = usePaymentRequestLocations();
 
 	const makeLocationChangeHandler = ( location ) => ( isChecked ) => {
 		if ( isChecked ) {
