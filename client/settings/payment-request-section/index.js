@@ -28,13 +28,9 @@ const PaymentRequestSection = () => {
 	] = useEnabledPaymentMethodIds();
 
 	const updateStripeLinkCheckout = ( isEnabled ) => {
-		//this handles the link payment method checkbox. If it's enable we should add link to the rest of the
-		//enabled payment method.
-		// If false - we should remove link payment method from the enabled payment methods
+		// Add/remove Stripe Link from the list of enabled payment methods.
 		if ( isEnabled ) {
-			updateEnabledMethodIds( [
-				...new Set( [ ...enabledMethodIds, 'link' ] ),
-			] );
+			updateEnabledMethodIds( [ ...enabledMethodIds, 'link' ] );
 		} else {
 			updateEnabledMethodIds( [
 				...enabledMethodIds.filter( ( id ) => id !== 'link' ),
@@ -74,7 +70,6 @@ const PaymentRequestSection = () => {
 							</div>
 							<div className="express-checkout__description">
 								{
-									/* eslint-disable jsx-a11y/anchor-has-content */
 									interpolateComponents( {
 										mixedString: __(
 											'Boost sales by offering a fast, simple, and secure checkout experience.' +
@@ -125,7 +120,7 @@ const PaymentRequestSection = () => {
 								<CheckboxControl
 									label={ __(
 										'Link by Stripe Input',
-										'woocommerce-payments'
+										'woocommerce-gateway-stripe'
 									) }
 									checked={ isStripeLinkEnabled }
 									onChange={ updateStripeLinkCheckout }
@@ -143,12 +138,11 @@ const PaymentRequestSection = () => {
 								</div>
 								<div className="express-checkout__description">
 									{
-										/* eslint-disable jsx-a11y/anchor-has-content */
 										interpolateComponents( {
 											mixedString: __(
 												'Link autofills your customers’ payment and shipping details to ' +
 													'deliver an easy and seamless checkout experience. ' +
-													'New payment experience (UPE) needs to be enabled for Link. ' +
+													'New checkout experience needs to be enabled for Link. ' +
 													'By enabling this feature, you agree to the ' +
 													'{{stripeLinkTerms}}Link by Stripe terms{{/stripeLinkTerms}}, ' +
 													'and {{privacyPolicy}}Privacy Policy{{/privacyPolicy}}.',
@@ -177,7 +171,6 @@ const PaymentRequestSection = () => {
 							</div>
 							<div className="express-checkout__link">
 								{
-									/* eslint-disable jsx-a11y/anchor-has-content */
 									interpolateComponents( {
 										mixedString: __(
 											'{{linkDocs}}Read more{{/linkDocs}}',
@@ -188,13 +181,11 @@ const PaymentRequestSection = () => {
 												<a
 													target="_blank"
 													rel="noreferrer"
-													/* eslint-disable-next-line max-len */
-													href="https://woocommerce.com/document/payments/woocommerce-payments-stripe-link/"
+													href="https://woocommerce.com/document/stripe/#stripe-link"
 												/>
 											),
 										},
 									} )
-									/* eslint-enable jsx-a11y/anchor-has-content */
 								}
 							</div>
 						</li>

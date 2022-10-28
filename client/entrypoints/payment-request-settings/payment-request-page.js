@@ -16,7 +16,11 @@ const EnableDescription = () => (
 		</div>
 		<p>
 			{ __(
-				'Allow your customers to collect payments via WooPay.',
+				'Decide how buttons for digital wallets Apple Pay and ' +
+					'Google Pay are displayed in your store. Depending on ' +
+					'their web browser and their wallet configurations, ' +
+					'your customers will see either Apple Pay or Google Pay, ' +
+					'but not both.',
 				'woocommerce-gateway-stripe'
 			) }
 		</p>
