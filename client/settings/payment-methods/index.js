@@ -44,10 +44,7 @@ const PaymentRequestDescription = () => (
 			) }
 		</p>
 		<ExternalLink href="https://woocommerce.com/document/stripe/#express-checkouts">
-			{ __(
-				'Learn more',
-				'woocommerce-gateway-stripe'
-			) }
+			{ __( 'Learn more', 'woocommerce-gateway-stripe' ) }
 		</ExternalLink>
 	</>
 );

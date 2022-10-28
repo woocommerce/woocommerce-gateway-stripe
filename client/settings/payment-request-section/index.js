@@ -70,6 +70,7 @@ const PaymentRequestSection = () => {
 							</div>
 							<div className="express-checkout__description">
 								{
+									/* eslint-disable jsx-a11y/anchor-has-content */
 									interpolateComponents( {
 										mixedString: __(
 											'Boost sales by offering a fast, simple, and secure checkout experience.' +
@@ -138,6 +139,7 @@ const PaymentRequestSection = () => {
 								</div>
 								<div className="express-checkout__description">
 									{
+										/* eslint-disable jsx-a11y/anchor-has-content */
 										interpolateComponents( {
 											mixedString: __(
 												'Link autofills your customers’ payment and shipping details to ' +
@@ -171,6 +173,7 @@ const PaymentRequestSection = () => {
 							</div>
 							<div className="express-checkout__link">
 								{
+									/* eslint-disable jsx-a11y/anchor-has-content */
 									interpolateComponents( {
 										mixedString: __(
 											'{{linkDocs}}Read more{{/linkDocs}}',
