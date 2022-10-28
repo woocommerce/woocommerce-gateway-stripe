@@ -62,6 +62,15 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 				'upe_checkout_experience_enabled' => 'yes',
 			]
 		);
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+			->disableOriginalConstructor()
+			->setMethods(
+				[
+					'get_cached_account_data',
+				]
+			)
+			->getMock();
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
 		WC_Stripe_Inbox_Notes::create_upe_notes();
 		$admin_note_store = WC_Data_Store::load( 'admin-note' );
 		$this->assertSame( 1, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_StripeLink_Note::NOTE_NAME ) ) );
@@ -84,7 +93,15 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 				'upe_checkout_experience_enabled' => 'yes',
 			]
 		);
-
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+			->disableOriginalConstructor()
+			->setMethods(
+				[
+					'get_cached_account_data',
+				]
+			)
+			->getMock();
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
 		WC_Stripe_Inbox_Notes::create_upe_notes();
 
 		$admin_note_store = WC_Data_Store::load( 'admin-note' );
