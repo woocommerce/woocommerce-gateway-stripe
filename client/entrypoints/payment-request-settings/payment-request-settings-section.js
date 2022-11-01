@@ -1,11 +1,13 @@
 import { __ } from '@wordpress/i18n';
 import React, { useMemo } from 'react';
-import { Card, RadioControl } from '@wordpress/components';
+import { Card, RadioControl, CheckboxControl } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import PaymentRequestButtonPreview from './payment-request-button-preview';
 import {
+	usePaymentRequestEnabledSettings,
+	usePaymentRequestLocations,
 	usePaymentRequestButtonType,
 	usePaymentRequestButtonSize,
 	usePaymentRequestButtonTheme,
@@ -115,7 +117,7 @@ const buttonThemeOptions = [
 	},
 ];
 
-const PaymentRequestsSection = () => {
+const PaymentRequestsSettingsSection = () => {
 	const [ buttonType, setButtonType ] = usePaymentRequestButtonType();
 	const [ size, setSize ] = usePaymentRequestButtonSize();
 	const [ theme, setTheme ] = usePaymentRequestButtonTheme();
@@ -133,9 +135,76 @@ const PaymentRequestsSection = () => {
 		);
 	}, [ testPublishableKey, publishableKey, accountId ] );
 
+	const [ isPaymentRequestEnabled ] = usePaymentRequestEnabledSettings();
+
+	const [
+		paymentRequestLocations,
+		updatePaymentRequestLocations,
+	] = usePaymentRequestLocations();
+
+	const makeLocationChangeHandler = ( location ) => ( isChecked ) => {
+		if ( isChecked ) {
+			updatePaymentRequestLocations( [
+				...paymentRequestLocations,
+				location,
+			] );
+		} else {
+			updatePaymentRequestLocations(
+				paymentRequestLocations.filter( ( name ) => name !== location )
+			);
+		}
+	};
+
 	return (
-		<Card>
+		<Card className="express-checkout-settings">
 			<CardBody>
+				<h4>
+					{ __(
+						'Show express checkouts on',
+						'woocommerce-gateway-stripe'
+					) }
+				</h4>
+				<ul className="payment-request-settings__location">
+					<li>
+						<CheckboxControl
+							disabled={ ! isPaymentRequestEnabled }
+							checked={
+								isPaymentRequestEnabled &&
+								paymentRequestLocations.includes( 'checkout' )
+							}
+							onChange={ makeLocationChangeHandler( 'checkout' ) }
+							label={ __(
+								'Checkout',
+								'woocommerce-gateway-stripe'
+							) }
+						/>
+					</li>
+					<li>
+						<CheckboxControl
+							disabled={ ! isPaymentRequestEnabled }
+							checked={
+								isPaymentRequestEnabled &&
+								paymentRequestLocations.includes( 'product' )
+							}
+							onChange={ makeLocationChangeHandler( 'product' ) }
+							label={ __(
+								'Product page',
+								'woocommerce-gateway-stripe'
+							) }
+						/>
+					</li>
+					<li>
+						<CheckboxControl
+							disabled={ ! isPaymentRequestEnabled }
+							checked={
+								isPaymentRequestEnabled &&
+								paymentRequestLocations.includes( 'cart' )
+							}
+							onChange={ makeLocationChangeHandler( 'cart' ) }
+							label={ __( 'Cart', 'woocommerce-gateway-stripe' ) }
+						/>
+					</li>
+				</ul>
 				<h4>
 					{ __( 'Call to action', 'woocommerce-gateway-stripe' ) }
 				</h4>
@@ -182,4 +251,4 @@ const PaymentRequestsSection = () => {
 	);
 };
 
-export default PaymentRequestsSection;
+export default PaymentRequestsSettingsSection;
