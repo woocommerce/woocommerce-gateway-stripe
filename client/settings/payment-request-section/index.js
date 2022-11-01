@@ -51,7 +51,7 @@ const PaymentRequestSection = () => {
 
 	return (
 		<Card className="express-checkouts">
-			<CardBody>
+			<CardBody size={ 0 }>
 				<ul className="express-checkouts-list">
 					<li className="express-checkout has-icon-border">
 						<div className="express-checkout__checkbox">
