@@ -134,5 +134,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Add - Allow subscription orders to be paid with Link payment method.
 * Add - Add inbox notification for Link payment method.
 * Tweak - Adjust texts and links in WC admin advanced settings.
+* Add - Restrict the Link payment method only for US merchants.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
