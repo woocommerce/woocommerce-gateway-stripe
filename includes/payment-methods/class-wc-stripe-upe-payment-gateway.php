@@ -15,6 +15,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 	const ID = 'stripe';
 
+	/**
+	 * Upe Available Methods
+	 *
+	 * @type WC_Stripe_UPE_Payment_Method[]
+	 */
 	const UPE_AVAILABLE_METHODS = [
 		WC_Stripe_UPE_Payment_Method_CC::class,
 		WC_Stripe_UPE_Payment_Method_Giropay::class,
@@ -408,8 +413,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function get_upe_available_payment_methods() {
 		$available_payment_methods = [];
 
-		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-			$available_payment_methods[] = $payment_method_class::STRIPE_ID;
+		foreach ( $this->payment_methods as $payment_method ) {
+			if ( ! $payment_method->is_available() ) {
+				continue;
+			}
+			$available_payment_methods[] = $payment_method->get_id();
 		}
 		return $available_payment_methods;
 	}
