@@ -1,18 +1,19 @@
 import { __ } from '@wordpress/i18n';
 import React from 'react';
-import { ExternalLink } from '@wordpress/components';
-import PaymentRequestsSection from './payment-request-section';
+import PaymentRequestIcon from '../../payment-method-icons/payment-request';
+import PaymentRequestsEnableSection from './payment-request-enable-section';
+import PaymentRequestsSettingsSection from './payment-request-settings-section';
 import SettingsSection from 'wcstripe/settings/settings-section';
 import SettingsLayout from 'wcstripe/settings/settings-layout';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import SaveSettingsSection from 'wcstripe/settings/save-settings-section';
 import './style.scss';
 
-const Description = () => (
+const EnableDescription = () => (
 	<>
-		<h2>
-			{ __( 'Google Pay / Apple Pay', 'woocommerce-gateway-stripe' ) }
-		</h2>
+		<div className="express-checkout-settings__icon">
+			<PaymentRequestIcon size="medium" />
+		</div>
 		<p>
 			{ __(
 				'Decide how buttons for digital wallets Apple Pay and ' +
@@ -23,21 +24,17 @@ const Description = () => (
 				'woocommerce-gateway-stripe'
 			) }
 		</p>
+	</>
+);
+
+const SettingsDescription = () => (
+	<>
+		<h2>{ __( 'Settings', 'woocommerce-gateway-stripe' ) }</h2>
 		<p>
-			<ExternalLink href="https://developer.apple.com/design/human-interface-guidelines/apple-pay/overview/introduction/">
-				{ __(
-					'View Apple Pay Guidelines',
-					'woocommerce-gateway-stripe'
-				) }
-			</ExternalLink>
-		</p>
-		<p>
-			<ExternalLink href="https://developers.google.com/pay/api/web/guides/brand-guidelines">
-				{ __(
-					'View Google Pay Guidelines',
-					'woocommerce-gateway-stripe'
-				) }
-			</ExternalLink>
+			{ __(
+				'Configure the display of Apple Pay and Google Pay buttons on your store.',
+				'woocommerce-gateway-stripe'
+			) }
 		</p>
 	</>
 );
@@ -45,9 +42,15 @@ const Description = () => (
 const PaymentRequestsPage = () => {
 	return (
 		<SettingsLayout>
-			<SettingsSection Description={ Description }>
+			<SettingsSection Description={ EnableDescription }>
 				<LoadableSettingsSection numLines={ 30 }>
-					<PaymentRequestsSection />
+					<PaymentRequestsEnableSection />
+				</LoadableSettingsSection>
+			</SettingsSection>
+
+			<SettingsSection Description={ SettingsDescription }>
+				<LoadableSettingsSection numLines={ 30 }>
+					<PaymentRequestsSettingsSection />
 				</LoadableSettingsSection>
 			</SettingsSection>
 
