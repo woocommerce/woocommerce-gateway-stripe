@@ -15,6 +15,8 @@ import {
 import './styles.scss';
 
 const PaymentRequestSection = () => {
+	const linkMethodID = 'link';
+
 	const [
 		isPaymentRequestEnabled,
 		updateIsPaymentRequestEnabled,
@@ -30,18 +32,18 @@ const PaymentRequestSection = () => {
 	const updateStripeLinkCheckout = ( isEnabled ) => {
 		// Add/remove Stripe Link from the list of enabled payment methods.
 		if ( isEnabled ) {
-			updateEnabledMethodIds( [ ...enabledMethodIds, 'link' ] );
+			updateEnabledMethodIds( [ ...enabledMethodIds, linkMethodID ] );
 		} else {
 			updateEnabledMethodIds( [
-				...enabledMethodIds.filter( ( id ) => id !== 'link' ),
+				...enabledMethodIds.filter( ( id ) => id !== linkMethodID ),
 			] );
 		}
 	};
 
 	const displayLinkPaymentMethod =
 		enabledMethodIds.includes( 'card' ) &&
-		availablePaymentMethodIds.includes( 'link' );
-	const isStripeLinkEnabled = enabledMethodIds.includes( 'link' );
+		availablePaymentMethodIds.includes( linkMethodID );
+	const isStripeLinkEnabled = enabledMethodIds.includes( linkMethodID );
 
 	const customizeAppearanceURL = addQueryArgs( window.location.href, {
 		area: 'payment_requests',
@@ -49,7 +51,7 @@ const PaymentRequestSection = () => {
 
 	return (
 		<Card className="express-checkouts">
-			<CardBody size={ 0 }>
+			<CardBody>
 				<ul className="express-checkouts-list">
 					<li className="express-checkout has-icon-border">
 						<div className="express-checkout__checkbox">
