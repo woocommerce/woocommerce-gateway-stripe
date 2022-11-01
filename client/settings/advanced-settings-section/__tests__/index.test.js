@@ -31,14 +31,14 @@ describe( 'AdvancedSettings', () => {
 
 		expect( screen.queryByText( 'Debug mode' ) ).not.toBeInTheDocument();
 		expect(
-			screen.queryByText( 'Experimental features' )
+			screen.queryByText( 'New checkout experience' )
 		).not.toBeInTheDocument();
 
 		userEvent.click( screen.getByText( 'Advanced settings' ) );
 
 		expect( screen.queryByText( 'Debug mode' ) ).toBeInTheDocument();
 		expect(
-			screen.queryByText( 'Experimental features' )
+			screen.queryByText( 'New checkout experience' )
 		).toBeInTheDocument();
 	} );
 } );
