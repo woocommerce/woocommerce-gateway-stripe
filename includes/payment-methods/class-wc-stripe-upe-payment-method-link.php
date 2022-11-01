@@ -35,7 +35,7 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	public static function is_link_enabled() {
 
 		// Assume Link is disabled if UPE is disabled.
-		if ( ! self::is_available() || ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			return false;
 		}
 
@@ -78,7 +78,7 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	 *
 	 * @return bool
 	 */
-	public static function is_available() {
+	public function is_available() {
 		//if merchant is outside US, Link payment method should not be available
 		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
 		$account_country     = $cached_account_data['country'] ?? null;

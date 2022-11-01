@@ -119,7 +119,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 *
 	 * @return bool
 	 */
-	public static function is_available() {
+	public function is_available() {
 		return true;
 	}
 

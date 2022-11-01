@@ -164,11 +164,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertSame( $available_payment_methods, $this->mock_gateway->get_upe_available_payment_methods() );
 	}
 
-	/**
-	 * @dataProvider get_upe_enabled_at_checkout_payment_method_ids_provider
-	 */
-	public function test_get_upe_enabled_at_checkout_payment_method_ids( $country, $available_payment_methods ) {
-		$this->set_stripe_account_data( [ 'country' => $country ] );
+	public function test_get_upe_enabled_at_checkout_payment_method_ids() {
+		$available_payment_methods = [
+			WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+			WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+		];
 		$this->mock_gateway->update_option(
 			'upe_checkout_experience_accepted_payments',
 			[
@@ -177,24 +177,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			]
 		);
 		$this->assertSame( $available_payment_methods, $this->mock_gateway->get_upe_enabled_at_checkout_payment_method_ids() );
-	}
-
-	public function get_upe_enabled_at_checkout_payment_method_ids_provider() {
-		return [
-			[
-				'US',
-				[
-					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
-				],
-			],
-			[
-				'NON_US',
-				[
-					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
-				],
-			],
-		];
 	}
 
 	public function get_upe_available_payment_methods_provider() {

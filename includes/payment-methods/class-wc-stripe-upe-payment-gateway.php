@@ -397,9 +397,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			if ( ! $is_automatic_capture_enabled && $method->requires_automatic_capture() ) {
 				continue;
 			}
-			if ( ! $this->payment_methods[ $payment_method_id ]::is_available() ) {
-				continue;
-			}
 
 			$available_method_ids[] = $payment_method_id;
 		}
@@ -416,11 +413,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function get_upe_available_payment_methods() {
 		$available_payment_methods = [];
 
-		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-			if ( ! $payment_method_class::is_available() ) {
+		foreach ( $this->payment_methods as $payment_method ) {
+			if ( ! $payment_method->is_available() ) {
 				continue;
 			}
-			$available_payment_methods[] = $payment_method_class::STRIPE_ID;
+			$available_payment_methods[] = $payment_method->get_id();
 		}
 		return $available_payment_methods;
 	}
