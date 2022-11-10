@@ -48,24 +48,13 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 	}
 
 	public function test_create_upe_availability_note() {
-		WC_Stripe_Inbox_Notes::create_upe_availability_note();
 
-		$note_id          = WC_Stripe_UPE_Availability_Note::NOTE_NAME;
+		WC_Stripe_Inbox_Notes::create_upe_notes();
 		$admin_note_store = WC_Data_Store::load( 'admin-note' );
-		$this->assertSame( 1, count( $admin_note_store->get_notes_with_name( $note_id ) ) );
+		$this->assertSame( 1, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_Availability_Note::NOTE_NAME ) ) );
 	}
 
-	public function test_create_upe_availability_note_does_not_create_note_when_upe_preview_is_disabled() {
-		update_option( '_wcstripe_feature_upe', 'no' );
-
-		WC_Stripe_Inbox_Notes::create_upe_availability_note();
-
-		$note_id          = WC_Stripe_UPE_Availability_Note::NOTE_NAME;
-		$admin_note_store = WC_Data_Store::load( 'admin-note' );
-		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( $note_id ) ) );
-	}
-
-	public function test_create_upe_availability_note_does_not_create_note_when_upe_is_enbled() {
+	public function test_create_upe_stripelink_note() {
 		update_option(
 			'woocommerce_stripe_settings',
 			[
@@ -73,15 +62,54 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 				'upe_checkout_experience_enabled' => 'yes',
 			]
 		);
-
-		WC_Stripe_Inbox_Notes::create_upe_availability_note();
-
-		$note_id          = WC_Stripe_UPE_Availability_Note::NOTE_NAME;
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+			->disableOriginalConstructor()
+			->setMethods(
+				[
+					'get_cached_account_data',
+				]
+			)
+			->getMock();
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
+		WC_Stripe_Inbox_Notes::create_upe_notes();
 		$admin_note_store = WC_Data_Store::load( 'admin-note' );
-		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( $note_id ) ) );
+		$this->assertSame( 1, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_StripeLink_Note::NOTE_NAME ) ) );
 	}
 
-	public function test_create_upe_availability_note_does_not_create_note_when_stripe_is_disabled() {
+	public function test_create_upe_notes_does_not_create_note_when_upe_preview_is_disabled() {
+		update_option( '_wcstripe_feature_upe', 'no' );
+
+		WC_Stripe_Inbox_Notes::create_upe_notes();
+
+		$admin_note_store = WC_Data_Store::load( 'admin-note' );
+		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_Availability_Note::NOTE_NAME ) ) );
+	}
+
+	public function test_create_upe_notes_does_not_create_availability_note_when_upe_is_enbled() {
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'enabled'                         => 'yes',
+				'upe_checkout_experience_enabled' => 'yes',
+			]
+		);
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+			->disableOriginalConstructor()
+			->setMethods(
+				[
+					'get_cached_account_data',
+				]
+			)
+			->getMock();
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn( [ 'country' => 'US' ] );
+		WC_Stripe_Inbox_Notes::create_upe_notes();
+
+		$admin_note_store = WC_Data_Store::load( 'admin-note' );
+		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_Availability_Note::NOTE_NAME ) ) );
+		$this->assertSame( 1, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_StripeLink_Note::NOTE_NAME ) ) );
+	}
+
+	public function test_create_upe_notes_does_not_create_note_when_stripe_is_disabled() {
 		update_option(
 			'woocommerce_stripe_settings',
 			[
@@ -90,14 +118,14 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 			]
 		);
 
-		WC_Stripe_Inbox_Notes::create_upe_availability_note();
+		WC_Stripe_Inbox_Notes::create_upe_notes();
 
-		$note_id          = WC_Stripe_UPE_Availability_Note::NOTE_NAME;
 		$admin_note_store = WC_Data_Store::load( 'admin-note' );
-		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( $note_id ) ) );
+		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_Availability_Note::NOTE_NAME ) ) );
+		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_StripeLink_Note::NOTE_NAME ) ) );
 	}
 
-	public function test_create_upe_availability_note_does_not_create_note_when_upe_has_been_manually_disabled() {
+	public function test_create_upe_notes_does_not_create_note_when_upe_has_been_manually_disabled() {
 		update_option(
 			'woocommerce_stripe_settings',
 			[
@@ -106,9 +134,65 @@ class WC_Stripe_Inbox_Notes_Test extends WP_UnitTestCase {
 			]
 		);
 
-		WC_Stripe_Inbox_Notes::create_upe_availability_note();
+		WC_Stripe_Inbox_Notes::create_upe_notes();
 
 		$admin_note_store = WC_Data_Store::load( 'admin-note' );
 		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_Availability_Note::NOTE_NAME ) ) );
+		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_StripeLink_Note::NOTE_NAME ) ) );
+	}
+
+	public function test_create_stripelink_note_unavailable_if_cc_not_enabled() {
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'enabled'                         => 'yes',
+				'upe_checkout_experience_enabled' => 'yes',
+			]
+		);
+
+		$this->set_enabled_payment_methods( [ 'test' ] );
+		WC_Stripe_Inbox_Notes::create_upe_notes();
+
+		$admin_note_store = WC_Data_Store::load( 'admin-note' );
+		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_StripeLink_Note::NOTE_NAME ) ) );
+	}
+
+	public function test_create_stripelink_note_unavailable_link_enabled() {
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'enabled'                         => 'yes',
+				'upe_checkout_experience_enabled' => 'yes',
+				'testmode'                        => 'yes',
+			]
+		);
+
+		$this->set_enabled_payment_methods( [ 'card', 'link' ] );
+
+		update_option(
+			'woocommerce_stripe_settings',
+			array_merge(
+				get_option( 'woocommerce_stripe_settings' ),
+				[
+					'upe_checkout_experience_accepted_payments' => [ 'card', 'link' ],
+				]
+			)
+		);
+		WC_Stripe_Inbox_Notes::create_upe_notes();
+
+		$admin_note_store = WC_Data_Store::load( 'admin-note' );
+		$this->assertSame( 0, count( $admin_note_store->get_notes_with_name( WC_Stripe_UPE_StripeLink_Note::NOTE_NAME ) ) );
+	}
+
+	private function set_enabled_payment_methods( $payment_methods ) {
+		update_option(
+			'woocommerce_stripe_settings',
+			array_merge(
+				get_option( 'woocommerce_stripe_settings' ),
+				[
+					'upe_checkout_experience_accepted_payments' => $payment_methods,
+				]
+			)
+		);
 	}
 }

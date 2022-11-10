@@ -9,7 +9,6 @@ import IdealIcon from './payment-method-icons/ideal';
 import P24Icon from './payment-method-icons/p24';
 import BoletoIcon from './payment-method-icons/boleto';
 import OxxoIcon from './payment-method-icons/oxxo';
-import LinkIcon from './payment-method-icons/link';
 
 export default {
 	card: {
@@ -22,19 +21,6 @@ export default {
 		Icon: CreditCardIcon,
 		currencies: [],
 		capability: 'card_payments',
-		allows_manual_capture: true,
-	},
-	link: {
-		id: 'link',
-		label: __( 'Stripe Link', 'woocommerce-gateway-stripe' ),
-		description: __(
-			'Link is a payment method that allows customers to save payment information ' +
-				'and use the payment details for further payments.',
-			'woocommerce-gateway-stripe'
-		),
-		Icon: LinkIcon,
-		currencies: [ 'USD' ],
-		capability: 'link_payments',
 		allows_manual_capture: true,
 	},
 	giropay: {
