@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.0.0 - 2022-xx-xx =
+= 7.0.0 - 2022-11-10 =
 * Add - Update Express Checkout section UI.
 * Add - Auto-complete first and last name on checkout form when using Link payment method.
 * Add - Allow subscription orders to be paid with Link payment method.
