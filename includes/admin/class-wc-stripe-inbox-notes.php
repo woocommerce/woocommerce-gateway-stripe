@@ -55,7 +55,7 @@ class WC_Stripe_Inbox_Notes {
 		WC_Stripe_UPE_Availability_Note::init();
 
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-stripelink-note.php';
-		WC_Stripe_UPE_StripeLink_Note::init( new WC_Stripe_UPE_Payment_Gateway() );
+		WC_Stripe_UPE_StripeLink_Note::init( WC_Stripe::get_instance()->get_main_stripe_gateway() );
 	}
 
 	public static function get_campaign_2020_cutoff() {

@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 5.7
 Tested up to: 6.0
 Requires PHP: 7.0
-Stable tag: 7.0.0
+Stable tag: 7.0.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,12 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.0.0 - 2022-11-10 =
-* Add - Update Express Checkout section UI.
-* Add - Auto-complete first and last name on checkout form when using Link payment method.
-* Add - Allow subscription orders to be paid with Link payment method.
-* Add - Add inbox notification for Link payment method.
-* Tweak - Adjust texts and links in WC admin advanced settings.
-* Add - Restrict the Link payment method only for US merchants.
+= 7.0.1 - 2022-11-11 =
+* Fix - Issue where subscription renewal payments were being charged twice no longer present.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

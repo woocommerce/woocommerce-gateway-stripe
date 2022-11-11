@@ -5,7 +5,7 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 7.0.0
+ * Version: 7.0.1
  * Requires at least: 5.8
  * Tested up to: 6.0
  * WC requires at least: 6.8
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '7.0.0' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '7.0.1' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.3.0' );
 define( 'WC_STRIPE_MIN_WC_VER', '6.8' );
 define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '6.9' );
@@ -63,14 +63,14 @@ function woocommerce_gateway_stripe() {
 			/**
 			 * The *Singleton* instance of this class
 			 *
-			 * @var Singleton
+			 * @var WC_Stripe
 			 */
 			private static $instance;
 
 			/**
 			 * Returns the *Singleton* instance of this class.
 			 *
-			 * @return Singleton The *Singleton* instance.
+			 * @return WC_Stripe The *Singleton* instance.
 			 */
 			public static function get_instance() {
 				if ( null === self::$instance ) {

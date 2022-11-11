@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 7.0.1 - 2022-11-11 =
+* Fix - Issue where subscription renewal payments were being charged twice no longer present.
+
 = 7.0.0 - 2022-11-10 =
 * Add - Update Express Checkout section UI.
 * Add - Auto-complete first and last name on checkout form when using Link payment method.
