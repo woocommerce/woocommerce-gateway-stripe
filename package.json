@@ -90,6 +90,7 @@
     "@stripe/react-stripe-js": "1.4.1",
     "@stripe/stripe-js": "1.15.1",
     "@testing-library/react-hooks": "^7.0.2",
+    "dotenv": "^10.0.0",
     "gridicons": "^3.4.0",
     "interpolate-components": "^1.1.1"
   },
