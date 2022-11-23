@@ -111,10 +111,10 @@ export const deleteZip = async ( zipFilePath ) => {
 /**
  * Get the download URL of the release zip from GitHub
  *
- * @param {string} version The version to be tested.
- * @return {string} Download URL for the release zip file.
+ * @param string version The version to be tested.
+ * @return string Download URL for the release zip file.
  */
-export const getLatestReleaseZipUrl = async ( { version } ) => {
+export const getReleaseZipUrl = async ( version ) => {
 	return `https://github.com/woocommerce/woocommerce-gateway-stripe/releases/download/${ version }/woocommerce-gateway-stripe.zip`;
 };
 

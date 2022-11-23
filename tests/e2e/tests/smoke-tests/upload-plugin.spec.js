@@ -5,6 +5,7 @@ const {
 	GITHUB_TOKEN,
 	PLUGIN_NAME,
 	PLUGIN_REPOSITORY,
+	PLUGIN_VERSION,
 } = process.env;
 const { test, expect } = require( '@playwright/test' );
 const path = require( 'path' );
@@ -13,7 +14,7 @@ const {
 	deletePlugin,
 	downloadZip,
 	deleteZip,
-	getLatestReleaseZipUrl,
+	getReleaseZipUrl,
 } = require( '../../utils/plugin-utils' );
 
 const adminUsername = ADMIN_USER ?? 'admin';
@@ -35,10 +36,7 @@ test.describe( `${ PLUGIN_NAME } plugin can be uploaded and activated`, () => {
 		pluginSlug = PLUGIN_REPOSITORY.split( '/' ).pop();
 
 		// Get the download URL and filename of the plugin
-		const pluginDownloadURL = await getLatestReleaseZipUrl( {
-			repository: PLUGIN_REPOSITORY,
-			authorizationToken: GITHUB_TOKEN,
-		} );
+		const pluginDownloadURL = await getReleaseZipUrl( PLUGIN_VERSION );
 		console.log( pluginDownloadURL );
 		const zipFilename = pluginDownloadURL.split( '/' ).pop();
 		pluginZipPath = path.resolve( __dirname, `../../tmp/${ zipFilename }` );
