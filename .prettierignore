@@ -10,3 +10,7 @@ wordpress_org_assets
 
 tests/e2e/docker
 tests/e2e/deps
+tests/e2e/output
+tests/e2e/report
+tests/e2e/allure-results
+tests/e2e/storage
