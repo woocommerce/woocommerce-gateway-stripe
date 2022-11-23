@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+
+set -e
+
+. ./tests/e2e/env/shared.sh
+
+common_env="NODE_CONFIG_DIR='tests/e2e/test-data'"
+test_env="$common_env"
+
+accepted_args=("--base_url" "--version")
+additional_args=""
+for arg in "$@"; do
+
+    key=$(echo $arg | cut -f1 -d=)
+    value=$(echo $arg | cut -f2 -d=)
+
+    # If it's one of the expected parameters, save it in a variable. 
+    if [[ ${accepted_args[*]} =~ "${key}" ]]; then
+        v="${key/--/}"
+        declare $v="${value}"
+    else 
+        # concatenate to pass along to Playwright
+        additional_args="$additional_args $arg"
+    fi
+
+done
+
+if [[ $base_url != "" ]]; then
+    test_env="$test_env BASE_URL='${base_url}'"
+fi
+
+if [[ $version != "" ]]; then
+    test_env="$test_env PLUGIN_VERSION='${version}'"
+fi
+
+cross-env $test_env playwright test --config=tests/e2e/config/playwright.config.js $additional_args
