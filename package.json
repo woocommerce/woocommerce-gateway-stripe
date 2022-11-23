@@ -68,7 +68,6 @@
     "lodash": "4.17.21",
     "mocha": "^5.2.0",
     "nock": "^13.1.1",
-    "node-sass": "^8.0.0",
     "node-wp-i18n": "~1.2.1",
     "playwright": "^1.28.0",
     "prettier": "npm:wp-prettier@^2.0.5",
