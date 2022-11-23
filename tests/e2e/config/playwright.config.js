@@ -33,7 +33,7 @@ const config = {
 				outputFolder: ALLURE_RESULTS_DIR ?? 'tests/e2e/allure-results/',
 			},
 		],
-		[ 'json', { outputFile: 'tests/e2e/report/test-results.json' } ],
+		[ 'json', { outputFile: '../report/test-results.json' } ],
 	],
 	maxFailures: E2E_MAX_FAILURES ? Number( E2E_MAX_FAILURES ) : 0,
 	use: {

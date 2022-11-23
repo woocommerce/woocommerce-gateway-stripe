@@ -1,3 +1,7 @@
+require( 'dotenv' ).config( {
+	path: `${ process.env.E2E_ROOT }/config/local.env`,
+} );
+
 const { chromium, expect } = require( '@playwright/test' );
 const fs = require( 'fs' );
 const {
@@ -5,14 +9,12 @@ const {
 	ADMIN_PASSWORD,
 	CUSTOMER_USER,
 	CUSTOMER_PASSWORD,
-	E2E_ROOT,
 } = process.env;
+
 const adminUsername = ADMIN_USER ?? 'admin';
 const adminPassword = ADMIN_PASSWORD ?? 'password';
 const customerUsername = CUSTOMER_USER ?? 'customer';
 const customerPassword = CUSTOMER_PASSWORD ?? 'password';
-
-require( 'dotenv' ).config( { path: `${ E2E_ROOT }/config/local.env` } );
 
 module.exports = async ( config ) => {
 	const { stateDir, baseURL, userAgent } = config.projects[ 0 ].use;
@@ -57,7 +59,7 @@ module.exports = async ( config ) => {
 	const contextOptions = { baseURL, userAgent };
 
 	// Create browser, browserContext, and page for customer and admin users
-	const browser = await chromium.launch();
+	const browser = await chromium.launch( { headless: false } );
 	const adminContext = await browser.newContext( contextOptions );
 	const customerContext = await browser.newContext( contextOptions );
 	const adminPage = await adminContext.newPage();
