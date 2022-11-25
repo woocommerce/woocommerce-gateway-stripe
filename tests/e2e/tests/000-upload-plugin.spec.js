@@ -15,7 +15,7 @@ const {
 	downloadZip,
 	deleteZip,
 	getReleaseZipUrl,
-} = require( '../../utils/plugin-utils' );
+} = require( '../utils/plugin-utils' );
 
 const adminUsername = ADMIN_USER ?? 'admin';
 const adminPassword = ADMIN_PASSWORD ?? 'password';
@@ -26,8 +26,8 @@ let pluginSlug;
 test.describe( `${ PLUGIN_NAME } plugin can be uploaded and activated`, () => {
 	// Skip test if PLUGIN_REPOSITORY is falsy.
 	test.skip(
-		! PLUGIN_REPOSITORY,
-		`Skipping this test because value of PLUGIN_REPOSITORY was falsy: ${ PLUGIN_REPOSITORY }`
+		! PLUGIN_VERSION,
+		`Skipping this test because value of PLUGIN_VERSION was falsy: ${ PLUGIN_VERSION }`
 	);
 
 	test.use( { storageState: ADMINSTATE } );
@@ -54,13 +54,13 @@ test.describe( `${ PLUGIN_NAME } plugin can be uploaded and activated`, () => {
 		await deleteZip( pluginZipPath );
 
 		// Delete the plugin from the test site.
-		await deletePlugin( {
-			request: playwright.request,
-			baseURL,
-			slug: pluginSlug,
-			username: adminUsername,
-			password: adminPassword,
-		} );
+		// await deletePlugin( {
+		// 	request: playwright.request,
+		// 	baseURL,
+		// 	slug: pluginSlug,
+		// 	username: adminUsername,
+		// 	password: adminPassword,
+		// } );
 	} );
 
 	test( `can upload and activate ${ PLUGIN_NAME }`, async ( {
@@ -69,31 +69,39 @@ test.describe( `${ PLUGIN_NAME } plugin can be uploaded and activated`, () => {
 		baseURL,
 	} ) => {
 		// Delete the plugin if it's installed.
-		await deletePlugin( {
-			request: playwright.request,
-			baseURL,
-			slug: pluginSlug,
-			username: adminUsername,
-			password: adminPassword,
+		// await deletePlugin( {
+		// 	request: playwright.request,
+		// 	baseURL,
+		// 	slug: pluginSlug,
+		// 	username: adminUsername,
+		// 	password: adminPassword,
+		// } );
+
+		await page.goto( 'wp-admin/plugin-install.php?tab=upload', {
+			waitUntil: 'networkidle',
 		} );
 
-		// Install and activate plugin
-		await createPlugin( {
-			request: playwright.request,
-			baseURL,
-			slug: pluginSlug.split( '/' ).pop(),
-			username: adminUsername,
-			password: adminPassword,
+		await page.setInputFiles( 'input#pluginzip', pluginZipPath );
+		await page.click( "input[type='submit'] >> text=Install Now" );
+
+		await page.click( 'text=Replace current with uploaded', {
+			timeout: 10000,
 		} );
 
-		// Go to 'Installed plugins' page.
-		// Repeat in case the newly installed plugin redirects to their own onboarding screen upon first install, like what Yoast SEO does.
-		let reload = 2;
-		do {
-			await page.goto( 'wp-admin/plugins.php', {
-				waitUntil: 'networkidle',
-			} );
-		} while ( ! page.url().includes( '/plugins.php' ) && --reload );
+		// const pageContent = await page.locator("#wpbody-content .wrap").allInnerTexts().then(x => x.join());
+		// console.log(pageContent);
+
+		// await page.pause();
+
+		await expect( page.locator( '#wpbody-content .wrap' ) ).toContainText(
+			/Plugin (?:downgraded|updated) successfully/gi
+		);
+
+		await page.pause();
+
+		await page.goto( 'wp-admin/plugins.php', {
+			waitUntil: 'networkidle',
+		} );
 
 		// Assert that the plugin is listed and active
 		await expect(

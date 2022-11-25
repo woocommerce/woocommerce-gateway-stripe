@@ -16,8 +16,9 @@ release/
 build/
 woocommerce-gateway-stripe.zip
 languages/woocommerce-gateway-stripe.pot
-.env
-.tmp
+*.env
+*.tmp
+*.zip
 
 # Ignore all log files except for .htaccess
 /logs/*
