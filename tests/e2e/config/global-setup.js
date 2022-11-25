@@ -51,9 +51,9 @@ module.exports = async ( config ) => {
 	}
 
 	// Pre-requisites
-	let adminLoggedIn = true;
-	let customerLoggedIn = true;
-	let customerKeyConfigured = true;
+	let adminLoggedIn = false;
+	let customerLoggedIn = false;
+	let customerKeyConfigured = false;
 
 	// Specify user agent when running against an external test site to avoid getting HTTP 406 NOT ACCEPTABLE errors.
 	const contextOptions = { baseURL, userAgent };
