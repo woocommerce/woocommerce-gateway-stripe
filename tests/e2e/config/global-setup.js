@@ -4,11 +4,21 @@ require( 'dotenv' ).config( {
 
 const { chromium, expect } = require( '@playwright/test' );
 const fs = require( 'fs' );
+const path = require( 'path' );
+const {
+	downloadZip,
+	deleteZip,
+	getReleaseZipUrl,
+} = require( '../utils/plugin-utils' );
+
 const {
 	ADMIN_USER,
 	ADMIN_PASSWORD,
 	CUSTOMER_USER,
 	CUSTOMER_PASSWORD,
+	GITHUB_TOKEN,
+	PLUGIN_REPOSITORY,
+	PLUGIN_VERSION,
 } = process.env;
 
 const adminUsername = ADMIN_USER ?? 'admin';
@@ -135,6 +145,45 @@ module.exports = async ( config ) => {
 		);
 		process.exit( 1 );
 	}
+
+	// Update Stripe to the version specified on `--version`
+	let pluginZipPath;
+	let pluginSlug = PLUGIN_REPOSITORY.split( '/' ).pop();
+
+	// Get the download URL and filename of the plugin
+	const pluginDownloadURL = await getReleaseZipUrl( PLUGIN_VERSION );
+	const zipFilename = pluginDownloadURL.split( '/' ).pop();
+	pluginZipPath = path.resolve( __dirname, `../../tmp/${ zipFilename }` );
+
+	// Download the needed plugin.
+	await downloadZip( {
+		url: pluginDownloadURL,
+		downloadPath: pluginZipPath,
+		authToken: GITHUB_TOKEN,
+	} );
+	await adminPage.goto( 'wp-admin/plugin-install.php?tab=upload', {
+		waitUntil: 'networkidle',
+	} );
+
+	await adminPage.setInputFiles( 'input#pluginzip', pluginZipPath );
+	await adminPage.click( "input[type='submit'] >> text=Install Now" );
+
+	await adminPage.click( 'text=Replace current with uploaded', {
+		timeout: 10000,
+	} );
+
+	await expect( adminPage.locator( '#wpbody-content .wrap' ) ).toContainText(
+		/Plugin (?:downgraded|updated) successfully/gi
+	);
+
+	await adminPage.goto( 'wp-admin/plugins.php', {
+		waitUntil: 'networkidle',
+	} );
+
+	// Assert that the plugin is listed and active
+	await expect(
+		adminPage.locator( `#deactivate-${ pluginSlug }` )
+	).toBeVisible();
 
 	// Sign in as customer user and save state
 	const customerRetries = 5;
