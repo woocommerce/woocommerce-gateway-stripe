@@ -1,106 +1,68 @@
-# WooCommerce Gateway Stripe Playwright End to End Tests
+# WooCommerce Gateway Stripe End to End Tests
+
+We use [Playwright](https://playwright.dev/) as our test runner. 
 
 ## Table of contents
 
-- [WooCommerce Gateway Stripe Playwright End to End Tests](#woocommerce-gateway-stripe-playwright-end-to-end-tests)
+- [WooCommerce Gateway Stripe End to End Tests](#woocommerce-gateway-stripe-end-to-end-tests)
   - [Table of contents](#table-of-contents)
-  - [Pre-requisites](#pre-requisites)
-    - [Introduction](#introduction)
-    - [About the environment](#about-the-environment)
-    - [Test Variables](#test-variables)
-    - [Starting/stopping the environment](#startingstopping-the-environment)
+  - [Running E2E Tests](#running-e2e-tests)
+    - [Pre-requisites](#pre-requisites)
+  - [Running tests](#running-tests)
+    - [Debugging tests](#debugging-tests)
+    - [Running only a few test suites](#running-only-a-few-test-suites)
   - [Guide for writing e2e tests](#guide-for-writing-e2e-tests)
-    - [Creating test structure](#creating-test-structure)
+    - [Creating the test structure](#creating-the-test-structure)
     - [Writing the test](#writing-the-test)
-  - [Debugging tests](#debugging-tests)
+  
+## Running E2E Tests
 
-## Pre-requisites
+We use [Playwright](https://playwright.dev/) as our test runner. 
+
+### Pre-requisites
 
 - Node.js ([Installation instructions](https://nodejs.org/en/download/))
 - NVM ([Installation instructions](https://github.com/nvm-sh/nvm))
 
-Note, that if you are on Mac and you install docker through other methods such as homebrew, for example, your steps to set it up might be different. The commands listed in steps below may also vary.
+## Running tests
 
-If you are using Windows, we recommend using [Windows Subsystem for Linux (WSL)](https://docs.microsoft.com/en-us/windows/wsl/) for running E2E tests. Follow the [WSL Setup Instructions](../tests/e2e/WSL_SETUP_INSTRUCTIONS.md) first before proceeding with the steps below.
+`npm run test:e2e -- --base_url=SOME_URL_HERE`
 
-### Introduction
+The default command to run the tests. It'll run the tests in the URL indicated by the `--base_url` parameter.
 
-End-to-end tests are powered by Playwright. The test site is spinned up using `wp-env` (recommended), but we will continue to support `e2e-environment` in the meantime.
+**Optional parameters**
 
-**Running tests for the first time:**
+`--version`
 
-- `nvm use`
-- `npm install`
+The plugin release version to be tested. By setting this parameter, the release will be downloaded from GitHub and uploaded to the website indicated on `--base_url` before testing starts.
 
-To run the test again, re-create the environment to start with a fresh state:
+If no version is passed, the tests will use the version already installed on `--base_url`.
 
-- `pnpm env:destroy --filter=woocommerce`
-- `pnpm env:test --filter=woocommerce`
+**⚠️ All the other parameters are passed to the Playwright CLI**
 
-Other ways of running tests:
+[Playwright CLI Docs](https://playwright.dev/docs/test-cli)
 
-- `pnpm env:test --filter=woocommerce` (headless)
-- `cd plugin/woocommerce && USE_WP_ENV=1 pnpm playwright test --config=tests/e2e/playwright.config.js --headed` (headed)
-- `cd plugins/woocommerce && USE_WP_ENV=1 pnpm playwright test --config=tests/e2e/playwright.config.js --debug` (debug)
-- `cd plugins/woocommerce && USE_WP_ENV=1 pnpm playwright test --config=tests/e2e/playwright.config.js ./tests/e2e/tests/activate-and-setup/basic-setup.spec.js` (running a single test)
+### Debugging tests
 
-To see all options, run `cd plugins/woocommerce && pnpm playwright test --help`
+`npm run test:e2e-debug`
 
-### About the environment
+[Documentation](https://playwright.dev/docs/debug)
 
-The default values are:
+### Running only a few test suites
 
-- Latest stable WordPress version
-- PHP 7.4
-- MariaDB
-- URL: `http://localhost:8086/`
-- Admin credentials: `admin/password`
+To run only a few test suites, you can pass the test suite name or number as a parameter.
 
-If you want to customize these, check the [Test Variables](#test-variables) section.
+**Example:** This command would run the test suites `001` and `004`.
 
-
-For more information how to configure the test environment for `wp-env`, please checkout the [documentation](https://github.com/WordPress/gutenberg/tree/trunk/packages/env) documentation.
-
-### Test Variables
-
-The test environment uses the following test variables:
-
-```json
-{ 
-  "url": "http://localhost:8086/",
-  "users": {
-    "admin": {
-      "username": "admin",
-      "password": "password"
-    },
-    "customer": {
-      "username": "customer",
-      "password": "password"
-    }
-  }
-}
-```
-
-If you need to modify the port for your local test environment (eg. port is already in use) or use, edit [playwright.config.js](https://github.com/woocommerce/woocommerce/blob/trunk/plugins/woocommerce/tests/e2e/playwright.config.js). Depending on what environment tool you are using, you will need to also edit the respective `.json` file.
-
-**Modiify the port wp-env**
-
-Edit [.wp-env.json](https://github.com/woocommerce/woocommerce/blob/trunk/plugins/woocommerce/.wp-env.json) and [playwright.config.js](https://github.com/woocommerce/woocommerce/blob/trunk/plugins/woocommerce/tests/e2e/playwright.config.js).
-
-**Modiify port for e2e-environment**
-
-Edit [tests/e2e/config/default.json](https://github.com/woocommerce/woocommerce/blob/trunk/plugins/woocommerce/tests/e2e/config/default.json).****
-
-### Starting/stopping the environment
-
-After you run a test, it's best to restart the environment to start from a fresh state. We are currently working to reset the state more efficiently to avoid the restart being needed, but this is a work-in-progress.
-
-- `pnpm env:down --filter=woocommerce` to stop the environment
-- `pnpm env:destroy --filter=woocommerce` when you make changes to `.wp-env.json`
+ `npm run test:e2e -- 001 004`
 
 ## Guide for writing e2e tests
 
-### Creating test structure
+Tests should be added to the `/tests/e2e/tests` folder. Tests should be organized in folders by the tested area, e.g. `/tests/e2e/tests/onboarding`, `/tests/e2e/tests/checkout`, `/tests/e2e/tests/payment-methods`.
+
+To help filter the tests, they should be assigned a 3-digit ID in the file name. Example: `000-upload-plugin.spec.js`.
+
+### Creating the test structure
 
 It is a good practice to start working on the test by identifying what needs to be tested on the higher and lower levels. For example, if you are writing a test to verify that merchant can create a virtual product, the overview of the test will be as follows:
 
@@ -135,7 +97,3 @@ test.describe( 'Merchant can create virtual product', () => {
 	} );
 } );
 ```
-
-## Debugging tests
-
-For Playwright debugging, follow [Playwright's documentation](https://playwright.dev/docs/debug).
