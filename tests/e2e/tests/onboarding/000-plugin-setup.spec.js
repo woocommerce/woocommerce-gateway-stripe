@@ -15,7 +15,7 @@ const {
 	downloadZip,
 	deleteZip,
 	getReleaseZipUrl,
-} = require( '../utils/plugin-utils' );
+} = require( '../../utils/plugin-utils' );
 
 const adminUsername = ADMIN_USER ?? 'admin';
 const adminPassword = ADMIN_PASSWORD ?? 'password';

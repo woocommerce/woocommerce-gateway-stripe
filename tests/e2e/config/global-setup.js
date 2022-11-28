@@ -11,11 +11,15 @@ const {
 	getReleaseZipUrl,
 } = require( '../utils/plugin-utils' );
 
+const { loginCustomerAndSaveState } = require( '../utils/pw-setup' );
+
 const {
 	ADMIN_USER,
 	ADMIN_PASSWORD,
+	ADMINSTATE,
 	CUSTOMER_USER,
 	CUSTOMER_PASSWORD,
+	CUSTOMERSTATE,
 	GITHUB_TOKEN,
 	PLUGIN_REPOSITORY,
 	PLUGIN_VERSION,
@@ -25,6 +29,12 @@ const adminUsername = ADMIN_USER ?? 'admin';
 const adminPassword = ADMIN_PASSWORD ?? 'password';
 const customerUsername = CUSTOMER_USER ?? 'customer';
 const customerPassword = CUSTOMER_PASSWORD ?? 'password';
+
+function wait( milliseconds ) {
+	return new Promise( ( resolve ) => {
+		setTimeout( resolve, milliseconds );
+	} );
+}
 
 module.exports = async ( config ) => {
 	const { stateDir, baseURL, userAgent } = config.projects[ 0 ].use;
@@ -64,6 +74,8 @@ module.exports = async ( config ) => {
 	let adminLoggedIn = false;
 	let customerLoggedIn = false;
 	let customerKeyConfigured = false;
+	let customerSetupReady = false;
+	let adminSetupReady = false;
 
 	// Specify user agent when running against an external test site to avoid getting HTTP 406 NOT ACCEPTABLE errors.
 	const contextOptions = { baseURL, userAgent };
@@ -74,6 +86,24 @@ module.exports = async ( config ) => {
 	const customerContext = await browser.newContext( contextOptions );
 	const adminPage = await adminContext.newPage();
 	const customerPage = await customerContext.newPage();
+
+	loginCustomerAndSaveState( {
+		page: customerPage,
+		username: customerUsername,
+		password: customerPassword,
+		statePath: CUSTOMERSTATE,
+		retries: 5,
+	} )
+		.then( async () => {
+			await customerContext.close();
+			customerSetupReady = true;
+		} )
+		.catch( () => {
+			console.error(
+				'Cannot proceed e2e test, as customer login failed. Please check if the test site has been setup correctly.'
+			);
+			process.exit( 1 );
+		} );
 
 	// Sign in as admin user and save state
 	const adminRetries = 5;
@@ -146,7 +176,7 @@ module.exports = async ( config ) => {
 		process.exit( 1 );
 	}
 
-	// Update Stripe to the version specified on `--version`
+	// Use Stripe version from the `--version` parameter
 	let pluginZipPath;
 	let pluginSlug = PLUGIN_REPOSITORY.split( '/' ).pop();
 
@@ -185,50 +215,10 @@ module.exports = async ( config ) => {
 		adminPage.locator( `#deactivate-${ pluginSlug }` )
 	).toBeVisible();
 
-	// Sign in as customer user and save state
-	const customerRetries = 5;
-	for ( let i = 0; i < customerRetries; i++ ) {
-		try {
-			console.log( 'Trying to log-in as customer...' );
-			await customerPage.goto( `/wp-admin` );
-			await customerPage.fill( 'input[name="log"]', customerUsername );
-			await customerPage.fill( 'input[name="pwd"]', customerPassword );
-			await customerPage.click( 'text=Log In' );
-
-			await customerPage.goto( `/my-account` );
-			await expect(
-				customerPage.locator(
-					'.woocommerce-MyAccount-navigation-link--customer-logout'
-				)
-			).toBeVisible();
-			await expect(
-				customerPage.locator(
-					'div.woocommerce-MyAccount-content > p >> nth=0'
-				)
-			).toContainText( 'Hello' );
-
-			await customerPage
-				.context()
-				.storageState( { path: process.env.CUSTOMERSTATE } );
-			console.log( 'Logged-in as customer successfully.' );
-			customerLoggedIn = true;
-			break;
-		} catch ( e ) {
-			console.log(
-				`Customer log-in failed. Retrying... ${ i }/${ customerRetries }`
-			);
-			console.log( e );
-		}
-	}
-
-	if ( ! customerLoggedIn ) {
-		console.error(
-			'Cannot proceed e2e test, as customer login failed. Please check if the test site has been setup correctly.'
-		);
-		process.exit( 1 );
-	}
-
 	await adminContext.close();
-	await customerContext.close();
 	await browser.close();
+
+	while ( ! customerSetupReady && ! adminSetupReady ) {
+		await wait( 3000 );
+	}
 };
