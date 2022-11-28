@@ -2,16 +2,15 @@ require( 'dotenv' ).config( {
 	path: `${ process.env.E2E_ROOT }/config/local.env`,
 } );
 
-const { chromium, expect } = require( '@playwright/test' );
+const { chromium } = require( '@playwright/test' );
 const fs = require( 'fs' );
-const path = require( 'path' );
-const {
-	downloadZip,
-	deleteZip,
-	getReleaseZipUrl,
-} = require( '../utils/plugin-utils' );
 
-const { loginCustomerAndSaveState } = require( '../utils/pw-setup' );
+const {
+	loginCustomerAndSaveState,
+	loginAdminAndSaveState,
+	createApiTokens,
+	installPluginFromRepository,
+} = require( '../utils/pw-setup' );
 
 const {
 	ADMIN_USER,
@@ -20,8 +19,6 @@ const {
 	CUSTOMER_USER,
 	CUSTOMER_PASSWORD,
 	CUSTOMERSTATE,
-	GITHUB_TOKEN,
-	PLUGIN_REPOSITORY,
 	PLUGIN_VERSION,
 } = process.env;
 
@@ -37,12 +34,14 @@ function wait( milliseconds ) {
 }
 
 module.exports = async ( config ) => {
+	console.time( 'Total Setup Time' );
 	const { stateDir, baseURL, userAgent } = config.projects[ 0 ].use;
 
-	console.log( `State Dir: ${ stateDir }` );
 	console.log( `Base URL: ${ baseURL }` );
-
-	console.log( process.env );
+	if ( PLUGIN_VERSION ) {
+		console.log( `Plugin Version: ${ PLUGIN_VERSION }` );
+	}
+	console.log( `\n======\n` );
 
 	// used throughout tests for authentication
 	process.env.ADMINSTATE = `${ stateDir }adminState.json`;
@@ -70,10 +69,6 @@ module.exports = async ( config ) => {
 		}
 	}
 
-	// Pre-requisites
-	let adminLoggedIn = false;
-	let customerLoggedIn = false;
-	let customerKeyConfigured = false;
 	let customerSetupReady = false;
 	let adminSetupReady = false;
 
@@ -81,7 +76,7 @@ module.exports = async ( config ) => {
 	const contextOptions = { baseURL, userAgent };
 
 	// Create browser, browserContext, and page for customer and admin users
-	const browser = await chromium.launch( { headless: false } );
+	const browser = await chromium.launch();
 	const adminContext = await browser.newContext( contextOptions );
 	const customerContext = await browser.newContext( contextOptions );
 	const adminPage = await adminContext.newPage();
@@ -95,7 +90,6 @@ module.exports = async ( config ) => {
 		retries: 5,
 	} )
 		.then( async () => {
-			await customerContext.close();
 			customerSetupReady = true;
 		} )
 		.catch( () => {
@@ -105,120 +99,72 @@ module.exports = async ( config ) => {
 			process.exit( 1 );
 		} );
 
-	// Sign in as admin user and save state
-	const adminRetries = 5;
-	for ( let i = 0; i < adminRetries; i++ ) {
-		try {
-			console.log( 'Trying to log-in as admin...' );
-			await adminPage.goto( `/wp-admin` );
-			await adminPage.fill( 'input[name="log"]', adminUsername );
-			await adminPage.fill( 'input[name="pwd"]', adminPassword );
-			await adminPage.click( 'text=Log In' );
-			await adminPage.waitForLoadState( 'networkidle' );
+	loginAdminAndSaveState( {
+		page: adminPage,
+		username: adminUsername,
+		password: adminPassword,
+		statePath: ADMINSTATE,
+		retries: 5,
+	} )
+		.then( async () => {
+			const apiTokensPage = await adminContext.newPage();
+			const updatePluginPage = await adminContext.newPage();
 
-			await expect( adminPage.locator( 'div.wrap > h1' ) ).toHaveText(
-				'Dashboard'
+			// create consumer token and update plugin in parallel.
+			let customerTokenFinished = false;
+			let pluginUpdateFinished = false;
+
+			createApiTokens( apiTokensPage )
+				.then( () => {
+					customerTokenFinished = true;
+				} )
+				.catch( () => {
+					console.error(
+						'Cannot proceed e2e test, as we could not set the customer key. Please check if the test site has been setup correctly.'
+					);
+					process.exit( 1 );
+				} );
+
+			if ( PLUGIN_VERSION ) {
+				installPluginFromRepository( updatePluginPage )
+					.then( () => {
+						pluginUpdateFinished = true;
+					} )
+					.catch( () => {
+						console.error(
+							'Cannot proceed e2e test, as we could not update the plugin. Please check if the test site has been setup correctly.'
+						);
+						process.exit( 1 );
+					} );
+			} else {
+				console.log(
+					'Skipping plugin update. The version already installed on the test site will be used.'
+				);
+				pluginUpdateFinished = true;
+			}
+
+			while ( ! pluginUpdateFinished || ! customerTokenFinished ) {
+				await wait( 1000 );
+			}
+
+			adminSetupReady = true;
+		} )
+		.catch( ( e ) => {
+			console.error( e );
+			console.error(
+				'Cannot proceed e2e test, as admin login failed. Please check if the test site has been setup correctly.'
 			);
-			await adminPage
-				.context()
-				.storageState( { path: process.env.ADMINSTATE } );
-			console.log( 'Logged-in as admin successfully.' );
-			adminLoggedIn = true;
-			break;
-		} catch ( e ) {
-			console.log(
-				`Admin log-in failed, Retrying... ${ i }/${ adminRetries }`
-			);
-			console.log( e );
-		}
+			process.exit( 1 );
+		} );
+
+	while ( ! customerSetupReady || ! adminSetupReady ) {
+		await wait( 1000 );
 	}
-
-	if ( ! adminLoggedIn ) {
-		console.error(
-			'Cannot proceed e2e test, as admin login failed. Please check if the test site has been setup correctly.'
-		);
-		process.exit( 1 );
-	}
-
-	// While we're here, let's add a consumer token for API access
-	// This step was failing occasionally, and globalsetup doesn't retry, so make it retry
-	const nRetries = 5;
-	for ( let i = 0; i < nRetries; i++ ) {
-		try {
-			console.log( 'Trying to add consumer token...' );
-			await adminPage.goto(
-				`/wp-admin/admin.php?page=wc-settings&tab=advanced&section=keys&create-key=1`
-			);
-			await adminPage.fill( '#key_description', 'Key for API access' );
-			await adminPage.selectOption( '#key_permissions', 'read_write' );
-			await adminPage.click( 'text=Generate API key' );
-			process.env.CONSUMER_KEY = await adminPage.inputValue(
-				'#key_consumer_key'
-			);
-			process.env.CONSUMER_SECRET = await adminPage.inputValue(
-				'#key_consumer_secret'
-			);
-			console.log( 'Added consumer token successfully.' );
-			customerKeyConfigured = true;
-			break;
-		} catch ( e ) {
-			console.log(
-				`Failed to add consumer token. Retrying... ${ i }/${ nRetries }`
-			);
-			console.log( e );
-		}
-	}
-
-	if ( ! customerKeyConfigured ) {
-		console.error(
-			'Cannot proceed e2e test, as we could not set the customer key. Please check if the test site has been setup correctly.'
-		);
-		process.exit( 1 );
-	}
-
-	// Use Stripe version from the `--version` parameter
-	let pluginZipPath;
-	let pluginSlug = PLUGIN_REPOSITORY.split( '/' ).pop();
-
-	// Get the download URL and filename of the plugin
-	const pluginDownloadURL = await getReleaseZipUrl( PLUGIN_VERSION );
-	const zipFilename = pluginDownloadURL.split( '/' ).pop();
-	pluginZipPath = path.resolve( __dirname, `../../tmp/${ zipFilename }` );
-
-	// Download the needed plugin.
-	await downloadZip( {
-		url: pluginDownloadURL,
-		downloadPath: pluginZipPath,
-		authToken: GITHUB_TOKEN,
-	} );
-	await adminPage.goto( 'wp-admin/plugin-install.php?tab=upload', {
-		waitUntil: 'networkidle',
-	} );
-
-	await adminPage.setInputFiles( 'input#pluginzip', pluginZipPath );
-	await adminPage.click( "input[type='submit'] >> text=Install Now" );
-
-	await adminPage.click( 'text=Replace current with uploaded', {
-		timeout: 10000,
-	} );
-
-	await expect( adminPage.locator( '#wpbody-content .wrap' ) ).toContainText(
-		/Plugin (?:downgraded|updated) successfully/gi
-	);
-
-	await adminPage.goto( 'wp-admin/plugins.php', {
-		waitUntil: 'networkidle',
-	} );
-
-	// Assert that the plugin is listed and active
-	await expect(
-		adminPage.locator( `#deactivate-${ pluginSlug }` )
-	).toBeVisible();
 
 	await adminContext.close();
+	await customerContext.close();
 	await browser.close();
 
-	while ( ! customerSetupReady && ! adminSetupReady ) {
-		await wait( 3000 );
-	}
+	console.timeEnd( 'Total Setup Time' );
+	console.log( `\n======\n\n` );
 };
