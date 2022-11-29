@@ -17,8 +17,6 @@ We use [Playwright](https://playwright.dev/) as our test runner.
   
 ## Running E2E Tests
 
-We use [Playwright](https://playwright.dev/) as our test runner. 
-
 ### Pre-requisites
 
 - Node.js ([Installation instructions](https://nodejs.org/en/download/))
