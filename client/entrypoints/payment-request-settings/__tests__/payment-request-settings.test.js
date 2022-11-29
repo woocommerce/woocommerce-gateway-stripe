@@ -1,14 +1,18 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import PaymentRequestSection from '../payment-request-section';
+import PaymentRequestsSettingsSection from '../payment-request-settings-section';
 import PaymentRequestButtonPreview from '../payment-request-button-preview';
 import {
+	usePaymentRequestEnabledSettings,
+	usePaymentRequestLocations,
 	usePaymentRequestButtonType,
 	usePaymentRequestButtonSize,
 	usePaymentRequestButtonTheme,
 } from 'wcstripe/data';
 
 jest.mock( 'wcstripe/data', () => ( {
+	usePaymentRequestEnabledSettings: jest.fn(),
+	usePaymentRequestLocations: jest.fn(),
 	usePaymentRequestButtonType: jest.fn().mockReturnValue( [ 'buy' ] ),
 	usePaymentRequestButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
 	usePaymentRequestButtonTheme: jest.fn().mockReturnValue( [ 'dark' ] ),
@@ -33,17 +37,40 @@ jest.mock( '../utils/utils', () => ( {
 	} ),
 } ) );
 
-jest.mock( 'wcstripe/data', () => ( {
-	usePaymentRequestButtonType: jest.fn().mockReturnValue( [ 'buy' ] ),
-	usePaymentRequestButtonSize: jest.fn().mockReturnValue( [ 'default' ] ),
-	usePaymentRequestButtonTheme: jest.fn().mockReturnValue( [ 'dark' ] ),
-} ) );
+const getMockPaymentRequestEnabledSettings = (
+	isEnabled,
+	updateIsPaymentRequestEnabledHandler
+) => [ isEnabled, updateIsPaymentRequestEnabledHandler ];
 
-describe( 'PaymentRequestSection', () => {
+const getMockPaymentRequestLocations = (
+	isCheckoutEnabled,
+	isProductPageEnabled,
+	isCartEnabled,
+	updatePaymentRequestLocationsHandler
+) => [
+	[
+		isCheckoutEnabled && 'checkout',
+		isProductPageEnabled && 'product',
+		isCartEnabled && 'cart',
+	].filter( Boolean ),
+	updatePaymentRequestLocationsHandler,
+];
+
+describe( 'PaymentRequestsSettingsSection', () => {
+	beforeEach( () => {
+		usePaymentRequestEnabledSettings.mockReturnValue(
+			getMockPaymentRequestEnabledSettings( true, jest.fn() )
+		);
+
+		usePaymentRequestLocations.mockReturnValue(
+			getMockPaymentRequestLocations( true, true, true, jest.fn() )
+		);
+	} );
+
 	it( 'renders settings with defaults', () => {
-		render( <PaymentRequestSection /> );
+		render( <PaymentRequestsSettingsSection /> );
 
-		// confirm settings headings
+		// confirm settings headings.
 		expect(
 			screen.queryByRole( 'heading', { name: 'Call to action' } )
 		).toBeInTheDocument();
@@ -51,7 +78,7 @@ describe( 'PaymentRequestSection', () => {
 			screen.queryByRole( 'heading', { name: 'Appearance' } )
 		).toBeInTheDocument();
 
-		// confirm radio button groups displayed
+		// confirm radio button groups displayed.
 		const [ ctaRadio, sizeRadio, themeRadio ] = screen.queryAllByRole(
 			'radio'
 		);
@@ -60,7 +87,7 @@ describe( 'PaymentRequestSection', () => {
 		expect( sizeRadio ).toBeInTheDocument();
 		expect( themeRadio ).toBeInTheDocument();
 
-		// confirm default values
+		// confirm default values.
 		expect( screen.getByLabelText( 'Buy' ) ).toBeChecked();
 		expect( screen.getByLabelText( 'Default (40 px)' ) ).toBeChecked();
 		expect( screen.getByLabelText( /Dark/ ) ).toBeChecked();
@@ -70,6 +97,7 @@ describe( 'PaymentRequestSection', () => {
 		const setButtonTypeMock = jest.fn();
 		const setButtonSizeMock = jest.fn();
 		const setButtonThemeMock = jest.fn();
+
 		usePaymentRequestButtonType.mockReturnValue( [
 			'buy',
 			setButtonTypeMock,
@@ -82,8 +110,9 @@ describe( 'PaymentRequestSection', () => {
 			'dark',
 			setButtonThemeMock,
 		] );
+		usePaymentRequestEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
 
-		render( <PaymentRequestSection /> );
+		render( <PaymentRequestsSettingsSection /> );
 
 		expect( setButtonTypeMock ).not.toHaveBeenCalled();
 		expect( setButtonSizeMock ).not.toHaveBeenCalled();

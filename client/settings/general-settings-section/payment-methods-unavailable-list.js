@@ -8,10 +8,12 @@ const PaymentMethodsUnavailableList = () => {
 	const countIconsToDisplay = 3;
 	const capabilities = useGetCapabilities();
 	const upePaymentMethodIds = useGetAvailablePaymentMethodIds();
-	const unavailablePaymentMethodIds = upePaymentMethodIds.filter(
-		( methodId ) =>
-			! capabilities.hasOwnProperty( `${ methodId }_payments` )
-	);
+	const unavailablePaymentMethodIds = upePaymentMethodIds
+		.filter(
+			( methodId ) =>
+				! capabilities.hasOwnProperty( `${ methodId }_payments` )
+		)
+		.filter( ( id ) => id !== 'link' );
 	const unavailablePaymentMethods = unavailablePaymentMethodIds
 		.filter( ( methodId, idx ) => idx < countIconsToDisplay )
 		.map( ( methodId ) => methodsConfiguration[ methodId ] );

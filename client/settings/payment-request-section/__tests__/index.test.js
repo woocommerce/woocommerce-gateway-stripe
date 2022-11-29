@@ -1,163 +1,75 @@
-import React from 'react';
-import { screen, render } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen } from '@testing-library/react';
 import PaymentRequestSection from '..';
 import {
+	useEnabledPaymentMethodIds,
+	useGetAvailablePaymentMethodIds,
 	usePaymentRequestEnabledSettings,
-	usePaymentRequestLocations,
 } from 'wcstripe/data';
 
 jest.mock( 'wcstripe/data', () => ( {
 	usePaymentRequestEnabledSettings: jest.fn(),
-	usePaymentRequestLocations: jest.fn(),
+	useGetAvailablePaymentMethodIds: jest.fn(),
+	useEnabledPaymentMethodIds: jest.fn(),
 } ) );
 
-const getMockPaymentRequestLocations = (
-	isCheckoutEnabled,
-	isProductPageEnabled,
-	isCartEnabled,
-	updatePaymentRequestLocationsHandler
-) => [
-	[
-		isCheckoutEnabled && 'checkout',
-		isProductPageEnabled && 'product',
-		isCartEnabled && 'cart',
-	].filter( Boolean ),
-	updatePaymentRequestLocationsHandler,
-];
+const getMockPaymentRequestEnabledSettings = (
+	isEnabled,
+	updateIsPaymentRequestEnabledHandler
+) => [ isEnabled, updateIsPaymentRequestEnabledHandler ];
 
 describe( 'PaymentRequestSection', () => {
 	beforeEach( () => {
-		usePaymentRequestEnabledSettings.mockReturnValue( [
-			false,
-			jest.fn(),
-		] );
-		usePaymentRequestLocations.mockReturnValue(
-			getMockPaymentRequestLocations( true, true, true, jest.fn() )
+		usePaymentRequestEnabledSettings.mockReturnValue(
+			getMockPaymentRequestEnabledSettings( true, jest.fn() )
 		);
+		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card' ], jest.fn() ] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card', 'link' ] );
 	} );
 
-	it( 'should enable express checkout locations when express checkout is enabled', () => {
-		usePaymentRequestEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
+	it( 'renders settings with defaults', () => {
+		render( <PaymentRequestSection /> );
+
+		const label = screen.queryByText( 'Apple Pay / Google Pay' );
+		expect( label ).toBeInTheDocument();
+	} );
+
+	it( 'hide link payment if card payment method is inactive', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'link', 'card' ] );
+		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'link' ] ] );
 
 		render( <PaymentRequestSection /> );
 
-		const [
-			expressCheckoutCheckbox,
-			checkoutCheckbox,
-			productPageCheckbox,
-			cartCheckbox,
-		] = screen.getAllByRole( 'checkbox' );
-
-		expect( expressCheckoutCheckbox ).toBeChecked();
-		expect( checkoutCheckbox ).not.toBeDisabled();
-		expect( checkoutCheckbox ).toBeChecked();
-		expect( productPageCheckbox ).not.toBeDisabled();
-		expect( productPageCheckbox ).toBeChecked();
-		expect( cartCheckbox ).not.toBeDisabled();
-		expect( cartCheckbox ).toBeChecked();
+		expect( screen.queryByText( 'Link by Stripe' ) ).toBeNull();
 	} );
 
-	it( 'should disable express checkout locations when express checkout is disabled', () => {
-		usePaymentRequestEnabledSettings.mockReturnValue( [
-			false,
-			jest.fn(),
-		] );
+	it( 'show link payment if card payment method is active', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'link', 'card' ] );
+		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card', 'link' ] ] );
 
 		render( <PaymentRequestSection /> );
 
-		const [
-			expressCheckoutCheckbox,
-			checkoutCheckbox,
-			productPageCheckbox,
-			cartCheckbox,
-		] = screen.getAllByRole( 'checkbox' );
-
-		userEvent.click( expressCheckoutCheckbox );
-
-		expect( expressCheckoutCheckbox ).not.toBeChecked();
-		expect( checkoutCheckbox ).toBeDisabled();
-		expect( checkoutCheckbox ).not.toBeChecked();
-		expect( productPageCheckbox ).toBeDisabled();
-		expect( productPageCheckbox ).not.toBeChecked();
-		expect( cartCheckbox ).toBeDisabled();
-		expect( cartCheckbox ).not.toBeChecked();
+		expect( screen.queryByText( 'Link by Stripe' ) ).toBeInTheDocument();
 	} );
 
-	it( 'should dispatch enabled status update if express checkout is being toggled', () => {
-		const updateIsPaymentRequestEnabledHandler = jest.fn();
-		usePaymentRequestEnabledSettings.mockReturnValue( [
-			false,
-			updateIsPaymentRequestEnabledHandler,
-		] );
+	it( 'test stripe link checkbox checked', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'link', 'card' ] );
+		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card', 'link' ] ] );
 
-		render( <PaymentRequestSection /> );
-
-		userEvent.click( screen.getByText( 'Enable express checkouts' ) );
-
-		expect( updateIsPaymentRequestEnabledHandler ).toHaveBeenCalledWith(
-			true
-		);
+		const container = render( <PaymentRequestSection /> );
+		const linkCheckbox = container.getByRole( 'checkbox', {
+			name: /Link by Stripe Input/i,
+		} );
+		expect( linkCheckbox ).toBeChecked();
 	} );
 
-	it( 'should trigger an action to save the checked locations when un-checking the location checkboxes', () => {
-		const updatePaymentRequestLocationsHandler = jest.fn();
-		usePaymentRequestEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
-		usePaymentRequestLocations.mockReturnValue(
-			getMockPaymentRequestLocations(
-				true,
-				true,
-				true,
-				updatePaymentRequestLocationsHandler
-			)
-		);
+	it( 'test stripe link checkbox not checked', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'link', 'card' ] );
+		useEnabledPaymentMethodIds.mockReturnValue( [ [ 'card' ] ] );
 
-		render( <PaymentRequestSection /> );
-
-		// Uncheck each checkbox, and verify them what kind of action should have been called
-		userEvent.click( screen.getByText( 'Product page' ) );
-		expect(
-			updatePaymentRequestLocationsHandler
-		).toHaveBeenLastCalledWith( [ 'checkout', 'cart' ] );
-
-		userEvent.click( screen.getByText( 'Checkout' ) );
-		expect(
-			updatePaymentRequestLocationsHandler
-		).toHaveBeenLastCalledWith( [ 'product', 'cart' ] );
-
-		userEvent.click( screen.getByText( 'Cart' ) );
-		expect(
-			updatePaymentRequestLocationsHandler
-		).toHaveBeenLastCalledWith( [ 'checkout', 'product' ] );
-	} );
-
-	it( 'should trigger an action to save the checked locations when checking the location checkboxes', () => {
-		const updatePaymentRequestLocationsHandler = jest.fn();
-		usePaymentRequestEnabledSettings.mockReturnValue( [ true, jest.fn() ] );
-		usePaymentRequestLocations.mockReturnValue(
-			getMockPaymentRequestLocations(
-				false,
-				false,
-				false,
-				updatePaymentRequestLocationsHandler
-			)
-		);
-
-		render( <PaymentRequestSection /> );
-
-		userEvent.click( screen.getByText( 'Cart' ) );
-		expect(
-			updatePaymentRequestLocationsHandler
-		).toHaveBeenLastCalledWith( [ 'cart' ] );
-
-		userEvent.click( screen.getByText( 'Product page' ) );
-		expect(
-			updatePaymentRequestLocationsHandler
-		).toHaveBeenLastCalledWith( [ 'product' ] );
-
-		userEvent.click( screen.getByText( 'Checkout' ) );
-		expect(
-			updatePaymentRequestLocationsHandler
-		).toHaveBeenLastCalledWith( [ 'checkout' ] );
+		const container = render( <PaymentRequestSection /> );
+		const linkCheckbox = container.getByRole( 'checkbox', {
+			name: /Link by Stripe Input/i,
+		} );
+		expect( linkCheckbox ).not.toBeChecked();
 	} );
 } );

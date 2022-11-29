@@ -1,3 +1,5 @@
+@import '../../styles/abstracts/styles.scss';
+
 .payment-method-settings {
 	&__breadcrumbs {
 		margin-bottom: 40px;
@@ -38,4 +40,33 @@
 
 .components-radio-control__input[type='radio']:checked::before {
 	box-sizing: border-box;
+}
+
+.payment-request-settings {
+	&__location {
+		margin-bottom: 26px !important;
+	}
+}
+
+.express-checkout-settings {
+	.components-card-body {
+		padding: calc(16px) calc(24px);
+
+		@include breakpoint( '>660px' ) {
+			padding: 24px 24px 24px 24px;
+		}
+	}
+
+	&__icon {
+		border-radius: 2px;
+		display: none;
+		height: 40px;
+		margin: 1px 17px 1px 1px; // 1px to accommodate for box-shadow
+		box-shadow: 0 0 0 1px #ddd;
+		background: #fff;
+
+		@include breakpoint( '>660px' ) {
+			display: inline-block;
+		}
+	}
 }

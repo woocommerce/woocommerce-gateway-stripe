@@ -38,7 +38,6 @@ describe( 'GeneralSettingsSection', () => {
 		useGetCapabilities.mockReturnValue( {
 			card_payments: 'active',
 			giropay_payments: 'active',
-			link_payments: 'active',
 		} );
 		useManualCapture.mockReturnValue( [ false ] );
 		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card', 'link' ] );
@@ -111,7 +110,6 @@ describe( 'GeneralSettingsSection', () => {
 			'giropay',
 			'sofort',
 			'sepa_debit',
-			'link',
 		] );
 		const updateEnabledMethodsMock = jest.fn();
 		useEnabledPaymentMethodIds.mockReturnValue( [

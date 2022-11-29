@@ -79,9 +79,11 @@ const GeneralSettingsSection = () => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
 
 	// Hide payment methods that are not part of the account capabilities.
-	const availablePaymentMethods = upePaymentMethods.filter( ( method ) =>
-		capabilities.hasOwnProperty( `${ method }_payments` )
-	);
+	const availablePaymentMethods = upePaymentMethods
+		.filter( ( method ) =>
+			capabilities.hasOwnProperty( `${ method }_payments` )
+		)
+		.filter( ( id ) => id !== 'link' );
 
 	return (
 		<List>
