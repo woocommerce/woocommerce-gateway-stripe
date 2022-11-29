@@ -40,6 +40,13 @@ return apply_filters(
 			'default'     => __( "You'll be able to download or print the Boleto after checkout.", 'woocommerce-gateway-stripe' ),
 			'desc_tip'    => true,
 		],
+		'expiration' => [
+			'title'       => __( 'Expiration', 'woocommerce-gateway-stripe' ),
+			'type'        => 'number',
+			'description' => __( 'This controls the expiration in number of days for the voucher.', 'woocommerce-gateway-stripe' ),
+			'default'     => 3,
+			'desc_tip'    => true,
+		],
 		'webhook'     => [
 			'title'       => __( 'Webhook Endpoints', 'woocommerce-gateway-stripe' ),
 			'type'        => 'title',

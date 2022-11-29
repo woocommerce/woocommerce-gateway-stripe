@@ -5,11 +5,11 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 6.7.0
- * Requires at least: 5.7
+ * Version: 7.0.1
+ * Requires at least: 5.8
  * Tested up to: 6.0
- * WC requires at least: 6.2
- * WC tested up to: 6.7
+ * WC requires at least: 6.8
+ * WC tested up to: 7.0
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -21,10 +21,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '6.7.0' ); // WRCS: DEFINED_VERSION.
-define( 'WC_STRIPE_MIN_PHP_VER', '7.0.0' );
-define( 'WC_STRIPE_MIN_WC_VER', '6.2' );
-define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '6.3' );
+define( 'WC_STRIPE_VERSION', '7.0.1' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_MIN_PHP_VER', '7.3.0' );
+define( 'WC_STRIPE_MIN_WC_VER', '6.8' );
+define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '6.9' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
 define( 'WC_STRIPE_ABSPATH', __DIR__ . '/' );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
@@ -63,14 +63,14 @@ function woocommerce_gateway_stripe() {
 			/**
 			 * The *Singleton* instance of this class
 			 *
-			 * @var Singleton
+			 * @var WC_Stripe
 			 */
 			private static $instance;
 
 			/**
 			 * Returns the *Singleton* instance of this class.
 			 *
-			 * @return Singleton The *Singleton* instance.
+			 * @return WC_Stripe The *Singleton* instance.
 			 */
 			public static function get_instance() {
 				if ( null === self::$instance ) {
@@ -167,6 +167,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-state.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-handler.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-sepa-payment-token.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-link-payment-token.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-apple-pay-registration.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
@@ -720,11 +721,14 @@ register_activation_hook( __FILE__, 'add_woocommerce_inbox_variant' );
 function wcstripe_deactivated() {
 	// admin notes are not supported on older versions of WooCommerce.
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-upe-compatibility.php';
-	if ( WC_Stripe_UPE_Compatibility::are_inbox_notes_supported() ) {
+	if ( WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
 		// requirements for the note
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
 		WC_Stripe_UPE_Availability_Note::possibly_delete_note();
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-stripelink-note.php';
+		WC_Stripe_UPE_StripeLink_Note::possibly_delete_note();
 	}
 }
 register_deactivation_hook( __FILE__, 'wcstripe_deactivated' );
@@ -768,3 +772,12 @@ function woocommerce_gateway_stripe_woocommerce_block_support() {
 		);
 	}
 }
+
+add_action(
+	'before_woocommerce_init',
+	function() {
+		if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, false );
+		}
+	}
+);

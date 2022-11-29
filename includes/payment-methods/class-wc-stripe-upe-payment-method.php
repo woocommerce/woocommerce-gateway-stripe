@@ -115,6 +115,15 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
+	 * Returns true if the UPE method is available.
+	 *
+	 * @return bool
+	 */
+	public function is_available() {
+		return true;
+	}
+
+	/**
 	 * Returns payment method title
 	 *
 	 * @param array|bool $payment_details Optional payment details from charge object.

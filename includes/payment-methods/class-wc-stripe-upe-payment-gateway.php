@@ -15,6 +15,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 	const ID = 'stripe';
 
+	/**
+	 * Upe Available Methods
+	 *
+	 * @type WC_Stripe_UPE_Payment_Method[]
+	 */
 	const UPE_AVAILABLE_METHODS = [
 		WC_Stripe_UPE_Payment_Method_CC::class,
 		WC_Stripe_UPE_Payment_Method_Giropay::class,
@@ -408,8 +413,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function get_upe_available_payment_methods() {
 		$available_payment_methods = [];
 
-		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
-			$available_payment_methods[] = $payment_method_class::STRIPE_ID;
+		foreach ( $this->payment_methods as $payment_method ) {
+			if ( ! $payment_method->is_available() ) {
+				continue;
+			}
+			$available_payment_methods[] = $payment_method->get_id();
 		}
 		return $available_payment_methods;
 	}
@@ -1210,52 +1218,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			<p><a class="button" target="_blank" href="https://dashboard.stripe.com/account/payments/settings">' . __( 'Get more payment methods', 'woocommerce-gateway-stripe' ) . '</a></p>
 			<span id="wc_stripe_upe_change_notice" class="hidden">' . __( 'You must save your changes.', 'woocommerce-gateway-stripe' ) . '</span>';
 
-		return $this->generate_title_html( $key, $data );
-	}
-
-	/**
-	 * This is overloading the title type so the oauth url is only fetched if we are on the settings page.
-	 *
-	 * TODO: This is duplicate code from WC_Gateway_Stripe.
-	 *
-	 * @param string $key Field key.
-	 * @param array  $data Field data.
-	 * @return string
-	 */
-	public function generate_stripe_account_keys_html( $key, $data ) {
-		if ( woocommerce_gateway_stripe()->connect->is_connected() ) {
-			$reset_link = add_query_arg(
-				[
-					'_wpnonce'                     => wp_create_nonce( 'reset_stripe_api_credentials' ),
-					'reset_stripe_api_credentials' => true,
-				],
-				admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' )
-			);
-
-			$api_credentials_text = sprintf(
-			/* translators: %1, %2, %3, and %4 are all HTML markup tags */
-				__( '%1$sClear all Stripe account keys.%2$s %3$sThis will disable any connection to Stripe.%4$s', 'woocommerce-gateway-stripe' ),
-				'<a id="wc_stripe_connect_button" href="' . $reset_link . '" class="button button-secondary">',
-				'</a>',
-				'<span style="color:red;">',
-				'</span>'
-			);
-		} else {
-			$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url();
-
-			if ( ! is_wp_error( $oauth_url ) ) {
-				$api_credentials_text = sprintf(
-				/* translators: %1, %2 and %3 are all HTML markup tags */
-					__( '%1$sSetup or link an existing Stripe account.%2$s By clicking this button you agree to the %3$sTerms of Service%2$s. Or, manually enter Stripe account keys below.', 'woocommerce-gateway-stripe' ),
-					'<a id="wc_stripe_connect_button" href="' . $oauth_url . '" class="button button-primary">',
-					'</a>',
-					'<a href="https://wordpress.com/tos">'
-				);
-			} else {
-				$api_credentials_text = __( 'Manually enter Stripe keys below.', 'woocommerce-gateway-stripe' );
-			}
-		}
-		$data['description'] = $api_credentials_text;
 		return $this->generate_title_html( $key, $data );
 	}
 
