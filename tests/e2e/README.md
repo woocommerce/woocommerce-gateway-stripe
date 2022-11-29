@@ -24,6 +24,9 @@ We use [Playwright](https://playwright.dev/) as our test runner.
 - Node.js ([Installation instructions](https://nodejs.org/en/download/))
 - NVM ([Installation instructions](https://github.com/nvm-sh/nvm))
 
+- Create an admin user and a customer user on the test website.
+- Copy the file `/tests/e2e/config/local.env.example` to `/tests/e2e/config/local.env`. Add the user credentials created above to the `local.env` file.
+
 ## Running tests
 
 `npm run test:e2e -- --base_url=SOME_URL_HERE`
