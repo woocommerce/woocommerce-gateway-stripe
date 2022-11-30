@@ -8,7 +8,7 @@ We use [Playwright](https://playwright.dev/) as our test runner.
   - [Table of contents](#table-of-contents)
   - [Running E2E Tests](#running-e2e-tests)
     - [Pre-requisites](#pre-requisites)
-  - [Running tests](#running-tests)
+    - [Running tests](#running-tests)
     - [Debugging tests](#debugging-tests)
     - [Running only a few test suites](#running-only-a-few-test-suites)
   - [Guide for writing e2e tests](#guide-for-writing-e2e-tests)
@@ -25,7 +25,7 @@ We use [Playwright](https://playwright.dev/) as our test runner.
 - Create an admin user and a customer user on the test website.
 - Copy the file `/tests/e2e/config/local.env.example` to `/tests/e2e/config/local.env`. Add the user credentials created above to the `local.env` file.
 
-## Running tests
+### Running tests
 
 `npm run test:e2e -- --base_url=SOME_URL_HERE`
 
