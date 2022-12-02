@@ -129,6 +129,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 7.1.0 - 2022-xx-xx =
-* Add - Pass $_SERVER['HTTP_HOST'] as metadata to Stripe
+
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
