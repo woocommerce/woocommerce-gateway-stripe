@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 7.1.0 - 2022-xx-xx =
+* Add - Pass $_SERVER['HTTP_HOST'] as metadata to Stripe
 
 = 7.0.1 - 2022-11-11 =
 * Fix - Issue where subscription renewal payments were being charged twice no longer present.
