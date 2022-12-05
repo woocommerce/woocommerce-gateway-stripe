@@ -625,6 +625,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 4.0.3
 	 * @param string $source_id The source ID to get source object for.
+	 *
+	 * @throws WC_Stripe_Exception Error while retrieving source object.
+	 * @return string|object
 	 */
 	public function get_source_object( $source_id = '' ) {
 		if ( empty( $source_id ) ) {
@@ -646,7 +649,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since x.x.x
 	 * @param string $charge_id The charge ID to get charge object for.
 	 *
-	 * @return object
+	 * @throws WC_Stripe_Exception Error while retrieving charge object.
+	 * @return string|object
 	 */
 	public function get_charge_object( $charge_id = '' ) {
 		if ( empty( $charge_id ) ) {
@@ -669,7 +673,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * We can remove this method once we drop support for API versions prior to 2022-11-15.
 	 *
 	 * @since x.x.x
-	 * @param object $intent Stripe's API Payment Intent object.
+	 * @param object $intent Stripe API Payment Intent object response.
 	 *
 	 * @return object
 	 */
