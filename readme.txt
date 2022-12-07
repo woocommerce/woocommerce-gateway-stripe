@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.0.1 - 2022-11-11 =
-* Fix - Issue where subscription renewal payments were being charged twice no longer present.
+= 7.0.2 - 2022-xx-xx =
+* Fix - Expand charges object from incoming webhooks using Stripe API version 2022-11-15.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -845,7 +845,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				break;
 			case 'payment_intent.succeeded':
 			case 'payment_intent.amount_capturable_updated':
-				$charge = end( $intent->charges->data );
+				$charge = $this->get_latest_charge_from_intent( $intent );
+
 				WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
 
 				do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
