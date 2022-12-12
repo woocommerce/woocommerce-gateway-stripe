@@ -10,6 +10,7 @@ const {
 	loginAdminAndSaveState,
 	createApiTokens,
 	installPluginFromRepository,
+	setupWoo,
 } = require( '../utils/pw-setup' );
 
 const {
@@ -20,6 +21,11 @@ const {
 	CUSTOMER_PASSWORD,
 	CUSTOMERSTATE,
 	PLUGIN_VERSION,
+	WOO_SETUP,
+	SSH_HOST,
+	SSH_USER,
+	SSH_PASSWORD,
+	SSH_PATH,
 } = process.env;
 
 const adminUsername = ADMIN_USER ?? 'admin';
@@ -69,6 +75,30 @@ module.exports = async ( config ) => {
 		}
 	}
 
+	// Setup WooCommerce before any browser interaction.
+	if ( WOO_SETUP ) {
+		if ( ! SSH_HOST || ! SSH_USER || ! SSH_PASSWORD ) {
+			console.error( 'The --woo_setup flag needs SSH credentials!' );
+			process.exit( 1 );
+		}
+		await setupWoo(
+			{
+				host: SSH_HOST,
+				username: SSH_USER,
+				password: SSH_PASSWORD,
+			},
+			SSH_PATH
+		).catch( ( e ) => {
+			console.error( e );
+			console.error(
+				'Cannot proceed e2e test, as we could not update the plugin. Please check if the test site has been setup correctly.'
+			);
+			process.exit( 1 );
+		} );
+	} else {
+		console.log( 'Skipping Woo Setup.' );
+	}
+
 	let customerSetupReady = false;
 	let adminSetupReady = false;
 
@@ -76,10 +106,10 @@ module.exports = async ( config ) => {
 	const contextOptions = { baseURL, userAgent };
 
 	// Create browser, browserContext, and page for customer and admin users
-	const browser = await chromium.launch();
+	const browser = await chromium.launch( { headless: false } );
 	const adminContext = await browser.newContext( contextOptions );
 	const customerContext = await browser.newContext( contextOptions );
-	const adminPage = await adminContext.newPage();
+	const adminPage = await adminContext.newPage( { headless: false } );
 	const customerPage = await customerContext.newPage();
 
 	loginCustomerAndSaveState( {
@@ -113,6 +143,7 @@ module.exports = async ( config ) => {
 			// create consumer token and update plugin in parallel.
 			let customerTokenFinished = false;
 			let pluginUpdateFinished = false;
+			let wooSetupFinished = false;
 
 			createApiTokens( apiTokensPage )
 				.then( () => {

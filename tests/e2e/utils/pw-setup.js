@@ -1,5 +1,8 @@
+import { resolve } from 'path';
+
 const { expect } = require( '@playwright/test' );
 
+const { NodeSSH } = require( 'node-ssh' );
 const path = require( 'path' );
 const { downloadZip, getReleaseZipUrl } = require( '../utils/plugin-utils' );
 
@@ -189,3 +192,40 @@ export const installPluginFromRepository = ( page ) =>
 			resolve();
 		} )();
 	} );
+
+/**
+ * Helper function to perform the WooCommerce setup.
+ */
+export const setupWoo = async ( credentials, path ) => {
+	const ssh = new NodeSSH();
+
+	const setupCommands = [
+		'wp theme install storefront --activate',
+		'wp option set woocommerce_store_address "60 29th Street"',
+		'wp option set woocommerce_store_address_2 "#343"',
+		'wp option set woocommerce_store_city "San Francisco"',
+		'wp option set woocommerce_default_country "US:CA"',
+		'wp option set woocommerce_store_postcode "94110"',
+		'wp option set woocommerce_currency "USD"',
+		'wp option set woocommerce_product_type "both"',
+		'wp option set woocommerce_allow_tracking "no"',
+		'wp wc --user=admin tool run install_pages',
+		'wp plugin install wordpress-importer --activate',
+		'wp import wp-content/plugins/woocommerce/sample-data/sample_products.xml --authors=skip',
+		`wp wc shipping_zone create --name="Everywhere" --order=1 --user=admin`,
+		`wp wc shipping_zone_method create 1 --method_id="flat_rate" --user=admin`,
+		`wp wc shipping_zone_method create 1 --method_id="free_shipping" --user=admin`,
+		`wp option update --format=json woocommerce_flat_rate_1_settings '{"title":"Flat rate","tax_status":"taxable","cost":"10"}'`,
+	];
+
+	return ssh.connect( credentials ).then( async () => {
+		for ( const command of setupCommands ) {
+			console.log( command );
+			await ssh
+				.execCommand( command, { cwd: path } )
+				.then( ( result ) => {
+					console.log( result.stdout );
+				} );
+		}
+	} );
+};
