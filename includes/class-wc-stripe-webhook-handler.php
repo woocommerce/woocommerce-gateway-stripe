@@ -771,7 +771,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Gets the refund object from notification.
+	 * Gets the first refund object from charge notification.
 	 *
 	 * @since x.x.x
 	 * @param object $notification
@@ -779,14 +779,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @return object
 	 */
 	public function get_refund_object( $notification ) {
+		// Since API version 2022-11-15, the Charge object no longer expands `refunds` by default.
+		// We can remove this once we drop support for API versions prior to 2022-11-15.
 		if ( ! empty( $notification->data->object->refunds->data[0] ) ) {
 			return $notification->data->object->refunds->data[0];
 		}
 
-		if ( ! empty( $notification->data->object->id ) ) {
-			$charge = $this->get_charge_object( $notification->data->object->id, [ 'expand' => [ 'refunds' ] ] );
-			return $charge->refunds->data[0];
-		}
+		$charge = $this->get_charge_object( $notification->data->object->id, [ 'expand' => [ 'refunds' ] ] );
+		return $charge->refunds->data[0];
 	}
 
 	/**
