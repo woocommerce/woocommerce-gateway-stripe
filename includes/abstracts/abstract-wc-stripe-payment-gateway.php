@@ -648,16 +648,17 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since x.x.x
 	 * @param string $charge_id The charge ID to get charge object for.
+	 * @param array  $params    The parameters to pass to the request.
 	 *
 	 * @throws WC_Stripe_Exception Error while retrieving charge object.
 	 * @return string|object
 	 */
-	public function get_charge_object( $charge_id = '' ) {
+	public function get_charge_object( $charge_id = '', $params = [] ) {
 		if ( empty( $charge_id ) ) {
 			return '';
 		}
 
-		$charge_object = WC_Stripe_API::retrieve( 'charges/' . $charge_id );
+		$charge_object = WC_Stripe_API::request( $params, 'charges/' . $charge_id, 'GET' );
 
 		if ( ! empty( $charge_object->error ) ) {
 			throw new WC_Stripe_Exception( print_r( $charge_object, true ), $charge_object->error->message );
