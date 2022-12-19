@@ -268,7 +268,9 @@ export const setupStripe = ( page ) =>
 					await page.locator( 'text="Save test keys"' ).click();
 					await page.waitForNavigation( { timeout: 10000 } );
 
-					await expect( page.url ).toContainText( 'section=stripe' );
+					await expect( page ).toHaveURL(
+						/.*section=stripe&panel=settings.*/
+					);
 
 					console.log( '\u2714 Added Stripe keys successfully.' );
 					resolve();
