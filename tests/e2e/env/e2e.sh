@@ -7,7 +7,7 @@ set -e
 common_env="NODE_CONFIG_DIR='tests/e2e/test-data'"
 test_env="$common_env"
 
-accepted_args=("--base_url" "--version", "--with_woo_setup")
+accepted_args=("--base_url" "--version", "--with_woo_setup", "--with_stripe_setup")
 additional_args=""
 for arg in "$@"; do
 
@@ -35,6 +35,10 @@ fi
 
 if [[ $with_woo_setup != "" ]]; then
     test_env="$test_env WOO_SETUP='1'"
+fi
+
+if [[ $with_stripe_setup != "" ]]; then
+    test_env="$test_env STRIPE_SETUP='1'"
 fi
 
 cross-env $test_env playwright test --config=tests/e2e/config/playwright.config.js $additional_args

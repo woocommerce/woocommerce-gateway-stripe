@@ -11,6 +11,7 @@ const {
 	createApiTokens,
 	installPluginFromRepository,
 	setupWoo,
+	setupStripe,
 } = require( '../utils/pw-setup' );
 
 const {
@@ -22,6 +23,7 @@ const {
 	CUSTOMERSTATE,
 	PLUGIN_VERSION,
 	WOO_SETUP,
+	STRIPE_SETUP,
 	SSH_HOST,
 	SSH_USER,
 	SSH_PASSWORD,
@@ -143,7 +145,7 @@ module.exports = async ( config ) => {
 			// create consumer token and update plugin in parallel.
 			let customerTokenFinished = false;
 			let pluginUpdateFinished = false;
-			let wooSetupFinished = false;
+			let stripeSetupFinished = false;
 
 			createApiTokens( apiTokensPage )
 				.then( () => {
@@ -174,7 +176,34 @@ module.exports = async ( config ) => {
 				pluginUpdateFinished = true;
 			}
 
-			while ( ! pluginUpdateFinished || ! customerTokenFinished ) {
+			if ( STRIPE_SETUP ) {
+				while ( PLUGIN_VERSION && ! pluginUpdateFinished ) {
+					console.log( '*** Waiting plugin install to be finished' );
+					await wait( 1000 );
+				}
+
+				setupStripe( adminPage )
+					.then( () => {
+						stripeSetupFinished = true;
+					} )
+					.catch( () => {
+						console.error(
+							'Cannot proceed e2e test, as we could not setup Stripe keys in the plugin. Please check if the test site has been setup correctly.'
+						);
+						process.exit( 1 );
+					} );
+			} else {
+				console.log(
+					'Skipping Stripe setup. Ensure Stripe webhook and keys are already setup in this environment.'
+				);
+				stripeSetupFinished = true;
+			}
+
+			while (
+				! pluginUpdateFinished ||
+				! customerTokenFinished ||
+				! stripeSetupFinished
+			) {
 				await wait( 1000 );
 			}
 

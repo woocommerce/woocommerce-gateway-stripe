@@ -6,7 +6,13 @@ const { NodeSSH } = require( 'node-ssh' );
 const path = require( 'path' );
 const { downloadZip, getReleaseZipUrl } = require( '../utils/plugin-utils' );
 
-const { GITHUB_TOKEN, PLUGIN_REPOSITORY, PLUGIN_VERSION } = process.env;
+const {
+	GITHUB_TOKEN,
+	PLUGIN_REPOSITORY,
+	PLUGIN_VERSION,
+	STRIPE_PUB_KEY,
+	STRIPE_SECRET_KEY,
+} = process.env;
 
 /**
  * Helper function to login a WP user and save the state on a given path.
@@ -229,3 +235,51 @@ export const setupWoo = async ( credentials, path ) => {
 		}
 	} );
 };
+
+/**
+ * Helper function to perform the WooCommerce setup.
+ */
+export const setupStripe = ( page ) =>
+	new Promise( ( resolve, reject ) => {
+		( async () => {
+			const nRetries = 5;
+			for ( let i = 0; i < nRetries; i++ ) {
+				try {
+					console.log( '- Trying to setup the Stripe keys...' );
+					await page.goto(
+						`/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe`
+					);
+
+					await page
+						.getByText( /Enter account keys.*/ )
+						.click( { timeout: 5000 } );
+					await page.locator( 'text="Test"' ).click();
+
+					await page
+						.locator( '[name="test_publishable_key"]' )
+						.fill( STRIPE_PUB_KEY );
+					await page
+						.locator( '[name="test_secret_key"]' )
+						.fill( STRIPE_SECRET_KEY );
+					await page
+						.locator( '[name="test_webhook_secret"]' )
+						.fill( 'Some test webhook secret' );
+
+					await page.locator( 'text="Save test keys"' ).click();
+					await page.waitForNavigation( { timeout: 10000 } );
+
+					await expect( page.url ).toContainText( 'section=stripe' );
+
+					console.log( '\u2714 Added Stripe keys successfully.' );
+					resolve();
+					return;
+				} catch ( e ) {
+					console.log(
+						`Failed to add Stripe keys. Retrying... ${ i }/${ nRetries }`
+					);
+					console.log( e );
+				}
+			}
+			reject();
+		} )();
+	} );
