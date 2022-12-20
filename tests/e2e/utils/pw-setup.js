@@ -250,13 +250,12 @@ export const setupStripe = ( page, baseUrl ) =>
 				// Clean-up previous webhooks for this URL. We can only get the Webhook secret via API when it's created.
 				const webhookURL = `${ baseUrl }?wc-api=wc_stripe`;
 
-				const webhooks = await stripe.webhookEndpoints
+				await stripe.webhookEndpoints
 					.list()
 					.then( ( result ) =>
 						result.data.filter( ( w ) => w.url == webhookURL )
 					)
 					.then( async ( webhooks ) => {
-						console.log( webhooks );
 						for ( const webhook of webhooks ) {
 							stripe.webhookEndpoints.del( webhook.id );
 						}

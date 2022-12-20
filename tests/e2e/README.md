@@ -21,9 +21,11 @@ We use [Playwright](https://playwright.dev/) as our test runner.
 
 - Node.js ([Installation instructions](https://nodejs.org/en/download/))
 - NVM ([Installation instructions](https://github.com/nvm-sh/nvm))
+- A test site with SSH access, WP CLI installed in the server, admin credentials (`wp-admin`), and WooCommerce installed. Jurassic Ninja sites are recommended.
+- Test mode keys for a Stripe account.
 
-- Create an admin user and a customer user on the test website.
-- Copy the file `/tests/e2e/config/local.env.example` to `/tests/e2e/config/local.env`. Add the user credentials created above to the `local.env` file.
+- Copy the file `/tests/e2e/config/local.env.example` to `/tests/e2e/config/local.env`.
+- Edit the variables on the `local.env` file.
 
 ### Running tests
 
@@ -38,6 +40,14 @@ The default command to run the tests. It'll run the tests in the URL indicated b
 The plugin release version to be tested. By setting this parameter, the release will be downloaded from GitHub and uploaded to the website indicated on `--base_url` before testing starts.
 
 If no version is passed, the tests will use the version already installed on `--base_url`.
+
+`--with_woo_setup`
+
+Add this option in the first use of a test site. It'll get the SSH credentials from `tests/e2e/config/local.env` to setup the WooCommerce plugin with test products, a store addres, a store currency, and shipping methods. It'll also install and activate the StoreFront theme.
+
+`--with_stripe_setup`
+
+Add this option in the first use of a test site. It'll get the Stripe keys from `tests/e2e/config/local.env` to setup the plugin, create a webhook endpoint on Stripe, and setup the webhook secret in the Stripe plugin.
 
 **⚠️ All the other parameters are passed to the Playwright CLI**
 
