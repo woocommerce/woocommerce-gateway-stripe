@@ -182,14 +182,15 @@ module.exports = async ( config ) => {
 					await wait( 1000 );
 				}
 
-				setupStripe( adminPage )
+				setupStripe( adminPage, baseURL )
 					.then( () => {
 						stripeSetupFinished = true;
 					} )
-					.catch( () => {
+					.catch( ( e ) => {
 						console.error(
 							'Cannot proceed e2e test, as we could not setup Stripe keys in the plugin. Please check if the test site has been setup correctly.'
 						);
+						console.error( e );
 						process.exit( 1 );
 					} );
 			} else {

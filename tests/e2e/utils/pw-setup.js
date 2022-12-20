@@ -237,51 +237,82 @@ export const setupWoo = async ( credentials, path ) => {
 };
 
 /**
- * Helper function to perform the WooCommerce setup.
+ * Helper function to perform the Stripe plugin setup.
  */
-export const setupStripe = ( page ) =>
+export const setupStripe = ( page, baseUrl ) =>
 	new Promise( ( resolve, reject ) => {
 		( async () => {
-			const nRetries = 5;
-			for ( let i = 0; i < nRetries; i++ ) {
-				try {
-					console.log( '- Trying to setup the Stripe keys...' );
-					await page.goto(
-						`/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe`
-					);
+			try {
+				const stripe = require( 'stripe' )(
+					process.env.STRIPE_SECRET_KEY
+				);
 
-					await page
-						.getByText( /Enter account keys.*/ )
-						.click( { timeout: 5000 } );
-					await page.locator( 'text="Test"' ).click();
+				// Clean-up previous webhooks for this URL. We can only get the Webhook secret via API when it's created.
+				const webhookURL = `${ baseUrl }?wc-api=wc_stripe`;
 
-					await page
-						.locator( '[name="test_publishable_key"]' )
-						.fill( STRIPE_PUB_KEY );
-					await page
-						.locator( '[name="test_secret_key"]' )
-						.fill( STRIPE_SECRET_KEY );
-					await page
-						.locator( '[name="test_webhook_secret"]' )
-						.fill( 'Some test webhook secret' );
+				const webhooks = await stripe.webhookEndpoints
+					.list()
+					.then( ( result ) =>
+						result.data.filter( ( w ) => w.url == webhookURL )
+					)
+					.then( async ( webhooks ) => {
+						console.log( webhooks );
+						for ( const webhook of webhooks ) {
+							stripe.webhookEndpoints.del( webhook.id );
+						}
+					} );
 
-					await page.locator( 'text="Save test keys"' ).click();
-					await page.waitForNavigation( { timeout: 10000 } );
+				// Create a new webhook.
+				const webhookEndpoint = await stripe.webhookEndpoints.create( {
+					url: webhookURL,
+					enabled_events: [ '*' ],
+					description: 'Webhook created for E2E tests.',
+				} );
 
-					await expect( page ).toHaveURL(
-						/.*section=stripe&panel=settings.*/
-					);
+				const nRetries = 5;
+				for ( let i = 0; i < nRetries; i++ ) {
+					try {
+						console.log( '- Trying to setup the Stripe keys...' );
+						await page.goto(
+							`/wp-admin/admin.php?page=wc-settings&tab=checkout&section=stripe`
+						);
 
-					console.log( '\u2714 Added Stripe keys successfully.' );
-					resolve();
-					return;
-				} catch ( e ) {
-					console.log(
-						`Failed to add Stripe keys. Retrying... ${ i }/${ nRetries }`
-					);
-					console.log( e );
+						await page
+							.getByText( /Enter account keys.*/ )
+							.click( { timeout: 5000 } );
+						await page.locator( 'text="Test"' ).click();
+
+						await page
+							.locator( '[name="test_publishable_key"]' )
+							.fill( STRIPE_PUB_KEY );
+						await page
+							.locator( '[name="test_secret_key"]' )
+							.fill( STRIPE_SECRET_KEY );
+						await page
+							.locator( '[name="test_webhook_secret"]' )
+							.fill( webhookEndpoint.secret );
+
+						await page.locator( 'text="Save test keys"' ).click();
+						await page.waitForNavigation( { timeout: 10000 } );
+
+						await expect( page ).toHaveURL(
+							/.*section=stripe&panel=settings.*/
+						);
+
+						console.log( '\u2714 Added Stripe keys successfully.' );
+						resolve();
+						return;
+					} catch ( e ) {
+						console.log(
+							`Failed to add Stripe keys. Retrying... ${ i }/${ nRetries }`
+						);
+						console.log( e );
+					}
 				}
+			} catch ( e ) {
+				reject( e );
 			}
+
 			reject();
 		} )();
 	} );
