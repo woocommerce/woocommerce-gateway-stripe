@@ -12,6 +12,10 @@ const {
 	PLUGIN_VERSION,
 	STRIPE_PUB_KEY,
 	STRIPE_SECRET_KEY,
+	SSH_HOST,
+	SSH_USER,
+	SSH_PASSWORD,
+	SSH_PATH,
 } = process.env;
 
 /**
@@ -200,11 +204,48 @@ export const installPluginFromRepository = ( page ) =>
 	} );
 
 /**
- * Helper function to perform the WooCommerce setup.
+ * Helper function to run an array of commands in a SSH server.
+ * @param {Array.<string>} commands The array of commands.
+ * @returns The promise for the SSH connection.
  */
-export const setupWoo = async ( credentials, path ) => {
+const sshExecCommands = async ( commands ) => {
 	const ssh = new NodeSSH();
+	const credentials = getServerCredentialsFromEnv();
+	return ssh.connect( credentials ).then( async () => {
+		for ( const command of commands ) {
+			console.log( command );
+			await ssh
+				.execCommand( command, { cwd: credentials.path } )
+				.then( ( result ) => {
+					console.log( result.stdout );
+				} );
+		}
+	} );
+};
 
+/**
+ * Helper function to get the SSH credentials from the env variables.
+ * @returns the credentials inside an object that is ready to be used in NodeSSH.
+ */
+const getServerCredentialsFromEnv = () => {
+	if ( ! SSH_HOST || ! SSH_USER || ! SSH_PASSWORD || ! SSH_PATH ) {
+		console.error( 'The --woo_setup flag needs SSH credentials!' );
+		process.exit( 1 );
+	}
+
+	return {
+		host: SSH_HOST,
+		username: SSH_USER,
+		password: SSH_PASSWORD,
+		path: SSH_PATH,
+	};
+};
+
+/**
+ * Helper function to perform the WooCommerce setup over SSH.
+ * @returns The promise for the SSH connection.
+ */
+export const setupWoo = async () => {
 	const setupCommands = [
 		'wp theme install storefront --activate',
 		'wp option set woocommerce_store_address "60 29th Street"',
@@ -224,16 +265,7 @@ export const setupWoo = async ( credentials, path ) => {
 		`wp option update --format=json woocommerce_flat_rate_1_settings '{"title":"Flat rate","tax_status":"taxable","cost":"10"}'`,
 	];
 
-	return ssh.connect( credentials ).then( async () => {
-		for ( const command of setupCommands ) {
-			console.log( command );
-			await ssh
-				.execCommand( command, { cwd: path } )
-				.then( ( result ) => {
-					console.log( result.stdout );
-				} );
-		}
-	} );
+	return sshExecCommands( setupCommands );
 };
 
 /**
@@ -243,6 +275,11 @@ export const setupStripe = ( page, baseUrl ) =>
 	new Promise( ( resolve, reject ) => {
 		( async () => {
 			try {
+				// Clean up previous Stripe settings.
+				await sshExecCommands( [
+					'wp option delete woocommerce_stripe_settings',
+				] );
+
 				const stripe = require( 'stripe' )(
 					process.env.STRIPE_SECRET_KEY
 				);

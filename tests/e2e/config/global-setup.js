@@ -62,18 +62,7 @@ module.exports = async ( config ) => {
 
 	// Setup WooCommerce before any browser interaction.
 	if ( WOO_SETUP ) {
-		if ( ! SSH_HOST || ! SSH_USER || ! SSH_PASSWORD || ! SSH_PATH ) {
-			console.error( 'The --woo_setup flag needs SSH credentials!' );
-			process.exit( 1 );
-		}
-		await setupWoo(
-			{
-				host: SSH_HOST,
-				username: SSH_USER,
-				password: SSH_PASSWORD,
-			},
-			SSH_PATH
-		).catch( ( e ) => {
+		await setupWoo().catch( ( e ) => {
 			console.error( e );
 			console.error(
 				'Cannot proceed e2e test, as we could not update the plugin. Please check if the test site has been setup correctly.'
