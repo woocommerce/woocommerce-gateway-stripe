@@ -178,13 +178,26 @@ export const installPluginFromRepository = ( page ) =>
 			} );
 			await page.click( "input[type='submit'] >> text=Install Now" );
 
-			await page.click( 'text=Replace current with uploaded', {
-				timeout: 10000,
-			} );
+			try {
+				await page.click( 'text=Replace current with uploaded', {
+					timeout: 10000,
+				} );
 
-			await expect(
-				page.locator( '#wpbody-content .wrap' )
-			).toContainText( /Plugin (?:downgraded|updated) successfully/gi );
+				await expect(
+					page.locator( '#wpbody-content .wrap' )
+				).toContainText(
+					/Plugin (?:downgraded|updated) successfully/gi
+				);
+			} catch ( e ) {
+				// Stripe wasn't installed on this site.
+				await expect(
+					page.locator( '#wpbody-content .wrap' )
+				).toContainText( /Plugin installed successfully/gi );
+
+				await page.click( 'text=Activate Plugin', {
+					timeout: 10000,
+				} );
+			}
 
 			await page.goto( 'wp-admin/plugins.php', {
 				waitUntil: 'networkidle',
@@ -229,7 +242,9 @@ const sshExecCommands = async ( commands ) => {
  */
 const getServerCredentialsFromEnv = () => {
 	if ( ! SSH_HOST || ! SSH_USER || ! SSH_PASSWORD || ! SSH_PATH ) {
-		console.error( 'The --woo_setup flag needs SSH credentials!' );
+		console.error(
+			'The --with_woo_setup and --with_stripe_setup flags need SSH credentials!'
+		);
 		process.exit( 1 );
 	}
 
@@ -247,6 +262,7 @@ const getServerCredentialsFromEnv = () => {
  */
 export const setupWoo = async () => {
 	const setupCommands = [
+		'wp plugin install woocommerce --force --activate',
 		'wp theme install storefront --activate',
 		'wp option set woocommerce_store_address "60 29th Street"',
 		'wp option set woocommerce_store_address_2 "#343"',

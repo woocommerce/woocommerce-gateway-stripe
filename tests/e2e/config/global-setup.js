@@ -20,10 +20,6 @@ const {
 	PLUGIN_VERSION,
 	WOO_SETUP,
 	STRIPE_SETUP,
-	SSH_HOST,
-	SSH_USER,
-	SSH_PASSWORD,
-	SSH_PATH,
 } = process.env;
 
 const adminUsername = ADMIN_USER ?? 'admin';
