@@ -6,7 +6,6 @@ const { chromium } = require( '@playwright/test' );
 const fs = require( 'fs' );
 
 const {
-	loginCustomerAndSaveState,
 	loginAdminAndSaveState,
 	createApiTokens,
 	installPluginFromRepository,
@@ -18,9 +17,6 @@ const {
 	ADMIN_USER,
 	ADMIN_PASSWORD,
 	ADMINSTATE,
-	CUSTOMER_USER,
-	CUSTOMER_PASSWORD,
-	CUSTOMERSTATE,
 	PLUGIN_VERSION,
 	WOO_SETUP,
 	STRIPE_SETUP,
@@ -32,8 +28,6 @@ const {
 
 const adminUsername = ADMIN_USER ?? 'admin';
 const adminPassword = ADMIN_PASSWORD ?? 'password';
-const customerUsername = CUSTOMER_USER ?? 'customer';
-const customerPassword = CUSTOMER_PASSWORD ?? 'password';
 
 function wait( milliseconds ) {
 	return new Promise( ( resolve ) => {
@@ -53,9 +47,8 @@ module.exports = async ( config ) => {
 
 	// used throughout tests for authentication
 	process.env.ADMINSTATE = `${ stateDir }adminState.json`;
-	process.env.CUSTOMERSTATE = `${ stateDir }customerState.json`;
 
-	// Clear out the previous save states
+	// Clear out the previous saved states
 	try {
 		fs.unlinkSync( process.env.ADMINSTATE );
 		console.log( 'Admin state file deleted successfully.' );
@@ -66,20 +59,10 @@ module.exports = async ( config ) => {
 			console.log( 'Admin state file could not be deleted: ' + err );
 		}
 	}
-	try {
-		fs.unlinkSync( process.env.CUSTOMERSTATE );
-		console.log( 'Customer state file deleted successfully.' );
-	} catch ( err ) {
-		if ( err.code === 'ENOENT' ) {
-			console.log( 'Customer state file does not exist.' );
-		} else {
-			console.log( 'Customer state file could not be deleted: ' + err );
-		}
-	}
 
 	// Setup WooCommerce before any browser interaction.
 	if ( WOO_SETUP ) {
-		if ( ! SSH_HOST || ! SSH_USER || ! SSH_PASSWORD ) {
+		if ( ! SSH_HOST || ! SSH_USER || ! SSH_PASSWORD || ! SSH_PATH ) {
 			console.error( 'The --woo_setup flag needs SSH credentials!' );
 			process.exit( 1 );
 		}
@@ -101,7 +84,6 @@ module.exports = async ( config ) => {
 		console.log( 'Skipping Woo Setup.' );
 	}
 
-	let customerSetupReady = false;
 	let adminSetupReady = false;
 
 	// Specify user agent when running against an external test site to avoid getting HTTP 406 NOT ACCEPTABLE errors.
@@ -110,26 +92,7 @@ module.exports = async ( config ) => {
 	// Create browser, browserContext, and page for customer and admin users
 	const browser = await chromium.launch();
 	const adminContext = await browser.newContext( contextOptions );
-	const customerContext = await browser.newContext( contextOptions );
 	const adminPage = await adminContext.newPage();
-	const customerPage = await customerContext.newPage();
-
-	loginCustomerAndSaveState( {
-		page: customerPage,
-		username: customerUsername,
-		password: customerPassword,
-		statePath: CUSTOMERSTATE,
-		retries: 5,
-	} )
-		.then( async () => {
-			customerSetupReady = true;
-		} )
-		.catch( () => {
-			console.error(
-				'Cannot proceed e2e test, as customer login failed. Please check if the test site has been setup correctly.'
-			);
-			process.exit( 1 );
-		} );
 
 	loginAdminAndSaveState( {
 		page: adminPage,
@@ -143,17 +106,17 @@ module.exports = async ( config ) => {
 			const updatePluginPage = await adminContext.newPage();
 
 			// create consumer token and update plugin in parallel.
-			let customerTokenFinished = false;
+			let restApiKeysFinished = false;
 			let pluginUpdateFinished = false;
 			let stripeSetupFinished = false;
 
 			createApiTokens( apiTokensPage )
 				.then( () => {
-					customerTokenFinished = true;
+					restApiKeysFinished = true;
 				} )
 				.catch( () => {
 					console.error(
-						'Cannot proceed e2e test, as we could not set the customer key. Please check if the test site has been setup correctly.'
+						'Cannot proceed e2e test, as we could not create a WC REST API key. Please check if the test site has been setup correctly.'
 					);
 					process.exit( 1 );
 				} );
@@ -163,7 +126,8 @@ module.exports = async ( config ) => {
 					.then( () => {
 						pluginUpdateFinished = true;
 					} )
-					.catch( () => {
+					.catch( ( e ) => {
+						console.error( e );
 						console.error(
 							'Cannot proceed e2e test, as we could not update the plugin. Please check if the test site has been setup correctly.'
 						);
@@ -178,7 +142,6 @@ module.exports = async ( config ) => {
 
 			if ( STRIPE_SETUP ) {
 				while ( PLUGIN_VERSION && ! pluginUpdateFinished ) {
-					console.log( '*** Waiting plugin install to be finished' );
 					await wait( 1000 );
 				}
 
@@ -187,10 +150,10 @@ module.exports = async ( config ) => {
 						stripeSetupFinished = true;
 					} )
 					.catch( ( e ) => {
+						console.error( e );
 						console.error(
 							'Cannot proceed e2e test, as we could not setup Stripe keys in the plugin. Please check if the test site has been setup correctly.'
 						);
-						console.error( e );
 						process.exit( 1 );
 					} );
 			} else {
@@ -202,7 +165,7 @@ module.exports = async ( config ) => {
 
 			while (
 				! pluginUpdateFinished ||
-				! customerTokenFinished ||
+				! restApiKeysFinished ||
 				! stripeSetupFinished
 			) {
 				await wait( 1000 );
@@ -218,12 +181,11 @@ module.exports = async ( config ) => {
 			process.exit( 1 );
 		} );
 
-	while ( ! customerSetupReady || ! adminSetupReady ) {
+	while ( ! adminSetupReady ) {
 		await wait( 1000 );
 	}
 
 	await adminContext.close();
-	await customerContext.close();
 	await browser.close();
 
 	console.timeEnd( 'Total Setup Time' );
