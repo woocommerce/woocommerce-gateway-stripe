@@ -3,6 +3,7 @@ tasks:
       nvm i && nvm use
       npm i
       npm run build
+      npm run up
   - command: |
       nvm i && nvm use
       npm run up
