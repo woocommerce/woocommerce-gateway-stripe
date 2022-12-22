@@ -1,0 +1,16 @@
+tasks:
+  - init: |
+      nvm i && nvm use
+      npm i
+      npm run build
+  - command: |
+      nvm i && nvm use
+      npm run up
+
+ports:
+  - port: 8082
+    onOpen: open-browser
+    visibility: public
+    name: Website
+    description: Website Preview
+
