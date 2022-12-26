@@ -14,6 +14,7 @@ const {
 } = require( '../utils/pw-setup' );
 
 const {
+	BASE_URL,
 	ADMIN_USER,
 	ADMIN_PASSWORD,
 	ADMINSTATE,
@@ -38,13 +39,12 @@ module.exports = async ( config ) => {
 	console.time( 'Total Setup Time' );
 	const { stateDir, baseURL, userAgent } = config.projects[ 0 ].use;
 
-	console.log( `Base URL: ${ baseURL }` );
-	if ( PLUGIN_VERSION ) {
-		console.log( `Plugin Version: ${ PLUGIN_VERSION }` );
-	}
-	console.log( `\n======\n` );
-
 	// Validate env variables are present.
+	if ( ! BASE_URL ) {
+		console.error( 'The --base_url parameter is mandatory.' );
+		process.exit( 1 );
+	}
+
 	if ( ! ADMIN_USER || ! ADMIN_PASSWORD ) {
 		console.error(
 			'Cannot proceed e2e test, ADMIN_USER and ADMIN_PASSWORD secrets are not set. Please check your local.env file.'
@@ -68,6 +68,12 @@ module.exports = async ( config ) => {
 		);
 		process.exit( 1 );
 	}
+
+	console.log( `Base URL: ${ baseURL }` );
+	if ( PLUGIN_VERSION ) {
+		console.log( `Plugin Version: ${ PLUGIN_VERSION }` );
+	}
+	console.log( `\n======\n` );
 
 	// used throughout tests for authentication
 	process.env.ADMINSTATE = `${ stateDir }adminState.json`;
