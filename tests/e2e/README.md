@@ -29,6 +29,12 @@ We use [Playwright](https://playwright.dev/) as our test runner.
 
 ### Running tests
 
+**Set up**
+
+`npm run test:e2e-setup -- --base_url=SOME_URL_HERE`
+
+This command will perform the WooCommerce setup and the Stripe setup in a new Jurassic ninja site. The SSH and admin credentials are mandatory (view the parameters `--with_woo_setup` and `--with_stripe_setup` below for more info).
+
 `npm run test:e2e -- --base_url=SOME_URL_HERE`
 
 The default command to run the tests. It'll run the tests in the URL indicated by the `--base_url` parameter.
