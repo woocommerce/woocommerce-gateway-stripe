@@ -22,9 +22,6 @@ const {
 	STRIPE_SETUP,
 } = process.env;
 
-const adminUsername = ADMIN_USER ?? 'admin';
-const adminPassword = ADMIN_PASSWORD ?? 'password';
-
 function wait( milliseconds ) {
 	return new Promise( ( resolve ) => {
 		setTimeout( resolve, milliseconds );
@@ -40,6 +37,14 @@ module.exports = async ( config ) => {
 		console.log( `Plugin Version: ${ PLUGIN_VERSION }` );
 	}
 	console.log( `\n======\n` );
+
+	// Validate env variables are present.
+	if ( ! ADMIN_USER || ! ADMIN_PASSWORD ) {
+		console.error(
+			'Cannot proceed e2e test, ADMIN_USER and ADMIN_PASSWORD were not found. Please check your local.env file.'
+		);
+		process.exit( 1 );
+	}
 
 	// used throughout tests for authentication
 	process.env.ADMINSTATE = `${ stateDir }adminState.json`;
@@ -81,8 +86,8 @@ module.exports = async ( config ) => {
 
 	loginAdminAndSaveState( {
 		page: adminPage,
-		username: adminUsername,
-		password: adminPassword,
+		username: ADMIN_USER,
+		password: ADMIN_PASSWORD,
 		statePath: ADMINSTATE,
 		retries: 5,
 	} )

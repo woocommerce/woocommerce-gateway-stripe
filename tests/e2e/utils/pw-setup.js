@@ -291,6 +291,13 @@ export const setupStripe = ( page, baseUrl ) =>
 	new Promise( ( resolve, reject ) => {
 		( async () => {
 			try {
+				if ( ! STRIPE_PUB_KEY || ! STRIPE_SECRET_KEY ) {
+					console.error(
+						'The Stripe setup needs that the STRIPE_PUB_KEY and the STRIPE_SECRET_KEY secrets are set in your local.env file.'
+					);
+					process.exit( 1 );
+				}
+
 				// Clean up previous Stripe settings.
 				await sshExecCommands( [
 					'wp option delete woocommerce_stripe_settings',
