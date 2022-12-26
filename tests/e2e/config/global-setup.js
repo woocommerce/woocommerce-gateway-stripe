@@ -20,6 +20,12 @@ const {
 	PLUGIN_VERSION,
 	WOO_SETUP,
 	STRIPE_SETUP,
+	STRIPE_PUB_KEY,
+	STRIPE_SECRET_KEY,
+	SSH_HOST,
+	SSH_USER,
+	SSH_PASSWORD,
+	SSH_PATH,
 } = process.env;
 
 function wait( milliseconds ) {
