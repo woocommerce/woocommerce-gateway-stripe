@@ -241,13 +241,6 @@ const sshExecCommands = async ( commands ) => {
  * @returns the credentials inside an object that is ready to be used in NodeSSH.
  */
 const getServerCredentialsFromEnv = () => {
-	if ( ! SSH_HOST || ! SSH_USER || ! SSH_PASSWORD || ! SSH_PATH ) {
-		console.error(
-			'The --with_woo_setup and --with_stripe_setup flags need SSH credentials!'
-		);
-		process.exit( 1 );
-	}
-
 	return {
 		host: SSH_HOST,
 		username: SSH_USER,
@@ -291,13 +284,6 @@ export const setupStripe = ( page, baseUrl ) =>
 	new Promise( ( resolve, reject ) => {
 		( async () => {
 			try {
-				if ( ! STRIPE_PUB_KEY || ! STRIPE_SECRET_KEY ) {
-					console.error(
-						'The Stripe setup needs that the STRIPE_PUB_KEY and the STRIPE_SECRET_KEY secrets are set in your local.env file.'
-					);
-					process.exit( 1 );
-				}
-
 				// Clean up previous Stripe settings.
 				await sshExecCommands( [
 					'wp option delete woocommerce_stripe_settings',

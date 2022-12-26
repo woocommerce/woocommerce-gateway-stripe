@@ -41,7 +41,24 @@ module.exports = async ( config ) => {
 	// Validate env variables are present.
 	if ( ! ADMIN_USER || ! ADMIN_PASSWORD ) {
 		console.error(
-			'Cannot proceed e2e test, ADMIN_USER and ADMIN_PASSWORD were not found. Please check your local.env file.'
+			'Cannot proceed e2e test, ADMIN_USER and ADMIN_PASSWORD secrets are not set. Please check your local.env file.'
+		);
+		process.exit( 1 );
+	}
+
+	if (
+		WOO_SETUP &&
+		( ! SSH_HOST || ! SSH_USER || ! SSH_PASSWORD || ! SSH_PATH )
+	) {
+		console.error(
+			'The WooCommerce setup needs SSH credentials (SSH_HOST, SSH_USER, SSH_PASSWORD, SSH_PATH) in your local.env file.'
+		);
+		process.exit( 1 );
+	}
+
+	if ( STRIPE_SETUP && ( ! STRIPE_PUB_KEY || ! STRIPE_SECRET_KEY ) ) {
+		console.error(
+			'The Stripe setup needs that the STRIPE_PUB_KEY and the STRIPE_SECRET_KEY secrets are set in your local.env file.'
 		);
 		process.exit( 1 );
 	}
