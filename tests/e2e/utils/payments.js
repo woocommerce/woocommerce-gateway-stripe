@@ -46,17 +46,24 @@ export async function fillCardDetails( page, card ) {
 		);
 		await stripeFrame.fill( '[name="cvc"]', card.cvc );
 	} else {
-		const frameHandle = await page.$(
-			'#payment #stripe-card-element iframe[name^="__privateStripeFrame"]'
-		);
-		const stripeFrame = await frameHandle.contentFrame();
-
-		await stripeFrame.fill( '[name="cardnumber"]', card.number );
-		await stripeFrame.fill(
-			'[name="exp-date"]',
-			card.expires.month + card.expires.year
-		);
-		await stripeFrame.fill( '[name="cvc"]', card.cvc );
+		await page
+			.frameLocator(
+				'#stripe-card-element iframe[name^="__privateStripeFrame"]'
+			)
+			.locator( '[name="cardnumber"]' )
+			.fill( card.number );
+		await page
+			.frameLocator(
+				'#stripe-exp-element iframe[name^="__privateStripeFrame"]'
+			)
+			.locator( '[name="exp-date"]' )
+			.fill( card.expires.month + card.expires.year );
+		await page
+			.frameLocator(
+				'#stripe-cvc-element iframe[name^="__privateStripeFrame"]'
+			)
+			.locator( '[name="cvc"]' )
+			.fill( card.cvc );
 	}
 }
 
