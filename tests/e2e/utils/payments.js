@@ -122,22 +122,10 @@ export async function setupProductCheckout(
 export async function setupCheckout( page, billingDetails ) {
 	await page.goto( '/checkout/' );
 
-	// Map the html field name to the field name in test.json .
-	const inputMap = {
-		first_name: 'firstname',
-		last_name: 'lastname',
-		postcode: 'postcode',
-		city: 'city',
-		address_1: 'addressfirstline',
-		address_2: 'addresssecondline',
-		phone: 'phone',
-		email: 'email',
-	};
-
-	for ( const fieldName of Object.keys( inputMap ) ) {
+	for ( const fieldName of Object.keys( billingDetails ) ) {
 		await page.fill(
 			`#billing_${ fieldName }`,
-			billingDetails[ inputMap[ fieldName ] ]
+			billingDetails[ billingDetails[ fieldName ] ]
 		);
 	}
 
