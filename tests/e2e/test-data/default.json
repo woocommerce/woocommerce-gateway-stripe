@@ -34,7 +34,6 @@
         "country": "US",
         "address_1": "60 29th Street #343",
         "address_2": "store",
-        "countryandstate": "United States (US) — California",
         "city": "San Francisco",
         "state": "CA",
         "postcode": "94110",
@@ -64,9 +63,7 @@
         "address_2": "shipping",
         "city": "New York",
         "state": "New York",
-        "postcode": "10012",
-        "phone": "8772733049",
-        "email": "e2e-customer-shipping@woocommerce.com"
+        "postcode": "10012"
       }
     }
   },

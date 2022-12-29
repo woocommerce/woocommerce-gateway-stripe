@@ -119,17 +119,30 @@ export async function setupProductCheckout(
  * @param {*} page Playwright page fixture.
  * @param {*} billingDetails The billing details.
  */
-export async function setupCheckout( page, billingDetails ) {
+export async function setupCheckout(
+	page,
+	billingDetails,
+	skipBillingFields = false
+) {
 	await page.goto( '/checkout/' );
 
-	for ( const fieldName of Object.keys( billingDetails ) ) {
-		await page.fill(
-			`#billing_${ fieldName }`,
-			billingDetails[ billingDetails[ fieldName ] ]
+	if ( ! skipBillingFields ) {
+		await page.selectOption(
+			'#billing_country',
+			billingDetails[ 'country' ]
 		);
-	}
+		await page.selectOption( '#billing_state', billingDetails[ 'state' ] );
 
-	await page.selectOption( '#billing_state', billingDetails[ 'state' ] );
+		for ( const fieldName of Object.keys( billingDetails ) ) {
+			if ( [ 'state', 'country' ].includes( fieldName ) ) {
+				continue;
+			}
+			await page.fill(
+				`#billing_${ fieldName }`,
+				billingDetails[ fieldName ]
+			);
+		}
+	}
 
 	await page.click( '.wc_payment_method.payment_method_stripe' );
 }
