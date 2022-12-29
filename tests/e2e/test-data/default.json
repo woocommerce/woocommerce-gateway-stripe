@@ -147,7 +147,8 @@
         "year": "25"
       },
       "cvc": "626",
-      "label": "Visa ending in 0002"
+      "label": "Visa ending in 0002",
+      "error" : "The card was declined."
     },
     "declined-funds": {
       "number": "4000000000009995",
@@ -156,7 +157,8 @@
         "year": "25"
       },
       "cvc": "626",
-      "label": "Visa ending in 9995"
+      "label": "Visa ending in 9995",
+      "error" : "The card was declined."
     },
     "declined-incorrect": {
       "number": "4242424242424241",
@@ -165,7 +167,8 @@
         "year": "25"
       },
       "cvc": "626",
-      "label": "Visa ending in 4241"
+      "label": "Visa ending in 4241",
+      "error" : "The card number is not a valid credit card number."
     },
     "declined-expired": {
       "number": "4000000000000069",
@@ -174,7 +177,8 @@
         "year": "25"
       },
       "cvc": "626",
-      "label": "Visa ending in 0069"
+      "label": "Visa ending in 0069",
+      "error" : "The card has expired."
     },
     "declined-cvc": {
       "number": "4000000000000127",
@@ -183,7 +187,8 @@
         "year": "25"
       },
       "cvc": "626",
-      "label": "Visa ending in 0127"
+      "label": "Visa ending in 0127",
+      "error" : "The card's security code is incorrect."
     },
     "declined-processing": {
       "number": "4000000000000119",
@@ -192,7 +197,8 @@
         "year": "25"
       },
       "cvc": "626",
-      "label": "Visa ending in 0119"
+      "label": "Visa ending in 0119",
+      "error" : "An error occurred while processing your card. Try again in a little bit."
     },
     "declined-3ds": {
       "number": "4000008400001629",
