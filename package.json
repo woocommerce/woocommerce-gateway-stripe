@@ -25,6 +25,7 @@
     "@woocommerce/dependency-extraction-webpack-plugin": "^1.4.0",
     "@woocommerce/eslint-plugin": "^1.3.0",
     "@woocommerce/navigation": "^6.1.0",
+    "@woocommerce/woocommerce-rest-api": "^1.0.1",
     "@wordpress/api-fetch": "^5.2.1",
     "@wordpress/babel-plugin-makepot": "^4.2.0",
     "@wordpress/babel-preset-default": "^6.3.1",
