@@ -7,18 +7,17 @@ const {
 	fillCardDetails,
 } = require( '../../utils/payments' );
 
-test.beforeEach( async ( { page } ) => {
-	await emptyCart( page );
-	await setupProductCheckout( page );
-	await setupCheckout( page, config.get( 'addresses.customer.billing' ) );
-} );
-
 test( 'customer can checkout with a normal credit card @smoke', async ( {
 	page,
 } ) => {
+	await emptyCart( page );
+
+	await setupProductCheckout( page );
+	await setupCheckout( page, config.get( 'addresses.customer.billing' ) );
 	await fillCardDetails( page, config.get( 'cards.basic' ) );
 	await page.locator( 'text=Place order' ).click();
 	await page.waitForNavigation();
+
 	await expect( page.locator( 'h1.entry-title' ) ).toHaveText(
 		'Order received'
 	);
