@@ -145,6 +145,7 @@
     "jt:start": "./docker/bin/jt/tunnel.sh",
     "jt:stop": "./docker/bin/jt/tunnel.sh break",
     "test:e2e": "./tests/e2e/env/e2e.sh",
+    "test:e2e-smoke": "./tests/e2e/env/e2e.sh --grep @smoke",
     "test:e2e-setup": "./tests/e2e/env/e2e.sh --with_woo_setup --with_stripe_setup",
     "test:e2e-debug": "./tests/e2e/env/e2e.sh --debug"
   },
