@@ -14,6 +14,7 @@ test.beforeEach( async ( { page } ) => {
 } );
 
 // Checkout failures (with various cards)
+// @TODO group tests using describe and create a new test inside the loop. Give a name to the tests in the cards array.
 test( 'customer cannot checkout with invalid cards @smoke', async ( {
 	page,
 } ) => {
