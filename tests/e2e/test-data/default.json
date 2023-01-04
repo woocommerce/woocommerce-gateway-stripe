@@ -198,7 +198,7 @@
       },
       "cvc": "626",
       "label": "Visa ending in 0119",
-      "error" : "An error occurred while processing your card. Try again in a little bit."
+      "error" : "An error occurred while processing the card."
     },
     "declined-3ds": {
       "number": "4000008400001629",
