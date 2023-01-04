@@ -256,6 +256,7 @@ const getServerCredentialsFromEnv = () => {
 export const setupWoo = async () => {
 	const setupCommands = [
 		'wp plugin install woocommerce --force --activate',
+		'wp plugin install woocommerce-gateway-stripe --activate',
 		'wp theme install storefront --activate',
 		'wp option set woocommerce_store_address "60 29th Street"',
 		'wp option set woocommerce_store_address_2 "#343"',
