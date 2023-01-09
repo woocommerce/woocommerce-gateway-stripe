@@ -1,4 +1,4 @@
-const { devices } = require( '@playwright/test' );
+import { devices } from '@playwright/test';
 const {
 	ALLURE_RESULTS_DIR,
 	BASE_URL,

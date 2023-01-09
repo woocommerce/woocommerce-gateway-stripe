@@ -1,17 +1,18 @@
-require( 'dotenv' ).config( {
+import { chromium } from '@playwright/test';
+import fs from 'fs';
+
+import { config } from 'dotenv';
+config( {
 	path: `${ process.env.E2E_ROOT }/config/local.env`,
 } );
 
-const { chromium } = require( '@playwright/test' );
-const fs = require( 'fs' );
-
-const {
+import {
 	loginAdminAndSaveState,
 	createApiTokens,
 	installPluginFromRepository,
 	setupWoo,
 	setupStripe,
-} = require( '../utils/pw-setup' );
+} from '../utils/pw-setup';
 
 const {
 	BASE_URL,

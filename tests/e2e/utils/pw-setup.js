@@ -1,10 +1,10 @@
-import { resolve } from 'path';
+import path from 'path';
 
-const { expect } = require( '@playwright/test' );
+import stripe from 'stripe';
 
-const { NodeSSH } = require( 'node-ssh' );
-const path = require( 'path' );
-const { downloadZip, getReleaseZipUrl } = require( '../utils/plugin-utils' );
+import { expect } from '@playwright/test';
+import { NodeSSH } from 'node-ssh';
+import { downloadZip, getReleaseZipUrl } from '../utils/plugin-utils';
 
 const {
 	GITHUB_TOKEN,
@@ -290,30 +290,30 @@ export const setupStripe = ( page, baseUrl ) =>
 					'wp option delete woocommerce_stripe_settings',
 				] );
 
-				const stripe = require( 'stripe' )(
-					process.env.STRIPE_SECRET_KEY
-				);
+				const stripeClient = stripe( process.env.STRIPE_SECRET_KEY );
 
 				// Clean-up previous webhooks for this URL. We can only get the Webhook secret via API when it's created.
 				const webhookURL = `${ baseUrl }?wc-api=wc_stripe`;
 
-				await stripe.webhookEndpoints
+				await stripeClient.webhookEndpoints
 					.list()
 					.then( ( result ) =>
 						result.data.filter( ( w ) => w.url == webhookURL )
 					)
 					.then( async ( webhooks ) => {
 						for ( const webhook of webhooks ) {
-							stripe.webhookEndpoints.del( webhook.id );
+							stripeClient.webhookEndpoints.del( webhook.id );
 						}
 					} );
 
 				// Create a new webhook.
-				const webhookEndpoint = await stripe.webhookEndpoints.create( {
-					url: webhookURL,
-					enabled_events: [ '*' ],
-					description: 'Webhook created for E2E tests.',
-				} );
+				const webhookEndpoint = await stripeClient.webhookEndpoints.create(
+					{
+						url: webhookURL,
+						enabled_events: [ '*' ],
+						description: 'Webhook created for E2E tests.',
+					}
+				);
 
 				const nRetries = 5;
 				for ( let i = 0; i < nRetries; i++ ) {

@@ -1,5 +1,5 @@
-const wcApi = require( '@woocommerce/woocommerce-rest-api' ).default;
-const config = require( '../config/playwright.config' );
+import wcApi from '@woocommerce/woocommerce-rest-api';
+import config from '../config/playwright.config';
 
 let api;
 

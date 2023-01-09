@@ -1,5 +1,5 @@
-const api = require( './api' );
-const payments = require( './payments' );
+import api from './api';
+import payments from './payments';
 
 module.exports = {
 	api,

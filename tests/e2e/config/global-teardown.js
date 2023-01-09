@@ -1,11 +1,11 @@
-const path = require( 'path' );
+import path from 'path';
 
-const { chromium } = require( '@playwright/test' );
+import { chromium } from '@playwright/test';
+import { getReleaseZipUrl, deleteZip } from '../utils/plugin-utils';
+
 const { ADMIN_USER, ADMIN_PASSWORD, PLUGIN_VERSION } = process.env;
 const adminUsername = ADMIN_USER ?? 'admin';
 const adminPassword = ADMIN_PASSWORD ?? 'password';
-
-const { getReleaseZipUrl, deleteZip } = require( '../utils/plugin-utils' );
 
 module.exports = async ( config ) => {
 	const { baseURL, userAgent } = config.projects[ 0 ].use;

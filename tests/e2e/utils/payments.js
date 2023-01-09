@@ -1,4 +1,4 @@
-const { expect } = require( '@playwright/test' );
+import { expect } from '@playwright/test';
 import config from 'config';
 
 export async function emptyCart( page ) {
