@@ -1,3 +1,7 @@
+require( 'dotenv' ).config( {
+	path: `${ process.env.E2E_ROOT }/config/local.env`,
+} );
+
 import path from 'path';
 
 import stripe from 'stripe';

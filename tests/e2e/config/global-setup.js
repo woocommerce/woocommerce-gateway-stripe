@@ -1,10 +1,9 @@
-import { chromium } from '@playwright/test';
-import fs from 'fs';
-
-import { config } from 'dotenv';
-config( {
+require( 'dotenv' ).config( {
 	path: `${ process.env.E2E_ROOT }/config/local.env`,
 } );
+
+import { chromium } from '@playwright/test';
+import fs from 'fs';
 
 import {
 	loginAdminAndSaveState,
