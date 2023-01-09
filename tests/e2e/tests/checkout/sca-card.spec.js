@@ -1,11 +1,13 @@
-const { test, expect } = require( '@playwright/test' );
+import { test, expect } from '@playwright/test';
 import config from 'config';
+import { payments } from '../../utils';
+
 const {
 	emptyCart,
 	setupProductCheckout,
 	setupCheckout,
 	fillCardDetails,
-} = require( '../../utils/payments' );
+} = payments;
 
 test( 'customer can checkout with a SCA card @smoke', async ( { page } ) => {
 	await emptyCart( page );

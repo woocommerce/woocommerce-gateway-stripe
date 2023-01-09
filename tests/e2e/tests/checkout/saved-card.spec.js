@@ -1,4 +1,4 @@
-const { test, expect } = require( '@playwright/test' );
+import { test, expect } from '@playwright/test';
 import config from 'config';
 import { payments, api } from '../../utils';
 
@@ -8,7 +8,6 @@ const {
 	setupCheckout,
 	fillCardDetails,
 } = payments;
-const { CONSUMER_KEY, CONSUMER_SECRET } = process.env;
 
 let username, userEmail;
 
