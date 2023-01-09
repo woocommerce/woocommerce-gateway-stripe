@@ -1,5 +1,5 @@
-import api from './api';
-import payments from './payments';
+import * as api from './api';
+import * as payments from './payments';
 
 module.exports = {
 	api,
