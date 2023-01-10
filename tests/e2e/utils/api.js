@@ -27,11 +27,23 @@ const constructWith = ( consumerKey, consumerSecret ) => {
 
 const create = {
 	customer: async ( customer ) => {
-		const response = await api.post( 'customers', {
+		let customerParams = {
 			...customer,
+			billing: {
+				...customer.billing,
+				country: customer.billing.country_iso,
+				state: customer.billing.state_iso,
+			},
+			shipping: {
+				...customer.shipping,
+				country: customer.shipping.country_iso,
+				state: customer.shipping.state_iso,
+			},
 			first_name: customer.billing.first_name,
 			last_name: customer.billing.last_name,
-		} );
+		};
+
+		const response = await api.post( 'customers', customerParams );
 
 		return response.data.id;
 	},
