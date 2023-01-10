@@ -1,10 +1,15 @@
-const { expect } = require( '@playwright/test' );
+import * as dotenv from 'dotenv';
+import path from 'path';
 
-const { NodeSSH } = require( 'node-ssh' );
-const path = require( 'path' );
-const fs = require( 'fs' );
+import stripe from 'stripe';
 
-const { downloadZip, getReleaseZipUrl } = require( '../utils/plugin-utils' );
+import { expect } from '@playwright/test';
+import { NodeSSH } from 'node-ssh';
+import { downloadZip, getReleaseZipUrl } from '../utils/plugin-utils';
+
+dotenv.config( {
+	path: `${ process.env.E2E_ROOT }/config/local.env`,
+} );
 
 const {
 	E2E_ROOT,
@@ -270,6 +275,7 @@ export const setupWoo = async () => {
 
 	const setupCommands = [
 		'wp plugin install woocommerce --force --activate',
+		'wp plugin install woocommerce-gateway-stripe --activate',
 		'wp theme install storefront --activate',
 		'wp option set woocommerce_store_address "60 29th Street"',
 		'wp option set woocommerce_store_address_2 "#343"',
@@ -305,30 +311,30 @@ export const setupStripe = ( page, baseUrl ) =>
 					'wp option delete woocommerce_stripe_settings',
 				] );
 
-				const stripe = require( 'stripe' )(
-					process.env.STRIPE_SECRET_KEY
-				);
+				const stripeClient = stripe( process.env.STRIPE_SECRET_KEY );
 
 				// Clean-up previous webhooks for this URL. We can only get the Webhook secret via API when it's created.
 				const webhookURL = `${ baseUrl }?wc-api=wc_stripe`;
 
-				await stripe.webhookEndpoints
+				await stripeClient.webhookEndpoints
 					.list()
 					.then( ( result ) =>
 						result.data.filter( ( w ) => w.url == webhookURL )
 					)
 					.then( async ( webhooks ) => {
 						for ( const webhook of webhooks ) {
-							stripe.webhookEndpoints.del( webhook.id );
+							stripeClient.webhookEndpoints.del( webhook.id );
 						}
 					} );
 
 				// Create a new webhook.
-				const webhookEndpoint = await stripe.webhookEndpoints.create( {
-					url: webhookURL,
-					enabled_events: [ '*' ],
-					description: 'Webhook created for E2E tests.',
-				} );
+				const webhookEndpoint = await stripeClient.webhookEndpoints.create(
+					{
+						url: webhookURL,
+						enabled_events: [ '*' ],
+						description: 'Webhook created for E2E tests.',
+					}
+				);
 
 				const nRetries = 5;
 				for ( let i = 0; i < nRetries; i++ ) {

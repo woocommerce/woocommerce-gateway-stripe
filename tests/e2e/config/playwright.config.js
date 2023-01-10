@@ -1,4 +1,4 @@
-const { devices } = require( '@playwright/test' );
+import { devices } from '@playwright/test';
 const {
 	ALLURE_RESULTS_DIR,
 	BASE_URL,
@@ -19,7 +19,7 @@ const config = {
 	retries: CI ? 4 : 2,
 	workers: 4,
 	reporter: [
-		[ 'line' ],
+		[ CI ? 'github' : 'list' ],
 		[
 			'html',
 			{
