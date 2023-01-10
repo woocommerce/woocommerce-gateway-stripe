@@ -1,12 +1,13 @@
-import { resolve } from 'path';
-
 const { expect } = require( '@playwright/test' );
 
 const { NodeSSH } = require( 'node-ssh' );
 const path = require( 'path' );
+const fs = require( 'fs' );
+
 const { downloadZip, getReleaseZipUrl } = require( '../utils/plugin-utils' );
 
 const {
+	E2E_ROOT,
 	GITHUB_TOKEN,
 	PLUGIN_REPOSITORY,
 	PLUGIN_VERSION,
@@ -254,6 +255,19 @@ const getServerCredentialsFromEnv = () => {
  * @returns The promise for the SSH connection.
  */
 export const setupWoo = async () => {
+	const cartBlockPostContent = fs
+		.readFileSync(
+			path.resolve( E2E_ROOT, './test-data/cart-block-content.html' ),
+			'utf8'
+		)
+		.replace( '\n', '' );
+	const checkoutBlockPostContent = fs
+		.readFileSync(
+			path.resolve( E2E_ROOT, './test-data/checkout-block-content.html' ),
+			'utf8'
+		)
+		.replace( '\n', '' );
+
 	const setupCommands = [
 		'wp plugin install woocommerce --force --activate',
 		'wp theme install storefront --activate',
@@ -272,6 +286,8 @@ export const setupWoo = async () => {
 		`wp wc shipping_zone_method create 1 --method_id="flat_rate" --user=admin`,
 		`wp wc shipping_zone_method create 1 --method_id="free_shipping" --user=admin`,
 		`wp option update --format=json woocommerce_flat_rate_1_settings '{"title":"Flat rate","tax_status":"taxable","cost":"10"}'`,
+		`wp post create --post_type=page --post_title='Cart Block' --post_name='cart-block' --post_status=publish --page_template='template-fullwidth.php' --post_content='${ cartBlockPostContent }'`,
+		`wp post create --post_type=page --post_title='Checkout Block' --post_name='checkout-block' --post_status=publish --page_template='template-fullwidth.php' --post_content='${ checkoutBlockPostContent }'`,
 	];
 
 	return sshExecCommands( setupCommands );
