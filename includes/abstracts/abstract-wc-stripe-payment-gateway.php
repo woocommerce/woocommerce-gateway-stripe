@@ -646,7 +646,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Get charge object by charge ID.
 	 *
-	 * @since x.x.x
+	 * @since 7.0.2
 	 * @param string $charge_id The charge ID to get charge object for.
 	 * @param array  $params    The parameters to pass to the request.
 	 *
@@ -673,7 +673,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Since API version 2022-11-15, the `charges` property was replaced with `latest_charge`.
 	 * We can remove this method once we drop support for API versions prior to 2022-11-15.
 	 *
-	 * @since x.x.x
+	 * @since 7.0.2
 	 * @param object $intent Stripe API Payment Intent object response.
 	 *
 	 * @return object
