@@ -773,7 +773,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Gets the first refund object from charge notification.
 	 *
-	 * @since x.x.x
+	 * @since 7.0.2
 	 * @param object $notification
 	 *
 	 * @return object
