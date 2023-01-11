@@ -36,6 +36,8 @@ test( 'customer can checkout with a saved card @smoke', async ( { page } ) => {
 			config.get( 'users.customer.password' )
 		);
 		await page.click( 'text=Log In' );
+
+		await expect( page.locator( 'body' ) ).toHaveClass( /logged-in/ );
 	} );
 
 	await test.step( 'checkout and choose to save the card', async () => {
