@@ -1,17 +1,19 @@
-require( 'dotenv' ).config( {
-	path: `${ process.env.E2E_ROOT }/config/local.env`,
-} );
+import * as dotenv from 'dotenv';
+import { chromium } from '@playwright/test';
+import fs from 'fs';
 
-const { chromium } = require( '@playwright/test' );
-const fs = require( 'fs' );
-
-const {
+import {
 	loginAdminAndSaveState,
 	createApiTokens,
 	installPluginFromRepository,
 	setupWoo,
 	setupStripe,
-} = require( '../utils/pw-setup' );
+	installWooSubscriptionsFromRepo,
+} from '../utils/pw-setup';
+
+dotenv.config( {
+	path: `${ process.env.E2E_ROOT }/config/local.env`,
+} );
 
 const {
 	BASE_URL,
@@ -109,7 +111,7 @@ module.exports = async ( config ) => {
 	const contextOptions = { baseURL, userAgent };
 
 	// Create browser, browserContext, and page for customer and admin users
-	const browser = await chromium.launch();
+	const browser = await chromium.launch( { headless: false } );
 	const adminContext = await browser.newContext( contextOptions );
 	const adminPage = await adminContext.newPage();
 
@@ -123,10 +125,12 @@ module.exports = async ( config ) => {
 		.then( async () => {
 			const apiTokensPage = await adminContext.newPage();
 			const updatePluginPage = await adminContext.newPage();
+			const wooSubscriptionsInstallPage = await adminContext.newPage();
 
 			// create consumer token and update plugin in parallel.
 			let restApiKeysFinished = false;
 			let pluginUpdateFinished = false;
+			let wooSubscriptionsInstallFinished = false;
 			let stripeSetupFinished = false;
 
 			createApiTokens( apiTokensPage )
@@ -159,6 +163,18 @@ module.exports = async ( config ) => {
 				pluginUpdateFinished = true;
 			}
 
+			installWooSubscriptionsFromRepo( wooSubscriptionsInstallPage )
+				.then( () => {
+					wooSubscriptionsInstallFinished = true;
+				} )
+				.catch( ( e ) => {
+					console.error( e );
+					console.error(
+						'Cannot proceed e2e test, as we could not install WooCommerce Subscriptions. Please check if the GITHUB_TOKEN env variable is valid.'
+					);
+					process.exit( 1 );
+				} );
+
 			if ( STRIPE_SETUP ) {
 				while ( PLUGIN_VERSION && ! pluginUpdateFinished ) {
 					await wait( 1000 );
@@ -185,7 +201,8 @@ module.exports = async ( config ) => {
 			while (
 				! pluginUpdateFinished ||
 				! restApiKeysFinished ||
-				! stripeSetupFinished
+				! stripeSetupFinished ||
+				! wooSubscriptionsInstallFinished
 			) {
 				await wait( 1000 );
 			}

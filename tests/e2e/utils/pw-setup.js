@@ -1,13 +1,17 @@
-import { resolve } from 'path';
+import * as dotenv from 'dotenv';
+import path from 'path';
 
 const { expect } = require( '@playwright/test' );
 
-const { NodeSSH } = require( 'node-ssh' );
-const path = require( 'path' );
-const { downloadZip, getReleaseZipUrl } = require( '../utils/plugin-utils' );
+import { expect } from '@playwright/test';
+import { NodeSSH } from 'node-ssh';
+import { downloadRelease } from '../utils/plugin-utils';
+
+dotenv.config( {
+	path: `${ process.env.E2E_ROOT }/config/local.env`,
+} );
 
 const {
-	GITHUB_TOKEN,
 	PLUGIN_REPOSITORY,
 	PLUGIN_VERSION,
 	STRIPE_PUB_KEY,
@@ -152,22 +156,18 @@ export const installPluginFromRepository = ( page ) =>
 			console.log(
 				`- Trying to install plugin version ${ PLUGIN_VERSION } from repository ${ PLUGIN_REPOSITORY }...`
 			);
-			let pluginZipPath;
-			let pluginSlug = PLUGIN_REPOSITORY.split( '/' ).pop();
-
-			// Get the download URL and filename of the plugin
-			const pluginDownloadURL = await getReleaseZipUrl( PLUGIN_VERSION );
-			const zipFilename = pluginDownloadURL.split( '/' ).pop();
-			pluginZipPath = path.resolve(
+			const pluginSlug = 'woocommerce-gateway-stripe';
+			const pluginZipPath = path.resolve(
 				__dirname,
-				`../../tmp/${ zipFilename }`
+				`../../tmp/${ pluginSlug }.zip`
 			);
 
 			// Download the needed plugin.
-			await downloadZip( {
-				url: pluginDownloadURL,
+			await downloadRelease( {
+				repo: PLUGIN_REPOSITORY,
+				releaseTag: PLUGIN_VERSION,
 				downloadPath: pluginZipPath,
-				authToken: GITHUB_TOKEN,
+				filename: `${ pluginSlug }.zip`,
 			} );
 			await page.goto( 'wp-admin/plugin-install.php?tab=upload', {
 				waitUntil: 'networkidle',
@@ -210,6 +210,76 @@ export const installPluginFromRepository = ( page ) =>
 
 			console.log(
 				`\u2714 Plugin version ${ PLUGIN_VERSION } installed successfully.`
+			);
+
+			resolve();
+		} )();
+	} );
+
+/**
+ * Helper function to update the plugin.
+ */
+export const installWooSubscriptionsFromRepo = ( page ) =>
+	new Promise( ( resolve ) => {
+		( async () => {
+			console.log(
+				`- Trying to install latest Woo Subscriptions release from official repository...`
+			);
+
+			const pluginSlug = 'woocommerce-subscriptions';
+			const pluginZipPath = path.resolve(
+				__dirname,
+				`../../tmp/${ pluginSlug }.zip`
+			);
+
+			// Download the needed plugin.
+			await downloadRelease( {
+				repo: 'woocommerce/woocommerce-subscriptions',
+				releaseTag: 'latest',
+				filename: 'woocommerce-subscriptions.zip',
+				downloadPath: pluginZipPath,
+			} );
+			await page.goto( 'wp-admin/plugin-install.php?tab=upload', {
+				waitUntil: 'networkidle',
+			} );
+
+			await page.setInputFiles( 'input#pluginzip', pluginZipPath, {
+				timeout: 10000,
+			} );
+			await page.click( "input[type='submit'] >> text=Install Now" );
+
+			try {
+				await page.click( 'text=Replace current with uploaded', {
+					timeout: 10000,
+				} );
+
+				await expect(
+					page.locator( '#wpbody-content .wrap' )
+				).toContainText(
+					/Plugin (?:downgraded|updated) successfully/gi
+				);
+			} catch ( e ) {
+				// Stripe wasn't installed on this site.
+				await expect(
+					page.locator( '#wpbody-content .wrap' )
+				).toContainText( /Plugin installed successfully/gi );
+
+				await page.click( 'text=Activate Plugin', {
+					timeout: 10000,
+				} );
+			}
+
+			await page.goto( 'wp-admin/plugins.php', {
+				waitUntil: 'networkidle',
+			} );
+
+			// Assert that the plugin is listed and active
+			await expect(
+				page.locator( `#deactivate-${ pluginSlug }` )
+			).toBeVisible();
+
+			console.log(
+				`\u2714 Woo Subscriptions plugin installed successfully.`
 			);
 
 			resolve();
