@@ -131,5 +131,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 7.0.2 - 2022-xx-xx =
 * Fix - Expand charges object from incoming webhooks using Stripe API version 2022-11-15.
 * Fix - Expand refunds on charge object from incoming webhooks using Stripe API version 2022-11-15.
+* Fix - Fix critical error on PHP 8+ when php_uname() is disabled
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
