@@ -233,11 +233,19 @@ const sshExecCommands = async ( commands ) => {
 	const credentials = getServerCredentialsFromEnv();
 	return ssh.connect( credentials ).then( async () => {
 		for ( const command of commands ) {
-			console.log( command );
+			console.log(
+				`${ command.substring( 0, 100 ) }${
+					command.length <= 100 ? '' : '...'
+				}`
+			);
 			await ssh
 				.execCommand( command, { cwd: credentials.path } )
 				.then( ( result ) => {
-					console.log( result.stdout );
+					console.log(
+						`${ result.stdout.substring( 0, 100 ) }${
+							result.stdout.length <= 100 ? '' : '...'
+						}`
+					);
 				} );
 		}
 	} );
