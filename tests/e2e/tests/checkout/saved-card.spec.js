@@ -44,7 +44,7 @@ test( 'customer can checkout with a saved card @smoke', async ( { page } ) => {
 		await emptyCart( page );
 
 		await setupProductCheckout( page );
-		await setupCheckout( page, null, true );
+		await setupCheckout( page );
 		await fillCardDetails( page, config.get( 'cards.basic' ) );
 
 		// check box to save payment method.
