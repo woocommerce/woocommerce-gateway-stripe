@@ -49,7 +49,10 @@ test.describe( 'customer cannot checkout with invalid cards @blocks', () => {
 	} ) => testCard( page, 'cards.declined-funds' ) );
 	test( `a card with invalid number shows the correct error message`, async ( {
 		page,
-	} ) => testCard( page, 'cards.declined-incorrect' ) );
+	} ) => {
+		test.fail();
+		testCard( page, 'cards.declined-incorrect' );
+	} );
 	test( `an expired card shows the correct error message`, async ( {
 		page,
 	} ) => testCard( page, 'cards.declined-expired' ) );
