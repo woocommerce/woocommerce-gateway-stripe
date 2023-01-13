@@ -1,6 +1,10 @@
 import { expect } from '@playwright/test';
 import config from 'config';
 
+/**
+ * Empty the WC cart.
+ * @param {Page} page Playwright page fixture.
+ */
 export async function emptyCart( page ) {
 	await page.goto( '/cart' );
 
@@ -28,10 +32,28 @@ export async function emptyCart( page ) {
 
 /**
  * Fills in the card details on the WC checkout page (non-blocks).
- * @param {*} page
- * @param {*} card
+ * @param {Page} page Playwright page fixture.
+ * @param {Object} card The CC info in the format provided on the test-data.
  */
 export async function fillCardDetails( page, card ) {
+	// blocks checkout
+	if ( await page.$( '.wc-block-card-elements' ) ) {
+		await page
+			.frameLocator( '#wc-stripe-card-number-element iframe' )
+			.locator( 'input[name="cardnumber"]' )
+			.fill( card.number );
+		await page
+			.frameLocator( '#wc-stripe-card-expiry-element iframe' )
+			.locator( 'input[name="exp-date"]' )
+			.fill( card.expires.month + card.expires.year );
+		await page
+			.frameLocator( '#wc-stripe-card-code-element iframe' )
+			.locator( 'input[name="cvc"]' )
+			.fill( card.cvc );
+		return;
+	}
+
+	// regular checkout
 	if ( await page.$( '#payment #stripe-upe-element' ) ) {
 		const frameHandle = await page.waitForSelector(
 			'#payment #stripe-upe-element iframe'
@@ -115,26 +137,30 @@ export async function setupProductCheckout(
 }
 
 /**
- * Go to the checkout page, enter the billing information, and place the order.
- * @param {*} page Playwright page fixture.
- * @param {*} billingDetails The billing details.
+ * Go to the checkout page, enter the billing information, and select the payment gateway.
+ * If billingDetails are empty, they're skipped.
+ * @param {Page} page Playwright page fixture.
+ * @param {Object} billingDetails The billing details in the format provided on the test-data.
  */
-export async function setupCheckout(
-	page,
-	billingDetails,
-	skipBillingFields = false
-) {
+export async function setupCheckout( page, billingDetails = null ) {
 	await page.goto( '/checkout/' );
 
-	if ( ! skipBillingFields ) {
+	if ( billingDetails ) {
 		await page.selectOption(
 			'#billing_country',
-			billingDetails[ 'country' ]
+			billingDetails[ 'country_iso' ]
 		);
-		await page.selectOption( '#billing_state', billingDetails[ 'state' ] );
+		await page.selectOption(
+			'#billing_state',
+			billingDetails[ 'state_iso' ]
+		);
 
 		for ( const fieldName of Object.keys( billingDetails ) ) {
-			if ( [ 'state', 'country' ].includes( fieldName ) ) {
+			if (
+				[ 'state', 'country', 'state_iso', 'country_iso' ].includes(
+					fieldName
+				)
+			) {
 				continue;
 			}
 			await page.fill(
@@ -145,4 +171,63 @@ export async function setupCheckout(
 	}
 
 	await page.click( '.wc_payment_method.payment_method_stripe' );
+}
+
+/**
+ * Go to the checkout page, enter the billing information, and select the payment gateway.
+ * If billingDetails are empty, they're skipped.
+ * @param {Page} page Playwright page fixture.
+ * @param {Object} billingDetails The billing details in the format provided on the test-data.
+ */
+export async function setupBlocksCheckout( page, billingDetails = null ) {
+	await page.goto( '/checkout-block/' );
+
+	if ( billingDetails ) {
+		await page
+			.locator( '#billing-country input[type="text"]' )
+			.fill( billingDetails[ 'country' ] );
+		await page
+			.locator(
+				'#billing-country .components-form-token-field__suggestions-list > li:first-child'
+			)
+			.click();
+
+		await page
+			.locator( '#billing-state input[type="text"]' )
+			.fill( billingDetails[ 'state' ] );
+		await page
+			.locator(
+				'#billing-state .components-form-token-field__suggestions-list > li:first-child'
+			)
+			.click();
+
+		for ( const fieldName of Object.keys( billingDetails ) ) {
+			if (
+				[
+					'state',
+					'country',
+					'state_iso',
+					'country_iso',
+					'company',
+				].includes( fieldName )
+			) {
+				continue;
+			}
+			if ( [ 'email', 'phone' ].includes( fieldName ) ) {
+				await page
+					.locator( `#${ fieldName }` )
+					.fill( billingDetails[ fieldName ] );
+				continue;
+			}
+			await page
+				.locator( `#billing-${ fieldName }` )
+				.fill( billingDetails[ fieldName ] );
+		}
+	}
+
+	await page
+		.locator(
+			"label[for='radio-control-wc-payment-method-options-stripe']"
+		)
+		.click();
 }
