@@ -1,9 +1,5 @@
-require( 'dotenv' ).config( {
-	path: `${ process.env.E2E_ROOT }/config/local.env`,
-} );
-
-const { chromium } = require( '@playwright/test' );
-const fs = require( 'fs' );
+import { chromium } from '@playwright/test';
+import fs from 'fs';
 
 const {
 	loginAdminAndSaveState,

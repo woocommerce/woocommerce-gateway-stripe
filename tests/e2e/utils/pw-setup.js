@@ -1,10 +1,10 @@
-import { resolve } from 'path';
+import path from 'path';
 
 const { expect } = require( '@playwright/test' );
 
-const { NodeSSH } = require( 'node-ssh' );
-const path = require( 'path' );
-const { downloadZip, getReleaseZipUrl } = require( '../utils/plugin-utils' );
+import { expect } from '@playwright/test';
+import { NodeSSH } from 'node-ssh';
+import { downloadZip, getReleaseZipUrl } from '../utils/plugin-utils';
 
 const {
 	GITHUB_TOKEN,
