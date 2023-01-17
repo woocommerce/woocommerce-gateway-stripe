@@ -117,7 +117,7 @@ module.exports = async ( config ) => {
 		page: adminPage,
 		username: ADMIN_USER,
 		password: ADMIN_PASSWORD,
-		statePath: ADMINSTATE,
+		statePath: process.env.ADMINSTATE,
 		retries: 5,
 	} )
 		.then( async () => {
