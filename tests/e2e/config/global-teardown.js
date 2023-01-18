@@ -27,9 +27,12 @@ module.exports = async ( config ) => {
 		try {
 			console.log( '- Trying to clear consumer token... Try:' + i );
 			await adminPage.goto( `/wp-admin` );
-			await adminPage.fill( 'input[name="log"]', adminUsername );
-			await adminPage.fill( 'input[name="pwd"]', adminPassword );
-			await adminPage.click( 'text=Log In' );
+
+			if ( await adminPage.url().includes( 'wp-login.php' ) ) {
+				await adminPage.fill( 'input[name="log"]', adminUsername );
+				await adminPage.fill( 'input[name="pwd"]', adminPassword );
+				await adminPage.click( 'text=Log In' );
+			}
 			await adminPage.goto(
 				`/wp-admin/admin.php?page=wc-settings&tab=advanced&section=keys`
 			);
@@ -38,6 +41,7 @@ module.exports = async ( config ) => {
 			consumerTokenCleared = true;
 			break;
 		} catch ( e ) {
+			console.log( e );
 			console.log( 'Failed to clear consumer token. Retrying...' );
 		}
 	}
