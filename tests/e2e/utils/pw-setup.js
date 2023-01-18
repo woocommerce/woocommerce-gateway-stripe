@@ -279,6 +279,7 @@ export const setupWoo = async () => {
 		.replace( '\n', '' );
 
 	const setupCommands = [
+		'wp config set WP_DEBUG false --raw',
 		'wp plugin install woocommerce --force --activate',
 		'wp plugin install woocommerce-gateway-stripe --activate',
 		'wp theme install storefront --activate',
