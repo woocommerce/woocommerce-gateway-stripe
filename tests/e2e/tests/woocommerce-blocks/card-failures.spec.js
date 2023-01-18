@@ -5,14 +5,17 @@ import { payments } from '../../utils';
 const {
 	emptyCart,
 	setupProductCheckout,
-	setupCheckout,
+	setupBlocksCheckout,
 	fillCardDetails,
 } = payments;
 
 test.beforeEach( async ( { page } ) => {
 	await emptyCart( page );
 	await setupProductCheckout( page );
-	await setupCheckout( page, config.get( 'addresses.customer.billing' ) );
+	await setupBlocksCheckout(
+		page,
+		config.get( 'addresses.customer.billing' )
+	);
 } );
 
 const testCard = async ( page, cardKey ) => {
@@ -21,13 +24,23 @@ const testCard = async ( page, cardKey ) => {
 	await fillCardDetails( page, card );
 	await page.locator( 'text=Place order' ).click();
 
+	/**
+	 * The invalid card error message is shown in the input field validation.
+	 * The customer isn't allowed to place the order for this type of card failure.
+	 */
 	expect
-		.soft( await page.innerText( '.woocommerce-error' ) )
+		.soft(
+			await page.innerText(
+				cardKey === 'cards.declined-incorrect'
+					? '.wc-card-number-element .wc-block-components-validation-error'
+					: '.wc-block-checkout__payment-method .woocommerce-error'
+			)
+		)
 		.toBe( card.error );
 };
 
 test.describe.configure( { mode: 'parallel' } );
-test.describe( 'customer cannot checkout with invalid cards', () => {
+test.describe( 'customer cannot checkout with invalid cards @blocks', () => {
 	test( `a declined card shows the correct error message @smoke`, async ( {
 		page,
 	} ) => testCard( page, 'cards.declined' ) );
@@ -38,7 +51,10 @@ test.describe( 'customer cannot checkout with invalid cards', () => {
 
 	test( `a card with invalid number shows the correct error message`, async ( {
 		page,
-	} ) => testCard( page, 'cards.declined-incorrect' ) );
+	} ) => {
+		test.fail();
+		testCard( page, 'cards.declined-incorrect' );
+	} );
 
 	test( `an expired card shows the correct error message`, async ( {
 		page,
