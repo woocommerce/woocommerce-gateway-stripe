@@ -1,12 +1,15 @@
+import * as dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 
-const { expect } = require( '@playwright/test' );
+import stripe from 'stripe';
 
 import { expect } from '@playwright/test';
 import { NodeSSH } from 'node-ssh';
 import { downloadZip, getReleaseZipUrl } from '../utils/plugin-utils';
 
 const {
+	E2E_ROOT,
 	GITHUB_TOKEN,
 	PLUGIN_REPOSITORY,
 	PLUGIN_VERSION,
@@ -226,11 +229,19 @@ const sshExecCommands = async ( commands ) => {
 	const credentials = getServerCredentialsFromEnv();
 	return ssh.connect( credentials ).then( async () => {
 		for ( const command of commands ) {
-			console.log( command );
+			console.log(
+				`${ command.substring( 0, 100 ) }${
+					command.length <= 100 ? '' : '...'
+				}`
+			);
 			await ssh
 				.execCommand( command, { cwd: credentials.path } )
 				.then( ( result ) => {
-					console.log( result.stdout );
+					console.log(
+						`${ result.stdout.substring( 0, 100 ) }${
+							result.stdout.length <= 100 ? '' : '...'
+						}`
+					);
 				} );
 		}
 	} );
@@ -254,8 +265,22 @@ const getServerCredentialsFromEnv = () => {
  * @returns The promise for the SSH connection.
  */
 export const setupWoo = async () => {
+	const cartBlockPostContent = fs
+		.readFileSync(
+			path.resolve( E2E_ROOT, './test-data/cart-block-content.html' ),
+			'utf8'
+		)
+		.replace( '\n', '' );
+	const checkoutBlockPostContent = fs
+		.readFileSync(
+			path.resolve( E2E_ROOT, './test-data/checkout-block-content.html' ),
+			'utf8'
+		)
+		.replace( '\n', '' );
+
 	const setupCommands = [
 		'wp plugin install woocommerce --force --activate',
+		'wp plugin install woocommerce-gateway-stripe --activate',
 		'wp theme install storefront --activate',
 		'wp option set woocommerce_store_address "60 29th Street"',
 		'wp option set woocommerce_store_address_2 "#343"',
@@ -272,6 +297,8 @@ export const setupWoo = async () => {
 		`wp wc shipping_zone_method create 1 --method_id="flat_rate" --user=admin`,
 		`wp wc shipping_zone_method create 1 --method_id="free_shipping" --user=admin`,
 		`wp option update --format=json woocommerce_flat_rate_1_settings '{"title":"Flat rate","tax_status":"taxable","cost":"10"}'`,
+		`wp post create --post_type=page --post_title='Cart Block' --post_name='cart-block' --post_status=publish --page_template='template-fullwidth.php' --post_content='${ cartBlockPostContent }'`,
+		`wp post create --post_type=page --post_title='Checkout Block' --post_name='checkout-block' --post_status=publish --page_template='template-fullwidth.php' --post_content='${ checkoutBlockPostContent }'`,
 	];
 
 	return sshExecCommands( setupCommands );
@@ -289,30 +316,30 @@ export const setupStripe = ( page, baseUrl ) =>
 					'wp option delete woocommerce_stripe_settings',
 				] );
 
-				const stripe = require( 'stripe' )(
-					process.env.STRIPE_SECRET_KEY
-				);
+				const stripeClient = stripe( process.env.STRIPE_SECRET_KEY );
 
 				// Clean-up previous webhooks for this URL. We can only get the Webhook secret via API when it's created.
 				const webhookURL = `${ baseUrl }?wc-api=wc_stripe`;
 
-				await stripe.webhookEndpoints
+				await stripeClient.webhookEndpoints
 					.list()
 					.then( ( result ) =>
 						result.data.filter( ( w ) => w.url == webhookURL )
 					)
 					.then( async ( webhooks ) => {
 						for ( const webhook of webhooks ) {
-							stripe.webhookEndpoints.del( webhook.id );
+							stripeClient.webhookEndpoints.del( webhook.id );
 						}
 					} );
 
 				// Create a new webhook.
-				const webhookEndpoint = await stripe.webhookEndpoints.create( {
-					url: webhookURL,
-					enabled_events: [ '*' ],
-					description: 'Webhook created for E2E tests.',
-				} );
+				const webhookEndpoint = await stripeClient.webhookEndpoints.create(
+					{
+						url: webhookURL,
+						enabled_events: [ '*' ],
+						description: 'Webhook created for E2E tests.',
+					}
+				);
 
 				const nRetries = 5;
 				for ( let i = 0; i < nRetries; i++ ) {

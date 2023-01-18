@@ -1,13 +1,13 @@
 import { chromium } from '@playwright/test';
 import fs from 'fs';
 
-const {
+import {
 	loginAdminAndSaveState,
 	createApiTokens,
 	installPluginFromRepository,
 	setupWoo,
 	setupStripe,
-} = require( '../utils/pw-setup' );
+} from '../utils/pw-setup';
 
 const {
 	BASE_URL,
@@ -113,7 +113,7 @@ module.exports = async ( config ) => {
 		page: adminPage,
 		username: ADMIN_USER,
 		password: ADMIN_PASSWORD,
-		statePath: ADMINSTATE,
+		statePath: process.env.ADMINSTATE,
 		retries: 5,
 	} )
 		.then( async () => {
