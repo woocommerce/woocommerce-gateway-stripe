@@ -61,7 +61,7 @@ const create = {
 			.catch( ( error ) => {
 				throwCustomError(
 					error,
-					`Something went wrong when trying to list all shipping methods in shipping zone ${ shippingZoneId }.`
+					'Failed to create customer. See details below.'
 				);
 			} );
 
@@ -72,7 +72,26 @@ const create = {
 			.post( 'products', product )
 			.then( ( response ) => response )
 			.catch( ( error ) => {
-				throwCustomError( error );
+				throwCustomError(
+					error,
+					'Failed to create product. See details below.'
+				);
+			} );
+
+		return response.data.id;
+	},
+};
+
+const update = {
+	customer: async ( customer ) => {
+		const response = await api
+			.put( 'customers', customer )
+			.then( ( response ) => response )
+			.catch( ( error ) => {
+				throwCustomError(
+					error,
+					'Failed to update customer. See details below.'
+				);
 			} );
 
 		return response.data.id;
@@ -89,5 +108,6 @@ const deletePost = {
 
 module.exports = {
 	create,
+	update,
 	deletePost,
 };
