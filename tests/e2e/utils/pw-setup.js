@@ -7,6 +7,7 @@ import stripe from 'stripe';
 import { expect } from '@playwright/test';
 import { NodeSSH } from 'node-ssh';
 import { downloadZip, getReleaseZipUrl } from '../utils/plugin-utils';
+import { user } from '.';
 
 const {
 	E2E_ROOT,
@@ -34,39 +35,32 @@ export const loginCustomerAndSaveState = ( {
 	new Promise( ( resolve, reject ) => {
 		( async () => {
 			// Sign in as customer user and save state
-			for ( let i = 0; i < retries; i++ ) {
-				try {
-					console.log( '- Trying to log-in as customer...' );
-					await page.goto( `/wp-admin` );
-					await page.fill( 'input[name="log"]', username );
-					await page.fill( 'input[name="pwd"]', password );
-					await page.click( 'text=Log In' );
+			try {
+				console.log( '- Trying to log-in as customer...' );
+				await user.login( page, username, password, retries );
 
-					await page.goto( `/my-account` );
-					await expect(
-						page.locator(
-							'.woocommerce-MyAccount-navigation-link--customer-logout'
-						)
-					).toBeVisible();
-					await expect(
-						page.locator(
-							'div.woocommerce-MyAccount-content > p >> nth=0'
-						)
-					).toContainText( 'Hello' );
+				await page.goto( `/my-account` );
+				await expect(
+					page.locator(
+						'.woocommerce-MyAccount-navigation-link--customer-logout'
+					)
+				).toBeVisible();
+				await expect(
+					page.locator(
+						'div.woocommerce-MyAccount-content > p >> nth=0'
+					)
+				).toContainText( 'Hello' );
 
-					await page.context().storageState( { path: statePath } );
-					console.log( '\u2714 Logged-in as customer successfully.' );
-					resolve();
-					return;
-				} catch ( e ) {
-					console.log(
-						`Customer log-in failed. Retrying... ${ i }/${ retries }`
-					);
-					console.log( e );
-				}
+				await page.context().storageState( { path: statePath } );
+				console.log( '\u2714 Logged-in as customer successfully.' );
+				resolve();
+				return;
+			} catch ( e ) {
+				console.log(
+					`Customer log-in failed. Retrying... ${ i }/${ retries }`
+				);
+				console.log( e );
 			}
-
-			reject();
 		} )();
 	} );
 
@@ -83,28 +77,24 @@ export const loginAdminAndSaveState = ( {
 	new Promise( ( resolve, reject ) => {
 		( async () => {
 			// Sign in as admin user and save state
-			for ( let i = 0; i < retries; i++ ) {
-				try {
-					console.log( '- Trying to log-in as admin...' );
-					await page.goto( `/wp-admin` );
-					await page.fill( 'input[name="log"]', username );
-					await page.fill( 'input[name="pwd"]', password );
-					await page.click( 'text=Log In' );
-					await page.waitForLoadState( 'networkidle' );
+			try {
+				console.log( '- Trying to log-in as admin...' );
+				await user.login( page, username, password, retries );
 
-					await expect( page.locator( 'div.wrap > h1' ) ).toHaveText(
-						'Dashboard'
-					);
-					await page.context().storageState( { path: statePath } );
-					console.log( '\u2714 Logged-in as admin successfully.' );
-					resolve();
-					return;
-				} catch ( e ) {
-					console.log(
-						`Admin log-in failed, Retrying... ${ i }/${ retries }`
-					);
-					console.log( e );
-				}
+				await page.goto( `/wp-admin` );
+
+				await expect( page.locator( 'div.wrap > h1' ) ).toHaveText(
+					'Dashboard'
+				);
+				await page.context().storageState( { path: statePath } );
+				console.log( '\u2714 Logged-in as admin successfully.' );
+				resolve();
+				return;
+			} catch ( e ) {
+				console.log(
+					`Admin log-in failed, Retrying... ${ i }/${ retries }`
+				);
+				console.log( e );
 			}
 			reject();
 		} )();
