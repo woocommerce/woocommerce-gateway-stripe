@@ -40,6 +40,6 @@ export async function login( page, username, password, retries = 3 ) {
 		}
 	}
 	throw new Error(
-		`User log-in failed for user ${ username } after ${ retries } attemps.`
+		`User log-in failed for user ${ username } after ${ retries } attempts.`
 	);
 }
