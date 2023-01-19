@@ -1,3 +1,5 @@
+import { expect } from '@playwright/test';
+
 /**
  * Logs in a user with the given credentials on the provided page, with retries if login fails.
  * @param {Object} page - The Playwright page object to use for the login process.
@@ -20,16 +22,14 @@ export async function login( page, username, password, retries = 3 ) {
 			}
 			await page.waitForLoadState( 'networkidle' );
 
-			let customerLoggedIn = await page
-				.locator( 'body' )
-				.getAttribute( 'class' )
-				.split( ' ' )
-				.contains( 'logged-in' );
-			let adminLoggedIn =
-				( await page.locator( 'div.wrap > h1' ).textContent() ) ==
-				'Dashboard';
-
-			if ( customerLoggedIn || adminLoggedIn ) {
+			if ( await page.$( 'body.logged-in' ) ) {
+				// customer login
+				return;
+			} else {
+				// admin login
+				await expect( page.locator( 'div.wrap > h1' ) ).toHaveText(
+					'Dashboard'
+				);
 				return;
 			}
 		} catch ( e ) {
