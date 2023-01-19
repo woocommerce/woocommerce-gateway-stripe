@@ -20,13 +20,13 @@ module.exports = async ( config ) => {
 
 	let consumerTokenCleared = false;
 
+	await user.login( adminPage, ADMIN_USER, ADMIN_PASSWORD );
+
 	// Clean up the consumer keys
 	const keysRetries = 5;
 	for ( let i = 1; i <= keysRetries; i++ ) {
 		try {
 			console.log( '- Trying to clear consumer token... Try:' + i );
-
-			await user.login( adminPage, ADMIN_USER, ADMIN_PASSWORD );
 
 			await adminPage.goto(
 				`/wp-admin/admin.php?page=wc-settings&tab=advanced&section=keys`
