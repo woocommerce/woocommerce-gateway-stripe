@@ -34,10 +34,12 @@ export async function login( page, username, password, retries = 3 ) {
 			}
 		} catch ( e ) {
 			console.error(
-				`Admin log-in failed, Retrying... ${ i }/${ retries }.`,
+				`User log-in failed, Retrying... ${ i }/${ retries }.`,
 				e
 			);
 		}
 	}
-	throw new Error( `User log-in failed for user ${ username }` );
+	throw new Error(
+		`User log-in failed for user ${ username } after ${ retries } attemps.`
+	);
 }
