@@ -13,16 +13,28 @@ if ( process.env.CONSUMER_KEY && process.env.CONSUMER_SECRET ) {
 	} );
 }
 
-/**
- * Allow explicit construction of api client.
- */
-const constructWith = ( consumerKey, consumerSecret ) => {
-	api = new wcApi( {
-		url: config.use.baseURL,
-		consumerKey,
-		consumerSecret,
-		version: 'wc/v3',
-	} );
+const throwCustomError = (
+	error,
+	customMessage = 'Something went wrong. See details below.'
+) => {
+	throw new Error(
+		customMessage
+			.concat(
+				`\nResponse status: ${ error.response.status } ${ error.response.statusText }`
+			)
+			.concat(
+				`\nResponse headers:\n${ JSON.stringify(
+					error.response.headers,
+					null,
+					2
+				) }`
+			).concat( `\nResponse data:\n${ JSON.stringify(
+			error.response.data,
+			null,
+			2
+		) }
+` )
+	);
 };
 
 const create = {
@@ -43,13 +55,59 @@ const create = {
 			last_name: customer.billing.last_name,
 		};
 
-		const response = await api.post( 'customers', customerParams );
+		const response = await api
+			.post( 'customers', customerParams )
+			.then( ( response ) => response )
+			.catch( ( error ) => {
+				throwCustomError(
+					error,
+					'Failed to create customer. See details below.'
+				);
+			} );
+
+		return response.data.id;
+	},
+	product: async ( product ) => {
+		const response = await api
+			.post( 'products', product )
+			.then( ( response ) => response )
+			.catch( ( error ) => {
+				throwCustomError(
+					error,
+					'Failed to create product. See details below.'
+				);
+			} );
 
 		return response.data.id;
 	},
 };
 
+const update = {
+	customer: async ( customer ) => {
+		const response = await api
+			.put( 'customers', customer )
+			.then( ( response ) => response )
+			.catch( ( error ) => {
+				throwCustomError(
+					error,
+					'Failed to update customer. See details below.'
+				);
+			} );
+
+		return response.data.id;
+	},
+};
+
+const deletePost = {
+	product: async ( id ) => {
+		await api.delete( `products/${ id }`, {
+			force: true,
+		} );
+	},
+};
+
 module.exports = {
 	create,
-	constructWith,
+	update,
+	deletePost,
 };

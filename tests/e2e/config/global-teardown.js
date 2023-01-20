@@ -2,10 +2,9 @@ import path from 'path';
 
 import { chromium } from '@playwright/test';
 import { getReleaseZipUrl, deleteZip } from '../utils/plugin-utils';
+import { user } from '../utils';
 
 const { ADMIN_USER, ADMIN_PASSWORD, PLUGIN_VERSION } = process.env;
-const adminUsername = ADMIN_USER ?? 'admin';
-const adminPassword = ADMIN_PASSWORD ?? 'password';
 
 module.exports = async ( config ) => {
 	const { baseURL, userAgent } = config.projects[ 0 ].use;
@@ -21,15 +20,14 @@ module.exports = async ( config ) => {
 
 	let consumerTokenCleared = false;
 
+	await user.login( adminPage, ADMIN_USER, ADMIN_PASSWORD );
+
 	// Clean up the consumer keys
 	const keysRetries = 5;
-	for ( let i = 0; i < keysRetries; i++ ) {
+	for ( let i = 1; i <= keysRetries; i++ ) {
 		try {
 			console.log( '- Trying to clear consumer token... Try:' + i );
-			await adminPage.goto( `/wp-admin` );
-			await adminPage.fill( 'input[name="log"]', adminUsername );
-			await adminPage.fill( 'input[name="pwd"]', adminPassword );
-			await adminPage.click( 'text=Log In' );
+
 			await adminPage.goto(
 				`/wp-admin/admin.php?page=wc-settings&tab=advanced&section=keys`
 			);
@@ -38,7 +36,10 @@ module.exports = async ( config ) => {
 			consumerTokenCleared = true;
 			break;
 		} catch ( e ) {
-			console.log( 'Failed to clear consumer token. Retrying...' );
+			console.error(
+				`Failed to clear consumer token. Retrying... ${ i }/${ keysRetries }. Error:`,
+				e
+			);
 		}
 	}
 

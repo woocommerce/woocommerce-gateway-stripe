@@ -23,6 +23,10 @@
     },
     "grouped": {
       "name": "Grouped Product with Three Children"
+    },
+    "subscription": {
+      "name": "Subscription Product",
+      "type": "subscription"
     }
   },
   "addresses": {

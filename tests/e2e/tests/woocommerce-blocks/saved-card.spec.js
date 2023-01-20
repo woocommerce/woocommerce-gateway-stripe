@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { payments, api } from '../../utils';
+import { payments, api, user } from '../../utils';
 
 const {
 	emptyCart,
@@ -31,15 +31,11 @@ test( 'customer can checkout with a saved card @smoke @blocks', async ( {
 	page,
 } ) => {
 	await test.step( 'customer login', async () => {
-		await page.goto( `/wp-admin` );
-		await page.fill( 'input[name="log"]', username );
-		await page.fill(
-			'input[name="pwd"]',
+		await user.login(
+			page,
+			username,
 			config.get( 'users.customer.password' )
 		);
-		await page.click( 'text=Log In' );
-
-		await expect( page.locator( 'body' ) ).toHaveClass( /logged-in/ );
 	} );
 
 	await test.step( 'checkout and choose to save the card', async () => {

@@ -1,4 +1,10 @@
 import { devices } from '@playwright/test';
+import dotenv from 'dotenv';
+
+dotenv.config( {
+	path: `${ process.env.E2E_ROOT }/config/local.env`,
+} );
+
 const {
 	ALLURE_RESULTS_DIR,
 	BASE_URL,

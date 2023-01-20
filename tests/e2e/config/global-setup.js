@@ -1,7 +1,3 @@
-require( 'dotenv' ).config( {
-	path: `${ process.env.E2E_ROOT }/config/local.env`,
-} );
-
 import { chromium } from '@playwright/test';
 import fs from 'fs';
 
@@ -17,7 +13,6 @@ const {
 	BASE_URL,
 	ADMIN_USER,
 	ADMIN_PASSWORD,
-	ADMINSTATE,
 	PLUGIN_VERSION,
 	WOO_SETUP,
 	STRIPE_SETUP,
