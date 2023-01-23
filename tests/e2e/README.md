@@ -29,6 +29,7 @@ We use [Playwright](https://playwright.dev/) as our test runner.
 
 - SSH access to the test site.
 - WP CLI available on the test site server.
+- Test keys for a Stripe account.
 
 ### Environment Setup
 
