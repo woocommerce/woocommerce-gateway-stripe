@@ -23,18 +23,21 @@
     },
     "grouped": {
       "name": "Grouped Product with Three Children"
+    },
+    "subscription": {
+      "name": "Subscription Product",
+      "type": "subscription"
     }
   },
   "addresses": {
     "admin": {
       "store": {
-        "firstname": "Admin",
-        "lastname": "Adminson",
+        "first_name": "Admin",
+        "last_name": "Adminson",
         "company": "Automattic",
-        "country": "United States (US)",
-        "addressfirstline": "60 29th Street #343",
-        "addresssecondline": "store",
-        "countryandstate": "United States (US) — California",
+        "country": "US",
+        "address_1": "60 29th Street #343",
+        "address_2": "store",
         "city": "San Francisco",
         "state": "CA",
         "postcode": "94110",
@@ -43,30 +46,32 @@
     },
     "customer": {
       "billing": {
-        "firstname": "Customer",
-        "lastname": "Customerson",
+        "first_name": "Customer",
+        "last_name": "Customerson",
         "company": "",
         "country": "United States (US)",
-        "addressfirstline": "60 29th Street #343",
-        "addresssecondline": "billing",
+        "country_iso": "US",
+        "address_1": "60 29th Street #343",
+        "address_2": "billing",
         "city": "San Francisco",
-        "state": "CA",
+        "state": "California",
+        "state_iso": "CA",
         "postcode": "94110",
         "phone": "2025550104",
         "email": "e2e-customer-billing@woocommerce.com"
       },
       "shipping": {
-        "firstname": "Recipient",
-        "lastname": "Recipientson",
+        "first_name": "Recipient",
+        "last_name": "Recipientson",
         "company": "",
         "country": "United States (US)",
-        "addressfirstline": "166 Crosby Street",
-        "addresssecondline": "shipping",
+        "country_iso": "US",
+        "address_1": "166 Crosby Street",
+        "address_2": "shipping",
         "city": "New York",
         "state": "New York",
-        "postcode": "10012",
-        "phone": "8772733049",
-        "email": "e2e-customer-shipping@woocommerce.com"
+        "state_iso": "NY",
+        "postcode": "10012"
       }
     }
   },
@@ -150,7 +155,8 @@
         "year": "25"
       },
       "cvc": "626",
-      "label": "Visa ending in 0002"
+      "label": "Visa ending in 0002",
+      "error" : "The card was declined."
     },
     "declined-funds": {
       "number": "4000000000009995",
@@ -159,7 +165,8 @@
         "year": "25"
       },
       "cvc": "626",
-      "label": "Visa ending in 9995"
+      "label": "Visa ending in 9995",
+      "error" : "The card was declined."
     },
     "declined-incorrect": {
       "number": "4242424242424241",
@@ -168,7 +175,8 @@
         "year": "25"
       },
       "cvc": "626",
-      "label": "Visa ending in 4241"
+      "label": "Visa ending in 4241",
+      "error" : "The card number is not a valid credit card number."
     },
     "declined-expired": {
       "number": "4000000000000069",
@@ -177,7 +185,8 @@
         "year": "25"
       },
       "cvc": "626",
-      "label": "Visa ending in 0069"
+      "label": "Visa ending in 0069",
+      "error" : "The card has expired."
     },
     "declined-cvc": {
       "number": "4000000000000127",
@@ -186,7 +195,8 @@
         "year": "25"
       },
       "cvc": "626",
-      "label": "Visa ending in 0127"
+      "label": "Visa ending in 0127",
+      "error" : "The card's security code is incorrect."
     },
     "declined-processing": {
       "number": "4000000000000119",
@@ -195,7 +205,8 @@
         "year": "25"
       },
       "cvc": "626",
-      "label": "Visa ending in 0119"
+      "label": "Visa ending in 0119",
+      "error" : "An error occurred while processing the card."
     },
     "declined-3ds": {
       "number": "4000008400001629",
