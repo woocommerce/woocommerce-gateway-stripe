@@ -8,9 +8,10 @@ We use [Playwright](https://playwright.dev/) as our test runner.
   - [Table of contents](#table-of-contents)
   - [Running E2E Tests](#running-e2e-tests)
     - [Pre-requisites](#pre-requisites)
+    - [Setup](#setup)
     - [Running tests](#running-tests)
     - [Debugging tests](#debugging-tests)
-    - [Running only a few test suites](#running-only-a-few-test-suites)
+    - [Running only selected test suites](#running-only-selected-test-suites)
   - [Guide for writing e2e tests](#guide-for-writing-e2e-tests)
     - [Creating the test structure](#creating-the-test-structure)
     - [Writing the test](#writing-the-test)
@@ -21,8 +22,15 @@ We use [Playwright](https://playwright.dev/) as our test runner.
 
 - Node.js ([Installation instructions](https://nodejs.org/en/download/))
 - NVM ([Installation instructions](https://github.com/nvm-sh/nvm))
-- A test site with SSH access, WP CLI installed in the server, admin credentials (`wp-admin`), and WooCommerce installed. Jurassic Ninja sites are recommended.
-- Test mode keys for a Stripe account.
+- A test site to run the tests on. **Jurassic Ninja sites are recommended**.
+- Admin credentials (`wp-admin`) to the test site.
+
+**For the automated setup (optional)**
+
+- SSH access to the test site.
+- WP CLI available on the test site server.
+
+### Setup
 
 - Copy the file `/tests/e2e/config/local.env.example` to `/tests/e2e/config/local.env`.
 - Edit the variables on the `local.env` file.
@@ -33,7 +41,20 @@ We use [Playwright](https://playwright.dev/) as our test runner.
 
 `npm run test:e2e-setup -- --base_url=SOME_URL_HERE`
 
-This command will perform the WooCommerce setup and the Stripe setup in a new Jurassic ninja site. The SSH and admin credentials are mandatory (view the parameters `--with_woo_setup` and `--with_stripe_setup` below for more info).
+This command will:
+
+- Connect to the test server via SSH using the credentials on `/tests/e2e/config/local.env`.
+- Install the latest WooCommerce release from WP.ORG.
+- Install the latest WooCommerce Gateway Stripe release from WP.ORG. *The version can be overriden using the `--version` flag, in this case, the release will be downloaded from GitHub instead of WP.ORG*
+- Install the StoreFront theme and activate it. 
+- Setup WooCommerce on the test site (store address, currency, shipping methods, etc.). 
+- Import test products into WooCommerce.
+- Create pages for the Cart blocks and Checkout blocks from WooCommerce Blocks.
+- Setup the Stripe gateway using the keys on `/tests/e2e/config/local.env`. The webhook endpoint is also set up on Stripe.
+
+The SSH and admin credentials are mandatory (view the parameters `--with_woo_setup` and `--with_stripe_setup` below for more info).
+
+**Test execution**
 
 `npm run test:e2e -- --base_url=SOME_URL_HERE`
 
@@ -43,13 +64,13 @@ The default command to run the tests. It'll run the tests in the URL indicated b
 
 `--version`
 
-The plugin release version to be tested. By setting this parameter, the release will be downloaded from GitHub and uploaded to the website indicated on `--base_url` before testing starts.
+The plugin release version to be tested. By setting this parameter, **the release will be downloaded from GitHub** and uploaded to the website indicated on `--base_url` before testing starts.
 
 If no version is passed, the tests will use the version already installed on `--base_url`.
 
 `--with_woo_setup`
 
-Add this option in the first use of a test site. It'll get the SSH credentials from `tests/e2e/config/local.env` to setup the WooCommerce plugin with test products, a store addres, a store currency, and shipping methods. It'll also install and activate the StoreFront theme.
+Add this option in the first use of a test site. It'll get the SSH credentials from `tests/e2e/config/local.env` to setup the WooCommerce plugin with test products, a store address, a store currency, and shipping methods. It'll also install and activate the StoreFront theme.
 
 `--with_stripe_setup`
 
@@ -65,13 +86,21 @@ Add this option in the first use of a test site. It'll get the Stripe keys from 
 
 [Documentation](https://playwright.dev/docs/debug)
 
-### Running only a few test suites
+### Running only selected test suites
 
-To run only a few test suites, you can pass the test suite name or number as a parameter.
+**Tests with annotations**
 
-**Example:** This command would run the test suites `001` and `004`.
+There are test annotations for determined parts of the application, e.g: subscriptions, blocks, smoke tests, etc. They are indicated in the test name with the `@` sign in front of it. Example: `Test XYZ @subscriptions`.
 
- `npm run test:e2e -- 001 004`
+To run only tests with a given annotation, use the parameter `--grep @annotation`. For example:
+
+`npm run test:e2e -- --base_url=SOME_URL_HERE --grep @subscriptions`
+
+**Using the test file name**
+
+This command would run the tests with the file name containing `normal-card`. Please note that there might be repeated file names, specially between tests run in the regular checkout and in the blocks checkout.
+
+ `npm run test:e2e -- --base_url=SOME_URL_HERE normal-card`
 
 ## Guide for writing e2e tests
 
