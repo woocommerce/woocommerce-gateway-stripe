@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 7.1.0 - 2022-xx-xx =
+* Update – Declare compatibility with HPOS.
 
 = 7.0.2 - 2023-01-11 =
 * Fix - Expand charges object from incoming webhooks using Stripe API version 2022-11-15.
