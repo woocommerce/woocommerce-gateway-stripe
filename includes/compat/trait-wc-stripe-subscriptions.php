@@ -406,6 +406,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		// Delete payment intent ID.
 		$resubscribe_order->delete_meta_data( '_stripe_intent_id' );
 		$this->delete_renewal_meta( $resubscribe_order );
+		$resubscribe_order->save();
 	}
 
 	/**
@@ -434,6 +435,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	public function update_failing_payment_method( $subscription, $renewal_order ) {
 		$subscription->update_meta_data( '_stripe_customer_id', $renewal_order->get_meta( '_stripe_customer_id', true ) );
 		$subscription->update_meta_data( '_stripe_source_id', $renewal_order->get_meta( '_stripe_source_id', true ) );
+		$subscription->save();
 	}
 
 	/**
@@ -571,6 +573,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				// Take this opportunity to update the key name.
 				$parent_order->update_meta_data( '_stripe_source_id', $stripe_source_id );
+				$parent_order->save();
 			}
 		}
 
