@@ -128,7 +128,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.1.0 - 2022-xx-xx =
+= 7.1.0 - 2023-xx-xx =
+* Fix - Replace some post meta methods with equivalent methods compatible with HPOS.
 
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
