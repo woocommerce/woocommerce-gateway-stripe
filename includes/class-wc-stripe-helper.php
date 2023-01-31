@@ -445,8 +445,10 @@ class WC_Stripe_Helper {
 				[
 					'limit'      => 1,
 					'meta_query' => [
-						'key'   => '_stripe_intent_id',
-						'value' => $intent_id,
+						[
+							'key'   => '_stripe_intent_id',
+							'value' => $intent_id,
+						],
 					],
 				]
 			);
