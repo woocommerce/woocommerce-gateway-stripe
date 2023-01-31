@@ -380,8 +380,10 @@ class WC_Stripe_Helper {
 				[
 					'limit'      => 1,
 					'meta_query' => [
-						'key'   => '_stripe_source_id',
-						'value' => $source_id,
+						[
+							'key'   => '_stripe_source_id',
+							'value' => $source_id,
+						],
 					],
 				]
 			);
@@ -445,8 +447,10 @@ class WC_Stripe_Helper {
 				[
 					'limit'      => 1,
 					'meta_query' => [
-						'key'   => '_stripe_intent_id',
-						'value' => $intent_id,
+						[
+							'key'   => '_stripe_intent_id',
+							'value' => $intent_id,
+						],
 					],
 				]
 			);
@@ -477,8 +481,10 @@ class WC_Stripe_Helper {
 				[
 					'limit'      => 1,
 					'meta_query' => [
-						'key'   => '_stripe_setup_intent',
-						'value' => $intent_id,
+						[
+							'key'   => '_stripe_setup_intent',
+							'value' => $intent_id,
+						],
 					],
 				]
 			);

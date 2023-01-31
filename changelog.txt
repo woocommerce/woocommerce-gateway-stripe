@@ -1,6 +1,7 @@
 *** Changelog ***
 
-= 7.1.0 - 2022-xx-xx =
+= 7.1.0 - 2023-xx-xx =
+* Fix - Replace some post meta methods with equivalent methods compatible with HPOS.
 * Update – Declare compatibility with HPOS.
 
 = 7.0.2 - 2023-01-11 =
