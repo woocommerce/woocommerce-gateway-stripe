@@ -1,16 +1,16 @@
 <?php
 /**
- * Plugin Name: WooCommerce Stripe Gateway
+ * Plugin Name: WooCommerce MonilyPay Gateway
  * Plugin URI: https://wordpress.org/plugins/woocommerce-gateway-stripe/
- * Description: Take credit card payments on your store using Stripe.
- * Author: WooCommerce
- * Author URI: https://woocommerce.com/
+ * Description: Take credit card payments on your store using MonilyPay. A fork of the official Woocommerce Stripe Plugin
+ * Author: MonilyPay
+ * Author URI: https://moni.ly/
  * Version: 7.0.2
  * Requires at least: 5.8
  * Tested up to: 6.0
  * WC requires at least: 6.8
  * WC tested up to: 7.0
- * Text Domain: woocommerce-gateway-stripe
+ * Text Domain: woocommerce-gateway-monilypay
  * Domain Path: /languages
  */
 

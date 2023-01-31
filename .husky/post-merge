@@ -1,8 +1,0 @@
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
-
-# using `--no-install` just in case it's the first time a person is checking out the repo and doesn't have yarnhook installed
-npx --no-install yarnhook
-
-# make sure the autoload files are regenerated
-composer dumpautoload
