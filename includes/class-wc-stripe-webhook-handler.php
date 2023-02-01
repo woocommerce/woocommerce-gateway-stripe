@@ -851,6 +851,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return;
 		}
 
+		// TODO: This is a stop-gap to fix a critical issue, see
+		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
+		// be better if we removed the need for additional meta data in favor of refactoring
+		// this part of the payment processing.
+		if ( $order->get_meta( '_stripe_upe_waiting_for_redirect' ) ?? false ) {
+			return;
+		}
+
 		if ( $this->lock_order_payment( $order, $intent ) ) {
 			return;
 		}

@@ -575,6 +575,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
 				$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
+
+				// TODO: This is a stop-gap to fix a critical issue, see
+				// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
+				// be better if we removed the need for additional meta data in favor of refactoring
+				// this part of the payment processing.
+				$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
+
 				$order->save();
 
 				$this->stripe_request(
@@ -943,6 +950,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->save_intent_to_order( $order, $intent );
 		$this->set_payment_method_title_for_order( $order, $payment_method_type );
 		$order->update_meta_data( '_stripe_upe_redirect_processed', true );
+
+		// TODO: This is a stop-gap to fix a critical issue, see
+		// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
+		// be better if we removed the need for additional meta data in favor of refactoring
+		// this part of the payment processing.
+		$order->delete_meta_data( '_stripe_upe_waiting_for_redirect' );
+
 		$order->save();
 	}
 
