@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 7.1.0 - 2023-xx-xx =
+* Add - Declare this plugin compatible with High-Performance Order Storage (HPOS).
 * Fix - Replace some post meta methods with equivalent methods compatible with HPOS.
 * Tweak - Update minimum supported versions for WordPress, WooCommerce, and PHP.
 * Update – Declare this plugin compatible with High-Performance Order Storage (HPOS).
