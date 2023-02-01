@@ -3,7 +3,7 @@ Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
 Requires at least: 5.9
 Tested up to: 6.1
-Requires PHP: 7.1
+Requires PHP: 7.3
 Stable tag: 7.0.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
