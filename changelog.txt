@@ -3,6 +3,7 @@
 = 7.1.0 - 2023-xx-xx =
 * Fix - Replace some post meta methods with equivalent methods compatible with HPOS.
 * Fix - Rare cases of payment processing failing when webhooks arrive before customer is redirected when UPE is enabled will no longer occur.
+* Tweak - Update minimum supported versions for WordPress, WooCommerce, and PHP.
 
 = 7.0.2 - 2023-01-11 =
 * Fix - Expand charges object from incoming webhooks using Stripe API version 2022-11-15.
