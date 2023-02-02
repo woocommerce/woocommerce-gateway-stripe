@@ -52,7 +52,7 @@
     "babel-preset-stage-2": "^6.13.0",
     "chai": "^4.1.2",
     "chai-as-promised": "^7.1.1",
-    "chromedriver": "^2.40.0",
+    "chromedriver": "^109.0.0",
     "classnames": "^2.3.1",
     "clean-css-cli": "^4.1.10",
     "colors": "^1.4.0",
