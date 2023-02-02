@@ -69,7 +69,7 @@ class WC_Stripe_API {
 			'lang'         => 'php',
 			'lang_version' => phpversion(),
 			'publisher'    => 'woocommerce',
-			'uname'        => php_uname(),
+			'uname'        => function_exists( 'php_uname' ) ? php_uname() : PHP_OS,
 			'application'  => $app_info,
 		];
 	}

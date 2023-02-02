@@ -16,6 +16,9 @@ release/
 build/
 woocommerce-gateway-stripe.zip
 languages/woocommerce-gateway-stripe.pot
+*.env
+*.tmp
+*.zip
 
 # Ignore all log files except for .htaccess
 /logs/*
@@ -25,7 +28,11 @@ languages/woocommerce-gateway-stripe.pot
 deploy-to-wp-org.sh
 
 # Test configs
-tests/e2e/config/local-*
+tests/e2e/storage
+tests/e2e/output
+tests/e2e/report
+tests/e2e/tmp
+tests/e2e/allure-results
 
 # Volumes mounted by Docker containers
 docker/bin/jt
