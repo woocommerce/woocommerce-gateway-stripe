@@ -1,4 +1,10 @@
-const { devices } = require( '@playwright/test' );
+import { devices } from '@playwright/test';
+import dotenv from 'dotenv';
+
+dotenv.config( {
+	path: `${ process.env.E2E_ROOT }/config/local.env`,
+} );
+
 const {
 	ALLURE_RESULTS_DIR,
 	BASE_URL,
@@ -19,7 +25,7 @@ const config = {
 	retries: CI ? 4 : 2,
 	workers: 4,
 	reporter: [
-		[ 'line' ],
+		[ CI ? 'github' : 'list' ],
 		[
 			'html',
 			{

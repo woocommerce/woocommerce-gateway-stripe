@@ -1,23 +1,18 @@
-require( 'dotenv' ).config( {
-	path: `${ process.env.E2E_ROOT }/config/local.env`,
-} );
+import { chromium } from '@playwright/test';
+import fs from 'fs';
 
-const { chromium } = require( '@playwright/test' );
-const fs = require( 'fs' );
-
-const {
+import {
 	loginAdminAndSaveState,
 	createApiTokens,
 	installPluginFromRepository,
 	setupWoo,
 	setupStripe,
-} = require( '../utils/pw-setup' );
+} from '../utils/pw-setup';
 
 const {
 	BASE_URL,
 	ADMIN_USER,
 	ADMIN_PASSWORD,
-	ADMINSTATE,
 	PLUGIN_VERSION,
 	WOO_SETUP,
 	STRIPE_SETUP,
@@ -117,7 +112,7 @@ module.exports = async ( config ) => {
 		page: adminPage,
 		username: ADMIN_USER,
 		password: ADMIN_PASSWORD,
-		statePath: ADMINSTATE,
+		statePath: process.env.ADMINSTATE,
 		retries: 5,
 	} )
 		.then( async () => {

@@ -1,7 +1,7 @@
-const { APIRequest } = require( '@playwright/test' );
-const axios = require( 'axios' ).default;
-const fs = require( 'fs' );
-const path = require( 'path' );
+import { APIRequest } from '@playwright/test';
+import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
 
 /**
  * Encode basic auth username and password to be used in HTTP Authorization header.
