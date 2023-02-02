@@ -1,9 +1,9 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
-Requires at least: 5.7
-Tested up to: 6.0
-Requires PHP: 7.0
+Requires at least: 5.9
+Tested up to: 6.1
+Requires PHP: 7.3
 Stable tag: 7.0.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -130,7 +130,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 7.1.0 - 2023-xx-xx =
 * Fix - Replace some post meta methods with equivalent methods compatible with HPOS.
-* Update – Declare compatibility with HPOS.
+* Tweak - Update minimum supported versions for WordPress, WooCommerce, and PHP.
+* Update – Declare this plugin compatible with High-Performance Order Storage (HPOS).
 
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
