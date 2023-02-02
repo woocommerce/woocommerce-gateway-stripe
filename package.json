@@ -127,7 +127,7 @@
     "wp": "docker run -it --env-file default.env --rm --user xfs --volumes-from woocommerce_stripe_wordpress --network container:woocommerce_stripe_wordpress wordpress:cli",
     "listen": "stripe listen --forward-to 'http://localhost:8082/?wc-api=wc_stripe'",
     "presass": "rm -f $npm_package_config_assets_styles_css",
-    "sass": "node_modules/.bin/node-sass $npm_package_config_assets_styles_cssfolder --output $npm_package_config_assets_styles_cssfolder --output-style compressed",
+    "sass": "node_modules/.bin/sass $npm_package_config_assets_styles_cssfolder:$npm_package_config_assets_styles_cssfolder --style compressed",
     "watchsass": "node_modules/.bin/node-sass $npm_package_config_assets_styles_sass --output $npm_package_config_assets_styles_cssfolder --output-style compressed --watch",
     "postsass": "for f in $npm_package_config_assets_styles_css; do file=${f%.css}; node_modules/.bin/cleancss -o $file.css $f; done",
     "test": "cross-env NODE_CONFIG_DIR='./tests/e2e/config' BABEL_ENV=commonjs mocha \"tests/e2e\" --require babel-register --recursive",
