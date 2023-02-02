@@ -130,6 +130,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 7.1.0 - 2023-xx-xx =
 * Fix - Replace some post meta methods with equivalent methods compatible with HPOS.
+* Tweak - Update minimum supported versions for WordPress, WooCommerce, and PHP.
 
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
