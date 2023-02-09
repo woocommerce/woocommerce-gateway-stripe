@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 7.1.0 - 2023-xx-xx =
+= 7.1.0 - 2023-02-08 =
 * Fix - Replace some post meta methods with equivalent methods compatible with HPOS.
 * Fix - Rare cases of payment processing failing when webhooks arrive before customer is redirected when UPE is enabled will no longer occur.
 * Tweak - Update minimum supported versions for WordPress, WooCommerce, and PHP.
