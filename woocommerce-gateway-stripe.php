@@ -5,11 +5,11 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 7.0.2
- * Requires at least: 5.8
- * Tested up to: 6.0
- * WC requires at least: 6.8
- * WC tested up to: 7.0
+ * Version: 7.1.0
+ * Requires at least: 5.9
+ * Tested up to: 6.1
+ * WC requires at least: 6.9
+ * WC tested up to: 7.3
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -21,10 +21,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '7.0.2' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_VERSION', '7.1.0' ); // WRCS: DEFINED_VERSION.
 define( 'WC_STRIPE_MIN_PHP_VER', '7.3.0' );
-define( 'WC_STRIPE_MIN_WC_VER', '6.8' );
-define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '6.9' );
+define( 'WC_STRIPE_MIN_WC_VER', '6.9' );
+define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '7.1' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
 define( 'WC_STRIPE_ABSPATH', __DIR__ . '/' );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
@@ -777,7 +777,7 @@ add_action(
 	'before_woocommerce_init',
 	function() {
 		if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
-			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, false );
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
 		}
 	}
 );
