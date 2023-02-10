@@ -235,6 +235,19 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return WP_REST_Response
 	 */
 	public function get_settings() {
+		$available_upe_payment_methods = $this->gateway->get_upe_available_payment_methods();
+		/**
+		 * It might be possible that enabled payment methods settings have an invalid state. As an example,
+		 * if an account is switched to a new country and earlier country had PM's that are no longer valid; or if the PM is not available anymore.
+		 * To keep saving settings working, we are ensuring the enabled payment methods are yet available.
+		 */
+		$enabled_payment_methods = array_values(
+			array_intersect(
+				$this->gateway->get_upe_enabled_payment_method_ids(),
+				$available_upe_payment_methods
+			)
+		);
+
 		return new WP_REST_Response(
 			[
 				/* Settings > General */
@@ -245,8 +258,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'description'                           => $this->gateway->get_validated_option( 'description' ),
 
 				/* Settings > Payments accepted on checkout */
-				'enabled_payment_method_ids'            => $this->gateway->get_upe_enabled_payment_method_ids(),
-				'available_payment_method_ids'          => $this->gateway->get_upe_available_payment_methods(),
+				'enabled_payment_method_ids'            => $enabled_payment_methods,
+				'available_payment_method_ids'          => $available_upe_payment_methods,
 
 				/* Settings > Express checkouts */
 				'is_payment_request_enabled'            => 'yes' === $this->gateway->get_option( 'payment_request' ),
