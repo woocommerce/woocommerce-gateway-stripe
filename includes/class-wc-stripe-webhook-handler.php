@@ -402,7 +402,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				if ( $this->is_partial_capture( $notification ) ) {
 					$partial_amount = $this->get_partial_amount_to_charge( $notification );
 					$order->set_total( $partial_amount );
-					$this->update_fees( $order, $notification->data->object->refunds->data[0]->balance_transaction );
+					$refund_object = $this->get_refund_object( $notification );
+					$this->update_fees( $order, $refund_object->balance_transaction );
 					/* translators: partial captured amount */
 					$order->add_order_note( sprintf( __( 'This charge was partially captured via Stripe Dashboard in the amount of: %s', 'woocommerce-gateway-stripe' ), $partial_amount ) );
 				} else {
@@ -554,11 +555,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 		$order_id = $order->get_id();
 
 		if ( 'stripe' === $order->get_payment_method() ) {
-			$charge     = $order->get_transaction_id();
-			$captured   = $order->get_meta( '_stripe_charge_captured' );
-			$refund_id  = $order->get_meta( '_stripe_refund_id' );
-			$currency   = $order->get_currency();
-			$raw_amount = $notification->data->object->refunds->data[0]->amount;
+			$charge        = $order->get_transaction_id();
+			$captured      = $order->get_meta( '_stripe_charge_captured' );
+			$refund_id     = $order->get_meta( '_stripe_refund_id' );
+			$currency      = $order->get_currency();
+			$refund_object = $this->get_refund_object( $notification );
+			$raw_amount    = $refund_object->amount;
 
 			if ( ! in_array( strtolower( $currency ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
 				$raw_amount /= 100;
@@ -580,7 +582,7 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			}
 
 			// If the refund ID matches, don't continue to prevent double refunding.
-			if ( $notification->data->object->refunds->data[0]->id === $refund_id ) {
+			if ( $refund_object->id === $refund_id ) {
 				return;
 			}
 
@@ -600,14 +602,14 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 					WC_Stripe_Logger::log( $refund->get_error_message() );
 				}
 
-				$order->update_meta_data( '_stripe_refund_id', $notification->data->object->refunds->data[0]->id );
+				$order->update_meta_data( '_stripe_refund_id', $refund_object->id );
 
-				if ( isset( $notification->data->object->refunds->data[0]->balance_transaction ) ) {
-					$this->update_fees( $order, $notification->data->object->refunds->data[0]->balance_transaction );
+				if ( isset( $refund_object->balance_transaction ) ) {
+					$this->update_fees( $order, $refund_object->balance_transaction );
 				}
 
 				/* translators: 1) amount (including currency symbol) 2) transaction id 3) refund message */
-				$order->add_order_note( sprintf( __( 'Refunded %1$s - Refund ID: %2$s - %3$s', 'woocommerce-gateway-stripe' ), $amount, $notification->data->object->refunds->data[0]->id, $reason ) );
+				$order->add_order_note( sprintf( __( 'Refunded %1$s - Refund ID: %2$s - %3$s', 'woocommerce-gateway-stripe' ), $amount, $refund_object->id, $reason ) );
 			}
 		}
 	}
@@ -769,6 +771,25 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Gets the first refund object from charge notification.
+	 *
+	 * @since 7.0.2
+	 * @param object $notification
+	 *
+	 * @return object
+	 */
+	public function get_refund_object( $notification ) {
+		// Since API version 2022-11-15, the Charge object no longer expands `refunds` by default.
+		// We can remove this once we drop support for API versions prior to 2022-11-15.
+		if ( ! empty( $notification->data->object->refunds->data[0] ) ) {
+			return $notification->data->object->refunds->data[0];
+		}
+
+		$charge = $this->get_charge_object( $notification->data->object->id, [ 'expand' => [ 'refunds' ] ] );
+		return $charge->refunds->data[0];
+	}
+
+	/**
 	 * Gets the amount refunded.
 	 *
 	 * @since 4.0.0
@@ -777,10 +798,11 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 */
 	public function get_refund_amount( $notification ) {
 		if ( $this->is_partial_capture( $notification ) ) {
-			$amount = $notification->data->object->refunds->data[0]->amount / 100;
+			$refund_object = $this->get_refund_object( $notification );
+			$amount        = $refund_object->amount / 100;
 
 			if ( in_array( strtolower( $notification->data->object->currency ), WC_Stripe_Helper::no_decimal_currencies() ) ) {
-				$amount = $notification->data->object->refunds->data[0]->amount;
+				$amount = $refund_object->amount;
 			}
 
 			return $amount;
@@ -845,8 +867,17 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				break;
 			case 'payment_intent.succeeded':
 			case 'payment_intent.amount_capturable_updated':
-				$charge = end( $intent->charges->data );
+				$charge = $this->get_latest_charge_from_intent( $intent );
+
 				WC_Stripe_Logger::log( "Stripe PaymentIntent $intent->id succeeded for order $order_id" );
+
+				// TODO: This is a stop-gap to fix a critical issue, see
+				// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
+				// be better if we removed the need for additional meta data in favor of refactoring
+				// this part of the payment processing.
+				if ( $order->get_meta( '_stripe_upe_waiting_for_redirect' ) ?? false ) {
+					return;
+				}
 
 				do_action( 'wc_gateway_stripe_process_payment', $charge, $order );
 

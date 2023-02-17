@@ -621,10 +621,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Get source object by source id.
+	 * Get source object by source ID.
 	 *
 	 * @since 4.0.3
 	 * @param string $source_id The source ID to get source object for.
+	 *
+	 * @throws WC_Stripe_Exception Error while retrieving source object.
+	 * @return string|object
 	 */
 	public function get_source_object( $source_id = '' ) {
 		if ( empty( $source_id ) ) {
@@ -638,6 +641,49 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		return $source_object;
+	}
+
+	/**
+	 * Get charge object by charge ID.
+	 *
+	 * @since 7.0.2
+	 * @param string $charge_id The charge ID to get charge object for.
+	 * @param array  $params    The parameters to pass to the request.
+	 *
+	 * @throws WC_Stripe_Exception Error while retrieving charge object.
+	 * @return string|object
+	 */
+	public function get_charge_object( $charge_id = '', $params = [] ) {
+		if ( empty( $charge_id ) ) {
+			return '';
+		}
+
+		$charge_object = WC_Stripe_API::request( $params, 'charges/' . $charge_id, 'GET' );
+
+		if ( ! empty( $charge_object->error ) ) {
+			throw new WC_Stripe_Exception( print_r( $charge_object, true ), $charge_object->error->message );
+		}
+
+		return $charge_object;
+	}
+
+	/**
+	 * Get latest charge object from payment intent.
+	 *
+	 * Since API version 2022-11-15, the `charges` property was replaced with `latest_charge`.
+	 * We can remove this method once we drop support for API versions prior to 2022-11-15.
+	 *
+	 * @since 7.0.2
+	 * @param object $intent Stripe API Payment Intent object response.
+	 *
+	 * @return object
+	 */
+	public function get_latest_charge_from_intent( $intent ) {
+		if ( ! empty( $intent->charges->data ) ) {
+			return end( $intent->charges->data );
+		} else {
+			return $this->get_charge_object( $intent->latest_charge );
+		}
 	}
 
 	/**

@@ -182,9 +182,12 @@ describe( 'GeneralSettingsSection', () => {
 				} ) ),
 			} );
 			useAccountKeysWebhookSecret.mockReturnValue( [ '', jest.fn() ] );
-			useAccountKeysSecretKey.mockReturnValue( [ 'live_sk', jest.fn() ] );
+			useAccountKeysSecretKey.mockReturnValue( [
+				'sk_live_',
+				jest.fn(),
+			] );
 			useAccountKeysPublishableKey.mockReturnValue( [
-				'live_pk',
+				'pk_live_',
 				jest.fn(),
 			] );
 
