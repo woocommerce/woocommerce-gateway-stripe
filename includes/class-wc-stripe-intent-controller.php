@@ -45,7 +45,7 @@ class WC_Stripe_Intent_Controller {
 	 * Returns an instantiated gateway.
 	 *
 	 * @since 4.2.0
-	 * @return WC_Stripe_Payment_Gateway
+	 * @return WC_Gateway_Stripe
 	 */
 	protected function get_gateway() {
 		if ( ! isset( $this->gateway ) ) {
@@ -138,8 +138,8 @@ class WC_Stripe_Intent_Controller {
 				} else {
 					$metadata = $intent->metadata;
 					if ( isset( $metadata->save_payment_method ) && 'true' === $metadata->save_payment_method ) {
-						$source_object = WC_Stripe_API::retrieve( 'sources/' . $intent->source );
-						$gateway->save_payment_method( $source_object );
+						$payment_method_object = WC_Stripe_API::get_payment_method( $intent->source );
+						$gateway->save_payment_method( $payment_method_object );
 					}
 				}
 			}

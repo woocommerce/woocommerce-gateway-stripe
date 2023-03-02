@@ -624,23 +624,23 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Get source object by source ID.
 	 *
 	 * @since 4.0.3
-	 * @param string $source_id The source ID to get source object for.
+	 * @param string $payment_method_id The source ID to get source object for.
 	 *
 	 * @throws WC_Stripe_Exception Error while retrieving source object.
 	 * @return string|object
 	 */
-	public function get_source_object( $source_id = '' ) {
-		if ( empty( $source_id ) ) {
+	public function get_payment_method_object( $payment_method_id = '' ) {
+		if ( empty( $payment_method_id ) ) {
 			return '';
 		}
 
-		$source_object = WC_Stripe_API::retrieve( 'sources/' . $source_id );
+		$payment_method_object = WC_Stripe_API::get_payment_method( $payment_method_id );
 
-		if ( ! empty( $source_object->error ) ) {
-			throw new WC_Stripe_Exception( print_r( $source_object, true ), $source_object->error->message );
+		if ( ! empty( $payment_method_object->error ) ) {
+			throw new WC_Stripe_Exception( print_r( $payment_method_object, true ), $payment_method_object->error->message );
 		}
 
-		return $source_object;
+		return $payment_method_object;
 	}
 
 	/**
@@ -781,7 +781,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		// New CC info was entered and we have a new source to process.
 		if ( ! empty( $_POST['stripe_source'] ) ) {
-			$source_object = self::get_source_object( wc_clean( wp_unslash( $_POST['stripe_source'] ) ) );
+			$source_object = self::get_payment_method_object( wc_clean( wp_unslash( $_POST['stripe_source'] ) ) );
 			$source_id     = $source_object->id;
 
 			// This checks to see if customer opted to save the payment method to file.
@@ -847,7 +847,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		if ( empty( $source_object ) && ! $is_token ) {
-			$source_object = self::get_source_object( $source_id );
+			$source_object = self::get_payment_method_object( $source_id );
 		}
 
 		return (object) [
@@ -873,13 +873,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return object
 	 */
 	public function prepare_order_source( $order = null ) {
-		$stripe_customer = new WC_Stripe_Customer();
-		$stripe_source   = false;
-		$token_id        = false;
-		$source_object   = false;
+		$stripe_customer       = new WC_Stripe_Customer();
+		$stripe_source         = false;
+		$token_id              = false;
+		$payment_method_object = false;
 
 		if ( $order ) {
-			$order_id = $order->get_id();
 
 			$stripe_customer_id = $this->get_stripe_customer_id( $order );
 
@@ -887,23 +886,23 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$stripe_customer->set_id( $stripe_customer_id );
 			}
 
-			$source_id = $order->get_meta( '_stripe_source_id', true );
+			$payment_method_id = $order->get_meta( '_stripe_source_id', true );
 
 			// Since 4.0.0, we changed card to source so we need to account for that.
-			if ( empty( $source_id ) ) {
-				$source_id = $order->get_meta( '_stripe_card_id', true );
+			if ( empty( $payment_method_id ) ) {
+				$payment_method_id = $order->get_meta( '_stripe_card_id', true );
 
 				// Take this opportunity to update the key name.
-				$order->update_meta_data( '_stripe_source_id', $source_id );
+				$order->update_meta_data( '_stripe_source_id', $payment_method_id );
 
 				if ( is_callable( [ $order, 'save' ] ) ) {
 					$order->save();
 				}
 			}
 
-			if ( $source_id ) {
-				$stripe_source = $source_id;
-				$source_object = WC_Stripe_API::retrieve( 'sources/' . $source_id );
+			if ( $payment_method_id ) {
+				$stripe_source         = $payment_method_id;
+				$payment_method_object = WC_Stripe_API::get_payment_method( $payment_method_id );
 			} elseif ( apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
 				/*
 				 * We can attempt to charge the customer's default source
@@ -917,7 +916,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'token_id'       => $token_id,
 			'customer'       => $stripe_customer ? $stripe_customer->get_id() : false,
 			'source'         => $stripe_source,
-			'source_object'  => $source_object,
+			'source_object'  => $payment_method_object,
 			'payment_method' => null,
 		];
 	}
@@ -1142,9 +1141,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.0
 	 */
 	public function add_payment_method() {
-		$error     = false;
-		$error_msg = __( 'There was a problem adding the payment method.', 'woocommerce-gateway-stripe' );
-		$source_id = '';
+		$error             = false;
+		$error_msg         = __( 'There was a problem adding the payment method.', 'woocommerce-gateway-stripe' );
+		$payment_method_id = '';
 
 		if ( empty( $_POST['stripe_source'] ) && empty( $_POST['stripe_token'] ) || ! is_user_logged_in() ) {
 			$error = true;
@@ -1154,19 +1153,19 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$source = ! empty( $_POST['stripe_source'] ) ? wc_clean( wp_unslash( $_POST['stripe_source'] ) ) : '';
 
-		$source_object = WC_Stripe_API::retrieve( 'sources/' . $source );
+		$payment_method_object = WC_Stripe_API::get_payment_method( $source );
 
-		if ( isset( $source_object ) ) {
-			if ( ! empty( $source_object->error ) ) {
+		if ( isset( $payment_method_object ) ) {
+			if ( ! empty( $payment_method_object->error ) ) {
 				$error = true;
 			}
 
-			$source_id = $source_object->id;
+			$payment_method_id = $payment_method_object->id;
 		} elseif ( isset( $_POST['stripe_token'] ) ) {
-			$source_id = wc_clean( wp_unslash( $_POST['stripe_token'] ) );
+			$payment_method_id = wc_clean( wp_unslash( $_POST['stripe_token'] ) );
 		}
 
-		$response = $stripe_customer->add_source( $source_id );
+		$response = $stripe_customer->add_payment_method( $payment_method_id );
 
 		if ( ! $response || is_wp_error( $response ) || ! empty( $response->error ) ) {
 			$error = true;
@@ -1178,7 +1177,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return;
 		}
 
-		do_action( 'wc_stripe_add_payment_method_' . ( isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : '' ) . '_success', $source_id, $source_object );
+		do_action( 'wc_stripe_add_payment_method_' . ( isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : '' ) . '_success', $payment_method_id, $payment_method_object );
 
 		return [
 			'result'   => 'success',

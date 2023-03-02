@@ -512,15 +512,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Saves payment method
 	 *
-	 * @param object $source_object
+	 * @param object $payment_method_object
 	 * @throws WC_Stripe_Exception
 	 */
-	public function save_payment_method( $source_object ) {
+	public function save_payment_method( $payment_method_object ) {
 		$user_id  = get_current_user_id();
 		$customer = new WC_Stripe_Customer( $user_id );
 
-		if ( ( $user_id && 'reusable' === $source_object->usage ) ) {
-			$response = $customer->add_source( $source_object->id );
+		if ( ( $user_id && 'reusable' === $payment_method_object->usage ) ) {
+			$response = $customer->add_payment_method( $payment_method_object->id );
 
 			if ( ! empty( $response->error ) ) {
 				throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );

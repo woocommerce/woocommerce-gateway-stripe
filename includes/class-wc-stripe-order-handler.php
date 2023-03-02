@@ -83,23 +83,23 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			 * First check if the source is chargeable at this time. If not,
 			 * webhook will take care of it later.
 			 */
-			$source_info = WC_Stripe_API::retrieve( 'sources/' . $source );
+			$payment_method_info = WC_Stripe_API::get_payment_method( $source );
 
-			if ( ! empty( $source_info->error ) ) {
-				throw new WC_Stripe_Exception( print_r( $source_info, true ), $source_info->error->message );
+			if ( ! empty( $payment_method_info->error ) ) {
+				throw new WC_Stripe_Exception( print_r( $payment_method_info, true ), $payment_method_info->error->message ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions
 			}
 
-			if ( 'failed' === $source_info->status || 'canceled' === $source_info->status ) {
-				throw new WC_Stripe_Exception( print_r( $source_info, true ), __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ) );
+			if ( 'failed' === $payment_method_info->status || 'canceled' === $payment_method_info->status ) {
+				throw new WC_Stripe_Exception( print_r( $payment_method_info, true ), __( 'Unable to process this payment, please try again or use alternative method.', 'woocommerce-gateway-stripe' ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions
 			}
 
 			// If already consumed, then ignore request.
-			if ( 'consumed' === $source_info->status ) {
+			if ( 'consumed' === $payment_method_info->status ) {
 				return;
 			}
 
 			// If not chargeable, then ignore request.
-			if ( 'chargeable' !== $source_info->status ) {
+			if ( 'chargeable' !== $payment_method_info->status ) {
 				return;
 			}
 

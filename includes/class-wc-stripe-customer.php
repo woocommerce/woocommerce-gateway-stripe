@@ -293,11 +293,11 @@ class WC_Stripe_Customer {
 	/**
 	 * Add a source for this stripe customer.
 	 *
-	 * @param string $source_id
+	 * @param string $payment_method_id
 	 * @return WP_Error|int
 	 */
-	public function add_source( $source_id ) {
-		$response = WC_Stripe_API::retrieve( 'sources/' . $source_id );
+	public function add_source( $payment_method_id ) {
+		$response = WC_Stripe_API::get_payment_method( $payment_method_id );
 
 		if ( ! empty( $response->error ) || is_wp_error( $response ) ) {
 			return $response;
@@ -346,7 +346,7 @@ class WC_Stripe_Customer {
 
 		$this->clear_cache();
 
-		do_action( 'woocommerce_stripe_add_source', $this->get_id(), $wc_token, $response, $source_id );
+		do_action( 'woocommerce_stripe_add_source', $this->get_id(), $wc_token, $response, $payment_method_id );
 
 		return $response->id;
 	}
