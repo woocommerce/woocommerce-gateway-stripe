@@ -191,7 +191,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 	/**
 	 * Checks to see if error is of invalid request
-	 * error and it is no such source.
+	 * error and it is no such source or payment method.
 	 *
 	 * @since 4.1.0
 	 * @param array $error
@@ -224,16 +224,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * key to be different from previous charge request.
 	 *
 	 * @since 4.1.0
-	 * @param object $source_object
+	 * @param object $payment_method_object
 	 * @param object $error
 	 * @return bool
 	 */
-	public function need_update_idempotency_key( $source_object, $error ) {
+	public function need_update_idempotency_key( $payment_method_object, $error ) {
 		return (
 			$error &&
 			1 < $this->retry_interval &&
-			! empty( $source_object ) &&
-			'chargeable' === $source_object->status &&
+			! empty( $payment_method_object ) &&
+			'chargeable' === $payment_method_object->status &&
 			self::is_same_idempotency_error( $error )
 		);
 	}
@@ -489,7 +489,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		 * @since 3.1.0
 		 * @param array $post_data
 		 * @param WC_Order $order
-		 * @param object $source
+		 * @param object $payment_method
 		 */
 		return apply_filters( 'wc_stripe_generate_payment_request', $post_data, $order, $prepared_payment_method );
 	}
@@ -617,12 +617,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Get source object by source ID.
+	 * Get payment method object by payment method ID.
 	 *
 	 * @since 4.0.3
-	 * @param string $payment_method_id The source ID to get source object for.
+	 * @param string $payment_method_id The payment method ID to get payment method object for.
 	 *
-	 * @throws WC_Stripe_Exception Error while retrieving source object.
+	 * @throws WC_Stripe_Exception Error while retrieving payment method object.
 	 * @return string|object
 	 */
 	public function get_payment_method_object( $payment_method_id = '' ) {
@@ -686,14 +686,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Checks if card is a prepaid card.
 	 *
 	 * @since 4.0.6
-	 * @param object $source_object
+	 * @param object $payment_method_object
 	 * @return bool
 	 */
-	public function is_prepaid_card( $source_object ) {
+	public function is_prepaid_card( $payment_method_object ) {
 		return (
-			$source_object
-			&& in_array( $source_object->object, [ 'token', 'source', 'payment_method' ], true )
-			&& 'prepaid' === $source_object->card->funding
+			$payment_method_object
+			&& in_array( $payment_method_object->object, [ 'token', 'source', 'payment_method' ], true )
+			&& 'prepaid' === $payment_method_object->card->funding
 		);
 	}
 
@@ -702,7 +702,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * throws an exception if it is one, but that is not allowed.
 	 *
 	 * @since 4.2.0
-	 * @param object $prepared_source The object with source details.
+	 * @param object $payment_method The object with payment method details.
 	 * @throws WC_Stripe_Exception An exception if the card is prepaid, but prepaid cards are not allowed.
 	 */
 	public function maybe_disallow_prepaid_card( $payment_method ) {
@@ -716,29 +716,29 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Checks if source is of legacy type card.
+	 * Checks if payment method is of legacy type card.
 	 *
 	 * @since 4.0.8
-	 * @param string $source_id
+	 * @param string $payment_method_id
 	 * @return bool
 	 */
-	public function is_type_legacy_card( $source_id ) {
-		return ( preg_match( '/^card_/', $source_id ) );
+	public function is_type_legacy_card( $payment_method_id ) {
+		return ( preg_match( '/^card_/', $payment_method_id ) );
 	}
 
 	/**
-	 * Checks if source is payment method (pm_).
+	 * Checks if payment method is a payment method object (pm_).
 	 *
 	 * @since 5.6.0
 	 * @param string $source_id
 	 * @return bool
 	 */
-	public function is_type_payment_method( $source_id ) {
-		return ( preg_match( '/^pm_/', $source_id ) );
+	public function is_type_payment_method( $payment_method_id ) {
+		return ( preg_match( '/^pm_/', $payment_method_id ) );
 	}
 
 	/**
-	 * Checks if payment is via saved payment source.
+	 * Checks if payment is via saved payment method.
 	 *
 	 * @since 4.1.0
 	 * @return bool
@@ -750,46 +750,49 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Get payment source. This can be a new token/source or existing WC token.
+	 * Get payment method. This can be a new token/source/payment method or existing WC token.
 	 * If user is logged in and/or has WC account, create an account on Stripe.
 	 * This way we can attribute the payment to the user to better fight fraud.
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
-	 * @param string $user_id
-	 * @param bool   $force_save_source Should we force save payment source.
+	 *
+	 * @param string       $user_id
+	 * @param bool         $force_save_payment_method Should we force save payment source.
+	 * @param string|null  $existing_customer_id      Preparing payment method for an existing customer.
 	 *
 	 * @throws Exception When card was not added or for and invalid card.
 	 * @return object
 	 */
-	public function prepare_source( $user_id, $force_save_source = false, $existing_customer_id = null ) {
+	public function prepare_source( $user_id, $force_save_payment_method = false, $existing_customer_id = null ) {
 		$customer = new WC_Stripe_Customer( $user_id );
 		if ( ! empty( $existing_customer_id ) ) {
 			$customer->set_id( $existing_customer_id );
 		}
 
-		$force_save_source = apply_filters( 'wc_stripe_force_save_source', $force_save_source, $customer );
-		$source_object     = '';
-		$source_id         = '';
-		$wc_token_id       = false;
-		$payment_method    = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : 'stripe';
-		$is_token          = false;
+		$force_save_source     = apply_filters( 'wc_stripe_force_save_source', $force_save_payment_method, $customer );
+		$payment_method_object = '';
+		$payment_method_id     = '';
+		$wc_token_id           = false;
+		$payment_method        = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : 'stripe';
+		$is_token              = false;
 
-		// New CC info was entered and we have a new source to process.
+		// New CC info was entered and we have a new payment method to process.
 		if ( ! empty( $_POST['stripe_payment_method'] ) ) {
-			$source_object = self::get_payment_method_object( wc_clean( wp_unslash( $_POST['stripe_payment_method'] ) ) );
-			$source_id     = $source_object->id;
+			$payment_method_object = self::get_payment_method_object( wc_clean( wp_unslash( $_POST['stripe_payment_method'] ) ) );
+			$payment_method_id     = $payment_method_object->id;
 
 			// This checks to see if customer opted to save the payment method to file.
 			$maybe_saved_card = isset( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] ) && ! empty( $_POST[ 'wc-' . $payment_method . '-new-payment-method' ] );
 
 			/**
-			 * This is true if the user wants to store the card to their account.
-			 * Criteria to save to file is they are logged in, they opted to save or product requirements and the source is
-			 * actually reusable. Either that or force_save_source is true.
+			 * This is true if the user wants to save the card to their account.
+			 * Criteria to save to the account is that they are logged in, they opted to save the
+			 * card, or product requires a saved card (e.g. subscriptions), and the payment method
+			 * is actually reusable. Either that or force_save_payment_method is true.
 			 */
-			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && 'reusable' === $source_object->usage ) || $force_save_source ) {
-				$response = $customer->attach_source( $source_object->id );
+			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && 'reusable' === $payment_method_object->usage ) || $force_save_source ) {
+				$response = $customer->attach_source( $payment_method_object->id );
 
 				if ( ! empty( $response->error ) ) {
 					throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
@@ -808,9 +811,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				throw new WC_Stripe_Exception( 'Invalid payment method', __( 'Invalid payment method. Please input a new card number.', 'woocommerce-gateway-stripe' ) );
 			}
 
-			$source_id = $wc_token->get_token();
+			$payment_method_id = $wc_token->get_token();
 
-			if ( $this->is_type_legacy_card( $source_id ) || $this->is_type_payment_method( $source_id ) ) {
+			if ( $this->is_type_legacy_card( $payment_method_id ) || $this->is_type_payment_method( $payment_method_id ) ) {
 				$is_token = true;
 			}
 		} elseif ( isset( $_POST['stripe_token'] ) && 'new' !== $_POST['stripe_token'] ) {
@@ -827,10 +830,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				if ( is_wp_error( $response ) ) {
 					throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
 				}
-				$source_id = $response->id;
+				$payment_method_id = $response->id;
 			} else {
-				$source_id = $stripe_token;
-				$is_token  = true;
+				$payment_method_id = $stripe_token;
+				$is_token          = true;
 			}
 		}
 
@@ -842,20 +845,20 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$customer_id = $customer->update_customer();
 		}
 
-		if ( empty( $source_object ) && ! $is_token ) {
-			$source_object = self::get_payment_method_object( $source_id );
+		if ( empty( $payment_method_object ) && ! $is_token ) {
+			$payment_method_object = self::get_payment_method_object( $payment_method_id );
 		}
 
 		return (object) [
 			'token_id'              => $wc_token_id,
 			'customer'              => $customer_id,
-			'payment_method'        => $source_id,
-			'payment_method_object' => $source_object,
+			'payment_method'        => $payment_method_id,
+			'payment_method_object' => $payment_method_object,
 		];
 	}
 
 	/**
-	 * Get payment source from an order. This could be used in the future for
+	 * Get payment method from an order. This could be used in the future for
 	 * a subscription as an example, therefore using the current user ID would
 	 * not work - the customer won't be logged in :)
 	 *
@@ -900,8 +903,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$payment_method_object = WC_Stripe_API::get_payment_method( $payment_method_id );
 			} elseif ( apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
 				/*
-				 * We can attempt to charge the customer's default source
-				 * by sending empty source id.
+				 * We can attempt to charge the customer's default payment method
+				 * by sending empty payment method id.
 				 */
 				$stripe_payment_method = '';
 			}
@@ -916,42 +919,42 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Checks whether a source exists.
+	 * Checks whether a payment method exists.
 	 *
 	 * @since 4.2.0
-	 * @param  object $prepared_source The source that should be verified.
-	 * @throws WC_Stripe_Exception     An exception if the source ID is missing.
+	 * @param  object $prepared_payment_method The payment method that should be verified.
+	 * @throws WC_Stripe_Exception     An exception if the payment method ID is missing.
 	 */
-	public function check_source( $prepared_source ) {
-		if ( empty( $prepared_source->payment_method ) ) {
+	public function check_source( $prepared_payment_method ) {
+		if ( empty( $prepared_payment_method->payment_method ) ) {
 			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
-			throw new WC_Stripe_Exception( print_r( $prepared_source, true ), $localized_message );
+			throw new WC_Stripe_Exception( print_r( $prepared_payment_method, true ), $localized_message );
 		}
 	}
 
 	/**
-	 * Save source to order.
+	 * Save payment method to order.
 	 *
 	 * @since 3.1.0
 	 * @version 4.0.0
-	 * @param WC_Order $order For to which the source applies.
-	 * @param stdClass $source Source information.
+	 * @param WC_Order $order           The order to which the payment method information should be saved.
+	 * @param stdClass $payment_method  The payment method information.
 	 */
-	public function save_source_to_order( $order, $source ) {
-		// Store source in the order.
-		if ( $source->customer ) {
-			$order->update_meta_data( '_stripe_customer_id', $source->customer );
+	public function save_source_to_order( $order, $payment_method ) {
+		// Store payment method in the order.
+		if ( $payment_method->customer ) {
+			$order->update_meta_data( '_stripe_customer_id', $payment_method->customer );
 		}
 
-		if ( $source->payment_method ) {
-			$order->update_meta_data( '_stripe_source_id', $source->payment_method );
+		if ( $payment_method->payment_method ) {
+			$order->update_meta_data( '_stripe_source_id', $payment_method->payment_method );
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
 			$order->save();
 		}
 
-		$this->maybe_update_source_on_subscription_order( $order, $source );
+		$this->maybe_update_source_on_subscription_order( $order, $payment_method );
 	}
 
 	/**
@@ -1145,9 +1148,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
 
-		$source = ! empty( $_POST['stripe_payment_method'] ) ? wc_clean( wp_unslash( $_POST['stripe_payment_method'] ) ) : '';
+		$payment_method = ! empty( $_POST['stripe_payment_method'] ) ? wc_clean( wp_unslash( $_POST['stripe_payment_method'] ) ) : '';
 
-		$payment_method_object = WC_Stripe_API::get_payment_method( $source );
+		$payment_method_object = WC_Stripe_API::get_payment_method( $payment_method );
 
 		if ( isset( $payment_method_object ) ) {
 			if ( ! empty( $payment_method_object->error ) ) {
@@ -1236,23 +1239,23 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Generates the request when creating a new payment intent.
 	 *
-	 * @param WC_Order $order           The order that is being paid for.
-	 * @param object   $prepared_source The source that is used for the payment.
-	 * @return array                    The arguments for the request.
+	 * @param WC_Order $order                    The order that is being paid for.
+	 * @param object   $prepared_payment_method  The payment method that is used for the payment.
+	 * @return array                             The arguments for the request.
 	 */
-	public function generate_create_intent_request( $order, $prepared_source ) {
+	public function generate_create_intent_request( $order, $prepared_payment_method ) {
 		// The request for a charge contains metadata for the intent.
-		$full_request = $this->generate_payment_request( $order, $prepared_source );
+		$full_request = $this->generate_payment_request( $order, $prepared_payment_method );
 
 		$payment_method_types = [ 'card' ];
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			$payment_method_types = $this->get_upe_enabled_at_checkout_payment_method_ids();
-		} elseif ( isset( $prepared_source->payment_method_object->type ) ) {
-			$payment_method_types = [ $prepared_source->payment_method_object->type ];
+		} elseif ( isset( $prepared_payment_method->payment_method_object->type ) ) {
+			$payment_method_types = [ $prepared_payment_method->payment_method_object->type ];
 		}
 
 		$request = [
-			'payment_method'       => $prepared_source->payment_method,
+			'payment_method'       => $prepared_payment_method->payment_method,
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
 			'currency'             => strtolower( $order->get_currency() ),
 			'description'          => $full_request['description'],
@@ -1261,15 +1264,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'payment_method_types' => $payment_method_types,
 		];
 
-		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->payment_method );
+		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_payment_method->payment_method );
 
 		if ( $this->save_payment_method_requested() || $this->has_subscription( $order->get_id() ) || $force_save_source ) {
 			$request['setup_future_usage']              = 'off_session';
 			$request['metadata']['save_payment_method'] = 'true';
 		}
 
-		if ( $prepared_source->customer ) {
-			$request['customer'] = $prepared_source->customer;
+		if ( $prepared_payment_method->customer ) {
+			$request['customer'] = $prepared_payment_method->customer;
 		}
 
 		if ( isset( $full_request['statement_descriptor'] ) ) {
@@ -1290,9 +1293,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		 * @since 3.1.0
 		 * @param array $request
 		 * @param WC_Order $order
-		 * @param object $source
+		 * @param object $payment_method
 		 */
-		return apply_filters( 'wc_stripe_generate_create_intent_request', $request, $order, $prepared_source );
+		return apply_filters( 'wc_stripe_generate_create_intent_request', $request, $order, $prepared_payment_method );
 	}
 
 	/**
@@ -1360,12 +1363,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Create a new PaymentIntent.
 	 *
-	 * @param WC_Order $order           The order that is being paid for.
-	 * @param object   $prepared_source The source that is used for the payment.
-	 * @return object                   An intent or an error.
+	 * @param WC_Order $order                    The order that is being paid for.
+	 * @param object   $prepared_payment_method  The payment method that is used for the payment.
+	 * @return object                            An intent or an error.
 	 */
-	public function create_intent( $order, $prepared_source ) {
-		$request = $this->generate_create_intent_request( $order, $prepared_source );
+	public function create_intent( $order, $prepared_payment_method ) {
+		$request = $this->generate_create_intent_request( $order, $prepared_payment_method );
 
 		// Create an intent that awaits an action.
 		$intent = WC_Stripe_API::request( $request, 'payment_intents' );
@@ -1383,18 +1386,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
-	 * Updates an existing intent with updated amount, source, and customer.
+	 * Updates an existing intent with updated amount, payment method, and customer.
 	 *
-	 * @param object   $intent          The existing intent object.
-	 * @param WC_Order $order           The order.
-	 * @param object   $prepared_source Currently selected source.
-	 * @return object                   An updated intent.
+	 * @param object   $intent                   The existing intent object.
+	 * @param WC_Order $order                    The order.
+	 * @param object   $prepared_payment_method  Currently selected payment method.
+	 * @return object                            An updated intent.
 	 */
-	public function update_existing_intent( $intent, $order, $prepared_source ) {
+	public function update_existing_intent( $intent, $order, $prepared_payment_method ) {
 		$request = [];
 
-		if ( $prepared_source->payment_method !== $intent->payment_method ) {
-			$request['payment_method'] = $prepared_source->payment_method;
+		if ( $prepared_payment_method->payment_method !== $intent->payment_method ) {
+			$request['payment_method'] = $prepared_payment_method->payment_method;
 		}
 
 		$new_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
@@ -1402,8 +1405,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$request['amount'] = $new_amount;
 		}
 
-		if ( $prepared_source->customer && $intent->customer !== $prepared_source->customer ) {
-			$request['customer'] = $prepared_source->customer;
+		if ( $prepared_payment_method->customer && $intent->customer !== $prepared_payment_method->customer ) {
+			$request['customer'] = $prepared_payment_method->customer;
 		}
 
 		$request['payment_method_types'] = [ 'card' ];
@@ -1422,11 +1425,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		 * Filter the value of the request.
 		 *
 		 * @since 6.1.0
-		 * @param array $request  Request to send to Stripe API.
-		 * @param WC_Order $order Order that the intent is associated with.
-		 * @param object $source  Currently selected source.
+		 * @param array $request                   Request to send to Stripe API.
+		 * @param WC_Order $order                  Order that the intent is associated with.
+		 * @param object $prepared_payment_method  Currently selected payment method.
 		 */
-		$request = apply_filters( 'wc_stripe_update_existing_intent_request', $request, $order, $prepared_source );
+		$request = apply_filters( 'wc_stripe_update_existing_intent_request', $request, $order, $prepared_payment_method );
 
 		$level3_data = $this->get_level3_data_from_order( $order );
 		return WC_Stripe_API::request_with_level3_data(
@@ -1441,19 +1444,19 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Confirms an intent if it is the `requires_confirmation` state.
 	 *
 	 * @since 4.2.1
-	 * @param object   $intent          The intent to confirm.
-	 * @param WC_Order $order           The order that the intent is associated with.
-	 * @param object   $prepared_source The source that is being charged.
-	 * @return object                   Either an error or the updated intent.
+	 * @param object   $intent                   The intent to confirm.
+	 * @param WC_Order $order                    The order that the intent is associated with.
+	 * @param object   $prepared_payment_method  The payment method that is being charged.
+	 * @return object                            Either an error or the updated intent.
 	 */
-	public function confirm_intent( $intent, $order, $prepared_source ) {
+	public function confirm_intent( $intent, $order, $prepared_payment_method ) {
 		if ( 'requires_confirmation' !== $intent->status ) {
 			return $intent;
 		}
 
 		// Try to confirm the intent & capture the charge (if 3DS is not required).
 		$confirm_request = [
-			'payment_method' => $prepared_source->payment_method,
+			'payment_method' => $prepared_payment_method->payment_method,
 		];
 
 		$level3_data      = $this->get_level3_data_from_order( $order );
@@ -1483,8 +1486,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Saves intent to order.
 	 *
 	 * @since 3.2.0
-	 * @param WC_Order $order For to which the source applies.
-	 * @param stdClass $intent Payment intent information.
+	 * @param WC_Order $order   The order to which the payment intent should be saved.
+	 * @param stdClass $intent  Payment intent information.
 	 */
 	public function save_intent_to_order( $order, $intent ) {
 		if ( 'payment_intent' === $intent->object ) {
@@ -1597,22 +1600,23 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Creates a SetupIntent for future payments, and saves it to the order.
 	 *
-	 * @param WC_Order $order           The ID of the (free/pre- order).
-	 * @param object   $prepared_source The source, entered/chosen by the customer.
-	 * @return string|null              The client secret of the intent, used for confirmation in JS.
+	 * @param WC_Order $order                    The ID of the (free/pre- order).
+	 * @param object   $prepared_payment_method  The payment method, entered/chosen by the customer.
+	 * @return string|null                       The client secret of the intent, used for confirmation in JS.
 	 */
-	public function setup_intent( $order, $prepared_source ) {
-		// SEPA Direct Debit payments do not require any customer action after the source has been created.
-		// Once the customer has provided their IBAN details and accepted the mandate, no further action is needed and the resulting source is directly chargeable.
-		if ( 'sepa_debit' === $prepared_source->payment_method_object->type ) {
+	public function setup_intent( $order, $prepared_payment_method ) {
+		// SEPA Direct Debit payments do not require any customer action after the payment method has been created.
+		// Once the customer has provided their IBAN details and accepted the mandate, no further
+		// action is needed and the resulting payment method is directly chargeable.
+		if ( 'sepa_debit' === $prepared_payment_method->payment_method_object->type ) {
 			return;
 		}
 
 		$order_id     = $order->get_id();
 		$setup_intent = WC_Stripe_API::request(
 			[
-				'payment_method' => $prepared_source->payment_method,
-				'customer'       => $prepared_source->customer,
+				'payment_method' => $prepared_payment_method->payment_method,
+				'customer'       => $prepared_payment_method->customer,
 				'confirm'        => 'true',
 			],
 			'setup_intents'
@@ -1631,20 +1635,20 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Create and confirm a new PaymentIntent.
 	 *
-	 * @param WC_Order $order           The order that is being paid for.
-	 * @param object   $prepared_source The source that is used for the payment.
-	 * @param float    $amount          The amount to charge. If not specified, it will be read from the order.
-	 * @return object                   An intent or an error.
+	 * @param WC_Order $order                    The order that is being paid for.
+	 * @param object   $prepared_payment_method  The payment method that is used for the payment.
+	 * @param float    $amount                   The amount to charge. If not specified, it will be read from the order.
+	 * @return object                            An intent or an error.
 	 */
-	public function create_and_confirm_intent_for_off_session( $order, $prepared_source, $amount = null ) {
+	public function create_and_confirm_intent_for_off_session( $order, $prepared_payment_method, $amount = null ) {
 		// The request for a charge contains metadata for the intent.
-		$full_request = $this->generate_payment_request( $order, $prepared_source );
+		$full_request = $this->generate_payment_request( $order, $prepared_payment_method );
 
 		$payment_method_types = [ 'card' ];
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			$payment_method_types = $this->get_upe_enabled_at_checkout_payment_method_ids();
-		} elseif ( isset( $prepared_source->payment_method_object->type ) ) {
-			$payment_method_types = [ $prepared_source->payment_method_object->type ];
+		} elseif ( isset( $prepared_payment_method->payment_method_object->type ) ) {
+			$payment_method_types = [ $prepared_payment_method->payment_method_object->type ];
 		}
 
 		$request = [
@@ -1666,20 +1670,19 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$request['customer'] = $full_request['customer'];
 		}
 
-		if ( isset( $full_request['source'] ) ) {
-			$is_source = 'src_' === substr( $full_request['source'], 0, 4 );
-			$request[ $is_source ? 'source' : 'payment_method' ] = $full_request['source'];
+		if ( isset( $full_request['payment_method'] ) ) {
+			$request['payment_method'] = $full_request['payment_method'];
 		}
 
 		/**
 		 * Filter the value of the request.
 		 *
 		 * @since 4.5.0
-		 * @param array $request
-		 * @param WC_Order $order
-		 * @param object $source
+		 * @param array     $request
+		 * @param WC_Order  $order
+		 * @param object    $prepared_payment_method
 		 */
-		$request = apply_filters( 'wc_stripe_generate_create_intent_request', $request, $order, $prepared_source );
+		$request = apply_filters( 'wc_stripe_generate_create_intent_request', $request, $order, $prepared_payment_method );
 
 		if ( isset( $full_request['shipping'] ) ) {
 			$request['shipping'] = $full_request['shipping'];

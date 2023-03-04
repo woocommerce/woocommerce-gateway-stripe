@@ -487,15 +487,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Process the payment for a given order.
 	 *
-	 * @param int  $order_id Reference.
-	 * @param bool $retry Should we retry on fail.
-	 * @param bool $force_save_source Force save the payment source.
-	 * @param mix  $previous_error Any error message from previous request.
-	 * @param bool $use_order_source Whether to use the source, which should already be attached to the order.
+	 * @param int  $order_id                   Reference.
+	 * @param bool $retry                      Should we retry on fail.
+	 * @param bool $force_save_payment_method  Force save the payment method.
+	 * @param mix  $previous_error             Any error message from previous request.
+	 * @param bool $use_order_payment_method   Whether to use the payment method, which should already be attached to the order.
 	 *
 	 * @return array|null An array with result of payment and redirect URL, or nothing.
 	 */
-	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
+	public function process_payment( $order_id, $retry = true, $force_save_payment_method = false, $previous_error = false, $use_order_payment_method = false ) {
 		if ( $this->maybe_change_subscription_payment_method( $order_id ) ) {
 			return $this->process_change_subscription_payment_method( $order_id );
 		}
@@ -591,7 +591,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				);
 			}
 		} else {
-			return parent::process_payment( $order_id, $retry, $force_save_source, $previous_error, $use_order_source );
+			return parent::process_payment( $order_id, $retry, $force_save_payment_method, $previous_error, $use_order_payment_method );
 		}
 
 		return [
@@ -979,8 +979,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Save payment method to order.
 	 *
-	 * @param WC_Order $order For to which the source applies.
-	 * @param stdClass $payment_method Stripe Payment Method.
+	 * @param WC_Order $order           The order to which the payment method should be saved.
+	 * @param stdClass $payment_method  Stripe Payment Method.
 	 */
 	public function save_payment_method_to_order( $order, $payment_method ) {
 		if ( $payment_method->customer ) {
@@ -999,16 +999,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Retries the payment process once an error occured.
 	 *
-	 * @param object   $intent            The Payment Intent response from the Stripe API.
-	 * @param WC_Order $order             An order that is being paid for.
-	 * @param bool     $retry             A flag that indicates whether another retry should be attempted.
-	 * @param bool     $force_save_source Force save the payment source.
-	 * @param mixed    $previous_error    Any error message from previous request.
-	 * @param bool     $use_order_source  Whether to use the source, which should already be attached to the order.
-	 * @throws WC_Stripe_Exception If the payment is not accepted.
+	 * @param object   $intent                     The Payment Intent response from the Stripe API.
+	 * @param WC_Order $order                      An order that is being paid for.
+	 * @param bool     $retry                      A flag that indicates whether another retry should be attempted.
+	 * @param bool     $force_save_payment_method  Force save the payment method.
+	 * @param mixed    $previous_error             Any error message from previous request.
+	 * @param bool     $use_order_payment_method   Whether to use the payment method that should already be attached to the order.
+	 * @throws WC_Stripe_Exception                 If the payment is not accepted.
 	 * @return array|void
 	 */
-	public function retry_after_error( $intent, $order, $retry, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
+	public function retry_after_error( $intent, $order, $retry, $force_save_payment_method = false, $previous_error = false, $use_order_payment_method = false ) {
 		if ( ! $retry ) {
 			$localized_message = __( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' );
 			$order->add_order_note( $localized_message );

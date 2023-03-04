@@ -318,7 +318,7 @@ class WC_Stripe_Customer {
 						$wc_token->set_last4( $response->sepa_debit->last4 );
 						break;
 					default:
-						if ( 'source' === $response->object && 'card' === $response->type ) {
+						if ( ( 'source' === $response->object || 'payment_method' === $response->object ) && 'card' === $response->type ) {
 							$wc_token = new WC_Payment_Token_CC();
 							$wc_token->set_token( $response->id );
 							$wc_token->set_gateway_id( 'stripe' );
@@ -352,22 +352,31 @@ class WC_Stripe_Customer {
 	}
 
 	/**
-	 * Attaches a source to the Stripe customer.
+	 * Attaches a payment method to the Stripe customer.
 	 *
-	 * @param string $source_id The ID of the new source.
-	 * @return object|WP_Error Either a source object, or a WP error.
+	 * @param string $payment_method  The ID of the new payment method.
+	 *
+	 * @return object|WP_Error  Either a payment method object, or a WP error.
 	 */
-	public function attach_source( $source_id ) {
+	public function attach_source( $payment_method ) {
 		if ( ! $this->get_id() ) {
 			$this->set_id( $this->create_customer() );
 		}
 
-		$response = WC_Stripe_API::request(
-			[
-				'source' => $source_id,
-			],
-			'customers/' . $this->get_id() . '/sources'
-		);
+		$response = null;
+		if ( 0 === strpos( $payment_method, 'src_' ) ) {
+			$response = WC_Stripe_API::request(
+				[
+					'source' => $payment_method,
+				],
+				'customers/' . $this->get_id() . '/sources'
+			);
+		} else {
+			$response = WC_Stripe_API::request(
+				[ 'customer' => $this->get_id() ],
+				'payment_methods/' . $payment_method . '/attach'
+			);
+		}
 
 		if ( ! empty( $response->error ) ) {
 			// It is possible the WC user once was linked to a customer on Stripe
@@ -375,21 +384,21 @@ class WC_Stripe_Customer {
 			// new customer.
 			if ( $this->is_no_such_customer_error( $response->error ) ) {
 				$this->recreate_customer();
-				return $this->attach_source( $source_id );
+				return $this->attach_source( $payment_method );
 			} elseif ( $this->is_source_already_attached_error( $response->error ) ) {
-				return WC_Stripe_API::request( [], 'sources/' . $source_id, 'GET' );
+				return WC_Stripe_API::get_payment_method( $payment_method );
 			} else {
 				return $response;
 			}
 		} elseif ( empty( $response->id ) ) {
-			return new WP_Error( 'error', __( 'Unable to add payment source.', 'woocommerce-gateway-stripe' ) );
+			return new WP_Error( 'error', __( 'Unable to add payment method.', 'woocommerce-gateway-stripe' ) );
 		} else {
 			return $response;
 		}
 	}
 
 	/**
-	 * Get a customers saved sources using their Stripe ID.
+	 * Get a customer's saved payment methods using their Stripe ID.
 	 *
 	 * @param  string $customer_id
 	 * @return array
@@ -399,9 +408,10 @@ class WC_Stripe_Customer {
 			return [];
 		}
 
-		$sources = get_transient( 'stripe_sources_' . $this->get_id() );
+		$payment_methods = get_transient( 'stripe_sources_' . $this->get_id() );
 
-		if ( false === $sources ) {
+		if ( false === $payment_methods ) {
+			// TODO: Might have to merge response from payment methods and sources API.
 			$response = WC_Stripe_API::request(
 				[
 					'limit' => 100,
@@ -415,13 +425,13 @@ class WC_Stripe_Customer {
 			}
 
 			if ( is_array( $response->data ) ) {
-				$sources = $response->data;
+				$payment_methods = $response->data;
 			}
 
-			set_transient( 'stripe_sources_' . $this->get_id(), $sources, DAY_IN_SECONDS );
+			set_transient( 'stripe_sources_' . $this->get_id(), $payment_methods, DAY_IN_SECONDS );
 		}
 
-		return empty( $sources ) ? [] : $sources;
+		return empty( $payment_methods ) ? [] : $payment_methods;
 	}
 
 	/**
@@ -465,16 +475,28 @@ class WC_Stripe_Customer {
 	}
 
 	/**
-	 * Delete a source from stripe.
+	 * Delete a payment method from stripe.
 	 *
-	 * @param string $source_id
+	 * @param string $payment_method
 	 */
-	public function delete_source( $source_id ) {
+	public function delete_source( $payment_method ) {
 		if ( ! $this->get_id() ) {
 			return false;
 		}
 
-		$response = WC_Stripe_API::request( [], 'customers/' . $this->get_id() . '/sources/' . sanitize_text_field( $source_id ), 'DELETE' );
+		$response = null;
+		if ( 0 === strpos( $payment_method, 'src_' ) ) {
+			$response = WC_Stripe_API::request(
+				[],
+				'customers/' . $this->get_id() . '/sources/' . sanitize_text_field( $payment_method ),
+				'DELETE'
+			);
+		} else {
+			$response = WC_Stripe_API::request(
+				[],
+				'payment_methods/' . sanitize_text_field( $payment_method ) . '/detach'
+			);
+		}
 
 		$this->clear_cache();
 
@@ -511,18 +533,28 @@ class WC_Stripe_Customer {
 	}
 
 	/**
-	 * Set default source in Stripe
+	 * Set default payment method in Stripe
 	 *
-	 * @param string $source_id
+	 * @param string $payment_method
 	 */
-	public function set_default_source( $source_id ) {
-		$response = WC_Stripe_API::request(
-			[
-				'default_source' => sanitize_text_field( $source_id ),
-			],
-			'customers/' . $this->get_id(),
-			'POST'
-		);
+	public function set_default_source( $payment_method ) {
+		$response = null;
+		if ( 0 === strpos( $payment_method, 'src_' ) ) {
+			$response = WC_Stripe_API::request(
+				[
+					'default_source' => sanitize_text_field( $payment_method ),
+				],
+				'customers/' . $this->get_id(),
+				'POST'
+			);
+		} else {
+			// TODO: verify if this is the correct API usage. Seems so based on instructions in
+			// https://stripe.com/docs/api/customers/object#customer_object-default_source
+			$response = WC_Stripe_API::request(
+				[ 'invoice_settings' => [ 'default_payment_method' => $payment_method ] ],
+				'customer/' . $this->get_id()
+			);
+		}
 
 		$this->clear_cache();
 

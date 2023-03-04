@@ -131,8 +131,8 @@ class WC_Stripe_Intent_Controller {
 				$intent = $gateway->get_intent_from_order( $order );
 				if ( isset( $intent->last_payment_error ) ) {
 					// Currently, Stripe saves the payment method even if the authentication fails for 3DS cards.
-					// Although, the card is not stored in DB we need to remove the source from the customer on Stripe
-					// in order to keep the sources in sync with the data in DB.
+					// Although, the card is not stored in DB we need to remove the payment method from the customer on Stripe
+					// in order to keep the payment methods in sync with the data in DB.
 					$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
 					$customer->delete_source( $intent->last_payment_error->payment_method->id );
 				} else {
@@ -192,12 +192,12 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		try {
-			$source_id = wc_clean( wp_unslash( $_POST['stripe_payment_method_id'] ) );
+			$payment_method_id = wc_clean( wp_unslash( $_POST['stripe_payment_method_id'] ) );
 
 			// 1. Verify.
 			if (
 				! wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'wc_stripe_create_si' )
-				|| ! preg_match( '/^src_.*$/', $source_id )
+				|| ( 0 !== strpos( $payment_method_id, 'pm_' ) && 0 !== strpos( $payment_method_id, 'src_' ) )
 			) {
 				throw new Exception( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}
@@ -205,19 +205,19 @@ class WC_Stripe_Intent_Controller {
 			// 2. Load the customer ID (and create a customer eventually).
 			$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
 
-			// 3. Attach the source to the customer (Setup Intents require that).
-			$source_object = $customer->attach_source( $source_id );
+			// 3. Attach the payment method to the customer (Setup Intents require that).
+			$payment_method_object = $customer->attach_source( $payment_method_id );
 
-			if ( ! empty( $source_object->error ) ) {
-				throw new Exception( $source_object->error->message );
+			if ( ! empty( $payment_method_object->error ) ) {
+				throw new Exception( $payment_method_object->error->message );
 			}
-			if ( is_wp_error( $source_object ) ) {
-				throw new Exception( $source_object->get_error_message() );
+			if ( is_wp_error( $payment_method_object ) ) {
+				throw new Exception( $payment_method_object->get_error_message() );
 			}
 
 			// SEPA Direct Debit payments do not require any customer action after the source has been created.
 			// Once the customer has provided their IBAN details and accepted the mandate, no further action is needed and the resulting source is directly chargeable.
-			if ( 'sepa_debit' === $source_object->type ) {
+			if ( 'sepa_debit' === $payment_method_object->type ) {
 				$response = [
 					'status' => 'success',
 				];
@@ -230,7 +230,7 @@ class WC_Stripe_Intent_Controller {
 				[
 					'customer'       => $customer->get_id(),
 					'confirm'        => 'true',
-					'payment_method' => $source_id,
+					'payment_method' => $payment_method_id,
 				],
 				'setup_intents'
 			);

@@ -169,10 +169,10 @@ trait WC_Stripe_Pre_Orders_Trait {
 			// This will throw exception if not valid.
 			$this->validate_minimum_order_amount( $order );
 
-			$prepared_source = $this->prepare_source( get_current_user_id(), true );
+			$prepared_payment_method = $this->prepare_source( get_current_user_id(), true );
 
-			// We need a source on file to continue.
-			if ( empty( $prepared_source->customer ) || empty( $prepared_source->payment_method ) ) {
+			// We need a payment method on file to continue.
+			if ( empty( $prepared_payment_method->customer ) || empty( $prepared_payment_method->payment_method ) ) {
 				throw new WC_Stripe_Exception( __( 'Unable to store payment details. Please try again.', 'woocommerce-gateway-stripe' ) );
 			}
 
@@ -182,10 +182,10 @@ trait WC_Stripe_Pre_Orders_Trait {
 				'redirect' => $this->get_return_url( $order ),
 			];
 
-			$this->save_source_to_order( $order, $prepared_source );
+			$this->save_source_to_order( $order, $prepared_payment_method );
 
 			// Try setting up a payment intent.
-			$intent_secret = $this->setup_intent( $order, $prepared_source );
+			$intent_secret = $this->setup_intent( $order, $prepared_payment_method );
 			if ( ! empty( $intent_secret ) ) {
 				$response['setup_intent_secret'] = $intent_secret;
 				return $response;
@@ -220,8 +220,8 @@ trait WC_Stripe_Pre_Orders_Trait {
 	 */
 	public function process_pre_order_release_payment( $order, $retry = true ) {
 		try {
-			$source   = $this->prepare_order_source( $order );
-			$response = $this->create_and_confirm_intent_for_off_session( $order, $source );
+			$payment_method = $this->prepare_order_source( $order );
+			$response       = $this->create_and_confirm_intent_for_off_session( $order, $payment_method );
 
 			$is_authentication_required = $this->is_authentication_required_for_payment( $response );
 

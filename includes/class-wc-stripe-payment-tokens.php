@@ -148,6 +148,7 @@ class WC_Stripe_Payment_Tokens {
 			}
 
 			if ( 'stripe' === $gateway_id ) {
+				// TODO: Might need to merge response from sources and payment methods API.
 				$stripe_customer = new WC_Stripe_Customer( $customer_id );
 				$stripe_sources  = $stripe_customer->get_sources();
 

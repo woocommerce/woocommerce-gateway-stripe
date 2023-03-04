@@ -93,10 +93,10 @@ trait WC_Stripe_Subscriptions_Trait {
 	 *
 	 * @since 4.1.11
 	 *
-	 * @param string $source_id
-	 * @param object $source_object
+	 * @param string $payment_method_id
+	 * @param object $payment_method_object
 	 */
-	public function handle_add_payment_method_success( $source_id, $source_object ) {
+	public function handle_add_payment_method_success( $payment_method_id, $payment_method_object ) {
 		if ( isset( $_POST[ 'wc-' . $this->id . '-update-subs-payment-method-card' ] ) ) {
 			$all_subs        = wcs_get_users_subscriptions();
 			$subs_statuses   = apply_filters( 'wc_stripe_update_subs_payment_method_card_statuses', [ 'active' ] );
@@ -110,7 +110,7 @@ trait WC_Stripe_Subscriptions_Trait {
 							$this->id,
 							[
 								'post_meta' => [
-									'_stripe_source_id'   => [ 'value' => $source_id ],
+									'_stripe_source_id'   => [ 'value' => $payment_method_id ],
 									'_stripe_customer_id' => [ 'value' => $stripe_customer->get_id() ],
 								],
 							]
@@ -242,11 +242,11 @@ trait WC_Stripe_Subscriptions_Trait {
 				return;
 			}
 
-			// Get source from order
-			$prepared_source = $this->prepare_order_source( $renewal_order );
-			$source_object   = $prepared_source->payment_method_object;
+			// Get payment method from order
+			$prepared_payment_method = $this->prepare_order_source( $renewal_order );
+			$payment_method_object   = $prepared_payment_method->payment_method_object;
 
-			if ( ! $prepared_source->customer ) {
+			if ( ! $prepared_payment_method->customer ) {
 				throw new WC_Stripe_Exception(
 					'Failed to process renewal for order ' . $renewal_order->get_id() . '. Stripe customer id is missing in the order',
 					__( 'Customer not found', 'woocommerce-gateway-stripe' )
@@ -256,22 +256,22 @@ trait WC_Stripe_Subscriptions_Trait {
 			WC_Stripe_Logger::log( "Info: Begin processing subscription payment for order {$order_id} for the amount of {$amount}" );
 
 			/*
-			 * If we're doing a retry and source is chargeable, we need to pass
+			 * If we're doing a retry and payment method is chargeable, we need to pass
 			 * a different idempotency key and retry for success.
 			 */
-			if ( is_object( $source_object ) && empty( $source_object->error ) && $this->need_update_idempotency_key( $source_object, $previous_error ) ) {
+			if ( is_object( $payment_method_object ) && empty( $payment_method_object->error ) && $this->need_update_idempotency_key( $payment_method_object, $previous_error ) ) {
 				add_filter( 'wc_stripe_idempotency_key', [ $this, 'change_idempotency_key' ], 10, 2 );
 			}
 
 			if ( ( $this->is_no_such_source_error( $previous_error ) || $this->is_no_linked_source_error( $previous_error ) ) && apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
-				// Passing empty source will charge customer default.
-				$prepared_source->payment_method = '';
+				// Passing empty payment method will charge customer default.
+				$prepared_payment_method->payment_method = '';
 			}
 
 			// If the payment gateway is SEPA, use the charges API.
 			// TODO: Remove when SEPA is migrated to payment intents.
 			if ( 'stripe_sepa' === $this->id ) {
-				$request            = $this->generate_payment_request( $renewal_order, $prepared_source );
+				$request            = $this->generate_payment_request( $renewal_order, $prepared_payment_method );
 				$request['capture'] = 'true';
 				$request['amount']  = WC_Stripe_Helper::get_stripe_amount( $amount, $request['currency'] );
 				$response           = WC_Stripe_API::request( $request );
@@ -279,7 +279,7 @@ trait WC_Stripe_Subscriptions_Trait {
 				$is_authentication_required = false;
 			} else {
 				$this->lock_order_payment( $renewal_order );
-				$response                   = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_source, $amount );
+				$response                   = $this->create_and_confirm_intent_for_off_session( $renewal_order, $prepared_payment_method, $amount );
 				$is_authentication_required = $this->is_authentication_required_for_payment( $response );
 			}
 
@@ -359,11 +359,11 @@ trait WC_Stripe_Subscriptions_Trait {
 	}
 
 	/**
-	 * Updates other subscription sources.
+	 * Updates other subscription payment method.
 	 *
 	 * @since 5.6.0
 	 */
-	public function maybe_update_source_on_subscription_order( $order, $source ) {
+	public function maybe_update_source_on_subscription_order( $order, $payment_method ) {
 		if ( ! $this->is_subscriptions_enabled() ) {
 			return;
 		}
@@ -380,8 +380,8 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		foreach ( $subscriptions as $subscription ) {
-			$subscription->update_meta_data( '_stripe_customer_id', $source->customer );
-			$subscription->update_meta_data( '_stripe_source_id', $source->payment_method );
+			$subscription->update_meta_data( '_stripe_customer_id', $payment_method->customer );
+			$subscription->update_meta_data( '_stripe_source_id', $payment_method->payment_method );
 
 			$subscription->save();
 		}
@@ -443,15 +443,14 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return array
 	 */
 	public function add_subscription_payment_meta( $payment_meta, $subscription ) {
-		$subscription_id = $subscription->get_id();
-		$source_id       = $subscription->get_meta( '_stripe_source_id', true );
+		$payment_method_id = $subscription->get_meta( '_stripe_source_id', true );
 
 		// For BW compat will remove in future.
-		if ( empty( $source_id ) ) {
-			$source_id = $subscription->get_meta( '_stripe_card_id', true );
+		if ( empty( $payment_method_id ) ) {
+			$payment_method_id = $subscription->get_meta( '_stripe_card_id', true );
 
 			// Take this opportunity to update the key name.
-			$subscription->update_meta_data( '_stripe_source_id', $source_id );
+			$subscription->update_meta_data( '_stripe_source_id', $payment_method_id );
 			$subscription->delete_meta_data( '_stripe_card_id' );
 			$subscription->save();
 		}
@@ -463,7 +462,7 @@ trait WC_Stripe_Subscriptions_Trait {
 					'label' => 'Stripe Customer ID',
 				],
 				'_stripe_source_id'   => [
-					'value' => $source_id,
+					'value' => $payment_method_id,
 					'label' => 'Stripe Source ID',
 				],
 			],
@@ -574,28 +573,28 @@ trait WC_Stripe_Subscriptions_Trait {
 		$stripe_customer->set_id( $stripe_customer_id );
 
 		// Retrieve all possible payment methods for subscriptions.
-		$sources                   = array_merge(
+		$payment_methods           = array_merge(
 			$stripe_customer->get_payment_methods( 'card' ),
 			$stripe_customer->get_payment_methods( 'sepa_debit' )
 		);
 		$payment_method_to_display = __( 'N/A', 'woocommerce-gateway-stripe' );
 
-		if ( $sources ) {
-			foreach ( $sources as $source ) {
-				if ( $source->id === $stripe_source_id ) {
+		if ( $payment_methods ) {
+			foreach ( $payment_methods as $payment_method ) {
+				if ( $payment_method->id === $stripe_source_id ) {
 					$card = false;
-					if ( isset( $source->type ) && 'card' === $source->type ) {
-						$card = $source->card;
-					} elseif ( isset( $source->object ) && 'card' === $source->object ) {
-						$card = $source;
+					if ( isset( $payment_method->type ) && 'card' === $payment_method->type ) {
+						$card = $payment_method->card;
+					} elseif ( isset( $payment_method->object ) && 'card' === $payment_method->object ) {
+						$card = $payment_method;
 					}
 
 					if ( $card ) {
 						/* translators: 1) card brand 2) last 4 digits */
 						$payment_method_to_display = sprintf( __( 'Via %1$s card ending in %2$s', 'woocommerce-gateway-stripe' ), ( isset( $card->brand ) ? $card->brand : __( 'N/A', 'woocommerce-gateway-stripe' ) ), $card->last4 );
-					} elseif ( $source->sepa_debit ) {
+					} elseif ( $payment_method->sepa_debit ) {
 						/* translators: 1) last 4 digits of SEPA Direct Debit */
-						$payment_method_to_display = sprintf( __( 'Via SEPA Direct Debit ending in %1$s', 'woocommerce-gateway-stripe' ), $source->sepa_debit->last4 );
+						$payment_method_to_display = sprintf( __( 'Via SEPA Direct Debit ending in %1$s', 'woocommerce-gateway-stripe' ), $payment_method->sepa_debit->last4 );
 					}
 
 					break;

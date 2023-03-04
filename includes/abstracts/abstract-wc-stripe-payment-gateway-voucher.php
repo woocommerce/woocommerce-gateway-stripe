@@ -228,14 +228,14 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 	 *
 	 * @param int $order_id Reference.
 	 * @param bool $retry Should we retry on fail.
-	 * @param bool $force_save_source Force payment source to be saved.
+	 * @param bool $force_save_payment_method Force payment method to be saved.
 	 *
 	 * @throws Exception If payment will not be accepted.
 	 *
 	 * @since 5.8.0
 	 * @since 5.8.0
 	 */
-	public function process_payment( $order_id, $retry = true, $force_save_save = false ) {
+	public function process_payment( $order_id, $retry = true, $force_save_payment_method = false ) {
 		try {
 			$order = wc_get_order( $order_id );
 
