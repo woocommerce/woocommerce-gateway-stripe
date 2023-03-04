@@ -971,8 +971,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function prepare_payment_method( $payment_method ) {
 		return (object) [
 			'customer'              => $payment_method->customer,
-			'source'                => null,
-			'source_object'         => null,
 			'payment_method'        => $payment_method->id,
 			'payment_method_object' => $payment_method,
 		];

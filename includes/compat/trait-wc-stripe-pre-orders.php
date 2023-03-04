@@ -172,7 +172,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 			$prepared_source = $this->prepare_source( get_current_user_id(), true );
 
 			// We need a source on file to continue.
-			if ( empty( $prepared_source->customer ) || empty( $prepared_source->source ) ) {
+			if ( empty( $prepared_source->customer ) || empty( $prepared_source->payment_method ) ) {
 				throw new WC_Stripe_Exception( __( 'Unable to store payment details. Please try again.', 'woocommerce-gateway-stripe' ) );
 			}
 

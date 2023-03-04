@@ -134,11 +134,11 @@ class WC_Stripe_Intent_Controller {
 					// Although, the card is not stored in DB we need to remove the source from the customer on Stripe
 					// in order to keep the sources in sync with the data in DB.
 					$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
-					$customer->delete_source( $intent->last_payment_error->source->id );
+					$customer->delete_source( $intent->last_payment_error->payment_method->id );
 				} else {
 					$metadata = $intent->metadata;
 					if ( isset( $metadata->save_payment_method ) && 'true' === $metadata->save_payment_method ) {
-						$payment_method_object = WC_Stripe_API::get_payment_method( $intent->source );
+						$payment_method_object = WC_Stripe_API::get_payment_method( $intent->payment_method );
 						$gateway->save_payment_method( $payment_method_object );
 					}
 				}

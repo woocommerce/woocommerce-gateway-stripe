@@ -479,10 +479,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$post_data['customer'] = $prepared_payment_method->customer;
 		}
 
-		if ( ! empty( $prepared_payment_method->source ) ) {
-			$post_data['source'] = $prepared_payment_method->source;
-		}
-
 		if ( ! empty( $prepared_payment_method->payment_method ) ) {
 			$post_data['payment_method'] = $prepared_payment_method->payment_method;
 		}
@@ -851,11 +847,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		return (object) [
-			'token_id'       => $wc_token_id,
-			'customer'       => $customer_id,
-			'source'         => $source_id,
-			'source_object'  => $source_object,
-			'payment_method' => null,
+			'token_id'              => $wc_token_id,
+			'customer'              => $customer_id,
+			'payment_method'        => $source_id,
+			'payment_method_object' => $source_object,
 		];
 	}
 
@@ -874,7 +869,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function prepare_order_source( $order = null ) {
 		$stripe_customer       = new WC_Stripe_Customer();
-		$stripe_source         = false;
+		$stripe_payment_method = false;
 		$token_id              = false;
 		$payment_method_object = false;
 
@@ -901,23 +896,22 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 
 			if ( $payment_method_id ) {
-				$stripe_source         = $payment_method_id;
+				$stripe_payment_method = $payment_method_id;
 				$payment_method_object = WC_Stripe_API::get_payment_method( $payment_method_id );
 			} elseif ( apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
 				/*
 				 * We can attempt to charge the customer's default source
 				 * by sending empty source id.
 				 */
-				$stripe_source = '';
+				$stripe_payment_method = '';
 			}
 		}
 
 		return (object) [
-			'token_id'       => $token_id,
-			'customer'       => $stripe_customer ? $stripe_customer->get_id() : false,
-			'source'         => $stripe_source,
-			'source_object'  => $payment_method_object,
-			'payment_method' => null,
+			'token_id'              => $token_id,
+			'customer'              => $stripe_customer ? $stripe_customer->get_id() : false,
+			'payment_method'        => $stripe_payment_method,
+			'payment_method_object' => $payment_method_object,
 		];
 	}
 
@@ -929,7 +923,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @throws WC_Stripe_Exception     An exception if the source ID is missing.
 	 */
 	public function check_source( $prepared_source ) {
-		if ( empty( $prepared_source->source ) ) {
+		if ( empty( $prepared_source->payment_method ) ) {
 			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
 			throw new WC_Stripe_Exception( print_r( $prepared_source, true ), $localized_message );
 		}
@@ -949,8 +943,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$order->update_meta_data( '_stripe_customer_id', $source->customer );
 		}
 
-		if ( $source->source ) {
-			$order->update_meta_data( '_stripe_source_id', $source->source );
+		if ( $source->payment_method ) {
+			$order->update_meta_data( '_stripe_source_id', $source->payment_method );
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
@@ -1253,12 +1247,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$payment_method_types = [ 'card' ];
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			$payment_method_types = $this->get_upe_enabled_at_checkout_payment_method_ids();
-		} elseif ( isset( $prepared_source->source_object->type ) ) {
-			$payment_method_types = [ $prepared_source->source_object->type ];
+		} elseif ( isset( $prepared_source->payment_method_object->type ) ) {
+			$payment_method_types = [ $prepared_source->payment_method_object->type ];
 		}
 
 		$request = [
-			'source'               => $prepared_source->source,
+			'payment_method'       => $prepared_source->payment_method,
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
 			'currency'             => strtolower( $order->get_currency() ),
 			'description'          => $full_request['description'],
@@ -1267,7 +1261,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'payment_method_types' => $payment_method_types,
 		];
 
-		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->source );
+		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->payment_method );
 
 		if ( $this->save_payment_method_requested() || $this->has_subscription( $order->get_id() ) || $force_save_source ) {
 			$request['setup_future_usage']              = 'off_session';
@@ -1399,8 +1393,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function update_existing_intent( $intent, $order, $prepared_source ) {
 		$request = [];
 
-		if ( $prepared_source->source !== $intent->source ) {
-			$request['source'] = $prepared_source->source;
+		if ( $prepared_source->payment_method !== $intent->payment_method ) {
+			$request['payment_method'] = $prepared_source->payment_method;
 		}
 
 		$new_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
@@ -1459,7 +1453,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		// Try to confirm the intent & capture the charge (if 3DS is not required).
 		$confirm_request = [
-			'source' => $prepared_source->source,
+			'payment_method' => $prepared_source->payment_method,
 		];
 
 		$level3_data      = $this->get_level3_data_from_order( $order );
@@ -1610,14 +1604,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function setup_intent( $order, $prepared_source ) {
 		// SEPA Direct Debit payments do not require any customer action after the source has been created.
 		// Once the customer has provided their IBAN details and accepted the mandate, no further action is needed and the resulting source is directly chargeable.
-		if ( 'sepa_debit' === $prepared_source->source_object->type ) {
+		if ( 'sepa_debit' === $prepared_source->payment_method_object->type ) {
 			return;
 		}
 
 		$order_id     = $order->get_id();
 		$setup_intent = WC_Stripe_API::request(
 			[
-				'payment_method' => $prepared_source->source,
+				'payment_method' => $prepared_source->payment_method,
 				'customer'       => $prepared_source->customer,
 				'confirm'        => 'true',
 			],
@@ -1649,8 +1643,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$payment_method_types = [ 'card' ];
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			$payment_method_types = $this->get_upe_enabled_at_checkout_payment_method_ids();
-		} elseif ( isset( $prepared_source->source_object->type ) ) {
-			$payment_method_types = [ $prepared_source->source_object->type ];
+		} elseif ( isset( $prepared_source->payment_method_object->type ) ) {
+			$payment_method_types = [ $prepared_source->payment_method_object->type ];
 		}
 
 		$request = [

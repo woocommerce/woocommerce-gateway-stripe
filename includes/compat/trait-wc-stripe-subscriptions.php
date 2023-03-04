@@ -160,11 +160,11 @@ trait WC_Stripe_Subscriptions_Trait {
 			$subscription    = wc_get_order( $order_id );
 			$prepared_source = $this->prepare_source( get_current_user_id(), true );
 
-			$this->maybe_disallow_prepaid_card( $prepared_source->source_object );
+			$this->maybe_disallow_prepaid_card( $prepared_source->payment_method_object );
 			$this->check_source( $prepared_source );
 			$this->save_source_to_order( $subscription, $prepared_source );
 
-			do_action( 'wc_stripe_change_subs_payment_method_success', $prepared_source->source, $prepared_source );
+			do_action( 'wc_stripe_change_subs_payment_method_success', $prepared_source->payment_method, $prepared_source );
 
 			return [
 				'result'   => 'success',
@@ -244,7 +244,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			// Get source from order
 			$prepared_source = $this->prepare_order_source( $renewal_order );
-			$source_object   = $prepared_source->source_object;
+			$source_object   = $prepared_source->payment_method_object;
 
 			if ( ! $prepared_source->customer ) {
 				throw new WC_Stripe_Exception(
@@ -265,7 +265,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 			if ( ( $this->is_no_such_source_error( $previous_error ) || $this->is_no_linked_source_error( $previous_error ) ) && apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
 				// Passing empty source will charge customer default.
-				$prepared_source->source = '';
+				$prepared_source->payment_method = '';
 			}
 
 			// If the payment gateway is SEPA, use the charges API.
@@ -380,14 +380,8 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		foreach ( $subscriptions as $subscription ) {
-			$subscription_id = $subscription->get_id();
 			$subscription->update_meta_data( '_stripe_customer_id', $source->customer );
-
-			if ( ! empty( $source->payment_method ) ) {
-				$subscription->update_meta_data( '_stripe_source_id', $source->payment_method );
-			} else {
-				$subscription->update_meta_data( '_stripe_source_id', $source->source );
-			}
+			$subscription->update_meta_data( '_stripe_source_id', $source->payment_method );
 
 			$subscription->save();
 		}
