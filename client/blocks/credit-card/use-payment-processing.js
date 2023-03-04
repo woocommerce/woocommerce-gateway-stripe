@@ -14,7 +14,7 @@ import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EventRegistrationProps} EventRegistrationProps
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').BillingDataProps} BillingDataProps
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EmitResponseProps} EmitResponseProps
- * @typedef {import('react').Dispatch<string>} SourceIdDispatch
+ * @typedef {import('react').Dispatch<string>} PaymentMethodIdDispatch
  */
 
 /**
@@ -25,16 +25,16 @@ import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
  * A custom hook that registers stripe payment processing with the
  * onPaymentProcessing event from checkout.
  *
- * @param {function(any):string} onStripeError       Sets an error for stripe.
- * @param {string}               error               Any set error message (an empty string if no
- *                                                   error).
- * @param {Stripe}               stripe              The stripe utility
- * @param {BillingDataProps}     billing             Various billing data items.
- * @param {EmitResponseProps}    emitResponse        Various helpers for usage with observer
- *                                                   response objects.
- * @param {string}               sourceId            Current set stripe source id.
- * @param {SourceIdDispatch}     setSourceId         Setter for stripe source id.
- * @param {EventRegistration}    onPaymentProcessing The event emitter for processing payment.
+ * @param {function(any):string}    onStripeError       Sets an error for stripe.
+ * @param {string}                  error               Any set error message (an empty string if no
+ *                                                      error).
+ * @param {Stripe}                  stripe              The stripe utility
+ * @param {BillingDataProps}        billing             Various billing data items.
+ * @param {EmitResponseProps}       emitResponse        Various helpers for usage with observer
+ *                                                      response objects.
+ * @param {string}                  paymentMethodId     Current set stripe payment method id.
+ * @param {PaymentMethodIdDispatch} setPaymentMethodId  Setter for stripe payment method id.
+ * @param {EventRegistration}       onPaymentProcessing The event emitter for processing payment.
  */
 export const usePaymentProcessing = (
 	onStripeError,
@@ -42,24 +42,24 @@ export const usePaymentProcessing = (
 	stripe,
 	billing,
 	emitResponse,
-	sourceId,
-	setSourceId,
+	paymentMethodId,
+	setPaymentMethodId,
 	onPaymentProcessing
 ) => {
 	const elements = useElements();
 	// hook into and register callbacks for events
 	useEffect( () => {
-		const createSource = async ( ownerInfo ) => {
+		const createPaymentMethod = async ( ownerInfo ) => {
 			const elementToGet =
 				getBlocksConfiguration()?.inline_cc_form === 'yes'
 					? CardElement
 					: CardNumberElement;
-			return await stripe.createSource(
+			return await stripe.createPaymentMethod(
 				// @ts-ignore
 				elements?.getElement( elementToGet ),
 				{
 					type: 'card',
-					owner: ownerInfo,
+					billing_details: ownerInfo,
 				}
 			);
 		};
@@ -74,14 +74,14 @@ export const usePaymentProcessing = (
 					};
 				}
 				// use token if it's set.
-				if ( sourceId !== '' ) {
+				if ( paymentMethodId !== '' ) {
 					return {
 						type: emitResponse.responseTypes.SUCCESS,
 						meta: {
 							paymentMethodData: {
 								paymentMethod: PAYMENT_METHOD_NAME,
 								paymentRequestType: 'cc',
-								stripe_source: sourceId,
+								stripe_payment_method: paymentMethodId,
 							},
 							billingData,
 						},
@@ -107,24 +107,24 @@ export const usePaymentProcessing = (
 					ownerInfo.name = `${ billingData.first_name } ${ billingData.last_name }`;
 				}
 
-				const response = await createSource( ownerInfo );
+				const response = await createPaymentMethod( ownerInfo );
 				if ( response.error ) {
 					return {
 						type: emitResponse.responseTypes.ERROR,
 						message: onStripeError( response ),
 					};
 				}
-				if ( ! response.source || ! response.source.id ) {
+				if ( ! response.paymentMethod || ! response.paymentMethod.id ) {
 					throw new Error(
 						getErrorMessageForTypeAndCode( errorTypes.API_ERROR )
 					);
 				}
-				setSourceId( response.source.id );
+				setPaymentMethodId( response.paymentMethod.id );
 				return {
 					type: emitResponse.responseTypes.SUCCESS,
 					meta: {
 						paymentMethodData: {
-							stripe_source: response.source.id,
+							stripe_payment_method: response.paymentMethod.id,
 							// The billing information here is relevant to properly create the
 							// Stripe Customer object.
 							billing_email: ownerInfo.email,
@@ -151,8 +151,8 @@ export const usePaymentProcessing = (
 		onPaymentProcessing,
 		billing.billingData,
 		stripe,
-		sourceId,
-		setSourceId,
+		paymentMethodId,
+		setPaymentMethodId,
 		onStripeError,
 		error,
 		emitResponse.noticeContexts.PAYMENTS,

@@ -780,8 +780,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$is_token          = false;
 
 		// New CC info was entered and we have a new source to process.
-		if ( ! empty( $_POST['stripe_source'] ) ) {
-			$source_object = self::get_payment_method_object( wc_clean( wp_unslash( $_POST['stripe_source'] ) ) );
+		if ( ! empty( $_POST['stripe_payment_method'] ) ) {
+			$source_object = self::get_payment_method_object( wc_clean( wp_unslash( $_POST['stripe_payment_method'] ) ) );
 			$source_id     = $source_object->id;
 
 			// This checks to see if customer opted to save the payment method to file.
@@ -1145,13 +1145,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$error_msg         = __( 'There was a problem adding the payment method.', 'woocommerce-gateway-stripe' );
 		$payment_method_id = '';
 
-		if ( empty( $_POST['stripe_source'] ) && empty( $_POST['stripe_token'] ) || ! is_user_logged_in() ) {
+		if ( empty( $_POST['stripe_payment_method'] ) && empty( $_POST['stripe_token'] ) || ! is_user_logged_in() ) {
 			$error = true;
 		}
 
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
 
-		$source = ! empty( $_POST['stripe_source'] ) ? wc_clean( wp_unslash( $_POST['stripe_source'] ) ) : '';
+		$source = ! empty( $_POST['stripe_payment_method'] ) ? wc_clean( wp_unslash( $_POST['stripe_payment_method'] ) ) : '';
 
 		$payment_method_object = WC_Stripe_API::get_payment_method( $source );
 

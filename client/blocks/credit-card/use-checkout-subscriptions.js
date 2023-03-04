@@ -8,27 +8,27 @@ import { usePaymentProcessing } from './use-payment-processing';
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').BillingDataProps} BillingDataProps
  * @typedef {import('@woocommerce/type-defs/registered-payment-method-props').EmitResponseProps} EmitResponseProps
  * @typedef {import('../stripe-utils/type-defs').Stripe} Stripe
- * @typedef {import('react').Dispatch<string>} SourceIdDispatch
+ * @typedef {import('react').Dispatch<string>} PaymentMethodIdDispatch
  */
 
 /**
  * A custom hook for the Stripe processing and event observer logic.
  *
- * @param {EventRegistrationProps} eventRegistration Event registration functions.
- * @param {BillingDataProps}       billing           Various billing data items.
- * @param {string}                 sourceId          Current set stripe source id.
- * @param {SourceIdDispatch}       setSourceId       Setter for stripe source id.
- * @param {EmitResponseProps}      emitResponse      Various helpers for usage with observer
- *                                                   response objects.
- * @param {Stripe}                 stripe            The stripe.js object.
+ * @param {EventRegistrationProps}  eventRegistration  Event registration functions.
+ * @param {BillingDataProps}        billing            Various billing data items.
+ * @param {string}                  paymentMethodId    Current set stripe payment method id.
+ * @param {PaymentMethodIdDispatch} setPaymentMethodId Setter for stripe payment method id.
+ * @param {EmitResponseProps}       emitResponse       Various helpers for usage with observer
+ *                                                     response objects.
+ * @param {Stripe}                  stripe             The stripe.js object.
  *
  * @return {function(Object):Object} Returns a function for handling stripe error.
  */
 export const useCheckoutSubscriptions = (
 	eventRegistration,
 	billing,
-	sourceId,
-	setSourceId,
+	paymentMethodId,
+	setPaymentMethodId,
 	emitResponse,
 	stripe
 ) => {
@@ -49,7 +49,7 @@ export const useCheckoutSubscriptions = (
 	usePaymentIntents(
 		stripe,
 		onCheckoutAfterProcessingWithSuccess,
-		setSourceId,
+		setPaymentMethodId,
 		emitResponse
 	);
 	usePaymentProcessing(
@@ -58,8 +58,8 @@ export const useCheckoutSubscriptions = (
 		stripe,
 		billing,
 		emitResponse,
-		sourceId,
-		setSourceId,
+		paymentMethodId,
+		setPaymentMethodId,
 		onPaymentProcessing
 	);
 	// hook into and register callbacks for events.

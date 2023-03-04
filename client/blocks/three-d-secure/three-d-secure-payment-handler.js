@@ -1,7 +1,7 @@
 import { Elements, useStripe } from '@stripe/react-stripe-js';
 import { usePaymentIntents } from './use-payment-intents';
 
-const sourceIdNoop = () => void null;
+const paymentMethodIdNoop = () => void null;
 
 const Handler = ( { eventRegistration, emitResponse } ) => {
 	const stripe = useStripe();
@@ -9,7 +9,7 @@ const Handler = ( { eventRegistration, emitResponse } ) => {
 	usePaymentIntents(
 		stripe,
 		onCheckoutAfterProcessingWithSuccess,
-		sourceIdNoop,
+		paymentMethodIdNoop,
 		emitResponse
 	);
 	return null;

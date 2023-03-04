@@ -67,7 +67,7 @@ const openIntentModal = ( {
 export const usePaymentIntents = (
 	stripe,
 	subscriber,
-	setSourceId,
+	setPaymentMethodId,
 	emitResponse
 ) => {
 	useEffect( () => {
@@ -84,7 +84,7 @@ export const usePaymentIntents = (
 				response.type === emitResponse.responseTypes.ERROR &&
 				response.retry
 			) {
-				setSourceId( '' );
+				setPaymentMethodId( '' );
 			}
 
 			return response;
@@ -95,7 +95,7 @@ export const usePaymentIntents = (
 		emitResponse.noticeContexts.PAYMENTS,
 		emitResponse.responseTypes.ERROR,
 		emitResponse.responseTypes.SUCCESS,
-		setSourceId,
+		setPaymentMethodId,
 		stripe,
 	] );
 };

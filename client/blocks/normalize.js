@@ -14,16 +14,22 @@ import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 /**
  * Normalizes order data received upon creating an order using the store's AJAX API.
  *
- * @param {Object} sourceEvent - The source event that triggered the creation of the order.
+ * @param {Object} paymentMethodEvent - The payment method event that triggered the creation of the order.
  * @param {string} paymentRequestType - The payment request type.
  */
-const normalizeOrderData = ( sourceEvent, paymentRequestType ) => {
-	const { source } = sourceEvent;
-	const email = source?.owner?.email;
-	const phone = source?.owner?.phone;
-	const billing = source?.owner?.address;
-	const name = source?.owner?.name;
-	const shipping = sourceEvent?.shippingAddress;
+const normalizeOrderData = ( paymentMethodEvent, paymentRequestType ) => {
+	const paymentMethod =
+		paymentMethodEvent?.source ?? paymentMethodEvent?.paymentMethod;
+	const email =
+		paymentMethod?.owner?.email ?? paymentMethod?.billing_details?.email;
+	const phone =
+		paymentMethod?.owner?.phone ?? paymentMethod?.billing_details?.phone;
+	const billing =
+		paymentMethod?.owner?.address ??
+		paymentMethod?.billing_details?.address;
+	const name =
+		paymentMethod?.owner?.name ?? paymentMethod?.billing_details?.name;
+	const shipping = paymentMethodEvent?.shippingAddress;
 
 	const data = {
 		_wpnonce: getBlocksConfiguration()?.nonce?.checkout,
@@ -31,9 +37,9 @@ const normalizeOrderData = ( sourceEvent, paymentRequestType ) => {
 			name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
 		billing_last_name: name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '',
 		billing_company: '',
-		billing_email: email ?? sourceEvent?.payerEmail,
+		billing_email: email ?? paymentMethodEvent?.payerEmail,
 		billing_phone:
-			phone ?? sourceEvent?.payerPhone?.replace( '/[() -]/g', '' ),
+			phone ?? paymentMethodEvent?.payerPhone?.replace( '/[() -]/g', '' ),
 		billing_country: billing?.country ?? '',
 		billing_address_1: billing?.line1 ?? '',
 		billing_address_2: billing?.line2 ?? '',
@@ -49,12 +55,12 @@ const normalizeOrderData = ( sourceEvent, paymentRequestType ) => {
 		shipping_city: '',
 		shipping_state: '',
 		shipping_postcode: '',
-		shipping_method: [ sourceEvent?.shippingOption?.id ],
+		shipping_method: [ paymentMethodEvent?.shippingOption?.id ],
 		order_comments: '',
 		payment_method: 'stripe',
 		ship_to_different_address: 1,
 		terms: 1,
-		stripe_source: source.id,
+		stripe_payment_method: paymentMethod.id,
 		payment_request_type: paymentRequestType,
 	};
 

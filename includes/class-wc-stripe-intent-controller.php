@@ -185,14 +185,14 @@ class WC_Stripe_Intent_Controller {
 	public function create_setup_intent() {
 		if (
 			! is_user_logged_in()
-			|| ! isset( $_POST['stripe_source_id'] )
+			|| ! isset( $_POST['stripe_payment_method_id'] )
 			|| ! isset( $_POST['nonce'] )
 		) {
 			return;
 		}
 
 		try {
-			$source_id = wc_clean( wp_unslash( $_POST['stripe_source_id'] ) );
+			$source_id = wc_clean( wp_unslash( $_POST['stripe_payment_method_id'] ) );
 
 			// 1. Verify.
 			if (

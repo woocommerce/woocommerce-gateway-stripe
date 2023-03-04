@@ -34,13 +34,13 @@ const CreditCardComponent = ( {
 	components,
 } ) => {
 	const { ValidationInputError, PaymentMethodIcons } = components;
-	const [ sourceId, setSourceId ] = useState( '' );
+	const [ paymentMethodId, setPaymentMethodId ] = useState( '' );
 	const stripe = useStripe();
 	const onStripeError = useCheckoutSubscriptions(
 		eventRegistration,
 		billing,
-		sourceId,
-		setSourceId,
+		paymentMethodId,
+		setPaymentMethodId,
 		emitResponse,
 		stripe
 	);
@@ -48,7 +48,7 @@ const CreditCardComponent = ( {
 		if ( paymentEvent.error ) {
 			onStripeError( paymentEvent );
 		}
-		setSourceId( '' );
+		setPaymentMethodId( '' );
 	};
 	const cardIcons = getStripeCreditCardIcons();
 

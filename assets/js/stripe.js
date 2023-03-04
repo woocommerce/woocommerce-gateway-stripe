@@ -419,13 +419,13 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Checks if a source ID is present as a hidden input.
+		 * Checks if a payment method ID is present as a hidden input.
 		 * Only used when SEPA Direct Debit is chosen.
 		 *
 		 * @return {boolean}
 		 */
-		hasSource: function() {
-			return 0 < $( 'input.stripe-source' ).length;
+		hasPaymentMethod: function() {
+			return 0 < $( 'input.stripe-payment-method' ).length;
 		},
 
 		/**
@@ -526,34 +526,37 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Initiates the creation of a Source object.
+		 * Initiates the creation of a PaymentMethod object.
 		 *
 		 * Currently this is only used for credit cards and SEPA Direct Debit,
-		 * all other payment methods work with redirects to create sources.
+		 * all other payment methods work with redirects to create payment methods.
 		 */
-		createSource: function() {
-			var extra_details = wc_stripe_form.getOwnerDetails();
+		createPaymentMethod: function() {
+			const { owner: billing_details } = wc_stripe_form.getOwnerDetails();
 
 			// Handle SEPA Direct Debit payments.
 			if ( wc_stripe_form.isSepaChosen() ) {
-				extra_details.currency = $( '#stripe-sepa_debit-payment-data' ).data( 'currency' );
-				extra_details.mandate  = { notification_method: wc_stripe_params.sepa_mandate_notification };
-				extra_details.type     = 'sepa_debit';
-
-				return stripe.createSource( iban, extra_details ).then( wc_stripe_form.sourceResponse );
+				return stripe.createPaymentMethod({
+					type: 'sepa_debit',
+					sepa_debit: iban,
+					billing_details,
+				}).then( wc_stripe_form.paymentMethodResponse );
 			}
 
 			// Handle card payments.
-			return stripe.createSource( stripe_card, extra_details )
-				.then( wc_stripe_form.sourceResponse );
+			return stripe.createPaymentMethod({
+				type: 'card',
+				card: stripe_card,
+				billing_details,
+			}).then( wc_stripe_form.paymentMethodResponse );
 		},
 
 		/**
-		 * Handles responses, based on source object.
+		 * Handles responses, based on payment method object.
 		 *
-		 * @param {Object} response The `stripe.createSource` response.
+		 * @param {Object} response The `stripe.createPaymentMethod` response.
 		 */
-		sourceResponse: function( response ) {
+		paymentMethodResponse: function( response ) {
 			if ( response.error ) {
 				$( document.body ).trigger( 'stripeError', response );
 				return;
@@ -563,13 +566,13 @@ jQuery( function( $ ) {
 
 			wc_stripe_form.form.append(
 				$( '<input type="hidden" />' )
-					.addClass( 'stripe-source' )
-					.attr( 'name', 'stripe_source' )
-					.val( response.source.id )
+					.addClass( 'stripe-payment-method' )
+					.attr( 'name', 'stripe_payment_method' )
+					.val( response.paymentMethod.id )
 			);
 
 			if ( $( 'form#add_payment_method' ).length || $( '#wc-stripe-change-payment-method' ).length ) {
-				wc_stripe_form.sourceSetup( response );
+				wc_stripe_form.paymentMethodSetup( response );
 				return;
 			}
 
@@ -577,11 +580,11 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * Authenticate Source if necessary by creating and confirming a SetupIntent.
+		 * Authenticate PaymentMethod if necessary by creating and confirming a SetupIntent.
 		 *
-		 * @param {Object} response The `stripe.createSource` response.
+		 * @param {Object} response The `stripe.createPaymentMethod` response.
 		 */
-		sourceSetup: function( response ) {
+		paymentMethodSetup: function( response ) {
 			var apiError = {
 				error: {
 					type: 'api_connection_error'
@@ -592,7 +595,7 @@ jQuery( function( $ ) {
 				url: wc_stripe_form.getAjaxURL( 'create_setup_intent'),
 				dataType: 'json',
 				data: {
-					stripe_source_id: response.source.id,
+					stripe_payment_method_id: response.paymentMethod.id,
 					nonce: wc_stripe_params.add_card_nonce,
 				},
 				error: function() {
@@ -610,7 +613,7 @@ jQuery( function( $ ) {
 					return;
 				}
 
-				stripe.confirmCardSetup( serverResponse.client_secret, { payment_method: response.source.id } )
+				stripe.confirmCardSetup( serverResponse.client_secret, { payment_method: response.paymentMethod.id } )
 					.then( function( result ) {
 						if ( result.error ) {
 							$( document.body ).trigger( 'stripeError', result );
@@ -640,12 +643,12 @@ jQuery( function( $ ) {
 				return true;
 			}
 
-			// If a source is already in place, submit the form as usual.
-			if ( wc_stripe_form.isStripeSaveCardChosen() || wc_stripe_form.hasSource() ) {
+			// If a payment method is already in place, submit the form as usual.
+			if ( wc_stripe_form.isStripeSaveCardChosen() || wc_stripe_form.hasPaymentMethod() ) {
 				return true;
 			}
 
-			// For methods that needs redirect, we will create the source server side so we can obtain the order ID.
+			// For methods that needs redirect, we will create the payment method server side so we can obtain the order ID.
 			if (
 				wc_stripe_form.isBancontactChosen() ||
 				wc_stripe_form.isGiropayChosen() ||
@@ -672,7 +675,7 @@ jQuery( function( $ ) {
 			} else if ( wc_stripe_form.isOxxoChosen() ) {
 				wc_stripe_form.handleOxxo();
 			} else {
-				wc_stripe_form.createSource();
+				wc_stripe_form.createPaymentMethod();
 			}
 
 			return false;
@@ -778,7 +781,7 @@ jQuery( function( $ ) {
 		},
 
 		/**
-		 * If a new credit card is entered, reset sources.
+		 * If a new credit card is entered, reset payment methods.
 		 */
 		onCCFormChange: function() {
 			wc_stripe_form.reset();
@@ -788,7 +791,7 @@ jQuery( function( $ ) {
 		 * Removes all Stripe errors and hidden fields with IDs from the form.
 		 */
 		reset: function() {
-			$( '.wc-stripe-error, .stripe-source' ).remove();
+			$( '.wc-stripe-error, .stripe-payment-method' ).remove();
 		},
 
 		/**
@@ -797,7 +800,7 @@ jQuery( function( $ ) {
 		 * @param {Event} e The event with the error.
 		 */
 		onSepaError: function( e ) {
-			var errorContainer = wc_stripe_form.getSelectedPaymentElement().parents( 'li' ).eq( 0 ).find( '.stripe-source-errors' );
+			var errorContainer = wc_stripe_form.getSelectedPaymentElement().parents( 'li' ).eq( 0 ).find( '.stripe-payment-method-errors' );
 
 			if ( ! e.error ) {
 				$( errorContainer ).html( '' );
@@ -832,19 +835,19 @@ jQuery( function( $ ) {
 
 				if ( selectedToken.closest( '.woocommerce-SavedPaymentMethods-new' ).length ) {
 					// Display the error next to the CC fields if a new card is being entered.
-					errorContainer = $( '#wc-stripe-cc-form .stripe-source-errors' );
+					errorContainer = $( '#wc-stripe-cc-form .stripe-payment-method-errors' );
 				} else {
 					// Display the error next to the chosen saved card.
-					errorContainer = selectedToken.closest( 'li' ).find( '.stripe-source-errors' );
+					errorContainer = selectedToken.closest( 'li' ).find( '.stripe-payment-method-errors' );
 				}
 			} else {
 				// When no saved cards are available, display the error next to CC fields.
-				errorContainer = selectedMethodElement.find( '.stripe-source-errors' );
+				errorContainer = selectedMethodElement.find( '.stripe-payment-method-errors' );
 			}
 
 			/*
 			 * If payment method is SEPA and owner name is not completed,
-			 * source cannot be created. So we need to show the normal
+			 * payment method cannot be created. So we need to show the normal
 			 * Billing name is required error message on top of form instead
 			 * of inline.
 			 */

@@ -65,8 +65,8 @@ export const updateShippingDetails = ( shippingOption ) => {
 	} );
 };
 
-export const createOrder = ( sourceEvent, paymentRequestType ) => {
-	const data = normalizeOrderData( sourceEvent, paymentRequestType );
+export const createOrder = ( paymentMethodEvent, paymentRequestType ) => {
+	const data = normalizeOrderData( paymentMethodEvent, paymentRequestType );
 
 	return $.ajax( {
 		type: 'POST',

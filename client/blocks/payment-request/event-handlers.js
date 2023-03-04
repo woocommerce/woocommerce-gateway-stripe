@@ -141,7 +141,7 @@ const handleIntentConfirmation = ( redirectUrl, intentType ) => (
  * payment (i.e. 3DS verification) through Stripe.
  *
  * @param {Object} stripe - The Stripe JS object.
- * @param {Object} evt - The `source` event from the Stripe payment request button.
+ * @param {Object} evt - The `paymentmethod` event from the Stripe payment request button.
  * @param {Function} setExpressPaymentError - Used to show error messages to the customer.
  */
 const performPayment = ( stripe, evt, setExpressPaymentError ) => (
@@ -188,11 +188,13 @@ const paymentProcessingHandler = (
 	paymentRequestType,
 	setExpressPaymentError
 ) => ( evt ) => {
+	const paymentMethod = evt?.source ?? evt?.paymentMethod;
+
 	const allowPrepaidCards =
 		getBlocksConfiguration()?.stripe?.allow_prepaid_card === 'yes';
 
 	// Check if we allow prepaid cards.
-	if ( ! allowPrepaidCards && evt?.source?.card?.funding === 'prepaid' ) {
+	if ( ! allowPrepaidCards && paymentMethod?.card?.funding === 'prepaid' ) {
 		setExpressPaymentError(
 			getBlocksConfiguration()?.i18n?.no_prepaid_card
 		);
