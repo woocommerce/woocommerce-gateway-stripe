@@ -128,9 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.2.0 - 2023-03-09 =
-* Fix - Hide PRB box in checkout block when PRBs disabled.
-* Fix - Fix semi-hidden modal inline notices.
+= x.x.x - 2023-xx-xx =
 
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
