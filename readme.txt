@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 5.9
 Tested up to: 6.1
 Requires PHP: 7.3
-Stable tag: 7.1.0
+Stable tag: 7.2.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,10 +128,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.1.0 - 2023-02-08 =
-* Fix - Replace some post meta methods with equivalent methods compatible with HPOS.
-* Tweak - Update minimum supported versions for WordPress, WooCommerce, and PHP.
-* Update – Declare this plugin compatible with High-Performance Order Storage (HPOS).
+= 7.2.0 - 2023-03-09 =
+* Fix - Hide PRB box in checkout block when PRBs disabled.
+* Fix - Fix semi-hidden modal inline notices.
 
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
