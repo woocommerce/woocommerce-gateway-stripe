@@ -875,7 +875,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				// https://github.com/woocommerce/woocommerce-gateway-stripe/issues/2536. It would
 				// be better if we removed the need for additional meta data in favor of refactoring
 				// this part of the payment processing.
-				if ( $order->get_meta( '_stripe_upe_waiting_for_redirect' ) ?? false ) {
+				$is_subscription = function_exists( 'wcs_is_subscription' ) && wcs_is_subscription( $order->get_id() );
+				if ( $order->get_meta( '_stripe_upe_waiting_for_redirect' ) && $is_subscription ?? false ) {
 					return;
 				}
 
