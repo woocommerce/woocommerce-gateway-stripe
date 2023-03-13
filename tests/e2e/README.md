@@ -8,9 +8,10 @@ We use [Playwright](https://playwright.dev/) as our test runner.
   - [Table of contents](#table-of-contents)
   - [Running E2E Tests](#running-e2e-tests)
     - [Pre-requisites](#pre-requisites)
+    - [Environment Setup](#environment-setup)
     - [Running tests](#running-tests)
     - [Debugging tests](#debugging-tests)
-    - [Running only a few test suites](#running-only-a-few-test-suites)
+    - [Running only selected test suites](#running-only-selected-test-suites)
   - [Guide for writing e2e tests](#guide-for-writing-e2e-tests)
     - [Creating the test structure](#creating-the-test-structure)
     - [Writing the test](#writing-the-test)
@@ -21,39 +22,57 @@ We use [Playwright](https://playwright.dev/) as our test runner.
 
 - Node.js ([Installation instructions](https://nodejs.org/en/download/))
 - NVM ([Installation instructions](https://github.com/nvm-sh/nvm))
-- A test site with SSH access, WP CLI installed in the server, admin credentials (`wp-admin`), and WooCommerce installed. Jurassic Ninja sites are recommended.
-- Test mode keys for a Stripe account.
+- A test site to run the tests on. **Jurassic Ninja sites are recommended**.
+- Admin credentials (`wp-admin`) to the test site.
+
+**For the automated setup (optional)**
+
+- SSH access to the test site.
+- WP CLI available on the test site server.
+- Test keys for a Stripe account.
+
+### Environment Setup
 
 - Copy the file `/tests/e2e/config/local.env.example` to `/tests/e2e/config/local.env`.
 - Edit the variables on the `local.env` file.
 
 ### Running tests
 
-**Set up**
+**Test Setup**
+
+To set up the test environment, run the command:
 
 `npm run test:e2e-setup -- --base_url=SOME_URL_HERE`
 
-This command will perform the WooCommerce setup and the Stripe setup in a new Jurassic ninja site. The SSH and admin credentials are mandatory (view the parameters `--with_woo_setup` and `--with_stripe_setup` below for more info).
+This command will perform the following actions:
+
+- Connect to the test server using SSH and the credentials in the `/tests/e2e/config/local.env` file.
+- Install the latest version of WooCommerce from the official WordPress repository.
+- Install the latest version of the WooCommerce Gateway Stripe plugin from the official WordPress repository. 
+  **Note:** you can specify a different version to test by using the `--version` flag. In this case, the plugin will be downloaded from GitHub instead.
+- Install and activate the StoreFront theme.
+- Configure WooCommerce on the test site (e.g. store address, currency, shipping methods).
+- Import test products into WooCommerce.
+- Create pages for the Cart blocks and Checkout blocks from WooCommerce Blocks.
+- Set up the Stripe gateway using the keys from the `/tests/e2e/config/local.env` file and create a webhook endpoint on Stripe.
+
+**Note:** To run this command, SSH and admin credentials are required. 
+
+The SSH and admin credentials are mandatory (view the parameters `--with_woo_setup` and `--with_stripe_setup` below for more info).
+
+**Test execution**
 
 `npm run test:e2e -- --base_url=SOME_URL_HERE`
 
 The default command to run the tests. It'll run the tests in the URL indicated by the `--base_url` parameter.
 
-**Optional parameters**
+**Optional Parameters**
 
-`--version`
+`--version`: Allows you to specify a specific plugin version to test. This will download the specified version from GitHub and upload it to the test site before running the tests. If no version is specified, the tests will use the version currently installed on the test site.
 
-The plugin release version to be tested. By setting this parameter, the release will be downloaded from GitHub and uploaded to the website indicated on `--base_url` before testing starts.
+`--with_woo_setup`: Use this option when setting up a test site for the first time. It will use the SSH credentials from `tests/e2e/config/local.env` to set up the WooCommerce plugin with test products, store address, currency, and shipping methods, as well as installing and activating the StoreFront theme.
 
-If no version is passed, the tests will use the version already installed on `--base_url`.
-
-`--with_woo_setup`
-
-Add this option in the first use of a test site. It'll get the SSH credentials from `tests/e2e/config/local.env` to setup the WooCommerce plugin with test products, a store addres, a store currency, and shipping methods. It'll also install and activate the StoreFront theme.
-
-`--with_stripe_setup`
-
-Add this option in the first use of a test site. It'll get the Stripe keys from `tests/e2e/config/local.env` to setup the plugin, create a webhook endpoint on Stripe, and setup the webhook secret in the Stripe plugin.
+`--with_stripe_setup`: Use this option when setting up a test site for the first time. It will use the Stripe keys from `tests/e2e/config/local.env` to set up the plugin, create a webhook endpoint on Stripe, and set up the webhook secret in the Stripe plugin.
 
 **⚠️ All the other parameters are passed to the Playwright CLI**
 
@@ -65,52 +84,35 @@ Add this option in the first use of a test site. It'll get the Stripe keys from 
 
 [Documentation](https://playwright.dev/docs/debug)
 
-### Running only a few test suites
+### Running only selected test suites
 
-To run only a few test suites, you can pass the test suite name or number as a parameter.
+**Running Tests by Annotation**
 
-**Example:** This command would run the test suites `001` and `004`.
+Certain tests are annotated to indicate their specific focus, such as subscriptions, blocks, or smoke tests. These annotations are indicated in the test name with the `@` symbol in front of them, for example `Test XYZ @subscriptions`.
 
- `npm run test:e2e -- 001 004`
+To only run tests with a specific annotation, use the `--grep @annotation` parameter when running the tests. For example:
+
+`npm run test:e2e -- --base_url=SOME_URL_HERE --grep @subscriptions`
+
+**Running Tests by File Name**
+
+You can also run tests by specifying the file name containing the test you want to run. Keep in mind that there may be duplicate file names, especially between tests run in the regular checkout and in the blocks checkout.
+
+ `npm run test:e2e -- --base_url=SOME_URL_HERE normal-card`
+
+ In the above example, the command would run the tests with a file name containing `normal-card`.
 
 ## Guide for writing e2e tests
-
-Tests should be added to the `/tests/e2e/tests` folder. Tests should be organized in folders by the tested area, e.g. `/tests/e2e/tests/onboarding`, `/tests/e2e/tests/checkout`, `/tests/e2e/tests/payment-methods`.
-
-To help filter the tests, they should be assigned a 3-digit ID in the file name. Example: `000-upload-plugin.spec.js`.
-
 ### Creating the test structure
 
-It is a good practice to start working on the test by identifying what needs to be tested on the higher and lower levels. For example, if you are writing a test to verify that merchant can create a virtual product, the overview of the test will be as follows:
+Create a new directory under `/tests/e2e/tests/` with the name of the feature or component being tested.
 
-- Merchant can create virtual product
-  - Merchant can log in
-  - Merchant can create virtual product
-  - Merchant can verify that virtual product was created
-
-Once you identify the structure of the test, you can move on to writing it.
+For example, if we're testing the checkout process, the directory would be `/tests/e2e/tests/checkout/`.
 
 ### Writing the test
 
-The structure of the test serves as a skeleton for the test itself. You can turn it into a test by using `describe()` and `it()` methods of Playwright:
+Make sure to follow the established naming conventions for the test files and directories, and to keep the tests organized and easy to understand.
 
-- [`test.describe()`](https://playwright.dev/docs/api/class-test#test-describe) - creates a block that groups together several related tests;
-- [`test()`](https://playwright.dev/docs/api/class-test#test-call) - actual method that runs the test.
+The test should be self-explanatory and should be easily understood by anyone who reads it.
 
-Based on our example, the test skeleton would look as follows:
-
-```js
-test.describe( 'Merchant can create virtual product', () => {
-	test( 'merchant can log in', async () => {
-
-	} );
-
-	test( 'merchant can create virtual product', async () => {
-
-	} );
-
-	test( 'merchant can verify that virtual product was created', async () => {
-
-	} );
-} );
-```
+Make sure to follow best practices for writing e2e tests, such as using descriptive and meaningful test names, and keeping the tests as independent as possible to avoid flaky tests.

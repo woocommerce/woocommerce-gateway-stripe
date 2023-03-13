@@ -239,6 +239,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
 		$order->update_meta_data( '_stripe_upe_payment_type', '' );
+		$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
 		$order->save();
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );
@@ -1038,6 +1039,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
 		$order->update_meta_data( '_stripe_upe_payment_type', '' );
+		$order->update_meta_data( '_stripe_upe_waiting_for_redirect', true );
 		$order->save();
 
 		list( $amount, $description, $metadata ) = $this->get_order_details( $order );

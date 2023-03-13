@@ -381,13 +381,15 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		foreach ( $subscriptions as $subscription ) {
 			$subscription_id = $subscription->get_id();
-			update_post_meta( $subscription_id, '_stripe_customer_id', $source->customer );
+			$subscription->update_meta_data( '_stripe_customer_id', $source->customer );
 
 			if ( ! empty( $source->payment_method ) ) {
-				update_post_meta( $subscription_id, '_stripe_source_id', $source->payment_method );
+				$subscription->update_meta_data( '_stripe_source_id', $source->payment_method );
 			} else {
-				update_post_meta( $subscription_id, '_stripe_source_id', $source->source );
+				$subscription->update_meta_data( '_stripe_source_id', $source->source );
 			}
+
+			$subscription->save();
 		}
 	}
 
@@ -397,13 +399,14 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param int $resubscribe_order The order created for the customer to resubscribe to the old expired/cancelled subscription
 	 */
 	public function delete_resubscribe_meta( $resubscribe_order ) {
-		delete_post_meta( $resubscribe_order->get_id(), '_stripe_customer_id' );
-		delete_post_meta( $resubscribe_order->get_id(), '_stripe_source_id' );
+		$resubscribe_order->delete_meta_data( '_stripe_customer_id' );
+		$resubscribe_order->delete_meta_data( '_stripe_source_id' );
 		// For BW compat will remove in future.
-		delete_post_meta( $resubscribe_order->get_id(), '_stripe_card_id' );
+		$resubscribe_order->delete_meta_data( '_stripe_card_id' );
 		// Delete payment intent ID.
-		delete_post_meta( $resubscribe_order->get_id(), '_stripe_intent_id' );
+		$resubscribe_order->delete_meta_data( '_stripe_intent_id' );
 		$this->delete_renewal_meta( $resubscribe_order );
+		$resubscribe_order->save();
 	}
 
 	/**
@@ -416,7 +419,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		WC_Stripe_Helper::delete_stripe_net( $renewal_order );
 
 		// Delete payment intent ID.
-		delete_post_meta( $renewal_order->get_id(), '_stripe_intent_id' );
+		$renewal_order->delete_meta_data( '_stripe_intent_id' );
 
 		return $renewal_order;
 	}
@@ -430,8 +433,9 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return void
 	 */
 	public function update_failing_payment_method( $subscription, $renewal_order ) {
-		update_post_meta( $subscription->get_id(), '_stripe_customer_id', $renewal_order->get_meta( '_stripe_customer_id', true ) );
-		update_post_meta( $subscription->get_id(), '_stripe_source_id', $renewal_order->get_meta( '_stripe_source_id', true ) );
+		$subscription->update_meta_data( '_stripe_customer_id', $renewal_order->get_meta( '_stripe_customer_id', true ) );
+		$subscription->update_meta_data( '_stripe_source_id', $renewal_order->get_meta( '_stripe_source_id', true ) );
+		$subscription->save();
 	}
 
 	/**
@@ -446,21 +450,22 @@ trait WC_Stripe_Subscriptions_Trait {
 	 */
 	public function add_subscription_payment_meta( $payment_meta, $subscription ) {
 		$subscription_id = $subscription->get_id();
-		$source_id       = get_post_meta( $subscription_id, '_stripe_source_id', true );
+		$source_id       = $subscription->get_meta( '_stripe_source_id', true );
 
 		// For BW compat will remove in future.
 		if ( empty( $source_id ) ) {
-			$source_id = get_post_meta( $subscription_id, '_stripe_card_id', true );
+			$source_id = $subscription->get_meta( '_stripe_card_id', true );
 
 			// Take this opportunity to update the key name.
-			update_post_meta( $subscription_id, '_stripe_source_id', $source_id );
-			delete_post_meta( $subscription_id, '_stripe_card_id', $source_id );
+			$subscription->update_meta_data( '_stripe_source_id', $source_id );
+			$subscription->delete_meta_data( '_stripe_card_id' );
+			$subscription->save();
 		}
 
 		$payment_meta[ $this->id ] = [
 			'post_meta' => [
 				'_stripe_customer_id' => [
-					'value' => get_post_meta( $subscription_id, '_stripe_customer_id', true ),
+					'value' => $subscription->get_meta( '_stripe_customer_id', true ),
 					'label' => 'Stripe Customer ID',
 				],
 				'_stripe_source_id'   => [
@@ -527,18 +532,19 @@ trait WC_Stripe_Subscriptions_Trait {
 			return $payment_method_to_display;
 		}
 
-		$stripe_source_id = get_post_meta( $subscription->get_id(), '_stripe_source_id', true );
+		$stripe_source_id = $subscription->get_meta( '_stripe_source_id', true );
 
 		// For BW compat will remove in future.
 		if ( empty( $stripe_source_id ) ) {
-			$stripe_source_id = get_post_meta( $subscription->get_id(), '_stripe_card_id', true );
+			$stripe_source_id = $subscription->get_meta( '_stripe_card_id', true );
 
 			// Take this opportunity to update the key name.
-			update_post_meta( $subscription->get_id(), '_stripe_source_id', $stripe_source_id );
+			$subscription->update_meta_data( '_stripe_source_id', $stripe_source_id );
+			$subscription->save();
 		}
 
 		$stripe_customer    = new WC_Stripe_Customer();
-		$stripe_customer_id = get_post_meta( $subscription->get_id(), '_stripe_customer_id', true );
+		$stripe_customer_id = $subscription->get_meta( '_stripe_customer_id', true );
 
 		// If we couldn't find a Stripe customer linked to the subscription, fallback to the user meta data.
 		if ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) {
@@ -557,15 +563,17 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		// If we couldn't find a Stripe customer linked to the account, fallback to the order meta data.
 		if ( ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) && false !== $subscription->get_parent() ) {
-			$stripe_customer_id = get_post_meta( $subscription->get_parent_id(), '_stripe_customer_id', true );
-			$stripe_source_id   = get_post_meta( $subscription->get_parent_id(), '_stripe_source_id', true );
+			$parent_order = wc_get_order( $subscription->get_parent_id() );
+			$stripe_customer_id = $parent_order->get_meta( '_stripe_customer_id', true );
+			$stripe_source_id   = $parent_order->get_meta( '_stripe_source_id', true );
 
 			// For BW compat will remove in future.
 			if ( empty( $stripe_source_id ) ) {
-				$stripe_source_id = get_post_meta( $subscription->get_parent_id(), '_stripe_card_id', true );
+				$stripe_source_id = $parent_order->get_meta( '_stripe_card_id', true );
 
 				// Take this opportunity to update the key name.
-				update_post_meta( $subscription->get_parent_id(), '_stripe_source_id', $stripe_source_id );
+				$parent_order->update_meta_data( '_stripe_source_id', $stripe_source_id );
+				$parent_order->save();
 			}
 		}
 
