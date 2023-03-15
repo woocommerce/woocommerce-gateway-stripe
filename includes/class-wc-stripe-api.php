@@ -290,4 +290,28 @@ class WC_Stripe_API {
 		// If it's not a source it's a PaymentMethod.
 		return self::retrieve( 'payment_methods/' . $payment_method_id );
 	}
+
+	/**
+	 * Attaches a payment method to the given customer.
+	 *
+	 * @param string $customer_id        The ID of the customer the payment method should be attached to.
+	 * @param string $payment_method_id  The payment method that should be attached to the customer.
+	 *
+	 * @return stdClass|array  The response from the API request.
+	 * @throws WC_Stripe_Exception
+	 */
+	public static function attach_payment_method_to_customer( string $customer_id, string $payment_method_id ) {
+		// Sources and Payment Methods need different API calls.
+		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
+			return self::request(
+				[ 'source' => $payment_method_id ],
+				'customers/' . $customer_id . '/sources'
+			);
+		}
+
+		return self::request(
+			[ 'customer' => $customer_id ],
+			'payment_methods/' . $payment_method_id . '/attach'
+		);
+	}
 }
