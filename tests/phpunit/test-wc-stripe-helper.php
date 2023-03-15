@@ -121,4 +121,20 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		$not_payment_method_or_source->object = 'not_payment_method_or_source';
 		$this->assertFalse( WC_Stripe_Helper::is_card_payment_method( $not_payment_method_or_source ) );
 	}
+
+	public function test_get_payment_method_from_intent() {
+		$source         = 'src_mock';
+		$payment_method = 'pm_mock';
+
+		$intent_with_source         = new stdClass();
+		$intent_with_source->source = $source;
+		$this->assertEquals( $source, WC_Stripe_Helper::get_payment_method_from_intent( $intent_with_source ) );
+
+		$intent_with_payment_method                 = new stdClass();
+		$intent_with_payment_method->payment_method = $payment_method;
+		$this->assertEquals( $payment_method, WC_Stripe_Helper::get_payment_method_from_intent( $intent_with_payment_method ) );
+
+		$intent_with_neither_source_nor_payment_method = new stdClass();
+		$this->assertNull( WC_Stripe_Helper::get_payment_method_from_intent( $intent_with_neither_source_nor_payment_method ) );
+	}
 }
