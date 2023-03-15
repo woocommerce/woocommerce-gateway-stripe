@@ -135,6 +135,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param object $error
 	 */
 	public function is_retryable_error( $error ) {
+		// We don't want to retry payments when a 3DS mandate is invalid; it doesn't make sense.
+		// Note that this check is required since the error type is 'invalid_request_error' which
+		// would otherwise return true.
+		if ( isset( $error->code ) && 'payment_intent_mandate_invalid' === $error->code ) {
+			return false;
+		}
+
 		return (
 			'invalid_request_error' === $error->type ||
 			'idempotency_error' === $error->type ||
@@ -514,6 +521,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$this->update_fees( $order, is_string( $response->balance_transaction ) ? $response->balance_transaction : $response->balance_transaction->id );
 		}
 
+		if ( isset( $response->payment_method_details->card->mandate ) ) {
+			$order->update_meta_data( '_stripe_mandate_id', $response->payment_method_details->card->mandate->id );
+		}
+
 		if ( 'yes' === $captured ) {
 			/**
 			 * Charge can be captured but in a pending state. Payment methods
@@ -792,7 +803,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			 * Criteria to save to file is they are logged in, they opted to save or product requirements and the source is
 			 * actually reusable. Either that or force_save_source is true.
 			 */
-			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && 'reusable' === $source_object->usage ) || $force_save_source ) {
+			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && WC_Stripe_Helper::is_reusable_payment_method( $source_object ) ) || $force_save_source ) {
 				$response = $customer->attach_source( $source_object->id );
 
 				if ( ! empty( $response->error ) ) {
@@ -1501,8 +1512,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( isset( $intent->charges->data ) ) {
 			$charge = end( $intent->charges->data );
 
-			if ( isset( $charge->payment_method_options->card->mandate ) ) {
-				$mandate_id = $charge->payment_method_options->card->mandate;
+			if ( isset( $charge->payment_method_details->card->mandate ) ) {
+				$mandate_id = $charge->payment_method_details->card->mandate;
 				$order->update_meta_data( '_stripe_mandate_id', $mandate_id );
 			}
 		}
