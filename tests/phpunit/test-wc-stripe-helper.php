@@ -95,4 +95,30 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		$non_reusable_source->usage = 'single_use';
 		$this->assertFalse( WC_Stripe_Helper::is_reusable_payment_method( $non_reusable_source ) );
 	}
+
+	public function test_is_card_payment_method() {
+		$card_payment_method         = new stdClass();
+		$card_payment_method->object = 'payment_method';
+		$card_payment_method->type   = 'card';
+		$this->assertTrue( WC_Stripe_Helper::is_card_payment_method( $card_payment_method ) );
+
+		$card_source         = new stdClass();
+		$card_source->object = 'source';
+		$card_source->type   = 'card';
+		$this->assertTrue( WC_Stripe_Helper::is_card_payment_method( $card_source ) );
+
+		$non_card_payment_method         = new stdClass();
+		$non_card_payment_method->object = 'payment_method';
+		$non_card_payment_method->type   = 'not_card';
+		$this->assertFalse( WC_Stripe_Helper::is_card_payment_method( $non_card_payment_method ) );
+
+		$non_card_source         = new stdClass();
+		$non_card_source->object = 'source';
+		$non_card_source->type   = 'not_card';
+		$this->assertFalse( WC_Stripe_Helper::is_card_payment_method( $non_card_source ) );
+
+		$not_payment_method_or_source         = new stdClass();
+		$not_payment_method_or_source->object = 'not_payment_method_or_source';
+		$this->assertFalse( WC_Stripe_Helper::is_card_payment_method( $not_payment_method_or_source ) );
+	}
 }

@@ -795,4 +795,23 @@ class WC_Stripe_Helper {
 	public static function is_reusable_payment_method( stdClass $payment_method ): bool {
 		return self::is_payment_method_object( $payment_method ) || ( isset( $payment_method->usage ) && 'reusable' === $payment_method->usage );
 	}
+
+	/**
+	 * Returns true if the provided payment method is a card, false otherwise.
+	 *
+	 * @param stdClass $payment_method  The provided payment method object. Can be a Source or a Payment Method.
+	 *
+	 * @return bool  True if payment method is a card, false otherwise.
+	 */
+	public static function is_card_payment_method( stdClass $payment_method ): bool {
+		if ( ! isset( $payment_method->object ) || ! isset( $payment_method->type ) ) {
+			return false;
+		}
+
+		if ( 'payment_method' !== $payment_method->object && 'source' !== $payment_method->object ) {
+			return false;
+		}
+
+		return 'card' === $payment_method->type;
+	}
 }
