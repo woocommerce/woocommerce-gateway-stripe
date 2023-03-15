@@ -65,4 +65,34 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		$this->assertArrayNotHasKey( 'source', $request, 'Source was added to request array when it should not have' );
 		$this->assertEmpty( $request, 'Request array is not empty when it should be empty' );
 	}
+
+	public function test_is_payment_method_object() {
+		$payment_method         = new stdClass();
+		$payment_method->object = 'payment_method';
+		$this->assertTrue( WC_Stripe_Helper::is_payment_method_object( $payment_method ) );
+
+		$empty = new stdClass();
+		$this->assertFalse( WC_Stripe_Helper::is_payment_method_object( $empty ) );
+
+		$not_payment_method         = new stdClass();
+		$not_payment_method->object = 'not_payment_method';
+		$this->assertFalse( WC_Stripe_Helper::is_payment_method_object( $not_payment_method ) );
+	}
+
+	public function test_is_reusable_source() {
+		$payment_method         = new stdClass();
+		$payment_method->object = 'payment_method';
+		$this->assertTrue( WC_Stripe_Helper::is_reusable_payment_method( $payment_method ) );
+
+		$reusable_source        = new stdClass();
+		$reusable_source->usage = 'reusable';
+		$this->assertTrue( WC_Stripe_Helper::is_reusable_payment_method( $reusable_source ) );
+
+		$empty = new stdClass();
+		$this->assertFalse( WC_Stripe_Helper::is_reusable_payment_method( $empty ) );
+
+		$non_reusable_source        = new stdClass();
+		$non_reusable_source->usage = 'single_use';
+		$this->assertFalse( WC_Stripe_Helper::is_reusable_payment_method( $non_reusable_source ) );
+	}
 }

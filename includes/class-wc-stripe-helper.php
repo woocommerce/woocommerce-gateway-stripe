@@ -772,4 +772,27 @@ class WC_Stripe_Helper {
 
 		return $request;
 	}
+
+	/**
+	 * Evaluates whether the object passed to this function is a Stripe Payment Method.
+	 *
+	 * @param stdClass $object  The object that should be evaluated.
+	 * @return bool             Returns true if the object is a Payment Method; false otherwise.
+	 */
+	public static function is_payment_method_object( stdClass $payment_method ): bool {
+		return isset( $payment_method->object ) && 'payment_method' === $payment_method->object;
+	}
+
+	/**
+	 * Evaluates whether a given Stripe Source (or Stripe Payment Method) is reusable.
+	 * Payment Methods are always reusable; Sources are only reusable when the appropriate
+	 * usage metadata is provided.
+	 *
+	 * @param stdClass $payment_method  The source or payment method to be evaluated.
+
+	 * @return bool  Returns true if the source is reusable; false otherwise.
+	 */
+	public static function is_reusable_payment_method( stdClass $payment_method ): bool {
+		return self::is_payment_method_object( $payment_method ) || ( isset( $payment_method->usage ) && 'reusable' === $payment_method->usage );
+	}
 }
