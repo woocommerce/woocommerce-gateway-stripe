@@ -132,7 +132,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * they are worth retrying.
 	 *
 	 * @since 4.0.5
-	 * @param array $error
+	 * @param object $error
 	 */
 	public function is_retryable_error( $error ) {
 		return (
@@ -149,7 +149,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * error due to retries with different parameters.
 	 *
 	 * @since 4.1.0
-	 * @param array $error
+	 * @param object $error
 	 */
 	public function is_same_idempotency_error( $error ) {
 		return (
@@ -164,7 +164,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * error and it is no such customer.
 	 *
 	 * @since 4.1.0
-	 * @param array $error
+	 * @param object $error
 	 */
 	public function is_no_such_customer_error( $error ) {
 		return (
@@ -179,7 +179,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * error and it is no such token.
 	 *
 	 * @since 4.1.0
-	 * @param array $error
+	 * @param object $error
 	 */
 	public function is_no_such_token_error( $error ) {
 		return (
@@ -194,7 +194,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * error and it is no such source.
 	 *
 	 * @since 4.1.0
-	 * @param array $error
+	 * @param object $error
 	 */
 	public function is_no_such_source_error( $error ) {
 		return (
@@ -209,7 +209,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * error and it is no such source linked to customer.
 	 *
 	 * @since 4.1.0
-	 * @param array $error
+	 * @param object $error
 	 */
 	public function is_no_linked_source_error( $error ) {
 		return (
