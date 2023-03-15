@@ -40,4 +40,29 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		unset( $current_tab );
 		unset( $current_section );
 	}
+
+	public function test_add_payment_method_to_request_array_should_add_source_to_request() {
+		$source_id = 'src_mock';
+		$request   = WC_Stripe_Helper::add_payment_method_to_request_array( $source_id, [] );
+
+		$this->assertArrayHasKey( 'source', $request, 'Source ID was not added to request array' );
+		$this->assertEquals( $source_id, $request['source'] );
+	}
+
+	public function test_add_payment_method_to_request_array_should_add_payment_method_to_request() {
+		$payment_method_id = 'pm_mock';
+		$request           = WC_Stripe_Helper::add_payment_method_to_request_array( $payment_method_id, [] );
+
+		$this->assertArrayHasKey( 'payment_method', $request, 'Payment Method ID was not added to request array' );
+		$this->assertEquals( $payment_method_id, $request['payment_method'] );
+	}
+
+	public function test_add_payment_method_to_request_array_should_not_add_non_source_or_payment_method_to_request() {
+		$not_a_payment_method_id = 'cus_mock';
+		$request                 = WC_Stripe_Helper::add_payment_method_to_request_array( $not_a_payment_method_id, [] );
+
+		$this->assertArrayNotHasKey( 'payment_method', $request, 'Payment Method ID was added to request array when it should not have' );
+		$this->assertArrayNotHasKey( 'source', $request, 'Source was added to request array when it should not have' );
+		$this->assertEmpty( $request, 'Request array is not empty when it should be empty' );
+	}
 }
