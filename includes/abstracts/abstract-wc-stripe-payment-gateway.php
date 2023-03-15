@@ -634,7 +634,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return '';
 		}
 
-		$source_object = WC_Stripe_API::retrieve( 'sources/' . $source_id );
+		$source_object = WC_Stripe_API::get_payment_method( $source_id );
 
 		if ( ! empty( $source_object->error ) ) {
 			throw new WC_Stripe_Exception( print_r( $source_object, true ), $source_object->error->message );
@@ -879,8 +879,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$source_object   = false;
 
 		if ( $order ) {
-			$order_id = $order->get_id();
-
 			$stripe_customer_id = $this->get_stripe_customer_id( $order );
 
 			if ( $stripe_customer_id ) {
@@ -903,7 +901,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			if ( $source_id ) {
 				$stripe_source = $source_id;
-				$source_object = WC_Stripe_API::retrieve( 'sources/' . $source_id );
+				$source_object = WC_Stripe_API::get_payment_method( $source_id );
 			} elseif ( apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
 				/*
 				 * We can attempt to charge the customer's default source
@@ -1154,7 +1152,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$source = ! empty( $_POST['stripe_source'] ) ? wc_clean( wp_unslash( $_POST['stripe_source'] ) ) : '';
 
-		$source_object = WC_Stripe_API::retrieve( 'sources/' . $source );
+		$source_object = WC_Stripe_API::get_payment_method( $source );
 
 		if ( isset( $source_object ) ) {
 			if ( ! empty( $source_object->error ) ) {
@@ -1259,7 +1257,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		$request = [
-			'source'               => $prepared_source->source,
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
 			'currency'             => strtolower( $order->get_currency() ),
 			'description'          => $full_request['description'],
@@ -1267,6 +1264,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'capture_method'       => ( 'true' === $full_request['capture'] ) ? 'automatic' : 'manual',
 			'payment_method_types' => $payment_method_types,
 		];
+
+		$request = WC_Stripe_Helper::add_payment_method_to_request_array( $prepared_source->source, $request );
 
 		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->source );
 
@@ -1401,7 +1400,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$request = [];
 
 		if ( $prepared_source->source !== $intent->source ) {
-			$request['source'] = $prepared_source->source;
+			$request = WC_Stripe_Helper::add_payment_method_to_request_array( $prepared_source->source, $request );
 		}
 
 		$new_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
@@ -1459,9 +1458,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		// Try to confirm the intent & capture the charge (if 3DS is not required).
-		$confirm_request = [
-			'source' => $prepared_source->source,
-		];
+		$confirm_request = WC_Stripe_Helper::add_payment_method_to_request_array( $prepared_source->source, [] );
 
 		$level3_data      = $this->get_level3_data_from_order( $order );
 		$confirmed_intent = WC_Stripe_API::request_with_level3_data(
