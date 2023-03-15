@@ -314,4 +314,31 @@ class WC_Stripe_API {
 			'payment_methods/' . $payment_method_id . '/attach'
 		);
 	}
+
+	/**
+	 * Detaches a payment method from the given customer.
+	 *
+	 * @param string $customer_id        The ID of the customer that contains the payment method that should be detached.
+	 * @param string $payment_method_id  The ID of the payment method that should be detached.
+	 *
+	 * @return  stdClass|array  The response from the API request
+	 * @throws WC_Stripe_Exception
+	 */
+	public static function detach_payment_method_from_customer( string $customer_id, string $payment_method_id ) {
+		$payment_method_id = sanitize_text_field( $payment_method_id );
+
+		// Sources and Payment Methods need different API calls.
+		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
+			return self::request(
+				[],
+				'customers/' . $customer_id . '/sources/' . $payment_method_id,
+				'DELETE'
+			);
+		}
+
+		return self::request(
+			[],
+			'payment_methods/' . $payment_method_id . '/detach'
+		);
+	}
 }
