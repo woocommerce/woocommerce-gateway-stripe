@@ -272,4 +272,22 @@ class WC_Stripe_API {
 
 		return $result;
 	}
+
+	/**
+	 * Returns a payment method object from Stripe given an ID. Accepts both 'src_xxx' and 'pm_xxx'
+	 * style IDs for backwards compatibility.
+	 *
+	 * @param string $payment_method_id The ID of the payment method to retrieve.
+	 *
+	 * @return stdClass  The payment method object.
+	 */
+	public static function get_payment_method( string $payment_method_id ) {
+		// Sources have a separate API.
+		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
+			return self::retrieve( 'sources/' . $payment_method_id );
+		}
+
+		// If it's not a source it's a PaymentMethod.
+		return self::retrieve( 'payment_methods/' . $payment_method_id );
+	}
 }
