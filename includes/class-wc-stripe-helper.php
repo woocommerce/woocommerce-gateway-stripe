@@ -752,4 +752,24 @@ class WC_Stripe_Helper {
 		$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
 		$order->save();
 	}
+
+	/**
+	 * Adds a source or payment method argument to the request array depending on what sort of
+	 * payment method ID is provided. If ID is neither a source or a payment method ID then nothing
+	 * is added.
+	 *
+	 * @param string $payment_method_id  The payment method ID that should be added to the request array.
+	 * @param array $request             The request representing the arguments that will be sent in the request.
+	 *
+	 * @return array  The updated request array.
+	 */
+	public static function add_payment_method_to_request_array( string $payment_method_id, array $request ): array {
+		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
+			$request['source'] = $payment_method_id;
+		} elseif ( 0 === strpos( $payment_method_id, 'pm_' ) ) {
+			$request['payment_method'] = $payment_method_id;
+		}
+
+		return $request;
+	}
 }
