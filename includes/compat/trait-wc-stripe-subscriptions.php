@@ -345,7 +345,7 @@ trait WC_Stripe_Subscriptions_Trait {
 					$renewal_order->save();
 				}
 			} elseif ( $this->must_authorize_off_session( $response ) ) {
-				$charge_attempt_at = $response->processing->card->customer_notification->completes_at;
+				$charge_attempt_at = $response->next_action->card_await_notification->charge_attempt_at;
 				$attempt_date      = wp_date( get_option( 'date_format', 'F j, Y' ), $charge_attempt_at, wp_timezone() );
 				$attempt_time      = wp_date( get_option( 'time_format', 'g:i a' ), $charge_attempt_at, wp_timezone() );
 
@@ -824,7 +824,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return bool true if payment intent must be authorized off session, false otherwise.
 	 */
 	protected function must_authorize_off_session( $payment_intent ) {
-		return isset( $payment_intent->processing->card->customer_notification->approval_requested )
-			&& filter_var( $payment_intent->processing->card->customer_notification->approval_requested, FILTER_VALIDATE_BOOL );
+		return isset( $payment_intent->next_action->type )
+			&& 'card_await_notification' === $payment_intent->next_action->type;
 	}
 }
