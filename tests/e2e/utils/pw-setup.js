@@ -233,7 +233,7 @@ export const installWooSubscriptionsFromRepo = ( page ) =>
 					/Plugin (?:downgraded|updated) successfully/gi
 				);
 			} catch ( e ) {
-				// Stripe wasn't installed on this site.
+				// Plugin wasn't installed on this site.
 				await expect(
 					page.locator( '#wpbody-content .wrap' )
 				).toContainText( /Plugin installed successfully/gi );
