@@ -25,6 +25,14 @@ for arg in "$@"; do
 
 done
 
+# Remove the latest trailing slash from the URL
+base_url=$(echo "$base_url" | sed 's:/*$::')
+
+# Helper to determine if we're running against Jurassic Ninja
+if [[ $base_url == *".jurassic.ninja" ]]; then
+  test_env="$test_env IS_JURASSIC='1'"
+fi
+
 if [[ $base_url != "" ]]; then
     test_env="$test_env BASE_URL='${base_url}'"
 fi
