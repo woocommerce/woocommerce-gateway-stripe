@@ -294,7 +294,7 @@ const sshExecCommands = async ( commands ) => {
  */
 const getServerCredentialsFromEnv = () => {
 	return {
-		host: SSH_HOST,
+		host: SSH_HOST.replace( /\/$/, '' ),
 		username: SSH_USER,
 		password: SSH_PASSWORD,
 		path: SSH_PATH,
