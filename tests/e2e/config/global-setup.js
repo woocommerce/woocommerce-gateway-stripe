@@ -111,7 +111,7 @@ module.exports = async ( config ) => {
 	const contextOptions = { baseURL, userAgent };
 
 	// Create browser, browserContext, and page for customer and admin users
-	const browser = await chromium.launch( { headless: false } );
+	const browser = await chromium.launch();
 	const adminContext = await browser.newContext( contextOptions );
 	const adminPage = await adminContext.newPage();
 
