@@ -28,6 +28,7 @@ const {
 	SSH_USER,
 	SSH_PASSWORD,
 	SSH_PATH,
+	GITHUB_TOKEN,
 } = process.env;
 
 function wait( milliseconds ) {
@@ -162,17 +163,24 @@ module.exports = async ( config ) => {
 				pluginUpdateFinished = true;
 			}
 
-			installWooSubscriptionsFromRepo( wooSubscriptionsInstallPage )
-				.then( () => {
-					wooSubscriptionsInstallFinished = true;
-				} )
-				.catch( ( e ) => {
-					console.error( e );
-					console.error(
-						'Cannot proceed e2e test, as we could not install WooCommerce Subscriptions. Please check if the GITHUB_TOKEN env variable is valid.'
-					);
-					process.exit( 1 );
-				} );
+			if ( WOO_SETUP && GITHUB_TOKEN ) {
+				installWooSubscriptionsFromRepo( wooSubscriptionsInstallPage )
+					.then( () => {
+						wooSubscriptionsInstallFinished = true;
+					} )
+					.catch( ( e ) => {
+						console.error( e );
+						console.error(
+							'Cannot proceed e2e test, as we could not install WooCommerce Subscriptions. Please check if the GITHUB_TOKEN env variable is valid.'
+						);
+						process.exit( 1 );
+					} );
+			} else {
+				console.log(
+					'Skipping WC Subscriptions setup. The version already installed on the test site will be used if needed.'
+				);
+				wooSubscriptionsInstallFinished = true;
+			}
 
 			if ( STRIPE_SETUP ) {
 				while ( PLUGIN_VERSION && ! pluginUpdateFinished ) {
