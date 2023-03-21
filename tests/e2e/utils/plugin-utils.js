@@ -15,7 +15,7 @@ const getReleaseInfo = async ( { repo, releaseTag } ) => {
 			releaseTag === 'latest' ? '' : 'tags/'
 		}${ releaseTag }`,
 		headers: {
-			Authorization: `token ${ GITHUB_TOKEN }x`,
+			Authorization: `token ${ GITHUB_TOKEN }`,
 		},
 	};
 
