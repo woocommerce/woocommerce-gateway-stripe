@@ -421,6 +421,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$setup_intent_mock                   = self::MOCK_CARD_SETUP_INTENT_TEMPLATE;
 		$setup_intent_mock['id']             = $setup_intent_id;
 		$setup_intent_mock['payment_method'] = $payment_method_mock;
+		$setup_intent_mock['latest_charge']  = [];
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'stripe_request' )
@@ -563,6 +564,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$setup_intent_mock                   = self::MOCK_CARD_SETUP_INTENT_TEMPLATE;
 		$setup_intent_mock['id']             = $setup_intent_id;
 		$setup_intent_mock['payment_method'] = $payment_method_mock;
+		$setup_intent_mock['latest_charge']  = [];
 		$setup_intent_mock['latest_attempt'] = [
 			'payment_method_details' => [
 				'type'       => 'bancontact',
@@ -1370,6 +1372,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$setup_intent_mock                   = self::MOCK_CARD_SETUP_INTENT_TEMPLATE;
 		$setup_intent_mock['id']             = $setup_intent_id;
 		$setup_intent_mock['payment_method'] = $payment_method_mock;
+		$setup_intent_mock['latest_charge']  = [];
 
 		// Mock order has pre-order product.
 		$this->mock_gateway->expects( $this->once() )
