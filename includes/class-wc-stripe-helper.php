@@ -823,11 +823,11 @@ class WC_Stripe_Helper {
 	 * @return stdClass|string|null  The payment method if found, null otherwise.
 	 */
 	public static function get_payment_method_from_intent( $intent ) {
-		if ( isset( $intent->source ) ) {
+		if ( ! empty( $intent->source ) ) {
 			return $intent->source;
 		}
 
-		if ( isset( $intent->payment_method ) ) {
+		if ( ! empty( $intent->payment_method ) ) {
 			return $intent->payment_method;
 		}
 
