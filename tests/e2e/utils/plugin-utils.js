@@ -69,16 +69,3 @@ export const downloadRelease = async ( {
 	// Return the response data as a stream
 	return response.data.pipe( fs.createWriteStream( downloadPath ) );
 };
-
-/**
- * Delete a zip file. Useful when cleaning up downloaded plugin zips.
- *
- * @param {string} zipFilePath Local file path to the ZIP.
- */
-export const deleteZip = async ( zipFilePath ) => {
-	console.log( `- Deleting file located in ${ zipFilePath }...` );
-	await fs.unlink( zipFilePath, ( err ) => {
-		if ( err ) throw err;
-	} );
-	console.log( `\u2714 Successfully deleted!` );
-};
