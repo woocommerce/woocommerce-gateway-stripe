@@ -28,7 +28,7 @@ const {
 
 /**
  * Helper function to login a WP user and save the state on a given path.
- * @param {Object} page Playwright page object.
+ * @param {Page} page Playwright page object.
  * @param {string} username Username of the user to login.
  * @param {string} password Password of the user to login.
  * @param {string} statePath Path to save the state.
@@ -65,7 +65,7 @@ export const loginCustomerAndSaveState = ( {
 
 /**
  * Helper function to login a WP admin user and save the state on a given path.
- * @param {Object} page Playwright page object.
+ * @param {Page} page Playwright page object.
  * @param {string} username Username of the user to login.
  * @param {string} password Password of the user to login.
  * @param {string} statePath Path to save the state.
@@ -99,7 +99,7 @@ export const loginAdminAndSaveState = ( {
 /**
  * Helper function to create WC API tokens and save them as env variables.
  * This function is used when the admin user is already logged in.
- * @param {Object} page Playwright page object.
+ * @param {Page} page Playwright page object.
  * @return {Promise} Promise object represents the state of the operation.
  */
 export const createApiTokens = ( page ) =>

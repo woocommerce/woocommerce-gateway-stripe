@@ -2,7 +2,7 @@ import { expect } from '@playwright/test';
 
 /**
  * Logs in a user with the given credentials on the provided page, with retries if login fails.
- * @param {Object} page - The Playwright page object to use for the login process.
+ * @param {Page} page - The Playwright page object to use for the login process.
  * @param {string} username - The username to use for the login process.
  * @param {string} password - The password to use for the login process.
  * @param {number} [retries=3] - The number of retries for the login process in case of failure.
