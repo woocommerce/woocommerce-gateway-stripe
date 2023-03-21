@@ -16,7 +16,6 @@ import { user } from '.';
 
 const {
 	E2E_ROOT,
-	GITHUB_TOKEN,
 	PLUGIN_REPOSITORY,
 	PLUGIN_VERSION,
 	STRIPE_PUB_KEY,
@@ -29,6 +28,12 @@ const {
 
 /**
  * Helper function to login a WP user and save the state on a given path.
+ * @param {Object} page Playwright page object.
+ * @param {string} username Username of the user to login.
+ * @param {string} password Password of the user to login.
+ * @param {string} statePath Path to save the state.
+ * @param {number} retries Number of retries to login.
+ * @return {Promise} Promise object represents the state of the operation.
  */
 export const loginCustomerAndSaveState = ( {
 	page,
@@ -37,7 +42,7 @@ export const loginCustomerAndSaveState = ( {
 	statePath,
 	retries,
 } ) =>
-	new Promise( ( resolve, reject ) => {
+	new Promise( ( resolve ) => {
 		( async () => {
 			console.log( '- Trying to log-in as customer...' );
 			await user.login( page, username, password, retries );
@@ -60,6 +65,12 @@ export const loginCustomerAndSaveState = ( {
 
 /**
  * Helper function to login a WP admin user and save the state on a given path.
+ * @param {Object} page Playwright page object.
+ * @param {string} username Username of the user to login.
+ * @param {string} password Password of the user to login.
+ * @param {string} statePath Path to save the state.
+ * @param {number} retries Number of retries to login.
+ * @return {Promise} Promise object represents the state of the operation.
  */
 export const loginAdminAndSaveState = ( {
 	page,
@@ -68,7 +79,7 @@ export const loginAdminAndSaveState = ( {
 	statePath,
 	retries,
 } ) =>
-	new Promise( ( resolve, reject ) => {
+	new Promise( ( resolve ) => {
 		( async () => {
 			// Sign in as admin user and save state
 			console.log( '- Trying to log-in as admin...' );
@@ -86,7 +97,10 @@ export const loginAdminAndSaveState = ( {
 	} );
 
 /**
- * Helper function to login a WP admin user and save the state on a given path.
+ * Helper function to create WC API tokens and save them as env variables.
+ * This function is used when the admin user is already logged in.
+ * @param {Object} page Playwright page object.
+ * @return {Promise} Promise object represents the state of the operation.
  */
 export const createApiTokens = ( page ) =>
 	new Promise( ( resolve, reject ) => {
@@ -122,7 +136,11 @@ export const createApiTokens = ( page ) =>
 	} );
 
 /**
- * Helper function to update the plugin.
+ * Helper function to download the Stripe plugin from the repository and install it on the site.
+ * This is useful when we want to test a specific version of the plugin.
+ * If the plugin is already installed, it will be updated to the specified version.
+ * @param {Page} page Playwright page object.
+ * @returns {Promise} Promise that resolves when the plugin is installed.
  */
 export const installPluginFromRepository = ( page ) =>
 	new Promise( ( resolve ) => {
@@ -191,7 +209,9 @@ export const installPluginFromRepository = ( page ) =>
 	} );
 
 /**
- * Helper function to update the plugin.
+ * Helper function to download and install the latest WooCommerce Subscriptions release from the official repository.
+ * @param {Page} page Playwright page object.
+ * @returns {Promise<void>} A promise that resolves when the plugin is installed.
  */
 export const installWooSubscriptionsFromRepo = ( page ) =>
 	new Promise( ( resolve ) => {
@@ -348,6 +368,9 @@ export const setupWoo = async () => {
 
 /**
  * Helper function to perform the Stripe plugin setup.
+ * @param {Page} page The page object.
+ * @param {string} baseUrl The base URL for the site.
+ * @returns The promise that resolves when the Stripe plugin is setup.
  */
 export const setupStripe = ( page, baseUrl ) =>
 	new Promise( ( resolve, reject ) => {
