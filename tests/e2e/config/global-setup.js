@@ -9,7 +9,7 @@ import {
 	setupWoo,
 	setupStripe,
 	installWooSubscriptionsFromRepo,
-} from '../utils/pw-setup';
+} from '../utils/playwright-setup';
 
 dotenv.config( {
 	path: `${ process.env.E2E_ROOT }/config/local.env`,
