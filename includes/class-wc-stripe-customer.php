@@ -401,24 +401,7 @@ class WC_Stripe_Customer {
 				[
 					'limit' => 100,
 				],
-				'customers/' . $this->get_id() . '/sources',
-				'GET'
-			);
-
-			if ( empty( $response->error ) && is_array( $response->data ) ) {
-				$sources = $response->data;
-			} else {
-				$sources = [];
-			}
-
-			// Add any payment methods that might have been saved to the customer.
-			$response = WC_Stripe_API::request(
-				[
-					'limit'    => 100,
-					'customer' => $this->get_id(),
-					'type'     => 'card',
-				],
-				'payment_methods',
+				'customers/' . $this->get_id() . '/payment_methods',
 				'GET'
 			);
 
@@ -426,8 +409,8 @@ class WC_Stripe_Customer {
 				return [];
 			}
 
-			if ( empty( $response->error ) && is_array( $response->data ) ) {
-				$sources = array_merge( $sources, $response->data );
+			if ( is_array( $response->data ) ) {
+				$sources = $response->data;
 			}
 
 			set_transient( 'stripe_sources_' . $this->get_id(), $sources, DAY_IN_SECONDS );
