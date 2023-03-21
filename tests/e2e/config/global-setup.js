@@ -1,3 +1,4 @@
+import * as dotenv from 'dotenv';
 import { chromium } from '@playwright/test';
 import fs from 'fs';
 
@@ -7,7 +8,12 @@ import {
 	installPluginFromRepository,
 	setupWoo,
 	setupStripe,
-} from '../utils/pw-setup';
+	installWooSubscriptionsFromRepo,
+} from '../utils/playwright-setup';
+
+dotenv.config( {
+	path: `${ process.env.E2E_ROOT }/config/local.env`,
+} );
 
 const {
 	BASE_URL,
@@ -22,6 +28,7 @@ const {
 	SSH_USER,
 	SSH_PASSWORD,
 	SSH_PATH,
+	GITHUB_TOKEN,
 } = process.env;
 
 function wait( milliseconds ) {
@@ -118,10 +125,12 @@ module.exports = async ( config ) => {
 		.then( async () => {
 			const apiTokensPage = await adminContext.newPage();
 			const updatePluginPage = await adminContext.newPage();
+			const wooSubscriptionsInstallPage = await adminContext.newPage();
 
 			// create consumer token and update plugin in parallel.
 			let restApiKeysFinished = false;
 			let pluginUpdateFinished = false;
+			let wooSubscriptionsInstallFinished = false;
 			let stripeSetupFinished = false;
 
 			createApiTokens( apiTokensPage )
@@ -154,6 +163,25 @@ module.exports = async ( config ) => {
 				pluginUpdateFinished = true;
 			}
 
+			if ( WOO_SETUP && GITHUB_TOKEN ) {
+				installWooSubscriptionsFromRepo( wooSubscriptionsInstallPage )
+					.then( () => {
+						wooSubscriptionsInstallFinished = true;
+					} )
+					.catch( ( e ) => {
+						console.error( e );
+						console.error(
+							'Cannot proceed e2e test, as we could not install WooCommerce Subscriptions. Please check if the GITHUB_TOKEN env variable is valid.'
+						);
+						process.exit( 1 );
+					} );
+			} else {
+				console.log(
+					'Skipping WC Subscriptions setup. The version already installed on the test site will be used if needed.'
+				);
+				wooSubscriptionsInstallFinished = true;
+			}
+
 			if ( STRIPE_SETUP ) {
 				while ( PLUGIN_VERSION && ! pluginUpdateFinished ) {
 					await wait( 1000 );
@@ -180,7 +208,8 @@ module.exports = async ( config ) => {
 			while (
 				! pluginUpdateFinished ||
 				! restApiKeysFinished ||
-				! stripeSetupFinished
+				! stripeSetupFinished ||
+				! wooSubscriptionsInstallFinished
 			) {
 				await wait( 1000 );
 			}
