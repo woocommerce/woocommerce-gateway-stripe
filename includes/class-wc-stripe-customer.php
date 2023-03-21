@@ -362,13 +362,6 @@ class WC_Stripe_Customer {
 			$this->set_id( $this->create_customer() );
 		}
 
-		$response = WC_Stripe_API::request(
-			[
-				'source' => $source_id,
-			],
-			'customers/' . $this->get_id() . '/sources'
-		);
-
 		$response = WC_Stripe_API::attach_payment_method_to_customer( $this->get_id(), $source_id );
 
 		if ( ! empty( $response->error ) ) {
