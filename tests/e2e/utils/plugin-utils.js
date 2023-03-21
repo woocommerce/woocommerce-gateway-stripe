@@ -15,18 +15,16 @@ const getReleaseInfo = async ( { repo, releaseTag } ) => {
 			releaseTag === 'latest' ? '' : 'tags/'
 		}${ releaseTag }`,
 		headers: {
-			Authorization: `token ${ GITHUB_TOKEN }`,
+			Authorization: `token ${ GITHUB_TOKEN }x`,
 		},
 	};
 
 	// Make a request to the GitHub API to get information about the release
-	const releaseInfo = await axios( options ).catch( ( error ) => {
-		if ( error.response ) {
-			console.log( error.response.data );
-			console.log( error.response.status );
-			console.log( error.response.headers );
-		}
-		process.exit( 0 );
+	const releaseInfo = await axios( options ).catch( ( { response } ) => {
+		console.error(
+			`GitHub API request failed: [${ response.status }] ${ response.data.message }`
+		);
+		process.exit( 1 );
 	} );
 
 	// Return the release information
