@@ -213,7 +213,7 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 			) {
 				continue;
 			}
-			if ( [ 'email', 'phone' ].includes( fieldName ) ) {
+			if ( [ 'email' ].includes( fieldName ) ) {
 				await page
 					.locator( `#${ fieldName }` )
 					.fill( billingDetails[ fieldName ] );

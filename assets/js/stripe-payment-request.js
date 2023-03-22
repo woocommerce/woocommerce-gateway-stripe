@@ -651,34 +651,41 @@ jQuery( function( $ ) {
 						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
 					} );
 				});
-			} );
+			});
+			
+			const blockPaymentRequestButton = function () {
+				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
+			}
+
+			const cartChangedHandler = function () {
+				$(document.body).trigger('wc_stripe_block_payment_request_button');
+				paymentRequestError = [];
+
+				$.when(wc_stripe_payment_request.getSelectedProductData()).then(function (response) {
+					if (response.error) {
+						paymentRequestError = [response.error];
+						$(document.body).trigger('wc_stripe_unblock_payment_request_button');
+					} else {
+						$.when(
+							paymentRequest.update({
+								total: response.total,
+								displayItems: response.displayItems,
+							})
+						).then(function () {
+							$(document.body).trigger('wc_stripe_unblock_payment_request_button');
+						});
+					}
+				});
+			};
 
 			// Block the payment request button as soon as an "input" event is fired, to avoid sync issues
 			// when the customer clicks on the button before the debounced event is processed.
-			$( '.quantity' ).on( 'input', '.qty', function() {
-				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
-			} );
-
-			$( '.quantity' ).on( 'input', '.qty', wc_stripe_payment_request.debounce( 250, function() {
-				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
-				paymentRequestError = [];
-
-				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
-					if ( response.error ) {
-						paymentRequestError = [ response.error ];
-						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-					} else {
-						$.when(
-							paymentRequest.update( {
-								total: response.total,
-								displayItems: response.displayItems,
-							} )
-						).then( function () {
-							$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-						});
-					}
-				} );
-			}));
+			$( '.quantity' ).on( 'input', '.qty', blockPaymentRequestButton );
+			$('.quantity').on('input', '.qty', wc_stripe_payment_request.debounce(250, cartChangedHandler));
+			
+			// Update payment request buttons if product add-ons are modified.
+			$( '.cart:not(.cart_group)' ).on( 'woocommerce-product-addons-update', blockPaymentRequestButton );
+			$( '.cart:not(.cart_group)' ).on( 'woocommerce-product-addons-update', wc_stripe_payment_request.debounce( 250, cartChangedHandler ));
 
 			if ( $('.variations_form').length ) {
 				$( '.variations_form' ).on( 'found_variation.wc-variation-form', function ( evt, variation ) {

@@ -1,7 +1,7 @@
 import path from 'path';
+import fs from 'fs';
 
 import { chromium } from '@playwright/test';
-import { getReleaseZipUrl, deleteZip } from '../utils/plugin-utils';
 import { user } from '../utils';
 
 const { ADMIN_USER, ADMIN_PASSWORD, PLUGIN_VERSION } = process.env;
@@ -48,18 +48,11 @@ module.exports = async ( config ) => {
 		process.exit( 1 );
 	}
 
-	if ( PLUGIN_VERSION ) {
-		// Get the download URL and filename of the plugin
-		const pluginDownloadURL = await getReleaseZipUrl( PLUGIN_VERSION );
-		const zipFilename = pluginDownloadURL.split( '/' ).pop();
-		const pluginZipPath = path.resolve(
-			__dirname,
-			`../../tmp/${ zipFilename }`
-		);
-
-		// Delete the downloaded zip.
-		await deleteZip( pluginZipPath );
-	}
+	// Delete the tmp folder.
+	fs.rmSync( path.resolve( __dirname, `../../tmp` ), {
+		recursive: true,
+		force: true,
+	} );
 
 	console.log( `\n======\n` );
 };

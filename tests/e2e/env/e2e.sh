@@ -25,6 +25,14 @@ for arg in "$@"; do
 
 done
 
+# Remove the trailing slash from the URL.
+base_url=$(echo "$base_url" | sed 's:/*$::')
+
+# Flag for Jurassic Ninja sites. Can be used to set up the site differently.
+if [[ $base_url == *".jurassic.ninja" ]]; then
+    test_env="$test_env IS_JURASSIC='1'"
+fi
+
 if [[ $base_url != "" ]]; then
     test_env="$test_env BASE_URL='${base_url}'"
 fi
