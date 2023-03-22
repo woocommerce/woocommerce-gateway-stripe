@@ -433,6 +433,39 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Gets the order by Stripe refund ID.
+	 *
+	 * @since x.x.x
+	 * @param string $refund_id
+	 */
+	public static function get_order_by_refund_id( $refund_id ) {
+		global $wpdb;
+
+		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+			$orders   = wc_get_orders(
+				[
+					'limit'          => 1,
+					'meta_query' => [
+						[
+							'key'   => '_stripe_refund_id',
+							'value' => $refund_id,
+						],
+					],
+				]
+			);
+			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
+		} else {
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $refund_id, '_stripe_refund_id' ) );
+		}
+
+		if ( ! empty( $order_id ) ) {
+			return wc_get_order( $order_id );
+		}
+
+		return false;
+	}
+
+	/**
 	 * Gets the order by Stripe PaymentIntent ID.
 	 *
 	 * @since 4.2
