@@ -128,7 +128,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= x.x.x - 2023-xx-xx =
+= 7.3.0 - 2023-xx-xx =
+* Fix - The payment requests are updated when product add-ons are changed (Product Add-ons extension).
 
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
