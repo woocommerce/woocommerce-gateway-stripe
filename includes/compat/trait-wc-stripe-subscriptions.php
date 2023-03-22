@@ -824,7 +824,8 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return bool true if payment intent must be authorized off session, false otherwise.
 	 */
 	protected function must_authorize_off_session( $payment_intent ) {
-		return isset( $payment_intent->next_action->type )
-			&& 'card_await_notification' === $payment_intent->next_action->type;
+		return ! empty( $payment_intent->status )
+			&& 'processing' === $payment_intent->status
+			&& ! empty( $payment_intent->processing->card->customer_notification->completes_at );
 	}
 }
