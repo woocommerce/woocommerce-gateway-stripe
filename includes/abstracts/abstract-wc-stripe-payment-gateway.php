@@ -536,14 +536,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$order->payment_complete( $response->id );
 
 				/* translators: transaction id */
-				$message = sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $response->id );
-				$order->add_order_note( $message );
+				$note = sprintf( __( 'Stripe charge complete (Charge ID: %s)', 'woocommerce-gateway-stripe' ), $response->id );
 			}
 
 			if ( 'failed' === $response->status ) {
-				$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
-				$order->add_order_note( $localized_message );
-				throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+				$note = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
+				throw new WC_Stripe_Exception( print_r( $response, true ), $note );
+			}
+
+			if ( isset( $note ) && ! WC_Stripe_Helper::order_note_exists( $order, $note ) ) {
+				$order->add_order_note( $note );
 			}
 		} else {
 			$order->set_transaction_id( $response->id );
