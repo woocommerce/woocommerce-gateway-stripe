@@ -345,7 +345,7 @@ trait WC_Stripe_Subscriptions_Trait {
 					$renewal_order->save();
 				}
 			} elseif ( $this->must_authorize_off_session( $response ) ) {
-				$charge_attempt_at = $response->next_action->card_await_notification->charge_attempt_at;
+				$charge_attempt_at = $response->processing->card->customer_notification->completes_at;
 				$attempt_date      = wp_date( get_option( 'date_format', 'F j, Y' ), $charge_attempt_at, wp_timezone() );
 				$attempt_time      = wp_date( get_option( 'time_format', 'g:i a' ), $charge_attempt_at, wp_timezone() );
 
