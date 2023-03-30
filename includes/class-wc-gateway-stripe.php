@@ -390,7 +390,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			if ( $use_order_source ) {
 				$prepared_source = $this->prepare_order_source( $order );
 			} else {
-				$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source, $stripe_customer_id );
+				$user_id = get_current_user_id();
+				// Prepare source for user from billing email, when no user is logged-in and when on Pay for Order page.
+				if ( 0 === get_current_user_id() && is_wc_endpoint_url( 'order-pay' ) ) {
+					$user_id = get_post_meta( $order->get_id(), '_customer_user', true );
+				}
+				$prepared_source = $this->prepare_source( $user_id, $force_save_source, $stripe_customer_id );
 			}
 
 			$this->maybe_disallow_prepaid_card( $prepared_source->source_object );
