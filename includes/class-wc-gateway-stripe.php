@@ -391,7 +391,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$prepared_source = $this->prepare_order_source( $order );
 			} else {
 				$user_id = get_current_user_id();
-				// Prepare source for user from billing email, when no user is logged-in and when on Pay for Order page.
+				// Prepare source for user from order _customer_user meta, when no user is logged-in and when on Pay for Order page.
 				if ( 0 === get_current_user_id() && is_wc_endpoint_url( 'order-pay' ) ) {
 					$user_id = get_post_meta( $order->get_id(), '_customer_user', true );
 				}
