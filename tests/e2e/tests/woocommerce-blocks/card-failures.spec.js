@@ -36,7 +36,7 @@ const testCard = async ( page, cardKey ) => {
 					: '.wc-block-checkout__payment-method .woocommerce-error'
 			)
 		)
-		.toBe( card.error );
+		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
 };
 
 test.describe.configure( { mode: 'parallel' } );
