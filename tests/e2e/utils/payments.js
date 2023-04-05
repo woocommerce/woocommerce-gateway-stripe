@@ -38,11 +38,20 @@ export async function emptyCart( page ) {
 export async function fillCardDetails( page, card ) {
 	// blocks checkout
 	if ( await page.$( '.wc-block-checkout' ) ) {
+		let isUpe = false;
 		try {
-			await page.waitForSelector( '.wc-block-card-elements', {
-				timeout: 5000,
-			} );
+			await page.waitForSelector(
+				'#wc-stripe-card-expiry-element iframe',
+				{
+					timeout: 5000,
+				}
+			);
+		} catch ( e ) {
+			// If the card elements are not present, we assume the checkout is using the UPE.
+			isUpe = true;
+		}
 
+		if ( ! isUpe ) {
 			await page
 				.frameLocator( '#wc-stripe-card-number-element iframe' )
 				.locator( 'input[name="cardnumber"]' )
@@ -56,11 +65,7 @@ export async function fillCardDetails( page, card ) {
 				.locator( 'input[name="cvc"]' )
 				.fill( card.cvc );
 			return;
-		} catch ( e ) {
-			// If the card elements are not present, we assume the checkout is using the UPE.
-			// We can't use the `locator` method here because it will throw an error
-			// if the selector is not found.
-
+		} else {
 			await page
 				.frameLocator(
 					'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
