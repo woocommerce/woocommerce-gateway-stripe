@@ -83,7 +83,7 @@ class WC_Stripe_Order_Handler extends WC_Stripe_Payment_Gateway {
 			 * First check if the source is chargeable at this time. If not,
 			 * webhook will take care of it later.
 			 */
-			$source_info = WC_Stripe_API::retrieve( 'sources/' . $source );
+			$source_info = WC_Stripe_API::get_payment_method( $source );
 
 			if ( ! empty( $source_info->error ) ) {
 				throw new WC_Stripe_Exception( print_r( $source_info, true ), $source_info->error->message );

@@ -52,6 +52,9 @@ trait WC_Stripe_Subscriptions_Trait {
 		add_filter( 'woocommerce_subscription_validate_payment_meta', [ $this, 'validate_subscription_payment_meta' ], 10, 2 );
 		add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'display_save_payment_method_checkbox' ] );
 
+		// Add the necessary information to create a mandate to the payment intent.
+		add_filter( 'wc_stripe_generate_create_intent_request', [ $this, 'add_subscription_information_to_intent' ], 10, 3 );
+
 		/*
 		* WC subscriptions hooks into the "template_redirect" hook with priority 100.
 		* If the screen is "Pay for order" and the order is a subscription renewal, it redirects to the plain checkout.
@@ -310,6 +313,11 @@ trait WC_Stripe_Subscriptions_Trait {
 
 				if ( 'card_error' === $response->error->type ) {
 					$localized_message = isset( $localized_messages[ $response->error->code ] ) ? $localized_messages[ $response->error->code ] : $response->error->message;
+				} elseif ( 'payment_intent_mandate_invalid' === $response->error->type ) {
+					$localized_message = __(
+						'The mandate used for this renewal payment is invalid. You may need to bring the customer back to your store and ask them to resubmit their payment information.',
+						'woocommerce-gateway-stripe'
+					);
 				} else {
 					$localized_message = isset( $localized_messages[ $response->error->type ] ) ? $localized_messages[ $response->error->type ] : $response->error->message;
 				}
@@ -333,6 +341,22 @@ trait WC_Stripe_Subscriptions_Trait {
 				$renewal_order->set_transaction_id( $id );
 				/* translators: %s is the charge Id */
 				$renewal_order->update_status( 'failed', sprintf( __( 'Stripe charge awaiting authentication by user: %s.', 'woocommerce-gateway-stripe' ), $id ) );
+				if ( is_callable( [ $renewal_order, 'save' ] ) ) {
+					$renewal_order->save();
+				}
+			} elseif ( $this->must_authorize_off_session( $response ) ) {
+				$charge_attempt_at = $response->processing->card->customer_notification->completes_at;
+				$attempt_date      = wp_date( get_option( 'date_format', 'F j, Y' ), $charge_attempt_at, wp_timezone() );
+				$attempt_time      = wp_date( get_option( 'time_format', 'g:i a' ), $charge_attempt_at, wp_timezone() );
+
+				$message = sprintf(
+					/* translators: 1) a date in the format yyyy-mm-dd, e.g. 2021-09-21; 2) time in the 24-hour format HH:mm, e.g. 23:04 */
+					__( 'The customer must authorize this payment via the pre-debit notification sent to them by their card issuing bank, before %1$s at %2$s, when the charge will be attempted.', 'woocommerce-gateway-stripe' ),
+					$attempt_date,
+					$attempt_time
+				);
+				$renewal_order->add_order_note( $message );
+				$renewal_order->update_status( 'pending' );
 				if ( is_callable( [ $renewal_order, 'save' ] ) ) {
 					$renewal_order->save();
 				}
@@ -512,6 +536,80 @@ trait WC_Stripe_Subscriptions_Trait {
 				throw new Exception( __( 'Invalid source ID. A valid source "Stripe Source ID" must begin with "src_", "pm_", or "card_".', 'woocommerce-gateway-stripe' ) );
 			}
 		}
+	}
+
+	/**
+	 * Add the necessary information to payment intents for subscriptions to allow Stripe to create
+	 * mandates for 3DS payments in India. It's ok to apply this across the board; Stripe will
+	 * take care of handling any authorizations.
+	 *
+	 * @param Array    $request          The HTTP request that will be sent to Stripe to create the payment intent.
+	 * @param WC_Order $order            The renewal order.
+	 * @param Array    $prepared_source  The source object.
+	 */
+	public function add_subscription_information_to_intent( $request, $order, $prepared_source ) {
+		// Just in case the order doesn't contain a subscription we return the base request.
+		if ( ! $this->has_subscription( $order->get_id() ) ) {
+			return $request;
+		}
+
+		// TODO: maybe this isn't necessary since this function should really only be called
+		//       when creating the intent? It's called in process_subscription_payment though
+		//       so it's probably needed here too?
+		// If we've already created a mandate for this order; use that.
+		$mandate = $order->get_meta( '_stripe_mandate_id', true );
+		if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOL ) && ! empty( $mandate ) ) {
+			$request['mandate'] = $mandate;
+			return $request;
+		}
+
+		$renewals = wcs_get_subscriptions_for_renewal_order( $order );
+		if ( 1 === count( $renewals ) ) {
+			$renewal_order   = reset( $renewals );
+			$parent_order_id = $renewal_order->get_parent_id();
+			$parent_order    = wc_get_order( $parent_order_id );
+
+			$mandate = $parent_order->get_meta( '_stripe_mandate_id', true );
+			if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOL ) && ! empty( $mandate ) ) {
+				$request['mandate'] = $mandate;
+				return $request;
+			}
+		}
+
+		// Otherwise add the parameters required to create a mandate.
+
+		$subscriptions = wcs_get_subscriptions_for_order( $order );
+
+		// If there are no subscriptions we just return since mandates aren't required.
+		if ( 0 === count( $subscriptions ) ) {
+			return $request;
+		}
+
+		$sub_amount = 0;
+		foreach ( $subscriptions as $sub ) {
+			$sub_amount += WC_Stripe_Helper::get_stripe_amount( $sub->get_total() );
+		}
+
+		// Get the first subscription associated with this order.
+		$sub = reset( $subscriptions );
+
+		if ( 1 === count( $subscriptions ) ) {
+			$request['payment_method_options']['card']['mandate_options']['amount_type']    = 'fixed';
+			$request['payment_method_options']['card']['mandate_options']['interval']       = $sub->get_billing_period();
+			$request['payment_method_options']['card']['mandate_options']['interval_count'] = $sub->get_billing_interval();
+		} else {
+			// If there are multiple subscriptions the amount_type becomes 'maximum' so we can charge anything
+			// less than the order total, and the interval is sporadic so we don't have to follow a set interval.
+			$request['payment_method_options']['card']['mandate_options']['amount_type'] = 'maximum';
+			$request['payment_method_options']['card']['mandate_options']['interval']    = 'sporadic';
+		}
+
+		$request['payment_method_options']['card']['mandate_options']['amount']          = $sub_amount;
+		$request['payment_method_options']['card']['mandate_options']['reference']       = $order->get_id();
+		$request['payment_method_options']['card']['mandate_options']['start_date']      = $sub->get_time( 'start' );
+		$request['payment_method_options']['card']['mandate_options']['supported_types'] = [ 'india' ];
+
+		return $request;
 	}
 
 	/**
@@ -715,5 +813,19 @@ trait WC_Stripe_Subscriptions_Trait {
 			wp_safe_redirect( $renewal_url );
 			exit;
 		}
+	}
+
+	/**
+	 * Returns true if a subscription payment must be authorized by the customer off session.
+	 *
+	 * This is only valid when using mandates for Indian 3DS regulations.
+	 *
+	 * @param StdClass $payment_intent the Payment Intent to be evaluated.
+	 * @return bool true if payment intent must be authorized off session, false otherwise.
+	 */
+	protected function must_authorize_off_session( $payment_intent ) {
+		return ! empty( $payment_intent->status )
+			&& 'processing' === $payment_intent->status
+			&& ! empty( $payment_intent->processing->card->customer_notification->completes_at );
 	}
 }
