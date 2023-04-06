@@ -297,7 +297,7 @@ class WC_Stripe_Customer {
 	 * @return WP_Error|int
 	 */
 	public function add_source( $source_id ) {
-		$response = WC_Stripe_API::retrieve( 'sources/' . $source_id );
+		$response = WC_Stripe_API::get_payment_method( $source_id );
 
 		if ( ! empty( $response->error ) || is_wp_error( $response ) ) {
 			return $response;
@@ -318,7 +318,7 @@ class WC_Stripe_Customer {
 						$wc_token->set_last4( $response->sepa_debit->last4 );
 						break;
 					default:
-						if ( 'source' === $response->object && 'card' === $response->type ) {
+						if ( WC_Stripe_Helper::is_card_payment_method( $response ) ) {
 							$wc_token = new WC_Payment_Token_CC();
 							$wc_token->set_token( $response->id );
 							$wc_token->set_gateway_id( 'stripe' );
@@ -362,12 +362,7 @@ class WC_Stripe_Customer {
 			$this->set_id( $this->create_customer() );
 		}
 
-		$response = WC_Stripe_API::request(
-			[
-				'source' => $source_id,
-			],
-			'customers/' . $this->get_id() . '/sources'
-		);
+		$response = WC_Stripe_API::attach_payment_method_to_customer( $this->get_id(), $source_id );
 
 		if ( ! empty( $response->error ) ) {
 			// It is possible the WC user once was linked to a customer on Stripe
@@ -377,7 +372,7 @@ class WC_Stripe_Customer {
 				$this->recreate_customer();
 				return $this->attach_source( $source_id );
 			} elseif ( $this->is_source_already_attached_error( $response->error ) ) {
-				return WC_Stripe_API::request( [], 'sources/' . $source_id, 'GET' );
+				return WC_Stripe_API::get_payment_method( $source_id );
 			} else {
 				return $response;
 			}
@@ -406,7 +401,7 @@ class WC_Stripe_Customer {
 				[
 					'limit' => 100,
 				],
-				'customers/' . $this->get_id() . '/sources',
+				'customers/' . $this->get_id() . '/payment_methods',
 				'GET'
 			);
 
@@ -474,7 +469,7 @@ class WC_Stripe_Customer {
 			return false;
 		}
 
-		$response = WC_Stripe_API::request( [], 'customers/' . $this->get_id() . '/sources/' . sanitize_text_field( $source_id ), 'DELETE' );
+		$response = WC_Stripe_API::detach_payment_method_from_customer( $this->get_id(), $source_id );
 
 		$this->clear_cache();
 
