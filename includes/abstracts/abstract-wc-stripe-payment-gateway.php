@@ -132,9 +132,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * they are worth retrying.
 	 *
 	 * @since 4.0.5
-	 * @param array $error
+	 * @param object $error
 	 */
 	public function is_retryable_error( $error ) {
+		// We don't want to retry payments when a 3DS mandate is invalid; it doesn't make sense.
+		// Note that this check is required since the error type is 'invalid_request_error' which
+		// would otherwise return true.
+		if ( isset( $error->code ) && 'payment_intent_mandate_invalid' === $error->code ) {
+			return false;
+		}
+
 		return (
 			'invalid_request_error' === $error->type ||
 			'idempotency_error' === $error->type ||
@@ -149,7 +156,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * error due to retries with different parameters.
 	 *
 	 * @since 4.1.0
-	 * @param array $error
+	 * @param object $error
 	 */
 	public function is_same_idempotency_error( $error ) {
 		return (
@@ -164,7 +171,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * error and it is no such customer.
 	 *
 	 * @since 4.1.0
-	 * @param array $error
+	 * @param object $error
 	 */
 	public function is_no_such_customer_error( $error ) {
 		return (
@@ -179,7 +186,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * error and it is no such token.
 	 *
 	 * @since 4.1.0
-	 * @param array $error
+	 * @param object $error
 	 */
 	public function is_no_such_token_error( $error ) {
 		return (
@@ -194,7 +201,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * error and it is no such source.
 	 *
 	 * @since 4.1.0
-	 * @param array $error
+	 * @param object $error
 	 */
 	public function is_no_such_source_error( $error ) {
 		return (
@@ -209,7 +216,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * error and it is no such source linked to customer.
 	 *
 	 * @since 4.1.0
-	 * @param array $error
+	 * @param object $error
 	 */
 	public function is_no_linked_source_error( $error ) {
 		return (
@@ -514,6 +521,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$this->update_fees( $order, is_string( $response->balance_transaction ) ? $response->balance_transaction : $response->balance_transaction->id );
 		}
 
+		if ( isset( $response->payment_method_details->card->mandate ) ) {
+			$order->update_meta_data( '_stripe_mandate_id', $response->payment_method_details->card->mandate );
+		}
+
 		if ( 'yes' === $captured ) {
 			/**
 			 * Charge can be captured but in a pending state. Payment methods
@@ -634,7 +645,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return '';
 		}
 
-		$source_object = WC_Stripe_API::retrieve( 'sources/' . $source_id );
+		$source_object = WC_Stripe_API::get_payment_method( $source_id );
 
 		if ( ! empty( $source_object->error ) ) {
 			throw new WC_Stripe_Exception( print_r( $source_object, true ), $source_object->error->message );
@@ -792,7 +803,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			 * Criteria to save to file is they are logged in, they opted to save or product requirements and the source is
 			 * actually reusable. Either that or force_save_source is true.
 			 */
-			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && 'reusable' === $source_object->usage ) || $force_save_source ) {
+			if ( ( $user_id && $this->saved_cards && $maybe_saved_card && WC_Stripe_Helper::is_reusable_payment_method( $source_object ) ) || $force_save_source ) {
 				$response = $customer->attach_source( $source_object->id );
 
 				if ( ! empty( $response->error ) ) {
@@ -879,8 +890,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$source_object   = false;
 
 		if ( $order ) {
-			$order_id = $order->get_id();
-
 			$stripe_customer_id = $this->get_stripe_customer_id( $order );
 
 			if ( $stripe_customer_id ) {
@@ -903,7 +912,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			if ( $source_id ) {
 				$stripe_source = $source_id;
-				$source_object = WC_Stripe_API::retrieve( 'sources/' . $source_id );
+				$source_object = WC_Stripe_API::get_payment_method( $source_id );
 			} elseif ( apply_filters( 'wc_stripe_use_default_customer_source', true ) ) {
 				/*
 				 * We can attempt to charge the customer's default source
@@ -1154,7 +1163,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$source = ! empty( $_POST['stripe_source'] ) ? wc_clean( wp_unslash( $_POST['stripe_source'] ) ) : '';
 
-		$source_object = WC_Stripe_API::retrieve( 'sources/' . $source );
+		$source_object = WC_Stripe_API::get_payment_method( $source );
 
 		if ( isset( $source_object ) ) {
 			if ( ! empty( $source_object->error ) ) {
@@ -1259,7 +1268,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		$request = [
-			'source'               => $prepared_source->source,
 			'amount'               => WC_Stripe_Helper::get_stripe_amount( $order->get_total() ),
 			'currency'             => strtolower( $order->get_currency() ),
 			'description'          => $full_request['description'],
@@ -1267,6 +1275,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			'capture_method'       => ( 'true' === $full_request['capture'] ) ? 'automatic' : 'manual',
 			'payment_method_types' => $payment_method_types,
 		];
+
+		$request = WC_Stripe_Helper::add_payment_method_to_request_array( $prepared_source->source, $request );
 
 		$force_save_source = apply_filters( 'wc_stripe_force_save_source', false, $prepared_source->source );
 
@@ -1401,7 +1411,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$request = [];
 
 		if ( $prepared_source->source !== $intent->source ) {
-			$request['source'] = $prepared_source->source;
+			$request = WC_Stripe_Helper::add_payment_method_to_request_array( $prepared_source->source, $request );
 		}
 
 		$new_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
@@ -1459,9 +1469,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		// Try to confirm the intent & capture the charge (if 3DS is not required).
-		$confirm_request = [
-			'source' => $prepared_source->source,
-		];
+		$confirm_request = WC_Stripe_Helper::add_payment_method_to_request_array( $prepared_source->source, [] );
 
 		$level3_data      = $this->get_level3_data_from_order( $order );
 		$confirmed_intent = WC_Stripe_API::request_with_level3_data(
@@ -1498,6 +1506,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			WC_Stripe_Helper::add_payment_intent_to_order( $intent->id, $order );
 		} elseif ( 'setup_intent' === $intent->object ) {
 			$order->update_meta_data( '_stripe_setup_intent', $intent->id );
+		}
+
+		// Add the mandate id necessary for renewal payments with Indian cards if it's present.
+		$charge = $this->get_latest_charge_from_intent( $intent );
+
+		if ( isset( $charge->payment_method_details->card->mandate ) ) {
+			$mandate_id = $charge->payment_method_details->card->mandate;
+			$order->update_meta_data( '_stripe_mandate_id', $mandate_id );
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
@@ -1674,8 +1690,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		if ( isset( $full_request['source'] ) ) {
-			$is_source = 'src_' === substr( $full_request['source'], 0, 4 );
-			$request[ $is_source ? 'source' : 'payment_method' ] = $full_request['source'];
+			$request = WC_Stripe_Helper::add_payment_method_to_request_array( $full_request['source'], $request );
 		}
 
 		/**
