@@ -10,7 +10,7 @@ env:
 jobs:
   php_lint:
     name:    PHP linting
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       # clone the repository
       - uses: actions/checkout@v2
@@ -29,7 +29,7 @@ jobs:
       - run: composer self-update 2.0.6 && composer install --no-progress && ./vendor/bin/phpcs --standard=phpcs.xml.dist -n $(git ls-files | grep .php$)
   js_css_lint:
     name: JS & CSS linting
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       # clone the repository
       - uses: actions/checkout@v2
