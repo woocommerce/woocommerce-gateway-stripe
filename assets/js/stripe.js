@@ -543,8 +543,12 @@ jQuery( function( $ ) {
 				return stripe.createSource( iban, extra_details ).then( wc_stripe_form.sourceResponse );
 			}
 
-			// Handle card payments.
-			return stripe.createSource( stripe_card, extra_details )
+			// This part is exclusive to card payments so we create a payment method, not a source.
+			return stripe.createPaymentMethod( {
+				type: 'card',
+				card: stripe_card,
+				billing_details: extra_details.owner,
+			} )
 				.then( wc_stripe_form.sourceResponse );
 		},
 
@@ -561,11 +565,13 @@ jQuery( function( $ ) {
 
 			wc_stripe_form.reset();
 
+			const payment_method_id = response?.paymentMethod?.id ?? response?.source?.id;
+
 			wc_stripe_form.form.append(
 				$( '<input type="hidden" />' )
 					.addClass( 'stripe-source' )
 					.attr( 'name', 'stripe_source' )
-					.val( response.source.id )
+					.val( payment_method_id )
 			);
 
 			if ( $( 'form#add_payment_method' ).length || $( '#wc-stripe-change-payment-method' ).length ) {
@@ -588,11 +594,13 @@ jQuery( function( $ ) {
 				}
 			};
 
+			const payment_method_id = response?.paymentMethod?.id ?? response?.source?.id;
+
 			$.post( {
 				url: wc_stripe_form.getAjaxURL( 'create_setup_intent'),
 				dataType: 'json',
 				data: {
-					stripe_source_id: response.source.id,
+					stripe_source_id: payment_method_id,
 					nonce: wc_stripe_params.add_card_nonce,
 				},
 				error: function() {
@@ -610,7 +618,7 @@ jQuery( function( $ ) {
 					return;
 				}
 
-				stripe.confirmCardSetup( serverResponse.client_secret, { payment_method: response.source.id } )
+				stripe.confirmCardSetup( serverResponse.client_secret, { payment_method: payment_method_id } )
 					.then( function( result ) {
 						if ( result.error ) {
 							$( document.body ).trigger( 'stripeError', result );

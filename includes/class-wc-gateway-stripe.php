@@ -393,14 +393,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source, $stripe_customer_id );
 			}
 
-			// If we are using a saved payment method that is PaymentMethod (pm_) and not a Source (src_) we need to use
-			// the process_payment() from the UPE gateway which uses the PaymentMethods API instead of Sources API.
-			// This happens when using a saved payment method that was added with the UPE gateway.
-			if ( $this->is_using_saved_payment_method() && ! empty( $prepared_source->source ) && substr( $prepared_source->source, 0, 3 ) === 'pm_' ) {
-				$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
-				return $upe_gateway->process_payment_with_saved_payment_method( $order_id );
-			}
-
 			$this->maybe_disallow_prepaid_card( $prepared_source->source_object );
 			$this->check_source( $prepared_source );
 			$this->save_source_to_order( $order, $prepared_source );
@@ -519,7 +511,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$user_id  = get_current_user_id();
 		$customer = new WC_Stripe_Customer( $user_id );
 
-		if ( ( $user_id && 'reusable' === $source_object->usage ) ) {
+		if ( ( $user_id && WC_Stripe_Helper::is_reusable_payment_method( $source_object ) ) ) {
 			$response = $customer->add_source( $source_object->id );
 
 			if ( ! empty( $response->error ) ) {
