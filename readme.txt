@@ -128,8 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.3.0 - 2023-04-12 =
-* Fix - The payment requests are updated when product add-ons are changed (Product Add-ons extension).
-* Add - Support eMandates for recurring payments made in INR
+= 7.4.0 - 2023-xx-xx =
+* 
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
