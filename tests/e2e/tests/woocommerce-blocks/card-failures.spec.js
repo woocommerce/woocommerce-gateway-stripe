@@ -7,6 +7,7 @@ const {
 	setupProductCheckout,
 	setupBlocksCheckout,
 	fillCardDetails,
+	isUpeCheckout,
 } = payments;
 
 test.beforeEach( async ( { page } ) => {
@@ -24,19 +25,34 @@ const testCard = async ( page, cardKey ) => {
 	await fillCardDetails( page, card );
 	await page.locator( 'text=Place order' ).click();
 
+	const isUpe = await isUpeCheckout( page );
+
 	/**
 	 * The invalid card error message is shown in the input field validation.
 	 * The customer isn't allowed to place the order for this type of card failure.
 	 */
-	expect
-		.soft(
-			await page.innerText(
-				cardKey === 'cards.declined-incorrect'
-					? '.wc-card-number-element .wc-block-components-validation-error'
-					: '.wc-block-checkout__payment-method .woocommerce-error'
+	if ( isUpe && cardKey === 'cards.declined-incorrect' ) {
+		expect
+			.soft(
+				await page
+					.frameLocator(
+						'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
+					)
+					.locator( '#Field-numberError' )
+					.innerText()
 			)
-		)
-		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
+			.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
+	} else {
+		expect
+			.soft(
+				await page.innerText(
+					cardKey === 'cards.declined-incorrect'
+						? '.wc-card-number-element .wc-block-components-validation-error'
+						: '.wc-block-checkout__payment-method .woocommerce-error'
+				)
+			)
+			.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
+	}
 };
 
 test.describe.configure( { mode: 'parallel' } );
