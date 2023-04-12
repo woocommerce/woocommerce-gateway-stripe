@@ -36,21 +36,10 @@ export async function emptyCart( page ) {
  * @param {Object} card The CC info in the format provided on the test-data.
  */
 export async function fillCardDetails( page, card ) {
+	let isUpe = await isUpeCheckout( page );
+
 	// blocks checkout
 	if ( await page.$( '.wc-block-checkout' ) ) {
-		let isUpe = false;
-		try {
-			await page.waitForSelector(
-				'#wc-stripe-card-expiry-element iframe',
-				{
-					timeout: 5000,
-				}
-			);
-		} catch ( e ) {
-			// If the card elements are not present, we assume the checkout is using the UPE.
-			isUpe = true;
-		}
-
 		if ( ! isUpe ) {
 			await page
 				.frameLocator( '#wc-stripe-card-number-element iframe' )
@@ -89,7 +78,7 @@ export async function fillCardDetails( page, card ) {
 	}
 
 	// regular checkout
-	if ( await page.$( '#payment #wc-stripe-upe-form' ) ) {
+	if ( isUpe ) {
 		const frameHandle = await page.waitForSelector(
 			'#payment #wc-stripe-upe-element iframe'
 		);
@@ -122,6 +111,32 @@ export async function fillCardDetails( page, card ) {
 			.locator( '[name="cvc"]' )
 			.fill( card.cvc );
 	}
+}
+
+/**
+ * Checks if the checkout is using the UPE.
+ * @param {Page} page Playwright page fixture.
+ * @returns {boolean} True if the checkout is using the UPE, false otherwise.
+ */
+export async function isUpeCheckout( page ) {
+	// blocks checkout
+	if ( await page.$( '.wc-block-checkout' ) ) {
+		try {
+			await page.waitForSelector(
+				'#wc-stripe-card-expiry-element iframe',
+				{
+					timeout: 5000,
+				}
+			);
+			return false;
+		} catch ( e ) {
+			// If the card elements are not present, we assume the checkout is using the UPE.
+			return true;
+		}
+	}
+
+	// regular checkout
+	return Boolean( await page.$( '#payment #wc-stripe-upe-form' ) );
 }
 
 /**
