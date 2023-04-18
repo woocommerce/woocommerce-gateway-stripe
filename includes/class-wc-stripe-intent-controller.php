@@ -30,13 +30,8 @@ class WC_Stripe_Intent_Controller {
 		add_action( 'wc_ajax_wc_stripe_update_payment_intent', [ $this, 'update_payment_intent_ajax' ] );
 		add_action( 'wc_ajax_wc_stripe_init_setup_intent', [ $this, 'init_setup_intent_ajax' ] );
 
-		add_action( 'wc_ajax_wc_stripe_save_upe_appearance', [ $this, 'save_upe_appearance_ajax' ] );
-		add_action( 'wc_ajax_nopriv_wc_stripe_save_upe_appearance', [ $this, 'save_upe_appearance_ajax' ] );
-
 		add_action( 'wc_ajax_wc_stripe_update_order_status', [ $this, 'update_order_status_ajax' ] );
 		add_action( 'wc_ajax_wc_stripe_update_failed_order', [ $this, 'update_failed_order_ajax' ] );
-
-		add_action( 'switch_theme', [ $this, 'clear_upe_appearance_transient' ] );
 
 		add_action( 'wp', [ $this, 'maybe_process_upe_redirect' ] );
 	}
@@ -297,6 +292,13 @@ class WC_Stripe_Intent_Controller {
 			// If paying from order, we need to get the total from the order instead of the cart.
 			$order_id = isset( $_POST['stripe_order_id'] ) ? absint( $_POST['stripe_order_id'] ) : null;
 
+			if ( $order_id ) {
+				$order = wc_get_order( $order_id );
+				if ( ! $order || ! $order->needs_payment() ) {
+					throw new Exception( __( 'Unable to process your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
+				}
+			}
+
 			wp_send_json_success( $this->create_payment_intent( $order_id ), 200 );
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::log( 'Create payment intent error: ' . $e->getMessage() );
@@ -366,6 +368,11 @@ class WC_Stripe_Intent_Controller {
 			$payment_intent_id         = isset( $_POST['wc_payment_intent_id'] ) ? wc_clean( wp_unslash( $_POST['wc_payment_intent_id'] ) ) : '';
 			$save_payment_method       = isset( $_POST['save_payment_method'] ) ? 'yes' === wc_clean( wp_unslash( $_POST['save_payment_method'] ) ) : false;
 			$selected_upe_payment_type = ! empty( $_POST['selected_upe_payment_type'] ) ? wc_clean( wp_unslash( $_POST['selected_upe_payment_type'] ) ) : '';
+
+			$order_from_payment = WC_Stripe_Helper::get_order_by_intent_id( $payment_intent_id );
+			if ( ! $order_from_payment || $order_from_payment->get_id() !== $order_id ) {
+				throw new Exception( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
+			}
 
 			wp_send_json_success( $this->update_payment_intent( $payment_intent_id, $order_id, $save_payment_method, $selected_upe_payment_type ), 200 );
 		} catch ( Exception $e ) {
@@ -526,49 +533,6 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
-	 * Handle AJAX request for saving UPE appearance value to transient.
-	 *
-	 * @throws Exception - If nonce or setup intent is invalid.
-	 */
-	public function save_upe_appearance_ajax() {
-		try {
-			$is_nonce_valid = check_ajax_referer( 'wc_stripe_save_upe_appearance_nonce', false, false );
-			if ( ! $is_nonce_valid ) {
-				throw new Exception(
-					__( 'Unable to update UPE appearance values at this time.', 'woocommerce-gateway-stripe' )
-				);
-			}
-
-			$is_blocks_checkout = isset( $_POST['is_blocks_checkout'] ) ? rest_sanitize_boolean( wc_clean( wp_unslash( $_POST['is_blocks_checkout'] ) ) ) : false;
-			$appearance         = isset( $_POST['appearance'] ) ? json_decode( wc_clean( wp_unslash( $_POST['appearance'] ) ) ) : null;
-
-			$appearance_transient = $is_blocks_checkout ? WC_Stripe_UPE_Payment_Gateway::WC_BLOCKS_UPE_APPEARANCE_TRANSIENT : WC_Stripe_UPE_Payment_Gateway::UPE_APPEARANCE_TRANSIENT;
-
-			if ( null !== $appearance ) {
-				set_transient( $appearance_transient, $appearance, DAY_IN_SECONDS );
-			}
-			wp_send_json_success( $appearance, 200 );
-		} catch ( Exception $e ) {
-			// Send back error so it can be displayed to the customer.
-			wp_send_json_error(
-				[
-					'error' => [
-						'message' => $e->getMessage(),
-					],
-				]
-			);
-		}
-	}
-
-	/**
-	 * Clear the saved UPE appearance transient value.
-	 */
-	public function clear_upe_appearance_transient() {
-		delete_transient( WC_Stripe_UPE_Payment_Gateway::UPE_APPEARANCE_TRANSIENT );
-		delete_transient( WC_Stripe_UPE_Payment_Gateway::WC_BLOCKS_UPE_APPEARANCE_TRANSIENT );
-	}
-
-	/**
 	 * Handle AJAX request after authenticating payment at checkout.
 	 *
 	 * This function is used to update the order status after the user has
@@ -651,6 +615,11 @@ class WC_Stripe_Intent_Controller {
 			$intent_id = isset( $_POST['intent_id'] ) ? wc_clean( wp_unslash( $_POST['intent_id'] ) ) : '';
 			$order     = wc_get_order( $order_id );
 
+			$order_from_payment = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
+			if ( ! $order_from_payment || $order_from_payment->get_id() !== $order_id ) {
+				wp_send_json_error( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
+			}
+
 			if ( ! empty( $order_id ) && ! empty( $intent_id ) && is_object( $order ) ) {
 				$payment_needed = 0 < $order->get_total();
 				if ( $payment_needed ) {
@@ -658,7 +627,7 @@ class WC_Stripe_Intent_Controller {
 				} else {
 					$intent = WC_Stripe_API::retrieve( "setup_intents/$intent_id" );
 				}
-				$error = $intent->last_payment_error;
+				$error = $intent->last_payment_error || $intent->error;
 
 				if ( ! empty( $error ) ) {
 					WC_Stripe_Logger::log( 'Error when processing payment: ' . $error->message );
