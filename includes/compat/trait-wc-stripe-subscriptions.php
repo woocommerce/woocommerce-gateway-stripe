@@ -569,10 +569,12 @@ trait WC_Stripe_Subscriptions_Trait {
 			$parent_order_id = $renewal_order->get_parent_id();
 			$parent_order    = wc_get_order( $parent_order_id );
 
-			$mandate = $parent_order->get_meta( '_stripe_mandate_id', true );
-			if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOL ) && ! empty( $mandate ) ) {
-				$request['mandate'] = $mandate;
-				return $request;
+			if ( $parent_order ) {
+				$mandate = $parent_order->get_meta( '_stripe_mandate_id', true );
+				if ( ! empty( $mandate ) ) {
+					$request['mandate'] = $mandate;
+					return $request;
+				}
 			}
 		}
 
