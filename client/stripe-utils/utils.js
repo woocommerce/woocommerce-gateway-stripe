@@ -138,4 +138,59 @@ export const getUPETerms = ( value = 'always' ) => {
 	}, {} );
 };
 
+/**
+ * `storageKeys` object contains keys for storing values related to the appearance
+ *  settings of Stripe UPE (Universal Payment Element) in different contexts.
+ */
+export const storageKeys = {
+	// Key to store the appearance settings for Stripe UPE in the general WooCommerce context
+	UPE_APPEARANCE: 'wc_stripe_upe_appearance',
+
+	// Key to store the appearance settings for Stripe UPE when used within WooCommerce Blocks context
+	WC_BLOCKS_UPE_APPEARANCE: 'wc_stripe_wc_blocks_upe_appearance',
+};
+
+/**
+ * Sets a key-value pair in the localStorage along with a time-to-live (TTL) value, which specifies
+ * the time (in milliseconds) after which the item will be considered expired.
+ *
+ * @param {string} key - The key to be stored in the localStorage.
+ * @param {*} value - The value to be stored corresponding to the key.
+ * @param {number} ttl - The time-to-live (TTL) value in milliseconds for the stored item.
+ */
+export const setStorageWithExpiration = ( key, value, ttl ) => {
+	const now = new Date();
+	const item = {
+		value,
+		expiration: now.getTime() + ttl,
+	};
+
+	localStorage.setItem( key, JSON.stringify( item ) );
+};
+
+/**
+ * Retrieves the value stored in the localStorage with the specified key, if it's not expired.
+ * If the item has expired, it's removed from the localStorage and null is returned.
+ *
+ * @param {string} key - The key of the item to be retrieved from the localStorage.
+ * @return {*} - The value associated with the key if it's not expired, or null if the item doesn't exist or has expired.
+ */
+export const getStorageWithExpiration = ( key ) => {
+	const itemStr = localStorage.getItem( key );
+
+	if ( ! itemStr ) {
+		return null;
+	}
+
+	const item = JSON.parse( itemStr );
+	const now = new Date();
+
+	if ( now.getTime() > item.expiration ) {
+		localStorage.removeItem( key );
+		return null;
+	}
+
+	return item.value;
+};
+
 export { getStripeServerData, getErrorMessageForTypeAndCode };
