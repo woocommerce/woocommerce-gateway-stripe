@@ -31,28 +31,24 @@ const testCard = async ( page, cardKey ) => {
 	 * The invalid card error message is shown in the input field validation.
 	 * The customer isn't allowed to place the order for this type of card failure.
 	 */
+	let expected;
 	if ( isUpe && cardKey === 'cards.declined-incorrect' ) {
-		expect
-			.soft(
-				await page
-					.frameLocator(
-						'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
-					)
-					.locator( '#Field-numberError' )
-					.innerText()
+		expected = await page
+			.frameLocator(
+				'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
 			)
-			.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
+			.locator( '#Field-numberError' )
+			.innerText();
 	} else {
-		expect
-			.soft(
-				await page.innerText(
-					cardKey === 'cards.declined-incorrect'
-						? '.wc-card-number-element .wc-block-components-validation-error'
-						: '.wc-block-checkout__payment-method .woocommerce-error'
-				)
-			)
-			.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
+		expected = await page.innerText(
+			cardKey === 'cards.declined-incorrect'
+				? '.wc-card-number-element .wc-block-components-validation-error'
+				: '.wc-block-checkout__payment-method .woocommerce-error'
+		);
 	}
+	expect
+		.soft( expected )
+		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
 };
 
 test.describe.configure( { mode: 'parallel' } );
