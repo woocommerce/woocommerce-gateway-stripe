@@ -1,7 +1,7 @@
 *** Changelog ***
 
 = 7.4.0 - 2023-xx-xx =
-* 
+* Fix - Issue processing renewals for subscriptions without parent orders.
 
 = 7.3.0 - 2023-04-12 =
 * Fix - The payment requests are updated when product add-ons are changed (Product Add-ons extension).
