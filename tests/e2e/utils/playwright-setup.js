@@ -343,6 +343,7 @@ export const setupWoo = async () => {
 		'wp config set WP_DEBUG false --raw',
 		'wp plugin install woocommerce --force --activate',
 		'wp plugin install woocommerce-gateway-stripe --activate',
+		'wp plugin install disable-emails --activate', // Disable emails to avoid spamming the store owner.
 		'wp theme install storefront --activate',
 		'wp option set woocommerce_store_address "60 29th Street"',
 		'wp option set woocommerce_store_address_2 "#343"',

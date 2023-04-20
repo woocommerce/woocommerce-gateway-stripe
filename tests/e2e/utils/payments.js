@@ -36,27 +36,51 @@ export async function emptyCart( page ) {
  * @param {Object} card The CC info in the format provided on the test-data.
  */
 export async function fillCardDetails( page, card ) {
+	let isUpe = await isUpeCheckout( page );
+
 	// blocks checkout
-	if ( await page.$( '.wc-block-card-elements' ) ) {
-		await page
-			.frameLocator( '#wc-stripe-card-number-element iframe' )
-			.locator( 'input[name="cardnumber"]' )
-			.fill( card.number );
-		await page
-			.frameLocator( '#wc-stripe-card-expiry-element iframe' )
-			.locator( 'input[name="exp-date"]' )
-			.fill( card.expires.month + card.expires.year );
-		await page
-			.frameLocator( '#wc-stripe-card-code-element iframe' )
-			.locator( 'input[name="cvc"]' )
-			.fill( card.cvc );
-		return;
+	if ( await page.$( '.wc-block-checkout' ) ) {
+		if ( ! isUpe ) {
+			await page
+				.frameLocator( '#wc-stripe-card-number-element iframe' )
+				.locator( 'input[name="cardnumber"]' )
+				.fill( card.number );
+			await page
+				.frameLocator( '#wc-stripe-card-expiry-element iframe' )
+				.locator( 'input[name="exp-date"]' )
+				.fill( card.expires.month + card.expires.year );
+			await page
+				.frameLocator( '#wc-stripe-card-code-element iframe' )
+				.locator( 'input[name="cvc"]' )
+				.fill( card.cvc );
+			return;
+		} else {
+			await page
+				.frameLocator(
+					'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
+				)
+				.locator( '[name="number"]' )
+				.fill( card.number );
+			await page
+				.frameLocator(
+					'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
+				)
+				.locator( '[name="expiry"]' )
+				.fill( card.expires.month + card.expires.year );
+			await page
+				.frameLocator(
+					'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
+				)
+				.locator( '[name="cvc"]' )
+				.fill( card.cvc );
+			return;
+		}
 	}
 
 	// regular checkout
-	if ( await page.$( '#payment #stripe-upe-element' ) ) {
+	if ( isUpe ) {
 		const frameHandle = await page.waitForSelector(
-			'#payment #stripe-upe-element iframe'
+			'#payment #wc-stripe-upe-element iframe'
 		);
 
 		const stripeFrame = await frameHandle.contentFrame();
@@ -87,6 +111,32 @@ export async function fillCardDetails( page, card ) {
 			.locator( '[name="cvc"]' )
 			.fill( card.cvc );
 	}
+}
+
+/**
+ * Checks if the checkout is using the UPE.
+ * @param {Page} page Playwright page fixture.
+ * @returns {boolean} True if the checkout is using the UPE, false otherwise.
+ */
+export async function isUpeCheckout( page ) {
+	// blocks checkout
+	if ( await page.$( '.wc-block-checkout' ) ) {
+		try {
+			await page.waitForSelector(
+				'#wc-stripe-card-expiry-element iframe',
+				{
+					timeout: 5000,
+				}
+			);
+			return false;
+		} catch ( e ) {
+			// If the card elements are not present, we assume the checkout is using the UPE.
+			return true;
+		}
+	}
+
+	// regular checkout
+	return Boolean( await page.$( '#payment #wc-stripe-upe-form' ) );
 }
 
 /**
