@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 7.3.1 - 2023-xx-xx =
-* Fix - Add Order Key Validation
+* Fix - Add Order Key Validation.
+* Fix - Add sanitization and escaping some outputs.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
