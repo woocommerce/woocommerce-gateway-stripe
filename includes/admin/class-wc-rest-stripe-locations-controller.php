@@ -181,8 +181,8 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 		// Originally `get_bloginfo` was used for location name, later switched to `site_url` as the former may be blank.
 		$store_hostname = str_replace( [ 'https://', 'http://' ], '', get_site_url() );
 		$possible_names = [ get_bloginfo(), $store_hostname ];
-		$store_address = WC()->countries;
-		$address       = array_filter(
+		$store_address  = WC()->countries;
+		$address        = array_filter(
 			[
 				'city'        => $store_address->get_base_city(),
 				'country'     => $store_address->get_base_country(),
