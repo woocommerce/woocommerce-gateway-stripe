@@ -1,6 +1,12 @@
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
-import { getStripeServerData, getUPETerms } from '../../stripe-utils';
+import {
+	getStorageWithExpiration,
+	getStripeServerData,
+	getUPETerms,
+	setStorageWithExpiration,
+	storageKeys,
+} from '../../stripe-utils';
 import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
 import enableStripeLinkPaymentMethod from '../../stripe-link';
 import { legacyHashchangeHandler } from './legacy-support';
@@ -222,11 +228,18 @@ jQuery( function ( $ ) {
 				const { client_secret: clientSecret, id: id } = response;
 				paymentIntentId = id;
 
-				let appearance = getStripeServerData()?.upeAppearance;
+				const themeName = getStripeServerData()?.theme_name;
+				const storageKey = `${ storageKeys.UPE_APPEARANCE }_${ themeName }`;
+				let appearance = getStorageWithExpiration( storageKey );
 
 				if ( ! appearance ) {
 					appearance = getAppearance();
-					api.saveUPEAppearance( appearance );
+					const oneDayDuration = 24 * 60 * 60 * 1000;
+					setStorageWithExpiration(
+						storageKey,
+						appearance,
+						oneDayDuration
+					);
 				}
 				const businessName = getStripeServerData()?.accountDescriptor;
 				const upeSettings = {
@@ -392,7 +405,7 @@ jQuery( function ( $ ) {
 
 	/**
 	 * Submits the confirmation of the intent to Stripe on Pay for Order page.
-	 * Stripe redirects to Order Thank you page on sucess.
+	 * Stripe redirects to Order Thank you page on success.
 	 *
 	 * @param {Object} $form The jQuery object for the form.
 	 * @return {boolean} A flag for the event handler.
@@ -437,7 +450,10 @@ jQuery( function ( $ ) {
 				).val();
 
 				if ( upeType !== 'boleto' && upeType !== 'oxxo' ) {
-					await api.updateFailedOrder( paymentIntentId, orderId );
+					await api.updateFailedOrder(
+						paymentIntentId,
+						orderId
+					);
 				}
 
 				throw error;
