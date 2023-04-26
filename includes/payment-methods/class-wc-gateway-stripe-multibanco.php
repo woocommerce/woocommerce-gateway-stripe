@@ -194,7 +194,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '">';
 
 		if ( $description ) {
-			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $description ) ), $this->id );
+			echo wpautop( esc_html( apply_filters( 'wc_stripe_description', wp_kses_post( $description ), $this->id ) ) );
 		}
 
 		echo '</div>';
@@ -248,28 +248,28 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 			esc_html_e( 'MULTIBANCO INFORMAÇÕES DE ENCOMENDA:', 'woocommerce-gateway-stripe' ) . "\n\n";
 			echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n";
 			esc_html_e( 'Montante:', 'woocommerce-gateway-stripe' ) . "\n\n";
-			echo $data['amount'] . "\n\n";
+			echo esc_html( $data['amount'] ) . "\n\n";
 			echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n";
 			esc_html_e( 'Entidade:', 'woocommerce-gateway-stripe' ) . "\n\n";
-			echo $data['entity'] . "\n\n";
+			echo esc_html( $data['entity'] ) . "\n\n";
 			echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n";
 			esc_html_e( 'Referencia:', 'woocommerce-gateway-stripe' ) . "\n\n";
-			echo $data['reference'] . "\n\n";
+			echo esc_html( $data['reference'] ) . "\n\n";
 		} else {
 			?>
 			<h3><?php esc_html_e( 'MULTIBANCO INFORMAÇÕES DE ENCOMENDA:', 'woocommerce-gateway-stripe' ); ?></h3>
 			<ul class="woocommerce-order-overview woocommerce-thankyou-order-details order_details">
 			<li class="woocommerce-order-overview__order order">
 				<?php esc_html_e( 'Montante:', 'woocommerce-gateway-stripe' ); ?>
-				<strong><?php echo $data['amount']; ?></strong>
+				<strong><?php echo esc_html( $data['amount'] ); ?></strong>
 			</li>
 			<li class="woocommerce-order-overview__order order">
 				<?php esc_html_e( 'Entidade:', 'woocommerce-gateway-stripe' ); ?>
-				<strong><?php echo $data['entity']; ?></strong>
+				<strong><?php echo esc_html( $data['entity'] ); ?></strong>
 			</li>
 			<li class="woocommerce-order-overview__order order">
 				<?php esc_html_e( 'Referencia:', 'woocommerce-gateway-stripe' ); ?>
-				<strong><?php echo $data['reference']; ?></strong>
+				<strong><?php echo esc_html( $data['reference'] ); ?></strong>
 			</li>
 			</ul>
 			<?php

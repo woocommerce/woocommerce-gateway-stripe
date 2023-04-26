@@ -227,7 +227,7 @@ trait WC_Stripe_Subscriptions_Trait {
 						[
 							'stripe_sca_required' => true,
 							'intent_secret'       => $response['payment_intent_secret'],
-							'redirect_url'        => $verification_url,
+							'redirect_url'        => wp_sanitize_redirect( esc_url_raw( $verification_url ) ),
 						]
 					);
 

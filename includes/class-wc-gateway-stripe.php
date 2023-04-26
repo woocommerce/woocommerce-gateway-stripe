@@ -447,7 +447,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 						return [
 							'result'   => 'success',
-							'redirect' => $redirect_url,
+							'redirect' => wp_sanitize_redirect( esc_url_raw( $redirect_url ) ),
 						];
 					} else {
 						/**
@@ -809,14 +809,22 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$verification_url = add_query_arg( $query_params, WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' ) );
 
 		if ( isset( $result['payment_intent_secret'] ) ) {
-			$redirect = sprintf( '#confirm-pi-%s:%s', $result['payment_intent_secret'], rawurlencode( $verification_url ) );
+			$redirect_signature = sprintf(
+				'#confirm-pi-%s:%s',
+				$result['payment_intent_secret'],
+				rawurlencode( wp_sanitize_redirect( esc_url_raw( $verification_url ) ) )
+			);
 		} elseif ( isset( $result['setup_intent_secret'] ) ) {
-			$redirect = sprintf( '#confirm-si-%s:%s', $result['setup_intent_secret'], rawurlencode( $verification_url ) );
+			$redirect_signature = sprintf(
+				'#confirm-si-%s:%s',
+				$result['setup_intent_secret'],
+				rawurlencode( wp_sanitize_redirect( esc_url_raw( $verification_url ) ) )
+			);
 		}
 
 		return [
 			'result'   => 'success',
-			'redirect' => $redirect,
+			'redirect' => $redirect_signature, // This signature will be used by JS to redirect to the proper URL.
 		];
 	}
 
@@ -942,7 +950,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		if ( isset( $_GET['wc-stripe-confirmation'] ) && isset( $wp->query_vars['order-pay'] ) && $wp->query_vars['order-pay'] == $order->get_id() ) {
 			$pay_url = add_query_arg( 'wc-stripe-confirmation', 1, $pay_url );
 		}
-		return $pay_url;
+		return esc_url_raw( $pay_url );
 	}
 
 	/**
