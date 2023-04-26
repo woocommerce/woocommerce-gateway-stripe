@@ -7,6 +7,7 @@ import {
 	useElements,
 	PaymentElement,
 } from '@stripe/react-stripe-js';
+import { useMemo } from 'react';
 import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
 import { confirmUpePayment } from './confirm-upe-payment';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
@@ -16,6 +17,11 @@ import {
 } from 'wcstripe/blocks/credit-card/constants';
 import enableStripeLinkPaymentMethod from 'wcstripe/stripe-link';
 import './styles.scss';
+import {
+	getStorageWithExpiration,
+	setStorageWithExpiration,
+	storageKeys,
+} from 'wcstripe/stripe-utils';
 
 const useCustomerData = () => {
 	const { customerData, isInitialized } = useSelect( ( select ) => {
@@ -351,23 +357,25 @@ export const UPEPaymentForm = ( { api, ...props } ) => {
 	const [ paymentIntentId, setPaymentIntentId ] = useState( null );
 	const [ hasRequestedIntent, setHasRequestedIntent ] = useState( false );
 	const [ errorMessage, setErrorMessage ] = useState( null );
-	const [ appearance, setAppearance ] = useState(
-		getBlocksConfiguration()?.wcBlocksUPEAppearance
-	);
+	const appearance = useMemo( () => {
+		const themeName = getBlocksConfiguration()?.theme_name;
+		const storageKey = `${ storageKeys.WC_BLOCKS_UPE_APPEARANCE }_${ themeName }`;
+		let newAppearance = getStorageWithExpiration( storageKey );
+
+		if ( ! newAppearance ) {
+			newAppearance = getAppearance( true );
+			const oneDayDuration = 24 * 60 * 60 * 1000;
+			setStorageWithExpiration(
+				storageKey,
+				newAppearance,
+				oneDayDuration
+			);
+		}
+
+		return newAppearance;
+	}, [] );
 
 	useEffect( () => {
-		async function generateUPEAppearance() {
-			// Generate UPE input styles.
-			const upeAppearance = getAppearance( true );
-			await api.saveUPEAppearance( upeAppearance, true );
-
-			// Update appearance state
-			setAppearance( upeAppearance );
-		}
-		if ( ! appearance ) {
-			generateUPEAppearance();
-		}
-
 		if ( paymentIntentId || hasRequestedIntent ) {
 			return;
 		}
