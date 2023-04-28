@@ -1699,6 +1699,44 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Checks if the current page is the pay for order page and the current user is allowed to pay for the order.
+	 *
+	 * @return bool
+	 */
+	public function is_valid_pay_for_order_endpoint() {
+
+		// If not on the pay for order page, return false.
+		if ( ! is_wc_endpoint_url( 'order-pay' ) || ! isset( $_GET['key'] ) ) {
+			return false;
+		}
+
+		$order_id = wc_get_order_id_by_order_key( wc_clean( wp_unslash( $_GET['key'] ) ) );
+
+		// If the order ID is not found or the order ID does not match the order ID in the URL, return false.
+		if ( ! $order_id || ( absint( get_query_var( 'order-pay' ) ) !== absint( $order_id ) ) ) {
+			return false;
+		}
+
+		$order = wc_get_order( $order_id );
+
+		// If the order doesn't need payment, we don't need to prepare the payment page.
+		if ( ! $order->needs_payment() ) {
+			return false;
+		}
+
+		// If it's not a guest order, current user can pay but only if it's their own order,
+		// or they are an admin or shop manager.
+		$order_has_customer = ! empty( $order->get_customer_id() );
+		if ( $order_has_customer ) {
+			$is_order_owned_by_current_user = $order->get_customer_id() === get_current_user_id();
+
+			return $is_order_owned_by_current_user || current_user_can( 'manage_woocommerce' );
+		}
+
+		return true;
+	}
+
+	/**
 	 * Gets a localized message for an error from a response, adds it as a note to the order, and throws it.
 	 *
 	 * @since 4.2.0
