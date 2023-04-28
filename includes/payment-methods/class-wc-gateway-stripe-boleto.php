@@ -77,7 +77,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 	 * @since 5.8.0
 	 */
 	public function payment_scripts() {
-		if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() ) {
+		if ( ! is_cart() && ! is_checkout() && ! parent::is_valid_pay_for_order_endpoint() && ! is_add_payment_method_page() ) {
 			return;
 		}
 
