@@ -187,34 +187,6 @@ export default class WCStripeAPI {
 	}
 
 	/**
-	 * Saves the calculated UPE appearance values in a transient.
-	 *
-	 * @param {Object} appearance The UPE appearance object with style values
-	 *
-	 * @return {Promise} The final promise for the request to the server.
-	 */
-	saveUPEAppearance( appearance ) {
-		return this.request( getAjaxUrl( 'save_upe_appearance' ), {
-			appearance,
-			_ajax_nonce: getStripeServerData()?.saveUPEAppearanceNonce,
-		} )
-			.then( ( response ) => {
-				if ( response.result === 'failure' ) {
-					throw new Error( response.messages );
-				}
-				return response;
-			} )
-			.catch( ( error ) => {
-				if ( error.message ) {
-					throw error;
-				} else {
-					// Covers the case of error on the Ajax request.
-					throw new Error( error.statusText );
-				}
-			} );
-	}
-
-	/**
 	 * Process checkout and update payment intent via AJAX.
 	 *
 	 * @param {string} paymentIntentId ID of payment intent to be updated.

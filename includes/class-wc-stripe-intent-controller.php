@@ -28,9 +28,6 @@ class WC_Stripe_Intent_Controller {
 
 		add_action( 'wc_ajax_wc_stripe_create_payment_intent', [ $this, 'create_payment_intent_ajax' ] );
 
-		add_action( 'wc_ajax_wc_stripe_save_upe_appearance', [ $this, 'save_upe_appearance_ajax' ] );
-		add_action( 'wc_ajax_nopriv_wc_stripe_save_upe_appearance', [ $this, 'save_upe_appearance_ajax' ] );
-		add_action( 'switch_theme', [ $this, 'clear_upe_appearance_transient' ] );
 	}
 
 	/**
@@ -276,6 +273,13 @@ class WC_Stripe_Intent_Controller {
 			// If paying from order, we need to get the total from the order instead of the cart.
 			$order_id = isset( $_POST['stripe_order_id'] ) ? absint( $_POST['stripe_order_id'] ) : null;
 
+			if ( $order_id ) {
+				$order = wc_get_order( $order_id );
+				if ( ! $order || ! $order->needs_payment() ) {
+					throw new Exception( __( 'Unable to process your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
+				}
+			}
+
 			wp_send_json_success( $this->create_payment_intent( $order_id ), 200 );
 		} catch ( Exception $e ) {
 			WC_Stripe_Logger::log( 'Create payment intent error: ' . $e->getMessage() );
@@ -325,45 +329,6 @@ class WC_Stripe_Intent_Controller {
 			'client_secret' => $payment_intent->client_secret,
 		];
 	}
-
-	/**
-	 * Handle AJAX request for saving UPE appearance value to transient.
-	 *
-	 * @throws Exception - If nonce or setup intent is invalid.
-	 */
-	public function save_upe_appearance_ajax() {
-		try {
-			$is_nonce_valid = check_ajax_referer( '_wc_stripe_save_upe_appearance_nonce', false, false );
-			if ( ! $is_nonce_valid ) {
-				throw new Exception(
-					__( 'Unable to update UPE appearance values at this time.', 'woocommerce-gateway-stripe' )
-				);
-			}
-
-			$appearance = isset( $_POST['appearance'] ) ? wc_clean( wp_unslash( $_POST['appearance'] ) ) : null;
-			if ( null !== $appearance ) {
-				set_transient( WC_Stripe_UPE_Payment_Gateway::UPE_APPEARANCE_TRANSIENT, $appearance, DAY_IN_SECONDS );
-			}
-			wp_send_json_success( $appearance, 200 );
-		} catch ( Exception $e ) {
-			// Send back error so it can be displayed to the customer.
-			wp_send_json_error(
-				[
-					'error' => [
-						'message' => $e->getMessage(),
-					],
-				]
-			);
-		}
-	}
-
-	/**
-	 * Clear the saved UPE appearance transient value.
-	 */
-	public function clear_upe_appearance_transient() {
-		delete_transient( WC_Stripe_UPE_Payment_Gateway::UPE_APPEARANCE_TRANSIENT );
-	}
-
 }
 
 new WC_Stripe_Intent_Controller();
