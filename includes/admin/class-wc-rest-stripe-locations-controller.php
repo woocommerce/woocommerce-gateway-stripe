@@ -180,7 +180,7 @@ class WC_REST_Stripe_Locations_Controller extends WC_Stripe_REST_Base_Controller
 	public function get_store_location( $request ) {
 		$name = get_bloginfo();
 		$store_address = WC()->countries;
-		$address = array_filter(
+		$address       = array_filter(
 			[
 				'city'        => $store_address->get_base_city(),
 				'country'     => $store_address->get_base_country(),
