@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 6.7.1 - 2023-05-30 =
+* Fix - Add Order Key Validation.
+
 = 6.7.0 - 2022-09-06 =
 * Fix - Check payment method before updating payment method title.
 * Fix - Use the eslint config at the root of the repo.
