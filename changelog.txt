@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 6.8.1 - 2023-05-30 =
+* Fix - Add Order Key Validation.
+
 = 6.8.0 - 2022-09-28 =
 * Fix - Minor adjustments for Custom Order Tables compatibility.
 * Fix - Upgrade from Payment Element beta.
