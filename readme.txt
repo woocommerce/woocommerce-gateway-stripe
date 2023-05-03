@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 5.9
 Tested up to: 6.1.1
 Requires PHP: 7.3
-Stable tag: 7.3.0
+Stable tag: 7.4.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,8 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.3.0 - 2023-04-12 =
-* Fix - The payment requests are updated when product add-ons are changed (Product Add-ons extension).
-* Add - Support eMandates for recurring payments made in INR
+= 7.4.0 - 2023-05-03 =
+* Fix - Issue processing renewals for subscriptions without parent orders.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

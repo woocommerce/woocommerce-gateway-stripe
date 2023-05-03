@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 7.4.0 - 2023-05-03 =
+* Fix - Issue processing renewals for subscriptions without parent orders.
+
 = 7.3.0 - 2023-04-12 =
 * Fix - The payment requests are updated when product add-ons are changed (Product Add-ons extension).
 * Add - Support eMandates for recurring payments made in INR
