@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 5.6.3 - 2023-05-30 =
+* Fix - Add Order Key Validation.
+
 = 5.6.2 - 2021-10-06 =
 * Tweak - Remove animated credit card icons from payment method option on the checkout page.
 * Fix - Payments for pre-orders and subscriptions with an empty source token now work as intended.
