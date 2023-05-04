@@ -128,8 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 6.5.1 - 2022-08-01 =
-* Fix - Stripe Link fatal error on `get_upe_enabled_payment_method_ids` method.
-* Fix - Remove Link beta headers on checkout.
+= 6.5.2 - 2023-05-30 =
+* Fix - Add Order Key Validation.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

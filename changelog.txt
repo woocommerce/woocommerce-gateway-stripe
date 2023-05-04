@@ -1,8 +1,9 @@
 *** Changelog ***
 
-= 6.5.1 - 2022-08-01 =
+= 6.5.2 - 2023-05-30 =
+* Fix - Add Order Key Validation.
 
-= 6.5.1 - 2022-xx-xx =
+= 6.5.1 - 2022-08-01 =
 * Fix - Stripe Link missing styles and logo for email trigger button.
 * Fix - Stripe Link fatal error on `get_upe_enabled_payment_method_ids` method.
 * Fix - Remove Link beta headers on checkout.
