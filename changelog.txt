@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 5.7.1 - 2023-05-30 =
+* Fix - Add Order Key Validation.
+
 = 5.7.0 - 2021-10-20 =
 * Fix - Enable use of saved payment methods converted to SEPA payments.
 * Tweak - "Save payment information" checkbox now has better alignment in store checkout.
