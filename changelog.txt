@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 5.8.2 - 2023-05-30 =
+* Fix - Add Order Key Validation.
+
 = 5.8.1 - 2021-11-23 =
 * Fix - Run filters that disable Stripe JS on cart and product pages when PRBs are disabled.
 
