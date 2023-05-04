@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 6.0.1 - 2023-05-30 =
+* Fix - Add Order Key Validation.
+
 = 6.0.0 - 2022-01-05 =
 * Fix - Fixed capitalization for payment method names: iDEAL, giropay, and Sofort.
 * Add - Text to explain how to enable webhooks when manually entering your API keys in the new Stripe settings.
