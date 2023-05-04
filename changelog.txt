@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 5.5.1 - 2023-05-30 =
+* Fix - Add Order Key Validation.
+
 = 5.5.0 - 2021-09-15 =
 * Tweak - Moved the `WC_Gateway_Stripe::admin_scripts` method to `WC_Stripe_Settings_Controller::admin_scripts`.
 * Fix - Save payment method during 3D Secure flow for Block-based checkout.
