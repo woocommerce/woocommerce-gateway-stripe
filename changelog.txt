@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 6.4.4 - 2023-05-30 =
+* Fix - Add Order Key Validation.
+
 = 6.4.3 - 2022-06-30 =
 * Fix - Replace unnecessary throws with empty string when keys are invalid.
 
