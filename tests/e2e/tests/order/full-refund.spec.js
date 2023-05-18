@@ -40,6 +40,8 @@ test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
 
 		const orderUrl = await userPage.url();
 		orderId = orderUrl.split( 'order-received/' )[ 1 ].split( '/?' )[ 0 ];
+
+		await userPage.close();
 	} );
 
 	await test.step(
@@ -60,6 +62,9 @@ test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
 				.locator( '.woocommerce-order-data__meta a' )
 				.innerText();
 
+			await adminPage
+				.locator( '#woocommerce-order-items button.refund-items' )
+				.click();
 			await adminPage.locator( '#refund_amount' ).type( order.total );
 
 			adminPage.on( 'dialog', ( dialog ) => dialog.accept() );
