@@ -1,7 +1,7 @@
 import stripe from 'stripe';
 import { test, expect } from '@playwright/test';
 import config from 'config';
-import { payments } from '../../utils';
+import { api, payments } from '../../utils';
 
 const {
 	emptyCart,
@@ -49,6 +49,8 @@ test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
 				`/wp-admin/post.php?post=${ orderId }&action=edit`
 			);
 
+			const order = await api.get.order( orderId );
+
 			// Ensure this isn't already refunded.
 			await expect( adminPage.locator( '.order_notes' ) ).not.toHaveText(
 				/Refunded .* – Refund ID: .* – Reason:.*/
@@ -58,10 +60,7 @@ test( 'merchant can issue a full refund @smoke', async ( { browser } ) => {
 				.locator( '.woocommerce-order-data__meta a' )
 				.innerText();
 
-			await adminPage
-				.locator( '#woocommerce-order-items button.refund-items' )
-				.click();
-			await adminPage.locator( '.refund_order_item_qty' ).fill( '1' );
+			await adminPage.locator( '#refund_amount' ).type( order.total );
 
 			adminPage.on( 'dialog', ( dialog ) => dialog.accept() );
 			await adminPage
