@@ -16,18 +16,18 @@ jobs:
         include:
           # WooCommerce
           - woocommerce_support_policy: L
-            woocommerce: '7.4.1'
+            woocommerce: '7.6.1'
           - woocommerce_support_policy: L-1
-            woocommerce: '7.2.3'
+            woocommerce: '7.5.1'
           - woocommerce_support_policy: L-2
-            woocommerce: '7.1.1'
+            woocommerce: '7.4.1'
           # WordPress
           - wordpress_support_policy: L
-            wordpress: '6.1'
+            wordpress: '6.2'
           - wordpress_support_policy: L-1
-            wordpress: '6.0'
+            wordpress: '6.1'
           - wordpress_support_policy: L-2
-            wordpress: '5.9'
+            wordpress: '6.0'
           # PHP
           - php_support_policy: L
             php: '8.0'

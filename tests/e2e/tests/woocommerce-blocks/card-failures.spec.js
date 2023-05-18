@@ -43,7 +43,7 @@ const testCard = async ( page, cardKey ) => {
 		expected = await page.innerText(
 			cardKey === 'cards.declined-incorrect'
 				? '.wc-card-number-element .wc-block-components-validation-error'
-				: '.wc-block-checkout__payment-method .woocommerce-error'
+				: '.wc-block-store-notice.is-error .wc-block-components-notice-banner__content'
 		);
 	}
 	expect
