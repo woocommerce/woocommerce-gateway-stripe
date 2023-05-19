@@ -15,6 +15,7 @@ dotenv.config( {
 import { user } from '.';
 
 const {
+	ADMIN_USER,
 	E2E_ROOT,
 	PLUGIN_REPOSITORY,
 	PLUGIN_VERSION,
@@ -353,12 +354,12 @@ export const setupWoo = async () => {
 		'wp option set woocommerce_currency "USD"',
 		'wp option set woocommerce_product_type "both"',
 		'wp option set woocommerce_allow_tracking "no"',
-		'wp wc --user=admin tool run install_pages',
+		`wp wc --user=${ ADMIN_USER } tool run install_pages`,
 		'wp plugin install wordpress-importer --activate',
 		'wp import wp-content/plugins/woocommerce/sample-data/sample_products.xml --authors=skip',
-		`wp wc shipping_zone create --name="Everywhere" --order=1 --user=admin`,
-		`wp wc shipping_zone_method create 1 --method_id="flat_rate" --user=admin`,
-		`wp wc shipping_zone_method create 1 --method_id="free_shipping" --user=admin`,
+		`wp wc shipping_zone create --name="Everywhere" --order=1 --user=${ ADMIN_USER }`,
+		`wp wc shipping_zone_method create 1 --method_id="flat_rate" --user=${ ADMIN_USER }`,
+		`wp wc shipping_zone_method create 1 --method_id="free_shipping" --user=${ ADMIN_USER }`,
 		`wp option update --format=json woocommerce_flat_rate_1_settings '{"title":"Flat rate","tax_status":"taxable","cost":"10"}'`,
 		`wp post create --post_type=page --post_title='Cart Block' --post_name='cart-block' --post_status=publish --page_template='template-fullwidth.php' --post_content='${ cartBlockPostContent }'`,
 		`wp post create --post_type=page --post_title='Checkout Block' --post_name='checkout-block' --post_status=publish --page_template='template-fullwidth.php' --post_content='${ checkoutBlockPostContent }'`,

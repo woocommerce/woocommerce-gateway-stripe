@@ -232,22 +232,31 @@ export async function setupCheckout( page, billingDetails = null ) {
 export async function setupBlocksCheckout( page, billingDetails = null ) {
 	await page.goto( '/checkout-block/' );
 
+	const fieldNameLabelMap = {
+		first_name: 'First name',
+		last_name: 'Last name',
+		address_1: 'Address',
+		address_2: 'Apartment, suite, etc. (optional)',
+		city: 'City',
+		postcode: 'ZIP Code',
+		phone: 'Phone (optional)',
+		email: 'Email address',
+	};
+
 	if ( billingDetails ) {
 		await page
-			.locator( '#billing-country input[type="text"]' )
+			.getByLabel( 'Country/Region' )
 			.fill( billingDetails[ 'country' ] );
 		await page
 			.locator(
-				'#billing-country .components-form-token-field__suggestions-list > li:first-child'
+				'.components-form-token-field__suggestions-list > li:first-child'
 			)
 			.click();
 
-		await page
-			.locator( '#billing-state input[type="text"]' )
-			.fill( billingDetails[ 'state' ] );
+		await page.getByLabel( 'State' ).fill( billingDetails[ 'state' ] );
 		await page
 			.locator(
-				'#billing-state .components-form-token-field__suggestions-list > li:first-child'
+				'.components-form-token-field__suggestions-list > li:first-child'
 			)
 			.click();
 
@@ -263,14 +272,8 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 			) {
 				continue;
 			}
-			if ( [ 'email' ].includes( fieldName ) ) {
-				await page
-					.locator( `#${ fieldName }` )
-					.fill( billingDetails[ fieldName ] );
-				continue;
-			}
 			await page
-				.locator( `#billing-${ fieldName }` )
+				.getByLabel( fieldNameLabelMap[ fieldName ], { exact: true } )
 				.fill( billingDetails[ fieldName ] );
 		}
 	}
