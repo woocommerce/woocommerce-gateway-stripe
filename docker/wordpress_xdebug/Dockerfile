@@ -1,5 +1,5 @@
-FROM wordpress:php7.3
-RUN pecl install xdebug \
+FROM wordpress:php7.4
+RUN pecl install xdebug-3.1.6 \
 	&& echo 'xdebug.mode=off' >> $PHP_INI_DIR/php.ini \
 	&& echo 'xdebug.start_with_request=yes' >> $PHP_INI_DIR/php.ini \
 	&& echo 'xdebug.client_host=host.docker.internal' >> $PHP_INI_DIR/php.ini \
