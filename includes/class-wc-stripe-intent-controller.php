@@ -133,8 +133,10 @@ class WC_Stripe_Intent_Controller {
 					// Currently, Stripe saves the payment method even if the authentication fails for 3DS cards.
 					// Although, the card is not stored in DB we need to remove the source from the customer on Stripe
 					// in order to keep the sources in sync with the data in DB.
-					$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
-					$customer->delete_source( $intent->last_payment_error->source->id );
+					if ( isset($intent->last_payment_error->source) ) {
+						$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+						$customer->delete_source( $intent->last_payment_error->source->id );
+					}
 				} else {
 					$metadata = $intent->metadata;
 					if ( isset( $metadata->save_payment_method ) && 'true' === $metadata->save_payment_method ) {
