@@ -309,7 +309,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['sepaElementsOptions']      = $sepa_elements_options;
 		$stripe_params['enabledBillingFields']     = $enabled_billing_fields;
 
-		if ( is_wc_endpoint_url( 'order-pay' ) ) {
+		if ( parent::is_valid_pay_for_order_endpoint() ) {
 			if ( $this->is_subscriptions_enabled() && $this->is_changing_payment_method_for_subscription() ) {
 				$stripe_params['isChangingPayment']   = true;
 				$stripe_params['addPaymentReturnURL'] = esc_url_raw( home_url( add_query_arg( [] ) ) );
