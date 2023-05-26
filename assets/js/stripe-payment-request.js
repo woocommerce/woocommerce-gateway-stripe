@@ -63,6 +63,17 @@ jQuery( function( $ ) {
 			};
 		},
 
+		/**
+		 * Get add to cart custom fields data.
+		 *
+		 * @since 7.0.0
+		 *
+		 * @return string
+		 */
+		getCustomData: function() {
+			return $( 'form.cart' ).find( 'input[name!="variation_id"][name!="product_id"][name!="add-to-cart"][name!="quantity"], select, textarea' ).not('[name^="attribute_"]').serialize();
+		},
+
 		processSource: function( source, paymentRequestType ) {
 			var data = wc_stripe_payment_request.getOrderData( source, paymentRequestType );
 
@@ -276,25 +287,9 @@ jQuery( function( $ ) {
 				security: wc_stripe_payment_request_params.nonce.add_to_cart,
 				product_id: product_id,
 				qty: $( '.quantity .qty' ).val(),
-				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : []
+				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : [],
+				custom_data: wc_stripe_payment_request.getCustomData()
 			};
-
-			// add addons data to the POST body
-			var formData = $( 'form.cart' ).serializeArray();
-			$.each( formData, function( i, field ) {
-				if ( /^addon-/.test( field.name ) ) {
-					if ( /\[\]$/.test( field.name ) ) {
-						var fieldName = field.name.substring( 0, field.name.length - 2);
-						if ( data[ fieldName ] ) {
-							data[ fieldName ].push( field.value );
-						} else {
-							data[ fieldName ] = [ field.value ];
-						}
-					} else {
-						data[ field.name ] = field.value;
-					}
-				}
-			} );
 
 			return $.ajax( {
 				type: 'POST',
@@ -444,6 +439,7 @@ jQuery( function( $ ) {
 				qty: $( '.quantity .qty' ).val(),
 				attributes: $( '.variations_form' ).length ? wc_stripe_payment_request.getAttributes().data : [],
 				addon_value: addon_value,
+				custom_data: wc_stripe_payment_request.getCustomData()
 			};
 
 			return $.ajax( {
@@ -612,7 +608,7 @@ jQuery( function( $ ) {
 					return;
 				}
 
-				if ( 0 < paymentRequestError.length ) {
+				if ( 'string' === typeof paymentRequestError ) {
 					evt.preventDefault();
 					window.alert( paymentRequestError );
 					return;
@@ -638,7 +634,7 @@ jQuery( function( $ ) {
 				wc_stripe_payment_request.blockPaymentRequestButton( 'wc_request_button_is_disabled' );
 			} );
 
-			$( document.body ).on( 'woocommerce_variation_has_changed', function () {
+			$( document.body ).on( 'wc_stripe_update_selected_product_data woocommerce_variation_has_changed', function () {
 				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 
 				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {

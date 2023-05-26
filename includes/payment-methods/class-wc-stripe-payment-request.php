@@ -368,7 +368,15 @@ class WC_Stripe_Payment_Request {
 			$product_price = $product->get_price() + WC_Subscriptions_Product::get_sign_up_fee( $product );
 		}
 
-		return $product_price;
+		/**
+		 * `wc_stripe_payment_request_product_price` filter.
+		 *
+		 * @since   7.0.0
+		 * @param   integer $product_price The total price.
+		 * @param   object $product WC_Product_* The product being purchased.
+		 * @return  integer
+		 */
+		return apply_filters( 'wc_stripe_payment_request_product_price', $product_price, $product );
 	}
 
 	/**
@@ -761,7 +769,7 @@ class WC_Stripe_Payment_Request {
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 
 		wp_register_script( 'stripe', 'https://js.stripe.com/v3/', '', '3.0', true );
-		wp_register_script( 'wc_stripe_payment_request', plugins_url( 'assets/js/stripe-payment-request' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [ 'jquery', 'stripe' ], WC_STRIPE_VERSION, true );
+		wp_register_script( 'wc_stripe_payment_request', plugins_url( 'assets/js/stripe-payment-request' . $suffix . '.js', WC_STRIPE_MAIN_FILE ), [ 'jquery', 'stripe' ], time(), true );
 
 		wp_localize_script(
 			'wc_stripe_payment_request',
@@ -1238,6 +1246,8 @@ class WC_Stripe_Payment_Request {
 			$product      = wc_get_product( $product_id );
 			$variation_id = null;
 
+			$this->populate_post();
+
 			if ( ! is_a( $product, 'WC_Product' ) ) {
 				/* translators: 1) The product Id */
 				throw new Exception( sprintf( __( 'Product with the ID (%1$s) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
@@ -1308,6 +1318,16 @@ class WC_Stripe_Payment_Request {
 			$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
 			$data['currency']        = strtolower( get_woocommerce_currency() );
 			$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
+			
+			/**
+			 * `wc_stripe_payment_request_get_selected_product_data` filter.
+			 *
+			 * @since   7.0.0
+			 * @param   array $data The formatted response data.
+			 * @param   object $product WC_Product_* The product being purchased.
+			 * @return  array
+			 */
+			$data = apply_filters( 'wc_stripe_payment_request_get_selected_product_data', $data, $product );
 
 			wp_send_json( $data );
 		} catch ( Exception $e ) {
@@ -1328,6 +1348,8 @@ class WC_Stripe_Payment_Request {
 		if ( ! defined( 'WOOCOMMERCE_CART' ) ) {
 			define( 'WOOCOMMERCE_CART', true );
 		}
+
+		$this->populate_post();
 
 		WC()->shipping->reset_shipping();
 
@@ -1878,5 +1900,32 @@ class WC_Stripe_Payment_Request {
 		}
 
 		return $this->stripe_settings['payment_request_button_locations'];
+	}
+
+
+	/**
+	 * Populate $_POST with all form input data to allow 3rd party code to validate.
+	 *
+	 * @since   7.0.0
+	 */
+	private function populate_post() {
+		if ( isset( $_POST['custom_data'] ) ) {
+
+			parse_str( $_POST['custom_data'], $custom_data );
+
+			if ( $custom_data ) {
+
+				foreach ( $custom_data as $input_name => $input_value ) {
+
+					// Write to $_POST only if key does not exist
+					if ( ! isset( $_POST[ $input_name ] ) ) {
+						$_REQUEST[ $input_name ] = $input_value;
+						$_POST[ $input_name ]    = $input_value;
+					}
+				}
+			}
+			
+			unset( $_POST['custom_data'] );
+		}
 	}
 }
