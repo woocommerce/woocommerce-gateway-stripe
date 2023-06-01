@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 6.5.3 - 2023-06-07 =
+* Fix - Add order key validation for UPE.
+
 = 6.5.2 - 2023-05-30 =
 * Fix - Add Order Key Validation.
 
