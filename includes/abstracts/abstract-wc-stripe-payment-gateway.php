@@ -268,10 +268,22 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * Check if we need to make gateways available.
 	 *
 	 * @since 4.1.3
+	 * @return bool
 	 */
 	public function is_available() {
 		if ( 'yes' === $this->enabled ) {
-			return $this->are_keys_set();
+
+			// Not available if the keys aren't set.
+			if ( ! $this->are_keys_set() ) {
+				return false;
+			}
+
+			// Not available if using live mode without SSL.
+			if ( $this->needs_ssl_setup() ) {
+				return false;
+			}
+
+			return true;
 		}
 
 		return parent::is_available();
@@ -1923,5 +1935,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$stripe_params = array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
 
 		return $stripe_params;
+	}
+
+	/**
+	 * Whether the store needs to use SSL.
+	 *
+	 * @return bool True if SSL is needed but not set.
+	 */
+	private function needs_ssl_setup() {
+		return ! $this->testmode && ! is_ssl();
 	}
 }
