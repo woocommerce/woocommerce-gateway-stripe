@@ -376,6 +376,11 @@ jQuery( function( $ ) {
 					if ( ! result ) {
 						return;
 					}
+
+					if ( result.link && ! wc_stripe_payment_request_params.stripe.allow_link ) {
+						return;
+					}
+
 					if ( result.applePay ) {
 						paymentRequestType = 'apple_pay';
 					} else if ( result.googlePay ) {
