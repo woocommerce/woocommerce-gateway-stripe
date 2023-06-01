@@ -88,6 +88,7 @@ const DisableUpeConfirmationModal = ( { onClose } ) => {
 	const upePaymentMethods = enabledPaymentMethodIds.filter( ( method ) => {
 		return (
 			method !== 'card' &&
+			method !== 'link' &&
 			capabilities.hasOwnProperty( `${ method }_payments` )
 		);
 	} );
