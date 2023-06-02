@@ -1940,6 +1940,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Whether the store needs to use SSL.
 	 *
+	 * @since 7.5.0
 	 * @return bool True if SSL is needed but not set.
 	 */
 	private function needs_ssl_setup() {
