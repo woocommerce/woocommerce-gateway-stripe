@@ -1,7 +1,8 @@
 *** Changelog ***
 
 = 7.5.0 - 2023-xx-xx =
-*
+* Fix - Resolved an issue with orders getting stuck on Pending Payment status when UPE is enabled and customer creates account during checkout.
+* Fix - Stripe source and customer tokens not being saved on subscriptions when UPE is enabled and subscription is purchased by guest customer.
 
 = 7.4.0 - 2023-05-03 =
 * Fix - Issue processing renewals for subscriptions without parent orders.
