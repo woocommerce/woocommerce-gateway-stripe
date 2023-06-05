@@ -16,13 +16,8 @@
 	},
 	"products": {
 		"simple": {
-			"name": "Beanie"
-		},
-		"variable": {
-			"name": "Variable Product with Three Variations"
-		},
-		"grouped": {
-			"name": "Grouped Product with Three Children"
+			"name": "Beanie",
+			"type": "simple"
 		},
 		"subscription": {
 			"name": "Subscription Product",
