@@ -570,9 +570,21 @@ trait WC_Stripe_Subscriptions_Trait {
 			$parent_order    = wc_get_order( $parent_order_id );
 
 			if ( $parent_order ) {
-				$mandate = $parent_order->get_meta( '_stripe_mandate_id', true );
+				$mandate        = $parent_order->get_meta( '_stripe_mandate_id', true );
+				$renewal_amount = WC_Stripe_Helper::get_stripe_amount( $renewal_order->get_total() );
+
 				if ( ! empty( $mandate ) ) {
 					$request['mandate'] = $mandate;
+					return $request;
+				} elseif ( 0 !== $renewal_amount ) {
+					$request['payment_method_options']['card']['mandate_options']['amount_type']     = 'fixed';
+					$request['payment_method_options']['card']['mandate_options']['interval']        = $renewal_order->get_billing_period();
+					$request['payment_method_options']['card']['mandate_options']['interval_count']  = $renewal_order->get_billing_interval();
+					$request['payment_method_options']['card']['mandate_options']['amount']          = $renewal_amount;
+					$request['payment_method_options']['card']['mandate_options']['reference']       = $order->get_id();
+					$request['payment_method_options']['card']['mandate_options']['start_date']      = $renewal_order->get_time( 'start' );
+					$request['payment_method_options']['card']['mandate_options']['supported_types'] = [ 'india' ];
+
 					return $request;
 				}
 			}
@@ -594,6 +606,10 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		// Get the first subscription associated with this order.
 		$sub = reset( $subscriptions );
+
+		if ( 0 === $sub_amount ) {
+			return $request;
+		}
 
 		if ( 1 === count( $subscriptions ) ) {
 			$request['payment_method_options']['card']['mandate_options']['amount_type']    = 'fixed';
@@ -663,7 +679,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		// If we couldn't find a Stripe customer linked to the account, fallback to the order meta data.
 		if ( ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) && false !== $subscription->get_parent() ) {
-			$parent_order = wc_get_order( $subscription->get_parent_id() );
+			$parent_order       = wc_get_order( $subscription->get_parent_id() );
 			$stripe_customer_id = $parent_order->get_meta( '_stripe_customer_id', true );
 			$stripe_source_id   = $parent_order->get_meta( '_stripe_source_id', true );
 
