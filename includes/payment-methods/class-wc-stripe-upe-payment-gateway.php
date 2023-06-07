@@ -800,7 +800,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
-		if ( ! is_order_received_page() ) {
+		if ( ! parent::is_valid_order_received_endpoint() ) {
 			return;
 		}
 
@@ -814,22 +814,69 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
+		$order_id            = isset( $_GET['order_id'] ) ? absint( wc_clean( wp_unslash( $_GET['order_id'] ) ) ) : '';
+		$save_payment_method = isset( $_GET['save_payment_method'] ) ? 'yes' === wc_clean( wp_unslash( $_GET['save_payment_method'] ) ) : false;
+
 		if ( ! empty( $_GET['payment_intent_client_secret'] ) ) {
 			$intent_id = isset( $_GET['payment_intent'] ) ? wc_clean( wp_unslash( $_GET['payment_intent'] ) ) : '';
+			if ( ! $this->is_order_associated_to_payment_intent( $order_id, $intent_id ) ) {
+				return;
+			}
 		} elseif ( ! empty( $_GET['setup_intent_client_secret'] ) ) {
 			$intent_id = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
+			if ( ! $this->is_order_associated_to_setup_intent( $order_id, $intent_id ) ) {
+				return;
+			}
 		} else {
 			return;
 		}
 
-		$order_id            = isset( $_GET['order_id'] ) ? wc_clean( wp_unslash( $_GET['order_id'] ) ) : '';
-		$save_payment_method = isset( $_GET['save_payment_method'] ) ? 'yes' === wc_clean( wp_unslash( $_GET['save_payment_method'] ) ) : false;
-
-		if ( empty( $intent_id ) || empty( $order_id ) ) {
+		if ( empty( $intent_id ) ) {
 			return;
 		}
 
 		$this->process_upe_redirect_payment( $order_id, $intent_id, $save_payment_method );
+	}
+
+	/**
+	 * Ensure the order is associated to the payment intent.
+	 *
+	 * @param int $order_id The order ID.
+	 * @param string $intent_id The payment intent ID.
+	 * @return bool
+	 */
+	private function is_order_associated_to_payment_intent( int $order_id, string $intent_id ): bool {
+		$order_from_payment_intent = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
+		return $order_from_payment_intent && $order_from_payment_intent->get_id() === $order_id;
+	}
+
+	/**
+	 * Ensure the order is associated to the setup intent.
+	 *
+	 * @param int $order_id The order ID.
+	 * @param string $intent_id The setup intent ID.
+	 * @return bool
+	 */
+	private function is_order_associated_to_setup_intent( int $order_id, string $intent_id ): bool {
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return false;
+		}
+
+		$intent = $this->stripe_request( 'setup_intents/' . $intent_id . '?expand[]=payment_method.billing_details' );
+		if ( ! $intent ) {
+			return false;
+		}
+
+		if ( ! isset( $intent->payment_method ) || ! isset( $intent->payment_method->billing_details ) ) {
+			return false;
+		}
+
+		if ( $order->get_billing_email() !== $intent->payment_method->billing_details->email ) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
