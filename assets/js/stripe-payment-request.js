@@ -377,7 +377,9 @@ jQuery( function( $ ) {
 						return;
 					}
 
-					if ( result.link && ! wc_stripe_payment_request_params.stripe.allow_link ) {
+					const availabeTypeExceptLink = Object.keys( result ).filter( type => result[type] && type !== 'link' );
+
+					if ( availabeTypeExceptLink.length === 0 && result.link && ! wc_stripe_payment_request_params.stripe.allow_link ) {
 						return;
 					}
 
