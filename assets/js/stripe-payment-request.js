@@ -377,9 +377,9 @@ jQuery( function( $ ) {
 						return;
 					}
 
-					const availabeTypeExceptLink = Object.keys( result ).filter( type => result[type] && type !== 'link' );
+					const availablePaymentRequestTypes = Object.keys( result ).filter( type => result[type] );
 
-					if ( availabeTypeExceptLink.length === 0 && result.link && ! wc_stripe_payment_request_params.stripe.allow_link ) {
+					if ( availablePaymentRequestTypes.length === 1 && result.link && ! wc_stripe_payment_request_params.stripe.allow_link ) {
 						return;
 					}
 
