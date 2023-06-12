@@ -673,6 +673,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$request['confirm']        = 'true';
 				}
 
+				if ( $this->has_subscription( $order_id ) ) {
+					$request['setup_future_usage'] = 'off_session';
+				}
+
 				// Run the necessary filter to make sure mandate information is added when it's required.
 				$request = apply_filters(
 					'wc_stripe_generate_create_intent_request',
