@@ -130,5 +130,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 7.5.0 - 2023-xx-xx =
 * Fix - Gateway available in live mode without SSL.
+* Fix - Remove Stripe Link PRB when disabled from settings.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

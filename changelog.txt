@@ -2,6 +2,7 @@
 
 = 7.5.0 - 2023-xx-xx =
 * Fix - Gateway available in live mode without SSL.
+* Fix - Remove Stripe Link PRB when disabled from settings.
 
 = 7.4.0 - 2023-05-03 =
 * Fix - Issue processing renewals for subscriptions without parent orders.
