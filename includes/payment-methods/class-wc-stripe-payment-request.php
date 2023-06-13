@@ -708,6 +708,7 @@ class WC_Stripe_Payment_Request {
 				'key'                => $this->publishable_key,
 				'allow_prepaid_card' => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
 				'locale'             => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+				'allow_link'         => WC_Stripe_UPE_Payment_Method_Link::is_link_enabled(),
 			],
 			'nonce'              => [
 				'payment'                   => wp_create_nonce( 'wc-stripe-payment-request' ),
