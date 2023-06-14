@@ -137,7 +137,7 @@ export const createApiTokens = ( page ) =>
 	} );
 
 /**
- * Helper function to check the version of the 'woo-gutenberg-products-block' plugin
+ * Helper function to check the version of WC Blocks
  * and save it to the WC_BLOCKS env variable.
  * This function is used when the admin user is already logged in.
  * @param {Page} page Playwright page object.
@@ -149,9 +149,7 @@ export const checkWooGutenbergProductsBlockVersion = ( page ) =>
 			const nRetries = 5;
 			for ( let i = 0; i < nRetries; i++ ) {
 				try {
-					console.log(
-						'- Trying to check woo-gutenberg-products-block version...'
-					);
+					console.log( '- Trying to check WC Blocks version...' );
 					await page.goto( `/wp-admin/admin.php?page=wc-status` );
 
 					await page.waitForSelector(
@@ -171,19 +169,19 @@ export const checkWooGutenbergProductsBlockVersion = ( page ) =>
 
 					if ( isNaN( parseFloat( versionNumber ) ) ) {
 						throw new Error(
-							`Failed to parse woo-gutenberg-products-block version number. Got: ${ versionElement }`
+							`Failed to parse WC Blocks version number. Got: ${ versionElement }`
 						);
 					}
 
 					process.env.WC_BLOCKS = versionNumber;
 					console.log(
-						`\u2714 Checked woo-gutenberg-products-block version successfully. The version is ${ versionNumber }.`
+						`\u2714 Checked WC Blocks version successfully. The version is ${ versionNumber }.`
 					);
 					resolve();
 					return;
 				} catch ( e ) {
 					console.log(
-						`Failed to check woo-gutenberg-products-block version. Retrying... ${ i }/${ nRetries }`
+						`Failed to check WC Blocks version. Retrying... ${ i }/${ nRetries }`
 					);
 					console.log( e );
 				}
