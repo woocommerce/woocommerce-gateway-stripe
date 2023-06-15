@@ -138,7 +138,11 @@ class WC_Stripe_Intent_Controller {
 				} else {
 					$metadata = $intent->metadata;
 					if ( isset( $metadata->save_payment_method ) && 'true' === $metadata->save_payment_method ) {
-						$source_object = WC_Stripe_API::retrieve( 'sources/' . $intent->source );
+						$payment_method = WC_Stripe_Helper::get_payment_method_from_intent( $intent );
+						$source_object  = WC_Stripe_API::get_payment_method(
+							// The object on the intent may have been expanded so we need to check if it's just the ID or the full object.
+							is_string( $payment_method ) ? $payment_method : $payment_method->id
+						);
 						$gateway->save_payment_method( $source_object );
 					}
 				}
@@ -197,7 +201,7 @@ class WC_Stripe_Intent_Controller {
 			// 1. Verify.
 			if (
 				! wp_verify_nonce( sanitize_key( $_POST['nonce'] ), 'wc_stripe_create_si' )
-				|| ! preg_match( '/^src_.*$/', $source_id )
+				|| ! ( 0 === strpos( $source_id, 'src_' ) || 0 === strpos( $source_id, 'pm_' ) )
 			) {
 				throw new Exception( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}

@@ -376,6 +376,13 @@ jQuery( function( $ ) {
 					if ( ! result ) {
 						return;
 					}
+
+					const availablePaymentRequestTypes = Object.keys( result ).filter( type => result[type] );
+
+					if ( availablePaymentRequestTypes.length === 1 && result.link && ! wc_stripe_payment_request_params.stripe.allow_link ) {
+						return;
+					}
+
 					if ( result.applePay ) {
 						paymentRequestType = 'apple_pay';
 					} else if ( result.googlePay ) {
@@ -681,11 +688,11 @@ jQuery( function( $ ) {
 			// Block the payment request button as soon as an "input" event is fired, to avoid sync issues
 			// when the customer clicks on the button before the debounced event is processed.
 			$( '.quantity' ).on( 'input', '.qty', blockPaymentRequestButton );
-			$('.quantity').on('input', '.qty', wc_stripe_payment_request.debounce(250, cartChangedHandler));
+			$( '.quantity' ).on('input', '.qty', wc_stripe_payment_request.debounce(250, cartChangedHandler));
 			
 			// Update payment request buttons if product add-ons are modified.
-			$( '.cart:not(.cart_group)' ).on( 'woocommerce-product-addons-update', blockPaymentRequestButton );
-			$( '.cart:not(.cart_group)' ).on( 'woocommerce-product-addons-update', wc_stripe_payment_request.debounce( 250, cartChangedHandler ));
+			$( '.cart:not(.cart_group)' ).on( 'updated_addons', blockPaymentRequestButton );
+			$( '.cart:not(.cart_group)' ).on( 'updated_addons', wc_stripe_payment_request.debounce( 250, cartChangedHandler ));
 
 			if ( $('.variations_form').length ) {
 				$( '.variations_form' ).on( 'found_variation.wc-variation-form', function ( evt, variation ) {

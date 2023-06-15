@@ -146,4 +146,72 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		remove_filter( 'pre_http_request', $callback );
 	}
+
+	public function test_are_keys_set_returns_true_in_test_mode() {
+		$this->gateway->testmode        = true;
+		$this->gateway->publishable_key = 'pk_test_key';
+		$this->gateway->secret_key      = 'sk_test_key';
+
+		$this->assertTrue( $this->gateway->are_keys_set() );
+	}
+
+	public function test_are_keys_set_returns_false_when_invalid_in_test_mode() {
+		$this->gateway->testmode        = true;
+		$this->gateway->publishable_key = 'pk_invalid_key';
+		$this->gateway->secret_key      = 'sk_invalid_key';
+
+		$this->assertFalse( $this->gateway->are_keys_set() );
+	}
+
+	public function test_are_keys_set_returns_true_in_live_mode() {
+		$this->gateway->testmode        = false;
+		$this->gateway->publishable_key = 'pk_live_key';
+		$this->gateway->secret_key      = 'sk_live_key';
+
+		$this->assertTrue( $this->gateway->are_keys_set() );
+	}
+
+	public function test_are_keys_set_returns_false_when_invalid_in_live_mode() {
+		$this->gateway->testmode        = false;
+		$this->gateway->publishable_key = 'pk_invalid_key';
+		$this->gateway->secret_key      = 'sk_invalid_key';
+
+		$this->assertFalse( $this->gateway->are_keys_set() );
+	}
+
+	public function test_is_available_returns_true_in_live_mode_with_ssl() {
+		$this->gateway->testmode        = false;
+		$this->gateway->enabled         = 'yes';
+		$this->gateway->publishable_key = 'pk_live_key';
+		$this->gateway->secret_key      = 'sk_live_key';
+
+		// Using this to manipulate is_ssl().
+		$_SERVER['HTTPS'] = 'on';
+
+		$this->assertTrue( $this->gateway->is_available() );
+	}
+
+	public function test_is_available_returns_false_in_live_mode_with_no_ssl() {
+		$this->gateway->testmode        = false;
+		$this->gateway->enabled         = 'yes';
+		$this->gateway->publishable_key = 'pk_live_key';
+		$this->gateway->secret_key      = 'sk_live_key';
+
+		// Using this to manipulate is_ssl().
+		$_SERVER['HTTPS'] = false;
+
+		$this->assertFalse( $this->gateway->is_available() );
+	}
+
+	public function test_is_available_returns_true_in_test_mode_with_no_ssl() {
+		$this->gateway->testmode        = true;
+		$this->gateway->enabled         = 'yes';
+		$this->gateway->publishable_key = 'pk_test_key';
+		$this->gateway->secret_key      = 'sk_test_key';
+
+		// Using this to manipulate is_ssl().
+		$_SERVER['HTTPS'] = false;
+
+		$this->assertTrue( $this->gateway->is_available() );
+	}
 }

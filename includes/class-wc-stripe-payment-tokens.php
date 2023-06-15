@@ -158,7 +158,7 @@ class WC_Stripe_Payment_Tokens {
 							$token->set_token( $source->id );
 							$token->set_gateway_id( 'stripe' );
 
-							if ( 'source' === $source->object && 'card' === $source->type ) {
+							if ( WC_Stripe_Helper::is_card_payment_method( $source ) ) {
 								$token->set_card_type( strtolower( $source->card->brand ) );
 								$token->set_last4( $source->card->last4 );
 								$token->set_expiry_month( $source->card->exp_month );

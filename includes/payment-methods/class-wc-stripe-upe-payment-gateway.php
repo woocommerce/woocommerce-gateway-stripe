@@ -163,6 +163,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Needed for 3DS compatibility when checking out with PRBs..
 		// Copied from WC_Gateway_Stripe::__construct().
 		add_filter( 'woocommerce_payment_successful_result', [ $this, 'modify_successful_payment_result' ], 99999, 2 );
+
+		// Update the current request logged_in cookie after a guest user is created to avoid nonce inconsistencies.
+		add_action( 'set_logged_in_cookie', [ $this, 'set_cookie_on_current_request' ] );
+	}
+
+	/**
+	 * Proceed with current request using new login session (to ensure consistent nonce).
+	 *
+	 * @param string $cookie New cookie value.
+	 */
+	public function set_cookie_on_current_request( $cookie ) {
+		$_COOKIE[ LOGGED_IN_COOKIE ] = $cookie;
 	}
 
 	/**
@@ -572,6 +584,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				$request['metadata'] = $this->get_metadata_from_order( $order );
 
+				// Run the necessary filter to make sure mandate information is added when it's required.
+				$request = apply_filters(
+					'wc_stripe_generate_create_intent_request',
+					$request,
+					$order,
+					null // $prepared_source parameter is not necessary for adding mandate information.
+				);
+
 				WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent_id, $order );
 				$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 				$order->update_meta_data( '_stripe_upe_payment_type', $selected_upe_payment_type );
@@ -664,6 +684,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$request['capture_method'] = ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual';
 					$request['confirm']        = 'true';
 				}
+
+				// Run the necessary filter to make sure mandate information is added when it's required.
+				$request = apply_filters(
+					'wc_stripe_generate_create_intent_request',
+					$request,
+					$order,
+					null // $prepared_source parameter is not necessary for adding mandate information.
+				);
 
 				$intent = $this->stripe_request(
 					$endpoint,

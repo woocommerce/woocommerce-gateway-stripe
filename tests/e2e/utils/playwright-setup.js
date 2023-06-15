@@ -6,12 +6,17 @@ import stripe from 'stripe';
 
 import { expect } from '@playwright/test';
 import { NodeSSH } from 'node-ssh';
-import { downloadZip, getReleaseZipUrl } from '../utils/plugin-utils';
+import { downloadRelease } from './plugin-utils';
+
+dotenv.config( {
+	path: `${ process.env.E2E_ROOT }/config/local.env`,
+} );
+
 import { user } from '.';
 
 const {
+	ADMIN_USER,
 	E2E_ROOT,
-	GITHUB_TOKEN,
 	PLUGIN_REPOSITORY,
 	PLUGIN_VERSION,
 	STRIPE_PUB_KEY,
@@ -24,6 +29,12 @@ const {
 
 /**
  * Helper function to login a WP user and save the state on a given path.
+ * @param {Page} page Playwright page object.
+ * @param {string} username Username of the user to login.
+ * @param {string} password Password of the user to login.
+ * @param {string} statePath Path to save the state.
+ * @param {number} retries Number of retries to login.
+ * @return {Promise} Promise object represents the state of the operation.
  */
 export const loginCustomerAndSaveState = ( {
 	page,
@@ -32,7 +43,7 @@ export const loginCustomerAndSaveState = ( {
 	statePath,
 	retries,
 } ) =>
-	new Promise( ( resolve, reject ) => {
+	new Promise( ( resolve ) => {
 		( async () => {
 			console.log( '- Trying to log-in as customer...' );
 			await user.login( page, username, password, retries );
@@ -55,6 +66,12 @@ export const loginCustomerAndSaveState = ( {
 
 /**
  * Helper function to login a WP admin user and save the state on a given path.
+ * @param {Page} page Playwright page object.
+ * @param {string} username Username of the user to login.
+ * @param {string} password Password of the user to login.
+ * @param {string} statePath Path to save the state.
+ * @param {number} retries Number of retries to login.
+ * @return {Promise} Promise object represents the state of the operation.
  */
 export const loginAdminAndSaveState = ( {
 	page,
@@ -63,7 +80,7 @@ export const loginAdminAndSaveState = ( {
 	statePath,
 	retries,
 } ) =>
-	new Promise( ( resolve, reject ) => {
+	new Promise( ( resolve ) => {
 		( async () => {
 			// Sign in as admin user and save state
 			console.log( '- Trying to log-in as admin...' );
@@ -81,7 +98,10 @@ export const loginAdminAndSaveState = ( {
 	} );
 
 /**
- * Helper function to login a WP admin user and save the state on a given path.
+ * Helper function to create WC API tokens and save them as env variables.
+ * This function is used when the admin user is already logged in.
+ * @param {Page} page Playwright page object.
+ * @return {Promise} Promise object represents the state of the operation.
  */
 export const createApiTokens = ( page ) =>
 	new Promise( ( resolve, reject ) => {
@@ -117,7 +137,11 @@ export const createApiTokens = ( page ) =>
 	} );
 
 /**
- * Helper function to update the plugin.
+ * Helper function to download the Stripe plugin from the repository and install it on the site.
+ * This is useful when we want to test a specific version of the plugin.
+ * If the plugin is already installed, it will be updated to the specified version.
+ * @param {Page} page Playwright page object.
+ * @returns {Promise} Promise that resolves when the plugin is installed.
  */
 export const installPluginFromRepository = ( page ) =>
 	new Promise( ( resolve ) => {
@@ -125,22 +149,18 @@ export const installPluginFromRepository = ( page ) =>
 			console.log(
 				`- Trying to install plugin version ${ PLUGIN_VERSION } from repository ${ PLUGIN_REPOSITORY }...`
 			);
-			let pluginZipPath;
-			let pluginSlug = PLUGIN_REPOSITORY.split( '/' ).pop();
-
-			// Get the download URL and filename of the plugin
-			const pluginDownloadURL = await getReleaseZipUrl( PLUGIN_VERSION );
-			const zipFilename = pluginDownloadURL.split( '/' ).pop();
-			pluginZipPath = path.resolve(
+			const pluginSlug = 'woocommerce-gateway-stripe';
+			const pluginZipPath = path.resolve(
 				__dirname,
-				`../../tmp/${ zipFilename }`
+				`../../tmp/${ pluginSlug }.zip`
 			);
 
 			// Download the needed plugin.
-			await downloadZip( {
-				url: pluginDownloadURL,
+			await downloadRelease( {
+				repo: PLUGIN_REPOSITORY,
+				releaseTag: PLUGIN_VERSION,
 				downloadPath: pluginZipPath,
-				authToken: GITHUB_TOKEN,
+				filename: `${ pluginSlug }.zip`,
 			} );
 			await page.goto( 'wp-admin/plugin-install.php?tab=upload', {
 				waitUntil: 'networkidle',
@@ -190,6 +210,78 @@ export const installPluginFromRepository = ( page ) =>
 	} );
 
 /**
+ * Helper function to download and install the latest WooCommerce Subscriptions release from the official repository.
+ * @param {Page} page Playwright page object.
+ * @returns {Promise<void>} A promise that resolves when the plugin is installed.
+ */
+export const installWooSubscriptionsFromRepo = ( page ) =>
+	new Promise( ( resolve ) => {
+		( async () => {
+			console.log(
+				`- Trying to install latest Woo Subscriptions release from official repository...`
+			);
+
+			const pluginSlug = 'woocommerce-subscriptions';
+			const pluginZipPath = path.resolve(
+				__dirname,
+				`../../tmp/${ pluginSlug }.zip`
+			);
+
+			// Download the needed plugin.
+			await downloadRelease( {
+				repo: 'woocommerce/woocommerce-subscriptions',
+				releaseTag: 'latest',
+				filename: 'woocommerce-subscriptions.zip',
+				downloadPath: pluginZipPath,
+			} );
+			await page.goto( 'wp-admin/plugin-install.php?tab=upload', {
+				waitUntil: 'networkidle',
+			} );
+
+			await page.setInputFiles( 'input#pluginzip', pluginZipPath, {
+				timeout: 10000,
+			} );
+			await page.click( "input[type='submit'] >> text=Install Now" );
+
+			try {
+				await page.click( 'text=Replace current with uploaded', {
+					timeout: 10000,
+				} );
+
+				await expect(
+					page.locator( '#wpbody-content .wrap' )
+				).toContainText(
+					/Plugin (?:downgraded|updated) successfully/gi
+				);
+			} catch ( e ) {
+				// Plugin wasn't installed on this site.
+				await expect(
+					page.locator( '#wpbody-content .wrap' )
+				).toContainText( /Plugin installed successfully/gi );
+
+				await page.click( 'text=Activate Plugin', {
+					timeout: 10000,
+				} );
+			}
+
+			await page.goto( 'wp-admin/plugins.php', {
+				waitUntil: 'networkidle',
+			} );
+
+			// Assert that the plugin is listed and active
+			await expect(
+				page.locator( `#deactivate-${ pluginSlug }` )
+			).toBeVisible();
+
+			console.log(
+				`\u2714 Woo Subscriptions plugin installed successfully.`
+			);
+
+			resolve();
+		} )();
+	} );
+
+/**
  * Helper function to run an array of commands in a SSH server.
  * @param {Array.<string>} commands The array of commands.
  * @returns The promise for the SSH connection.
@@ -223,7 +315,7 @@ const sshExecCommands = async ( commands ) => {
  */
 const getServerCredentialsFromEnv = () => {
 	return {
-		host: SSH_HOST,
+		host: SSH_HOST.replace( /\/$/, '' ),
 		username: SSH_USER,
 		password: SSH_PASSWORD,
 		path: SSH_PATH,
@@ -252,6 +344,7 @@ export const setupWoo = async () => {
 		'wp config set WP_DEBUG false --raw',
 		'wp plugin install woocommerce --force --activate',
 		'wp plugin install woocommerce-gateway-stripe --activate',
+		'wp plugin install disable-emails --activate', // Disable emails to avoid spamming the store owner.
 		'wp theme install storefront --activate',
 		'wp option set woocommerce_store_address "60 29th Street"',
 		'wp option set woocommerce_store_address_2 "#343"',
@@ -261,12 +354,12 @@ export const setupWoo = async () => {
 		'wp option set woocommerce_currency "USD"',
 		'wp option set woocommerce_product_type "both"',
 		'wp option set woocommerce_allow_tracking "no"',
-		'wp wc --user=admin tool run install_pages',
+		`wp wc --user=${ ADMIN_USER } tool run install_pages`,
 		'wp plugin install wordpress-importer --activate',
 		'wp import wp-content/plugins/woocommerce/sample-data/sample_products.xml --authors=skip',
-		`wp wc shipping_zone create --name="Everywhere" --order=1 --user=admin`,
-		`wp wc shipping_zone_method create 1 --method_id="flat_rate" --user=admin`,
-		`wp wc shipping_zone_method create 1 --method_id="free_shipping" --user=admin`,
+		`wp wc shipping_zone create --name="Everywhere" --order=1 --user=${ ADMIN_USER }`,
+		`wp wc shipping_zone_method create 1 --method_id="flat_rate" --user=${ ADMIN_USER }`,
+		`wp wc shipping_zone_method create 1 --method_id="free_shipping" --user=${ ADMIN_USER }`,
 		`wp option update --format=json woocommerce_flat_rate_1_settings '{"title":"Flat rate","tax_status":"taxable","cost":"10"}'`,
 		`wp post create --post_type=page --post_title='Cart Block' --post_name='cart-block' --post_status=publish --page_template='template-fullwidth.php' --post_content='${ cartBlockPostContent }'`,
 		`wp post create --post_type=page --post_title='Checkout Block' --post_name='checkout-block' --post_status=publish --page_template='template-fullwidth.php' --post_content='${ checkoutBlockPostContent }'`,
@@ -277,6 +370,9 @@ export const setupWoo = async () => {
 
 /**
  * Helper function to perform the Stripe plugin setup.
+ * @param {Page} page The page object.
+ * @param {string} baseUrl The base URL for the site.
+ * @returns The promise that resolves when the Stripe plugin is setup.
  */
 export const setupStripe = ( page, baseUrl ) =>
 	new Promise( ( resolve, reject ) => {
