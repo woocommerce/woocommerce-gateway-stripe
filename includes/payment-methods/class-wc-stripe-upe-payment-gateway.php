@@ -163,6 +163,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Needed for 3DS compatibility when checking out with PRBs..
 		// Copied from WC_Gateway_Stripe::__construct().
 		add_filter( 'woocommerce_payment_successful_result', [ $this, 'modify_successful_payment_result' ], 99999, 2 );
+
+		// Update the current request logged_in cookie after a guest user is created to avoid nonce inconsistencies.
+		add_action( 'set_logged_in_cookie', [ $this, 'set_cookie_on_current_request' ] );
+	}
+
+	/**
+	 * Proceed with current request using new login session (to ensure consistent nonce).
+	 *
+	 * @param string $cookie New cookie value.
+	 */
+	public function set_cookie_on_current_request( $cookie ) {
+		$_COOKIE[ LOGGED_IN_COOKIE ] = $cookie;
 	}
 
 	/**
