@@ -138,7 +138,7 @@ export const createApiTokens = ( page ) =>
 
 /**
  * Helper function to check the version of WC Blocks
- * and save it to the WC_BLOCKS env variable.
+ * and save it to the WC_BLOCKS_VERSION env variable.
  * This function is used when the admin user is already logged in.
  * @param {Page} page Playwright page object.
  * @return {Promise} Promise object represents the state of the operation.
@@ -173,7 +173,7 @@ export const checkWooGutenbergProductsBlockVersion = ( page ) =>
 						);
 					}
 
-					process.env.WC_BLOCKS = versionNumber;
+					process.env.WC_BLOCKS_VERSION = versionNumber;
 					console.log(
 						`\u2714 Checked WC Blocks version successfully. The version is ${ versionNumber }.`
 					);
