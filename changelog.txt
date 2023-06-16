@@ -5,6 +5,7 @@
 * Fix - Stripe source and customer tokens not being saved on subscriptions when UPE is enabled and subscription is purchased by guest customer.
 * Fix - Make the gateway unavailable when using it in live mode without SSL.
 * Fix - Remove Stripe Link PRB when disabled from settings.
+* Fix - Lookup existing refunds by refund ID when processing webhooks.
 
 = 7.4.0 - 2023-05-03 =
 * Fix - Issue processing renewals for subscriptions without parent orders.
