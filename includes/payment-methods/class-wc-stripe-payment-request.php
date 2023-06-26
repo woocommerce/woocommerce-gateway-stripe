@@ -500,12 +500,12 @@ class WC_Stripe_Payment_Request {
 		 * the postal code and not calculate shipping zones correctly.
 		 */
 		if ( 'GB' === $country ) {
-			// Replaces a redacted string with something like LN10***.
-			return str_pad( preg_replace( '/\s+/', '', $postcode ), 7, '*' );
+			// Replaces a redacted string with something like LN10###.
+			return str_pad( preg_replace( '/\s+/', '', $postcode ), 7, '#' );
 		}
 		if ( 'CA' === $country ) {
-			// Replaces a redacted string with something like L4Y***.
-			return str_pad( preg_replace( '/\s+/', '', $postcode ), 6, '*' );
+			// Replaces a redacted string with something like L4Y###.
+			return str_pad( preg_replace( '/\s+/', '', $postcode ), 6, '#' );
 		}
 
 		return $postcode;
