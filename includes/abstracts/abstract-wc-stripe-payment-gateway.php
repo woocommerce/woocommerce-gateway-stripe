@@ -1165,29 +1165,17 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function add_payment_method() {
 		$error     = false;
 		$error_msg = __( 'There was a problem adding the payment method.', 'woocommerce-gateway-stripe' );
-		$source_id = '';
 
-		if ( empty( $_POST['stripe_source'] ) && empty( $_POST['stripe_token'] ) || ! is_user_logged_in() ) {
-			$error = true;
+		try {
+			$source_id = $this->get_source_id_from_request();
+		} catch ( WC_Stripe_Exception $e ) {
+			wc_add_notice( $error_msg, 'error' );
+			WC_Stripe_Logger::log( 'Add payment method Error: ' . $error_msg );
+			return;
 		}
 
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
-
-		$source = ! empty( $_POST['stripe_source'] ) ? wc_clean( wp_unslash( $_POST['stripe_source'] ) ) : '';
-
-		$source_object = WC_Stripe_API::get_payment_method( $source );
-
-		if ( isset( $source_object ) ) {
-			if ( ! empty( $source_object->error ) ) {
-				$error = true;
-			}
-
-			$source_id = $source_object->id;
-		} elseif ( isset( $_POST['stripe_token'] ) ) {
-			$source_id = wc_clean( wp_unslash( $_POST['stripe_token'] ) );
-		}
-
-		$response = $stripe_customer->add_source( $source_id );
+		$response        = $stripe_customer->add_source( $source_id );
 
 		if ( ! $response || is_wp_error( $response ) || ! empty( $response->error ) ) {
 			$error = true;
@@ -1935,6 +1923,34 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$stripe_params = array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
 
 		return $stripe_params;
+	}
+
+	/**
+	 * Retrieves and returns the source_id for the given $_POST variables.
+	 *
+	 * @throws WC_Stripe_Exception Error while attempting to retrieve the source_id.
+	 * @return string
+	 */
+	private function get_source_id_from_request() {
+		if ( empty( $_POST['stripe_source'] ) && empty( $_POST['stripe_token'] ) || ! is_user_logged_in() ) {
+			throw new WC_Stripe_Exception( __( 'Missing stripe_source or stripe_token from the request.', 'woocommerce-gateway-stripe' ) );
+		}
+
+		$source_id     = '';
+		$source        = ! empty( $_POST['stripe_source'] ) ? wc_clean( wp_unslash( $_POST['stripe_source'] ) ) : '';
+		$source_object = WC_Stripe_API::get_payment_method( $source );
+
+		if ( isset( $source_object ) ) {
+			if ( ! empty( $source_object->error ) ) {
+				throw new WC_Stripe_Exception( __( 'There was an error retrieving the source object.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			$source_id = $source_object->id;
+		} elseif ( isset( $_POST['stripe_token'] ) ) {
+			$source_id = wc_clean( wp_unslash( $_POST['stripe_token'] ) );
+		}
+
+		return $source_id;
 	}
 
 	/**
