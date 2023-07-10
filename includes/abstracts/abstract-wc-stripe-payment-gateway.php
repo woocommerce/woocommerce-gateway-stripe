@@ -1167,7 +1167,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$error_msg = __( 'There was a problem adding the payment method.', 'woocommerce-gateway-stripe' );
 
 		try {
-			$source_id = $this->get_source_id_from_request();
+			$source_object = $this->get_source_object_from_request();
+
+			if ( empty( $source_object ) || empty( $source_object->id ) ) {
+				throw new WC_Stripe_Exception( __( "The retrieved source doesn't contain an ID.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			$source_id = $source_object->id;
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $error_msg, 'error' );
 			WC_Stripe_Logger::log( 'Add payment method Error: ' . $error_msg );
@@ -1928,10 +1934,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Retrieves and returns the source_id for the given $_POST variables.
 	 *
+	 * @todo Probably, make get_source_object() handle wp_errors to reduce redundancy here.
 	 * @throws WC_Stripe_Exception Error while attempting to retrieve the source_id.
-	 * @return string
+	 * @return object
 	 */
-	private function get_source_id_from_request() {
+	private function get_source_object_from_request() {
 		if ( ! is_user_logged_in() ) {
 			throw new WC_Stripe_Exception( __( 'No logged-in user found.', 'woocommerce-gateway-stripe' ) );
 		}
@@ -1950,20 +1957,23 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				throw new WC_Stripe_Exception( $source_object->get_error_message(), $source_object->get_error_code() );
 			}
 
-			if ( empty( $source_object ) || empty( $source_object->id ) ) {
-				throw new WC_Stripe_Exception( __( "The retrieved source doesn't contain an ID.", 'woocommerce-gateway-stripe' ) );
-			}
-
-			return $source_object->id;
+			return $source_object;
 		}
 
 		$stripe_token_as_source_id = isset( $_POST['stripe_token'] ) ? wc_clean( wp_unslash( $_POST['stripe_token'] ) ) : '';
 
-		if ( empty( $stripe_token_as_source_id ) ) {
-			throw new WC_Stripe_Exception( __( "The source ID couldn't be retrieved.", 'woocommerce-gateway-stripe' ) );
+		if ( ! empty( $stripe_token_as_source_id ) ) {
+			// This method throws a WC_Stripe_Exception when there's an error. It's intended to be caught by the calling method.
+			$source_object = $this->get_source_object( $stripe_token_as_source_id );
+
+			if ( is_wp_error( $source_object ) ) {
+				throw new WC_Stripe_Exception( $source_object->get_error_message(), $source_object->get_error_code() );
+			}
+
+			return $source_object;
 		}
 
-		return $stripe_token_as_source_id;
+		throw new WC_Stripe_Exception( __( "The source object couldn't be retrieved.", 'woocommerce-gateway-stripe' ) );
 	}
 
 	/**
