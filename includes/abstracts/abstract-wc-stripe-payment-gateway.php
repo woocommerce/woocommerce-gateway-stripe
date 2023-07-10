@@ -1932,7 +1932,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return string
 	 */
 	private function get_source_id_from_request() {
-		if ( empty( $_POST['stripe_source'] ) && empty( $_POST['stripe_token'] ) || ! is_user_logged_in() ) {
+		if (
+			( empty( $_POST['stripe_source'] ) && empty( $_POST['stripe_token'] ) ) ||
+			! is_user_logged_in()
+		) {
 			throw new WC_Stripe_Exception( __( 'Missing stripe_source or stripe_token from the request.', 'woocommerce-gateway-stripe' ) );
 		}
 
