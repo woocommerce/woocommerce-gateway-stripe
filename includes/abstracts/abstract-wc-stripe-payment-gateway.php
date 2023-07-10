@@ -1936,15 +1936,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			throw new WC_Stripe_Exception( __( 'Missing stripe_source or stripe_token from the request.', 'woocommerce-gateway-stripe' ) );
 		}
 
-		$source_id     = '';
-		$source        = ! empty( $_POST['stripe_source'] ) ? wc_clean( wp_unslash( $_POST['stripe_source'] ) ) : '';
-		$source_object = WC_Stripe_API::get_payment_method( $source );
+		$source_id = '';
+		$source    = ! empty( $_POST['stripe_source'] ) ? wc_clean( wp_unslash( $_POST['stripe_source'] ) ) : '';
+
+		// This method throws a WC_Stripe_Exception when there's an error. It's caught by the calling method.
+		$source_object = $this->get_source_object( $source );
 
 		if ( isset( $source_object ) ) {
-			if ( ! empty( $source_object->error ) ) {
-				throw new WC_Stripe_Exception( __( 'There was an error retrieving the source object.', 'woocommerce-gateway-stripe' ) );
-			}
-
 			$source_id = $source_object->id;
 		} elseif ( isset( $_POST['stripe_token'] ) ) {
 			$source_id = wc_clean( wp_unslash( $_POST['stripe_token'] ) );
