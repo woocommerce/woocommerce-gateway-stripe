@@ -1956,7 +1956,14 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			// We better make get_source_object() handle wp_errors to reduce redundancy here.
 			if ( is_wp_error( $source_object ) ) {
-				throw new WC_Stripe_Exception( $source_object->get_error_message(), $source_object->get_error_code() );
+				$error_msg = sprintf(
+					/* translators: 1) WP_Error message, 2) WP_Error code. */
+					__( '%1$s Code: %2$s', 'woocommerce-gateway-stripe' ),
+					$source_object->get_error_message(),
+					$source_object->get_error_code()
+				);
+
+				throw new WC_Stripe_Exception( $error_msg );
 			}
 
 			return $source_object;
@@ -1968,8 +1975,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			// This method throws a WC_Stripe_Exception when there's an error. It's intended to be caught by the calling method.
 			$source_object = $this->get_source_object( $stripe_token_as_source_id );
 
+			// We better make get_source_object() handle wp_errors to reduce redundancy here.
 			if ( is_wp_error( $source_object ) ) {
-				throw new WC_Stripe_Exception( $source_object->get_error_message(), $source_object->get_error_code() );
+				$error_msg = sprintf(
+					/* translators: 1) WP_Error message, 2) WP_Error code. */
+					__( '%1$s Code: %2$s', 'woocommerce-gateway-stripe' ),
+					$source_object->get_error_message(),
+					$source_object->get_error_code()
+				);
+
+				throw new WC_Stripe_Exception( $error_msg );
 			}
 
 			return $source_object;
