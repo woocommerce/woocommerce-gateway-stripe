@@ -1161,9 +1161,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 3.0.0
 	 * @version 4.0.0
+	 *
+	 * @return array
 	 */
 	public function add_payment_method() {
 		try {
+			if ( ! is_user_logged_in() ) {
+				throw new WC_Stripe_Exception( __( 'No logged-in user found.', 'woocommerce-gateway-stripe' ) );
+			}
+
 			// Retrieve the source object from the submitted $_POST data.
 			$source_object = $this->get_source_object_from_request();
 
@@ -1943,10 +1949,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return object
 	 */
 	private function get_source_object_from_request() {
-		if ( ! is_user_logged_in() ) {
-			throw new WC_Stripe_Exception( __( 'No logged-in user found.', 'woocommerce-gateway-stripe' ) );
-		}
-
 		if ( empty( $_POST['stripe_source'] ) && empty( $_POST['stripe_token'] ) ) {
 			throw new WC_Stripe_Exception( __( 'Missing stripe_source and stripe_token from the request.', 'woocommerce-gateway-stripe' ) );
 		}
