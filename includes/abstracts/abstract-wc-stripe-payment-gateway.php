@@ -1163,7 +1163,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.0
 	 */
 	public function add_payment_method() {
-
 		try {
 			// Retrieve the source object from the submitted $_POST data.
 			$source_object = $this->get_source_object_from_request();
@@ -1188,14 +1187,19 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				$e->getMessage()
 			);
 
-			wc_add_notice( $error_msg, 'error' );
 			WC_Stripe_Logger::log( 'Add payment method Error: ' . $error_msg );
+
+			// Adding an EOL because the calling method, WC's add_payment_method_action,
+			// adds another error message to what we display here. Just so it looks better.
+			wc_add_notice( $error_msg . PHP_EOL, 'error' );
 
 			// TODO: Change the return value. The calling methods aren't expecting null here.
 			return;
 		}
 
-		do_action( 'wc_stripe_add_payment_method_' . ( isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : '' ) . '_success', $source_id, $source_object );
+		$payment_method_name = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : '';
+
+		do_action( 'wc_stripe_add_payment_method_' . $payment_method_name . '_success', $source_id, $source_object );
 
 		return [
 			'result'   => 'success',
