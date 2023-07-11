@@ -1187,17 +1187,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				throw new WC_Stripe_Exception( __( "The payment method couldn't be attached to the user.", 'woocommerce-gateway-stripe' ) );
 			}
 		} catch ( WC_Stripe_Exception $e ) {
-			$error_msg = sprintf(
-				/* translators: Message specific to the problem. */
-				__( 'There was a problem adding the payment method. %s', 'woocommerce-gateway-stripe' ),
-				$e->getMessage()
+			$generic_error_msg = __( 'There was a problem adding the payment method.', 'woocommerce-gateway-stripe' );
+
+			WC_Stripe_Logger::log(
+				sprintf(
+					'Add payment method Error: %1$s %2$s%3$s',
+					$generic_error_msg,
+					PHP_EOL,
+					$e->getMessage()
+				)
 			);
 
-			WC_Stripe_Logger::log( 'Add payment method Error: ' . $error_msg );
-
-			// Adding an EOL because the calling method, WC's add_payment_method_action,
-			// adds another error message to what we display here. Just so it looks better.
-			wc_add_notice( $error_msg . PHP_EOL, 'error' );
+			wc_add_notice( $generic_error_msg, 'error' );
 
 			return [ 'result' => 'failure' ];
 		}
