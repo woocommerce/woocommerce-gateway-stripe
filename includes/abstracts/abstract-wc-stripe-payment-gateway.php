@@ -1193,8 +1193,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			// adds another error message to what we display here. Just so it looks better.
 			wc_add_notice( $error_msg . PHP_EOL, 'error' );
 
-			// TODO: Change the return value. The calling methods aren't expecting null here.
-			return;
+			return [ 'result' => 'failure' ];
 		}
 
 		$payment_method_name = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : '';
