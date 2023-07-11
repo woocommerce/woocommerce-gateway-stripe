@@ -40,10 +40,23 @@ const testCard = async ( page, cardKey ) => {
 			.locator( '#Field-numberError' )
 			.innerText();
 	} else {
+		let errorSelector =
+			'.wc-block-store-notice.is-error .wc-block-components-notice-banner__content';
+
+		// Checking if the WC_BLOCKS_VERSION is defined and is smaller than 10.0.0.
+		if (
+			process.env.WC_BLOCKS_VERSION &&
+			parseFloat( process.env.WC_BLOCKS_VERSION ) < 10.0
+		) {
+			// If the version is smaller than 10.0.0, change the selector.
+			errorSelector =
+				'.wc-block-checkout__payment-method .woocommerce-error';
+		}
+
 		expected = await page.innerText(
 			cardKey === 'cards.declined-incorrect'
 				? '.wc-card-number-element .wc-block-components-validation-error'
-				: '.wc-block-store-notice.is-error .wc-block-components-notice-banner__content'
+				: errorSelector
 		);
 	}
 	expect

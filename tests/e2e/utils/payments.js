@@ -83,6 +83,10 @@ export async function fillCardDetails( page, card ) {
 			'#payment #wc-stripe-upe-element iframe'
 		);
 
+		page.locator(
+			'#payment #wc-stripe-upe-element iframe'
+		).scrollIntoViewIfNeeded();
+
 		const stripeFrame = await frameHandle.contentFrame();
 
 		await stripeFrame.fill( '[name="number"]', card.number );
