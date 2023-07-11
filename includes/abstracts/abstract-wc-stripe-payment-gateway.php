@@ -1163,10 +1163,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @version 4.0.0
 	 */
 	public function add_payment_method() {
-		$error     = false;
-		$error_msg = __( 'There was a problem adding the payment method.', 'woocommerce-gateway-stripe' );
 
 		try {
+			// Retrieve the source object from the submitted $_POST data.
 			$source_object = $this->get_source_object_from_request();
 
 			if ( empty( $source_object ) || empty( $source_object->id ) ) {
@@ -1174,22 +1173,25 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 
 			$source_id = $source_object->id;
+
+			// Now that we've got the source object, attach it to the user.
+			$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
+			$response        = $stripe_customer->add_source( $source_id );
+
+			if ( ! $response || is_wp_error( $response ) || ! empty( $response->error ) ) {
+				throw new WC_Stripe_Exception( __( "The payment method couldn't be attached to the user.", 'woocommerce-gateway-stripe' ) );
+			}
 		} catch ( WC_Stripe_Exception $e ) {
+			$error_msg = sprintf(
+				/* translators: Message specific to the problem. */
+				__( 'There was a problem adding the payment method. %s', 'woocommerce-gateway-stripe' ),
+				$e->getMessage()
+			);
+
 			wc_add_notice( $error_msg, 'error' );
 			WC_Stripe_Logger::log( 'Add payment method Error: ' . $error_msg );
-			return;
-		}
 
-		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
-		$response        = $stripe_customer->add_source( $source_id );
-
-		if ( ! $response || is_wp_error( $response ) || ! empty( $response->error ) ) {
-			$error = true;
-		}
-
-		if ( $error ) {
-			wc_add_notice( $error_msg, 'error' );
-			WC_Stripe_Logger::log( 'Add payment method Error: ' . $error_msg );
+			// TODO: Change the return value. The calling methods aren't expecting null here.
 			return;
 		}
 
@@ -1934,7 +1936,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	/**
 	 * Retrieves and returns the source_id for the given $_POST variables.
 	 *
-	 * @todo Probably, make get_source_object() handle wp_errors to reduce redundancy here.
 	 * @throws WC_Stripe_Exception Error while attempting to retrieve the source_id.
 	 * @return object
 	 */
@@ -1953,6 +1954,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			// This method throws a WC_Stripe_Exception when there's an error. It's intended to be caught by the calling method.
 			$source_object = $this->get_source_object( $source );
 
+			// We better make get_source_object() handle wp_errors to reduce redundancy here.
 			if ( is_wp_error( $source_object ) ) {
 				throw new WC_Stripe_Exception( $source_object->get_error_message(), $source_object->get_error_code() );
 			}
