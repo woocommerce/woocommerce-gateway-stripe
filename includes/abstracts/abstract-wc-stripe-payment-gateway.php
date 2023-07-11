@@ -1177,15 +1177,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				throw new WC_Stripe_Exception( __( "The retrieved source doesn't contain an ID.", 'woocommerce-gateway-stripe' ) );
 			}
 
-			$source_id = $source_object->id;
-
 			// Now that we've got the source object, attach it to the user.
-			$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
-			$response        = $stripe_customer->add_source( $source_id );
+			$this->save_payment_method( $source_object );
 
-			if ( ! $response || is_wp_error( $response ) || ! empty( $response->error ) ) {
-				throw new WC_Stripe_Exception( __( "The payment method couldn't be attached to the user.", 'woocommerce-gateway-stripe' ) );
-			}
 		} catch ( WC_Stripe_Exception $e ) {
 			$generic_error_msg = __( 'There was a problem adding the payment method.', 'woocommerce-gateway-stripe' );
 
@@ -1205,7 +1199,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$payment_method_name = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : '';
 
-		do_action( 'wc_stripe_add_payment_method_' . $payment_method_name . '_success', $source_id, $source_object );
+		do_action( 'wc_stripe_add_payment_method_' . $payment_method_name . '_success', $source_object->id, $source_object );
 
 		return [
 			'result'   => 'success',
@@ -1863,6 +1857,30 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$this->tokenization_script();
 		wp_enqueue_script( 'woocommerce_stripe' );
+	}
+
+	/**
+	 * Attaches the given payment method to the currently logged-in user.
+	 *
+	 * @param object $source_object The payment method to be attached.
+	 * @throws WC_Stripe_Exception
+	 */
+	public function save_payment_method( $source_object ) {
+		$user_id  = get_current_user_id();
+		$customer = new WC_Stripe_Customer( $user_id );
+
+		if ( $user_id && WC_Stripe_Helper::is_reusable_payment_method( $source_object ) ) {
+			$response = $customer->add_source( $source_object->id );
+
+			if ( ! empty( $response->error ) ) {
+				// Formatting the response for the debug log entry.
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
+				throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
+			}
+			if ( is_wp_error( $response ) ) {
+				throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
+			}
+		}
 	}
 
 	/**
