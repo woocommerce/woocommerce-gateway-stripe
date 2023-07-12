@@ -1167,20 +1167,20 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function add_payment_method() {
 		try {
 			if ( ! is_user_logged_in() ) {
-				throw new WC_Stripe_Exception( __( 'No logged-in user found.', 'woocommerce-gateway-stripe' ) );
+				throw new WC_Stripe_Exception( 'No logged-in user found.' );
 			}
 
 			// Retrieve the source object from the submitted $_POST data.
 			$source_object = $this->get_source_object_from_request();
 
 			if ( empty( $source_object ) || empty( $source_object->id ) ) {
-				throw new WC_Stripe_Exception( __( "The retrieved source doesn't contain an ID.", 'woocommerce-gateway-stripe' ) );
+				throw new WC_Stripe_Exception( "The retrieved source doesn't contain an ID." );
 			}
 
 			// Non-reusable payment methods won't be attached.
 			if ( ! WC_Stripe_Helper::is_reusable_payment_method( $source_object ) ) {
 				throw new WC_Stripe_Exception(
-					__( "The provided payment method isn't reausable.", 'woocommerce-gateway-stripe' ) .
+					"The provided payment method isn't reausable." .
 					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
 					PHP_EOL . 'Source object: ' . print_r( $source_object, true )
 				);
@@ -1978,7 +1978,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	private function get_source_object_from_request() {
 		if ( empty( $_POST['stripe_source'] ) && empty( $_POST['stripe_token'] ) ) {
-			throw new WC_Stripe_Exception( __( 'Missing stripe_source and stripe_token from the request.', 'woocommerce-gateway-stripe' ) );
+			throw new WC_Stripe_Exception( 'Missing stripe_source and stripe_token from the request.' );
 		}
 
 		$source = isset( $_POST['stripe_source'] ) ? wc_clean( wp_unslash( $_POST['stripe_source'] ) ) : '';
@@ -1989,14 +1989,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			// We better make get_source_object() handle wp_errors to reduce redundancy here.
 			if ( is_wp_error( $source_object ) ) {
-				$error_msg = sprintf(
-					/* translators: 1) WP_Error message, 2) WP_Error code. */
-					__( '%1$s Code: %2$s', 'woocommerce-gateway-stripe' ),
-					$source_object->get_error_message(),
-					$source_object->get_error_code()
-				);
-
-				throw new WC_Stripe_Exception( $error_msg );
+				throw new WC_Stripe_Exception( $source_object->get_error_message() . ' Code: ' . $source_object->get_error_code() );
 			}
 
 			return $source_object;
@@ -2010,20 +2003,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 			// We better make get_source_object() handle wp_errors to reduce redundancy here.
 			if ( is_wp_error( $source_object ) ) {
-				$error_msg = sprintf(
-					/* translators: 1) WP_Error message, 2) WP_Error code. */
-					__( '%1$s Code: %2$s', 'woocommerce-gateway-stripe' ),
-					$source_object->get_error_message(),
-					$source_object->get_error_code()
-				);
-
-				throw new WC_Stripe_Exception( $error_msg );
+				throw new WC_Stripe_Exception( $source_object->get_error_message() . ' Code: ' . $source_object->get_error_code() );
 			}
 
 			return $source_object;
 		}
 
-		throw new WC_Stripe_Exception( __( "The source object couldn't be retrieved.", 'woocommerce-gateway-stripe' ) );
+		throw new WC_Stripe_Exception( "The source object couldn't be retrieved." );
 	}
 
 	/**
