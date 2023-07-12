@@ -23,7 +23,7 @@ const testCard = async ( page, cardKey ) => {
 
 	expect
 		.soft( await page.innerText( '.woocommerce-error' ) )
-		.toBe( card.error );
+		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
 };
 
 test.describe.configure( { mode: 'parallel' } );

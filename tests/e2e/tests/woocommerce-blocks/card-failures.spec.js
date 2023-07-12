@@ -7,6 +7,7 @@ const {
 	setupProductCheckout,
 	setupBlocksCheckout,
 	fillCardDetails,
+	isUpeCheckout,
 } = payments;
 
 test.beforeEach( async ( { page } ) => {
@@ -24,19 +25,43 @@ const testCard = async ( page, cardKey ) => {
 	await fillCardDetails( page, card );
 	await page.locator( 'text=Place order' ).click();
 
+	const isUpe = await isUpeCheckout( page );
+
 	/**
 	 * The invalid card error message is shown in the input field validation.
 	 * The customer isn't allowed to place the order for this type of card failure.
 	 */
-	expect
-		.soft(
-			await page.innerText(
-				cardKey === 'cards.declined-incorrect'
-					? '.wc-card-number-element .wc-block-components-validation-error'
-					: '.wc-block-checkout__payment-method .woocommerce-error'
+	let expected;
+	if ( isUpe && cardKey === 'cards.declined-incorrect' ) {
+		expected = await page
+			.frameLocator(
+				'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
 			)
-		)
-		.toBe( card.error );
+			.locator( '#Field-numberError' )
+			.innerText();
+	} else {
+		let errorSelector =
+			'.wc-block-store-notice.is-error .wc-block-components-notice-banner__content';
+
+		// Checking if the WC_BLOCKS_VERSION is defined and is smaller than 10.0.0.
+		if (
+			process.env.WC_BLOCKS_VERSION &&
+			parseFloat( process.env.WC_BLOCKS_VERSION ) < 10.0
+		) {
+			// If the version is smaller than 10.0.0, change the selector.
+			errorSelector =
+				'.wc-block-checkout__payment-method .woocommerce-error';
+		}
+
+		expected = await page.innerText(
+			cardKey === 'cards.declined-incorrect'
+				? '.wc-card-number-element .wc-block-components-validation-error'
+				: errorSelector
+		);
+	}
+	expect
+		.soft( expected )
+		.toMatch( new RegExp( `(?:${ card.error.join( '|' ) })`, 'i' ) );
 };
 
 test.describe.configure( { mode: 'parallel' } );
@@ -51,10 +76,7 @@ test.describe( 'customer cannot checkout with invalid cards @blocks', () => {
 
 	test( `a card with invalid number shows the correct error message`, async ( {
 		page,
-	} ) => {
-		test.fail();
-		testCard( page, 'cards.declined-incorrect' );
-	} );
+	} ) => testCard( page, 'cards.declined-incorrect' ) );
 
 	test( `an expired card shows the correct error message`, async ( {
 		page,

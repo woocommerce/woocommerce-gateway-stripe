@@ -37,6 +37,22 @@ const throwCustomError = (
 	);
 };
 
+const get = {
+	order: async ( orderId ) => {
+		const response = await api
+			.get( `orders/${ orderId }` )
+			.then( ( response ) => response )
+			.catch( ( error ) => {
+				throwCustomError(
+					error,
+					'Failed to get order. See details below.'
+				);
+			} );
+
+		return response.data;
+	},
+};
+
 const create = {
 	customer: async ( customer ) => {
 		let customerParams = {
@@ -80,6 +96,19 @@ const create = {
 
 		return response.data.id;
 	},
+	order: async ( order ) => {
+		const response = await api
+			.post( 'orders', order )
+			.then( ( response ) => response )
+			.catch( ( error ) => {
+				throwCustomError(
+					error,
+					'Failed to create order. See details below.'
+				);
+			} );
+
+		return response.data;
+	},
 };
 
 const update = {
@@ -107,6 +136,7 @@ const deletePost = {
 };
 
 module.exports = {
+	get,
 	create,
 	update,
 	deletePost,

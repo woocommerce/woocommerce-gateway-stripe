@@ -128,7 +128,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.4.0 - 2023-05-03 =
-* Fix - Issue processing renewals for subscriptions without parent orders.
+= 7.5.0 - 2023-xx-xx =
+* Fix - Make the gateway unavailable when using it in live mode without SSL.
+* Fix - Remove Stripe Link PRB when disabled from settings.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
