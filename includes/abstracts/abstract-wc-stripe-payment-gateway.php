@@ -1177,6 +1177,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				throw new WC_Stripe_Exception( __( "The retrieved source doesn't contain an ID.", 'woocommerce-gateway-stripe' ) );
 			}
 
+			// Non-reusable payment methods won't be attached.
+			if ( ! WC_Stripe_Helper::is_reusable_payment_method( $source_object ) ) {
+				throw new WC_Stripe_Exception(
+					__( "The provided payment method isn't reausable.", 'woocommerce-gateway-stripe' ) .
+					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
+					PHP_EOL . 'Source object: ' . print_r( $source_object, true )
+				);
+			}
+
 			// Now that we've got the source object, attach it to the user.
 			$this->save_payment_method( $source_object );
 
