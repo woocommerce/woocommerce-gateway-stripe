@@ -566,31 +566,35 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		$renewals = wcs_get_subscriptions_for_renewal_order( $order );
+
+		// Check if mandate already exists.
 		if ( 1 === count( $renewals ) ) {
-			$renewal_order   = reset( $renewals );
-			$parent_order_id = $renewal_order->get_parent_id();
-			$parent_order    = wc_get_order( $parent_order_id );
+			$renewal_order = reset( $renewals );
+			$mandate       = $this->get_mandate_from_previous_renewal( $renewal_order, $request['payment_method'] );
 
-			if ( $parent_order ) {
-				$mandate        = $parent_order->get_meta( '_stripe_mandate_id', true );
-				$renewal_amount = WC_Stripe_Helper::get_stripe_amount( $renewal_order->get_total() );
+			if ( ! empty( $mandate ) ) {
+				$request['confirm'] = 'true';
+				$request['mandate'] = $mandate;
+				unset( $request['setup_future_usage'] );
+				return $request;
+			}
+		}
 
-				if ( ! empty( $mandate ) ) {
-					$request['confirm'] = 'true';
-					$request['mandate'] = $mandate;
-					unset( $request['setup_future_usage'] );
-					return $request;
-				} elseif ( 0 !== $renewal_amount ) {
-					$request['payment_method_options']['card']['mandate_options']['amount_type']     = 'fixed';
-					$request['payment_method_options']['card']['mandate_options']['interval']        = $renewal_order->get_billing_period();
-					$request['payment_method_options']['card']['mandate_options']['interval_count']  = $renewal_order->get_billing_interval();
-					$request['payment_method_options']['card']['mandate_options']['amount']          = $renewal_amount;
-					$request['payment_method_options']['card']['mandate_options']['reference']       = $order->get_id();
-					$request['payment_method_options']['card']['mandate_options']['start_date']      = $renewal_order->get_time( 'start' );
-					$request['payment_method_options']['card']['mandate_options']['supported_types'] = [ 'india' ];
+		// Add mandate options to request to create new mandate if mandate id does not already exist in a previous renewal.
+		if ( ! empty( $renewals ) ) {
+			$renewal_order  = reset( $renewals );
+			$renewal_amount = WC_Stripe_Helper::get_stripe_amount( $renewal_order->get_total() );
 
-					return $request;
-				}
+			if ( 0 !== $renewal_amount ) {
+				$request['payment_method_options']['card']['mandate_options']['amount_type']     = 'fixed';
+				$request['payment_method_options']['card']['mandate_options']['interval']        = $renewal_order->get_billing_period();
+				$request['payment_method_options']['card']['mandate_options']['interval_count']  = $renewal_order->get_billing_interval();
+				$request['payment_method_options']['card']['mandate_options']['amount']          = $renewal_amount;
+				$request['payment_method_options']['card']['mandate_options']['reference']       = $order->get_id();
+				$request['payment_method_options']['card']['mandate_options']['start_date']      = $renewal_order->get_time( 'start' );
+				$request['payment_method_options']['card']['mandate_options']['supported_types'] = [ 'india' ];
+
+				return $request;
 			}
 		}
 
@@ -632,6 +636,37 @@ trait WC_Stripe_Subscriptions_Trait {
 		$request['payment_method_options']['card']['mandate_options']['supported_types'] = [ 'india' ];
 
 		return $request;
+	}
+
+	/**
+	 * Find the mandate id for a subscription renewal from a previous renewal order. Return the mandate id
+	 * if it exists and the amount matches the renewal order amount, return empty otherwise to indicate that a
+	 * new mandate should be created.
+	 *
+	 * @param WC_Order $order The current renewal order.
+	 * @return string the mandate id or empty string if no valid mandate id is found.
+	 */
+	public function get_mandate_from_previous_renewal( $order, $payment_method ) {
+		$order_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
+
+		$renewal_order_ids = $order->get_related_orders( 'ids', 'renewal' );
+		foreach ( $renewal_order_ids as $renewal_order_id ) {
+			$renewal_order                = wc_get_order( $renewal_order_id );
+			$mandate                      = $renewal_order->get_meta( '_stripe_mandate_id', true );
+			$renewal_order_amount         = WC_Stripe_Helper::get_stripe_amount( $renewal_order->get_total() );
+			$renewal_order_payment_method = $renewal_order->get_meta( '_stripe_source_id', true );
+
+			// Return from the most recent renewal order with a valid mandate. Mandate is created against a payment method
+			// and for a specific amount in Stripe so the payment method and amount should also match to reuse the mandate.
+			if ( ! empty( $mandate ) && $renewal_order_payment_method === $payment_method ) {
+				if ( $renewal_order_amount === $order_amount ) {
+					return $mandate;
+				} else {
+					return '';
+				}
+			}
+		}
+		return '';
 	}
 
 	/**
