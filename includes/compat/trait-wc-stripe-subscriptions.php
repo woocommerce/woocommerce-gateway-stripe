@@ -635,6 +635,9 @@ trait WC_Stripe_Subscriptions_Trait {
 		$request['payment_method_options']['card']['mandate_options']['start_date']      = $sub->get_time( 'start' );
 		$request['payment_method_options']['card']['mandate_options']['supported_types'] = [ 'india' ];
 
+		// Store the amount the mandate was created for parent order so we can check it against the renewal order amount.
+		$order->update_meta_data( '_stripe_mandate_created_for_amount', $sub_amount );
+
 		return $request;
 	}
 
@@ -647,19 +650,27 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @return string the mandate id or empty string if no valid mandate id is found.
 	 */
 	public function get_mandate_from_previous_renewal( $order, $payment_method ) {
-		$order_amount = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
+		$parent_order_id   = $order->get_parent_id();
+		$order_amount      = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
+		$renewal_order_ids = $order->get_related_orders( 'ids' );
 
-		$renewal_order_ids = $order->get_related_orders( 'ids', 'renewal' );
 		foreach ( $renewal_order_ids as $renewal_order_id ) {
 			$renewal_order                = wc_get_order( $renewal_order_id );
 			$mandate                      = $renewal_order->get_meta( '_stripe_mandate_id', true );
 			$renewal_order_amount         = WC_Stripe_Helper::get_stripe_amount( $renewal_order->get_total() );
 			$renewal_order_payment_method = $renewal_order->get_meta( '_stripe_source_id', true );
 
+			// If it is the parent order then get the order amount without the signup fee.
+			if ( $parent_order_id === $renewal_order_id ) {
+				$parent_order         = wc_get_order( $parent_order_id );
+				$renewal_order_amount = $parent_order->get_meta( '_stripe_mandate_created_for_amount', true );
+			}
+
 			// Return from the most recent renewal order with a valid mandate. Mandate is created against a payment method
 			// and for a specific amount in Stripe so the payment method and amount should also match to reuse the mandate.
 			if ( ! empty( $mandate ) && $renewal_order_payment_method === $payment_method ) {
-				if ( $renewal_order_amount === $order_amount ) {
+				// phpcs:ignore
+				if ( $renewal_order_amount == $order_amount ) {
 					return $mandate;
 				} else {
 					return '';
