@@ -534,7 +534,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		}
 
 		if ( isset( $response->payment_method_details->card->mandate ) ) {
-			add_mandate_to_order_meta( $order, $response->payment_method_details->card->mandate );
+			$order->update_meta_data( '_stripe_mandate_id', $response->payment_method_details->card->mandate );
 		}
 
 		if ( 'yes' === $captured ) {
@@ -586,35 +586,6 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		do_action( 'wc_gateway_stripe_process_response', $response, $order );
 
 		return $response;
-	}
-
-	/**
-	 * Adds the mandate id to the order or parent order in case of renewal.
-	 *
-	 * @param object $order
-	 * @return null
-	 */
-	public function add_mandate_to_order_meta( $order, $mandate_id ) {
-		$save_mandate_in_order = true;
-		if ( $this->is_payment_recurring( $order->get_id() ) ) {
-			$renewals = wcs_get_subscriptions_for_renewal_order( $order );
-
-			if ( ! empty( $renewals ) ) {
-				$renewal_order   = reset( $renewals );
-				$parent_order_id = $renewal_order->get_parent_id();
-				$parent_order    = wc_get_order( $parent_order_id );
-
-				if ( $parent_order ) {
-					$save_mandate_in_order = false;
-					$parent_order->update_meta_data( '_stripe_mandate_id', $mandate_id );
-					$parent_order->save();
-				}
-			}
-		}
-
-		if ( $save_mandate_in_order ) {
-			$order->update_meta_data( '_stripe_mandate_id', $mandate_id );
-		}
 	}
 
 	/**
@@ -1553,7 +1524,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$charge = $this->get_latest_charge_from_intent( $intent );
 
 		if ( isset( $charge->payment_method_details->card->mandate ) ) {
-			add_mandate_to_order_meta( $order, $charge->payment_method_details->card->mandate );
+			$order->update_meta_data( '_stripe_mandate_id', $charge->payment_method_details->card->mandate );
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
