@@ -83,6 +83,10 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return;
 			}
 
+			if ( ! current_user_can( 'manage_woocommerce' ) ) {
+				return;
+			}
+
 			// redirect from oauth-init
 			if ( isset( $_GET['wcs_stripe_code'], $_GET['wcs_stripe_state'] ) ) {
 
