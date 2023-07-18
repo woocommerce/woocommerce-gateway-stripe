@@ -88,7 +88,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 	 * @return void
 	 */
 	public function update_unique_settings( WP_REST_Request $request ) {
-		$field_name  = $this->id . '_expiration';
+		$field_name = $this->id . '_expiration';
 		$expiration = $request->get_param( $field_name );
 
 		if ( null === $expiration ) {
@@ -123,7 +123,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 	 * @since 5.8.0
 	 */
 	public function payment_scripts() {
-		if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() ) {
+		if ( ! is_cart() && ! is_checkout() && ! parent::is_valid_pay_for_order_endpoint() && ! is_add_payment_method_page() ) {
 			return;
 		}
 
@@ -138,14 +138,14 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 	 */
 	public function payment_fields() {
 		$description = $this->get_description();
-		apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $description ) ), $this->id )
+		apply_filters( 'wc_stripe_description', wp_kses_post( $description ), $this->id )
 
 		?>
 		<label>CPF/CNPJ: <abbr class="required" title="required">*</abbr></label><br>
 		<input id="stripe_boleto_tax_id" name="stripe_boleto_tax_id" type="text"><br><br>
 		<div class="stripe-source-errors" role="alert"></div>
 
-		<div id="stripe-boleto-payment-data"><?php echo $description; ?></div>
+		<div id="stripe-boleto-payment-data"><?php echo wpautop( esc_html( $description ) ); ?></div>
 		<?php
 	}
 

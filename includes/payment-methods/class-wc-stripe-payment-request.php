@@ -439,8 +439,8 @@ class WC_Stripe_Payment_Request {
 
 		$data['displayItems'] = $items;
 		$data['total']        = [
-			'label'   => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
-			'amount'  => WC_Stripe_Helper::get_stripe_amount( $this->get_product_price( $product ) ),
+			'label'  => apply_filters( 'wc_stripe_payment_request_total_label', $this->total_label ),
+			'amount' => WC_Stripe_Helper::get_stripe_amount( $this->get_product_price( $product ) ),
 		];
 
 		$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() && 0 !== wc_get_shipping_method_count( true ) );
@@ -786,7 +786,7 @@ class WC_Stripe_Payment_Request {
 	private function is_page_supported() {
 		return $this->is_product()
 			|| WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
-			|| isset( $_GET['pay_for_order'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			|| is_wc_endpoint_url( 'order-pay' );
 	}
 
 	/**
@@ -815,10 +815,7 @@ class WC_Stripe_Payment_Request {
 			<div id="wc-stripe-payment-request-button">
 				<?php
 				if ( $this->is_custom_button() ) {
-					$label      = esc_html( $this->get_button_label() );
-					$class_name = esc_attr( 'button ' . $this->get_button_theme() );
-					$style      = esc_attr( 'height:' . $this->get_button_height() . 'px;' );
-					echo "<button id=\"wc-stripe-custom-button\" class=\"$class_name\" style=\"$style\"> $label </button>";
+					echo '<button id="wc-stripe-custom-button" class="' . esc_attr( 'button ' . $this->get_button_theme() ) . '" style="' . esc_attr( 'height:' . $this->get_button_height() . 'px;' ) . '"> ' . esc_html( $this->get_button_label() ) . ' </button>';
 				}
 				?>
 				<!-- A Stripe Element will be inserted here. -->
@@ -840,7 +837,7 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		if ( ! is_cart() && ! is_checkout() && ! $this->is_product() && ! isset( $_GET['pay_for_order'] ) ) {
+		if ( ! is_cart() && ! is_checkout() && ! $this->is_product() && ! is_wc_endpoint_url( 'order-pay' ) ) {
 			return;
 		}
 
@@ -1302,8 +1299,8 @@ class WC_Stripe_Payment_Request {
 
 			$data['displayItems'] = $items;
 			$data['total']        = [
-				'label'   => $this->total_label,
-				'amount'  => WC_Stripe_Helper::get_stripe_amount( $total ),
+				'label'  => $this->total_label,
+				'amount' => WC_Stripe_Helper::get_stripe_amount( $total ),
 			];
 
 			$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() );
@@ -1861,7 +1858,7 @@ class WC_Stripe_Payment_Request {
 
 		return [
 			'message'      => $message,
-			'redirect_url' => $redirect_url,
+			'redirect_url' => wp_sanitize_redirect( esc_url_raw( $redirect_url ) ),
 		];
 	}
 
