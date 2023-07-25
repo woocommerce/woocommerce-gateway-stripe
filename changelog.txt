@@ -7,6 +7,7 @@
 * Fix - Remove Stripe Link PRB when disabled from settings.
 * Fix - Lookup existing refunds by refund ID when processing webhooks.
 * Fix - Exclude Link from disable UPE confirmation modal in settings.
+* Fix - Resolved an issue that prevented customers using saved `card_` prefixed payment methods on checkout.
 
 = 7.4.1 - 2023-05-30 =
 * Fix - Add Order Key Validation.
