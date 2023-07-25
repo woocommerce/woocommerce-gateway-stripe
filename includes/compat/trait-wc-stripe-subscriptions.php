@@ -592,6 +592,10 @@ trait WC_Stripe_Subscriptions_Trait {
 			$sub_amount += WC_Stripe_Helper::get_stripe_amount( $sub->get_total() );
 		}
 
+		if ( 0 === $sub_amount ) {
+			return $request;
+		}
+
 		// Get the first subscription associated with this order.
 		$sub = reset( $subscriptions );
 
