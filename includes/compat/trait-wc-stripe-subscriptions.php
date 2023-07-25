@@ -227,7 +227,7 @@ trait WC_Stripe_Subscriptions_Trait {
 						[
 							'stripe_sca_required' => true,
 							'intent_secret'       => $response['payment_intent_secret'],
-							'redirect_url'        => $verification_url,
+							'redirect_url'        => wp_sanitize_redirect( esc_url_raw( $verification_url ) ),
 						]
 					);
 
@@ -663,7 +663,7 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		// If we couldn't find a Stripe customer linked to the account, fallback to the order meta data.
 		if ( ( ! $stripe_customer_id || ! is_string( $stripe_customer_id ) ) && false !== $subscription->get_parent() ) {
-			$parent_order = wc_get_order( $subscription->get_parent_id() );
+			$parent_order       = wc_get_order( $subscription->get_parent_id() );
 			$stripe_customer_id = $parent_order->get_meta( '_stripe_customer_id', true );
 			$stripe_source_id   = $parent_order->get_meta( '_stripe_source_id', true );
 

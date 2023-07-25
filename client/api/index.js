@@ -301,38 +301,6 @@ export default class WCStripeAPI {
 	}
 
 	/**
-	 * Saves the calculated UPE appearance values in a transient.
-	 *
-	 * @param {Object} appearance The UPE appearance object with style values
-	 * @param {boolean} isBlocksCheckout True if save request is for Blocks Checkout. Default false.
-	 *
-	 * @return {Promise} The final promise for the request to the server.
-	 */
-	saveUPEAppearance( appearance, isBlocksCheckout = false ) {
-		return this.request( this.getAjaxUrl( 'save_upe_appearance' ), {
-			is_blocks_checkout: isBlocksCheckout,
-			appearance: JSON.stringify( appearance ),
-			_ajax_nonce: this.options?.saveUPEAppearanceNonce,
-		} )
-			.then( ( response ) => {
-				if ( response.result === 'failure' ) {
-					throw new Error( response.messages );
-				}
-				return response;
-			} )
-			.catch( ( error ) => {
-				if ( error.message ) {
-					throw error;
-				} else {
-					// Covers the case of error on the Ajax request.
-					throw new Error(
-						this.getFriendlyErrorMessage( error.statusText )
-					);
-				}
-			} );
-	}
-
-	/**
 	 * Process checkout and update payment intent via AJAX.
 	 *
 	 * @param {string} paymentIntentId ID of payment intent to be updated.
@@ -366,7 +334,7 @@ export default class WCStripeAPI {
 	 * Updates order status, if there is an error while confirming intent.
 	 *
 	 * @param {string} intentId The id of the Payment/Setup Intent.
-	 * @param {number} orderId The id of the WC_Order..
+	 * @param {number} orderId The id of the WC_Order.
 	 */
 	updateFailedOrder( intentId, orderId ) {
 		this.request( this.getAjaxUrl( 'update_failed_order' ), {
