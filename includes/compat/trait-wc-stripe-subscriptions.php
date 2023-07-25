@@ -559,7 +559,6 @@ trait WC_Stripe_Subscriptions_Trait {
 		// If we've already created a mandate for this order; use that.
 		$mandate = $order->get_meta( '_stripe_mandate_id', true );
 		if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOL ) && ! empty( $mandate ) ) {
-			$request['confirm'] = 'true';
 			$request['mandate'] = $mandate;
 			unset( $request['setup_future_usage'] );
 			return $request;
@@ -570,7 +569,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		// Check if mandate already exists.
 		if ( 1 === count( $renewals ) ) {
 			$renewal_order = reset( $renewals );
-			$mandate       = $this->get_mandate_from_previous_renewal( $renewal_order, $request['payment_method'] );
+			$mandate       = $this->get_mandate_from_previous_renewal( $renewal_order, isset( $request['payment_method'] ) ? $request['payment_method'] : '' );
 
 			if ( ! empty( $mandate ) ) {
 				$request['confirm'] = 'true';
