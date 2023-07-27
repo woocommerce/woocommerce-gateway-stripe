@@ -692,7 +692,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( 'requires_payment_method' === $intent->status && isset( $intent->last_payment_error )
-			 && 'authentication_required' === $intent->last_payment_error->code ) {
+			&& 'authentication_required' === $intent->last_payment_error->code ) {
 			$level3_data = $this->get_level3_data_from_order( $order );
 			$intent      = WC_Stripe_API::request_with_level3_data(
 				[
@@ -724,7 +724,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
 		}
 		if ( ! isset( $this->order_pay_intent ) ) {
-			$this->prepare_intent_for_order_pay_page( $order );
+			try {
+				$this->prepare_intent_for_order_pay_page( $order );
+			} catch ( WC_Stripe_Exception $e ) {
+				WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			}
 		}
 
 		$verification_url = add_query_arg(

@@ -790,8 +790,12 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			return $notification->data->object->refunds->data[0];
 		}
 
-		$charge = $this->get_charge_object( $notification->data->object->id, [ 'expand' => [ 'refunds' ] ] );
-		return $charge->refunds->data[0];
+		try {
+			$charge = $this->get_charge_object( $notification->data->object->id, [ 'expand' => [ 'refunds' ] ] );
+			return $charge->refunds->data[0];
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+		}
 	}
 
 	/**
