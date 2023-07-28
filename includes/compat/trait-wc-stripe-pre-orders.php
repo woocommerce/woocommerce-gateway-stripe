@@ -126,8 +126,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 	public function maybe_process_pre_orders( $order_id ) {
 		return (
 			$this->has_pre_order( $order_id ) &&
-			WC_Pre_Orders_Order::order_requires_payment_tokenization( $order_id ) &&
-			! is_wc_endpoint_url( 'order-pay' )
+			WC_Pre_Orders_Order::order_requires_payment_tokenization( $order_id )
 		);
 	}
 
