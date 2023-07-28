@@ -454,10 +454,7 @@ jQuery( function ( $ ) {
 				).val();
 
 				if ( upeType !== 'boleto' && upeType !== 'oxxo' ) {
-					await api.updateFailedOrder(
-						paymentIntentId,
-						orderId
-					);
+					await api.updateFailedOrder( paymentIntentId, orderId );
 				}
 
 				throw error;

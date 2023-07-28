@@ -15,6 +15,7 @@ dotenv.config( {
 import { user } from '.';
 
 const {
+	ADMIN_USER,
 	E2E_ROOT,
 	PLUGIN_REPOSITORY,
 	PLUGIN_VERSION,
@@ -127,6 +128,60 @@ export const createApiTokens = ( page ) =>
 				} catch ( e ) {
 					console.log(
 						`Failed to add consumer token. Retrying... ${ i }/${ nRetries }`
+					);
+					console.log( e );
+				}
+			}
+			reject();
+		} )();
+	} );
+
+/**
+ * Helper function to check the version of WC Blocks
+ * and save it to the WC_BLOCKS_VERSION env variable.
+ * This function is used when the admin user is already logged in.
+ * @param {Page} page Playwright page object.
+ * @return {Promise} Promise object represents the state of the operation.
+ */
+export const checkWooGutenbergProductsBlockVersion = ( page ) =>
+	new Promise( ( resolve, reject ) => {
+		( async () => {
+			const nRetries = 5;
+			for ( let i = 0; i < nRetries; i++ ) {
+				try {
+					console.log( '- Trying to check WC Blocks version...' );
+					await page.goto( `/wp-admin/admin.php?page=wc-status` );
+
+					await page.waitForSelector(
+						'td[data-export-label="WC Blocks Version"]'
+					);
+
+					// Use $eval to find the table cell with data-export-label="WC Blocks Version" and extract the text.
+					const versionElement = await page.$eval(
+						'td[data-export-label="WC Blocks Version"] + td + td',
+						( el ) => el.innerText
+					);
+
+					// Split and get the version number. Assuming the version text is formatted like: "9.8.2 /some/path/to/version"
+					const versionNumber = versionElement
+						.trim()
+						.split( ' ' )[ 0 ];
+
+					if ( isNaN( parseFloat( versionNumber ) ) ) {
+						throw new Error(
+							`Failed to parse WC Blocks version number. Got: ${ versionElement }`
+						);
+					}
+
+					process.env.WC_BLOCKS_VERSION = versionNumber;
+					console.log(
+						`\u2714 Checked WC Blocks version successfully. The version is ${ versionNumber }.`
+					);
+					resolve();
+					return;
+				} catch ( e ) {
+					console.log(
+						`Failed to check WC Blocks version. Retrying... ${ i }/${ nRetries }`
 					);
 					console.log( e );
 				}
@@ -343,6 +398,7 @@ export const setupWoo = async () => {
 		'wp config set WP_DEBUG false --raw',
 		'wp plugin install woocommerce --force --activate',
 		'wp plugin install woocommerce-gateway-stripe --activate',
+		'wp plugin install disable-emails --activate', // Disable emails to avoid spamming the store owner.
 		'wp theme install storefront --activate',
 		'wp option set woocommerce_store_address "60 29th Street"',
 		'wp option set woocommerce_store_address_2 "#343"',
@@ -352,12 +408,12 @@ export const setupWoo = async () => {
 		'wp option set woocommerce_currency "USD"',
 		'wp option set woocommerce_product_type "both"',
 		'wp option set woocommerce_allow_tracking "no"',
-		'wp wc --user=admin tool run install_pages',
+		`wp wc --user=${ ADMIN_USER } tool run install_pages`,
 		'wp plugin install wordpress-importer --activate',
 		'wp import wp-content/plugins/woocommerce/sample-data/sample_products.xml --authors=skip',
-		`wp wc shipping_zone create --name="Everywhere" --order=1 --user=admin`,
-		`wp wc shipping_zone_method create 1 --method_id="flat_rate" --user=admin`,
-		`wp wc shipping_zone_method create 1 --method_id="free_shipping" --user=admin`,
+		`wp wc shipping_zone create --name="Everywhere" --order=1 --user=${ ADMIN_USER }`,
+		`wp wc shipping_zone_method create 1 --method_id="flat_rate" --user=${ ADMIN_USER }`,
+		`wp wc shipping_zone_method create 1 --method_id="free_shipping" --user=${ ADMIN_USER }`,
 		`wp option update --format=json woocommerce_flat_rate_1_settings '{"title":"Flat rate","tax_status":"taxable","cost":"10"}'`,
 		`wp post create --post_type=page --post_title='Cart Block' --post_name='cart-block' --post_status=publish --page_template='template-fullwidth.php' --post_content='${ cartBlockPostContent }'`,
 		`wp post create --post_type=page --post_title='Checkout Block' --post_name='checkout-block' --post_status=publish --page_template='template-fullwidth.php' --post_content='${ checkoutBlockPostContent }'`,

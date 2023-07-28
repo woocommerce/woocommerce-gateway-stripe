@@ -36,28 +36,56 @@ export async function emptyCart( page ) {
  * @param {Object} card The CC info in the format provided on the test-data.
  */
 export async function fillCardDetails( page, card ) {
+	let isUpe = await isUpeCheckout( page );
+
 	// blocks checkout
-	if ( await page.$( '.wc-block-card-elements' ) ) {
-		await page
-			.frameLocator( '#wc-stripe-card-number-element iframe' )
-			.locator( 'input[name="cardnumber"]' )
-			.fill( card.number );
-		await page
-			.frameLocator( '#wc-stripe-card-expiry-element iframe' )
-			.locator( 'input[name="exp-date"]' )
-			.fill( card.expires.month + card.expires.year );
-		await page
-			.frameLocator( '#wc-stripe-card-code-element iframe' )
-			.locator( 'input[name="cvc"]' )
-			.fill( card.cvc );
-		return;
+	if ( await page.$( '.wc-block-checkout' ) ) {
+		if ( ! isUpe ) {
+			await page
+				.frameLocator( '#wc-stripe-card-number-element iframe' )
+				.locator( 'input[name="cardnumber"]' )
+				.fill( card.number );
+			await page
+				.frameLocator( '#wc-stripe-card-expiry-element iframe' )
+				.locator( 'input[name="exp-date"]' )
+				.fill( card.expires.month + card.expires.year );
+			await page
+				.frameLocator( '#wc-stripe-card-code-element iframe' )
+				.locator( 'input[name="cvc"]' )
+				.fill( card.cvc );
+			return;
+		} else {
+			await page
+				.frameLocator(
+					'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
+				)
+				.locator( '[name="number"]' )
+				.fill( card.number );
+			await page
+				.frameLocator(
+					'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
+				)
+				.locator( '[name="expiry"]' )
+				.fill( card.expires.month + card.expires.year );
+			await page
+				.frameLocator(
+					'.wc-block-gateway-container iframe[name^="__privateStripeFrame"]'
+				)
+				.locator( '[name="cvc"]' )
+				.fill( card.cvc );
+			return;
+		}
 	}
 
 	// regular checkout
-	if ( await page.$( '#payment #stripe-upe-element' ) ) {
+	if ( isUpe ) {
 		const frameHandle = await page.waitForSelector(
-			'#payment #stripe-upe-element iframe'
+			'#payment #wc-stripe-upe-element iframe'
 		);
+
+		page.locator(
+			'#payment #wc-stripe-upe-element iframe'
+		).scrollIntoViewIfNeeded();
 
 		const stripeFrame = await frameHandle.contentFrame();
 
@@ -87,6 +115,32 @@ export async function fillCardDetails( page, card ) {
 			.locator( '[name="cvc"]' )
 			.fill( card.cvc );
 	}
+}
+
+/**
+ * Checks if the checkout is using the UPE.
+ * @param {Page} page Playwright page fixture.
+ * @returns {boolean} True if the checkout is using the UPE, false otherwise.
+ */
+export async function isUpeCheckout( page ) {
+	// blocks checkout
+	if ( await page.$( '.wc-block-checkout' ) ) {
+		try {
+			await page.waitForSelector(
+				'#wc-stripe-card-expiry-element iframe',
+				{
+					timeout: 5000,
+				}
+			);
+			return false;
+		} catch ( e ) {
+			// If the card elements are not present, we assume the checkout is using the UPE.
+			return true;
+		}
+	}
+
+	// regular checkout
+	return Boolean( await page.$( '#payment #wc-stripe-upe-form' ) );
 }
 
 /**
@@ -182,22 +236,31 @@ export async function setupCheckout( page, billingDetails = null ) {
 export async function setupBlocksCheckout( page, billingDetails = null ) {
 	await page.goto( '/checkout-block/' );
 
+	const fieldNameLabelMap = {
+		first_name: 'First name',
+		last_name: 'Last name',
+		address_1: 'Address',
+		address_2: 'Apartment, suite, etc. (optional)',
+		city: 'City',
+		postcode: 'ZIP Code',
+		phone: 'Phone (optional)',
+		email: 'Email address',
+	};
+
 	if ( billingDetails ) {
 		await page
-			.locator( '#billing-country input[type="text"]' )
+			.getByLabel( 'Country/Region' )
 			.fill( billingDetails[ 'country' ] );
 		await page
 			.locator(
-				'#billing-country .components-form-token-field__suggestions-list > li:first-child'
+				'.components-form-token-field__suggestions-list > li:first-child'
 			)
 			.click();
 
-		await page
-			.locator( '#billing-state input[type="text"]' )
-			.fill( billingDetails[ 'state' ] );
+		await page.getByLabel( 'State' ).fill( billingDetails[ 'state' ] );
 		await page
 			.locator(
-				'#billing-state .components-form-token-field__suggestions-list > li:first-child'
+				'.components-form-token-field__suggestions-list > li:first-child'
 			)
 			.click();
 
@@ -213,14 +276,8 @@ export async function setupBlocksCheckout( page, billingDetails = null ) {
 			) {
 				continue;
 			}
-			if ( [ 'email' ].includes( fieldName ) ) {
-				await page
-					.locator( `#${ fieldName }` )
-					.fill( billingDetails[ fieldName ] );
-				continue;
-			}
 			await page
-				.locator( `#billing-${ fieldName }` )
+				.getByLabel( fieldNameLabelMap[ fieldName ], { exact: true } )
 				.fill( billingDetails[ fieldName ] );
 		}
 	}

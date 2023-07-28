@@ -6,7 +6,7 @@ on:
 jobs:
   test:
     name:    JS testing
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       # clone the repository
       - uses: actions/checkout@v2
