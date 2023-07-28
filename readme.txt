@@ -128,8 +128,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.1.2 - 2023-06-07 =
+= 7.1.2 - 2023-08-01 =
 * Fix - Add order key validation for UPE.
+* Fix - Enhance query parameters validation in redirected requests.
 
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
