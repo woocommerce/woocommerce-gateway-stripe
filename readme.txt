@@ -131,5 +131,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 7.5.0 - 2023-xx-xx =
 * Fix - Make the gateway unavailable when using it in live mode without SSL.
 * Fix - Remove Stripe Link PRB when disabled from settings.
+* Fix - Set failed order as pre order
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

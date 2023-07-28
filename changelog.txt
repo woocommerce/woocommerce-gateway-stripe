@@ -7,6 +7,7 @@
 * Fix - Remove Stripe Link PRB when disabled from settings.
 * Fix - Lookup existing refunds by refund ID when processing webhooks.
 * Fix - Exclude Link from disable UPE confirmation modal in settings.
+* Fix - Set failed order as pre order
 
 = 7.4.0 - 2023-05-03 =
 * Fix - Issue processing renewals for subscriptions without parent orders.
