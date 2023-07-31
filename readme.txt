@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.4.2 - 2023-08-01 =
+= 7.4.2 - 2023-07-31 =
 * Fix - Add order key validation for UPE.
 * Fix - Enhance query parameters validation in redirected requests.
 * Fix - Resolved an issue with orders getting stuck on Pending Payment status when UPE is enabled and customer creates account during checkout.
