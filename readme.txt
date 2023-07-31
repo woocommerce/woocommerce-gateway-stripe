@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 6.4.5 - 2023-08-01 =
+= 6.4.5 - 2023-07-31 =
 * Fix - Add order key validation for UPE.
 * Fix - Enhance query parameters validation in redirected requests.
 
