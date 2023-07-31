@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 5.9
 Tested up to: 6.1.1
 Requires PHP: 7.3
-Stable tag: 7.4.0
+Stable tag: 7.4.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -131,5 +131,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 7.5.0 - 2023-xx-xx =
 * Fix - Make the gateway unavailable when using it in live mode without SSL.
 * Fix - Remove Stripe Link PRB when disabled from settings.
+* Fix - Fix JS (ES5) compatibility on older browsers for the shortcode checkout.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

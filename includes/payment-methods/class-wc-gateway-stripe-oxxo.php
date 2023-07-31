@@ -78,11 +78,11 @@ class WC_Gateway_Stripe_Oxxo extends WC_Stripe_Payment_Gateway_Voucher {
 	 */
 	public function payment_fields() {
 		$description = $this->get_description();
-		apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $description ) ), $this->id )
+		apply_filters( 'wc_stripe_description', wp_kses_post( $description ), $this->id )
 		?>
 		<div class="stripe-source-errors" role="alert"></div>
 
-		<div id="stripe-boleto-payment-data"><?php echo $description; ?></div>
+		<div id="stripe-boleto-payment-data"><?php echo wpautop( esc_html( $description ) ); ?></div>
 		<?php
 	}
 

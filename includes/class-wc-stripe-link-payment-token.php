@@ -28,7 +28,7 @@ class WC_Payment_Token_Link extends WC_Payment_Token {
 	 * @var array
 	 */
 	protected $extra_data = [
-		'email'  => '',
+		'email' => '',
 	];
 
 	/**

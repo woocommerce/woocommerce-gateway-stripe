@@ -184,17 +184,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		global $wp;
 		$user                 = wp_get_current_user();
 		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
-		$total                = WC()->cart->total;
 		$user_email           = '';
 		$description          = $this->get_description();
 		$description          = ! empty( $description ) ? $description : '';
 		$firstname            = '';
 		$lastname             = '';
 
-		// If paying from order, we need to get total from order not cart.
-		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) { // wpcs: csrf ok.
-			$order      = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) ); // wpcs: csrf ok, sanitization ok.
-			$total      = $order->get_total();
+		// If paying for order, we need to get email from the order not the user account.
+		if ( parent::is_valid_pay_for_order_endpoint() ) {
+			$order      = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) );
 			$user_email = $order->get_billing_email();
 		} else {
 			if ( $user->ID ) {
@@ -449,7 +447,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 						return [
 							'result'   => 'success',
-							'redirect' => $redirect_url,
+							'redirect' => wp_sanitize_redirect( esc_url_raw( $redirect_url ) ),
 						];
 					} else {
 						/**
@@ -811,14 +809,22 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$verification_url = add_query_arg( $query_params, WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' ) );
 
 		if ( isset( $result['payment_intent_secret'] ) ) {
-			$redirect = sprintf( '#confirm-pi-%s:%s', $result['payment_intent_secret'], rawurlencode( $verification_url ) );
+			$redirect_signature = sprintf(
+				'#confirm-pi-%s:%s',
+				$result['payment_intent_secret'],
+				rawurlencode( wp_sanitize_redirect( esc_url_raw( $verification_url ) ) )
+			);
 		} elseif ( isset( $result['setup_intent_secret'] ) ) {
-			$redirect = sprintf( '#confirm-si-%s:%s', $result['setup_intent_secret'], rawurlencode( $verification_url ) );
+			$redirect_signature = sprintf(
+				'#confirm-si-%s:%s',
+				$result['setup_intent_secret'],
+				rawurlencode( wp_sanitize_redirect( esc_url_raw( $verification_url ) ) )
+			);
 		}
 
 		return [
 			'result'   => 'success',
-			'redirect' => $redirect,
+			'redirect' => $redirect_signature, // This signature will be used by JS to redirect to the proper URL.
 		];
 	}
 
@@ -944,7 +950,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		if ( isset( $_GET['wc-stripe-confirmation'] ) && isset( $wp->query_vars['order-pay'] ) && $wp->query_vars['order-pay'] == $order->get_id() ) {
 			$pay_url = add_query_arg( 'wc-stripe-confirmation', 1, $pay_url );
 		}
-		return $pay_url;
+		return esc_url_raw( $pay_url );
 	}
 
 	/**
