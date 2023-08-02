@@ -325,6 +325,10 @@ class WC_Stripe_API {
 	 * @throws WC_Stripe_Exception
 	 */
 	public static function detach_payment_method_from_customer( string $customer_id, string $payment_method_id ) {
+		if ( ! self::should_detach_payment_method_from_customer() ) {
+			return [];
+		}
+
 		$payment_method_id = sanitize_text_field( $payment_method_id );
 
 		// Sources and Payment Methods need different API calls.
@@ -340,5 +344,28 @@ class WC_Stripe_API {
 			[],
 			'payment_methods/' . $payment_method_id . '/detach'
 		);
+	}
+
+	/**
+	 * Check if we should detaches a payment method from the given customer.
+	 *
+	 * @param string $customer_id        The ID of the customer that contains the payment method that should be detached.
+	 * @param string $payment_method_id  The ID of the payment method that should be detached.
+	 *
+	 * @return bool  True if we should detach the payment method, false otherwise.
+	 */
+	public static function should_detach_payment_method_from_customer() {
+		$options   = get_option( 'woocommerce_stripe_settings' );
+		$test_mode = isset( $options['testmode'] ) && 'yes' === $options['testmode'];
+
+		if ( $test_mode ) {
+			return true;
+		}
+
+		if ( 'staging' === wp_get_environment_type() && is_admin() ) {
+			return false;
+		}
+
+		return true;
 	}
 }
