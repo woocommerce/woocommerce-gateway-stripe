@@ -519,9 +519,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 	/**
 	 * Store extra meta data for an order from a Stripe Response.
+	 *
+	 * @throws WC_Stripe_Exception
 	 */
 	public function process_response( $response, $order ) {
 		WC_Stripe_Logger::log( 'Processing response: ' . print_r( $response, true ) );
+
+		$potential_order = WC_Stripe_Helper::get_order_by_charge_id( $response->id );
+		if ( $potential_order && $potential_order->get_id() !== $order->get_id() ) {
+			WC_Stripe_Logger::log( 'Aborting, transaction already consumed by another order.' );
+			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
+			throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+		}
 
 		$order_id = $order->get_id();
 		$captured = ( isset( $response->captured ) && $response->captured ) ? 'yes' : 'no';
@@ -1759,6 +1768,69 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Checks if the current page is the pay for order page and the current user is allowed to pay for the order.
+	 *
+	 * @return bool
+	 */
+	public function is_valid_pay_for_order_endpoint(): bool {
+
+		// If not on the pay for order page, return false.
+		if ( ! is_wc_endpoint_url( 'order-pay' ) || ! isset( $_GET['key'] ) ) {
+			return false;
+		}
+
+		$order_id = wc_get_order_id_by_order_key( wc_clean( wp_unslash( $_GET['key'] ) ) );
+
+		// If the order ID is not found or the order ID does not match the order ID in the URL, return false.
+		if ( ! $order_id || ( absint( get_query_var( 'order-pay' ) ) !== absint( $order_id ) ) ) {
+			return false;
+		}
+
+		$order = wc_get_order( $order_id );
+
+		// If the order doesn't need payment, we don't need to prepare the payment page.
+		if ( ! $order->needs_payment() ) {
+			return false;
+		}
+
+		return current_user_can( 'pay_for_order', $order->get_id() );
+	}
+
+	/**
+	 * Checks if the current page is the order received page and the current user is allowed to manage the order.
+	 *
+	 * @return bool
+	 */
+	public function is_valid_order_received_endpoint(): bool {
+		// Verify nonce. Duplicated here in order to avoid PHPCS warnings.
+		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( wc_clean( wp_unslash( $_GET['_wpnonce'] ) ), 'wc_stripe_process_redirect_order_nonce' ) ) {
+			return false;
+		}
+
+		// If not on the order-received page, return false.
+		if ( ! is_wc_endpoint_url( 'order-received' ) || ! isset( $_GET['key'] ) ) {
+			return false;
+		}
+
+		$order_id_from_order_key = absint( wc_get_order_id_by_order_key( wc_clean( wp_unslash( $_GET['key'] ) ) ) );
+		$order_id_from_query_var = isset( $_GET['order_id'] ) ? absint( wp_unslash( $_GET['order_id'] ) ) : null;
+
+		// If the order ID is not found or the order ID does not match the given order ID, return false.
+		if ( ! $order_id_from_order_key || ( $order_id_from_query_var !== $order_id_from_order_key ) ) {
+			return false;
+		}
+
+		$order = wc_get_order( $order_id_from_order_key );
+
+		// If the order doesn't need payment, return false.
+		if ( ! $order->needs_payment() ) {
+			return false;
+		}
+
+		return current_user_can( 'pay_for_order', $order->get_id() );
+	}
+
+	/**
 	 * Gets a localized message for an error from a response, adds it as a note to the order, and throws it.
 	 *
 	 * @since 4.2.0
@@ -1807,7 +1879,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if (
 			! is_product()
 			&& ! WC_Stripe_Helper::has_cart_or_checkout_on_current_page()
-			&& ! isset( $_GET['pay_for_order'] ) // wpcs: csrf ok.
+			&& ! $this->is_valid_pay_for_order_endpoint()
 			&& ! is_add_payment_method_page()
 			&& ! isset( $_GET['change_payment_method'] ) // wpcs: csrf ok.
 			&& ! ( ! empty( get_query_var( 'view-subscription' ) ) && is_callable( 'WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled' ) && WCS_Early_Renewal_Manager::is_early_renewal_via_modal_enabled() )
@@ -1881,8 +1953,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		];
 
 		// If we're on the pay page we need to pass stripe.js the address of the order.
-		if ( isset( $_GET['pay_for_order'] ) && 'true' === $_GET['pay_for_order'] ) { // wpcs: csrf ok.
-			$order_id = wc_clean( $wp->query_vars['order-pay'] ); // wpcs: csrf ok, sanitization ok, xss ok.
+		if ( $this->is_valid_pay_for_order_endpoint() ) {
+			$order_id = absint( get_query_var( 'order-pay' ) );
 			$order    = wc_get_order( $order_id );
 
 			if ( is_a( $order, 'WC_Order' ) ) {

@@ -362,7 +362,11 @@ class WC_Stripe_Helper {
 	 * @return string
 	 */
 	public static function get_webhook_url() {
-		return add_query_arg( 'wc-api', 'wc_stripe', trailingslashit( get_home_url() ) );
+		return wp_sanitize_redirect(
+			esc_url_raw(
+				add_query_arg( 'wc-api', 'wc_stripe', trailingslashit( get_home_url() ) )
+			)
+		);
 	}
 
 	/**
@@ -423,6 +427,39 @@ class WC_Stripe_Helper {
 			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
 		} else {
 			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $charge_id, '_transaction_id' ) );
+		}
+
+		if ( ! empty( $order_id ) ) {
+			return wc_get_order( $order_id );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Gets the order by Stripe refund ID.
+	 *
+	 * @since x.x.x
+	 * @param string $refund_id
+	 */
+	public static function get_order_by_refund_id( $refund_id ) {
+		global $wpdb;
+
+		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+			$orders   = wc_get_orders(
+				[
+					'limit'          => 1,
+					'meta_query' => [
+						[
+							'key'   => '_stripe_refund_id',
+							'value' => $refund_id,
+						],
+					],
+				]
+			);
+			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
+		} else {
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $refund_id, '_stripe_refund_id' ) );
 		}
 
 		if ( ! empty( $order_id ) ) {
@@ -764,10 +801,17 @@ class WC_Stripe_Helper {
 	 * @return array  The updated request array.
 	 */
 	public static function add_payment_method_to_request_array( string $payment_method_id, array $request ): array {
-		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
-			$request['source'] = $payment_method_id;
-		} elseif ( 0 === strpos( $payment_method_id, 'pm_' ) ) {
-			$request['payment_method'] = $payment_method_id;
+		// Extract the payment method prefix using the first '_' character
+		$payment_method_type = substr( $payment_method_id, 0, strpos( $payment_method_id, '_' ) );
+
+		switch ( $payment_method_type ) {
+			case 'src':
+				$request['source'] = $payment_method_id;
+				break;
+			case 'pm':
+			case 'card':
+				$request['payment_method'] = $payment_method_id;
+				break;
 		}
 
 		return $request;

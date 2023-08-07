@@ -545,7 +545,13 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 	 * @param object $notification
 	 */
 	public function process_webhook_refund( $notification ) {
-		$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+		$refund_object = $this->get_refund_object( $notification );
+		$order = WC_Stripe_Helper::get_order_by_refund_id( $refund_object->id );
+
+		if ( ! $order ) {
+			WC_Stripe_Logger::log( 'Could not find order via refund ID: ' . $refund_object->id );
+			$order = WC_Stripe_Helper::get_order_by_charge_id( $notification->data->object->id );
+		}
 
 		if ( ! $order ) {
 			WC_Stripe_Logger::log( 'Could not find order via charge ID: ' . $notification->data->object->id );
@@ -559,7 +565,6 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 			$captured      = $order->get_meta( '_stripe_charge_captured' );
 			$refund_id     = $order->get_meta( '_stripe_refund_id' );
 			$currency      = $order->get_currency();
-			$refund_object = $this->get_refund_object( $notification );
 			$raw_amount    = $refund_object->amount;
 
 			if ( ! in_array( strtolower( $currency ), WC_Stripe_Helper::no_decimal_currencies(), true ) ) {
@@ -876,6 +881,8 @@ class WC_Stripe_Webhook_Handler extends WC_Stripe_Payment_Gateway {
 				// be better if we removed the need for additional meta data in favor of refactoring
 				// this part of the payment processing.
 				if ( $order->get_meta( '_stripe_upe_waiting_for_redirect' ) ?? false ) {
+					WC_Stripe_Logger::log( "Stripe UPE waiting for redirect. The status for order $order_id might need manual adjustment." );
+					do_action( 'wc_gateway_stripe_process_payment_intent_incomplete', $order );
 					return;
 				}
 

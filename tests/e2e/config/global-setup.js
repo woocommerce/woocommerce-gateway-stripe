@@ -9,6 +9,7 @@ import {
 	setupWoo,
 	setupStripe,
 	installWooSubscriptionsFromRepo,
+	checkWooGutenbergProductsBlockVersion,
 } from '../utils/playwright-setup';
 
 dotenv.config( {
@@ -124,11 +125,13 @@ module.exports = async ( config ) => {
 	} )
 		.then( async () => {
 			const apiTokensPage = await adminContext.newPage();
+			const wooBlocksVersionPage = await adminContext.newPage();
 			const updatePluginPage = await adminContext.newPage();
 			const wooSubscriptionsInstallPage = await adminContext.newPage();
 
 			// create consumer token and update plugin in parallel.
 			let restApiKeysFinished = false;
+			let wooBlocksVersionFinished = false;
 			let pluginUpdateFinished = false;
 			let wooSubscriptionsInstallFinished = false;
 			let stripeSetupFinished = false;
@@ -140,6 +143,17 @@ module.exports = async ( config ) => {
 				.catch( () => {
 					console.error(
 						'Cannot proceed e2e test, as we could not create a WC REST API key. Please check if the test site has been setup correctly.'
+					);
+					process.exit( 1 );
+				} );
+
+			checkWooGutenbergProductsBlockVersion( wooBlocksVersionPage )
+				.then( () => {
+					wooBlocksVersionFinished = true;
+				} )
+				.catch( () => {
+					console.error(
+						'Cannot proceed e2e test, as we could not find the WC Blocks plugin version. Please check if the test site has been setup correctly.'
 					);
 					process.exit( 1 );
 				} );
@@ -208,6 +222,7 @@ module.exports = async ( config ) => {
 			while (
 				! pluginUpdateFinished ||
 				! restApiKeysFinished ||
+				! wooBlocksVersionFinished ||
 				! stripeSetupFinished ||
 				! wooSubscriptionsInstallFinished
 			) {
