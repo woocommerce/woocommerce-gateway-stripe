@@ -2,6 +2,7 @@
 
 = 7.5.0 - xxxx-xx-xx =
 * Fix - Unable to process 0 amount subscription.
+* Fix - Resolved an issue that prevented customers using saved `card_` prefixed payment methods on checkout.
 
 = 7.4.2 - 2023-07-31 =
 * Fix - Add order key validation for UPE.
