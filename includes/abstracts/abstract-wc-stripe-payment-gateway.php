@@ -1199,18 +1199,12 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			$this->save_payment_method( $source_object );
 
 		} catch ( WC_Stripe_Exception $e ) {
-			$generic_error_msg = __( 'There was a problem adding the payment method.', 'woocommerce-gateway-stripe' );
-
 			WC_Stripe_Logger::log(
 				sprintf(
-					'Add payment method Error: %1$s %2$s%3$s',
-					$generic_error_msg,
-					PHP_EOL,
+					'Add payment method Error: %s',
 					$e->getMessage()
 				)
 			);
-
-			wc_add_notice( $generic_error_msg, 'error' );
 
 			return [ 'result' => 'failure' ];
 		}
