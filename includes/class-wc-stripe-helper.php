@@ -801,10 +801,17 @@ class WC_Stripe_Helper {
 	 * @return array  The updated request array.
 	 */
 	public static function add_payment_method_to_request_array( string $payment_method_id, array $request ): array {
-		if ( 0 === strpos( $payment_method_id, 'src_' ) ) {
-			$request['source'] = $payment_method_id;
-		} elseif ( 0 === strpos( $payment_method_id, 'pm_' ) ) {
-			$request['payment_method'] = $payment_method_id;
+		// Extract the payment method prefix using the first '_' character
+		$payment_method_type = substr( $payment_method_id, 0, strpos( $payment_method_id, '_' ) );
+
+		switch ( $payment_method_type ) {
+			case 'src':
+				$request['source'] = $payment_method_id;
+				break;
+			case 'pm':
+			case 'card':
+				$request['payment_method'] = $payment_method_id;
+				break;
 		}
 
 		return $request;
