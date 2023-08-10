@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 5.9
 Tested up to: 6.2.2
 Requires PHP: 7.3
-Stable tag: 7.4.2
+Stable tag: 7.5.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.5.0 - xxxx-xx-xx =
+= 7.5.0 - 2023-08-10 =
 * Fix - Unable to process 0 amount subscription.
 * Fix - Resolved an issue that prevented customers using saved `card_` prefixed payment methods on checkout.
 
