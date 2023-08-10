@@ -439,7 +439,7 @@ class WC_Stripe_Helper {
 	/**
 	 * Gets the order by Stripe refund ID.
 	 *
-	 * @since x.x.x
+	 * @since 7.5.0
 	 * @param string $refund_id
 	 */
 	public static function get_order_by_refund_id( $refund_id ) {
