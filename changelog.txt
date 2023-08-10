@@ -1,5 +1,9 @@
 *** Changelog ***
 
+= 7.5.0 - 2023-08-10 =
+* Fix - Unable to process 0 amount subscription.
+* Fix - Resolved an issue that prevented customers using saved `card_` prefixed payment methods on checkout.
+
 = 7.4.2 - 2023-07-31 =
 * Fix - Add order key validation for UPE.
 * Fix - Enhance query parameters validation in redirected requests.

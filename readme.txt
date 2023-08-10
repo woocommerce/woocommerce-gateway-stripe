@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 5.9
 Tested up to: 6.2.2
 Requires PHP: 7.3
-Stable tag: 7.4.2
+Stable tag: 7.5.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,15 +128,8 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.4.2 - 2023-07-31 =
-* Fix - Add order key validation for UPE.
-* Fix - Enhance query parameters validation in redirected requests.
-* Fix - Resolved an issue with orders getting stuck on Pending Payment status when UPE is enabled and customer creates account during checkout.
-* Fix - Stripe source and customer tokens not being saved on subscriptions when UPE is enabled and subscription is purchased by guest customer.
-* Fix - Make the gateway unavailable when using it in live mode without SSL.
-* Fix - Remove Stripe Link PRB when disabled from settings.
-* Fix - Lookup existing refunds by refund ID when processing webhooks.
-* Fix - Exclude Link from disable UPE confirmation modal in settings.
-* Fix - Fix JS (ES5) compatibility on older browsers for the shortcode checkout.
+= 7.5.0 - 2023-08-10 =
+* Fix - Unable to process 0 amount subscription.
+* Fix - Resolved an issue that prevented customers using saved `card_` prefixed payment methods on checkout.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
