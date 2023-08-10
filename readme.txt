@@ -128,8 +128,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.5.0 - 2023-08-10 =
-* Fix - Unable to process 0 amount subscription.
-* Fix - Resolved an issue that prevented customers using saved `card_` prefixed payment methods on checkout.
+= 7.6.0 - xxxx-xx-xx =
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
