@@ -592,6 +592,12 @@ trait WC_Stripe_Subscriptions_Trait {
 			$sub_amount += WC_Stripe_Helper::get_stripe_amount( $sub->get_total() );
 		}
 
+		// If the amount is 0 we don't need to create a mandate since we won't be charging anything.
+		// And there won't be any renewal for this free subscription.
+		if ( 0 === $sub_amount ) {
+			return $request;
+		}
+
 		// Get the first subscription associated with this order.
 		$sub = reset( $subscriptions );
 

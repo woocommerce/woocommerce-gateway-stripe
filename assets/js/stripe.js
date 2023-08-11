@@ -1,4 +1,4 @@
-/* global wc_stripe_params */
+/* global wc_stripe_params, Stripe */
 
 jQuery( function( $ ) {
 	'use strict';
@@ -565,7 +565,9 @@ jQuery( function( $ ) {
 
 			wc_stripe_form.reset();
 
-			const payment_method_id = response?.paymentMethod?.id ?? response?.source?.id;
+			// TODO: This can be restored to the optional chaining and nullish coalescing operators version, when we move
+			// this file to the building pipeline: response?.paymentMethod?.id ?? response?.source?.id
+			var payment_method_id = response.paymentMethod && response.paymentMethod.id ? response.paymentMethod.id : response.source && response.source.id ? response.source.id : undefined;
 
 			wc_stripe_form.form.append(
 				$( '<input type="hidden" />' )
@@ -594,7 +596,9 @@ jQuery( function( $ ) {
 				}
 			};
 
-			const payment_method_id = response?.paymentMethod?.id ?? response?.source?.id;
+			// TODO: This can be restored to the optional chaining and nullish coalescing operators version, when we move
+			// this file to the building pipeline: response?.paymentMethod?.id ?? response?.source?.id
+			var payment_method_id = response.paymentMethod && response.paymentMethod.id ? response.paymentMethod.id : response.source && response.source.id ? response.source.id : undefined;
 
 			$.post( {
 				url: wc_stripe_form.getAjaxURL( 'create_setup_intent'),
