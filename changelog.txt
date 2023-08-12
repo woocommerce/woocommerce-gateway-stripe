@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 7.6.0 - xxxx-xx-xx =
+* Fix - Missing mapping for formal German (de_DE_formal), Swiss German (de_CH), and informal Swiss German (de_CH_informal) locales for Stripe emails.
 
 = 7.5.0 - 2023-08-10 =
 * Fix - Unable to process 0 amount subscription.
