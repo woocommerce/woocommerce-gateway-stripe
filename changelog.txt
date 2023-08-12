@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 7.6.0 - xxxx-xx-xx =
+* Tweak - Skip Apple Pay registration for accounts from India.
 
 = 7.5.0 - 2023-08-10 =
 * Fix - Unable to process 0 amount subscription.
