@@ -129,5 +129,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 7.6.0 - xxxx-xx-xx =
+* Fix - Missing mapping for formal German (de_DE_formal), Swiss German (de_CH), and informal Swiss German (de_CH_informal) locales for Stripe emails.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
