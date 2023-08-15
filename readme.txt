@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 5.9
 Tested up to: 6.2.2
 Requires PHP: 7.3
-Stable tag: 7.4.2
+Stable tag: 7.5.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -135,5 +135,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Fix JS (ES5) compatibility on older browsers for the shortcode checkout.
 * Fix - Unable to process 0 amount subscription.
 * Fix - Resolved an issue that prevented customers using saved `card_` prefixed payment methods on checkout.
+* Fix - PHP fatal error when saving a non-UPE payment method and the Stripe request to retrieve it fails.
+* Fix - Missing mapping for formal German (de_DE_formal), Swiss German (de_CH), and informal Swiss German (de_CH_informal) locales for Stripe emails.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
