@@ -1086,7 +1086,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			throw new InvalidArgumentException(
 				sprintf(
 					/* translators: %1 field name, %2 Number of the maximum characters allowed */
-					__( 'The %1$s is invalid. The bank statement must contain only Latin characters, be between 5 and %2$u characters, contain at least one letter, and not contain any of the special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' ),
+					__( 'The %1$s is invalid. The bank statement must contain only Latin characters, be between 5 and %2$u characters, contain at least one letter, and not contain any of the following special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' ),
 					$field,
 					$max_length
 				)
