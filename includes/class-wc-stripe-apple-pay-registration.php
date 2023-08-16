@@ -318,7 +318,7 @@ class WC_Stripe_Apple_Pay_Registration {
 			return;
 		}
 
-		if ( ! $this->is_available_in_account_country() ) {
+		if ( ! $this->is_available() ) {
 			return;
 		}
 
@@ -418,13 +418,13 @@ class WC_Stripe_Apple_Pay_Registration {
 	}
 
 	/**
-	 * Returns whether Apple Pay is available in the account country.
+	 * Returns whether Apple Pay can be registered.
 	 *
 	 * @since 7.6.0
 	 *
 	 * @return boolean
 	 */
-	private function is_available_in_account_country(): bool {
+	private function is_available(): bool {
 		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
 		$account_country     = $cached_account_data['country'] ?? null;
 
