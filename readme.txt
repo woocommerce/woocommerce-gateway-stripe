@@ -131,5 +131,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 7.6.0 - xxxx-xx-xx =
 * Fix - PHP fatal error when saving a non-UPE payment method and the Stripe request to retrieve it fails.
 * Fix - Missing mapping for formal German (de_DE_formal), Swiss German (de_CH), and informal Swiss German (de_CH_informal) locales for Stripe emails.
+* Tweak - Skip Apple Pay registration for accounts from India.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
