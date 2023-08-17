@@ -1078,10 +1078,19 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$has_one_letter = '/^.*[a-zA-Z]+/';
 		$no_specials    = '/^[^*"\'<>]*$/';
 
+		/*
+		 * Matches characters that are not:
+		 * - Standard ASCII characters (numbers, special characters, and regular Latin letters)
+		 * - Extended ASCII characters (which cover most of the accented Latin characters)
+		 * - White spaces
+		 */
+		$non_latin = '/[^\x00-\x7F\xA0-\xFFa-zA-Z0-9\s]/';
+
 		if (
 			! preg_match( $valid_length, $value ) ||
 			! preg_match( $has_one_letter, $value ) ||
-			! preg_match( $no_specials, $value )
+			! preg_match( $no_specials, $value ) ||
+			preg_match( $non_latin, $value )
 		) {
 			throw new InvalidArgumentException(
 				sprintf(
