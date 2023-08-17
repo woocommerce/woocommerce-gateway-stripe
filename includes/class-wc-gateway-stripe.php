@@ -1107,7 +1107,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			}
 
 			$error_message = sprintf(
-				/* translators: %1 The field name */
+				/* translators: %1 The field name, %2 <br> tag, %3 Validation error messages */
 				__( 'The %1$s is invalid. Please make sure it: %2$s%3$s', 'woocommerce-gateway-stripe' ),
 				$field,
 				'<br>',
