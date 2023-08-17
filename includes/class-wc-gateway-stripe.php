@@ -1066,40 +1066,55 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function validate_account_statement_descriptor_field( $param, $value, $max_length ) {
 		// Since the value is escaped, and we are saving in a place that does not require escaping, apply stripslashes.
-		$value = trim( stripslashes( $value ) );
-		$field = __( 'customer bank statement', 'woocommerce-gateway-stripe' );
+		$value          = trim( stripslashes( $value ) );
+		$error_messages = [];
 
-		if ( 'short_statement_descriptor' === $param ) {
-			$field = __( 'shortened customer bank statement', 'woocommerce-gateway-stripe' );
+		// Has a valid length.
+		if ( ! preg_match( '/^.{5,' . $max_length . '}$/', $value ) ) {
+			$error_messages[] = sprintf(
+				/* translators: Number of the maximum characters allowed */
+				__( '- Has between 5 and %s characters', 'woocommerce-gateway-stripe' ),
+				$max_length
+			);
 		}
 
-		// Validation can be done with a single regex but splitting into multiple for better readability.
-		$valid_length   = '/^.{5,' . $max_length . '}$/';
-		$has_one_letter = '/^.*[a-zA-Z]+/';
-		$no_specials    = '/^[^*"\'<>]*$/';
+		// Contains at least one letter.
+		if ( ! preg_match( '/^.*[a-zA-Z]+/', $value ) ) {
+			$error_messages[] = __( '- Contains at least one letter', 'woocommerce-gateway-stripe' );
+		}
+
+		// Doesn't contain any of the specified special characters.
+		if ( ! preg_match( '/^[^*"\'<>]*$/', $value ) ) {
+			$error_messages[] = __( '- Does not contain any of the following special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' );
+		}
 
 		/*
-		 * Matches characters that are not:
+		 * Doesn't contain a non-Latin character. A character that's not:
 		 * - Standard ASCII characters (numbers, special characters, and regular Latin letters)
 		 * - Extended ASCII characters (which cover most of the accented Latin characters)
 		 * - White spaces
 		 */
-		$non_latin = '/[^\x00-\x7F\xA0-\xFFa-zA-Z0-9\s]/';
+		if ( preg_match( '/[^\x00-\x7F\xA0-\xFFa-zA-Z0-9\s]/', $value ) ) {
+			$error_messages[] = __( '- Contains only Latin characters', 'woocommerce-gateway-stripe' );
+		}
 
-		if (
-			! preg_match( $valid_length, $value ) ||
-			! preg_match( $has_one_letter, $value ) ||
-			! preg_match( $no_specials, $value ) ||
-			preg_match( $non_latin, $value )
-		) {
-			throw new InvalidArgumentException(
-				sprintf(
-					/* translators: %1 field name, %2 Number of the maximum characters allowed */
-					__( 'The %1$s is invalid. The bank statement must contain only Latin characters, be between 5 and %2$u characters, contain at least one letter, and not contain any of the following special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' ),
-					$field,
-					$max_length
-				)
+		// Display the validation errors if any was found.
+		if ( ! empty( $error_messages ) ) {
+			$field = __( 'customer bank statement', 'woocommerce-gateway-stripe' );
+
+			if ( 'short_statement_descriptor' === $param ) {
+				$field = __( 'shortened customer bank statement', 'woocommerce-gateway-stripe' );
+			}
+
+			$error_message = sprintf(
+				/* translators: %1 The field name */
+				__( 'The %1$s is invalid. Please make sure it: %2$s%3$s', 'woocommerce-gateway-stripe' ),
+				$field,
+				'<br>',
+				implode( '<br>', $error_messages )
 			);
+
+			throw new InvalidArgumentException( $error_message );
 		}
 
 		return $value;
