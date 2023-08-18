@@ -1089,12 +1089,10 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		/*
-		 * Doesn't contain a non-Latin character. A character that's not:
-		 * - Standard ASCII characters (numbers, special characters, and regular Latin letters)
-		 * - Extended ASCII characters (which cover most of the accented Latin characters)
-		 * - White spaces
+		 * Doesn't contain a non-Latin character.
+		 * We're not matching accentuated Latin characters, numbers, whitespace, or special characters.
 		 */
-		if ( preg_match( '/[^\x00-\x7F\xA0-\xFFa-zA-Z0-9\s]/', $value ) ) {
+		if ( preg_match( '/[^a-zA-Z0-9\s\x{00C0}-\x{00FF}\p{P}]/u', $value, $matches ) ) {
 			$error_messages[] = __( '- Contains only Latin characters', 'woocommerce-gateway-stripe' );
 		}
 
