@@ -18,6 +18,7 @@
 * Fix - Remove Stripe Link PRB when disabled from settings.
 * Fix - Lookup existing refunds by refund ID when processing webhooks.
 * Fix - Exclude Link from disable UPE confirmation modal in settings.
+* Fix - Set failed order as pre order
 * Fix - Fix JS (ES5) compatibility on older browsers for the shortcode checkout.
 
 = 7.4.1 - 2023-05-30 =
