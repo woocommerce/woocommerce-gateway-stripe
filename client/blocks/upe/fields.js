@@ -339,6 +339,15 @@ const UPEField = ( {
 		},
 	};
 
+	// Prevent Apple Pay and Google Pay from showing up in
+	// the payment method options when Payment Request Buttons are disabled.
+	if ( getBlocksConfiguration()?.isPaymentRequestEnabled !== true ) {
+		elementOptions.wallets = {
+			applePay: 'never',
+			googlePay: 'never',
+		};
+	}
+
 	return (
 		<div className="wc-block-gateway-container">
 			<PaymentElement
