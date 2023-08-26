@@ -128,15 +128,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.5.0 - 2023-xx-xx =
-* Fix - Make the gateway unavailable when using it in live mode without SSL.
-* Fix - Remove Stripe Link PRB when disabled from settings.
-* Fix - Set failed order as pre order
-* Fix - Fix JS (ES5) compatibility on older browsers for the shortcode checkout.
-* Fix - Unable to process 0 amount subscription.
-* Fix - Resolved an issue that prevented customers using saved `card_` prefixed payment methods on checkout.
+= 7.6.0 - xxxx-xx-xx =
 * Fix - PHP fatal error when saving a non-UPE payment method and the Stripe request to retrieve it fails.
 * Fix - Missing mapping for formal German (de_DE_formal), Swiss German (de_CH), and informal Swiss German (de_CH_informal) locales for Stripe emails.
+* Fix - Set failed order as pre order
 * Tweak - Skip Apple Pay registration for accounts from India.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
