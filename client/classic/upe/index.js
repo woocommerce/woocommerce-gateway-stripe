@@ -297,6 +297,15 @@ jQuery( function ( $ ) {
 					} );
 				}
 
+				// Prevent Apple Pay and Google Pay from showing up in
+				// the payment method options when Payment Request Buttons are disabled.
+				if ( getStripeServerData()?.isPaymentRequestEnabled !== '1' ) {
+					upeSettings.wallets = {
+						googlePay: 'never',
+						applePay: 'never',
+					};
+				}
+
 				upeElement = elements.create( 'payment', upeSettings );
 				upeElement.mount( '#wc-stripe-upe-element' );
 
