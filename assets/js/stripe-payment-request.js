@@ -159,7 +159,7 @@ jQuery( function( $ ) {
 
 			const $prependErrorMessageTo = wc_stripe_payment_request_params.is_product_page ?
 				$( '.product' ).first() :
-				$( '.shop_table.cart' ).closest( 'form' );
+				$( '.shop_table' ).closest( 'form' );
 
 			// Couldn't found the element to which prepend the error. This shouldn't happen.
 			if ( ! $prependErrorMessageTo.length ) {
