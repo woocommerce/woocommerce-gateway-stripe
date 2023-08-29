@@ -519,9 +519,18 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 	/**
 	 * Store extra meta data for an order from a Stripe Response.
+	 *
+	 * @throws WC_Stripe_Exception
 	 */
 	public function process_response( $response, $order ) {
 		WC_Stripe_Logger::log( 'Processing response: ' . print_r( $response, true ) );
+
+		$potential_order = WC_Stripe_Helper::get_order_by_charge_id( $response->id );
+		if ( $potential_order && $potential_order->get_id() !== $order->get_id() ) {
+			WC_Stripe_Logger::log( 'Aborting, transaction already consumed by another order.' );
+			$localized_message = __( 'Payment processing failed. Please retry.', 'woocommerce-gateway-stripe' );
+			throw new WC_Stripe_Exception( print_r( $response, true ), $localized_message );
+		}
 
 		$order_id = $order->get_id();
 		$captured = ( isset( $response->captured ) && $response->captured ) ? 'yes' : 'no';
@@ -1161,45 +1170,48 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @since 3.0.0
 	 * @version 4.0.0
+	 *
+	 * @return array
 	 */
 	public function add_payment_method() {
-		$error     = false;
-		$error_msg = __( 'There was a problem adding the payment method.', 'woocommerce-gateway-stripe' );
-		$source_id = '';
-
-		if ( empty( $_POST['stripe_source'] ) && empty( $_POST['stripe_token'] ) || ! is_user_logged_in() ) {
-			$error = true;
-		}
-
-		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
-
-		$source = ! empty( $_POST['stripe_source'] ) ? wc_clean( wp_unslash( $_POST['stripe_source'] ) ) : '';
-
-		$source_object = WC_Stripe_API::get_payment_method( $source );
-
-		if ( isset( $source_object ) ) {
-			if ( ! empty( $source_object->error ) ) {
-				$error = true;
+		try {
+			if ( ! is_user_logged_in() ) {
+				throw new WC_Stripe_Exception( 'No logged-in user found.' );
 			}
 
-			$source_id = $source_object->id;
-		} elseif ( isset( $_POST['stripe_token'] ) ) {
-			$source_id = wc_clean( wp_unslash( $_POST['stripe_token'] ) );
+			// Retrieve the source object from the submitted $_POST data.
+			$source_object = $this->get_source_object_from_request();
+
+			if ( empty( $source_object ) || empty( $source_object->id ) ) {
+				throw new WC_Stripe_Exception( "The retrieved source doesn't contain an ID." );
+			}
+
+			// Non-reusable payment methods won't be attached.
+			if ( ! WC_Stripe_Helper::is_reusable_payment_method( $source_object ) ) {
+				throw new WC_Stripe_Exception(
+					"The provided payment method isn't reausable." .
+					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
+					PHP_EOL . 'Source object: ' . print_r( $source_object, true )
+				);
+			}
+
+			// Now that we've got the source object, attach it to the user.
+			$this->save_payment_method( $source_object );
+
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log(
+				sprintf(
+					'Add payment method Error: %s',
+					$e->getMessage()
+				)
+			);
+
+			return [ 'result' => 'failure' ];
 		}
 
-		$response = $stripe_customer->add_source( $source_id );
+		$payment_method_name = isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : '';
 
-		if ( ! $response || is_wp_error( $response ) || ! empty( $response->error ) ) {
-			$error = true;
-		}
-
-		if ( $error ) {
-			wc_add_notice( $error_msg, 'error' );
-			WC_Stripe_Logger::log( 'Add payment method Error: ' . $error_msg );
-			return;
-		}
-
-		do_action( 'wc_stripe_add_payment_method_' . ( isset( $_POST['payment_method'] ) ? wc_clean( wp_unslash( $_POST['payment_method'] ) ) : '' ) . '_success', $source_id, $source_object );
+		do_action( 'wc_stripe_add_payment_method_' . $payment_method_name . '_success', $source_object->id, $source_object );
 
 		return [
 			'result'   => 'success',
@@ -1763,7 +1775,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 *
 	 * @return bool
 	 */
-	public function is_valid_pay_for_order_endpoint() {
+	public function is_valid_pay_for_order_endpoint(): bool {
 
 		// If not on the pay for order page, return false.
 		if ( ! is_wc_endpoint_url( 'order-pay' ) || ! isset( $_GET['key'] ) ) {
@@ -1784,16 +1796,41 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return false;
 		}
 
-		// If it's not a guest order, current user can pay but only if it's their own order,
-		// or they are an admin or shop manager.
-		$order_has_customer = ! empty( $order->get_customer_id() );
-		if ( $order_has_customer ) {
-			$is_order_owned_by_current_user = $order->get_customer_id() === get_current_user_id();
+		return current_user_can( 'pay_for_order', $order->get_id() );
+	}
 
-			return $is_order_owned_by_current_user || current_user_can( 'manage_woocommerce' );
+	/**
+	 * Checks if the current page is the order received page and the current user is allowed to manage the order.
+	 *
+	 * @return bool
+	 */
+	public function is_valid_order_received_endpoint(): bool {
+		// Verify nonce. Duplicated here in order to avoid PHPCS warnings.
+		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( wc_clean( wp_unslash( $_GET['_wpnonce'] ) ), 'wc_stripe_process_redirect_order_nonce' ) ) {
+			return false;
 		}
 
-		return true;
+		// If not on the order-received page, return false.
+		if ( ! is_wc_endpoint_url( 'order-received' ) || ! isset( $_GET['key'] ) ) {
+			return false;
+		}
+
+		$order_id_from_order_key = absint( wc_get_order_id_by_order_key( wc_clean( wp_unslash( $_GET['key'] ) ) ) );
+		$order_id_from_query_var = isset( $_GET['order_id'] ) ? absint( wp_unslash( $_GET['order_id'] ) ) : null;
+
+		// If the order ID is not found or the order ID does not match the given order ID, return false.
+		if ( ! $order_id_from_order_key || ( $order_id_from_query_var !== $order_id_from_order_key ) ) {
+			return false;
+		}
+
+		$order = wc_get_order( $order_id_from_order_key );
+
+		// If the order doesn't need payment, return false.
+		if ( ! $order->needs_payment() ) {
+			return false;
+		}
+
+		return current_user_can( 'pay_for_order', $order->get_id() );
 	}
 
 	/**
@@ -1898,6 +1935,30 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Attaches the given payment method to the currently logged-in user.
+	 *
+	 * @param object $source_object The payment method to be attached.
+	 * @throws WC_Stripe_Exception
+	 */
+	public function save_payment_method( $source_object ) {
+		$user_id  = get_current_user_id();
+		$customer = new WC_Stripe_Customer( $user_id );
+
+		if ( $user_id && WC_Stripe_Helper::is_reusable_payment_method( $source_object ) ) {
+			$response = $customer->add_source( $source_object->id );
+
+			if ( ! empty( $response->error ) ) {
+				// Formatting the response for the debug log entry.
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
+				throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
+			}
+			if ( is_wp_error( $response ) ) {
+				throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
+			}
+		}
+	}
+
+	/**
 	 * Returns the JavaScript configuration object used on the product, cart, and checkout pages.
 	 *
 	 * @return array  The configuration object to be loaded to JS.
@@ -1973,6 +2034,48 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$stripe_params = array_merge( $stripe_params, WC_Stripe_Helper::get_localized_messages() );
 
 		return $stripe_params;
+	}
+
+	/**
+	 * Retrieves and returns the source_id for the given $_POST variables.
+	 *
+	 * @throws WC_Stripe_Exception Error while attempting to retrieve the source_id.
+	 * @return object
+	 */
+	private function get_source_object_from_request() {
+		if ( empty( $_POST['stripe_source'] ) && empty( $_POST['stripe_token'] ) ) {
+			throw new WC_Stripe_Exception( 'Missing stripe_source and stripe_token from the request.' );
+		}
+
+		$source = isset( $_POST['stripe_source'] ) ? wc_clean( wp_unslash( $_POST['stripe_source'] ) ) : '';
+
+		if ( ! empty( $source ) ) {
+			// This method throws a WC_Stripe_Exception when there's an error. It's intended to be caught by the calling method.
+			$source_object = $this->get_source_object( $source );
+
+			// We better make get_source_object() handle wp_errors to reduce redundancy here.
+			if ( is_wp_error( $source_object ) ) {
+				throw new WC_Stripe_Exception( $source_object->get_error_message() . ' Code: ' . $source_object->get_error_code() );
+			}
+
+			return $source_object;
+		}
+
+		$stripe_token_as_source_id = isset( $_POST['stripe_token'] ) ? wc_clean( wp_unslash( $_POST['stripe_token'] ) ) : '';
+
+		if ( ! empty( $stripe_token_as_source_id ) ) {
+			// This method throws a WC_Stripe_Exception when there's an error. It's intended to be caught by the calling method.
+			$source_object = $this->get_source_object( $stripe_token_as_source_id );
+
+			// We better make get_source_object() handle wp_errors to reduce redundancy here.
+			if ( is_wp_error( $source_object ) ) {
+				throw new WC_Stripe_Exception( $source_object->get_error_message() . ' Code: ' . $source_object->get_error_code() );
+			}
+
+			return $source_object;
+		}
+
+		throw new WC_Stripe_Exception( "The source object couldn't be retrieved." );
 	}
 
 	/**
