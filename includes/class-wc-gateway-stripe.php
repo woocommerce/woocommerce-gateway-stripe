@@ -724,11 +724,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			$order = wc_get_order( absint( get_query_var( 'order-pay' ) ) );
 		}
 		if ( ! isset( $this->order_pay_intent ) ) {
-			try {
-				$this->prepare_intent_for_order_pay_page( $order );
-			} catch ( WC_Stripe_Exception $e ) {
-				WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
-			}
+			$this->prepare_intent_for_order_pay_page( $order );
 		}
 
 		$verification_url = add_query_arg(

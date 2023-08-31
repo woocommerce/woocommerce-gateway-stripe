@@ -714,11 +714,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		if ( ! empty( $intent->charges->data ) ) {
 			return end( $intent->charges->data );
 		} else {
-			try {
-				return $this->get_charge_object( $intent->latest_charge );
-			} catch ( WC_Stripe_Exception $e ) {
-				WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
-			}
+			return $this->get_charge_object( $intent->latest_charge );
 		}
 	}
 
@@ -1005,38 +1001,34 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param int    $balance_transaction_id
 	 */
 	public function update_fees( $order, $balance_transaction_id ) {
-		try {
-			$balance_transaction = WC_Stripe_API::retrieve( 'balance/history/' . $balance_transaction_id );
+		$balance_transaction = WC_Stripe_API::retrieve( 'balance/history/' . $balance_transaction_id );
 
-			if ( empty( $balance_transaction->error ) ) {
-				if ( isset( $balance_transaction ) && isset( $balance_transaction->fee ) ) {
-					// Fees and Net needs to both come from Stripe to be accurate as the returned
-					// values are in the local currency of the Stripe account, not from WC.
-					$fee_refund = ! empty( $balance_transaction->fee ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'fee' ) : 0;
-					$net_refund = ! empty( $balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'net' ) : 0;
+		if ( empty( $balance_transaction->error ) ) {
+			if ( isset( $balance_transaction ) && isset( $balance_transaction->fee ) ) {
+				// Fees and Net needs to both come from Stripe to be accurate as the returned
+				// values are in the local currency of the Stripe account, not from WC.
+				$fee_refund = ! empty( $balance_transaction->fee ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'fee' ) : 0;
+				$net_refund = ! empty( $balance_transaction->net ) ? WC_Stripe_Helper::format_balance_fee( $balance_transaction, 'net' ) : 0;
 
-					// Current data fee & net.
-					$fee_current = WC_Stripe_Helper::get_stripe_fee( $order );
-					$net_current = WC_Stripe_Helper::get_stripe_net( $order );
+				// Current data fee & net.
+				$fee_current = WC_Stripe_Helper::get_stripe_fee( $order );
+				$net_current = WC_Stripe_Helper::get_stripe_net( $order );
 
-					// Calculation.
-					$fee = (float) $fee_current + (float) $fee_refund;
-					$net = (float) $net_current + (float) $net_refund;
+				// Calculation.
+				$fee = (float) $fee_current + (float) $fee_refund;
+				$net = (float) $net_current + (float) $net_refund;
 
-					WC_Stripe_Helper::update_stripe_fee( $order, $fee );
-					WC_Stripe_Helper::update_stripe_net( $order, $net );
+				WC_Stripe_Helper::update_stripe_fee( $order, $fee );
+				WC_Stripe_Helper::update_stripe_net( $order, $net );
 
-					$currency = ! empty( $balance_transaction->currency ) ? strtoupper( $balance_transaction->currency ) : null;
-					WC_Stripe_Helper::update_stripe_currency( $order, $currency );
+				$currency = ! empty( $balance_transaction->currency ) ? strtoupper( $balance_transaction->currency ) : null;
+				WC_Stripe_Helper::update_stripe_currency( $order, $currency );
 
-					if ( is_callable( [ $order, 'save' ] ) ) {
-						$order->save();
-					}
+				if ( is_callable( [ $order, 'save' ] ) ) {
+					$order->save();
 				}
-			} else {
-				WC_Stripe_Logger::log( 'Unable to update fees/net meta for order: ' . $order->get_id() );
 			}
-		} catch ( Exception $e ) {
+		} else {
 			WC_Stripe_Logger::log( 'Unable to update fees/net meta for order: ' . $order->get_id() );
 		}
 	}
@@ -1573,19 +1565,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function get_intent_from_order( $order ) {
 		$intent_id = $order->get_meta( '_stripe_intent_id' );
 
-		try {
-			if ( $intent_id ) {
-				return $this->get_intent( 'payment_intents', $intent_id );
-			}
+		if ( $intent_id ) {
+			return $this->get_intent( 'payment_intents', $intent_id );
+		}
 
-			// The order doesn't have a payment intent, but it may have a setup intent.
-			$intent_id = $order->get_meta( '_stripe_setup_intent' );
+		// The order doesn't have a payment intent, but it may have a setup intent.
+		$intent_id = $order->get_meta( '_stripe_setup_intent' );
 
-			if ( $intent_id ) {
-				return $this->get_intent( 'setup_intents', $intent_id );
-			}
-		} catch ( WC_Stripe_Exception $e ) {
-			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+		if ( $intent_id ) {
+			return $this->get_intent( 'setup_intents', $intent_id );
 		}
 
 		return false;
