@@ -580,7 +580,7 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		// Add mandate options to request to create new mandate if mandate id does not already exist in a previous renewal or parent order.
-		$mandate_options = $this->create_mandate_options_for_order( $order );
+		$mandate_options = $this->create_mandate_options_for_order( $order, $subscriptions_for_renewal_order );
 		if ( ! empty( $mandate_options ) ) {
 			$request['payment_method_options']['card']['mandate_options'] = $mandate_options;
 		}
@@ -596,22 +596,13 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param WC_Order $order The subscription order.
 	 * @return string the mandate id or empty string if no valid mandate id is found.
 	 */
-	public function get_mandate_for_subscription( $order, $payment_method ) {
-		$parent_order_id   = $order->get_parent_id();
-		$order_amount      = WC_Stripe_Helper::get_stripe_amount( $order->get_total() );
+	private function get_mandate_for_subscription( $order, $payment_method ) {
 		$renewal_order_ids = $order->get_related_orders( 'ids' );
 
 		foreach ( $renewal_order_ids as $renewal_order_id ) {
 			$renewal_order                = wc_get_order( $renewal_order_id );
 			$mandate                      = $renewal_order->get_meta( '_stripe_mandate_id', true );
-			$renewal_order_amount         = WC_Stripe_Helper::get_stripe_amount( $renewal_order->get_total() );
 			$renewal_order_payment_method = $renewal_order->get_meta( '_stripe_source_id', true );
-
-			// If it is the parent order then get the order amount without the signup fee.
-			if ( $parent_order_id === $renewal_order_id ) {
-				$parent_order         = wc_get_order( $parent_order_id );
-				$renewal_order_amount = $parent_order->get_meta( '_stripe_mandate_created_for_amount', true );
-			}
 
 			// Return from the most recent renewal order with a valid mandate. Mandate is created against a payment method
 			// in Stripe so the payment method should also match to reuse the mandate.
@@ -628,9 +619,8 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * @param WC_Order $order The renewal order.
 	 * @return array the mandate_options for the subscription order.
 	 */
-	public function create_mandate_options_for_order( $order ) {
+	private function create_mandate_options_for_order( $order, $subscriptions ) {
 		$mandate_options = [];
-		$subscriptions   = wcs_get_subscriptions_for_renewal_order( $order );
 
 		// If this is the first order, not a renewal, then get the subscriptions for the parent order.
 		if ( empty( $subscriptions ) ) {
