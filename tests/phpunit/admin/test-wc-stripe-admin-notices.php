@@ -178,6 +178,23 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 			[
 				[
 					'woocommerce_stripe_settings' => [
+						'enabled'              => 'yes',
+						'testmode'             => 'yes',
+						'test_publishable_key' => 'pk_test_valid_test_key',
+						'test_secret_key'      => 'sk_test_valid_test_key',
+					],
+					'wc_stripe_show_style_notice' => 'no',
+					'wc_stripe_show_sca_notice'   => 'no',
+					'home'                        => 'https://...',
+				],
+				[
+					'mode',
+				],
+				'/All transactions are simulated. Customers can\'t make real purchases through Stripe./',
+			],
+			[
+				[
+					'woocommerce_stripe_settings' => [
 						'enabled'        => 'yes',
 						'three_d_secure' => 'yes',
 					],
@@ -286,6 +303,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 				],
 				[
 					'keys',
+					'mode',
 				],
 				'/your test keys may not be valid/',
 			],
@@ -300,6 +318,9 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 					'wc_stripe_show_style_notice' => 'no',
 					'wc_stripe_show_sca_notice'   => 'no',
 					'home'                        => 'https://...',
+				],
+				[
+					'mode',
 				],
 			],
 			[
