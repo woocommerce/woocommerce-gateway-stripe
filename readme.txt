@@ -1,10 +1,10 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
-Requires at least: 5.9
-Tested up to: 6.2.2
-Requires PHP: 7.3
-Stable tag: 7.5.0
+Requires at least: 6.0
+Tested up to: 6.3.1
+Requires PHP: 7.4
+Stable tag: 7.6.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,8 +128,12 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.5.0 - 2023-08-10 =
-* Fix - Unable to process 0 amount subscription.
-* Fix - Resolved an issue that prevented customers using saved `card_` prefixed payment methods on checkout.
+= 7.6.0 - 2023-09-14 =
+* Fix - PHP fatal error when saving a non-UPE payment method and the Stripe request to retrieve it fails.
+* Fix - Missing mapping for formal German (de_DE_formal), Swiss German (de_CH), and informal Swiss German (de_CH_informal) locales for Stripe emails.
+* Fix - Set failed order as pre order
+* Tweak - Include check during the connect redirect flow.
+* Tweak - Skip Apple Pay registration for accounts from India.
+* Tweak - Refactor post_meta calls for HPOS compatibility.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

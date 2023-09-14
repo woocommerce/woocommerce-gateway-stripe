@@ -214,4 +214,247 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->assertTrue( $this->gateway->is_available() );
 	}
+
+	public function test_add_payment_method_succeeds_with_source_object() {
+		wp_set_current_user( 1 );
+		$source_object_id       = 'le_source_object_id';
+		$_POST['stripe_source'] = $source_object_id;
+
+		$mock_source_object = (object) [
+			'id'    => '123',
+			'usage' => 'reusable',
+		];
+
+		$methods = [
+			'get_source_object',
+			'save_payment_method',
+		];
+		$mock_gateway = $this->get_partial_mock_for_gateway( $methods );
+
+		$mock_gateway
+			->expects( $this->once() )
+			->method( 'get_source_object' )
+			->with( $source_object_id )
+			->willReturn( $mock_source_object );
+
+		$mock_gateway
+			->expects( $this->once() )
+			->method( 'save_payment_method' )
+			->with( $mock_source_object );
+
+		$result = $mock_gateway->add_payment_method();
+
+		$this->assertArrayHasKey( 'result', $result );
+		$this->assertContains( 'success', $result );
+	}
+
+	public function test_add_payment_method_succeeds_with_stripe_token() {
+		wp_set_current_user( 1 );
+		$stripe_token          = 'le_stripe_token';
+		$_POST['stripe_token'] = $stripe_token;
+
+		$mock_source_object = (object) [
+			'id'    => '123',
+			'usage' => 'reusable',
+		];
+
+		$methods      = [
+			'get_source_object',
+			'save_payment_method',
+		];
+		$mock_gateway = $this->get_partial_mock_for_gateway( $methods );
+
+		$mock_gateway
+			->expects( $this->once() )
+			->method( 'get_source_object' )
+			->with( $stripe_token )
+			->willReturn( $mock_source_object );
+
+		$mock_gateway
+			->expects( $this->once() )
+			->method( 'save_payment_method' )
+			->with( $mock_source_object );
+
+		$result = $mock_gateway->add_payment_method();
+
+		$this->assertArrayHasKey( 'result', $result );
+		$this->assertContains( 'success', $result );
+	}
+
+	public function test_add_payment_method_fails_when_no_logged_in_user() {
+		$_POST['stripe_token'] = 'le_stripe_token';
+
+		$methods      = [
+			'get_source_object',
+			'save_payment_method',
+		];
+		$mock_gateway = $this->get_partial_mock_for_gateway( $methods );
+
+		$mock_gateway
+			->expects( $this->never() )
+			->method( 'get_source_object' );
+
+		$mock_gateway
+			->expects( $this->never() )
+			->method( 'save_payment_method' );
+
+		$result = $mock_gateway->add_payment_method();
+
+		$this->assertArrayHasKey( 'result', $result );
+		$this->assertContains( 'failure', $result );
+	}
+
+	public function test_add_payment_method_fails_when_no_token_or_source_in_post() {
+		wp_set_current_user( 1 );
+
+		$methods      = [
+			'get_source_object',
+			'save_payment_method',
+		];
+		$mock_gateway = $this->get_partial_mock_for_gateway( $methods );
+
+		$mock_gateway
+			->expects( $this->never() )
+			->method( 'get_source_object' );
+
+		$mock_gateway
+			->expects( $this->never() )
+			->method( 'save_payment_method' );
+
+		$result = $mock_gateway->add_payment_method();
+
+		$this->assertArrayHasKey( 'result', $result );
+		$this->assertContains( 'failure', $result );
+	}
+
+	public function test_add_payment_method_fails_when_stripe_returns_an_error() {
+		wp_set_current_user( 1 );
+		$stripe_token          = 'le_stripe_token';
+		$_POST['stripe_token'] = $stripe_token;
+
+		$methods      = [
+			'get_source_object',
+			'save_payment_method',
+		];
+		$mock_gateway = $this->get_partial_mock_for_gateway( $methods );
+
+		$mock_gateway
+			->expects( $this->once() )
+			->method( 'get_source_object' )
+			->with( $stripe_token )
+			->will( $this->throwException( new WC_Stripe_Exception() ) );
+
+		$mock_gateway
+			->expects( $this->never() )
+			->method( 'save_payment_method' );
+
+		$result = $mock_gateway->add_payment_method();
+
+		$this->assertArrayHasKey( 'result', $result );
+		$this->assertContains( 'failure', $result );
+	}
+
+	public function test_add_payment_method_fails_when_source_object_is_wp_error() {
+		wp_set_current_user( 1 );
+		$stripe_token          = 'le_stripe_token';
+		$_POST['stripe_token'] = $stripe_token;
+
+		$wp_error_source_object = new WP_Error( 'Something went wrong' );
+
+		$methods      = [
+			'get_source_object',
+			'save_payment_method',
+		];
+		$mock_gateway = $this->get_partial_mock_for_gateway( $methods );
+
+		$mock_gateway
+			->expects( $this->once() )
+			->method( 'get_source_object' )
+			->with( $stripe_token )
+			->willReturn( $wp_error_source_object );
+
+		$mock_gateway
+			->expects( $this->never() )
+			->method( 'save_payment_method' );
+
+		$result = $mock_gateway->add_payment_method();
+
+		$this->assertArrayHasKey( 'result', $result );
+		$this->assertContains( 'failure', $result );
+	}
+
+	public function test_add_payment_method_fails_when_source_object_is_empty() {
+		wp_set_current_user( 1 );
+		$stripe_token          = 'le_stripe_token';
+		$_POST['stripe_token'] = $stripe_token;
+
+		$mock_source_object = (object) [];
+
+		$methods      = [
+			'get_source_object',
+			'save_payment_method',
+		];
+		$mock_gateway = $this->get_partial_mock_for_gateway( $methods );
+
+		$mock_gateway
+			->expects( $this->once() )
+			->method( 'get_source_object' )
+			->with( $stripe_token )
+			->willReturn( $mock_source_object );
+
+		$mock_gateway
+			->expects( $this->never() )
+			->method( 'save_payment_method' );
+
+		$result = $mock_gateway->add_payment_method();
+
+		$this->assertArrayHasKey( 'result', $result );
+		$this->assertContains( 'failure', $result );
+	}
+
+	public function test_add_payment_method_fails_when_payment_method_is_not_reusable() {
+		wp_set_current_user( 1 );
+		$stripe_token          = 'le_stripe_token';
+		$_POST['stripe_token'] = $stripe_token;
+
+		$mock_source_object = (object) [
+			'id'    => '123',
+			'usage' => 'not-reusable',
+		];
+
+		$methods      = [
+			'get_source_object',
+			'save_payment_method',
+		];
+		$mock_gateway = $this->get_partial_mock_for_gateway( $methods );
+
+		$mock_gateway
+			->expects( $this->once() )
+			->method( 'get_source_object' )
+			->with( $stripe_token )
+			->willReturn( $mock_source_object );
+
+		$mock_gateway
+			->expects( $this->never() )
+			->method( 'save_payment_method' )
+			->with( $mock_source_object );
+
+		$result = $mock_gateway->add_payment_method();
+
+		$this->assertArrayHasKey( 'result', $result );
+		$this->assertContains( 'failure', $result );
+	}
+
+	/**
+	 * Create a partial mock for WC_Gateway_Stripe class.
+	 *
+	 * @param array $methods Method names that need to be mocked.
+	 * @return MockObject|WC_Gateway_Stripe
+	 */
+	private function get_partial_mock_for_gateway( array $methods = [] ) {
+		return $this->getMockBuilder( WC_Gateway_Stripe::class )
+			->disableOriginalConstructor()
+			->setMethods( $methods )
+			->getMock();
+	}
 }
