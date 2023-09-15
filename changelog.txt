@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 7.7.0 - xxxx-xx-xx =
+* Fix - Display the Payment Request Buttons' error message in the classic checkout page.
 
 = 7.6.0 - 2023-09-14 =
 * Fix - PHP fatal error when saving a non-UPE payment method and the Stripe request to retrieve it fails.
