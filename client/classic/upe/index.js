@@ -143,7 +143,7 @@ jQuery( function ( $ ) {
 		$( 'form.checkout' )
 			.find( '.input-text, select, input:checkbox' )
 			.trigger( 'validate' )
-			.blur();
+			.trigger( 'blur' );
 
 		$.scroll_to_notices( $container );
 		$( document.body ).trigger( 'checkout_error' );
