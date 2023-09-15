@@ -1,5 +1,7 @@
 *** Changelog ***
 
+= 7.7.0 - xxxx-xx-xx =
+
 = 7.6.0 - 2023-09-14 =
 * Fix - PHP fatal error when saving a non-UPE payment method and the Stripe request to retrieve it fails.
 * Fix - Missing mapping for formal German (de_DE_formal), Swiss German (de_CH), and informal Swiss German (de_CH_informal) locales for Stripe emails.

@@ -128,12 +128,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.6.0 - 2023-09-14 =
-* Fix - PHP fatal error when saving a non-UPE payment method and the Stripe request to retrieve it fails.
-* Fix - Missing mapping for formal German (de_DE_formal), Swiss German (de_CH), and informal Swiss German (de_CH_informal) locales for Stripe emails.
-* Fix - Set failed order as pre order
-* Tweak - Include check during the connect redirect flow.
-* Tweak - Skip Apple Pay registration for accounts from India.
-* Tweak - Refactor post_meta calls for HPOS compatibility.
+= 7.7.0 - xxxx-xx-xx =
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
