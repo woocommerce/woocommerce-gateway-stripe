@@ -582,6 +582,9 @@ class WC_Stripe_Helper {
 		// Next, remove any remaining disallowed characters.
 		$statement_descriptor = str_replace( $disallowed_characters, '', $statement_descriptor );
 
+		// Remove non-Latin characters, excluding numbers, whitespaces and especial characters.
+		$statement_descriptor = preg_replace( '/[^a-zA-Z0-9\s\x{00C0}-\x{00FF}\p{P}]/u', '', $statement_descriptor );
+
 		// Trim any whitespace at the ends and limit to 22 characters.
 		$statement_descriptor = substr( trim( $statement_descriptor ), 0, 22 );
 

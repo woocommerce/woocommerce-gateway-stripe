@@ -1,6 +1,7 @@
 *** Changelog ***
 
 = 7.7.0 - xxxx-xx-xx =
+* Add - Prevent saving the bank statement descriptor if it contains non-Latin characters.
 * Fix - Display the Payment Request Buttons' error message in the classic checkout page.
 
 = 7.6.0 - 2023-09-14 =
