@@ -305,9 +305,11 @@ jQuery( function ( $ ) {
 				} );
 				upeElement.on( 'change', ( event ) => {
 					const selectedUPEPaymentType = event.value.type;
+					// Fallback for Google Pay and Apple Pay. They show up in the UPE Element
+					// but we don't register them in the backend as UPE payment methods.
 					const isPaymentMethodReusable =
 						paymentMethodsConfig[ selectedUPEPaymentType ]
-							.isReusable;
+							?.isReusable || false;
 					showNewPaymentMethodCheckbox( isPaymentMethodReusable );
 					setSelectedUPEPaymentType( selectedUPEPaymentType );
 					isUPEComplete = event.complete;
