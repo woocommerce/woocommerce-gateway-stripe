@@ -29,6 +29,26 @@ const PaymentRequestSection = () => {
 		updateEnabledMethodIds,
 	] = useEnabledPaymentMethodIds();
 
+	const updateIsPaymentRequestButtonsEnabled = ( isEnabled ) => {
+		updateIsPaymentRequestEnabled( isEnabled );
+
+		const googlePayMethodID = 'google_pay';
+
+		// Add/remove GooglePay from the list of enabled payment methods.
+		if ( isEnabled ) {
+			updateEnabledMethodIds( [
+				...enabledMethodIds,
+				googlePayMethodID,
+			] );
+		} else {
+			updateEnabledMethodIds( [
+				...enabledMethodIds.filter(
+					( id ) => id !== googlePayMethodID
+				),
+			] );
+		}
+	};
+
 	const updateStripeLinkCheckout = ( isEnabled ) => {
 		// Add/remove Stripe Link from the list of enabled payment methods.
 		if ( isEnabled ) {
@@ -57,7 +77,9 @@ const PaymentRequestSection = () => {
 						<div className="express-checkout__checkbox">
 							<CheckboxControl
 								checked={ isPaymentRequestEnabled }
-								onChange={ updateIsPaymentRequestEnabled }
+								onChange={
+									updateIsPaymentRequestButtonsEnabled
+								}
 							/>
 						</div>
 						<div className="express-checkout__icon">
