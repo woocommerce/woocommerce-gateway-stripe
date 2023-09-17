@@ -83,7 +83,8 @@ const GeneralSettingsSection = () => {
 		.filter( ( method ) =>
 			capabilities.hasOwnProperty( `${ method }_payments` )
 		)
-		.filter( ( id ) => id !== 'link' );
+		.filter( ( id ) => id !== 'link' )
+		.filter( ( id ) => id !== 'google_pay' );
 
 	return (
 		<List>
