@@ -89,6 +89,7 @@ const DisableUpeConfirmationModal = ( { onClose } ) => {
 		return (
 			method !== 'card' &&
 			method !== 'link' &&
+			method !== 'google_pay' &&
 			capabilities.hasOwnProperty( `${ method }_payments` )
 		);
 	} );
