@@ -330,6 +330,14 @@ class WC_Stripe_Intent_Controller {
 		$gateway                 = $this->get_upe_gateway();
 		$enabled_payment_methods = $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
 
+		// We don't want to create an intent for Google Pay.
+		$enabled_payment_methods = array_filter(
+			$enabled_payment_methods,
+			function( $payment_method ) {
+				return 'google_pay' !== $payment_method;
+			}
+		);
+
 		$currency       = get_woocommerce_currency();
 		$capture        = empty( $gateway->get_option( 'capture' ) ) || $gateway->get_option( 'capture' ) === 'yes';
 		$payment_intent = WC_Stripe_API::request(
