@@ -13,7 +13,8 @@ const PaymentMethodsUnavailableList = () => {
 			( methodId ) =>
 				! capabilities.hasOwnProperty( `${ methodId }_payments` )
 		)
-		.filter( ( id ) => id !== 'link' );
+		.filter( ( id ) => id !== 'link' )
+		.filter( ( id ) => id !== 'google_pay' );
 	const unavailablePaymentMethods = unavailablePaymentMethodIds
 		.filter( ( methodId, idx ) => idx < countIconsToDisplay )
 		.map( ( methodId ) => methodsConfiguration[ methodId ] );
