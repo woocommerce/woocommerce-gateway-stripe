@@ -191,6 +191,10 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 					'mode',
 				],
 				'/All transactions are simulated. Customers can\'t make real purchases through Stripe./',
+				[
+					'page'    => 'wc-settings',
+					'section' => 'stripe',
+				],
 			],
 			[
 				[
@@ -303,7 +307,6 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 				],
 				[
 					'keys',
-					'mode',
 				],
 				'/your test keys may not be valid/',
 			],
@@ -321,6 +324,11 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 				],
 				[
 					'mode',
+				],
+				false,
+				[
+					'page'    => 'wc-settings',
+					'section' => 'stripe',
 				],
 			],
 			[
