@@ -131,5 +131,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 7.7.0 - xxxx-xx-xx =
 * Add - Prevent saving the bank statement descriptor if it contains non-Latin characters.
 * Fix - Display the Payment Request Buttons' error message in the classic checkout page.
+* Tweak - Use admin theme color in selectors.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

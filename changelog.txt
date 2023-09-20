@@ -3,6 +3,7 @@
 = 7.7.0 - xxxx-xx-xx =
 * Add - Prevent saving the bank statement descriptor if it contains non-Latin characters.
 * Fix - Display the Payment Request Buttons' error message in the classic checkout page.
+* Tweak - Use admin theme color in selectors.
 
 = 7.6.0 - 2023-09-14 =
 * Fix - PHP fatal error when saving a non-UPE payment method and the Stripe request to retrieve it fails.
