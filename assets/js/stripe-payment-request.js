@@ -360,6 +360,11 @@ jQuery( function( $ ) {
 				paymentDetails = cart.order_data;
 			}
 
+			// Prevent displaying Link in the PRBs if disabled in the plugin settings.
+			if ( ! wc_stripe_payment_request_params?.stripe?.allow_link ) {
+				options.disableWallets = [ 'link' ];
+			}
+
 			// Puerto Rico (PR) is the only US territory/possession that's supported by Stripe.
 			// Since it's considered a US state by Stripe, we need to do some special mapping.
 			if ( 'PR' === options.country ) {
@@ -376,12 +381,6 @@ jQuery( function( $ ) {
 				// Check the availability of the Payment Request API first.
 				paymentRequest.canMakePayment().then( function( result ) {
 					if ( ! result ) {
-						return;
-					}
-
-					const availablePaymentRequestTypes = Object.keys( result ).filter( type => result[type] );
-
-					if ( availablePaymentRequestTypes.length === 1 && result.link && ! wc_stripe_payment_request_params.stripe.allow_link ) {
 						return;
 					}
 
