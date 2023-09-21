@@ -410,7 +410,7 @@ class WC_Stripe_Apple_Pay_Registration {
 					printf(
 						/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
 						esc_html__( 'Please check the %1$slogs%2$s for more details on this issue. Logging must be enabled to see recorded logs.', 'woocommerce-gateway-stripe' ),
-						'<a href="' . admin_url( 'admin.php?page=wc-status&tab=logs' ) . '">',
+						'<a href="' . esc_url( admin_url( 'admin.php?page=wc-status&tab=logs' ) ) . '">',
 						'</a>'
 					);
 				?>
