@@ -31,6 +31,11 @@ export const createPaymentRequestUsingCart = ( stripe, cart ) => {
 		displayItems: cart.order_data.displayItems,
 	};
 
+	// Prevent displaying Link in the PRBs if disabled in the plugin settings.
+	if ( ! getBlocksConfiguration()?.stripe?.allow_link ) {
+		options.disableWallets = [ 'link' ];
+	}
+
 	// Puerto Rico (PR) is the only US territory/possession that's supported by Stripe.
 	// Since it's considered a US state by Stripe, we need to do some special mapping.
 	if ( options.country === 'PR' ) {
