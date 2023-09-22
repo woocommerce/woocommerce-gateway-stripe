@@ -32,7 +32,7 @@ export const createPaymentRequestUsingCart = ( stripe, cart ) => {
 	};
 
 	// Prevent displaying Link in the PRBs if disabled in the plugin settings.
-	if ( ! getBlocksConfiguration()?.stripe?.allow_link ) {
+	if ( ! getBlocksConfiguration()?.stripe?.is_link_enabled ) {
 		options.disableWallets = [ 'link' ];
 	}
 
