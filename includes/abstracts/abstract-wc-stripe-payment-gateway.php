@@ -1782,14 +1782,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return false;
 		}
 
-		$order_id = wc_get_order_id_by_order_key( wc_clean( wp_unslash( $_GET['key'] ) ) );
+		$order_id = absint( get_query_var( 'order-pay' ) );
+		$order    = wc_get_order( $order_id );
 
-		// If the order ID is not found or the order ID does not match the order ID in the URL, return false.
-		if ( ! $order_id || ( absint( get_query_var( 'order-pay' ) ) !== absint( $order_id ) ) ) {
+		// If the order is not found or the param `key` is not set or the order key does not match the order key in the URL param, return false.
+		if ( ! $order || ! isset( $_GET['key'] ) || wc_clean( wp_unslash( $_GET['key'] ) ) !== $order->get_order_key() ) {
 			return false;
 		}
-
-		$order = wc_get_order( $order_id );
 
 		// If the order doesn't need payment, we don't need to prepare the payment page.
 		if ( ! $order->needs_payment() ) {
