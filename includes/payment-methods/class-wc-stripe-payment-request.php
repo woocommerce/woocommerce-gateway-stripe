@@ -705,10 +705,11 @@ class WC_Stripe_Payment_Request {
 		return [
 			'ajax_url'           => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'             => [
-				'key'                => $this->publishable_key,
-				'allow_prepaid_card' => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
-				'locale'             => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
-				'allow_link'         => WC_Stripe_UPE_Payment_Method_Link::is_link_enabled(),
+				'key'                        => $this->publishable_key,
+				'allow_prepaid_card'         => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
+				'locale'                     => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+				'allow_link'                 => WC_Stripe_UPE_Payment_Method_Link::is_link_enabled(),
+				'is_payment_request_enabled' => $this->is_payment_request_enabled(),
 			],
 			'nonce'              => [
 				'payment'                   => wp_create_nonce( 'wc-stripe-payment-request' ),
@@ -859,7 +860,7 @@ class WC_Stripe_Payment_Request {
 	 */
 	public function is_at_least_one_payment_request_button_enabled() {
 		// Apple Pay / Google Pay is enabled.
-		if ( isset( $this->stripe_settings['payment_request'] ) && 'yes' === $this->stripe_settings['payment_request'] ) {
+		if ( $this->is_payment_request_enabled() ) {
 			return true;
 		}
 
@@ -1898,5 +1899,16 @@ class WC_Stripe_Payment_Request {
 		}
 
 		return $this->stripe_settings['payment_request_button_locations'];
+	}
+
+	/**
+	 * Returns whether Payment Request is enabled.
+	 *
+	 * This option defines whether Apple Pay and Google Pay's payment request buttons are enabled.
+	 *
+	 * @return boolean
+	 */
+	private function is_payment_request_enabled() {
+		return isset( $this->stripe_settings['payment_request'] ) && 'yes' === $this->stripe_settings['payment_request'];
 	}
 }
