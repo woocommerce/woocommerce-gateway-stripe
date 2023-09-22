@@ -87,12 +87,8 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		// Don't initiate this class if both Link and
-		// the Payment Request Buttons (Apple Pay/Google Pay) are disabled.
-		if (
-			! WC_Stripe_UPE_Payment_Method_Link::is_link_enabled() &&
-			( ! isset( $this->stripe_settings['payment_request'] ) || 'yes' !== $this->stripe_settings['payment_request'] )
-		) {
+		// Don't initiate this class if none of the PRBs are enabled.
+		if ( ! $this->is_at_least_one_payment_request_button_enabled() ) {
 			return;
 		}
 
@@ -851,6 +847,28 @@ class WC_Stripe_Payment_Request {
 		?>
 		<p id="wc-stripe-payment-request-button-separator" style="margin-top:1.5em;text-align:center;display:none;">&mdash; <?php esc_html_e( 'OR', 'woocommerce-gateway-stripe' ); ?> &mdash;</p>
 		<?php
+	}
+
+	/**
+	 * Returns whether at least one of the Express checkouts is enabled.
+	 *
+	 * We have one setting for the Apple Pay / Google Pay wallet and another for Link.
+	 * This method returns true if at least one of those two options is enabled.
+	 *
+	 * @return boolean
+	 */
+	public function is_at_least_one_payment_request_button_enabled() {
+		// Apple Pay / Google Pay is enabled.
+		if ( isset( $this->stripe_settings['payment_request'] ) && 'yes' === $this->stripe_settings['payment_request'] ) {
+			return true;
+		}
+
+		// Link is enabled.
+		if ( WC_Stripe_UPE_Payment_Method_Link::is_link_enabled() ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
