@@ -87,8 +87,12 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		// Checks if Payment Request is enabled.
-		if ( ! isset( $this->stripe_settings['payment_request'] ) || 'yes' !== $this->stripe_settings['payment_request'] ) {
+		// Don't initiate this class if both Link and
+		// the Payment Request Buttons (Apple Pay/Google Pay) are disabled.
+		if (
+			! WC_Stripe_UPE_Payment_Method_Link::is_link_enabled() &&
+			( ! isset( $this->stripe_settings['payment_request'] ) || 'yes' !== $this->stripe_settings['payment_request'] )
+		) {
 			return;
 		}
 
