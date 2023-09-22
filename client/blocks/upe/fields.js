@@ -337,6 +337,10 @@ const UPEField = ( {
 				},
 			},
 		},
+		wallets: {
+			applePay: 'never',
+			googlePay: 'never',
+		},
 	};
 
 	return (

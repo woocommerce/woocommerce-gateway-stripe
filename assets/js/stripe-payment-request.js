@@ -157,20 +157,22 @@ jQuery( function( $ ) {
 		displayErrorMessage: function( message ) {
 			$( '.woocommerce-error' ).remove();
 
-			if ( wc_stripe_payment_request_params.is_product_page ) {
-				var element = $( '.product' ).first();
-				element.before( message );
+			const $prependErrorMessageTo = wc_stripe_payment_request_params.is_product_page ?
+				$( '.product' ).first() :
+				$( '.shop_table' ).closest( 'form' );
 
-				$( 'html, body' ).animate({
-					scrollTop: element.prev( '.woocommerce-error' ).offset().top
-				}, 600 );
-			} else {
-				var $form = $( '.shop_table.cart' ).closest( 'form' );
-				$form.before( message );
-				$( 'html, body' ).animate({
-					scrollTop: $form.prev( '.woocommerce-error' ).offset().top
-				}, 600 );
+			// Couldn't found the element to which prepend the error. This shouldn't happen.
+			if ( ! $prependErrorMessageTo.length ) {
+				// But log the error so there's at least some indication of what's going on.
+				console.error( 'Could not prepend the error message element:', message );
+				return;
 			}
+
+			$prependErrorMessageTo.before( message );
+
+			$( 'html, body' ).animate({
+				scrollTop: $prependErrorMessageTo.prev( '.woocommerce-error' ).offset().top
+			}, 600 );
 		},
 
 		/**
@@ -659,7 +661,7 @@ jQuery( function( $ ) {
 					} );
 				});
 			});
-			
+
 			const blockPaymentRequestButton = function () {
 				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 			}
@@ -689,7 +691,7 @@ jQuery( function( $ ) {
 			// when the customer clicks on the button before the debounced event is processed.
 			$( '.quantity' ).on( 'input', '.qty', blockPaymentRequestButton );
 			$( '.quantity' ).on('input', '.qty', wc_stripe_payment_request.debounce(250, cartChangedHandler));
-			
+
 			// Update payment request buttons if product add-ons are modified.
 			$( '.cart:not(.cart_group)' ).on( 'updated_addons', blockPaymentRequestButton );
 			$( '.cart:not(.cart_group)' ).on( 'updated_addons', wc_stripe_payment_request.debounce( 250, cartChangedHandler ));

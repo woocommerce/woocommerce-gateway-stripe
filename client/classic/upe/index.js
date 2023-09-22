@@ -244,6 +244,10 @@ jQuery( function ( $ ) {
 				const businessName = getStripeServerData()?.accountDescriptor;
 				const upeSettings = {
 					business: { name: businessName },
+					wallets: {
+						applePay: 'never',
+						googlePay: 'never',
+					},
 				};
 				if ( isCheckout && ! isOrderPay ) {
 					upeSettings.fields = {
