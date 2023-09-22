@@ -382,7 +382,11 @@ class WC_Stripe_Payment_Tokens {
 			}
 		} else {
 			if ( 'stripe' === $token->get_gateway_id() || 'stripe_sepa' === $token->get_gateway_id() ) {
-				$stripe_customer->delete_source( $token->get_token() );
+				try {
+					$stripe_customer->delete_source( $token->get_token() );
+				} catch ( WC_Stripe_Exception $e ) {
+					WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+				}
 			}
 		}
 	}
