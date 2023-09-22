@@ -291,19 +291,20 @@ class WC_Stripe_Payment_Tokens {
 				}
 				add_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 			}
+
+			// Eliminate remaining payment methods no longer known by Stripe.
+			// Prevent unnecessary recursion, when deleting tokens.
+			remove_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
+			foreach ( $remaining_tokens as $token ) {
+				unset( $tokens[ $token->get_id() ] );
+				$token->delete();
+			}
+			add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
+
 		} catch ( WC_Stripe_Exception $e ) {
 			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 		}
-
-		// Eliminate remaining payment methods no longer known by Stripe.
-		// Prevent unnecessary recursion, when deleting tokens.
-		remove_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
-		foreach ( $remaining_tokens as $token ) {
-			unset( $tokens[ $token->get_id() ] );
-			$token->delete();
-		}
-		add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
 
 		return $tokens;
 	}
