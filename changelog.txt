@@ -7,6 +7,7 @@
 * Tweak - Prevent Google Pay and Apple Pay from showing up in the UPE card Element.
 * Tweak - Use admin theme color in selectors.
 * Tweak - Refactor `is_valid_pay_for_order_endpoint` for better performance.
+* Fix - Catch request failure errors.
 
 = 7.6.0 - 2023-09-14 =
 * Fix - PHP fatal error when saving a non-UPE payment method and the Stripe request to retrieve it fails.
