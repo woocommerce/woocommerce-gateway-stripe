@@ -360,11 +360,6 @@ jQuery( function( $ ) {
 				paymentDetails = cart.order_data;
 			}
 
-			// Prevent displaying Link in the PRBs if disabled in the plugin settings.
-			if ( ! wc_stripe_payment_request_params?.stripe?.is_link_enabled ) {
-				options.disableWallets = [ 'link' ];
-			}
-
 			const disableWallets = [];
 
 			// Prevent displaying Link in the PRBs if disabled in the plugin settings.
