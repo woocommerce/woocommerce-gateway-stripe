@@ -91,6 +91,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			if ( isset( $_GET['wcs_stripe_code'], $_GET['wcs_stripe_state'] ) ) {
 
 				$response = $this->connect_oauth( wc_clean( wp_unslash( $_GET['wcs_stripe_state'] ) ), wc_clean( wp_unslash( $_GET['wcs_stripe_code'] ) ) );
+
+				$this->maybe_record_oboarding_track_event( is_wp_error( $response ) );
+
 				wp_safe_redirect( esc_url_raw( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code' ] ) ) );
 				exit;
 			}
@@ -176,6 +179,26 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			} else {
 				return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
 			}
+		}
+
+		/**
+		 * Records the onboarding flow track event if WC_Tracks exists.
+		 *
+		 * @param bool $had_error Whether the Stripe connection had an error.
+		 * @return void
+		 */
+		private function maybe_record_oboarding_track_event( $had_error ) {
+			if ( ! class_exists( 'WC_Tracks' ) ) {
+				return;
+			}
+
+			$options    = get_option( self::SETTINGS_OPTION, [] );
+			$is_test    = isset( $options['testmode'] ) && 'yes' === $options['testmode'];
+			$event_name = ! $had_error ? 'wcstripe_onboarding_flow_redirected' : 'wcstripe_onboarding_flow_redirected_error';
+
+			// We're recording this directly instead of queueing it because
+			// a queue wouldn't be processed due to the redirect below.
+			WC_Tracks::record_event( $event_name, [ 'is_test_mode' => $is_test ] );
 		}
 	}
 }
