@@ -53,10 +53,17 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 	private $local_pickup_id;
 
 	/**
+	 * @var UPE_Test_Helper
+	 */
+	private $upe_helper;
+
+	/**
 	 * Sets up things all tests need.
 	 */
 	public function set_up() {
 		parent::set_up();
+
+		$this->upe_helper = new UPE_Test_Helper();
 
 		$this->pr = new WC_Stripe_Payment_Request();
 
@@ -177,5 +184,35 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'success', $data['result'] );
 		$this->assertEquals( $expected_shipping_options, $data['shipping_options'], 'Shipping options mismatch' );
+	}
+
+	public function test_is_at_least_one_payment_request_button_enabled_link_enabled() {
+		$this->pr->stripe_settings = [ 'payment_request' => false ];
+
+		$this->upe_helper->enable_upe();
+
+		update_option(
+			'woocommerce_stripe_settings',
+			array_merge(
+				get_option( 'woocommerce_stripe_settings', [] ),
+				[
+					'upe_checkout_experience_accepted_payments' => [ 'link' ],
+				]
+			)
+		);
+
+		$this->assertTrue( $this->pr->is_at_least_one_payment_request_button_enabled() );
+	}
+
+	public function test_is_at_least_one_payment_request_button_enabled_pr_enabled() {
+		$this->pr->stripe_settings = [ 'payment_request' => 'yes' ];
+
+		$this->assertTrue( $this->pr->is_at_least_one_payment_request_button_enabled() );
+	}
+
+	public function test_is_at_least_one_payment_request_button_enabled_none_enabled() {
+		$this->pr->stripe_settings = [ 'payment_request' => false ];
+
+		$this->assertFalse( $this->pr->is_at_least_one_payment_request_button_enabled() );
 	}
 }

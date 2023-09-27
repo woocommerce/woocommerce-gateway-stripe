@@ -186,7 +186,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		//       to version 5.0.
 		if ( function_exists( 'has_block' ) ) {
 			// Don't show if PRBs are turned off entirely.
-			if ( ! isset( $this->settings['payment_request'] ) || 'yes' !== $this->settings['payment_request'] ) {
+			if ( ! $this->payment_request_configuration->is_at_least_one_payment_request_button_enabled() ) {
 				return false;
 			}
 
