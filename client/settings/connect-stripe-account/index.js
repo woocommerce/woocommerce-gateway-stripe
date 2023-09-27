@@ -59,6 +59,11 @@ const ConnectStripeAccount = ( { oauthUrl } ) => {
 		window.location.href = oauthUrl;
 	};
 
+	const handleEnterAccountKeys = () => {
+		recordEvent( 'wcstripe_enter_account_keys_click', {} );
+		setModalType( 'live' );
+	};
+
 	return (
 		<>
 			{ modalType && (
@@ -120,7 +125,7 @@ const ConnectStripeAccount = ( { oauthUrl } ) => {
 							isPrimary={ ! oauthUrl }
 							isSecondary={ !! oauthUrl }
 							// eslint-disable-next-line no-alert, no-undef
-							onClick={ () => setModalType( 'live' ) }
+							onClick={ handleEnterAccountKeys }
 						>
 							{ oauthUrl
 								? __(
