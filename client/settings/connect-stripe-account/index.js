@@ -56,7 +56,7 @@ const ConnectStripeAccount = ( { oauthUrl } ) => {
 
 	const handleCreateOrConnectAccount = () => {
 		recordEvent( 'wcstripe_create_or_connect_account_click', {} );
-		window.location.href = oauthUrl;
+		window.location.assign( oauthUrl );
 	};
 
 	const handleEnterAccountKeys = () => {
