@@ -138,4 +138,16 @@ describe( 'ConnectStripeAccount', () => {
 			screen.queryByText( /edit live account keys & webhooks/i )
 		).toBeInTheDocument();
 	} );
+
+	it( 'should record a "wcstripe_enter_account_keys_click" Track event when clicking on the Enter account keys button', () => {
+		render( <ConnectStripeAccount oauthUrl="" /> );
+
+		const accountKeysButton = screen.queryByText( /enter account keys/i );
+		userEvent.click( accountKeysButton );
+
+		expect( recordEvent ).toHaveBeenCalledWith(
+			'wcstripe_enter_account_keys_click',
+			{}
+		);
+	} );
 } );
