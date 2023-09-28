@@ -49,6 +49,7 @@ export function recordEvent( eventName, eventProperties ) {
 			return;
 		}
 
+		// TODO: add is_test_mode to eventProperties.
 		getLibrary().recordEvent( eventName, eventProperties );
 	} );
 }
