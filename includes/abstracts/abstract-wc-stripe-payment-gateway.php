@@ -1086,33 +1086,46 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$request['charge'] = $charge_id;
 		WC_Stripe_Logger::log( "Info: Beginning refund for order {$charge_id} for the amount of {$amount}" );
 
-		$request = apply_filters( 'wc_stripe_refund_request', $request, $order );
+		try {
+			$request = apply_filters( 'wc_stripe_refund_request', $request, $order );
 
-		$intent           = $this->get_intent_from_order( $order );
-		$intent_cancelled = false;
-		if ( $intent ) {
-			// If the order has a Payment Intent pending capture, then the Intent itself must be refunded (cancelled), not the Charge.
-			if ( ! empty( $intent->error ) ) {
-				$response         = $intent;
-				$intent_cancelled = true;
-			} elseif ( 'requires_capture' === $intent->status ) {
-				$result           = WC_Stripe_API::request(
-					[],
-					'payment_intents/' . $intent->id . '/cancel'
-				);
-				$intent_cancelled = true;
+			$intent           = $this->get_intent_from_order( $order );
+			$intent_cancelled = false;
+			if ( $intent ) {
+				// If the order has a Payment Intent pending capture, then the Intent itself must be refunded (cancelled), not the Charge.
+				if ( ! empty( $intent->error ) ) {
+					$response         = $intent;
+					$intent_cancelled = true;
+				} elseif ( 'requires_capture' === $intent->status ) {
+					$result           = WC_Stripe_API::request(
+						[],
+						'payment_intents/' . $intent->id . '/cancel'
+					);
+					$intent_cancelled = true;
 
-				if ( ! empty( $result->error ) ) {
-					$response = $result;
-				} else {
-					$charge   = end( $result->charges->data );
-					$response = end( $charge->refunds->data );
+					if ( ! empty( $result->error ) ) {
+						$response = $result;
+					} else {
+						$charge   = end( $result->charges->data );
+						$response = end( $charge->refunds->data );
+					}
 				}
 			}
-		}
 
-		if ( ! $intent_cancelled && 'yes' === $captured ) {
-			$response = WC_Stripe_API::request( $request, 'refunds' );
+			if ( ! $intent_cancelled && 'yes' === $captured ) {
+				$response = WC_Stripe_API::request( $request, 'refunds' );
+			}
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+			return new WP_Error(
+				'stripe_error',
+				sprintf(
+					/* translators: %1$s is a stripe error message */
+					__( 'There was a problem initiating a refund: %1$s', 'woocommerce-gateway-stripe' ),
+					$e->getMessage()
+				)
+			);
 		}
 
 		if ( ! empty( $response->error ) ) {

@@ -133,8 +133,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Display the Payment Request Buttons' error message in the classic checkout page.
 * Fix - Prevent escaping the anchor tag under the Apple Pay domain registration failure notice.
 * Fix - Use the card's payer name for Payment Request Buttons when the billing name isn't available.
+* Fix - Display the Payment Request Buttons according to the selected settings.
 * Tweak - Prevent Google Pay and Apple Pay from showing up in the UPE card Element.
 * Tweak - Use admin theme color in selectors.
 * Tweak - Refactor `is_valid_pay_for_order_endpoint` for better performance.
+* Fix - Catch request failure errors.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

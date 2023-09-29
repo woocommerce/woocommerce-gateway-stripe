@@ -39,11 +39,10 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 			return false;
 		}
 
-		return in_array(
-			self::STRIPE_ID,
-			woocommerce_gateway_stripe()->get_main_stripe_gateway()->get_upe_enabled_payment_method_ids(),
-			true
-		);
+		$upe_gateway            = new WC_Stripe_UPE_Payment_Gateway();
+		$upe_enabled_method_ids = $upe_gateway->get_upe_enabled_payment_method_ids();
+
+		return in_array( self::STRIPE_ID, $upe_enabled_method_ids, true );
 	}
 
 	/**
