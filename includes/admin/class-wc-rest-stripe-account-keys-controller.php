@@ -238,12 +238,10 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	 * @param bool $is_test_mode Whether the keys are test ones.
 	 */
 	private function record_manual_account_connect_track_event( bool $is_test_mode ) {
-		if ( ! class_exists( 'WC_Tracks' ) ) {
+		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
 			return;
 		}
 
-		// We're recording this directly instead of queueing it because
-		// a queue wouldn't be processed due to the redirect that comes after.
-		WC_Tracks::record_event( 'wcstripe_stripe_connected', [ 'is_test_mode' => $is_test_mode ] );
+		wc_admin_record_tracks_event( 'wcstripe_stripe_connected', [ 'is_test_mode' => $is_test_mode ] );
 	}
 }
