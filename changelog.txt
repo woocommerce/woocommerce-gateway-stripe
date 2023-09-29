@@ -4,6 +4,7 @@
 * Add - Prevent saving the bank statement descriptor if it contains non-Latin characters.
 * Fix - Display the Payment Request Buttons' error message in the classic checkout page.
 * Fix - Prevent escaping the anchor tag under the Apple Pay domain registration failure notice.
+* Fix - Use the card's payer name for Payment Request Buttons when the billing name isn't available.
 * Fix - Display the Payment Request Buttons according to the selected settings.
 * Tweak - Prevent Google Pay and Apple Pay from showing up in the UPE card Element.
 * Tweak - Use admin theme color in selectors.
