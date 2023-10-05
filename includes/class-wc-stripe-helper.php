@@ -224,6 +224,7 @@ class WC_Stripe_Helper {
 	/**
 	 * List of currencies supported by Stripe that has no decimals
 	 * https://stripe.com/docs/currencies#zero-decimal from https://stripe.com/docs/currencies#presentment-currencies
+	 * ugx is an exception and not in this list for being a special cases in Stripe https://stripe.com/docs/currencies#special-cases
 	 *
 	 * @return array $currencies
 	 */
