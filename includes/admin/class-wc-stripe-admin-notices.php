@@ -75,6 +75,7 @@ class WC_Stripe_Admin_Notices {
 						'href'   => [],
 						'target' => [],
 					],
+					'strong' => [],
 				]
 			);
 			echo '</p></div>';
@@ -129,6 +130,23 @@ class WC_Stripe_Admin_Notices {
 		$three_d_secure      = isset( $options['three_d_secure'] ) && 'yes' === $options['three_d_secure'];
 
 		if ( isset( $options['enabled'] ) && 'yes' === $options['enabled'] ) {
+			// Check if Stripe is in test mode.
+			if ( $testmode ) {
+				// phpcs:ignore
+				$is_stripe_settings_page = isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 0 === strpos( $_GET['section'], 'stripe' );
+
+				if ( $is_stripe_settings_page ) {
+					$testmode_notice_message = sprintf(
+						/* translators: 1) HTML strong open tag 2) HTML strong closing tag */
+						__( '%1$sTest mode active:%2$s All transactions are simulated. Customers can\'t make real purchases through Stripe.', 'woocommerce-gateway-stripe' ),
+						'<strong>',
+						'</strong>'
+					);
+
+					$this->add_admin_notice( 'mode', 'notice notice-warning', $testmode_notice_message );
+				}
+			}
+
 			if ( empty( $show_3ds_notice ) && $three_d_secure ) {
 				$url = 'https://stripe.com/docs/payments/3d-secure#three-ds-radar';
 

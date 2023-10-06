@@ -139,5 +139,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Use admin theme color in selectors.
 * Tweak - Refactor `is_valid_pay_for_order_endpoint` for better performance.
 * Fix - Catch request failure errors.
+* Tweak - Add test mode notice.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
