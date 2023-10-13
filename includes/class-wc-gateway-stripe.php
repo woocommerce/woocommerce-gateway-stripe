@@ -500,28 +500,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Saves payment method
-	 *
-	 * @param object $source_object
-	 * @throws WC_Stripe_Exception
-	 */
-	public function save_payment_method( $source_object ) {
-		$user_id  = get_current_user_id();
-		$customer = new WC_Stripe_Customer( $user_id );
-
-		if ( ( $user_id && WC_Stripe_Helper::is_reusable_payment_method( $source_object ) ) ) {
-			$response = $customer->add_source( $source_object->id );
-
-			if ( ! empty( $response->error ) ) {
-				throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
-			}
-			if ( is_wp_error( $response ) ) {
-				throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
-			}
-		}
-	}
-
-	/**
 	 * Displays the Stripe fee
 	 *
 	 * @since 4.1.0
@@ -692,7 +670,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( 'requires_payment_method' === $intent->status && isset( $intent->last_payment_error )
-			 && 'authentication_required' === $intent->last_payment_error->code ) {
+			&& 'authentication_required' === $intent->last_payment_error->code ) {
 			$level3_data = $this->get_level3_data_from_order( $order );
 			$intent      = WC_Stripe_API::request_with_level3_data(
 				[
@@ -1088,31 +1066,53 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function validate_account_statement_descriptor_field( $param, $value, $max_length ) {
 		// Since the value is escaped, and we are saving in a place that does not require escaping, apply stripslashes.
-		$value = trim( stripslashes( $value ) );
-		$field = __( 'customer bank statement', 'woocommerce-gateway-stripe' );
+		$value          = trim( stripslashes( $value ) );
+		$error_messages = [];
 
-		if ( 'short_statement_descriptor' === $param ) {
-			$field = __( 'shortened customer bank statement', 'woocommerce-gateway-stripe' );
+		// Has a valid length.
+		if ( ! preg_match( '/^.{5,' . $max_length . '}$/', $value ) ) {
+			$error_messages[] = sprintf(
+				/* translators: Number of the maximum characters allowed */
+				__( '- Has between 5 and %s characters', 'woocommerce-gateway-stripe' ),
+				$max_length
+			);
 		}
 
-		// Validation can be done with a single regex but splitting into multiple for better readability.
-		$valid_length   = '/^.{5,' . $max_length . '}$/';
-		$has_one_letter = '/^.*[a-zA-Z]+/';
-		$no_specials    = '/^[^*"\'<>]*$/';
+		// Contains at least one letter.
+		if ( ! preg_match( '/^.*[a-zA-Z]+/', $value ) ) {
+			$error_messages[] = __( '- Contains at least one letter', 'woocommerce-gateway-stripe' );
+		}
 
-		if (
-			! preg_match( $valid_length, $value ) ||
-			! preg_match( $has_one_letter, $value ) ||
-			! preg_match( $no_specials, $value )
-		) {
-			throw new InvalidArgumentException(
-				sprintf(
-					/* translators: %1 field name, %2 Number of the maximum characters allowed */
-					__( 'The %1$s is invalid. The bank statement must contain only Latin characters, be between 5 and %2$u characters, contain at least one letter, and not contain any of the special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' ),
-					$field,
-					$max_length
-				)
+		// Doesn't contain any of the specified special characters.
+		if ( ! preg_match( '/^[^*"\'<>]*$/', $value ) ) {
+			$error_messages[] = __( '- Does not contain any of the following special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' );
+		}
+
+		/*
+		 * Doesn't contain a non-Latin character.
+		 * We're not matching accentuated Latin characters, numbers, whitespace, or special characters.
+		 */
+		if ( preg_match( '/[^a-zA-Z0-9\s\x{00C0}-\x{00FF}\p{P}]/u', $value, $matches ) ) {
+			$error_messages[] = __( '- Contains only Latin characters', 'woocommerce-gateway-stripe' );
+		}
+
+		// Display the validation errors if any was found.
+		if ( ! empty( $error_messages ) ) {
+			$field = __( 'customer bank statement', 'woocommerce-gateway-stripe' );
+
+			if ( 'short_statement_descriptor' === $param ) {
+				$field = __( 'shortened customer bank statement', 'woocommerce-gateway-stripe' );
+			}
+
+			$error_message = sprintf(
+				/* translators: %1 The field name, %2 <br> tag, %3 Validation error messages */
+				__( 'The %1$s is invalid. Please make sure it: %2$s%3$s', 'woocommerce-gateway-stripe' ),
+				$field,
+				'<br>',
+				implode( '<br>', $error_messages )
 			);
+
+			throw new InvalidArgumentException( $error_message );
 		}
 
 		return $value;

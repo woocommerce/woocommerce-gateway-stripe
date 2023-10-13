@@ -88,12 +88,12 @@ jQuery( function( $ ) {
 			var email    = source.owner.email;
 			var phone    = source.owner.phone;
 			var billing  = source.owner.address;
-			var name     = source.owner.name;
+			var name     = source.owner.name ?? evt.payerName;
 			var shipping = evt.shippingAddress;
 			var data     = {
 				_wpnonce:                  wc_stripe_payment_request_params.nonce.checkout,
-				billing_first_name:        null !== name ? name.split( ' ' ).slice( 0, 1 ).join( ' ' ) : '',
-				billing_last_name:         null !== name ? name.split( ' ' ).slice( 1 ).join( ' ' ) : '',
+				billing_first_name:        name?.split( ' ' )?.slice( 0, 1 )?.join( ' ' ) ?? '',
+				billing_last_name:         name?.split( ' ' )?.slice( 1 )?.join( ' ' ) ?? '',
 				billing_company:           '',
 				billing_email:             null !== email   ? email : evt.payerEmail,
 				billing_phone:             null !== phone   ? phone : evt.payerPhone && evt.payerPhone.replace( '/[() -]/g', '' ),
@@ -157,20 +157,22 @@ jQuery( function( $ ) {
 		displayErrorMessage: function( message ) {
 			$( '.woocommerce-error' ).remove();
 
-			if ( wc_stripe_payment_request_params.is_product_page ) {
-				var element = $( '.product' ).first();
-				element.before( message );
+			const $prependErrorMessageTo = wc_stripe_payment_request_params.is_product_page ?
+				$( '.product' ).first() :
+				$( '.shop_table' ).closest( 'form' );
 
-				$( 'html, body' ).animate({
-					scrollTop: element.prev( '.woocommerce-error' ).offset().top
-				}, 600 );
-			} else {
-				var $form = $( '.shop_table.cart' ).closest( 'form' );
-				$form.before( message );
-				$( 'html, body' ).animate({
-					scrollTop: $form.prev( '.woocommerce-error' ).offset().top
-				}, 600 );
+			// Couldn't found the element to which prepend the error. This shouldn't happen.
+			if ( ! $prependErrorMessageTo.length ) {
+				// But log the error so there's at least some indication of what's going on.
+				console.error( 'Could not prepend the error message element:', message );
+				return;
 			}
+
+			$prependErrorMessageTo.before( message );
+
+			$( 'html, body' ).animate({
+				scrollTop: $prependErrorMessageTo.prev( '.woocommerce-error' ).offset().top
+			}, 600 );
 		},
 
 		/**
@@ -358,6 +360,20 @@ jQuery( function( $ ) {
 				paymentDetails = cart.order_data;
 			}
 
+			const disableWallets = [];
+
+			// Prevent displaying Link in the PRBs if disabled in the plugin settings.
+			if ( ! wc_stripe_payment_request_params?.stripe?.is_link_enabled ) {
+				disableWallets.push( 'link' );
+			}
+
+			// Prevent displaying Apple Pay and Google Pay in the PRBs if disabled in the plugin settings.
+			if ( ! wc_stripe_payment_request_params?.stripe?.is_payment_request_enabled ) {
+				disableWallets.push( 'applePay', 'googlePay' );
+			}
+
+			options.disableWallets = disableWallets;
+
 			// Puerto Rico (PR) is the only US territory/possession that's supported by Stripe.
 			// Since it's considered a US state by Stripe, we need to do some special mapping.
 			if ( 'PR' === options.country ) {
@@ -374,12 +390,6 @@ jQuery( function( $ ) {
 				// Check the availability of the Payment Request API first.
 				paymentRequest.canMakePayment().then( function( result ) {
 					if ( ! result ) {
-						return;
-					}
-
-					const availablePaymentRequestTypes = Object.keys( result ).filter( type => result[type] );
-
-					if ( availablePaymentRequestTypes.length === 1 && result.link && ! wc_stripe_payment_request_params.stripe.allow_link ) {
 						return;
 					}
 
@@ -659,7 +669,7 @@ jQuery( function( $ ) {
 					} );
 				});
 			});
-			
+
 			const blockPaymentRequestButton = function () {
 				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 			}
@@ -689,7 +699,7 @@ jQuery( function( $ ) {
 			// when the customer clicks on the button before the debounced event is processed.
 			$( '.quantity' ).on( 'input', '.qty', blockPaymentRequestButton );
 			$( '.quantity' ).on('input', '.qty', wc_stripe_payment_request.debounce(250, cartChangedHandler));
-			
+
 			// Update payment request buttons if product add-ons are modified.
 			$( '.cart:not(.cart_group)' ).on( 'updated_addons', blockPaymentRequestButton );
 			$( '.cart:not(.cart_group)' ).on( 'updated_addons', wc_stripe_payment_request.debounce( 250, cartChangedHandler ));

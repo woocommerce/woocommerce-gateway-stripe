@@ -1,10 +1,10 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
-Requires at least: 5.9
-Tested up to: 6.2.2
-Requires PHP: 7.3
-Stable tag: 7.5.0
+Requires at least: 6.0
+Tested up to: 6.3.1
+Requires PHP: 7.4
+Stable tag: 7.6.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,6 +128,17 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.6.0 - xxxx-xx-xx =
+= 7.7.0 - xxxx-xx-xx =
+* Add - Prevent saving the bank statement descriptor if it contains non-Latin characters.
+* Fix - Display the Payment Request Buttons' error message in the classic checkout page.
+* Fix - Prevent escaping the anchor tag under the Apple Pay domain registration failure notice.
+* Fix - Use the card's payer name for Payment Request Buttons when the billing name isn't available.
+* Fix - Display the Payment Request Buttons according to the selected settings.
+* Tweak - Record Track events during the onboarding process.
+* Tweak - Prevent Google Pay and Apple Pay from showing up in the UPE card Element.
+* Tweak - Use admin theme color in selectors.
+* Tweak - Refactor `is_valid_pay_for_order_endpoint` for better performance.
+* Fix - Catch request failure errors.
+* Tweak - Add test mode notice.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
