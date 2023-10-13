@@ -347,13 +347,12 @@ class WC_Stripe_API {
 	}
 
 	/**
-	 * Check if we should detaches a payment method from the given customer. If the site is a staging/local/development site in live
-	 * mode, we should not detach the payment method from the customer to avoid detaching it from the production site.
+	 * Checks if a payment method should be detached from a customer.
 	 *
-	 * @param string $customer_id        The ID of the customer that contains the payment method that should be detached.
-	 * @param string $payment_method_id  The ID of the payment method that should be detached.
+	 * If the site is a staging/local/development site in live mode, we should not detach the payment method
+	 * from the customer to avoid detaching it from the production site.
 	 *
-	 * @return bool  True if we should detach the payment method, false otherwise.
+	 * @return bool True if the payment should be detached, false otherwise.
 	 */
 	public static function should_detach_payment_method_from_customer() {
 		$options   = get_option( 'woocommerce_stripe_settings' );
@@ -368,7 +367,6 @@ class WC_Stripe_API {
 		// and return false when the site is a staging/local/development site.
 		// This is to avoid detaching the payment method from the live production site.
 		// Requests coming from the customer account page i.e delete payment method, are not affected by this and returns true.
-
 		if ( is_admin() ) {
 			if ( 'production' === wp_get_environment_type() ) {
 				return true;
