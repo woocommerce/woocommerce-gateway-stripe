@@ -47,11 +47,15 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				return new WP_Error( 'invalid_url_protocol', __( 'Your site must be served over HTTPS in order to connect your Stripe account automatically.', 'woocommerce-gateway-stripe' ) );
 			}
 
+			$return_url = add_query_arg( '_wpnonce', wp_create_nonce( 'wcs_stripe_connected' ), $return_url );
+
 			$result = $this->api->get_stripe_oauth_init( $return_url );
 
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}
+
+			set_transient( 'wcs_stripe_connect_state', $result->state, 6 * HOUR_IN_SECONDS );
 
 			return $result->oauthUrl; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		}
@@ -59,18 +63,26 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 		/**
 		 * Initiate OAuth connection request to Connect Server
 		 *
-		 * @param  bool $state Stripe onboarding state.
-		 * @param  int  $code  OAuth code.
+		 * @param  string $state State token to prevent request forgery.
+		 * @param  string $code  OAuth code.
 		 *
 		 * @return string|WP_Error
 		 */
 		public function connect_oauth( $state, $code ) {
+			// The state parameter is used to protect against CSRF.
+			// It's a unique, randomly generated, opaque, and non-guessable string that is sent when starting the
+			// authentication request and validated when processing the response.
+			if ( get_transient( 'wcs_stripe_connect_state' ) !== $state ) {
+				return new WP_Error( 'Invalid state received from Stripe server' );
+			}
 
 			$response = $this->api->get_stripe_oauth_keys( $code );
 
 			if ( is_wp_error( $response ) ) {
 				return $response;
 			}
+
+			delete_transient( 'wcs_stripe_connect_state' );
 
 			return $this->save_stripe_keys( $response );
 		}
@@ -89,6 +101,11 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 
 			// redirect from oauth-init
 			if ( isset( $_GET['wcs_stripe_code'], $_GET['wcs_stripe_state'] ) ) {
+				$nonce = isset( $_GET['_wpnonce'] ) ? wc_clean( wp_unslash( $_GET['_wpnonce'] ) ) : '';
+
+				if ( ! wp_verify_nonce( $nonce, 'wcs_stripe_connected' ) ) {
+					return new WP_Error( 'Invalid nonce received from Stripe server' );
+				}
 
 				$response = $this->connect_oauth( wc_clean( wp_unslash( $_GET['wcs_stripe_state'] ) ), wc_clean( wp_unslash( $_GET['wcs_stripe_code'] ) ) );
 				wp_safe_redirect( esc_url_raw( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code' ] ) ) );
