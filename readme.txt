@@ -140,5 +140,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Refactor `is_valid_pay_for_order_endpoint` for better performance.
 * Fix - Catch request failure errors.
 * Tweak - Add test mode notice.
+* Fix - Remove ugx from the zero decimal currency list as a special case in Stripe.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
