@@ -141,5 +141,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Catch request failure errors.
 * Tweak - Add test mode notice.
 * Fix - Remove ugx from the zero decimal currency list as a special case in Stripe.
+* Fix - Deleting customer on staging site detaches tokens from customer in Stripe.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
