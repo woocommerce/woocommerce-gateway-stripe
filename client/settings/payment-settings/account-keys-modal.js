@@ -75,7 +75,6 @@ const SecretKey = () => {
 			disabled={ isSaving }
 			name="secret_key"
 			autoComplete="off"
-			type="password"
 		/>
 	);
 };
@@ -96,7 +95,6 @@ const TestSecretKey = () => {
 			disabled={ isSaving }
 			name="test_secret_key"
 			autoComplete="off"
-			type="password"
 		/>
 	);
 };
@@ -117,7 +115,6 @@ const WebhookSecret = () => {
 			disabled={ isSaving }
 			name="webhook_secret"
 			autoComplete="off"
-			type="password"
 		/>
 	);
 };
@@ -138,7 +135,6 @@ const TestWebhookSecret = () => {
 			disabled={ isSaving }
 			name="test_webhook_secret"
 			autoComplete="off"
-			type="password"
 		/>
 	);
 };
