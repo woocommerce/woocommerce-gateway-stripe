@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 6.0
 Tested up to: 6.3.1
 Requires PHP: 7.4
-Stable tag: 7.6.0
+Stable tag: 7.6.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -131,6 +131,17 @@ If you get stuck, you can ask for help in the Plugin Forum.
 = 7.7.0 - xxxx-xx-xx =
 * Add - Prevent saving the bank statement descriptor if it contains non-Latin characters.
 * Fix - Display the Payment Request Buttons' error message in the classic checkout page.
+* Fix - Prevent escaping the anchor tag under the Apple Pay domain registration failure notice.
+* Fix - Use the card's payer name for Payment Request Buttons when the billing name isn't available.
+* Fix - Display the Payment Request Buttons according to the selected settings.
+* Tweak - Record Track events during the onboarding process.
+* Tweak - Prevent Google Pay and Apple Pay from showing up in the UPE card Element.
+* Tweak - Use admin theme color in selectors.
+* Tweak - Refactor `is_valid_pay_for_order_endpoint` for better performance.
+* Fix - Catch request failure errors.
+* Tweak - Add test mode notice.
+* Fix - Remove ugx from the zero decimal currency list as a special case in Stripe.
+* Fix - Deleting customer on staging site detaches tokens from customer in Stripe.
 * Tweak - Hide Stripe secret keys in the UI.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
