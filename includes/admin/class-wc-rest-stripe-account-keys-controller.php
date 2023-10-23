@@ -105,6 +105,11 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		// Filter only the fields we want to return
 		$account_keys = array_intersect_key( $stripe_settings, array_flip( $allowed_params ) );
 
+		// Mask the keys
+		foreach ( $account_keys as $key => $value ) {
+			$account_keys[ $key ] = substr( $value, 0, 10 ) . str_repeat( '*', strlen( $value ) - 14 ) . substr( $value, -2 );
+		}
+
 		return new WP_REST_Response( $account_keys );
 	}
 
