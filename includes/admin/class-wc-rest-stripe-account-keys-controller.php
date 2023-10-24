@@ -107,7 +107,7 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 		// Mask the keys
 		foreach ( $account_keys as $key => $value ) {
-			$account_keys[ $key ] = substr( $value, 0, 10 ) . str_repeat( '*', strlen( $value ) - 14 ) . substr( $value, -2 );
+			$account_keys[ $key ] = substr( $value, 0, 10 ) . str_repeat( '*', 50 ) . substr( $value, -2 );
 		}
 
 		return new WP_REST_Response( $account_keys );
