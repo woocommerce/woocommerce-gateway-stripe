@@ -14,6 +14,8 @@
 * Tweak - Add test mode notice.
 * Fix - Remove ugx from the zero decimal currency list as a special case in Stripe.
 * Fix - Deleting customer on staging site detaches tokens from customer in Stripe.
+* Fix - Resolved an issue preventing changing a subscriptions payment method when UPE is enabled.
+* Fix - Send customer billing and address details to Stripe when changing a subscriptions payment method.
 
 = 7.6.1 - 2023-10-17 =
 * Fix - Add nonce check to OAuth flow.
