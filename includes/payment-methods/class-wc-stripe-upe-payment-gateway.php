@@ -579,6 +579,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				$request['metadata'] = $this->get_metadata_from_order( $order );
 
+				// If order requires shipping, add the shipping address details to the payment intent request.
+				if ( method_exists( $order, 'get_shipping_postcode' ) && ! empty( $order->get_shipping_postcode() ) ) {
+					$request['shipping'] = $this->get_address_data_for_payment_request( $order );
+				}
+
 				// Run the necessary filter to make sure mandate information is added when it's required.
 				$request = apply_filters(
 					'wc_stripe_generate_create_intent_request',
@@ -678,6 +683,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				if ( false === $intent ) {
 					$request['capture_method'] = ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual';
 					$request['confirm']        = 'true';
+				}
+
+				// If order requires shipping, add the shipping address details to the payment intent request.
+				if ( method_exists( $order, 'get_shipping_postcode' ) && ! empty( $order->get_shipping_postcode() ) ) {
+					$request['shipping'] = $this->get_address_data_for_payment_request( $order );
 				}
 
 				// Run the necessary filter to make sure mandate information is added when it's required.
@@ -1439,6 +1449,31 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return WC_Stripe_API::request_with_level3_data( $params, $path, $level3_data, $order );
 		}
 		return WC_Stripe_API::request( $params, $path, $method );
+	}
+
+	/**
+	 * Returns an array of address datato be used in a Stripe /payment_intents API request.
+	 *
+	 * Stripe docs: https://stripe.com/docs/api/payment_intents/create#create_payment_intent-shipping
+	 *
+	 * @since 7.7.0
+	 *
+	 * @param WC_Order $order Order to fetch address data from.
+	 *
+	 * @return array
+	 */
+	private function get_address_data_for_payment_request( $order ) {
+		return [
+			'name'    => trim( $order->get_shipping_first_name() . ' ' . $order->get_shipping_last_name() ),
+			'address' => [
+				'line1'       => $order->get_shipping_address_1(),
+				'line2'       => $order->get_shipping_address_2(),
+				'city'        => $order->get_shipping_city(),
+				'country'     => $order->get_shipping_country(),
+				'postal_code' => $order->get_shipping_postcode(),
+				'state'       => $order->get_shipping_state(),
+			],
+		];
 	}
 
 }
