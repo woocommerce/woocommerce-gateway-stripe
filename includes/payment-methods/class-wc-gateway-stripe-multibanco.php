@@ -347,8 +347,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 			if ( $create_account ) {
 				$new_customer_id     = $order->get_customer_id();
 				$new_stripe_customer = new WC_Stripe_Customer( $new_customer_id );
-				$customer_data       = WC_Stripe_Customer::map_customer_data( $order );
-				$new_stripe_customer->create_customer( $customer_data );
+				$new_stripe_customer->create_customer();
 			}
 
 			$response = $this->create_source( $order );

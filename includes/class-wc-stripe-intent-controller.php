@@ -505,12 +505,11 @@ class WC_Stripe_Intent_Controller {
 		$user          = wp_get_current_user();
 		$customer      = new WC_Stripe_Customer( $user->ID );
 		$customer_id   = $customer->get_id();
-		$customer_data = WC_Stripe_Customer::map_customer_data( null, new WC_Customer( $user->ID ) );
 
 		if ( ! $customer_id ) {
-			$customer_id = $customer->create_customer( $customer_data );
+			$customer_id = $customer->create_customer();
 		} else {
-			$customer_id = $custoner->update_customer( $customer_data );
+			$customer_id = $custoner->update_customer();
 		}
 
 		$gateway              = $this->get_upe_gateway();

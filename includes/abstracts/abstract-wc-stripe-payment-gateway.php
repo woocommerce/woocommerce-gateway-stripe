@@ -870,12 +870,10 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 		}
 
-		$customer_data = $user_id ? WC_Stripe_Customer::map_customer_data( null, new WC_Customer( $user_id ) ) : [];
-
 		if ( $customer->get_id() ) {
-			$customer_id = $customer->update_customer( $customer_data );
+			$customer_id = $customer->update_customer();
 		} else {
-			$customer_id = $customer->create_customer( $customer_data );
+			$customer_id = $customer->create_customer();
 		}
 
 		if ( empty( $source_object ) && ! $is_token ) {

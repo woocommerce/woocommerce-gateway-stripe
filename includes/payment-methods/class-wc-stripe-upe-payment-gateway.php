@@ -541,15 +541,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
 				];
 
-				$user          = $this->get_user_from_order( $order );
-				$customer      = new WC_Stripe_Customer( $user->ID );
-				$customer_data = WC_Stripe_Customer::map_customer_data( $order );
+				$user     = $this->get_user_from_order( $order );
+				$customer = new WC_Stripe_Customer( $user->ID );
 
 				// Update customer or create customer if customer does not exist.
 				if ( empty( $customer->get_id() ) ) {
-					$request['customer'] = $customer->create_customer( $customer_data );
+					$request['customer'] = $customer->create_customer();
 				} else {
-					$request['customer'] = $customer->update_customer( $customer_data );
+					$request['customer'] = $customer->update_customer();
 				}
 
 				if ( '' !== $selected_upe_payment_type ) {
