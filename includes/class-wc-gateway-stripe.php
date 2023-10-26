@@ -671,14 +671,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		if ( 'requires_payment_method' === $intent->status && isset( $intent->last_payment_error )
 			&& 'authentication_required' === $intent->last_payment_error->code ) {
-			$level3_data = $this->get_level3_data_from_order( $order );
-			$intent      = WC_Stripe_API::request_with_level3_data(
-				[
-					'payment_method' => $intent->last_payment_error->source->id,
-				],
-				'payment_intents/' . $intent->id . '/confirm',
-				$level3_data,
-				$order
+			$level3_data    = $this->get_level3_data_from_order( $order );
+			$payment_method = WC_Stripe_Helper::get_payment_method_from_intent( $intent );
+			$intent         = WC_Stripe_API::request_with_level3_data(
+					[
+							'payment_method' => is_string( $payment_method ) ? $payment_method : $payment_method->id,
+					],
+					'payment_intents/' . $intent->id . '/confirm',
+					$level3_data,
+					$order
 			);
 
 			if ( isset( $intent->error ) ) {
