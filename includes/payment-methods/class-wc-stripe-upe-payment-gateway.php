@@ -545,7 +545,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$customer = new WC_Stripe_Customer( $user->ID );
 
 				// Update customer or create customer if customer does not exist.
-				if ( empty( $customer->get_id() ) ) {
+				if ( ! $customer->get_id() ) {
 					$request['customer'] = $customer->create_customer();
 				} else {
 					$request['customer'] = $customer->update_customer();

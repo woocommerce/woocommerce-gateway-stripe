@@ -502,11 +502,10 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function init_setup_intent() {
 		// Determine the customer managing the payment methods, create one if we don't have one already.
-		$user          = wp_get_current_user();
-		$customer      = new WC_Stripe_Customer( $user->ID );
-		$customer_id   = $customer->get_id();
+		$user     = wp_get_current_user();
+		$customer = new WC_Stripe_Customer( $user->ID );
 
-		if ( ! $customer_id ) {
+		if ( ! $customer->get_id() ) {
 			$customer_id = $customer->create_customer();
 		} else {
 			$customer_id = $custoner->update_customer();
