@@ -288,7 +288,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function javascript_params() {
 		global $wp;
 
-		$stripe_params = [
+		$is_change_payment_method = $this->is_changing_payment_method_for_subscription();
+		$stripe_params            = [
 			'title'        => $this->title,
 			'isUPEEnabled' => true,
 			'key'          => $this->publishable_key,
@@ -316,8 +317,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['addPaymentReturnURL']      = wc_get_account_endpoint_url( 'payment-methods' );
 		$stripe_params['enabledBillingFields']     = $enabled_billing_fields;
 
-		if ( parent::is_valid_pay_for_order_endpoint() ) {
-			if ( $this->is_subscriptions_enabled() && $this->is_changing_payment_method_for_subscription() ) {
+		if ( parent::is_valid_pay_for_order_endpoint() || $is_change_payment_method ) {
+			if ( $this->is_subscriptions_enabled() && $is_change_payment_method ) {
 				$stripe_params['isChangingPayment']   = true;
 				$stripe_params['addPaymentReturnURL'] = wp_sanitize_redirect( esc_url_raw( home_url( add_query_arg( [] ) ) ) );
 
@@ -806,7 +807,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @version 5.6.0
 	 */
 	public function maybe_process_upe_redirect() {
-		if ( $this->is_payment_methods_page() ) {
+		if ( $this->is_payment_methods_page() || $this->is_changing_payment_method_for_subscription() ) {
 			if ( $this->is_setup_intent_success_creation_redirection() ) {
 				if ( isset( $_GET['redirect_status'] ) && 'succeeded' === $_GET['redirect_status'] ) {
 					$user_id  = wp_get_current_user()->ID;
