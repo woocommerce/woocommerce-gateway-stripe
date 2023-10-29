@@ -142,5 +142,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Tweak - Add test mode notice.
 * Fix - Remove ugx from the zero decimal currency list as a special case in Stripe.
 * Fix - Deleting customer on staging site detaches tokens from customer in Stripe.
+* Fix - Resolved an issue preventing changing a subscriptions payment method when UPE is enabled.
+* Fix - Attach customer billing and address details to the new payment method in Stripe when changing a subscriptions payment method.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
