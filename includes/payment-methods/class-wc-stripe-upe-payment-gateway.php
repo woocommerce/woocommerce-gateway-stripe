@@ -1017,7 +1017,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$customer->clear_cache();
 			$this->save_payment_method_to_order( $order, $prepared_payment_method );
-			do_action( 'woocommerce_stripe_add_payment_method', $user->get_id(), $payment_method_object );
+			do_action( 'woocommerce_stripe_add_payment_method', $customer->get_user_id(), $payment_method_object );
 		}
 
 		if ( $payment_needed ) {
