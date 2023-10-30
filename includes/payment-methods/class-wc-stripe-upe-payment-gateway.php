@@ -542,8 +542,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
 				];
 
-				$user     = $this->get_user_from_order( $order );
-				$customer = new WC_Stripe_Customer( $user->ID );
+				$customer = $this->get_stripe_customer_from_order( $order );
 
 				// Update customer or create customer if customer does not exist.
 				if ( ! $customer->get_id() ) {
@@ -1012,8 +1011,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			} else {
 				$payment_method_object = $intent->payment_method;
 			}
-			$user                    = $this->get_user_from_order( $order );
-			$customer                = new WC_Stripe_Customer( $user->ID );
+
+			$customer                = $this->get_stripe_customer_from_order( $order );
 			$prepared_payment_method = $this->prepare_payment_method( $payment_method_object );
 
 			$customer->clear_cache();
@@ -1168,6 +1167,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$user = wp_get_current_user();
 		}
 		return $user;
+	}
+
+	/**
+	 * Get WC Stripe Customer from WC Order.
+	 *
+	 * @param WC_Order $order
+	 *
+	 * @return WC_Stripe_Customer
+	 */
+	public function get_stripe_customer_from_order( $order ) {
+		$user     = $this->get_user_from_order( $order );
+		$customer = new WC_Stripe_Customer( $user->ID );
+
+		return $customer;
 	}
 
 	/**
