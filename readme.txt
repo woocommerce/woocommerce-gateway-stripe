@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort,
 Requires at least: 6.0
 Tested up to: 6.3.1
 Requires PHP: 7.4
-Stable tag: 7.6.1
+Stable tag: 7.6.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.6.2 - xxxx-xx-xx =
+= 7.6.2 - 2023-10-31 =
 * Deprecate - Remove Sofort support for new accounts.
 * Fix - Add Order Key Validation.
 

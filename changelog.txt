@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 7.6.2 - xxxx-xx-xx =
+= 7.6.2 - 2023-10-31 =
 * Deprecate - Remove Sofort support for new accounts.
 * Fix - Add Order Key Validation.
 
