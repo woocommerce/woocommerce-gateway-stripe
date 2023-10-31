@@ -16,6 +16,7 @@
 * Fix - Deleting customer on staging site detaches tokens from customer in Stripe.
 * Fix - Resolved an issue preventing changing a subscriptions payment method when UPE is enabled.
 * Fix - Send customer billing and address details to Stripe when changing a subscriptions payment method.
+* Fix - Prevent "Invalid recurring shipping method" errors when attempting to purchase a synchronised subscription with payment request buttons.
 
 = 7.6.1 - 2023-10-17 =
 * Fix - Add nonce check to OAuth flow.
