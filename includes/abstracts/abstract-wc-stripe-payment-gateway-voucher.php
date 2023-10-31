@@ -215,6 +215,22 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 	}
 
 	/**
+	 * Returns the JavaScript configuration object used on the product, cart, and checkout pages.
+	 *
+	 * @return array  The configuration object to be loaded to JS.
+	 */
+	public function javascript_params() {
+		$stripe_params = parent::javascript_params();
+
+		if ( $this->is_valid_pay_for_order_endpoint() ) {
+			$order_id = absint( get_query_var( 'order-pay' ) );
+			$stripe_params['stripe_order_key'] = ! empty( $order_id ) ? wc_get_order( $order_id )->get_order_key() : null;
+		}
+
+		return $stripe_params;
+	}
+
+	/**
 	 * Initialize Gateway Settings Form Fields.
 	 *
 	 * @since 5.8.0
@@ -357,6 +373,12 @@ abstract class WC_Stripe_Payment_Gateway_Voucher extends WC_Stripe_Payment_Gatew
 			}
 
 			$order = wc_get_order( $order_id );
+
+			$order_key = isset( $_POST['stripe_order_key'] ) ? wc_clean( wp_unslash( $_POST['stripe_order_key'] ) ) : null;
+			if ( $order->get_order_key() !== $order_key ) {
+				throw new Exception( __( 'Unable to verify your request. Please reload the page and try again.', 'woocommerce-gateway-stripe' ) );
+			}
+
 			$order->set_payment_method( $this );
 			$intent = $this->create_or_update_payment_intent( $order );
 

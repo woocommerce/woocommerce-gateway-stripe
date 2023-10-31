@@ -17,6 +17,10 @@
 * Fix - Resolved an issue preventing changing a subscriptions payment method when UPE is enabled.
 * Fix - Send customer billing and address details to Stripe when changing a subscriptions payment method.
 
+= 7.6.2 - 2023-10-31 =
+* Deprecate - Remove Sofort support for new accounts.
+* Fix - Add Order Key Validation.
+
 = 7.6.1 - 2023-10-17 =
 * Fix - Add nonce check to OAuth flow.
 
