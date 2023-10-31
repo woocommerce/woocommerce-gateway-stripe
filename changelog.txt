@@ -1,7 +1,8 @@
 *** Changelog ***
 
 = 7.6.2 - xxxx-xx-xx =
-* Deprecate - Remove Sofort support from the new accounts.
+* Deprecate - Remove Sofort support for new accounts.
+* Fix - Add Order Key Validation.
 
 = 7.6.1 - 2023-10-17 =
 * Fix - Add nonce check to OAuth flow.
