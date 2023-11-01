@@ -6,6 +6,7 @@ import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethodCheckbox from './payment-method-checkbox';
 import {
+	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
 	useManualCapture,
 } from 'wcstripe/data';
@@ -77,6 +78,7 @@ const GeneralSettingsSection = () => {
 	const upePaymentMethods = useGetAvailablePaymentMethodIds();
 	const capabilities = useGetCapabilities();
 	const [ isManualCaptureEnabled ] = useManualCapture();
+	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
 
 	// Hide payment methods that are not part of the account capabilities.
 	const availablePaymentMethods = upePaymentMethods
@@ -84,6 +86,17 @@ const GeneralSettingsSection = () => {
 			capabilities.hasOwnProperty( `${ method }_payments` )
 		)
 		.filter( ( id ) => id !== 'link' );
+
+	// Remove Sofort if it's not enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
+	// Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
+	if (
+		! enabledPaymentMethodIds.includes( 'sofort' ) &&
+		availablePaymentMethods.includes( 'sofort' )
+	) {
+		availablePaymentMethods.splice(
+			availablePaymentMethods.indexOf( 'sofort' )
+		);
+	}
 
 	return (
 		<List>
