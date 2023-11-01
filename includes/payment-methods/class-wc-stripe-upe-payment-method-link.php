@@ -39,10 +39,9 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 			return false;
 		}
 
-		$upe_gateway            = new WC_Stripe_UPE_Payment_Gateway();
-		$upe_enabled_method_ids = $upe_gateway->get_upe_enabled_payment_method_ids();
+		$upe_enabled_method_ids = WC_Stripe_Helper::get_settings( null, 'upe_checkout_experience_accepted_payments' );
 
-		return in_array( self::STRIPE_ID, $upe_enabled_method_ids, true );
+		return is_array( $upe_enabled_method_ids ) && in_array( self::STRIPE_ID, $upe_enabled_method_ids, true );
 	}
 
 	/**
