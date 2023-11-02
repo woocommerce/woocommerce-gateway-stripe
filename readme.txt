@@ -145,5 +145,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Resolved an issue preventing changing a subscriptions payment method when UPE is enabled.
 * Fix - Send customer billing and address details to Stripe when changing a subscriptions payment method.
 * Add - Attach billing details to customers created in Stripe to support Indian merchants in processing international transactions.
+* Fix - Prevent "Invalid recurring shipping method" errors when attempting to purchase a synchronised subscription with payment request buttons.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
