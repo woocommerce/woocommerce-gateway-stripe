@@ -144,6 +144,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Deleting customer on staging site detaches tokens from customer in Stripe.
 * Fix - Resolved an issue preventing changing a subscriptions payment method when UPE is enabled.
 * Fix - Attach customer billing and address details to the new payment method in Stripe when changing a subscriptions payment method.
-* Add - Support Indian merchants processing international transactions by attaching billing details to customer's created in Stripe.
+* Add - Attach billing details to customers created in Stripe to support Indian merchants in processing international transactions.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
