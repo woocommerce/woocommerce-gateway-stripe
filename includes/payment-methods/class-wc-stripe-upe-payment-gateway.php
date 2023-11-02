@@ -542,14 +542,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
 				];
 
-				// Get user/customer for order.
-				$customer_id = $this->get_stripe_customer_id( $order );
-				if ( ! empty( $customer_id ) ) {
-					$request['customer'] = $customer_id;
+				$customer = $this->get_stripe_customer_from_order( $order );
+
+				// Update customer or create customer if customer does not exist.
+				if ( ! $customer->get_id() ) {
+					$request['customer'] = $customer->create_customer();
 				} else {
-					$user                = $this->get_user_from_order( $order );
-					$customer            = new WC_Stripe_Customer( $user->ID );
-					$request['customer'] = $customer->update_or_create_customer();// Update customer or create customer if customer does not exist.
+					$request['customer'] = $customer->update_customer();
 				}
 
 				if ( '' !== $selected_upe_payment_type ) {
@@ -578,6 +577,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				}
 
 				$request['metadata'] = $this->get_metadata_from_order( $order );
+
+				// If order requires shipping, add the shipping address details to the payment intent request.
+				if ( method_exists( $order, 'get_shipping_postcode' ) && ! empty( $order->get_shipping_postcode() ) ) {
+					$request['shipping'] = $this->get_address_data_for_payment_request( $order );
+				}
 
 				// Run the necessary filter to make sure mandate information is added when it's required.
 				$request = apply_filters(
@@ -678,6 +682,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				if ( false === $intent ) {
 					$request['capture_method'] = ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual';
 					$request['confirm']        = 'true';
+				}
+
+				// If order requires shipping, add the shipping address details to the payment intent request.
+				if ( method_exists( $order, 'get_shipping_postcode' ) && ! empty( $order->get_shipping_postcode() ) ) {
+					$request['shipping'] = $this->get_address_data_for_payment_request( $order );
 				}
 
 				// Run the necessary filter to make sure mandate information is added when it's required.
@@ -1002,13 +1011,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			} else {
 				$payment_method_object = $intent->payment_method;
 			}
-			$user                    = $this->get_user_from_order( $order );
-			$customer                = new WC_Stripe_Customer( $user->ID );
+
+			$customer                = $this->get_stripe_customer_from_order( $order );
 			$prepared_payment_method = $this->prepare_payment_method( $payment_method_object );
 
 			$customer->clear_cache();
 			$this->save_payment_method_to_order( $order, $prepared_payment_method );
-			do_action( 'woocommerce_stripe_add_payment_method', $user->get_id(), $payment_method_object );
+			do_action( 'woocommerce_stripe_add_payment_method', $customer->get_user_id(), $payment_method_object );
 		}
 
 		if ( $payment_needed ) {
@@ -1158,6 +1167,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$user = wp_get_current_user();
 		}
 		return $user;
+	}
+
+	/**
+	 * Get WC Stripe Customer from WC Order.
+	 *
+	 * @param WC_Order $order
+	 *
+	 * @return WC_Stripe_Customer
+	 */
+	public function get_stripe_customer_from_order( $order ) {
+		$user     = $this->get_user_from_order( $order );
+		$customer = new WC_Stripe_Customer( $user->ID );
+
+		return $customer;
 	}
 
 	/**
@@ -1439,6 +1462,31 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return WC_Stripe_API::request_with_level3_data( $params, $path, $level3_data, $order );
 		}
 		return WC_Stripe_API::request( $params, $path, $method );
+	}
+
+	/**
+	 * Returns an array of address datato be used in a Stripe /payment_intents API request.
+	 *
+	 * Stripe docs: https://stripe.com/docs/api/payment_intents/create#create_payment_intent-shipping
+	 *
+	 * @since 7.7.0
+	 *
+	 * @param WC_Order $order Order to fetch address data from.
+	 *
+	 * @return array
+	 */
+	private function get_address_data_for_payment_request( $order ) {
+		return [
+			'name'    => trim( $order->get_shipping_first_name() . ' ' . $order->get_shipping_last_name() ),
+			'address' => [
+				'line1'       => $order->get_shipping_address_1(),
+				'line2'       => $order->get_shipping_address_2(),
+				'city'        => $order->get_shipping_city(),
+				'country'     => $order->get_shipping_country(),
+				'postal_code' => $order->get_shipping_postcode(),
+				'state'       => $order->get_shipping_state(),
+			],
+		];
 	}
 
 }
