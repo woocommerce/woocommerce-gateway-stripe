@@ -659,14 +659,20 @@ jQuery( function( $ ) {
 				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 
 				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
-					$.when(
-						paymentRequest.update( {
-							total: response.total,
-							displayItems: response.displayItems,
-						} )
-					).then( function () {
+					if ( response.error ) {
 						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-					} );
+						wc_stripe_payment_request.hidePaymentRequestButton();
+					} else {
+						$.when(
+							paymentRequest.update( {
+								total: response.total,
+								displayItems: response.displayItems,
+							} )
+						).then( function () {
+							$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
+							wc_stripe_payment_request.showPaymentRequestButton();
+						} );
+					}
 				});
 			});
 
