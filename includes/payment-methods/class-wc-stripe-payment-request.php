@@ -609,11 +609,10 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Checks if subscription or variable subscription is a product that has a free trial period and requires shipping.
-	 * This could be a subscription product with a trial period or a synchronised subscription with a delayed payment.
+	 * Returns true if the given product is a subscription that has free trial and requires shipping.
+	 * This could be a subscription with a free trial period or a synchronised subscription with a delayed first payment.
 	 *
-	 * Supports being passed a simple, variation or variable subscription product.
-	 * If any product/variation has a trial period and needs shipping, the whole product is considered to have a trial period and needs shipping.
+	 * If the product is a variable subscription, this function will return true if all of its variations have a trial and require shipping.
 	 *
 	 * @since 7.7.0
 	 *
@@ -633,20 +632,22 @@ class WC_Stripe_Payment_Request {
 		}
 
 		foreach ( $products as $product ) {
-			// Skip any products that are virtual as we only care about products that require shipping
+			// Return early if the product doesn't require shipping.
 			if ( ! $product->needs_shipping() ) {
-				continue;
+				return false;
 			}
 
-			// If the product has a trial period or is synchronised and the first payment is not today.
-			if ( WC_Subscriptions_Product::get_trial_length( $product ) > 0 ) {
-				return true;
-			} else if ( WC_Subscriptions_Synchroniser::is_product_synced( $product ) && ! WC_Subscriptions_Synchroniser::is_payment_upfront( $product ) && ! WC_Subscriptions_Synchroniser::is_today( WC_Subscriptions_Synchroniser::calculate_first_payment_date( $product, 'timestamp' ) ) ) {
-				return true;
+			// If product is synced, check if the first payment is upfront or today (i.e. no trial period). If product is not synced, check if it has a trial period.
+			if ( WC_Subscriptions_Synchroniser::is_product_synced( $product ) ) {
+				if ( WC_Subscriptions_Synchroniser::is_payment_upfront( $product ) || WC_Subscriptions_Synchroniser::is_today( WC_Subscriptions_Synchroniser::calculate_first_payment_date( $product, 'timestamp' ) ) ) {
+					return false;
+				}
+			} elseif ( WC_Subscriptions_Product::get_trial_length( $product ) <= 0 ) {
+				return false;
 			}
 		}
 
-		return false;
+		return true;
 	}
 
 	/**
