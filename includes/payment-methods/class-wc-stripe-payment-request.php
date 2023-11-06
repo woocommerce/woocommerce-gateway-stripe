@@ -385,7 +385,7 @@ class WC_Stripe_Payment_Request {
 
 		$product = $this->get_product();
 
-		if ( 'variable' === $product->get_type() ) {
+		if ( in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
 			$variation_attributes = $product->get_variation_attributes();
 			$attributes           = [];
 
