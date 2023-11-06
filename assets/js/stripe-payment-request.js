@@ -438,6 +438,14 @@ jQuery( function( $ ) {
 						} );
 					}
 				} );
+
+				paymentRequest.on( 'cancel', function() {
+					// If the customer closes the Payment Request window on the product page, chooses another variation and then attempts to pay with the payment request buttons again,
+					// we need to make sure we re-init the payment request so that the 'shippingaddresschange' event is fired again, otherwise shipping options won't be calculated.
+					if ( wc_stripe_payment_request_params.is_product_page ) {
+						wc_stripe_payment_request.init();
+					}
+				} );
 			} catch( e ) {
 				// Leave for troubleshooting
 				console.error( e );
