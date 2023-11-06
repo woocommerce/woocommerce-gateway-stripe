@@ -146,5 +146,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 * Fix - Send customer billing and address details to Stripe when changing a subscriptions payment method.
 * Add - Attach billing details to customers created in Stripe to support Indian merchants in processing international transactions.
 * Fix - Prevent "Invalid recurring shipping method" errors when attempting to purchase a synchronised subscription with payment request buttons.
+* Fix - When using Payment Request buttons on variable product pages, ensure shipping is properly calculated after the customer closes the window and changes variations.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

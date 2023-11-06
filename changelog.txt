@@ -18,6 +18,7 @@
 * Fix - Send customer billing and address details to Stripe when changing a subscriptions payment method.
 * Add - Attach billing details to customers created in Stripe to support Indian merchants in processing international transactions.
 * Fix - Prevent "Invalid recurring shipping method" errors when attempting to purchase a synchronised subscription with payment request buttons.
+* Fix - When using Payment Request buttons on variable product pages, ensure shipping is properly calculated after the customer closes the window and changes variations.
 
 = 7.6.2 - 2023-10-31 =
 * Deprecate - Remove Sofort support for new accounts.
