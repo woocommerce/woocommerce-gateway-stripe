@@ -639,7 +639,7 @@ class WC_Stripe_Payment_Request {
 
 			// If product is synced, check if the first payment is upfront or today (i.e. no trial period). If product is not synced, check if it has a trial period.
 			if ( WC_Subscriptions_Synchroniser::is_product_synced( $product ) ) {
-				if ( WC_Subscriptions_Synchroniser::is_payment_upfront( $product ) || WC_Subscriptions_Synchroniser::is_today( WC_Subscriptions_Synchroniser::calculate_first_payment_date( $product, 'timestamp' ) ) ) {
+				if ( WC_Subscriptions_Synchroniser::is_payment_upfront( $product ) ) {
 					return false;
 				}
 			} elseif ( WC_Subscriptions_Product::get_trial_length( $product ) <= 0 ) {
