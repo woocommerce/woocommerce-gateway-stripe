@@ -1,8 +1,11 @@
-import React from 'react';
+import { __ } from '@wordpress/i18n';
+import React, { useState } from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
+import { Button } from '@wordpress/components';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
+import CustomizePaymentMethod from './customize-payment-method';
 import PaymentMethodCheckbox from './payment-method-checkbox';
 import {
 	useEnabledPaymentMethodIds,
@@ -26,12 +29,31 @@ const List = styled.ul`
 		&:not( :last-child ) {
 			box-shadow: inset 0 -1px 0 #e8eaeb;
 		}
+
+		&.expanded {
+			box-shadow: none;
+			padding-bottom: 0;
+		}
+	}
+
+	> div {
+		margin: 0;
+		padding: 16px 24px 14px 24px;
+
+		@media ( min-width: 660px ) {
+			padding: 16px 24px 24px 24px;
+		}
+
+		&:not( :last-child ) {
+			box-shadow: inset 0 -1px 0 #e8eaeb;
+		}
 	}
 `;
 
 const ListElement = styled.li`
 	display: flex;
 	flex-wrap: nowrap;
+	gap: 16px;
 
 	@media ( min-width: 660px ) {
 		align-items: center;
@@ -73,6 +95,7 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 `;
 
 const GeneralSettingsSection = () => {
+	const [ customizationStatus, setCustomizationStatus ] = useState( {} );
 	const upePaymentMethods = useGetAvailablePaymentMethodIds();
 	const capabilities = useGetCapabilities();
 	const [ isManualCaptureEnabled ] = useManualCapture();
@@ -107,29 +130,61 @@ const GeneralSettingsSection = () => {
 				} = PaymentMethodsMap[ method ];
 
 				return (
-					<ListElement
-						key={ method }
-						className={ classnames( {
-							'has-overlay':
-								! isAllowingManualCapture &&
-								isManualCaptureEnabled,
-						} ) }
-					>
-						<PaymentMethodCheckbox
-							id={ method }
-							label={ label }
-							isAllowingManualCapture={ isAllowingManualCapture }
-						/>
-						<PaymentMethodWrapper>
-							<PaymentMethodDescription
+					<>
+						<ListElement
+							key={ method }
+							className={ classnames( {
+								'has-overlay':
+									! isAllowingManualCapture &&
+									isManualCaptureEnabled,
+								expanded: customizationStatus[ method ],
+							} ) }
+						>
+							<PaymentMethodCheckbox
 								id={ method }
-								Icon={ Icon }
-								description={ description }
 								label={ label }
+								isAllowingManualCapture={
+									isAllowingManualCapture
+								}
 							/>
-							<StyledFees id={ method } />
-						</PaymentMethodWrapper>
-					</ListElement>
+							<PaymentMethodWrapper>
+								<PaymentMethodDescription
+									id={ method }
+									Icon={ Icon }
+									description={ description }
+									label={ label }
+								/>
+								<StyledFees id={ method } />
+							</PaymentMethodWrapper>
+							{ ! customizationStatus[ method ] && (
+								<Button
+									variant="secondary"
+									onClick={ () =>
+										setCustomizationStatus( {
+											...customizationStatus,
+											[ method ]: true,
+										} )
+									}
+								>
+									{ __(
+										'Customize',
+										'woocommerce-gateway-stripe'
+									) }
+								</Button>
+							) }
+						</ListElement>
+						{ customizationStatus[ method ] && (
+							<CustomizePaymentMethod
+								method={ method }
+								onCancel={ () =>
+									setCustomizationStatus( {
+										...customizationStatus,
+										[ method ]: false,
+									} )
+								}
+							/>
+						) }
+					</>
 				);
 			} ) }
 		</List>
