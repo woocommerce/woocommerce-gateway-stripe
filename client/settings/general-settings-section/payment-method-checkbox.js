@@ -1,9 +1,8 @@
 import { __, sprintf } from '@wordpress/i18n';
-import React, { useContext, useState } from 'react';
+import React, { useState } from 'react';
 import styled from '@emotion/styled';
 import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import { Icon, info } from '@wordpress/icons';
-import UpeToggleContext from '../upe-toggle/context';
 import RemoveMethodConfirmationModal from './remove-method-confirmation-modal';
 import { useEnabledPaymentMethodIds, useManualCapture } from 'wcstripe/data';
 import Tooltip from 'wcstripe/components/tooltip';
@@ -24,7 +23,6 @@ const IconWrapper = styled.span`
 `;
 
 const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
-	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] = useState(
 		false
@@ -49,10 +47,6 @@ const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
 			enabledPaymentMethods.filter( ( m ) => m !== id )
 		);
 	};
-
-	if ( ! isUpeEnabled ) {
-		return null;
-	}
 
 	return (
 		<>

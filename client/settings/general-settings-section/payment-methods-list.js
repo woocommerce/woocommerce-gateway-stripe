@@ -1,7 +1,6 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
-import UpeToggleContext from '../upe-toggle/context';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
 import PaymentMethodCheckbox from './payment-method-checkbox';
@@ -74,7 +73,6 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 `;
 
 const GeneralSettingsSection = () => {
-	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const upePaymentMethods = useGetAvailablePaymentMethodIds();
 	const capabilities = useGetCapabilities();
 	const [ isManualCaptureEnabled ] = useManualCapture();
@@ -129,7 +127,7 @@ const GeneralSettingsSection = () => {
 								description={ description }
 								label={ label }
 							/>
-							{ isUpeEnabled && <StyledFees id={ method } /> }
+							<StyledFees id={ method } />
 						</PaymentMethodWrapper>
 					</ListElement>
 				);

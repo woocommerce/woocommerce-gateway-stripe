@@ -235,6 +235,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return WP_REST_Response
 	 */
 	public function get_settings() {
+		$is_upe_enabled = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
+
 		return new WP_REST_Response(
 			[
 				/* Settings > General */
@@ -245,8 +247,8 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'description'                           => $this->gateway->get_validated_option( 'description' ),
 
 				/* Settings > Payments accepted on checkout */
-				'enabled_payment_method_ids'            => $this->gateway->get_upe_enabled_payment_method_ids(),
-				'available_payment_method_ids'          => $this->gateway->get_upe_available_payment_methods(),
+				'enabled_payment_method_ids'            => $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids() : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids(),
+				'available_payment_method_ids'          => $is_upe_enabled ? $this->gateway->get_upe_available_payment_methods() : WC_Stripe_Helper::get_legacy_available_payment_method_ids(),
 
 				/* Settings > Express checkouts */
 				'is_payment_request_enabled'            => 'yes' === $this->gateway->get_option( 'payment_request' ),

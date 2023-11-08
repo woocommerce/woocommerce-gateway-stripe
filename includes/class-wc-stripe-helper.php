@@ -338,6 +338,78 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * List of legacy payment methods.
+	 *
+	 * @return array
+	 */
+	public static function get_legacy_payment_methods() {
+		$payment_method_classes = [
+			WC_Gateway_Stripe_Bancontact::class,
+			WC_Gateway_Stripe_EPS::class,
+			WC_Gateway_Stripe_Giropay::class,
+			WC_Gateway_Stripe_Ideal::class,
+			WC_Gateway_Stripe_p24::class,
+			WC_Gateway_Stripe_Sepa::class,
+			WC_Gateway_Stripe_Boleto::class,
+			WC_Gateway_Stripe_Oxxo::class,
+		];
+
+		/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
+		 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
+		 */
+		$sofort_settings = get_option( 'woocommerce_stripe_sofort_settings', [] );
+		if ( isset( $sofort_settings['enabled'] ) && 'yes' === $sofort_settings['enabled'] ) {
+			$payment_method_classes[] = WC_Gateway_Stripe_Sofort::class;
+		}
+
+		$payment_methods = [];
+
+		foreach ( $payment_method_classes as $payment_method_class ) {
+			$payment_method                         = new $payment_method_class();
+			$payment_methods[ $payment_method::ID ] = $payment_method;
+		}
+
+		return $payment_methods;
+	}
+
+	/**
+	 * List of available legacy payment methods.
+	 *
+	 * @return array
+	 */
+	public static function get_legacy_available_payment_method_ids() {
+		$payment_methods = self::get_legacy_payment_methods();
+
+		$available_payment_methods = [ 'card' ];
+
+		foreach ( $payment_methods as $payment_method ) {
+			$available_payment_methods[] = str_replace( 'stripe_', '', $payment_method::ID );
+		}
+
+		return $available_payment_methods;
+	}
+
+	/**
+	 * List of enabled legacy payment methods.
+	 *
+	 * @return array
+	 */
+	public static function get_legacy_enabled_payment_method_ids() {
+		$payment_methods = self::get_legacy_payment_methods();
+
+		$enabled_payment_methods = [ 'card' ];
+
+		foreach ( $payment_methods as $payment_method ) {
+			if ( ! $payment_method->is_enabled() ) {
+				continue;
+			}
+			$enabled_payment_methods[] = str_replace( 'stripe_', '', $payment_method::ID );
+		}
+
+		return $enabled_payment_methods;
+	}
+
+	/**
 	 * Checks if WC version is less than passed in version.
 	 *
 	 * @since 4.1.11
