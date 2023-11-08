@@ -86,7 +86,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'array',
 						'items'             => [
 							'type' => 'string',
-							'enum' => $this->gateway->get_upe_available_payment_methods(),
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -267,7 +266,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 				/* Settings > Advanced settings */
 				'is_debug_log_enabled'                  => 'yes' === $this->gateway->get_option( 'logging' ),
-				'is_upe_enabled'                        => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
+				'is_upe_enabled'                        => $is_upe_enabled,
 			]
 		);
 	}
@@ -568,28 +567,36 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @param WP_REST_Request $request Request object.
 	 */
 	private function update_enabled_payment_methods( WP_REST_Request $request ) {
-		// no need to update the payment methods, if the UPE checkout is not enabled
-		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+		$payment_method_ids_to_enable = $request->get_param( 'enabled_payment_method_ids' );
+
+		if ( ! $request->get_param( 'is_upe_enabled' ) ) {
+			$currently_enabled_payment_method_ids = WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
+			$payment_gateways                     = WC_Stripe_Helper::get_legacy_payment_methods();
+
+			foreach ( $payment_gateways as $gateway ) {
+				$gateway_id = str_replace( 'stripe_', '', $gateway->id );
+				if ( ! in_array( $gateway_id, $payment_method_ids_to_enable, true ) && in_array( $gateway_id, $currently_enabled_payment_method_ids, true ) ) {
+					$gateway->update_option( 'enabled', 'no' );
+				} elseif ( in_array( $gateway_id, $payment_method_ids_to_enable, true ) ) {
+					$gateway->update_option( 'enabled', 'yes' );
+				}
+			}
+
 			return;
 		}
-
-		$payment_method_ids_to_enable = $request->get_param( 'enabled_payment_method_ids' );
 
 		if ( null === $payment_method_ids_to_enable ) {
 			return;
 		}
 
-		$available_payment_methods = $this->gateway->get_upe_available_payment_methods();
+		$upe_checkout_experience_accepted_payments = [];
 
-		$payment_method_ids_to_enable = array_values(
-			array_filter(
-				$payment_method_ids_to_enable,
-				function ( $payment_method ) use ( $available_payment_methods ) {
-					return in_array( $payment_method, $available_payment_methods, true );
-				}
-			)
-		);
+		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $gateway ) {
+			if ( in_array( $gateway::STRIPE_ID, $payment_method_ids_to_enable, true ) ) {
+				$upe_checkout_experience_accepted_payments[] = $gateway::STRIPE_ID;
+			}
+		}
 
-		$this->gateway->update_option( 'upe_checkout_experience_accepted_payments', $payment_method_ids_to_enable );
+		$this->gateway->update_option( 'upe_checkout_experience_accepted_payments', $upe_checkout_experience_accepted_payments );
 	}
 }
