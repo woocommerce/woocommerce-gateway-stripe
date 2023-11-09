@@ -508,7 +508,7 @@ class WC_Stripe_Intent_Controller {
 		if ( ! $customer->get_id() ) {
 			$customer_id = $customer->create_customer();
 		} else {
-			$customer_id = $custoner->update_customer();
+			$customer_id = $customer->update_customer();
 		}
 
 		$gateway              = $this->get_upe_gateway();
