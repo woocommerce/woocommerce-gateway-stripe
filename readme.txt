@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.0
 Tested up to: 6.3.1
 Requires PHP: 7.4
-Stable tag: 7.6.2
+Stable tag: 7.7.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.7.0 - xxxx-xx-xx =
+= 7.7.0 - 2023-11-09 =
 * Add - Prevent saving the bank statement descriptor if it contains non-Latin characters.
 * Fix - Display the Payment Request Buttons' error message in the classic checkout page.
 * Fix - Prevent escaping the anchor tag under the Apple Pay domain registration failure notice.
