@@ -1,10 +1,10 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
-Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
+Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
 Requires at least: 6.0
 Tested up to: 6.3.1
 Requires PHP: 7.4
-Stable tag: 7.6.2
+Stable tag: 7.7.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -13,7 +13,7 @@ Take credit card payments on your store using Stripe.
 
 == Description ==
 
-Accept Visa, MasterCard, American Express, Discover, JCB, Diners Club, SEPA, Sofort, iDEAL, giropay, Alipay, and more directly on your store with the Stripe payment gateway for WooCommerce, including Apple Pay, Google Pay, and Microsoft Pay for mobile and desktop.
+Accept Visa, MasterCard, American Express, Discover, JCB, Diners Club, SEPA, iDEAL, giropay, Alipay, and more directly on your store with the Stripe payment gateway for WooCommerce, including Apple Pay, Google Pay, and Microsoft Pay for mobile and desktop.
 
 = Take Credit card payments easily and directly on your store =
 
@@ -128,8 +128,25 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.6.2 - 2023-10-31 =
-* Deprecate - Remove Sofort support for new accounts.
-* Fix - Add Order Key Validation.
+= 7.7.0 - 2023-11-09 =
+* Add - Prevent saving the bank statement descriptor if it contains non-Latin characters.
+* Fix - Display the Payment Request Buttons' error message in the classic checkout page.
+* Fix - Prevent escaping the anchor tag under the Apple Pay domain registration failure notice.
+* Fix - Use the card's payer name for Payment Request Buttons when the billing name isn't available.
+* Fix - Display the Payment Request Buttons according to the selected settings.
+* Tweak - Record Track events during the onboarding process.
+* Tweak - Prevent Google Pay and Apple Pay from showing up in the UPE card Element.
+* Tweak - Use admin theme color in selectors.
+* Tweak - Refactor `is_valid_pay_for_order_endpoint` for better performance.
+* Fix - Catch request failure errors.
+* Tweak - Add test mode notice.
+* Fix - Remove ugx from the zero decimal currency list as a special case in Stripe.
+* Fix - Deleting customer on staging site detaches tokens from customer in Stripe.
+* Fix - Resolved an issue preventing changing a subscriptions payment method when UPE is enabled.
+* Fix - Send customer billing and address details to Stripe when changing a subscriptions payment method.
+* Add - Attach billing details to customers created in Stripe to support Indian merchants in processing international transactions.
+* Fix - Prevent "Invalid recurring shipping method" errors when attempting to purchase a synchronised subscription with payment request buttons.
+* Fix - When using Payment Request buttons on variable product pages, ensure shipping is properly calculated after the customer closes the window and changes variations.
+* Fix - Purchasing a virtual variable product using Apple Pay and Google Pay on the product page will no longer require shipping details.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

@@ -87,8 +87,8 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		// Checks if Payment Request is enabled.
-		if ( ! isset( $this->stripe_settings['payment_request'] ) || 'yes' !== $this->stripe_settings['payment_request'] ) {
+		// Don't initiate this class if none of the PRBs are enabled.
+		if ( ! $this->is_at_least_one_payment_request_button_enabled() ) {
 			return;
 		}
 
@@ -592,8 +592,8 @@ class WC_Stripe_Payment_Request {
 				return false;
 			}
 
-			// Trial subscriptions with shipping are not supported.
-			if ( class_exists( 'WC_Subscriptions_Product' ) && WC_Subscriptions_Product::is_subscription( $_product ) && $_product->needs_shipping() && WC_Subscriptions_Product::get_trial_length( $_product ) > 0 ) {
+			// Subscriptions with a trial period that need shipping are not supported.
+			if ( $this->product_has_trial_and_needs_shipping( $_product ) ) {
 				return false;
 			}
 		}
@@ -606,6 +606,47 @@ class WC_Stripe_Payment_Request {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Checks if subscription or variable subscription is a product that has a free trial period and requires shipping.
+	 * This could be a subscription product with a trial period or a synchronised subscription with a delayed payment.
+	 *
+	 * Supports being passed a simple, variation or variable subscription product.
+	 * If any product/variation has a trial period and needs shipping, the whole product is considered to have a trial period and needs shipping.
+	 *
+	 * @since 7.7.0
+	 *
+	 * @param WC_Product|null $product Product object.
+	 *
+	 * @return boolean
+	 */
+	public function product_has_trial_and_needs_shipping( $product ) {
+		if ( ! class_exists( 'WC_Subscriptions_Product' ) || ! class_exists( 'WC_Subscriptions_Synchroniser' ) || ! WC_Subscriptions_Product::is_subscription( $product ) ) {
+			return false;
+		}
+
+		if ( $product->get_type() === 'variable-subscription' ) {
+			$products = $product->get_available_variations( 'object' );
+		} else {
+			$products = [ $product ];
+		}
+
+		foreach ( $products as $product ) {
+			// Skip any products that are virtual as we only care about products that require shipping
+			if ( ! $product->needs_shipping() ) {
+				continue;
+			}
+
+			// If the product has a trial period or is synchronised and the first payment is not today.
+			if ( WC_Subscriptions_Product::get_trial_length( $product ) > 0 ) {
+				return true;
+			} else if ( WC_Subscriptions_Synchroniser::is_product_synced( $product ) && ! WC_Subscriptions_Synchroniser::is_payment_upfront( $product ) && ! WC_Subscriptions_Synchroniser::is_today( WC_Subscriptions_Synchroniser::calculate_first_payment_date( $product, 'timestamp' ) ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -705,10 +746,11 @@ class WC_Stripe_Payment_Request {
 		return [
 			'ajax_url'           => WC_AJAX::get_endpoint( '%%endpoint%%' ),
 			'stripe'             => [
-				'key'                => $this->publishable_key,
-				'allow_prepaid_card' => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
-				'locale'             => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
-				'allow_link'         => WC_Stripe_UPE_Payment_Method_Link::is_link_enabled(),
+				'key'                        => $this->publishable_key,
+				'allow_prepaid_card'         => apply_filters( 'wc_stripe_allow_prepaid_card', true ) ? 'yes' : 'no',
+				'locale'                     => WC_Stripe_Helper::convert_wc_locale_to_stripe_locale( get_locale() ),
+				'is_link_enabled'            => WC_Stripe_UPE_Payment_Method_Link::is_link_enabled(),
+				'is_payment_request_enabled' => $this->is_payment_request_enabled(),
 			],
 			'nonce'              => [
 				'payment'                   => wp_create_nonce( 'wc-stripe-payment-request' ),
@@ -850,6 +892,28 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
+	 * Returns whether at least one of the Express checkouts is enabled.
+	 *
+	 * We have one setting for the Apple Pay / Google Pay wallet and another for Link.
+	 * This method returns true if at least one of those two options is enabled.
+	 *
+	 * @return boolean
+	 */
+	public function is_at_least_one_payment_request_button_enabled() {
+		// Apple Pay / Google Pay is enabled.
+		if ( $this->is_payment_request_enabled() ) {
+			return true;
+		}
+
+		// Link is enabled.
+		if ( WC_Stripe_UPE_Payment_Method_Link::is_link_enabled() ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
 	 * Returns true if Payment Request Buttons are supported on the current page, false
 	 * otherwise.
 	 *
@@ -983,7 +1047,7 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// Trial subscriptions with shipping are not supported.
-		if ( class_exists( 'WC_Subscriptions_Product' ) && $product->needs_shipping() && WC_Subscriptions_Product::get_trial_length( $product ) > 0 ) {
+		if ( $this->product_has_trial_and_needs_shipping( $product ) ) {
 			return false;
 		}
 
@@ -1876,5 +1940,16 @@ class WC_Stripe_Payment_Request {
 		}
 
 		return $this->stripe_settings['payment_request_button_locations'];
+	}
+
+	/**
+	 * Returns whether Payment Request is enabled.
+	 *
+	 * This option defines whether Apple Pay and Google Pay's payment request buttons are enabled.
+	 *
+	 * @return boolean
+	 */
+	private function is_payment_request_enabled() {
+		return isset( $this->stripe_settings['payment_request'] ) && 'yes' === $this->stripe_settings['payment_request'];
 	}
 }

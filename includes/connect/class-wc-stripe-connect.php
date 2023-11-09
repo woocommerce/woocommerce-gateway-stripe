@@ -108,6 +108,9 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 				}
 
 				$response = $this->connect_oauth( wc_clean( wp_unslash( $_GET['wcs_stripe_state'] ) ), wc_clean( wp_unslash( $_GET['wcs_stripe_code'] ) ) );
+
+				$this->record_account_connect_track_event( is_wp_error( $response ) );
+
 				wp_safe_redirect( esc_url_raw( remove_query_arg( [ 'wcs_stripe_state', 'wcs_stripe_code' ] ) ) );
 				exit;
 			}
@@ -193,6 +196,25 @@ if ( ! class_exists( 'WC_Stripe_Connect' ) ) {
 			} else {
 				return isset( $options['publishable_key'], $options['secret_key'] ) && trim( $options['publishable_key'] ) && trim( $options['secret_key'] );
 			}
+		}
+
+		/**
+		 * Records a track event after the user is redirected back to the store from the Stripe UX.
+		 *
+		 * @param bool $had_error Whether the Stripe connection had an error.
+		 */
+		private function record_account_connect_track_event( bool $had_error ) {
+			if ( ! class_exists( 'WC_Tracks' ) ) {
+				return;
+			}
+
+			$options    = get_option( self::SETTINGS_OPTION, [] );
+			$is_test    = isset( $options['testmode'] ) && 'yes' === $options['testmode'];
+			$event_name = ! $had_error ? 'wcstripe_stripe_connected' : 'wcstripe_stripe_connect_error';
+
+			// We're recording this directly instead of queueing it because
+			// a queue wouldn't be processed due to the redirect that comes after.
+			WC_Tracks::record_event( $event_name, [ 'is_test_mode' => $is_test ] );
 		}
 	}
 }

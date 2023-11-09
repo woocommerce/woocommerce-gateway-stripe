@@ -22,7 +22,7 @@ const normalizeOrderData = ( sourceEvent, paymentRequestType ) => {
 	const email = source?.owner?.email;
 	const phone = source?.owner?.phone;
 	const billing = source?.owner?.address;
-	const name = source?.owner?.name;
+	const name = source?.owner?.name ?? sourceEvent.payerName;
 	const shipping = sourceEvent?.shippingAddress;
 
 	const data = {

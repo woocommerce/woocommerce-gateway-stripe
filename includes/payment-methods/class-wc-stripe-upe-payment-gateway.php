@@ -288,7 +288,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function javascript_params() {
 		global $wp;
 
-		$stripe_params = [
+		$is_change_payment_method = $this->is_changing_payment_method_for_subscription();
+		$stripe_params            = [
 			'title'        => $this->title,
 			'isUPEEnabled' => true,
 			'key'          => $this->publishable_key,
@@ -316,8 +317,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['addPaymentReturnURL']      = wc_get_account_endpoint_url( 'payment-methods' );
 		$stripe_params['enabledBillingFields']     = $enabled_billing_fields;
 
-		if ( parent::is_valid_pay_for_order_endpoint() ) {
-			if ( $this->is_subscriptions_enabled() && $this->is_changing_payment_method_for_subscription() ) {
+		if ( parent::is_valid_pay_for_order_endpoint() || $is_change_payment_method ) {
+			if ( $this->is_subscriptions_enabled() && $is_change_payment_method ) {
 				$stripe_params['isChangingPayment']   = true;
 				$stripe_params['addPaymentReturnURL'] = wp_sanitize_redirect( esc_url_raw( home_url( add_query_arg( [] ) ) ) );
 
@@ -541,14 +542,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
 				];
 
-				// Get user/customer for order.
-				$customer_id = $this->get_stripe_customer_id( $order );
-				if ( ! empty( $customer_id ) ) {
-					$request['customer'] = $customer_id;
+				$customer = $this->get_stripe_customer_from_order( $order );
+
+				// Update customer or create customer if customer does not exist.
+				if ( ! $customer->get_id() ) {
+					$request['customer'] = $customer->create_customer();
 				} else {
-					$user                = $this->get_user_from_order( $order );
-					$customer            = new WC_Stripe_Customer( $user->ID );
-					$request['customer'] = $customer->update_or_create_customer();// Update customer or create customer if customer does not exist.
+					$request['customer'] = $customer->update_customer();
 				}
 
 				if ( '' !== $selected_upe_payment_type ) {
@@ -577,6 +577,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				}
 
 				$request['metadata'] = $this->get_metadata_from_order( $order );
+
+				// If order requires shipping, add the shipping address details to the payment intent request.
+				if ( method_exists( $order, 'get_shipping_postcode' ) && ! empty( $order->get_shipping_postcode() ) ) {
+					$request['shipping'] = $this->get_address_data_for_payment_request( $order );
+				}
 
 				// Run the necessary filter to make sure mandate information is added when it's required.
 				$request = apply_filters(
@@ -677,6 +682,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				if ( false === $intent ) {
 					$request['capture_method'] = ( 'true' === $request_details['capture'] ) ? 'automatic' : 'manual';
 					$request['confirm']        = 'true';
+				}
+
+				// If order requires shipping, add the shipping address details to the payment intent request.
+				if ( method_exists( $order, 'get_shipping_postcode' ) && ! empty( $order->get_shipping_postcode() ) ) {
+					$request['shipping'] = $this->get_address_data_for_payment_request( $order );
 				}
 
 				// Run the necessary filter to make sure mandate information is added when it's required.
@@ -796,7 +806,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @version 5.6.0
 	 */
 	public function maybe_process_upe_redirect() {
-		if ( $this->is_payment_methods_page() ) {
+		if ( $this->is_payment_methods_page() || $this->is_changing_payment_method_for_subscription() ) {
 			if ( $this->is_setup_intent_success_creation_redirection() ) {
 				if ( isset( $_GET['redirect_status'] ) && 'succeeded' === $_GET['redirect_status'] ) {
 					$user_id  = wp_get_current_user()->ID;
@@ -1001,13 +1011,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			} else {
 				$payment_method_object = $intent->payment_method;
 			}
-			$user                    = $this->get_user_from_order( $order );
-			$customer                = new WC_Stripe_Customer( $user->ID );
+
+			$customer                = $this->get_stripe_customer_from_order( $order );
 			$prepared_payment_method = $this->prepare_payment_method( $payment_method_object );
 
 			$customer->clear_cache();
 			$this->save_payment_method_to_order( $order, $prepared_payment_method );
-			do_action( 'woocommerce_stripe_add_payment_method', $user->get_id(), $payment_method_object );
+			do_action( 'woocommerce_stripe_add_payment_method', $customer->get_user_id(), $payment_method_object );
 		}
 
 		if ( $payment_needed ) {
@@ -1160,6 +1170,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
+	 * Get WC Stripe Customer from WC Order.
+	 *
+	 * @param WC_Order $order
+	 *
+	 * @return WC_Stripe_Customer
+	 */
+	public function get_stripe_customer_from_order( $order ) {
+		$user     = $this->get_user_from_order( $order );
+		$customer = new WC_Stripe_Customer( $user->ID );
+
+		return $customer;
+	}
+
+	/**
 	 * Checks if gateway should be available to use.
 	 *
 	 * @since 5.6.0
@@ -1247,7 +1271,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return string
 	 */
 	public function generate_upe_checkout_experience_accepted_payments_html( $key, $data ) {
-		$stripe_account      = $this->stripe_request( 'account' );
+		try {
+			$stripe_account = $this->stripe_request( 'account' );
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+		}
+
 		$stripe_capabilities = isset( $stripe_account->capabilities ) ? (array) $stripe_account->capabilities : [];
 		$data['description'] = '<p>' . __( "Select payments available to customers at checkout. We'll only show your customers the most relevant payment methods based on their currency and location.", 'woocommerce-gateway-stripe' ) . '</p>
 		<table class="wc_gateways widefat form-table wc-stripe-upe-method-selection" cellspacing="0" aria-describedby="wc_stripe_upe_method_selection">
@@ -1433,6 +1462,31 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return WC_Stripe_API::request_with_level3_data( $params, $path, $level3_data, $order );
 		}
 		return WC_Stripe_API::request( $params, $path, $method );
+	}
+
+	/**
+	 * Returns an array of address datato be used in a Stripe /payment_intents API request.
+	 *
+	 * Stripe docs: https://stripe.com/docs/api/payment_intents/create#create_payment_intent-shipping
+	 *
+	 * @since 7.7.0
+	 *
+	 * @param WC_Order $order Order to fetch address data from.
+	 *
+	 * @return array
+	 */
+	private function get_address_data_for_payment_request( $order ) {
+		return [
+			'name'    => trim( $order->get_shipping_first_name() . ' ' . $order->get_shipping_last_name() ),
+			'address' => [
+				'line1'       => $order->get_shipping_address_1(),
+				'line2'       => $order->get_shipping_address_2(),
+				'city'        => $order->get_shipping_city(),
+				'country'     => $order->get_shipping_country(),
+				'postal_code' => $order->get_shipping_postcode(),
+				'state'       => $order->get_shipping_state(),
+			],
+		];
 	}
 
 }
