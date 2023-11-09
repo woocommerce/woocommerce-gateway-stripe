@@ -410,6 +410,32 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Get settings of individual payment methods.
+	 *
+	 * @return array
+	 */
+	public static function get_legacy_individual_payment_method_settings() {
+		$payment_methods = self::get_legacy_payment_methods();
+
+		$payment_method_settings = [];
+
+		foreach ( $payment_methods as $payment_method ) {
+			$settings = [
+				'name'        => $payment_method->get_option( 'title' ),
+				'description' => $payment_method->get_option( 'description' ),
+			];
+
+			if ( method_exists( $payment_method, 'get_unique_settings' ) ) {
+				$settings = $payment_method->get_unique_settings( $settings );
+			}
+
+			$payment_method_settings[ str_replace( 'stripe_', '', $payment_method::ID ) ] = $settings;
+		}
+
+		return $payment_method_settings;
+	}
+
+	/**
 	 * Checks if WC version is less than passed in version.
 	 *
 	 * @since 4.1.11

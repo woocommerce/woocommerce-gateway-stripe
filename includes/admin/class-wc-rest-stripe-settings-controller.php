@@ -89,6 +89,14 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
+					'individual_payment_method_settings' => [
+						'description'       => __( 'Individual payment method settings.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'object',
+						'items'             => [
+							'type' => 'object',
+						],
+						'validate_callback' => 'rest_validate_request_arg',
+					],
 					'is_payment_request_enabled'       => [
 						'description'       => __( 'If Stripe express checkouts should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
@@ -248,6 +256,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > Payments accepted on checkout */
 				'enabled_payment_method_ids'            => $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids() : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids(),
 				'available_payment_method_ids'          => $is_upe_enabled ? $this->gateway->get_upe_available_payment_methods() : WC_Stripe_Helper::get_legacy_available_payment_method_ids(),
+				'individual_payment_method_settings'    => $is_upe_enabled ? [] : WC_Stripe_Helper::get_legacy_individual_payment_method_settings(),
 
 				/* Settings > Express checkouts */
 				'is_payment_request_enabled'            => 'yes' === $this->gateway->get_option( 'payment_request' ),
@@ -286,6 +295,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		/* Settings > Payments accepted on checkout */
 		$this->update_enabled_payment_methods( $request );
+		$this->update_individual_payment_method_settings( $request );
 
 		/* Settings > Express checkouts */
 		$this->update_is_payment_request_enabled( $request );
@@ -598,5 +608,40 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		$this->gateway->update_option( 'upe_checkout_experience_accepted_payments', $upe_checkout_experience_accepted_payments );
+	}
+
+	/**
+	 * Update individual payment gateway settings.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 */
+	public function update_individual_payment_method_settings( WP_REST_Request $request ) {
+		$individual_payment_method_settings = $request->get_param( 'individual_payment_method_settings' );
+
+		// These settings are for non-UPE methods only.
+		if ( $request->get_param( 'is_upe_enabled' ) || empty( $individual_payment_method_settings ) ) {
+			return;
+		}
+
+		$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
+
+		foreach ( $payment_gateways as $gateway ) {
+			$gateway_id       = str_replace( 'stripe_', '', $gateway->id );
+			$gateway_settings = $individual_payment_method_settings[ $gateway_id ];
+
+			if ( ! isset( $gateway_settings ) ) {
+				continue;
+			}
+
+			$name = sanitize_text_field( $gateway_settings['name'] );
+			$gateway->update_option( 'title', $name );
+
+			$description = sanitize_text_field( $gateway_settings['description'] );
+			$gateway->update_option( 'description', $description );
+
+			if ( method_exists( $gateway, 'update_unique_settings' ) ) {
+				$gateway->update_unique_settings( $request );
+			}
+		}
 	}
 }

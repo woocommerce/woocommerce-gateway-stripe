@@ -1,7 +1,8 @@
 import { __ } from '@wordpress/i18n';
-import React from 'react';
+import React, { useState } from 'react';
 import styled from '@emotion/styled';
 import { Button, TextControl } from '@wordpress/components';
+import { useIndividualPaymentMethodSettings } from 'wcstripe/data';
 
 const ButtonWrapper = styled.div`
 	display: flex;
@@ -9,23 +10,32 @@ const ButtonWrapper = styled.div`
 	gap: 8px;
 `;
 
-const CustomizePaymentMethod = ( { method, onCancel } ) => {
-	// eslint-disable-next-line @wordpress/i18n-no-variables
-	const description = __(
-		`You will be redirected to ${ method }.`,
-		'woocommerce-gateway-stripe'
-	);
+const CustomizePaymentMethod = ( { method, onClose } ) => {
+	const [
+		individualPaymentMethodSettings,
+		setIndividualPaymentMethodSettings,
+	] = useIndividualPaymentMethodSettings();
+	const { name, description } = individualPaymentMethodSettings[ method ];
+	const [ methodName, setMethodName ] = useState( name );
+	const [ methodDescription, setMethodDescription ] = useState( description );
 
 	const onSave = () => {
-		// todo: save method
+		setIndividualPaymentMethodSettings( {
+			...individualPaymentMethodSettings,
+			[ method ]: {
+				name: methodName,
+				description: methodDescription,
+			},
+		} );
+		onClose();
 	};
 
 	return (
 		<div>
 			<TextControl
 				label={ __( 'Name', 'woocommerce-gateway-stripe' ) }
-				value={ method }
-				onChange={ () => {} }
+				value={ methodName }
+				onChange={ setMethodName }
 				help={ __(
 					'Enter a name which customers will see during checkout.',
 					'woocommerce-gateway-stripe'
@@ -33,15 +43,15 @@ const CustomizePaymentMethod = ( { method, onCancel } ) => {
 			/>
 			<TextControl
 				label={ __( 'Description', 'woocommerce-gateway-stripe' ) }
-				value={ description }
-				onChange={ () => {} }
+				value={ methodDescription }
+				onChange={ setMethodDescription }
 				help={ __(
 					'Describe how customers should use this payment method during checkout.',
 					'woocommerce-gateway-stripe'
 				) }
 			/>
 			<ButtonWrapper>
-				<Button variant="tertiary" onClick={ onCancel }>
+				<Button variant="tertiary" onClick={ onClose }>
 					{ __( 'Cancel', 'woocommerce-gateway-stripe' ) }
 				</Button>
 				<Button variant="secondary" onClick={ onSave }>

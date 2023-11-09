@@ -1,8 +1,9 @@
 import { __ } from '@wordpress/i18n';
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
 import { Button } from '@wordpress/components';
+import UpeToggleContext from '../upe-toggle/context';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
 import CustomizePaymentMethod from './customize-payment-method';
@@ -95,6 +96,7 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 `;
 
 const GeneralSettingsSection = () => {
+	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const [ customizationStatus, setCustomizationStatus ] = useState( {} );
 	const upePaymentMethods = useGetAvailablePaymentMethodIds();
 	const capabilities = useGetCapabilities();
@@ -156,27 +158,29 @@ const GeneralSettingsSection = () => {
 								/>
 								<StyledFees id={ method } />
 							</PaymentMethodWrapper>
-							{ ! customizationStatus[ method ] && (
-								<Button
-									variant="secondary"
-									onClick={ () =>
-										setCustomizationStatus( {
-											...customizationStatus,
-											[ method ]: true,
-										} )
-									}
-								>
-									{ __(
-										'Customize',
-										'woocommerce-gateway-stripe'
-									) }
-								</Button>
-							) }
+							{ ! isUpeEnabled &&
+								method !== 'card' &&
+								! customizationStatus[ method ] && (
+									<Button
+										variant="secondary"
+										onClick={ () =>
+											setCustomizationStatus( {
+												...customizationStatus,
+												[ method ]: true,
+											} )
+										}
+									>
+										{ __(
+											'Customize',
+											'woocommerce-gateway-stripe'
+										) }
+									</Button>
+								) }
 						</ListElement>
-						{ customizationStatus[ method ] && (
+						{ ! isUpeEnabled && customizationStatus[ method ] && (
 							<CustomizePaymentMethod
 								method={ method }
-								onCancel={ () =>
+								onClose={ () =>
 									setCustomizationStatus( {
 										...customizationStatus,
 										[ method ]: false,
