@@ -200,7 +200,7 @@ jQuery( function ( $ ) {
 		// Do not recreate UPE element unnecessarily.
 		if ( upeElement ) {
 			upeElement.unmount();
-			upeElement.mount( '#wc-stripe-upe-element' );
+			upeElement.mount( '.wc-stripe-upe-element' );
 			return;
 		}
 
@@ -221,7 +221,7 @@ jQuery( function ( $ ) {
 				// I repeat, do NOT recreate UPE element unnecessarily.
 				if ( upeElement || paymentIntentId ) {
 					upeElement.unmount();
-					upeElement.mount( '#wc-stripe-upe-element' );
+					upeElement.mount( '.wc-stripe-upe-element' );
 					return;
 				}
 
@@ -302,7 +302,7 @@ jQuery( function ( $ ) {
 				}
 
 				upeElement = elements.create( 'payment', upeSettings );
-				upeElement.mount( '#wc-stripe-upe-element' );
+				upeElement.mount( '.wc-stripe-upe-element' );
 
 				upeElement.on( 'ready', () => {
 					unblockUI( $( upeLoadingSelector ) );
@@ -346,8 +346,8 @@ jQuery( function ( $ ) {
 		// If the card element selector doesn't exist, then do nothing (for example, when a 100% discount coupon is applied).
 		// We also don't re-mount if already mounted in DOM.
 		if (
-			$( '#wc-stripe-upe-element' ).length &&
-			! $( '#wc-stripe-upe-element' ).children().length &&
+			$( '.wc-stripe-upe-element' ).length &&
+			! $( '.wc-stripe-upe-element' ).children().length &&
 			isUPEEnabled
 		) {
 			const isSetupIntent = ! (
@@ -362,8 +362,8 @@ jQuery( function ( $ ) {
 		$( 'form#order_review' ).length
 	) {
 		if (
-			$( '#wc-stripe-upe-element' ).length &&
-			! $( '#wc-stripe-upe-element' ).children().length &&
+			$( '.wc-stripe-upe-element' ).length &&
+			! $( '.wc-stripe-upe-element' ).children().length &&
 			isUPEEnabled &&
 			! upeElement
 		) {
