@@ -18,11 +18,11 @@ class WC_Stripe_Intent_Controller {
 	protected $gateway;
 
 	/**
-	 * Class constructor, adds the necessary hooks.
+	 * Adds the necessary hooks.
 	 *
 	 * @since 4.2.0
 	 */
-	public function __construct() {
+	public function init_hooks() {
 		add_action( 'wc_ajax_wc_stripe_verify_intent', [ $this, 'verify_intent' ] );
 		add_action( 'wc_ajax_wc_stripe_create_setup_intent', [ $this, 'create_setup_intent' ] );
 
@@ -677,5 +677,3 @@ class WC_Stripe_Intent_Controller {
 		}
 	}
 }
-
-new WC_Stripe_Intent_Controller();
