@@ -656,8 +656,9 @@ class WC_Stripe_Intent_Controller {
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
-			/* translators: error message */
-			$order->update_status( 'failed' );
+			if ( $order ) {
+				$order->update_status( 'failed' );
+			}
 		}
 
 		wp_send_json_success();
