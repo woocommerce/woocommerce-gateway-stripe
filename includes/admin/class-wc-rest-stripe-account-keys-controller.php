@@ -217,6 +217,8 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 			} elseif ( trim( $settings['test_publishable_key'] ) && trim( $settings['test_secret_key'] ) ) {
 				$settings['testmode'] = 'yes';
 			}
+
+			$this->record_manual_account_connect_track_event( 'yes' === $settings['testmode'] );
 		} elseif ( $is_deleting_account ) {
 			$settings['enabled'] = 'no';
 		}
@@ -228,5 +230,18 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 		$account = $this->account->get_cached_account_data();
 
 		return new WP_REST_Response( $account, 200 );
+	}
+
+	/**
+	 * Records a track event when the keys of an account are manually added and no keys were previously stored.
+	 *
+	 * @param bool $is_test_mode Whether the keys are test ones.
+	 */
+	private function record_manual_account_connect_track_event( bool $is_test_mode ) {
+		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
+			return;
+		}
+
+		wc_admin_record_tracks_event( 'wcstripe_stripe_connected', [ 'is_test_mode' => $is_test_mode ] );
 	}
 }

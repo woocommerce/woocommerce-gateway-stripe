@@ -870,10 +870,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 		}
 
-		$customer_id = $customer->get_id();
-		if ( ! $customer_id ) {
-			$customer->set_id( $customer->create_customer() );
-			$customer_id = $customer->get_id();
+		if ( ! $customer->get_id() ) {
+			$customer_id = $customer->create_customer();
 		} else {
 			$customer_id = $customer->update_customer();
 		}
@@ -1086,33 +1084,46 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$request['charge'] = $charge_id;
 		WC_Stripe_Logger::log( "Info: Beginning refund for order {$charge_id} for the amount of {$amount}" );
 
-		$request = apply_filters( 'wc_stripe_refund_request', $request, $order );
+		try {
+			$request = apply_filters( 'wc_stripe_refund_request', $request, $order );
 
-		$intent           = $this->get_intent_from_order( $order );
-		$intent_cancelled = false;
-		if ( $intent ) {
-			// If the order has a Payment Intent pending capture, then the Intent itself must be refunded (cancelled), not the Charge.
-			if ( ! empty( $intent->error ) ) {
-				$response         = $intent;
-				$intent_cancelled = true;
-			} elseif ( 'requires_capture' === $intent->status ) {
-				$result           = WC_Stripe_API::request(
-					[],
-					'payment_intents/' . $intent->id . '/cancel'
-				);
-				$intent_cancelled = true;
+			$intent           = $this->get_intent_from_order( $order );
+			$intent_cancelled = false;
+			if ( $intent ) {
+				// If the order has a Payment Intent pending capture, then the Intent itself must be refunded (cancelled), not the Charge.
+				if ( ! empty( $intent->error ) ) {
+					$response         = $intent;
+					$intent_cancelled = true;
+				} elseif ( 'requires_capture' === $intent->status ) {
+					$result           = WC_Stripe_API::request(
+						[],
+						'payment_intents/' . $intent->id . '/cancel'
+					);
+					$intent_cancelled = true;
 
-				if ( ! empty( $result->error ) ) {
-					$response = $result;
-				} else {
-					$charge   = end( $result->charges->data );
-					$response = end( $charge->refunds->data );
+					if ( ! empty( $result->error ) ) {
+						$response = $result;
+					} else {
+						$charge   = end( $result->charges->data );
+						$response = end( $charge->refunds->data );
+					}
 				}
 			}
-		}
 
-		if ( ! $intent_cancelled && 'yes' === $captured ) {
-			$response = WC_Stripe_API::request( $request, 'refunds' );
+			if ( ! $intent_cancelled && 'yes' === $captured ) {
+				$response = WC_Stripe_API::request( $request, 'refunds' );
+			}
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+			return new WP_Error(
+				'stripe_error',
+				sprintf(
+					/* translators: %1$s is a stripe error message */
+					__( 'There was a problem initiating a refund: %1$s', 'woocommerce-gateway-stripe' ),
+					$e->getMessage()
+				)
+			);
 		}
 
 		if ( ! empty( $response->error ) ) {
@@ -1782,14 +1793,13 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			return false;
 		}
 
-		$order_id = wc_get_order_id_by_order_key( wc_clean( wp_unslash( $_GET['key'] ) ) );
+		$order_id = absint( get_query_var( 'order-pay' ) );
+		$order    = wc_get_order( $order_id );
 
-		// If the order ID is not found or the order ID does not match the order ID in the URL, return false.
-		if ( ! $order_id || ( absint( get_query_var( 'order-pay' ) ) !== absint( $order_id ) ) ) {
+		// If the order is not found or the param `key` is not set or the order key does not match the order key in the URL param, return false.
+		if ( ! $order || ! isset( $_GET['key'] ) || wc_clean( wp_unslash( $_GET['key'] ) ) !== $order->get_order_key() ) {
 			return false;
 		}
-
-		$order = wc_get_order( $order_id );
 
 		// If the order doesn't need payment, we don't need to prepare the payment page.
 		if ( ! $order->needs_payment() ) {
@@ -1980,7 +1990,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		];
 
 		// If we're on the pay page we need to pass stripe.js the address of the order.
-		if ( $this->is_valid_pay_for_order_endpoint() ) {
+		if ( $this->is_valid_pay_for_order_endpoint() || $this->is_changing_payment_method_for_subscription() ) {
 			$order_id = absint( get_query_var( 'order-pay' ) );
 			$order    = wc_get_order( $order_id );
 
