@@ -194,3 +194,120 @@ export const getStorageWithExpiration = ( key ) => {
 };
 
 export { getStripeServerData, getErrorMessageForTypeAndCode };
+
+// Used by dPE.
+
+/**
+ * Check whether Stripe Link is enabled.
+ *
+ * @param {Object} paymentMethodsConfig Checkout payment methods configuration settings object.
+ * @return {boolean} True, if enabled; false otherwise.
+ */
+export const isLinkEnabled = ( paymentMethodsConfig ) => {
+	return (
+		paymentMethodsConfig.link !== undefined &&
+		paymentMethodsConfig.card !== undefined
+	);
+};
+
+/**
+ * Get array of payment method types to use with intent.
+ *
+ * @todo Make paymentMethodType required when Split is implemented.
+ *
+ * @param {string} paymentMethodType Payment method type Stripe ID.
+ * @return {Array} Array of payment method types to use with intent.
+ */
+export const getPaymentMethodTypes = ( paymentMethodType = null ) => {
+	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
+
+	if ( paymentMethodType === null ) {
+		return Object.keys( paymentMethodsConfig || {} );
+	}
+
+	const paymentMethodTypes = [ paymentMethodType ];
+	if (
+		paymentMethodType === 'card' &&
+		isLinkEnabled( paymentMethodsConfig )
+	) {
+		paymentMethodTypes.push( 'link' );
+	}
+	return paymentMethodTypes;
+};
+
+function shouldIncludeTerms() {
+	if ( getStripeServerData()?.cartContainsSubscription ) {
+		return true;
+	}
+
+	const savePaymentMethodCheckbox = document.getElementById(
+		'wc-stripe-new-payment-method'
+	);
+	if (
+		savePaymentMethodCheckbox !== null &&
+		savePaymentMethodCheckbox.checked
+	) {
+		return true;
+	}
+
+	return false;
+}
+
+export const getHiddenBillingFields = ( enabledBillingFields ) => {
+	return {
+		name:
+			enabledBillingFields.includes( 'billing_first_name' ) ||
+			enabledBillingFields.includes( 'billing_last_name' )
+				? 'never'
+				: 'auto',
+		email: enabledBillingFields.includes( 'billing_email' )
+			? 'never'
+			: 'auto',
+		phone: enabledBillingFields.includes( 'billing_phone' )
+			? 'never'
+			: 'auto',
+		address: {
+			country: enabledBillingFields.includes( 'billing_country' )
+				? 'never'
+				: 'auto',
+			line1: enabledBillingFields.includes( 'billing_address_1' )
+				? 'never'
+				: 'auto',
+			line2: enabledBillingFields.includes( 'billing_address_2' )
+				? 'never'
+				: 'auto',
+			city: enabledBillingFields.includes( 'billing_city' )
+				? 'never'
+				: 'auto',
+			state: enabledBillingFields.includes( 'billing_state' )
+				? 'never'
+				: 'auto',
+			postalCode: enabledBillingFields.includes( 'billing_postcode' )
+				? 'never'
+				: 'auto',
+		},
+	};
+};
+
+export const getUpeSettings = () => {
+	const upeSettings = {};
+	const showTerms = shouldIncludeTerms() ? 'always' : 'never';
+
+	upeSettings.terms = getUPETerms( showTerms );
+
+	if (
+		getStripeServerData()?.isCheckout &&
+		! (
+			getStripeServerData()?.isOrderPay ||
+			getStripeServerData()?.isChangingPayment
+		)
+	) {
+		upeSettings.fields = {
+			billingDetails: getHiddenBillingFields(
+				getStripeServerData()?.enabledBillingFields
+			),
+		};
+	}
+
+	return upeSettings;
+};

@@ -317,6 +317,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['addPaymentReturnURL']      = wc_get_account_endpoint_url( 'payment-methods' );
 		$stripe_params['enabledBillingFields']     = $enabled_billing_fields;
 
+		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
+		$currency   = get_woocommerce_currency();
+
+		$stripe_params['cartTotal'] = WC_Stripe_Helper::get_stripe_amount( $cart_total, strtolower( $currency ) );
+		$stripe_params['currency']  = $currency;
+
 		if ( parent::is_valid_pay_for_order_endpoint() || $is_change_payment_method ) {
 			if ( $this->is_subscriptions_enabled() && $is_change_payment_method ) {
 				$stripe_params['isChangingPayment']   = true;

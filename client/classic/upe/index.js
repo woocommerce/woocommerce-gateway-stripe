@@ -11,6 +11,7 @@ import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
 import enableStripeLinkPaymentMethod from '../../stripe-link';
 import { legacyHashchangeHandler } from './legacy-support';
 import './style.scss';
+import './deferred-intent.js';
 
 jQuery( function ( $ ) {
 	const key = getStripeServerData()?.key;
@@ -338,24 +339,6 @@ jQuery( function ( $ ) {
 				);
 			} );
 	};
-
-	// Only attempt to mount the card element once that section of the page has loaded. We can use the updated_checkout
-	// event for this. This part of the page can also reload based on changes to checkout details, so we call unmount
-	// first to ensure the card element is re-mounted correctly.
-	$( document.body ).on( 'updated_checkout', () => {
-		// If the card element selector doesn't exist, then do nothing (for example, when a 100% discount coupon is applied).
-		// We also don't re-mount if already mounted in DOM.
-		if (
-			$( '.wc-stripe-upe-element' ).length &&
-			! $( '.wc-stripe-upe-element' ).children().length &&
-			isUPEEnabled
-		) {
-			const isSetupIntent = ! (
-				getStripeServerData()?.isPaymentNeeded ?? true
-			);
-			mountUPEElement( isSetupIntent );
-		}
-	} );
 
 	if (
 		$( 'form#add_payment_method' ).length ||
