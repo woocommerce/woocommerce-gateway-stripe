@@ -1,7 +1,10 @@
 import {
+	appendIsUsingDeferredIntentToForm,
+	appendPaymentMethodIdToForm,
 	getPaymentMethodTypes,
 	getStripeServerData,
 	getUpeSettings,
+	showErrorCheckout,
 } from '../../stripe-utils';
 
 const gatewayUPEComponents = {};
@@ -24,6 +27,21 @@ for ( const paymentMethodType in paymentMethodsConfig ) {
  */
 function initializeAppearance() {
 	return {};
+}
+
+/**
+ * Block UI to indicate processing and avoid duplicate submission.
+ *
+ * @param {Object} jQueryForm The jQuery object for the form.
+ */
+function blockUI( jQueryForm ) {
+	jQueryForm.addClass( 'processing' ).block( {
+		message: null,
+		overlayCSS: {
+			background: '#fff',
+			opacity: 0.6,
+		},
+	} );
 }
 
 /**
@@ -76,7 +94,11 @@ function createStripePaymentElement( api, paymentMethodType = null ) {
 
 	// To be removed with Split PE.
 	if ( paymentMethodType === null ) {
-		return createdStripePaymentElement;
+		paymentMethodType = 'stripe';
+		gatewayUPEComponents.stripe = {
+			elements: null,
+			upeElement: null,
+		};
 	}
 
 	gatewayUPEComponents[ paymentMethodType ].elements = elements;
@@ -84,6 +106,67 @@ function createStripePaymentElement( api, paymentMethodType = null ) {
 		paymentMethodType
 	].upeElement = createdStripePaymentElement;
 	return createdStripePaymentElement;
+}
+
+/**
+ * Submits the provided jQuery form and removes the 'processing' class from it.
+ *
+ * @param {Object} jQueryForm The jQuery object for the form being submitted.
+ */
+function submitForm( jQueryForm ) {
+	jQueryForm.removeClass( 'processing' ).trigger( 'submit' );
+}
+
+/**
+ * Creates a Stripe payment method by calling the Stripe API's createPaymentMethod with the provided elements
+ * and billing details. The billing details are obtained from various form elements on the page.
+ *
+ * @param {Object} api The API object used to call the Stripe API's createPaymentMethod method.
+ * @param {Object} elements The Stripe elements object used to create a Stripe payment method.
+ * @param {Object} jQueryForm The jQuery object for the form being submitted.
+ * @param {string} paymentMethodType The type of Stripe payment method to create.
+ * @return {Promise<Object>} A promise that resolves with the created Stripe payment method.
+ */
+function createStripePaymentMethod(
+	api,
+	elements,
+	jQueryForm,
+	paymentMethodType
+) {
+	let params = {};
+	if ( jQueryForm.attr( 'name' ) === 'checkout' ) {
+		params = {
+			billing_details: {
+				name: document.querySelector( '#billing_first_name' )
+					? (
+							document.querySelector( '#billing_first_name' )
+								?.value +
+							' ' +
+							document.querySelector( '#billing_last_name' )
+								?.value
+					  ).trim()
+					: undefined,
+				email: document.querySelector( '#billing_email' )?.value,
+				phone: document.querySelector( '#billing_phone' )?.value,
+				address: {
+					city: document.querySelector( '#billing_city' )?.value,
+					country: document.querySelector( '#billing_country' )
+						?.value,
+					line1: document.querySelector( '#billing_address_1' )
+						?.value,
+					line2: document.querySelector( '#billing_address_2' )
+						?.value,
+					postal_code: document.querySelector( '#billing_postcode' )
+						?.value,
+					state: document.querySelector( '#billing_state' )?.value,
+				},
+			},
+		};
+	}
+
+	return api
+		.getStripe( paymentMethodType )
+		.createPaymentMethod( { elements, params } );
 }
 
 /**
@@ -161,3 +244,67 @@ function showNewPaymentMethodCheckbox( show = true ) {
 			.dispatchEvent( new Event( 'change' ) );
 	}
 }
+
+/**
+ * Handles the checkout process for the provided jQuery form and Stripe payment method type. The function blocks the
+ * form UI to prevent duplicate submission and validates the Stripe elements. It then creates a Stripe payment method
+ * object and appends the necessary data to the form for checkout completion. Finally, it submits the form and prevents
+ * the default form submission from WC Core.
+ *
+ * @param {Object} api The API object used to create the Stripe payment method.
+ * @param {Object} jQueryForm The jQuery object for the form being submitted.
+ * @param {string} paymentMethodType The type of Stripe payment method being used.
+ * @return {boolean} return false to prevent the default form submission from WC Core.
+ */
+let hasCheckoutCompleted;
+export const processPayment = (
+	api,
+	jQueryForm,
+	paymentMethodType,
+	additionalActionsHandler = () => {}
+) => {
+	if ( hasCheckoutCompleted ) {
+		hasCheckoutCompleted = false;
+		return;
+	}
+
+	blockUI( jQueryForm );
+
+	// Non split. To be removed.
+	if ( paymentMethodType === null ) {
+		paymentMethodType = 'stripe';
+	}
+
+	const elements = gatewayUPEComponents[ paymentMethodType ].elements;
+
+	( async () => {
+		try {
+			await validateElements( elements );
+			const paymentMethodObject = await createStripePaymentMethod(
+				api,
+				elements,
+				jQueryForm,
+				paymentMethodType
+			);
+			appendIsUsingDeferredIntentToForm( jQueryForm );
+			appendPaymentMethodIdToForm(
+				jQueryForm,
+				paymentMethodObject.paymentMethod.id
+			);
+			await additionalActionsHandler(
+				paymentMethodObject.paymentMethod,
+				jQueryForm,
+				api
+			);
+			hasCheckoutCompleted = true;
+			submitForm( jQueryForm );
+		} catch ( err ) {
+			hasCheckoutCompleted = false;
+			jQueryForm.removeClass( 'processing' ).unblock();
+			showErrorCheckout( err.message );
+		}
+	} )();
+
+	// Prevent WC Core default form submission (see woocommerce/assets/js/frontend/checkout.js) from happening.
+	return false;
+};

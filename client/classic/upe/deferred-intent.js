@@ -1,8 +1,16 @@
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
-import { getStripeServerData } from '../../stripe-utils';
+import {
+	generateCheckoutEventNames,
+	getSelectedUPEGatewayPaymentMethod,
+	getStripeServerData,
+	isUsingSavedPaymentMethod,
+} from '../../stripe-utils';
 import './style.scss';
-import { mountStripePaymentElement } from './payment-processing';
+import {
+	processPayment,
+	mountStripePaymentElement,
+} from './payment-processing';
 
 jQuery( function ( $ ) {
 	// Create an API object, which will be used throughout the checkout.
@@ -21,6 +29,17 @@ jQuery( function ( $ ) {
 	$( document.body ).on( 'updated_checkout', () => {
 		maybeMountStripePaymentElement();
 	} );
+
+	$( 'form.checkout' ).on( generateCheckoutEventNames(), function () {
+		return processPaymentIfNotUsingSavedMethod( $( this ) );
+	} );
+
+	function processPaymentIfNotUsingSavedMethod( $form ) {
+		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
+		if ( ! isUsingSavedPaymentMethod( paymentMethodType ) ) {
+			return processPayment( api, $form, paymentMethodType );
+		}
+	}
 
 	// If the card element selector doesn't exist, then do nothing.
 	// For example, when a 100% discount coupon is applied).

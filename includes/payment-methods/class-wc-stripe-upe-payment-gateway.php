@@ -509,6 +509,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return array|null An array with result of payment and redirect URL, or nothing.
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
+		// Flag for using a deferred intent. To be removed.
+		if ( ! empty( $_POST['wc-stripe-is-deferred-intent'] ) ) {
+			return $this->process_payment_with_deferred_intent( $order_id );
+		}
+
 		if ( $this->maybe_change_subscription_payment_method( $order_id ) ) {
 			return $this->process_change_subscription_payment_method( $order_id );
 		}
@@ -637,6 +642,71 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				)
 			),
 		];
+	}
+
+	/**
+	 * Process the payment for an order using a deferred intent.
+	 *
+	 * @param int $order_id WC Order ID to be paid for.
+	 *
+	 * @return array An array with the result of the payment processing, and a redirect URL on success.
+	 */
+	private function process_payment_with_deferred_intent( $order_id ) {
+		$order = wc_get_order( $order_id );
+
+		// TODO: check we're processing a payment for an order with a pending status.
+
+		try {
+			if ( $this->is_using_saved_payment_method() ) {
+				// TODO: if using a saved payment method.
+				return [ 'result' => 'failure' ];
+			}
+
+			$payment_needed = $this->is_payment_needed( $order->get_id() );
+
+			$payment_information = $this->prepare_payment_information_from_request( $order );
+			// TODO: if 0-amount and not saving a payment method.
+
+			if ( $payment_needed ) {
+				// Throw an exception if the minimum order amount isn't met.
+				$this->validate_minimum_order_amount( $order );
+
+				// TODO: pass this as a class dependency to facilitate unit tests.
+				$intent_controller = new WC_Stripe_Intent_Controller();
+
+				// Throws an exception on error.
+				$payment_intent = $intent_controller->create_and_confirm_payment_intent( $payment_information );
+
+				if ( isset( $payment_intent->last_payment_error ) ) {
+					throw new WC_Stripe_Exception( $payment_intent->last_payment_error->message );
+				}
+
+				// Use the last charge within the intent to proceed.
+				$this->process_response( end( $payment_intent->charges->data ), $order );
+
+			} else {
+				// TODO: no payment is needed.
+				return [ 'result' => 'failure' ];
+			}
+
+			return [
+				'result'   => 'success',
+				'redirect' => $this->get_return_url( $order ),
+			];
+		} catch ( WC_Stripe_Exception $e ) {
+			// TODO: use getLocalizedMessage()?
+			wc_add_notice( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ), 'error' );
+
+			// TODO: Maybe add the error message as an order note?
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
+
+			/* translators: localized exception message */
+			$order->update_status( 'failed', sprintf( __( 'UPE payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+
+			return [ 'result' => 'failure' ];
+		}
 	}
 
 	/**
@@ -1495,4 +1565,80 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		];
 	}
 
+	/**
+	 * Collects the payment information needed for processing a payment intent.
+	 *
+	 * @param WC_Order $order The WC Order to be paid for.
+	 * @return object An object containing the payment information for processing a payment intent.
+	 */
+	private function prepare_payment_information_from_request( WC_Order $order ) {
+		// TODO: throw exception if any required information is missing.
+
+		$payment_method               = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$selected_payment_type        = sanitize_text_field( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$capture_method               = empty( $this->get_option( 'capture' ) ) || $this->get_option( 'capture' ) === 'yes' ? 'automatic' : 'manual'; // automatic | manual.
+		$save_payment_method_to_store = isset( $_POST['save_payment_method'] ) ? 'yes' === wc_clean( wp_unslash( $_POST['save_payment_method'] ) ) : false;
+
+		$payment_information = [
+			'customer'                     => $this->get_customer_id_for_order( $order ),
+			'capture_method'               => $capture_method,
+			'order'                        => $order,
+			'payment_initiated_by'         => 'initiated_by_customer', // initiated_by_merchant | initiated_by_customer.
+			'payment_method'               => $payment_method,
+			'payment_type'                 => 'single', // single | recurring.
+			'save_payment_method_to_store' => $save_payment_method_to_store,
+			'selected_payment_type'        => $selected_payment_type,
+			'statement_descriptor'         => $this->get_statement_descriptor( $selected_payment_type ),
+		];
+
+		return (object) $payment_information;
+	}
+
+	/**
+	 * Gets the Stripe customer ID associated with an order, creates one if none is associated.
+	 *
+	 * @param WC_Order $order The WC order from which to get the Stripe customer.
+	 * @return string The Stripe customer ID.
+	 */
+	private function get_customer_id_for_order( WC_Order $order ): string {
+
+		// Get the user/customer from the order.
+		$customer_id = $this->get_stripe_customer_id( $order );
+		if ( ! empty( $customer_id ) ) {
+			return $customer_id;
+		}
+
+		// Update customer or create customer if one does not exist.
+		$user     = $this->get_user_from_order( $order );
+		$customer = new WC_Stripe_Customer( $user->ID );
+
+		return $customer->update_or_create_customer();
+	}
+
+	/**
+	 * Returns the statement descriptor given the selected payment type.
+	 *
+	 * @param string $selected_payment_type The selected payment type.
+	 * @return string|null
+	 */
+	private function get_statement_descriptor( string $selected_payment_type ) {
+		$statement_descriptor                  = ! empty( $this->get_option( 'statement_descriptor' ) ) ? str_replace( "'", '', $this->get_option( 'statement_descriptor' ) ) : '';
+		$short_statement_descriptor            = ! empty( $this->get_option( 'short_statement_descriptor' ) ) ? str_replace( "'", '', $this->get_option( 'short_statement_descriptor' ) ) : '';
+		$is_short_statement_descriptor_enabled = ! empty( $this->get_option( 'is_short_statement_descriptor_enabled' ) ) && 'yes' === $this->get_option( 'is_short_statement_descriptor_enabled' );
+
+		// Use the shortened statement descriptor for card transactions only.
+		if (
+			'card' === $selected_payment_type &&
+			$is_short_statement_descriptor_enabled &&
+			! ( empty( $short_statement_descriptor ) && empty( $statement_descriptor ) )
+		) {
+			return WC_Stripe_Helper::get_dynamic_statement_descriptor( $short_statement_descriptor, $order, $statement_descriptor );
+		}
+
+		if ( ! empty( $statement_descriptor ) ) {
+			return WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor );
+		}
+
+		return null;
+	}
 }

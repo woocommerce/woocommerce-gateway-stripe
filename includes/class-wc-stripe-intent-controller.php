@@ -676,4 +676,84 @@ class WC_Stripe_Intent_Controller {
 			$gateway->maybe_process_upe_redirect();
 		}
 	}
+
+	/**
+	 * Creates payment intent using current cart or order and store details.
+	 * Used for dPE.
+	 *
+	 * @param int $order_id The id of the order if intent created from Order.
+	 * @throws Exception - If the create intent call returns with an error.
+	 * @return array
+	 */
+	public function create_and_confirm_payment_intent( $payment_information ) {
+		$gateway = $this->get_upe_gateway();
+		$order   = $payment_information->order;
+
+		$selected_payment_type = $payment_information->selected_payment_type;
+		// TODO: put this in a method.
+		if ( '' !== $selected_payment_type ) {
+			// Only update the payment_method_types if we have a reference to the payment type the customer selected.
+			$payment_method_types = [ $selected_payment_type ];
+			if (
+				WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID === $selected_payment_type &&
+				in_array(
+					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+					$gateway->get_upe_enabled_payment_method_ids(),
+					true
+				)
+			) {
+				$payment_method_types = [
+					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+				];
+			}
+			$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
+		} else {
+			$payment_method_types = $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order->get_id() );
+		}
+
+		$currency = strtolower( get_woocommerce_currency() );
+		$amount   = $order->get_total();
+
+		$request = [
+			'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, $currency ),
+			'confirm'              => 'true',
+			'currency'             => $currency,
+			'capture_method'       => $payment_information->capture_method,
+			/* translators: 1) blog name 2) order number */
+			'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
+			'metadata'             => $gateway->get_metadata_from_order( $order ),
+			'payment_method'       => $payment_information->payment_method,
+			'payment_method_types' => $payment_method_types,
+			'statement_descriptor' => $payment_information->statement_descriptor,
+		];
+
+		$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
+		if ( ! empty( $customer ) && $customer->get_id() ) {
+			$request['customer'] = $customer->get_id();
+		}
+
+		if ( $payment_information->save_payment_method_to_store ) {
+			$request['setup_future_usage'] = 'off_session';
+		}
+
+		$level3_data    = $gateway->get_level3_data_from_order( $order );
+		$payment_intent = WC_Stripe_API::request_with_level3_data(
+			$request,
+			'payment_intents',
+			$level3_data,
+			$order
+		);
+
+		$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
+		$order->save();
+
+		if ( ! empty( $payment_intent->error ) ) {
+			throw new Exception( $payment_intent->error->message );
+		}
+
+		WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent->id, $order );
+
+		return $payment_intent;
+	}
 }
