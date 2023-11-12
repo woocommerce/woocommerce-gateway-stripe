@@ -21,7 +21,7 @@ class WC_Stripe_Payment_Gateways_Controller {
 		$enabled_upe_payment_methods  = isset( $stripe_settings['upe_checkout_experience_accepted_payments'] ) ? $stripe_settings['upe_checkout_experience_accepted_payments'] : [];
 		$upe_payment_requests_enabled = 'yes' === $stripe_settings['payment_request'];
 
-		if ( count( $enabled_upe_payment_methods ) > 0 || $upe_payment_requests_enabled ) {
+		if ( ( is_array( $enabled_upe_payment_methods ) && count( $enabled_upe_payment_methods ) > 0 ) || $upe_payment_requests_enabled ) {
 			add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_payments_scripts' ] );
 			add_action( 'woocommerce_admin_field_payment_gateways', [ $this, 'wc_stripe_gateway_container' ] );
 		}

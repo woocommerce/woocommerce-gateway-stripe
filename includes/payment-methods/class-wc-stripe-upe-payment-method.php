@@ -332,7 +332,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 			$messages[] = $text . '<span class="tips" data-tip="' . $tooltip_content . '"><span class="woocommerce-help-tip" style="margin-top: 0;"></span></span>';
 		}
 
-		return count( $messages ) > 0 ? join( '&nbsp;–&nbsp;', $messages ) : '';
+		return count( $messages ) > 0 ? implode( '&nbsp;–&nbsp;', $messages ) : '';
 	}
 
 	/**

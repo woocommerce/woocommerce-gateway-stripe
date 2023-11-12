@@ -12,6 +12,11 @@ jQuery( function( $ ) {
 	 */
 	var wc_stripe_payment_request = {
 		/**
+		 * Whether the payment request window was canceled/dismissed by the customer.
+		 */
+		paymentCanceled: false,
+
+		/**
 		 * Get WC AJAX endpoint URL.
 		 *
 		 * @param  {String} endpoint Endpoint.
@@ -438,6 +443,16 @@ jQuery( function( $ ) {
 						} );
 					}
 				} );
+
+				paymentRequest.on( 'cancel', function() {
+					/**
+					 * If the customer closes the Payment Request window set paymentCanceled to true.
+					 *
+					 * This helps us determine whether we need to rebuild the payment request UI after it's been closed. This is to fix issues like the
+					 * 'shippingaddresschange' event not triggering when the customer closes the Google Pay/Apple Pay window and chooses a different variation product.
+					 */
+					wc_stripe_payment_request.paymentCanceled = true;
+				} );
 			} catch( e ) {
 				// Leave for troubleshooting
 				console.error( e );
@@ -663,16 +678,36 @@ jQuery( function( $ ) {
 						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
 						wc_stripe_payment_request.hidePaymentRequestButton();
 					} else {
-						$.when(
-							paymentRequest.update( {
-								total: response.total,
-								displayItems: response.displayItems,
-							} )
-						).then( function () {
-							$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-							wc_stripe_payment_request.showPaymentRequestButton();
-						} );
-					}
+            /**
+             * If the customer canceled the payment request, we need to re-init the payment request buttons to ensure the shipping
+             * options are fetched again. If the customer didn't close the payment request, and the product's shipping status is
+             * consistent, we can simply update the payment request button with the new total and display items.
+             */
+            if ( ! wc_stripe_payment_request.paymentCanceled && wc_stripe_payment_request_params.product.requestShipping === response.requestShipping ) {
+              $.when(
+                paymentRequest.update( {
+                  total: response.total,
+                  displayItems: response.displayItems,
+                } )
+              ).then( function () {
+                $( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
+                wc_stripe_payment_request.showPaymentRequestButton();
+              } );
+            } else {
+              /**
+               * Re init the payment request button.
+               *
+               * This ensures that when the customer clicks on the payment button, the available shipping options are
+               * refetched based on the selected variable product's data and the chosen address.
+               */
+              wc_stripe_payment_request_params.product.requestShipping = response.requestShipping;
+              wc_stripe_payment_request_params.product.total           = response.total;
+              wc_stripe_payment_request_params.product.displayItems    = response.displayItems;
+
+              wc_stripe_payment_request.init();
+              $( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
+            }
+          }
 				});
 			});
 
@@ -802,6 +837,7 @@ jQuery( function( $ ) {
 				wc_stripe_payment_request.getCartDetails();
 			}
 
+			wc_stripe_payment_request.paymentCanceled = false;
 		},
 	};
 
