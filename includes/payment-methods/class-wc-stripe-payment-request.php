@@ -617,18 +617,18 @@ class WC_Stripe_Payment_Request {
 	 *
 	 * If the product is a variable subscription, this function will return true if all of its variations have a trial and require shipping.
 	 *
-	 * @since 7.7.0
+	 * @since 7.8.0
 	 *
-	 * @param WC_Product|null $product Product object.
+	 * @param WC_Product|null $product                 Product object.
+	 * @param boolean         $is_product_page_request Whether this is a request from the product page.
 	 *
 	 * @return boolean
 	 */
-	public function is_invalid_subscription_product( $product ) {
+	public function is_invalid_subscription_product( $product, $is_product_page_request = false ) {
 		if ( ! class_exists( 'WC_Subscriptions_Product' ) || ! class_exists( 'WC_Subscriptions_Synchroniser' ) || ! WC_Subscriptions_Product::is_subscription( $product ) ) {
 			return false;
 		}
 
-		$is_product_page = $this->is_product();
 		$is_invalid      = true;
 
 		if ( $product->get_type() === 'variable-subscription' ) {
@@ -643,7 +643,7 @@ class WC_Stripe_Payment_Request {
 			$is_payment_upfront = WC_Subscriptions_Synchroniser::is_payment_upfront( $product );
 			$has_trial_period   = WC_Subscriptions_Product::get_trial_length( $product ) > 0;
 
-			if ( $is_product_page && $is_synced && ! $is_payment_upfront && ! $needs_shipping ) {
+			if ( $is_product_page_request && $is_synced && ! $is_payment_upfront && ! $needs_shipping ) {
 				/**
 				 * This condition prevents the purchase of virtual synced subscription products with no upfront costs via Payment Request Buttons from the product page.
 				 *
@@ -1067,7 +1067,7 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// Trial subscriptions with shipping are not supported.
-		if ( $this->is_invalid_subscription_product( $product ) ) {
+		if ( $this->is_invalid_subscription_product( $product, true ) ) {
 			return false;
 		}
 
@@ -1336,7 +1336,7 @@ class WC_Stripe_Payment_Request {
 				}
 			}
 
-			if ( $this->is_invalid_subscription_product( $product ) ) {
+			if ( $this->is_invalid_subscription_product( $product, true ) ) {
 				throw new Exception( __( 'The chosen subscription product is not supported.', 'woocommerce-gateway-stripe' ) );
 			}
 
