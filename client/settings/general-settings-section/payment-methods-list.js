@@ -1,8 +1,9 @@
 import { __ } from '@wordpress/i18n';
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
 import { Button } from '@wordpress/components';
+import { Reorder } from 'framer-motion';
 import UpeToggleContext from '../upe-toggle/context';
 import PaymentMethodsMap from '../../payment-methods-map';
 import PaymentMethodDescription from './payment-method-description';
@@ -16,7 +17,7 @@ import {
 import { useGetCapabilities } from 'wcstripe/data/account';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 
-const List = styled.ul`
+const List = styled( Reorder.Group )`
 	margin: 0;
 
 	> li {
@@ -51,7 +52,7 @@ const List = styled.ul`
 	}
 `;
 
-const ListElement = styled.li`
+const ListElement = styled( Reorder.Item )`
 	display: flex;
 	flex-wrap: nowrap;
 	gap: 16px;
@@ -102,28 +103,38 @@ const GeneralSettingsSection = () => {
 	const capabilities = useGetCapabilities();
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
+	const [ paymentMethods, setPaymentMethods ] = useState( [] );
 
-	// Hide payment methods that are not part of the account capabilities.
-	const availablePaymentMethods = upePaymentMethods
-		.filter( ( method ) =>
-			capabilities.hasOwnProperty( `${ method }_payments` )
-		)
-		.filter( ( id ) => id !== 'link' );
+	useEffect( () => {
+		// Hide payment methods that are not part of the account capabilities.
+		const availablePaymentMethods = upePaymentMethods
+			.filter( ( method ) =>
+				capabilities.hasOwnProperty( `${ method }_payments` )
+			)
+			.filter( ( id ) => id !== 'link' );
 
-	// Remove Sofort if it's not enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
-	// Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
-	if (
-		! enabledPaymentMethodIds.includes( 'sofort' ) &&
-		availablePaymentMethods.includes( 'sofort' )
-	) {
-		availablePaymentMethods.splice(
-			availablePaymentMethods.indexOf( 'sofort' )
-		);
-	}
+		// Remove Sofort if it's not enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
+		// Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
+		if (
+			! enabledPaymentMethodIds.includes( 'sofort' ) &&
+			availablePaymentMethods.includes( 'sofort' )
+		) {
+			availablePaymentMethods.splice(
+				availablePaymentMethods.indexOf( 'sofort' )
+			);
+		}
+
+		setPaymentMethods( availablePaymentMethods );
+	}, [ capabilities, enabledPaymentMethodIds, upePaymentMethods ] );
+
+	const onReorder = ( newOrder ) => {
+		console.log( 'newOrder is', newOrder );
+		setPaymentMethods( newOrder );
+	};
 
 	return (
-		<List>
-			{ availablePaymentMethods.map( ( method ) => {
+		<List axis="y" values={ paymentMethods } onReorder={ onReorder }>
+			{ paymentMethods.map( ( method ) => {
 				const {
 					Icon,
 					label,
@@ -134,6 +145,8 @@ const GeneralSettingsSection = () => {
 				return (
 					<div key={ method }>
 						<ListElement
+							key={ method }
+							value={ method }
 							className={ classnames( {
 								'has-overlay':
 									! isAllowingManualCapture &&

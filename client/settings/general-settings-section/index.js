@@ -40,8 +40,8 @@ const GeneralSettingsSection = () => {
 	return (
 		<>
 			<StyledCard>
-				<LoadableSettingsSection numLines={ isUpeEnabled ? 30 : 7 }>
-					{ isUpeEnabled && <SectionHeading /> }
+				<LoadableSettingsSection numLines={ 30 }>
+					<SectionHeading />
 					{ isRefreshing && (
 						<VisuallyHidden>
 							{ __(
