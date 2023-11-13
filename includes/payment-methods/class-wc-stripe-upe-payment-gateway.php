@@ -84,6 +84,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public $publishable_key;
 
 	/**
+	 * Instance of WC_Stripe_Intent_Controller.
+	 *
+	 * @var WC_Stripe_Intent_Controller
+	 */
+	public $intent_controller;
+
+	/**
 	 * Array mapping payment method string IDs to classes
 	 *
 	 * @var WC_Stripe_UPE_Payment_Method[]
@@ -111,6 +118,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method                                     = new $payment_method_class();
 			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
 		}
+
+		// TODO: Maybe pass this as a class dependency.
+		$this->intent_controller = new WC_Stripe_Intent_Controller();
 
 		// Load the form fields.
 		$this->init_form_fields();
@@ -671,11 +681,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				// Throw an exception if the minimum order amount isn't met.
 				$this->validate_minimum_order_amount( $order );
 
-				// TODO: pass this as a class dependency to facilitate unit tests.
-				$intent_controller = new WC_Stripe_Intent_Controller();
-
 				// Throws an exception on error.
-				$payment_intent = $intent_controller->create_and_confirm_payment_intent( $payment_information );
+				$payment_intent = $this->intent_controller->create_and_confirm_payment_intent( $payment_information );
 
 				if ( isset( $payment_intent->last_payment_error ) ) {
 					throw new WC_Stripe_Exception( $payment_intent->last_payment_error->message );
@@ -694,10 +701,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				'redirect' => $this->get_return_url( $order ),
 			];
 		} catch ( WC_Stripe_Exception $e ) {
-			// TODO: use getLocalizedMessage()?
-			wc_add_notice( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ), 'error' );
+			wc_add_notice( $e->getLocalizedMessage(), 'error' );
 
-			// TODO: Maybe add the error message as an order note?
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
