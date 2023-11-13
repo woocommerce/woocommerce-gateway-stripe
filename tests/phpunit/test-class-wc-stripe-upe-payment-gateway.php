@@ -253,7 +253,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 */
 	public function test_payment_fields_outputs_fields() {
 		$this->mock_gateway->payment_fields();
-		$this->expectOutputRegex( '/<div id="wc-stripe-upe-element"><\/div>/' );
+		$this->expectOutputRegex( '/<div class="wc-stripe-upe-element"><\/div>/' );
 	}
 
 	/**
