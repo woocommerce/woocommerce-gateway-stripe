@@ -5,7 +5,8 @@ jQuery( function( $ ) {
 	var stripe = Stripe( wc_stripe_payment_request_params.stripe.key, {
 		locale: wc_stripe_payment_request_params.stripe.locale
 	} ),
-		paymentRequestType;
+		paymentRequestType,
+		showButtonsOnInit = wc_stripe_payment_request_params.product.validVariationSelected ?? true;
 
 	/**
 	 * Object to handle Stripe payment forms.
@@ -342,9 +343,12 @@ jQuery( function( $ ) {
 		 * @since 4.0.0
 		 * @version 4.8.0
 		 */
-		startPaymentRequest: function( cart ) {
+		startPaymentRequest: function( cart, showButtonsOnInit ) {
 			var paymentDetails,
 				options;
+
+			// Whether to show the payment request buttons on init. Set to true by default.
+			showButtonsOnInit = showButtonsOnInit ?? true;
 
 			if ( wc_stripe_payment_request_params.is_product_page ) {
 				options = wc_stripe_payment_request.getRequestOptionsFromLocal();
@@ -407,7 +411,10 @@ jQuery( function( $ ) {
 					}
 
 					wc_stripe_payment_request.attachPaymentRequestButtonEventListeners( prButton, paymentRequest );
-					wc_stripe_payment_request.showPaymentRequestButton( prButton );
+
+					if ( showButtonsOnInit ) {
+						wc_stripe_payment_request.showPaymentRequestButton( prButton );
+					}
 				} );
 
 				// Possible statuses success, fail, invalid_payer_name, invalid_payer_email, invalid_payer_phone, invalid_shipping_address.
@@ -829,10 +836,11 @@ jQuery( function( $ ) {
 		 *
 		 * @since 4.0.0
 		 * @version 4.0.0
+		 * @param {boolean} showButtonsOnInit Whether to show the payment request buttons on init.
 		 */
-		init: function() {
+		init: function( showButtonsOnInit ) {
 			if ( wc_stripe_payment_request_params.is_product_page ) {
-				wc_stripe_payment_request.startPaymentRequest( '' );
+				wc_stripe_payment_request.startPaymentRequest( '', showButtonsOnInit );
 			} else {
 				wc_stripe_payment_request.getCartDetails();
 			}
@@ -841,7 +849,7 @@ jQuery( function( $ ) {
 		},
 	};
 
-	wc_stripe_payment_request.init();
+	wc_stripe_payment_request.init( showButtonsOnInit );
 
 	// We need to refresh payment request data when total is updated.
 	$( document.body ).on( 'updated_cart_totals', function() {

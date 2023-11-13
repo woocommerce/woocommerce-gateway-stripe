@@ -383,7 +383,8 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
-		$product = $this->get_product();
+		$product      = $this->get_product();
+		$variation_id = 0;
 
 		if ( in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
 			$variation_attributes = $product->get_variation_attributes();
@@ -392,10 +393,14 @@ class WC_Stripe_Payment_Request {
 			foreach ( $variation_attributes as $attribute_name => $attribute_values ) {
 				$attribute_key = 'attribute_' . sanitize_title( $attribute_name );
 
-				// Passed value via GET takes precedence. Otherwise get the default value for given attribute
-				$attributes[ $attribute_key ] = isset( $_GET[ $attribute_key ] )
-					? wc_clean( wp_unslash( $_GET[ $attribute_key ] ) )
-					: $product->get_variation_default_attribute( $attribute_name );
+				// Passed value via GET takes precedence, then POST, otherwise get the default value for given attribute
+				if ( isset( $_GET[ $attribute_key ] ) ) {
+					$attributes[ $attribute_key ] = wc_clean( wp_unslash( $_GET[ $attribute_key ] ) );
+				} elseif ( isset( $_POST[ $attribute_key ] ) ) {
+					$attributes[ $attribute_key ] = wc_clean( wp_unslash( $_POST[ $attribute_key ] ) );
+				} else {
+					$attributes[ $attribute_key ] = $product->get_variation_default_attribute( $attribute_name );
+				}
 			}
 
 			$data_store   = WC_Data_Store::load( 'product' );
@@ -446,6 +451,9 @@ class WC_Stripe_Payment_Request {
 		$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() && 0 !== wc_get_shipping_method_count( true ) );
 		$data['currency']        = strtolower( get_woocommerce_currency() );
 		$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
+
+		// On product page load, if there's a variation already selected, check if it's supported.
+		$data['validVariationSelected'] = ! empty( $variation_id ) ? $this->is_product_supported( $product ) : true;
 
 		return apply_filters( 'wc_stripe_payment_request_product_data', $data, $product );
 	}
