@@ -593,7 +593,7 @@ class WC_Stripe_Payment_Request {
 			}
 
 			// Subscriptions with a trial period that need shipping are not supported.
-			if ( $this->product_has_trial_and_needs_shipping( $_product ) ) {
+			if ( $this->is_invalid_subscription_product( $_product ) ) {
 				return false;
 			}
 		}
@@ -609,8 +609,11 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Returns true if the given product is a subscription that has free trial and requires shipping.
-	 * This could be a subscription with a free trial period or a synchronised subscription with a delayed first payment.
+	 * Returns true if the given product is a subscription that cannot be purchased with Payment Request Buttons.
+	 *
+	 * Invalid subscription products include those with:
+	 *  - a free trial that requires shipping (synchronised subscriptions with a delayed first payment are considered to have a free trial)
+	 *  - a synchronised subscription with no upfront payment and is virtual (this limitation only applies to the product page as we cannot calculate totals correctly)
 	 *
 	 * If the product is a variable subscription, this function will return true if all of its variations have a trial and require shipping.
 	 *
@@ -620,10 +623,13 @@ class WC_Stripe_Payment_Request {
 	 *
 	 * @return boolean
 	 */
-	public function product_has_trial_and_needs_shipping( $product ) {
+	public function is_invalid_subscription_product( $product ) {
 		if ( ! class_exists( 'WC_Subscriptions_Product' ) || ! class_exists( 'WC_Subscriptions_Synchroniser' ) || ! WC_Subscriptions_Product::is_subscription( $product ) ) {
 			return false;
 		}
+
+		$is_product_page = $this->is_product();
+		$is_invalid      = true;
 
 		if ( $product->get_type() === 'variable-subscription' ) {
 			$products = $product->get_available_variations( 'object' );
@@ -632,22 +638,35 @@ class WC_Stripe_Payment_Request {
 		}
 
 		foreach ( $products as $product ) {
-			// Return early if the product doesn't require shipping.
-			if ( ! $product->needs_shipping() ) {
-				return false;
-			}
+			$needs_shipping     = $product->needs_shipping();
+			$is_synced          = WC_Subscriptions_Synchroniser::is_product_synced( $product );
+			$is_payment_upfront = WC_Subscriptions_Synchroniser::is_payment_upfront( $product );
+			$has_trial_period   = WC_Subscriptions_Product::get_trial_length( $product ) > 0;
 
-			// If product is synced, check if the first payment is upfront or today (i.e. no trial period). If product is not synced, check if it has a trial period.
-			if ( WC_Subscriptions_Synchroniser::is_product_synced( $product ) ) {
-				if ( WC_Subscriptions_Synchroniser::is_payment_upfront( $product ) ) {
-					return false;
-				}
-			} elseif ( WC_Subscriptions_Product::get_trial_length( $product ) <= 0 ) {
-				return false;
+			if ( $is_product_page && $is_synced && ! $is_payment_upfront && ! $needs_shipping ) {
+				/**
+				 * This condition prevents the purchase of virtual synced subscription products with no upfront costs via Payment Request Buttons from the product page.
+				 *
+				 * The main issue is that calling $product->get_price() on a synced subscription does not take into account a mock trial period or prorated price calculations
+				 * until the product is in the cart. This means that the totals passed to Payment Request are incorrect when purchasing from the product page.
+				 * Another part of the problem is because the product is virtual this stops the Stripe PaymentRequest API from triggering the necessary `shippingaddresschange` event
+				 * which is when we call WC()->cart->calculate_totals(); which would fix the totals.
+				 *
+				 * The fix here is to not allow virtual synced subscription products with no upfront costs to be purchased via Payment Request Buttons on the product page.
+				 */
+				continue;
+			} elseif ( $is_synced && ! $is_payment_upfront && $needs_shipping ) {
+				continue;
+			} elseif ( $has_trial_period && $needs_shipping ) {
+				continue;
+			} else {
+				// If we made it this far, the product is valid. Break out of the foreach and return early as we only care about invalid cases.
+				$is_invalid = false;
+				break;
 			}
 		}
 
-		return true;
+		return $is_invalid;
 	}
 
 	/**
@@ -1048,7 +1067,7 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// Trial subscriptions with shipping are not supported.
-		if ( $this->product_has_trial_and_needs_shipping( $product ) ) {
+		if ( $this->is_invalid_subscription_product( $product ) ) {
 			return false;
 		}
 
@@ -1317,8 +1336,8 @@ class WC_Stripe_Payment_Request {
 				}
 			}
 
-			if ( $this->product_has_trial_and_needs_shipping( $product ) ) {
-				throw new Exception( __( 'Subscription products with a trial period and require shipping are not supported.', 'woocommerce-gateway-stripe' ) );
+			if ( $this->is_invalid_subscription_product( $product ) ) {
+				throw new Exception( __( 'The chosen subscription product is not supported.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			// Force quantity to 1 if sold individually and check for existing item in cart.
