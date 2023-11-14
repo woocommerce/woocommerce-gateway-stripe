@@ -129,9 +129,9 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 7.8.0 - xxxx-xx-xx =
-* Fix: Resolved a PHP fatal error occurring on stores that removed `WC_Email_Failed_Order` from the list of WC email classes while attempting to send the failed order email.
-* Fix: Prevent incorrect totals displayed in Google Pay and Apple Pay when purchasing a virtual sychronised subscription from the product page.
-* Fix: Hide the Google Pay and Apple Pay buttons on variable product pages, if the selected variation is not supported by Payment Request buttons.
+* Fix - Resolved a PHP fatal error occurring on stores that removed `WC_Email_Failed_Order` from the list of WC email classes while attempting to send the failed order email.
+* Fix - Prevent incorrect totals displayed in Google Pay and Apple Pay when purchasing a virtual sychronised subscription from the product page.
+* Fix - Hide the Google Pay and Apple Pay buttons on variable product pages, if the selected variation is not supported by Payment Request buttons.
 * Tweak - Improve compatibility with PHP 8+.
 
 
