@@ -78,6 +78,12 @@ const ListElement = styled( Reorder.Item )`
 			pointer-events: none;
 		}
 	}
+
+	button {
+		&.hide {
+			visibility: hidden;
+		}
+	}
 `;
 
 const PaymentMethodWrapper = styled.div`
@@ -96,7 +102,7 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 	flex: 1 0 auto;
 `;
 
-const GeneralSettingsSection = () => {
+const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const [ customizationStatus, setCustomizationStatus ] = useState( {} );
 	const upePaymentMethods = useGetAvailablePaymentMethodIds();
@@ -175,6 +181,9 @@ const GeneralSettingsSection = () => {
 								! customizationStatus[ method ] && (
 									<Button
 										variant="secondary"
+										className={
+											isChangingDisplayOrder ? 'hide' : ''
+										}
 										onClick={ () =>
 											setCustomizationStatus( {
 												...customizationStatus,

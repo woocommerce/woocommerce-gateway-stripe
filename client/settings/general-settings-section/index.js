@@ -1,5 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import { Card, VisuallyHidden } from '@wordpress/components';
@@ -34,6 +34,9 @@ const AccountRefreshingOverlay = styled.div`
 `;
 
 const GeneralSettingsSection = () => {
+	const [ isChangingDisplayOrder, setIsChangingDisplayOrder ] = useState(
+		false
+	);
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const { isRefreshing } = useAccount();
 
@@ -41,7 +44,10 @@ const GeneralSettingsSection = () => {
 		<>
 			<StyledCard>
 				<LoadableSettingsSection numLines={ 30 }>
-					<SectionHeading />
+					<SectionHeading
+						isChangingDisplayOrder={ isChangingDisplayOrder }
+						onChangeDisplayOrder={ setIsChangingDisplayOrder }
+					/>
 					{ isRefreshing && (
 						<VisuallyHidden>
 							{ __(
@@ -55,7 +61,9 @@ const GeneralSettingsSection = () => {
 							'has-overlay': isRefreshing,
 						} ) }
 					>
-						<PaymentMethodsList />
+						<PaymentMethodsList
+							isChangingDisplayOrder={ isChangingDisplayOrder }
+						/>
 					</AccountRefreshingOverlay>
 					{ isUpeEnabled && <SectionFooter /> }
 				</LoadableSettingsSection>
