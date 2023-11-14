@@ -661,7 +661,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 *
 	 * @return array An array with the result of the payment processing, and a redirect URL on success.
 	 */
-	private function process_payment_with_deferred_intent( $order_id ) {
+	private function process_payment_with_deferred_intent( int $order_id ) {
 		$order = wc_get_order( $order_id );
 
 		// TODO: check we're processing a payment for an order with a pending status.
@@ -1574,7 +1574,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * Collects the payment information needed for processing a payment intent.
 	 *
 	 * @param WC_Order $order The WC Order to be paid for.
-	 * @return object An object containing the payment information for processing a payment intent.
+	 * @return array An array containing the payment information for processing a payment intent.
 	 */
 	private function prepare_payment_information_from_request( WC_Order $order ) {
 		// TODO: throw exception if any required information is missing.
@@ -1591,6 +1591,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'currency'                     => $currency,
 			'customer'                     => $this->get_customer_id_for_order( $order ),
 			'capture_method'               => $capture_method,
+			'level3'                       => $this->get_level3_data_from_order( $order ),
+			'metadata'                     => $this->get_metadata_from_order( $order ),
 			'order'                        => $order,
 			'payment_initiated_by'         => 'initiated_by_customer', // initiated_by_merchant | initiated_by_customer.
 			'payment_method'               => $payment_method,
@@ -1600,7 +1602,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'statement_descriptor'         => $this->get_statement_descriptor( $selected_payment_type ),
 		];
 
-		return (object) $payment_information;
+		return $payment_information;
 	}
 
 	/**
