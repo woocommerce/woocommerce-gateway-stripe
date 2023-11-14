@@ -1442,7 +1442,7 @@ class WC_Stripe_Payment_Request {
 			WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
 		}
 
-		if ( 'simple' === $product_type || 'subscription' === $product_type ) {
+		if ( in_array( $product_type, [ 'simple', 'variation', 'subscription', 'subscription_variation' ], true ) ) {
 			WC()->cart->add_to_cart( $product->get_id(), $qty );
 		}
 
