@@ -57,6 +57,14 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 
 	const { refreshAccount } = useAccount();
 
+	const onChangeDisplayOrderCancel = () => {
+		onChangeDisplayOrder( false );
+	};
+
+	const onChangeDisplayOrderSave = () => {
+		onChangeDisplayOrder( false );
+	};
+
 	return (
 		<StyledHeader>
 			<Title>
@@ -114,13 +122,13 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 					<>
 						<Button
 							variant="tertiary"
-							onClick={ () => onChangeDisplayOrder( false ) }
+							onClick={ () => onChangeDisplayOrderCancel() }
 						>
 							{ __( 'Cancel', 'woocommerce-gateway-stripe' ) }
 						</Button>
 						<Button
 							variant="secondary"
-							onClick={ () => onChangeDisplayOrder( false ) }
+							onClick={ () => onChangeDisplayOrderSave() }
 						>
 							{ __(
 								'Save display order',

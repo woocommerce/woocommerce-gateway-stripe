@@ -1,8 +1,9 @@
 import { __ } from '@wordpress/i18n';
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useRef } from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
 import { Button } from '@wordpress/components';
+import { Icon as IconComponent, dragHandle } from '@wordpress/icons';
 import { Reorder } from 'framer-motion';
 import UpeToggleContext from '../upe-toggle/context';
 import PaymentMethodsMap from '../../payment-methods-map';
@@ -17,7 +18,7 @@ import {
 import { useGetCapabilities } from 'wcstripe/data/account';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 
-const List = styled( Reorder.Group )`
+const List = styled.ul`
 	margin: 0;
 
 	> li {
@@ -52,7 +53,24 @@ const List = styled( Reorder.Group )`
 	}
 `;
 
-const ListElement = styled( Reorder.Item )`
+const DraggableList = styled( Reorder.Group )`
+	margin: 0;
+
+	> li {
+		margin: 0;
+		padding: 16px 24px 14px 24px;
+
+		@media ( min-width: 660px ) {
+			padding: 24px 24px 24px 24px;
+		}
+
+		&:not( :last-child ) {
+			box-shadow: inset 0 -1px 0 #e8eaeb;
+		}
+	}
+`;
+
+const ListElement = styled.li`
 	display: flex;
 	flex-wrap: nowrap;
 	gap: 16px;
@@ -86,6 +104,38 @@ const ListElement = styled( Reorder.Item )`
 	}
 `;
 
+const DraggableListElement = styled( Reorder.Item )`
+	display: flex;
+	flex-wrap: nowrap;
+	gap: 16px;
+
+	@media ( min-width: 660px ) {
+		align-items: center;
+	}
+
+	&.has-overlay {
+		position: relative;
+
+		&:after {
+			content: '';
+			position: absolute;
+			// adds some spacing for the borders, so that they're not part of the opacity
+			top: 1px;
+			bottom: 1px;
+			// ensures that the info icon isn't part of the opacity
+			left: 55px;
+			right: 0;
+			background: white;
+			opacity: 0.5;
+			pointer-events: none;
+		}
+	}
+
+	svg.drag-handle {
+		transform: rotate( 90deg );
+	}
+`;
+
 const PaymentMethodWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
@@ -110,6 +160,7 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
 	const [ paymentMethods, setPaymentMethods ] = useState( [] );
+	const initialOrderedPaymentMethods = useRef( null );
 
 	useEffect( () => {
 		// Hide payment methods that are not part of the account capabilities.
@@ -131,6 +182,7 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 		}
 
 		setPaymentMethods( availablePaymentMethods );
+		initialOrderedPaymentMethods.current = availablePaymentMethods;
 	}, [ capabilities, enabledPaymentMethodIds, upePaymentMethods ] );
 
 	const onReorder = ( newOrder ) => {
@@ -138,8 +190,51 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 		setPaymentMethods( newOrder );
 	};
 
-	return (
-		<List axis="y" values={ paymentMethods } onReorder={ onReorder }>
+	return isChangingDisplayOrder ? (
+		<DraggableList
+			axis="y"
+			values={ paymentMethods }
+			onReorder={ onReorder }
+		>
+			{ paymentMethods.map( ( method ) => {
+				const {
+					Icon,
+					label,
+					description,
+					allows_manual_capture: isAllowingManualCapture,
+				} = PaymentMethodsMap[ method ];
+
+				return (
+					<DraggableListElement
+						key={ method }
+						value={ method }
+						className={ classnames( {
+							'has-overlay':
+								! isAllowingManualCapture &&
+								isManualCaptureEnabled,
+							expanded: customizationStatus[ method ],
+						} ) }
+					>
+						<IconComponent
+							className="drag-handle"
+							icon={ dragHandle }
+							size="10"
+						/>
+						<PaymentMethodWrapper>
+							<PaymentMethodDescription
+								id={ method }
+								Icon={ Icon }
+								description={ description }
+								label={ label }
+							/>
+							<StyledFees id={ method } />
+						</PaymentMethodWrapper>
+					</DraggableListElement>
+				);
+			} ) }
+		</DraggableList>
+	) : (
+		<List>
 			{ paymentMethods.map( ( method ) => {
 				const {
 					Icon,
@@ -152,7 +247,6 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 					<div key={ method }>
 						<ListElement
 							key={ method }
-							value={ method }
 							className={ classnames( {
 								'has-overlay':
 									! isAllowingManualCapture &&
@@ -181,9 +275,6 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 								! customizationStatus[ method ] && (
 									<Button
 										variant="secondary"
-										className={
-											isChangingDisplayOrder ? 'hide' : ''
-										}
 										onClick={ () =>
 											setCustomizationStatus( {
 												...customizationStatus,
