@@ -132,9 +132,8 @@ const GeneralSettingsSection = () => {
 				} = PaymentMethodsMap[ method ];
 
 				return (
-					<>
+					<div key={ method }>
 						<ListElement
-							key={ method }
 							className={ classnames( {
 								'has-overlay':
 									! isAllowingManualCapture &&
@@ -188,7 +187,7 @@ const GeneralSettingsSection = () => {
 								}
 							/>
 						) }
-					</>
+					</div>
 				);
 			} ) }
 		</List>

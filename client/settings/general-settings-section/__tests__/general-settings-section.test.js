@@ -1,5 +1,5 @@
 import React from 'react';
-import { screen, render } from '@testing-library/react';
+import { fireEvent, screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import GeneralSettingsSection from '..';
 import UpeToggleContext from '../../upe-toggle/context';
@@ -7,6 +7,7 @@ import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
 	useManualCapture,
+	useIndividualPaymentMethodSettings,
 } from 'wcstripe/data';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
 
@@ -14,6 +15,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useGetAvailablePaymentMethodIds: jest.fn(),
 	useEnabledPaymentMethodIds: jest.fn(),
 	useManualCapture: jest.fn(),
+	useIndividualPaymentMethodSettings: jest.fn(),
 } ) );
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
@@ -292,9 +294,22 @@ describe( 'GeneralSettingsSection', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'does not display the payment method checkbox when UPE is disabled', () => {
-		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'card' ] );
-		useManualCapture.mockReturnValue( [ true ] );
+	it( 'display customization section in the payment method when UPE is disabled', () => {
+		const setIndividualPaymentMethodSettingsMock = jest.fn();
+		useIndividualPaymentMethodSettings.mockReturnValue( [
+			{
+				giropay: {
+					name: 'Giropay',
+					description: 'Pay with Giropay',
+				},
+				eps: {
+					name: 'EPS',
+					description: 'Pay with EPS',
+				},
+			},
+			setIndividualPaymentMethodSettingsMock,
+		] );
+		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'giropay' ] );
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
 				<GeneralSettingsSection />
@@ -303,9 +318,52 @@ describe( 'GeneralSettingsSection', () => {
 
 		expect(
 			screen.queryByRole( 'checkbox', {
-				name: /Credit card/,
+				name: 'giropay',
 			} )
-		).not.toBeInTheDocument();
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole( 'button', {
+				name: 'Customize',
+			} )
+		).toBeInTheDocument();
+		// Click on the customize button
+		userEvent.click(
+			screen.queryByRole( 'button', {
+				name: 'Customize',
+			} )
+		);
+
+		// Expect the customization section to be open
+		expect( screen.getByLabelText( 'Name' ) ).toHaveValue( 'Giropay' );
+		expect( screen.getByLabelText( 'Description' ) ).toHaveValue(
+			'Pay with Giropay'
+		);
+		expect(
+			screen.queryByRole( 'button', {
+				name: 'Cancel',
+			} )
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole( 'button', {
+				name: 'Save changes',
+			} )
+		).toBeInTheDocument();
+
+		// Change settings of this method
+		fireEvent.change( screen.getByLabelText( 'Name' ), {
+			target: { value: 'New Name' },
+		} );
+		fireEvent.change( screen.getByLabelText( 'Description' ), {
+			target: { value: 'New Description' },
+		} );
+
+		userEvent.click(
+			screen.queryByRole( 'button', {
+				name: 'Save changes',
+			} )
+		);
+
+		expect( setIndividualPaymentMethodSettingsMock ).toHaveBeenCalled();
 	} );
 
 	it( 'displays the payment method checkbox when manual capture is disabled', () => {
