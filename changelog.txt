@@ -1,6 +1,10 @@
 *** Changelog ***
 
-= 7.7.0 - xxxx-xx-xx =
+= 7.8.0 - xxxx-xx-xx =
+* Fix: Resolved a PHP fatal error occurring on stores that removed `WC_Email_Failed_Order` from the list of WC email classes while attempting to send the failed order email.
+* Tweak - Improve compatibility with PHP 8+.
+
+= 7.7.0 - 2023-11-09 =
 * Add - Prevent saving the bank statement descriptor if it contains non-Latin characters.
 * Fix - Display the Payment Request Buttons' error message in the classic checkout page.
 * Fix - Prevent escaping the anchor tag under the Apple Pay domain registration failure notice.

@@ -607,7 +607,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function send_failed_order_email( $order_id ) {
 		$emails = WC()->mailer()->get_emails();
-		if ( ! empty( $emails ) && ! empty( $order_id ) ) {
+		if ( ! empty( $emails ) && ! empty( $order_id ) && isset( $emails['WC_Email_Failed_Order'] ) ) {
 			$emails['WC_Email_Failed_Order']->trigger( $order_id );
 		}
 	}
@@ -1083,7 +1083,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$request['charge'] = $charge_id;
 		WC_Stripe_Logger::log( "Info: Beginning refund for order {$charge_id} for the amount of {$amount}" );
-
+		$response = new stdClass();
 		try {
 			$request = apply_filters( 'wc_stripe_refund_request', $request, $order );
 
