@@ -1583,8 +1583,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$selected_payment_type        = sanitize_text_field( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$capture_method               = empty( $this->get_option( 'capture' ) ) || $this->get_option( 'capture' ) === 'yes' ? 'automatic' : 'manual'; // automatic | manual.
 		$save_payment_method_to_store = isset( $_POST['save_payment_method'] ) ? 'yes' === wc_clean( wp_unslash( $_POST['save_payment_method'] ) ) : false;
+		$currency                     = strtolower( get_woocommerce_currency() );
+		$amount                       = $order->get_total();
 
 		$payment_information = [
+			'amount'                       => WC_Stripe_Helper::get_stripe_amount( $amount, $currency ),
+			'currency'                     => $currency,
 			'customer'                     => $this->get_customer_id_for_order( $order ),
 			'capture_method'               => $capture_method,
 			'order'                        => $order,

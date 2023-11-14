@@ -690,35 +690,12 @@ class WC_Stripe_Intent_Controller {
 		$order   = $payment_information->order;
 
 		$selected_payment_type = $payment_information->selected_payment_type;
-		// TODO: put this in a method.
-		if ( '' !== $selected_payment_type ) {
-			// Only update the payment_method_types if we have a reference to the payment type the customer selected.
-			$payment_method_types = [ $selected_payment_type ];
-			if (
-				WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID === $selected_payment_type &&
-				in_array(
-					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
-					$gateway->get_upe_enabled_payment_method_ids(),
-					true
-				)
-			) {
-				$payment_method_types = [
-					WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
-					WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
-				];
-			}
-			$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
-		} else {
-			$payment_method_types = $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order->get_id() );
-		}
-
-		$currency = strtolower( get_woocommerce_currency() );
-		$amount   = $order->get_total();
+		$payment_method_types  = $this->get_payment_method_types_for_intent_creation( $selected_payment_type, $order->get_id() );
 
 		$request = [
-			'amount'               => WC_Stripe_Helper::get_stripe_amount( $amount, $currency ),
+			'amount'               => $payment_information->amount,
 			'confirm'              => 'true',
-			'currency'             => $currency,
+			'currency'             => $payment_information->currency,
 			'capture_method'       => $payment_information->capture_method,
 			/* translators: 1) blog name 2) order number */
 			'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
@@ -737,23 +714,62 @@ class WC_Stripe_Intent_Controller {
 			$request['setup_future_usage'] = 'off_session';
 		}
 
-		$level3_data    = $gateway->get_level3_data_from_order( $order );
 		$payment_intent = WC_Stripe_API::request_with_level3_data(
 			$request,
 			'payment_intents',
-			$level3_data,
+			$gateway->get_level3_data_from_order( $order ),
 			$order
 		);
+
+		// Only update the payment_type if we have a reference to the payment type the customer selected.
+		if ( '' !== $selected_payment_type ) {
+			$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
+		}
 
 		$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 		$order->save();
 
 		if ( ! empty( $payment_intent->error ) ) {
-			throw new Exception( $payment_intent->error->message );
+			throw new WC_Stripe_Exception( $payment_intent->error->message );
 		}
 
 		WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent->id, $order );
 
 		return $payment_intent;
+	}
+
+	/**
+	 * Returns the payment method types for the intent creation request, given the selected payment type.
+	 *
+	 * @param string $selected_payment_type The payment type the shopper selected, if any.
+	 * @param int    $order_id              ID of the WC order we're handling.
+	 *
+	 * @return array
+	 */
+	private function get_payment_method_types_for_intent_creation( string $selected_payment_type, int $order_id ): array {
+		$gateway = $this->get_upe_gateway();
+
+		// If the shopper didn't select a payment type, return all the enabled ones.
+		if ( '' === $selected_payment_type ) {
+			return $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
+		}
+
+		// If the "card" type was selected and Link is enabled, include Link in the types.
+		if (
+			WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID === $selected_payment_type &&
+			in_array(
+				WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+				$gateway->get_upe_enabled_payment_method_ids(),
+				true
+			)
+		) {
+			return [
+				WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+				WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+			];
+		}
+
+		// Otherwise, return the selected payment method type.
+		return [ $selected_payment_type ];
 	}
 }
