@@ -86,6 +86,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'array',
 						'items'             => [
 							'type' => 'string',
+							'enum' => array_merge( $this->gateway->get_upe_available_payment_methods(), WC_Stripe_Helper::get_legacy_available_payment_method_ids() ),
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -578,8 +579,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 */
 	private function update_enabled_payment_methods( WP_REST_Request $request ) {
 		$payment_method_ids_to_enable = $request->get_param( 'enabled_payment_method_ids' );
+		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
 
-		if ( ! $request->get_param( 'is_upe_enabled' ) ) {
+		if ( null === $is_upe_enabled ) {
+			return;
+		}
+
+		if ( ! $is_upe_enabled ) {
 			$currently_enabled_payment_method_ids = WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
 			$payment_gateways                     = WC_Stripe_Helper::get_legacy_payment_methods();
 
