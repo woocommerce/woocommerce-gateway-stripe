@@ -107,7 +107,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * @dataProvider enum_field_provider
 	 */
-	public function test_enum_fields( $rest_key, $option_name, $original_valid_value, $new_valid_value, $new_invalid_value ) {
+	public function test_enum_fields( $rest_key, $option_name, $original_valid_value, $new_valid_value, $new_invalid_value, $is_upe_enabled = true ) {
 		// It returns option value under expected key with HTTP code 200.
 		$this->get_gateway()->update_option( $option_name, $original_valid_value );
 		$response = $this->rest_get_settings();
@@ -118,6 +118,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$this->get_gateway()->update_option( $option_name, $original_valid_value );
 
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', $is_upe_enabled );
 		$request->set_param( $rest_key, $new_valid_value );
 		$response = rest_do_request( $request );
 
@@ -128,7 +129,8 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$this->get_gateway()->update_option( $option_name, $original_valid_value );
 
 		$status_before_request = $this->get_gateway()->get_option( $option_name );
-		$request               = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', $is_upe_enabled );
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
 		rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
@@ -138,6 +140,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$this->get_gateway()->update_option( $option_name, $original_valid_value );
 
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', $is_upe_enabled );
 		$request->set_param( $rest_key, $new_invalid_value );
 
 		$response = rest_do_request( $request );
@@ -313,6 +316,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 				[ 'card' ],
 				[ 'card', 'giropay' ],
 				[ 'foo' ],
+				true,
 			],
 			'payment_request_button_theme'     => [
 				'payment_request_button_theme',
