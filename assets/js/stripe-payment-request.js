@@ -5,7 +5,8 @@ jQuery( function( $ ) {
 	var stripe = Stripe( wc_stripe_payment_request_params.stripe.key, {
 		locale: wc_stripe_payment_request_params.stripe.locale
 	} ),
-		paymentRequestType;
+		paymentRequestType,
+		showButtonsOnInit = wc_stripe_payment_request_params.product.validVariationSelected ?? true;
 
 	/**
 	 * Object to handle Stripe payment forms.
@@ -342,9 +343,12 @@ jQuery( function( $ ) {
 		 * @since 4.0.0
 		 * @version 4.8.0
 		 */
-		startPaymentRequest: function( cart ) {
+		startPaymentRequest: function( cart, showButtonsOnInit ) {
 			var paymentDetails,
 				options;
+
+			// Whether to show the payment request buttons on init. Set to true by default.
+			showButtonsOnInit = showButtonsOnInit ?? true;
 
 			if ( wc_stripe_payment_request_params.is_product_page ) {
 				options = wc_stripe_payment_request.getRequestOptionsFromLocal();
@@ -407,7 +411,10 @@ jQuery( function( $ ) {
 					}
 
 					wc_stripe_payment_request.attachPaymentRequestButtonEventListeners( prButton, paymentRequest );
-					wc_stripe_payment_request.showPaymentRequestButton( prButton );
+
+					if ( showButtonsOnInit ) {
+						wc_stripe_payment_request.showPaymentRequestButton( prButton );
+					}
 				} );
 
 				// Possible statuses success, fail, invalid_payer_name, invalid_payer_email, invalid_payer_phone, invalid_shipping_address.
@@ -674,33 +681,39 @@ jQuery( function( $ ) {
 				$( document.body ).trigger( 'wc_stripe_block_payment_request_button' );
 
 				$.when( wc_stripe_payment_request.getSelectedProductData() ).then( function ( response ) {
-					/**
-					 * If the customer canceled the payment request, we need to re-init the payment request buttons to ensure the shipping
-					 * options are fetched again. If the customer didn't close the payment request, and the product's shipping status is
-					 * consistent, we can simply update the payment request button with the new total and display items.
-					 */
-					if ( ! wc_stripe_payment_request.paymentCanceled && wc_stripe_payment_request_params.product.requestShipping === response.requestShipping ) {
-						$.when(
-							paymentRequest.update( {
-								total: response.total,
-								displayItems: response.displayItems,
-							} )
-						).then( function () {
-							$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
-						} );
+					if ( response.error ) {
+						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
+						wc_stripe_payment_request.hidePaymentRequestButton();
 					} else {
 						/**
-						 * Re init the payment request button.
-						 *
-						 * This ensures that when the customer clicks on the payment button, the available shipping options are
-						 * refetched based on the selected variable product's data and the chosen address.
+						 * If the customer canceled the payment request, we need to re-init the payment request buttons to ensure the shipping
+						 * options are fetched again. If the customer didn't close the payment request, and the product's shipping status is
+						 * consistent, we can simply update the payment request button with the new total and display items.
 						 */
-						wc_stripe_payment_request_params.product.requestShipping = response.requestShipping;
-						wc_stripe_payment_request_params.product.total           = response.total;
-						wc_stripe_payment_request_params.product.displayItems    = response.displayItems;
+						if ( ! wc_stripe_payment_request.paymentCanceled && wc_stripe_payment_request_params.product.requestShipping === response.requestShipping ) {
+							$.when(
+								paymentRequest.update( {
+									total: response.total,
+									displayItems: response.displayItems,
+								} )
+							).then( function () {
+								$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
+								wc_stripe_payment_request.showPaymentRequestButton();
+							} );
+						} else {
+							/**
+							 * Re init the payment request button.
+							 *
+							 * This ensures that when the customer clicks on the payment button, the available shipping options are
+							 * refetched based on the selected variable product's data and the chosen address.
+							 */
+							wc_stripe_payment_request_params.product.requestShipping = response.requestShipping;
+							wc_stripe_payment_request_params.product.total           = response.total;
+							wc_stripe_payment_request_params.product.displayItems    = response.displayItems;
 
-						wc_stripe_payment_request.init();
-						$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
+							wc_stripe_payment_request.init();
+							$( document.body ).trigger( 'wc_stripe_unblock_payment_request_button' );
+						}
 					}
 				});
 			});
@@ -823,10 +836,11 @@ jQuery( function( $ ) {
 		 *
 		 * @since 4.0.0
 		 * @version 4.0.0
+		 * @param {boolean} showButtonsOnInit Whether to show the payment request buttons on init.
 		 */
-		init: function() {
+		init: function( showButtonsOnInit ) {
 			if ( wc_stripe_payment_request_params.is_product_page ) {
-				wc_stripe_payment_request.startPaymentRequest( '' );
+				wc_stripe_payment_request.startPaymentRequest( '', showButtonsOnInit );
 			} else {
 				wc_stripe_payment_request.getCartDetails();
 			}
@@ -835,7 +849,7 @@ jQuery( function( $ ) {
 		},
 	};
 
-	wc_stripe_payment_request.init();
+	wc_stripe_payment_request.init( showButtonsOnInit );
 
 	// We need to refresh payment request data when total is updated.
 	$( document.body ).on( 'updated_cart_totals', function() {
