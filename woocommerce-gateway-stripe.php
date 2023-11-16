@@ -379,26 +379,6 @@ function woocommerce_gateway_stripe() {
 			public function add_gateways( $methods ) {
 				$methods[] = $this->get_main_stripe_gateway();
 
-				if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() || ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-					// These payment gateways will be hidden when UPE is enabled:
-					$methods[] = WC_Gateway_Stripe_Sepa::class;
-					$methods[] = WC_Gateway_Stripe_Giropay::class;
-					$methods[] = WC_Gateway_Stripe_Ideal::class;
-					$methods[] = WC_Gateway_Stripe_Bancontact::class;
-					$methods[] = WC_Gateway_Stripe_Eps::class;
-					$methods[] = WC_Gateway_Stripe_P24::class;
-					$methods[] = WC_Gateway_Stripe_Boleto::class;
-					$methods[] = WC_Gateway_Stripe_Oxxo::class;
-
-					/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
-					 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
-					 */
-					$sofort_settings = get_option( 'woocommerce_stripe_sofort_settings', [] );
-					if ( isset( $sofort_settings['enabled'] ) && 'yes' === $sofort_settings['enabled'] ) {
-						$methods[] = WC_Gateway_Stripe_Sofort::class;
-					}
-				}
-
 				// These payment gateways will always be visible, regardless if UPE is enabled or disabled:
 				$methods[] = WC_Gateway_Stripe_Alipay::class;
 				$methods[] = WC_Gateway_Stripe_Multibanco::class;

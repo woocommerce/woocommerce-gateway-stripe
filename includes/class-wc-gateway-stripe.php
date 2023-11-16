@@ -113,7 +113,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// Title shows the count of enabled payment methods in settings page only.
 		if ( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] ) {
-			$enabled_payment_methods_count = count( WC_Stripe_Helper::get_legacy_enabled_payment_method_ids() );
+			$enabled_payment_methods_count = count( WC_Stripe_Helper::get_legacy_enabled_payment_methods( 'id' ) );
 			$this->title                   = $enabled_payment_methods_count ?
 				/* translators: $1. Count of enabled payment methods. */
 				sprintf( _n( '%d payment method', '%d payment methods', $enabled_payment_methods_count, 'woocommerce-gateway-stripe' ), $enabled_payment_methods_count )
@@ -126,6 +126,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_fee' ] );
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_payout' ], 20 );
 		add_action( 'woocommerce_customer_save_address', [ $this, 'show_update_card_notice' ], 10, 2 );
+		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'get_payment_methods_on_checkout' ] );
 		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'prepare_order_pay_page' ] );
 		add_action( 'woocommerce_account_view-order_endpoint', [ $this, 'check_intent_status_on_order_page' ], 1 );
 		add_filter( 'woocommerce_payment_successful_result', [ $this, 'modify_successful_payment_result' ], 99999, 2 );
@@ -640,6 +641,33 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_pay_order_after_submit', [ $this, 'render_payment_intent_inputs' ] );
 
 		return [];
+	}
+
+	/**
+	 * Include the available legacy payment methods in the list of payment methods on checkout page.
+	 *
+	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways.
+	 * @return WC_Payment_Gateway[]          The same list if not checkout page or a list including the available legacy payment methods.
+	 */
+	public function get_payment_methods_on_checkout( $gateways ) {
+		if ( ! is_checkout() ) {
+			return $gateways;
+		}
+
+		$available_gateways      = $gateways;
+		$ordering                = (array) get_option( 'woocommerce_gateway_order' );
+		$legacy_enabled_gateways = WC_Stripe_Helper::get_legacy_enabled_payment_methods();
+
+		foreach ( $legacy_enabled_gateways as $legacy_enabled_gateway ) {
+			if ( $legacy_enabled_gateway->is_available() ) {
+				if ( isset( $ordering[ $legacy_enabled_gateway->id ] ) && is_numeric( $ordering[ $legacy_enabled_gateway->id ] ) ) {
+					$available_gateways[ $ordering[ $legacy_enabled_gateway->id ] ] = $legacy_enabled_gateway;
+				}
+				$available_gateways[] = $legacy_enabled_gateway;
+			}
+		}
+
+		return $available_gateways;
 	}
 
 	/**

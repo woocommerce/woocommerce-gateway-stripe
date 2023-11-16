@@ -380,13 +380,13 @@ class WC_Stripe_Helper {
 	public static function get_legacy_available_payment_method_ids() {
 		$payment_methods = self::get_legacy_payment_methods();
 
-		$available_payment_methods = [ 'card' ];
+		$available_payment_method_ids = [ 'card' ];
 
 		foreach ( $payment_methods as $payment_method ) {
-			$available_payment_methods[] = str_replace( 'stripe_', '', $payment_method::ID );
+			$available_payment_method_ids[] = str_replace( 'stripe_', '', $payment_method::ID );
 		}
 
-		return $available_payment_methods;
+		return $available_payment_method_ids;
 	}
 
 	/**
@@ -394,16 +394,22 @@ class WC_Stripe_Helper {
 	 *
 	 * @return array
 	 */
-	public static function get_legacy_enabled_payment_method_ids() {
+	public static function get_legacy_enabled_payment_methods( $field = null ) {
 		$payment_methods = self::get_legacy_payment_methods();
 
-		$enabled_payment_methods = [ 'card' ];
+		$enabled_payment_method_ids = [ 'card' ];
+		$enabled_payment_methods    = [];
 
 		foreach ( $payment_methods as $payment_method ) {
 			if ( ! $payment_method->is_enabled() ) {
 				continue;
 			}
-			$enabled_payment_methods[] = str_replace( 'stripe_', '', $payment_method::ID );
+			$enabled_payment_methods[]    = $payment_method;
+			$enabled_payment_method_ids[] = str_replace( 'stripe_', '', $payment_method::ID );
+		}
+
+		if ( 'id' === $field ) {
+			return $enabled_payment_method_ids;
 		}
 
 		return $enabled_payment_methods;
