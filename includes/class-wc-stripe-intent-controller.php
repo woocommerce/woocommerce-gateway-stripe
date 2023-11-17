@@ -728,8 +728,10 @@ class WC_Stripe_Intent_Controller {
 		$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
 		$order->save();
 
+		// Throw an exception when there's an error.
 		if ( ! empty( $payment_intent->error ) ) {
-			throw new WC_Stripe_Exception( $payment_intent->error->message );
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
+			throw new WC_Stripe_Exception( print_r( $payment_intent->error, true ), $payment_intent->error->message );
 		}
 
 		WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent->id, $order );

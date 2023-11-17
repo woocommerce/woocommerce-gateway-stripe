@@ -681,12 +681,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				// Throw an exception if the minimum order amount isn't met.
 				$this->validate_minimum_order_amount( $order );
 
+				// TODO: Update the payment intent if one is already associated with the order. Order meta '_stripe_intent_id'.
+
 				// Throws an exception on error.
 				$payment_intent = $this->intent_controller->create_and_confirm_payment_intent( $payment_information );
-
-				if ( isset( $payment_intent->last_payment_error ) ) {
-					throw new WC_Stripe_Exception( $payment_intent->last_payment_error->message );
-				}
 
 				// Use the last charge within the intent to proceed.
 				$this->process_response( end( $payment_intent->charges->data ), $order );
@@ -701,14 +699,23 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				'redirect' => $this->get_return_url( $order ),
 			];
 		} catch ( WC_Stripe_Exception $e ) {
-			wc_add_notice( $e->getLocalizedMessage(), 'error' );
+			$shopper_error_message = sprintf(
+				/* translators: localized exception message */
+				__( 'There was an error processing the payment: %s', 'woocommerce-gateway-stripe' ),
+				$e->getLocalizedMessage()
+			);
+
+			wc_add_notice( $shopper_error_message, 'error' );
 
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
-			/* translators: localized exception message */
-			$order->update_status( 'failed', sprintf( __( 'UPE payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+			$order->update_status(
+				'failed',
+				/* translators: localized exception message */
+				sprintf( __( 'Payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() )
+			);
 
 			return [ 'result' => 'failure' ];
 		}
