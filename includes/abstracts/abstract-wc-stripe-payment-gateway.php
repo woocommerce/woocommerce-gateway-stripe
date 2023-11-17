@@ -607,7 +607,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 */
 	public function send_failed_order_email( $order_id ) {
 		$emails = WC()->mailer()->get_emails();
-		if ( ! empty( $emails ) && ! empty( $order_id ) ) {
+		if ( ! empty( $emails ) && ! empty( $order_id ) && isset( $emails['WC_Email_Failed_Order'] ) ) {
 			$emails['WC_Email_Failed_Order']->trigger( $order_id );
 		}
 	}
@@ -870,10 +870,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 			}
 		}
 
-		$customer_id = $customer->get_id();
-		if ( ! $customer_id ) {
-			$customer->set_id( $customer->create_customer() );
-			$customer_id = $customer->get_id();
+		if ( ! $customer->get_id() ) {
+			$customer_id = $customer->create_customer();
 		} else {
 			$customer_id = $customer->update_customer();
 		}
@@ -1085,7 +1083,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 
 		$request['charge'] = $charge_id;
 		WC_Stripe_Logger::log( "Info: Beginning refund for order {$charge_id} for the amount of {$amount}" );
-
+		$response = new stdClass();
 		try {
 			$request = apply_filters( 'wc_stripe_refund_request', $request, $order );
 
@@ -1992,7 +1990,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		];
 
 		// If we're on the pay page we need to pass stripe.js the address of the order.
-		if ( $this->is_valid_pay_for_order_endpoint() ) {
+		if ( $this->is_valid_pay_for_order_endpoint() || $this->is_changing_payment_method_for_subscription() ) {
 			$order_id = absint( get_query_var( 'order-pay' ) );
 			$order    = wc_get_order( $order_id );
 

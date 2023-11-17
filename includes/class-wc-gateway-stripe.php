@@ -1244,7 +1244,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		if ( empty( $this->form_fields ) ) {
 			$this->init_form_fields();
 		}
-		if ( key_exists( $field_key, $this->form_fields ) ) {
+		if ( array_key_exists( $field_key, $this->form_fields ) ) {
 			$field_type = $this->form_fields[ $field_key ]['type'];
 
 			if ( is_callable( [ $this, 'validate_' . $field_type . '_field' ] ) ) {
