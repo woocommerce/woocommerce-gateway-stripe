@@ -217,14 +217,9 @@ class WC_Stripe_Payment_Request {
 
 		add_action( 'wp_enqueue_scripts', [ $this, 'scripts' ] );
 
-		add_action( 'woocommerce_after_add_to_cart_quantity', [ $this, 'display_payment_request_button_html' ], 1 );
-		add_action( 'woocommerce_after_add_to_cart_quantity', [ $this, 'display_payment_request_button_separator_html' ], 2 );
-
-		add_action( 'woocommerce_proceed_to_checkout', [ $this, 'display_payment_request_button_html' ], 1 );
-		add_action( 'woocommerce_proceed_to_checkout', [ $this, 'display_payment_request_button_separator_html' ], 2 );
-
+		add_action( 'woocommerce_after_add_to_cart_form', [ $this, 'display_payment_request_button_html' ], 1 );
+		add_action( 'woocommerce_proceed_to_checkout', [ $this, 'display_payment_request_button_html' ], 25 );
 		add_action( 'woocommerce_checkout_before_customer_details', [ $this, 'display_payment_request_button_html' ], 1 );
-		add_action( 'woocommerce_checkout_before_customer_details', [ $this, 'display_payment_request_button_separator_html' ], 2 );
 
 		add_action( 'wc_ajax_wc_stripe_get_cart_details', [ $this, 'ajax_get_cart_details' ] );
 		add_action( 'wc_ajax_wc_stripe_get_shipping_options', [ $this, 'ajax_get_shipping_options' ] );
@@ -853,7 +848,7 @@ class WC_Stripe_Payment_Request {
 		}
 
 		?>
-		<div id="wc-stripe-payment-request-wrapper" style="clear:both;padding-top:1.5em;display:none;">
+		<div id="wc-stripe-payment-request-wrapper" style="clear:both;display:none;">
 			<div id="wc-stripe-payment-request-button">
 				<?php
 				if ( $this->is_custom_button() ) {
@@ -869,10 +864,12 @@ class WC_Stripe_Payment_Request {
 	/**
 	 * Display payment request button separator.
 	 *
+	 * @deprecated 7.8.0
 	 * @since   4.0.0
 	 * @version 5.2.0
 	 */
 	public function display_payment_request_button_separator_html() {
+		wc_deprecated_function( __FUNCTION__, '7.8.0' );
 		$gateways = WC()->payment_gateways->get_available_payment_gateways();
 
 		if ( ! isset( $gateways['stripe'] ) ) {
