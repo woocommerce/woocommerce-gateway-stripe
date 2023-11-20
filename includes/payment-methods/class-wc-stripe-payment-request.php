@@ -359,7 +359,7 @@ class WC_Stripe_Payment_Request {
 	public function get_product_price( $product ) {
 		$product_price = $product->get_price();
 		// Add subscription sign-up fees to product price.
-		if ( 'subscription' === $product->get_type() && class_exists( 'WC_Subscriptions_Product' ) ) {
+		if ( in_array( $product->get_type(), [ 'subscription', 'subscription_variation' ] ) && class_exists( 'WC_Subscriptions_Product' ) ) {
 			$product_price = $product->get_price() + WC_Subscriptions_Product::get_sign_up_fee( $product );
 		}
 
@@ -378,19 +378,24 @@ class WC_Stripe_Payment_Request {
 			return false;
 		}
 
-		$product = $this->get_product();
+		$product      = $this->get_product();
+		$variation_id = 0;
 
-		if ( 'variable' === $product->get_type() ) {
+		if ( in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true ) ) {
 			$variation_attributes = $product->get_variation_attributes();
 			$attributes           = [];
 
 			foreach ( $variation_attributes as $attribute_name => $attribute_values ) {
 				$attribute_key = 'attribute_' . sanitize_title( $attribute_name );
 
-				// Passed value via GET takes precedence. Otherwise get the default value for given attribute
-				$attributes[ $attribute_key ] = isset( $_GET[ $attribute_key ] )
-					? wc_clean( wp_unslash( $_GET[ $attribute_key ] ) )
-					: $product->get_variation_default_attribute( $attribute_name );
+				// Passed value via GET takes precedence, then POST, otherwise get the default value for given attribute
+				if ( isset( $_GET[ $attribute_key ] ) ) {
+					$attributes[ $attribute_key ] = wc_clean( wp_unslash( $_GET[ $attribute_key ] ) );
+				} elseif ( isset( $_POST[ $attribute_key ] ) ) {
+					$attributes[ $attribute_key ] = wc_clean( wp_unslash( $_POST[ $attribute_key ] ) );
+				} else {
+					$attributes[ $attribute_key ] = $product->get_variation_default_attribute( $attribute_name );
+				}
 			}
 
 			$data_store   = WC_Data_Store::load( 'product' );
@@ -441,6 +446,9 @@ class WC_Stripe_Payment_Request {
 		$data['requestShipping'] = ( wc_shipping_enabled() && $product->needs_shipping() && 0 !== wc_get_shipping_method_count( true ) );
 		$data['currency']        = strtolower( get_woocommerce_currency() );
 		$data['country_code']    = substr( get_option( 'woocommerce_default_country' ), 0, 2 );
+
+		// On product page load, if there's a variation already selected, check if it's supported.
+		$data['validVariationSelected'] = ! empty( $variation_id ) ? $this->is_product_supported( $product ) : true;
 
 		return apply_filters( 'wc_stripe_payment_request_product_data', $data, $product );
 	}
@@ -588,7 +596,7 @@ class WC_Stripe_Payment_Request {
 			}
 
 			// Subscriptions with a trial period that need shipping are not supported.
-			if ( $this->product_has_trial_and_needs_shipping( $_product ) ) {
+			if ( $this->is_invalid_subscription_product( $_product ) ) {
 				return false;
 			}
 		}
@@ -604,22 +612,27 @@ class WC_Stripe_Payment_Request {
 	}
 
 	/**
-	 * Checks if subscription or variable subscription is a product that has a free trial period and requires shipping.
-	 * This could be a subscription product with a trial period or a synchronised subscription with a delayed payment.
+	 * Returns true if the given product is a subscription that cannot be purchased with Payment Request Buttons.
 	 *
-	 * Supports being passed a simple, variation or variable subscription product.
-	 * If any product/variation has a trial period and needs shipping, the whole product is considered to have a trial period and needs shipping.
+	 * Invalid subscription products include those with:
+	 *  - a free trial that requires shipping (synchronised subscriptions with a delayed first payment are considered to have a free trial)
+	 *  - a synchronised subscription with no upfront payment and is virtual (this limitation only applies to the product page as we cannot calculate totals correctly)
 	 *
-	 * @since 7.7.0
+	 * If the product is a variable subscription, this function will return true if all of its variations have a trial and require shipping.
 	 *
-	 * @param WC_Product|null $product Product object.
+	 * @since 7.8.0
+	 *
+	 * @param WC_Product|null $product                 Product object.
+	 * @param boolean         $is_product_page_request Whether this is a request from the product page.
 	 *
 	 * @return boolean
 	 */
-	public function product_has_trial_and_needs_shipping( $product ) {
+	public function is_invalid_subscription_product( $product, $is_product_page_request = false ) {
 		if ( ! class_exists( 'WC_Subscriptions_Product' ) || ! class_exists( 'WC_Subscriptions_Synchroniser' ) || ! WC_Subscriptions_Product::is_subscription( $product ) ) {
 			return false;
 		}
+
+		$is_invalid      = true;
 
 		if ( $product->get_type() === 'variable-subscription' ) {
 			$products = $product->get_available_variations( 'object' );
@@ -628,20 +641,35 @@ class WC_Stripe_Payment_Request {
 		}
 
 		foreach ( $products as $product ) {
-			// Skip any products that are virtual as we only care about products that require shipping
-			if ( ! $product->needs_shipping() ) {
-				continue;
-			}
+			$needs_shipping     = $product->needs_shipping();
+			$is_synced          = WC_Subscriptions_Synchroniser::is_product_synced( $product );
+			$is_payment_upfront = WC_Subscriptions_Synchroniser::is_payment_upfront( $product );
+			$has_trial_period   = WC_Subscriptions_Product::get_trial_length( $product ) > 0;
 
-			// If the product has a trial period or is synchronised and the first payment is not today.
-			if ( WC_Subscriptions_Product::get_trial_length( $product ) > 0 ) {
-				return true;
-			} else if ( WC_Subscriptions_Synchroniser::is_product_synced( $product ) && ! WC_Subscriptions_Synchroniser::is_payment_upfront( $product ) && ! WC_Subscriptions_Synchroniser::is_today( WC_Subscriptions_Synchroniser::calculate_first_payment_date( $product, 'timestamp' ) ) ) {
-				return true;
+			if ( $is_product_page_request && $is_synced && ! $is_payment_upfront && ! $needs_shipping ) {
+				/**
+				 * This condition prevents the purchase of virtual synced subscription products with no upfront costs via Payment Request Buttons from the product page.
+				 *
+				 * The main issue is that calling $product->get_price() on a synced subscription does not take into account a mock trial period or prorated price calculations
+				 * until the product is in the cart. This means that the totals passed to Payment Request are incorrect when purchasing from the product page.
+				 * Another part of the problem is because the product is virtual this stops the Stripe PaymentRequest API from triggering the necessary `shippingaddresschange` event
+				 * which is when we call WC()->cart->calculate_totals(); which would fix the totals.
+				 *
+				 * The fix here is to not allow virtual synced subscription products with no upfront costs to be purchased via Payment Request Buttons on the product page.
+				 */
+				continue;
+			} elseif ( $is_synced && ! $is_payment_upfront && $needs_shipping ) {
+				continue;
+			} elseif ( $has_trial_period && $needs_shipping ) {
+				continue;
+			} else {
+				// If we made it this far, the product is valid. Break out of the foreach and return early as we only care about invalid cases.
+				$is_invalid = false;
+				break;
 			}
 		}
 
-		return false;
+		return $is_invalid;
 	}
 
 	/**
@@ -1043,7 +1071,7 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// Trial subscriptions with shipping are not supported.
-		if ( $this->product_has_trial_and_needs_shipping( $product ) ) {
+		if ( $this->is_invalid_subscription_product( $product, true ) ) {
 			return false;
 		}
 
@@ -1301,7 +1329,7 @@ class WC_Stripe_Payment_Request {
 				throw new Exception( sprintf( __( 'Product with the ID (%1$s) cannot be found.', 'woocommerce-gateway-stripe' ), $product_id ) );
 			}
 
-			if ( 'variable' === $product->get_type() && isset( $_POST['attributes'] ) ) {
+			if ( in_array( $product->get_type(), [ 'variable', 'variable-subscription' ], true ) && isset( $_POST['attributes'] ) ) {
 				$attributes = wc_clean( wp_unslash( $_POST['attributes'] ) );
 
 				$data_store   = WC_Data_Store::load( 'product' );
@@ -1310,6 +1338,10 @@ class WC_Stripe_Payment_Request {
 				if ( ! empty( $variation_id ) ) {
 					$product = wc_get_product( $variation_id );
 				}
+			}
+
+			if ( $this->is_invalid_subscription_product( $product, true ) ) {
+				throw new Exception( __( 'The chosen subscription product is not supported.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			// Force quantity to 1 if sold individually and check for existing item in cart.
@@ -1406,7 +1438,7 @@ class WC_Stripe_Payment_Request {
 			WC()->cart->add_to_cart( $product->get_id(), $qty, $variation_id, $attributes );
 		}
 
-		if ( 'simple' === $product_type || 'subscription' === $product_type ) {
+		if ( in_array( $product_type, [ 'simple', 'variation', 'subscription', 'subscription_variation' ], true ) ) {
 			WC()->cart->add_to_cart( $product->get_id(), $qty );
 		}
 

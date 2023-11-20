@@ -194,7 +194,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '">';
 
 		if ( $description ) {
-			echo wpautop( esc_html( apply_filters( 'wc_stripe_description', wp_kses_post( $description ), $this->id ) ) );
+			echo wpautop( esc_html( apply_filters( 'wc_stripe_description', $description, $this->id ) ) );
 		}
 
 		echo '</div>';
@@ -248,7 +248,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 			esc_html_e( 'MULTIBANCO INFORMAÇÕES DE ENCOMENDA:', 'woocommerce-gateway-stripe' ) . "\n\n";
 			echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n";
 			esc_html_e( 'Montante:', 'woocommerce-gateway-stripe' ) . "\n\n";
-			echo esc_html( $data['amount'] ) . "\n\n";
+			echo wp_kses_post( $data['amount'] ) . "\n\n";
 			echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n";
 			esc_html_e( 'Entidade:', 'woocommerce-gateway-stripe' ) . "\n\n";
 			echo esc_html( $data['entity'] ) . "\n\n";
@@ -261,7 +261,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 			<ul class="woocommerce-order-overview woocommerce-thankyou-order-details order_details">
 			<li class="woocommerce-order-overview__order order">
 				<?php esc_html_e( 'Montante:', 'woocommerce-gateway-stripe' ); ?>
-				<strong><?php echo esc_html( $data['amount'] ); ?></strong>
+				<strong><?php echo wp_kses_post( $data['amount'] ); ?></strong>
 			</li>
 			<li class="woocommerce-order-overview__order order">
 				<?php esc_html_e( 'Entidade:', 'woocommerce-gateway-stripe' ); ?>
