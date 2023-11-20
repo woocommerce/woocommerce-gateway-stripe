@@ -876,7 +876,7 @@ class WC_Stripe_Payment_Request {
 		}
 
 		?>
-		<div id="wc-stripe-payment-request-wrapper" style="clear:both;display:none;">
+		<div id="wc-stripe-payment-request-wrapper" style="margin-top: 1em;clear:both;display:none;">
 			<div id="wc-stripe-payment-request-button">
 				<?php
 				if ( $this->is_custom_button() ) {
