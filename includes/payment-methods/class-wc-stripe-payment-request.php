@@ -869,7 +869,6 @@ class WC_Stripe_Payment_Request {
 	 * @version 5.2.0
 	 */
 	public function display_payment_request_button_separator_html() {
-
 		$gateways = WC()->payment_gateways->get_available_payment_gateways();
 
 		if ( ! isset( $gateways['stripe'] ) ) {
