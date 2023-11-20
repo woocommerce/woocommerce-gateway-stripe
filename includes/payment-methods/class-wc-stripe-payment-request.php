@@ -276,8 +276,8 @@ class WC_Stripe_Payment_Request {
 		}
 
 		$height = isset( $this->stripe_settings['payment_request_button_size'] ) ? $this->stripe_settings['payment_request_button_size'] : 'default';
-		if ( 'medium' === $height ) {
-			return '48';
+		if ( 'small' === $height ) {
+			return '40';
 		}
 
 		if ( 'large' === $height ) {
@@ -285,7 +285,7 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// for the "default" and "catch-all" scenarios.
-		return '40';
+		return '48';
 	}
 
 	/**
