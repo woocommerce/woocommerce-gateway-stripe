@@ -269,22 +269,22 @@ class WC_Stripe_Payment_Request_Test extends WP_UnitTestCase {
 	public function test_get_button_height() {
 		// Small => 40px.
 		$this->pr->stripe_settings = [ 'payment_request_button_size' => 'small' ];
-		$this->assertEquals( '40', $this->pr->migrate_button_size() );
+		$this->assertEquals( '40', $this->pr->get_button_height() );
 
 		// Default => 48px.
 		$this->pr->stripe_settings = [ 'payment_request_button_size' => 'default' ];
-		$this->assertEquals( '48', $this->pr->migrate_button_size() );
+		$this->assertEquals( '48', $this->pr->get_button_height() );
 
 		// Large => 56px.
 		$this->pr->stripe_settings = [ 'payment_request_button_size' => 'large' ];
-		$this->assertEquals( '56', $this->pr->migrate_button_size() );
+		$this->assertEquals( '56', $this->pr->get_button_height() );
 
 		// Empty => default.
 		$this->pr->stripe_settings = [];
-		$this->assertEquals( '48', $this->pr->migrate_button_size() );
+		$this->assertEquals( '48', $this->pr->get_button_height() );
 
 		// Invalid => default.
 		$this->pr->stripe_settings = [ 'payment_request_button_size' => 'invalid-data' ];
-		$this->assertEquals( '48', $this->pr->migrate_button_size() );
+		$this->assertEquals( '48', $this->pr->get_button_height() );
 	}
 }
