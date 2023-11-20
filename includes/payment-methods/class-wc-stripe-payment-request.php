@@ -859,24 +859,24 @@ class WC_Stripe_Payment_Request {
 			</div>
 		</div>
 		<?php
+		$this->display_payment_request_button_separator_html();
 	}
 
 	/**
 	 * Display payment request button separator.
 	 *
-	 * @deprecated 7.8.0
 	 * @since   4.0.0
 	 * @version 5.2.0
 	 */
 	public function display_payment_request_button_separator_html() {
-		wc_deprecated_function( __FUNCTION__, '7.8.0' );
+
 		$gateways = WC()->payment_gateways->get_available_payment_gateways();
 
 		if ( ! isset( $gateways['stripe'] ) ) {
 			return;
 		}
 
-		if ( ! is_cart() && ! is_checkout() && ! $this->is_product() && ! is_wc_endpoint_url( 'order-pay' ) ) {
+		if ( ! is_checkout() && ! is_wc_endpoint_url( 'order-pay' ) ) {
 			return;
 		}
 
