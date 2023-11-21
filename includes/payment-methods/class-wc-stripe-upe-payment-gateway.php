@@ -1584,8 +1584,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return array An array containing the payment information for processing a payment intent.
 	 */
 	private function prepare_payment_information_from_request( WC_Order $order ) {
-		// TODO: throw exception if any required information is missing.
-
 		$payment_method               = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_payment_type        = sanitize_text_field( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$capture_method               = empty( $this->get_option( 'capture' ) ) || $this->get_option( 'capture' ) === 'yes' ? 'automatic' : 'manual'; // automatic | manual.
