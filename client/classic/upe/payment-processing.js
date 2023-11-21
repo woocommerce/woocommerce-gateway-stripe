@@ -171,7 +171,7 @@ function createStripePaymentMethod(
 
 /**
  * Mounts the existing Stripe Payment Element to the DOM element.
- * Creates the Stipe Payment Element instance if it doesn't exist and mounts it to the DOM element.
+ * Creates the Stripe Payment Element instance if it doesn't exist and mounts it to the DOM element.
  *
  * @todo Make it only Split when implemented.
  *
