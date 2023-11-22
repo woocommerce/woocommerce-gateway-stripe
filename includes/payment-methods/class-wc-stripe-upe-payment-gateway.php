@@ -663,8 +663,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	private function process_payment_with_deferred_intent( int $order_id ) {
 		$order = wc_get_order( $order_id );
 
-		// TODO: check we're processing a payment for an order with a pending status.
-
 		try {
 			if ( $this->is_using_saved_payment_method() ) {
 				return [ 'result' => 'failure' ];
