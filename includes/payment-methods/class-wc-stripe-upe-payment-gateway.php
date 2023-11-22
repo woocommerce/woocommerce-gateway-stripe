@@ -119,7 +119,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
 		}
 
-		// TODO: Maybe pass this as a class dependency.
 		$this->intent_controller = new WC_Stripe_Intent_Controller();
 
 		// Load the form fields.
@@ -668,20 +667,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		try {
 			if ( $this->is_using_saved_payment_method() ) {
-				// TODO: if using a saved payment method.
 				return [ 'result' => 'failure' ];
 			}
 
 			$payment_needed = $this->is_payment_needed( $order->get_id() );
 
 			$payment_information = $this->prepare_payment_information_from_request( $order );
-			// TODO: if 0-amount and not saving a payment method.
 
 			if ( $payment_needed ) {
 				// Throw an exception if the minimum order amount isn't met.
 				$this->validate_minimum_order_amount( $order );
-
-				// TODO: Update the payment intent if one is already associated with the order. Order meta '_stripe_intent_id'.
 
 				// Throws an exception on error.
 				$payment_intent = $this->intent_controller->create_and_confirm_payment_intent( $payment_information );
@@ -690,7 +685,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$this->process_response( end( $payment_intent->charges->data ), $order );
 
 			} else {
-				// TODO: no payment is needed.
 				return [ 'result' => 'failure' ];
 			}
 
