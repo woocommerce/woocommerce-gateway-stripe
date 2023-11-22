@@ -725,9 +725,6 @@ class WC_Stripe_Intent_Controller {
 			$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
 		}
 
-		$order->update_status( 'pending', __( 'Awaiting payment.', 'woocommerce-gateway-stripe' ) );
-		$order->save();
-
 		// Throw an exception when there's an error.
 		if ( ! empty( $payment_intent->error ) ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
