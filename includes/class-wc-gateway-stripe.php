@@ -646,7 +646,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Include the available legacy payment methods in the list of payment methods.
 	 * As we are not registering the other Stripe payment methods to show in the settings page,
-	 * we need to include them here so that they are available in the checkout page, account page, pay for order etc. customer facing pages.
+	 * we need to include them here so that they are available in the checkout page and pay for order page.
 	 *
 	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways on the payments settings page.
 	 * @return WC_Payment_Gateway[]          The same list if UPE is disabled or a list including the available legacy payment methods.
@@ -654,6 +654,11 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public function get_available_payment_methods( $gateways ) {
 		// We need to include the payment methods when UPE is disabled, return the same list when UPE is enabled.
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			return $gateways;
+		}
+
+		// Return if not checkout or pay for order page.
+		if ( ! is_wc_endpoint_url( 'order-pay' ) || ! is_checkout() ) {
 			return $gateways;
 		}
 
