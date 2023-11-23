@@ -706,6 +706,7 @@ class WC_Stripe_Intent_Controller {
 			'metadata'             => $payment_information['metadata'],
 			'payment_method'       => $payment_information['payment_method'],
 			'payment_method_types' => $payment_method_types,
+			'shipping'             => $payment_information['shipping'],
 			'statement_descriptor' => $payment_information['statement_descriptor'],
 		];
 
@@ -751,9 +752,10 @@ class WC_Stripe_Intent_Controller {
 			'customer',
 			'level3',
 			'metadata',
-			'payment_method',
 			'order',
+			'payment_method',
 			'save_payment_method_to_store',
+			'shipping',
 			'statement_descriptor',
 		];
 

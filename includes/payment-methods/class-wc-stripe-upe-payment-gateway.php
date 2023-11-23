@@ -1584,6 +1584,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$save_payment_method_to_store = isset( $_POST['save_payment_method'] ) ? 'yes' === wc_clean( wp_unslash( $_POST['save_payment_method'] ) ) : false;
 		$currency                     = strtolower( $order->get_currency() );
 		$amount                       = $order->get_total();
+		$shipping_details             = null;
+
+		// If order requires shipping, add the shipping address details to the payment intent request.
+		if ( method_exists( $order, 'get_shipping_postcode' ) && ! empty( $order->get_shipping_postcode() ) ) {
+			$shipping_details = $this->get_address_data_for_payment_request( $order );
+		}
 
 		$payment_information = [
 			'amount'                       => WC_Stripe_Helper::get_stripe_amount( $amount, $currency ),
@@ -1598,6 +1604,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'payment_type'                 => 'single', // single | recurring.
 			'save_payment_method_to_store' => $save_payment_method_to_store,
 			'selected_payment_type'        => $selected_payment_type,
+			'shipping'                     => $shipping_details,
 			'statement_descriptor'         => $this->get_statement_descriptor( $selected_payment_type ),
 		];
 
