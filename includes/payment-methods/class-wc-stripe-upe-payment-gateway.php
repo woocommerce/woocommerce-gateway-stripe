@@ -682,6 +682,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				// Use the last charge within the intent to proceed.
 				$this->process_response( end( $payment_intent->charges->data ), $order );
 
+				// Set the selected UPE payment method type title in the WC order.
+				$this->set_payment_method_title_for_order( $order, $payment_information['selected_payment_type'] );
 			} else {
 				return [ 'result' => 'failure' ];
 			}
