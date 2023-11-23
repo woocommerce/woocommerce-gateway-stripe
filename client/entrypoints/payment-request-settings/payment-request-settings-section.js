@@ -33,20 +33,20 @@ const buttonSizeOptions = [
 	{
 		label: makeButtonSizeText(
 			__(
-				'Default {{helpText}}(40 px){{/helpText}}',
+				'Small {{helpText}}(40 px){{/helpText}}',
 				'woocommerce-gateway-stripe'
 			)
 		),
-		value: 'default',
+		value: 'small',
 	},
 	{
 		label: makeButtonSizeText(
 			__(
-				'Medium {{helpText}}(48 px){{/helpText}}',
+				'Default {{helpText}}(48 px){{/helpText}}',
 				'woocommerce-gateway-stripe'
 			)
 		),
-		value: 'medium',
+		value: 'default',
 	},
 	{
 		label: makeButtonSizeText(

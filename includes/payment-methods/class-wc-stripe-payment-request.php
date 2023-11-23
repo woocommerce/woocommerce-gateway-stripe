@@ -234,6 +234,8 @@ class WC_Stripe_Payment_Request {
 		add_action( 'woocommerce_checkout_order_processed', [ $this, 'add_order_meta' ], 10, 2 );
 		add_filter( 'woocommerce_login_redirect', [ $this, 'get_login_redirect_url' ], 10, 3 );
 		add_filter( 'woocommerce_registration_redirect', [ $this, 'get_login_redirect_url' ], 10, 3 );
+
+		add_action( 'woocommerce_stripe_updated', [ $this, 'migrate_button_size' ] );
 	}
 
 	/**
@@ -271,8 +273,8 @@ class WC_Stripe_Payment_Request {
 		}
 
 		$height = isset( $this->stripe_settings['payment_request_button_size'] ) ? $this->stripe_settings['payment_request_button_size'] : 'default';
-		if ( 'medium' === $height ) {
-			return '48';
+		if ( 'small' === $height ) {
+			return '40';
 		}
 
 		if ( 'large' === $height ) {
@@ -280,7 +282,7 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// for the "default" and "catch-all" scenarios.
-		return '40';
+		return '48';
 	}
 
 	/**
@@ -1979,5 +1981,43 @@ class WC_Stripe_Payment_Request {
 	 */
 	private function is_payment_request_enabled() {
 		return isset( $this->stripe_settings['payment_request'] ) && 'yes' === $this->stripe_settings['payment_request'];
+	}
+
+	/**
+	 * Migrates the button size setting to the new default.
+	 *
+	 * Prior to v7.8.0 the default button size was 40px (small). In 7.8, the default size was changed to 48px (medium). This method
+	 * migrates the settings to maintain the previously selected size for existing users. default => small, medium => default.
+	 *
+	 * @since 7.8.0
+	 */
+	public function migrate_button_size() {
+		$previous_version = get_option( 'wc_stripe_version' );
+
+		// Exit if it's a new install or the previous version is already 7.8.0 or greater.
+		if ( ! $previous_version || version_compare( $previous_version, '7.8.0', '>=' ) ) {
+			return;
+		}
+
+		if ( ! isset( $this->stripe_settings['payment_request_button_size'] ) ) {
+			return;
+		}
+
+		$gateway = woocommerce_gateway_stripe()->get_main_stripe_gateway();
+
+		if ( ! $gateway ) {
+			return;
+		}
+
+		$button_size = $this->stripe_settings['payment_request_button_size'];
+
+		// If the button was set to the default, it is now the small size (40px). If it was set to medium, it is now the default size (48px).
+		if ( 'default' === $button_size ) {
+			$this->stripe_settings['payment_request_button_size'] = 'small';
+			$gateway->update_option( 'payment_request_button_size', 'small' );
+		} elseif ( 'medium' === $button_size ) {
+			$this->stripe_settings['payment_request_button_size'] = 'default';
+			$gateway->update_option( 'payment_request_button_size', 'default' );
+		}
 	}
 }
