@@ -673,6 +673,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_information = $this->prepare_payment_information_from_request( $order );
 
 			if ( $payment_needed ) {
+				$this->validate_selected_payment_method_type( $payment_information, $order->get_billing_country() );
+
 				// Throw an exception if the minimum order amount isn't met.
 				$this->validate_minimum_order_amount( $order );
 
@@ -1657,5 +1659,45 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Throws an exception when the given payment method type is not valid.
+	 *
+	 * @param array  $payment_information Payment information to process the payment.
+	 * @param string $billing_country     Order billing country.
+	 *
+	 * @throws WC_Stripe_Exception When the payment method type is not allowed in the given country.
+	 */
+	private function validate_selected_payment_method_type( $payment_information, $billing_country ) {
+		$invalid_method_message = __( 'The selected payment method type is invalid.', 'woocommerce-gateway-stripe' );
+
+		// No payment method type was provided.
+		if ( empty( $payment_information['selected_payment_type'] ) ) {
+			throw new WC_Stripe_Exception( 'No payment method type selected.', $invalid_method_message );
+		}
+
+		$payment_method_type = $payment_information['selected_payment_type'];
+
+		// The provided payment method type is not among the available payment method types.
+		if ( ! isset( $this->payment_methods[ $payment_method_type ] ) ) {
+			throw new WC_Stripe_Exception(
+				sprintf(
+					'The selected payment method type is not within the available payment methods.%1$sSelected payment method type: %2$s. Available payment methods: %3$s',
+					PHP_EOL,
+					$payment_method_type,
+					implode( ', ', array_keys( $this->payment_methods ) )
+				),
+				$invalid_method_message
+			);
+		}
+
+		// The selected payment method is allowed in the billing country.
+		if ( ! $this->payment_methods[ $payment_method_type ]->is_allowed_on_country( $billing_country ) ) {
+			throw new WC_Stripe_Exception(
+				sprintf( 'The payment method type "%1$s" is not available in %2$s.', $payment_method_type, $billing_country ),
+				__( 'This payment method type is not available in the selected country.', 'woocommerce-gateway-stripe' )
+			);
+		}
 	}
 }
