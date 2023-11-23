@@ -217,14 +217,9 @@ class WC_Stripe_Payment_Request {
 
 		add_action( 'wp_enqueue_scripts', [ $this, 'scripts' ] );
 
-		add_action( 'woocommerce_after_add_to_cart_quantity', [ $this, 'display_payment_request_button_html' ], 1 );
-		add_action( 'woocommerce_after_add_to_cart_quantity', [ $this, 'display_payment_request_button_separator_html' ], 2 );
-
-		add_action( 'woocommerce_proceed_to_checkout', [ $this, 'display_payment_request_button_html' ], 1 );
-		add_action( 'woocommerce_proceed_to_checkout', [ $this, 'display_payment_request_button_separator_html' ], 2 );
-
+		add_action( 'woocommerce_after_add_to_cart_form', [ $this, 'display_payment_request_button_html' ], 1 );
+		add_action( 'woocommerce_proceed_to_checkout', [ $this, 'display_payment_request_button_html' ], 25 );
 		add_action( 'woocommerce_checkout_before_customer_details', [ $this, 'display_payment_request_button_html' ], 1 );
-		add_action( 'woocommerce_checkout_before_customer_details', [ $this, 'display_payment_request_button_separator_html' ], 2 );
 
 		add_action( 'wc_ajax_wc_stripe_get_cart_details', [ $this, 'ajax_get_cart_details' ] );
 		add_action( 'wc_ajax_wc_stripe_get_shipping_options', [ $this, 'ajax_get_shipping_options' ] );
@@ -881,7 +876,7 @@ class WC_Stripe_Payment_Request {
 		}
 
 		?>
-		<div id="wc-stripe-payment-request-wrapper" style="clear:both;padding-top:1.5em;display:none;">
+		<div id="wc-stripe-payment-request-wrapper" style="margin-top: 1em;clear:both;display:none;">
 			<div id="wc-stripe-payment-request-button">
 				<?php
 				if ( $this->is_custom_button() ) {
@@ -892,6 +887,7 @@ class WC_Stripe_Payment_Request {
 			</div>
 		</div>
 		<?php
+		$this->display_payment_request_button_separator_html();
 	}
 
 	/**
@@ -907,7 +903,7 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		if ( ! is_cart() && ! is_checkout() && ! $this->is_product() && ! is_wc_endpoint_url( 'order-pay' ) ) {
+		if ( ! is_checkout() && ! is_wc_endpoint_url( 'order-pay' ) ) {
 			return;
 		}
 
