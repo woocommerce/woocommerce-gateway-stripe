@@ -404,8 +404,8 @@ class WC_Stripe_Helper {
 			if ( ! $payment_method->is_enabled() ) {
 				continue;
 			}
-			$enabled_payment_methods[]    = $payment_method;
-			$enabled_payment_method_ids[] = str_replace( 'stripe_', '', $payment_method::ID );
+			$enabled_payment_methods[ $payment_method::ID ] = $payment_method;
+			$enabled_payment_method_ids[]                   = str_replace( 'stripe_', '', $payment_method::ID );
 		}
 
 		if ( 'id' === $field ) {

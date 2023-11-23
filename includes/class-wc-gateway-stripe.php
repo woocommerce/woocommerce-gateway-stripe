@@ -126,7 +126,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_fee' ] );
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_payout' ], 20 );
 		add_action( 'woocommerce_customer_save_address', [ $this, 'show_update_card_notice' ], 10, 2 );
-		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'get_payment_methods_on_checkout' ] );
+		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'get_available_payment_methods' ] );
 		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'prepare_order_pay_page' ] );
 		add_action( 'woocommerce_account_view-order_endpoint', [ $this, 'check_intent_status_on_order_page' ], 1 );
 		add_filter( 'woocommerce_payment_successful_result', [ $this, 'modify_successful_payment_result' ], 99999, 2 );
@@ -644,28 +644,34 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * Include the available legacy payment methods in the list of payment methods on checkout page.
+	 * Include the available legacy payment methods in the list of payment methods.
+	 * As we are not registering the other Stripe payment methods to show in the settings page,
+	 * we need to include them here so that they are available in the checkout page, account page, pay for order etc. customer facing pages.
 	 *
-	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways.
-	 * @return WC_Payment_Gateway[]          The same list if not checkout page or a list including the available legacy payment methods.
+	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways on the payments settings page.
+	 * @return WC_Payment_Gateway[]          The same list if UPE is disabled or a list including the available legacy payment methods.
 	 */
-	public function get_payment_methods_on_checkout( $gateways ) {
-		if ( ! is_checkout() ) {
+	public function get_available_payment_methods( $gateways ) {
+		// We need to include the payment methods when UPE is disabled, return the same list when UPE is enabled.
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			return $gateways;
 		}
 
-		$available_gateways      = $gateways;
-		$ordering                = (array) get_option( 'woocommerce_gateway_order' );
+		$available_gateways      = [];
+		$gateway_orders          = (array) get_option( 'woocommerce_gateway_order' );
 		$legacy_enabled_gateways = WC_Stripe_Helper::get_legacy_enabled_payment_methods();
 
-		foreach ( $legacy_enabled_gateways as $legacy_enabled_gateway ) {
-			if ( $legacy_enabled_gateway->is_available() ) {
-				if ( isset( $ordering[ $legacy_enabled_gateway->id ] ) && is_numeric( $ordering[ $legacy_enabled_gateway->id ] ) ) {
-					$available_gateways[ $ordering[ $legacy_enabled_gateway->id ] ] = $legacy_enabled_gateway;
-				}
-				$available_gateways[] = $legacy_enabled_gateway;
+		foreach ( $gateway_orders as $name => $order ) {
+			if ( in_array( $name, array_keys( $gateways ), true ) ) {
+				$available_gateways[ $name ] = $gateways[ $name ];
+			} elseif ( in_array( $name, array_keys( $legacy_enabled_gateways ), true ) ) {
+				$available_gateways[ $name ] = $legacy_enabled_gateways[ $name ];
+				unset( $legacy_enabled_gateways[ $name ] );
 			}
 		}
+
+		// Add any remaining enabled gateways in case they were not present in `woocommerce_gateway_order` option.
+		$available_gateways = array_merge( $available_gateways, $legacy_enabled_gateways );
 
 		return $available_gateways;
 	}
