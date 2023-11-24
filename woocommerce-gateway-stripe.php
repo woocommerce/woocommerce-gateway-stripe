@@ -487,24 +487,26 @@ function woocommerce_gateway_stripe() {
 					$lpm_gateway_id = constant( $method_class::LPM_GATEWAY_CLASS . '::ID' );
 					if ( isset( $payment_gateways[ $lpm_gateway_id ] ) && $payment_gateways[ $lpm_gateway_id ]->is_enabled() ) {
 						// DISABLE LPM
-						if ( 'stripe' !== $lpm_gateway_id ) {
-							/**
-							 * TODO: This can be replaced with:
-							 *
-							 *   $payment_gateways[ $lpm_gateway_id ]->update_option( 'enabled', 'no' );
-							 *   $payment_gateways[ $lpm_gateway_id ]->enabled = 'no';
-							 *
-							 * ...once the minimum WC version is 3.4.0.
-							 */
-							$payment_gateways[ $lpm_gateway_id ]->settings['enabled'] = 'no';
-							update_option(
-								$payment_gateways[ $lpm_gateway_id ]->get_option_key(),
-								apply_filters( 'woocommerce_settings_api_sanitized_fields_' . $payment_gateways[ $lpm_gateway_id ]::ID, $payment_gateways[ $lpm_gateway_id ]->settings ),
-								'yes'
-							);
-						}
+						/**
+						 * TODO: This can be replaced with:
+						 *
+						 *   $payment_gateways[ $lpm_gateway_id ]->update_option( 'enabled', 'no' );
+						 *   $payment_gateways[ $lpm_gateway_id ]->enabled = 'no';
+						 *
+						 * ...once the minimum WC version is 3.4.0.
+						 */
+						$payment_gateways[ $lpm_gateway_id ]->settings['enabled'] = 'no';
+						update_option(
+							$payment_gateways[ $lpm_gateway_id ]->get_option_key(),
+							apply_filters( 'woocommerce_settings_api_sanitized_fields_' . $payment_gateways[ $lpm_gateway_id ]::ID, $payment_gateways[ $lpm_gateway_id ]->settings ),
+							'yes'
+						);
 						// ENABLE UPE METHOD
 						$settings['upe_checkout_experience_accepted_payments'][] = $method_class::STRIPE_ID;
+					}
+
+					if ( 'stripe' === $lpm_gateway_id && $this->stripe_gateway->is_enabled() ) {
+						$settings['upe_checkout_experience_accepted_payments'][] = 'card';
 					}
 				}
 				if ( empty( $settings['upe_checkout_experience_accepted_payments'] ) ) {
