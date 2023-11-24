@@ -2,10 +2,14 @@ import {
 	appendIsUsingDeferredIntentToForm,
 	appendPaymentMethodIdToForm,
 	getPaymentMethodTypes,
+	getStorageWithExpiration,
 	getStripeServerData,
 	getUpeSettings,
+	setStorageWithExpiration,
 	showErrorCheckout,
+	storageKeys,
 } from '../../stripe-utils';
+import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
 
 const gatewayUPEComponents = {};
 
@@ -26,7 +30,17 @@ for ( const paymentMethodType in paymentMethodsConfig ) {
  * @return {Object} The appearance object for the UPE.
  */
 function initializeAppearance() {
-	return {};
+	const themeName = getStripeServerData()?.theme_name;
+	const storageKey = `${ storageKeys.UPE_APPEARANCE }_${ themeName }`;
+	let appearance = getStorageWithExpiration( storageKey );
+
+	if ( ! appearance ) {
+		appearance = getAppearance();
+		const oneDayDuration = 24 * 60 * 60 * 1000;
+		setStorageWithExpiration( storageKey, appearance, oneDayDuration );
+	}
+
+	return appearance;
 }
 
 /**
@@ -81,6 +95,7 @@ function createStripePaymentElement( api, paymentMethodType = null ) {
 		paymentMethodCreation: 'manual',
 		paymentMethodTypes,
 		appearance: initializeAppearance(),
+		fonts: getFontRulesFromPage(),
 	};
 
 	const elements = api.getStripe().elements( options );
@@ -171,7 +186,7 @@ function createStripePaymentMethod(
 
 /**
  * Mounts the existing Stripe Payment Element to the DOM element.
- * Creates the Stipe Payment Element instance if it doesn't exist and mounts it to the DOM element.
+ * Creates the Stripe Payment Element instance if it doesn't exist and mounts it to the DOM element.
  *
  * @todo Make it only Split when implemented.
  *

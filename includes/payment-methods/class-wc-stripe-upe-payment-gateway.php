@@ -84,6 +84,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public $publishable_key;
 
 	/**
+	 * Instance of WC_Stripe_Intent_Controller.
+	 *
+	 * @var WC_Stripe_Intent_Controller
+	 */
+	public $intent_controller;
+
+	/**
 	 * Array mapping payment method string IDs to classes
 	 *
 	 * @var WC_Stripe_UPE_Payment_Method[]
@@ -111,6 +118,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method                                     = new $payment_method_class();
 			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
 		}
+
+		$this->intent_controller = new WC_Stripe_Intent_Controller();
 
 		// Load the form fields.
 		$this->init_form_fields();
@@ -652,41 +661,33 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 *
 	 * @return array An array with the result of the payment processing, and a redirect URL on success.
 	 */
-	private function process_payment_with_deferred_intent( $order_id ) {
+	private function process_payment_with_deferred_intent( int $order_id ) {
 		$order = wc_get_order( $order_id );
-
-		// TODO: check we're processing a payment for an order with a pending status.
 
 		try {
 			if ( $this->is_using_saved_payment_method() ) {
-				// TODO: if using a saved payment method.
 				return [ 'result' => 'failure' ];
 			}
 
 			$payment_needed = $this->is_payment_needed( $order->get_id() );
 
 			$payment_information = $this->prepare_payment_information_from_request( $order );
-			// TODO: if 0-amount and not saving a payment method.
 
 			if ( $payment_needed ) {
+				$this->validate_selected_payment_method_type( $payment_information, $order->get_billing_country() );
+
 				// Throw an exception if the minimum order amount isn't met.
 				$this->validate_minimum_order_amount( $order );
 
-				// TODO: pass this as a class dependency to facilitate unit tests.
-				$intent_controller = new WC_Stripe_Intent_Controller();
-
 				// Throws an exception on error.
-				$payment_intent = $intent_controller->create_and_confirm_payment_intent( $payment_information );
-
-				if ( isset( $payment_intent->last_payment_error ) ) {
-					throw new WC_Stripe_Exception( $payment_intent->last_payment_error->message );
-				}
+				$payment_intent = $this->intent_controller->create_and_confirm_payment_intent( $payment_information );
 
 				// Use the last charge within the intent to proceed.
 				$this->process_response( end( $payment_intent->charges->data ), $order );
 
+				// Set the selected UPE payment method type title in the WC order.
+				$this->set_payment_method_title_for_order( $order, $payment_information['selected_payment_type'] );
 			} else {
-				// TODO: no payment is needed.
 				return [ 'result' => 'failure' ];
 			}
 
@@ -695,16 +696,23 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				'redirect' => $this->get_return_url( $order ),
 			];
 		} catch ( WC_Stripe_Exception $e ) {
-			// TODO: use getLocalizedMessage()?
-			wc_add_notice( __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ), 'error' );
+			$shopper_error_message = sprintf(
+				/* translators: localized exception message */
+				__( 'There was an error processing the payment: %s', 'woocommerce-gateway-stripe' ),
+				$e->getLocalizedMessage()
+			);
 
-			// TODO: Maybe add the error message as an order note?
+			wc_add_notice( $shopper_error_message, 'error' );
+
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
-			/* translators: localized exception message */
-			$order->update_status( 'failed', sprintf( __( 'UPE payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getMessage() ) );
+			$order->update_status(
+				'failed',
+				/* translators: localized exception message */
+				sprintf( __( 'Payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() )
+			);
 
 			return [ 'result' => 'failure' ];
 		}
@@ -1570,29 +1578,40 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * Collects the payment information needed for processing a payment intent.
 	 *
 	 * @param WC_Order $order The WC Order to be paid for.
-	 * @return object An object containing the payment information for processing a payment intent.
+	 * @return array An array containing the payment information for processing a payment intent.
 	 */
 	private function prepare_payment_information_from_request( WC_Order $order ) {
-		// TODO: throw exception if any required information is missing.
-
 		$payment_method               = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_payment_type        = sanitize_text_field( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$capture_method               = empty( $this->get_option( 'capture' ) ) || $this->get_option( 'capture' ) === 'yes' ? 'automatic' : 'manual'; // automatic | manual.
 		$save_payment_method_to_store = isset( $_POST['save_payment_method'] ) ? 'yes' === wc_clean( wp_unslash( $_POST['save_payment_method'] ) ) : false;
+		$currency                     = strtolower( $order->get_currency() );
+		$amount                       = $order->get_total();
+		$shipping_details             = null;
+
+		// If order requires shipping, add the shipping address details to the payment intent request.
+		if ( method_exists( $order, 'get_shipping_postcode' ) && ! empty( $order->get_shipping_postcode() ) ) {
+			$shipping_details = $this->get_address_data_for_payment_request( $order );
+		}
 
 		$payment_information = [
+			'amount'                       => WC_Stripe_Helper::get_stripe_amount( $amount, $currency ),
+			'currency'                     => $currency,
 			'customer'                     => $this->get_customer_id_for_order( $order ),
 			'capture_method'               => $capture_method,
+			'level3'                       => $this->get_level3_data_from_order( $order ),
+			'metadata'                     => $this->get_metadata_from_order( $order ),
 			'order'                        => $order,
 			'payment_initiated_by'         => 'initiated_by_customer', // initiated_by_merchant | initiated_by_customer.
 			'payment_method'               => $payment_method,
 			'payment_type'                 => 'single', // single | recurring.
 			'save_payment_method_to_store' => $save_payment_method_to_store,
 			'selected_payment_type'        => $selected_payment_type,
+			'shipping'                     => $shipping_details,
 			'statement_descriptor'         => $this->get_statement_descriptor( $selected_payment_type ),
 		];
 
-		return (object) $payment_information;
+		return $payment_information;
 	}
 
 	/**
@@ -1641,5 +1660,45 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Throws an exception when the given payment method type is not valid.
+	 *
+	 * @param array  $payment_information Payment information to process the payment.
+	 * @param string $billing_country     Order billing country.
+	 *
+	 * @throws WC_Stripe_Exception When the payment method type is not allowed in the given country.
+	 */
+	private function validate_selected_payment_method_type( $payment_information, $billing_country ) {
+		$invalid_method_message = __( 'The selected payment method type is invalid.', 'woocommerce-gateway-stripe' );
+
+		// No payment method type was provided.
+		if ( empty( $payment_information['selected_payment_type'] ) ) {
+			throw new WC_Stripe_Exception( 'No payment method type selected.', $invalid_method_message );
+		}
+
+		$payment_method_type = $payment_information['selected_payment_type'];
+
+		// The provided payment method type is not among the available payment method types.
+		if ( ! isset( $this->payment_methods[ $payment_method_type ] ) ) {
+			throw new WC_Stripe_Exception(
+				sprintf(
+					'The selected payment method type is not within the available payment methods.%1$sSelected payment method type: %2$s. Available payment methods: %3$s',
+					PHP_EOL,
+					$payment_method_type,
+					implode( ', ', array_keys( $this->payment_methods ) )
+				),
+				$invalid_method_message
+			);
+		}
+
+		// The selected payment method is allowed in the billing country.
+		if ( ! $this->payment_methods[ $payment_method_type ]->is_allowed_on_country( $billing_country ) ) {
+			throw new WC_Stripe_Exception(
+				sprintf( 'The payment method type "%1$s" is not available in %2$s.', $payment_method_type, $billing_country ),
+				__( 'This payment method type is not available in the selected country.', 'woocommerce-gateway-stripe' )
+			);
+		}
 	}
 }
