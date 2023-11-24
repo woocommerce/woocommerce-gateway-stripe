@@ -243,20 +243,21 @@ function setSelectedUPEPaymentType( paymentType ) {
 
 // Show or hide save payment information checkbox
 function showNewPaymentMethodCheckbox( show = true ) {
-	if ( show ) {
-		document.querySelector(
-			'.woocommerce-SavedPaymentMethods-saveNew'
-		).style.visibility = 'visible';
-	} else {
-		document.querySelector(
-			'.woocommerce-SavedPaymentMethods-saveNew'
-		).style.visibility = 'hidden';
-		document
-			.querySelector( 'input#wc-stripe-new-payment-method' )
-			.setAttribute( 'checked', false );
-		document
-			.querySelector( 'input#wc-stripe-new-payment-method' )
-			.dispatchEvent( new Event( 'change' ) );
+	const saveCardElement = document.querySelector(
+		'.woocommerce-SavedPaymentMethods-saveNew'
+	);
+
+	if ( saveCardElement ) {
+		saveCardElement.style.visibility = show ? 'visible' : 'hidden';
+	}
+
+	const stripeSaveCardCheckbox = document.querySelector(
+		'input#wc-stripe-new-payment-method'
+	);
+
+	if ( ! show && stripeSaveCardCheckbox ) {
+		stripeSaveCardCheckbox.setAttribute( 'checked', false );
+		stripeSaveCardCheckbox.dispatchEvent( new Event( 'change' ) );
 	}
 }
 
