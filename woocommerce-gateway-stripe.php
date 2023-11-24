@@ -505,7 +505,7 @@ function woocommerce_gateway_stripe() {
 						$settings['upe_checkout_experience_accepted_payments'][] = $method_class::STRIPE_ID;
 					}
 
-					if ( 'stripe' === $lpm_gateway_id && $this->stripe_gateway->is_enabled() ) {
+					if ( 'stripe' === $lpm_gateway_id && isset( $this->stripe_gateway ) && $this->stripe_gateway->is_enabled() ) {
 						$settings['upe_checkout_experience_accepted_payments'][] = 'card';
 					}
 				}
