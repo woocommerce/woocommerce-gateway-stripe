@@ -316,6 +316,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['return_url']               = $this->get_stripe_return_url();
 		$stripe_params['ajax_url']                 = WC_AJAX::get_endpoint( '%%endpoint%%' );
 		$stripe_params['theme_name']               = get_option( 'stylesheet' );
+		$stripe_params['testMode']                 = $this->testmode;
 		$stripe_params['createPaymentIntentNonce'] = wp_create_nonce( 'wc_stripe_create_payment_intent_nonce' );
 		$stripe_params['updatePaymentIntentNonce'] = wp_create_nonce( 'wc_stripe_update_payment_intent_nonce' );
 		$stripe_params['createSetupIntentNonce']   = wp_create_nonce( 'wc_stripe_create_setup_intent_nonce' );
@@ -383,6 +384,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$settings[ $payment_method ] = [
 				'isReusable' => $this->payment_methods[ $payment_method ]->is_reusable(),
 				'title' => $this->payment_methods[ $payment_method ]->get_title(),
+				'testingInstructions' => $this->payment_methods[ $payment_method ]->get_testing_instructions(),
 			];
 		}
 

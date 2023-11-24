@@ -29,13 +29,15 @@ const PaymentElements = ( { api, ...props } ) => {
 export const getDeferredIntentCreationUPEFields = (
 	upeName,
 	upeMethods,
-	api
+	api,
+	testingInstructions
 ) => {
 	return (
 		<PaymentElements
 			paymentMethodId={ upeName }
 			upeMethods={ upeMethods }
 			api={ api }
+			testingInstructions={ testingInstructions }
 		/>
 	);
 };

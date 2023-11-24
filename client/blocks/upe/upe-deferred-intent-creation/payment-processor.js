@@ -16,7 +16,7 @@ import { useEffect, useState } from 'react';
 /**
  * Internal dependencies
  */
-import { usePaymentCompleteHandler } from '../hooks';
+import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 const getStripeElementOptions = () => {
@@ -45,23 +45,35 @@ const getStripeElementOptions = () => {
 	return options;
 };
 
+export function validateElements( elements ) {
+	return elements.submit().then( ( result ) => {
+		if ( result.error ) {
+			throw new Error( result.error.message );
+		}
+	} );
+}
+
 const PaymentProcessor = ( {
 	api,
 	activePaymentMethod,
-	eventRegistration: { onPaymentSetup, onCheckoutAfterProcessingWithSuccess },
+	testingInstructions,
+	eventRegistration: { onPaymentSetup, onCheckoutSuccess, onCheckoutFail },
 	emitResponse,
 	paymentMethodId,
 	upeMethods,
 	errorMessage,
 	shouldSavePayment,
 	fingerprint,
+	billing,
 } ) => {
 	const stripe = useStripe();
 	const elements = useElements();
 	const [ isPaymentElementComplete, setIsPaymentElementComplete ] = useState(
 		false
 	);
-
+	const testingInstructionsIfAppropriate = getBlocksConfiguration()?.testMode
+		? testingInstructions
+		: '';
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 	const gatewayConfig = getPaymentMethods()[ upeMethods[ paymentMethodId ] ];
 
@@ -104,35 +116,49 @@ const PaymentProcessor = ( {
 						};
 					}
 
+					await validateElements( elements );
+
+					const billingAddress = billing.billingAddress;
 					const paymentMethodObject = await api
 						.getStripe()
 						.createPaymentMethod( {
 							elements,
 							params: {
 								billing_details: {
-									name: 'James',
-									email: 'james@example.com',
-									phone: '+6400000000',
+									name: billingAddress.first_name,
+									email: billingAddress.email,
+									phone: billingAddress.phone,
 									address: {
-										city: 'Brisbane',
-										country: 'Australia',
-										line1: '123 Fake Street',
-										line2: '',
-										postal_code: '4000',
-										state: 'QLD',
+										city: billingAddress.city,
+										country: billingAddress.country,
+										line1: billingAddress.address_1,
+										line2: billingAddress.address_2,
+										postal_code: billingAddress.postcode,
+										state: billingAddress.state,
 									},
 								},
 							},
 						} );
-
 					return {
 						type: 'success',
 						meta: {
 							paymentMethodData: {
-								payment_method: paymentMethodId,
-								'wcpay-payment-method':
+								stripe_source:
 									paymentMethodObject.paymentMethod.id,
-								'wcpay-fingerprint': fingerprint,
+								// The billing information here is relevant to properly create the
+								// Stripe Customer object.
+								billing_email: 'james.allan@automattic.com',
+								billing_first_name: 'james',
+								billing_last_name: 'allan',
+								'wc-stripe-is-deferred-intent': true,
+								paymentMethod: upeMethods[ paymentMethodId ],
+								paymentRequestType: 'cc',
+								payment_method: 'stripe',
+								wc_stripe_selected_upe_payment_type: paymentMethodId,
+								'wc-stripe-new-payment-method':
+									paymentMethodObject.paymentMethod.id,
+								'wc-stripe-payment-method':
+									paymentMethodObject.paymentMethod.id,
 							},
 						},
 					};
@@ -152,6 +178,7 @@ const PaymentProcessor = ( {
 			errorMessage,
 			onPaymentSetup,
 			isPaymentElementComplete,
+			billing.billingAddress,
 		]
 	);
 
@@ -159,9 +186,17 @@ const PaymentProcessor = ( {
 		api,
 		stripe,
 		elements,
-		onCheckoutAfterProcessingWithSuccess,
+		onCheckoutSuccess,
 		emitResponse,
 		shouldSavePayment
+	);
+
+	usePaymentFailHandler(
+		api,
+		stripe,
+		elements,
+		onCheckoutFail,
+		emitResponse
 	);
 
 	const updatePaymentElementCompletionStatus = ( event ) => {
@@ -173,7 +208,7 @@ const PaymentProcessor = ( {
 			<p
 				className="content"
 				dangerouslySetInnerHTML={ {
-					__html: 'Please enter your payment details below.',
+					__html: testingInstructionsIfAppropriate,
 				} }
 			/>
 			<PaymentElement
