@@ -477,14 +477,15 @@ function woocommerce_gateway_stripe() {
 
 			protected function enable_upe( $settings ) {
 				$settings['upe_checkout_experience_accepted_payments'] = [];
-				$payment_gateways                                      = WC()->payment_gateways->payment_gateways();
+
+				$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
 				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
 					if ( ! defined( "$method_class::LPM_GATEWAY_CLASS" ) ) {
 						continue;
 					}
 
 					$lpm_gateway_id = constant( $method_class::LPM_GATEWAY_CLASS . '::ID' );
-					if ( isset( $payment_gateways[ $lpm_gateway_id ] ) && 'yes' === $payment_gateways[ $lpm_gateway_id ]->enabled ) {
+					if ( isset( $payment_gateways[ $lpm_gateway_id ] ) && $payment_gateways[ $lpm_gateway_id ]->is_enabled() ) {
 						// DISABLE LPM
 						if ( 'stripe' !== $lpm_gateway_id ) {
 							/**
