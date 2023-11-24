@@ -337,7 +337,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			],
 		];
 
-		$_POST = [ 'wc-stripe-is-deferred-intent' => '1' ];
+		$_POST = [
+			'wc_stripe_selected_upe_payment_type' => 'card',
+			'wc-stripe-is-deferred-intent'        => '1',
+		];
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->once() )
@@ -377,12 +380,97 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			],
 		];
 
-		$_POST = [ 'wc-stripe-is-deferred-intent' => '1' ];
+		$_POST = [
+			'wc_stripe_selected_upe_payment_type' => 'card',
+			'wc-stripe-is-deferred-intent'        => '1',
+		];
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->once() )
 			->method( 'create_and_confirm_payment_intent' )
 			->willThrowException( new WC_Stripe_Exception( "It's a trap!" ) );
+
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( $customer_id );
+
+		$response = $this->mock_gateway->process_payment( $order_id );
+
+		$this->assertEquals( 'failure', $response['result'] );
+
+		$processed_order = wc_get_order( $order_id );
+		$this->assertEquals( 'failed', $processed_order->get_status() );
+	}
+
+	public function test_process_payment_deferred_intent_bails_with_empty_payment_type() {
+		$payment_intent_id = 'pi_mock';
+		$customer_id       = 'cus_mock';
+		$order             = WC_Helper_Order::create_order();
+		$currency          = $order->get_currency();
+		$order_id          = $order->get_id();
+
+		$mock_intent = (object) [
+			'charges' => (object) [
+				'data' => [
+					(object) [
+						'id'       => $order_id,
+						'captured' => 'yes',
+						'status'   => 'succeeded',
+					],
+				],
+			],
+		];
+
+		$_POST = [
+			'wc_stripe_selected_upe_payment_type' => '',
+			'wc-stripe-is-deferred-intent'        => '1',
+		];
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
+
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( $customer_id );
+
+		$response = $this->mock_gateway->process_payment( $order_id );
+
+		$this->assertEquals( 'failure', $response['result'] );
+
+		$processed_order = wc_get_order( $order_id );
+		$this->assertEquals( 'failed', $processed_order->get_status() );
+	}
+
+	public function test_process_payment_deferred_intent_bails_with_invalid_payment_type() {
+		$payment_intent_id = 'pi_mock';
+		$customer_id       = 'cus_mock';
+		$order             = WC_Helper_Order::create_order();
+		$currency          = $order->get_currency();
+		$order_id          = $order->get_id();
+
+		$mock_intent = (object) [
+			'charges' => (object) [
+				'data' => [
+					(object) [
+						'id'       => $order_id,
+						'captured' => 'yes',
+						'status'   => 'succeeded',
+					],
+				],
+			],
+		];
+
+		$_POST = [
+			'wc_stripe_selected_upe_payment_type' => 'some_invalid_type',
+			'wc-stripe-is-deferred-intent'        => '1',
+		];
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->never() )
+			->method( 'create_and_confirm_payment_intent' );
 
 		$this->mock_gateway
 			->expects( $this->once() )
