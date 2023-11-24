@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import GeneralSettingsSection from '..';
 import UpeToggleContext from '../../upe-toggle/context';
 import {
+	useIsStripeEnabled,
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
 	useManualCapture,
@@ -12,6 +13,7 @@ import {
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
 
 jest.mock( 'wcstripe/data', () => ( {
+	useIsStripeEnabled: jest.fn(),
 	useGetAvailablePaymentMethodIds: jest.fn(),
 	useEnabledPaymentMethodIds: jest.fn(),
 	useManualCapture: jest.fn(),
@@ -48,6 +50,7 @@ describe( 'GeneralSettingsSection', () => {
 			jest.fn(),
 		] );
 		useAccount.mockReturnValue( { isRefreshing: false } );
+		useIsStripeEnabled.mockReturnValue( [ false, jest.fn() ] );
 	} );
 
 	it( 'should show information to screen readers about the payment methods being updated', () => {
