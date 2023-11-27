@@ -695,7 +695,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			return [
 				'result'   => 'success',
-				'redirect' => $this->get_return_url( $order ),
+				'redirect' => sprintf(
+					'#wc-stripe-confirm-%s:%s:%s:%s',
+					$payment_needed ? 'pi' : 'si',
+					$order_id,
+					$payment_intent->client_secret,
+					wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
+				),
+				'payment_method' => $payment_intent->payment_method,
 			];
 		} catch ( WC_Stripe_Exception $e ) {
 			$shopper_error_message = sprintf(

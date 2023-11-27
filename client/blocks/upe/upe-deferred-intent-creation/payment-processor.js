@@ -2,10 +2,7 @@
  * External dependencies
  */
 
-import {
-	getPaymentMethods,
-	// eslint-disable-next-line import/no-unresolved
-} from '@woocommerce/blocks-registry';
+import { getPaymentMethods } from '@woocommerce/blocks-registry';
 import { __ } from '@wordpress/i18n';
 import {
 	PaymentElement,
