@@ -4,7 +4,17 @@
 import { Elements } from '@stripe/react-stripe-js';
 import PaymentProcessor from './payment-processor';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
+import WCStripeAPI from 'wcstripe/api';
 
+/**
+ * Renders a Stripe Payment elements.
+ *
+ * @param {*}           props                 Additional props for payment processing.
+ * @param {WCStripeAPI} props.api             Object containing methods for interacting with Stripe.
+ * @param {string}      props.paymentMethodId The ID of the payment method.
+ *
+ * @return {JSX.Element} Rendered Payment elements.
+ */
 const PaymentElements = ( { api, ...props } ) => {
 	const stripe = api.getStripe();
 	const amount = Number( getStripeServerData()?.cartTotal );
@@ -26,15 +36,25 @@ const PaymentElements = ( { api, ...props } ) => {
 	);
 };
 
+/**
+ * Renders a Stripe Payment elements.
+ *
+ * @param {string} paymentMethodId
+ * @param {Array} upeMethods
+ * @param {WCStripeAPI} api
+ * @param {string} testingInstructions
+ *
+ * @return {JSX.Element} Rendered Payment elements.
+ */
 export const getDeferredIntentCreationUPEFields = (
-	upeName,
+	paymentMethodId,
 	upeMethods,
 	api,
 	testingInstructions
 ) => {
 	return (
 		<PaymentElements
-			paymentMethodId={ upeName }
+			paymentMethodId={ paymentMethodId }
 			upeMethods={ upeMethods }
 			api={ api }
 			testingInstructions={ testingInstructions }
