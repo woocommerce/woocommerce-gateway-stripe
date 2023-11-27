@@ -122,7 +122,7 @@ const PaymentProcessor = ( {
 							elements,
 							params: {
 								billing_details: {
-									name: billingAddress.first_name,
+									name: `${ billingAddress.first_name } ${ billingAddress.last_name }`.trim(),
 									email: billingAddress.email,
 									phone: billingAddress.phone,
 									address: {
@@ -144,9 +144,9 @@ const PaymentProcessor = ( {
 									paymentMethodObject.paymentMethod.id,
 								// The billing information here is relevant to properly create the
 								// Stripe Customer object.
-								billing_email: 'james.allan@automattic.com',
-								billing_first_name: 'james',
-								billing_last_name: 'allan',
+								billing_email: billingAddress.email,
+								billing_first_name: billingAddress.first_name,
+								billing_last_name: billingAddress.last_name,
 								'wc-stripe-is-deferred-intent': true,
 								paymentMethod: upeMethods[ paymentMethodId ],
 								paymentRequestType: 'cc',
