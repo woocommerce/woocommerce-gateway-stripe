@@ -281,7 +281,7 @@ export const appendPaymentMethodIdToForm = ( form, paymentMethodId ) => {
  */
 export const isUsingSavedPaymentMethod = () => {
 	return (
-		document.querySelector( '#wc-stripe-new-payment-method' ).length &&
+		document.querySelector( '#wc-stripe-new-payment-method' )?.length &&
 		! document
 			.querySelector( '#wc-stripe-new-payment-method' )
 			.is( ':checked' )
