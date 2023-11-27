@@ -337,7 +337,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					],
 				],
 			],
-			self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
 		);
 
 		// Set the appropriate POST flag to trigger a deferred intent request.
