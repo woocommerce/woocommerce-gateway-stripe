@@ -84,6 +84,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public $publishable_key;
 
 	/**
+	 * Instance of WC_Stripe_Intent_Controller.
+	 *
+	 * @var WC_Stripe_Intent_Controller
+	 */
+	public $intent_controller;
+
+	/**
 	 * Array mapping payment method string IDs to classes
 	 *
 	 * @var WC_Stripe_UPE_Payment_Method[]
@@ -111,6 +118,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method                                     = new $payment_method_class();
 			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
 		}
+
+		$this->intent_controller = new WC_Stripe_Intent_Controller();
 
 		// Load the form fields.
 		$this->init_form_fields();
@@ -317,6 +326,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['addPaymentReturnURL']      = wc_get_account_endpoint_url( 'payment-methods' );
 		$stripe_params['enabledBillingFields']     = $enabled_billing_fields;
 
+		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
+		$currency   = get_woocommerce_currency();
+
+		$stripe_params['cartTotal'] = WC_Stripe_Helper::get_stripe_amount( $cart_total, strtolower( $currency ) );
+		$stripe_params['currency']  = $currency;
+
 		if ( parent::is_valid_pay_for_order_endpoint() || $is_change_payment_method ) {
 			if ( $this->is_subscriptions_enabled() && $is_change_payment_method ) {
 				$stripe_params['isChangingPayment']   = true;
@@ -465,7 +480,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			?>
 
 			<fieldset id="wc-stripe-upe-form" class="wc-upe-form wc-payment-form">
-				<div id="wc-stripe-upe-element"></div>
+				<div class="wc-stripe-upe-element"></div>
 				<div id="wc-stripe-upe-errors" role="alert"></div>
 				<input id="wc-stripe-payment-method-upe" type="hidden" name="wc-stripe-payment-method-upe" />
 				<input id="wc_stripe_selected_upe_payment_type" type="hidden" name="wc_stripe_selected_upe_payment_type" />
@@ -503,6 +518,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return array|null An array with result of payment and redirect URL, or nothing.
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
+		// Flag for using a deferred intent. To be removed.
+		if ( ! empty( $_POST['wc-stripe-is-deferred-intent'] ) ) {
+			return $this->process_payment_with_deferred_intent( $order_id );
+		}
+
 		if ( $this->maybe_change_subscription_payment_method( $order_id ) ) {
 			return $this->process_change_subscription_payment_method( $order_id );
 		}
@@ -631,6 +651,70 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				)
 			),
 		];
+	}
+
+	/**
+	 * Process the payment for an order using a deferred intent.
+	 *
+	 * @param int $order_id WC Order ID to be paid for.
+	 *
+	 * @return array An array with the result of the payment processing, and a redirect URL on success.
+	 */
+	private function process_payment_with_deferred_intent( int $order_id ) {
+		$order = wc_get_order( $order_id );
+
+		try {
+			if ( $this->is_using_saved_payment_method() ) {
+				return [ 'result' => 'failure' ];
+			}
+
+			$payment_needed = $this->is_payment_needed( $order->get_id() );
+
+			$payment_information = $this->prepare_payment_information_from_request( $order );
+
+			if ( $payment_needed ) {
+				$this->validate_selected_payment_method_type( $payment_information, $order->get_billing_country() );
+
+				// Throw an exception if the minimum order amount isn't met.
+				$this->validate_minimum_order_amount( $order );
+
+				// Throws an exception on error.
+				$payment_intent = $this->intent_controller->create_and_confirm_payment_intent( $payment_information );
+
+				// Use the last charge within the intent to proceed.
+				$this->process_response( end( $payment_intent->charges->data ), $order );
+
+				// Set the selected UPE payment method type title in the WC order.
+				$this->set_payment_method_title_for_order( $order, $payment_information['selected_payment_type'] );
+			} else {
+				return [ 'result' => 'failure' ];
+			}
+
+			return [
+				'result'   => 'success',
+				'redirect' => $this->get_return_url( $order ),
+			];
+		} catch ( WC_Stripe_Exception $e ) {
+			$shopper_error_message = sprintf(
+				/* translators: localized exception message */
+				__( 'There was an error processing the payment: %s', 'woocommerce-gateway-stripe' ),
+				$e->getLocalizedMessage()
+			);
+
+			wc_add_notice( $shopper_error_message, 'error' );
+
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+
+			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
+
+			$order->update_status(
+				'failed',
+				/* translators: localized exception message */
+				sprintf( __( 'Payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() )
+			);
+
+			return [ 'result' => 'failure' ];
+		}
 	}
 
 	/**
@@ -1489,4 +1573,131 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		];
 	}
 
+	/**
+	 * Collects the payment information needed for processing a payment intent.
+	 *
+	 * @param WC_Order $order The WC Order to be paid for.
+	 * @return array An array containing the payment information for processing a payment intent.
+	 */
+	private function prepare_payment_information_from_request( WC_Order $order ) {
+		$payment_method               = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$selected_payment_type        = sanitize_text_field( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$capture_method               = empty( $this->get_option( 'capture' ) ) || $this->get_option( 'capture' ) === 'yes' ? 'automatic' : 'manual'; // automatic | manual.
+		$save_payment_method_to_store = isset( $_POST['save_payment_method'] ) ? 'yes' === wc_clean( wp_unslash( $_POST['save_payment_method'] ) ) : false;
+		$currency                     = strtolower( $order->get_currency() );
+		$amount                       = $order->get_total();
+		$shipping_details             = null;
+
+		// If order requires shipping, add the shipping address details to the payment intent request.
+		if ( method_exists( $order, 'get_shipping_postcode' ) && ! empty( $order->get_shipping_postcode() ) ) {
+			$shipping_details = $this->get_address_data_for_payment_request( $order );
+		}
+
+		$payment_information = [
+			'amount'                       => WC_Stripe_Helper::get_stripe_amount( $amount, $currency ),
+			'currency'                     => $currency,
+			'customer'                     => $this->get_customer_id_for_order( $order ),
+			'capture_method'               => $capture_method,
+			'level3'                       => $this->get_level3_data_from_order( $order ),
+			'metadata'                     => $this->get_metadata_from_order( $order ),
+			'order'                        => $order,
+			'payment_initiated_by'         => 'initiated_by_customer', // initiated_by_merchant | initiated_by_customer.
+			'payment_method'               => $payment_method,
+			'payment_type'                 => 'single', // single | recurring.
+			'save_payment_method_to_store' => $save_payment_method_to_store,
+			'selected_payment_type'        => $selected_payment_type,
+			'shipping'                     => $shipping_details,
+			'statement_descriptor'         => $this->get_statement_descriptor( $selected_payment_type ),
+		];
+
+		return $payment_information;
+	}
+
+	/**
+	 * Gets the Stripe customer ID associated with an order, creates one if none is associated.
+	 *
+	 * @param WC_Order $order The WC order from which to get the Stripe customer.
+	 * @return string The Stripe customer ID.
+	 */
+	private function get_customer_id_for_order( WC_Order $order ): string {
+
+		// Get the user/customer from the order.
+		$customer_id = $this->get_stripe_customer_id( $order );
+		if ( ! empty( $customer_id ) ) {
+			return $customer_id;
+		}
+
+		// Update customer or create customer if one does not exist.
+		$user     = $this->get_user_from_order( $order );
+		$customer = new WC_Stripe_Customer( $user->ID );
+
+		return $customer->update_or_create_customer();
+	}
+
+	/**
+	 * Returns the statement descriptor given the selected payment type.
+	 *
+	 * @param string $selected_payment_type The selected payment type.
+	 * @return string|null
+	 */
+	private function get_statement_descriptor( string $selected_payment_type ) {
+		$statement_descriptor                  = ! empty( $this->get_option( 'statement_descriptor' ) ) ? str_replace( "'", '', $this->get_option( 'statement_descriptor' ) ) : '';
+		$short_statement_descriptor            = ! empty( $this->get_option( 'short_statement_descriptor' ) ) ? str_replace( "'", '', $this->get_option( 'short_statement_descriptor' ) ) : '';
+		$is_short_statement_descriptor_enabled = ! empty( $this->get_option( 'is_short_statement_descriptor_enabled' ) ) && 'yes' === $this->get_option( 'is_short_statement_descriptor_enabled' );
+
+		// Use the shortened statement descriptor for card transactions only.
+		if (
+			'card' === $selected_payment_type &&
+			$is_short_statement_descriptor_enabled &&
+			! ( empty( $short_statement_descriptor ) && empty( $statement_descriptor ) )
+		) {
+			return WC_Stripe_Helper::get_dynamic_statement_descriptor( $short_statement_descriptor, $order, $statement_descriptor );
+		}
+
+		if ( ! empty( $statement_descriptor ) ) {
+			return WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor );
+		}
+
+		return null;
+	}
+
+	/**
+	 * Throws an exception when the given payment method type is not valid.
+	 *
+	 * @param array  $payment_information Payment information to process the payment.
+	 * @param string $billing_country     Order billing country.
+	 *
+	 * @throws WC_Stripe_Exception When the payment method type is not allowed in the given country.
+	 */
+	private function validate_selected_payment_method_type( $payment_information, $billing_country ) {
+		$invalid_method_message = __( 'The selected payment method type is invalid.', 'woocommerce-gateway-stripe' );
+
+		// No payment method type was provided.
+		if ( empty( $payment_information['selected_payment_type'] ) ) {
+			throw new WC_Stripe_Exception( 'No payment method type selected.', $invalid_method_message );
+		}
+
+		$payment_method_type = $payment_information['selected_payment_type'];
+
+		// The provided payment method type is not among the available payment method types.
+		if ( ! isset( $this->payment_methods[ $payment_method_type ] ) ) {
+			throw new WC_Stripe_Exception(
+				sprintf(
+					'The selected payment method type is not within the available payment methods.%1$sSelected payment method type: %2$s. Available payment methods: %3$s',
+					PHP_EOL,
+					$payment_method_type,
+					implode( ', ', array_keys( $this->payment_methods ) )
+				),
+				$invalid_method_message
+			);
+		}
+
+		// The selected payment method is allowed in the billing country.
+		if ( ! $this->payment_methods[ $payment_method_type ]->is_allowed_on_country( $billing_country ) ) {
+			throw new WC_Stripe_Exception(
+				sprintf( 'The payment method type "%1$s" is not available in %2$s.', $payment_method_type, $billing_country ),
+				__( 'This payment method type is not available in the selected country.', 'woocommerce-gateway-stripe' )
+			);
+		}
+	}
 }

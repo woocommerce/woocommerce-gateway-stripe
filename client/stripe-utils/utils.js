@@ -194,3 +194,239 @@ export const getStorageWithExpiration = ( key ) => {
 };
 
 export { getStripeServerData, getErrorMessageForTypeAndCode };
+
+// Used by dPE.
+
+/**
+ * Check whether Stripe Link is enabled.
+ *
+ * @param {Object} paymentMethodsConfig Checkout payment methods configuration settings object.
+ * @return {boolean} True, if enabled; false otherwise.
+ */
+export const isLinkEnabled = ( paymentMethodsConfig ) => {
+	return (
+		paymentMethodsConfig.link !== undefined &&
+		paymentMethodsConfig.card !== undefined
+	);
+};
+
+/**
+ * Get array of payment method types to use with intent.
+ *
+ * @todo Make paymentMethodType required when Split is implemented.
+ *
+ * @param {string} paymentMethodType Payment method type Stripe ID.
+ * @return {Array} Array of payment method types to use with intent.
+ */
+export const getPaymentMethodTypes = ( paymentMethodType = null ) => {
+	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
+
+	if ( paymentMethodType === null ) {
+		return Object.keys( paymentMethodsConfig || {} );
+	}
+
+	const paymentMethodTypes = [ paymentMethodType ];
+	if (
+		paymentMethodType === 'card' &&
+		isLinkEnabled( paymentMethodsConfig )
+	) {
+		paymentMethodTypes.push( 'link' );
+	}
+	return paymentMethodTypes;
+};
+
+function shouldIncludeTerms() {
+	if ( getStripeServerData()?.cartContainsSubscription ) {
+		return true;
+	}
+
+	const savePaymentMethodCheckbox = document.getElementById(
+		'wc-stripe-new-payment-method'
+	);
+	if (
+		savePaymentMethodCheckbox !== null &&
+		savePaymentMethodCheckbox.checked
+	) {
+		return true;
+	}
+
+	return false;
+}
+
+export const generateCheckoutEventNames = () => {
+	const paymentMethods = [ 'stripe' ];
+
+	return paymentMethods
+		.map( ( method ) => `checkout_place_order_${ method }` )
+		.join( ' ' );
+};
+
+// To be removed when we fully switch to dPE.
+export const appendIsUsingDeferredIntentToForm = ( form ) => {
+	form.append(
+		'<input type="hidden" id="wc-stripe-is-deferred-intent" name="wc-stripe-is-deferred-intent" value="1" />'
+	);
+};
+
+export const appendPaymentMethodIdToForm = ( form, paymentMethodId ) => {
+	form.append(
+		`<input type="hidden" id="wc-stripe-payment-method" name="wc-stripe-payment-method" value="${ paymentMethodId }" />`
+	);
+};
+
+/**
+ * Checks if the customer is using a saved payment method.
+ *
+ * @return {boolean} Boolean indicating whether or not a saved payment method is being used.
+ */
+export const isUsingSavedPaymentMethod = () => {
+	return (
+		document.querySelector( '#wc-stripe-new-payment-method' )?.length &&
+		! document
+			.querySelector( '#wc-stripe-new-payment-method' )
+			.is( ':checked' )
+	);
+};
+
+/**
+ * Finds selected payment gateway and returns matching Stripe payment method for gateway.
+ *
+ * @return {string} Stripe payment method type
+ */
+export const getSelectedUPEGatewayPaymentMethod = () => {
+	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
+	const gatewayCardId = getStripeServerData()?.gatewayId;
+	let selectedGatewayId = null;
+
+	// Handle payment method selection on the Checkout page or Add Payment Method page where class names differ.
+	const radio = document.querySelector(
+		'li.wc_payment_method input.input-radio:checked, li.woocommerce-PaymentMethod input.input-radio:checked'
+	);
+	if ( radio !== null ) {
+		selectedGatewayId = radio.id;
+	}
+
+	if ( selectedGatewayId === 'payment_method_stripe' ) {
+		selectedGatewayId = 'payment_method_stripe_card';
+	}
+
+	let selectedPaymentMethod = null;
+
+	for ( const paymentMethodType in paymentMethodsConfig ) {
+		if (
+			`payment_method_${ gatewayCardId }_${ paymentMethodType }` ===
+			selectedGatewayId
+		) {
+			selectedPaymentMethod = paymentMethodType;
+			break;
+		}
+	}
+
+	return selectedPaymentMethod;
+};
+
+export const getHiddenBillingFields = ( enabledBillingFields ) => {
+	return {
+		name:
+			enabledBillingFields.includes( 'billing_first_name' ) ||
+			enabledBillingFields.includes( 'billing_last_name' )
+				? 'never'
+				: 'auto',
+		email: enabledBillingFields.includes( 'billing_email' )
+			? 'never'
+			: 'auto',
+		phone: enabledBillingFields.includes( 'billing_phone' )
+			? 'never'
+			: 'auto',
+		address: {
+			country: enabledBillingFields.includes( 'billing_country' )
+				? 'never'
+				: 'auto',
+			line1: enabledBillingFields.includes( 'billing_address_1' )
+				? 'never'
+				: 'auto',
+			line2: enabledBillingFields.includes( 'billing_address_2' )
+				? 'never'
+				: 'auto',
+			city: enabledBillingFields.includes( 'billing_city' )
+				? 'never'
+				: 'auto',
+			state: enabledBillingFields.includes( 'billing_state' )
+				? 'never'
+				: 'auto',
+			postalCode: enabledBillingFields.includes( 'billing_postcode' )
+				? 'never'
+				: 'auto',
+		},
+	};
+};
+
+export const getUpeSettings = () => {
+	const upeSettings = {};
+	const showTerms = shouldIncludeTerms() ? 'always' : 'never';
+
+	upeSettings.terms = getUPETerms( showTerms );
+
+	if (
+		getStripeServerData()?.isCheckout &&
+		! (
+			getStripeServerData()?.isOrderPay ||
+			getStripeServerData()?.isChangingPayment
+		)
+	) {
+		upeSettings.fields = {
+			billingDetails: getHiddenBillingFields(
+				getStripeServerData()?.enabledBillingFields
+			),
+		};
+	}
+
+	return upeSettings;
+};
+
+/**
+ * Show error notice at top of checkout form.
+ * Will try to use a translatable message using the message code if available
+ *
+ * @param {string} errorMessage
+ */
+export const showErrorCheckout = ( errorMessage ) => {
+	if (
+		typeof errorMessage !== 'string' &&
+		! ( errorMessage instanceof String )
+	) {
+		if ( errorMessage.code && getStripeServerData()[ errorMessage.code ] ) {
+			errorMessage = getStripeServerData()[ errorMessage.code ];
+		} else {
+			errorMessage = errorMessage.message;
+		}
+	}
+
+	let messageWrapper = '';
+	if ( errorMessage.includes( 'woocommerce-error' ) ) {
+		messageWrapper = errorMessage;
+	} else {
+		messageWrapper =
+			'<ul class="woocommerce-error" role="alert"><li>' +
+			errorMessage +
+			'</li></ul>';
+	}
+	const $container = jQuery( '.woocommerce-notices-wrapper' ).first();
+
+	if ( ! $container.length ) {
+		return;
+	}
+
+	// Adapted from WooCommerce core @ ea9aa8c, assets/js/frontend/checkout.js#L514-L529
+	jQuery(
+		'.woocommerce-NoticeGroup-checkout, .woocommerce-error, .woocommerce-message'
+	).remove();
+	$container.prepend( messageWrapper );
+	jQuery( 'form.checkout' )
+		.find( '.input-text, select, input:checkbox' )
+		.trigger( 'validate' )
+		.trigger( 'blur' );
+
+	jQuery.scroll_to_notices( $container );
+	jQuery( document.body ).trigger( 'checkout_error' );
+};

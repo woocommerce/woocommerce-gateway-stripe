@@ -213,6 +213,9 @@ function woocommerce_gateway_stripe() {
 				$this->payment_request_configuration = new WC_Stripe_Payment_Request();
 				$this->account                       = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
 
+				$intent_controller = new WC_Stripe_Intent_Controller();
+				$intent_controller->init_hooks();
+
 				if ( is_admin() ) {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-settings-controller.php';
