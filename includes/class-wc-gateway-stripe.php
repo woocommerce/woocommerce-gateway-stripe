@@ -658,7 +658,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Return if not checkout or pay for order page.
-		if ( ! is_wc_endpoint_url( 'order-pay' ) || ! is_checkout() ) {
+		$is_checkout_page      = is_checkout() || has_block( 'woocommerce/checkout' );
+		$is_pay_for_order_page = is_wc_endpoint_url( 'order-pay' );
+		if ( ! $is_checkout_page && ! $is_pay_for_order_page ) {
 			return $gateways;
 		}
 
