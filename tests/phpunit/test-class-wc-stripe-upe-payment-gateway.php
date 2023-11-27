@@ -336,6 +336,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 						],
 					],
 				],
+				'payment_method' => 'pm_mock',
 			],
 			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
 		);
