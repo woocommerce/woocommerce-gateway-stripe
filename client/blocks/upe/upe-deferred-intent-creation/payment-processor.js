@@ -1,13 +1,13 @@
 /**
  * External dependencies
  */
-
 import { getPaymentMethods } from '@woocommerce/blocks-registry';
 import { __ } from '@wordpress/i18n';
 import {
 	PaymentElement,
 	useElements,
 	useStripe,
+	Elements,
 } from '@stripe/react-stripe-js';
 import { useEffect, useState } from 'react';
 /**
@@ -15,7 +15,13 @@ import { useEffect, useState } from 'react';
  */
 import { usePaymentCompleteHandler, usePaymentFailHandler } from '../hooks';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
+import WCStripeAPI from 'wcstripe/api';
 
+/**
+ * Gets the Stripe element options.
+ *
+ * @return {Object} The Stripe element options.
+ */
 const getStripeElementOptions = () => {
 	const options = {
 		fields: {
@@ -42,6 +48,12 @@ const getStripeElementOptions = () => {
 	return options;
 };
 
+/**
+ * Submits the payment elements to Stripe for validation.
+ *
+ * @param {Elements} elements
+ * @return {Promise} Promise that resolves when the elements are validated.
+ */
 export function validateElements( elements ) {
 	return elements.submit().then( ( result ) => {
 		if ( result.error ) {
@@ -50,6 +62,24 @@ export function validateElements( elements ) {
 	} );
 }
 
+/**
+ * Renders the payment processor for the a Stripe UPE payment method with deferred intent creation.
+ *
+ * @param {*}           args                      Additional arguments passed for payment processing on the Block Checkout.
+ * @param {WCStripeAPI} args.api                 The Stripe API object.
+ * @param {string}      args.activePaymentMethod The currently selected/active payment method ID.
+ * @param {string}      args.testingInstructions The testing instructions to display.
+ * @param {Object}      args.eventRegistration   The checkout event emitter registration object.
+ * @param {Object}      args.emitResponse        Various helpers for usage with observer response objects.
+ * @param {string}      args.paymentMethodId     The UPE payment method ID.
+ * @param {Array}       args.upeMethods          The UPE methods.
+ * @param {string}      args.errorMessage        The error message to display.
+ * @param {boolean}     args.shouldSavePayment   Whether or not to save the payment method.
+ * @param {string}      args.fingerprint         The fingerprint.
+ * @param {Object}      args.billing             The checkout billing data.
+ *
+ * @return {JSX.Element} Rendered payment processor.
+ */
 const PaymentProcessor = ( {
 	api,
 	activePaymentMethod,

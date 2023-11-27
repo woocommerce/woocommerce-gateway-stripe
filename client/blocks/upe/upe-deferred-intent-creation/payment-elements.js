@@ -7,7 +7,7 @@ import { getStripeServerData } from 'wcstripe/stripe-utils';
 import WCStripeAPI from 'wcstripe/api';
 
 /**
- * Renders a Stripe Payment elements.
+ * Renders a Stripe Payment elements component.
  *
  * @param {*}           props                 Additional props for payment processing.
  * @param {WCStripeAPI} props.api             Object containing methods for interacting with Stripe.
@@ -37,12 +37,12 @@ const PaymentElements = ( { api, ...props } ) => {
 };
 
 /**
- * Renders a Stripe Payment elements.
+ * Renders a Stripe Payment elements component.
  *
- * @param {string} paymentMethodId
- * @param {Array} upeMethods
+ * @param {string}      paymentMethodId
+ * @param {Array}       upeMethods
  * @param {WCStripeAPI} api
- * @param {string} testingInstructions
+ * @param {string}      testingInstructions
  *
  * @return {JSX.Element} Rendered Payment elements.
  */
