@@ -325,18 +325,22 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$currency          = $order->get_currency();
 		$order_id          = $order->get_id();
 
-		$mock_intent = (object) [
-			'charges' => (object) [
-				'data' => [
-					(object) [
-						'id'       => $order_id,
-						'captured' => 'yes',
-						'status'   => 'succeeded',
+		$mock_intent = (object) wp_parse_args(
+			[
+				'charges' => (object) [
+					'data' => [
+						(object) [
+							'id'       => $order_id,
+							'captured' => 'yes',
+							'status'   => 'succeeded',
+						],
 					],
 				],
 			],
-		];
+			self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE
+		);
 
+		// Set the appropriate POST flag to trigger a deferred intent request.
 		$_POST = [ 'wc-stripe-is-deferred-intent' => '1' ];
 
 		$this->mock_gateway->intent_controller
