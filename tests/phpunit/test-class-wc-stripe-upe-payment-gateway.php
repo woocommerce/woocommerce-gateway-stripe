@@ -360,7 +360,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$response = $this->mock_gateway->process_payment( $order_id );
 
 		$this->assertEquals( 'success', $response['result'] );
-		$this->assertEquals( self::MOCK_RETURN_URL, $response['redirect'] );
+		$this->assertMatchesRegularExpression( "/#wc-stripe-confirm-pi:{$order_id}:{$mock_intent->client_secret}/", $response['redirect'] );
 	}
 
 	/**
