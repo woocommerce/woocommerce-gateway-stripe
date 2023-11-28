@@ -86,6 +86,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'array',
 						'items'             => [
 							'type' => 'string',
+							'enum' => array_merge( $this->gateway->get_upe_available_payment_methods(), WC_Stripe_Helper::get_legacy_available_payment_method_ids() ),
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -254,7 +255,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'description'                           => $this->gateway->get_validated_option( 'description' ),
 
 				/* Settings > Payments accepted on checkout */
-				'enabled_payment_method_ids'            => $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids() : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids(),
+				'enabled_payment_method_ids'            => $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids() : WC_Stripe_Helper::get_legacy_enabled_payment_methods( 'id' ),
 				'available_payment_method_ids'          => $is_upe_enabled ? $this->gateway->get_upe_available_payment_methods() : WC_Stripe_Helper::get_legacy_available_payment_method_ids(),
 				'individual_payment_method_settings'    => $is_upe_enabled ? [] : WC_Stripe_Helper::get_legacy_individual_payment_method_settings(),
 
@@ -578,9 +579,14 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 */
 	private function update_enabled_payment_methods( WP_REST_Request $request ) {
 		$payment_method_ids_to_enable = $request->get_param( 'enabled_payment_method_ids' );
+		$is_upe_enabled               = $request->get_param( 'is_upe_enabled' );
 
-		if ( ! $request->get_param( 'is_upe_enabled' ) ) {
-			$currently_enabled_payment_method_ids = WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
+		if ( null === $is_upe_enabled ) {
+			return;
+		}
+
+		if ( ! $is_upe_enabled ) {
+			$currently_enabled_payment_method_ids = WC_Stripe_Helper::get_legacy_enabled_payment_methods( 'id' );
 			$payment_gateways                     = WC_Stripe_Helper::get_legacy_payment_methods();
 
 			foreach ( $payment_gateways as $gateway ) {
@@ -626,12 +632,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
 
 		foreach ( $payment_gateways as $gateway ) {
-			$gateway_id       = str_replace( 'stripe_', '', $gateway->id );
-			$gateway_settings = $individual_payment_method_settings[ $gateway_id ];
-
-			if ( ! isset( $gateway_settings ) ) {
+			$gateway_id = str_replace( 'stripe_', '', $gateway->id );
+			if ( ! isset( $individual_payment_method_settings[ $gateway_id ] ) ) {
 				continue;
 			}
+
+			$gateway_settings = $individual_payment_method_settings[ $gateway_id ];
 
 			$name = sanitize_text_field( $gateway_settings['name'] );
 			$gateway->update_option( 'title', $name );

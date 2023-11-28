@@ -7,6 +7,7 @@ import GeneralSettingsSection from '../general-settings-section';
 import { AccountKeysModal } from 'wcstripe/settings/payment-settings/account-keys-modal';
 import {
 	useIsStripeEnabled,
+	useEnabledPaymentMethodIds,
 	useTestMode,
 	useTitle,
 	useUpeTitle,
@@ -26,6 +27,7 @@ import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useIsStripeEnabled: jest.fn(),
+	useEnabledPaymentMethodIds: jest.fn(),
 	useTestMode: jest.fn(),
 	useTitle: jest.fn().mockReturnValue( [] ),
 	useUpeTitle: jest.fn().mockReturnValue( [] ),
@@ -69,6 +71,10 @@ describe( 'GeneralSettingsSection', () => {
 				test_webhook_secret: 'test_whs',
 			},
 		} );
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ 'card', 'giropay' ],
+			jest.fn(),
+		] );
 
 		render( <GeneralSettingsSection /> );
 

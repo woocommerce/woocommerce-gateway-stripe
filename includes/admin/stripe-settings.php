@@ -219,8 +219,8 @@ $stripe_settings = apply_filters(
 			'default'     => 'default',
 			'desc_tip'    => true,
 			'options'     => [
-				'default' => __( 'Default (40px)', 'woocommerce-gateway-stripe' ),
-				'medium'  => __( 'Medium (48px)', 'woocommerce-gateway-stripe' ),
+				'small' => __( 'Small (40px)', 'woocommerce-gateway-stripe' ),
+				'default'  => __( 'Default (48px)', 'woocommerce-gateway-stripe' ),
 				'large'   => __( 'Large (56px)', 'woocommerce-gateway-stripe' ),
 			],
 		],
