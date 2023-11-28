@@ -10,6 +10,7 @@ import './style.scss';
 import {
 	processPayment,
 	mountStripePaymentElement,
+	createAndConfirmSetupIntent,
 } from './payment-processing';
 
 jQuery( function ( $ ) {
@@ -40,6 +41,23 @@ jQuery( function ( $ ) {
 			return processPayment( api, $form, paymentMethodType );
 		}
 	}
+
+	// Mount the Stripe Payment Elements onto the add payment method page.
+	if (
+		$( 'form#add_payment_method' ).length ||
+		$( 'form#order_review' ).length
+	) {
+		maybeMountStripePaymentElement();
+	}
+
+	$( 'form#add_payment_method' ).on( 'submit', function () {
+		return processPayment(
+			api,
+			$( 'form#add_payment_method' ),
+			getSelectedUPEGatewayPaymentMethod(),
+			createAndConfirmSetupIntent
+		);
+	} );
 
 	// If the card element selector doesn't exist, then do nothing.
 	// For example, when a 100% discount coupon is applied).
