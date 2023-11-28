@@ -702,7 +702,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$payment_intent->client_secret,
 					wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
 				),
-				'payment_method' => $payment_intent->payment_method,
 			];
 		} catch ( WC_Stripe_Exception $e ) {
 			$shopper_error_message = sprintf(
