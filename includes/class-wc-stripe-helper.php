@@ -384,7 +384,8 @@ class WC_Stripe_Helper {
 		$available_payment_method_ids = [ 'card' ];
 
 		foreach ( $payment_methods as $payment_method ) {
-			$available_payment_method_ids[] = str_replace( 'stripe_', '', $payment_method->id );
+			$payment_method_id              = 'stripe_sepa' === $payment_method->id ? 'sepa_debit' : str_replace( 'stripe_', '', $payment_method->id );
+			$available_payment_method_ids[] = $payment_method_id;
 		}
 
 		return $available_payment_method_ids;
@@ -409,7 +410,9 @@ class WC_Stripe_Helper {
 				continue;
 			}
 			$enabled_payment_methods[ $payment_method->id ] = $payment_method;
-			$enabled_payment_method_ids[]                   = str_replace( 'stripe_', '', $payment_method->id );
+
+			$payment_method_id            = 'stripe_sepa' === $payment_method->id ? 'sepa_debit' : str_replace( 'stripe_', '', $payment_method->id );
+			$enabled_payment_method_ids[] = $payment_method_id;
 		}
 
 		if ( 'id' === $field ) {
