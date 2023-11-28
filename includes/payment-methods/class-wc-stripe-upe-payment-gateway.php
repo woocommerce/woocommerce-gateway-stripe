@@ -1701,4 +1701,56 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			);
 		}
 	}
+
+	/**
+	 * Add a new Stripe payment method via the My Account > Payment methods page.
+	 *
+	 * This function is called by @see WC_Form_Handler::add_payment_method_action().
+	 *
+	 * @return array
+	 */
+	public function add_payment_method() {
+		try {
+			if ( ! is_user_logged_in() ) {
+				throw new WC_Stripe_Exception( 'No logged-in user found.' );
+			}
+
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			if ( ! isset( $_POST['wc-stripe-setup-intent'] ) ) {
+				throw new WC_Stripe_Exception( 'Stripe setup intent is missing.' );
+			}
+
+			$user            = wp_get_current_user();
+			$setup_intent_id = wc_clean( wp_unslash( $_POST['wc-stripe-setup-intent'] ) );
+			$setup_intent    = $this->stripe_request( 'setup_intents/' . $setup_intent_id );
+
+			if ( ! empty( $setup_intent->last_payment_error ) ) {
+				throw new WC_Stripe_Exception( sprintf( 'Error fetching the setup intent (ID %s) from Stripe: %s.', $setup_intent_id, ! empty( $setup_intent->last_payment_error->message ) ? $setup_intent->last_payment_error->message : 'Unknown error' ) );
+			}
+
+			$payment_method_id     = $setup_intent->payment_method;
+			$payment_method_object = $this->stripe_request( 'payment_methods/' . $payment_method_id );
+
+			$payment_method = $this->payment_methods[ $payment_method_object->type ];
+
+			$customer = new WC_Stripe_Customer( $user->ID );
+			$customer->clear_cache();
+
+			$token = $payment_method->create_payment_token_for_user( $user->ID, $payment_method_object );
+
+			if ( ! is_a( $token, 'WC_Payment_Token' ) ) {
+				throw new WC_Stripe_Exception( sprintf( 'New payment token is not an instance of WC_Payment_Token. Token: %s.', print_r( $token, true ) ) );
+			}
+
+			do_action( 'woocommerce_stripe_add_payment_method', $user->ID, $payment_method_object );
+
+			return [
+				'result'   => 'success',
+				'redirect' => wc_get_endpoint_url( 'payment-methods' ),
+			];
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( sprintf( 'Add payment method error: %s', $e->getMessage() ) );
+			return [ 'result' => 'failure' ];
+		}
+	}
 }
