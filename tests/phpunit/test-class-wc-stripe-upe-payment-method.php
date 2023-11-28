@@ -260,7 +260,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertTrue( $sepa_method->is_reusable() );
 		$this->assertEquals( 'sepa_debit', $sepa_method->get_retrievable_type() );
 		$this->assertEquals(
-			'<strong>Test mode:</strong> use the test account number AT611904300234573201. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a>here</a>.',
+			'<strong>Test mode:</strong> use the test account number AT611904300234573201. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://stripe.com/docs/testing?payment-method=sepa-direct-debit" target="_blank">here</a>.',
 			$sepa_method->get_testing_instructions()
 		);
 
