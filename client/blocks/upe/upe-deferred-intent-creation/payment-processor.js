@@ -170,22 +170,15 @@ const PaymentProcessor = ( {
 						type: 'success',
 						meta: {
 							paymentMethodData: {
-								stripe_source:
+								payment_method: 'stripe',
+								'wc-stripe-is-deferred-intent': true,
+								'wc-stripe-payment-method':
 									paymentMethodObject.paymentMethod.id,
-								// The billing information here is relevant to properly create the
-								// Stripe Customer object.
+								wc_stripe_selected_upe_payment_type: paymentMethodId,
+								// The billing information here is relevant to properly create the Stripe Customer object.
 								billing_email: billingAddress.email,
 								billing_first_name: billingAddress.first_name,
 								billing_last_name: billingAddress.last_name,
-								'wc-stripe-is-deferred-intent': true,
-								paymentMethod: upeMethods[ paymentMethodId ],
-								paymentRequestType: 'cc',
-								payment_method: 'stripe',
-								wc_stripe_selected_upe_payment_type: paymentMethodId,
-								'wc-stripe-new-payment-method':
-									paymentMethodObject.paymentMethod.id,
-								'wc-stripe-payment-method':
-									paymentMethodObject.paymentMethod.id,
 							},
 						},
 					};
