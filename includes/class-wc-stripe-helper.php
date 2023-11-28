@@ -366,7 +366,7 @@ class WC_Stripe_Helper {
 
 		foreach ( $payment_method_classes as $payment_method_class ) {
 			$payment_method                         = new $payment_method_class();
-			$payment_methods[ $payment_method::ID ] = $payment_method;
+			$payment_methods[ $payment_method->id ] = $payment_method;
 		}
 
 		return $payment_methods;
@@ -384,7 +384,7 @@ class WC_Stripe_Helper {
 		$available_payment_method_ids = [ 'card' ];
 
 		foreach ( $payment_methods as $payment_method ) {
-			$available_payment_method_ids[] = str_replace( 'stripe_', '', $payment_method::ID );
+			$available_payment_method_ids[] = str_replace( 'stripe_', '', $payment_method->id );
 		}
 
 		return $available_payment_method_ids;
@@ -408,8 +408,8 @@ class WC_Stripe_Helper {
 			if ( ! $payment_method->is_enabled() ) {
 				continue;
 			}
-			$enabled_payment_methods[ $payment_method::ID ] = $payment_method;
-			$enabled_payment_method_ids[]                   = str_replace( 'stripe_', '', $payment_method::ID );
+			$enabled_payment_methods[ $payment_method->id ] = $payment_method;
+			$enabled_payment_method_ids[]                   = str_replace( 'stripe_', '', $payment_method->id );
 		}
 
 		if ( 'id' === $field ) {
@@ -439,7 +439,7 @@ class WC_Stripe_Helper {
 				$settings = $payment_method->get_unique_settings( $settings );
 			}
 
-			$payment_method_settings[ str_replace( 'stripe_', '', $payment_method::ID ) ] = $settings;
+			$payment_method_settings[ str_replace( 'stripe_', '', $payment_method->id ) ] = $settings;
 		}
 
 		return $payment_method_settings;

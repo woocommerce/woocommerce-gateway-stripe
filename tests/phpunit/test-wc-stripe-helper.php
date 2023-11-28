@@ -145,4 +145,55 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 		$intent_with_neither_source_nor_payment_method = new stdClass();
 		$this->assertNull( WC_Stripe_Helper::get_payment_method_from_intent( $intent_with_neither_source_nor_payment_method ) );
 	}
+
+	public function test_get_legacy_payment_methods() {
+		$result = WC_Stripe_Helper::get_legacy_payment_methods();
+		$this->assertEquals( [ 'stripe_bancontact', 'stripe_eps', 'stripe_giropay', 'stripe_ideal', 'stripe_p24', 'stripe_sepa', 'stripe_boleto', 'stripe_oxxo' ], array_keys( $result ) );
+	}
+
+	public function test_get_legacy_available_payment_method_ids() {
+		$result = WC_Stripe_Helper::get_legacy_available_payment_method_ids();
+		$this->assertEquals( [ 'card', 'bancontact', 'eps', 'giropay', 'ideal', 'p24', 'sepa', 'boleto', 'oxxo' ], $result );
+	}
+
+	public function test_get_legacy_enabled_payment_methods() {
+		// Enable Stripe, EPS, Giropay and P24 LPM gateways.
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'enabled' => 'yes',
+				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no',
+			]
+		);
+		update_option( 'woocommerce_stripe_eps_settings', [ 'enabled' => 'yes' ] );
+		update_option( 'woocommerce_stripe_giropay_settings', [ 'enabled' => 'yes' ] );
+		update_option( 'woocommerce_stripe_p24_settings', [ 'enabled' => 'yes' ] );
+
+		$result = WC_Stripe_Helper::get_legacy_enabled_payment_methods();
+		$this->assertEquals( [ 'stripe_eps', 'stripe_giropay', 'stripe_p24' ], array_keys( $result ) );
+
+		$result = WC_Stripe_Helper::get_legacy_enabled_payment_methods( 'id' );
+		$this->assertEquals( [ 'card', 'eps', 'giropay', 'p24' ], $result );
+	}
+
+	public function test_get_legacy_individual_payment_method_settings() {
+		update_option(
+			'woocommerce_stripe_eps_settings',
+			[
+				'enabled'     => 'yes',
+				'title'       => 'EPS',
+				'description' => 'Pay with EPS',
+			]
+		);
+
+		$result = WC_Stripe_Helper::get_legacy_individual_payment_method_settings();
+		$this->arrayHasKey( 'eps', $result );
+		$this->assertEquals(
+			[
+				'name'       => 'EPS',
+				'description' => 'Pay with EPS',
+			],
+			$result['eps'],
+		);
+	}
 }

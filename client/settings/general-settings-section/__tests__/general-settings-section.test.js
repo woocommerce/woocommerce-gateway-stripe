@@ -143,7 +143,41 @@ describe( 'GeneralSettingsSection', () => {
 		] );
 	} );
 
-	it( 'should show modal to disable a payment method when UPE is enabled', () => {
+	it( 'should allow to enable a payment method when UPE is disabled', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			'card',
+			'giropay',
+			'sofort',
+			'sepa_debit',
+		] );
+		const updateEnabledMethodsMock = jest.fn();
+		useEnabledPaymentMethodIds.mockReturnValue( [
+			[ 'card' ],
+			updateEnabledMethodsMock,
+		] );
+
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		const giropayCheckbox = screen.getByRole( 'checkbox', {
+			name: /giropay/,
+		} );
+
+		expect( updateEnabledMethodsMock ).not.toHaveBeenCalled();
+		expect( giropayCheckbox ).not.toBeChecked();
+
+		userEvent.click( giropayCheckbox );
+
+		expect( updateEnabledMethodsMock ).toHaveBeenCalledWith( [
+			'card',
+			'giropay',
+		] );
+	} );
+
+	it( 'should show modal to disable a payment method', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [
 			'card',
 			'giropay',
@@ -367,6 +401,26 @@ describe( 'GeneralSettingsSection', () => {
 		);
 
 		expect( setIndividualPaymentMethodSettingsMock ).toHaveBeenCalled();
+	} );
+
+	it( 'should not display customization section in the payment method when UPE is enabled', () => {
+		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'giropay' ] );
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: 'giropay',
+			} )
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole( 'button', {
+				name: 'Customize',
+			} )
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'displays the payment method checkbox when manual capture is disabled', () => {

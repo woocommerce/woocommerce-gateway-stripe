@@ -632,12 +632,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
 
 		foreach ( $payment_gateways as $gateway ) {
-			$gateway_id       = str_replace( 'stripe_', '', $gateway->id );
-			$gateway_settings = $individual_payment_method_settings[ $gateway_id ];
-
-			if ( ! isset( $gateway_settings ) ) {
+			$gateway_id = str_replace( 'stripe_', '', $gateway->id );
+			if ( ! isset( $individual_payment_method_settings[ $gateway_id ] ) ) {
 				continue;
 			}
+
+			$gateway_settings = $individual_payment_method_settings[ $gateway_id ];
 
 			$name = sanitize_text_field( $gateway_settings['name'] );
 			$gateway->update_option( 'title', $name );
