@@ -26,6 +26,8 @@ class WC_Stripe_Intent_Controller {
 		add_action( 'wc_ajax_wc_stripe_verify_intent', [ $this, 'verify_intent' ] );
 		add_action( 'wc_ajax_wc_stripe_create_setup_intent', [ $this, 'create_setup_intent' ] );
 
+		add_action( 'wc_ajax_wc_stripe_create_and_confirm_setup_intent', [ $this, 'create_and_confirm_setup_intent_ajax' ] );
+
 		add_action( 'wc_ajax_wc_stripe_create_payment_intent', [ $this, 'create_payment_intent_ajax' ] );
 		add_action( 'wc_ajax_wc_stripe_update_payment_intent', [ $this, 'update_payment_intent_ajax' ] );
 		add_action( 'wc_ajax_wc_stripe_init_setup_intent', [ $this, 'init_setup_intent_ajax' ] );
@@ -822,5 +824,76 @@ class WC_Stripe_Intent_Controller {
 
 		// Otherwise, return the selected payment method type.
 		return [ $selected_payment_type ];
+	}
+
+	/**
+	 * Creates and confirm a setup intent with the given payment method ID.
+	 *
+	 * @param string $payment_method The payment method ID (pm_).
+	 *
+	 * @throws Exception If the create intent call returns with an error.
+	 *
+	 * @return array
+	 */
+	public function create_and_confirm_setup_intent( $payment_method ) {
+		// Determine the customer managing the payment methods, create one if we don't have one already.
+		$user           = wp_get_current_user();
+		$customer       = new WC_Stripe_Customer( $user->ID );
+		$customer_id    = $customer->update_or_create_customer();
+
+		$setup_intent = WC_Stripe_API::request(
+			[
+				'customer'       => $customer_id,
+				'confirm'        => 'true',
+				'payment_method' => $payment_method,
+			],
+			'setup_intents'
+		);
+
+		if ( ! empty( $setup_intent->error ) ) {
+			throw new Exception( $setup_intent->error->message );
+		}
+
+		return $setup_intent;
+	}
+
+	/**
+	 * Handle AJAX requests for creating and confirming a setup intent.
+	 *
+	 * @throws Exception If the AJAX request is missing the required data or if there's error creating and confirming the setup intent.
+	 */
+	public function create_and_confirm_setup_intent_ajax() {
+		try {
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_and_confirm_setup_intent_nonce', false, false );
+
+			if ( ! $is_nonce_valid ) {
+				throw new Exception( __( 'Unable to verify your request. Please refresh the page and try again.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			$payment_method = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) );
+
+			if ( ! $payment_method ) {
+				throw new Exception( __( "We're not able to add this payment method. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			$setup_intent = $this->create_and_confirm_setup_intent( $payment_method );
+
+			wp_send_json_success(
+				[
+					'id'            => $setup_intent->id,
+					'client_secret' => $setup_intent->client_secret,
+				],
+				200
+			);
+		} catch ( Exception $e ) {
+			// Send back error so it can be displayed to the customer.
+			wp_send_json_error(
+				[
+					'error' => [
+						'message' => $e->getMessage(),
+					],
+				]
+			);
+		}
 	}
 }
