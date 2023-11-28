@@ -179,6 +179,9 @@ const PaymentProcessor = ( {
 								billing_email: billingAddress.email,
 								billing_first_name: billingAddress.first_name,
 								billing_last_name: billingAddress.last_name,
+								save_payment_method: shouldSavePayment
+									? 'yes'
+									: 'no',
 							},
 						},
 					};
