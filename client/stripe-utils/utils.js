@@ -274,6 +274,12 @@ export const appendPaymentMethodIdToForm = ( form, paymentMethodId ) => {
 	);
 };
 
+export const appendSetupIntentToForm = ( form, setupIntent ) => {
+	form.append(
+		`<input type="hidden" id="wc-stripe-setup-intent" name="wc-stripe-setup-intent" value="${ setupIntent.id }" />`
+	);
+};
+
 /**
  * Checks if the customer is using a saved payment method.
  *
