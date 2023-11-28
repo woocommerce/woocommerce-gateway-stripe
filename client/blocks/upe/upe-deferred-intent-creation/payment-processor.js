@@ -65,7 +65,7 @@ export function validateElements( elements ) {
 /**
  * Renders the payment processor for the a Stripe UPE payment method with deferred intent creation.
  *
- * @param {*}           args                      Additional arguments passed for payment processing on the Block Checkout.
+ * @param {*}           args                     Additional arguments passed for payment processing on the Block Checkout.
  * @param {WCStripeAPI} args.api                 The Stripe API object.
  * @param {string}      args.activePaymentMethod The currently selected/active payment method ID.
  * @param {string}      args.testingInstructions The testing instructions to display.
