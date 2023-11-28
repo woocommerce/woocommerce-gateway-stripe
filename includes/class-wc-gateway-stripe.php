@@ -646,7 +646,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Include the available legacy payment methods in the list of payment methods.
 	 * As we are not registering the other Stripe payment methods to show in the settings page,
-	 * we need to include them here so that they are available in the checkout page and pay for order page.
+	 * we need to include them here so that they are available in the checkout, pay for order, add payment method etc. pages.
 	 *
 	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways on the payments settings page.
 	 * @return WC_Payment_Gateway[]          The same list if UPE is disabled or a list including the available legacy payment methods.
@@ -654,13 +654,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	public function get_available_payment_methods( $gateways ) {
 		// We need to include the payment methods when UPE is disabled, return the same list when UPE is enabled.
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			return $gateways;
-		}
-
-		// Return if not checkout or pay for order page.
-		$is_checkout_page      = is_checkout() || has_block( 'woocommerce/checkout' );
-		$is_pay_for_order_page = is_wc_endpoint_url( 'order-pay' );
-		if ( ! $is_checkout_page && ! $is_pay_for_order_page ) {
 			return $gateways;
 		}
 
@@ -672,13 +665,30 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			if ( in_array( $name, array_keys( $gateways ), true ) ) {
 				$available_gateways[ $name ] = $gateways[ $name ];
 			} elseif ( in_array( $name, array_keys( $legacy_enabled_gateways ), true ) ) {
-				$available_gateways[ $name ] = $legacy_enabled_gateways[ $name ];
+				$gateway = $legacy_enabled_gateways[ $name ];
+				// This follows the same logic as `get_available_payment_gateways()` function in `woocommerce/includes/class-wc-payment-gateways.php`.
+				if ( $gateway->is_available() ) {
+					if ( ! is_add_payment_method_page() ) {
+						$available_gateways[ $name ] = $gateway;
+					} elseif ( $gateway->supports( 'add_payment_method' ) || $gateway->supports( 'tokenization' ) ) {
+						$available_gateways[ $name ] = $gateway;
+					}
+				}
 				unset( $legacy_enabled_gateways[ $name ] );
 			}
 		}
 
 		// Add any remaining enabled gateways in case they were not present in `woocommerce_gateway_order` option.
-		$available_gateways = array_merge( $available_gateways, $legacy_enabled_gateways );
+		foreach ( $legacy_enabled_gateways as $name => $gateway ) {
+			// This follows the same logic as `get_available_payment_gateways()` function in `woocommerce/includes/class-wc-payment-gateways.php`.
+			if ( $gateway->is_available() ) {
+				if ( ! is_add_payment_method_page() ) {
+					$available_gateways[ $name ] = $gateway;
+				} elseif ( $gateway->supports( 'add_payment_method' ) || $gateway->supports( 'tokenization' ) ) {
+					$available_gateways[ $name ] = $gateway;
+				}
+			}
+		}
 
 		return $available_gateways;
 	}
