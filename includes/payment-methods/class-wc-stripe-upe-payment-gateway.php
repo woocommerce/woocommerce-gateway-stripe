@@ -312,19 +312,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 		}
 
-		$stripe_params['isCheckout']               = is_checkout() && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
-		$stripe_params['return_url']               = $this->get_stripe_return_url();
-		$stripe_params['ajax_url']                 = WC_AJAX::get_endpoint( '%%endpoint%%' );
-		$stripe_params['theme_name']               = get_option( 'stylesheet' );
-		$stripe_params['createPaymentIntentNonce'] = wp_create_nonce( 'wc_stripe_create_payment_intent_nonce' );
-		$stripe_params['updatePaymentIntentNonce'] = wp_create_nonce( 'wc_stripe_update_payment_intent_nonce' );
-		$stripe_params['createSetupIntentNonce']   = wp_create_nonce( 'wc_stripe_create_setup_intent_nonce' );
-		$stripe_params['updateFailedOrderNonce']   = wp_create_nonce( 'wc_stripe_update_failed_order_nonce' );
-		$stripe_params['paymentMethodsConfig']     = $this->get_enabled_payment_method_config();
-		$stripe_params['genericErrorMessage']      = __( 'There was a problem processing the payment. Please check your email inbox and refresh the page to try again.', 'woocommerce-gateway-stripe' );
-		$stripe_params['accountDescriptor']        = $this->statement_descriptor;
-		$stripe_params['addPaymentReturnURL']      = wc_get_account_endpoint_url( 'payment-methods' );
-		$stripe_params['enabledBillingFields']     = $enabled_billing_fields;
+		$stripe_params['isCheckout']                       = is_checkout() && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
+		$stripe_params['return_url']                       = $this->get_stripe_return_url();
+		$stripe_params['ajax_url']                         = WC_AJAX::get_endpoint( '%%endpoint%%' );
+		$stripe_params['theme_name']                       = get_option( 'stylesheet' );
+		$stripe_params['createPaymentIntentNonce']         = wp_create_nonce( 'wc_stripe_create_payment_intent_nonce' );
+		$stripe_params['updatePaymentIntentNonce']         = wp_create_nonce( 'wc_stripe_update_payment_intent_nonce' );
+		$stripe_params['createSetupIntentNonce']           = wp_create_nonce( 'wc_stripe_create_setup_intent_nonce' );
+		$stripe_params['createAndConfirmSetupIntentNonce'] = wp_create_nonce( 'wc_stripe_create_and_confirm_setup_intent_nonce' );
+		$stripe_params['updateFailedOrderNonce']           = wp_create_nonce( 'wc_stripe_update_failed_order_nonce' );
+		$stripe_params['paymentMethodsConfig']             = $this->get_enabled_payment_method_config();
+		$stripe_params['genericErrorMessage']              = __( 'There was a problem processing the payment. Please check your email inbox and refresh the page to try again.', 'woocommerce-gateway-stripe' );
+		$stripe_params['accountDescriptor']                = $this->statement_descriptor;
+		$stripe_params['addPaymentReturnURL']              = wc_get_account_endpoint_url( 'payment-methods' );
+		$stripe_params['enabledBillingFields']             = $enabled_billing_fields;
 
 		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
 		$currency   = get_woocommerce_currency();
