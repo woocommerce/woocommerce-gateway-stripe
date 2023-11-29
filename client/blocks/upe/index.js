@@ -8,6 +8,7 @@ import paymentRequestPaymentMethod from 'wcstripe/blocks/payment-request';
 import WCStripeAPI from 'wcstripe/api';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 import { getStripeServerData } from 'wcstripe/stripe-utils';
+import './styles.scss';
 
 // Register Stripe UPE.
 const upeMethods = {
