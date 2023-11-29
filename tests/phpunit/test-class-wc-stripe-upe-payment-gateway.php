@@ -374,6 +374,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$mock_intent = (object) wp_parse_args(
 			[
 				'status' => 'requires_action',
+				'data' => [
+					(object) [
+						'id'       => $order_id,
+						'captured' => 'yes',
+						'status'   => 'succeeded',
+					],
+				],
 				'payment_method' => 'pm_mock',
 			],
 			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
