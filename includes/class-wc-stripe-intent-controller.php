@@ -710,6 +710,19 @@ class WC_Stripe_Intent_Controller {
 			'statement_descriptor' => $payment_information['statement_descriptor'],
 		];
 
+		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
+		if ( $this->is_mandate_data_required( $selected_payment_type ) ) {
+			$request['mandate_data'] = [
+				'customer_acceptance' => [
+					'type'   => 'online',
+					'online' => [
+						'ip_address' => WC_Geolocation::get_ip_address(),
+						'user_agent' => 'WooCommerce Stripe Gateway' . WC_STRIPE_VERSION . '; ' . get_bloginfo( 'url' ),
+					],
+				],
+			];
+		}
+
 		if ( $payment_information['save_payment_method_to_store'] ) {
 			$request['setup_future_usage'] = 'off_session';
 		}
@@ -822,5 +835,25 @@ class WC_Stripe_Intent_Controller {
 
 		// Otherwise, return the selected payment method type.
 		return [ $selected_payment_type ];
+	}
+
+	/**
+	 * Determines if mandate data is required for deferred intent UPE payment.
+	 *
+	 * A mandate must be provided before a deferred intent UPE payment can be processed.
+	 * This applies to SEPA and Link payment methods.
+	 * https://stripe.com/docs/payments/finalize-payments-on-the-server
+	 *
+	 * @param $selected_payment_type The name of the selected UPE payment type.
+	 *
+	 * @return bool True if a mandate must be shown and acknowledged by customer before deferred intent UPE payment can be processed, false otherwise.
+	 */
+	public function is_mandate_data_required( $selected_payment_type ) {
+		$gateway = $this->get_upe_gateway();
+
+		$is_stripe_link_enabled = 'card' === $selected_payment_type && in_array( 'link', $gateway->get_upe_enabled_payment_method_ids(), true );
+		$is_sepa_debit_payment  = 'sepa_debit' === $selected_payment_type;
+
+		return $is_stripe_link_enabled || $is_sepa_debit_payment;
 	}
 }
