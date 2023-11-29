@@ -442,7 +442,9 @@ class WC_Stripe_Helper {
 				$settings = $payment_method->get_unique_settings( $settings );
 			}
 
-			$payment_method_settings[ str_replace( 'stripe_', '', $payment_method->id ) ] = $settings;
+			$payment_method_id = 'stripe_sepa' === $payment_method->id ? 'sepa_debit' : str_replace( 'stripe_', '', $payment_method->id );
+
+			$payment_method_settings[ $payment_method_id ] = $settings;
 		}
 
 		return $payment_method_settings;

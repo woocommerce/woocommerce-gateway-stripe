@@ -60,6 +60,51 @@ export const useSettings = () => {
 	return { settings, isLoading, isSaving, saveSettings };
 };
 
+export const useCustomizePaymentMethodSettings = () => {
+	const {
+		saveIndividualPaymentMethodSettings,
+		updateSettingsValues,
+	} = useDispatch( STORE_NAME );
+
+	const individualPaymentMethodSettings = useSelect( ( select ) => {
+		const { getIndividualPaymentMethodSettings } = select( STORE_NAME );
+
+		return getIndividualPaymentMethodSettings();
+	}, [] );
+
+	const isCustomizing = useSelect( ( select ) => {
+		const { isCustomizingPaymentMethod } = select( STORE_NAME );
+
+		return isCustomizingPaymentMethod();
+	}, [] );
+
+	const customizePaymentMethod = useCallback(
+		async ( data ) => {
+			updateSettingsValues( {
+				individual_payment_method_settings: {
+					...individualPaymentMethodSettings,
+					[ data.method ]: {
+						name: data.name,
+						description: data.description,
+					},
+				},
+			} );
+			await saveIndividualPaymentMethodSettings( data );
+		},
+		[
+			saveIndividualPaymentMethodSettings,
+			individualPaymentMethodSettings,
+			updateSettingsValues,
+		]
+	);
+
+	return {
+		individualPaymentMethodSettings,
+		isCustomizing,
+		customizePaymentMethod,
+	};
+};
+
 export const useEnabledPaymentMethodIds = makeSettingsHook(
 	'enabled_payment_method_ids',
 	EMPTY_ARR
