@@ -10,6 +10,7 @@ import {
 	setStorageWithExpiration,
 	getStorageWithExpiration,
 	storageKeys,
+	getPaymentMethodTypes,
 } from 'wcstripe/stripe-utils';
 
 /**
@@ -56,7 +57,9 @@ const PaymentElements = ( { api, ...props } ) => {
 				amount,
 				currency,
 				paymentMethodCreation: 'manual',
-				paymentMethodTypes: [ props.paymentMethodId ],
+				paymentMethodTypes: getPaymentMethodTypes(
+					props.paymentMethodId
+				),
 				appearance,
 			} }
 		>
