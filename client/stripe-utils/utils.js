@@ -222,7 +222,12 @@ export const getPaymentMethodTypes = ( paymentMethodType = null ) => {
 	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
 
 	if ( paymentMethodType === null ) {
-		return Object.keys( paymentMethodsConfig || {} );
+		if ( getStripeServerData()?.isCheckout ) {
+			return Object.keys( paymentMethodsConfig || {} );
+		}
+
+		// If we're on the My Account > Add payment method page make sure we only support the card paymentMethodType.
+		return [ 'card' ];
 	}
 
 	const paymentMethodTypes = [ paymentMethodType ];
