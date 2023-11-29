@@ -660,6 +660,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$title                   = sanitize_text_field( $request->get_param( 'title' ) );
 		$description             = sanitize_text_field( $request->get_param( 'description' ) );
 
+		if ( 'card' === $payment_method_id ) {
+			$this->gateway->update_option( 'title', $title );
+			$this->gateway->update_option( 'description', $description );
+			return new WP_REST_Response( [], 200 );
+		}
+
 		$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
 
 		if ( ! isset( $payment_gateways[ $mapped_legacy_method_id ] ) ) {

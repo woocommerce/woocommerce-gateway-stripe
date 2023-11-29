@@ -158,7 +158,6 @@ const GeneralSettingsSection = () => {
 								<StyledFees id={ method } />
 							</PaymentMethodWrapper>
 							{ ! isUpeEnabled &&
-								method !== 'card' &&
 								! customizationStatus[ method ] && (
 									<Button
 										variant="secondary"

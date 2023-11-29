@@ -428,9 +428,15 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_legacy_individual_payment_method_settings() {
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
 		$payment_methods = self::get_legacy_payment_methods();
 
-		$payment_method_settings = [];
+		$payment_method_settings = [
+			'card' => [
+				'name'        => $stripe_settings['title'],
+				'description' => $stripe_settings['description'],
+			],
+		];
 
 		foreach ( $payment_methods as $payment_method ) {
 			$settings = [
