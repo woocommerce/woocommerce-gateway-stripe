@@ -707,9 +707,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 
 			return [
-				'result'         => 'success',
-				'redirect'       => $redirect,
-				'payment_method' => $payment_intent->payment_method,
+				'result'   => 'success',
+				'redirect' => $redirect,
 			];
 		} catch ( WC_Stripe_Exception $e ) {
 			$shopper_error_message = sprintf(
