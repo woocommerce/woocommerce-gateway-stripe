@@ -169,6 +169,37 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				],
 			]
 		);
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/payment_method',
+			[
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => [ $this, 'update_individual_payment_method_settings' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+				'args'                => [
+					'payment_method' => [
+						'description'       => __( 'Payment method id.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'is_enabled'     => [
+						'description'       => __( 'If payment method should be enabled.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'boolean',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'title'          => [
+						'description'       => __( 'Payment method title.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'description'    => [
+						'description'       => __( 'Payment method description.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+				],
+			]
+		);
 	}
 
 	/**
@@ -296,7 +327,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		/* Settings > Payments accepted on checkout */
 		$this->update_enabled_payment_methods( $request );
-		$this->update_individual_payment_method_settings( $request );
 
 		/* Settings > Express checkouts */
 		$this->update_is_payment_request_enabled( $request );
@@ -620,34 +650,30 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * Update individual payment gateway settings.
 	 *
 	 * @param WP_REST_Request $request Request object.
+	 *
+	 * @return WP_REST_Response
 	 */
 	public function update_individual_payment_method_settings( WP_REST_Request $request ) {
-		$individual_payment_method_settings = $request->get_param( 'individual_payment_method_settings' );
-
-		// These settings are for non-UPE methods only.
-		if ( $request->get_param( 'is_upe_enabled' ) || empty( $individual_payment_method_settings ) ) {
-			return;
-		}
+		$payment_method_id       = $request->get_param( 'payment_method_id' );
+		$mapped_legacy_method_id = 'sepa_debit' === $payment_method_id ? 'stripe_sepa' : ( 'stripe_' . $payment_method_id );
+		$is_enabled              = $request->get_param( 'is_enabled' );
+		$title                   = sanitize_text_field( $request->get_param( 'title' ) );
+		$description             = sanitize_text_field( $request->get_param( 'description' ) );
 
 		$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
 
-		foreach ( $payment_gateways as $gateway ) {
-			$gateway_id = str_replace( 'stripe_', '', $gateway->id );
-			if ( ! isset( $individual_payment_method_settings[ $gateway_id ] ) ) {
-				continue;
-			}
-
-			$gateway_settings = $individual_payment_method_settings[ $gateway_id ];
-
-			$name = sanitize_text_field( $gateway_settings['name'] );
-			$gateway->update_option( 'title', $name );
-
-			$description = sanitize_text_field( $gateway_settings['description'] );
-			$gateway->update_option( 'description', $description );
-
-			if ( method_exists( $gateway, 'update_unique_settings' ) ) {
-				$gateway->update_unique_settings( $request );
-			}
+		if ( ! isset( $payment_gateways[ $mapped_legacy_method_id ] ) ) {
+			return new WP_REST_Response( [ 'result' => 'payment method not found' ], 404 );
 		}
+
+		$payment_gateways[ $mapped_legacy_method_id ]->update_option( 'title', $title );
+		$payment_gateways[ $mapped_legacy_method_id ]->update_option( 'description', $description );
+
+		if ( $request->get_param( 'expiration' ) && method_exists( $payment_gateways[ $mapped_legacy_method_id ], 'update_unique_settings' ) ) {
+			$request->set_param( $mapped_legacy_method_id . '_expiration', $request->get_param( 'expiration' ) );
+			$payment_gateways[ $mapped_legacy_method_id ]->update_unique_settings( $request );
+		}
+
+		return new WP_REST_Response( [], 200 );
 	}
 }
