@@ -26,11 +26,10 @@ export function updateIsSavingSettings( isSaving, error ) {
 	};
 }
 
-export function updateIsCustomizingPaymentMethod( isCustomizing, error ) {
+export function updateIsCustomizingPaymentMethod( isCustomizingPaymentMethod ) {
 	return {
 		type: ACTION_TYPES.SET_IS_CUSTOMIZING_PAYMENT_METHOD,
-		isCustomizing,
-		error,
+		isCustomizingPaymentMethod,
 	};
 }
 
@@ -78,7 +77,7 @@ export function* saveIndividualPaymentMethodSettings(
 	}
 
 	try {
-		yield updateIsCustomizingPaymentMethod( true, null );
+		yield updateIsCustomizingPaymentMethod( true );
 
 		yield apiFetch( {
 			path: `${ NAMESPACE }/settings/payment_method`,
@@ -96,7 +95,7 @@ export function* saveIndividualPaymentMethodSettings(
 			__( 'Error saving payment method.', 'woocommerce-gateway-stripe' )
 		);
 	} finally {
-		yield updateIsCustomizingPaymentMethod( false, error );
+		yield updateIsCustomizingPaymentMethod( false );
 	}
 
 	return error === null;
