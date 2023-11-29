@@ -360,6 +360,44 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$response = $this->mock_gateway->process_payment( $order_id );
 
 		$this->assertEquals( 'success', $response['result'] );
+		$this->assertEquals( self::MOCK_RETURN_URL, $response['redirect'] );
+	}
+
+	/**
+	 * Test SCA/3DS checkout process_payment flow with deferred intent.
+	 */
+	public function test_process_payment_deferred_intent_with_required_action_returns_valid_response() {
+		$customer_id       = 'cus_mock';
+		$order             = WC_Helper_Order::create_order();
+		$order_id          = $order->get_id();
+
+		$mock_intent = (object) wp_parse_args(
+			[
+				'status' => 'requires_action',
+				'payment_method' => 'pm_mock',
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		// Set the appropriate POST flag to trigger a deferred intent request.
+		$_POST = [
+			'wc_stripe_selected_upe_payment_type' => 'card',
+			'wc-stripe-is-deferred-intent'        => '1',
+		];
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'create_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( $customer_id );
+
+		$response = $this->mock_gateway->process_payment( $order_id );
+
+		$this->assertEquals( 'success', $response['result'] );
 		$this->assertMatchesRegularExpression( "/#wc-stripe-confirm-pi:{$order_id}:{$mock_intent->client_secret}/", $response['redirect'] );
 	}
 
