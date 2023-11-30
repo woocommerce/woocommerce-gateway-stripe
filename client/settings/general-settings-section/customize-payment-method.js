@@ -20,9 +20,12 @@ const CustomizePaymentMethod = ( { method, onClose } ) => {
 		customizePaymentMethod,
 	} = useCustomizePaymentMethodSettings();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
-	const { name, description } = individualPaymentMethodSettings[ method ];
+	const { name, description, expiration } = individualPaymentMethodSettings[
+		method
+	];
 	const [ methodName, setMethodName ] = useState( name );
 	const [ methodDescription, setMethodDescription ] = useState( description );
+	const [ methodExpiration, setMethodExpiration ] = useState( expiration );
 
 	const onSave = async () => {
 		await customizePaymentMethod( {
@@ -30,6 +33,7 @@ const CustomizePaymentMethod = ( { method, onClose } ) => {
 			method,
 			name: methodName,
 			description: methodDescription,
+			expiration: methodExpiration,
 		} );
 		onClose();
 	};
@@ -56,6 +60,18 @@ const CustomizePaymentMethod = ( { method, onClose } ) => {
 					'woocommerce-gateway-stripe'
 				) }
 			/>
+			{ methodExpiration && (
+				<TextControl
+					label={ __( 'Expiration', 'woocommerce-gateway-stripe' ) }
+					value={ methodExpiration }
+					onChange={ setMethodExpiration }
+					disabled={ isCustomizing }
+					help={ __(
+						'Expiration in number of days for the voucher.',
+						'woocommerce-gateway-stripe'
+					) }
+				/>
+			) }
 			<ButtonWrapper>
 				<Button
 					variant="tertiary"

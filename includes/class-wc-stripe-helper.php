@@ -445,7 +445,8 @@ class WC_Stripe_Helper {
 			];
 
 			if ( method_exists( $payment_method, 'get_unique_settings' ) ) {
-				$settings = $payment_method->get_unique_settings( $settings );
+				$unique_settings        = $payment_method->get_unique_settings( [] );
+				$settings['expiration'] = $unique_settings[ $payment_method->id . '_expiration' ];
 			}
 
 			$payment_method_id = 'stripe_sepa' === $payment_method->id ? 'sepa_debit' : str_replace( 'stripe_', '', $payment_method->id );

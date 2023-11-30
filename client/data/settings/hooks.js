@@ -86,6 +86,7 @@ export const useCustomizePaymentMethodSettings = () => {
 					[ data.method ]: {
 						name: data.name,
 						description: data.description,
+						expiration: data.expiration,
 					},
 				},
 			} );

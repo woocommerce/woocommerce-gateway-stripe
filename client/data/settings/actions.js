@@ -87,6 +87,7 @@ export function* saveIndividualPaymentMethodSettings(
 				payment_method_id: paymentMethodData.method,
 				title: paymentMethodData.name,
 				description: paymentMethodData.description,
+				expiration: paymentMethodData.expiration,
 			},
 		} );
 	} catch ( e ) {
