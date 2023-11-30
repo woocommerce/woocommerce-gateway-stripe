@@ -2,14 +2,12 @@ import {
 	appendIsUsingDeferredIntentToForm,
 	appendPaymentMethodIdToForm,
 	getPaymentMethodTypes,
-	getStorageWithExpiration,
+	initializeUPEAppearance,
 	getStripeServerData,
 	getUpeSettings,
-	setStorageWithExpiration,
 	showErrorCheckout,
-	storageKeys,
 } from '../../stripe-utils';
-import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
+import { getFontRulesFromPage } from '../../styles/upe';
 
 const gatewayUPEComponents = {};
 
@@ -20,27 +18,6 @@ for ( const paymentMethodType in paymentMethodsConfig ) {
 		elements: null,
 		upeElement: null,
 	};
-}
-
-/**
- * Initializes the appearance of the payment element by retrieving the UPE configuration
- * from the API and saving the appearance if it doesn't exist. If the appearance already exists,
- * it is simply returned.
- *
- * @return {Object} The appearance object for the UPE.
- */
-function initializeAppearance() {
-	const themeName = getStripeServerData()?.theme_name;
-	const storageKey = `${ storageKeys.UPE_APPEARANCE }_${ themeName }`;
-	let appearance = getStorageWithExpiration( storageKey );
-
-	if ( ! appearance ) {
-		appearance = getAppearance();
-		const oneDayDuration = 24 * 60 * 60 * 1000;
-		setStorageWithExpiration( storageKey, appearance, oneDayDuration );
-	}
-
-	return appearance;
 }
 
 /**
@@ -94,7 +71,7 @@ function createStripePaymentElement( api, paymentMethodType = null ) {
 		amount,
 		paymentMethodCreation: 'manual',
 		paymentMethodTypes,
-		appearance: initializeAppearance(),
+		appearance: initializeUPEAppearance(),
 		fonts: getFontRulesFromPage(),
 	};
 

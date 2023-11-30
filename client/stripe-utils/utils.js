@@ -1,6 +1,7 @@
 /* global wc_stripe_upe_params */
 
 import { __ } from '@wordpress/i18n';
+import { getAppearance } from '../styles/upe';
 import { errorTypes, errorCodes } from './constants';
 
 /**
@@ -429,4 +430,25 @@ export const showErrorCheckout = ( errorMessage ) => {
 
 	jQuery.scroll_to_notices( $container );
 	jQuery( document.body ).trigger( 'checkout_error' );
+};
+
+/**
+ * Initializes the appearance of the payment element by retrieving the UPE configuration
+ * from the API and saving the appearance if it doesn't exist. If the appearance already exists,
+ * it is simply returned.
+ *
+ * @return {Object} The appearance object for the UPE.
+ */
+export const initializeUPEAppearance = () => {
+	const themeName = getStripeServerData()?.theme_name;
+	const storageKey = `${ storageKeys.UPE_APPEARANCE }_${ themeName }`;
+	let appearance = getStorageWithExpiration( storageKey );
+
+	if ( ! appearance ) {
+		appearance = getAppearance();
+		const oneDayDuration = 24 * 60 * 60 * 1000;
+		setStorageWithExpiration( storageKey, appearance, oneDayDuration );
+	}
+
+	return appearance;
 };
