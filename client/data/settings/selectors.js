@@ -22,7 +22,7 @@ export const getSavingError = ( state ) => {
 
 export const getIndividualPaymentMethodSettings = ( state ) => {
 	return (
-		getSettingsState( state ).data.individual_payment_method_settings ||
+		getSettingsState( state ).data?.individual_payment_method_settings ||
 		EMPTY_OBJ
 	);
 };
