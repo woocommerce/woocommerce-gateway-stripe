@@ -224,6 +224,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Mastercard credit card', $card_method->get_title( $mock_mastercard_details ) );
 		$this->assertTrue( $card_method->is_reusable() );
 		$this->assertEquals( 'card', $card_method->get_retrievable_type() );
+		$this->assertEquals(
+			'<strong>Test mode:</strong> use the test VISA card 4242424242424242 with any expiry date and CVC. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://stripe.com/docs/testing" target="_blank">here</a>.',
+			$card_method->get_testing_instructions()
+		);
 
 		$this->assertEquals( 'giropay', $giropay_method->get_id() );
 		$this->assertEquals( 'giropay', $giropay_method->get_label() );
@@ -231,6 +235,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Pay with giropay', $giropay_method->get_title( $mock_giropay_details ) );
 		$this->assertFalse( $giropay_method->is_reusable() );
 		$this->assertEquals( null, $giropay_method->get_retrievable_type() );
+		$this->assertEquals( '', $giropay_method->get_testing_instructions() );
 
 		$this->assertEquals( 'p24', $p24_method->get_id() );
 		$this->assertEquals( 'Przelewy24', $p24_method->get_label() );
@@ -238,6 +243,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Pay with Przelewy24', $p24_method->get_title( $mock_p24_details ) );
 		$this->assertFalse( $p24_method->is_reusable() );
 		$this->assertEquals( null, $p24_method->get_retrievable_type() );
+		$this->assertEquals( '', $p24_method->get_testing_instructions() );
 
 		$this->assertEquals( 'eps', $eps_method->get_id() );
 		$this->assertEquals( 'EPS', $eps_method->get_label() );
@@ -245,6 +251,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Pay with EPS', $eps_method->get_title( $mock_eps_details ) );
 		$this->assertFalse( $eps_method->is_reusable() );
 		$this->assertEquals( null, $eps_method->get_retrievable_type() );
+		$this->assertEquals( '', $eps_method->get_testing_instructions() );
 
 		$this->assertEquals( 'sepa_debit', $sepa_method->get_id() );
 		$this->assertEquals( 'SEPA Direct Debit', $sepa_method->get_label() );
@@ -252,6 +259,10 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Pay with SEPA Direct Debit', $sepa_method->get_title( $mock_sepa_details ) );
 		$this->assertTrue( $sepa_method->is_reusable() );
 		$this->assertEquals( 'sepa_debit', $sepa_method->get_retrievable_type() );
+		$this->assertEquals(
+			'<strong>Test mode:</strong> use the test account number AT611904300234573201. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed <a href="https://stripe.com/docs/testing?payment-method=sepa-direct-debit" target="_blank">here</a>.',
+			$sepa_method->get_testing_instructions()
+		);
 
 		$this->assertEquals( 'sofort', $sofort_method->get_id() );
 		$this->assertEquals( 'Sofort', $sofort_method->get_label() );
@@ -259,6 +270,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Pay with Sofort', $sofort_method->get_title( $mock_sofort_details ) );
 		$this->assertTrue( $sofort_method->is_reusable() );
 		$this->assertEquals( 'sepa_debit', $sofort_method->get_retrievable_type() );
+		$this->assertEquals( '', $sofort_method->get_testing_instructions() );
 
 		$this->assertEquals( 'bancontact', $bancontact_method->get_id() );
 		$this->assertEquals( 'Bancontact', $bancontact_method->get_label() );
@@ -266,6 +278,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Pay with Bancontact', $bancontact_method->get_title( $mock_bancontact_details ) );
 		$this->assertTrue( $bancontact_method->is_reusable() );
 		$this->assertEquals( 'sepa_debit', $bancontact_method->get_retrievable_type() );
+		$this->assertEquals( '', $bancontact_method->get_testing_instructions() );
 
 		$this->assertEquals( 'ideal', $ideal_method->get_id() );
 		$this->assertEquals( 'iDEAL', $ideal_method->get_label() );
@@ -273,6 +286,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Pay with iDEAL', $ideal_method->get_title( $mock_ideal_details ) );
 		$this->assertTrue( $ideal_method->is_reusable() );
 		$this->assertEquals( 'sepa_debit', $ideal_method->get_retrievable_type() );
+		$this->assertEquals( '', $ideal_method->get_testing_instructions() );
 
 		$this->assertEquals( 'boleto', $boleto_method->get_id() );
 		$this->assertEquals( 'Boleto', $boleto_method->get_label() );
@@ -280,6 +294,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Pay with Boleto', $boleto_method->get_title( $mock_boleto_details ) );
 		$this->assertFalse( $boleto_method->is_reusable() );
 		$this->assertEquals( null, $boleto_method->get_retrievable_type() );
+		$this->assertEquals( '', $boleto_method->get_testing_instructions() );
 
 		$this->assertEquals( 'oxxo', $oxxo_method->get_id() );
 		$this->assertEquals( 'OXXO', $oxxo_method->get_label() );
@@ -287,6 +302,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Pay with OXXO', $oxxo_method->get_title( $mock_oxxo_details ) );
 		$this->assertFalse( $oxxo_method->is_reusable() );
 		$this->assertEquals( null, $oxxo_method->get_retrievable_type() );
+		$this->assertEquals( '', $oxxo_method->get_testing_instructions() );
 	}
 
 	/**

@@ -343,4 +343,13 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	public function can_refund_via_stripe() {
 		return $this->can_refund;
 	}
+
+	/**
+	 * Returns testing credentials to be printed at checkout in test mode.
+	 *
+	 * @return string
+	 */
+	public function get_testing_instructions() {
+		return '';
+	}
 }
