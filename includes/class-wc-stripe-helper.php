@@ -681,6 +681,9 @@ class WC_Stripe_Helper {
 	/**
 	 * Checks if this page is a cart or checkout page.
 	 *
+	 * This function intentionally ignores checkout and cart blocks for backwards compatibility reasons.
+	 * If you need to check for the presence of the blocks, use has_block( 'woocommerce/cart' ) or has_block( 'woocommerce/checkout' ) instead.
+	 *
 	 * @since 5.2.3
 	 * @return boolean
 	 */
