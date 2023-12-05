@@ -316,6 +316,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['return_url']                       = $this->get_stripe_return_url();
 		$stripe_params['ajax_url']                         = WC_AJAX::get_endpoint( '%%endpoint%%' );
 		$stripe_params['theme_name']                       = get_option( 'stylesheet' );
+		$stripe_params['testMode']                         = $this->testmode;
 		$stripe_params['createPaymentIntentNonce']         = wp_create_nonce( 'wc_stripe_create_payment_intent_nonce' );
 		$stripe_params['updatePaymentIntentNonce']         = wp_create_nonce( 'wc_stripe_update_payment_intent_nonce' );
 		$stripe_params['createSetupIntentNonce']           = wp_create_nonce( 'wc_stripe_create_setup_intent_nonce' );
@@ -383,6 +384,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		foreach ( $enabled_payment_methods as $payment_method ) {
 			$settings[ $payment_method ] = [
 				'isReusable' => $this->payment_methods[ $payment_method ]->is_reusable(),
+				'title' => $this->payment_methods[ $payment_method ]->get_title(),
+				'testingInstructions' => $this->payment_methods[ $payment_method ]->get_testing_instructions(),
 			];
 		}
 
@@ -691,9 +694,22 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				return [ 'result' => 'failure' ];
 			}
 
+			$redirect = $this->get_return_url( $order );
+
+			// If the payment intent requires action, respond with the pi and client secret so it can confirmed on checkout.
+			if ( 'requires_action' === $payment_intent->status ) {
+				$redirect = sprintf(
+					'#wc-stripe-confirm-%s:%s:%s:%s',
+					$payment_needed ? 'pi' : 'si',
+					$order_id,
+					$payment_intent->client_secret,
+					wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
+				);
+			}
+
 			return [
 				'result'   => 'success',
-				'redirect' => $this->get_return_url( $order ),
+				'redirect' => $redirect,
 			];
 		} catch ( WC_Stripe_Exception $e ) {
 			$shopper_error_message = sprintf(

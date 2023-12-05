@@ -37,4 +37,20 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 	public function get_retrievable_type() {
 		return $this->get_id();
 	}
+
+	/**
+	 * Returns testing credentials to be printed at checkout in test mode.
+	 *
+	 * @return string
+	 */
+	public function get_testing_instructions() {
+		return sprintf(
+			/* translators: 1) HTML strong open tag 2) HTML strong closing tag 3) HTML anchor open tag 2) HTML anchor closing tag */
+			esc_html__( '%1$sTest mode:%2$s use the test account number AT611904300234573201. Other payment methods may redirect to a Stripe test page to authorize payment. More test card numbers are listed %3$shere%4$s.', 'woocommerce-gateway-stripe' ),
+			'<strong>',
+			'</strong>',
+			'<a href="https://stripe.com/docs/testing?payment-method=sepa-direct-debit" target="_blank">',
+			'</a>'
+		);
+	}
 }
