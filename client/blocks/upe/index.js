@@ -7,7 +7,6 @@ import { SavedTokenHandler } from './saved-token-handler';
 import paymentRequestPaymentMethod from 'wcstripe/blocks/payment-request';
 import WCStripeAPI from 'wcstripe/api';
 import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
-import { getStripeServerData } from 'wcstripe/stripe-utils';
 import './styles.scss';
 
 // Register Stripe UPE.
@@ -26,7 +25,7 @@ const upeMethods = {
 };
 
 const api = new WCStripeAPI(
-	getStripeServerData(),
+	getBlocksConfiguration(),
 	// A promise-based interface to jQuery.post.
 	( url, args ) => {
 		return new Promise( ( resolve, reject ) => {
