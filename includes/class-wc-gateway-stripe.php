@@ -659,11 +659,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$available_gateways      = [];
 		$gateway_orders          = (array) get_option( 'woocommerce_gateway_order' );
-		$legacy_enabled_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
+		$legacy_enabled_gateways = WC_Stripe_Helper::get_legacy_enabled_payment_methods();
 
 		foreach ( $gateway_orders as $name => $order ) {
 			if ( in_array( $name, array_keys( $gateways ), true ) ) {
 				$available_gateways[ $name ] = $gateways[ $name ];
+				unset( $gateways[ $name ] );
 			} elseif ( in_array( $name, array_keys( $legacy_enabled_gateways ), true ) ) {
 				$gateway = $legacy_enabled_gateways[ $name ];
 				// This follows the same logic as `get_available_payment_gateways()` function in `woocommerce/includes/class-wc-payment-gateways.php`.
@@ -679,6 +680,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Add any remaining enabled gateways in case they were not present in `woocommerce_gateway_order` option.
+		$available_gateways = array_merge( $available_gateways, $gateways );
+
+		// Add any remaining legacy enabled gateways in case they were not present in `woocommerce_gateway_order` option.
 		foreach ( $legacy_enabled_gateways as $name => $gateway ) {
 			// This follows the same logic as `get_available_payment_gateways()` function in `woocommerce/includes/class-wc-payment-gateways.php`.
 			if ( $gateway->is_available() ) {
