@@ -864,7 +864,7 @@ class WC_Stripe_Intent_Controller {
 	 *
 	 * @param string $payment_method The payment method ID (pm_).
 	 *
-	 * @throws Exception If the create intent call returns with an error.
+	 * @throws WC_Stripe_Exception If the create intent call returns with an error.
 	 *
 	 * @return array
 	 */
@@ -884,7 +884,7 @@ class WC_Stripe_Intent_Controller {
 		);
 
 		if ( ! empty( $setup_intent->error ) ) {
-			throw new Exception( $setup_intent->error->message );
+			throw new WC_Stripe_Exception( $setup_intent->error->message );
 		}
 
 		return $setup_intent;
@@ -900,13 +900,13 @@ class WC_Stripe_Intent_Controller {
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_and_confirm_setup_intent_nonce', false, false );
 
 			if ( ! $is_nonce_valid ) {
-				throw new Exception( __( 'Unable to verify your request. Please refresh the page and try again.', 'woocommerce-gateway-stripe' ) );
+				throw new WC_Stripe_Exception( __( 'Unable to verify your request. Please refresh the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			$payment_method = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) );
 
 			if ( ! $payment_method ) {
-				throw new Exception( __( "We're not able to add this payment method. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
 
 			$setup_intent = $this->create_and_confirm_setup_intent( $payment_method );
@@ -918,7 +918,7 @@ class WC_Stripe_Intent_Controller {
 				],
 				200
 			);
-		} catch ( Exception $e ) {
+		} catch ( WC_Stripe_Exception $e ) {
 			// Send back error so it can be displayed to the customer.
 			wp_send_json_error(
 				[
