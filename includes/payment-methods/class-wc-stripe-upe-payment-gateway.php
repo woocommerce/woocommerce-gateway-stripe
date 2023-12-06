@@ -685,7 +685,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$payment_intent = $this->intent_controller->create_and_confirm_payment_intent( $payment_information );
 
 				// Use the last charge within the intent to proceed.
-				$this->process_response( end( $payment_intent->charges->data ), $order );
+				$charge = end( $payment_intent->charges->data );
+
+				// Only process the response if a charge exists. Otherwise, the payment intent still requires action like 3DS and will be processed later.
+				if ( $charge ) {
+					$this->process_response( $charge, $order );
+				}
 
 				// Set the selected UPE payment method type title in the WC order.
 				$this->set_payment_method_title_for_order( $order, $payment_information['selected_payment_type'] );
