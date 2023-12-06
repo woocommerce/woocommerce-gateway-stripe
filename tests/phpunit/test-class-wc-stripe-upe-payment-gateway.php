@@ -382,6 +382,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					],
 				],
 				'payment_method' => 'pm_mock',
+				'charges' => [
+					'total_count' => 0, // Intents requiring SCA verification respond with no charges.
+					'data'        => [],
+				],
 			],
 			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
 		);
