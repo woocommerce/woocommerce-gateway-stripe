@@ -913,6 +913,7 @@ class WC_Stripe_Intent_Controller {
 
 			wp_send_json_success(
 				[
+					'status'        => $setup_intent->status,
 					'id'            => $setup_intent->id,
 					'client_secret' => $setup_intent->client_secret,
 				],
