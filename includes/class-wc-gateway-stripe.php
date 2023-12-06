@@ -659,7 +659,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		$available_gateways      = [];
 		$gateway_orders          = (array) get_option( 'woocommerce_gateway_order' );
-		$legacy_enabled_gateways = WC_Stripe_Helper::get_legacy_enabled_payment_methods();
+		$legacy_enabled_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
 
 		foreach ( $gateway_orders as $name => $order ) {
 			if ( in_array( $name, array_keys( $gateways ), true ) ) {
