@@ -896,6 +896,8 @@ class WC_Stripe_Intent_Controller {
 	 * @throws Exception If the AJAX request is missing the required data or if there's error creating and confirming the setup intent.
 	 */
 	public function create_and_confirm_setup_intent_ajax() {
+		$setup_intent = null;
+
 		try {
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_and_confirm_setup_intent_nonce', false, false );
 
@@ -911,6 +913,10 @@ class WC_Stripe_Intent_Controller {
 
 			$setup_intent = $this->create_and_confirm_setup_intent( $payment_method );
 
+			if ( empty( $setup_intent->status ) || ! in_array( $setup_intent->status, [ 'succeeded', 'processing', 'requires_action' ], true ) ) {
+				throw new WC_Stripe_Exception( __( 'There was an error adding this payment method. Please refresh the page and try again', 'woocommerce-gateway-stripe' ) );
+			}
+
 			wp_send_json_success(
 				[
 					'status'        => $setup_intent->status,
@@ -920,6 +926,11 @@ class WC_Stripe_Intent_Controller {
 				200
 			);
 		} catch ( WC_Stripe_Exception $e ) {
+			if ( $setup_intent && ! empty( $setup_intent->last_setup_error ) ) {
+				WC_Stripe_Logger::log( 'Failed to create and confirm setup intent.' );
+				WC_Stripe_Logger::log( 'Response: ' . print_r( $setup_intent, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
+			}
+
 			// Send back error so it can be displayed to the customer.
 			wp_send_json_error(
 				[
