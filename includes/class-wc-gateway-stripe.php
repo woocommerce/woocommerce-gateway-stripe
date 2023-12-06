@@ -113,7 +113,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// Title shows the count of enabled payment methods in settings page only.
 		if ( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] ) {
-			$enabled_payment_methods_count = count( WC_Stripe_Helper::get_legacy_enabled_payment_methods( 'id' ) );
+			$enabled_payment_methods_count = count( WC_Stripe_Helper::get_legacy_enabled_payment_methods() );
 			$this->title                   = $enabled_payment_methods_count ?
 				/* translators: $1. Count of enabled payment methods. */
 				sprintf( _n( '%d payment method', '%d payment methods', $enabled_payment_methods_count, 'woocommerce-gateway-stripe' ), $enabled_payment_methods_count )
