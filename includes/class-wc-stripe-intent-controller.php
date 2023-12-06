@@ -902,19 +902,19 @@ class WC_Stripe_Intent_Controller {
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_and_confirm_setup_intent_nonce', false, false );
 
 			if ( ! $is_nonce_valid ) {
-				throw new WC_Stripe_Exception( __( 'Unable to verify your request. Please refresh the page and try again.', 'woocommerce-gateway-stripe' ) );
+				throw new WC_Stripe_Exception( 'Invalid nonce.', __( 'Unable to verify your request. Please refresh the page and try again.', 'woocommerce-gateway-stripe' ) );
 			}
 
 			$payment_method = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) );
 
 			if ( ! $payment_method ) {
-				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+				throw new WC_Stripe_Exception( 'Payment method missing from request.', __( "We're not able to add this payment method. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
 
 			$setup_intent = $this->create_and_confirm_setup_intent( $payment_method );
 
 			if ( empty( $setup_intent->status ) || ! in_array( $setup_intent->status, [ 'succeeded', 'processing', 'requires_action' ], true ) ) {
-				throw new WC_Stripe_Exception( __( 'There was an error adding this payment method. Please refresh the page and try again', 'woocommerce-gateway-stripe' ) );
+				throw new WC_Stripe_Exception( 'Response from Stripe: ' . print_r( $setup_intent, true ), __( 'There was an error adding this payment method. Please refresh the page and try again', 'woocommerce-gateway-stripe' ) );
 			}
 
 			wp_send_json_success(
@@ -926,16 +926,13 @@ class WC_Stripe_Intent_Controller {
 				200
 			);
 		} catch ( WC_Stripe_Exception $e ) {
-			if ( $setup_intent && ! empty( $setup_intent->last_setup_error ) ) {
-				WC_Stripe_Logger::log( 'Failed to create and confirm setup intent.' );
-				WC_Stripe_Logger::log( 'Response: ' . print_r( $setup_intent, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
-			}
+			WC_Stripe_Logger::log( 'Failed to create and confirm setup intent. ' . $e->getMessage() );
 
 			// Send back error so it can be displayed to the customer.
 			wp_send_json_error(
 				[
 					'error' => [
-						'message' => $e->getMessage(),
+						'message' => $e->getLocalizedMessage(),
 					],
 				]
 			);
