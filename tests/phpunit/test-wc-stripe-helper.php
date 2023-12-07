@@ -154,6 +154,24 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 	public function test_get_legacy_available_payment_method_ids() {
 		$result = WC_Stripe_Helper::get_legacy_available_payment_method_ids();
 		$this->assertEquals( [ 'card', 'bancontact', 'eps', 'giropay', 'ideal', 'p24', 'sepa_debit', 'boleto', 'oxxo' ], $result );
+
+		update_option(
+			'woocommerce_gateway_order',
+			[
+				'randon_gateway'         => 0, // This should be ignored.
+				'bancontact'             => 1,
+				'eps'                    => 2,
+				'giropay'                => 3,
+				'ideal'                  => 4,
+				'card'                   => 5,
+				'another_random_gateway' => 6, // This should be ignored.
+				'p24'                    => 7,
+				'sepa_debit'             => 8,
+			]
+		);
+		$result = WC_Stripe_Helper::get_legacy_available_payment_method_ids();
+		$this->assertEquals( [ 'bancontact', 'eps', 'giropay', 'ideal', 'card', 'p24', 'sepa_debit', 'boleto', 'oxxo' ], $result );
+
 	}
 
 	public function test_get_legacy_enabled_payment_methods() {
