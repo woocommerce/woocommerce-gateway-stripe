@@ -338,11 +338,11 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * List of legacy payment methods.
+	 * List of legacy payment method classes.
 	 *
 	 * @return array
 	 */
-	public static function get_legacy_payment_methods() {
+	public static function get_legacy_payment_method_classes() {
 		$payment_method_classes = [
 			WC_Gateway_Stripe_Bancontact::class,
 			WC_Gateway_Stripe_EPS::class,
@@ -362,6 +362,17 @@ class WC_Stripe_Helper {
 			$payment_method_classes[] = WC_Gateway_Stripe_Sofort::class;
 		}
 
+		return $payment_method_classes;
+	}
+
+	/**
+	 * List of legacy payment methods.
+	 *
+	 * @return array
+	 */
+	public static function get_legacy_payment_methods() {
+		$payment_method_classes = self::get_legacy_payment_method_classes();
+
 		$payment_methods = [];
 
 		foreach ( $payment_method_classes as $payment_method_class ) {
@@ -378,13 +389,13 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_legacy_available_payment_method_ids() {
-		$payment_methods = self::get_legacy_payment_methods();
+		$payment_method_classes = self::get_legacy_payment_method_classes();
 
 		// In legacy mode (when UPE is disabled), Stripe refers to card as payment method.
 		$available_payment_method_ids = [ 'card' ];
 
-		foreach ( $payment_methods as $payment_method ) {
-			$payment_method_id              = 'stripe_sepa' === $payment_method->id ? 'sepa_debit' : str_replace( 'stripe_', '', $payment_method->id );
+		foreach ( $payment_method_classes as $payment_method_class ) {
+			$payment_method_id              = 'stripe_sepa' === $payment_method_class::ID ? 'sepa_debit' : str_replace( 'stripe_', '', $payment_method_class::ID );
 			$available_payment_method_ids[] = $payment_method_id;
 		}
 
@@ -396,30 +407,42 @@ class WC_Stripe_Helper {
 	 *
 	 * @return array
 	 */
-	public static function get_legacy_enabled_payment_methods( $field = null ) {
-		$stripe_settings   = get_option( 'woocommerce_stripe_settings', [] );
-		$is_stripe_enabled = isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
-		$payment_methods   = self::get_legacy_payment_methods();
+	public static function get_legacy_enabled_payment_methods() {
+		$payment_methods = self::get_legacy_payment_methods();
 
-		// In legacy mode (when UPE is disabled), Stripe refers to card as payment method.
-		$enabled_payment_method_ids = $is_stripe_enabled ? [ 'card' ] : [];
-		$enabled_payment_methods    = [];
+		$enabled_payment_methods = [];
 
 		foreach ( $payment_methods as $payment_method ) {
 			if ( ! $payment_method->is_enabled() ) {
 				continue;
 			}
 			$enabled_payment_methods[ $payment_method->id ] = $payment_method;
-
-			$payment_method_id            = 'stripe_sepa' === $payment_method->id ? 'sepa_debit' : str_replace( 'stripe_', '', $payment_method->id );
-			$enabled_payment_method_ids[] = $payment_method_id;
-		}
-
-		if ( 'id' === $field ) {
-			return $enabled_payment_method_ids;
 		}
 
 		return $enabled_payment_methods;
+	}
+
+	/**
+	 * List of enabled legacy payment method ids.
+	 *
+	 * @return array
+	 */
+	public static function get_legacy_enabled_payment_method_ids() {
+		$stripe_settings   = get_option( 'woocommerce_stripe_settings', [] );
+		$is_stripe_enabled = isset( $stripe_settings['enabled'] ) && 'yes' === $stripe_settings['enabled'];
+
+		$enabled_payment_methods        = self::get_legacy_enabled_payment_methods();
+		$mapped_enabled_payment_methods = array_map(
+			function( $payment_method ) {
+				return 'stripe_sepa' === $payment_method ? 'sepa_debit' : str_replace( 'stripe_', '', $payment_method );
+			},
+			array_keys( $enabled_payment_methods )
+		);
+
+		// In legacy mode (when UPE is disabled), Stripe refers to card as payment method.
+		$enabled_payment_method_ids = $is_stripe_enabled ? [ 'card' ] : [];
+
+		return array_merge( $enabled_payment_method_ids, $mapped_enabled_payment_methods );
 	}
 
 	/**

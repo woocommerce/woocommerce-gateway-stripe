@@ -171,8 +171,22 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 
 		$result = WC_Stripe_Helper::get_legacy_enabled_payment_methods();
 		$this->assertEquals( [ 'stripe_eps', 'stripe_giropay', 'stripe_p24' ], array_keys( $result ) );
+	}
 
-		$result = WC_Stripe_Helper::get_legacy_enabled_payment_methods( 'id' );
+	public function test_get_legacy_enabled_payment_method_ids() {
+		// Enable Stripe, EPS, Giropay and P24 LPM gateways.
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'enabled' => 'yes',
+				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no',
+			]
+		);
+		update_option( 'woocommerce_stripe_eps_settings', [ 'enabled' => 'yes' ] );
+		update_option( 'woocommerce_stripe_giropay_settings', [ 'enabled' => 'yes' ] );
+		update_option( 'woocommerce_stripe_p24_settings', [ 'enabled' => 'yes' ] );
+
+		$result = WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
 		$this->assertEquals( [ 'card', 'eps', 'giropay', 'p24' ], $result );
 	}
 
