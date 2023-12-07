@@ -278,67 +278,67 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'foobar', $this->get_gateway()->get_option( 'short_statement_descriptor' ) );
 	}
 
-	// public function test_get_settings_returns_available_payment_method_ids() {
-	// 	//link is available only in US
-	// 	WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
-	// 												->disableOriginalConstructor()
-	// 												->setMethods(
-	// 													[
-	// 														'get_cached_account_data',
-	// 													]
-	// 												)
-	// 												->getMock();
+	public function test_get_settings_returns_available_payment_method_ids() {
+		//link is available only in US
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+													->disableOriginalConstructor()
+													->setMethods(
+														[
+															'get_cached_account_data',
+														]
+													)
+													->getMock();
 
-	// 	WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
-	// 		[
-	// 			'country' => 'US',
-	// 		]
-	// 	);
-	// 	$response = $this->rest_get_settings();
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
+			[
+				'country' => 'US',
+			]
+		);
+		$response = $this->rest_get_settings();
 
-	// 	$expected_method_ids = WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS;
-	// 	$expected_method_ids = array_map(
-	// 		function ( $method_class ) {
-	// 			return $method_class::STRIPE_ID;
-	// 		},
-	// 		$expected_method_ids
-	// 	);
+		$expected_method_ids = WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS;
+		$expected_method_ids = array_map(
+			function ( $method_class ) {
+				return $method_class::STRIPE_ID;
+			},
+			$expected_method_ids
+		);
 
-	// 	$available_method_ids = $response->get_data()['available_payment_method_ids'];
+		$available_method_ids = $response->get_data()['available_payment_method_ids'];
 
-	// 	$this->assertEquals(
-	// 		$expected_method_ids,
-	// 		$available_method_ids
-	// 	);
-	// }
+		$this->assertEquals(
+			$expected_method_ids,
+			$available_method_ids
+		);
+	}
 
-	// public function test_get_settings_fails_if_user_cannot_manage_woocommerce() {
-	// 	$cb = $this->create_can_manage_woocommerce_cap_override( false );
-	// 	add_filter( 'user_has_cap', $cb );
-	// 	$response = $this->rest_get_settings();
-	// 	$this->assertEquals( 403, $response->get_status() );
-	// 	remove_filter( 'user_has_cap', $cb );
+	public function test_get_settings_fails_if_user_cannot_manage_woocommerce() {
+		$cb = $this->create_can_manage_woocommerce_cap_override( false );
+		add_filter( 'user_has_cap', $cb );
+		$response = $this->rest_get_settings();
+		$this->assertEquals( 403, $response->get_status() );
+		remove_filter( 'user_has_cap', $cb );
 
-	// 	$cb = $this->create_can_manage_woocommerce_cap_override( true );
-	// 	add_filter( 'user_has_cap', $cb );
-	// 	$response = $this->rest_get_settings();
-	// 	$this->assertEquals( 200, $response->get_status() );
-	// 	remove_filter( 'user_has_cap', $cb );
-	// }
+		$cb = $this->create_can_manage_woocommerce_cap_override( true );
+		add_filter( 'user_has_cap', $cb );
+		$response = $this->rest_get_settings();
+		$this->assertEquals( 200, $response->get_status() );
+		remove_filter( 'user_has_cap', $cb );
+	}
 
-	// public function test_update_settings_fails_if_user_cannot_manage_woocommerce() {
-	// 	$cb = $this->create_can_manage_woocommerce_cap_override( false );
-	// 	add_filter( 'user_has_cap', $cb );
-	// 	$response = rest_do_request( new WP_REST_Request( 'POST', self::SETTINGS_ROUTE ) );
-	// 	$this->assertEquals( 403, $response->get_status() );
-	// 	remove_filter( 'user_has_cap', $cb );
+	public function test_update_settings_fails_if_user_cannot_manage_woocommerce() {
+		$cb = $this->create_can_manage_woocommerce_cap_override( false );
+		add_filter( 'user_has_cap', $cb );
+		$response = rest_do_request( new WP_REST_Request( 'POST', self::SETTINGS_ROUTE ) );
+		$this->assertEquals( 403, $response->get_status() );
+		remove_filter( 'user_has_cap', $cb );
 
-	// 	$cb = $this->create_can_manage_woocommerce_cap_override( true );
-	// 	add_filter( 'user_has_cap', $cb );
-	// 	$response = rest_do_request( new WP_REST_Request( 'POST', self::SETTINGS_ROUTE ) );
-	// 	$this->assertEquals( 200, $response->get_status() );
-	// 	remove_filter( 'user_has_cap', $cb );
-	// }
+		$cb = $this->create_can_manage_woocommerce_cap_override( true );
+		add_filter( 'user_has_cap', $cb );
+		$response = rest_do_request( new WP_REST_Request( 'POST', self::SETTINGS_ROUTE ) );
+		$this->assertEquals( 200, $response->get_status() );
+		remove_filter( 'user_has_cap', $cb );
+	}
 
 	public function boolean_field_provider() {
 		return [

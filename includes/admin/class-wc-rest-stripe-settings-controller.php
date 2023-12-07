@@ -255,7 +255,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'description'                           => $this->gateway->get_validated_option( 'description' ),
 
 				/* Settings > Payments accepted on checkout */
-				'enabled_payment_method_ids'            => $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids() : WC_Stripe_Helper::get_legacy_enabled_payment_methods( 'id' ),
+				'enabled_payment_method_ids'            => $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids() : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids(),
 				'available_payment_method_ids'          => $is_upe_enabled ? $this->gateway->get_upe_available_payment_methods() : WC_Stripe_Helper::get_legacy_available_payment_method_ids(),
 				'individual_payment_method_settings'    => $is_upe_enabled ? [] : WC_Stripe_Helper::get_legacy_individual_payment_method_settings(),
 
@@ -586,7 +586,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		if ( ! $is_upe_enabled ) {
-			$currently_enabled_payment_method_ids = WC_Stripe_Helper::get_legacy_enabled_payment_methods( 'id' );
+			$currently_enabled_payment_method_ids = WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
 			$payment_gateways                     = WC_Stripe_Helper::get_legacy_payment_methods();
 
 			foreach ( $payment_gateways as $gateway ) {
