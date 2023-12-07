@@ -467,8 +467,8 @@ class WC_Stripe_Helper {
 				'description' => $payment_method->get_option( 'description' ),
 			];
 
-			if ( method_exists( $payment_method, 'get_unique_settings' ) ) {
-				$unique_settings        = $payment_method->get_unique_settings( [] );
+			$unique_settings = $payment_method->get_unique_settings();
+			if ( isset( $unique_settings[ $payment_method->id . '_expiration' ] ) ) {
 				$settings['expiration'] = $unique_settings[ $payment_method->id . '_expiration' ];
 			}
 
