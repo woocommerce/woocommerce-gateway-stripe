@@ -353,7 +353,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		$ordered_payment_method_ids = array_map(
 			function ( $id ) {
-				return 'card' === $id ? 'stripe' : 'stripe_' . $id;
+				if ( 'card' === $id ) {
+					return 'stripe';
+				} elseif ( 'sepa_debit' === $id ) {
+					return 'stripe_sepa';
+				}
+				return 'stripe_' . $id;
 			},
 			$ordered_payment_method_ids
 		);
