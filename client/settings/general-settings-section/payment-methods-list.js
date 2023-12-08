@@ -1,5 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import React, { useContext, useState, useEffect, useRef } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
 import { Button } from '@wordpress/components';
@@ -156,7 +156,7 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const [ customizationStatus, setCustomizationStatus ] = useState( {} );
-	const upePaymentMethods = useGetAvailablePaymentMethodIds();
+	const availablePaymentMethodIds = useGetAvailablePaymentMethodIds();
 	const capabilities = useGetCapabilities();
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
@@ -164,15 +164,16 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 		orderedPaymentMethodIds,
 		setOrderedPaymentMethodIds,
 	} = useGetOrderedPaymentMethodIds();
-	const initialOrderedPaymentMethods = useRef( null );
 
 	useEffect( () => {
-		// Hide payment methods that are not part of the account capabilities.
-		const availablePaymentMethods = upePaymentMethods
-			.filter( ( method ) =>
-				capabilities.hasOwnProperty( `${ method }_payments` )
-			)
-			.filter( ( id ) => id !== 'link' );
+		// Hide payment methods that are not part of the account capabilities if UPE is enabled.
+		const availablePaymentMethods = isUpeEnabled
+			? availablePaymentMethodIds
+					.filter( ( method ) =>
+						capabilities.hasOwnProperty( `${ method }_payments` )
+					)
+					.filter( ( id ) => id !== 'link' )
+			: availablePaymentMethodIds;
 
 		// Remove Sofort if it's not enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
 		// Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
@@ -185,13 +186,16 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 			);
 		}
 
-		setOrderedPaymentMethodIds( availablePaymentMethods );
-		initialOrderedPaymentMethods.current = availablePaymentMethods;
+		if ( orderedPaymentMethodIds.length === 0 ) {
+			setOrderedPaymentMethodIds( availablePaymentMethods );
+		}
 	}, [
 		capabilities,
 		enabledPaymentMethodIds,
+		isUpeEnabled,
+		orderedPaymentMethodIds,
 		setOrderedPaymentMethodIds,
-		upePaymentMethods,
+		availablePaymentMethodIds,
 	] );
 
 	const onReorder = ( newOrderedPaymentMethodIds ) => {
