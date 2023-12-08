@@ -385,48 +385,43 @@ class WC_Stripe_Helper {
 
 	/**
 	 * List of available legacy payment method ids.
-	 * It returns the payment method ids in order of the saved order in the `woocommerce_gateway_order` option.
-	 * If a payment method id is not found in the `woocommerce_gateway_order` option, it will be added to the end of the list.
+	 * It returns the order saved in the `stripe_legacy_method_order` option in Stripe settings.
+	 * If the `stripe_legacy_method_order` option is not set, it returns the default order.
 	 *
 	 * The ids are mapped to the corresponding equivalent UPE method ids for rendeing on the frontend.
 	 *
 	 * @return array
 	 */
 	public static function get_legacy_available_payment_method_ids() {
-		$gateway_orders = (array) get_option( 'woocommerce_gateway_order' );
+		$stripe_settings            = get_option( 'woocommerce_stripe_settings', [] );
+		$ordered_payment_method_ids = isset( $stripe_settings['stripe_legacy_method_order'] ) ? $stripe_settings['stripe_legacy_method_order'] : [];
 
-		$payment_method_classes = self::get_legacy_payment_method_classes();
-		$payment_method_ids     = array_map(
-			function( $payment_method_class ) {
-				return 'stripe_sepa' === $payment_method_class::ID ? 'sepa_debit' : str_replace( 'stripe_', '', $payment_method_class::ID );
-			},
-			$payment_method_classes
-		);
-		// Add `card` to the list as the main Stripe gateway.
-		$payment_method_ids = array_merge( [ 'card' ], $payment_method_ids );
-
-		$ordered_available_payment_method_ids = [];
-		foreach ( $gateway_orders as $name => $order ) {
-			$gateway_name = 'stripe_sepa' === $name ? 'sepa_debit' : str_replace( 'stripe_', '', $name );
-			// In legacy mode (when UPE is disabled), Stripe refers to card as payment method.
-			if ( 'stripe' === $gateway_name ) {
-				$ordered_available_payment_method_ids[] = 'card';
-				// Remove this payment method id from the list. Finally the array will only contain the rest of the
-				// payment methods which do not have a saved order in the `woocommerce_gateway_order` option.
-				$payment_method_ids = array_diff( $payment_method_ids, [ 'card' ] );
-			}
-
-			if ( in_array( $gateway_name, $payment_method_ids, true ) ) {
-				$ordered_available_payment_method_ids[] = $gateway_name;
-				// Remove this payment method id from the list. Finally the array will only contain the rest of the
-				// payment methods which do not have a saved order in the `woocommerce_gateway_order` option.
-				$payment_method_ids = array_diff( $payment_method_ids, [ $gateway_name ] );
-			}
+		// If the legacy method order is not set, return the default order.
+		if ( ! empty( $ordered_payment_method_ids ) ) {
+			$payment_method_ids = array_map(
+				function( $payment_method_class ) {
+					if ( 'stripe' === $payment_method_class ) {
+						return 'card';
+					} elseif ( 'stripe_sepa' === $payment_method_class ) {
+						return 'sepa_debit';
+					} else {
+						return str_replace( 'stripe_', '', $payment_method_class );
+					}
+				},
+				$ordered_payment_method_ids
+			);
+		} else {
+			$payment_method_classes = self::get_legacy_payment_method_classes();
+			$payment_method_ids     = array_map(
+				function( $payment_method_class ) {
+					return 'stripe_sepa' === $payment_method_class::ID ? 'sepa_debit' : str_replace( 'stripe_', '', $payment_method_class::ID );
+				},
+				$payment_method_classes
+			);
+			$payment_method_ids     = array_merge( [ 'card' ], $payment_method_ids );
 		}
 
-		// Add the rest of the payment methods to the end of the list which
-		// do not have a saved order in the `woocommerce_gateway_order` option.
-		return array_merge( $ordered_available_payment_method_ids, $payment_method_ids );
+		return $payment_method_ids;
 	}
 
 	/**
