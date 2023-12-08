@@ -19,3 +19,13 @@ export const isSavingSettings = ( state ) => {
 export const getSavingError = ( state ) => {
 	return getSettingsState( state ).savingError;
 };
+
+export const getOrderedPaymentMethodIds = ( state ) => {
+	return (
+		getSettingsState( state ).data?.ordered_payment_method_ids || EMPTY_OBJ
+	);
+};
+
+export const isSavingOrderedPaymentMethodIds = ( state ) => {
+	return getSettingsState( state ).isSavingOrderedPaymentMethodIds || false;
+};

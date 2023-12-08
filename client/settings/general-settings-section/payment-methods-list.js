@@ -13,6 +13,7 @@ import PaymentMethodCheckbox from './payment-method-checkbox';
 import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
+	useGetOrderedPaymentMethodIds,
 	useManualCapture,
 } from 'wcstripe/data';
 import { useGetCapabilities } from 'wcstripe/data/account';
@@ -159,7 +160,10 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 	const capabilities = useGetCapabilities();
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ enabledPaymentMethodIds ] = useEnabledPaymentMethodIds();
-	const [ paymentMethods, setPaymentMethods ] = useState( [] );
+	const {
+		orderedPaymentMethodIds,
+		setOrderedPaymentMethodIds,
+	} = useGetOrderedPaymentMethodIds();
 	const initialOrderedPaymentMethods = useRef( null );
 
 	useEffect( () => {
@@ -181,22 +185,26 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 			);
 		}
 
-		setPaymentMethods( availablePaymentMethods );
+		setOrderedPaymentMethodIds( availablePaymentMethods );
 		initialOrderedPaymentMethods.current = availablePaymentMethods;
-	}, [ capabilities, enabledPaymentMethodIds, upePaymentMethods ] );
+	}, [
+		capabilities,
+		enabledPaymentMethodIds,
+		setOrderedPaymentMethodIds,
+		upePaymentMethods,
+	] );
 
-	const onReorder = ( newOrder ) => {
-		console.log( 'newOrder is', newOrder );
-		setPaymentMethods( newOrder );
+	const onReorder = ( newOrderedPaymentMethodIds ) => {
+		setOrderedPaymentMethodIds( newOrderedPaymentMethodIds );
 	};
 
 	return isChangingDisplayOrder ? (
 		<DraggableList
 			axis="y"
-			values={ paymentMethods }
+			values={ orderedPaymentMethodIds }
 			onReorder={ onReorder }
 		>
-			{ paymentMethods.map( ( method ) => {
+			{ orderedPaymentMethodIds.map( ( method ) => {
 				const {
 					Icon,
 					label,
@@ -235,7 +243,7 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 		</DraggableList>
 	) : (
 		<List>
-			{ paymentMethods.map( ( method ) => {
+			{ orderedPaymentMethodIds.map( ( method ) => {
 				const {
 					Icon,
 					label,

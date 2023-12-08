@@ -169,6 +169,26 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				],
 			]
 		);
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/payment_method_order',
+			[
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => [ $this, 'update_payment_methods_order' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+				'args'                => [
+					'ordered_payment_method_ids' => [
+						'description'       => __( 'The order for the payment method IDs to be saved.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'array',
+						'items'             => [
+							'type' => 'string',
+							'enum' => WC_Stripe_Helper::get_legacy_available_payment_method_ids(),
+						],
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+				],
+			]
+		);
 	}
 
 	/**
@@ -313,6 +333,23 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		/* Settings > Advanced settings */
 		$this->update_is_debug_log_enabled( $request );
 		$this->update_is_upe_enabled( $request );
+
+		return new WP_REST_Response( [], 200 );
+	}
+
+	/**
+	 * Updates the order of available payment methods in settings.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function update_payment_methods_order( WP_REST_Request $request ) {
+		$ordered_payment_method_ids = $request->get_param( 'ordered_payment_method_ids' );
+
+		if ( empty( $ordered_payment_method_ids ) ) {
+			return new WP_REST_Response( [ 'result' => 'no ordered list provided.' ], 404 );
+		}
 
 		return new WP_REST_Response( [], 200 );
 	}
@@ -650,4 +687,5 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			}
 		}
 	}
+
 }

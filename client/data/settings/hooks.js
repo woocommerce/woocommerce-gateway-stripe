@@ -60,6 +60,38 @@ export const useSettings = () => {
 	return { settings, isLoading, isSaving, saveSettings };
 };
 
+export const useGetOrderedPaymentMethodIds = () => {
+	const { saveOrderedPaymentMethodIds } = useDispatch( STORE_NAME );
+
+	const { updateSettingsValues } = useDispatch( STORE_NAME );
+
+	const orderedPaymentMethodIds = makeReadOnlySettingsHook(
+		'ordered_payment_method_ids',
+		EMPTY_ARR
+	)();
+
+	const isSaving = useSelect( ( select ) => {
+		const { isSavingOrderedPaymentMethodIds } = select( STORE_NAME );
+
+		return isSavingOrderedPaymentMethodIds();
+	}, [] );
+
+	const setOrderedPaymentMethodIds = useCallback(
+		( value ) =>
+			updateSettingsValues( {
+				ordered_payment_method_ids: value,
+			} ),
+		[ updateSettingsValues ]
+	);
+
+	return {
+		orderedPaymentMethodIds,
+		isSaving,
+		setOrderedPaymentMethodIds,
+		saveOrderedPaymentMethodIds,
+	};
+};
+
 export const useEnabledPaymentMethodIds = makeSettingsHook(
 	'enabled_payment_method_ids',
 	EMPTY_ARR

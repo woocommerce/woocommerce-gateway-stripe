@@ -6,6 +6,10 @@ import { moreVertical } from '@wordpress/icons';
 import DisableUpeConfirmationModal from './disable-upe-confirmation-modal';
 import Pill from 'wcstripe/components/pill';
 import { useAccount } from 'wcstripe/data/account';
+import {
+	useGetAvailablePaymentMethodIds,
+	useGetOrderedPaymentMethodIds,
+} from 'wcstripe/data';
 import useToggle from 'wcstripe/hooks/use-toggle';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
@@ -51,6 +55,13 @@ const ActionItems = styled.div`
 
 const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
+	const upePaymentMethods = useGetAvailablePaymentMethodIds();
+	const {
+		setOrderedPaymentMethodIds,
+		isSaving,
+		saveOrderedPaymentMethodIds,
+	} = useGetOrderedPaymentMethodIds();
+
 	const [ isConfirmationModalOpen, toggleConfirmationModal ] = useToggle(
 		false
 	);
@@ -59,9 +70,11 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 
 	const onChangeDisplayOrderCancel = () => {
 		onChangeDisplayOrder( false );
+		setOrderedPaymentMethodIds( upePaymentMethods );
 	};
 
-	const onChangeDisplayOrderSave = () => {
+	const onChangeDisplayOrderSave = async () => {
+		await saveOrderedPaymentMethodIds();
 		onChangeDisplayOrder( false );
 	};
 
@@ -122,12 +135,14 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 					<>
 						<Button
 							variant="tertiary"
+							disabled={ isSaving }
 							onClick={ () => onChangeDisplayOrderCancel() }
 						>
 							{ __( 'Cancel', 'woocommerce-gateway-stripe' ) }
 						</Button>
 						<Button
 							variant="secondary"
+							disabled={ isSaving }
 							onClick={ () => onChangeDisplayOrderSave() }
 						>
 							{ __(
