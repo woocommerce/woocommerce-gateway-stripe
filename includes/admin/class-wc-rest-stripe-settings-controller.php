@@ -348,8 +348,17 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$ordered_payment_method_ids = $request->get_param( 'ordered_payment_method_ids' );
 
 		if ( empty( $ordered_payment_method_ids ) ) {
-			return new WP_REST_Response( [ 'result' => 'no ordered list provided.' ], 404 );
+			return new WP_REST_Response( [], 403 );
 		}
+
+		$ordered_payment_method_ids = array_map(
+			function ( $id ) {
+				return 'card' === $id ? 'stripe' : 'stripe_' . $id;
+			},
+			$ordered_payment_method_ids
+		);
+
+		$this->gateway->update_option( 'stripe_legacy_method_order', $ordered_payment_method_ids );
 
 		return new WP_REST_Response( [], 200 );
 	}
