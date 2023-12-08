@@ -14,9 +14,7 @@ import TestModeCheckbox from './test-mode-checkbox';
 import {
 	useTestMode,
 	useIsStripeEnabled,
-	useTitle,
 	useUpeTitle,
-	useDescription,
 	useEnabledPaymentMethodIds,
 } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
@@ -33,9 +31,7 @@ const Description = styled.div`
 const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 	const [ isTestMode ] = useTestMode();
 	const [ isStripeEnabled, setIsStripeEnabled ] = useIsStripeEnabled();
-	const [ title, setTitle ] = useTitle();
 	const [ upeTitle, setUpeTitle ] = useUpeTitle();
-	const [ description, setDescription ] = useDescription();
 	const [
 		enabledPaymentMethods,
 		setEnabledPaymentMethods,
@@ -112,19 +108,11 @@ const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 									'woocommerce-gateway-stripe'
 							  ) }
 					</Description>
-					<TextControl
-						label={ __( 'Name', 'woocommerce-gateway-stripe' ) }
-						value={ isUpeEnabled ? upeTitle : title }
-						onChange={ isUpeEnabled ? setUpeTitle : setTitle }
-					/>
-					{ ! isUpeEnabled && (
+					{ isUpeEnabled && (
 						<TextControl
-							label={ __(
-								'Description',
-								'woocommerce-gateway-stripe'
-							) }
-							value={ description }
-							onChange={ setDescription }
+							label={ __( 'Name', 'woocommerce-gateway-stripe' ) }
+							value={ upeTitle }
+							onChange={ setUpeTitle }
 						/>
 					) }
 					<TestModeCheckbox />

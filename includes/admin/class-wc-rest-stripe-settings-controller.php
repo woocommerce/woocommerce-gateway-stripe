@@ -90,14 +90,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'individual_payment_method_settings' => [
-						'description'       => __( 'Individual payment method settings.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'object',
-						'items'             => [
-							'type' => 'object',
-						],
-						'validate_callback' => 'rest_validate_request_arg',
-					],
 					'is_payment_request_enabled'         => [
 						'description'       => __( 'If Stripe express checkouts should be enabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'boolean',
@@ -344,7 +336,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$this->update_is_debug_log_enabled( $request );
 		$this->update_is_upe_enabled( $request );
 
-		return new WP_REST_Response( [], 200 );
+		return new WP_REST_Response( [ 'test' => WC_Stripe_Helper::get_legacy_individual_payment_method_settings() ], 200 );
 	}
 
 	/**
@@ -663,7 +655,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		if ( 'card' === $payment_method_id ) {
 			$this->gateway->update_option( 'title', $title );
 			$this->gateway->update_option( 'description', $description );
-			return new WP_REST_Response( [], 200 );
+			return new WP_REST_Response( [ 'test' => WC_Stripe_Helper::get_legacy_individual_payment_method_settings() ], 200 );
 		}
 
 		$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
@@ -680,6 +672,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			$payment_gateways[ $mapped_legacy_method_id ]->update_unique_settings( $request );
 		}
 
-		return new WP_REST_Response( [], 200 );
+		return new WP_REST_Response( [ 'test' => WC_Stripe_Helper::get_legacy_individual_payment_method_settings() ], 200 );
 	}
 }
