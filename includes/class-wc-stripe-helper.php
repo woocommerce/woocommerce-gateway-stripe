@@ -224,6 +224,7 @@ class WC_Stripe_Helper {
 	/**
 	 * List of currencies supported by Stripe that has no decimals
 	 * https://stripe.com/docs/currencies#zero-decimal from https://stripe.com/docs/currencies#presentment-currencies
+	 * ugx is an exception and not in this list for being a special cases in Stripe https://stripe.com/docs/currencies#special-cases
 	 *
 	 * @return array $currencies
 	 */
@@ -239,7 +240,6 @@ class WC_Stripe_Helper {
 			'mga', // Malagasy Ariary
 			'pyg', // Paraguayan Guaraní
 			'rwf', // Rwandan Franc
-			'ugx', // Ugandan Shilling
 			'vnd', // Vietnamese Đồng
 			'vuv', // Vanuatu Vatu
 			'xaf', // Central African Cfa Franc
@@ -581,6 +581,9 @@ class WC_Stripe_Helper {
 
 		// Next, remove any remaining disallowed characters.
 		$statement_descriptor = str_replace( $disallowed_characters, '', $statement_descriptor );
+
+		// Remove non-Latin characters, excluding numbers, whitespaces and especial characters.
+		$statement_descriptor = preg_replace( '/[^a-zA-Z0-9\s\x{00C0}-\x{00FF}\p{P}]/u', '', $statement_descriptor );
 
 		// Trim any whitespace at the ends and limit to 22 characters.
 		$statement_descriptor = substr( trim( $statement_descriptor ), 0, 22 );

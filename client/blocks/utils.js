@@ -19,6 +19,18 @@ export const getBlocksConfiguration = () => {
  * @return {Object} A Stripe payment request.
  */
 export const createPaymentRequestUsingCart = ( stripe, cart ) => {
+	const disableWallets = [];
+
+	// Prevent displaying Link in the PRBs if disabled in the plugin settings.
+	if ( ! getBlocksConfiguration()?.stripe?.is_link_enabled ) {
+		disableWallets.push( 'link' );
+	}
+
+	// Prevent displaying Apple Pay and Google Pay in the PRBs if disabled in the plugin settings.
+	if ( ! getBlocksConfiguration()?.stripe?.is_payment_request_enabled ) {
+		disableWallets.push( 'applePay', 'googlePay' );
+	}
+
 	const options = {
 		total: cart.order_data.total,
 		currency: cart.order_data.currency,
@@ -29,6 +41,7 @@ export const createPaymentRequestUsingCart = ( stripe, cart ) => {
 			?.needs_payer_phone,
 		requestShipping: cart.shipping_required ? true : false,
 		displayItems: cart.order_data.displayItems,
+		disableWallets,
 	};
 
 	// Puerto Rico (PR) is the only US territory/possession that's supported by Stripe.

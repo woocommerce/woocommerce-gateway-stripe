@@ -75,6 +75,7 @@ class WC_Stripe_Admin_Notices {
 						'href'   => [],
 						'target' => [],
 					],
+					'strong' => [],
 				]
 			);
 			echo '</p></div>';
@@ -129,6 +130,23 @@ class WC_Stripe_Admin_Notices {
 		$three_d_secure      = isset( $options['three_d_secure'] ) && 'yes' === $options['three_d_secure'];
 
 		if ( isset( $options['enabled'] ) && 'yes' === $options['enabled'] ) {
+			// Check if Stripe is in test mode.
+			if ( $testmode ) {
+				// phpcs:ignore
+				$is_stripe_settings_page = isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 0 === strpos( $_GET['section'], 'stripe' );
+
+				if ( $is_stripe_settings_page ) {
+					$testmode_notice_message = sprintf(
+						/* translators: 1) HTML strong open tag 2) HTML strong closing tag */
+						__( '%1$sTest mode active:%2$s All transactions are simulated. Customers can\'t make real purchases through Stripe.', 'woocommerce-gateway-stripe' ),
+						'<strong>',
+						'</strong>'
+					);
+
+					$this->add_admin_notice( 'mode', 'notice notice-warning', $testmode_notice_message );
+				}
+			}
+
 			if ( empty( $show_3ds_notice ) && $three_d_secure ) {
 				$url = 'https://stripe.com/docs/payments/3d-secure#three-ds-radar';
 
@@ -302,7 +320,16 @@ class WC_Stripe_Admin_Notices {
 				continue;
 			}
 
-			if ( ! in_array( get_woocommerce_currency(), $gateway->get_supported_currency(), true ) ) {
+			if ( 'stripe_sofort' === $gateway->id ) {
+				$message = sprintf(
+				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+					__( 'Sofort is being deprecated as a standalone payment method by Stripe and will continue processing Sofort payments throughout 2023 only. %1$sLearn more%2$s.', 'woocommerce-gateway-stripe' ),
+					'<a href="https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method" target="_blank">',
+					'</a>'
+				);
+
+				$this->add_admin_notice( 'sofort', 'notice notice-warning', $message, false );
+			} elseif ( ! in_array( get_woocommerce_currency(), $gateway->get_supported_currency(), true ) ) {
 				/* translators: 1) Payment method, 2) List of supported currencies */
 				$this->add_admin_notice( $method, 'notice notice-error', sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s', 'woocommerce-gateway-stripe' ), $gateway->get_method_title(), implode( ', ', $gateway->get_supported_currency() ) ), true );
 			}
@@ -322,7 +349,17 @@ class WC_Stripe_Admin_Notices {
 			if ( ! $upe_method->is_enabled() || 'no' === $show_notice ) {
 				continue;
 			}
-			if ( ! in_array( get_woocommerce_currency(), $upe_method->get_supported_currencies(), true ) ) {
+
+			if ( 'sofort' === $upe_method->get_id() ) {
+				$message = sprintf(
+				/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
+					__( 'Sofort is being deprecated as a standalone payment method by Stripe and will continue processing Sofort payments throughout 2023 only. %1$sLearn more%2$s.', 'woocommerce-gateway-stripe' ),
+					'<a href="https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method" target="_blank">',
+					'</a>'
+				);
+
+				$this->add_admin_notice( 'sofort', 'notice notice-warning', $message, false );
+			} elseif ( ! in_array( get_woocommerce_currency(), $upe_method->get_supported_currencies(), true ) ) {
 				/* translators: %1$s Payment method, %2$s List of supported currencies */
 				$this->add_admin_notice( $method . '_upe', 'notice notice-error', sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s', 'woocommerce-gateway-stripe' ), $upe_method->get_label(), implode( ', ', $upe_method->get_supported_currencies() ) ), true );
 			}

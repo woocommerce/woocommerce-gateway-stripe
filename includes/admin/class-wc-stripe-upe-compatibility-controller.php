@@ -70,7 +70,7 @@ class WC_Stripe_UPE_Compatibility_Controller {
 	}
 
 	private function get_installed_versions_message( $unsatisfied_requirements ) {
-		return join(
+		return implode(
 			__( ' and ', 'woocommerce-gateway-stripe' ),
 			array_map(
 				function ( $requirement ) {
@@ -82,7 +82,7 @@ class WC_Stripe_UPE_Compatibility_Controller {
 	}
 
 	private function get_unsatisfied_requirements_message( $unsatisfied_requirements ) {
-		return join(
+		return implode(
 			__( ' and ', 'woocommerce-gateway-stripe' ),
 			array_map(
 				function ( $requirement ) {
@@ -93,7 +93,7 @@ class WC_Stripe_UPE_Compatibility_Controller {
 		);
 	}
 
-	private function show_current_compatibility_notice( $unsatisfied_requirements ) {
+	private function show_current_compatibility_notice( array $unsatisfied_requirements ) {
 		/*
 		 * The following might be hard to read, but here's what I'm trying to do:
 		 * - If WP and WC are both supported -> nothing to do
