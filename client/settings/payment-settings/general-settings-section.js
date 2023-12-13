@@ -17,6 +17,7 @@ import {
 	useTitle,
 	useUpeTitle,
 	useDescription,
+	useEnabledPaymentMethodIds,
 } from 'wcstripe/data';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
@@ -35,11 +36,40 @@ const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 	const [ title, setTitle ] = useTitle();
 	const [ upeTitle, setUpeTitle ] = useUpeTitle();
 	const [ description, setDescription ] = useDescription();
+	const [
+		enabledPaymentMethods,
+		setEnabledPaymentMethods,
+	] = useEnabledPaymentMethodIds();
 	const [ modalType, setModalType ] = useState( '' );
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 
 	const handleModalDismiss = () => {
 		setModalType( '' );
+	};
+
+	const handleCheckboxChange = ( hasBeenChecked ) => {
+		setIsStripeEnabled( hasBeenChecked );
+
+		// In legacy mode (UPE disabled), Stripe refers to the card payment method.
+		// So if Stripe is disabled, card should be excluded from the enabled methods list and vice versa.
+		if ( ! isUpeEnabled ) {
+			if (
+				! hasBeenChecked &&
+				enabledPaymentMethods.includes( 'card' )
+			) {
+				setEnabledPaymentMethods(
+					enabledPaymentMethods.filter( ( m ) => m !== 'card' )
+				);
+			} else if (
+				hasBeenChecked &&
+				! enabledPaymentMethods.includes( 'card' )
+			) {
+				setEnabledPaymentMethods( [
+					...enabledPaymentMethods,
+					'card',
+				] );
+			}
+		}
 	};
 
 	return (
@@ -55,7 +85,7 @@ const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 				<CardBody>
 					<CheckboxControl
 						checked={ isStripeEnabled }
-						onChange={ setIsStripeEnabled }
+						onChange={ handleCheckboxChange }
 						label={ __(
 							'Enable Stripe',
 							'woocommerce-gateway-stripe'

@@ -107,7 +107,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 	/**
 	 * @dataProvider enum_field_provider
 	 */
-	public function test_enum_fields( $rest_key, $option_name, $original_valid_value, $new_valid_value, $new_invalid_value ) {
+	public function test_enum_fields( $rest_key, $option_name, $original_valid_value, $new_valid_value, $new_invalid_value, $is_upe_enabled = true ) {
 		// It returns option value under expected key with HTTP code 200.
 		$this->get_gateway()->update_option( $option_name, $original_valid_value );
 		$response = $this->rest_get_settings();
@@ -118,6 +118,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$this->get_gateway()->update_option( $option_name, $original_valid_value );
 
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', $is_upe_enabled );
 		$request->set_param( $rest_key, $new_valid_value );
 		$response = rest_do_request( $request );
 
@@ -128,7 +129,8 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$this->get_gateway()->update_option( $option_name, $original_valid_value );
 
 		$status_before_request = $this->get_gateway()->get_option( $option_name );
-		$request               = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', $is_upe_enabled );
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
 		rest_do_request( $request );
 
 		$this->assertEquals( 200, $response->get_status() );
@@ -138,6 +140,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$this->get_gateway()->update_option( $option_name, $original_valid_value );
 
 		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param( 'is_upe_enabled', $is_upe_enabled );
 		$request->set_param( $rest_key, $new_invalid_value );
 
 		$response = rest_do_request( $request );
@@ -207,6 +210,54 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 			$option_name,
 			'foobar\''
 		);
+	}
+
+	public function test_individual_payment_method_settings() {
+		// Disable UPE and set up EPS gateway.
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'enabled' => 'yes',
+				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no',
+			]
+		);
+		update_option(
+			'woocommerce_stripe_eps_settings',
+			[
+				'title'       => 'EPS',
+				'description' => 'Pay with EPS',
+			]
+		);
+
+		$response                                = $this->rest_get_settings();
+		$individual_payment_method_settings_data = $response->get_data()['individual_payment_method_settings'];
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->arrayHasKey( 'eps', $individual_payment_method_settings_data );
+		$this->assertEquals(
+			[
+				'name'       => 'EPS',
+				'description' => 'Pay with EPS',
+			],
+			$individual_payment_method_settings_data['eps'],
+		);
+
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
+		$request->set_param(
+			'individual_payment_method_settings',
+			[
+				'giropay' => [
+					'name'        => 'Giropay',
+					'description' => 'Pay with Giropay',
+				],
+			]
+		);
+		$response         = rest_do_request( $request );
+		$gateway_settings = get_option( 'woocommerce_stripe_giropay_settings' );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( 'Giropay', $gateway_settings['title'] );
+		$this->assertEquals( 'Pay with Giropay', $gateway_settings['description'] );
 	}
 
 	public function test_short_statement_descriptor_is_not_updated() {
@@ -313,6 +364,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 				[ 'card' ],
 				[ 'card', 'giropay' ],
 				[ 'foo' ],
+				true,
 			],
 			'payment_request_button_theme'     => [
 				'payment_request_button_theme',

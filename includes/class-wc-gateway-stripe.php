@@ -111,12 +111,22 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		WC_Stripe_API::set_secret_key( $this->secret_key );
 
+		// Title shows the count of enabled payment methods in settings page only.
+		if ( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] ) {
+			$enabled_payment_methods_count = count( WC_Stripe_Helper::get_legacy_enabled_payment_methods() );
+			$this->title                   = $enabled_payment_methods_count ?
+				/* translators: $1. Count of enabled payment methods. */
+				sprintf( _n( '%d payment method', '%d payment methods', $enabled_payment_methods_count, 'woocommerce-gateway-stripe' ), $enabled_payment_methods_count )
+				: $this->method_title;
+		}
+
 		// Hooks.
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_fee' ] );
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_payout' ], 20 );
 		add_action( 'woocommerce_customer_save_address', [ $this, 'show_update_card_notice' ], 10, 2 );
+		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'get_available_payment_methods' ] );
 		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'prepare_order_pay_page' ] );
 		add_action( 'woocommerce_account_view-order_endpoint', [ $this, 'check_intent_status_on_order_page' ], 1 );
 		add_filter( 'woocommerce_payment_successful_result', [ $this, 'modify_successful_payment_result' ], 99999, 2 );
@@ -631,6 +641,60 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_pay_order_after_submit', [ $this, 'render_payment_intent_inputs' ] );
 
 		return [];
+	}
+
+	/**
+	 * Include the available legacy payment methods in the list of payment methods.
+	 * As we are not registering the other Stripe payment methods to show in the settings page,
+	 * we need to include them here so that they are available in the checkout, pay for order, add payment method etc. pages.
+	 *
+	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways on the payments settings page.
+	 * @return WC_Payment_Gateway[]          The same list if UPE is disabled or a list including the available legacy payment methods.
+	 */
+	public function get_available_payment_methods( $gateways ) {
+		// We need to include the payment methods when UPE is disabled, return the same list when UPE is enabled.
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			return $gateways;
+		}
+
+		$available_gateways      = [];
+		$gateway_orders          = (array) get_option( 'woocommerce_gateway_order' );
+		$legacy_enabled_gateways = WC_Stripe_Helper::get_legacy_enabled_payment_methods();
+
+		foreach ( $gateway_orders as $name => $order ) {
+			if ( in_array( $name, array_keys( $gateways ), true ) ) {
+				$available_gateways[ $name ] = $gateways[ $name ];
+				unset( $gateways[ $name ] );
+			} elseif ( in_array( $name, array_keys( $legacy_enabled_gateways ), true ) ) {
+				$gateway = $legacy_enabled_gateways[ $name ];
+				// This follows the same logic as `get_available_payment_gateways()` function in `woocommerce/includes/class-wc-payment-gateways.php`.
+				if ( $gateway->is_available() ) {
+					if ( ! is_add_payment_method_page() ) {
+						$available_gateways[ $name ] = $gateway;
+					} elseif ( $gateway->supports( 'add_payment_method' ) || $gateway->supports( 'tokenization' ) ) {
+						$available_gateways[ $name ] = $gateway;
+					}
+				}
+				unset( $legacy_enabled_gateways[ $name ] );
+			}
+		}
+
+		// Add any remaining enabled gateways in case they were not present in `woocommerce_gateway_order` option.
+		$available_gateways = array_merge( $available_gateways, $gateways );
+
+		// Add any remaining legacy enabled gateways in case they were not present in `woocommerce_gateway_order` option.
+		foreach ( $legacy_enabled_gateways as $name => $gateway ) {
+			// This follows the same logic as `get_available_payment_gateways()` function in `woocommerce/includes/class-wc-payment-gateways.php`.
+			if ( $gateway->is_available() ) {
+				if ( ! is_add_payment_method_page() ) {
+					$available_gateways[ $name ] = $gateway;
+				} elseif ( $gateway->supports( 'add_payment_method' ) || $gateway->supports( 'tokenization' ) ) {
+					$available_gateways[ $name ] = $gateway;
+				}
+			}
+		}
+
+		return $available_gateways;
 	}
 
 	/**
