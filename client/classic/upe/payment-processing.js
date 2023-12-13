@@ -171,18 +171,6 @@ function createStripePaymentMethod(
  * @param {string} domElement The selector of the DOM element of particular payment method to mount the UPE element to.
  **/
 export async function mountStripePaymentElement( api, domElement ) {
-	/*
-	 * Trigger this event to ensure the tokenization-form.js init
-	 * is executed.
-	 *
-	 * This script handles the radio input interaction when toggling
-	 * between the user's saved card / entering new card details.
-	 *
-	 * Ref: https://github.com/woocommerce/woocommerce/blob/2429498/assets/js/frontend/tokenization-form.js#L109
-	 */
-	const event = new Event( 'wc-credit-card-form-init' );
-	document.body.dispatchEvent( event );
-
 	const paymentMethodType = domElement.dataset.paymentMethodType;
 	let upeElement;
 
@@ -209,6 +197,18 @@ export async function mountStripePaymentElement( api, domElement ) {
 	}
 
 	upeElement.mount( domElement );
+
+	/*
+	 * Trigger this event to ensure the tokenization-form.js init
+	 * is executed.
+	 *
+	 * This script handles the radio input interaction when toggling
+	 * between the user's saved card / entering new card details.
+	 *
+	 * Ref: https://github.com/woocommerce/woocommerce/blob/2429498/assets/js/frontend/tokenization-form.js#L109
+	 */
+	const event = new Event( 'wc-credit-card-form-init' );
+	document.body.dispatchEvent( event );
 }
 
 // Set the selected UPE payment type field
@@ -300,4 +300,45 @@ export const processPayment = (
 
 	// Prevent WC Core default form submission (see woocommerce/assets/js/frontend/checkout.js) from happening.
 	return false;
+};
+
+export const processPayForOrder = (
+	api,
+	jQueryForm,
+	paymentMethodType,
+	additionalActionsHandler = () => {}
+) => {
+	blockUI( jQueryForm );
+	console.log( 'gatewayUPEComponents', gatewayUPEComponents );
+	console.log( 'paymentMethodType', paymentMethodType );
+	const elements = gatewayUPEComponents[ 'card' ].elements;
+
+	( async () => {
+		try {
+			await validateElements( elements );
+			const paymentMethodObject = await createStripePaymentMethod(
+				api,
+				elements,
+				jQueryForm,
+				paymentMethodType
+			);
+			console.log( 'pm', paymentMethodObject );
+			appendIsUsingDeferredIntentToForm( jQueryForm );
+			appendPaymentMethodIdToForm(
+				jQueryForm,
+				paymentMethodObject.paymentMethod.id
+			);
+			await additionalActionsHandler(
+				paymentMethodObject.paymentMethod,
+				jQueryForm,
+				api
+			);
+			hasCheckoutCompleted = true;
+			submitForm( jQueryForm );
+		} catch ( err ) {
+			hasCheckoutCompleted = false;
+			jQueryForm.removeClass( 'processing' ).unblock();
+			showErrorCheckout( err.message );
+		}
+	} )();
 };

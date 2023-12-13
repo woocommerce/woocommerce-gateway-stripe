@@ -330,7 +330,8 @@ class WC_Stripe_Intent_Controller {
 
 		$gateway                 = $this->get_upe_gateway();
 		$enabled_payment_methods = $gateway->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
-
+		$save_payment_method     = isset( $_POST['save_payment_method'] ) ? 'yes' === wc_clean( wp_unslash( $_POST['save_payment_method'] ) ) : false;
+		$selected_upe_payment_type = ! empty( $_POST['selected_upe_payment_type'] ) ? wc_clean( wp_unslash( $_POST['selected_upe_payment_type'] ) ) : '';
 		$currency       = get_woocommerce_currency();
 		$capture        = empty( $gateway->get_option( 'capture' ) ) || $gateway->get_option( 'capture' ) === 'yes';
 		$payment_intent = WC_Stripe_API::request(

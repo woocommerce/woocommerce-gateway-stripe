@@ -1,14 +1,6 @@
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
-import {
-	getStorageWithExpiration,
-	getStripeServerData,
-	getUPETerms,
-	setStorageWithExpiration,
-	storageKeys,
-} from '../../stripe-utils';
-import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
-import enableStripeLinkPaymentMethod from '../../stripe-link';
+import { getStripeServerData, getUPETerms } from '../../stripe-utils';
 import { legacyHashchangeHandler } from './legacy-support';
 import './style.scss';
 import './deferred-intent.js';
@@ -16,11 +8,7 @@ import './deferred-intent.js';
 jQuery( function ( $ ) {
 	const key = getStripeServerData()?.key;
 	const isUPEEnabled = getStripeServerData()?.isUPEEnabled;
-	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
-	const enabledBillingFields = getStripeServerData()?.enabledBillingFields;
-	const isStripeLinkEnabled =
-		undefined !== paymentMethodsConfig.card &&
-		undefined !== paymentMethodsConfig.link;
+
 	if ( ! key ) {
 		// If no configuration is present, probably this is not the checkout page.
 		return;
@@ -37,45 +25,6 @@ jQuery( function ( $ ) {
 		}
 	);
 
-	let elements = null;
-	let upeElement = null;
-	let paymentIntentId = null;
-	let isUPEComplete = false;
-	const hiddenBillingFields = {
-		name:
-			enabledBillingFields.includes( 'billing_first_name' ) ||
-			enabledBillingFields.includes( 'billing_last_name' )
-				? 'never'
-				: 'auto',
-		email: enabledBillingFields.includes( 'billing_email' )
-			? 'never'
-			: 'auto',
-		phone: enabledBillingFields.includes( 'billing_phone' )
-			? 'never'
-			: 'auto',
-		address: {
-			country: enabledBillingFields.includes( 'billing_country' )
-				? 'never'
-				: 'auto',
-			line1: enabledBillingFields.includes( 'billing_address_1' )
-				? 'never'
-				: 'auto',
-			line2: enabledBillingFields.includes( 'billing_address_2' )
-				? 'never'
-				: 'auto',
-			city: enabledBillingFields.includes( 'billing_city' )
-				? 'never'
-				: 'auto',
-			state: enabledBillingFields.includes( 'billing_state' )
-				? 'never'
-				: 'auto',
-			postalCode: enabledBillingFields.includes( 'billing_postcode' )
-				? 'never'
-				: 'auto',
-		},
-	};
-	const upeLoadingSelector = '#wc-stripe-upe-form';
-
 	/**
 	 * Block UI to indicate processing and avoid duplicate submission.
 	 *
@@ -89,15 +38,6 @@ jQuery( function ( $ ) {
 				opacity: 0.6,
 			},
 		} );
-	};
-
-	/**
-	 * Unblock UI to remove overlay and loading icon
-	 *
-	 * @param {Object} $form The jQuery object for the form.
-	 */
-	const unblockUI = ( $form ) => {
-		$form.removeClass( 'processing' ).unblock();
 	};
 
 	/**
@@ -150,22 +90,6 @@ jQuery( function ( $ ) {
 		$( document.body ).trigger( 'checkout_error' );
 	};
 
-	// Show or hide save payment information checkbox
-	const showNewPaymentMethodCheckbox = ( show = true ) => {
-		if ( show ) {
-			$( '.woocommerce-SavedPaymentMethods-saveNew' ).show();
-		} else {
-			$( '.woocommerce-SavedPaymentMethods-saveNew' ).hide();
-			$( 'input#wc-stripe-new-payment-method' ).prop( 'checked', false );
-			$( 'input#wc-stripe-new-payment-method' ).trigger( 'change' );
-		}
-	};
-
-	// Set the selected UPE payment type field
-	const setSelectedUPEPaymentType = ( paymentType ) => {
-		$( '#wc_stripe_selected_upe_payment_type' ).val( paymentType );
-	};
-
 	/**
 	 * Converts form fields object into Stripe `billing_details` object.
 	 *
@@ -189,184 +113,6 @@ jQuery( function ( $ ) {
 			},
 		};
 	};
-
-	/**
-	 * Mounts Stripe UPE element if feature is enabled.
-	 *
-	 * @param {boolean} isSetupIntent {Boolean} isSetupIntent Set to true if we are on My Account adding a payment method.
-	 */
-	const mountUPEElement = function ( isSetupIntent = false ) {
-		blockUI( $( upeLoadingSelector ) );
-
-		// Do not recreate UPE element unnecessarily.
-		if ( upeElement ) {
-			upeElement.unmount();
-			upeElement.mount( '.wc-stripe-upe-element' );
-			return;
-		}
-
-		// If paying from order, we need to create Payment Intent from order not cart.
-		const isOrderPay = getStripeServerData()?.isOrderPay;
-		const isCheckout = getStripeServerData()?.isCheckout;
-		let orderId;
-		if ( isOrderPay ) {
-			orderId = getStripeServerData()?.orderId;
-		}
-
-		const intentAction = isSetupIntent
-			? api.initSetupIntent()
-			: api.createIntent( orderId );
-
-		intentAction
-			.then( ( response ) => {
-				// I repeat, do NOT recreate UPE element unnecessarily.
-				if ( upeElement || paymentIntentId ) {
-					upeElement.unmount();
-					upeElement.mount( '.wc-stripe-upe-element' );
-					return;
-				}
-
-				const { client_secret: clientSecret, id: id } = response;
-				paymentIntentId = id;
-
-				const themeName = getStripeServerData()?.theme_name;
-				const storageKey = `${ storageKeys.UPE_APPEARANCE }_${ themeName }`;
-				let appearance = getStorageWithExpiration( storageKey );
-
-				if ( ! appearance ) {
-					appearance = getAppearance();
-					const oneDayDuration = 24 * 60 * 60 * 1000;
-					setStorageWithExpiration(
-						storageKey,
-						appearance,
-						oneDayDuration
-					);
-				}
-				const businessName = getStripeServerData()?.accountDescriptor;
-				const upeSettings = {
-					business: { name: businessName },
-					wallets: {
-						applePay: 'never',
-						googlePay: 'never',
-					},
-				};
-				if ( isCheckout && ! isOrderPay ) {
-					upeSettings.fields = {
-						billingDetails: hiddenBillingFields,
-					};
-				}
-				elements = api.getStripe().elements( {
-					clientSecret,
-					appearance,
-					fonts: getFontRulesFromPage(),
-				} );
-
-				if ( isStripeLinkEnabled ) {
-					enableStripeLinkPaymentMethod( {
-						api,
-						elements,
-						emailId: 'billing_email',
-						complete_billing: () => {
-							return true;
-						},
-						complete_shipping: () => {
-							return (
-								document.getElementById(
-									'ship-to-different-address-checkbox'
-								) &&
-								document.getElementById(
-									'ship-to-different-address-checkbox'
-								).checked
-							);
-						},
-						shipping_fields: {
-							line1: 'shipping_address_1',
-							line2: 'shipping_address_2',
-							city: 'shipping_city',
-							state: 'shipping_state',
-							postal_code: 'shipping_postcode',
-							country: 'shipping_country',
-							first_name: 'shipping_first_name',
-							last_name: 'shipping_last_name',
-						},
-						billing_fields: {
-							line1: 'billing_address_1',
-							line2: 'billing_address_2',
-							city: 'billing_city',
-							state: 'billing_state',
-							postal_code: 'billing_postcode',
-							country: 'billing_country',
-							first_name: 'billing_first_name',
-							last_name: 'billing_last_name',
-						},
-					} );
-				}
-
-				upeElement = elements.create( 'payment', upeSettings );
-				upeElement.mount( '.wc-stripe-upe-element' );
-
-				upeElement.on( 'ready', () => {
-					unblockUI( $( upeLoadingSelector ) );
-				} );
-				upeElement.on( 'change', ( event ) => {
-					const selectedUPEPaymentType = event.value.type;
-					const isPaymentMethodReusable =
-						paymentMethodsConfig[ selectedUPEPaymentType ]
-							.isReusable;
-					showNewPaymentMethodCheckbox( isPaymentMethodReusable );
-					setSelectedUPEPaymentType( selectedUPEPaymentType );
-					isUPEComplete = event.complete;
-				} );
-
-				/*
-				 * Trigger this event to ensure the tokenization-form.js init
-				 * is executed.
-				 *
-				 * This script handles the radio input interaction when toggling
-				 * between the user's saved card / entering new card details.
-				 *
-				 * Ref: https://github.com/woocommerce/woocommerce/blob/2429498/assets/js/frontend/tokenization-form.js#L109
-				 */
-				$( document.body ).trigger( 'wc-credit-card-form-init' );
-			} )
-			.catch( ( error ) => {
-				unblockUI( $( upeLoadingSelector ) );
-				showError( error.message );
-				const gatewayErrorMessage =
-					'<div>An error was encountered when preparing the payment form. Please try again later.</div>';
-				$( '.payment_box.payment_method_woocommerce_payments' ).html(
-					gatewayErrorMessage
-				);
-			} );
-	};
-
-	if (
-		$( 'form#add_payment_method' ).length ||
-		$( 'form#order_review' ).length
-	) {
-		if (
-			$( '.wc-stripe-upe-element' ).length &&
-			! $( '.wc-stripe-upe-element' ).children().length &&
-			isUPEEnabled &&
-			! upeElement
-		) {
-			const isChangingPayment = getStripeServerData()?.isChangingPayment;
-
-			// We use a setup intent if we are on the screens to add a new payment method or to change a subscription payment.
-			const isSetupIntent =
-				$( 'form#add_payment_method' ).length || isChangingPayment;
-
-			if ( isChangingPayment && getStripeServerData()?.newTokenFormId ) {
-				// Changing the method for a subscription takes two steps:
-				// 1. Create the new payment method that will redirect back.
-				// 2. Select the new payment method and resubmit the form to update the subscription.
-				const token = getStripeServerData()?.newTokenFormId;
-				$( token ).prop( 'selected', true ).trigger( 'click' );
-				$( 'form#order_review' ).submit();
-			}
-			mountUPEElement( isSetupIntent );
-		}
-	}
 
 	/**
 	 * Checks if UPE form is filled out. Displays errors if not.
@@ -641,7 +387,7 @@ jQuery( function ( $ ) {
 				handleUPEAddPayment( $( '#order_review' ) );
 				return false;
 			}
-			handleUPEOrderPay( $( '#order_review' ) );
+		//	handleUPEOrderPay( $( '#order_review' ) );
 			return false;
 		}
 	} );
@@ -649,6 +395,7 @@ jQuery( function ( $ ) {
 	// Add terms parameter to UPE if save payment information checkbox is checked.
 	// This shows required legal mandates when customer elects to save payment method during checkout.
 	$( document ).on( 'change', '#wc-stripe-new-payment-method', () => {
+		return;
 		const value = $( '#wc-stripe-new-payment-method' ).is( ':checked' )
 			? 'always'
 			: 'never';

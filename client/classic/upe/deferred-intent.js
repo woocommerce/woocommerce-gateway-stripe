@@ -10,6 +10,7 @@ import './style.scss';
 import {
 	processPayment,
 	mountStripePaymentElement,
+	processPayForOrder,
 } from './payment-processing';
 
 jQuery( function ( $ ) {
@@ -45,6 +46,11 @@ jQuery( function ( $ ) {
 
 	$( 'form.checkout' ).on( generateCheckoutEventNames(), function () {
 		return processPaymentIfNotUsingSavedMethod( $( this ) );
+	} );
+
+	$( '#order_review' ).on( 'submit', () => {
+		const method = getSelectedUPEGatewayPaymentMethod();
+		processPayForOrder( api, $( '#order_review' ), method );
 	} );
 
 	function processPaymentIfNotUsingSavedMethod( $form ) {
