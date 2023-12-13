@@ -65,6 +65,16 @@ jQuery( function ( $ ) {
 		);
 	} );
 
+	// Pay for Order page submit.
+	$( '#order_review' ).on( 'submit', () => {
+		return processPayment(
+			api,
+			$( '#order_review' ),
+			getSelectedUPEGatewayPaymentMethod(),
+			createAndConfirmSetupIntent
+		);
+	} );
+
 	// If the card element selector doesn't exist, then do nothing.
 	// For example, when a 100% discount coupon is applied).
 	// We also don't re-mount if already mounted in DOM.
