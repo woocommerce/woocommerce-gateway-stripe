@@ -48,6 +48,11 @@ jQuery( function ( $ ) {
 		$( 'form#order_review' ).length
 	) {
 		maybeMountStripePaymentElement();
+
+		// This function runs before WooCommerce has attached its callbacks in tokenization-form.js so we need to add a slight delay and trigger the event again.
+		setTimeout( () => {
+			$( document.body ).trigger( 'wc-credit-card-form-init' );
+		}, 0 );
 	}
 
 	$( 'form#add_payment_method' ).on( 'submit', function () {
