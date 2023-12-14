@@ -70,8 +70,7 @@ jQuery( function ( $ ) {
 		return processPayment(
 			api,
 			$( '#order_review' ),
-			getSelectedUPEGatewayPaymentMethod(),
-			createAndConfirmSetupIntent
+			getSelectedUPEGatewayPaymentMethod()
 		);
 	} );
 
