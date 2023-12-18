@@ -1629,6 +1629,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'selected_payment_type'        => $selected_payment_type,
 			'shipping'                     => $shipping_details,
 			'statement_descriptor'         => $this->get_statement_descriptor( $selected_payment_type ),
+			'return_url'                   => $this->get_stripe_return_url( $order ),
 		];
 
 		return $payment_information;

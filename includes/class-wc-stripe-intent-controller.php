@@ -708,6 +708,7 @@ class WC_Stripe_Intent_Controller {
 			'payment_method_types' => $payment_method_types,
 			'shipping'             => $payment_information['shipping'],
 			'statement_descriptor' => $payment_information['statement_descriptor'],
+			'return_url'           => $payment_information['return_url'],
 		];
 
 		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
