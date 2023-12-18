@@ -687,7 +687,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				// Use the last charge within the intent to proceed.
 				$charge = end( $payment_intent->charges->data );
 
-				// Only process the response if it contains a charge. Intents with no charge likely require further action like 3DS and will be processed later.
+				// Only process the response if it contains a charge object. Intents with no charge require further action like 3DS and will be processed later.
 				if ( $charge ) {
 					$this->process_response( $charge, $order );
 				}
