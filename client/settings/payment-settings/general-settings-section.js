@@ -91,23 +91,22 @@ const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 							'woocommerce-gateway-stripe'
 						) }
 					/>
-					<h4>
-						{ __(
-							'Display settings',
-							'woocommerce-gateway-stripe'
-						) }
-					</h4>
-					<Description>
-						{ isUpeEnabled
-							? __(
+					{ isUpeEnabled && (
+						<>
+							<h4>
+								{ __(
+									'Display settings',
+									'woocommerce-gateway-stripe'
+								) }
+							</h4>
+							<Description>
+								{ __(
 									'Enter the payment method name that will be displayed at checkout when there are multiple available payment methods.',
 									'woocommerce-gateway-stripe'
-							  )
-							: __(
-									'Enter payment method details that will be displayed at checkout, in the order confirmation screen and in the order notes.',
-									'woocommerce-gateway-stripe'
-							  ) }
-					</Description>
+								) }
+							</Description>
+						</>
+					) }
 					{ isUpeEnabled && (
 						<TextControl
 							label={ __( 'Name', 'woocommerce-gateway-stripe' ) }
