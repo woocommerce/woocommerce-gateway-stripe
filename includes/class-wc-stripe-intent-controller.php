@@ -708,7 +708,6 @@ class WC_Stripe_Intent_Controller {
 			'payment_method_types' => $payment_method_types,
 			'shipping'             => $payment_information['shipping'],
 			'statement_descriptor' => $payment_information['statement_descriptor'],
-			'return_url'           => $payment_information['return_url'],
 		];
 
 		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
@@ -722,6 +721,10 @@ class WC_Stripe_Intent_Controller {
 					],
 				],
 			];
+		}
+
+		if ( $this->request_needs_redirection( $payment_method_types ) ) {
+			$request['return_url'] = $payment_information['return_url'];
 		}
 
 		if ( $payment_information['save_payment_method_to_store'] ) {
@@ -856,5 +859,17 @@ class WC_Stripe_Intent_Controller {
 		$is_sepa_debit_payment  = 'sepa_debit' === $selected_payment_type;
 
 		return $is_stripe_link_enabled || $is_sepa_debit_payment;
+	}
+
+	/**
+	 * Determines whether the request needs to redirect customer off-site to authorize payment.
+	 * This is needed for the non-card UPE payment method (i.e. iDeal, giropay, etc.)
+	 *
+	 * @param array $payment_methods The list of payment methods used for the processing the payment.
+	 *
+	 * @return boolean True if the arrray consist of only one payment method which is not a card. False otherwise.
+	 */
+	private function request_needs_redirection( $payment_methods ) {
+		return 1 === count( $payment_methods ) && 'card' !== $payment_methods[0];
 	}
 }
