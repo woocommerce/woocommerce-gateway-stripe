@@ -60,6 +60,52 @@ export const useSettings = () => {
 	return { settings, isLoading, isSaving, saveSettings };
 };
 
+export const useCustomizePaymentMethodSettings = () => {
+	const {
+		saveIndividualPaymentMethodSettings,
+		updateSettingsValues,
+	} = useDispatch( STORE_NAME );
+
+	const individualPaymentMethodSettings = useSelect( ( select ) => {
+		const { getIndividualPaymentMethodSettings } = select( STORE_NAME );
+
+		return getIndividualPaymentMethodSettings();
+	}, [] );
+
+	const isCustomizing = useSelect( ( select ) => {
+		const { isCustomizingPaymentMethod } = select( STORE_NAME );
+
+		return isCustomizingPaymentMethod();
+	}, [] );
+
+	const customizePaymentMethod = useCallback(
+		async ( data ) => {
+			updateSettingsValues( {
+				individual_payment_method_settings: {
+					...individualPaymentMethodSettings,
+					[ data.method ]: {
+						name: data.name,
+						description: data.description,
+						expiration: data.expiration,
+					},
+				},
+			} );
+			await saveIndividualPaymentMethodSettings( data );
+		},
+		[
+			saveIndividualPaymentMethodSettings,
+			individualPaymentMethodSettings,
+			updateSettingsValues,
+		]
+	);
+
+	return {
+		individualPaymentMethodSettings,
+		isCustomizing,
+		customizePaymentMethod,
+	};
+};
+
 export const useEnabledPaymentMethodIds = makeSettingsHook(
 	'enabled_payment_method_ids',
 	EMPTY_ARR
@@ -84,9 +130,7 @@ export const usePaymentRequestLocations = makeSettingsHook(
 	EMPTY_ARR
 );
 export const useIsStripeEnabled = makeSettingsHook( 'is_stripe_enabled' );
-export const useTitle = makeSettingsHook( 'title', '' );
 export const useUpeTitle = makeSettingsHook( 'title_upe', '' );
-export const useDescription = makeSettingsHook( 'description', '' );
 export const useTestMode = makeSettingsHook( 'is_test_mode_enabled' );
 export const useSavedCards = makeSettingsHook( 'is_saved_cards_enabled' );
 export const useManualCapture = makeSettingsHook( 'is_manual_capture_enabled' );

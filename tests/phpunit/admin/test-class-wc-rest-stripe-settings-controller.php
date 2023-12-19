@@ -217,7 +217,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		update_option(
 			'woocommerce_stripe_settings',
 			[
-				'enabled' => 'yes',
+				'enabled'     => 'yes',
+				'title'       => 'Credit card',
+				'description' => 'Pay with Credit card',
 				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no',
 			]
 		);
@@ -236,22 +238,18 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$this->arrayHasKey( 'eps', $individual_payment_method_settings_data );
 		$this->assertEquals(
 			[
-				'name'       => 'EPS',
+				'name'        => 'EPS',
 				'description' => 'Pay with EPS',
 			],
 			$individual_payment_method_settings_data['eps'],
 		);
 
-		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE );
-		$request->set_param(
-			'individual_payment_method_settings',
-			[
-				'giropay' => [
-					'name'        => 'Giropay',
-					'description' => 'Pay with Giropay',
-				],
-			]
-		);
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE . '/payment_method' );
+		$request->set_param( 'payment_method_id', 'giropay' );
+		$request->set_param( 'is_enabled', true );
+		$request->set_param( 'title', 'Giropay' );
+		$request->set_param( 'description', 'Pay with Giropay' );
+
 		$response         = rest_do_request( $request );
 		$gateway_settings = get_option( 'woocommerce_stripe_giropay_settings' );
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent, screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { act } from 'react-dom/test-utils';
 import GeneralSettingsSection from '..';
 import UpeToggleContext from '../../upe-toggle/context';
 import {
@@ -8,7 +9,7 @@ import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
 	useManualCapture,
-	useIndividualPaymentMethodSettings,
+	useCustomizePaymentMethodSettings,
 } from 'wcstripe/data';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
 
@@ -18,6 +19,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useEnabledPaymentMethodIds: jest.fn(),
 	useManualCapture: jest.fn(),
 	useIndividualPaymentMethodSettings: jest.fn(),
+	useCustomizePaymentMethodSettings: jest.fn(),
 } ) );
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
@@ -331,21 +333,25 @@ describe( 'GeneralSettingsSection', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'display customization section in the payment method when UPE is disabled', () => {
-		const setIndividualPaymentMethodSettingsMock = jest.fn();
-		useIndividualPaymentMethodSettings.mockReturnValue( [
-			{
+	it( 'display customization section in the payment method when UPE is disabled', async () => {
+		const PromiseMock = Promise.resolve();
+		const customizePaymentMethodMock = jest
+			.fn()
+			.mockImplementation( () => PromiseMock );
+		useCustomizePaymentMethodSettings.mockReturnValue( {
+			individualPaymentMethodSettings: {
+				card: {
+					name: 'Card',
+					description: 'Pay with Card',
+				},
 				giropay: {
 					name: 'Giropay',
 					description: 'Pay with Giropay',
 				},
-				eps: {
-					name: 'EPS',
-					description: 'Pay with EPS',
-				},
 			},
-			setIndividualPaymentMethodSettingsMock,
-		] );
+			isCustomizing: false,
+			customizePaymentMethod: customizePaymentMethodMock,
+		} );
 		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'giropay' ] );
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
@@ -394,13 +400,17 @@ describe( 'GeneralSettingsSection', () => {
 			target: { value: 'New Description' },
 		} );
 
-		userEvent.click(
+		fireEvent.click(
 			screen.queryByRole( 'button', {
 				name: 'Save changes',
 			} )
 		);
 
-		expect( setIndividualPaymentMethodSettingsMock ).toHaveBeenCalled();
+		expect( customizePaymentMethodMock ).toHaveBeenCalled();
+
+		await act( async () => {
+			await Promise.resolve();
+		} );
 	} );
 
 	it( 'should not display customization section in the payment method when UPE is enabled', () => {

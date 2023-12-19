@@ -19,3 +19,14 @@ export const isSavingSettings = ( state ) => {
 export const getSavingError = ( state ) => {
 	return getSettingsState( state ).savingError;
 };
+
+export const getIndividualPaymentMethodSettings = ( state ) => {
+	return (
+		getSettingsState( state ).data?.individual_payment_method_settings ||
+		EMPTY_OBJ
+	);
+};
+
+export const isCustomizingPaymentMethod = ( state ) => {
+	return getSettingsState( state ).isCustomizingPaymentMethod || false;
+};

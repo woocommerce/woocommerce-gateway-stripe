@@ -451,9 +451,15 @@ class WC_Stripe_Helper {
 	 * @return array
 	 */
 	public static function get_legacy_individual_payment_method_settings() {
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
 		$payment_methods = self::get_legacy_payment_methods();
 
-		$payment_method_settings = [];
+		$payment_method_settings = [
+			'card' => [
+				'name'        => $stripe_settings['title'],
+				'description' => $stripe_settings['description'],
+			],
+		];
 
 		foreach ( $payment_methods as $payment_method ) {
 			$settings = [
@@ -461,11 +467,14 @@ class WC_Stripe_Helper {
 				'description' => $payment_method->get_option( 'description' ),
 			];
 
-			if ( method_exists( $payment_method, 'get_unique_settings' ) ) {
-				$settings = $payment_method->get_unique_settings( $settings );
+			$unique_settings = $payment_method->get_unique_settings();
+			if ( isset( $unique_settings[ $payment_method->id . '_expiration' ] ) ) {
+				$settings['expiration'] = $unique_settings[ $payment_method->id . '_expiration' ];
 			}
 
-			$payment_method_settings[ str_replace( 'stripe_', '', $payment_method->id ) ] = $settings;
+			$payment_method_id = 'stripe_sepa' === $payment_method->id ? 'sepa_debit' : str_replace( 'stripe_', '', $payment_method->id );
+
+			$payment_method_settings[ $payment_method_id ] = $settings;
 		}
 
 		return $payment_method_settings;
