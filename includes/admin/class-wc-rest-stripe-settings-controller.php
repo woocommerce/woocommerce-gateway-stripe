@@ -323,7 +323,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$this->update_is_debug_log_enabled( $request );
 		$this->update_is_upe_enabled( $request );
 
-		return new WP_REST_Response( [ 'test' => WC_Stripe_Helper::get_legacy_individual_payment_method_settings() ], 200 );
+		return new WP_REST_Response( [], 200 );
 	}
 
 	/**
