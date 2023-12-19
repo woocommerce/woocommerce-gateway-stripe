@@ -1633,7 +1633,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'selected_payment_type'        => $selected_payment_type,
 			'shipping'                     => $shipping_details,
 			'statement_descriptor'         => $this->get_statement_descriptor( $selected_payment_type ),
-			'return_url'                   => $this->get_stripe_return_url( $order ),
+			'return_url'                   => $this->get_return_url_for_redirect( $order, $save_payment_method_to_store ),
 		];
 
 		return $payment_information;
@@ -1725,5 +1725,29 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				__( 'This payment method type is not available in the selected country.', 'woocommerce-gateway-stripe' )
 			);
 		}
+	}
+
+	/**
+	 * Returns a URL to process UPE redirect payments.
+	 *
+	 * @param WC_Order $order               The WC Order to be paid for.
+	 * @param bool     $save_payment_method Whether to save the payment method for future use.
+	 *
+	 * @return string
+	 */
+	private function get_return_url_for_redirect( $order, $save_payment_method ) {
+		return wp_sanitize_redirect(
+			esc_url_raw(
+				add_query_arg(
+					[
+						'order_id'            => $order->get_id(),
+						'wc_payment_method'   => self::ID,
+						'_wpnonce'            => wp_create_nonce( 'wc_stripe_process_redirect_order_nonce' ),
+						'save_payment_method' => $save_payment_method ? 'yes' : 'no',
+					],
+					$this->get_return_url( $order )
+				)
+			)
+		);
 	}
 }
