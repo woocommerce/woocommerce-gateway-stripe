@@ -312,20 +312,21 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 		}
 
-		$stripe_params['isCheckout']               = is_checkout() && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
-		$stripe_params['return_url']               = $this->get_stripe_return_url();
-		$stripe_params['ajax_url']                 = WC_AJAX::get_endpoint( '%%endpoint%%' );
-		$stripe_params['theme_name']               = get_option( 'stylesheet' );
-		$stripe_params['testMode']                 = $this->testmode;
-		$stripe_params['createPaymentIntentNonce'] = wp_create_nonce( 'wc_stripe_create_payment_intent_nonce' );
-		$stripe_params['updatePaymentIntentNonce'] = wp_create_nonce( 'wc_stripe_update_payment_intent_nonce' );
-		$stripe_params['createSetupIntentNonce']   = wp_create_nonce( 'wc_stripe_create_setup_intent_nonce' );
-		$stripe_params['updateFailedOrderNonce']   = wp_create_nonce( 'wc_stripe_update_failed_order_nonce' );
-		$stripe_params['paymentMethodsConfig']     = $this->get_enabled_payment_method_config();
-		$stripe_params['genericErrorMessage']      = __( 'There was a problem processing the payment. Please check your email inbox and refresh the page to try again.', 'woocommerce-gateway-stripe' );
-		$stripe_params['accountDescriptor']        = $this->statement_descriptor;
-		$stripe_params['addPaymentReturnURL']      = wc_get_account_endpoint_url( 'payment-methods' );
-		$stripe_params['enabledBillingFields']     = $enabled_billing_fields;
+		$stripe_params['isCheckout']                       = is_checkout() && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
+		$stripe_params['return_url']                       = $this->get_stripe_return_url();
+		$stripe_params['ajax_url']                         = WC_AJAX::get_endpoint( '%%endpoint%%' );
+		$stripe_params['theme_name']                       = get_option( 'stylesheet' );
+		$stripe_params['testMode']                         = $this->testmode;
+		$stripe_params['createPaymentIntentNonce']         = wp_create_nonce( 'wc_stripe_create_payment_intent_nonce' );
+		$stripe_params['updatePaymentIntentNonce']         = wp_create_nonce( 'wc_stripe_update_payment_intent_nonce' );
+		$stripe_params['createSetupIntentNonce']           = wp_create_nonce( 'wc_stripe_create_setup_intent_nonce' );
+		$stripe_params['createAndConfirmSetupIntentNonce'] = wp_create_nonce( 'wc_stripe_create_and_confirm_setup_intent_nonce' );
+		$stripe_params['updateFailedOrderNonce']           = wp_create_nonce( 'wc_stripe_update_failed_order_nonce' );
+		$stripe_params['paymentMethodsConfig']             = $this->get_enabled_payment_method_config();
+		$stripe_params['genericErrorMessage']              = __( 'There was a problem processing the payment. Please check your email inbox and refresh the page to try again.', 'woocommerce-gateway-stripe' );
+		$stripe_params['accountDescriptor']                = $this->statement_descriptor;
+		$stripe_params['addPaymentReturnURL']              = wc_get_account_endpoint_url( 'payment-methods' );
+		$stripe_params['enabledBillingFields']             = $enabled_billing_fields;
 
 		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
 		$currency   = get_woocommerce_currency();
@@ -1719,6 +1720,58 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				sprintf( 'The payment method type "%1$s" is not available in %2$s.', $payment_method_type, $billing_country ),
 				__( 'This payment method type is not available in the selected country.', 'woocommerce-gateway-stripe' )
 			);
+		}
+	}
+
+	/**
+	 * Add a new Stripe payment method via the My Account > Payment methods page.
+	 *
+	 * This function is called by @see WC_Form_Handler::add_payment_method_action().
+	 *
+	 * @return array
+	 */
+	public function add_payment_method() {
+		try {
+			if ( ! is_user_logged_in() ) {
+				throw new WC_Stripe_Exception( 'No logged-in user found.' );
+			}
+
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			if ( ! isset( $_POST['wc-stripe-setup-intent'] ) ) {
+				throw new WC_Stripe_Exception( 'Stripe setup intent is missing.' );
+			}
+
+			$user            = wp_get_current_user();
+			$setup_intent_id = wc_clean( wp_unslash( $_POST['wc-stripe-setup-intent'] ) );
+			$setup_intent    = $this->stripe_request( 'setup_intents/' . $setup_intent_id );
+
+			if ( ! empty( $setup_intent->last_payment_error ) ) {
+				throw new WC_Stripe_Exception( sprintf( 'Error fetching the setup intent (ID %s) from Stripe: %s.', $setup_intent_id, ! empty( $setup_intent->last_payment_error->message ) ? $setup_intent->last_payment_error->message : 'Unknown error' ) );
+			}
+
+			$payment_method_id     = $setup_intent->payment_method;
+			$payment_method_object = $this->stripe_request( 'payment_methods/' . $payment_method_id );
+
+			$payment_method = $this->payment_methods[ $payment_method_object->type ];
+
+			$customer = new WC_Stripe_Customer( $user->ID );
+			$customer->clear_cache();
+
+			$token = $payment_method->create_payment_token_for_user( $user->ID, $payment_method_object );
+
+			if ( ! is_a( $token, 'WC_Payment_Token' ) ) {
+				throw new WC_Stripe_Exception( sprintf( 'New payment token is not an instance of WC_Payment_Token. Token: %s.', print_r( $token, true ) ) );
+			}
+
+			do_action( 'woocommerce_stripe_add_payment_method', $user->ID, $payment_method_object );
+
+			return [
+				'result'   => 'success',
+				'redirect' => wc_get_endpoint_url( 'payment-methods' ),
+			];
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( sprintf( 'Add payment method error: %s', $e->getMessage() ) );
+			return [ 'result' => 'failure' ];
 		}
 	}
 }

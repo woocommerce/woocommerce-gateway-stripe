@@ -6,6 +6,7 @@ import {
 	getStripeServerData,
 	getUpeSettings,
 	showErrorCheckout,
+	appendSetupIntentToForm,
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
 
@@ -300,4 +301,28 @@ export const processPayment = (
 
 	// Prevent WC Core default form submission (see woocommerce/assets/js/frontend/checkout.js) from happening.
 	return false;
+};
+
+/**
+ * Handles creating and confirming a setup intent.
+ *
+ * With the confirmed setup intent, this function will add the new setup intent ID to the form before submitting.
+ *
+ * @param {string} paymentMethod The payment method ID (i.e. pm_1234567890).
+ * @param {Object} jQueryForm The jQuery object for the form being submitted.
+ * @param {Object} api The API object used to create the Stripe payment method.
+ *
+ * @return {Promise<Object>} A promise that resolves with the confirmed setup intent.
+ */
+export const createAndConfirmSetupIntent = (
+	paymentMethod,
+	jQueryForm,
+	api
+) => {
+	return api
+		.setupIntent( paymentMethod.id )
+		.then( function ( confirmedSetupIntent ) {
+			appendSetupIntentToForm( jQueryForm, confirmedSetupIntent );
+			return confirmedSetupIntent;
+		} );
 };

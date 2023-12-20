@@ -223,7 +223,12 @@ export const getPaymentMethodTypes = ( paymentMethodType = null ) => {
 	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
 
 	if ( paymentMethodType === null ) {
-		return Object.keys( paymentMethodsConfig || {} );
+		if ( getStripeServerData()?.isCheckout ) {
+			return Object.keys( paymentMethodsConfig || {} );
+		}
+
+		// If we're on the My Account > Add payment method page make sure we only support the card paymentMethodType.
+		return [ 'card' ];
 	}
 
 	const paymentMethodTypes = [ paymentMethodType ];
@@ -272,6 +277,12 @@ export const appendIsUsingDeferredIntentToForm = ( form ) => {
 export const appendPaymentMethodIdToForm = ( form, paymentMethodId ) => {
 	form.append(
 		`<input type="hidden" id="wc-stripe-payment-method" name="wc-stripe-payment-method" value="${ paymentMethodId }" />`
+	);
+};
+
+export const appendSetupIntentToForm = ( form, setupIntent ) => {
+	form.append(
+		`<input type="hidden" id="wc-stripe-setup-intent" name="wc-stripe-setup-intent" value="${ setupIntent.id }" />`
 	);
 };
 
