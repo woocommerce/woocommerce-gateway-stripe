@@ -884,7 +884,7 @@ class WC_Stripe_Intent_Controller {
 		);
 
 		if ( ! empty( $setup_intent->error ) ) {
-			throw new WC_Stripe_Exception( $setup_intent->error->message );
+			throw new WC_Stripe_Exception( print_r( $setup_intent->error, true ), $setup_intent->error->message );
 		}
 
 		return $setup_intent;
@@ -893,7 +893,7 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * Handle AJAX requests for creating and confirming a setup intent.
 	 *
-	 * @throws Exception If the AJAX request is missing the required data or if there's error creating and confirming the setup intent.
+	 * @throws Exception If the AJAX request is missing the required data or if there's an error creating and confirming the setup intent.
 	 */
 	public function create_and_confirm_setup_intent_ajax() {
 		$setup_intent = null;

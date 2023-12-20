@@ -42,7 +42,7 @@ jQuery( function ( $ ) {
 		}
 	}
 
-	// Mount the Stripe Payment Elements onto the Add Payment Method page and Pay for Order page..
+	// Mount the Stripe Payment Elements onto the Add Payment Method page and Pay for Order page.
 	if (
 		$( 'form#add_payment_method' ).length ||
 		$( 'form#order_review' ).length
