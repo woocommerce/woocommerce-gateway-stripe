@@ -26,6 +26,8 @@ class WC_Stripe_Intent_Controller {
 		add_action( 'wc_ajax_wc_stripe_verify_intent', [ $this, 'verify_intent' ] );
 		add_action( 'wc_ajax_wc_stripe_create_setup_intent', [ $this, 'create_setup_intent' ] );
 
+		add_action( 'wc_ajax_wc_stripe_create_and_confirm_setup_intent', [ $this, 'create_and_confirm_setup_intent_ajax' ] );
+
 		add_action( 'wc_ajax_wc_stripe_create_payment_intent', [ $this, 'create_payment_intent_ajax' ] );
 		add_action( 'wc_ajax_wc_stripe_update_payment_intent', [ $this, 'update_payment_intent_ajax' ] );
 		add_action( 'wc_ajax_wc_stripe_init_setup_intent', [ $this, 'init_setup_intent_ajax' ] );
@@ -859,6 +861,86 @@ class WC_Stripe_Intent_Controller {
 		$is_sepa_debit_payment  = 'sepa_debit' === $selected_payment_type;
 
 		return $is_stripe_link_enabled || $is_sepa_debit_payment;
+	}
+
+	/**
+	 * Creates and confirm a setup intent with the given payment method ID.
+	 *
+	 * @param string $payment_method The payment method ID (pm_).
+	 *
+	 * @throws WC_Stripe_Exception If the create intent call returns with an error.
+	 *
+	 * @return array
+	 */
+	public function create_and_confirm_setup_intent( $payment_method ) {
+		// Determine the customer managing the payment methods, create one if we don't have one already.
+		$user        = wp_get_current_user();
+		$customer    = new WC_Stripe_Customer( $user->ID );
+		$customer_id = $customer->update_or_create_customer();
+
+		$setup_intent = WC_Stripe_API::request(
+			[
+				'customer'       => $customer_id,
+				'confirm'        => 'true',
+				'payment_method' => $payment_method,
+			],
+			'setup_intents'
+		);
+
+		if ( ! empty( $setup_intent->error ) ) {
+			throw new WC_Stripe_Exception( print_r( $setup_intent->error, true ), $setup_intent->error->message );
+		}
+
+		return $setup_intent;
+	}
+
+	/**
+	 * Handle AJAX requests for creating and confirming a setup intent.
+	 *
+	 * @throws Exception If the AJAX request is missing the required data or if there's an error creating and confirming the setup intent.
+	 */
+	public function create_and_confirm_setup_intent_ajax() {
+		$setup_intent = null;
+
+		try {
+			$is_nonce_valid = check_ajax_referer( 'wc_stripe_create_and_confirm_setup_intent_nonce', false, false );
+
+			if ( ! $is_nonce_valid ) {
+				throw new WC_Stripe_Exception( 'Invalid nonce.', __( 'Unable to verify your request. Please refresh the page and try again.', 'woocommerce-gateway-stripe' ) );
+			}
+
+			$payment_method = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) );
+
+			if ( ! $payment_method ) {
+				throw new WC_Stripe_Exception( 'Payment method missing from request.', __( "We're not able to add this payment method. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
+			}
+
+			$setup_intent = $this->create_and_confirm_setup_intent( $payment_method );
+
+			if ( empty( $setup_intent->status ) || ! in_array( $setup_intent->status, [ 'succeeded', 'processing', 'requires_action' ], true ) ) {
+				throw new WC_Stripe_Exception( 'Response from Stripe: ' . print_r( $setup_intent, true ), __( 'There was an error adding this payment method. Please refresh the page and try again', 'woocommerce-gateway-stripe' ) );
+			}
+
+			wp_send_json_success(
+				[
+					'status'        => $setup_intent->status,
+					'id'            => $setup_intent->id,
+					'client_secret' => $setup_intent->client_secret,
+				],
+				200
+			);
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( 'Failed to create and confirm setup intent. ' . $e->getMessage() );
+
+			// Send back error so it can be displayed to the customer.
+			wp_send_json_error(
+				[
+					'error' => [
+						'message' => $e->getLocalizedMessage(),
+					],
+				]
+			);
+		}
 	}
 
 	/**
