@@ -560,31 +560,76 @@ trait WC_Stripe_Subscriptions_Trait {
 		$mandate = $order->get_meta( '_stripe_mandate_id', true );
 		if ( isset( $request['confirm'] ) && filter_var( $request['confirm'], FILTER_VALIDATE_BOOL ) && ! empty( $mandate ) ) {
 			$request['mandate'] = $mandate;
+			unset( $request['setup_future_usage'] );
 			return $request;
 		}
 
-		$renewals = wcs_get_subscriptions_for_renewal_order( $order );
-		if ( 1 === count( $renewals ) ) {
-			$renewal_order   = reset( $renewals );
-			$parent_order_id = $renewal_order->get_parent_id();
-			$parent_order    = wc_get_order( $parent_order_id );
+		$subscriptions_for_renewal_order = wcs_get_subscriptions_for_renewal_order( $order );
 
-			if ( $parent_order ) {
-				$mandate = $parent_order->get_meta( '_stripe_mandate_id', true );
-				if ( ! empty( $mandate ) ) {
-					$request['mandate'] = $mandate;
-					return $request;
-				}
+		// Check if mandate already exists.
+		if ( 1 === count( $subscriptions_for_renewal_order ) ) {
+			$subscription_order = reset( $subscriptions_for_renewal_order );
+			$mandate            = $this->get_mandate_for_subscription( $subscription_order, isset( $request['payment_method'] ) ? $request['payment_method'] : '' );
+
+			if ( ! empty( $mandate ) ) {
+				$request['confirm'] = 'true';
+				$request['mandate'] = $mandate;
+				unset( $request['setup_future_usage'] );
+				return $request;
 			}
 		}
 
-		// Otherwise add the parameters required to create a mandate.
+		// Add mandate options to request to create new mandate if mandate id does not already exist in a previous renewal or parent order.
+		$mandate_options = $this->create_mandate_options_for_order( $order, $subscriptions_for_renewal_order );
+		if ( ! empty( $mandate_options ) ) {
+			$request['payment_method_options']['card']['mandate_options'] = $mandate_options;
+		}
 
-		$subscriptions = wcs_get_subscriptions_for_order( $order );
+		return $request;
+	}
+
+	/**
+	 * Find the mandate id for a subscription renewal from a previous renewal order. Return the mandate id
+	 * if it exists and the amount matches the renewal order amount, return empty otherwise to indicate that a
+	 * new mandate should be created.
+	 *
+	 * @param WC_Order $order The subscription order.
+	 * @return string the mandate id or empty string if no valid mandate id is found.
+	 */
+	private function get_mandate_for_subscription( $order, $payment_method ) {
+		$renewal_order_ids = $order->get_related_orders( 'ids' );
+
+		foreach ( $renewal_order_ids as $renewal_order_id ) {
+			$renewal_order                = wc_get_order( $renewal_order_id );
+			$mandate                      = $renewal_order->get_meta( '_stripe_mandate_id', true );
+			$renewal_order_payment_method = $renewal_order->get_meta( '_stripe_source_id', true );
+
+			// Return from the most recent renewal order with a valid mandate. Mandate is created against a payment method
+			// in Stripe so the payment method should also match to reuse the mandate.
+			if ( ! empty( $mandate ) && $renewal_order_payment_method === $payment_method ) {
+				return $mandate;
+			}
+		}
+		return '';
+	}
+
+	/**
+	 * Create mandate options for a subscription order to be added to the payment intent request.
+	 *
+	 * @param WC_Order $order The renewal order.
+	 * @return array the mandate_options for the subscription order.
+	 */
+	private function create_mandate_options_for_order( $order, $subscriptions ) {
+		$mandate_options = [];
+
+		// If this is the first order, not a renewal, then get the subscriptions for the parent order.
+		if ( empty( $subscriptions ) ) {
+			$subscriptions = wcs_get_subscriptions_for_order( $order );
+		}
 
 		// If there are no subscriptions we just return since mandates aren't required.
 		if ( 0 === count( $subscriptions ) ) {
-			return $request;
+			return [];
 		}
 
 		$sub_amount = 0;
@@ -601,23 +646,28 @@ trait WC_Stripe_Subscriptions_Trait {
 		// Get the first subscription associated with this order.
 		$sub = reset( $subscriptions );
 
+		// If the amount zero we just return since mandate is not required and can not be created with zero amount.
+		if ( 0 === $sub_amount ) {
+			return [];
+		}
+
 		if ( 1 === count( $subscriptions ) ) {
-			$request['payment_method_options']['card']['mandate_options']['amount_type']    = 'fixed';
-			$request['payment_method_options']['card']['mandate_options']['interval']       = $sub->get_billing_period();
-			$request['payment_method_options']['card']['mandate_options']['interval_count'] = $sub->get_billing_interval();
+			$mandate_options['amount_type']    = 'fixed';
+			$mandate_options['interval']       = $sub->get_billing_period();
+			$mandate_options['interval_count'] = $sub->get_billing_interval();
 		} else {
 			// If there are multiple subscriptions the amount_type becomes 'maximum' so we can charge anything
 			// less than the order total, and the interval is sporadic so we don't have to follow a set interval.
-			$request['payment_method_options']['card']['mandate_options']['amount_type'] = 'maximum';
-			$request['payment_method_options']['card']['mandate_options']['interval']    = 'sporadic';
+			$mandate_options['amount_type'] = 'maximum';
+			$mandate_options['interval']    = 'sporadic';
 		}
 
-		$request['payment_method_options']['card']['mandate_options']['amount']          = $sub_amount;
-		$request['payment_method_options']['card']['mandate_options']['reference']       = $order->get_id();
-		$request['payment_method_options']['card']['mandate_options']['start_date']      = $sub->get_time( 'start' );
-		$request['payment_method_options']['card']['mandate_options']['supported_types'] = [ 'india' ];
+		$mandate_options['amount']          = $sub_amount;
+		$mandate_options['reference']       = $order->get_id();
+		$mandate_options['start_date']      = $sub->get_time( 'start' );
+		$mandate_options['supported_types'] = [ 'india' ];
 
-		return $request;
+		return $mandate_options;
 	}
 
 	/**

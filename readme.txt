@@ -1,10 +1,10 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
-Requires at least: 6.0
-Tested up to: 6.3.1
+Requires at least: 6.1
+Tested up to: 6.4.2
 Requires PHP: 7.4
-Stable tag: 7.7.0
+Stable tag: 7.8.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,25 +128,16 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.7.0 - 2023-11-09 =
-* Add - Prevent saving the bank statement descriptor if it contains non-Latin characters.
-* Fix - Display the Payment Request Buttons' error message in the classic checkout page.
-* Fix - Prevent escaping the anchor tag under the Apple Pay domain registration failure notice.
-* Fix - Use the card's payer name for Payment Request Buttons when the billing name isn't available.
-* Fix - Display the Payment Request Buttons according to the selected settings.
-* Tweak - Record Track events during the onboarding process.
-* Tweak - Prevent Google Pay and Apple Pay from showing up in the UPE card Element.
-* Tweak - Use admin theme color in selectors.
-* Tweak - Refactor `is_valid_pay_for_order_endpoint` for better performance.
-* Fix - Catch request failure errors.
-* Tweak - Add test mode notice.
-* Fix - Remove ugx from the zero decimal currency list as a special case in Stripe.
-* Fix - Deleting customer on staging site detaches tokens from customer in Stripe.
-* Fix - Resolved an issue preventing changing a subscriptions payment method when UPE is enabled.
-* Fix - Send customer billing and address details to Stripe when changing a subscriptions payment method.
-* Add - Attach billing details to customers created in Stripe to support Indian merchants in processing international transactions.
-* Fix - Prevent "Invalid recurring shipping method" errors when attempting to purchase a synchronised subscription with payment request buttons.
-* Fix - When using Payment Request buttons on variable product pages, ensure shipping is properly calculated after the customer closes the window and changes variations.
-* Fix - Purchasing a virtual variable product using Apple Pay and Google Pay on the product page will no longer require shipping details.
+= 7.8.0 - 2023-12-21 =
+* Fix - Resolved an issue with Stripe errors not being displayed on the checkout page for stores using custom payment method elements.
+* Fix - Resolved a PHP fatal error occurring on stores that removed `WC_Email_Failed_Order` from the list of WC email classes while attempting to send the failed order email.
+* Fix - Prevent incorrect totals displayed in Google Pay and Apple Pay when purchasing a virtual sychronised subscription from the product page.
+* Fix - Hide the Google Pay and Apple Pay buttons on variable product pages, if the selected variation is not supported by Payment Request buttons.
+* Fix - Don't require shipping when purchasing a virtual variable subscription product using Google Pay and Apple Pay.
+* Fix - When using Payment Request buttons, fix $0 total for stores using a customized product page that adds the variation product ID directly into the cart.
+* Fix - MultiBanco: HTML tags to print as expected on the Order Confirmation page, and "Thank you for your order" email.
+* Tweak - Improve compatibility with PHP 8+.
+* Tweak - Adjusted default height of express payment button from 40px to 48px. Existing stores retain their current button height settings.
+* Tweak - Removed '- OR -' separator and updated placement of Express payment buttons (eg Apple Pay and Google Pay) on cart and product pages to align with WooCommerce Express payment button standards.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

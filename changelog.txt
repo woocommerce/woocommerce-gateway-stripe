@@ -1,5 +1,17 @@
 *** Changelog ***
 
+= 7.8.0 - 2023-12-21 =
+* Fix - Resolved an issue with Stripe errors not being displayed on the checkout page for stores using custom payment method elements.
+* Fix - Resolved a PHP fatal error occurring on stores that removed `WC_Email_Failed_Order` from the list of WC email classes while attempting to send the failed order email.
+* Fix - Prevent incorrect totals displayed in Google Pay and Apple Pay when purchasing a virtual sychronised subscription from the product page.
+* Fix - Hide the Google Pay and Apple Pay buttons on variable product pages, if the selected variation is not supported by Payment Request buttons.
+* Fix - Don't require shipping when purchasing a virtual variable subscription product using Google Pay and Apple Pay.
+* Fix - When using Payment Request buttons, fix $0 total for stores using a customized product page that adds the variation product ID directly into the cart.
+* Fix - MultiBanco: HTML tags to print as expected on the Order Confirmation page, and "Thank you for your order" email.
+* Tweak - Improve compatibility with PHP 8+.
+* Tweak - Adjusted default height of express payment button from 40px to 48px. Existing stores retain their current button height settings.
+* Tweak - Removed '- OR -' separator and updated placement of Express payment buttons (eg Apple Pay and Google Pay) on cart and product pages to align with WooCommerce Express payment button standards.
+
 = 7.7.0 - 2023-11-09 =
 * Add - Prevent saving the bank statement descriptor if it contains non-Latin characters.
 * Fix - Display the Payment Request Buttons' error message in the classic checkout page.
