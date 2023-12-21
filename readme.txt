@@ -1,8 +1,8 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
-Requires at least: 6.0
-Tested up to: 6.3.1
+Requires at least: 6.1
+Tested up to: 6.4.2
 Requires PHP: 7.4
 Stable tag: 7.7.0
 License: GPLv3
