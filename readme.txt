@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.1
 Tested up to: 6.4.2
 Requires PHP: 7.4
-Stable tag: 7.7.0
+Stable tag: 7.8.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.8.0 - xxxx-xx-xx =
+= 7.8.0 - 2023-12-21 =
 * Fix - Resolved an issue with Stripe errors not being displayed on the checkout page for stores using custom payment method elements.
 * Fix - Resolved a PHP fatal error occurring on stores that removed `WC_Email_Failed_Order` from the list of WC email classes while attempting to send the failed order email.
 * Fix - Prevent incorrect totals displayed in Google Pay and Apple Pay when purchasing a virtual sychronised subscription from the product page.
