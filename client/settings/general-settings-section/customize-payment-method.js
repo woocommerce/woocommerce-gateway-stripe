@@ -28,14 +28,20 @@ const CustomizePaymentMethod = ( { method, onClose } ) => {
 	const [ methodExpiration, setMethodExpiration ] = useState( expiration );
 
 	const onSave = async () => {
-		await customizePaymentMethod( {
-			isEnabled: enabledPaymentMethodIds.includes( method ),
+		const data = {
+			...individualPaymentMethodSettings,
+			[ method ]: {
+				name: methodName,
+				description: methodDescription,
+				expiration: methodExpiration,
+			},
+		};
+		await customizePaymentMethod(
 			method,
-			name: methodName,
-			description: methodDescription,
-			expiration: methodExpiration,
-		} );
-		onClose();
+			enabledPaymentMethodIds.includes( method ),
+			data
+		);
+		onClose( data );
 	};
 
 	return (

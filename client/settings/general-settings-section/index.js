@@ -33,7 +33,7 @@ const AccountRefreshingOverlay = styled.div`
 	}
 `;
 
-const GeneralSettingsSection = () => {
+const GeneralSettingsSection = ( { onSaveChanges } ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const { isRefreshing } = useAccount();
 
@@ -55,7 +55,7 @@ const GeneralSettingsSection = () => {
 							'has-overlay': isRefreshing,
 						} ) }
 					>
-						<PaymentMethodsList />
+						<PaymentMethodsList onSaveChanges={ onSaveChanges } />
 					</AccountRefreshingOverlay>
 					{ isUpeEnabled && <SectionFooter /> }
 				</LoadableSettingsSection>

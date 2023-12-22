@@ -95,7 +95,7 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 	flex: 1 0 auto;
 `;
 
-const GeneralSettingsSection = () => {
+const GeneralSettingsSection = ( { onSaveChanges } ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const [ customizationStatus, setCustomizationStatus ] = useState( {} );
 	const upePaymentMethods = useGetAvailablePaymentMethodIds();
@@ -120,6 +120,18 @@ const GeneralSettingsSection = () => {
 			availablePaymentMethods.indexOf( 'sofort' )
 		);
 	}
+
+	const onSaveCustomization = ( method, data = null ) => {
+		setCustomizationStatus( {
+			...customizationStatus,
+			[ method ]: false,
+		} );
+
+		if ( data ) {
+			console.log( 'data is', data );
+			onSaveChanges( 'individual_payment_method_settings', data );
+		}
+	};
 
 	return (
 		<List>
@@ -178,11 +190,8 @@ const GeneralSettingsSection = () => {
 						{ ! isUpeEnabled && customizationStatus[ method ] && (
 							<CustomizePaymentMethod
 								method={ method }
-								onClose={ () =>
-									setCustomizationStatus( {
-										...customizationStatus,
-										[ method ]: false,
-									} )
+								onClose={ ( data ) =>
+									onSaveCustomization( method, data )
 								}
 							/>
 						) }
