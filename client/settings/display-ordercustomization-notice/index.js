@@ -1,15 +1,16 @@
 /* global wc_stripe_settings_params */
 import { __ } from '@wordpress/i18n';
 import styled from '@emotion/styled';
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { Icon, Notice } from '@wordpress/components';
 import { info } from '@wordpress/icons';
+import apiFetch from '@wordpress/api-fetch';
 import UpeToggleContext from '../upe-toggle/context';
 
 const NoticeWrapper = styled( Notice )`
 	border-left: none;
 	margin: 0 0 24px 0;
-	background: var( --WP-Blue-Blue-0, #f0f6fc );
+	background: #f0f6fc;
 `;
 
 const NoticeContent = styled.div`
@@ -24,13 +25,21 @@ const NoticeContent = styled.div`
 
 const DisplayOrderCustomizationNotice = () => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
+	const [ showNotice, setShowNotice ] = useState(
+		wc_stripe_settings_params.show_customization_notice
+	);
 
-	const isCustomizationNoticeVisible =
-		wc_stripe_settings_params.show_customization_notice;
+	const handleDismissNotice = () => {
+		apiFetch( {
+			path: '/wc/v3/wc_stripe/settings/notice',
+			method: 'POST',
+			data: { wc_stripe_show_customization_notice: 'no' },
+		} ).finally( () => {
+			setShowNotice( false );
+		} );
+	};
 
-	const handleDismissNotice = () => {};
-
-	if ( isUpeEnabled || ! isCustomizationNoticeVisible ) {
+	if ( isUpeEnabled || ! showNotice ) {
 		return null;
 	}
 
