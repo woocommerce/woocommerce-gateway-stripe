@@ -18,6 +18,13 @@ class WC_Stripe_Helper {
 	const META_NAME_STRIPE_CURRENCY = '_stripe_currency';
 
 	/**
+	 * List of legacy Stripe gateways.
+	 *
+	 * @var array
+	 */
+	private static $stripe_legacy_gateways = [];
+
+	/**
 	 * Gets the Stripe currency for order.
 	 *
 	 * @since 4.1.0
@@ -366,39 +373,39 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Get legacy payment method by id.
-	 *
-	 * @return object|null
-	 */
-	public static function get_legacy_payment_method( $id ) {
-		$payment_method_classes = self::get_legacy_payment_method_classes();
-
-		if ( ! isset( $payment_method_classes[ $id ] ) ) {
-			return null;
-		}
-
-		$payment_method_class = $payment_method_classes[ $id ];
-		$payment_method       = new $payment_method_class();
-
-		return $payment_method;
-	}
-
-	/**
 	 * List of legacy payment methods.
 	 *
 	 * @return array
 	 */
 	public static function get_legacy_payment_methods() {
-		$payment_method_classes = self::get_legacy_payment_method_classes();
-
-		$payment_methods = [];
-
-		foreach ( $payment_method_classes as $payment_method_class ) {
-			$payment_method                         = new $payment_method_class();
-			$payment_methods[ $payment_method->id ] = $payment_method;
+		if ( ! empty( self::$stripe_legacy_gateways ) ) {
+			return self::$stripe_legacy_gateways;
 		}
 
-		return $payment_methods;
+		$payment_method_classes = self::get_legacy_payment_method_classes();
+
+		foreach ( $payment_method_classes as $payment_method_class ) {
+			$payment_method = new $payment_method_class();
+
+			self::$stripe_legacy_gateways[ $payment_method->id ] = $payment_method;
+		}
+
+		return self::$stripe_legacy_gateways;
+	}
+
+	/**
+	 * Get legacy payment method by id.
+	 *
+	 * @return object|null
+	 */
+	public static function get_legacy_payment_method( $id ) {
+		$payment_methods = self::get_legacy_payment_methods();
+
+		if ( ! isset( $payment_methods[ $id ] ) ) {
+			return null;
+		}
+
+		return $payment_methods[ $id ];
 	}
 
 	/**
