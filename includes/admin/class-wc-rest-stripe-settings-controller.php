@@ -162,6 +162,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 					'payment_method' => [
 						'description'       => __( 'Payment method id.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
+						'enum'              => WC_Stripe_Helper::get_legacy_available_payment_method_ids(),
 						'validate_callback' => 'rest_validate_request_arg',
 					],
 					'is_enabled'     => [
@@ -305,7 +306,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 
 		/* Settings > Payments accepted on checkout */
 		$this->update_enabled_payment_methods( $request );
-		$this->update_individual_payment_method_settings( $request );
 
 		/* Settings > Express checkouts */
 		$this->update_is_payment_request_enabled( $request );
@@ -603,30 +603,32 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * @return WP_REST_Response
 	 */
 	public function update_individual_payment_method_settings( WP_REST_Request $request ) {
-		$payment_method_id       = $request->get_param( 'payment_method_id' );
+		$payment_method_id = $request->get_param( 'payment_method_id' );
+		// test
 		$mapped_legacy_method_id = 'sepa_debit' === $payment_method_id ? 'stripe_sepa' : ( 'stripe_' . $payment_method_id );
 		$is_enabled              = $request->get_param( 'is_enabled' );
 		$title                   = sanitize_text_field( $request->get_param( 'title' ) );
 		$description             = sanitize_text_field( $request->get_param( 'description' ) );
 
+		// In legacy mode (when UPE is disabled), Stripe gateway refers to card as payment method id.
 		if ( 'card' === $payment_method_id ) {
 			$this->gateway->update_option( 'title', $title );
 			$this->gateway->update_option( 'description', $description );
 			return new WP_REST_Response( [], 200 );
 		}
 
-		$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
+		$payment_gateway = WC_Stripe_Helper::get_legacy_payment_method( $mapped_legacy_method_id );
 
-		if ( ! isset( $payment_gateways[ $mapped_legacy_method_id ] ) ) {
+		if ( ! $payment_gateway ) {
 			return new WP_REST_Response( [ 'result' => 'payment method not found' ], 404 );
 		}
 
-		$payment_gateways[ $mapped_legacy_method_id ]->update_option( 'title', $title );
-		$payment_gateways[ $mapped_legacy_method_id ]->update_option( 'description', $description );
+		$payment_gateway->update_option( 'title', $title );
+		$payment_gateway->update_option( 'description', $description );
 
-		if ( $request->get_param( 'expiration' ) && method_exists( $payment_gateways[ $mapped_legacy_method_id ], 'update_unique_settings' ) ) {
+		if ( $request->get_param( 'expiration' ) && method_exists( $payment_gateway, 'update_unique_settings' ) ) {
 			$request->set_param( $mapped_legacy_method_id . '_expiration', $request->get_param( 'expiration' ) );
-			$payment_gateways[ $mapped_legacy_method_id ]->update_unique_settings( $request );
+			$payment_gateway->update_unique_settings( $request );
 		}
 
 		return new WP_REST_Response( [], 200 );

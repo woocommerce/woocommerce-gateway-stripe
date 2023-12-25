@@ -366,6 +366,24 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Get legacy payment method by id.
+	 *
+	 * @return object|null
+	 */
+	public static function get_legacy_payment_method( $id ) {
+		$payment_method_classes = self::get_legacy_payment_method_classes();
+
+		if ( ! isset( $payment_method_classes[ $id ] ) ) {
+			return null;
+		}
+
+		$payment_method_class = $payment_method_classes[ $id ];
+		$payment_method       = new $payment_method_class();
+
+		return $payment_method;
+	}
+
+	/**
 	 * List of legacy payment methods.
 	 *
 	 * @return array
