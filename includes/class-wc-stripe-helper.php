@@ -22,7 +22,7 @@ class WC_Stripe_Helper {
 	 *
 	 * @var array
 	 */
-	private static $stripe_legacy_gateways = [];
+	public static $stripe_legacy_gateways = [];
 
 	/**
 	 * Gets the Stripe currency for order.
@@ -484,8 +484,8 @@ class WC_Stripe_Helper {
 
 		$payment_method_settings = [
 			'card' => [
-				'name'        => $stripe_settings['title'],
-				'description' => $stripe_settings['description'],
+				'name'        => isset( $stripe_settings['title'] ) ? $stripe_settings['title'] : '',
+				'description' => isset( $stripe_settings['description'] ) ? $stripe_settings['description'] : '',
 			],
 		];
 

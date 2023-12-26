@@ -223,13 +223,9 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no',
 			]
 		);
-		update_option(
-			'woocommerce_stripe_eps_settings',
-			[
-				'title'       => 'EPS',
-				'description' => 'Pay with EPS',
-			]
-		);
+		$gateways = WC_Stripe_Helper::get_legacy_payment_methods();
+		$gateways['stripe_eps']->update_option( 'title', 'EPS' );
+		$gateways['stripe_eps']->update_option( 'description', 'Pay with EPS' );
 
 		$response                                = $this->rest_get_settings();
 		$individual_payment_method_settings_data = $response->get_data()['individual_payment_method_settings'];
