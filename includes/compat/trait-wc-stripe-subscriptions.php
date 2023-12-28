@@ -600,7 +600,11 @@ trait WC_Stripe_Subscriptions_Trait {
 		$renewal_order_ids = $order->get_related_orders( 'ids' );
 
 		foreach ( $renewal_order_ids as $renewal_order_id ) {
-			$renewal_order                = wc_get_order( $renewal_order_id );
+			$renewal_order = wc_get_order( $renewal_order_id );
+			if ( ! $renewal_order instanceof WC_Order ) {
+				continue;
+			}
+
 			$mandate                      = $renewal_order->get_meta( '_stripe_mandate_id', true );
 			$renewal_order_payment_method = $renewal_order->get_meta( '_stripe_source_id', true );
 
