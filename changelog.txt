@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 7.8.1 - xxxx-xx-xx =
+= 7.8.1 - 2023-12-28 =
 * Fix - Check if a valid order of tye WC_Order is returned before calling `get_meta` function.
 
 = 7.8.0 - 2023-12-21 =
