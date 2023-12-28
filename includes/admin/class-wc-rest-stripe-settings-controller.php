@@ -183,6 +183,15 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				],
 			]
 		);
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/notice',
+			[
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => [ $this, 'dismiss_customization_notice' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
 	}
 
 	/**
@@ -632,5 +641,21 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		return new WP_REST_Response( [], 200 );
+	}
+
+	/**
+	 * Set `wc_stripe_show_customization_notice` as `no` to dismiss notice.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function dismiss_customization_notice( WP_REST_Request $request ) {
+		if ( null === $request->get_param( 'wc_stripe_show_customization_notice' ) ) {
+			return new WP_REST_Response( [], 200 );
+		}
+
+		update_option( 'wc_stripe_show_customization_notice', 'no' );
+		return new WP_REST_Response( [ 'result' => 'notice dismissed' ], 200 );
 	}
 }
