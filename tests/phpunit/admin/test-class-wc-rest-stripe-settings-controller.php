@@ -338,6 +338,17 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		remove_filter( 'user_has_cap', $cb );
 	}
 
+	public function test_dismiss_customization_notice() {
+		$request = new WP_REST_Request( 'POST', self::SETTINGS_ROUTE . '/notice' );
+		$request->set_param( 'wc_stripe_show_customization_notice', 'no' );
+
+		$response      = rest_do_request( $request );
+		$notice_option = get_option( 'wc_stripe_show_customization_notice' );
+
+		$this->assertEquals( 200, $response->get_status() );
+		$this->assertEquals( 'no', $notice_option );
+	}
+
 	public function boolean_field_provider() {
 		return [
 			'is_stripe_enabled'                     => [ 'is_stripe_enabled', 'enabled' ],
