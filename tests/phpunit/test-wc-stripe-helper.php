@@ -153,7 +153,7 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 
 	public function test_get_legacy_available_payment_method_ids() {
 		$result = WC_Stripe_Helper::get_legacy_available_payment_method_ids();
-		$this->assertEquals( [ 'card', 'bancontact', 'eps', 'giropay', 'ideal', 'p24', 'sepa_debit', 'boleto', 'oxxo' ], $result );
+		$this->assertEquals( [ 'card', 'bancontact', 'eps', 'giropay', 'ideal', 'p24', 'sepa', 'boleto', 'oxxo' ], $result );
 	}
 
 	public function test_get_legacy_enabled_payment_methods() {
