@@ -420,7 +420,7 @@ class WC_Stripe_Helper {
 		$available_payment_method_ids = [ 'card' ];
 
 		foreach ( $payment_method_classes as $payment_method_class ) {
-			$payment_method_id              = 'stripe_sepa' === $payment_method_class::ID ? 'sepa_debit' : str_replace( 'stripe_', '', $payment_method_class::ID );
+			$payment_method_id              = str_replace( 'stripe_', '', $payment_method_class::ID );
 			$available_payment_method_ids[] = $payment_method_id;
 		}
 
@@ -465,7 +465,7 @@ class WC_Stripe_Helper {
 			if ( ! $payment_method->is_enabled() ) {
 				continue;
 			}
-			$payment_method_id = 'stripe_sepa' === $payment_method->id ? 'sepa_debit' : str_replace( 'stripe_', '', $payment_method->id );
+			$payment_method_id = str_replace( 'stripe_', '', $payment_method->id );
 
 			$mapped_enabled_payment_method_ids[] = $payment_method_id;
 		}
@@ -500,7 +500,7 @@ class WC_Stripe_Helper {
 				$settings['expiration'] = $unique_settings[ $payment_method->id . '_expiration' ];
 			}
 
-			$payment_method_id = 'stripe_sepa' === $payment_method->id ? 'sepa_debit' : str_replace( 'stripe_', '', $payment_method->id );
+			$payment_method_id = str_replace( 'stripe_', '', $payment_method->id );
 
 			$payment_method_settings[ $payment_method_id ] = $settings;
 		}

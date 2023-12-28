@@ -614,7 +614,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	public function update_individual_payment_method_settings( WP_REST_Request $request ) {
 		$payment_method_id = $request->get_param( 'payment_method_id' );
 		// Map the ids used in the frontend to the legacy gateway class ids.
-		$mapped_legacy_method_id = 'sepa_debit' === $payment_method_id ? 'stripe_sepa' : ( 'stripe_' . $payment_method_id );
+		$mapped_legacy_method_id = ( 'stripe_' . $payment_method_id );
 		$is_enabled              = $request->get_param( 'is_enabled' );
 		$title                   = sanitize_text_field( $request->get_param( 'title' ) );
 		$description             = sanitize_text_field( $request->get_param( 'description' ) );

@@ -106,7 +106,9 @@ const GeneralSettingsSection = () => {
 	// Hide payment methods that are not part of the account capabilities.
 	const availablePaymentMethods = upePaymentMethods
 		.filter( ( method ) =>
-			capabilities.hasOwnProperty( `${ method }_payments` )
+			method === 'sepa'
+				? capabilities.hasOwnProperty( 'sepa_debit_payments' )
+				: capabilities.hasOwnProperty( `${ method }_payments` )
 		)
 		.filter( ( id ) => id !== 'link' );
 
