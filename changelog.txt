@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 7.8.1 - xxxx-xx-xx =
+* Fix - Check if a valid order of tye WC_Order is returned before calling `get_meta` function.
+
 = 7.8.0 - 2023-12-21 =
 * Fix - Resolved an issue with Stripe errors not being displayed on the checkout page for stores using custom payment method elements.
 * Fix - Resolved a PHP fatal error occurring on stores that removed `WC_Email_Failed_Order` from the list of WC email classes while attempting to send the failed order email.
