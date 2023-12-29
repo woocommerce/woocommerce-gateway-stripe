@@ -6,6 +6,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import GeneralSettingsSection from '../general-settings-section';
 import { AccountKeysModal } from 'wcstripe/settings/payment-settings/account-keys-modal';
 import {
+	useDebugLog,
 	useIsStripeEnabled,
 	useEnabledPaymentMethodIds,
 	useTestMode,
@@ -24,6 +25,7 @@ import { useAccount } from 'wcstripe/data/account';
 import UpeToggleContext from 'wcstripe/settings/upe-toggle/context';
 
 jest.mock( 'wcstripe/data', () => ( {
+	useDebugLog: jest.fn(),
 	useIsStripeEnabled: jest.fn(),
 	useEnabledPaymentMethodIds: jest.fn(),
 	useTestMode: jest.fn(),
@@ -54,6 +56,10 @@ jest.mock( '@wordpress/api-fetch', () => ( {
 } ) );
 
 describe( 'GeneralSettingsSection', () => {
+	beforeEach( () => {
+		useDebugLog.mockReturnValue( [ false, jest.fn() ] );
+	} );
+
 	it( 'should enable stripe when stripe checkbox is clicked', () => {
 		const setIsStripeEnabledMock = jest.fn();
 		const setTestModeMock = jest.fn();
@@ -211,5 +217,27 @@ describe( 'GeneralSettingsSection', () => {
 		);
 
 		expect( screen.getByDisplayValue( 'UPE title' ) ).toBeInTheDocument();
+	} );
+
+	it( 'should enable debug mode when checkbox is clicked', () => {
+		const setIsLoggingCheckedMock = jest.fn();
+		useDebugLog.mockReturnValue( [ false, setIsLoggingCheckedMock ] );
+
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		const debugModeCheckbox = screen.getByLabelText( 'Log error messages' );
+
+		expect( screen.getByText( 'Debug mode' ) ).toBeInTheDocument();
+		expect(
+			screen.getByLabelText( 'Log error messages' )
+		).not.toBeChecked();
+
+		userEvent.click( debugModeCheckbox );
+
+		expect( setIsLoggingCheckedMock ).toHaveBeenCalledWith( true );
 	} );
 } );

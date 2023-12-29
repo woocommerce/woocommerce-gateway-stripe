@@ -11,6 +11,7 @@ import CardBody from '../card-body';
 import CardFooter from '../card-footer';
 import { AccountKeysModal } from './account-keys-modal';
 import TestModeCheckbox from './test-mode-checkbox';
+import DebugMode from './debug-mode';
 import {
 	useTestMode,
 	useIsStripeEnabled,
@@ -115,6 +116,7 @@ const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 						/>
 					) }
 					<TestModeCheckbox />
+					<DebugMode />
 				</CardBody>
 				<CardFooter>
 					<Button
