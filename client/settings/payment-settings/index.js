@@ -1,6 +1,7 @@
 import { __ } from '@wordpress/i18n';
 import { React, useState } from 'react';
 import {
+	Button,
 	Card,
 	CardHeader,
 	DropdownMenu,
@@ -9,6 +10,7 @@ import {
 import { moreVertical } from '@wordpress/icons';
 import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
+import CardFooter from '../card-footer';
 import Pill from '../../components/pill';
 import AccountStatus from '../account-details';
 import PaymentsAndTransactionsSection from '../payments-and-transactions-section';
@@ -129,6 +131,7 @@ const AccountSettingsDropdownMenu = ( {
 
 // @todo - remove setModalType as prop
 const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
+	const [ isTestMode ] = useTestMode();
 	const { data } = useAccount();
 	const isTestModeEnabled = Boolean( data.testmode );
 
@@ -136,6 +139,9 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 		<Card className="account-details">
 			<CardHeader className="account-details__header">
 				<div>
+					<h4>
+						{ __( 'Account status', 'woocommerce-gateway-stripe' ) }
+					</h4>
 					{ data.account?.email && (
 						<h4 className="account-details__header">
 							{ data.account.email }
@@ -155,6 +161,16 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 			<CardBody>
 				<AccountStatus />
 			</CardBody>
+			<CardFooter>
+				<Button
+					isSecondary
+					onClick={ () =>
+						setModalType( isTestMode ? 'test' : 'live' )
+					}
+				>
+					{ __( 'Edit account keys', 'woocommerce-gateway-stripe' ) }
+				</Button>
+			</CardFooter>
 		</Card>
 	);
 };
