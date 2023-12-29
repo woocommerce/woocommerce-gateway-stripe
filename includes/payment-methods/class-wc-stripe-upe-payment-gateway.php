@@ -1602,13 +1602,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return array An array containing the payment information for processing a payment intent.
 	 */
 	private function prepare_payment_information_from_request( WC_Order $order ) {
-		$payment_method               = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$selected_payment_type        = sanitize_text_field( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$capture_method               = empty( $this->get_option( 'capture' ) ) || $this->get_option( 'capture' ) === 'yes' ? 'automatic' : 'manual'; // automatic | manual.
-		$save_payment_method_to_store = isset( $_POST['save_payment_method'] ) ? 'yes' === wc_clean( wp_unslash( $_POST['save_payment_method'] ) ) : false;
-		$currency                     = strtolower( $order->get_currency() );
-		$amount                       = $order->get_total();
-		$shipping_details             = null;
+		$payment_method        = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$selected_payment_type = sanitize_text_field( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$capture_method        = empty( $this->get_option( 'capture' ) ) || $this->get_option( 'capture' ) === 'yes' ? 'automatic' : 'manual'; // automatic | manual.
+		$currency              = strtolower( $order->get_currency() );
+		$amount                = $order->get_total();
+		$shipping_details      = null;
 
 		// If order requires shipping, add the shipping address details to the payment intent request.
 		if ( method_exists( $order, 'get_shipping_postcode' ) && ! empty( $order->get_shipping_postcode() ) ) {
@@ -1626,13 +1625,57 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'payment_initiated_by'         => 'initiated_by_customer', // initiated_by_merchant | initiated_by_customer.
 			'payment_method'               => $payment_method,
 			'payment_type'                 => 'single', // single | recurring.
-			'save_payment_method_to_store' => $save_payment_method_to_store,
+			'save_payment_method_to_store' => $this->should_save_payment_method_from_request( $order->get_id(), $selected_payment_type ),
 			'selected_payment_type'        => $selected_payment_type,
 			'shipping'                     => $shipping_details,
 			'statement_descriptor'         => $this->get_statement_descriptor( $selected_payment_type ),
 		];
 
 		return $payment_information;
+	}
+
+	/**
+	 * Returns whether the selected payment method should be saved.
+	 *
+	 * We want to save it for subscriptions and when the shopper chooses to,
+	 * as long as the selected payment method type is reusable.
+	 *
+	 * @param int    $order_id            The ID of the order we're processing.
+	 * @param string $payment_method_type
+	 *
+	 * @return boolean
+	 */
+	private function should_save_payment_method_from_request( $order_id, $payment_method_type ) {
+		// Don't save it when the type is unknown or not reusable.
+		if (
+			! isset( $this->payment_methods[ $payment_method_type ] ) ||
+			! $this->payment_methods[ $payment_method_type ]->is_reusable()
+		) {
+			return false;
+		}
+
+		// Save it when paying for a subscription.
+		if ( $this->has_subscription( $order_id ) ) {
+			return true;
+		}
+
+		// TODO: should we check whether saving payment methods is enabled in Stripe settings?
+
+		$save_payment_method_request_arg = 'wc-' . self::ID . '-new-payment-method';
+
+		// Don't save it if we don't have the data from the checkout checkbox for saving a payment method.
+		if ( ! isset( $_POST[ $save_payment_method_request_arg ] ) ) {
+			return false;
+		}
+
+		// Save it when the checkout checkbox for saving a payment method was checked off.
+		$save_payment_method = wc_clean( wp_unslash( $_POST[ $save_payment_method_request_arg ] ) );
+		// wc-stripe-new-payment-method is 'true' for classic and '1' for block. TODO: unify this.
+		if ( in_array( $save_payment_method, [ 'true', '1' ], true ) ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
