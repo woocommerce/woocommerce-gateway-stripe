@@ -706,13 +706,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			// If the payment intent requires action, respond with the pi and client secret so it can confirmed on checkout.
 			if ( 'requires_action' === $payment_intent->status ) {
-				$redirect = sprintf(
-					'#wc-stripe-confirm-%s:%s:%s:%s',
-					$payment_needed ? 'pi' : 'si',
-					$order_id,
-					$payment_intent->client_secret,
-					wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
-				);
+				if ( isset( $payment_intent->next_action->type ) && 'redirect_to_url' === $payment_intent->next_action->type && ! empty( $payment_intent->next_action->redirect_to_url->url ) ) {
+					$redirect = $payment_intent->next_action->redirect_to_url->url;
+				} else {
+					$redirect = sprintf(
+						'#wc-stripe-confirm-%s:%s:%s:%s',
+						$payment_needed ? 'pi' : 'si',
+						$order_id,
+						$payment_intent->client_secret,
+						wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
+					);
+				}
 			}
 
 			return [
@@ -1633,6 +1637,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'selected_payment_type'        => $selected_payment_type,
 			'shipping'                     => $shipping_details,
 			'statement_descriptor'         => $this->get_statement_descriptor( $selected_payment_type ),
+			'return_url'                   => $this->get_return_url_for_redirect( $order, $save_payment_method_to_store ),
 		];
 
 		return $payment_information;
@@ -1776,5 +1781,29 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			WC_Stripe_Logger::log( sprintf( 'Add payment method error: %s', $e->getMessage() ) );
 			return [ 'result' => 'failure' ];
 		}
+	}
+
+	/**
+	 * Returns a URL to process UPE redirect payments.
+	 *
+	 * @param WC_Order $order               The WC Order to be paid for.
+	 * @param bool     $save_payment_method Whether to save the payment method for future use.
+	 *
+	 * @return string
+	 */
+	private function get_return_url_for_redirect( $order, $save_payment_method ) {
+		return wp_sanitize_redirect(
+			esc_url_raw(
+				add_query_arg(
+					[
+						'order_id'            => $order->get_id(),
+						'wc_payment_method'   => self::ID,
+						'_wpnonce'            => wp_create_nonce( 'wc_stripe_process_redirect_order_nonce' ),
+						'save_payment_method' => $save_payment_method ? 'yes' : 'no',
+					],
+					$this->get_return_url( $order )
+				)
+			)
+		);
 	}
 }
