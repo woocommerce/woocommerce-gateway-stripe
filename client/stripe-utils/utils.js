@@ -293,10 +293,8 @@ export const appendSetupIntentToForm = ( form, setupIntent ) => {
  */
 export const isUsingSavedPaymentMethod = () => {
 	return (
-		document.querySelector( '#wc-stripe-new-payment-method' )?.length &&
-		! document
-			.querySelector( '#wc-stripe-new-payment-method' )
-			.is( ':checked' )
+		document.querySelector( '#wc-stripe-payment-token-new' ) !== null &&
+		! document.querySelector( '#wc-stripe-payment-token-new' ).checked
 	);
 };
 
