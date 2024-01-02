@@ -1,5 +1,4 @@
 import {
-	appendIsUsingDeferredIntentToForm,
 	appendPaymentMethodIdToForm,
 	getPaymentMethodTypes,
 	initializeUPEAppearance,
@@ -280,7 +279,6 @@ export const processPayment = (
 				jQueryForm,
 				paymentMethodType
 			);
-			appendIsUsingDeferredIntentToForm( jQueryForm );
 			appendPaymentMethodIdToForm(
 				jQueryForm,
 				paymentMethodObject.paymentMethod.id

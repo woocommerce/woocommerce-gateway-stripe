@@ -267,13 +267,6 @@ export const generateCheckoutEventNames = () => {
 		.join( ' ' );
 };
 
-// To be removed when we fully switch to dPE.
-export const appendIsUsingDeferredIntentToForm = ( form ) => {
-	form.append(
-		'<input type="hidden" id="wc-stripe-is-deferred-intent" name="wc-stripe-is-deferred-intent" value="1" />'
-	);
-};
-
 export const appendPaymentMethodIdToForm = ( form, paymentMethodId ) => {
 	form.append(
 		`<input type="hidden" id="wc-stripe-payment-method" name="wc-stripe-payment-method" value="${ paymentMethodId }" />`
