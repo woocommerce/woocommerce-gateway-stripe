@@ -755,8 +755,6 @@ class WC_Stripe_Intent_Controller {
 			throw new WC_Stripe_Exception( print_r( $payment_intent->error, true ), $payment_intent->error->message );
 		}
 
-		WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent->id, $order );
-
 		return $payment_intent;
 	}
 
