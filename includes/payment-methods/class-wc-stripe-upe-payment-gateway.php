@@ -698,6 +698,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				$payment_intent = $this->intent_controller->create_and_confirm_payment_intent( $payment_information );
 
+				// Handle saving the payment method in the store.
+				// It's already attached to the Stripe customer at this point.
 				if ( $payment_information['save_payment_method_to_store'] ) {
 					$this->handle_saving_payment_method(
 						$order,
@@ -1708,7 +1710,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return true;
 		}
 
-		// TODO: should we check whether saving payment methods is enabled in Stripe settings?
+		// Unless it's paying for a subscription, don't save it when saving payment methods is disabled.
+		if ( ! $this->is_saved_cards_enabled() ) {
+			return false;
+		}
 
 		$save_payment_method_request_arg = 'wc-' . self::ID . '-new-payment-method';
 
