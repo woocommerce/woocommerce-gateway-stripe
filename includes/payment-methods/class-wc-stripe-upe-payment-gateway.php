@@ -696,7 +696,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				// Throw an exception if the minimum order amount isn't met.
 				$this->validate_minimum_order_amount( $order );
 
-				$payment_intent = $this->intent_controller->create_and_confirm_payment_intent( $payment_information );
+				// Create a payment intent, or update an existing one associated with the order.
+				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
 
 				// Handle saving the payment method in the store.
 				// It's already attached to the Stripe customer at this point.
@@ -715,9 +716,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				if ( $charge ) {
 					$this->process_response( $charge, $order );
 				}
-
-				// Add the payment intent information to the order meta.
-				$this->save_intent_to_order( $order, $payment_intent );
 
 				// Set the selected UPE payment method type title in the WC order.
 				$this->set_payment_method_title_for_order( $order, $selected_payment_type );
@@ -1623,6 +1621,51 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				'state'       => $order->get_shipping_state(),
 			],
 		];
+	}
+
+	/**
+	 * Create a payment intent for the order, or update the existing one.
+	 *
+	 * @param WC_Order $order The WC Order for which we're handling a payment intent.
+	 * @param array    $payment_information The payment information to be used for the payment intent.
+	 * @param bool     $retry Whether we should retry if this processing fails.
+	 *
+	 * @throws WC_Stripe_Exception When there's an error creating or updating the payment intent, and can't be retried.
+	 *
+	 * @return stdClass
+	 */
+	private function process_payment_intent_for_order( WC_Order $order, array $payment_information, $retry = true ) {
+		$payment_intent = $this->intent_controller->create_and_confirm_payment_intent( $payment_information );
+
+		// Add the payment intent information to the order meta.
+		$this->save_intent_to_order( $order, $payment_intent );
+
+		// Handle an error in the payment intent.
+		if ( ! empty( $payment_intent->error ) ) {
+			$this->maybe_remove_non_existent_customer( $payment_intent->error, $order );
+
+			// TODO: only retry for saved cards?
+			if ( ! $this->is_retryable_error( $payment_intent->error ) || ! $retry ) {
+				throw new WC_Stripe_Exception(
+					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
+					print_r( $payment_intent->error, true ),
+					// TODO: Include $payment_intent->error->message in the localized message?
+					__( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' )
+				);
+			}
+
+			// Don't do anymore retries after this.
+			if ( 5 <= $this->retry_interval ) {
+				return $this->process_payment_intent_for_order( $order, $payment_information, false );
+			}
+
+			sleep( $this->retry_interval );
+			$this->retry_interval++;
+
+			return $this->process_payment_intent_for_order( $order, $payment_information, true );
+		}
+
+		return $payment_intent;
 	}
 
 	/**
