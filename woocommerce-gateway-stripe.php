@@ -400,6 +400,10 @@ function woocommerce_gateway_stripe() {
 					if ( isset( $sofort_settings['enabled'] ) && 'yes' === $sofort_settings['enabled'] ) {
 						$methods[] = WC_Gateway_Stripe_Sofort::class;
 					}
+				} else {
+					foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
+						$methods[] = $method_class;
+					}
 				}
 
 				// These payment gateways will always be visible, regardless if UPE is enabled or disabled:

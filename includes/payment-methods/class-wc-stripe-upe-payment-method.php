@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Extendable abstract class for payment methods.
  */
-abstract class WC_Stripe_UPE_Payment_Method {
+abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 	use WC_Stripe_Subscriptions_Utilities_Trait;
 	use WC_Stripe_Pre_Orders_Trait;
@@ -30,7 +30,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 *
 	 * @var string
 	 */
-	protected $title;
+	public $title;
 
 	/**
 	 * Method label
@@ -44,7 +44,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 *
 	 * @var string
 	 */
-	protected $description;
+	public $description;
 
 	/**
 	 * Can payment method be saved or reused?
@@ -72,7 +72,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 *
 	 * @var bool
 	 */
-	protected $enabled;
+	public $enabled;
 
 	/**
 	 * List of supported countries
@@ -94,6 +94,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 		}
 
 		$this->enabled = in_array( static::STRIPE_ID, $enabled_upe_methods, true );
+		$this->id      = 'stripe_' . static::STRIPE_ID;
 	}
 
 	/**
@@ -120,7 +121,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 * @return bool
 	 */
 	public function is_available() {
-		return true;
+		return $this->is_enabled_at_checkout();
 	}
 
 	/**
