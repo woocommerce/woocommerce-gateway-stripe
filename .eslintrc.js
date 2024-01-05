@@ -42,6 +42,20 @@ module.exports = {
 				],
 			},
 		],
+		'no-unused-vars': [
+			'error',
+			{
+				varsIgnorePattern: 'React',
+			},
+		],
+		'@typescript-eslint/no-unused-vars': [
+			'error',
+			{
+				varsIgnorePattern: 'React',
+			},
+		],
+		'react/react-in-jsx-scope': 'off',
+		'testing-library/no-unnecessary-act': 'off',
 	},
 	settings: {
 		react: {
