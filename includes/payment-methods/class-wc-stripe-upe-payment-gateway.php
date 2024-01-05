@@ -701,15 +701,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			$redirect = $this->get_return_url( $order );
 
-			// If the payment intent requires action, respond with the pi and client secret so it can confirmed on checkout.
-			if ( 'requires_action' === $payment_intent->status ) {
-				$redirect = sprintf(
-					'#wc-stripe-confirm-%s:%s:%s:%s',
-					$payment_needed ? 'pi' : 'si',
-					$order_id,
-					$payment_intent->client_secret,
-					wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
-				);
+			// If the payment intent requires action, respond with redirect URL or the pi and client secret so it can confirmed on checkout.
+			if ( 'requires_action' === $payment_intent->status || 'requires_confirmation' === $payment_intent->status ) {
+				if ( isset( $payment_intent->next_action->type ) && 'redirect_to_url' === $payment_intent->next_action->type && ! empty( $payment_intent->next_action->redirect_to_url->url ) ) {
+					$redirect = $payment_intent->next_action->redirect_to_url->url;
+				} else {
+					$redirect = sprintf(
+						'#wc-stripe-confirm-%s:%s:%s:%s',
+						$payment_needed ? 'pi' : 'si',
+						$order_id,
+						$payment_intent->client_secret,
+						wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
+					);
+				}
 			}
 
 			return [
@@ -1630,6 +1634,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'selected_payment_type'        => $selected_payment_type,
 			'shipping'                     => $shipping_details,
 			'statement_descriptor'         => $this->get_statement_descriptor( $selected_payment_type ),
+			'return_url'                   => $this->get_return_url( $order ),
 		];
 
 		return $payment_information;

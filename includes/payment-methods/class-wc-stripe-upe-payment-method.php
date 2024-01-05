@@ -353,4 +353,16 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public function get_testing_instructions() {
 		return '';
 	}
+
+	/**
+	 * Processes an order payment.
+	 *
+	 * UPE Payment methods use the WC_Stripe_UPE_Payment_Gateway::process_payment() function.
+	 *
+	 * @param int $order_id The order ID to process.
+	 * @return array The payment result.
+	 */
+	public function process_payment( $order_id ) {
+		return WC_Stripe::get_instance()->get_main_stripe_gateway()->process_payment( $order_id );
+	}
 }
