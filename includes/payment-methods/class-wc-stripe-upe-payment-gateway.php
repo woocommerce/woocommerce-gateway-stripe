@@ -1515,8 +1515,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'payment_type'   => $payment_type,
 		];
 
-		// TODO: Either change the filter name or provide the payment method as the third argument to match its other implemention.
-		return apply_filters( 'wc_stripe_payment_metadata', $metadata, $order, null );
+		return apply_filters( 'wc_stripe_intent_metadata', $metadata, $order );
 	}
 
 	/**
@@ -1694,9 +1693,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( $is_using_saved_payment_method ) {
 			// Use the saved payment method.
 			$token = WC_Stripe_Payment_Tokens::get_token_from_request( $_POST );
+
+			// A valid token couldn't be retrieved from the request.
 			if ( null === $token ) {
-				// TODO: add a better localized and loggable error messages.
-				throw new WC_Stripe_Exception( 'Invalid payment method.', 'wc_stripe_invalid_payment_method' );
+				throw new WC_Stripe_Exception(
+					'A valid payment method token could not be retrieved from the request.',
+					__( "The selected payment method isn't valid.", 'woocommerce-gateway-stripe' )
+				);
 			}
 
 			$payment_method_id = $token->get_token();
