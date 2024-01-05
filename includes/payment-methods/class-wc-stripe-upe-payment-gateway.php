@@ -1772,7 +1772,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Save it when the checkout checkbox for saving a payment method was checked off.
 		$save_payment_method = wc_clean( wp_unslash( $_POST[ $save_payment_method_request_arg ] ) );
-		// wc-stripe-new-payment-method is 'true' for classic and '1' for block. TODO: unify this.
+
+		// Its value is 'true' for classic and '1' for block.
 		if ( in_array( $save_payment_method, [ 'true', '1' ], true ) ) {
 			return true;
 		}
