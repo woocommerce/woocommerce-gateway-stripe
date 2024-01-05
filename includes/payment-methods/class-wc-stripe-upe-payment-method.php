@@ -94,7 +94,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		}
 
 		$this->enabled = in_array( static::STRIPE_ID, $enabled_upe_methods, true );
-		$this->id      = 'stripe_' . static::STRIPE_ID;
+		$this->id      = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID;
 	}
 
 	/**
