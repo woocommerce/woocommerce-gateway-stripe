@@ -1637,19 +1637,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	private function process_payment_intent_for_order( WC_Order $order, array $payment_information, $retry = true ) {
 		$payment_intent = $this->intent_controller->create_and_confirm_payment_intent( $payment_information );
 
-		// Add the payment intent information to the order meta.
-		$this->save_intent_to_order( $order, $payment_intent );
-
 		// Handle an error in the payment intent.
 		if ( ! empty( $payment_intent->error ) ) {
+
+			// Add the payment intent information to the order meta.
+			$this->save_intent_to_order( $order, $payment_intent->error->payment_intent );
+
 			$this->maybe_remove_non_existent_customer( $payment_intent->error, $order );
 
-			// TODO: only retry for saved cards?
 			if ( ! $this->is_retryable_error( $payment_intent->error ) || ! $retry ) {
 				throw new WC_Stripe_Exception(
 					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
-					print_r( $payment_intent->error, true ),
-					// TODO: Include $payment_intent->error->message in the localized message?
+					print_r( $payment_intent, true ),
 					__( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' )
 				);
 			}
@@ -1664,6 +1663,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			return $this->process_payment_intent_for_order( $order, $payment_information, true );
 		}
+
+		// Add the payment intent information to the order meta.
+		$this->save_intent_to_order( $order, $payment_intent );
 
 		return $payment_intent;
 	}
