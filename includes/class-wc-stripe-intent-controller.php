@@ -725,21 +725,8 @@ class WC_Stripe_Intent_Controller {
 			];
 		}
 
-		// For UPE methods like Bancontact, GiroPay etc we need to
-		if ( $this->upe_needs_redirection( $selected_payment_type ) ) {
-			$request['return_url'] = wp_sanitize_redirect(
-				esc_url_raw(
-					add_query_arg(
-						[
-							'order_id'            => $order->get_id(),
-							'wc_payment_method'   => $this->get_gateway()->id,
-							'_wpnonce'            => wp_create_nonce( 'wc_stripe_process_redirect_order_nonce' ),
-							'save_payment_method' => $payment_information['save_payment_method_to_store'] ? 'yes' : 'no',
-						],
-						$payment_information['return_url']
-					)
-				)
-			);
+		if ( $this->request_needs_redirection( $payment_method_types ) ) {
+			$request['return_url'] = $payment_information['return_url'];
 		}
 
 		if ( $payment_information['save_payment_method_to_store'] ) {
@@ -957,16 +944,14 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
-	 * Determines if the given UPE payment method type requires redirection.
+	 * Determines whether the request needs to redirect customer off-site to authorize payment.
+	 * This is needed for the non-card UPE payment method (i.e. iDeal, giropay, etc.)
 	 *
-	 * Payment methods like GiroPay, Bancontact, etc redirect the user to their bank to complete payment. Payment intents using these kind
-	 * of payment methods require a return URL to be provided. This function is used to determine if the given payment method type
-	 * requires redirection.
+	 * @param array $payment_methods The list of payment methods used for the processing the payment.
 	 *
-	 * @param string $payment_method_type The UPE payment method type being used to create the payment intent.
-	 * @return bool Whether the payment method type requires redirection.
+	 * @return boolean True if the arrray consist of only one payment method which is not a card. False otherwise.
 	 */
-	private function upe_needs_redirection( $payment_method_type ) {
-		return 'card' !== $payment_method_type;
+	private function request_needs_redirection( $payment_methods ) {
+		return 1 === count( $payment_methods ) && 'card' !== $payment_methods[0];
 	}
 }

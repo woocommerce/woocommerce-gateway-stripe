@@ -163,7 +163,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
-		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
+		add_action( 'wp_footer', [ $this, 'payment_scripts' ] );
 
 		// Needed for 3DS compatibility when checking out with PRBs..
 		// Copied from WC_Gateway_Stripe::__construct().
@@ -353,6 +353,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$order                       = wc_get_order( $order_id );
 
 			if ( is_a( $order, 'WC_Order' ) ) {
+				$order_currency                  = $order->get_currency();
+				$stripe_params['currency']       = $order_currency;
+				$stripe_params['cartTotal']      = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order_currency );
 				$stripe_params['orderReturnURL'] = esc_url_raw(
 					add_query_arg(
 						[
@@ -1634,7 +1637,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'selected_payment_type'        => $selected_payment_type,
 			'shipping'                     => $shipping_details,
 			'statement_descriptor'         => $this->get_statement_descriptor( $selected_payment_type ),
-			'return_url'                   => $this->get_return_url( $order ),
+			'return_url'                   => $this->get_return_url_for_redirect( $order, $save_payment_method_to_store ),
 		];
 
 		return $payment_information;
@@ -1778,5 +1781,29 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			WC_Stripe_Logger::log( sprintf( 'Add payment method error: %s', $e->getMessage() ) );
 			return [ 'result' => 'failure' ];
 		}
+	}
+
+	/**
+	 * Returns a URL to process UPE redirect payments.
+	 *
+	 * @param WC_Order $order               The WC Order to be paid for.
+	 * @param bool     $save_payment_method Whether to save the payment method for future use.
+	 *
+	 * @return string
+	 */
+	private function get_return_url_for_redirect( $order, $save_payment_method ) {
+		return wp_sanitize_redirect(
+			esc_url_raw(
+				add_query_arg(
+					[
+						'order_id'            => $order->get_id(),
+						'wc_payment_method'   => self::ID,
+						'_wpnonce'            => wp_create_nonce( 'wc_stripe_process_redirect_order_nonce' ),
+						'save_payment_method' => $save_payment_method ? 'yes' : 'no',
+					],
+					$this->get_return_url( $order )
+				)
+			)
+		);
 	}
 }
