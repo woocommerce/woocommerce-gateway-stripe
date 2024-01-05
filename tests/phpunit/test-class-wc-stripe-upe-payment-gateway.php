@@ -60,6 +60,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Base template for Stripe payment intent.
 	 */
 	const MOCK_CARD_PAYMENT_INTENT_TEMPLATE = [
+		'id'                 => 'pi_mock',
 		'object'             => 'payment_intent',
 		'status'             => 'succeeded',
 		'last_payment_error' => [],
@@ -98,6 +99,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 				[
 					'create_and_confirm_intent_for_off_session',
 					'generate_payment_request',
+					'get_latest_charge_from_intent',
 					'get_return_url',
 					'get_stripe_customer_id',
 					'has_subscription',
@@ -319,11 +321,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Test basic checkout process_payment flow with deferred intent.
 	 */
 	public function test_process_payment_deferred_intent_returns_valid_response() {
-		$payment_intent_id = 'pi_mock';
-		$customer_id       = 'cus_mock';
-		$order             = WC_Helper_Order::create_order();
-		$currency          = $order->get_currency();
-		$order_id          = $order->get_id();
+		$customer_id = 'cus_mock';
+		$order       = WC_Helper_Order::create_order();
+		$currency    = $order->get_currency();
+		$order_id    = $order->get_id();
 
 		$mock_intent = (object) wp_parse_args(
 			[
@@ -367,14 +368,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Test SCA/3DS checkout process_payment flow with deferred intent.
 	 */
 	public function test_process_payment_deferred_intent_with_required_action_returns_valid_response() {
-		$customer_id       = 'cus_mock';
-		$order             = WC_Helper_Order::create_order();
-		$order_id          = $order->get_id();
+		$customer_id = 'cus_mock';
+		$order       = WC_Helper_Order::create_order();
+		$order_id    = $order->get_id();
 
 		$mock_intent = (object) wp_parse_args(
 			[
-				'status' => 'requires_action',
-				'data' => [
+				'status'         => 'requires_action',
+				'data'           => [
 					(object) [
 						'id'       => $order_id,
 						'captured' => 'yes',
@@ -405,6 +406,12 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->expects( $this->once() )
 			->method( 'get_stripe_customer_id' )
 			->willReturn( $customer_id );
+
+		// We only use this when handling mandates.
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'get_latest_charge_from_intent' )
+			->willReturn( (object) [] );
 
 		$response = $this->mock_gateway->process_payment( $order_id );
 
