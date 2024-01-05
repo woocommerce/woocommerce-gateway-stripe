@@ -163,7 +163,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
-		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
+		add_action( 'wp_footer', [ $this, 'payment_scripts' ] );
 
 		// Needed for 3DS compatibility when checking out with PRBs..
 		// Copied from WC_Gateway_Stripe::__construct().
@@ -353,6 +353,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$order                       = wc_get_order( $order_id );
 
 			if ( is_a( $order, 'WC_Order' ) ) {
+				$order_currency                  = $order->get_currency();
+				$stripe_params['currency']       = $order_currency;
+				$stripe_params['cartTotal']      = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order_currency );
 				$stripe_params['orderReturnURL'] = esc_url_raw(
 					add_query_arg(
 						[
@@ -728,13 +731,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			// If the payment intent requires action, respond with the pi and client secret so it can confirmed on checkout.
 			if ( 'requires_action' === $payment_intent->status ) {
-				$redirect = sprintf(
-					'#wc-stripe-confirm-%s:%s:%s:%s',
-					$payment_needed ? 'pi' : 'si',
-					$order_id,
-					$payment_intent->client_secret,
-					wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
-				);
+				if ( isset( $payment_intent->next_action->type ) && 'redirect_to_url' === $payment_intent->next_action->type && ! empty( $payment_intent->next_action->redirect_to_url->url ) ) {
+					$redirect = $payment_intent->next_action->redirect_to_url->url;
+				} else {
+					$redirect = sprintf(
+						'#wc-stripe-confirm-%s:%s:%s:%s',
+						$payment_needed ? 'pi' : 'si',
+						$order_id,
+						$payment_intent->client_secret,
+						wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
+					);
+				}
 			}
 
 			return [
@@ -1682,6 +1689,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$amount                = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		$shipping_details      = null;
 
+		$save_payment_method_to_store  = $this->should_save_payment_method_from_request( $order->get_id(), $selected_payment_type );
 		$is_using_saved_payment_method = $this->is_using_saved_payment_method();
 
 		// If order requires shipping, add the shipping address details to the payment intent request.
@@ -1711,18 +1719,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'amount'                        => $amount,
 			'currency'                      => $currency,
 			'customer'                      => $this->get_customer_id_for_order( $order ),
-			'is_using_saved_payment_method' => $is_using_saved_payment_method,
 			'capture_method'                => $capture_method,
+			'is_using_saved_payment_method' => $is_using_saved_payment_method,
 			'level3'                        => $this->get_level3_data_from_order( $order ),
 			'metadata'                      => $this->get_metadata_from_order( $order ),
 			'order'                         => $order,
 			'payment_initiated_by'          => 'initiated_by_customer', // initiated_by_merchant | initiated_by_customer.
 			'payment_method'                => $payment_method_id,
 			'payment_type'                  => 'single', // single | recurring.
-			'save_payment_method_to_store'  => $this->should_save_payment_method_from_request( $order->get_id(), $selected_payment_type ),
+			'save_payment_method_to_store'  => $save_payment_method_to_store,
 			'selected_payment_type'         => $selected_payment_type,
 			'shipping'                      => $shipping_details,
 			'statement_descriptor'          => $this->get_statement_descriptor( $order, $selected_payment_type ),
+			'return_url'                    => $this->get_return_url_for_redirect( $order, $save_payment_method_to_store ),
 		];
 
 		return $payment_information;
@@ -1987,5 +1996,29 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			WC_Stripe_Logger::log( sprintf( 'Add payment method error: %s', $e->getMessage() ) );
 			return [ 'result' => 'failure' ];
 		}
+	}
+
+	/**
+	 * Returns a URL to process UPE redirect payments.
+	 *
+	 * @param WC_Order $order               The WC Order to be paid for.
+	 * @param bool     $save_payment_method Whether to save the payment method for future use.
+	 *
+	 * @return string
+	 */
+	private function get_return_url_for_redirect( $order, $save_payment_method ) {
+		return wp_sanitize_redirect(
+			esc_url_raw(
+				add_query_arg(
+					[
+						'order_id'            => $order->get_id(),
+						'wc_payment_method'   => self::ID,
+						'_wpnonce'            => wp_create_nonce( 'wc_stripe_process_redirect_order_nonce' ),
+						'save_payment_method' => $save_payment_method ? 'yes' : 'no',
+					],
+					$this->get_return_url( $order )
+				)
+			)
+		);
 	}
 }

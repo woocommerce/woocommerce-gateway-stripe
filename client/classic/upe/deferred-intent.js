@@ -42,7 +42,7 @@ jQuery( function ( $ ) {
 		}
 	}
 
-	// Mount the Stripe Payment Elements onto the add payment method page.
+	// Mount the Stripe Payment Elements onto the Add Payment Method page and Pay for Order page.
 	if (
 		$( 'form#add_payment_method' ).length ||
 		$( 'form#order_review' ).length
@@ -50,12 +50,22 @@ jQuery( function ( $ ) {
 		maybeMountStripePaymentElement();
 	}
 
+	// My Account > Payment Methods page submit.
 	$( 'form#add_payment_method' ).on( 'submit', function () {
 		return processPayment(
 			api,
 			$( 'form#add_payment_method' ),
 			getSelectedUPEGatewayPaymentMethod(),
 			createAndConfirmSetupIntent
+		);
+	} );
+
+	// Pay for Order page submit.
+	$( '#order_review' ).on( 'submit', () => {
+		return processPayment(
+			api,
+			$( '#order_review' ),
+			getSelectedUPEGatewayPaymentMethod()
 		);
 	} );
 

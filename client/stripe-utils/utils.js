@@ -223,7 +223,10 @@ export const getPaymentMethodTypes = ( paymentMethodType = null ) => {
 	const paymentMethodsConfig = getStripeServerData()?.paymentMethodsConfig;
 
 	if ( paymentMethodType === null ) {
-		if ( getStripeServerData()?.isCheckout ) {
+		if (
+			getStripeServerData()?.isCheckout ||
+			getStripeServerData()?.isOrderPay
+		) {
 			return Object.keys( paymentMethodsConfig || {} );
 		}
 
