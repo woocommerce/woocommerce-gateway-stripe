@@ -1,29 +1,16 @@
 import { __ } from '@wordpress/i18n';
 import { React, useState } from 'react';
-import {
-	Button,
-	Card,
-	CardHeader,
-	DropdownMenu,
-	ExternalLink,
-} from '@wordpress/components';
-import { moreVertical } from '@wordpress/icons';
+import { ExternalLink } from '@wordpress/components';
 import SettingsSection from '../settings-section';
-import CardBody from '../card-body';
-import CardFooter from '../card-footer';
-import Pill from '../../components/pill';
-import AccountStatus from '../account-details';
 import PaymentsAndTransactionsSection from '../payments-and-transactions-section';
 import AdvancedSettingsSection from '../advanced-settings-section';
 import CustomizationOptionsNotice from '../customization-options-notice';
+import AccountDetailsSection from './account-details-section';
 import GeneralSettingsSection from './general-settings-section';
-import DisconnectStripeConfirmationModal from './disconnect-stripe-confirmation-modal';
 import { AccountKeysModal } from './account-keys-modal';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import './style.scss';
-import { useTestMode } from 'wcstripe/data';
 import LoadableAccountSection from 'wcstripe/settings/loadable-account-section';
-import { useAccount } from 'wcstripe/data/account';
 
 const GeneralSettingsDescription = () => (
 	<>
@@ -83,97 +70,6 @@ const PaymentsAndTransactionsDescription = () => (
 		</ExternalLink>
 	</>
 );
-
-// @todo - remove setModalType as prop
-const AccountSettingsDropdownMenu = ( {
-	setModalType,
-	setKeepModalContent,
-} ) => {
-	// @todo - deconstruct setModalType from useModalType custom hook
-	const [ isTestModeEnabled ] = useTestMode();
-	const [
-		isConfirmationModalVisible,
-		setIsConfirmationModalVisible,
-	] = useState( false );
-
-	return (
-		<>
-			<DropdownMenu
-				icon={ moreVertical }
-				label={ __(
-					'Edit details or disconnect account',
-					'woocommerce-gateway-stripe'
-				) }
-				controls={ [
-					{
-						title: __(
-							'Edit account keys',
-							'woocommerce-gateway-stripe'
-						),
-						onClick: () =>
-							setModalType( isTestModeEnabled ? 'test' : 'live' ),
-					},
-					{
-						title: __( 'Disconnect', 'woocommerce-gateway-stripe' ),
-						onClick: () => setIsConfirmationModalVisible( true ),
-					},
-				] }
-			/>
-			{ isConfirmationModalVisible && (
-				<DisconnectStripeConfirmationModal
-					onClose={ () => setIsConfirmationModalVisible( false ) }
-					setKeepModalContent={ setKeepModalContent }
-				/>
-			) }
-		</>
-	);
-};
-
-// @todo - remove setModalType as prop
-const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
-	const [ isTestMode ] = useTestMode();
-	const { data } = useAccount();
-	const isTestModeEnabled = Boolean( data.testmode );
-
-	return (
-		<Card className="account-details">
-			<CardHeader className="account-details__header">
-				<div>
-					<h4>
-						{ __( 'Account status', 'woocommerce-gateway-stripe' ) }
-					</h4>
-					{ data.account?.email && (
-						<h4 className="account-details__header">
-							{ data.account.email }
-						</h4>
-					) }
-					{ isTestModeEnabled && (
-						<Pill>
-							{ __( 'Test Mode', 'woocommerce-gateway-stripe' ) }
-						</Pill>
-					) }
-				</div>
-				<AccountSettingsDropdownMenu
-					setModalType={ setModalType }
-					setKeepModalContent={ setKeepModalContent }
-				/>
-			</CardHeader>
-			<CardBody>
-				<AccountStatus />
-			</CardBody>
-			<CardFooter>
-				<Button
-					isSecondary
-					onClick={ () =>
-						setModalType( isTestMode ? 'test' : 'live' )
-					}
-				>
-					{ __( 'Edit account keys', 'woocommerce-gateway-stripe' ) }
-				</Button>
-			</CardFooter>
-		</Card>
-	);
-};
 
 const PaymentSettingsPanel = () => {
 	// @todo - deconstruct modalType and setModalType from useModalType custom hook
