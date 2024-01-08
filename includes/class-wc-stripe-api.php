@@ -292,6 +292,23 @@ class WC_Stripe_API {
 	}
 
 	/**
+	 * Update payment method data.
+	 *
+	 * @param string $payment_method_id   Payment method ID.
+	 * @param array  $payment_method_data Payment method updated data.
+	 *
+	 * @return array Payment method details.
+	 *
+	 * @throws WC_Stripe_Exception If payment method update fails.
+	 */
+	public static function update_payment_method( $payment_method_id, $payment_method_data = [] ) {
+		return self::request(
+			$payment_method_data,
+			'payment_methods/' . $payment_method_id
+		);
+	}
+
+	/**
 	 * Attaches a payment method to the given customer.
 	 *
 	 * @param string $customer_id        The ID of the customer the payment method should be attached to.
