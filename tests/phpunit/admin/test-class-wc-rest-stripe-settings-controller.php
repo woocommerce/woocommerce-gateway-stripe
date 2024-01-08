@@ -121,6 +121,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$request->set_param( $rest_key, $new_valid_value );
 		$response = rest_do_request( $request );
 
+		var_export( $response );
 		$this->assertEquals( 200, $response->get_status() );
 		$this->assertEquals( $new_valid_value, $this->get_gateway()->get_option( $option_name ) );
 
