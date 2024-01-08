@@ -45,6 +45,17 @@ export default {
 		currencies: [ 'EUR' ],
 		capability: 'sepa_debit_payments',
 	},
+	sepa: {
+		id: 'sepa',
+		label: __( 'Direct debit payment', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Reach 500 million customers and over 20 million businesses across the European Union.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: SepaIcon,
+		currencies: [ 'EUR' ],
+		capability: 'sepa_debit_payments',
+	},
 	sofort: {
 		id: 'sofort',
 		label: __( 'Sofort', 'woocommerce-gateway-stripe' ),
