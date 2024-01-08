@@ -443,9 +443,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$available_payment_methods = [];
 
 		foreach ( $this->payment_methods as $payment_method ) {
-			if ( ! $payment_method->is_available() ) {
-				continue;
-			}
 			$available_payment_methods[] = $payment_method->get_id();
 		}
 		return $available_payment_methods;
