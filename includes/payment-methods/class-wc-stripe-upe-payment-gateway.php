@@ -699,7 +699,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method_id     = $payment_information['payment_method'];
 			$selected_payment_type = $payment_information['selected_payment_type'];
 
-			// Update saved payment method async to include billing details, if missing.
+			// Update saved payment method async to include billing details.
 			if ( $payment_information['is_using_saved_payment_method'] ) {
 				$this->action_scheduler_service->schedule_job(
 					time(),
