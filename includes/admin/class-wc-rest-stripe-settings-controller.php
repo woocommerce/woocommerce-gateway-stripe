@@ -66,22 +66,12 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'boolean',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'title'                              => [
-						'description'       => __( 'Stripe display title.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'string',
-						'validate_callback' => 'rest_validate_request_arg',
-					],
-					'title_upe'                          => [
+					'title_upe'                        => [
 						'description'       => __( 'New checkout experience title.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'string',
 						'validate_callback' => 'rest_validate_request_arg',
 					],
-					'description'                        => [
-						'description'       => __( 'Stripe display description.', 'woocommerce-gateway-stripe' ),
-						'type'              => 'string',
-						'validate_callback' => 'rest_validate_request_arg',
-					],
-					'enabled_payment_method_ids'         => [
+					'enabled_payment_method_ids'       => [
 						'description'       => __( 'Payment method IDs that should be enabled. Other methods will be disabled.', 'woocommerce-gateway-stripe' ),
 						'type'              => 'array',
 						'items'             => [
@@ -189,6 +179,47 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				],
 			]
 		);
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/payment_method',
+			[
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => [ $this, 'update_individual_payment_method_settings' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+				'args'                => [
+					'payment_method' => [
+						'description'       => __( 'Payment method id.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'enum'              => WC_Stripe_Helper::get_legacy_available_payment_method_ids(),
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'is_enabled'     => [
+						'description'       => __( 'If payment method should be enabled.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'boolean',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'title'          => [
+						'description'       => __( 'Payment method title.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+					'description'    => [
+						'description'       => __( 'Payment method description.', 'woocommerce-gateway-stripe' ),
+						'type'              => 'string',
+						'validate_callback' => 'rest_validate_request_arg',
+					],
+				],
+			]
+		);
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/notice',
+			[
+				'methods'             => WP_REST_Server::EDITABLE,
+				'callback'            => [ $this, 'dismiss_customization_notice' ],
+				'permission_callback' => [ $this, 'check_permission' ],
+			]
+		);
 	}
 
 	/**
@@ -270,9 +301,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > General */
 				'is_stripe_enabled'                     => $this->gateway->is_enabled(),
 				'is_test_mode_enabled'                  => $this->gateway->is_in_test_mode(),
-				'title'                                 => $this->gateway->get_validated_option( 'title' ),
 				'title_upe'                             => $this->gateway->get_validated_option( 'title_upe' ),
-				'description'                           => $this->gateway->get_validated_option( 'description' ),
 
 				/* Settings > Payments accepted on checkout */
 				'enabled_payment_method_ids'            => $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids() : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids(),
@@ -309,9 +338,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	public function update_settings( WP_REST_Request $request ) {
 		/* Settings > General */
 		$this->update_is_stripe_enabled( $request );
-		$this->update_title( $request );
 		$this->update_title_upe( $request );
-		$this->update_description( $request );
 		$this->update_is_test_mode_enabled( $request );
 
 		/* Settings > Payments accepted on checkout */
@@ -388,21 +415,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	}
 
 	/**
-	 * Updates title.
-	 *
-	 * @param WP_REST_Request $request Request object.
-	 */
-	private function update_title( WP_REST_Request $request ) {
-		$title = $request->get_param( 'title' );
-
-		if ( null === $title ) {
-			return;
-		}
-
-		$this->gateway->update_validated_option( 'title', $title );
-	}
-
-	/**
 	 * Updates UPE title.
 	 *
 	 * @param WP_REST_Request $request Request object.
@@ -415,21 +427,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		}
 
 		$this->gateway->update_validated_option( 'title_upe', $title_upe );
-	}
-
-	/**
-	 * Updates description.
-	 *
-	 * @param WP_REST_Request $request Request object.
-	 */
-	private function update_description( WP_REST_Request $request ) {
-		$description = $request->get_param( 'description' );
-
-		if ( null === $description ) {
-			return;
-		}
-
-		$this->gateway->update_validated_option( 'description', $description );
 	}
 
 	/**
@@ -671,35 +668,54 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 * Update individual payment gateway settings.
 	 *
 	 * @param WP_REST_Request $request Request object.
+	 *
+	 * @return WP_REST_Response
 	 */
 	public function update_individual_payment_method_settings( WP_REST_Request $request ) {
-		$individual_payment_method_settings = $request->get_param( 'individual_payment_method_settings' );
+		$payment_method_id = $request->get_param( 'payment_method_id' );
+		// Map the ids used in the frontend to the legacy gateway class ids.
+		$mapped_legacy_method_id = ( 'stripe_' . $payment_method_id );
+		$is_enabled              = $request->get_param( 'is_enabled' );
+		$title                   = sanitize_text_field( $request->get_param( 'title' ) );
+		$description             = sanitize_text_field( $request->get_param( 'description' ) );
 
-		// These settings are for non-UPE methods only.
-		if ( $request->get_param( 'is_upe_enabled' ) || empty( $individual_payment_method_settings ) ) {
-			return;
+		// In legacy mode (when UPE is disabled), Stripe gateway refers to card as payment method id.
+		if ( 'card' === $payment_method_id ) {
+			$this->gateway->update_option( 'title', $title );
+			$this->gateway->update_option( 'description', $description );
+			return new WP_REST_Response( [], 200 );
 		}
 
-		$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
+		$payment_gateway = WC_Stripe_Helper::get_legacy_payment_method( $mapped_legacy_method_id );
 
-		foreach ( $payment_gateways as $gateway ) {
-			$gateway_id = str_replace( 'stripe_', '', $gateway->id );
-			if ( ! isset( $individual_payment_method_settings[ $gateway_id ] ) ) {
-				continue;
-			}
-
-			$gateway_settings = $individual_payment_method_settings[ $gateway_id ];
-
-			$name = sanitize_text_field( $gateway_settings['name'] );
-			$gateway->update_option( 'title', $name );
-
-			$description = sanitize_text_field( $gateway_settings['description'] );
-			$gateway->update_option( 'description', $description );
-
-			if ( method_exists( $gateway, 'update_unique_settings' ) ) {
-				$gateway->update_unique_settings( $request );
-			}
+		if ( ! $payment_gateway ) {
+			return new WP_REST_Response( [ 'result' => 'payment method not found' ], 404 );
 		}
+
+		$payment_gateway->update_option( 'title', $title );
+		$payment_gateway->update_option( 'description', $description );
+
+		if ( $request->get_param( 'expiration' ) && method_exists( $payment_gateway, 'update_unique_settings' ) ) {
+			$request->set_param( $mapped_legacy_method_id . '_expiration', $request->get_param( 'expiration' ) );
+			$payment_gateway->update_unique_settings( $request );
+		}
+
+		return new WP_REST_Response( [], 200 );
 	}
 
+	/**
+	 * Set `wc_stripe_show_customization_notice` as `no` to dismiss notice.
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 *
+	 * @return WP_REST_Response
+	 */
+	public function dismiss_customization_notice( WP_REST_Request $request ) {
+		if ( null === $request->get_param( 'wc_stripe_show_customization_notice' ) ) {
+			return new WP_REST_Response( [], 200 );
+		}
+
+		update_option( 'wc_stripe_show_customization_notice', 'no' );
+		return new WP_REST_Response( [ 'result' => 'notice dismissed' ], 200 );
+	}
 }

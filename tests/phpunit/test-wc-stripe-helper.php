@@ -153,64 +153,35 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 
 	public function test_get_legacy_available_payment_method_ids() {
 		$result = WC_Stripe_Helper::get_legacy_available_payment_method_ids();
-		$this->assertEquals( [ 'card', 'bancontact', 'eps', 'giropay', 'ideal', 'p24', 'sepa_debit', 'boleto', 'oxxo' ], $result );
-
-		update_option(
-			'woocommerce_stripe_settings',
-			[
-				'enabled' => 'yes',
-				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no',
-				'stripe_legacy_method_order' => [ 'bancontact', 'eps', 'giropay', 'ideal', 'card', 'p24', 'sepa_debit', 'boleto', 'oxxo' ],
-			]
-		);
-		$result = WC_Stripe_Helper::get_legacy_available_payment_method_ids();
-		$this->assertEquals( [ 'bancontact', 'eps', 'giropay', 'ideal', 'card', 'p24', 'sepa_debit', 'boleto', 'oxxo' ], $result );
-
+		$this->assertEquals( [ 'card', 'bancontact', 'eps', 'giropay', 'ideal', 'p24', 'sepa', 'boleto', 'oxxo' ], $result );
 	}
 
 	public function test_get_legacy_enabled_payment_methods() {
-		// Enable Stripe, EPS, Giropay and P24 LPM gateways.
-		update_option(
-			'woocommerce_stripe_settings',
-			[
-				'enabled' => 'yes',
-				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no',
-			]
-		);
-		update_option( 'woocommerce_stripe_eps_settings', [ 'enabled' => 'yes' ] );
-		update_option( 'woocommerce_stripe_giropay_settings', [ 'enabled' => 'yes' ] );
-		update_option( 'woocommerce_stripe_p24_settings', [ 'enabled' => 'yes' ] );
+		// Enable EPS, Giropay and P24 LPM gateways.
+		$gateways = WC_Stripe_Helper::get_legacy_payment_methods();
+		$gateways['stripe_eps']->enable();
+		$gateways['stripe_giropay']->enable();
+		$gateways['stripe_p24']->enable();
 
 		$result = WC_Stripe_Helper::get_legacy_enabled_payment_methods();
 		$this->assertEquals( [ 'stripe_eps', 'stripe_giropay', 'stripe_p24' ], array_keys( $result ) );
 	}
 
 	public function test_get_legacy_enabled_payment_method_ids() {
-		// Enable Stripe, EPS, Giropay and P24 LPM gateways.
-		update_option(
-			'woocommerce_stripe_settings',
-			[
-				'enabled' => 'yes',
-				WC_Stripe_Feature_Flags::UPE_CHECKOUT_FEATURE_ATTRIBUTE_NAME => 'no',
-			]
-		);
-		update_option( 'woocommerce_stripe_eps_settings', [ 'enabled' => 'yes' ] );
-		update_option( 'woocommerce_stripe_giropay_settings', [ 'enabled' => 'yes' ] );
-		update_option( 'woocommerce_stripe_p24_settings', [ 'enabled' => 'yes' ] );
+		// Enable EPS, Giropay and P24 LPM gateways.
+		$gateways = WC_Stripe_Helper::get_legacy_payment_methods();
+		$gateways['stripe_eps']->enable();
+		$gateways['stripe_giropay']->enable();
+		$gateways['stripe_p24']->enable();
 
 		$result = WC_Stripe_Helper::get_legacy_enabled_payment_method_ids();
-		$this->assertEquals( [ 'card', 'eps', 'giropay', 'p24' ], $result );
+		$this->assertEquals( [ 'eps', 'giropay', 'p24' ], $result );
 	}
 
 	public function test_get_legacy_individual_payment_method_settings() {
-		update_option(
-			'woocommerce_stripe_eps_settings',
-			[
-				'enabled'     => 'yes',
-				'title'       => 'EPS',
-				'description' => 'Pay with EPS',
-			]
-		);
+		$gateways = WC_Stripe_Helper::get_legacy_payment_methods();
+		$gateways['stripe_eps']->update_option( 'title', 'EPS' );
+		$gateways['stripe_eps']->update_option( 'description', 'Pay with EPS' );
 
 		$result = WC_Stripe_Helper::get_legacy_individual_payment_method_settings();
 		$this->arrayHasKey( 'eps', $result );

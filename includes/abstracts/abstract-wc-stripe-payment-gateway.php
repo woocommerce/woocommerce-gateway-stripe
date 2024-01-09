@@ -66,6 +66,16 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	}
 
 	/**
+	 * Add additional field to payment gateway settings which is unique to the gateway.
+	 *
+	 * @param array $settings Settings array.
+	 * @return array
+	 */
+	public function get_unique_settings( $settings = [] ) {
+		return $settings;
+	}
+
+	/**
 	 * Displays the admin settings webhook description.
 	 *
 	 * @since 4.1.0

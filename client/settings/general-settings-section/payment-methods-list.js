@@ -170,7 +170,13 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 		const availablePaymentMethods = isUpeEnabled
 			? availablePaymentMethodIds
 					.filter( ( method ) =>
-						capabilities.hasOwnProperty( `${ method }_payments` )
+						method === 'sepa'
+							? capabilities.hasOwnProperty(
+									'sepa_debit_payments'
+							  )
+							: capabilities.hasOwnProperty(
+									`${ method }_payments`
+							  )
 					)
 					.filter( ( id ) => id !== 'link' )
 			: availablePaymentMethodIds;
@@ -241,6 +247,7 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 							/>
 							<StyledFees id={ method } />
 						</PaymentMethodWrapper>
+						<StyledFees id={ method } />
 					</DraggableListElement>
 				);
 			} ) }
@@ -283,7 +290,6 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 								<StyledFees id={ method } />
 							</PaymentMethodWrapper>
 							{ ! isUpeEnabled &&
-								method !== 'card' &&
 								! customizationStatus[ method ] && (
 									<Button
 										variant="secondary"

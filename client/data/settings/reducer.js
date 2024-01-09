@@ -4,6 +4,7 @@ const defaultState = {
 	isSaving: false,
 	savingError: null,
 	isSavingOrderedPaymentMethodIds: false,
+	isCustomizingPaymentMethod: false,
 	data: {},
 };
 
@@ -39,6 +40,11 @@ export const receiveSettings = (
 				...state,
 				isSavingOrderedPaymentMethodIds:
 					action.isSavingOrderedPaymentMethodIds,
+			};
+		case ACTION_TYPES.SET_IS_CUSTOMIZING_PAYMENT_METHOD:
+			return {
+				...state,
+				isCustomizingPaymentMethod: action.isCustomizingPaymentMethod,
 			};
 	}
 
