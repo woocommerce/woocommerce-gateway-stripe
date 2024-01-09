@@ -81,6 +81,10 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
 		$account_country     = $cached_account_data['country'] ?? null;
 
+		if ( isset( $GLOBALS['james-unit-test-func'] ) ) {
+			var_export( 'account country: ' . $account_country );
+		}
+
 		return 'US' === $account_country && parent::is_available();
 	}
 }
