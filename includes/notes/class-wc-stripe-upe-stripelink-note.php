@@ -74,7 +74,9 @@ class WC_Stripe_UPE_StripeLink_Note {
 	 */
 	public static function init( WC_Stripe_Payment_Gateway $gateway ) {
 		if ( ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			var_export( 'return 1' );
+			if ( isset( $GLOBALS['james-unit-test-func'] ) ) {
+				var_export( 'return 1: ' . $GLOBALS['james-unit-test-func'] );
+			}
 			return;
 		}
 
@@ -82,18 +84,25 @@ class WC_Stripe_UPE_StripeLink_Note {
 		$available_upe_payment_methods = $gateway->get_upe_available_payment_methods();
 
 		if ( ! in_array( WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID, $available_upe_payment_methods, true ) ) {
-			var_export( 'return 2' );
+			if ( isset( $GLOBALS['james-unit-test-func'] ) ) {
+				var_export( 'return 2: ' . $GLOBALS['james-unit-test-func'] );
+			}
+
 			return;
 		}
 
 		if ( ! is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
-			var_export( 'return 3' );
+			if ( isset( $GLOBALS['james-unit-test-func'] ) ) {
+				var_export( 'return 3: ' . $GLOBALS['james-unit-test-func'] );
+			}
 			return;
 		}
 
 		// If store currency is not USD, skip
 		if ( 'USD' !== get_woocommerce_currency() ) {
-			var_export( 'return 4' );
+			if ( isset( $GLOBALS['james-unit-test-func'] ) ) {
+				var_export( 'return 4: ' . $GLOBALS['james-unit-test-func'] );
+			}
 			return;
 		}
 
@@ -104,7 +113,9 @@ class WC_Stripe_UPE_StripeLink_Note {
 			! in_array( WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID, $enabled_payment_methods, true ) ||
 			in_array( WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID, $enabled_payment_methods, true )
 		) {
-			var_export( 'return 5' );
+			if ( isset( $GLOBALS['james-unit-test-func'] ) ) {
+				var_export( 'return 5: ' . $GLOBALS['james-unit-test-func'] );
+			}
 			return;
 		}
 
