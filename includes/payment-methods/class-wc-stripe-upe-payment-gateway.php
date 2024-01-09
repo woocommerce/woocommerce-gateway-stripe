@@ -443,7 +443,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$available_payment_methods = [];
 
 		foreach ( $this->payment_methods as $payment_method ) {
-			if ( $payment_method->get_id() === WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID && ! $payment_method->is_available() ) {
+			if ( ! $payment_method->is_available_for_account_country() ) {
 				continue;
 			}
 			$available_payment_methods[] = $payment_method->get_id();
