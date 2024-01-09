@@ -145,97 +145,6 @@ jQuery( function ( $ ) {
 	};
 
 	/**
-	 * Submits the confirmation of the intent to Stripe on Pay for Order page.
-	 * Stripe redirects to Order Thank you page on success.
-	 *
-	 * @param {Object} $form The jQuery object for the form.
-	 * @return {boolean} A flag for the event handler.
-	 */
-	const handleUPEOrderPay = async ( $form ) => {
-		const isUPEFormValid = await checkUPEForm( $( '#order_review' ) );
-		if ( ! isUPEFormValid ) {
-			return;
-		}
-		blockUI( $form );
-
-		try {
-			const isSavingPaymentMethod = $(
-				'#wc-stripe-new-payment-method'
-			).is( ':checked' );
-			const savePaymentMethod = isSavingPaymentMethod ? 'yes' : 'no';
-
-			const returnUrl =
-				getStripeServerData()?.orderReturnURL +
-				`&save_payment_method=${ savePaymentMethod }`;
-
-			const orderId = getStripeServerData()?.orderId;
-
-			// Update payment intent with level3 data, customer and maybe setup for future use.
-			await api.updateIntent(
-				paymentIntentId,
-				orderId,
-				savePaymentMethod,
-				$( '#wc_stripe_selected_upe_payment_type' ).val()
-			);
-
-			const { error } = await api.getStripe().confirmPayment( {
-				elements,
-				confirmParams: {
-					return_url: returnUrl,
-				},
-			} );
-
-			if ( error ) {
-				const upeType = $(
-					'#wc_stripe_selected_upe_payment_type'
-				).val();
-
-				if ( upeType !== 'boleto' && upeType !== 'oxxo' ) {
-					await api.updateFailedOrder( paymentIntentId, orderId );
-				}
-
-				throw error;
-			}
-		} catch ( error ) {
-			$form.removeClass( 'processing' ).unblock();
-			showError( error.message );
-		}
-	};
-
-	/**
-	 * Submits the confirmation of the setup intent to Stripe on Add Payment Method page.
-	 * Stripe redirects to Payment Methods page on sucess.
-	 *
-	 * @param {Object} $form The jQuery object for the form.
-	 * @return {boolean} A flag for the event handler.
-	 */
-	const handleUPEAddPayment = async ( $form ) => {
-		const isUPEFormValid = await checkUPEForm( $form );
-		if ( ! isUPEFormValid ) {
-			return;
-		}
-
-		blockUI( $form );
-
-		try {
-			const returnUrl = getStripeServerData()?.addPaymentReturnURL;
-
-			const { error } = await api.getStripe().confirmSetup( {
-				elements,
-				confirmParams: {
-					return_url: returnUrl,
-				},
-			} );
-			if ( error ) {
-				throw error;
-			}
-		} catch ( error ) {
-			$form.removeClass( 'processing' ).unblock();
-			showError( error.message );
-		}
-	};
-
-	/**
 	 * Submits checkout form via AJAX to create order and uses custom
 	 * redirect URL in AJAX response to request payment confirmation from UPE
 	 *
@@ -371,18 +280,6 @@ jQuery( function ( $ ) {
 				handleUPECheckout( $( this ) );
 				return false;
 			}
-		}
-	} );
-
-	// Handle the Pay for Order form if WooCommerce Payments is chosen.
-	$( '#order_review' ).on( 'submit', () => {
-		if ( ! isUsingSavedPaymentMethod() ) {
-			if ( getStripeServerData()?.isChangingPayment ) {
-				handleUPEAddPayment( $( '#order_review' ) );
-				return false;
-			}
-			handleUPEOrderPay( $( '#order_review' ) );
-			return false;
 		}
 	} );
 

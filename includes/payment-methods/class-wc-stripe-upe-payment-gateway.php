@@ -163,7 +163,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
-		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
+		add_action( 'wp_footer', [ $this, 'payment_scripts' ] );
 
 		// Needed for 3DS compatibility when checking out with PRBs..
 		// Copied from WC_Gateway_Stripe::__construct().
@@ -353,6 +353,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$order                       = wc_get_order( $order_id );
 
 			if ( is_a( $order, 'WC_Order' ) ) {
+				$order_currency                  = $order->get_currency();
+				$stripe_params['currency']       = $order_currency;
+				$stripe_params['cartTotal']      = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $order_currency );
 				$stripe_params['orderReturnURL'] = esc_url_raw(
 					add_query_arg(
 						[
