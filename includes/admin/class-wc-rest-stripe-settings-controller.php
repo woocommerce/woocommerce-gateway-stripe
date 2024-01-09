@@ -382,8 +382,6 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 			function ( $id ) {
 				if ( 'card' === $id ) {
 					return 'stripe';
-				} elseif ( 'sepa_debit' === $id ) {
-					return 'stripe_sepa';
 				}
 				return 'stripe_' . $id;
 			},

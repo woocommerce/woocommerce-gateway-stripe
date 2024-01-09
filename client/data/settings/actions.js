@@ -77,7 +77,6 @@ export function* saveSettings() {
 }
 
 export function* saveOrderedPaymentMethodIds() {
-	let error = null;
 	try {
 		const orderedPaymentMethodIds = select(
 			STORE_NAME
@@ -97,7 +96,6 @@ export function* saveOrderedPaymentMethodIds() {
 			__( 'Saved changed order.', 'woocommerce-gateway-stripe' )
 		);
 	} catch ( e ) {
-		error = e;
 		yield dispatch( 'core/notices' ).createErrorNotice(
 			__( 'Error saving changed order.', 'woocommerce-gateway-stripe' )
 		);
@@ -109,8 +107,6 @@ export function* saveOrderedPaymentMethodIds() {
 export function* saveIndividualPaymentMethodSettings(
 	paymentMethodData = null
 ) {
-	let error = null;
-
 	if ( ! paymentMethodData ) {
 		return;
 	}
@@ -130,13 +126,10 @@ export function* saveIndividualPaymentMethodSettings(
 			},
 		} );
 	} catch ( e ) {
-		error = e;
 		yield dispatch( 'core/notices' ).createErrorNotice(
 			__( 'Error saving payment method.', 'woocommerce-gateway-stripe' )
 		);
 	} finally {
 		yield updateIsCustomizingPaymentMethod( false );
 	}
-
-	return error === null;
 }
