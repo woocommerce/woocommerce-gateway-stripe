@@ -734,10 +734,8 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		// Check if a pending payment intent for the same group of params exists to update it instead of creating a new one.
-		$search_data    = [
-			'customer' => $payment_information['customer'],
-		];
-		$payment_intent = WC_Stripe_API::request( $search_data, 'payment_intents/search', 'GET' );
+		$payment_intent = $this->query_for_compatible_payment_intent( $payment_information['customer'], $order->get_id(), $payment_method_types );
+
 		if ( ! $payment_intent ) {
 			// Create a new payment intent.
 			$payment_intent = WC_Stripe_API::request_with_level3_data(
@@ -961,5 +959,30 @@ class WC_Stripe_Intent_Controller {
 	 */
 	private function request_needs_redirection( $payment_methods ) {
 		return 1 === count( $payment_methods ) && 'card' !== $payment_methods[0];
+	}
+
+	/**
+	 * Searches for a compatible payment intent for the given order and payment method types.
+	 *
+	 * @param int $customer The customer ID.
+	 * @param int $order_id The order ID.
+	 * @param array $payment_method_types The payment method types.
+	 * @return object|null
+	 * @throws WC_Stripe_Exception
+	 */
+	private function query_for_compatible_payment_intent( $customer, $order_id, $payment_method_types ) {
+		$search_data    = [
+			'customer'             => $customer,
+			'status'               => 'requires_payment_method',
+			'metadata["order_id"]' => $order_id,
+		];
+		$search_results = WC_Stripe_API::request( $search_data, 'payment_intents/search', 'GET' );
+		foreach ( $search_results->data as $result ) {
+			// If the payment method types match, we can reuse the payment intent.
+			if ( count( array_intersect( $result, $payment_method_types ) ) === count( $payment_method_types ) ) {
+				return $result;
+			}
+		}
+		return null;
 	}
 }
