@@ -2,6 +2,8 @@ import { __ } from '@wordpress/i18n';
 import styled from '@emotion/styled';
 import React from 'react';
 import { Button } from '@wordpress/components';
+import { useGetCapabilities } from 'wcstripe/data/account';
+import { useGetAvailablePaymentMethodIds } from 'wcstripe/data';
 
 const NoticeWrapper = styled.div`
 	display: flex;
@@ -24,6 +26,20 @@ const ActivationButton = styled( Button )`
 `;
 
 const AccountActivationNotice = () => {
+	const capabilities = useGetCapabilities();
+	const upePaymentMethods = useGetAvailablePaymentMethodIds();
+
+	const requiresActivation = upePaymentMethods.some( ( method ) => {
+		const capabilityStatus = capabilities[ `${ method }_payments` ];
+		return (
+			capabilityStatus === 'pending' || capabilityStatus === 'inactive'
+		);
+	} );
+
+	if ( ! requiresActivation ) {
+		return null;
+	}
+
 	return (
 		<NoticeWrapper>
 			<Message>
