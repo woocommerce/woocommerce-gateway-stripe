@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import PaymentMethodMissingCurrencyPill from '../../components/payment-method-missing-currency-pill';
 
 const Wrapper = styled.div`
 	display: flex;
@@ -41,7 +40,6 @@ const PaymentMethodDescription = ( {
 	Icon = () => null,
 	label,
 	description,
-	id,
 	...restProps
 } ) => {
 	return (
@@ -52,10 +50,6 @@ const PaymentMethodDescription = ( {
 			<div>
 				<LabelWrapper>
 					<Label>{ label }</Label>
-					<PaymentMethodMissingCurrencyPill
-						id={ id }
-						label={ label }
-					/>
 				</LabelWrapper>
 				<Description>{ description }</Description>
 			</div>

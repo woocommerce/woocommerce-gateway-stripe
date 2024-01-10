@@ -240,7 +240,6 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 						/>
 						<PaymentMethodWrapper>
 							<PaymentMethodDescription
-								id={ method }
 								Icon={ Icon }
 								description={ description }
 								label={ label }
@@ -282,7 +281,6 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 							/>
 							<PaymentMethodWrapper>
 								<PaymentMethodDescription
-									id={ method }
 									Icon={ Icon }
 									description={ description }
 									label={ label }
