@@ -971,12 +971,8 @@ class WC_Stripe_Intent_Controller {
 	 * @throws WC_Stripe_Exception
 	 */
 	private function query_for_compatible_payment_intent( $customer, $order_id, $payment_method_types ) {
-		$search_data    = [
-			'customer'             => $customer,
-			'status'               => 'requires_payment_method',
-			'metadata["order_id"]' => $order_id,
-		];
-		$search_results = WC_Stripe_API::request( $search_data, 'payment_intents/search', 'GET' );
+		$query_string   = sprintf( "customer:'%s' AND status:'requires_payment_method' AND metadata['order_id']:'%s'", $customer, $order_id );
+		$search_results = WC_Stripe_API::request( [ 'query' => $query_string ], 'payment_intents/search', 'GET' );
 		foreach ( $search_results->data as $result ) {
 			// If the payment method types match, we can reuse the payment intent.
 			if ( count( array_intersect( $result, $payment_method_types ) ) === count( $payment_method_types ) ) {
