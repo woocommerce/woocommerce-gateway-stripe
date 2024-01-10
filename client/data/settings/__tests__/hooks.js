@@ -4,6 +4,7 @@ import {
 	useEnabledPaymentMethodIds,
 	useGetAvailablePaymentMethodIds,
 	useSettings,
+	useGetOrderedPaymentMethodIds,
 	useCustomizePaymentMethodSettings,
 	usePaymentRequestEnabledSettings,
 	usePaymentRequestButtonTheme,
@@ -174,6 +175,42 @@ describe( 'Settings hooks tests', () => {
 				isEnabled: true,
 				name: 'Giropay',
 				description: 'Pay with Giropay',
+			} );
+		} );
+	} );
+
+	describe( 'useGetOrderedPaymentMethodIds()', () => {
+		beforeEach( () => {
+			actions = {
+				updateSettingsValues: jest.fn(),
+				saveOrderedPaymentMethodIds: jest.fn(),
+			};
+
+			selectors = {
+				getSettings: jest.fn( () => ( {
+					foo: 'bar',
+					ordered_payment_method_ids: [ 'card', 'eps', 'giropay' ],
+				} ) ),
+				isSavingOrderedPaymentMethodIds: jest.fn(),
+			};
+		} );
+
+		test( 'returns orderedPaymentMethodIds from selector', () => {
+			const { result } = renderHook( useGetOrderedPaymentMethodIds );
+			const {
+				orderedPaymentMethodIds,
+				setOrderedPaymentMethodIds,
+			} = result.current;
+
+			expect( orderedPaymentMethodIds ).toEqual( [
+				'card',
+				'eps',
+				'giropay',
+			] );
+
+			setOrderedPaymentMethodIds( [ 'giropay', 'card', 'eps' ] );
+			expect( actions.updateSettingsValues ).toHaveBeenCalledWith( {
+				ordered_payment_method_ids: [ 'giropay', 'card', 'eps' ],
 			} );
 		} );
 	} );

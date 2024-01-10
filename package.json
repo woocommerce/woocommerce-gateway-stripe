@@ -92,6 +92,7 @@
     "@stripe/react-stripe-js": "1.4.1",
     "@stripe/stripe-js": "1.15.1",
     "@testing-library/react-hooks": "^7.0.2",
+    "framer-motion": "^7.6.1",
     "gridicons": "^3.4.0",
     "interpolate-components": "^1.1.1"
   },

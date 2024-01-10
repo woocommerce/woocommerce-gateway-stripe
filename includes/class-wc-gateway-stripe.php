@@ -657,44 +657,46 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 			return $gateways;
 		}
 
-		$available_gateways      = [];
-		$gateway_orders          = (array) get_option( 'woocommerce_gateway_order' );
-		$legacy_enabled_gateways = WC_Stripe_Helper::get_legacy_enabled_payment_methods();
+		$legacy_enabled_gateways           = WC_Stripe_Helper::get_legacy_enabled_payment_methods();
+		$stripe_ordered_payment_method_ids = $this->get_option( 'stripe_legacy_method_order', [] );
 
-		foreach ( $gateway_orders as $name => $order ) {
-			if ( in_array( $name, array_keys( $gateways ), true ) ) {
-				$available_gateways[ $name ] = $gateways[ $name ];
-				unset( $gateways[ $name ] );
-			} elseif ( in_array( $name, array_keys( $legacy_enabled_gateways ), true ) ) {
-				$gateway = $legacy_enabled_gateways[ $name ];
-				// This follows the same logic as `get_available_payment_gateways()` function in `woocommerce/includes/class-wc-payment-gateways.php`.
-				if ( $gateway->is_available() ) {
-					if ( ! is_add_payment_method_page() ) {
-						$available_gateways[ $name ] = $gateway;
-					} elseif ( $gateway->supports( 'add_payment_method' ) || $gateway->supports( 'tokenization' ) ) {
-						$available_gateways[ $name ] = $gateway;
-					}
-				}
-				unset( $legacy_enabled_gateways[ $name ] );
-			}
+		// If the legacy method order is not set, consider the default order.
+		if ( empty( $stripe_ordered_payment_method_ids ) ) {
+			$payment_method_classes            = WC_Stripe_Helper::get_legacy_payment_method_classes();
+			$stripe_ordered_payment_method_ids = array_map(
+				function( $payment_method_class ) {
+					return $payment_method_class::ID;
+				},
+				$payment_method_classes
+			);
+			$stripe_ordered_payment_method_ids = array_merge( [ 'stripe' ], $stripe_ordered_payment_method_ids );
 		}
 
-		// Add any remaining enabled gateways in case they were not present in `woocommerce_gateway_order` option.
-		$available_gateways = array_merge( $available_gateways, $gateways );
+		// If Stripe is not found in the $gateways array, but other legacy methods are enabled,
+		// they will be placed on the top in their saved order, followed by other gateways.
+		$stripe_index           = array_search( 'stripe', array_keys( $gateways ), true );
+		$gateways_before_stripe = array_slice( $gateways, 0, $stripe_index );
+		$gateways_after_stripe  = array_slice( $gateways, $stripe_index + 1 );
+		$stripe_gateways        = [];
 
-		// Add any remaining legacy enabled gateways in case they were not present in `woocommerce_gateway_order` option.
-		foreach ( $legacy_enabled_gateways as $name => $gateway ) {
-			// This follows the same logic as `get_available_payment_gateways()` function in `woocommerce/includes/class-wc-payment-gateways.php`.
-			if ( $gateway->is_available() ) {
+		foreach ( $stripe_ordered_payment_method_ids as $id ) {
+			$gateway = null;
+			if ( 'stripe' === $id ) {
+				$gateway = $this;
+			} elseif ( isset( $legacy_enabled_gateways[ $id ] ) ) {
+				$gateway = $legacy_enabled_gateways[ $id ];
+			}
+
+			if ( $gateway && $gateway->is_available() ) {
 				if ( ! is_add_payment_method_page() ) {
-					$available_gateways[ $name ] = $gateway;
+					$stripe_gateways[ $id ] = $gateway;
 				} elseif ( $gateway->supports( 'add_payment_method' ) || $gateway->supports( 'tokenization' ) ) {
-					$available_gateways[ $name ] = $gateway;
+					$stripe_gateways[ $id ] = $gateway;
 				}
 			}
 		}
 
-		return $available_gateways;
+		return array_merge( $gateways_before_stripe, $stripe_gateways, $gateways_after_stripe );
 	}
 
 	/**
