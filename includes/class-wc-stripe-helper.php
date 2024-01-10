@@ -409,22 +409,42 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * List of available legacy payment methods.
+	 * List of available legacy payment method ids.
+	 * It returns the order saved in the `stripe_legacy_method_order` option in Stripe settings.
+	 * If the `stripe_legacy_method_order` option is not set, it returns the default order.
+	 *
+	 * The ids are mapped to the corresponding equivalent UPE method ids for rendeing on the frontend.
 	 *
 	 * @return array
 	 */
 	public static function get_legacy_available_payment_method_ids() {
-		$payment_method_classes = self::get_legacy_payment_method_classes();
+		$stripe_settings            = get_option( 'woocommerce_stripe_settings', [] );
+		$ordered_payment_method_ids = isset( $stripe_settings['stripe_legacy_method_order'] ) ? $stripe_settings['stripe_legacy_method_order'] : [];
 
-		// In legacy mode (when UPE is disabled), Stripe refers to card as payment method.
-		$available_payment_method_ids = [ 'card' ];
-
-		foreach ( $payment_method_classes as $payment_method_class ) {
-			$payment_method_id              = str_replace( 'stripe_', '', $payment_method_class::ID );
-			$available_payment_method_ids[] = $payment_method_id;
+		// If the legacy method order is not set, return the default order.
+		if ( ! empty( $ordered_payment_method_ids ) ) {
+			$payment_method_ids = array_map(
+				function( $payment_method_class ) {
+					if ( 'stripe' === $payment_method_class ) {
+						return 'card';
+					} else {
+						return str_replace( 'stripe_', '', $payment_method_class );
+					}
+				},
+				$ordered_payment_method_ids
+			);
+		} else {
+			$payment_method_classes = self::get_legacy_payment_method_classes();
+			$payment_method_ids     = array_map(
+				function( $payment_method_class ) {
+					return str_replace( 'stripe_', '', $payment_method_class::ID );
+				},
+				$payment_method_classes
+			);
+			$payment_method_ids     = array_merge( [ 'card' ], $payment_method_ids );
 		}
 
-		return $available_payment_method_ids;
+		return $payment_method_ids;
 	}
 
 	/**

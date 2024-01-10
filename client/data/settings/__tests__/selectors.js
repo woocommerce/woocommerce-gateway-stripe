@@ -1,6 +1,8 @@
 import {
 	getSettings,
 	isSavingSettings,
+	getOrderedPaymentMethodIds,
+	isSavingOrderedPaymentMethodIds,
 	getIndividualPaymentMethodSettings,
 	isCustomizingPaymentMethod,
 } from '../selectors';
@@ -103,6 +105,55 @@ describe( 'Settings selectors tests', () => {
 			'returns false if missing (tested state: %j)',
 			( state ) => {
 				expect( isCustomizingPaymentMethod( state ) ).toBeFalsy();
+			}
+		);
+	} );
+
+	describe( 'getOrderedPaymentMethodIds()', () => {
+		test( 'returns the value of state.settings.data', () => {
+			const state = {
+				settings: {
+					data: {
+						foo: 'bar',
+						ordered_payment_method_ids: [
+							'card',
+							'giropay',
+							'eps',
+						],
+					},
+				},
+			};
+
+			expect( getOrderedPaymentMethodIds( state ) ).toEqual( [
+				'card',
+				'giropay',
+				'eps',
+			] );
+		} );
+
+		test.each( [ [ undefined ], [ {} ], [ { settings: {} } ] ] )(
+			'returns {} if key is missing (tested state: %j)',
+			( state ) => {
+				expect( getOrderedPaymentMethodIds( state ) ).toEqual( {} );
+			}
+		);
+	} );
+
+	describe( 'isSavingOrderedPaymentMethodIds()', () => {
+		test( 'returns the value of state.settings.isSavingOrderedPaymentMethodIds', () => {
+			const state = {
+				settings: {
+					isSavingOrderedPaymentMethodIds: true,
+				},
+			};
+
+			expect( isSavingOrderedPaymentMethodIds( state ) ).toBeTruthy();
+		} );
+
+		test.each( [ [ undefined ], [ {} ], [ { settings: {} } ] ] )(
+			'returns false if missing (tested state: %j)',
+			( state ) => {
+				expect( isSavingOrderedPaymentMethodIds( state ) ).toBeFalsy();
 			}
 		);
 	} );

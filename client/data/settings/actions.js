@@ -26,6 +26,15 @@ export function updateIsSavingSettings( isSaving, error ) {
 	};
 }
 
+export function updateIsSavingOrderedPaymentMethodIds(
+	isSavingOrderedPaymentMethodIds
+) {
+	return {
+		type: ACTION_TYPES.SET_IS_SAVING_ORDERED_PAYMENT_METHOD_IDS,
+		isSavingOrderedPaymentMethodIds,
+	};
+}
+
 export function updateIsCustomizingPaymentMethod( isCustomizingPaymentMethod ) {
 	return {
 		type: ACTION_TYPES.SET_IS_CUSTOMIZING_PAYMENT_METHOD,
@@ -67,11 +76,37 @@ export function* saveSettings() {
 	return error === null;
 }
 
+export function* saveOrderedPaymentMethodIds() {
+	try {
+		const orderedPaymentMethodIds = select(
+			STORE_NAME
+		).getOrderedPaymentMethodIds();
+
+		yield updateIsSavingOrderedPaymentMethodIds( true );
+
+		yield apiFetch( {
+			path: `${ NAMESPACE }/settings/payment_method_order`,
+			method: 'post',
+			data: {
+				ordered_payment_method_ids: orderedPaymentMethodIds,
+			},
+		} );
+
+		yield dispatch( 'core/notices' ).createSuccessNotice(
+			__( 'Saved changed order.', 'woocommerce-gateway-stripe' )
+		);
+	} catch ( e ) {
+		yield dispatch( 'core/notices' ).createErrorNotice(
+			__( 'Error saving changed order.', 'woocommerce-gateway-stripe' )
+		);
+	} finally {
+		yield updateIsSavingOrderedPaymentMethodIds( false );
+	}
+}
+
 export function* saveIndividualPaymentMethodSettings(
 	paymentMethodData = null
 ) {
-	let error = null;
-
 	if ( ! paymentMethodData ) {
 		return;
 	}
@@ -91,13 +126,10 @@ export function* saveIndividualPaymentMethodSettings(
 			},
 		} );
 	} catch ( e ) {
-		error = e;
 		yield dispatch( 'core/notices' ).createErrorNotice(
 			__( 'Error saving payment method.', 'woocommerce-gateway-stripe' )
 		);
 	} finally {
 		yield updateIsCustomizingPaymentMethod( false );
 	}
-
-	return error === null;
 }
