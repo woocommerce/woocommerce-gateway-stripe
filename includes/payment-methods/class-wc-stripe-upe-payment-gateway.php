@@ -702,19 +702,22 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				return [ 'result' => 'failure' ];
 			}
 
-			$response = [
-				'result'   => 'success',
-				'redirect' => $this->get_return_url( $order ),
-			];
+			$redirect = $this->get_return_url( $order );
 
 			// If the payment intent requires action, respond with the pi and client secret so it can confirmed on checkout.
 			if ( 'requires_action' === $payment_intent->status ) {
 				if ( isset( $payment_intent->next_action->type ) && 'redirect_to_url' === $payment_intent->next_action->type && ! empty( $payment_intent->next_action->redirect_to_url->url ) ) {
-					$response['redirect'] = $payment_intent->next_action->redirect_to_url->url;
+					$redirect = $payment_intent->next_action->redirect_to_url->url;
 				} else if ( isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'boleto_display_details', 'oxxo_display_details' ] ) ) {
-					$response['client_secret'] = $payment_intent->client_secret;
+					$redirect = sprintf(
+						'#wc-stripe-voucher-%s:%s:%s:%s',
+						$order_id,
+						$payment_information['selected_payment_type'],
+						$payment_intent->client_secret,
+						rawurlencode( $redirect )
+					);
 				} else {
-					$response['redirect'] = sprintf(
+					$redirect = sprintf(
 						'#wc-stripe-confirm-%s:%s:%s:%s',
 						$payment_needed ? 'pi' : 'si',
 						$order_id,
@@ -724,7 +727,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				}
 			}
 
-			return $response;
+			return [
+				'result'   => 'success',
+				'redirect' => $redirect,
+			];
 		} catch ( WC_Stripe_Exception $e ) {
 			$shopper_error_message = sprintf(
 				/* translators: localized exception message */
