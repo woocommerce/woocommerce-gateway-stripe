@@ -7,6 +7,7 @@ import GeneralSettingsSection from '../general-settings-section';
 import LoadableSettingsSection from '../loadable-settings-section';
 import CustomizationOptionsNotice from '../customization-options-notice';
 import DisplayOrderCustomizationNotice from '../display-order-customization-notice';
+import AccountActivationNotice from '../account-activation-notice';
 
 const PaymentMethodsDescription = () => {
 	return (
@@ -50,6 +51,7 @@ const PaymentMethodsPanel = () => {
 		<>
 			<SettingsSection Description={ PaymentMethodsDescription }>
 				<DisplayOrderCustomizationNotice />
+				<AccountActivationNotice />
 				<GeneralSettingsSection />
 				<CustomizationOptionsNotice />
 			</SettingsSection>
