@@ -119,7 +119,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			);
 
 		$this->mock_gateway->intent_controller = $this->getMockBuilder( WC_Stripe_Intent_Controller::class )
-			->setMethods( [ 'create_and_confirm_payment_intent' ] )
+			->setMethods( [ 'get_or_create_and_confirm_payment_intent' ] )
 			->getMock();
 
 		$this->mock_stripe_customer = $this->getMockBuilder( WC_Stripe_Customer::class )
@@ -349,7 +349,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->once() )
-			->method( 'create_and_confirm_payment_intent' )
+			->method( 'get_or_create_and_confirm_payment_intent' )
 			->willReturn( $mock_intent );
 
 		$this->mock_gateway
@@ -398,7 +398,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->once() )
-			->method( 'create_and_confirm_payment_intent' )
+			->method( 'get_or_create_and_confirm_payment_intent' )
 			->willReturn( $mock_intent );
 
 		$this->mock_gateway
@@ -441,7 +441,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->once() )
-			->method( 'create_and_confirm_payment_intent' )
+			->method( 'get_or_create_and_confirm_payment_intent' )
 			->willThrowException( new WC_Stripe_Exception( "It's a trap!" ) );
 
 		$this->mock_gateway
@@ -483,7 +483,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->never() )
-			->method( 'create_and_confirm_payment_intent' );
+			->method( 'get_or_create_and_confirm_payment_intent' );
 
 		$this->mock_gateway
 			->expects( $this->once() )
@@ -524,7 +524,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->never() )
-			->method( 'create_and_confirm_payment_intent' );
+			->method( 'get_or_create_and_confirm_payment_intent' );
 
 		$this->mock_gateway
 			->expects( $this->once() )

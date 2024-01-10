@@ -105,7 +105,7 @@ class WC_Stripe_Intent_Controller {
 	public function verify_intent() {
 		global $woocommerce;
 
-		$order = false;
+		$order   = false;
 		$gateway = $this->get_gateway();
 
 		try {
@@ -680,7 +680,7 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
-	 * Creates and confirm a payment intent with the given payment information.
+	 * Creates (or update) and confirm a payment intent with the given payment information.
 	 * Used for dPE.
 	 *
 	 * @param object $payment_information The payment information needed for creating and confirming the intent.
@@ -689,7 +689,7 @@ class WC_Stripe_Intent_Controller {
 	 *
 	 * @return array
 	 */
-	public function create_and_confirm_payment_intent( $payment_information ) {
+	public function get_or_create_and_confirm_payment_intent( $payment_information ) {
 		// Throws a WC_Stripe_Exception if required information is missing.
 		$this->validate_create_and_confirm_intent_payment_information( $payment_information );
 
@@ -733,12 +733,20 @@ class WC_Stripe_Intent_Controller {
 			$request['setup_future_usage'] = 'off_session';
 		}
 
-		$payment_intent = WC_Stripe_API::request_with_level3_data(
-			$request,
-			'payment_intents',
-			$payment_information['level3'],
-			$order
-		);
+		// Check if a pending payment intent for the same group of params exists to update it instead of creating a new one.
+		$search_data    = [
+			'customer' => $payment_information['customer'],
+		];
+		$payment_intent = WC_Stripe_API::request( $search_data, 'payment_intents/search', 'GET' );
+		if ( ! $payment_intent ) {
+			// Create a new payment intent.
+			$payment_intent = WC_Stripe_API::request_with_level3_data(
+				$request,
+				'payment_intents',
+				$payment_information['level3'],
+				$order
+			);
+		}
 
 		// Only update the payment_type if we have a reference to the payment type the customer selected.
 		if ( '' !== $selected_payment_type ) {

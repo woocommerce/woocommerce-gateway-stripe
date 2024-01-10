@@ -686,7 +686,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$this->validate_minimum_order_amount( $order );
 
 				// Throws an exception on error.
-				$payment_intent = $this->intent_controller->create_and_confirm_payment_intent( $payment_information );
+				$payment_intent = $this->intent_controller->get_or_create_and_confirm_payment_intent( $payment_information );
 
 				// Use the last charge within the intent to proceed.
 				$charge = end( $payment_intent->charges->data );
