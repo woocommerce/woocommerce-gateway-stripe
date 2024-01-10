@@ -1,9 +1,11 @@
 import { __, sprintf } from '@wordpress/i18n';
+import interpolateComponents from 'interpolate-components';
 import React, { useState, useContext } from 'react';
 import styled from '@emotion/styled';
 import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import { Icon, info } from '@wordpress/icons';
 import UpeToggleContext from '../upe-toggle/context';
+import PaymentMethodsMap from '../../payment-methods-map';
 import RemoveMethodConfirmationModal from './remove-method-confirmation-modal';
 import {
 	useEnabledPaymentMethodIds,
@@ -19,12 +21,20 @@ const StyledCheckbox = styled( CheckboxControl )`
 `;
 
 const AlertIcon = styled( Icon )`
-	fill: #ffc83f;
+	fill: #f0b849;
 `;
 
 const IconWrapper = styled.span`
 	margin-right: 12px;
 	flex-shrink: 0;
+`;
+
+const StyledLink = styled.a`
+	&,
+	&:hover,
+	&:visited {
+		color: white;
+	}
 `;
 
 const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
@@ -38,6 +48,11 @@ const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
 	] = useEnabledPaymentMethodIds();
 	const [ , setIsStripeEnabled ] = useIsStripeEnabled();
 	const { isUpeEnabled } = useContext( UpeToggleContext );
+
+	const paymentMethodCurrencies = PaymentMethodsMap[ id ]?.currencies || [];
+	const storeCurrency = window?.wcSettings?.currency?.code;
+	const isCurrencySupported =
+		id === 'card' || paymentMethodCurrencies.includes( storeCurrency );
 
 	const handleCheckboxChange = ( hasBeenChecked ) => {
 		if ( ! hasBeenChecked ) {
@@ -66,6 +81,41 @@ const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
 			setIsStripeEnabled( false );
 		}
 	};
+
+	if ( ! isCurrencySupported ) {
+		return (
+			<Tooltip
+				content={ interpolateComponents( {
+					mixedString: sprintf(
+						/* translators: $1: a payment method name. %2: Currency(ies). */
+						__(
+							'%1$s requires store currency to be set to %2$s. {{currencySettingsLink}}Set currency{{/currencySettingsLink}}',
+							'woocommerce-gateway-stripe'
+						),
+						label,
+						paymentMethodCurrencies.join( ', ' )
+					),
+					components: {
+						currencySettingsLink: (
+							<StyledLink
+								href="/wp-admin/admin.php?page=wc-settings&tab=general"
+								target="_blank"
+								rel="noreferrer"
+								onClick={ ( ev ) => {
+									// Stop propagation is necessary so it doesn't trigger the tooltip click event.
+									ev.stopPropagation();
+								} }
+							/>
+						),
+					},
+				} ) }
+			>
+				<IconWrapper>
+					<AlertIcon icon={ info } />
+				</IconWrapper>
+			</Tooltip>
+		);
+	}
 
 	return (
 		<>
