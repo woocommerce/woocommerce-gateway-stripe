@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
 import { Icon, info } from '@wordpress/icons';
 import UpeToggleContext from '../upe-toggle/context';
-import PaymentMethodsMap from '../../payment-methods-map';
 import RemoveMethodConfirmationModal from './remove-method-confirmation-modal';
 import {
 	useEnabledPaymentMethodIds,
@@ -37,7 +36,13 @@ const StyledLink = styled.a`
 	}
 `;
 
-const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
+const PaymentMethodCheckbox = ( {
+	id,
+	label,
+	isAllowingManualCapture,
+	isCurrencySupported,
+	paymentMethodCurrencies,
+} ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] = useState(
 		false
@@ -48,11 +53,6 @@ const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
 	] = useEnabledPaymentMethodIds();
 	const [ , setIsStripeEnabled ] = useIsStripeEnabled();
 	const { isUpeEnabled } = useContext( UpeToggleContext );
-
-	const paymentMethodCurrencies = PaymentMethodsMap[ id ]?.currencies || [];
-	const storeCurrency = window?.wcSettings?.currency?.code;
-	const isCurrencySupported =
-		id === 'card' || paymentMethodCurrencies.includes( storeCurrency );
 
 	const handleCheckboxChange = ( hasBeenChecked ) => {
 		if ( ! hasBeenChecked ) {

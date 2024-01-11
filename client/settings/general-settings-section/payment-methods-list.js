@@ -98,6 +98,10 @@ const ListElement = styled.li`
 		}
 	}
 
+	&.disabled {
+		opacity: 0.6;
+	}
+
 	button {
 		&.hide {
 			visibility: hidden;
@@ -154,6 +158,7 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 `;
 
 const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
+	const storeCurrency = window?.wcSettings?.currency?.code;
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const [ customizationStatus, setCustomizationStatus ] = useState( {} );
 	const availablePaymentMethodIds = useGetAvailablePaymentMethodIds();
@@ -260,6 +265,11 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 					description,
 					allows_manual_capture: isAllowingManualCapture,
 				} = PaymentMethodsMap[ method ];
+				const paymentMethodCurrencies =
+					PaymentMethodsMap[ method ]?.currencies || [];
+				const isCurrencySupported =
+					method === 'card' ||
+					paymentMethodCurrencies.includes( storeCurrency );
 
 				return (
 					<div key={ method }>
@@ -270,6 +280,7 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 									! isAllowingManualCapture &&
 									isManualCaptureEnabled,
 								expanded: customizationStatus[ method ],
+								disabled: ! isCurrencySupported,
 							} ) }
 						>
 							<PaymentMethodCheckbox
@@ -277,6 +288,10 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 								label={ label }
 								isAllowingManualCapture={
 									isAllowingManualCapture
+								}
+								isCurrencySupported={ isCurrencySupported }
+								paymentMethodCurrencies={
+									paymentMethodCurrencies
 								}
 							/>
 							<PaymentMethodWrapper>
@@ -288,6 +303,7 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 								<StyledFees id={ method } />
 							</PaymentMethodWrapper>
 							{ ! isUpeEnabled &&
+								isCurrencySupported &&
 								! customizationStatus[ method ] && (
 									<Button
 										variant="secondary"
@@ -305,17 +321,19 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 									</Button>
 								) }
 						</ListElement>
-						{ ! isUpeEnabled && customizationStatus[ method ] && (
-							<CustomizePaymentMethod
-								method={ method }
-								onClose={ () =>
-									setCustomizationStatus( {
-										...customizationStatus,
-										[ method ]: false,
-									} )
-								}
-							/>
-						) }
+						{ ! isUpeEnabled &&
+							isCurrencySupported &&
+							customizationStatus[ method ] && (
+								<CustomizePaymentMethod
+									method={ method }
+									onClose={ () =>
+										setCustomizationStatus( {
+											...customizationStatus,
+											[ method ]: false,
+										} )
+									}
+								/>
+							) }
 					</div>
 				);
 			} ) }
