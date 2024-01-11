@@ -1,6 +1,6 @@
 *** Changelog ***
 
-= 7.9.0 - xxxx-xx-xx =
+= 7.9.0 - 2024-01-11 =
 * Tweak - Updated supported/tested versions of WordPress and WooCommerce.
 
 = 7.8.1 - 2023-12-28 =
