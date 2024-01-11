@@ -108,7 +108,7 @@ jQuery( function ( $ ) {
 	// On every page load and on hash change, check to see whether we should display the Boleto or Oxxo modal.
 	// Every page load is needed for the Pay for Order page which doesn't trigger the hash change.
 	maybeConfirmVoucherPayment();
-	window.addEventListener( 'hashchange', () => {
+	$( window ).on( 'hashchange', () => {
 		maybeConfirmVoucherPayment();
 	} );
 } );
