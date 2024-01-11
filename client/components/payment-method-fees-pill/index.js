@@ -2,7 +2,7 @@ import { __, sprintf } from '@wordpress/i18n';
 import React from 'react';
 import Pill from '../pill';
 
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
 const PaymentMethodFeesPill = ( { id, ...restProps } ) => {
 	if ( __PAYMENT_METHOD_FEES_ENABLED !== true ) {
 		return null;
