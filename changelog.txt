@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 7.9.0 - xxxx-xx-xx =
+* Tweak - Updated supported/tested versions of WordPress and WooCommerce.
+
 = 7.8.1 - 2023-12-28 =
 * Fix - Check if a valid order of tye WC_Order is returned before calling `get_meta` function.
 

@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.8.1 - 2023-12-28 =
-* Fix - Check if a valid order of tye WC_Order is returned before calling `get_meta` function.
+= 7.9.0 - xxxx-xx-xx =
+* Tweak - Updated supported/tested versions of WordPress and WooCommerce.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
