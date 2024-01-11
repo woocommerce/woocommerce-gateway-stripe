@@ -110,10 +110,11 @@ class WC_Stripe_Settings_Controller {
 		);
 
 		$params = [
-			'time'                    => time(),
-			'i18n_out_of_sync'        => $message,
-			'is_upe_checkout_enabled' => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
-			'stripe_oauth_url'        => $oauth_url,
+			'time'                      => time(),
+			'i18n_out_of_sync'          => $message,
+			'is_upe_checkout_enabled'   => WC_Stripe_Feature_Flags::is_upe_checkout_enabled(),
+			'stripe_oauth_url'          => $oauth_url,
+			'show_customization_notice' => get_option( 'wc_stripe_show_customization_notice', 'yes' ) === 'yes' ? true : false,
 		];
 		wp_localize_script(
 			'woocommerce_stripe_admin',

@@ -10,6 +10,7 @@ import {
 	useGetAvailablePaymentMethodIds,
 	useManualCapture,
 	useCustomizePaymentMethodSettings,
+	useGetOrderedPaymentMethodIds,
 } from 'wcstripe/data';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
 
@@ -20,6 +21,7 @@ jest.mock( 'wcstripe/data', () => ( {
 	useManualCapture: jest.fn(),
 	useIndividualPaymentMethodSettings: jest.fn(),
 	useCustomizePaymentMethodSettings: jest.fn(),
+	useGetOrderedPaymentMethodIds: jest.fn(),
 } ) );
 jest.mock( 'wcstripe/data/account', () => ( {
 	useAccount: jest.fn(),
@@ -53,6 +55,11 @@ describe( 'GeneralSettingsSection', () => {
 		] );
 		useAccount.mockReturnValue( { isRefreshing: false } );
 		useIsStripeEnabled.mockReturnValue( [ false, jest.fn() ] );
+		useGetOrderedPaymentMethodIds.mockReturnValue( {
+			orderedPaymentMethodIds: [ 'card', 'eps' ],
+			setOrderedPaymentMethodIds: jest.fn(),
+			saveOrderedPaymentMethodIds: jest.fn(),
+		} );
 	} );
 
 	it( 'should show information to screen readers about the payment methods being updated', () => {
@@ -118,6 +125,16 @@ describe( 'GeneralSettingsSection', () => {
 			'sofort',
 			'sepa_debit',
 		] );
+		useGetOrderedPaymentMethodIds.mockReturnValue( {
+			orderedPaymentMethodIds: [
+				'card',
+				'giropay',
+				'sofort',
+				'sepa_debit',
+			],
+			setOrderedPaymentMethodIds: jest.fn(),
+			saveOrderedPaymentMethodIds: jest.fn(),
+		} );
 		const updateEnabledMethodsMock = jest.fn();
 		useEnabledPaymentMethodIds.mockReturnValue( [
 			[ 'card' ],
@@ -157,6 +174,16 @@ describe( 'GeneralSettingsSection', () => {
 			[ 'card' ],
 			updateEnabledMethodsMock,
 		] );
+		useGetOrderedPaymentMethodIds.mockReturnValue( {
+			orderedPaymentMethodIds: [
+				'card',
+				'giropay',
+				'sofort',
+				'sepa_debit',
+			],
+			setOrderedPaymentMethodIds: jest.fn(),
+			saveOrderedPaymentMethodIds: jest.fn(),
+		} );
 
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
@@ -353,6 +380,12 @@ describe( 'GeneralSettingsSection', () => {
 			customizePaymentMethod: customizePaymentMethodMock,
 		} );
 		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'giropay' ] );
+		useGetOrderedPaymentMethodIds.mockReturnValue( {
+			orderedPaymentMethodIds: [ 'giropay' ],
+			setOrderedPaymentMethodIds: jest.fn(),
+			saveOrderedPaymentMethodIds: jest.fn(),
+		} );
+
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
 				<GeneralSettingsSection />
@@ -415,6 +448,12 @@ describe( 'GeneralSettingsSection', () => {
 
 	it( 'should not display customization section in the payment method when UPE is enabled', () => {
 		useGetAvailablePaymentMethodIds.mockReturnValue( [ 'giropay' ] );
+		useGetOrderedPaymentMethodIds.mockReturnValue( {
+			orderedPaymentMethodIds: [ 'giropay' ],
+			setOrderedPaymentMethodIds: jest.fn(),
+			saveOrderedPaymentMethodIds: jest.fn(),
+		} );
+
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
 				<GeneralSettingsSection />
@@ -438,6 +477,12 @@ describe( 'GeneralSettingsSection', () => {
 			'card',
 			'giropay',
 		] );
+		useGetOrderedPaymentMethodIds.mockReturnValue( {
+			orderedPaymentMethodIds: [ 'card', 'giropay' ],
+			setOrderedPaymentMethodIds: jest.fn(),
+			saveOrderedPaymentMethodIds: jest.fn(),
+		} );
+
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
 				<GeneralSettingsSection />
