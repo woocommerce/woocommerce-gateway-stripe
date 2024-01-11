@@ -153,7 +153,10 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 	flex: 1 0 auto;
 `;
 
-const GeneralSettingsSection = ( { isChangingDisplayOrder, onSaveChanges } ) => {
+const GeneralSettingsSection = ( {
+	isChangingDisplayOrder,
+	onSaveChanges,
+} ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const [ customizationStatus, setCustomizationStatus ] = useState( {} );
 	const availablePaymentMethodIds = useGetAvailablePaymentMethodIds();
