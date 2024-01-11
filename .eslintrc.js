@@ -42,6 +42,8 @@ module.exports = {
 				],
 			},
 		],
+		// The following are disabled temporarily, just to avoid issues with upcoming updates.
+		// TODO: Re-enable these rules once more pressing issues are live.
 		'no-unused-vars': [
 			'error',
 			{
