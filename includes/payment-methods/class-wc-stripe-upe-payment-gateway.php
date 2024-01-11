@@ -708,14 +708,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			if ( 'requires_action' === $payment_intent->status ) {
 				if ( isset( $payment_intent->next_action->type ) && 'redirect_to_url' === $payment_intent->next_action->type && ! empty( $payment_intent->next_action->redirect_to_url->url ) ) {
 					$redirect = $payment_intent->next_action->redirect_to_url->url;
-				} else if ( isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'boleto_display_details', 'oxxo_display_details' ] ) ) {
-					$redirect = sprintf(
-						'#wc-stripe-voucher-%s:%s:%s:%s',
-						$order_id,
-						$payment_information['selected_payment_type'],
-						$payment_intent->client_secret,
-						rawurlencode( $redirect )
-					);
 				} else {
 					$redirect = sprintf(
 						'#wc-stripe-confirm-%s:%s:%s:%s',
@@ -725,6 +717,17 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
 					);
 				}
+			}
+
+			// For Voucher payment method types (Boleto/Oxxo), redirect the customer to a URL hash formated #wc-stripe-voucher-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the voucher.
+			if ( in_array( $payment_intent->status, [ 'requires_confirmation', 'requires_action' ], true ) && isset( $payment_intent->payment_method_types ) && count( array_intersect( [ 'boleto', 'oxxo' ], $payment_intent->payment_method_types ) ) !== 0 ) {
+				$redirect = sprintf(
+					'#wc-stripe-voucher-%s:%s:%s:%s',
+					$order_id,
+					$payment_information['selected_payment_type'],
+					$payment_intent->client_secret,
+					rawurlencode( $redirect )
+				);
 			}
 
 			return [
