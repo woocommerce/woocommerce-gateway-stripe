@@ -1,7 +1,10 @@
 module.exports = {
 	root: true,
 	parser: '@babel/eslint-parser',
-	extends: [ 'plugin:@woocommerce/eslint-plugin/recommended' ],
+	extends: [
+		'plugin:@woocommerce/eslint-plugin/recommended',
+		'plugin:@typescript-eslint/recommended',
+	],
 	globals: {
 		_: false,
 		Backbone: false,
@@ -58,6 +61,8 @@ module.exports = {
 		],
 		'react/react-in-jsx-scope': 'off',
 		'testing-library/no-unnecessary-act': 'off',
+		'@typescript-eslint/no-empty-function': 'off',
+		'@typescript-eslint/no-var-requires': 'off',
 	},
 	settings: {
 		react: {
