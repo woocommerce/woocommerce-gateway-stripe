@@ -697,6 +697,9 @@ class WC_Stripe_Intent_Controller {
 		$selected_payment_type = $payment_information['selected_payment_type'];
 		$payment_method_types  = $this->get_payment_method_types_for_intent_creation( $selected_payment_type, $order->get_id() );
 
+		// Check if a pending payment intent for the same group of params exists to update it instead of creating a new one.
+		$payment_intent = $this->get_associated_payment_intent( $order, $payment_method_types );
+
 		$request = [
 			'amount'               => $payment_information['amount'],
 			'capture_method'       => $payment_information['capture_method'],
@@ -733,10 +736,15 @@ class WC_Stripe_Intent_Controller {
 			$request['setup_future_usage'] = 'off_session';
 		}
 
-		// Check if a pending payment intent for the same group of params exists to update it instead of creating a new one.
-		$payment_intent = $this->get_associated_payment_intent( $order, $payment_method_types );
-
-		if ( ! $payment_intent ) {
+		if ( $payment_intent ) {
+			// Update the existing payment intent.
+			$payment_intent = WC_Stripe_API::request_with_level3_data(
+				$request,
+				"payment_intents/{$payment_intent->id}",
+				$payment_information['level3'],
+				$order
+			);
+		} else {
 			// Create a new payment intent.
 			$payment_intent = WC_Stripe_API::request_with_level3_data(
 				$request,
@@ -744,6 +752,8 @@ class WC_Stripe_Intent_Controller {
 				$payment_information['level3'],
 				$order
 			);
+
+			WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent->id, $order );
 		}
 
 		// Only update the payment_type if we have a reference to the payment type the customer selected.
@@ -756,8 +766,6 @@ class WC_Stripe_Intent_Controller {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
 			throw new WC_Stripe_Exception( print_r( $payment_intent->error, true ), $payment_intent->error->message );
 		}
-
-		WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent->id, $order );
 
 		return $payment_intent;
 	}
