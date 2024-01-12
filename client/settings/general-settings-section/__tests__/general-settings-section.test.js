@@ -42,7 +42,10 @@ jest.mock( '../../loadable-settings-section', () => ( { children } ) =>
 );
 
 describe( 'GeneralSettingsSection', () => {
+	const globalValues = global.wcSettings;
+
 	beforeEach( () => {
+		global.wcSettings = { currency: { code: 'EUR' } };
 		useGetCapabilities.mockReturnValue( {
 			card_payments: 'active',
 			giropay_payments: 'active',
@@ -60,6 +63,10 @@ describe( 'GeneralSettingsSection', () => {
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
+	} );
+
+	afterEach( () => {
+		global.wcSettings = globalValues;
 	} );
 
 	it( 'should show information to screen readers about the payment methods being updated', () => {
@@ -334,6 +341,30 @@ describe( 'GeneralSettingsSection', () => {
 		expect(
 			screen.queryByText( /Without the new payments experience/ )
 		).toBeInTheDocument();
+	} );
+
+	it( 'does not display the payment method checkbox when currency is not supprted', () => {
+		global.wcSettings = { currency: { code: 'USD' } };
+		useGetAvailablePaymentMethodIds.mockReturnValue( [
+			'card',
+			'giropay',
+		] );
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: /Credit card/,
+			} )
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole( 'checkbox', {
+				name: 'bancontact',
+			} )
+		).not.toBeInTheDocument();
 	} );
 
 	it( 'does not display the payment method checkbox when manual capture is enabled', () => {

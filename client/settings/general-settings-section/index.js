@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import { Card, VisuallyHidden } from '@wordpress/components';
 import LoadableSettingsSection from '../loadable-settings-section';
+import AccountActivationNotice from '../account-activation-notice';
 import SectionHeading from './section-heading';
 import SectionFooter from './section-footer';
 import PaymentMethodsList from './payment-methods-list';
@@ -42,6 +43,7 @@ const GeneralSettingsSection = () => {
 
 	return (
 		<>
+			<AccountActivationNotice />
 			<StyledCard>
 				<LoadableSettingsSection numLines={ 30 }>
 					<SectionHeading
