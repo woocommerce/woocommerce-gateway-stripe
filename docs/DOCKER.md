@@ -11,3 +11,7 @@ To shutdown:
 
 - Use `npm run down` to stop the running containers
 - The state of the environment will be persisted in `docker/wordpress` and `docker/data`. To restart the environment simply run `npm run up` again. To start afresh, delete these folders and let `npm run up` re-create them.
+
+Known issues:
+
+- The test commands cannot be executed when running with debug mode enabled.
