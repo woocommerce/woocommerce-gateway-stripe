@@ -2,7 +2,11 @@
 
 import { __ } from '@wordpress/i18n';
 import { getAppearance } from '../styles/upe';
-import { errorTypes, errorCodes } from './constants';
+import {
+	errorTypes,
+	errorCodes,
+	getPaymentMethodsConstants,
+} from './constants';
 
 /**
  * @typedef {import('./type-defs').StripeServerData} StripeServerData
@@ -263,9 +267,7 @@ function shouldIncludeTerms() {
 }
 
 export const generateCheckoutEventNames = () => {
-	const paymentMethods = [ 'stripe' ];
-
-	return paymentMethods
+	return getPaymentMethodsConstants()
 		.map( ( method ) => `checkout_place_order_${ method }` )
 		.join( ' ' );
 };
