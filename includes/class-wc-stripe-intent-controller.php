@@ -1021,6 +1021,9 @@ class WC_Stripe_Intent_Controller {
 	public function get_existing_compatible_payment_intent( $order, $selected_payment_type ) {
 		$gateway = $this->get_gateway();
 		$intent  = $gateway->get_intent_from_order( $order );
+		if ( ! $intent ) {
+			return null;
+		}
 
 		$payment_method_types = $this->get_payment_method_types_for_intent_creation( $selected_payment_type, $order->get_id() );
 

@@ -119,7 +119,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			);
 
 		$this->mock_gateway->intent_controller = $this->getMockBuilder( WC_Stripe_Intent_Controller::class )
-			->setMethods( [ 'get_or_create_and_confirm_payment_intent' ] )
+			->setMethods( [ 'create_and_confirm_payment_intent' ] )
 			->getMock();
 
 		$this->mock_stripe_customer = $this->getMockBuilder( WC_Stripe_Customer::class )
@@ -319,15 +319,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Test basic checkout process_payment flow with deferred intent.
 	 */
 	public function test_process_payment_deferred_intent_returns_valid_response() {
-		$payment_intent_id = 'pi_mock';
-		$customer_id       = 'cus_mock';
-		$order             = WC_Helper_Order::create_order();
-		$currency          = $order->get_currency();
-		$order_id          = $order->get_id();
+		$customer_id = 'cus_mock';
+		$order       = WC_Helper_Order::create_order();
+		$order_id    = $order->get_id();
 
 		$mock_intent = (object) wp_parse_args(
 			[
-				'charges' => (object) [
+				'charges'        => (object) [
 					'data' => [
 						(object) [
 							'id'       => $order_id,
@@ -349,7 +347,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->once() )
-			->method( 'get_or_create_and_confirm_payment_intent' )
+			->method( 'create_and_confirm_payment_intent' )
 			->willReturn( $mock_intent );
 
 		$this->mock_gateway
@@ -367,14 +365,14 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 	 * Test SCA/3DS checkout process_payment flow with deferred intent.
 	 */
 	public function test_process_payment_deferred_intent_with_required_action_returns_valid_response() {
-		$customer_id       = 'cus_mock';
-		$order             = WC_Helper_Order::create_order();
-		$order_id          = $order->get_id();
+		$customer_id = 'cus_mock';
+		$order       = WC_Helper_Order::create_order();
+		$order_id    = $order->get_id();
 
 		$mock_intent = (object) wp_parse_args(
 			[
-				'status' => 'requires_action',
-				'data' => [
+				'status'         => 'requires_action',
+				'data'           => [
 					(object) [
 						'id'       => $order_id,
 						'captured' => 'yes',
@@ -382,7 +380,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					],
 				],
 				'payment_method' => 'pm_mock',
-				'charges' => (object) [
+				'charges'        => (object) [
 					'total_count' => 0, // Intents requiring SCA verification respond with no charges.
 					'data'        => [],
 				],
@@ -398,7 +396,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->once() )
-			->method( 'get_or_create_and_confirm_payment_intent' )
+			->method( 'create_and_confirm_payment_intent' )
 			->willReturn( $mock_intent );
 
 		$this->mock_gateway
@@ -441,7 +439,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->once() )
-			->method( 'get_or_create_and_confirm_payment_intent' )
+			->method( 'create_and_confirm_payment_intent' )
 			->willThrowException( new WC_Stripe_Exception( "It's a trap!" ) );
 
 		$this->mock_gateway
@@ -483,7 +481,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->never() )
-			->method( 'get_or_create_and_confirm_payment_intent' );
+			->method( 'create_and_confirm_payment_intent' );
 
 		$this->mock_gateway
 			->expects( $this->once() )
@@ -524,7 +522,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->never() )
-			->method( 'get_or_create_and_confirm_payment_intent' );
+			->method( 'create_and_confirm_payment_intent' );
 
 		$this->mock_gateway
 			->expects( $this->once() )
