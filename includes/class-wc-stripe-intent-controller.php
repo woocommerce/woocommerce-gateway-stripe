@@ -955,7 +955,7 @@ class WC_Stripe_Intent_Controller {
 	 *
 	 * @param array $payment_methods The list of payment methods used for the processing the payment.
 	 *
-	 * @return boolean True if the array consist of only one payment method which is not a card. False otherwise.
+	 * @return boolean True if the array consist of only one payment method and it isn't card, Boleto or Oxxo. False otherwise.
 	 */
 	private function request_needs_redirection( $payment_methods ) {
 		return 1 === count( $payment_methods ) && ! in_array( $payment_methods[0], [ 'card', 'boleto', 'oxxo' ] );
