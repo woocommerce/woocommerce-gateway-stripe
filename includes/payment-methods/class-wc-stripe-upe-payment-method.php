@@ -374,4 +374,76 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public function is_available_for_account_country() {
 		return true;
 	}
+
+	public function get_option_key() {
+		return 'woocommerce_stripe_settings';
+	}
+
+	/**
+	 * Renders the UPE input fields needed to get the user's payment information on the checkout page
+	 */
+	public function payment_fields() {
+		try {
+
+			// Output the form HTML.
+			?>
+			<?php if ( ! empty( $this->get_description() ) ) : ?>
+				<p><?php echo wp_kses_post( $this->get_description() ); ?></p>
+			<?php endif; ?>
+			<fieldset id="wc-<?php echo esc_attr( $this->get_id() ); ?>-upe-form" class="wc-upe-form wc-payment-form">
+				<div class="wc-stripe-upe-element" data-payment-method-type="<?php echo esc_attr( $this->stripe_id ); ?>"></div>
+				<div id="wc-<?php echo esc_attr( $this->get_id() ); ?>-upe-errors" role="alert"></div>
+			</fieldset>
+			<?php
+			if ( $this->is_saved_cards_enabled() && $this->is_reusable() ) {
+				$force_save_payment = ( $this->is_reusable() && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $this->is_reusable() ) ) || is_add_payment_method_page();
+				if ( is_user_logged_in() ) {
+					$this->save_payment_method_checkbox( $force_save_payment );
+				}
+			}
+		} catch ( Exception $e ) {
+			// Output the error message.
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			?>
+			<div>
+				<?php
+				echo esc_html__( 'An error was encountered when preparing the payment form. Please try again later.', 'woocommerce-gateway-stripe' );
+				?>
+			</div>
+			<?php
+		}
+	}
+
+	/**
+	 * Returns the list of enabled payment method types for UPE.
+	 *
+	 * @return string[]
+	 */
+	public function get_upe_enabled_payment_method_ids() {
+		return $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] );
+	}
+
+	public function is_saved_cards_enabled() {
+		return 'yes' === $this->get_option( 'saved_cards' );
+	}
+
+	/**
+	 * Displays the save to account checkbox.
+	 *
+	 * @since 4.1.0
+	 * @version 5.6.0
+	 */
+	public function save_payment_method_checkbox( $force_checked = false ) {
+		$id = 'wc-' . $this->get_id() . '-new-payment-method';
+		?>
+		<fieldset <?php echo $force_checked ? 'style="display:none;"' : ''; /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?>>
+			<p class="form-row woocommerce-SavedPaymentMethods-saveNew">
+				<input id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $id ); ?>" type="checkbox" value="true" style="width:auto;" <?php echo $force_checked ? 'checked' : ''; /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?> />
+				<label for="<?php echo esc_attr( $id ); ?>" style="display:inline;">
+					<?php echo esc_html( apply_filters( 'wc_stripe_save_to_account_text', __( 'Save payment information to my account for future purchases.', 'woocommerce-gateway-stripe' ) ) ); ?>
+				</label>
+			</p>
+		</fieldset>
+		<?php
+	}
 }
