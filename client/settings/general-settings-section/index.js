@@ -40,13 +40,21 @@ const GeneralSettingsSection = ( { onSaveChanges } ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const { isRefreshing } = useAccount();
 
+	const onChangeDisplayOrder = ( isChanging, data = null ) => {
+		setIsChangingDisplayOrder( isChanging );
+
+		if ( data ) {
+			onSaveChanges( 'ordered_payment_method_ids', data );
+		}
+	};
+
 	return (
 		<>
 			<StyledCard>
 				<LoadableSettingsSection numLines={ 30 }>
 					<SectionHeading
 						isChangingDisplayOrder={ isChangingDisplayOrder }
-						onChangeDisplayOrder={ setIsChangingDisplayOrder }
+						onChangeDisplayOrder={ onChangeDisplayOrder }
 					/>
 					{ isRefreshing && (
 						<VisuallyHidden>
