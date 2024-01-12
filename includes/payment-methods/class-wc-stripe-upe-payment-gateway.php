@@ -299,6 +299,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		$is_change_payment_method = $this->is_changing_payment_method_for_subscription();
 		$stripe_params            = [
+			'gatewayId'    => self::ID,
 			'title'        => $this->title,
 			'isUPEEnabled' => true,
 			'key'          => $this->publishable_key,
