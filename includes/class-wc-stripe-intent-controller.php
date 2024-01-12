@@ -730,7 +730,7 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		// For voucher payment methods type like Boleto & Oxxo, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
-		// When the intent is confirmed, Stripes sends a webhook to the store which puts the order on-hold, which we only want to happen after successfully displaying the voucher.
+		// When the intent is confirmed, Stripe sends a webhook to the store which puts the order on-hold, which we only want to happen after successfully displaying the voucher.
 		if ( $this->is_delayed_confirmation_required( $payment_method_types ) ) {
 			$request['confirm'] = 'false';
 		}
