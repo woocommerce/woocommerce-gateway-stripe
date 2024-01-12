@@ -97,6 +97,10 @@ The manual installation method involves downloading our plugin and uploading it 
 
 Automatic updates should work like a charm; as always though, ensure you backup your site just in case.
 
+### Contributing
+
+You can set up your local development environment and run tests by [using Docker](docs/DOCKER.md).
+
 ## Frequently Asked Questions
 
 #### Does this support recurring payments, like for subscriptions?
