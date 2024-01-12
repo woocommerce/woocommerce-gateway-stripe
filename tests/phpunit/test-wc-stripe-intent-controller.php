@@ -212,12 +212,12 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		];
 
 		$this->gateway
-			->expects( $this->any() )
+			->expects( '' === $payment_information['selected_payment_type'] ? $this->once() : $this->never() )
 			->method( 'get_upe_enabled_at_checkout_payment_method_ids' )
 			->willReturn( $mocked_ids );
 
 		$this->gateway
-			->expects( $this->any() )
+			->expects( '' === $payment_information['selected_payment_type'] ? $this->never() : $this->exactly( 2 ) )
 			->method( 'get_upe_enabled_payment_method_ids' )
 			->willReturn( $mocked_ids );
 
