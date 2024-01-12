@@ -386,8 +386,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		foreach ( $enabled_payment_methods as $payment_method ) {
 			$settings[ $payment_method ] = [
-				'isReusable' => $this->payment_methods[ $payment_method ]->is_reusable(),
-				'title' => $this->payment_methods[ $payment_method ]->get_title(),
+				'isReusable'          => $this->payment_methods[ $payment_method ]->is_reusable(),
+				'title'               => $this->payment_methods[ $payment_method ]->get_title(),
 				'testingInstructions' => $this->payment_methods[ $payment_method ]->get_testing_instructions(),
 			];
 		}
@@ -685,8 +685,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				// Throw an exception if the minimum order amount isn't met.
 				$this->validate_minimum_order_amount( $order );
 
-				// Throws an exception on error.
-				$payment_intent = $this->intent_controller->get_or_create_and_confirm_payment_intent( $payment_information );
+				$payment_intent = $this->intent_controller->get_existing_compatible_payment_intent( $order, $payment_information['selected_payment_type'] );
+
+				// If the payment intent is not compatible, we need to create a new one. Throws an exception on error.
+				if ( $payment_intent ) {
+					// Update the existing payment intent if one exists.
+					$payment_intent = $this->intent_controller->update_and_confirm_payment_intent( $payment_intent, $payment_information );
+				} else {
+					// Create a new payment intent if one doesn't exist.
+					$payment_intent = $this->intent_controller->create_and_confirm_payment_intent( $payment_information );
+				}
 
 				// Use the last charge within the intent to proceed.
 				$charge = end( $payment_intent->charges->data );

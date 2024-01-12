@@ -680,25 +680,109 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
-	 * Creates (or update) and confirm a payment intent with the given payment information.
+	 * Creates and confirm a payment intent with the given payment information.
 	 * Used for dPE.
 	 *
-	 * @param object $payment_information The payment information needed for creating and confirming the intent.
+	 * @param array $payment_information The payment information needed for creating and confirming the intent.
 	 *
 	 * @throws WC_Stripe_Exception - If the create intent call returns with an error.
 	 *
 	 * @return array
 	 */
-	public function get_or_create_and_confirm_payment_intent( $payment_information ) {
+	public function create_and_confirm_payment_intent( $payment_information ) {
 		// Throws a WC_Stripe_Exception if required information is missing.
 		$this->validate_create_and_confirm_intent_payment_information( $payment_information );
 
+		$request = $this->build_payment_intent_request_params( $payment_information );
+
+		/**
+		 * The associated order.
+		 *
+		 * @var WC_Order $order
+		 */
+		$order = $payment_information['order'];
+
+		$payment_intent = WC_Stripe_API::request_with_level3_data(
+			$request,
+			'payment_intents',
+			$payment_information['level3'],
+			$order
+		);
+
+		// Only update the payment_type if we have a reference to the payment type the customer selected.
+		$selected_payment_type = $payment_information['selected_payment_type'];
+		if ( '' !== $selected_payment_type ) {
+			$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
+		}
+
+		// Throw an exception when there's an error.
+		if ( ! empty( $payment_intent->error ) ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
+			throw new WC_Stripe_Exception( print_r( $payment_intent->error, true ), $payment_intent->error->message );
+		}
+
+		WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent->id, $order );
+
+		return $payment_intent;
+	}
+
+	/**
+	 * Updates and confirm a payment intent with the given payment information.
+	 * Used for dPE.
+	 *
+	 * @param object $payment_intent       The payment intent to update.
+	 * @param array $payment_information The payment information needed for creating and confirming the intent.
+	 *
+	 * @throws WC_Stripe_Exception - If the create intent call returns with an error.
+	 *
+	 * @return array
+	 */
+	public function update_and_confirm_payment_intent( $payment_intent, $payment_information ) {
+		// Throws a WC_Stripe_Exception if required information is missing.
+		$this->validate_create_and_confirm_intent_payment_information( $payment_information );
+
+		$request = $this->build_payment_intent_request_params( $payment_information );
+
+		/**
+		 * The associated order.
+		 *
+		 * @var WC_Order $order
+		 */
+		$order = $payment_information['order'];
+
+		$payment_intent = WC_Stripe_API::request_with_level3_data(
+			$request,
+			"payment_intents/{$payment_intent->id}",
+			$payment_information['level3'],
+			$order
+		);
+
+		// Only update the payment_type if we have a reference to the payment type the customer selected.
+		$selected_payment_type = $payment_information['selected_payment_type'];
+		if ( '' !== $selected_payment_type ) {
+			$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
+		}
+
+		// Throw an exception when there's an error.
+		if ( ! empty( $payment_intent->error ) ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
+			throw new WC_Stripe_Exception( print_r( $payment_intent->error, true ), $payment_intent->error->message );
+		}
+
+		return $payment_intent;
+	}
+
+	/**
+	 * Builds the request parameters for creating/updating and confirming a payment intent.
+	 *
+	 * @param array $payment_information The payment information needed for creating/updating and confirming the intent.
+	 *
+	 * @return array The request parameters for creating/updating and confirming a payment intent.
+	 */
+	private function build_payment_intent_request_params( $payment_information ) {
 		$order                 = $payment_information['order'];
 		$selected_payment_type = $payment_information['selected_payment_type'];
 		$payment_method_types  = $this->get_payment_method_types_for_intent_creation( $selected_payment_type, $order->get_id() );
-
-		// Check if a pending payment intent for the same group of params exists to update it instead of creating a new one.
-		$payment_intent = $this->get_associated_payment_intent( $order, $payment_method_types );
 
 		$request = [
 			'amount'               => $payment_information['amount'],
@@ -736,38 +820,7 @@ class WC_Stripe_Intent_Controller {
 			$request['setup_future_usage'] = 'off_session';
 		}
 
-		if ( $payment_intent ) {
-			// Update the existing payment intent.
-			$payment_intent = WC_Stripe_API::request_with_level3_data(
-				$request,
-				"payment_intents/{$payment_intent->id}",
-				$payment_information['level3'],
-				$order
-			);
-		} else {
-			// Create a new payment intent.
-			$payment_intent = WC_Stripe_API::request_with_level3_data(
-				$request,
-				'payment_intents',
-				$payment_information['level3'],
-				$order
-			);
-
-			WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent->id, $order );
-		}
-
-		// Only update the payment_type if we have a reference to the payment type the customer selected.
-		if ( '' !== $selected_payment_type ) {
-			$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
-		}
-
-		// Throw an exception when there's an error.
-		if ( ! empty( $payment_intent->error ) ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
-			throw new WC_Stripe_Exception( print_r( $payment_intent->error, true ), $payment_intent->error->message );
-		}
-
-		return $payment_intent;
+		return $request;
 	}
 
 	/**
@@ -958,6 +1011,27 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
+	 * Retrieves the (possible) existing payment intent for an order and payment method types.
+	 *
+	 * @param WC_Order $order The order.
+	 * @param string $selected_payment_type The name of the selected UPE payment type.
+	 * @return object|null
+	 * @throws WC_Stripe_Exception
+	 */
+	public function get_existing_compatible_payment_intent( $order, $selected_payment_type ) {
+		$gateway = $this->get_gateway();
+		$intent  = $gateway->get_intent_from_order( $order );
+
+		$payment_method_types = $this->get_payment_method_types_for_intent_creation( $selected_payment_type, $order->get_id() );
+
+		// If the payment method types match, we can reuse the payment intent.
+		if ( count( array_intersect( $intent->payment_method_types, $payment_method_types ) ) === count( $payment_method_types ) ) {
+			return $intent;
+		}
+		return null;
+	}
+
+	/**
 	 * Determines whether the request needs to redirect customer off-site to authorize payment.
 	 * This is needed for the non-card UPE payment method (i.e. iDeal, giropay, etc.)
 	 *
@@ -967,23 +1041,5 @@ class WC_Stripe_Intent_Controller {
 	 */
 	private function request_needs_redirection( $payment_methods ) {
 		return 1 === count( $payment_methods ) && 'card' !== $payment_methods[0];
-	}
-
-	/**
-	 * Retrieves the (possible) existing payment intent for an order and payment method types.
-	 *
-	 * @param WC_Order $order The order.
-	 * @param array $payment_method_types The payment method types.
-	 * @return object|null
-	 * @throws WC_Stripe_Exception
-	 */
-	private function get_associated_payment_intent( $order, $payment_method_types ) {
-		$gateway = $this->get_gateway();
-		$intent  = $gateway->get_intent_from_order( $order );
-		// If the payment method types match, we can reuse the payment intent.
-		if ( count( array_intersect( $intent->payment_method_types, $payment_method_types ) ) === count( $payment_method_types ) ) {
-			return $intent;
-		}
-		return null;
 	}
 }
