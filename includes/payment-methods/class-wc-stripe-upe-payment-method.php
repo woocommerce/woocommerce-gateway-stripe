@@ -87,14 +87,9 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public function __construct() {
 		$main_settings = get_option( 'woocommerce_stripe_settings' );
 
-		if ( isset( $main_settings['upe_checkout_experience_accepted_payments'] ) ) {
-			$enabled_upe_methods = $main_settings['upe_checkout_experience_accepted_payments'];
-		} else {
-			$enabled_upe_methods = [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ];
-		}
-
-		$this->enabled = in_array( static::STRIPE_ID, $enabled_upe_methods, true );
-		$this->id      = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID;
+		$this->enabled  = in_array( static::STRIPE_ID, $this->get_upe_enabled_payment_method_ids(), true );
+		$this->id       = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID;
+		$this->testmode = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
 	}
 
 	/**
