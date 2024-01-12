@@ -347,6 +347,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->once() )
+			->method( 'get_existing_compatible_payment_intent' )
+			->willReturn( null );
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
 			->method( 'create_and_confirm_payment_intent' )
 			->willReturn( $mock_intent );
 
@@ -396,6 +401,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->once() )
+			->method( 'get_existing_compatible_payment_intent' )
+			->willReturn( null );
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
 			->method( 'create_and_confirm_payment_intent' )
 			->willReturn( $mock_intent );
 
@@ -436,6 +446,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			'wc_stripe_selected_upe_payment_type' => 'card',
 			'wc-stripe-is-deferred-intent'        => '1',
 		];
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'get_existing_compatible_payment_intent' )
+			->willReturn( null );
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->once() )
@@ -480,6 +495,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		];
 
 		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'get_existing_compatible_payment_intent' )
+			->willReturn( null );
+
+		$this->mock_gateway->intent_controller
 			->expects( $this->never() )
 			->method( 'create_and_confirm_payment_intent' );
 
@@ -519,6 +539,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			'wc_stripe_selected_upe_payment_type' => 'some_invalid_type',
 			'wc-stripe-is-deferred-intent'        => '1',
 		];
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'get_existing_compatible_payment_intent' )
+			->willReturn( null );
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->never() )
