@@ -119,7 +119,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			);
 
 		$this->mock_gateway->intent_controller = $this->getMockBuilder( WC_Stripe_Intent_Controller::class )
-			->setMethods( [ 'create_and_confirm_payment_intent' ] )
+			->setMethods( [ 'get_existing_compatible_payment_intent', 'create_and_confirm_payment_intent', 'update_and_confirm_payment_intent' ] )
 			->getMock();
 
 		$this->mock_stripe_customer = $this->getMockBuilder( WC_Stripe_Customer::class )
@@ -495,11 +495,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		];
 
 		$this->mock_gateway->intent_controller
-			->expects( $this->once() )
-			->method( 'get_existing_compatible_payment_intent' )
-			->willReturn( null );
-
-		$this->mock_gateway->intent_controller
 			->expects( $this->never() )
 			->method( 'create_and_confirm_payment_intent' );
 
@@ -541,11 +536,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		];
 
 		$this->mock_gateway->intent_controller
-			->expects( $this->once() )
-			->method( 'get_existing_compatible_payment_intent' )
-			->willReturn( null );
-
-		$this->mock_gateway->intent_controller
 			->expects( $this->never() )
 			->method( 'create_and_confirm_payment_intent' );
 
@@ -560,6 +550,63 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$processed_order = wc_get_order( $order_id );
 		$this->assertEquals( 'failed', $processed_order->get_status() );
+	}
+
+	/**
+	 * Test for `process_payment` when the order has an existing payment intent attached.
+	 *
+	 * @return void
+	 * @throws Exception If test fails.
+	 */
+	public function test_process_payment_deferred_intent_with_existing_intent() {
+		$customer_id = 'cus_mock';
+		$order       = WC_Helper_Order::create_order();
+		$order_id    = $order->get_id();
+
+		$mock_intent = (object) wp_parse_args(
+			[
+				'status'         => 'requires_action',
+				'data'           => [
+					(object) [
+						'id'       => $order_id,
+						'captured' => 'yes',
+						'status'   => 'succeeded',
+					],
+				],
+				'payment_method' => 'pm_mock',
+				'charges'        => (object) [
+					'total_count' => 0, // Intents requiring SCA verification respond with no charges.
+					'data'        => [],
+				],
+			],
+			self::MOCK_CARD_PAYMENT_INTENT_TEMPLATE
+		);
+
+		// Set the appropriate POST flag to trigger a deferred intent request.
+		$_POST = [
+			'wc_stripe_selected_upe_payment_type' => 'card',
+			'wc-stripe-is-deferred-intent'        => '1',
+		];
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'get_existing_compatible_payment_intent' )
+			->willReturn( $mock_intent );
+
+		$this->mock_gateway->intent_controller
+			->expects( $this->once() )
+			->method( 'update_and_confirm_payment_intent' )
+			->willReturn( $mock_intent );
+
+		$this->mock_gateway
+			->expects( $this->once() )
+			->method( 'get_stripe_customer_id' )
+			->willReturn( $customer_id );
+
+		$response = $this->mock_gateway->process_payment( $order_id );
+
+		$this->assertEquals( 'success', $response['result'] );
+		$this->assertMatchesRegularExpression( "/#wc-stripe-confirm-pi:{$order_id}:{$mock_intent->client_secret}/", $response['redirect'] );
 	}
 
 	/**
