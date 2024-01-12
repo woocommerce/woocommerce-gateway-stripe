@@ -159,7 +159,13 @@ function createStripePaymentMethod(
 
 	return api
 		.getStripe( paymentMethodType )
-		.createPaymentMethod( { elements, params } );
+		.createPaymentMethod( { elements, params } )
+		.then( ( paymentMethod ) => {
+			if ( paymentMethod.error ) {
+				throw paymentMethod.error;
+			}
+			return paymentMethod;
+		} );
 }
 
 /**
