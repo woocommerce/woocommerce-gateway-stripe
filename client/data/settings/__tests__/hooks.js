@@ -162,19 +162,21 @@ describe( 'Settings hooks tests', () => {
 				},
 			} );
 
-			customizePaymentMethod( {
-				method: 'giropay',
-				isEnabled: true,
-				name: 'Giropay',
-				description: 'Pay with Giropay',
+			customizePaymentMethod( 'giropay', true, {
+				giropay: {
+					name: 'Giropay',
+					description: 'Pay with Giropay',
+					expiration: '10',
+				},
 			} );
 			expect(
 				actions.saveIndividualPaymentMethodSettings
 			).toHaveBeenCalledWith( {
-				method: 'giropay',
 				isEnabled: true,
+				method: 'giropay',
 				name: 'Giropay',
 				description: 'Pay with Giropay',
+				expiration: '10',
 			} );
 		} );
 	} );

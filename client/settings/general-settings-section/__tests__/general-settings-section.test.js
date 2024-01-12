@@ -388,7 +388,7 @@ describe( 'GeneralSettingsSection', () => {
 
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
-				<GeneralSettingsSection />
+				<GeneralSettingsSection onSaveChanges={ jest.fn() } />
 			</UpeToggleContext.Provider>
 		);
 
