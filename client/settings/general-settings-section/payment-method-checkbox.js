@@ -1,4 +1,5 @@
 import { __, sprintf } from '@wordpress/i18n';
+import interpolateComponents from 'interpolate-components';
 import React, { useState, useContext } from 'react';
 import styled from '@emotion/styled';
 import { CheckboxControl, VisuallyHidden } from '@wordpress/components';
@@ -19,7 +20,7 @@ const StyledCheckbox = styled( CheckboxControl )`
 `;
 
 const AlertIcon = styled( Icon )`
-	fill: #ffc83f;
+	fill: #f0b849;
 `;
 
 const IconWrapper = styled.span`
@@ -27,7 +28,21 @@ const IconWrapper = styled.span`
 	flex-shrink: 0;
 `;
 
-const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
+const StyledLink = styled.a`
+	&,
+	&:hover,
+	&:visited {
+		color: white;
+	}
+`;
+
+const PaymentMethodCheckbox = ( {
+	id,
+	label,
+	isAllowingManualCapture,
+	isCurrencySupported,
+	paymentMethodCurrencies,
+} ) => {
 	const [ isManualCaptureEnabled ] = useManualCapture();
 	const [ isConfirmationModalOpen, setIsConfirmationModalOpen ] = useState(
 		false
@@ -66,6 +81,41 @@ const PaymentMethodCheckbox = ( { id, label, isAllowingManualCapture } ) => {
 			setIsStripeEnabled( false );
 		}
 	};
+
+	if ( ! isCurrencySupported ) {
+		return (
+			<Tooltip
+				content={ interpolateComponents( {
+					mixedString: sprintf(
+						/* translators: $1: a payment method name. %2: Currency(ies). */
+						__(
+							'%1$s requires store currency to be set to %2$s. {{currencySettingsLink}}Set currency{{/currencySettingsLink}}',
+							'woocommerce-gateway-stripe'
+						),
+						label,
+						paymentMethodCurrencies.join( ', ' )
+					),
+					components: {
+						currencySettingsLink: (
+							<StyledLink
+								href="/wp-admin/admin.php?page=wc-settings&tab=general"
+								target="_blank"
+								rel="noreferrer"
+								onClick={ ( ev ) => {
+									// Stop propagation is necessary so it doesn't trigger the tooltip click event.
+									ev.stopPropagation();
+								} }
+							/>
+						),
+					},
+				} ) }
+			>
+				<IconWrapper>
+					<AlertIcon icon={ info } />
+				</IconWrapper>
+			</Tooltip>
+		);
+	}
 
 	return (
 		<>

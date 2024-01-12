@@ -98,6 +98,10 @@ const ListElement = styled.li`
 		}
 	}
 
+	&.disabled {
+		opacity: 0.6;
+	}
+
 	button {
 		&.hide {
 			visibility: hidden;
@@ -157,6 +161,7 @@ const GeneralSettingsSection = ( {
 	isChangingDisplayOrder,
 	onSaveChanges,
 } ) => {
+	const storeCurrency = window?.wcSettings?.currency?.code;
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const [ customizationStatus, setCustomizationStatus ] = useState( {} );
 	const availablePaymentMethodIds = useGetAvailablePaymentMethodIds();
@@ -254,7 +259,6 @@ const GeneralSettingsSection = ( {
 						/>
 						<PaymentMethodWrapper>
 							<PaymentMethodDescription
-								id={ method }
 								Icon={ Icon }
 								description={ description }
 								label={ label }
@@ -275,6 +279,11 @@ const GeneralSettingsSection = ( {
 					description,
 					allows_manual_capture: isAllowingManualCapture,
 				} = PaymentMethodsMap[ method ];
+				const paymentMethodCurrencies =
+					PaymentMethodsMap[ method ]?.currencies || [];
+				const isCurrencySupported =
+					method === 'card' ||
+					paymentMethodCurrencies.includes( storeCurrency );
 
 				return (
 					<div key={ method }>
@@ -285,6 +294,7 @@ const GeneralSettingsSection = ( {
 									! isAllowingManualCapture &&
 									isManualCaptureEnabled,
 								expanded: customizationStatus[ method ],
+								disabled: ! isCurrencySupported,
 							} ) }
 						>
 							<PaymentMethodCheckbox
@@ -293,10 +303,13 @@ const GeneralSettingsSection = ( {
 								isAllowingManualCapture={
 									isAllowingManualCapture
 								}
+								isCurrencySupported={ isCurrencySupported }
+								paymentMethodCurrencies={
+									paymentMethodCurrencies
+								}
 							/>
 							<PaymentMethodWrapper>
 								<PaymentMethodDescription
-									id={ method }
 									Icon={ Icon }
 									description={ description }
 									label={ label }
@@ -304,6 +317,7 @@ const GeneralSettingsSection = ( {
 								<StyledFees id={ method } />
 							</PaymentMethodWrapper>
 							{ ! isUpeEnabled &&
+								isCurrencySupported &&
 								! customizationStatus[ method ] && (
 									<Button
 										variant="secondary"
@@ -321,14 +335,16 @@ const GeneralSettingsSection = ( {
 									</Button>
 								) }
 						</ListElement>
-						{ ! isUpeEnabled && customizationStatus[ method ] && (
-							<CustomizePaymentMethod
-								method={ method }
-								onClose={ ( data ) =>
-									onSaveCustomization( method, data )
-								}
-							/>
-						) }
+						{ ! isUpeEnabled &&
+							isCurrencySupported &&
+							customizationStatus[ method ] && (
+								<CustomizePaymentMethod
+									method={ method }
+									onClose={ ( data ) =>
+										onSaveCustomization( method, data )
+									}
+								/>
+							) }
 					</div>
 				);
 			} ) }
