@@ -719,7 +719,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				}
 			}
 
-			// For Voucher payment method types (Boleto/Oxxo), redirect the customer to a URL hash formated #wc-stripe-voucher-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the voucher.
+			// For Voucher payment method types (Boleto/Oxxo), redirect the customer to a URL hash formatted #wc-stripe-voucher-{order_id}:{payment_method_type}:{client_secret}:{redirect_url} to confirm the intent which also displays the voucher.
 			if ( in_array( $payment_intent->status, [ 'requires_confirmation', 'requires_action' ], true ) && isset( $payment_intent->payment_method_types ) && count( array_intersect( [ 'boleto', 'oxxo' ], $payment_intent->payment_method_types ) ) !== 0 ) {
 				$redirect = sprintf(
 					'#wc-stripe-voucher-%s:%s:%s:%s',
