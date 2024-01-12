@@ -85,15 +85,6 @@ function createStripePaymentElement( api, paymentMethodType = null ) {
 		},
 	} );
 
-	// To be removed with Split PE.
-	if ( paymentMethodType === null ) {
-		paymentMethodType = 'stripe';
-		gatewayUPEComponents.stripe = {
-			elements: null,
-			upeElement: null,
-		};
-	}
-
 	gatewayUPEComponents[ paymentMethodType ].elements = elements;
 	gatewayUPEComponents[
 		paymentMethodType
@@ -184,30 +175,27 @@ export async function mountStripePaymentElement( api, domElement ) {
 	const event = new Event( 'wc-credit-card-form-init' );
 	document.body.dispatchEvent( event );
 
-	const paymentMethodType = domElement.dataset.paymentMethodType;
-	let upeElement;
+	let paymentMethodType = domElement.dataset.paymentMethodType;
 
-	// Non-split PE. To be removed.
 	if ( typeof paymentMethodType === 'undefined' ) {
-		upeElement = await createStripePaymentElement( api );
-
-		upeElement.on( 'change', ( e ) => {
-			const selectedUPEPaymentType = e.value.type;
-			const isPaymentMethodReusable =
-				paymentMethodsConfig[ selectedUPEPaymentType ].isReusable;
-			showNewPaymentMethodCheckbox( isPaymentMethodReusable );
-			setSelectedUPEPaymentType( selectedUPEPaymentType );
-		} );
-	} else {
-		// Split PE.
-		if ( ! gatewayUPEComponents[ paymentMethodType ] ) {
-			return;
-		}
-
-		upeElement =
-			gatewayUPEComponents[ paymentMethodType ].upeElement ||
-			( await createStripePaymentElement( api, paymentMethodType ) );
+		paymentMethodType = 'card';
 	}
+
+	if ( ! gatewayUPEComponents[ paymentMethodType ] ) {
+		return;
+	}
+
+	const upeElement =
+		gatewayUPEComponents[ paymentMethodType ].upeElement ||
+		( await createStripePaymentElement( api, paymentMethodType ) );
+
+	upeElement.on( 'change', ( e ) => {
+		const selectedUPEPaymentType = e.value.type;
+		const isPaymentMethodReusable =
+			paymentMethodsConfig[ selectedUPEPaymentType ].isReusable;
+		showNewPaymentMethodCheckbox( isPaymentMethodReusable );
+		setSelectedUPEPaymentType( selectedUPEPaymentType );
+	} );
 
 	upeElement.mount( domElement );
 }
@@ -263,11 +251,6 @@ export const processPayment = (
 	}
 
 	blockUI( jQueryForm );
-
-	// Non split. To be removed.
-	if ( paymentMethodType === null ) {
-		paymentMethodType = 'stripe';
-	}
 
 	const elements = gatewayUPEComponents[ paymentMethodType ].elements;
 
