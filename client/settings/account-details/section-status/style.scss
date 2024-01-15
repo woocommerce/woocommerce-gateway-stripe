@@ -1,13 +1,21 @@
 @import '../../../styles/abstracts/colors';
 
 .section-status__info {
+	display: flex;
+	height: 24px;
+	padding: 0px 4px;
+	margin-left: 6px;
+	justify-content: center;
+	align-items: center;
+	border-radius: 2px;
+
 	&--green {
-		fill: $alert-green;
-		color: $alert-green;
+		color: #005C12;
+		background-color: #EDFAEF;
 	}
 
 	&--yellow {
-		fill: $alert-yellow;
-		color: $alert-yellow;
+		color: #614200;
+		background-color: #FCF9E8;
 	}
 }

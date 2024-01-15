@@ -1,12 +1,10 @@
 import React from 'react';
-import { Icon } from '@wordpress/components';
 
 import './style.scss';
 
 const SectionStatusEnabled = ( { children } ) => {
 	return (
-		<span className="section-status__info--green">
-			<Icon icon="yes-alt" />
+		<span className="section-status__info section-status__info--green">
 			{ children }
 		</span>
 	);
@@ -14,8 +12,7 @@ const SectionStatusEnabled = ( { children } ) => {
 
 const SectionStatusDisabled = ( { children } ) => {
 	return (
-		<span className="section-status__info--yellow">
-			<Icon icon="warning" />
+		<span className="section-status__info section-status__info--yellow">
 			{ children }
 		</span>
 	);
