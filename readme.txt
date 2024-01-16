@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.9.0 - 2024-01-11 =
-* Tweak - Updated supported/tested versions of WordPress and WooCommerce.
+= 7.9.1 - xxxx-xx-xx =
+* Fix - PHP fatal error when updating a user with saved tokens from the WP Dashboard.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
