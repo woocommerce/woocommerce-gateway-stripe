@@ -105,7 +105,7 @@ const PayoutsSection = () => {
 						}
 					) }
 				>
-					<span>
+					<span data-testid="help">
 						<Icon icon={ help } size="18" />
 					</span>
 				</Tooltip>
