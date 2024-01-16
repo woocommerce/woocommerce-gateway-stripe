@@ -156,10 +156,15 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 				WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
 				WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
 			],
+			'status'               => 'requires_payment_method',
 		];
 		$not_compatible_intent = (object) [
 			'id'                   => 'pi_456',
 			'payment_method_types' => [ 'boleto' ],
+		];
+		$invalid_status_intent = (object) [
+			'id'     => 'pi_789',
+			'status' => 'canceled',
 		];
 
 		return [
@@ -173,6 +178,10 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			],
 			'no compatible intent found'      => [
 				'associated intent' => $not_compatible_intent,
+				'expected'          => null,
+			],
+			'invalid status'                  => [
+				'associated intent' => $invalid_status_intent,
 				'expected'          => null,
 			],
 		];
