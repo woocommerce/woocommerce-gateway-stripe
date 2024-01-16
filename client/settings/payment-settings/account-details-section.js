@@ -2,6 +2,7 @@ import { __ } from '@wordpress/i18n';
 import { React, useState } from 'react';
 import { Button, Card, CardHeader, DropdownMenu } from '@wordpress/components';
 import { moreVertical } from '@wordpress/icons';
+import styled from '@emotion/styled';
 import CardBody from '../card-body';
 import CardFooter from '../card-footer';
 import Pill from '../../components/pill';
@@ -10,6 +11,16 @@ import DisconnectStripeConfirmationModal from './disconnect-stripe-confirmation-
 import './style.scss';
 import { useTestMode } from 'wcstripe/data';
 import { useAccount } from 'wcstripe/data/account';
+
+const HeaderDetails = styled.div`
+	display: flex;
+	margin: 0;
+	font-size: 16px;
+
+	h4 {
+		margin: 0 4px 0 0;
+	}
+`;
 
 // @todo - remove setModalType as prop
 const AccountSettingsDropdownMenu = ( {
@@ -64,22 +75,20 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 
 	return (
 		<Card className="account-details">
-			<CardHeader className="account-details__header">
-				<div>
+			<CardHeader>
+				<HeaderDetails>
 					<h4>
 						{ __( 'Account status', 'woocommerce-gateway-stripe' ) }
 					</h4>
 					{ data.account?.email && (
-						<h4 className="account-details__header">
-							{ data.account.email }
-						</h4>
+						<h4>( { data.account.email } )</h4>
 					) }
 					{ isTestModeEnabled && (
 						<Pill>
 							{ __( 'Test Mode', 'woocommerce-gateway-stripe' ) }
 						</Pill>
 					) }
-				</div>
+				</HeaderDetails>
 				<AccountSettingsDropdownMenu
 					setModalType={ setModalType }
 					setKeepModalContent={ setKeepModalContent }

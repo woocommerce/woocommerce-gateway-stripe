@@ -1,10 +1,10 @@
 import { __ } from '@wordpress/i18n';
 import { createInterpolateElement } from '@wordpress/element';
 import React from 'react';
-import './style.scss';
 import { Button, ExternalLink, Icon } from '@wordpress/components';
 import interpolateComponents from 'interpolate-components';
 import { help } from '@wordpress/icons';
+import styled from '@emotion/styled';
 import useWebhookStateMessage from './use-webhook-state-message';
 import SectionStatus from './section-status';
 import Tooltip from 'wcstripe/components/tooltip';
@@ -14,6 +14,43 @@ import {
 	useAccountKeysWebhookSecret,
 } from 'wcstripe/data/account-keys';
 import { WebhookInformation } from 'wcstripe/components/webhook-information';
+
+const AccountDetailsContainer = styled.div`
+	display: flex;
+	align-self: stretch;
+	flex-wrap: wrap;
+`;
+
+const AccountSection = styled.div`
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	padding: 8px 0;
+	flex: 1 0 0;
+
+	svg {
+		display: flex;
+		fill: #757575;
+	}
+`;
+
+const Label = styled.p`
+	font-size: 11px;
+	font-weight: 500;
+	text-transform: uppercase;
+	margin: 0;
+`;
+
+const WebhookDescription = styled.div`
+	font-size: 12px;
+	font-style: normal;
+	color: rgb( 117, 117, 117 );
+`;
+
+const AccountDetailsError = styled.p`
+	@import '../../styles/abstracts/colors';
+	color: $alert-red;
+`;
 
 const useIsCardPaymentsEnabled = () => {
 	const { data } = useAccount();
@@ -31,14 +68,14 @@ const PaymentsSection = () => {
 	const isEnabled = useIsCardPaymentsEnabled();
 
 	return (
-		<div className="account-details__item">
-			<p>{ __( 'Payment', 'woocommerce-gateway-stripe' ) }</p>
+		<AccountSection>
+			<Label>{ __( 'Payment', 'woocommerce-gateway-stripe' ) }</Label>
 			<SectionStatus isEnabled={ isEnabled }>
 				{ isEnabled
 					? __( 'Enabled', 'woocommerce-gateway-stripe' )
 					: __( 'Disabled', 'woocommerce-gateway-stripe' ) }
 			</SectionStatus>
-		</div>
+		</AccountSection>
 	);
 };
 
@@ -46,8 +83,8 @@ const PayoutsSection = () => {
 	const isEnabled = useArePayoutsEnabled();
 
 	return (
-		<div className="account-details__item">
-			<p>{ __( 'Payout', 'woocommerce-gateway-stripe' ) }</p>
+		<AccountSection>
+			<Label>{ __( 'Payout', 'woocommerce-gateway-stripe' ) }</Label>
 			<SectionStatus isEnabled={ isEnabled }>
 				{ isEnabled
 					? __( 'Enabled', 'woocommerce-gateway-stripe' )
@@ -73,7 +110,7 @@ const PayoutsSection = () => {
 					</span>
 				</Tooltip>
 			) }
-		</div>
+		</AccountSection>
 	);
 };
 
@@ -91,15 +128,15 @@ const WebhooksSection = () => {
 
 	return (
 		<>
-			<div className="account-details__item">
-				<p>{ __( 'Webhook', 'woocommerce-gateway-stripe' ) }</p>
+			<AccountSection>
+				<Label>{ __( 'Webhook', 'woocommerce-gateway-stripe' ) }</Label>
 				<SectionStatus isEnabled={ isWebhookSecretEntered }>
 					{ isWebhookSecretEntered
 						? __( 'Enabled', 'woocommerce-gateway-stripe' )
 						: __( 'Disabled', 'woocommerce-gateway-stripe' ) }
 				</SectionStatus>
-			</div>
-			<div className="account-details__desc">
+			</AccountSection>
+			<WebhookDescription>
 				<WebhookInformation />
 				<p>
 					{ message }{ ' ' }
@@ -112,7 +149,7 @@ const WebhooksSection = () => {
 						{ __( 'Refresh', 'woocommerce-gateway-stripe' ) }
 					</Button>
 				</p>
-			</div>
+			</WebhookDescription>
 		</>
 	);
 };
@@ -124,8 +161,8 @@ const AccountDetails = () => {
 	const hasAccountError = Object.keys( data.account ?? {} ).length === 0;
 	if ( hasAccountError ) {
 		return (
-			<div>
-				<p className="account-details__error">
+			<AccountDetailsContainer>
+				<AccountDetailsError>
 					{ isTestModeEnabled
 						? interpolateComponents( {
 								mixedString: __(
@@ -149,17 +186,17 @@ const AccountDetails = () => {
 									),
 								},
 						  } ) }
-				</p>
-			</div>
+				</AccountDetailsError>
+			</AccountDetailsContainer>
 		);
 	}
 
 	return (
-		<div className="account-details__flex-container">
+		<AccountDetailsContainer>
 			<PaymentsSection />
 			<PayoutsSection />
 			<WebhooksSection />
-		</div>
+		</AccountDetailsContainer>
 	);
 };
 

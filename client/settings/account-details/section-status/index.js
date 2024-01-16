@@ -1,28 +1,25 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
-import './style.scss';
+const SectionStatusWrapper = styled.span`
+	display: flex;
+	height: 24px;
+	padding: 0px 4px;
+	margin-left: 6px;
+	justify-content: center;
+	align-items: center;
+	border-radius: 2px;
 
-const SectionStatusEnabled = ( { children } ) => {
-	return (
-		<span className="section-status__info section-status__info--green">
-			{ children }
-		</span>
-	);
-};
-
-const SectionStatusDisabled = ( { children } ) => {
-	return (
-		<span className="section-status__info section-status__info--yellow">
-			{ children }
-		</span>
-	);
-};
+	color: ${ ( props ) => ( props.enabled ? '#005c12' : '#614200' ) };
+	background-color: ${ ( props ) =>
+		props.enabled ? '#edfaef' : '#fcf9e8' };
+`;
 
 const SectionStatus = ( { isEnabled, children } ) => {
-	return isEnabled ? (
-		<SectionStatusEnabled>{ children }</SectionStatusEnabled>
-	) : (
-		<SectionStatusDisabled>{ children }</SectionStatusDisabled>
+	return (
+		<SectionStatusWrapper enabled={ isEnabled }>
+			{ children }
+		</SectionStatusWrapper>
 	);
 };
 
