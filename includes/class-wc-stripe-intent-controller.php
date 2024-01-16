@@ -1096,7 +1096,7 @@ class WC_Stripe_Intent_Controller {
 		$payment_method_types = $this->get_payment_method_types_for_intent_creation( $selected_payment_type, $order->get_id() );
 
 		// If the payment method types match, we can reuse the payment intent.
-		if ( ! count( array_intersect( $intent->payment_method_types, $payment_method_types ) ) === count( $payment_method_types ) ) {
+		if ( count( array_intersect( $intent->payment_method_types, $payment_method_types ) ) !== count( $payment_method_types ) ) {
 			return null;
 		}
 
