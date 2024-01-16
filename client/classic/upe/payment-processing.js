@@ -157,8 +157,6 @@ function createStripePaymentMethod(
  * Mounts the existing Stripe Payment Element to the DOM element.
  * Creates the Stripe Payment Element instance if it doesn't exist and mounts it to the DOM element.
  *
- * @todo Make it only Split when implemented.
- *
  * @param {Object} api The API object.
  * @param {string} domElement The selector of the DOM element of particular payment method to mount the UPE element to.
  **/
@@ -188,15 +186,6 @@ export async function mountStripePaymentElement( api, domElement ) {
 	const upeElement =
 		gatewayUPEComponents[ paymentMethodType ].upeElement ||
 		( await createStripePaymentElement( api, paymentMethodType ) );
-
-	upeElement.on( 'change', ( e ) => {
-		const selectedUPEPaymentType = e.value.type;
-		const isPaymentMethodReusable =
-			paymentMethodsConfig[ selectedUPEPaymentType ].isReusable;
-		showNewPaymentMethodCheckbox( isPaymentMethodReusable );
-		setSelectedUPEPaymentType( selectedUPEPaymentType );
-	} );
-
 	upeElement.mount( domElement );
 }
 
@@ -205,26 +194,6 @@ function setSelectedUPEPaymentType( paymentType ) {
 	document.querySelector(
 		'#wc_stripe_selected_upe_payment_type'
 	).value = paymentType;
-}
-
-// Show or hide save payment information checkbox
-function showNewPaymentMethodCheckbox( show = true ) {
-	const saveCardElement = document.querySelector(
-		'.woocommerce-SavedPaymentMethods-saveNew'
-	);
-
-	if ( saveCardElement ) {
-		saveCardElement.style.visibility = show ? 'visible' : 'hidden';
-	}
-
-	const stripeSaveCardCheckbox = document.querySelector(
-		'input#wc-stripe-new-payment-method'
-	);
-
-	if ( ! show && stripeSaveCardCheckbox ) {
-		stripeSaveCardCheckbox.setAttribute( 'checked', false );
-		stripeSaveCardCheckbox.dispatchEvent( new Event( 'change' ) );
-	}
 }
 
 /**
@@ -263,6 +232,7 @@ export const processPayment = (
 				jQueryForm,
 				paymentMethodType
 			);
+			setSelectedUPEPaymentType( paymentMethodType );
 			appendIsUsingDeferredIntentToForm( jQueryForm );
 			appendPaymentMethodIdToForm(
 				jQueryForm,
