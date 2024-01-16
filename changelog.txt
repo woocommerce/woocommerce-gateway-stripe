@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 7.9.1 - 2024-01-16 =
+* Fix - PHP fatal error when updating a user with saved tokens from the WP Dashboard.
+
 = 7.9.0 - 2024-01-11 =
 * Tweak - Updated supported/tested versions of WordPress and WooCommerce.
 
