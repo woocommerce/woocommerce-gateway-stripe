@@ -1,11 +1,13 @@
 import { __ } from '@wordpress/i18n';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from '@emotion/styled';
 import { Button, TextControl } from '@wordpress/components';
+import { isEqual } from 'lodash';
 import {
 	useCustomizePaymentMethodSettings,
 	useEnabledPaymentMethodIds,
 } from 'wcstripe/data';
+import useConfirmNavigation from 'utils/use-confirm-navigation';
 
 const ButtonWrapper = styled.div`
 	display: flex;
@@ -26,6 +28,20 @@ const CustomizePaymentMethod = ( { method, onClose } ) => {
 	const [ methodName, setMethodName ] = useState( name );
 	const [ methodDescription, setMethodDescription ] = useState( description );
 	const [ methodExpiration, setMethodExpiration ] = useState( expiration );
+
+	const isPristine =
+		isEqual( name, methodName ) &&
+		isEqual( description, methodDescription ) &&
+		isEqual( expiration, methodExpiration );
+	const displayPrompt = ! isPristine;
+	const confirmationNavigationCallback = useConfirmNavigation(
+		displayPrompt
+	);
+
+	useEffect( confirmationNavigationCallback, [
+		displayPrompt,
+		confirmationNavigationCallback,
+	] );
 
 	const onSave = async () => {
 		const data = {
