@@ -87,7 +87,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public function __construct() {
 		$main_settings = get_option( 'woocommerce_stripe_settings' );
 
-		$this->enabled  = in_array( static::STRIPE_ID, $this->get_upe_enabled_payment_method_ids(), true );
+		$this->enabled  = in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] ), true ) ? 'yes' : 'no';
 		$this->id       = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID;
 		$this->testmode = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
 	}
@@ -410,14 +410,10 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	}
 
 	/**
-	 * Returns the list of enabled payment method types for UPE.
+	 * Returns true if the saved cards feature is enabled.
 	 *
-	 * @return string[]
+	 * @return bool
 	 */
-	public function get_upe_enabled_payment_method_ids() {
-		return $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] );
-	}
-
 	public function is_saved_cards_enabled() {
 		return 'yes' === $this->get_option( 'saved_cards' );
 	}
