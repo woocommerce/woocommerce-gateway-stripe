@@ -116,7 +116,11 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_available() {
-		return $this->is_enabled_at_checkout();
+		if ( is_add_payment_method_page() && ! $this->is_reusable() ) {
+			return false;
+		}
+
+		return $this->is_enabled_at_checkout() && parent::is_available();
 	}
 
 	/**
