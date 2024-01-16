@@ -26,6 +26,7 @@ class WC_Stripe_Settings_Controller {
 		$this->account = $account;
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wc_stripe_gateway_admin_options_wrapper', [ $this, 'admin_options' ] );
+		add_action( 'admin_init', [ $this, 'maybe_update_account_data' ] );
 	}
 
 	/**
@@ -127,5 +128,29 @@ class WC_Stripe_Settings_Controller {
 
 		wp_enqueue_script( 'woocommerce_stripe_admin' );
 		wp_enqueue_style( 'woocommerce_stripe_admin' );
+	}
+
+	/**
+	 * Updates the Stripe account data on the settings page.
+	 *
+	 * Some plugin settings (eg statement descriptions) require the latest update-to-date data from the Stripe Account to display
+	 * correctly. This function clears the account cache when the settings page is loaded to ensure the latest data is displayed.
+	 */
+	public function maybe_update_account_data() {
+
+		// Exit early if we're not on the payments settings page.
+		if ( ! isset( $_GET['page'], $_GET['tab'] ) || 'wc-settings' !== $_GET['page'] || 'checkout' !== $_GET['tab'] ) {
+			return;
+		}
+
+		if ( ! isset( $_GET['section'] ) || 'stripe' !== $_GET['section'] ) {
+			return;
+		}
+
+		if ( ! WC_Stripe::get_instance()->connect->is_connected() ) {
+			return [];
+		}
+
+		$this->account->clear_cache();
 	}
 }
