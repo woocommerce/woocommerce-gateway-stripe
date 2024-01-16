@@ -374,28 +374,34 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		return true;
 	}
 
+	/**
+	 * Returns the UPE Payment Method settings option.
+	 *
+	 * Overrides @see WC:Settings_API::get_option_key() to use the same option key as the main Stripe gateway.
+	 *
+	 * @return string
+	 */
 	public function get_option_key() {
 		return 'woocommerce_stripe_settings';
 	}
 
 	/**
-	 * Renders the UPE input fields needed to get the user's payment information on the checkout page
+	 * Renders the UPE payment fields.
 	 */
 	public function payment_fields() {
 		try {
+			$display_tokenization = $this->is_reusable() && is_checkout();
 
-			// Output the form HTML.
-			?>
-			<?php if ( ! empty( $this->get_description() ) ) : ?>
+			if ( ! empty( $this->get_description() ) ) : ?>
 				<p><?php echo wp_kses_post( $this->get_description() ); ?></p>
 			<?php endif; ?>
-			<fieldset id="wc-<?php echo esc_attr( $this->get_id() ); ?>-upe-form" class="wc-upe-form wc-payment-form">
+			<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-upe-form" class="wc-upe-form wc-payment-form">
 				<div class="wc-stripe-upe-element" data-payment-method-type="<?php echo esc_attr( $this->stripe_id ); ?>"></div>
-				<div id="wc-<?php echo esc_attr( $this->get_id() ); ?>-upe-errors" role="alert"></div>
+				<div id="wc-<?php echo esc_attr( $this->id ); ?>-upe-errors" role="alert"></div>
 			</fieldset>
 			<?php
 			if ( $this->is_saved_cards_enabled() && $this->is_reusable() ) {
-				$force_save_payment = ( $this->is_reusable() && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $this->is_reusable() ) ) || is_add_payment_method_page();
+				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page();
 				if ( is_user_logged_in() ) {
 					$this->save_payment_method_checkbox( $force_save_payment );
 				}
@@ -405,9 +411,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 			?>
 			<div>
-				<?php
-				echo esc_html__( 'An error was encountered when preparing the payment form. Please try again later.', 'woocommerce-gateway-stripe' );
-				?>
+				<?php echo esc_html__( 'An error was encountered when preparing the payment form. Please try again later.', 'woocommerce-gateway-stripe' ); ?>
 			</div>
 			<?php
 		}
@@ -425,11 +429,10 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	/**
 	 * Displays the save to account checkbox.
 	 *
-	 * @since 4.1.0
-	 * @version 5.6.0
+	 * @param bool $force_checked Whether the checkbox should be checked by default.
 	 */
 	public function save_payment_method_checkbox( $force_checked = false ) {
-		$id = 'wc-' . $this->get_id() . '-new-payment-method';
+		$id = 'wc-' . $this->id . '-new-payment-method';
 		?>
 		<fieldset <?php echo $force_checked ? 'style="display:none;"' : ''; /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?>>
 			<p class="form-row woocommerce-SavedPaymentMethods-saveNew">
