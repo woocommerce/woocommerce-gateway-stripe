@@ -693,7 +693,7 @@ class WC_Stripe_Intent_Controller {
 		// Throws a WC_Stripe_Exception if required information is missing.
 		$this->validate_create_and_confirm_intent_payment_information( $payment_information );
 
-		$request = $this->build_payment_intent_request_params( $payment_information );
+		$request = $this->build_payment_intent_create_request_params( $payment_information );
 
 		/**
 		 * The associated order.
@@ -715,13 +715,14 @@ class WC_Stripe_Intent_Controller {
 			$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
 		}
 
+		// This needs to be included before, so we can reuse it later
+		WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent->id, $order );
+
 		// Throw an exception when there's an error.
 		if ( ! empty( $payment_intent->error ) ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
 			throw new WC_Stripe_Exception( print_r( $payment_intent->error, true ), $payment_intent->error->message );
 		}
-
-		WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent->id, $order );
 
 		return $payment_intent;
 	}
@@ -739,9 +740,9 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function update_and_confirm_payment_intent( $payment_intent, $payment_information ) {
 		// Throws a WC_Stripe_Exception if required information is missing.
-		$this->validate_create_and_confirm_intent_payment_information( $payment_information );
+		$this->validate_update_and_confirm_intent_payment_information( $payment_information );
 
-		$request = $this->build_payment_intent_request_params( $payment_information );
+		$request = $this->build_payment_intent_update_request_params( $payment_information );
 
 		/**
 		 * The associated order.
@@ -752,7 +753,7 @@ class WC_Stripe_Intent_Controller {
 
 		$payment_intent = WC_Stripe_API::request_with_level3_data(
 			$request,
-			"payment_intents/{$payment_intent->id}",
+			"payment_intents/{$payment_intent->id}/confirm",
 			$payment_information['level3'],
 			$order
 		);
@@ -779,7 +780,7 @@ class WC_Stripe_Intent_Controller {
 	 *
 	 * @return array The request parameters for creating/updating and confirming a payment intent.
 	 */
-	private function build_payment_intent_request_params( $payment_information ) {
+	private function build_payment_intent_create_request_params( $payment_information ) {
 		$order                 = $payment_information['order'];
 		$selected_payment_type = $payment_information['selected_payment_type'];
 		$payment_method_types  = $this->get_payment_method_types_for_intent_creation( $selected_payment_type, $order->get_id() );
@@ -824,6 +825,44 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
+	 * Builds the request parameters for creating/updating and confirming a payment intent.
+	 *
+	 * @param array $payment_information The payment information needed for creating/updating and confirming the intent.
+	 *
+	 * @return array The request parameters for creating/updating and confirming a payment intent.
+	 */
+	private function build_payment_intent_update_request_params( $payment_information ) {
+		$order                 = $payment_information['order'];
+		$selected_payment_type = $payment_information['selected_payment_type'];
+		$payment_method_types  = $this->get_payment_method_types_for_intent_creation( $selected_payment_type, $order->get_id() );
+
+		$request = [
+			'capture_method' => $payment_information['capture_method'],
+			'payment_method' => $payment_information['payment_method'],
+			'shipping'       => $payment_information['shipping'],
+		];
+
+		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
+		if ( $this->is_mandate_data_required( $selected_payment_type ) ) {
+			$request['mandate_data'] = [
+				'customer_acceptance' => [
+					'type'   => 'online',
+					'online' => [
+						'ip_address' => WC_Geolocation::get_ip_address(),
+						'user_agent' => 'WooCommerce Stripe Gateway' . WC_STRIPE_VERSION . '; ' . get_bloginfo( 'url' ),
+					],
+				],
+			];
+		}
+
+		if ( $this->request_needs_redirection( $payment_method_types ) ) {
+			$request['return_url'] = $payment_information['return_url'];
+		}
+
+		return $request;
+	}
+
+	/**
 	 * Validate the provided information for creating and confirming a payment intent.
 	 *
 	 * @param array $payment_information The payment information to be validated.
@@ -844,7 +883,44 @@ class WC_Stripe_Intent_Controller {
 			'shipping',
 			'statement_descriptor',
 		];
+		$this->validate_payment_intent_required_params( $required_params, $payment_information );
 
+		$shopper_error_message = __( 'There was a problem processing the payment.', 'woocommerce-gateway-stripe' );
+
+		// Bail out if the "order" parameter isn't a WC_Order.
+		if ( ! is_a( $payment_information['order'], 'WC_Order' ) ) {
+			throw new WC_Stripe_Exception(
+				'The provided value for the "order" parameter is not a WC_Order',
+				$shopper_error_message
+			);
+		}
+	}
+
+	/**
+	 * Validate the provided information for updating and confirming a payment intent.
+	 *
+	 * @param array $payment_information The payment information to be validated.
+	 *
+	 * @throws WC_Stripe_Exception If the required data is missing.
+	 */
+	private function validate_update_and_confirm_intent_payment_information( array $payment_information ) {
+		$required_params = [
+			'capture_method',
+			'payment_method',
+			'shipping',
+		];
+		$this->validate_payment_intent_required_params( $required_params, $payment_information );
+	}
+
+	/**
+	 * Determines if the request contains all the required params for creating or updating a payment intent.
+	 *
+	 * @param array $required_params The required parameters for the payment intent.
+	 * @param array $payment_information The payment information to be validated.
+	 * @return void
+	 * @throws WC_Stripe_Exception
+	 */
+	private function validate_payment_intent_required_params( $required_params, $payment_information ) {
 		$missing_params = [];
 		foreach ( $required_params as $param ) {
 			// Check if they're set. Some can be null.
@@ -862,14 +938,6 @@ class WC_Stripe_Intent_Controller {
 					'The information for creating and confirming the intent is missing the following data: %s.',
 					implode( ', ', $missing_params )
 				),
-				$shopper_error_message
-			);
-		}
-
-		// Bail out if the "order" parameter isn't a WC_Order.
-		if ( ! is_a( $payment_information['order'], 'WC_Order' ) ) {
-			throw new WC_Stripe_Exception(
-				'The provided value for the "order" parameter is not a WC_Order',
 				$shopper_error_message
 			);
 		}
@@ -1028,10 +1096,16 @@ class WC_Stripe_Intent_Controller {
 		$payment_method_types = $this->get_payment_method_types_for_intent_creation( $selected_payment_type, $order->get_id() );
 
 		// If the payment method types match, we can reuse the payment intent.
-		if ( count( array_intersect( $intent->payment_method_types, $payment_method_types ) ) === count( $payment_method_types ) ) {
-			return $intent;
+		if ( ! count( array_intersect( $intent->payment_method_types, $payment_method_types ) ) === count( $payment_method_types ) ) {
+			return null;
 		}
-		return null;
+
+		// Check if the status of the intent still allows update.
+		if ( in_array( $intent->status, [ 'canceled', 'succeeded' ], true ) ) {
+			return null;
+		}
+
+		return $intent;
 	}
 
 	/**
