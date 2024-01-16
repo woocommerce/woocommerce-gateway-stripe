@@ -107,7 +107,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * @return bool
 	 */
 	public function is_enabled() {
-		return $this->enabled;
+		return 'yes' === $this->enabled;
 	}
 
 	/**
