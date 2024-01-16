@@ -34,12 +34,20 @@ const AccountRefreshingOverlay = styled.div`
 	}
 `;
 
-const GeneralSettingsSection = () => {
+const GeneralSettingsSection = ( { onSaveChanges } ) => {
 	const [ isChangingDisplayOrder, setIsChangingDisplayOrder ] = useState(
 		false
 	);
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const { isRefreshing } = useAccount();
+
+	const onChangeDisplayOrder = ( isChanging, data = null ) => {
+		setIsChangingDisplayOrder( isChanging );
+
+		if ( data ) {
+			onSaveChanges( 'ordered_payment_method_ids', data );
+		}
+	};
 
 	return (
 		<>
@@ -48,7 +56,7 @@ const GeneralSettingsSection = () => {
 				<LoadableSettingsSection numLines={ 30 }>
 					<SectionHeading
 						isChangingDisplayOrder={ isChangingDisplayOrder }
-						onChangeDisplayOrder={ setIsChangingDisplayOrder }
+						onChangeDisplayOrder={ onChangeDisplayOrder }
 					/>
 					{ isRefreshing && (
 						<VisuallyHidden>
@@ -65,6 +73,7 @@ const GeneralSettingsSection = () => {
 					>
 						<PaymentMethodsList
 							isChangingDisplayOrder={ isChangingDisplayOrder }
+							onSaveChanges={ onSaveChanges }
 						/>
 					</AccountRefreshingOverlay>
 					{ isUpeEnabled && <SectionFooter /> }

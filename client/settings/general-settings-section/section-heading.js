@@ -57,6 +57,7 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const upePaymentMethods = useGetAvailablePaymentMethodIds();
 	const {
+		orderedPaymentMethodIds,
 		setOrderedPaymentMethodIds,
 		isSaving,
 		saveOrderedPaymentMethodIds,
@@ -75,7 +76,7 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 
 	const onChangeDisplayOrderSave = async () => {
 		await saveOrderedPaymentMethodIds();
-		onChangeDisplayOrder( false );
+		onChangeDisplayOrder( false, orderedPaymentMethodIds );
 	};
 
 	return (

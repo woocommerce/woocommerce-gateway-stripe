@@ -157,7 +157,10 @@ const StyledFees = styled( PaymentMethodFeesPill )`
 	flex: 1 0 auto;
 `;
 
-const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
+const GeneralSettingsSection = ( {
+	isChangingDisplayOrder,
+	onSaveChanges,
+} ) => {
 	const storeCurrency = window?.wcSettings?.currency?.code;
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const [ customizationStatus, setCustomizationStatus ] = useState( {} );
@@ -211,6 +214,17 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 
 	const onReorder = ( newOrderedPaymentMethodIds ) => {
 		setOrderedPaymentMethodIds( newOrderedPaymentMethodIds );
+	};
+
+	const onSaveCustomization = ( method, data = null ) => {
+		setCustomizationStatus( {
+			...customizationStatus,
+			[ method ]: false,
+		} );
+
+		if ( data ) {
+			onSaveChanges( 'individual_payment_method_settings', data );
+		}
 	};
 
 	return isChangingDisplayOrder ? (
@@ -326,11 +340,8 @@ const GeneralSettingsSection = ( { isChangingDisplayOrder } ) => {
 							customizationStatus[ method ] && (
 								<CustomizePaymentMethod
 									method={ method }
-									onClose={ () =>
-										setCustomizationStatus( {
-											...customizationStatus,
-											[ method ]: false,
-										} )
+									onClose={ ( data ) =>
+										onSaveCustomization( method, data )
 									}
 								/>
 							) }

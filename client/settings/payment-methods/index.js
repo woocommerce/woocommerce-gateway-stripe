@@ -45,12 +45,12 @@ const PaymentRequestDescription = () => (
 	</>
 );
 
-const PaymentMethodsPanel = () => {
+const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 	return (
 		<>
 			<SettingsSection Description={ PaymentMethodsDescription }>
 				<DisplayOrderCustomizationNotice />
-				<GeneralSettingsSection />
+				<GeneralSettingsSection onSaveChanges={ onSaveChanges } />
 				<CustomizationOptionsNotice />
 			</SettingsSection>
 			<SettingsSection Description={ PaymentRequestDescription }>
