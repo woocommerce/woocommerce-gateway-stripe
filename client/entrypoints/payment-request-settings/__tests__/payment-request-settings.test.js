@@ -89,7 +89,7 @@ describe( 'PaymentRequestsSettingsSection', () => {
 
 		// confirm default values.
 		expect( screen.getByLabelText( 'Buy' ) ).toBeChecked();
-		expect( screen.getByLabelText( 'Default (40 px)' ) ).toBeChecked();
+		expect( screen.getByLabelText( 'Default (48 px)' ) ).toBeChecked();
 		expect( screen.getByLabelText( /Dark/ ) ).toBeChecked();
 	} );
 
