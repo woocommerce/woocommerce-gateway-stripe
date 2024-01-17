@@ -684,7 +684,11 @@ class WC_Stripe_Helper {
 		}
 
 		if ( ! empty( $order_id ) ) {
-			return wc_get_order( $order_id );
+			$order = wc_get_order( $order_id );
+		}
+
+		if ( ! empty( $order ) && $order->get_status() !== 'trash' ) {
+			return $order;
 		}
 
 		return false;

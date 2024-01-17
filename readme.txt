@@ -1,10 +1,10 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
 Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
-Requires at least: 6.0
-Tested up to: 6.3.1
+Requires at least: 6.1
+Tested up to: 6.4.2
 Requires PHP: 7.4
-Stable tag: 7.7.0
+Stable tag: 7.9.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,15 +128,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.8.0 - xxxx-xx-xx =
-* Fix - Resolved a PHP fatal error occurring on stores that removed `WC_Email_Failed_Order` from the list of WC email classes while attempting to send the failed order email.
-* Fix - Prevent incorrect totals displayed in Google Pay and Apple Pay when purchasing a virtual sychronised subscription from the product page.
-* Fix - Hide the Google Pay and Apple Pay buttons on variable product pages, if the selected variation is not supported by Payment Request buttons.
-* Fix - Don't require shipping when purchasing a virtual variable subscription product using Google Pay and Apple Pay.
-* Fix - When using Payment Request buttons, fix $0 total for stores using a customized product page that adds the variation product ID directly into the cart.
-* Fix - MultiBanco: HTML tags to print as expected on the Order Confirmation page, and "Thank you for your order" email.
-* Tweak - Improve compatibility with PHP 8+.
-* Tweak - Adjusted default height of express payment button from 40px to 48px. Existing stores retain their current button height settings.
-* Tweak - Removed '- OR -' separator and updated placement of Express payment buttons (eg Apple Pay and Google Pay) on cart and product pages to align with WooCommerce Express payment button standards.
+= 7.9.2 - 2024-xx-xx =
+* Tweak - Orders with `trash` status are not retrieving anymore when calling `get_order_by_intent_id` function.
+
+= 7.9.1 - 2024-01-16 =
+* Fix - PHP fatal error when updating a user with saved tokens from the WP Dashboard.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

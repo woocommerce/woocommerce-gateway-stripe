@@ -1557,8 +1557,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$charge = $this->get_latest_charge_from_intent( $intent );
 
 		if ( isset( $charge->payment_method_details->card->mandate ) ) {
-			$mandate_id = $charge->payment_method_details->card->mandate;
-			$order->update_meta_data( '_stripe_mandate_id', $mandate_id );
+			$order->update_meta_data( '_stripe_mandate_id', $charge->payment_method_details->card->mandate );
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
