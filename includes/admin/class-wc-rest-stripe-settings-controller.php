@@ -307,7 +307,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				/* Settings > Payments accepted on checkout */
 				'enabled_payment_method_ids'            => $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids() : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids(),
 				'available_payment_method_ids'          => $available_payment_method_ids,
-				'ordered_payment_method_ids'            => $available_payment_method_ids,
+				'ordered_payment_method_ids'            => array_diff( $available_payment_method_ids, [ 'link' ] ), // exclude Link from this list as it is a express methods.
 				'individual_payment_method_settings'    => $is_upe_enabled ? [] : WC_Stripe_Helper::get_legacy_individual_payment_method_settings(),
 
 				/* Settings > Express checkouts */

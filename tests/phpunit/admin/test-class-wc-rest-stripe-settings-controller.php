@@ -306,6 +306,45 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		);
 	}
 
+	public function test_get_settings_returns_ordered_payment_method_ids() {
+		WC_Stripe::get_instance()->account = $this->getMockBuilder( 'WC_Stripe_Account' )
+													->disableOriginalConstructor()
+													->setMethods(
+														[
+															'get_cached_account_data',
+														]
+													)
+													->getMock();
+
+		WC_Stripe::get_instance()->account->method( 'get_cached_account_data' )->willReturn(
+			[
+				'country' => 'US',
+			]
+		);
+		$response = $this->rest_get_settings();
+
+		$expected_method_ids = WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS;
+		$expected_method_ids = array_map(
+			function ( $method_class ) {
+				return $method_class::STRIPE_ID;
+			},
+			$expected_method_ids
+		);
+		$expected_method_ids = array_filter(
+			$expected_method_ids,
+			function ( $method_id ) {
+				return 'link' !== $method_id;
+			}
+		);
+
+		$ordered_method_ids = $response->get_data()['ordered_payment_method_ids'];
+
+		$this->assertEquals(
+			$expected_method_ids,
+			$ordered_method_ids
+		);
+	}
+
 	public function test_get_settings_fails_if_user_cannot_manage_woocommerce() {
 		$cb = $this->create_can_manage_woocommerce_cap_override( false );
 		add_filter( 'user_has_cap', $cb );
