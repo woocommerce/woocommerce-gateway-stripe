@@ -150,7 +150,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param string $load_address The address to load.
 	 */
 	public function show_update_card_notice( $user_id, $load_address ) {
-		if ( ! $this->saved_cards || ! WC_Stripe_Payment_Tokens::customer_has_saved_methods( $user_id ) || 'billing' !== $load_address ) {
+		if (
+			is_admin() ||
+			! $this->saved_cards ||
+			! WC_Stripe_Payment_Tokens::customer_has_saved_methods( $user_id ) ||
+			'billing' !== $load_address
+		) {
 			return;
 		}
 
