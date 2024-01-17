@@ -1,7 +1,13 @@
 *** Changelog ***
 
-= 7.8.2 - 2024-xx-xx =
+= 7.9.2 - 2024-xx-xx =
 * Tweak - Orders with `trash` status are not retrieving anymore when calling `get_order_by_intent_id` function. 
+
+= 7.9.1 - 2024-01-16 =
+* Fix - PHP fatal error when updating a user with saved tokens from the WP Dashboard.
+
+= 7.9.0 - 2024-01-11 =
+* Tweak - Updated supported/tested versions of WordPress and WooCommerce.
 
 = 7.8.1 - 2023-12-28 =
 * Fix - Check if a valid order of tye WC_Order is returned before calling `get_meta` function.

@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.1
 Tested up to: 6.4.2
 Requires PHP: 7.4
-Stable tag: 7.8.1
+Stable tag: 7.9.1
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,10 +128,10 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.8.2 - 2024-xx-xx =
+= 7.9.2 - 2024-xx-xx =
 * Tweak - Orders with `trash` status are not retrieving anymore when calling `get_order_by_intent_id` function.
 
-= 7.8.1 - 2023-12-28 =
-* Fix - Check if a valid order of tye WC_Order is returned before calling `get_meta` function.
+= 7.9.1 - 2024-01-16 =
+* Fix - PHP fatal error when updating a user with saved tokens from the WP Dashboard.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
