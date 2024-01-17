@@ -11,6 +11,7 @@ import {
 	processPayment,
 	mountStripePaymentElement,
 	createAndConfirmSetupIntent,
+	confirmVoucherPayment,
 } from './payment-processing';
 
 jQuery( function ( $ ) {
@@ -84,4 +85,30 @@ jQuery( function ( $ ) {
 			}
 		}
 	}
+
+	/**
+	 * Checks if the URL hash starts with #wc-stripe-voucher- and whether we
+	 * should display the Boleto or Oxxo confirmation modal.
+	 */
+	function maybeConfirmVoucherPayment() {
+		if (
+			window.location.hash.startsWith( '#wc-stripe-voucher-' ) &&
+			( getStripeServerData()?.isOrderPay ||
+				getStripeServerData()?.isCheckout )
+		) {
+			confirmVoucherPayment(
+				api,
+				getStripeServerData()?.isOrderPay
+					? $( '#order_review' )
+					: $( 'form.checkout' )
+			);
+		}
+	}
+
+	// On every page load and on hash change, check to see whether we should display the Boleto or Oxxo modal.
+	// Every page load is needed for the Pay for Order page which doesn't trigger the hash change.
+	maybeConfirmVoucherPayment();
+	$( window ).on( 'hashchange', () => {
+		maybeConfirmVoucherPayment();
+	} );
 } );
