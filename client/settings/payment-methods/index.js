@@ -6,7 +6,7 @@ import PaymentRequestSection from '../payment-request-section';
 import GeneralSettingsSection from '../general-settings-section';
 import LoadableSettingsSection from '../loadable-settings-section';
 import CustomizationOptionsNotice from '../customization-options-notice';
-import DisplayOrderCustomizationNotice from '../display-ordercustomization-notice';
+import DisplayOrderCustomizationNotice from '../display-order-customization-notice';
 
 const PaymentMethodsDescription = () => {
 	return (
@@ -45,12 +45,12 @@ const PaymentRequestDescription = () => (
 	</>
 );
 
-const PaymentMethodsPanel = () => {
+const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 	return (
 		<>
 			<SettingsSection Description={ PaymentMethodsDescription }>
 				<DisplayOrderCustomizationNotice />
-				<GeneralSettingsSection />
+				<GeneralSettingsSection onSaveChanges={ onSaveChanges } />
 				<CustomizationOptionsNotice />
 			</SettingsSection>
 			<SettingsSection Description={ PaymentRequestDescription }>

@@ -37,8 +37,19 @@ module.exports = {
 			),
 		} ),
 	],
+	module: {
+		...defaultConfig.module,
+		rules: [
+			...defaultConfig.module.rules,
+			{
+				test: /\.mjs$/,
+				include: /node_modules/,
+				type: 'javascript/auto',
+			},
+		],
+	},
 	resolve: {
-		extensions: [ '.json', '.js', '.jsx' ],
+		extensions: [ '.json', '.js', '.jsx', '.mjs' ],
 		modules: [ path.join( __dirname, 'client' ), 'node_modules' ],
 		alias: {
 			wcstripe: path.resolve( __dirname, 'client' ),
