@@ -46,8 +46,8 @@ describe( 'PaymentsAndTransactionsSection', () => {
 				},
 			},
 		} );
+
 		useGetSavingError.mockReturnValue( null );
-		useAccount.mockReturnValue( { data: {} } );
 	} );
 
 	it( 'displays the length of the bank statement input', () => {
@@ -62,6 +62,18 @@ describe( 'PaymentsAndTransactionsSection', () => {
 			true,
 			jest.fn(),
 		] );
+
+		useAccount.mockReturnValue( {
+			data: {
+				account: {
+					settings: {
+						card_payments: {
+							statement_descriptor_prefix: 'WOOTEST',
+						},
+					},
+				},
+			},
+		} );
 
 		render( <PaymentsAndTransactionsSection /> );
 
