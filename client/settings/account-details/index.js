@@ -137,7 +137,7 @@ const WebhooksSection = () => {
 				</SectionStatus>
 			</AccountSection>
 			<WebhookDescription>
-				<WebhookInformation />
+				{ ! isWebhookSecretEntered && <WebhookInformation /> }
 				<p>
 					{ message }{ ' ' }
 					<Button
