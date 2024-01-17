@@ -1,18 +1,12 @@
 import { __ } from '@wordpress/i18n';
 import { React, useState, useContext } from 'react';
-import {
-	Button,
-	Card,
-	CheckboxControl,
-	TextControl,
-} from '@wordpress/components';
+import { Card, CheckboxControl, TextControl } from '@wordpress/components';
 import styled from '@emotion/styled';
 import CardBody from '../card-body';
-import CardFooter from '../card-footer';
 import { AccountKeysModal } from './account-keys-modal';
 import TestModeCheckbox from './test-mode-checkbox';
+import DebugMode from './debug-mode';
 import {
-	useTestMode,
 	useIsStripeEnabled,
 	useUpeTitle,
 	useEnabledPaymentMethodIds,
@@ -29,7 +23,6 @@ const Description = styled.div`
 `;
 
 const GeneralSettingsSection = ( { setKeepModalContent } ) => {
-	const [ isTestMode ] = useTestMode();
 	const [ isStripeEnabled, setIsStripeEnabled ] = useIsStripeEnabled();
 	const [ upeTitle, setUpeTitle ] = useUpeTitle();
 	const [
@@ -115,20 +108,8 @@ const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 						/>
 					) }
 					<TestModeCheckbox />
+					<DebugMode />
 				</CardBody>
-				<CardFooter>
-					<Button
-						isSecondary
-						onClick={ () =>
-							setModalType( isTestMode ? 'test' : 'live' )
-						}
-					>
-						{ __(
-							'Edit account keys',
-							'woocommerce-gateway-stripe'
-						) }
-					</Button>
-				</CardFooter>
 			</StyledCard>
 		</>
 	);

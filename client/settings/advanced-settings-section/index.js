@@ -5,7 +5,6 @@ import { Card, Button } from '@wordpress/components';
 import { getQuery } from '@woocommerce/navigation';
 import SettingsSection from '../settings-section';
 import CardBody from '../card-body';
-import DebugMode from './debug-mode';
 import ExperimentalFeatures from './experimental-features';
 import LoadableSettingsSection from 'wcstripe/settings/loadable-settings-section';
 import useToggle from 'wcstripe/hooks/use-toggle';
@@ -35,7 +34,6 @@ const AdvancedSettings = () => {
 					<LoadableSettingsSection numLines={ 10 }>
 						<Card>
 							<CardBody>
-								<DebugMode />
 								<ExperimentalFeatures />
 							</CardBody>
 						</Card>
