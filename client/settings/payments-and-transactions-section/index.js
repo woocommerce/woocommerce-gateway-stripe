@@ -183,7 +183,7 @@ const PaymentsAndTransactionsSection = () => {
 							<TextControl
 								help={ interpolateComponents( {
 									mixedString: __(
-										"We'll use the shortened descriptor in combination with the customer order number. You can change the shortened description your {{settingsLink}}Stripe account settings{{/settingsLink}}.",
+										"We'll use the shortened descriptor in combination with the customer order number. You can change the shortened description in your {{settingsLink}}Stripe account settings{{/settingsLink}}.",
 										'woocommerce-gateway-stripe'
 									),
 									components: {
