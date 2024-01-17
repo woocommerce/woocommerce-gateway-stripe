@@ -1880,8 +1880,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	/**
 	 * Returns the statement descriptor given the selected payment type.
 	 *
-	 * @param string $selected_payment_type The selected payment type.
 	 * @param WC_Order $order The WC order for which we're getting the statement descriptor.
+	 * @param string $selected_payment_type The selected payment type.
 	 *
 	 * @return string|null
 	 */
