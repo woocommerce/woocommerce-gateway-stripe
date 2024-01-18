@@ -2,7 +2,11 @@
 
 import { __ } from '@wordpress/i18n';
 import { getAppearance } from '../styles/upe';
-import { errorTypes, errorCodes } from './constants';
+import {
+	errorTypes,
+	errorCodes,
+	getPaymentMethodsConstants,
+} from './constants';
 
 /**
  * @typedef {import('./type-defs').StripeServerData} StripeServerData
@@ -262,10 +266,14 @@ function shouldIncludeTerms() {
 	return false;
 }
 
+/**
+ * Returns a string of event names to be used for registering checkout submission handlers.
+ * For example: "checkout_place_order_stripe checkout_place_order_stripe_ideal ...checkout_place_order_{paymentMethod}"
+ *
+ * @return {string} String of event names.
+ */
 export const generateCheckoutEventNames = () => {
-	const paymentMethods = [ 'stripe' ];
-
-	return paymentMethods
+	return Object.values( getPaymentMethodsConstants() )
 		.map( ( method ) => `checkout_place_order_${ method }` )
 		.join( ' ' );
 };
@@ -285,12 +293,17 @@ export const appendSetupIntentToForm = ( form, setupIntent ) => {
 /**
  * Checks if the customer is using a saved payment method.
  *
+ * @param {string} paymentMethodType The payment method type ('card', 'ideal', etc.).
+ *
  * @return {boolean} Boolean indicating whether or not a saved payment method is being used.
  */
-export const isUsingSavedPaymentMethod = () => {
+export const isUsingSavedPaymentMethod = ( paymentMethodType ) => {
+	const paymentMethod = getPaymentMethodName( paymentMethodType );
 	return (
-		document.querySelector( '#wc-stripe-payment-token-new' ) !== null &&
-		! document.querySelector( '#wc-stripe-payment-token-new' ).checked
+		document.querySelector( `#wc-${ paymentMethod }-payment-token-new` ) !==
+			null &&
+		! document.querySelector( `#wc-${ paymentMethod }-payment-token-new` )
+			.checked
 	);
 };
 
@@ -456,4 +469,18 @@ export const initializeUPEAppearance = () => {
 	}
 
 	return appearance;
+};
+
+/**
+ * Gets the payment method name from the given payment method type.
+ * For example, when passed 'card' returns 'stripe' and for 'ideal' returns 'stripe_ideal'.
+ *
+ * Defaults to 'stripe' if the given payment method type is not found in the list of payment methods constants.
+ *
+ * @param {string} paymentMethodType The payment method type ('card', 'ideal', etc.).
+ *
+ * @return {string} The payment method name.
+ */
+export const getPaymentMethodName = ( paymentMethodType ) => {
+	return getPaymentMethodsConstants()[ paymentMethodType ] || 'stripe';
 };

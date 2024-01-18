@@ -26,6 +26,9 @@ class WC_Stripe_Settings_Controller {
 		$this->account = $account;
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wc_stripe_gateway_admin_options_wrapper', [ $this, 'admin_options' ] );
+
+		// Priority 5 so we can manipulate the registered gateways before they are shown.
+		add_action( 'woocommerce_admin_field_payment_gateways', [ $this, 'hide_gateways_on_settings_page' ], 5 );
 	}
 
 	/**
@@ -127,5 +130,19 @@ class WC_Stripe_Settings_Controller {
 
 		wp_enqueue_script( 'woocommerce_stripe_admin' );
 		wp_enqueue_style( 'woocommerce_stripe_admin' );
+	}
+
+	/**
+	 * Removes all Stripe alternative payment methods (eg Bancontact, giropay) on the WooCommerce Settings page.
+	 *
+	 * Note: This function is hooked onto `woocommerce_admin_field_payment_gateways` which is the hook used
+	 * to display the payment gateways on the WooCommerce Settings page.
+	 */
+	public static function hide_gateways_on_settings_page() {
+		foreach ( WC()->payment_gateways->payment_gateways as $index => $payment_gateway ) {
+			if ( $payment_gateway instanceof WC_Stripe_UPE_Payment_Method ) {
+				unset( WC()->payment_gateways->payment_gateways[ $index ] );
+			}
+		}
 	}
 }

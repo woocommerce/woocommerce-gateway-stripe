@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Extendable abstract class for payment methods.
  */
-abstract class WC_Stripe_UPE_Payment_Method {
+abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 
 	use WC_Stripe_Subscriptions_Utilities_Trait;
 	use WC_Stripe_Pre_Orders_Trait;
@@ -30,7 +30,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 *
 	 * @var string
 	 */
-	protected $title;
+	public $title;
 
 	/**
 	 * Method label
@@ -44,7 +44,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 *
 	 * @var string
 	 */
-	protected $description;
+	public $description;
 
 	/**
 	 * Can payment method be saved or reused?
@@ -72,7 +72,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 *
 	 * @var bool
 	 */
-	protected $enabled;
+	public $enabled;
 
 	/**
 	 * List of supported countries
@@ -87,13 +87,9 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	public function __construct() {
 		$main_settings = get_option( 'woocommerce_stripe_settings' );
 
-		if ( isset( $main_settings['upe_checkout_experience_accepted_payments'] ) ) {
-			$enabled_upe_methods = $main_settings['upe_checkout_experience_accepted_payments'];
-		} else {
-			$enabled_upe_methods = [ WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID ];
-		}
-
-		$this->enabled = in_array( static::STRIPE_ID, $enabled_upe_methods, true );
+		$this->enabled  = in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] ), true ) ? 'yes' : 'no';
+		$this->id       = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID;
+		$this->testmode = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
 	}
 
 	/**
@@ -111,7 +107,7 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 * @return bool
 	 */
 	public function is_enabled() {
-		return $this->enabled;
+		return 'yes' === $this->enabled;
 	}
 
 	/**
@@ -120,7 +116,11 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 * @return bool
 	 */
 	public function is_available() {
-		return true;
+		if ( is_add_payment_method_page() && ! $this->is_reusable() ) {
+			return false;
+		}
+
+		return $this->is_enabled_at_checkout() && parent::is_available();
 	}
 
 	/**
@@ -351,5 +351,97 @@ abstract class WC_Stripe_UPE_Payment_Method {
 	 */
 	public function get_testing_instructions() {
 		return '';
+	}
+
+	/**
+	 * Processes an order payment.
+	 *
+	 * UPE Payment methods use the WC_Stripe_UPE_Payment_Gateway::process_payment() function.
+	 *
+	 * @param int $order_id The order ID to process.
+	 * @return array The payment result.
+	 */
+	public function process_payment( $order_id ) {
+		return WC_Stripe::get_instance()->get_main_stripe_gateway()->process_payment( $order_id );
+	}
+
+	/**
+	 * Determines if the Stripe Account country supports this UPE method.
+	 *
+	 * @return bool
+	 */
+	public function is_available_for_account_country() {
+		return true;
+	}
+
+	/**
+	 * Returns the UPE Payment Method settings option.
+	 *
+	 * Overrides @see WC:Settings_API::get_option_key() to use the same option key as the main Stripe gateway.
+	 *
+	 * @return string
+	 */
+	public function get_option_key() {
+		return 'woocommerce_stripe_settings';
+	}
+
+	/**
+	 * Renders the UPE payment fields.
+	 */
+	public function payment_fields() {
+		try {
+			$display_tokenization = $this->is_reusable() && is_checkout();
+
+			if ( $this->testmode && ! empty( $this->get_testing_instructions() ) ) : ?>
+				<p class="testmode-info"><?php echo wp_kses_post( $this->get_testing_instructions() ); ?></p>
+			<?php endif; ?>
+			<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-upe-form" class="wc-upe-form wc-payment-form">
+				<div class="wc-stripe-upe-element" data-payment-method-type="<?php echo esc_attr( $this->stripe_id ); ?>"></div>
+				<div id="wc-<?php echo esc_attr( $this->id ); ?>-upe-errors" role="alert"></div>
+			</fieldset>
+			<?php
+			if ( $this->is_saved_cards_enabled() && $this->is_reusable() ) {
+				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page();
+				if ( is_user_logged_in() ) {
+					$this->save_payment_method_checkbox( $force_save_payment );
+				}
+			}
+		} catch ( Exception $e ) {
+			// Output the error message.
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+			?>
+			<div>
+				<?php echo esc_html__( 'An error was encountered when preparing the payment form. Please try again later.', 'woocommerce-gateway-stripe' ); ?>
+			</div>
+			<?php
+		}
+	}
+
+	/**
+	 * Returns true if the saved cards feature is enabled.
+	 *
+	 * @return bool
+	 */
+	public function is_saved_cards_enabled() {
+		return 'yes' === $this->get_option( 'saved_cards' );
+	}
+
+	/**
+	 * Displays the save to account checkbox.
+	 *
+	 * @param bool $force_checked Whether the checkbox should be checked by default.
+	 */
+	public function save_payment_method_checkbox( $force_checked = false ) {
+		$id = 'wc-' . $this->id . '-new-payment-method';
+		?>
+		<fieldset <?php echo $force_checked ? 'style="display:none;"' : ''; /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?>>
+			<p class="form-row woocommerce-SavedPaymentMethods-saveNew">
+				<input id="<?php echo esc_attr( $id ); ?>" name="<?php echo esc_attr( $id ); ?>" type="checkbox" value="true" style="width:auto;" <?php echo $force_checked ? 'checked' : ''; /* phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped */ ?> />
+				<label for="<?php echo esc_attr( $id ); ?>" style="display:inline;">
+					<?php echo esc_html( apply_filters( 'wc_stripe_save_to_account_text', __( 'Save payment information to my account for future purchases.', 'woocommerce-gateway-stripe' ) ) ); ?>
+				</label>
+			</p>
+		</fieldset>
+		<?php
 	}
 }

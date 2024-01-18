@@ -380,7 +380,8 @@ function woocommerce_gateway_stripe() {
 			 * @version 5.6.0
 			 */
 			public function add_gateways( $methods ) {
-				$methods[] = $this->get_main_stripe_gateway();
+				$main_gateway = $this->get_main_stripe_gateway();
+				$methods[]    = $main_gateway;
 
 				if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() || ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 					// These payment gateways will be hidden when UPE is enabled:
@@ -400,6 +401,12 @@ function woocommerce_gateway_stripe() {
 					if ( isset( $sofort_settings['enabled'] ) && 'yes' === $sofort_settings['enabled'] ) {
 						$methods[] = WC_Gateway_Stripe_Sofort::class;
 					}
+				} elseif ( is_a( $main_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+					// the $main_gateway represents the card gateway so we don't want to include it in the list of UPE gateways.
+					$upe_payment_methods = $main_gateway->payment_methods;
+					unset( $upe_payment_methods['card'] );
+
+					$methods = array_merge( $methods, $upe_payment_methods );
 				}
 
 				// These payment gateways will always be visible, regardless if UPE is enabled or disabled:
