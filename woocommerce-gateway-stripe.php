@@ -402,7 +402,11 @@ function woocommerce_gateway_stripe() {
 						$methods[] = WC_Gateway_Stripe_Sofort::class;
 					}
 				} elseif ( is_a( $main_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
-					$methods = array_merge( $main_gateway->payment_methods, $methods );
+					// the $main_gateway represents the card gateway so we don't want to include it in the list of UPE gateways.
+					$upe_payment_methods = $main_gateway->payment_methods;
+					unset( $upe_payment_methods['card'] );
+
+					$methods = array_merge( $methods, $upe_payment_methods );
 				}
 
 				// These payment gateways will always be visible, regardless if UPE is enabled or disabled:

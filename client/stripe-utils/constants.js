@@ -1,3 +1,29 @@
+export const PAYMENT_METHOD_NAME_CARD = 'stripe';
+export const PAYMENT_METHOD_NAME_GIROPAY = 'stripe_giropay';
+export const PAYMENT_METHOD_NAME_EPS = 'stripe_eps';
+export const PAYMENT_METHOD_NAME_IDEAL = 'stripe_ideal';
+export const PAYMENT_METHOD_NAME_P24 = 'stripe_p24';
+export const PAYMENT_METHOD_NAME_SEPA = 'stripe_sepa_debit';
+export const PAYMENT_METHOD_NAME_SOFORT = 'stripe_sofort';
+export const PAYMENT_METHOD_NAME_BOLETO = 'stripe_boleto';
+export const PAYMENT_METHOD_NAME_OXXO = 'stripe_oxxo';
+export const PAYMENT_METHOD_NAME_BANCONTACT = 'stripe_bancontact';
+
+export function getPaymentMethodsConstants() {
+	return {
+		card: PAYMENT_METHOD_NAME_CARD,
+		giropay: PAYMENT_METHOD_NAME_GIROPAY,
+		eps: PAYMENT_METHOD_NAME_EPS,
+		ideal: PAYMENT_METHOD_NAME_IDEAL,
+		p24: PAYMENT_METHOD_NAME_P24,
+		sepa: PAYMENT_METHOD_NAME_SEPA,
+		sofort: PAYMENT_METHOD_NAME_SOFORT,
+		boleto: PAYMENT_METHOD_NAME_BOLETO,
+		oxxo: PAYMENT_METHOD_NAME_OXXO,
+		bancontact: PAYMENT_METHOD_NAME_BANCONTACT,
+	};
+}
+
 export const errorTypes = {
 	INVALID_EMAIL: 'email_invalid',
 	INVALID_REQUEST: 'invalid_request_error',
