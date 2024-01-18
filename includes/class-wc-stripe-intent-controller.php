@@ -792,7 +792,26 @@ class WC_Stripe_Intent_Controller {
 			}
 		}
 
-		$shopper_error_message = __( 'There was a problem processing the payment.', 'woocommerce-gateway-stripe' );
+		$shopper_error_message = __( 'Please reach out to us if the problem persists.', 'woocommerce-gateway-stripe' );
+
+		// Bail out if we're missing required information.
+		if ( ! empty( $missing_params ) ) {
+			throw new WC_Stripe_Exception(
+				sprintf(
+					'The information for creating and confirming the intent is missing the following data: %s.',
+					implode( ', ', $missing_params )
+				),
+				$shopper_error_message
+			);
+		}
+
+		// Some params must not contain an empty value.
+		$non_empty_params = [ 'payment_method' ];
+		foreach ( $non_empty_params as $param ) {
+			if ( empty( $payment_information[ $param ] ) ) {
+				$missing_params[] = $param;
+			}
+		}
 
 		// Bail out if we're missing required information.
 		if ( ! empty( $missing_params ) ) {
