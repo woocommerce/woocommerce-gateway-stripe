@@ -217,14 +217,9 @@ class WC_Stripe_Payment_Request {
 
 		add_action( 'wp_enqueue_scripts', [ $this, 'scripts' ] );
 
-		add_action( 'woocommerce_after_add_to_cart_quantity', [ $this, 'display_payment_request_button_html' ], 1 );
-		add_action( 'woocommerce_after_add_to_cart_quantity', [ $this, 'display_payment_request_button_separator_html' ], 2 );
-
-		add_action( 'woocommerce_proceed_to_checkout', [ $this, 'display_payment_request_button_html' ], 1 );
-		add_action( 'woocommerce_proceed_to_checkout', [ $this, 'display_payment_request_button_separator_html' ], 2 );
-
+		add_action( 'woocommerce_after_add_to_cart_form', [ $this, 'display_payment_request_button_html' ], 1 );
+		add_action( 'woocommerce_proceed_to_checkout', [ $this, 'display_payment_request_button_html' ], 25 );
 		add_action( 'woocommerce_checkout_before_customer_details', [ $this, 'display_payment_request_button_html' ], 1 );
-		add_action( 'woocommerce_checkout_before_customer_details', [ $this, 'display_payment_request_button_separator_html' ], 2 );
 
 		add_action( 'wc_ajax_wc_stripe_get_cart_details', [ $this, 'ajax_get_cart_details' ] );
 		add_action( 'wc_ajax_wc_stripe_get_shipping_options', [ $this, 'ajax_get_shipping_options' ] );
@@ -239,6 +234,8 @@ class WC_Stripe_Payment_Request {
 		add_action( 'woocommerce_checkout_order_processed', [ $this, 'add_order_meta' ], 10, 2 );
 		add_filter( 'woocommerce_login_redirect', [ $this, 'get_login_redirect_url' ], 10, 3 );
 		add_filter( 'woocommerce_registration_redirect', [ $this, 'get_login_redirect_url' ], 10, 3 );
+
+		add_action( 'woocommerce_stripe_updated', [ $this, 'migrate_button_size' ] );
 	}
 
 	/**
@@ -276,8 +273,8 @@ class WC_Stripe_Payment_Request {
 		}
 
 		$height = isset( $this->stripe_settings['payment_request_button_size'] ) ? $this->stripe_settings['payment_request_button_size'] : 'default';
-		if ( 'medium' === $height ) {
-			return '48';
+		if ( 'small' === $height ) {
+			return '40';
 		}
 
 		if ( 'large' === $height ) {
@@ -285,7 +282,7 @@ class WC_Stripe_Payment_Request {
 		}
 
 		// for the "default" and "catch-all" scenarios.
-		return '40';
+		return '48';
 	}
 
 	/**
@@ -881,7 +878,7 @@ class WC_Stripe_Payment_Request {
 		}
 
 		?>
-		<div id="wc-stripe-payment-request-wrapper" style="clear:both;padding-top:1.5em;display:none;">
+		<div id="wc-stripe-payment-request-wrapper" style="margin-top: 1em;clear:both;display:none;">
 			<div id="wc-stripe-payment-request-button">
 				<?php
 				if ( $this->is_custom_button() ) {
@@ -892,6 +889,7 @@ class WC_Stripe_Payment_Request {
 			</div>
 		</div>
 		<?php
+		$this->display_payment_request_button_separator_html();
 	}
 
 	/**
@@ -907,7 +905,7 @@ class WC_Stripe_Payment_Request {
 			return;
 		}
 
-		if ( ! is_cart() && ! is_checkout() && ! $this->is_product() && ! is_wc_endpoint_url( 'order-pay' ) ) {
+		if ( ! is_checkout() && ! is_wc_endpoint_url( 'order-pay' ) ) {
 			return;
 		}
 
@@ -1983,5 +1981,43 @@ class WC_Stripe_Payment_Request {
 	 */
 	private function is_payment_request_enabled() {
 		return isset( $this->stripe_settings['payment_request'] ) && 'yes' === $this->stripe_settings['payment_request'];
+	}
+
+	/**
+	 * Migrates the button size setting to the new default.
+	 *
+	 * Prior to v7.8.0 the default button size was 40px (small). In 7.8, the default size was changed to 48px (medium). This method
+	 * migrates the settings to maintain the previously selected size for existing users. default => small, medium => default.
+	 *
+	 * @since 7.8.0
+	 */
+	public function migrate_button_size() {
+		$previous_version = get_option( 'wc_stripe_version' );
+
+		// Exit if it's a new install or the previous version is already 7.8.0 or greater.
+		if ( ! $previous_version || version_compare( $previous_version, '7.8.0', '>=' ) ) {
+			return;
+		}
+
+		if ( ! isset( $this->stripe_settings['payment_request_button_size'] ) ) {
+			return;
+		}
+
+		$gateway = woocommerce_gateway_stripe()->get_main_stripe_gateway();
+
+		if ( ! $gateway ) {
+			return;
+		}
+
+		$button_size = $this->stripe_settings['payment_request_button_size'];
+
+		// If the button was set to the default, it is now the small size (40px). If it was set to medium, it is now the default size (48px).
+		if ( 'default' === $button_size ) {
+			$this->stripe_settings['payment_request_button_size'] = 'small';
+			$gateway->update_option( 'payment_request_button_size', 'small' );
+		} elseif ( 'medium' === $button_size ) {
+			$this->stripe_settings['payment_request_button_size'] = 'default';
+			$gateway->update_option( 'payment_request_button_size', 'default' );
+		}
 	}
 }

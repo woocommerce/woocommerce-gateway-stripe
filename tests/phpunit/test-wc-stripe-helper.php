@@ -1,4 +1,5 @@
 <?php
+
 /**
  * These tests make assertions against class WC_Stripe_Helper.
  *
@@ -144,5 +145,51 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 
 		$intent_with_neither_source_nor_payment_method = new stdClass();
 		$this->assertNull( WC_Stripe_Helper::get_payment_method_from_intent( $intent_with_neither_source_nor_payment_method ) );
+	}
+
+	/**
+	 * Test for `get_order_by_intent_id`
+	 *
+	 * @param string $status              The order status to return.
+	 * @param bool   $success             Whether the order should be found.
+	 * @return void
+	 * @dataProvider provide_test_get_order_by_intent_id
+	 */
+	public function test_get_order_by_intent_id( $status, $success ) {
+		$order    = WC_Helper_Order::create_order();
+		$order_id = $order->get_id();
+
+		$order = wc_get_order( $order_id );
+		$order->set_status( $status );
+
+		$intent_id = 'pi_mock';
+		update_post_meta( $order_id, '_stripe_intent_id', $intent_id );
+
+		$order = WC_Stripe_Helper::get_order_by_intent_id( $intent_id );
+		if ( $success ) {
+			$this->assertInstanceOf( WC_Order::class, $order );
+		} else {
+			$this->assertFalse( $order );
+		}
+	}
+
+	/**
+	 * Data provider for `test_get_order_by_intent_id`
+	 *
+	 * @return array
+	 */
+	public function provide_test_get_order_by_intent_id(): array {
+		return [
+			'regular table' => [
+				'custom orders table' => false,
+				'status'              => 'completed',
+				'success'             => true,
+			],
+			'trashed order' => [
+				'custom orders table' => false,
+				'status'              => 'trash',
+				'success'             => false,
+			],
+		];
 	}
 }

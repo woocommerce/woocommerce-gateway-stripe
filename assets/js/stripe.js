@@ -830,7 +830,7 @@ jQuery( function( $ ) {
 		 */
 		onError: function( e, result ) {
 			var message = result.error.message;
-			var selectedMethodElement = wc_stripe_form.getSelectedPaymentElement().closest( 'li' );
+			var selectedMethodElement = wc_stripe_form.getSelectedPaymentElement().closest( '.wc_payment_method' );
 			var savedTokens = selectedMethodElement.find( '.woocommerce-SavedPaymentMethods-tokenInput' );
 			var errorContainer;
 
