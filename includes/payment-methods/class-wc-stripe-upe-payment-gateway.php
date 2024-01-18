@@ -1667,8 +1667,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// Handle an error in the payment intent.
 		if ( ! empty( $payment_intent->error ) ) {
 
-			// Add the payment intent information to the order meta.
-			$this->save_intent_to_order( $order, $payment_intent->error->payment_intent );
+			// Add the payment intent information to the order meta
+			// if we were able to create one despite the error.
+			if ( ! empty( $payment_intent->error->payment_intent ) ) {
+				$this->save_intent_to_order( $order, $payment_intent->error->payment_intent );
+			}
 
 			$this->maybe_remove_non_existent_customer( $payment_intent->error, $order );
 
