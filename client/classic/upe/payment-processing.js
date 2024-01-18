@@ -194,13 +194,6 @@ export async function mountStripePaymentElement( api, domElement ) {
 	upeElement.mount( domElement );
 }
 
-// Set the selected UPE payment type field
-function setSelectedUPEPaymentType( paymentType ) {
-	document.querySelector(
-		'#wc_stripe_selected_upe_payment_type'
-	).value = paymentType;
-}
-
 /**
  * Handles the checkout process for the provided jQuery form and Stripe payment method type. The function blocks the
  * form UI to prevent duplicate submission and validates the Stripe elements. It then creates a Stripe payment method
@@ -237,7 +230,6 @@ export const processPayment = (
 				jQueryForm,
 				paymentMethodType
 			);
-			setSelectedUPEPaymentType( paymentMethodType );
 			appendPaymentMethodIdToForm(
 				jQueryForm,
 				paymentMethodObject.paymentMethod.id

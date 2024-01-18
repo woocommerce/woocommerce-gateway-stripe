@@ -1704,7 +1704,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return array An array containing the payment information for processing a payment intent.
 	 */
 	private function prepare_payment_information_from_request( WC_Order $order ) {
-		$selected_payment_type = sanitize_text_field( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
 		$capture_method        = empty( $this->get_option( 'capture' ) ) || $this->get_option( 'capture' ) === 'yes' ? 'automatic' : 'manual'; // automatic | manual.
 		$currency              = strtolower( $order->get_currency() );
 		$amount                = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
@@ -1809,6 +1809,25 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Gets the selected payment method type from the request and normalizes its slug for internal use.
+	 *
+	 * @return string
+	 */
+	private function get_selected_payment_method_type_from_request() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! isset( $_POST['payment_method'] ) ) {
+			return '';
+		}
+
+		$payment_method_type = sanitize_text_field( wp_unslash( $_POST['payment_method'] ) );
+		if ( substr( $payment_method_type, 0, 6 ) !== 'stripe' ) {
+			return '';
+		}
+
+		return substr( $payment_method_type, 0, 7 ) === 'stripe_' ? substr( $payment_method_type, 7 ) : 'card';
 	}
 
 	/**

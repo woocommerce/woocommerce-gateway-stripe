@@ -178,7 +178,6 @@ const PaymentProcessor = ( {
 								'wc-stripe-is-deferred-intent': true,
 								'wc-stripe-payment-method':
 									paymentMethodObject.paymentMethod.id,
-								wc_stripe_selected_upe_payment_type: paymentMethodId,
 								save_payment_method: shouldSavePayment
 									? 'yes'
 									: 'no',
