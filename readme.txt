@@ -130,8 +130,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 7.9.2 - 2024-xx-xx =
 * Tweak - Orders with `trash` status are not retrieving anymore when calling `get_order_by_intent_id` function.
-
-= 7.9.1 - 2024-01-16 =
-* Fix - PHP fatal error when updating a user with saved tokens from the WP Dashboard.
+* Add   - Update the interface for customizing Stripe payment methods.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
