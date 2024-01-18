@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.9.2 - 2024-xx-xx =
+= 8.0.0 - 2024-xx-xx =
 * Tweak - Orders with `trash` status are not retrieving anymore when calling `get_order_by_intent_id` function.
 * Add   - Update the interface for customizing Stripe payment methods.
 
