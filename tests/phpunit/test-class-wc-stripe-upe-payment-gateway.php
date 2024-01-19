@@ -344,7 +344,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		// Set the appropriate POST flag to trigger a deferred intent request.
 		$_POST = [
-			'payment_method'               => 'card',
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => 'pm_mock',
 			'wc-stripe-is-deferred-intent' => '1',
 		];
 
@@ -393,7 +394,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		// Set the appropriate POST flag to trigger a deferred intent request.
 		$_POST = [
-			'payment_method'               => 'card',
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => 'pm_mock',
 			'wc-stripe-is-deferred-intent' => '1',
 		];
 
@@ -442,7 +444,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		];
 
 		$_POST = [
-			'payment_method'               => 'card',
+			'payment_method'               => 'stripe',
+			'wc-stripe-payment-method'     => 'pm_mock',
 			'wc-stripe-is-deferred-intent' => '1',
 		];
 
@@ -485,6 +488,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$_POST = [
 			'payment_method'               => '',
+			'wc-stripe-payment-method'     => 'pm_mock',
 			'wc-stripe-is-deferred-intent' => '1',
 		];
 
@@ -526,6 +530,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$_POST = [
 			'payment_method'               => 'some_invalid_type',
+			'wc-stripe-payment-method'     => 'pm_mock',
 			'wc-stripe-is-deferred-intent' => '1',
 		];
 
@@ -1006,7 +1011,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		// Set the appropriate POST flag to trigger a deferred intent request.
 		$_POST['wc-stripe-is-deferred-intent'] = '1';
-		$_POST['payment_method']               = 'card';
+		$_POST['payment_method']               = 'stripe';
+		$_POST['wc-stripe-payment-method']     = 'pm_mock';
 
 		$order             = WC_Helper_Order::create_order();
 		$order_id          = $order->get_id();
@@ -1069,7 +1075,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		// Set the appropriate POST flag to trigger a deferred intent request.
 		$_POST['wc-stripe-is-deferred-intent'] = '1';
-		$_POST['payment_method']               = 'card';
+		$_POST['payment_method']               = 'stripe';
+		$_POST['wc-stripe-payment-method']     = 'pm_mock';
 
 		$order             = WC_Helper_Order::create_order();
 		$order_id          = $order->get_id();
@@ -1128,7 +1135,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		// Set the appropriate POST flag to trigger a deferred intent request.
 		$_POST['wc-stripe-is-deferred-intent'] = '1';
-		$_POST['payment_method']               = 'card';
+		$_POST['payment_method']               = 'stripe';
+		$_POST['wc-stripe-payment-method']     = 'pm_mock';
 
 		$order             = WC_Helper_Order::create_order();
 		$order_id          = $order->get_id();
@@ -1175,7 +1183,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		// Set the appropriate POST flag to trigger a deferred intent request.
 		$_POST['wc-stripe-is-deferred-intent'] = '1';
-		$_POST['payment_method']               = 'card';
+		$_POST['payment_method']               = 'stripe';
+		$_POST['wc-stripe-payment-method']     = 'pm_mock';
 
 		$order             = WC_Helper_Order::create_order();
 		$order_id          = $order->get_id();
@@ -1254,7 +1263,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		// Set the appropriate POST flag to trigger a deferred intent request.
 		$_POST['wc-stripe-is-deferred-intent'] = '1';
-		$_POST['payment_method']               = 'card';
+		$_POST['payment_method']               = 'stripe';
+		$_POST['wc-stripe-payment-method']     = 'pm_mock';
 
 		$order             = WC_Helper_Order::create_order();
 		$order_id          = $order->get_id();
