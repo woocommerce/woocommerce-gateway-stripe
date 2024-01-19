@@ -278,13 +278,6 @@ export const generateCheckoutEventNames = () => {
 		.join( ' ' );
 };
 
-// To be removed when we fully switch to dPE.
-export const appendIsUsingDeferredIntentToForm = ( form ) => {
-	form.append(
-		'<input type="hidden" id="wc-stripe-is-deferred-intent" name="wc-stripe-is-deferred-intent" value="1" />'
-	);
-};
-
 export const appendPaymentMethodIdToForm = ( form, paymentMethodId ) => {
 	form.append(
 		`<input type="hidden" id="wc-stripe-payment-method" name="wc-stripe-payment-method" value="${ paymentMethodId }" />`
@@ -307,11 +300,10 @@ export const appendSetupIntentToForm = ( form, setupIntent ) => {
 export const isUsingSavedPaymentMethod = ( paymentMethodType ) => {
 	const paymentMethod = getPaymentMethodName( paymentMethodType );
 	return (
-		document.querySelector( `#wc-${ paymentMethod }-new-payment-method` )
-			?.length &&
-		! document
-			.querySelector( `#wc-${ paymentMethod }-new-payment-method` )
-			.is( ':checked' )
+		document.querySelector( `#wc-${ paymentMethod }-payment-token-new` ) !==
+			null &&
+		! document.querySelector( `#wc-${ paymentMethod }-payment-token-new` )
+			.checked
 	);
 };
 

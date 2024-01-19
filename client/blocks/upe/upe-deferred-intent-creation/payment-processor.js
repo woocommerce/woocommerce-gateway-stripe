@@ -174,11 +174,10 @@ const PaymentProcessor = ( {
 						type: 'success',
 						meta: {
 							paymentMethodData: {
-								payment_method: 'stripe',
+								payment_method: upeMethods[ paymentMethodId ],
 								'wc-stripe-is-deferred-intent': true,
 								'wc-stripe-payment-method':
 									paymentMethodObject.paymentMethod.id,
-								wc_stripe_selected_upe_payment_type: paymentMethodId,
 								save_payment_method: shouldSavePayment
 									? 'yes'
 									: 'no',
