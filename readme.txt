@@ -130,5 +130,6 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 = 8.0.0 - 2024-xx-xx =
 * Tweak - Orders with `trash` status are not retrieving anymore when calling `get_order_by_intent_id` function.
+* Add   - Update the interface for customizing Stripe payment methods.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

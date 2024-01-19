@@ -44,6 +44,13 @@ const SettingsManager = () => {
 		setInitialSettings( settings );
 	};
 
+	const onSaveChanges = ( key, data ) => {
+		setInitialSettings( {
+			...initialSettings,
+			[ key ]: data,
+		} );
+	};
+
 	const isPristine =
 		! isEmpty( initialSettings ) && isEqual( initialSettings, settings );
 	const displayPrompt = ! isPristine;
@@ -76,7 +83,9 @@ const SettingsManager = () => {
 						{ tab.name === 'settings' ? (
 							<PaymentSettingsPanel />
 						) : (
-							<PaymentMethodsPanel />
+							<PaymentMethodsPanel
+								onSaveChanges={ onSaveChanges }
+							/>
 						) }
 						<SaveSettingsSection
 							onSettingsSave={ onSettingsSave }

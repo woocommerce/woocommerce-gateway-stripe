@@ -111,12 +111,22 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		WC_Stripe_API::set_secret_key( $this->secret_key );
 
+		// Title shows the count of enabled payment methods in settings page only.
+		if ( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] ) {
+			$enabled_payment_methods_count = count( WC_Stripe_Helper::get_legacy_enabled_payment_method_ids() );
+			$this->title                   = $enabled_payment_methods_count ?
+				/* translators: $1. Count of enabled payment methods. */
+				sprintf( _n( '%d payment method', '%d payment methods', $enabled_payment_methods_count, 'woocommerce-gateway-stripe' ), $enabled_payment_methods_count )
+				: $this->method_title;
+		}
+
 		// Hooks.
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_fee' ] );
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_payout' ], 20 );
 		add_action( 'woocommerce_customer_save_address', [ $this, 'show_update_card_notice' ], 10, 2 );
+		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'get_available_payment_gateways' ] );
 		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'prepare_order_pay_page' ] );
 		add_action( 'woocommerce_account_view-order_endpoint', [ $this, 'check_intent_status_on_order_page' ], 1 );
 		add_filter( 'woocommerce_payment_successful_result', [ $this, 'modify_successful_payment_result' ], 99999, 2 );
@@ -636,6 +646,62 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		add_action( 'woocommerce_pay_order_after_submit', [ $this, 'render_payment_intent_inputs' ] );
 
 		return [];
+	}
+
+	/**
+	 * Include the available legacy payment methods in the list of payment methods.
+	 * As we are not registering the other Stripe payment methods to show in the settings page,
+	 * we need to include them here so that they are available in the checkout, pay for order, add payment method etc. pages.
+	 *
+	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways on the payments settings page.
+	 * @return WC_Payment_Gateway[]          The same list if UPE is disabled or a list including the available legacy payment methods.
+	 */
+	public function get_available_payment_gateways( $gateways ) {
+		// We need to include the payment methods when UPE is disabled, return the same list when UPE is enabled.
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			return $gateways;
+		}
+
+		$legacy_enabled_gateways           = WC_Stripe_Helper::get_legacy_enabled_payment_methods();
+		$stripe_ordered_payment_method_ids = $this->get_option( 'stripe_legacy_method_order', [] );
+
+		// If the legacy method order is not set, consider the default order.
+		if ( empty( $stripe_ordered_payment_method_ids ) ) {
+			$payment_method_classes            = WC_Stripe_Helper::get_legacy_payment_method_classes();
+			$stripe_ordered_payment_method_ids = array_map(
+				function( $payment_method_class ) {
+					return $payment_method_class::ID;
+				},
+				$payment_method_classes
+			);
+			$stripe_ordered_payment_method_ids = array_merge( [ 'stripe' ], $stripe_ordered_payment_method_ids );
+		}
+
+		// If Stripe is not found in the $gateways array, but other legacy methods are enabled,
+		// they will be placed on the top in their saved order, followed by other gateways.
+		$stripe_index           = array_search( 'stripe', array_keys( $gateways ), true );
+		$gateways_before_stripe = array_slice( $gateways, 0, $stripe_index );
+		$gateways_after_stripe  = array_slice( $gateways, $stripe_index + 1 );
+		$stripe_gateways        = [];
+
+		foreach ( $stripe_ordered_payment_method_ids as $id ) {
+			$gateway = null;
+			if ( 'stripe' === $id ) {
+				$gateway = $this;
+			} elseif ( isset( $legacy_enabled_gateways[ $id ] ) ) {
+				$gateway = $legacy_enabled_gateways[ $id ];
+			}
+
+			if ( $gateway && $gateway->is_available() ) {
+				if ( ! is_add_payment_method_page() ) {
+					$stripe_gateways[ $id ] = $gateway;
+				} elseif ( $gateway->supports( 'add_payment_method' ) || $gateway->supports( 'tokenization' ) ) {
+					$stripe_gateways[ $id ] = $gateway;
+				}
+			}
+		}
+
+		return array_merge( $gateways_before_stripe, $stripe_gateways, $gateways_after_stripe );
 	}
 
 	/**
