@@ -779,6 +779,8 @@ class WC_Stripe_Intent_Controller {
 			'capture_method',
 			'payment_method',
 			'shipping',
+			'selected_payment_type',
+			'payment_method_types',
 		];
 
 		$missing_params = [];
@@ -828,25 +830,7 @@ class WC_Stripe_Intent_Controller {
 			$request['return_url'] = $payment_information['return_url'];
 		}
 
-		/**
-		 * The associated order.
-		 *
-		 * @var WC_Order $order
-		 */
-		$order = $payment_information['order'];
-
-		$payment_intent = WC_Stripe_API::request_with_level3_data(
-			$request,
-			"payment_intents/{$payment_intent->id}/confirm",
-			$payment_information['level3'],
-			$order
-		);
-
-		// Only update the payment_type if we have a reference to the payment type the customer selected.
-		$selected_payment_type = $payment_information['selected_payment_type'];
-		if ( '' !== $selected_payment_type ) {
-			$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
-		}
+		$payment_intent = WC_Stripe_API::request( $request, "payment_intents/{$payment_intent->id}/confirm" );
 
 		// Throw an exception when there's an error.
 		if ( ! empty( $payment_intent->error ) ) {

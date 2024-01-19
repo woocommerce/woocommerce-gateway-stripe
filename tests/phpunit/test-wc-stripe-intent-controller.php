@@ -143,21 +143,6 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		add_filter( 'pre_http_request', $test_request, 10, 3 );
 
-		$mocked_ids = [
-			WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
-			WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
-		];
-
-		$this->gateway
-			->expects( '' === $payment_information['selected_payment_type'] ? $this->once() : $this->never() )
-			->method( 'get_upe_enabled_at_checkout_payment_method_ids' )
-			->willReturn( $mocked_ids );
-
-		$this->gateway
-			->expects( '' === $payment_information['selected_payment_type'] ? $this->never() : $this->exactly( 2 ) )
-			->method( 'get_upe_enabled_payment_method_ids' )
-			->willReturn( $mocked_ids );
-
 		$actual = $this->mock_controller->update_and_confirm_payment_intent( $payment_intent, $payment_information );
 		$this->assertEquals( $expected, $actual );
 	}
@@ -168,24 +153,17 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 * @return array
 	 */
 	public function provide_test_update_and_confirm_payment_intent() {
-		$payment_information = [
-			'amount'                       => 100,
-			'capture_method'               => 'automatic',
-			'currency'                     => 'usd',
-			'customer'                     => 'cus_123',
-			'level3'                       => [ 'test' => 'test' ],
-			'metadata'                     => [],
-			'payment_method'               => 'pm_123',
-			'save_payment_method_to_store' => false,
-			'shipping'                     => [],
-			'statement_descriptor'         => '',
-			'selected_payment_type'        => '',
+		$payment_information_missing_params = [
+			'capture_method'        => 'automatic',
+			'shipping'              => [],
+			'selected_payment_type' => 'card',
+			'payment_method_types'  => [ 'card' ],
 		];
 
-		$payment_information_with_selected_method = array_merge(
-			$payment_information,
+		$payment_information_regular = array_merge(
+			$payment_information_missing_params,
 			[
-				'selected_payment_type' => WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+				'payment_method' => 'pm_123',
 			]
 		);
 
@@ -199,19 +177,20 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			]
 		);
 		return [
-			'payment method not selected' => [
-				'payment information' => $payment_information,
+			'missing params'       => [
+				'payment information' => $payment_information_missing_params,
 				'payment intent'      => (object) $payment_intent_regular,
-				'expected'            => (object) $payment_intent_regular,
+				'expected'            => null,
+				'expected exception'  => WC_Stripe_Exception::class,
 			],
-			'payment intent error'        => [
-				'payment information' => $payment_information_with_selected_method,
+			'payment intent error' => [
+				'payment information' => $payment_information_regular,
 				'payment intent'      => $payment_intent_error,
 				'expected'            => null,
 				'expected exception'  => WC_Stripe_Exception::class,
 			],
-			'success'                     => [
-				'payment information' => $payment_information_with_selected_method,
+			'success'              => [
+				'payment information' => $payment_information_regular,
 				'payment intent'      => (object) $payment_intent_regular,
 				'expected'            => (object) $payment_intent_regular,
 			],
