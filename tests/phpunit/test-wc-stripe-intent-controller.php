@@ -114,4 +114,107 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$this->mock_controller->create_payment_intent( $this->order->get_id() );
 	}
+
+	/**
+	 * Test for `update_and_confirm_payment_intent` method.
+	 *
+	 * @param array $payment_information Payment information.
+	 * @param object $payment_intent Payment intent.
+	 * @param string|null $expected Expected result.
+	 * @param string|null $expected_exception Expected exception.
+	 * @return void
+	 * @dataProvider provide_test_update_and_confirm_payment_intent
+	 * @throws WC_Stripe_Exception If invalid payment method type is passed.
+	 */
+	public function test_update_and_confirm_payment_intent( $payment_information, $payment_intent, $expected = null, $expected_exception = null ) {
+		$payment_information = array_merge( $payment_information, [ 'order' => $this->order ] );
+
+		if ( $expected_exception ) {
+			$this->expectException( $expected_exception );
+		}
+
+		$test_request = function () use ( $payment_intent ) {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( $payment_intent ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$mocked_ids = [
+			WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+			WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+		];
+
+		$this->gateway
+			->expects( '' === $payment_information['selected_payment_type'] ? $this->once() : $this->never() )
+			->method( 'get_upe_enabled_at_checkout_payment_method_ids' )
+			->willReturn( $mocked_ids );
+
+		$this->gateway
+			->expects( '' === $payment_information['selected_payment_type'] ? $this->never() : $this->exactly( 2 ) )
+			->method( 'get_upe_enabled_payment_method_ids' )
+			->willReturn( $mocked_ids );
+
+		$actual = $this->mock_controller->update_and_confirm_payment_intent( $payment_intent, $payment_information );
+		$this->assertEquals( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_update_and_confirm_payment_intent` method.
+	 *
+	 * @return array
+	 */
+	public function provide_test_update_and_confirm_payment_intent() {
+		$payment_information = [
+			'amount'                       => 100,
+			'capture_method'               => 'automatic',
+			'currency'                     => 'usd',
+			'customer'                     => 'cus_123',
+			'level3'                       => [ 'test' => 'test' ],
+			'metadata'                     => [],
+			'payment_method'               => 'pm_123',
+			'save_payment_method_to_store' => false,
+			'shipping'                     => [],
+			'statement_descriptor'         => '',
+			'selected_payment_type'        => '',
+		];
+
+		$payment_information_with_selected_method = array_merge(
+			$payment_information,
+			[
+				'selected_payment_type' => WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+			]
+		);
+
+		$payment_intent_regular = [ 'id' => 'pi_123' ];
+		$payment_intent_error   = (object) array_merge(
+			$payment_intent_regular,
+			[
+				'error' => (object) [
+					'message' => 'error',
+				],
+			]
+		);
+		return [
+			'payment method not selected' => [
+				'payment information' => $payment_information,
+				'payment intent'      => (object) $payment_intent_regular,
+				'expected'            => (object) $payment_intent_regular,
+			],
+			'payment intent error'        => [
+				'payment information' => $payment_information_with_selected_method,
+				'payment intent'      => $payment_intent_error,
+				'expected'            => null,
+				'expected exception'  => WC_Stripe_Exception::class,
+			],
+			'success'                     => [
+				'payment information' => $payment_information_with_selected_method,
+				'payment intent'      => (object) $payment_intent_regular,
+				'expected'            => (object) $payment_intent_regular,
+			],
+		];
+	}
 }
