@@ -102,7 +102,7 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 					{ __( 'Payment methods', 'woocommerce-gateway-stripe' ) }
 				</span>{ ' ' }
 				{ isUpeEnabled && (
-					<Pill>
+					<Pill data-testid="upe-early-access-pill">
 						{ __( 'Early access', 'woocommerce-gateway-stripe' ) }
 					</Pill>
 				) }
