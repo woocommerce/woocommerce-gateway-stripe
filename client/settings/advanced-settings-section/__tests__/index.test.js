@@ -1,6 +1,5 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import AdvancedSettings from '..';
 import {
 	useDebugLog,
@@ -26,15 +25,8 @@ describe( 'AdvancedSettings', () => {
 		useSettings.mockReturnValue( { isLoading: false } );
 	} );
 
-	it( 'toggles the advanced settings section', () => {
+	it( 'renders the advanced settings section', () => {
 		render( <AdvancedSettings /> );
-
-		expect( screen.queryByText( 'Debug mode' ) ).not.toBeInTheDocument();
-		expect(
-			screen.queryByText( 'New checkout experience' )
-		).not.toBeInTheDocument();
-
-		userEvent.click( screen.getByText( 'Advanced settings' ) );
 
 		expect( screen.queryByText( 'Debug mode' ) ).toBeInTheDocument();
 		expect(
