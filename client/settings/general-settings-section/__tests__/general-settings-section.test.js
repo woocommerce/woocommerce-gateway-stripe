@@ -593,4 +593,28 @@ describe( 'GeneralSettingsSection', () => {
 			screen.queryByTestId( 'unavailable-payment-methods-list' )
 		).not.toBeInTheDocument();
 	} );
+
+	it( 'should not render "early access" pill if UPE is disabled', () => {
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		expect(
+			screen.queryByTestId( 'upe-early-access-pill' )
+		).not.toBeInTheDocument();
+	} );
+
+	it( 'menu should not contain "refresh payment method options" if UPE is disabled', () => {
+		render(
+			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
+				<GeneralSettingsSection />
+			</UpeToggleContext.Provider>
+		);
+
+		expect(
+			screen.queryByText( /Refresh payment methods/ )
+		).not.toBeInTheDocument();
+	} );
 } );

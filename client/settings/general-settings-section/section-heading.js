@@ -79,15 +79,33 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 		onChangeDisplayOrder( false, orderedPaymentMethodIds );
 	};
 
+	const menuControls = [
+		{
+			title: __( 'Disable', 'woocommerce-gateway-stripe' ),
+			onClick: toggleConfirmationModal,
+		},
+	];
+	if ( isUpeEnabled ) {
+		menuControls.unshift( {
+			title: __(
+				'Refresh payment methods',
+				'woocommerce-gateway-stripe'
+			),
+			onClick: refreshAccount,
+		} );
+	}
+
 	return (
 		<StyledHeader>
 			<Title>
 				<span>
 					{ __( 'Payment methods', 'woocommerce-gateway-stripe' ) }
 				</span>{ ' ' }
-				<Pill>
-					{ __( 'Early access', 'woocommerce-gateway-stripe' ) }
-				</Pill>
+				{ isUpeEnabled && (
+					<Pill data-testid="upe-early-access-pill">
+						{ __( 'Early access', 'woocommerce-gateway-stripe' ) }
+					</Pill>
+				) }
 			</Title>
 			{ isConfirmationModalOpen && (
 				<DisableUpeConfirmationModal
@@ -114,22 +132,7 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 								'Payment methods menu',
 								'woocommerce-gateway-stripe'
 							) }
-							controls={ [
-								{
-									title: __(
-										'Refresh payment methods',
-										'woocommerce-gateway-stripe'
-									),
-									onClick: refreshAccount,
-								},
-								{
-									title: __(
-										'Disable',
-										'woocommerce-gateway-stripe'
-									),
-									onClick: toggleConfirmationModal,
-								},
-							] }
+							controls={ menuControls }
 						/>
 					</>
 				) : (
