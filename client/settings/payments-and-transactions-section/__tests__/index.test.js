@@ -103,7 +103,7 @@ describe( 'PaymentsAndTransactionsSection', () => {
 			document.querySelector(
 				'.shortened-bank-statement .transaction-detail.description'
 			)
-		).toHaveTextContent( 'WOOTEST* #123456' );
+		).toHaveTextContent( 'WOOTEST* W #123456' );
 	} );
 
 	it( 'should not show the shortened customer bank statement preview when useIsShortAccountStatementEnabled is false', () => {
