@@ -67,6 +67,12 @@ const PaymentsAndTransactionsSection = () => {
 		data?.account?.settings?.card_payments?.statement_descriptor_prefix ||
 		'';
 
+	// Stripe requires the short statement descriptor suffix to have at least 1 latin character.
+	// To meet this requirement, we use the first character of the full statement descriptor.
+	const shortStatementDescriptorSuffix = stripeAccountShortStatementDescriptor.charAt(
+		0
+	);
+
 	return (
 		<Card className="transactions-and-payouts">
 			<CardBody>
@@ -211,7 +217,7 @@ const PaymentsAndTransactionsSection = () => {
 								'Cards & Express Checkouts',
 								'woocommerce-gateway-stripe'
 							) }
-							text={ `${ stripeAccountShortStatementDescriptor }* #123456` }
+							text={ `${ stripeAccountShortStatementDescriptor }* ${ shortStatementDescriptorSuffix } #123456` }
 							className="shortened-bank-statement"
 						/>
 					) }
