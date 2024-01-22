@@ -192,9 +192,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		return [ $amount, $description, $metadata ];
 	}
 
-	  /**
-	   * @dataProvider get_upe_available_payment_methods_provider
-	   */
+	/**
+	 * @dataProvider get_upe_available_payment_methods_provider
+	 */
 	public function test_get_upe_available_payment_methods( $country, $available_payment_methods ) {
 		$this->set_stripe_account_data( [ 'country' => $country ] );
 		$this->assertSame( $available_payment_methods, $this->mock_gateway->get_upe_available_payment_methods() );
@@ -251,21 +251,21 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		];
 	}
 
-	  /**
-	   * CLASSIC CHECKOUT TESTS.
-	   */
+	/**
+	 * CLASSIC CHECKOUT TESTS.
+	 */
 
-	  /**
-	   * Test payment fields HTML output.
-	   */
+	/**
+	 * Test payment fields HTML output.
+	 */
 	public function test_payment_fields_outputs_fields() {
 		$this->mock_gateway->payment_fields();
 		$this->expectOutputRegex( '/<div class="wc-stripe-upe-element"><\/div>/' );
 	}
 
-	  /**
-	   * Test basic checkout process_payment flow.
-	   */
+	/**
+	 * Test basic checkout process_payment flow.
+	 */
 	public function test_process_payment_returns_valid_response() {
 		$payment_intent_id = 'pi_mock';
 		$customer_id       = 'cus_mock';
@@ -318,9 +318,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/save_payment_method=no/', $response['redirect_url'] );
 	}
 
-	  /**
-	   * Test basic checkout process_payment flow with deferred intent.
-	   */
+	/**
+	 * Test basic checkout process_payment flow with deferred intent.
+	 */
 	public function test_process_payment_deferred_intent_returns_valid_response() {
 		$customer_id = 'cus_mock';
 		$order       = WC_Helper_Order::create_order();
@@ -366,9 +366,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( self::MOCK_RETURN_URL, $response['redirect'] );
 	}
 
-	  /**
-	   * Test SCA/3DS checkout process_payment flow with deferred intent.
-	   */
+	/**
+	 * Test SCA/3DS checkout process_payment flow with deferred intent.
+	 */
 	public function test_process_payment_deferred_intent_with_required_action_returns_valid_response() {
 		$customer_id = 'cus_mock';
 		$order       = WC_Helper_Order::create_order();
@@ -385,7 +385,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					],
 				],
 				'payment_method' => 'pm_mock',
-				'charges'        => (object) [
+				'charges' => (object) [
 					'total_count' => 0, // Intents requiring SCA verification respond with no charges.
 					'data'        => [],
 				],
@@ -422,9 +422,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( "/#wc-stripe-confirm-pi:{$order_id}:{$mock_intent->client_secret}/", $response['redirect'] );
 	}
 
-	  /**
-	   * Exception handling of the process_payment flow with deferred intent.
-	   */
+	/**
+	 * Exception handling of the process_payment flow with deferred intent.
+	 */
 	public function test_process_payment_deferred_intent_handles_exception() {
 		$payment_intent_id = 'pi_mock';
 		$customer_id       = 'cus_mock';
@@ -552,9 +552,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'failed', $processed_order->get_status() );
 	}
 
-	  /**
-	   * Test basic redirect payment processed correctly.
-	   */
+	/**
+	 * Test basic redirect payment processed correctly.
+	 */
 	public function test_process_redirect_payment_returns_valid_response() {
 		$payment_intent_id = 'pi_mock';
 		$payment_method_id = 'pm_mock';
@@ -604,9 +604,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
 	}
 
-	  /**
-	   * Test redirect payment processed only runs once.
-	   */
+	/**
+	 * Test redirect payment processed only runs once.
+	 */
 	public function test_process_redirect_payment_only_runs_once() {
 		$payment_intent_id = 'pi_mock';
 		$payment_method_id = 'pm_mock';
@@ -669,9 +669,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'failed', $final_order->get_status() );
 	}
 
-	  /**
-	   * Test checkout flow with setup intents.
-	   */
+	/**
+	 * Test checkout flow with setup intents.
+	 */
 	public function test_checkout_without_payment_uses_setup_intents() {
 		$setup_intent_id   = 'seti_mock';
 		$payment_method_id = 'pm_mock';
@@ -718,9 +718,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Credit card / debit card', $final_order->get_payment_method_title() );
 	}
 
-	  /**
-	   * Test checkout flow while saving payment method.
-	   */
+	/**
+	 * Test checkout flow while saving payment method.
+	 */
 	public function test_checkout_saves_payment_method_to_order() {
 		$payment_intent_id = 'pi_mock';
 		$payment_method_id = 'pm_mock';
@@ -769,9 +769,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
 	}
 
-	  /**
-	   * Test checkout flow while saving payment method with SEPA generated payment method.
-	   */
+	/**
+	 * Test checkout flow while saving payment method with SEPA generated payment method.
+	 */
 	public function test_checkout_saves_sepa_generated_payment_method_to_order() {
 		$payment_intent_id           = 'pi_mock';
 		$payment_method_id           = 'pm_mock';
@@ -825,9 +825,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( $generated_payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
 	}
 
-	  /**
-	   * Test checkout flow while saving payment method with SEPA generated payment method AND setup intents.
-	   */
+	/**
+	 * Test checkout flow while saving payment method with SEPA generated payment method AND setup intents.
+	 */
 	public function test_setup_intent_checkout_saves_sepa_generated_payment_method_to_order() {
 		$setup_intent_id             = 'seti_mock';
 		$payment_method_id           = 'pm_mock';
@@ -883,9 +883,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( $generated_payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
 	}
 
-	  /**
-	   * Test errors on intent throw exceptions.
-	   */
+	/**
+	 * Test errors on intent throw exceptions.
+	 */
 	public function test_intent_error_throws_exception() {
 		$payment_intent_id = 'pi_mock';
 		$setup_intent_id   = 'seti_mock';
@@ -933,9 +933,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/not able to process this payment./', $exception->getMessage() );
 	}
 
-	  /**
-	   * Test order status corresponds with charge status.
-	   */
+	/**
+	 * Test order status corresponds with charge status.
+	 */
 	public function test_process_response_updates_order_by_charge_status() {
 		$payment_method_id = 'pm_mock';
 		$customer_id       = 'cus_mock';
@@ -1000,13 +1000,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/Payment processing failed./', $exception->getLocalizedMessage() );
 	}
 
-	  /**
-	   * TESTS FOR SAVED PAYMENTS.
-	   */
+	/**
+	 * TESTS FOR SAVED PAYMENTS.
+	 */
 
-	  /**
-	   * Test basic checkout with saved payment method.
-	   */
+	/**
+	 * Test basic checkout with saved payment method.
+	 */
 	public function test_process_payment_with_saved_method_returns_valid_response() {
 		$token = $this->set_postvars_for_saved_payment_method();
 
@@ -1068,9 +1068,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
 	}
 
-	  /**
-	   * Test SCA 3DS flow with saved payment method.
-	   */
+	/**
+	 * Test SCA 3DS flow with saved payment method.
+	 */
 	public function test_sca_checkout_with_saved_payment_method_redirects_client() {
 		$token = $this->set_postvars_for_saved_payment_method();
 
@@ -1128,9 +1128,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( "/#wc-stripe-confirm-pi:$order_id:$client_secret/", $response['redirect'] );
 	}
 
-	  /**
-	   * Test error state with fatal test during checkout with saved payment method.
-	   */
+	/**
+	 * Test error state with fatal test during checkout with saved payment method.
+	 */
 	public function test_checkout_with_saved_payment_method_non_retryable_error_throws_exception() {
 		$token = $this->set_postvars_for_saved_payment_method();
 
@@ -1176,9 +1176,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
 	}
 
-	  /**
-	   * Tests retryable error during checkout using saved payment method.
-	   */
+	/**
+	 * Tests retryable error during checkout using saved payment method.
+	 */
 	public function test_checkout_with_saved_payment_method_retries_error_when_possible() {
 		$token = $this->set_postvars_for_saved_payment_method();
 
@@ -1256,9 +1256,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
 	}
 
-	  /**
-	   * Tests that retryable error fails after 6 attempts.
-	   */
+	/**
+	 * Tests that retryable error fails after 6 attempts.
+	 */
 	public function test_checkout_with_saved_payment_method_fails_after_six_attempts() {
 		$token = $this->set_postvars_for_saved_payment_method();
 
@@ -1330,13 +1330,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( '', $final_order->get_meta( '_stripe_customer_id', true ) );
 	}
 
-	  /**
-	   * TESTS FOR SUBSCRIPTIONS.
-	   */
+	/**
+	 * TESTS FOR SUBSCRIPTIONS.
+	 */
 
-	  /**
-	   * Initial subscription test.
-	   */
+	/**
+	 * Initial subscription test.
+	 */
 	public function test_if_order_has_subscription_payment_method_will_be_saved() {
 		$payment_intent_id = 'pi_mock';
 		$customer_id       = 'cus_mock';
@@ -1395,9 +1395,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/save_payment_method=yes/', $response['redirect_url'] );
 	}
 
-	  /**
-	   * Initial subscription test with free-trial.
-	   */
+	/**
+	 * Initial subscription test with free-trial.
+	 */
 	public function test_if_free_trial_subscription_will_not_update_intent() {
 		$setup_intent_id = 'seti_mock';
 		$order           = WC_Helper_Order::create_order();
@@ -1428,9 +1428,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertMatchesRegularExpression( '/save_payment_method=yes/', $response['redirect_url'] );
 	}
 
-	  /**
-	   * Test successful subscription renewal.
-	   */
+	/**
+	 * Test successful subscription renewal.
+	 */
 	public function test_subscription_renewal_is_successful() {
 		$this->set_postvars_for_saved_payment_method();
 
@@ -1508,9 +1508,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( [ 'wc_gateway_stripe_process_payment' ], $mock_action_process_payment->get_tags() );
 	}
 
-	  /**
-	   * Tests subscription renewal when authorization on payment method is required.
-	   */
+	/**
+	 * Tests subscription renewal when authorization on payment method is required.
+	 */
 	public function test_subscription_renewal_checks_payment_method_authorization() {
 		$this->set_postvars_for_saved_payment_method();
 
@@ -1597,13 +1597,13 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( [ 'wc_gateway_stripe_process_payment_authentication_required' ], $mock_action_process_payment->get_tags() );
 	}
 
-	  /**
-	   * TESTS FOR PRE-ORDERS.
-	   */
+	/**
+	 * TESTS FOR PRE-ORDERS.
+	 */
 
-	  /**
-	   * Pre-order payment is successful.
-	   */
+	/**
+	 * Pre-order payment is successful.
+	 */
 	public function test_pre_order_payment_is_successful() {
 		$payment_intent_id = 'pi_mock';
 		$payment_method_id = 'pm_mock';
@@ -1661,9 +1661,9 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertTrue( (bool) $final_order->get_meta( '_stripe_upe_redirect_processed', true ) );
 	}
 
-	  /**
-	   * Pre-order with no required payment uses setup intents.
-	   */
+	/**
+	 * Pre-order with no required payment uses setup intents.
+	 */
 	public function test_pre_order_without_payment_uses_setup_intents() {
 		$setup_intent_id   = 'seti_mock';
 		$payment_method_id = 'pm_mock';
