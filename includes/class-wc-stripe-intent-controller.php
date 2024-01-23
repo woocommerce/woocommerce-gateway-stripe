@@ -691,7 +691,25 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function create_and_confirm_payment_intent( $payment_information ) {
 		// Throws a WC_Stripe_Exception if required information is missing.
-		$this->validate_create_and_confirm_intent_payment_information( $payment_information );
+		$required_params = [
+			'amount',
+			'capture_method',
+			'currency',
+			'customer',
+			'level3',
+			'metadata',
+			'order',
+			'payment_method',
+			'save_payment_method_to_store',
+			'shipping',
+			'statement_descriptor',
+		];
+
+		$non_empty_params = [ 'payment_method' ];
+
+		$instance_params = [ 'order' => 'WC_Order' ];
+
+		$this->validate_payment_intent_required_params( $required_params, $non_empty_params, $instance_params, $payment_information );
 
 		$order                 = $payment_information['order'];
 		$selected_payment_type = $payment_information['selected_payment_type'];
@@ -783,26 +801,7 @@ class WC_Stripe_Intent_Controller {
 			'payment_method_types',
 		];
 
-		$missing_params = [];
-		foreach ( $required_params as $param ) {
-			// Check if they're set. Some can be null.
-			if ( ! array_key_exists( $param, $payment_information ) ) {
-				$missing_params[] = $param;
-			}
-		}
-
-		$shopper_error_message = __( 'Please reach out to us if the problem persists.', 'woocommerce-gateway-stripe' );
-
-		// Bail out if we're missing required information.
-		if ( ! empty( $missing_params ) ) {
-			throw new WC_Stripe_Exception(
-				sprintf(
-					'The information for creating and confirming the intent is missing the following data: %s.',
-					implode( ', ', $missing_params )
-				),
-				$shopper_error_message
-			);
-		}
+		$this->validate_payment_intent_required_params( $required_params, [], [], $payment_information );
 
 		$selected_payment_type = $payment_information['selected_payment_type'];
 		$payment_method_types  = $payment_information['payment_method_types'];
@@ -834,27 +833,16 @@ class WC_Stripe_Intent_Controller {
 	}
 
 	/**
-	 * Validate the provided information for creating and confirming a payment intent.
+	 * Determines if the request contains all the required params for creating or updating a payment intent.
 	 *
+	 * @param array $required_params The required parameters for the payment intent.
+	 * @param array $non_empty_params The parameters that must not contain an empty value.
+	 * @param array $instance_params The parameters that must be of a specific type.
 	 * @param array $payment_information The payment information to be validated.
-	 *
-	 * @throws WC_Stripe_Exception If the required data is missing.
+	 * @return void
+	 * @throws WC_Stripe_Exception
 	 */
-	private function validate_create_and_confirm_intent_payment_information( array $payment_information ) {
-		$required_params = [
-			'amount',
-			'capture_method',
-			'currency',
-			'customer',
-			'level3',
-			'metadata',
-			'order',
-			'payment_method',
-			'save_payment_method_to_store',
-			'shipping',
-			'statement_descriptor',
-		];
-
+	private function validate_payment_intent_required_params( $required_params, $non_empty_params, $instance_params, $payment_information ) {
 		$missing_params = [];
 		foreach ( $required_params as $param ) {
 			// Check if they're set. Some can be null.
@@ -863,27 +851,15 @@ class WC_Stripe_Intent_Controller {
 			}
 		}
 
-		$shopper_error_message = __( 'Please reach out to us if the problem persists.', 'woocommerce-gateway-stripe' );
-
-		// Bail out if we're missing required information.
-		if ( ! empty( $missing_params ) ) {
-			throw new WC_Stripe_Exception(
-				sprintf(
-					'The information for creating and confirming the intent is missing the following data: %s.',
-					implode( ', ', $missing_params )
-				),
-				$shopper_error_message
-			);
-		}
-
 		// Some params must not contain an empty value.
-		$non_empty_params = [ 'payment_method' ];
 		foreach ( $non_empty_params as $param ) {
 			if ( empty( $payment_information[ $param ] ) ) {
 				$missing_params[] = $param;
 			}
 		}
 
+		$shopper_error_message = __( 'There was a problem processing the payment.', 'woocommerce-gateway-stripe' );
+
 		// Bail out if we're missing required information.
 		if ( ! empty( $missing_params ) ) {
 			throw new WC_Stripe_Exception(
@@ -895,12 +871,18 @@ class WC_Stripe_Intent_Controller {
 			);
 		}
 
-		// Bail out if the "order" parameter isn't a WC_Order.
-		if ( ! is_a( $payment_information['order'], 'WC_Order' ) ) {
-			throw new WC_Stripe_Exception(
-				'The provided value for the "order" parameter is not a WC_Order',
-				$shopper_error_message
-			);
+		// Check if the instance params are of the correct type.
+		foreach ( $instance_params as $param => $type ) {
+			if ( ! is_a( $payment_information[ $param ], $type ) ) {
+				throw new WC_Stripe_Exception(
+					sprintf(
+						'The provided value for the "%s" parameter is not a %s.',
+						$param,
+						$type
+					),
+					__( 'Please reach out to us if the problem persists.', 'woocommerce-gateway-stripe' )
+				);
+			}
 		}
 	}
 
