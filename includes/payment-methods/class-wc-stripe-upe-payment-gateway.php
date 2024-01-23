@@ -257,6 +257,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			true
 		);
 
+		wp_register_style( 'stripelink_styles', plugins_url( 'assets/css/stripe-link.css', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );
+		wp_enqueue_style( 'stripelink_styles' );
+
+		// The rest of this function is specific to classic pages so bail if we're not on one.
+		if ( WC_Stripe_Helper::has_cart_or_checkout_block_on_current_page() ) {
+			return;
+		}
+
 		wp_register_script(
 			'wc-stripe-upe-classic',
 			WC_STRIPE_PLUGIN_URL . '/build/upe_classic.js',
@@ -284,9 +292,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		wp_enqueue_script( 'wc-stripe-upe-classic' );
 		wp_enqueue_style( 'wc-stripe-upe-classic' );
-
-		wp_register_style( 'stripelink_styles', plugins_url( 'assets/css/stripe-link.css', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );
-		wp_enqueue_style( 'stripelink_styles' );
 	}
 
 	/**

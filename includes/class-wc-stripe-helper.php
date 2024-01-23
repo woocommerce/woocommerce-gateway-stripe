@@ -689,7 +689,16 @@ class WC_Stripe_Helper {
 	 * @return boolean
 	 */
 	public static function has_cart_or_checkout_on_current_page() {
-		return is_cart() || is_checkout() || has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' );
+		return is_cart() || is_checkout() || self::has_cart_or_checkout_block_on_current_page();
+	}
+
+	/**
+	 * Checks if this page has a cart or checkout block.
+	 *
+	 * @return bool
+	 */
+	public static function has_cart_or_checkout_block_on_current_page() {
+		return has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' );
 	}
 
 	/**
