@@ -715,37 +715,22 @@ class WC_Stripe_Intent_Controller {
 		$selected_payment_type = $payment_information['selected_payment_type'];
 		$payment_method_types  = $payment_information['payment_method_types'];
 
-		$request = [
-			'amount'               => $payment_information['amount'],
-			'capture_method'       => $payment_information['capture_method'],
-			'confirm'              => 'true',
-			'currency'             => $payment_information['currency'],
-			'customer'             => $payment_information['customer'],
-			/* translators: 1) blog name 2) order number */
-			'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
-			'metadata'             => $payment_information['metadata'],
-			'payment_method'       => $payment_information['payment_method'],
-			'payment_method_types' => $payment_method_types,
-			'shipping'             => $payment_information['shipping'],
-			'statement_descriptor' => $payment_information['statement_descriptor'],
-		];
+		$request = $this->build_base_payment_intent_request_params( $payment_information );
 
-		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
-		if ( $this->is_mandate_data_required( $selected_payment_type ) ) {
-			$request['mandate_data'] = [
-				'customer_acceptance' => [
-					'type'   => 'online',
-					'online' => [
-						'ip_address' => WC_Geolocation::get_ip_address(),
-						'user_agent' => 'WooCommerce Stripe Gateway' . WC_STRIPE_VERSION . '; ' . get_bloginfo( 'url' ),
-					],
-				],
-			];
-		}
-
-		if ( $this->request_needs_redirection( $payment_method_types ) ) {
-			$request['return_url'] = $payment_information['return_url'];
-		}
+		$request = array_merge(
+			$request,
+			[
+				'amount'               => $payment_information['amount'],
+				'confirm'              => 'true',
+				'currency'             => $payment_information['currency'],
+				'customer'             => $payment_information['customer'],
+				/* translators: 1) blog name 2) order number */
+				'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
+				'metadata'             => $payment_information['metadata'],
+				'payment_method_types' => $payment_method_types,
+				'statement_descriptor' => $payment_information['statement_descriptor'],
+			]
+		);
 
 		// For voucher payment methods type like Boleto & Oxxo, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
 		// When the intent is confirmed, Stripe sends a webhook to the store which puts the order on-hold, which we only want to happen after successfully displaying the voucher.
@@ -803,31 +788,7 @@ class WC_Stripe_Intent_Controller {
 
 		$this->validate_payment_intent_required_params( $required_params, [], [], $payment_information );
 
-		$selected_payment_type = $payment_information['selected_payment_type'];
-		$payment_method_types  = $payment_information['payment_method_types'];
-
-		$request = [
-			'capture_method' => $payment_information['capture_method'],
-			'payment_method' => $payment_information['payment_method'],
-			'shipping'       => $payment_information['shipping'],
-		];
-
-		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
-		if ( $this->is_mandate_data_required( $selected_payment_type ) ) {
-			$request['mandate_data'] = [
-				'customer_acceptance' => [
-					'type'   => 'online',
-					'online' => [
-						'ip_address' => WC_Geolocation::get_ip_address(),
-						'user_agent' => 'WooCommerce Stripe Gateway' . WC_STRIPE_VERSION . '; ' . get_bloginfo( 'url' ),
-					],
-				],
-			];
-		}
-
-		if ( $this->request_needs_redirection( $payment_method_types ) ) {
-			$request['return_url'] = $payment_information['return_url'];
-		}
+		$request = $this->build_base_payment_intent_request_params( $payment_information );
 
 		return WC_Stripe_API::request( $request, "payment_intents/{$payment_intent->id}/confirm" );
 	}
@@ -884,6 +845,43 @@ class WC_Stripe_Intent_Controller {
 				);
 			}
 		}
+	}
+
+	/**
+	 * Builds the base request parameters for creating/updating and confirming a payment intent.
+	 *
+	 * @param array $payment_information The payment information needed for creating/updating and confirming the intent.
+	 *
+	 * @return array The request parameters for creating/updating and confirming a payment intent.
+	 */
+	private function build_base_payment_intent_request_params( $payment_information ) {
+		$selected_payment_type = $payment_information['selected_payment_type'];
+		$payment_method_types  = $payment_information['payment_method_types'];
+
+		$request = [
+			'capture_method' => $payment_information['capture_method'],
+			'payment_method' => $payment_information['payment_method'],
+			'shipping'       => $payment_information['shipping'],
+		];
+
+		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
+		if ( $this->is_mandate_data_required( $selected_payment_type ) ) {
+			$request['mandate_data'] = [
+				'customer_acceptance' => [
+					'type'   => 'online',
+					'online' => [
+						'ip_address' => WC_Geolocation::get_ip_address(),
+						'user_agent' => 'WooCommerce Stripe Gateway' . WC_STRIPE_VERSION . '; ' . get_bloginfo( 'url' ),
+					],
+				],
+			];
+		}
+
+		if ( $this->request_needs_redirection( $payment_method_types ) ) {
+			$request['return_url'] = $payment_information['return_url'];
+		}
+
+		return $request;
 	}
 
 	/**
