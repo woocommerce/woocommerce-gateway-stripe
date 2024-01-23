@@ -769,9 +769,9 @@ class WC_Stripe_Intent_Controller {
 	 * @param object $payment_intent       The payment intent to update.
 	 * @param array $payment_information The payment information needed for creating and confirming the intent.
 	 *
-	 * @throws WC_Stripe_Exception - If the create intent call returns with an error.
+	 * @throws WC_Stripe_Exception - If any of the required information is missing.
 	 *
-	 * @return void
+	 * @return array
 	 */
 	public function update_and_confirm_payment_intent( $payment_intent, $payment_information ) {
 		// Throws a WC_Stripe_Exception if required information is missing.
@@ -830,13 +830,7 @@ class WC_Stripe_Intent_Controller {
 			$request['return_url'] = $payment_information['return_url'];
 		}
 
-		$payment_intent = WC_Stripe_API::request( $request, "payment_intents/{$payment_intent->id}/confirm" );
-
-		// Throw an exception when there's an error.
-		if ( ! empty( $payment_intent->error ) ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
-			throw new WC_Stripe_Exception( print_r( $payment_intent->error, true ), $payment_intent->error->message );
-		}
+		return WC_Stripe_API::request( $request, "payment_intents/{$payment_intent->id}/confirm" );
 	}
 
 	/**
