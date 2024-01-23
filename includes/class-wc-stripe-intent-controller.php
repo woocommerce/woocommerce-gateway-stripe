@@ -771,7 +771,7 @@ class WC_Stripe_Intent_Controller {
 	 *
 	 * @throws WC_Stripe_Exception - If the create intent call returns with an error.
 	 *
-	 * @return array
+	 * @return void
 	 */
 	public function update_and_confirm_payment_intent( $payment_intent, $payment_information ) {
 		// Throws a WC_Stripe_Exception if required information is missing.
@@ -837,8 +837,6 @@ class WC_Stripe_Intent_Controller {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
 			throw new WC_Stripe_Exception( print_r( $payment_intent->error, true ), $payment_intent->error->message );
 		}
-
-		return $payment_intent;
 	}
 
 	/**

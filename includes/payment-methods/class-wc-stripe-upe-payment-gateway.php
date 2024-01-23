@@ -1667,7 +1667,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		// If the payment intent is not compatible, we need to create a new one. Throws an exception on error.
 		if ( $payment_intent ) {
 			// Update the existing payment intent if one exists.
-			$payment_intent = $this->intent_controller->update_and_confirm_payment_intent( $payment_intent, $payment_information );
+			$this->intent_controller->update_and_confirm_payment_intent( $payment_intent, $payment_information );
 		} else {
 			// Create (and confirm) a new payment intent if one doesn't exist.
 			$payment_intent = $this->intent_controller->create_and_confirm_payment_intent( $payment_information );

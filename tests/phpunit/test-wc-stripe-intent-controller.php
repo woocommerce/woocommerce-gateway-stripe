@@ -120,13 +120,12 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 *
 	 * @param array $payment_information Payment information.
 	 * @param object $payment_intent Payment intent.
-	 * @param string|null $expected Expected result.
 	 * @param string|null $expected_exception Expected exception.
 	 * @return void
 	 * @dataProvider provide_test_update_and_confirm_payment_intent
 	 * @throws WC_Stripe_Exception If invalid payment method type is passed.
 	 */
-	public function test_update_and_confirm_payment_intent( $payment_information, $payment_intent, $expected = null, $expected_exception = null ) {
+	public function test_update_and_confirm_payment_intent( $payment_information, $payment_intent, $expected_exception = null ) {
 		$payment_information = array_merge( $payment_information, [ 'order' => $this->order ] );
 
 		if ( $expected_exception ) {
@@ -144,7 +143,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 		add_filter( 'pre_http_request', $test_request, 10, 3 );
 
 		$actual = $this->mock_controller->update_and_confirm_payment_intent( $payment_intent, $payment_information );
-		$this->assertEquals( $expected, $actual );
+		$this->assertNull( $actual );
 	}
 
 	/**
@@ -180,19 +179,16 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			'missing params'       => [
 				'payment information' => $payment_information_missing_params,
 				'payment intent'      => (object) $payment_intent_regular,
-				'expected'            => null,
 				'expected exception'  => WC_Stripe_Exception::class,
 			],
 			'payment intent error' => [
 				'payment information' => $payment_information_regular,
 				'payment intent'      => $payment_intent_error,
-				'expected'            => null,
 				'expected exception'  => WC_Stripe_Exception::class,
 			],
 			'success'              => [
 				'payment information' => $payment_information_regular,
 				'payment intent'      => (object) $payment_intent_regular,
-				'expected'            => (object) $payment_intent_regular,
 			],
 		];
 	}
