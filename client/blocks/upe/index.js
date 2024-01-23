@@ -47,8 +47,7 @@ Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 				// Use `false` as fallback values in case server provided configuration is missing.
 				showSavedCards:
 					getBlocksConfiguration()?.showSavedCards ?? false,
-				showSaveOption:
-					getBlocksConfiguration()?.showSaveOption ?? false,
+				showSaveOption: upeConfig.isReusable ?? false,
 				features: getBlocksConfiguration()?.supports ?? [],
 			},
 		} );
