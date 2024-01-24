@@ -464,4 +464,48 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			}
 		}
 	}
+
+	/**
+	 * Tests that UPE methods are only enabled if Stripe is enabled and the individual methods is enabled in the settings.
+	 */
+	public function test_upe_method_enabled() {
+		// Enable Stripe and reset the accepted payment methods.
+		$stripe_settings = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings['enabled'] = 'yes';
+		$stripe_settings['upe_checkout_experience_accepted_payments'] = [];
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+
+		// For each method we'll test the following combinations:
+		$stripe_enabled_settings    = [ 'yes', 'no', '' ];
+		$upe_method_enabled_options = [ true, false ];
+
+		foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $payment_method ) {
+			foreach ( $stripe_enabled_settings as $stripe_enabled ) {
+				foreach ( $upe_method_enabled_options as $upe_method_enabled_option ) {
+					// Update the settings.
+					$stripe_settings['enabled'] = $stripe_enabled;
+
+					$payment_method_index = array_search( $payment_method::STRIPE_ID, $stripe_settings['upe_checkout_experience_accepted_payments'] );
+
+					if ( $upe_method_enabled_option && false === $payment_method_index ) {
+						$stripe_settings['upe_checkout_experience_accepted_payments'][] = $payment_method::STRIPE_ID;
+					} elseif ( ! $upe_method_enabled_option && false !== $payment_method_index ) {
+						unset( $stripe_settings['upe_checkout_experience_accepted_payments'][ $payment_method_index ] );
+					}
+
+					update_option( 'woocommerce_stripe_settings', $stripe_settings );
+
+					// Verify that the payment method is enabled/disabled.
+					$payment_method_instance = new $payment_method();
+
+					// The UPE methods is only enabled if Stripe is enabled and the method is enabled in the settings.
+					if ( 'yes' === $stripe_enabled && $upe_method_enabled_option ) {
+						$this->assertTrue( $payment_method_instance->is_enabled() );
+					} else {
+						$this->assertFalse( $payment_method_instance->is_enabled() );
+					}
+				}
+			}
+		}
+	}
 }
