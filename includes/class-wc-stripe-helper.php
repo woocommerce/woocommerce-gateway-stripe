@@ -351,14 +351,16 @@ class WC_Stripe_Helper {
 	 */
 	public static function get_legacy_payment_method_classes() {
 		$payment_method_classes = [
+			WC_Gateway_Stripe_Alipay::class,
 			WC_Gateway_Stripe_Bancontact::class,
+			WC_Gateway_Stripe_Boleto::class,
 			WC_Gateway_Stripe_EPS::class,
 			WC_Gateway_Stripe_Giropay::class,
 			WC_Gateway_Stripe_Ideal::class,
+			WC_Gateway_Stripe_Multibanco::class,
+			WC_Gateway_Stripe_Oxxo::class,
 			WC_Gateway_Stripe_p24::class,
 			WC_Gateway_Stripe_Sepa::class,
-			WC_Gateway_Stripe_Boleto::class,
-			WC_Gateway_Stripe_Oxxo::class,
 		];
 
 		/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
