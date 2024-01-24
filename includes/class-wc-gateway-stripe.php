@@ -663,19 +663,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		$legacy_enabled_gateways           = WC_Stripe_Helper::get_legacy_enabled_payment_methods();
-		$stripe_ordered_payment_method_ids = $this->get_option( 'stripe_legacy_method_order', [] );
+		$stripe_ordered_payment_method_ids = WC_Stripe_Helper::get_legacy_available_payment_method_ids();
 
-		// If the legacy method order is not set, consider the default order.
-		if ( empty( $stripe_ordered_payment_method_ids ) ) {
-			$payment_method_classes            = WC_Stripe_Helper::get_legacy_payment_method_classes();
-			$stripe_ordered_payment_method_ids = array_map(
-				function( $payment_method_class ) {
-					return $payment_method_class::ID;
-				},
-				$payment_method_classes
-			);
-			$stripe_ordered_payment_method_ids = array_merge( [ 'stripe' ], $stripe_ordered_payment_method_ids );
-		}
+		// Map the IDs of the Stripe payment methods to match the ones expected in the $gateways array.
+		$stripe_ordered_payment_method_ids = array_map(
+			function( $id ) {
+				return 'card' === $id ? 'stripe' : 'stripe_' . $id;
+			},
+			$stripe_ordered_payment_method_ids
+		);
 
 		// If Stripe is not found in the $gateways array, but other legacy methods are enabled,
 		// they will be placed on the top in their saved order, followed by other gateways.
