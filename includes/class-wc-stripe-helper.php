@@ -561,6 +561,31 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Gets the dynamic bank statement descriptor suffix.
+	 *
+	 * Stripe will automatically append this suffix to the merchant account's bank statement prefix.
+	 *
+	 * @param WC_Order $order The order to generate the suffix for.
+	 * @return string The statement descriptor suffix ("#{order-number}").
+	 */
+	public static function get_dynamic_statement_descriptor_suffix( $order ) {
+		$prefix = WC_Stripe::get_instance()->account->get_card_statement_prefix();
+		$suffix = '';
+
+		if ( method_exists( $order, 'get_order_number' ) && ! empty( $order->get_order_number() ) ) {
+			$suffix = '#' . $order->get_order_number();
+
+			// Stripe requires at least 1 latin (alphabet) character in the suffix so we add the first character of the prefix before the order number.
+			if ( 0 === preg_match( '/[a-zA-Z]/', $suffix ) ) {
+				$suffix = substr( $prefix, 0, 1 ) . ' ' . $suffix;
+			}
+		}
+
+		// Make sure that the prefix + suffix is limited at 22 characters.
+		return self::clean_statement_descriptor( substr( trim( $suffix ), 0, 22 - strlen( $prefix . '* ' ) ) );
+	}
+
+	/**
 	 * Sanitize statement descriptor text.
 	 *
 	 * Stripe requires max of 22 characters and no special characters.

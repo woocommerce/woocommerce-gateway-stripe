@@ -517,16 +517,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$save_payment_method       = $this->has_subscription( $order_id ) || ! empty( $_POST[ 'wc-' . self::ID . '-new-payment-method' ] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$selected_upe_payment_type = ! empty( $_POST['wc_stripe_selected_upe_payment_type'] ) ? wc_clean( wp_unslash( $_POST['wc_stripe_selected_upe_payment_type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 
-		$statement_descriptor                  = ! empty( $this->get_option( 'statement_descriptor' ) ) ? str_replace( "'", '', $this->get_option( 'statement_descriptor' ) ) : '';
-		$short_statement_descriptor            = ! empty( $this->get_option( 'short_statement_descriptor' ) ) ? str_replace( "'", '', $this->get_option( 'short_statement_descriptor' ) ) : '';
 		$is_short_statement_descriptor_enabled = ! empty( $this->get_option( 'is_short_statement_descriptor_enabled' ) ) && 'yes' === $this->get_option( 'is_short_statement_descriptor_enabled' );
-		$descriptor                            = null;
-		if ( 'card' === $selected_upe_payment_type && $is_short_statement_descriptor_enabled && ! ( empty( $short_statement_descriptor ) && empty( $statement_descriptor ) ) ) {
-			// Use the shortened statement descriptor for card transactions only
-			$descriptor = WC_Stripe_Helper::get_dynamic_statement_descriptor( $short_statement_descriptor, $order, $statement_descriptor );
-		} elseif ( ! empty( $statement_descriptor ) ) {
-			$descriptor = WC_Stripe_Helper::clean_statement_descriptor( $statement_descriptor );
-		}
 
 		if ( $payment_intent_id ) {
 			if ( $payment_needed ) {
@@ -537,10 +528,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$request = [
 					'amount'               => $converted_amount,
 					'currency'             => $currency,
-					'statement_descriptor' => $descriptor,
 					/* translators: 1) blog name 2) order number */
 					'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
 				];
+
+				// Use the dynamic + short statement descriptor if enabled and it's a card payment.
+				if ( 'card' === $selected_upe_payment_type && $is_short_statement_descriptor_enabled ) {
+					$request['statement_descriptor_suffix'] = WC_Stripe_Helper::get_dynamic_statement_descriptor_suffix( $order );
+				}
 
 				$customer = $this->get_stripe_customer_from_order( $order );
 
