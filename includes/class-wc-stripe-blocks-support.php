@@ -224,11 +224,24 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array  the JS configuration from the Stripe Payment Gateway.
 	 */
 	private function get_gateway_javascript_params() {
-		$js_configuration = [];
+		$js_configuration   = [];
+		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
 
-		$gateways = WC()->payment_gateways->get_available_payment_gateways();
-		if ( isset( $gateways['stripe'] ) ) {
-			$js_configuration = $gateways['stripe']->javascript_params();
+		if ( isset( $available_gateways['stripe'] ) ) {
+			$js_configuration = $available_gateways['stripe']->javascript_params();
+		} else {
+			$stripe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+			// If the main gateway is a UPE gateway, check if any of the UPE methods are available.
+			if ( is_a( $stripe_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+				foreach ( $stripe_gateway->payment_methods as $upe_method ) {
+					// If one of our UPE methods is available, use get the UPE gateway's JS configuration.
+					if ( isset( $available_gateways[ $upe_method->id ] ) ) {
+						$js_configuration = $stripe_gateway->javascript_params();
+						break;
+					}
+				}
+			}
 		}
 
 		return apply_filters(

@@ -136,7 +136,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$main_settings              = get_option( 'woocommerce_stripe_settings' );
 		$this->title                = ! empty( $this->get_option( 'title_upe' ) ) ? $this->get_option( 'title_upe' ) : $this->form_fields['title_upe']['default'];
 		$this->description          = '';
-		$this->enabled              = $this->get_option( 'enabled' );
+		$this->enabled              = wc_bool_to_string( $this->get_option( 'enabled' ) === 'yes' && isset( $this->payment_methods['card'] ) && $this->payment_methods['card']->is_enabled() );
 		$this->saved_cards          = 'yes' === $this->get_option( 'saved_cards' );
 		$this->testmode             = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
 		$this->publishable_key      = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';

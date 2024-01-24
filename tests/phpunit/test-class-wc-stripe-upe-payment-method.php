@@ -498,7 +498,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 					// Verify that the payment method is enabled/disabled.
 					$payment_method_instance = new $payment_method();
 
-					// The UPE methods is only enabled if Stripe is enabled and the method is enabled in the settings.
+					// The UPE method is only enabled if Stripe is enabled and the method is enabled in the settings.
 					if ( 'yes' === $stripe_enabled && $upe_method_enabled_option ) {
 						$this->assertTrue( $payment_method_instance->is_enabled() );
 					} else {
