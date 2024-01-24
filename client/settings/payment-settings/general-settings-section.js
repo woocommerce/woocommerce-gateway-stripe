@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import CardBody from '../card-body';
 import { AccountKeysModal } from './account-keys-modal';
 import TestModeCheckbox from './test-mode-checkbox';
-import DebugMode from './debug-mode';
 import {
 	useIsStripeEnabled,
 	useUpeTitle,
@@ -108,7 +107,6 @@ const GeneralSettingsSection = ( { setKeepModalContent } ) => {
 						/>
 					) }
 					<TestModeCheckbox />
-					<DebugMode />
 				</CardBody>
 			</StyledCard>
 		</>

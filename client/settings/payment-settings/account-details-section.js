@@ -77,9 +77,6 @@ const AccountDetailsSection = ( { setModalType, setKeepModalContent } ) => {
 		<Card className="account-details">
 			<CardHeader>
 				<HeaderDetails>
-					<h4>
-						{ __( 'Account status', 'woocommerce-gateway-stripe' ) }
-					</h4>
 					{ data.account?.email && (
 						<h4>( { data.account.email } )</h4>
 					) }
