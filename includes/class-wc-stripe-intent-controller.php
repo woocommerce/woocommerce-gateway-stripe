@@ -738,10 +738,6 @@ class WC_Stripe_Intent_Controller {
 			$request['confirm'] = 'false';
 		}
 
-		if ( $payment_information['save_payment_method_to_store'] ) {
-			$request['setup_future_usage'] = 'off_session';
-		}
-
 		// Run the necessary filter to make sure mandate information is added when it's required.
 		$request = apply_filters(
 			'wc_stripe_generate_create_intent_request',
@@ -888,6 +884,10 @@ class WC_Stripe_Intent_Controller {
 
 		if ( $this->request_needs_redirection( $payment_method_types ) ) {
 			$request['return_url'] = $payment_information['return_url'];
+		}
+
+		if ( $payment_information['save_payment_method_to_store'] ) {
+			$request['setup_future_usage'] = 'off_session';
 		}
 
 		return $request;
