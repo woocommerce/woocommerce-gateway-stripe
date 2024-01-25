@@ -136,7 +136,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$main_settings              = get_option( 'woocommerce_stripe_settings' );
 		$this->title                = ! empty( $this->get_option( 'title_upe' ) ) ? $this->get_option( 'title_upe' ) : $this->form_fields['title_upe']['default'];
 		$this->description          = '';
-		$this->enabled              = wc_bool_to_string( $this->get_option( 'enabled' ) === 'yes' && isset( $this->payment_methods['card'] ) && $this->payment_methods['card']->is_enabled() );
+		$this->enabled              = $this->get_option( 'enabled' );
 		$this->saved_cards          = 'yes' === $this->get_option( 'saved_cards' );
 		$this->testmode             = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
 		$this->publishable_key      = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
@@ -1348,8 +1348,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @since 5.6.0
 	 */
 	public function is_available() {
-		$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
-		if ( is_add_payment_method_page() && count( $methods_enabled_for_saved_payments ) === 0 ) {
+
+		// The main UPE gateway represents the card payment method. So it's only available if the card payment method is enabled and available.
+		if ( isset( $this->payment_methods['card'] ) && ( ! $this->payment_methods['card']->is_enabled() || ! $this->payment_methods['card']->is_available() ) ) {
 			return false;
 		}
 
