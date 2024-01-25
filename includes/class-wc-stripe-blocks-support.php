@@ -229,7 +229,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 
 		if ( isset( $available_gateways['stripe'] ) ) {
 			$js_configuration = $available_gateways['stripe']->javascript_params();
-		} elseif ( $this->is_upe_method_available( $gateways ) ) {
+		} elseif ( $this->is_upe_method_available( $available_gateways ) ) {
 			$js_configuration = WC_Stripe::get_instance()->get_main_stripe_gateway()->javascript_params();
 		}
 
