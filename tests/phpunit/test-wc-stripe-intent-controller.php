@@ -158,6 +158,16 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 			'shipping'              => [],
 			'selected_payment_type' => 'card',
 			'payment_method_types'  => [ 'card' ],
+			'level3'                => [
+				'line_items' => [
+					[
+						'product_code'        => '123',
+						'product_description' => 'test',
+						'unit_cost'           => 100,
+						'quantity'            => 1,
+					],
+				],
+			],
 		];
 
 		$payment_information_regular = array_merge(
