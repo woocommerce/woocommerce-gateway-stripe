@@ -332,10 +332,23 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 			$this->add_order_meta( $context->order, $data['payment_request_type'] );
 		}
 
-		// hook into stripe error processing so that we can capture the error to
-		// payment details (which is added to notices and thus not helpful for
-		// this context).
-		if ( 'stripe' === $context->payment_method ) {
+		$is_stripe_payment_method = $this->name === $context->payment_method;
+
+		// Check if the payment method is a UPE payment method. UPE methods start with `stripe_`.
+		if ( ! $is_stripe_payment_method && 0 === strpos( $context->payment_method, "{$this->name}_" ) ) {
+			$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+			// If the main gateway is not a UPE gateway, then we don't need to do anything.
+			if ( $main_gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
+				// Strip "Stripe_" from the payment method name to get the payment method type.
+				$payment_method_type      = substr( $context->payment_method, strlen( $this->name ) + 1 );
+				$is_stripe_payment_method = isset( $main_gateway->payment_methods[ $payment_method_type ] );
+			}
+		}
+
+		// Hook into Stripe error processing so that we can capture the error to payment details.
+		// This error would have been registered via wc_add_notice() and thus is not helpful for block checkout processing.
+		if ( $is_stripe_payment_method ) {
 			add_action(
 				'wc_gateway_stripe_process_payment_error',
 				function( $error ) use ( &$result ) {

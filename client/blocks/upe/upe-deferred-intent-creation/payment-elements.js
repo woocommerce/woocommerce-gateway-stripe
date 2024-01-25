@@ -5,10 +5,10 @@ import { Elements } from '@stripe/react-stripe-js';
 import PaymentProcessor from './payment-processor';
 import WCStripeAPI from 'wcstripe/api';
 import {
-	getStripeServerData,
 	getPaymentMethodTypes,
 	initializeUPEAppearance,
 } from 'wcstripe/stripe-utils';
+import { getBlocksConfiguration } from 'wcstripe/blocks/utils';
 
 /**
  * Renders a Stripe Payment elements component.
@@ -21,8 +21,8 @@ import {
  */
 const PaymentElements = ( { api, ...props } ) => {
 	const stripe = api.getStripe();
-	const amount = Number( getStripeServerData()?.cartTotal );
-	const currency = getStripeServerData()?.currency.toLowerCase();
+	const amount = Number( getBlocksConfiguration()?.cartTotal );
+	const currency = getBlocksConfiguration()?.currency.toLowerCase();
 	const appearance = initializeUPEAppearance();
 
 	return (

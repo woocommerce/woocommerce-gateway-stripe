@@ -400,7 +400,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 				<div id="wc-<?php echo esc_attr( $this->id ); ?>-upe-errors" role="alert"></div>
 			</fieldset>
 			<?php
-			if ( $this->is_saved_cards_enabled() && $this->is_reusable() ) {
+			if ( $this->should_show_save_option() ) {
 				$force_save_payment = ( $display_tokenization && ! apply_filters( 'wc_stripe_display_save_payment_method_checkbox', $display_tokenization ) ) || is_add_payment_method_page();
 				if ( is_user_logged_in() ) {
 					$this->save_payment_method_checkbox( $force_save_payment );
@@ -424,6 +424,15 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function is_saved_cards_enabled() {
 		return 'yes' === $this->get_option( 'saved_cards' );
+	}
+
+	/**
+	 * Determines if this payment method should show the save to account checkbox.
+	 *
+	 * @return bool
+	 */
+	public function should_show_save_option() {
+		return $this->is_reusable() && $this->is_saved_cards_enabled();
 	}
 
 	/**
