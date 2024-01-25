@@ -230,7 +230,6 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		if ( isset( $available_gateways['stripe'] ) ) {
 			$js_configuration = $available_gateways['stripe']->javascript_params();
 		} elseif ( $this->is_upe_method_available( $gateways ) ) {
-			// If the main gateway is a UPE gateway, check if any of the UPE methods are available.
 			$js_configuration = WC_Stripe::get_instance()->get_main_stripe_gateway()->javascript_params();
 		}
 
@@ -429,22 +428,20 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	}
 
 	/**
-	 * Determines if there is at least 1 UPE method available.
+	 * Determines if the UPE gateway is being used and if there is at least 1 UPE method available.
 	 *
 	 * @param array $available_gateways The available gateways.
 	 * @return bool True if there is at least 1 UPE method available, false otherwise.
 	 */
-	private function is_upe_method_available( $available_gateways = [] ) {
+	private function is_upe_method_available( $available_gateways ) {
 		$stripe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
 
 		if ( ! is_a( $stripe_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
 			return false;
 		}
 
-		$available_gateways = $available_gateways ?? WC()->payment_gateways->get_available_payment_gateways();
-
 		foreach ( $stripe_gateway->payment_methods as $upe_method ) {
-			// If one of our UPE methods is available, use get the UPE gateway's JS configuration.
+			// Exit once we've found one of our UPE methods.
 			if ( isset( $available_gateways[ $upe_method->id ] ) ) {
 				return true;
 			}
