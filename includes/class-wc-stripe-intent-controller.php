@@ -687,7 +687,7 @@ class WC_Stripe_Intent_Controller {
 	 *
 	 * @throws WC_Stripe_Exception - If the create intent call returns with an error.
 	 *
-	 * @return array
+	 * @return stdClass
 	 */
 	public function create_and_confirm_payment_intent( $payment_information ) {
 		// Throws a WC_Stripe_Exception if required information is missing.
@@ -739,6 +739,14 @@ class WC_Stripe_Intent_Controller {
 			$request['setup_future_usage'] = 'off_session';
 		}
 
+		// Run the necessary filter to make sure mandate information is added when it's required.
+		$request = apply_filters(
+			'wc_stripe_generate_create_intent_request',
+			$request,
+			$order,
+			null // $prepared_source parameter is not necessary for adding mandate information.
+		);
+
 		$payment_intent = WC_Stripe_API::request_with_level3_data(
 			$request,
 			'payment_intents',
@@ -750,14 +758,6 @@ class WC_Stripe_Intent_Controller {
 		if ( '' !== $selected_payment_type ) {
 			$order->update_meta_data( '_stripe_upe_payment_type', $selected_payment_type );
 		}
-
-		// Throw an exception when there's an error.
-		if ( ! empty( $payment_intent->error ) ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
-			throw new WC_Stripe_Exception( print_r( $payment_intent->error, true ), $payment_intent->error->message );
-		}
-
-		WC_Stripe_Helper::add_payment_intent_to_order( $payment_intent->id, $order );
 
 		return $payment_intent;
 	}
@@ -792,7 +792,26 @@ class WC_Stripe_Intent_Controller {
 			}
 		}
 
-		$shopper_error_message = __( 'There was a problem processing the payment.', 'woocommerce-gateway-stripe' );
+		$shopper_error_message = __( 'Please reach out to us if the problem persists.', 'woocommerce-gateway-stripe' );
+
+		// Bail out if we're missing required information.
+		if ( ! empty( $missing_params ) ) {
+			throw new WC_Stripe_Exception(
+				sprintf(
+					'The information for creating and confirming the intent is missing the following data: %s.',
+					implode( ', ', $missing_params )
+				),
+				$shopper_error_message
+			);
+		}
+
+		// Some params must not contain an empty value.
+		$non_empty_params = [ 'payment_method' ];
+		foreach ( $non_empty_params as $param ) {
+			if ( empty( $payment_information[ $param ] ) ) {
+				$missing_params[] = $param;
+			}
+		}
 
 		// Bail out if we're missing required information.
 		if ( ! empty( $missing_params ) ) {
