@@ -154,11 +154,11 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 	 */
 	public function provide_test_update_and_confirm_payment_intent() {
 		$payment_information_missing_params = [
-			'capture_method'        => 'automatic',
-			'shipping'              => [],
-			'selected_payment_type' => 'card',
-			'payment_method_types'  => [ 'card' ],
-			'level3'                => [
+			'capture_method'               => 'automatic',
+			'shipping'                     => [],
+			'selected_payment_type'        => 'card',
+			'payment_method_types'         => [ 'card' ],
+			'level3'                       => [
 				'line_items' => [
 					[
 						'product_code'        => '123',
@@ -168,6 +168,7 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 					],
 				],
 			],
+			'save_payment_method_to_store' => true,
 		];
 
 		$payment_information_regular = array_merge(

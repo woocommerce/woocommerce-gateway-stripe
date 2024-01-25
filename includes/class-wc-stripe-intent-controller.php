@@ -782,6 +782,7 @@ class WC_Stripe_Intent_Controller {
 			'payment_method_types',
 			'level3',
 			'order',
+			'save_payment_method_to_store',
 		];
 
 		$instance_params = [ 'order' => 'WC_Order' ];
@@ -790,11 +791,21 @@ class WC_Stripe_Intent_Controller {
 
 		$request = $this->build_base_payment_intent_request_params( $payment_information );
 
+		$order = $payment_information['order'];
+
+		// Run the necessary filter to make sure mandate information is added when it's required.
+		$request = apply_filters(
+			'wc_stripe_generate_create_intent_request',
+			$request,
+			$order,
+			null // $prepared_source parameter is not necessary for adding mandate information.
+		);
+
 		return WC_Stripe_API::request_with_level3_data(
 			$request,
 			"payment_intents/{$payment_intent->id}/confirm",
 			$payment_information['level3'],
-			$payment_information['order']
+			$order
 		);
 	}
 
