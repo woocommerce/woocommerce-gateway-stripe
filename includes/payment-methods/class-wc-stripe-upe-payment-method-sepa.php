@@ -20,7 +20,7 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 	public function __construct() {
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
-		$this->title                = __( 'Pay with SEPA Direct Debit', 'woocommerce-gateway-stripe' );
+		$this->title                = __( 'SEPA Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = true;
 		$this->supported_currencies = [ 'EUR' ];
 		$this->label                = __( 'SEPA Direct Debit', 'woocommerce-gateway-stripe' );
