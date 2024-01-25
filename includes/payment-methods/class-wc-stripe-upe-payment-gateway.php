@@ -200,10 +200,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Return the gateway icon - None for UPE.
+	 * Gets the payment method's icon.
+	 *
+	 * @return string The icon HTML.
 	 */
 	public function get_icon() {
-		return apply_filters( 'woocommerce_gateway_icon', null, $this->id );
+		$icons = WC_Stripe::get_instance()->get_main_stripe_gateway()->payment_icons();
+		return isset( $icons['cards'] ) ? apply_filters( 'woocommerce_gateway_icon', $icons['cards'], $this->id ) : parent::get_icon();
 	}
 
 	/**

@@ -3,6 +3,7 @@ import {
 	registerExpressPaymentMethod,
 } from '@woocommerce/blocks-registry';
 import { getPaymentMethodsConstants } from '../../stripe-utils/constants';
+import Icons from '../../payment-method-icons';
 import { getDeferredIntentCreationUPEFields } from './upe-deferred-intent-creation/payment-elements.js';
 import { SavedTokenHandler } from './saved-token-handler';
 import paymentRequestPaymentMethod from 'wcstripe/blocks/payment-request';
@@ -24,6 +25,7 @@ const upeMethods = getPaymentMethodsConstants();
 Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 	.filter( ( [ upeName ] ) => upeName !== 'link' )
 	.forEach( ( [ upeName, upeConfig ] ) => {
+		const icon = Icons[ upeName ];
 		registerPaymentMethod( {
 			name: upeMethods[ upeName ],
 			content: getDeferredIntentCreationUPEFields(
@@ -41,7 +43,14 @@ Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 			savedTokenComponent: <SavedTokenHandler api={ api } />,
 			canMakePayment: () => !! api.getStripe(),
 			// see .wc-block-checkout__payment-method styles in blocks/style.scss
-			label: upeConfig.title,
+			label: (
+				<>
+					<span>
+						{ upeConfig.title }
+						{ icon }
+					</span>
+				</>
+			),
 			ariaLabel: 'Stripe',
 			supports: {
 				// Use `false` as fallback values in case server provided configuration is missing.

@@ -339,6 +339,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				'sepa'       => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/sepa.svg" class="stripe-sepa-icon stripe-icon" alt="SEPA" />',
 				'boleto'     => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/boleto.svg" class="stripe-boleto-icon stripe-icon" alt="Boleto" />',
 				'oxxo'       => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/oxxo.svg" class="stripe-oxxo-icon stripe-icon" alt="OXXO" />',
+				'cards'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/cards.svg" class="stripe-cards-icon stripe-icon" alt="credit / debit card" />',
 			]
 		);
 	}
