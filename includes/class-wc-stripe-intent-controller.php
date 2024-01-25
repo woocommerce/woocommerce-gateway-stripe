@@ -784,13 +784,22 @@ class WC_Stripe_Intent_Controller {
 			'shipping',
 			'selected_payment_type',
 			'payment_method_types',
+			'level3',
+			'order',
 		];
 
-		$this->validate_payment_intent_required_params( $required_params, [], [], $payment_information );
+		$instance_params = [ 'order' => 'WC_Order' ];
+
+		$this->validate_payment_intent_required_params( $required_params, [], $instance_params, $payment_information );
 
 		$request = $this->build_base_payment_intent_request_params( $payment_information );
 
-		return WC_Stripe_API::request( $request, "payment_intents/{$payment_intent->id}/confirm" );
+		return WC_Stripe_API::request_with_level3_data(
+			$request,
+			"payment_intents/{$payment_intent->id}/confirm",
+			$payment_information['level3'],
+			$payment_information['order']
+		);
 	}
 
 	/**
