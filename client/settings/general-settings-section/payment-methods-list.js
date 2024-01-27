@@ -60,6 +60,8 @@ const DraggableList = styled( Reorder.Group )`
 	> li {
 		margin: 0;
 		padding: 16px 24px 14px 24px;
+		background-color: #fff;
+		cursor: grab;
 
 		@media ( min-width: 660px ) {
 			padding: 24px 24px 24px 24px;
