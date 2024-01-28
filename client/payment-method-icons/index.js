@@ -1,0 +1,23 @@
+import CreditCardIcon from './cards';
+import GiropayIcon from './giropay';
+import SofortIcon from './sofort';
+import SepaIcon from './sepa';
+import EpsIcon from './eps';
+import BancontactIcon from './bancontact';
+import IdealIcon from './ideal';
+import P24Icon from './p24';
+import BoletoIcon from './boleto';
+import OxxoIcon from './oxxo';
+
+export default {
+	card: <CreditCardIcon />,
+	giropay: <GiropayIcon />,
+	sepa_debit: <SepaIcon />,
+	sofort: <SofortIcon />,
+	eps: <EpsIcon />,
+	bancontact: <BancontactIcon />,
+	ideal: <IdealIcon />,
+	p24: <P24Icon />,
+	boleto: <BoletoIcon />,
+	oxxo: <OxxoIcon />,
+};
