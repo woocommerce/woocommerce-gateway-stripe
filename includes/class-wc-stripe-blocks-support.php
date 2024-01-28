@@ -224,11 +224,13 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return array  the JS configuration from the Stripe Payment Gateway.
 	 */
 	private function get_gateway_javascript_params() {
-		$js_configuration = [];
+		$js_configuration   = [];
+		$available_gateways = WC()->payment_gateways->get_available_payment_gateways();
 
-		$gateways = WC()->payment_gateways->get_available_payment_gateways();
-		if ( isset( $gateways['stripe'] ) ) {
-			$js_configuration = $gateways['stripe']->javascript_params();
+		if ( isset( $available_gateways['stripe'] ) ) {
+			$js_configuration = $available_gateways['stripe']->javascript_params();
+		} elseif ( $this->is_upe_method_available( $available_gateways ) ) {
+			$js_configuration = WC_Stripe::get_instance()->get_main_stripe_gateway()->javascript_params();
 		}
 
 		return apply_filters(
@@ -426,10 +428,38 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 */
 	public function get_supported_features() {
 		$gateways = WC()->payment_gateways->get_available_payment_gateways();
+
 		if ( isset( $gateways['stripe'] ) ) {
 			$gateway = $gateways['stripe'];
-			return array_filter( $gateway->supports, [ $gateway, 'supports' ] );
+		} elseif ( $this->is_upe_method_available( $gateways ) ) {
+			$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		} else {
+			return [];
 		}
-		return [];
+
+		return array_filter( $gateway->supports, [ $gateway, 'supports' ] );
+	}
+
+	/**
+	 * Determines if the UPE gateway is being used and if there is at least 1 UPE method available.
+	 *
+	 * @param array $available_gateways The available gateways.
+	 * @return bool True if there is at least 1 UPE method available, false otherwise.
+	 */
+	private function is_upe_method_available( $available_gateways ) {
+		$stripe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+		if ( ! is_a( $stripe_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+			return false;
+		}
+
+		foreach ( $stripe_gateway->payment_methods as $upe_method ) {
+			// Exit once we've found one of our UPE methods.
+			if ( isset( $available_gateways[ $upe_method->id ] ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }

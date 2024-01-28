@@ -85,9 +85,10 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * Create instance of payment method
 	 */
 	public function __construct() {
-		$main_settings = get_option( 'woocommerce_stripe_settings' );
+		$main_settings     = get_option( 'woocommerce_stripe_settings' );
+		$is_stripe_enabled = ! empty( $main_settings['enabled'] ) && 'yes' === $main_settings['enabled'];
 
-		$this->enabled  = in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] ), true ) ? 'yes' : 'no';
+		$this->enabled  = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] ), true ) ? 'yes' : 'no';
 		$this->id       = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID;
 		$this->testmode = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
 	}
@@ -398,6 +399,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			<fieldset id="wc-<?php echo esc_attr( $this->id ); ?>-upe-form" class="wc-upe-form wc-payment-form">
 				<div class="wc-stripe-upe-element" data-payment-method-type="<?php echo esc_attr( $this->stripe_id ); ?>"></div>
 				<div id="wc-<?php echo esc_attr( $this->id ); ?>-upe-errors" role="alert"></div>
+				<input type="hidden" class="wc-stripe-is-deferred-intent" name="wc-stripe-is-deferred-intent" value="1" />
 			</fieldset>
 			<?php
 			if ( $this->should_show_save_option() ) {
