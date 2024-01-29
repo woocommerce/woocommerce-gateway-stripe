@@ -79,22 +79,6 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 		onChangeDisplayOrder( false, orderedPaymentMethodIds );
 	};
 
-	const menuControls = [
-		{
-			title: __( 'Disable', 'woocommerce-gateway-stripe' ),
-			onClick: toggleConfirmationModal,
-		},
-	];
-	if ( isUpeEnabled ) {
-		menuControls.unshift( {
-			title: __(
-				'Refresh payment methods',
-				'woocommerce-gateway-stripe'
-			),
-			onClick: refreshAccount,
-		} );
-	}
-
 	return (
 		<StyledHeader>
 			<Title>
@@ -126,14 +110,31 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 								) }
 							</Button>
 						) }
-						<DropdownMenu
-							icon={ moreVertical }
-							label={ __(
-								'Payment methods menu',
-								'woocommerce-gateway-stripe'
-							) }
-							controls={ menuControls }
-						/>
+						{ isUpeEnabled && (
+							<DropdownMenu
+								icon={ moreVertical }
+								label={ __(
+									'Payment methods menu',
+									'woocommerce-gateway-stripe'
+								) }
+								controls={ [
+									{
+										title: __(
+											'Disable',
+											'woocommerce-gateway-stripe'
+										),
+										onClick: toggleConfirmationModal,
+									},
+									{
+										title: __(
+											'Refresh payment methods',
+											'woocommerce-gateway-stripe'
+										),
+										onClick: refreshAccount,
+									},
+								] }
+							/>
+						) }
 					</>
 				) : (
 					<>
