@@ -6,10 +6,14 @@
 	img.stripe-icon {
 		height: 24px;
 		width: 37px;
+		object-fit: contain;
+	}
+	img.stripe-boleto-icon,
+	img.stripe-sepa-icon {
+		padding: 4px;
 	}
 	img.stripe-sepa-icon {
 		background: #10298e;
-		padding: 4px;
 	}
 }
 
