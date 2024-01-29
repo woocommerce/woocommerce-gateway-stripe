@@ -112,6 +112,7 @@ const SectionHeading = ( { isChangingDisplayOrder, onChangeDisplayOrder } ) => {
 						) }
 						{ isUpeEnabled && (
 							<DropdownMenu
+								data-testid="upe-expandable-menu"
 								icon={ moreVertical }
 								label={ __(
 									'Payment methods menu',
