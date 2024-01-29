@@ -219,7 +219,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'card', $card_method->get_id() );
 		$this->assertEquals( 'Credit / Debit Card', $card_method->get_label() );
-		$this->assertEquals( 'PCredit / Debit Card', $card_method->get_title() );
+		$this->assertEquals( 'Credit / Debit Card', $card_method->get_title() );
 		$this->assertEquals( 'Visa debit card', $card_method->get_title( $mock_visa_details ) );
 		$this->assertEquals( 'Mastercard credit card', $card_method->get_title( $mock_mastercard_details ) );
 		$this->assertTrue( $card_method->is_reusable() );
