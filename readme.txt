@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.0.0 - 2024-xx-xx =
+* Fix - Hiding the expandable menu for UPE entirely when the feature is disabled.
 * Fix - Add missing fee and payout information to the order details page in admin.
 * Fix - Hiding "Early Access" label and "Refresh payment methods" button when UPE is disabled.
 * Tweak - Orders with `trash` status are not retrieving anymore when calling `get_order_by_intent_id` function.
