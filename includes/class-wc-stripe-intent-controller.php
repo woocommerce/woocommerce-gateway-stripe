@@ -923,6 +923,13 @@ class WC_Stripe_Intent_Controller {
 			$request = $this->add_mandate_data( $request );
 		}
 
+		/**
+		 * When the setup intent is being created from a checkout request, i.e. purchasing a subscription product
+		 * with a free trial, send the setup_intents request with level3 and order data.
+		 *
+		 * If the given $payment_information doesn't have the level3 or order data i.e. creating a setup intent from the Add Payment Method
+		 * page, send off a generic Stripe request.
+		 */
 		if ( isset( $payment_information['level3'], $payment_information['order'] ) ) {
 			$setup_intent = WC_Stripe_API::request_with_level3_data(
 				$request,
