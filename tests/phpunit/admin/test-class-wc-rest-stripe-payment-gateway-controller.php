@@ -39,6 +39,14 @@ class WC_REST_Stripe_Payment_Gateway_Controller_Test extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		// As this settings is available for Alipay and Multibanco when UPE is enabled.
+		update_option(
+			'woocommerce_stripe_settings',
+			[
+				'upe_checkout_experience_enabled' => 'yes',
+			]
+		);
+
 		$this->gateway = WC()->payment_gateways()->payment_gateways()[ WC_Gateway_Stripe_Alipay::ID ];
 
 		if ( version_compare( WC_VERSION, '3.4.0', '<' ) ) {
