@@ -20,7 +20,7 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 	public function __construct() {
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
-		$this->title                = __( 'Pay with SEPA Direct Debit', 'woocommerce-gateway-stripe' );
+		$this->title                = __( 'SEPA Direct Debit', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = true;
 		$this->supported_currencies = [ 'EUR' ];
 		$this->label                = __( 'SEPA Direct Debit', 'woocommerce-gateway-stripe' );
@@ -52,5 +52,15 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 			'<a href="https://stripe.com/docs/testing?payment-method=sepa-direct-debit" target="_blank">',
 			'</a>'
 		);
+	}
+
+	/**
+	 * Gets the payment method's icon.
+	 *
+	 * @return string The icon HTML.
+	 */
+	public function get_icon() {
+		$icons = WC_Stripe::get_instance()->get_main_stripe_gateway()->payment_icons();
+		return isset( $icons['sepa'] ) ? apply_filters( 'woocommerce_gateway_icon', $icons['sepa'], $this->id ) : parent::get_icon();
 	}
 }

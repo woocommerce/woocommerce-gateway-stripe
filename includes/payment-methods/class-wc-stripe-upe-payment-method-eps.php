@@ -18,7 +18,7 @@ class WC_Stripe_UPE_Payment_Method_Eps extends WC_Stripe_UPE_Payment_Method {
 	public function __construct() {
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
-		$this->title                = __( 'Pay with EPS', 'woocommerce-gateway-stripe' );
+		$this->title                = __( 'EPS', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = false;
 		$this->supported_currencies = [ 'EUR' ];
 		$this->label                = __( 'EPS', 'woocommerce-gateway-stripe' );
