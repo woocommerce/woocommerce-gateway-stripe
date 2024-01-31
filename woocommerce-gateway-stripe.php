@@ -173,6 +173,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-alipay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-giropay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php';
@@ -381,7 +382,7 @@ function woocommerce_gateway_stripe() {
 
 				// These payment gateways will be visible in the main settings page, if UPE enabled.
 				if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-					$methods[] = WC_Gateway_Stripe_Alipay::class;
+					// $methods[] = WC_Gateway_Stripe_Alipay::class;
 					$methods[] = WC_Gateway_Stripe_Multibanco::class;
 				}
 

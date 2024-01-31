@@ -155,7 +155,7 @@ export default {
 			'NZD',
 			'USD',
 		],
-		capability: undefined,
+		capability: 'alipay_payments',
 	},
 	multibanco: {
 		id: 'multibanco',
