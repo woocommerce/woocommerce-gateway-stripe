@@ -124,6 +124,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->setMethods( [ 'create_and_confirm_payment_intent' ] )
 			->getMock();
 
+		$this->mock_gateway->action_scheduler_service = $this->getMockBuilder( WC_Stripe_Action_Scheduler_Service::class )
+		->setMethods( [ 'schedule_job' ] )
+		->getMock();
+
 		$this->mock_stripe_customer = $this->getMockBuilder( WC_Stripe_Customer::class )
 			->disableOriginalConstructor()
 			->setMethods(
@@ -359,6 +363,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->method( 'get_stripe_customer_id' )
 			->willReturn( $customer_id );
 
+		$this->mock_gateway->action_scheduler_service
+			->expects( $this->never() )
+			->method( 'schedule_job' );
+
 		$response = $this->mock_gateway->process_payment( $order_id );
 
 		$this->assertEquals( 'success', $response['result'] );
@@ -415,6 +423,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->method( 'get_latest_charge_from_intent' )
 			->willReturn( (object) [] );
 
+		$this->mock_gateway->action_scheduler_service
+			->expects( $this->never() )
+			->method( 'schedule_job' );
+
 		$response = $this->mock_gateway->process_payment( $order_id );
 
 		$this->assertEquals( 'success', $response['result'] );
@@ -459,6 +471,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->method( 'get_stripe_customer_id' )
 			->willReturn( $customer_id );
 
+		$this->mock_gateway->action_scheduler_service
+			->expects( $this->never() )
+			->method( 'schedule_job' );
+
 		$response = $this->mock_gateway->process_payment( $order_id );
 
 		$this->assertEquals( 'failure', $response['result'] );
@@ -501,6 +517,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->method( 'get_stripe_customer_id' )
 			->willReturn( $customer_id );
 
+		$this->mock_gateway->action_scheduler_service
+			->expects( $this->never() )
+			->method( 'schedule_job' );
+
 		$response = $this->mock_gateway->process_payment( $order_id );
 
 		$this->assertEquals( 'failure', $response['result'] );
@@ -542,6 +562,10 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->expects( $this->once() )
 			->method( 'get_stripe_customer_id' )
 			->willReturn( $customer_id );
+
+		$this->mock_gateway->action_scheduler_service
+			->expects( $this->never() )
+			->method( 'schedule_job' );
 
 		$response = $this->mock_gateway->process_payment( $order_id );
 
@@ -1050,6 +1074,18 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->method( 'get_stripe_customer_id' )
 			->willReturn( $customer_id );
 
+		$this->mock_gateway->action_scheduler_service
+			->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->greaterThanOrEqual( time() ),
+				'wc_stripe_update_saved_payment_method',
+				[
+					'payment_method' => $payment_method_id,
+					'order_id'       => $order_id,
+				]
+			);
+
 		$response    = $this->mock_gateway->process_payment( $order_id );
 		$final_order = wc_get_order( $order_id );
 		$note        = wc_get_order_notes(
@@ -1115,6 +1151,18 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->method( 'get_stripe_customer_id' )
 			->willReturn( $customer_id );
 
+		$this->mock_gateway->action_scheduler_service
+			->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->greaterThanOrEqual( time() ),
+				'wc_stripe_update_saved_payment_method',
+				[
+					'payment_method' => $payment_method_id,
+					'order_id'       => $order_id,
+				]
+			);
+
 		$response      = $this->mock_gateway->process_payment( $order_id );
 		$final_order   = wc_get_order( $order_id );
 		$client_secret = $payment_intent_mock->client_secret;
@@ -1165,6 +1213,18 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->expects( $this->once() )
 			->method( 'get_stripe_customer_id' )
 			->willReturn( $customer_id );
+
+		$this->mock_gateway->action_scheduler_service
+			->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->greaterThanOrEqual( time() ),
+				'wc_stripe_update_saved_payment_method',
+				[
+					'payment_method' => $payment_method_id,
+					'order_id'       => $order_id,
+				]
+			);
 
 		$response    = $this->mock_gateway->process_payment( $order_id );
 		$final_order = wc_get_order( $order_id );
@@ -1237,6 +1297,18 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->expects( $this->once() )
 			->method( 'get_stripe_customer_id' )
 			->willReturn( $customer_id );
+
+		$this->mock_gateway->action_scheduler_service
+			->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->greaterThanOrEqual( time() ),
+				'wc_stripe_update_saved_payment_method',
+				[
+					'payment_method' => $payment_method_id,
+					'order_id'       => $order_id,
+				]
+			);
 
 		$response    = $this->mock_gateway->process_payment( $order_id );
 		$final_order = wc_get_order( $order_id );
@@ -1320,6 +1392,18 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->expects( $this->once() )
 			->method( 'get_stripe_customer_id' )
 			->willReturn( $customer_id );
+
+		$this->mock_gateway->action_scheduler_service
+			->expects( $this->once() )
+			->method( 'schedule_job' )
+			->with(
+				$this->greaterThanOrEqual( time() ),
+				'wc_stripe_update_saved_payment_method',
+				[
+					'payment_method' => $payment_method_id,
+					'order_id'       => $order_id,
+				]
+			);
 
 		$response    = $this->mock_gateway->process_payment( $order_id );
 		$final_order = wc_get_order( $order_id );
