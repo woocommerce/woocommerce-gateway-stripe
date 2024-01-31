@@ -42,6 +42,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	const SUCCESSFUL_INTENT_STATUS = [ 'succeeded', 'requires_capture', 'processing' ];
 
 	/**
+	 * ActionScheduler hook name for updating saved payment method.
+	 *
+	 * @type string
+	 */
+	const UPDATE_SAVED_PAYMENT_METHOD = 'wc_stripe_update_saved_payment_method';
+
+	/**
 	 * Notices (array)
 	 *
 	 * @var array
@@ -91,6 +98,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public $intent_controller;
 
 	/**
+	 * WC_Stripe_Action_Scheduler_Service instance for scheduling ActionScheduler jobs.
+	 *
+	 * @var WC_Stripe_Action_Scheduler_Service
+	 */
+	public $action_scheduler_service;
+
+	/**
 	 * Array mapping payment method string IDs to classes
 	 *
 	 * @var WC_Stripe_UPE_Payment_Method[]
@@ -119,7 +133,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
 		}
 
-		$this->intent_controller = new WC_Stripe_Intent_Controller();
+		$this->intent_controller        = new WC_Stripe_Intent_Controller();
+		$this->action_scheduler_service = new WC_Stripe_Action_Scheduler_Service();
 
 		// Load the form fields.
 		$this->init_form_fields();
@@ -158,6 +173,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
+
+		// This is an ActionScheduler action.
+		add_action( self::UPDATE_SAVED_PAYMENT_METHOD, [ $this, 'update_saved_payment_method' ], 10, 2 );
+
 		add_action( 'wp_footer', [ $this, 'payment_scripts' ] );
 
 		// Needed for 3DS compatibility when checking out with PRBs..
@@ -680,6 +699,18 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_needed        = $this->is_payment_needed( $order->get_id() );
 			$payment_method_id     = $payment_information['payment_method'];
 			$selected_payment_type = $payment_information['selected_payment_type'];
+
+			// Update saved payment method async to include billing details.
+			if ( $payment_information['is_using_saved_payment_method'] ) {
+				$this->action_scheduler_service->schedule_job(
+					time(),
+					self::UPDATE_SAVED_PAYMENT_METHOD,
+					[
+						'payment_method' => $payment_method_id,
+						'order_id'       => $order->get_id(),
+					]
+				);
+			}
 
 			// Make sure that we attach the payment method and the customer ID to the order meta data.
 			$this->set_payment_method_id_for_order( $order, $payment_method_id );
@@ -1604,6 +1635,52 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return [
 				'result' => 'error',
 			];
+		}
+	}
+
+	/**
+	 * Update the saved payment method information with checkout values, in a CRON job.
+	 *
+	 * @param string $payment_method_id The payment method to update.
+	 * @param int    $order_id          WC order id.
+	 */
+	public function update_saved_payment_method( $payment_method_id, $order_id ) {
+		$order = wc_get_order( $order_id );
+
+		try {
+			// Get the billing details from the order.
+			$billing_details = [
+				'address' => [
+					'city'        => $order->get_billing_city(),
+					'country'     => $order->get_billing_country(),
+					'line1'       => $order->get_billing_address_1(),
+					'line2'       => $order->get_billing_address_2(),
+					'postal_code' => $order->get_billing_postcode(),
+					'state'       => $order->get_billing_state(),
+				],
+				'email'   => $order->get_billing_email(),
+				'name'    => trim( $order->get_formatted_billing_full_name() ),
+				'phone'   => $order->get_billing_phone(),
+			];
+
+			$billing_details['address'] = array_filter( $billing_details['address'] );
+			$billing_details            = array_filter( $billing_details );
+
+			if ( empty( $billing_details ) ) {
+				return;
+			}
+
+			// Update the billing details of the selected payment method in Stripe.
+			WC_Stripe_API::update_payment_method(
+				$payment_method_id,
+				[
+					'billing_details' => $billing_details,
+				]
+			);
+
+		} catch ( WC_Stripe_Exception $e ) {
+			// If updating the payment method fails, log the error message.
+			WC_Stripe_Logger::log( 'Error when updating saved payment method: ' . $e->getMessage() );
 		}
 	}
 
