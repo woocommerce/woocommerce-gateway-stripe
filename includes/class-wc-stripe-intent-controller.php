@@ -919,7 +919,7 @@ class WC_Stripe_Intent_Controller {
 		];
 
 		// SEPA setup intents require mandate data.
-		if ( ! $this->is_mandate_data_required( $selected_payment_type ) ) {
+		if ( ! $this->is_mandate_data_required( $payment_information['selected_payment_type'] ) ) {
 			$request = $this->add_mandate_data( $request );
 		}
 
