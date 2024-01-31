@@ -768,6 +768,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				if ( $charge ) {
 					$this->process_response( $charge, $order );
 				}
+			} elseif ( $this->is_changing_payment_method_for_subscription() ) {
+				// Trigger wc_stripe_change_subs_payment_method_success action hook to preserve backwards compatibility, see process_change_subscription_payment_method().
+				do_action(
+					'wc_stripe_change_subs_payment_method_success',
+					$payment_information['payment_method'],
+					(object) [
+						'token_id'       => false !== $payment_information['token'] ? $payment_information['token']->get_id() : false,
+						'customer'       => $payment_information['customer'],
+						'source'         => null,
+						'source_object'  => $payment_method,
+						'payment_method' => $payment_information['payment_method'],
+					]
+				);
 			} else {
 				$order->payment_complete();
 			}
@@ -1758,6 +1771,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$currency              = strtolower( $order->get_currency() );
 		$amount                = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		$shipping_details      = null;
+		$token                 = false;
 
 		$save_payment_method_to_store  = $this->should_save_payment_method_from_request( $order->get_id(), $selected_payment_type );
 		$is_using_saved_payment_method = $this->is_using_saved_payment_method();
@@ -1801,6 +1815,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'selected_payment_type'         => $selected_payment_type,
 			'shipping'                      => $shipping_details,
 			'statement_descriptor'          => $this->get_statement_descriptor( $order, $selected_payment_type ),
+			'token'                         => $token,
 			'return_url'                    => $this->get_return_url_for_redirect( $order, $save_payment_method_to_store ),
 		];
 
