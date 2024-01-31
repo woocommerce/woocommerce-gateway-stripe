@@ -51,7 +51,26 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 	 * @return boolean
 	 */
 	public function is_active() {
-		return ! empty( $this->settings['enabled'] ) && 'yes' === $this->settings['enabled'];
+		// If Stripe isn't enabled, then we don't need to check anything else - it isn't active.
+		if ( empty( $this->settings['enabled'] ) || 'yes' !== $this->settings['enabled'] ) {
+			return false;
+		}
+
+		// If UPE is disabled, then we don't need to go further - we know the gateway is enabled.
+		$stripe_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+		if ( ! is_a( $stripe_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+			return true;
+		}
+
+		// This payment method is active if there is at least 1 UPE method available.
+		foreach ( $stripe_gateway->payment_methods as $upe_method ) {
+			if ( $upe_method->is_enabled() && $upe_method->is_available() ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
