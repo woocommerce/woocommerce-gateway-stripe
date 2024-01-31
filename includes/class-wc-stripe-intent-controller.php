@@ -713,7 +713,7 @@ class WC_Stripe_Intent_Controller {
 		];
 
 		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
-		if ( ! $this->is_mandate_data_required( $selected_payment_type ) ) {
+		if ( $this->is_mandate_data_required( $selected_payment_type ) ) {
 			$request = $this->add_mandate_data( $request );
 		}
 
@@ -919,7 +919,7 @@ class WC_Stripe_Intent_Controller {
 		];
 
 		// SEPA setup intents require mandate data.
-		if ( ! $this->is_mandate_data_required( $payment_information['selected_payment_type'] ) ) {
+		if ( $this->is_mandate_data_required( $payment_information['selected_payment_type'] ) ) {
 			$request = $this->add_mandate_data( $request );
 		}
 
