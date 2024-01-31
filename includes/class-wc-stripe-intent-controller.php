@@ -888,7 +888,7 @@ class WC_Stripe_Intent_Controller {
 	 * This applies to SEPA and Link payment methods.
 	 * https://stripe.com/docs/payments/finalize-payments-on-the-server
 	 *
-	 * @param $selected_payment_type The name of the selected UPE payment type.
+	 * @param string $selected_payment_type The name of the selected UPE payment type.
 	 *
 	 * @return bool True if a mandate must be shown and acknowledged by customer before deferred intent UPE payment can be processed, false otherwise.
 	 */
