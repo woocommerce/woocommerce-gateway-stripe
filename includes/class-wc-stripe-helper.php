@@ -440,19 +440,12 @@ class WC_Stripe_Helper {
 			// Cover the edge case when new Stripe payment methods are added to the plugin which do not exist in
 			// the `stripe_legacy_method_order` option.
 			if ( count( $payment_method_ids ) - 1 !== count( $payment_method_classes ) ) {
-				$remaining_payment_method_ids = array_reduce(
-					$payment_method_classes,
-					function( $ids, $payment_method_class ) use ( $payment_method_ids ) {
-						$id = str_replace( 'stripe_', '', $payment_method_class::ID );
-						if ( ! in_array( $id, $payment_method_ids, true ) ) {
-							$ids[] = $id;
-						}
-
-						return $ids;
+				foreach ( $payment_method_classes as $payment_method_class ) {
+					$id = str_replace( 'stripe_', '', $payment_method_class::ID );
+					if ( ! in_array( $id, $payment_method_ids, true ) ) {
+						$payment_method_ids[] = $id;
 					}
-				);
-
-				$payment_method_ids = array_merge( $payment_method_ids, $remaining_payment_method_ids );
+				}
 
 				// Update the `stripe_legacy_method_order` option with the new order including missing payment methods from the option.
 				$stripe_settings['stripe_legacy_method_order'] = $payment_method_ids;
