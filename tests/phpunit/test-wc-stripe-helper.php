@@ -149,12 +149,12 @@ class WC_Stripe_Helper_Test extends WP_UnitTestCase {
 
 	public function test_get_legacy_payment_methods() {
 		$result = WC_Stripe_Helper::get_legacy_payment_methods();
-		$this->assertEquals( [ 'stripe_bancontact', 'stripe_eps', 'stripe_giropay', 'stripe_ideal', 'stripe_p24', 'stripe_sepa', 'stripe_boleto', 'stripe_oxxo' ], array_keys( $result ) );
+		$this->assertEquals( [ 'stripe_alipay', 'stripe_bancontact', 'stripe_boleto', 'stripe_eps', 'stripe_giropay', 'stripe_ideal', 'stripe_multibanco', 'stripe_oxxo', 'stripe_p24', 'stripe_sepa' ], array_keys( $result ) );
 	}
 
 	public function test_get_legacy_available_payment_method_ids() {
 		$result = WC_Stripe_Helper::get_legacy_available_payment_method_ids();
-		$this->assertEquals( [ 'card', 'bancontact', 'eps', 'giropay', 'ideal', 'p24', 'sepa', 'boleto', 'oxxo' ], $result );
+		$this->assertEquals( [ 'card', 'alipay', 'bancontact', 'boleto', 'eps', 'giropay', 'ideal', 'multibanco', 'oxxo', 'p24', 'sepa' ], $result );
 	}
 
 	public function test_get_legacy_enabled_payment_methods() {

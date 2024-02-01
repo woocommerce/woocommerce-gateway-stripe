@@ -9,6 +9,8 @@ import IdealIcon from './payment-method-icons/ideal';
 import P24Icon from './payment-method-icons/p24';
 import BoletoIcon from './payment-method-icons/boleto';
 import OxxoIcon from './payment-method-icons/oxxo';
+import AlipayIcon from './payment-method-icons/alipay';
+import MultibancoIcon from './payment-method-icons/multibanco';
 
 export default {
 	card: {
@@ -140,7 +142,7 @@ export default {
 			'Alipay is a popular wallet in China, operated by Ant Financial Services Group, a financial services provider affiliated with Alibaba.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: () => null,
+		Icon: AlipayIcon,
 		currencies: [
 			'AUD',
 			'CAD',
@@ -162,7 +164,7 @@ export default {
 			'Multibanco is an interbank network that links the ATMs of all major banks in Portugal, allowing customers to pay through either their ATM or online banking environment.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: () => null,
+		Icon: MultibancoIcon,
 		currencies: [ 'EUR' ],
 		capability: undefined,
 	},
