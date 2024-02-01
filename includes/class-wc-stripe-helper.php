@@ -351,14 +351,16 @@ class WC_Stripe_Helper {
 	 */
 	public static function get_legacy_payment_method_classes() {
 		$payment_method_classes = [
+			WC_Gateway_Stripe_Alipay::class,
 			WC_Gateway_Stripe_Bancontact::class,
+			WC_Gateway_Stripe_Boleto::class,
 			WC_Gateway_Stripe_EPS::class,
 			WC_Gateway_Stripe_Giropay::class,
 			WC_Gateway_Stripe_Ideal::class,
+			WC_Gateway_Stripe_Multibanco::class,
+			WC_Gateway_Stripe_Oxxo::class,
 			WC_Gateway_Stripe_p24::class,
 			WC_Gateway_Stripe_Sepa::class,
-			WC_Gateway_Stripe_Boleto::class,
-			WC_Gateway_Stripe_Oxxo::class,
 		];
 
 		/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
@@ -419,29 +421,44 @@ class WC_Stripe_Helper {
 	 */
 	public static function get_legacy_available_payment_method_ids() {
 		$stripe_settings            = get_option( 'woocommerce_stripe_settings', [] );
+		$payment_method_classes     = self::get_legacy_payment_method_classes();
 		$ordered_payment_method_ids = isset( $stripe_settings['stripe_legacy_method_order'] ) ? $stripe_settings['stripe_legacy_method_order'] : [];
 
 		// If the legacy method order is not set, return the default order.
 		if ( ! empty( $ordered_payment_method_ids ) ) {
 			$payment_method_ids = array_map(
-				function( $payment_method_class ) {
-					if ( 'stripe' === $payment_method_class ) {
+				function( $payment_method_id ) {
+					if ( 'stripe' === $payment_method_id ) {
 						return 'card';
 					} else {
-						return str_replace( 'stripe_', '', $payment_method_class );
+						return str_replace( 'stripe_', '', $payment_method_id );
 					}
 				},
 				$ordered_payment_method_ids
 			);
+
+			// Cover the edge case when new Stripe payment methods are added to the plugin which do not exist in
+			// the `stripe_legacy_method_order` option.
+			if ( count( $payment_method_ids ) - 1 !== count( $payment_method_classes ) ) {
+				foreach ( $payment_method_classes as $payment_method_class ) {
+					$id = str_replace( 'stripe_', '', $payment_method_class::ID );
+					if ( ! in_array( $id, $payment_method_ids, true ) ) {
+						$payment_method_ids[] = $id;
+					}
+				}
+
+				// Update the `stripe_legacy_method_order` option with the new order including missing payment methods from the option.
+				$stripe_settings['stripe_legacy_method_order'] = $payment_method_ids;
+				update_option( 'woocommerce_stripe_settings', $stripe_settings );
+			}
 		} else {
-			$payment_method_classes = self::get_legacy_payment_method_classes();
-			$payment_method_ids     = array_map(
+			$payment_method_ids = array_map(
 				function( $payment_method_class ) {
 					return str_replace( 'stripe_', '', $payment_method_class::ID );
 				},
 				$payment_method_classes
 			);
-			$payment_method_ids     = array_merge( [ 'card' ], $payment_method_ids );
+			$payment_method_ids = array_merge( [ 'card' ], $payment_method_ids );
 		}
 
 		return $payment_method_ids;

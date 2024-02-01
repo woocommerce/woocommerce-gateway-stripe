@@ -371,7 +371,7 @@ function woocommerce_gateway_stripe() {
 			}
 
 			/**
-			 * Add the gateways to WooCommerce.
+			 * Add the main Stripe gateway to WooCommerce.
 			 *
 			 * @since 1.0.0
 			 * @version 5.6.0
@@ -379,9 +379,11 @@ function woocommerce_gateway_stripe() {
 			public function add_gateways( $methods ) {
 				$methods[] = $this->get_main_stripe_gateway();
 
-				// These payment gateways will always be visible, regardless if UPE is enabled or disabled:
-				$methods[] = WC_Gateway_Stripe_Alipay::class;
-				$methods[] = WC_Gateway_Stripe_Multibanco::class;
+				// These payment gateways will be visible in the main settings page, if UPE enabled.
+				if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+					$methods[] = WC_Gateway_Stripe_Alipay::class;
+					$methods[] = WC_Gateway_Stripe_Multibanco::class;
+				}
 
 				return $methods;
 			}
