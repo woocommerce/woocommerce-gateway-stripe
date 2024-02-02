@@ -3,6 +3,8 @@ import {
 	updateSettings,
 	updateIsSavingSettings,
 	updateSettingsValues,
+	updateIsSavingOrderedPaymentMethodIds,
+	updateIsCustomizingPaymentMethod,
 } from '../actions';
 
 describe( 'Settings reducer tests', () => {
@@ -13,6 +15,8 @@ describe( 'Settings reducer tests', () => {
 			isSaving: false,
 			data: {},
 			savingError: null,
+			isSavingOrderedPaymentMethodIds: false,
+			isCustomizingPaymentMethod: false,
 		} );
 	} );
 
@@ -179,6 +183,78 @@ describe( 'Settings reducer tests', () => {
 				foo: 'bar',
 				savingError: null,
 				isSaving: true,
+			} );
+		} );
+	} );
+
+	describe( 'SET_IS_CUSTOMIZING_PAYMENT_METHOD', () => {
+		test( 'toggles isCustomizingPaymentMethod', () => {
+			const oldState = {
+				isCustomizingPaymentMethod: false,
+			};
+
+			const state = reducer(
+				oldState,
+				updateIsCustomizingPaymentMethod( true )
+			);
+
+			expect( state.isCustomizingPaymentMethod ).toBeTruthy();
+		} );
+
+		test( 'leaves other fields unchanged', () => {
+			const oldState = {
+				foo: 'bar',
+				isSaving: false,
+				savingError: {},
+				isCustomizingPaymentMethod: false,
+			};
+
+			const state = reducer(
+				oldState,
+				updateIsCustomizingPaymentMethod( true )
+			);
+
+			expect( state ).toEqual( {
+				foo: 'bar',
+				savingError: {},
+				isSaving: false,
+				isCustomizingPaymentMethod: true,
+			} );
+		} );
+	} );
+
+	describe( 'SET_IS_SAVING_ORDERED_PAYMENT_METHOD_IDS', () => {
+		test( 'toggles isSavingOrderedPaymentMethodIds', () => {
+			const oldState = {
+				isSavingOrderedPaymentMethodIds: false,
+			};
+
+			const state = reducer(
+				oldState,
+				updateIsSavingOrderedPaymentMethodIds( true )
+			);
+
+			expect( state.isSavingOrderedPaymentMethodIds ).toBeTruthy();
+		} );
+
+		test( 'leaves other fields unchanged', () => {
+			const oldState = {
+				foo: 'bar',
+				isSaving: false,
+				savingError: {},
+				isSavingOrderedPaymentMethodIds: false,
+			};
+
+			const state = reducer(
+				oldState,
+				updateIsSavingOrderedPaymentMethodIds( true )
+			);
+
+			expect( state ).toEqual( {
+				foo: 'bar',
+				savingError: {},
+				isSaving: false,
+				isSavingOrderedPaymentMethodIds: true,
 			} );
 		} );
 	} );
