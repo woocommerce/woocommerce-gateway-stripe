@@ -267,22 +267,15 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	}
 
 	/**
-	 * Create new WC payment token and add to user.
+	 * Creates a payment token for the user. To be extended by reusable types.
 	 *
-	 * @param int $user_id        WP_User ID
+	 * @param int $user_id        WP_User ID.
 	 * @param object $payment_method Stripe payment method object
 	 *
-	 * @return WC_Payment_Token_SEPA
+	 * @throws Exception
 	 */
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
-		$token = new WC_Payment_Token_SEPA();
-		$token->set_last4( $payment_method->sepa_debit->last4 );
-		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
-		$token->set_token( $payment_method->id );
-		$token->set_payment_method_type( $this->get_id() );
-		$token->set_user_id( $user_id );
-		$token->save();
-		return $token;
+		throw new Exception( __( "The current payment method can't be saved. Please reach out to us if the problem persists.", 'woocommerce-gateway-stripe' ) );
 	}
 
 	/**

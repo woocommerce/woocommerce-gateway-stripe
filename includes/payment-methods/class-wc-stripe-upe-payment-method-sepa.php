@@ -63,4 +63,23 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 		$icons = WC_Stripe::get_instance()->get_main_stripe_gateway()->payment_icons();
 		return isset( $icons['sepa'] ) ? apply_filters( 'woocommerce_gateway_icon', $icons['sepa'], $this->id ) : parent::get_icon();
 	}
+
+	/**
+	 * Create new WC payment token and add to user.
+	 *
+	 * @param int $user_id        WP_User ID
+	 * @param object $payment_method Stripe payment method object
+	 *
+	 * @return WC_Payment_Token_SEPA
+	 */
+	public function create_payment_token_for_user( $user_id, $payment_method ) {
+		$token = new WC_Payment_Token_SEPA();
+		$token->set_last4( $payment_method->sepa_debit->last4 );
+		$token->set_gateway_id( $this->id );
+		$token->set_token( $payment_method->id );
+		$token->set_payment_method_type( $this->get_id() );
+		$token->set_user_id( $user_id );
+		$token->save();
+		return $token;
+	}
 }
