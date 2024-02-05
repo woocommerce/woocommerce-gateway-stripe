@@ -125,22 +125,44 @@ const getErrorMessageForTypeAndCode = ( type, code = '' ) => {
 	return null;
 };
 
+function shouldIncludeTerms( paymentMethodType ) {
+	if ( getStripeServerData()?.cartContainsSubscription ) {
+		return true;
+	}
+
+	const config = getStripeServerData()?.paymentMethodsConfig;
+	if (
+		! config[ paymentMethodType ] ||
+		! config[ paymentMethodType ].isReusable
+	) {
+		return false;
+	}
+
+	const paymentMethodId =
+		paymentMethodType === 'card' ? '' : `_${ paymentMethodType }`;
+	const checkboxId = `wc-stripe${ paymentMethodId }-new-payment-method`;
+
+	const savePaymentMethodCheckbox = document.getElementById( checkboxId );
+
+	if (
+		savePaymentMethodCheckbox !== null &&
+		savePaymentMethodCheckbox.checked
+	) {
+		return true;
+	}
+
+	return false;
+}
+
 /**
  * Generates terms parameter for UPE, with value set for reusable payment methods
  *
- * @param {string} value The terms value for each available payment method.
+ * @param {string} paymentMethodType The payment method type for which we're passing the Terms parameter.
+ * @param {string} value             The terms value for the passed payment method.
  * @return {Object} Terms parameter fit for UPE.
  */
-export const getUPETerms = ( value = 'always' ) => {
-	const config = getStripeServerData()?.paymentMethodsConfig;
-	const reusablePaymentMethods = Object.keys( config ).filter(
-		( method ) => config[ method ].isReusable
-	);
-
-	return reusablePaymentMethods.reduce( ( obj, method ) => {
-		obj[ method ] = value;
-		return obj;
-	}, {} );
+export const getTerms = ( paymentMethodType, value = 'always' ) => {
+	return { [ paymentMethodType ]: value };
 };
 
 /**
@@ -247,24 +269,6 @@ export const getPaymentMethodTypes = ( paymentMethodType = null ) => {
 	}
 	return paymentMethodTypes;
 };
-
-function shouldIncludeTerms() {
-	if ( getStripeServerData()?.cartContainsSubscription ) {
-		return true;
-	}
-
-	const savePaymentMethodCheckbox = document.getElementById(
-		'wc-stripe-new-payment-method'
-	);
-	if (
-		savePaymentMethodCheckbox !== null &&
-		savePaymentMethodCheckbox.checked
-	) {
-		return true;
-	}
-
-	return false;
-}
 
 /**
  * Returns a string of event names to be used for registering checkout submission handlers.
@@ -380,11 +384,11 @@ export const getHiddenBillingFields = ( enabledBillingFields ) => {
 	};
 };
 
-export const getUpeSettings = () => {
+export const getUpeSettings = ( paymentMethodType ) => {
 	const upeSettings = {};
-	const showTerms = shouldIncludeTerms() ? 'always' : 'never';
+	const value = shouldIncludeTerms( paymentMethodType ) ? 'always' : 'never';
 
-	upeSettings.terms = getUPETerms( showTerms );
+	upeSettings.terms = getTerms( paymentMethodType, value );
 
 	if (
 		getStripeServerData()?.isCheckout &&

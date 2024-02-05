@@ -4,8 +4,10 @@ import {
 	initializeUPEAppearance,
 	getStripeServerData,
 	getUpeSettings,
+	getTerms,
 	showErrorCheckout,
 	appendSetupIntentToForm,
+	getSelectedUPEGatewayPaymentMethod,
 } from '../../stripe-utils';
 import { getFontRulesFromPage } from '../../styles/upe';
 
@@ -77,7 +79,7 @@ function createStripePaymentElement( api, paymentMethodType = null ) {
 
 	const elements = api.getStripe().elements( options );
 	const createdStripePaymentElement = elements.create( 'payment', {
-		...getUpeSettings(),
+		...getUpeSettings( paymentMethodType ),
 		wallets: {
 			applePay: 'never',
 			googlePay: 'never',
@@ -275,6 +277,27 @@ export const createAndConfirmSetupIntent = (
 			return confirmedSetupIntent;
 		} );
 };
+
+/**
+ * Updates the terms parameter in the Payment Element based on the "save payment information" checkbox.
+ *
+ * @param {Event} event The change event that triggers the function.
+ */
+export function renderTerms( event ) {
+	const isChecked = event.target.checked;
+	const value = isChecked ? 'always' : 'never';
+	const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
+	if ( ! paymentMethodType ) {
+		return;
+	}
+
+	const upeElement = gatewayUPEComponents[ paymentMethodType ].upeElement;
+	if ( upeElement ) {
+		upeElement.update( {
+			terms: getTerms( paymentMethodType, value ),
+		} );
+	}
+}
 
 /**
  * Handles displaying the Boleto or Oxxo voucher to the customer and then redirecting
