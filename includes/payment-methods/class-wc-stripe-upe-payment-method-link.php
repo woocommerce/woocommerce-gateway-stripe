@@ -16,7 +16,7 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	public function __construct() {
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
-		$this->title                = __( 'Pay with Link', 'woocommerce-gateway-stripe' );
+		$this->title                = __( 'Link', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = true;
 		$this->supported_currencies = [ 'USD' ];
 		$this->label                = __( 'Stripe Link', 'woocommerce-gateway-stripe' );

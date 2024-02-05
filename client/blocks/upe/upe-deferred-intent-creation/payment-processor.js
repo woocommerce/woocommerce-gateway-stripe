@@ -170,6 +170,14 @@ const PaymentProcessor = ( {
 								},
 							},
 						} );
+
+					if ( paymentMethodObject.error ) {
+						return {
+							type: 'error',
+							message: paymentMethodObject.error.message,
+						};
+					}
+
 					return {
 						type: 'success',
 						meta: {
