@@ -11,6 +11,7 @@ import {
 	processPayment,
 	mountStripePaymentElement,
 	createAndConfirmSetupIntent,
+	renderTerms,
 	confirmVoucherPayment,
 } from './payment-processing';
 
@@ -42,6 +43,23 @@ jQuery( function ( $ ) {
 			return processPayment( api, $form, paymentMethodType );
 		}
 	}
+
+	$( document ).on( 'change', function ( event ) {
+		// TODO: get a static array with the IDs instead of retrieving the selected one.
+		const selectedPaymentMethod = getSelectedUPEGatewayPaymentMethod();
+		const newPaymentMethodInputId =
+			selectedPaymentMethod === 'card'
+				? ''
+				: `_${ selectedPaymentMethod }`;
+
+		if (
+			event.target &&
+			event.target.id ===
+				`wc-stripe${ newPaymentMethodInputId }-new-payment-method`
+		) {
+			renderTerms( event );
+		}
+	} );
 
 	// Mount the Stripe Payment Elements onto the Add Payment Method page and Pay for Order page.
 	if (
