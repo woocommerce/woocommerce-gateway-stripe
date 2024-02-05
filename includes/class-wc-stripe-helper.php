@@ -880,4 +880,21 @@ class WC_Stripe_Helper {
 
 		return null;
 	}
+
+	/**
+	 * Returns the payment intent or setup intent id method ID from a given intent object.
+	 *
+	 * @param WC_Order $order The order to fetch the Stripe intent from.
+	 *
+	 * @return string|bool  The intent ID if found, false otherwise.
+	 */
+	public static function get_intent_id_from_order( $order ) {
+		$intent_id = $order->get_meta( '_stripe_intent_id' );
+
+		if ( ! $intent_id ) {
+			$intent_id = $order->get_meta( '_stripe_setup_intent' );
+		}
+
+		return $intent_id ?? false;
+	}
 }
