@@ -715,7 +715,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					$payment_information['payment_method'],
 					$selected_payment_type
 				);
-			} else if ( $payment_information['is_using_saved_payment_method'] ) {
+			} elseif ( $payment_information['is_using_saved_payment_method'] ) {
 				$this->maybe_update_source_on_subscription_order(
 					$order,
 					(object) [
