@@ -924,8 +924,7 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * Determines if mandate data is required for deferred intent UPE payment.
 	 *
-	 * A mandate must be provided before a deferred intent UPE payment can be processed.
-	 * This applies to SEPA and Link payment methods.
+	 * A mandate must be provided for some payment method types before a deferred intent UPE payment can be processed.
 	 * https://stripe.com/docs/payments/finalize-payments-on-the-server
 	 *
 	 * @param string $selected_payment_type The name of the selected UPE payment type.
@@ -933,12 +932,22 @@ class WC_Stripe_Intent_Controller {
 	 * @return bool True if a mandate must be shown and acknowledged by customer before deferred intent UPE payment can be processed, false otherwise.
 	 */
 	public function is_mandate_data_required( $selected_payment_type ) {
-		$gateway = $this->get_upe_gateway();
 
-		$is_stripe_link_enabled = 'card' === $selected_payment_type && in_array( 'link', $gateway->get_upe_enabled_payment_method_ids(), true );
-		$is_sepa_debit_payment  = 'sepa_debit' === $selected_payment_type;
+		if ( 'card' === $selected_payment_type ) {
+			// A mandate is only required for cards if Link is enabled.
+			$gateway = $this->get_upe_gateway();
+			return in_array( 'link', $gateway->get_upe_enabled_payment_method_ids(), true );
+		}
 
-		return $is_stripe_link_enabled || $is_sepa_debit_payment;
+		// These payment method types require a mandate for off_session usage.
+		$gateways_using_mandate = [
+			'bancontact',
+			'ideal',
+			'sepa_debit',
+			'sofort',
+		];
+
+		return in_array( $selected_payment_type, $gateways_using_mandate, true );
 	}
 
 	/**
