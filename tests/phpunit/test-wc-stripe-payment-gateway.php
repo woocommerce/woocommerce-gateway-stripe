@@ -225,7 +225,7 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 			'usage' => 'reusable',
 		];
 
-		$methods = [
+		$methods      = [
 			'get_source_object',
 			'save_payment_method',
 		];
@@ -443,6 +443,74 @@ class WC_Stripe_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->assertArrayHasKey( 'result', $result );
 		$this->assertContains( 'failure', $result );
+	}
+
+	/**
+	 * Tests for `needs_setup` method.
+	 *
+	 * @param bool   $is_test_mode         Whether the gateway is in test mode.
+	 * @param string $test_publishable_key Test publishable key.
+	 * @param string $test_secret_key      Test secret key.
+	 * @param string $publishable_key      Live publishable key.
+	 * @param string $secret_key           Live secret key.
+	 * @param bool   $expected             Expected result.
+	 * @return void
+	 * @dataProvider provide_test_needs_setup
+	 */
+	public function test_needs_setup( $is_test_mode, $test_publishable_key, $test_secret_key, $publishable_key, $secret_key, $expected ) {
+		$stripe_settings                         = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings['enabled']              = 'yes';
+		$stripe_settings['testmode']             = $is_test_mode ? 'yes' : 'no';
+		$stripe_settings['test_publishable_key'] = $test_publishable_key;
+		$stripe_settings['test_secret_key']      = $test_secret_key;
+		$stripe_settings['publishable_key']      = $publishable_key;
+		$stripe_settings['secret_key']           = $secret_key;
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
+
+		$gateway = new WC_Gateway_Stripe();
+		$this->assertSame( $expected, $gateway->needs_setup() );
+	}
+
+	/**
+	 * Provider for `test_needs_setup` method.
+	 *
+	 * @return array[]
+	 */
+	public function provide_test_needs_setup() {
+		return [
+			'test mode, missing keys' => [
+				'is test mode'         => true,
+				'test_publishable_key' => null,
+				'test_secret_key'      => null,
+				'publishable_key'      => null,
+				'secret_key'           => null,
+				'expected'             => true,
+			],
+			'test mode, filled keys'  => [
+				'is test mode'         => true,
+				'test_publishable_key' => 'pk_test_key',
+				'test_secret_key'      => 'sk_test_key',
+				'publishable_key'      => null,
+				'secret_key'           => null,
+				'expected'             => false,
+			],
+			'live mode, missing keys' => [
+				'is test mode'         => false,
+				'test_publishable_key' => null,
+				'test_secret_key'      => null,
+				'publishable_key'      => null,
+				'secret_key'           => null,
+				'expected'             => true,
+			],
+			'live mode, filled keys'  => [
+				'is test mode'         => false,
+				'test_publishable_key' => null,
+				'test_secret_key'      => null,
+				'publishable_key'      => 'pk_live_key',
+				'secret_key'           => 'sk_live_key',
+				'expected'             => false,
+			],
+		];
 	}
 
 	/**
