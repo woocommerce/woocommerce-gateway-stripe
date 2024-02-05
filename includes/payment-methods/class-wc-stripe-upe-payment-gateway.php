@@ -781,7 +781,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						'payment_method' => $payment_information['payment_method'],
 					]
 				);
-			} else {
+			} elseif ( in_array( $payment_intent->status, self::SUCCESSFUL_INTENT_STATUS, true ) ) {
 				$order->payment_complete();
 			}
 
