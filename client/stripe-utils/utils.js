@@ -162,7 +162,12 @@ function shouldIncludeTerms( paymentMethodType ) {
  * @return {Object} Terms parameter fit for UPE.
  */
 export const getTerms = ( paymentMethodType, value = 'always' ) => {
-	return { [ paymentMethodType ]: value };
+	// The key for SEPA debit is different from the slug we use in paymentMethodType.
+	// Ref: https://stripe.com/docs/js/elements_object/create_payment_element#payment_element_create-options-terms
+	const termKey =
+		paymentMethodType !== 'sepa_debit' ? paymentMethodType : 'sepaDebit';
+
+	return { [ termKey ]: value };
 };
 
 /**
