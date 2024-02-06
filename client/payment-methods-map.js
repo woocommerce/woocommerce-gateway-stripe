@@ -166,6 +166,6 @@ export default {
 		),
 		Icon: MultibancoIcon,
 		currencies: [ 'EUR' ],
-		capability: undefined,
+		capability: 'multibanco_payments',
 	},
 };

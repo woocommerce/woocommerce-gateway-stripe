@@ -553,6 +553,41 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Returns the list of payment methods for the settings page when UPE is enabled. The list includes
+	 * all the UPE methods and Multibanco.
+	 *
+	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
+	 * @return string[]
+	 */
+	public static function get_upe_settings_available_payment_method_ids( $gateway ) {
+		$available_gateways = $gateway->get_upe_available_payment_methods();
+		// Multibanco is a non UPE method that uses Stripe sources. Adding it to the list to show in the Stripe settings page.
+		$available_gateways[] = 'multibanco';
+
+		return $available_gateways;
+	}
+
+	/**
+	 * Returns the list of enabled payment methods for the settings page when UPE is enabled. The list includes
+	 * the UPE methods and Multibanco if it's enabled.
+	 *
+	 * @param WC_Stripe_Payment_Gateway $gateway Stripe payment gateway.
+	 * @return string[]
+	 */
+	public static function get_upe_settings_enabled_payment_method_ids( $gateway ) {
+		$enabled_gateways = $gateway->get_upe_enabled_payment_method_ids();
+
+		// Multibanco is a non UPE method that uses Stripe sources. Adding to the list if it's enabled
+		// to show it in the Stripe settings page.
+		$multibanco = new WC_Gateway_Stripe_Multibanco();
+		if ( $multibanco->is_enabled() ) {
+			$enabled_gateways[] = 'multibanco';
+		}
+
+		return $enabled_gateways;
+	}
+
+	/**
 	 * Checks if WC version is less than passed in version.
 	 *
 	 * @since 4.1.11

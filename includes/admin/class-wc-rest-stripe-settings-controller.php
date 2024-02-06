@@ -76,7 +76,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 						'type'              => 'array',
 						'items'             => [
 							'type' => 'string',
-							'enum' => array_merge( $this->gateway->get_upe_available_payment_methods(), WC_Stripe_Helper::get_legacy_available_payment_method_ids() ),
+							'enum' => array_merge( WC_Stripe_Helper::get_upe_settings_available_payment_method_ids( $this->gateway ), WC_Stripe_Helper::get_legacy_available_payment_method_ids() ),
 						],
 						'validate_callback' => 'rest_validate_request_arg',
 					],
@@ -295,7 +295,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 	 */
 	public function get_settings() {
 		$is_upe_enabled               = WC_Stripe_Feature_Flags::is_upe_checkout_enabled();
-		$available_payment_method_ids = $is_upe_enabled ? $this->gateway->get_upe_available_payment_methods() : WC_Stripe_Helper::get_legacy_available_payment_method_ids();
+		$available_payment_method_ids = $is_upe_enabled ? WC_Stripe_Helper::get_upe_settings_available_payment_method_ids( $this->gateway ) : WC_Stripe_Helper::get_legacy_available_payment_method_ids();
 
 		return new WP_REST_Response(
 			[
@@ -305,9 +305,9 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				'title_upe'                             => $this->gateway->get_validated_option( 'title_upe' ),
 
 				/* Settings > Payments accepted on checkout */
-				'enabled_payment_method_ids'            => $is_upe_enabled ? $this->gateway->get_upe_enabled_payment_method_ids() : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids(),
+				'enabled_payment_method_ids'            => $is_upe_enabled ? WC_Stripe_Helper::get_upe_settings_enabled_payment_method_ids( $this->gateway ) : WC_Stripe_Helper::get_legacy_enabled_payment_method_ids(),
 				'available_payment_method_ids'          => $available_payment_method_ids,
-				'ordered_payment_method_ids'            => array_diff( $available_payment_method_ids, [ 'link' ] ), // exclude Link from this list as it is a express methods.
+				'ordered_payment_method_ids'            => array_values( array_diff( $available_payment_method_ids, [ 'link' ] ) ), // exclude Link from this list as it is a express methods.
 				'individual_payment_method_settings'    => $is_upe_enabled ? [] : WC_Stripe_Helper::get_legacy_individual_payment_method_settings(),
 
 				/* Settings > Express checkouts */
