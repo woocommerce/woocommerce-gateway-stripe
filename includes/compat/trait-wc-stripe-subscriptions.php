@@ -387,7 +387,7 @@ trait WC_Stripe_Subscriptions_Trait {
 	 *
 	 * @since 5.6.0
 	 */
-	public function maybe_update_source_on_subscription_order( $order, $source ) {
+	public function maybe_update_source_on_subscription_order( $order, $source, $payment_method_id = '' ) {
 		if ( ! $this->is_subscriptions_enabled() ) {
 			return;
 		}
@@ -404,13 +404,17 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		foreach ( $subscriptions as $subscription ) {
-			$subscription_id = $subscription->get_id();
 			$subscription->update_meta_data( '_stripe_customer_id', $source->customer );
 
 			if ( ! empty( $source->payment_method ) ) {
 				$subscription->update_meta_data( '_stripe_source_id', $source->payment_method );
 			} else {
 				$subscription->update_meta_data( '_stripe_source_id', $source->source );
+			}
+
+			// Update the payment method.
+			if ( ! empty( $payment_method_id ) ) {
+				$subscription->set_payment_method( $payment_method_id );
 			}
 
 			$subscription->save();

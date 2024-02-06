@@ -1257,7 +1257,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$order->save();
 		}
 
-		$this->maybe_update_source_on_subscription_order( $order, $payment_method );
+		$this->maybe_update_source_on_subscription_order( $order, $payment_method, $this->id );
 	}
 
 	/**
