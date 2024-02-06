@@ -893,12 +893,12 @@ class WC_Stripe_Intent_Controller {
 	 * @return bool True if a mandate must be shown and acknowledged by customer before deferred intent UPE payment can be processed, false otherwise.
 	 */
 	public function is_mandate_data_required( $selected_payment_type ) {
-		$gateway = $this->get_upe_gateway();
 
-		$is_stripe_link_enabled = 'card' === $selected_payment_type && in_array( 'link', $gateway->get_upe_enabled_payment_method_ids(), true );
-		$is_sepa_debit_payment  = 'sepa_debit' === $selected_payment_type;
+		if ( in_array( $selected_payment_type, [ 'sepa_debit', 'bancontact', 'ideal' ], true ) ) {
+			return true;
+		}
 
-		return $is_stripe_link_enabled || $is_sepa_debit_payment;
+		return 'card' === $selected_payment_type && in_array( 'link', $this->get_upe_gateway()->get_upe_enabled_payment_method_ids(), true );
 	}
 
 	/**
