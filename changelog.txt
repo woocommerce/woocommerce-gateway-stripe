@@ -1,6 +1,9 @@
 *** Changelog ***
 
 = 8.0.0 - 2024-xx-xx =
+* Fix - When toggling on the Stripe gateway from the payment methods list, don't incorrectly redirect the merchant to Stripe settings when test mode is enabled.
+* Fix - Hiding the expandable menu for UPE entirely when the feature is disabled.
+* Fix - Critical error when deactivating the extension after deactivating WooCommerce.
 * Fix - Add missing fee and payout information to the order details page in admin.
 * Fix - Hiding "Early Access" label and "Refresh payment methods" button when UPE is disabled.
 * Tweak - Orders with `trash` status are not retrieving anymore when calling `get_order_by_intent_id` function.

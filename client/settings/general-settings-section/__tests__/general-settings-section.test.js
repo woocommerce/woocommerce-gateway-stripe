@@ -606,7 +606,7 @@ describe( 'GeneralSettingsSection', () => {
 		).not.toBeInTheDocument();
 	} );
 
-	it( 'menu should not contain "refresh payment method options" if UPE is disabled', () => {
+	it( 'should not render the expandable menu if UPE is disabled', () => {
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: false } }>
 				<GeneralSettingsSection />
@@ -614,7 +614,7 @@ describe( 'GeneralSettingsSection', () => {
 		);
 
 		expect(
-			screen.queryByText( /Refresh payment methods/ )
+			screen.queryByTestId( 'upe-expandable-menu' )
 		).not.toBeInTheDocument();
 	} );
 } );
