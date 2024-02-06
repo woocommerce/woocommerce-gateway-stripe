@@ -90,6 +90,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->enabled  = in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] ), true ) ? 'yes' : 'no';
 		$this->id       = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID;
 		$this->testmode = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
+		$this->supports = [ 'products', 'refunds' ];
 	}
 
 	/**
