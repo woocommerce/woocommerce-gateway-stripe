@@ -882,7 +882,7 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Returns the payment intent or setup intent id method ID from a given intent object.
+	 * Returns the payment intent or setup intent ID from a given order object.
 	 *
 	 * @param WC_Order $order The order to fetch the Stripe intent from.
 	 *
