@@ -167,6 +167,34 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Update the current request logged_in cookie after a guest user is created to avoid nonce inconsistencies.
 		add_action( 'set_logged_in_cookie', [ $this, 'set_cookie_on_current_request' ] );
+
+		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'get_available_payment_gateways' ] );
+	}
+
+	/**
+	 * Include Multibanco in the list of payment methods.
+	 * As we are not registering Multibanco to show in the payment settings page and Multibanco is not a UPE payment method,
+	 * we need to include it here separately so that it's available in the checkout, pay for order, add payment method etc. pages.
+	 *
+	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways on the payments settings page.
+	 * @return WC_Payment_Gateway[]          The same list if Multibanco is disabled or a list including the Multibanco method.
+	 */
+	public function get_available_payment_gateways( $gateways ) {
+		$stripe_index          = array_search( 'stripe', array_keys( $gateways ), true );
+		$gateways_upto_stripe  = array_slice( $gateways, 0, $stripe_index + 1 );
+		$gateways_after_stripe = array_slice( $gateways, $stripe_index + 1 );
+
+		$multibanco_gateway = new WC_Gateway_Stripe_Multibanco();
+		$gateway_to_add     = [];
+		if ( $multibanco_gateway && $multibanco_gateway->is_available() ) {
+			if ( ! is_add_payment_method_page() ) {
+				$gateway_to_add[ $multibanco_gateway->id ] = $multibanco_gateway;
+			} elseif ( $gateway->supports( 'add_payment_method' ) || $gateway->supports( 'tokenization' ) ) {
+				$gateway_to_add[ $multibanco_gateway->id ] = $multibanco_gateway;
+			}
+		}
+
+		return array_merge( $gateways_upto_stripe, $gateway_to_add, $gateways_after_stripe );
 	}
 
 	/**
@@ -396,6 +424,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function get_upe_enabled_at_checkout_payment_method_ids( $order_id = null ) {
 		$is_automatic_capture_enabled = $this->is_automatic_capture_enabled();
 		$available_method_ids         = [];
+		WC_Stripe_Logger::log( 'get_upe_enabled_at_checkout_payment_method_ids---' );
 		foreach ( $this->get_upe_enabled_payment_method_ids() as $payment_method_id ) {
 			if ( ! isset( $this->payment_methods[ $payment_method_id ] ) ) {
 				continue;
@@ -413,6 +442,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$available_method_ids[] = $payment_method_id;
 		}
 
+		WC_Stripe_Logger::log( 'get_upe_enabled_at_checkout_payment_method_id ret---' . wp_json_encode( $available_method_ids ) );
 		return $available_method_ids;
 	}
 
@@ -1215,6 +1245,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool
 	 */
 	public function is_enabled_at_checkout( $payment_method_id ) {
+		WC_Stripe_Logger::log( 'is_enabled_at_checkout' );
 		if ( ! isset( $this->payment_methods[ $payment_method_id ] ) ) {
 			return false;
 		}
