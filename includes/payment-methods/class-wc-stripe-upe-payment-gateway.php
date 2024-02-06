@@ -1917,7 +1917,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$customer = new WC_Stripe_Customer( $user->ID );
 		$customer->clear_cache();
 
-		// Add the payment method information to the ordeer.
+		// Add the payment method information to the order.
 		$prepared_payment_method_object = $this->prepare_payment_method( $payment_method_object );
 		$this->maybe_update_source_on_subscription_order( $order, $prepared_payment_method_object );
 
