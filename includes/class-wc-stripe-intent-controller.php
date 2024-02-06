@@ -911,11 +911,12 @@ class WC_Stripe_Intent_Controller {
 	 * @return array
 	 */
 	public function create_and_confirm_setup_intent( $payment_information ) {
-		$request  = [
+		$request = [
 			'payment_method'       => $payment_information['payment_method'],
 			'payment_method_types' => [ $payment_information['selected_payment_type'] ],
 			'customer'             => $payment_information['customer'],
 			'confirm'              => 'true',
+			'return_url'           => $payment_information['return_url'],
 		];
 
 		// SEPA setup intents require mandate data.
