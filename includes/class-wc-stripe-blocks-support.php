@@ -364,6 +364,14 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 				// Strip "Stripe_" from the payment method name to get the payment method type.
 				$payment_method_type      = substr( $context->payment_method, strlen( $this->name ) + 1 );
 				$is_stripe_payment_method = isset( $main_gateway->payment_methods[ $payment_method_type ] );
+
+				/**
+				 * When using the block checkout and a saved token is being used, we need to set a flag
+				 * to indicate that deferred intent should be used.
+				 */
+				if ( $is_stripe_payment_method && isset( $data['issavedtoken'] ) && $data['issavedtoken'] ) {
+					$context->set_payment_data( array_merge( $data, [ 'wc-stripe-is-deferred-intent' => true ] ) );
+				}
 			}
 		}
 

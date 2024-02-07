@@ -725,7 +725,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					(object) [
 						'payment_method' => $payment_information['payment_method'],
 						'customer'       => $payment_information['customer'],
-					]
+					],
+					$this->id
 				);
 			}
 

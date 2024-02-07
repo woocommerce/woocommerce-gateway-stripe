@@ -241,8 +241,7 @@ class WC_Stripe_Payment_Tokens {
 			return $tokens;
 		}
 
-		$gateway                  = WC_Stripe::get_instance()->get_main_stripe_gateway();
-		$reusable_payment_methods = array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] );
+		$gateway     = WC_Stripe::get_instance()->get_main_stripe_gateway();
 		$upe_gateway = null;
 
 		foreach ( $gateway->payment_methods as $payment_gateway ) {

@@ -386,8 +386,12 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Updates other subscription sources.
 	 *
 	 * @since 5.6.0
+	 *
+	 * @param WC_Order $order              The order object.
+	 * @param string   $source_id          The source ID.
+	 * @param string   $payment_gateway_id The payment method ID. eg 'stripe.
 	 */
-	public function maybe_update_source_on_subscription_order( $order, $source, $payment_method_id = '' ) {
+	public function maybe_update_source_on_subscription_order( $order, $source, $payment_gateway_id = '' ) {
 		if ( ! $this->is_subscriptions_enabled() ) {
 			return;
 		}
@@ -413,8 +417,8 @@ trait WC_Stripe_Subscriptions_Trait {
 			}
 
 			// Update the payment method.
-			if ( ! empty( $payment_method_id ) ) {
-				$subscription->set_payment_method( $payment_method_id );
+			if ( ! empty( $payment_gateway_id ) ) {
+				$subscription->set_payment_method( $payment_gateway_id );
 			}
 
 			$subscription->save();

@@ -1107,31 +1107,6 @@ class WC_Stripe_Helper {
 	}
 
 	/**
-	 * Fetches the current gateway instance for a given payment method type.
-	 *
-	 * @param string $payment_type The payment type to get the gateway for. eg 'card', 'sepa_debit', etc.
-	 *
-	 * @return WC_Payment_Gateway The gateway instance for the given payment type.
-	 */
-	public static function get_gateway_from_payment_method_type( $payment_type ) {
-		// By default the main Stripe gateway is the gateway.
-		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
-
-		if ( is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
-			if ( isset( $gateway->payment_methods[ $payment_type ] ) ) {
-				return $gateway->payment_methods[ $payment_type ];
-			}
-		} else {
-			$legacy_gateways = self::get_legacy_payment_methods();
-			if ( isset( $legacy_gateways[ $payment_type ] ) ) {
-				return $legacy_gateways[ $payment_type ];
-			}
-		}
-
-		return $gateway;
-	}
-
-	/**
 	 * Fetches a list of all Stripe gateway IDs.
 	 *
 	 * @return array An array of all Stripe gateway IDs.
