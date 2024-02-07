@@ -32,13 +32,15 @@ Object.entries( getBlocksConfiguration()?.paymentMethodsConfig )
 				upeName,
 				upeMethods,
 				api,
-				upeConfig.testingInstructions
+				upeConfig.testingInstructions,
+				upeConfig.showSaveOption ?? false
 			),
 			edit: getDeferredIntentCreationUPEFields(
 				upeName,
 				upeMethods,
 				api,
-				upeConfig.testingInstructions
+				upeConfig.testingInstructions,
+				upeConfig.showSaveOption ?? false
 			),
 			savedTokenComponent: <SavedTokenHandler api={ api } />,
 			canMakePayment: () => !! api.getStripe(),

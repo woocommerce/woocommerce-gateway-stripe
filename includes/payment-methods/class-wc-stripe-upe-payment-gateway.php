@@ -330,6 +330,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['accountDescriptor']                = $this->statement_descriptor;
 		$stripe_params['addPaymentReturnURL']              = wc_get_account_endpoint_url( 'payment-methods' );
 		$stripe_params['enabledBillingFields']             = $enabled_billing_fields;
+		$stripe_params['cartContainsSubscription']         = $this->is_subscription_item_in_cart();
 
 		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
 		$currency   = get_woocommerce_currency();
@@ -392,7 +393,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				'isReusable'          => $this->payment_methods[ $payment_method ]->is_reusable(),
 				'title'               => $this->payment_methods[ $payment_method ]->get_title(),
 				'testingInstructions' => $this->payment_methods[ $payment_method ]->get_testing_instructions(),
-				'showSaveOption'      => $this->payment_methods[ $payment_method ]->should_show_save_option(),
+				'showSaveOption'      => $this->should_upe_payment_method_show_save_option( $this->payment_methods[ $payment_method ] ),
 			];
 		}
 
@@ -2137,5 +2138,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				)
 			)
 		);
+	}
+
+	/**
+	 * Checks if the save option for a payment method should be displayed or not.
+	 *
+	 * @param WC_Stripe_UPE_Payment_Method $payment_method UPE Payment Method instance.
+	 * @return bool - True if the payment method is reusable and the saved cards feature is enabled for the gateway and there is no subscription item in the cart, false otherwise.
+	 */
+	private function should_upe_payment_method_show_save_option( $payment_method ) {
+		if ( $payment_method->is_reusable() ) {
+			// If a subscription in the cart, it will be saved by default so no need to show the option.
+			return $this->is_saved_cards_enabled() && ! $this->is_subscription_item_in_cart();
+		}
+
+		return false;
 	}
 }

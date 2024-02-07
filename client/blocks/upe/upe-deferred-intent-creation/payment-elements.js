@@ -24,21 +24,25 @@ const PaymentElements = ( { api, ...props } ) => {
 	const amount = Number( getBlocksConfiguration()?.cartTotal );
 	const currency = getBlocksConfiguration()?.currency.toLowerCase();
 	const appearance = initializeUPEAppearance();
+	const options = {
+		mode: amount < 1 ? 'setup' : 'payment',
+		amount,
+		currency,
+		paymentMethodCreation: 'manual',
+		paymentMethodTypes: getPaymentMethodTypes( props.paymentMethodId ),
+		appearance,
+	};
+
+	// If the cart contains a subscription or the payment method supports saving, we need to use off_session setup so Stripe can display appropriate terms and conditions.
+	if (
+		getBlocksConfiguration()?.cartContainsSubscription ||
+		props.showSaveOption
+	) {
+		options.setupFutureUsage = 'off_session';
+	}
 
 	return (
-		<Elements
-			stripe={ stripe }
-			options={ {
-				mode: amount < 1 ? 'setup' : 'payment',
-				amount,
-				currency,
-				paymentMethodCreation: 'manual',
-				paymentMethodTypes: getPaymentMethodTypes(
-					props.paymentMethodId
-				),
-				appearance,
-			} }
-		>
+		<Elements stripe={ stripe } options={ options }>
 			<PaymentProcessor api={ api } { ...props } />
 		</Elements>
 	);
@@ -51,6 +55,7 @@ const PaymentElements = ( { api, ...props } ) => {
  * @param {Array}       upeMethods
  * @param {WCStripeAPI} api
  * @param {string}      testingInstructions
+ * @param {boolean}     showSaveOption
  *
  * @return {JSX.Element} Rendered Payment elements.
  */
@@ -58,7 +63,8 @@ export const getDeferredIntentCreationUPEFields = (
 	paymentMethodId,
 	upeMethods,
 	api,
-	testingInstructions
+	testingInstructions,
+	showSaveOption
 ) => {
 	return (
 		<PaymentElements
@@ -66,6 +72,7 @@ export const getDeferredIntentCreationUPEFields = (
 			upeMethods={ upeMethods }
 			api={ api }
 			testingInstructions={ testingInstructions }
+			showSaveOption={ showSaveOption }
 		/>
 	);
 };
