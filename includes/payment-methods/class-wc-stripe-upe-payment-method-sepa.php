@@ -24,6 +24,8 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 		$this->is_reusable          = true;
 		$this->supported_currencies = [ 'EUR' ];
 		$this->label                = __( 'SEPA Direct Debit', 'woocommerce-gateway-stripe' );
+		$this->supports[]           = 'subscriptions';
+		$this->supports[]           = 'tokenization';
 		$this->description          = __(
 			'Reach 500 million customers and over 20 million businesses across the European Union.',
 			'woocommerce-gateway-stripe'
