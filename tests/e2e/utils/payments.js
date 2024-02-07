@@ -24,10 +24,9 @@ export async function emptyCart( page ) {
 		await page.click( '.woocommerce-remove-coupon' );
 	}
 
-	await page.waitForSelector( '.cart-empty.woocommerce-info' );
-	await expect( page.locator( '.cart-empty.woocommerce-info' ) ).toHaveText(
-		'Your cart is currently empty.'
-	);
+	await expect(
+		page.locator( '.wc-block-components-notice-banner__content' )
+	).toHaveText( 'Your cart is currently empty.' );
 }
 
 /**
