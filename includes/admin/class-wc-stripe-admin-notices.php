@@ -312,6 +312,9 @@ class WC_Stripe_Admin_Notices {
 	public function payment_methods_check_environment() {
 		$payment_methods = $this->get_payment_methods();
 
+		// phpcs:ignore
+		$is_stripe_settings_page = isset( $_GET['page'], $_GET['section'] ) && 'wc-settings' === $_GET['page'] && 0 === strpos( $_GET['section'], 'stripe' );
+
 		foreach ( $payment_methods as $method => $class ) {
 			$show_notice = get_option( 'wc_stripe_show_' . $method . '_notice' );
 			$gateway     = new $class();
@@ -329,7 +332,7 @@ class WC_Stripe_Admin_Notices {
 				);
 
 				$this->add_admin_notice( 'sofort', 'notice notice-warning', $message, false );
-			} elseif ( ! in_array( get_woocommerce_currency(), $gateway->get_supported_currency(), true ) ) {
+			} elseif ( ! $is_stripe_settings_page && ! in_array( get_woocommerce_currency(), $gateway->get_supported_currency(), true ) ) {
 				/* translators: 1) Payment method, 2) List of supported currencies */
 				$this->add_admin_notice( $method, 'notice notice-error', sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s', 'woocommerce-gateway-stripe' ), $gateway->get_method_title(), implode( ', ', $gateway->get_supported_currency() ) ), true );
 			}
@@ -359,7 +362,7 @@ class WC_Stripe_Admin_Notices {
 				);
 
 				$this->add_admin_notice( 'sofort', 'notice notice-warning', $message, false );
-			} elseif ( ! in_array( get_woocommerce_currency(), $upe_method->get_supported_currencies(), true ) ) {
+			} elseif ( ! $is_stripe_settings_page && ! in_array( get_woocommerce_currency(), $upe_method->get_supported_currencies(), true ) ) {
 				/* translators: %1$s Payment method, %2$s List of supported currencies */
 				$this->add_admin_notice( $method . '_upe', 'notice notice-error', sprintf( __( '%1$s is enabled - it requires store currency to be set to %2$s', 'woocommerce-gateway-stripe' ), $upe_method->get_label(), implode( ', ', $upe_method->get_supported_currencies() ) ), true );
 			}
