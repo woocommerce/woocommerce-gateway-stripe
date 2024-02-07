@@ -281,8 +281,13 @@ const GeneralSettingsSection = ( {
 					description,
 					allows_manual_capture: isAllowingManualCapture,
 				} = PaymentMethodsMap[ method ];
-				const paymentMethodCurrencies =
+				let paymentMethodCurrencies =
 					PaymentMethodsMap[ method ]?.currencies || [];
+				if ( method === 'alipay' ) {
+					paymentMethodCurrencies = isUpeEnabled
+						? paymentMethodCurrencies.upeCurrencies
+						: paymentMethodCurrencies.nonUpeCurrencies;
+				}
 				const isCurrencySupported =
 					method === 'card' ||
 					paymentMethodCurrencies.includes( storeCurrency );
