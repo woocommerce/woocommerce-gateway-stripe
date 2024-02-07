@@ -281,7 +281,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			'description'          => $description,
 			'customer'             => $customer_id,
 			'metadata'             => $metadata,
-			'statement_descriptor' => null,
 		];
 
 		$_POST = [ 'wc_payment_intent_id' => $payment_intent_id ];
@@ -1107,7 +1106,6 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			'customer'             => $customer_id,
 			'metadata'             => $metadata,
 			'setup_future_usage'   => 'off_session',
-			'statement_descriptor' => null,
 		];
 
 		$_POST = [ 'wc_payment_intent_id' => $payment_intent_id ];
