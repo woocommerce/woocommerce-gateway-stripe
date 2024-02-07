@@ -684,6 +684,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_needed        = $this->is_payment_needed( $order->get_id() );
 			$payment_method_id     = $payment_information['payment_method'];
 			$selected_payment_type = $payment_information['selected_payment_type'];
+			$upe_payment_method    = $this->payment_methods[ $selected_payment_type ] ?? null;
 
 			// Make sure that we attach the payment method and the customer ID to the order meta data.
 			$this->set_payment_method_id_for_order( $order, $payment_method_id );
@@ -1928,7 +1929,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$customer = new WC_Stripe_Customer( $user->ID );
 		$customer->clear_cache();
 
-		// Add the payment method information to the ordeer.
+		// Add the payment method information to the order.
 		$prepared_payment_method_object = $this->prepare_payment_method( $payment_method_object );
 		$this->maybe_update_source_on_subscription_order( $order, $prepared_payment_method_object );
 
