@@ -202,7 +202,9 @@ const GeneralSettingsSection = ( {
 			);
 		}
 
-		if ( orderedPaymentMethodIds.length === 0 ) {
+		if (
+			orderedPaymentMethodIds.length !== availablePaymentMethods.length
+		) {
 			setOrderedPaymentMethodIds( availablePaymentMethods );
 		}
 	}, [
