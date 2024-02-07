@@ -28,6 +28,7 @@ class UPE_Test_Helper {
 		$closure();
 		WC()->payment_gateways()->payment_gateways = [];
 		WC()->payment_gateways()->init();
+		WC_Stripe_Helper::$stripe_legacy_gateways = [];
 	}
 
 	public function enable_upe() {

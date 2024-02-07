@@ -64,7 +64,6 @@ describe( 'AccountDetails', () => {
 		} );
 		render( <AccountDetails /> );
 
-		expect( screen.queryByText( /error/i ) ).not.toBeInTheDocument();
-		expect( screen.queryByText( /may be disabled/i ) ).toBeInTheDocument();
+		expect( screen.queryByTestId( 'help' ) ).toBeInTheDocument();
 	} );
 } );

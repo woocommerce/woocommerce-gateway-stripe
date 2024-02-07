@@ -110,6 +110,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					'prepare_order_source',
 					'stripe_request',
 					'get_stripe_customer_from_order',
+					'display_order_fee',
+					'display_order_payout',
 				]
 			)
 			->getMock();
@@ -597,7 +599,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		)[1];
 
 		$this->assertEquals( 'processing', $final_order->get_status() );
-		$this->assertEquals( 'Credit card / debit card', $final_order->get_payment_method_title() );
+		$this->assertEquals( 'Credit / Debit Card', $final_order->get_payment_method_title() );
 		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
 		$this->assertTrue( (bool) $final_order->get_meta( '_stripe_upe_redirect_processed', true ) );
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
@@ -651,7 +653,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		// assert successful order processing
 		$this->assertEquals( 'processing', $success_order->get_status() );
-		$this->assertEquals( 'Credit card / debit card', $success_order->get_payment_method_title() );
+		$this->assertEquals( 'Credit / Debit Card', $success_order->get_payment_method_title() );
 		$this->assertEquals( $payment_intent_id, $success_order->get_meta( '_stripe_intent_id', true ) );
 		$this->assertTrue( (bool) $success_order->get_meta( '_stripe_upe_redirect_processed', true ) );
 		$this->assertMatchesRegularExpression( '/Charge ID: ch_mock/', $note->content );
@@ -714,7 +716,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'processing', $final_order->get_status() );
 		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
 		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
-		$this->assertEquals( 'Credit card / debit card', $final_order->get_payment_method_title() );
+		$this->assertEquals( 'Credit / Debit Card', $final_order->get_payment_method_title() );
 	}
 
 	/**
@@ -1653,7 +1655,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$final_order = wc_get_order( $order_id );
 
-		$this->assertEquals( 'Credit card / debit card', $final_order->get_payment_method_title() );
+		$this->assertEquals( 'Credit / Debit Card', $final_order->get_payment_method_title() );
 		$this->assertEquals( $payment_method_id, $final_order->get_meta( '_stripe_source_id', true ) );
 		$this->assertEquals( $customer_id, $final_order->get_meta( '_stripe_customer_id', true ) );
 		$this->assertEquals( $payment_intent_id, $final_order->get_meta( '_stripe_intent_id', true ) );
@@ -1725,6 +1727,24 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertTrue( (bool) $final_order->get_meta( '_stripe_upe_redirect_processed', true ) );
 	}
 
+	/**
+	 * Test if `display_order_fee` and `display_order_payout` are called when viewing an order on the admin panel.
+	 *
+	 * @return void
+	 */
+	public function test_fees_actions_are_called_on_order_admin_page() {
+		$order = WC_Helper_Order::create_order();
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'display_order_fee' )
+			->with( $order->get_id() );
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'display_order_payout' )
+			->with( $order->get_id() );
+
+		do_action( 'woocommerce_admin_order_totals_after_total', $order->get_id() );
+	}
 
 	/**
 	 * @param array $account_data

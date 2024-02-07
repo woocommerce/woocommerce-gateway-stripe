@@ -18,7 +18,7 @@ class WC_Stripe_UPE_Payment_Method_Bancontact extends WC_Stripe_UPE_Payment_Meth
 	public function __construct() {
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
-		$this->title                = 'Pay with Bancontact';
+		$this->title                = 'Bancontact';
 		$this->is_reusable          = true;
 		$this->supported_currencies = [ 'EUR' ];
 		$this->label                = __( 'Bancontact', 'woocommerce-gateway-stripe' );

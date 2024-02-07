@@ -21,7 +21,7 @@ class WC_Stripe_UPE_Payment_Method_Oxxo extends WC_Stripe_UPE_Payment_Method {
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->can_refund           = false;
-		$this->title                = 'Pay with OXXO';
+		$this->title                = 'OXXO';
 		$this->is_reusable          = false;
 		$this->supported_currencies = [ 'MXN' ];
 		$this->supported_countries  = [ 'MX' ];

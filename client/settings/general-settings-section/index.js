@@ -1,9 +1,10 @@
 import { __ } from '@wordpress/i18n';
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import { Card, VisuallyHidden } from '@wordpress/components';
 import LoadableSettingsSection from '../loadable-settings-section';
+import AccountActivationNotice from '../account-activation-notice';
 import SectionHeading from './section-heading';
 import SectionFooter from './section-footer';
 import PaymentMethodsList from './payment-methods-list';
@@ -33,15 +34,30 @@ const AccountRefreshingOverlay = styled.div`
 	}
 `;
 
-const GeneralSettingsSection = () => {
+const GeneralSettingsSection = ( { onSaveChanges } ) => {
+	const [ isChangingDisplayOrder, setIsChangingDisplayOrder ] = useState(
+		false
+	);
 	const { isUpeEnabled } = useContext( UpeToggleContext );
 	const { isRefreshing } = useAccount();
 
+	const onChangeDisplayOrder = ( isChanging, data = null ) => {
+		setIsChangingDisplayOrder( isChanging );
+
+		if ( data ) {
+			onSaveChanges( 'ordered_payment_method_ids', data );
+		}
+	};
+
 	return (
 		<>
+			<AccountActivationNotice />
 			<StyledCard>
-				<LoadableSettingsSection numLines={ isUpeEnabled ? 30 : 7 }>
-					{ isUpeEnabled && <SectionHeading /> }
+				<LoadableSettingsSection numLines={ 30 }>
+					<SectionHeading
+						isChangingDisplayOrder={ isChangingDisplayOrder }
+						onChangeDisplayOrder={ onChangeDisplayOrder }
+					/>
 					{ isRefreshing && (
 						<VisuallyHidden>
 							{ __(
@@ -55,7 +71,10 @@ const GeneralSettingsSection = () => {
 							'has-overlay': isRefreshing,
 						} ) }
 					>
-						<PaymentMethodsList />
+						<PaymentMethodsList
+							isChangingDisplayOrder={ isChangingDisplayOrder }
+							onSaveChanges={ onSaveChanges }
+						/>
 					</AccountRefreshingOverlay>
 					{ isUpeEnabled && <SectionFooter /> }
 				</LoadableSettingsSection>

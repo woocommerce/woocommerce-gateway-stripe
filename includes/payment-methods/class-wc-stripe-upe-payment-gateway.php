@@ -134,7 +134,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->maybe_init_pre_orders();
 
 		$main_settings              = get_option( 'woocommerce_stripe_settings' );
-		$this->title                = ! empty( $this->get_option( 'title_upe' ) ) ? $this->get_option( 'title_upe' ) : $this->form_fields['title_upe']['default'];
+		$this->title                = $this->payment_methods['card']->get_title();
 		$this->description          = '';
 		$this->enabled              = $this->get_option( 'enabled' );
 		$this->saved_cards          = 'yes' === $this->get_option( 'saved_cards' );
@@ -142,11 +142,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$this->publishable_key      = ! empty( $main_settings['publishable_key'] ) ? $main_settings['publishable_key'] : '';
 		$this->secret_key           = ! empty( $main_settings['secret_key'] ) ? $main_settings['secret_key'] : '';
 		$this->statement_descriptor = ! empty( $main_settings['statement_descriptor'] ) ? $main_settings['statement_descriptor'] : '';
-
-		$enabled_at_checkout_payment_methods = $this->get_upe_enabled_at_checkout_payment_method_ids();
-		if ( count( $enabled_at_checkout_payment_methods ) === 1 ) {
-			$this->title = $this->payment_methods[ $enabled_at_checkout_payment_methods[0] ]->get_title();
-		}
 
 		// When feature flags are enabled, title shows the count of enabled payment methods in settings page only.
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_Feature_Flags::is_upe_preview_enabled() && isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] ) {
@@ -164,6 +159,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
 		add_action( 'wp_footer', [ $this, 'payment_scripts' ] );
+
+		// Display the correct fees on the order page.
+		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_fee' ] );
+		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_payout' ], 20 );
 
 		// Needed for 3DS compatibility when checking out with PRBs..
 		// Copied from WC_Gateway_Stripe::__construct().
@@ -200,10 +199,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
-	 * Return the gateway icon - None for UPE.
+	 * Gets the payment method's icon.
+	 *
+	 * @return string The icon HTML.
 	 */
 	public function get_icon() {
-		return apply_filters( 'woocommerce_gateway_icon', null, $this->id );
+		$icons = WC_Stripe::get_instance()->get_main_stripe_gateway()->payment_icons();
+		return isset( $icons['cards'] ) ? apply_filters( 'woocommerce_gateway_icon', $icons['cards'], $this->id ) : parent::get_icon();
 	}
 
 	/**
@@ -313,7 +315,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 		}
 
-		$stripe_params['isCheckout']                       = is_checkout() && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
+		$stripe_params['isCheckout']                       = ( is_checkout() || has_block( 'woocommerce/checkout' ) ) && empty( $_GET['pay_for_order'] ); // wpcs: csrf ok.
 		$stripe_params['return_url']                       = $this->get_stripe_return_url();
 		$stripe_params['ajax_url']                         = WC_AJAX::get_endpoint( '%%endpoint%%' );
 		$stripe_params['theme_name']                       = get_option( 'stylesheet' );
@@ -387,9 +389,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		foreach ( $enabled_payment_methods as $payment_method ) {
 			$settings[ $payment_method ] = [
-				'isReusable' => $this->payment_methods[ $payment_method ]->is_reusable(),
-				'title' => $this->payment_methods[ $payment_method ]->get_title(),
+				'isReusable'          => $this->payment_methods[ $payment_method ]->is_reusable(),
+				'title'               => $this->payment_methods[ $payment_method ]->get_title(),
 				'testingInstructions' => $this->payment_methods[ $payment_method ]->get_testing_instructions(),
+				'showSaveOption'      => $this->payment_methods[ $payment_method ]->should_show_save_option(),
 			];
 		}
 
@@ -493,7 +496,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				<div id="wc-stripe-upe-errors" role="alert"></div>
 				<input id="wc-stripe-payment-method-upe" type="hidden" name="wc-stripe-payment-method-upe" />
 				<input id="wc_stripe_selected_upe_payment_type" type="hidden" name="wc_stripe_selected_upe_payment_type" />
-				<input type="hidden" id="wc-stripe-is-deferred-intent" name="wc-stripe-is-deferred-intent" value="1" />
+				<input type="hidden" class="wc-stripe-is-deferred-intent" name="wc-stripe-is-deferred-intent" value="1" />
 			</fieldset>
 			<?php
 			$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
@@ -782,7 +785,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						'payment_method' => $payment_information['payment_method'],
 					]
 				);
-			} else {
+			} elseif ( in_array( $payment_intent->status, self::SUCCESSFUL_INTENT_STATUS, true ) ) {
 				$order->payment_complete();
 			}
 
@@ -809,7 +812,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				sprintf( __( 'Payment failed: %s', 'woocommerce-gateway-stripe' ), $e->getLocalizedMessage() )
 			);
 
-			return [ 'result' => 'failure' ];
+			return [
+				'result' => 'failure',
+				'redirect' => '',
+			];
 		}
 	}
 
@@ -1373,8 +1379,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @since 5.6.0
 	 */
 	public function is_available() {
-		$methods_enabled_for_saved_payments = array_filter( $this->get_upe_enabled_payment_method_ids(), [ $this, 'is_enabled_for_saved_payments' ] );
-		if ( is_add_payment_method_page() && count( $methods_enabled_for_saved_payments ) === 0 ) {
+
+		// The main UPE gateway represents the card payment method. So it's only available if the card payment method is enabled and available.
+		if ( isset( $this->payment_methods['card'] ) && ( ! $this->payment_methods['card']->is_enabled() || ! $this->payment_methods['card']->is_available() ) ) {
 			return false;
 		}
 
@@ -1796,6 +1803,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 
 			$payment_method_id = $token->get_token();
+
+			if ( is_a( $token, 'WC_Payment_Token_SEPA' ) ) {
+				$selected_payment_type = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
+			}
 		} else {
 			$payment_method_id = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}

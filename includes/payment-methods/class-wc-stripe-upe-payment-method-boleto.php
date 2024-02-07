@@ -21,7 +21,7 @@ class WC_Stripe_UPE_Payment_Method_Boleto extends WC_Stripe_UPE_Payment_Method {
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
 		$this->can_refund           = false;
-		$this->title                = 'Pay with Boleto';
+		$this->title                = 'Boleto';
 		$this->is_reusable          = false;
 		$this->supported_currencies = [ 'BRL' ];
 		$this->supported_countries  = [ 'BR' ];

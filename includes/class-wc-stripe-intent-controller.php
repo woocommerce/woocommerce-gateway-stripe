@@ -562,7 +562,7 @@ class WC_Stripe_Intent_Controller {
 				throw new WC_Stripe_Exception( 'order_not_found', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
-			$intent_id          = $order->get_meta( '_stripe_intent_id' );
+			$intent_id          = WC_Stripe_Helper::get_intent_id_from_order( $order );
 			$intent_id_received = isset( $_POST['intent_id'] ) ? wc_clean( wp_unslash( $_POST['intent_id'] ) ) : null;
 			if ( empty( $intent_id_received ) || $intent_id_received !== $intent_id ) {
 				$note = sprintf(

@@ -17,7 +17,7 @@ class WC_Gateway_Stripe_Oxxo extends WC_Stripe_Payment_Gateway_Voucher {
 	 *
 	 * @var string
 	 */
-	const ID = 'stripe_boleto';
+	const ID = 'stripe_oxxo';
 
 	/**
 	 * ID used by WooCommerce to identify the payment method

@@ -18,6 +18,13 @@ class WC_Stripe_Helper {
 	const META_NAME_STRIPE_CURRENCY = '_stripe_currency';
 
 	/**
+	 * List of legacy Stripe gateways.
+	 *
+	 * @var array
+	 */
+	public static $stripe_legacy_gateways = [];
+
+	/**
 	 * Gets the Stripe currency for order.
 	 *
 	 * @since 4.1.0
@@ -335,6 +342,207 @@ class WC_Stripe_Helper {
 		}
 
 		return isset( $all_settings[ $setting ] ) ? $all_settings[ $setting ] : '';
+	}
+
+	/**
+	 * List of legacy payment method classes.
+	 *
+	 * @return array
+	 */
+	public static function get_legacy_payment_method_classes() {
+		$payment_method_classes = [
+			WC_Gateway_Stripe_Alipay::class,
+			WC_Gateway_Stripe_Bancontact::class,
+			WC_Gateway_Stripe_Boleto::class,
+			WC_Gateway_Stripe_EPS::class,
+			WC_Gateway_Stripe_Giropay::class,
+			WC_Gateway_Stripe_Ideal::class,
+			WC_Gateway_Stripe_Multibanco::class,
+			WC_Gateway_Stripe_Oxxo::class,
+			WC_Gateway_Stripe_p24::class,
+			WC_Gateway_Stripe_Sepa::class,
+		];
+
+		/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
+		 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
+		 */
+		$sofort_settings = get_option( 'woocommerce_stripe_sofort_settings', [] );
+		if ( isset( $sofort_settings['enabled'] ) && 'yes' === $sofort_settings['enabled'] ) {
+			$payment_method_classes[] = WC_Gateway_Stripe_Sofort::class;
+		}
+
+		return $payment_method_classes;
+	}
+
+	/**
+	 * List of legacy payment methods.
+	 *
+	 * @return array
+	 */
+	public static function get_legacy_payment_methods() {
+		if ( ! empty( self::$stripe_legacy_gateways ) ) {
+			return self::$stripe_legacy_gateways;
+		}
+
+		$payment_method_classes = self::get_legacy_payment_method_classes();
+
+		foreach ( $payment_method_classes as $payment_method_class ) {
+			$payment_method = new $payment_method_class();
+
+			self::$stripe_legacy_gateways[ $payment_method->id ] = $payment_method;
+		}
+
+		return self::$stripe_legacy_gateways;
+	}
+
+	/**
+	 * Get legacy payment method by id.
+	 *
+	 * @return object|null
+	 */
+	public static function get_legacy_payment_method( $id ) {
+		$payment_methods = self::get_legacy_payment_methods();
+
+		if ( ! isset( $payment_methods[ $id ] ) ) {
+			return null;
+		}
+
+		return $payment_methods[ $id ];
+	}
+
+	/**
+	 * List of available legacy payment method ids.
+	 * It returns the order saved in the `stripe_legacy_method_order` option in Stripe settings.
+	 * If the `stripe_legacy_method_order` option is not set, it returns the default order.
+	 *
+	 * The ids are mapped to the corresponding equivalent UPE method ids for rendeing on the frontend.
+	 *
+	 * @return array
+	 */
+	public static function get_legacy_available_payment_method_ids() {
+		$stripe_settings            = get_option( 'woocommerce_stripe_settings', [] );
+		$payment_method_classes     = self::get_legacy_payment_method_classes();
+		$ordered_payment_method_ids = isset( $stripe_settings['stripe_legacy_method_order'] ) ? $stripe_settings['stripe_legacy_method_order'] : [];
+
+		// If the legacy method order is not set, return the default order.
+		if ( ! empty( $ordered_payment_method_ids ) ) {
+			$payment_method_ids = array_map(
+				function( $payment_method_id ) {
+					if ( 'stripe' === $payment_method_id ) {
+						return 'card';
+					} else {
+						return str_replace( 'stripe_', '', $payment_method_id );
+					}
+				},
+				$ordered_payment_method_ids
+			);
+
+			// Cover the edge case when new Stripe payment methods are added to the plugin which do not exist in
+			// the `stripe_legacy_method_order` option.
+			if ( count( $payment_method_ids ) - 1 !== count( $payment_method_classes ) ) {
+				foreach ( $payment_method_classes as $payment_method_class ) {
+					$id = str_replace( 'stripe_', '', $payment_method_class::ID );
+					if ( ! in_array( $id, $payment_method_ids, true ) ) {
+						$payment_method_ids[] = $id;
+					}
+				}
+
+				// Update the `stripe_legacy_method_order` option with the new order including missing payment methods from the option.
+				$stripe_settings['stripe_legacy_method_order'] = $payment_method_ids;
+				update_option( 'woocommerce_stripe_settings', $stripe_settings );
+			}
+		} else {
+			$payment_method_ids = array_map(
+				function( $payment_method_class ) {
+					return str_replace( 'stripe_', '', $payment_method_class::ID );
+				},
+				$payment_method_classes
+			);
+			$payment_method_ids = array_merge( [ 'card' ], $payment_method_ids );
+		}
+
+		return $payment_method_ids;
+	}
+
+	/**
+	 * List of enabled legacy payment methods.
+	 *
+	 * @return array
+	 */
+	public static function get_legacy_enabled_payment_methods() {
+		$payment_methods = self::get_legacy_payment_methods();
+
+		$enabled_payment_methods = [];
+
+		foreach ( $payment_methods as $payment_method ) {
+			if ( ! $payment_method->is_enabled() ) {
+				continue;
+			}
+			$enabled_payment_methods[ $payment_method->id ] = $payment_method;
+		}
+
+		return $enabled_payment_methods;
+	}
+
+	/**
+	 * List of enabled legacy payment method ids.
+	 *
+	 * @return array
+	 */
+	public static function get_legacy_enabled_payment_method_ids() {
+		$is_stripe_enabled = self::get_settings( null, 'enabled' );
+
+		// In legacy mode (when UPE is disabled), Stripe refers to card as payment method.
+		$enabled_payment_method_ids = 'yes' === $is_stripe_enabled ? [ 'card' ] : [];
+
+		$payment_methods                   = self::get_legacy_payment_methods();
+		$mapped_enabled_payment_method_ids = [];
+
+		foreach ( $payment_methods as $payment_method ) {
+			if ( ! $payment_method->is_enabled() ) {
+				continue;
+			}
+			$payment_method_id = str_replace( 'stripe_', '', $payment_method->id );
+
+			$mapped_enabled_payment_method_ids[] = $payment_method_id;
+		}
+
+		return array_merge( $enabled_payment_method_ids, $mapped_enabled_payment_method_ids );
+	}
+
+	/**
+	 * Get settings of individual payment methods.
+	 *
+	 * @return array
+	 */
+	public static function get_legacy_individual_payment_method_settings() {
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		$payment_methods = self::get_legacy_payment_methods();
+
+		$payment_method_settings = [
+			'card' => [
+				'name'        => isset( $stripe_settings['title'] ) ? $stripe_settings['title'] : '',
+				'description' => isset( $stripe_settings['description'] ) ? $stripe_settings['description'] : '',
+			],
+		];
+
+		foreach ( $payment_methods as $payment_method ) {
+			$settings = [
+				'name'        => $payment_method->get_option( 'title' ),
+				'description' => $payment_method->get_option( 'description' ),
+			];
+
+			$unique_settings = $payment_method->get_unique_settings();
+			if ( isset( $unique_settings[ $payment_method->id . '_expiration' ] ) ) {
+				$settings['expiration'] = $unique_settings[ $payment_method->id . '_expiration' ];
+			}
+
+			$payment_method_id = str_replace( 'stripe_', '', $payment_method->id );
+
+			$payment_method_settings[ $payment_method_id ] = $settings;
+		}
+
+		return $payment_method_settings;
 	}
 
 	/**
@@ -879,5 +1087,65 @@ class WC_Stripe_Helper {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Returns the payment intent or setup intent ID from a given order object.
+	 *
+	 * @param WC_Order $order The order to fetch the Stripe intent from.
+	 *
+	 * @return string|bool  The intent ID if found, false otherwise.
+	 */
+	public static function get_intent_id_from_order( $order ) {
+		$intent_id = $order->get_meta( '_stripe_intent_id' );
+
+		if ( ! $intent_id ) {
+			$intent_id = $order->get_meta( '_stripe_setup_intent' );
+		}
+
+		return $intent_id ?? false;
+	}
+
+	/**
+	 * Fetches the current gateway instance for a given payment method type.
+	 *
+	 * @param string $payment_type The payment type to get the gateway for. eg 'card', 'sepa_debit', etc.
+	 *
+	 * @return WC_Payment_Gateway The gateway instance for the given payment type.
+	 */
+	public static function get_gateway_from_payment_method_type( $payment_type ) {
+		// By default the main Stripe gateway is the gateway.
+		$gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+		if ( is_a( $gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+			if ( isset( $gateway->payment_methods[ $payment_type ] ) ) {
+				return $gateway->payment_methods[ $payment_type ];
+			}
+		} else {
+			$legacy_gateways = self::get_legacy_payment_methods();
+			if ( isset( $legacy_gateways[ $payment_type ] ) ) {
+				return $legacy_gateways[ $payment_type ];
+			}
+		}
+
+		return $gateway;
+	}
+
+	/**
+	 * Fetches a list of all Stripe gateway IDs.
+	 *
+	 * @return array An array of all Stripe gateway IDs.
+	 */
+	public static function get_stripe_gateway_ids() {
+		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$gateway_ids  = [ 'stripe' => $main_gateway->id ];
+
+		if ( is_a( $main_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+			$gateways = $main_gateway->payment_methods;
+		} else {
+			$gateways = self::get_legacy_payment_methods();
+		}
+
+		return array_merge( $gateway_ids, wp_list_pluck( $gateways, 'id', 'id' ) );
 	}
 }
