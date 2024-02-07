@@ -278,7 +278,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
 		$token = new WC_Payment_Token_SEPA();
 		$token->set_last4( $payment_method->sepa_debit->last4 );
-		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_gateway_id( $this->id );
 		$token->set_token( $payment_method->id );
 		$token->set_payment_method_type( $this->get_id() );
 		$token->set_user_id( $user_id );
@@ -418,6 +418,10 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 				if ( is_user_logged_in() ) {
 					$this->save_payment_method_checkbox( $force_save_payment );
 				}
+			}
+			if ( $display_tokenization ) {
+				$this->tokenization_script();
+				$this->saved_payment_methods();
 			}
 		} catch ( Exception $e ) {
 			// Output the error message.

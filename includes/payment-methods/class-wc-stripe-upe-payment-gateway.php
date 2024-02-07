@@ -712,7 +712,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			// Handle saving the payment method in the store.
 			// It's already attached to the Stripe customer at this point.
-			if ( $payment_information['save_payment_method_to_store'] ) {
+			if ( $payment_information['save_payment_method_to_store'] && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
 				$this->handle_saving_payment_method(
 					$order,
 					$payment_information['payment_method'],
@@ -1803,6 +1803,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 
 			$payment_method_id = $token->get_token();
+
+			if ( is_a( $token, 'WC_Payment_Token_SEPA' ) ) {
+				$selected_payment_type = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
+			}
 		} else {
 			$payment_method_id = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}

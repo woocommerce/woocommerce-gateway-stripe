@@ -1105,4 +1105,22 @@ class WC_Stripe_Helper {
 
 		return $intent_id ?? false;
 	}
+
+	/**
+	 * Fetches a list of all Stripe gateway IDs.
+	 *
+	 * @return array An array of all Stripe gateway IDs.
+	 */
+	public static function get_stripe_gateway_ids() {
+		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$gateway_ids  = [ 'stripe' => $main_gateway->id ];
+
+		if ( is_a( $main_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+			$gateways = $main_gateway->payment_methods;
+		} else {
+			$gateways = self::get_legacy_payment_methods();
+		}
+
+		return array_merge( $gateway_ids, wp_list_pluck( $gateways, 'id', 'id' ) );
+	}
 }

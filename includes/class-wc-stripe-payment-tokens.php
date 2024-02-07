@@ -230,7 +230,8 @@ class WC_Stripe_Payment_Tokens {
 	 * @return array
 	 */
 	public function woocommerce_get_customer_upe_payment_tokens( $tokens, $user_id, $gateway_id ) {
-		if ( ( ! empty( $gateway_id ) && WC_Stripe_UPE_Payment_Gateway::ID !== $gateway_id ) || ! is_user_logged_in() ) {
+
+		if ( ! is_user_logged_in() || ( ! empty( $gateway_id ) && ! in_array( $gateway_id, WC_Stripe_Helper::get_stripe_gateway_ids(), true ) ) ) {
 			return $tokens;
 		}
 
@@ -240,62 +241,61 @@ class WC_Stripe_Payment_Tokens {
 			return $tokens;
 		}
 
-		$gateway                  = new WC_Stripe_UPE_Payment_Gateway();
-		$reusable_payment_methods = array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] );
-		$customer                 = new WC_Stripe_Customer( $user_id );
-		$remaining_tokens         = [];
+		$gateway     = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$upe_gateway = null;
 
-		foreach ( $tokens as $token ) {
-			if ( WC_Stripe_UPE_Payment_Gateway::ID === $token->get_gateway_id() ) {
-				$payment_method_type = $this->get_payment_method_type_from_token( $token );
-				if ( ! in_array( $payment_method_type, $reusable_payment_methods, true ) ) {
-					// Remove saved token from list, if payment method is not enabled.
-					unset( $tokens[ $token->get_id() ] );
-				} else {
-					// Store relevant existing tokens here.
-					// We will use this list to check whether these methods still exist on Stripe's side.
-					$remaining_tokens[ $token->get_token() ] = $token;
-				}
+		foreach ( $gateway->payment_methods as $payment_gateway ) {
+			if ( $payment_gateway->id === $gateway_id ) {
+				$upe_gateway = $payment_gateway;
+				break;
 			}
 		}
 
-		$retrievable_payment_method_types = [];
-		foreach ( $reusable_payment_methods as $payment_method_id ) {
-			$upe_payment_method = $gateway->payment_methods[ $payment_method_id ];
-			if ( ! in_array( $upe_payment_method->get_retrievable_type(), $retrievable_payment_method_types, true ) ) {
-				$retrievable_payment_method_types[] = $upe_payment_method->get_retrievable_type();
-			}
+		if ( ! $upe_gateway || ! $upe_gateway->is_reusable() ) {
+			return $tokens;
+		}
+
+		$customer       = new WC_Stripe_Customer( $user_id );
+		$current_tokens = [];
+
+		foreach ( $tokens as $token ) {
+			// Store relevant existing tokens here.
+			// We will use this list to check whether these methods still exist on Stripe's side.
+			$current_tokens[ $token->get_token() ] = $token;
 		}
 
 		try {
-			foreach ( $retrievable_payment_method_types as $payment_method_id ) {
-				$payment_methods = $customer->get_payment_methods( $payment_method_id );
+			// If this UPE method uses a different payment method type as a token, we don't want to retrieve tokens for it. ie Bancontact uses SEPA tokens.
+			$payment_methods = $customer->get_payment_methods( $upe_gateway->get_retrievable_type() );
 
-				// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
-				remove_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
-				foreach ( $payment_methods as $payment_method ) {
-					if ( ! isset( $remaining_tokens[ $payment_method->id ] ) ) {
-						$payment_method_type = $this->get_original_payment_method_type( $payment_method );
-						if ( ! in_array( $payment_method_type, $reusable_payment_methods, true ) ) {
-							continue;
-						}
-						// Create new token for new payment method and add to list.
-						$upe_payment_method         = $gateway->payment_methods[ $payment_method_type ];
-						$token                      = $upe_payment_method->create_payment_token_for_user( $user_id, $payment_method );
-						$tokens[ $token->get_id() ] = $token;
-					} else {
-						// Count that existing token for payment method is still present on Stripe.
-						// Remaining IDs in $remaining_tokens no longer exist with Stripe and will be eliminated.
-						unset( $remaining_tokens[ $payment_method->id ] );
+			// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
+			remove_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
+
+			foreach ( $payment_methods as $payment_method ) {
+				if ( ! isset( $current_tokens[ $payment_method->id ] ) ) {
+					$payment_method_type = $this->get_original_payment_method_type( $payment_method );
+
+					if ( $payment_method_type !== $upe_gateway::STRIPE_ID ) {
+						continue;
 					}
+
+					// Create new token for new payment method and add to list.
+					$token                      = $upe_gateway->create_payment_token_for_user( $user_id, $payment_method );
+					$tokens[ $token->get_id() ] = $token;
+				} else {
+					// Count that existing token for payment method is still present on Stripe.
+					// Remaining IDs in $remaining_tokens no longer exist with Stripe and will be eliminated.
+					unset( $current_tokens[ $payment_method->id ] );
 				}
-				add_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 			}
+
+			add_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 
 			// Eliminate remaining payment methods no longer known by Stripe.
 			// Prevent unnecessary recursion, when deleting tokens.
 			remove_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
-			foreach ( $remaining_tokens as $token ) {
+
+			foreach ( $current_tokens as $token ) {
 				unset( $tokens[ $token->get_id() ] );
 				$token->delete();
 			}
