@@ -249,14 +249,19 @@ class WC_Stripe_Payment_Tokens {
 			// Having 10 saved credit cards is considered an unsupported edge case, new ones that have been stored in Stripe won't be added.
 			return $tokens;
 		}
+
 		$gateway  = new WC_Stripe_UPE_Payment_Gateway();
 		$customer = new WC_Stripe_Customer( $user_id );
 
-		// IDs of the payment methods that exist in Stripe.
+		// Payment methods that exist in Stripe.
+		$stripe_payment_methods     = [];
 		$stripe_payment_methods_ids = [];
 
 		// List of the types already retrieved to avoid pulling redundant information.
 		$types_retrieved_from_stripe = [];
+
+		// IDs of the payment methods that exist locally.
+		$locally_stored_payment_methods_ids = [];
 
 		// 1. Check if there's any discrepancy between the locally saved payment methods and those saved on Stripe's side.
 		// 2. If local payment methods are not found on Stripe's side, delete them.
@@ -295,6 +300,7 @@ class WC_Stripe_Payment_Tokens {
 			if ( ! in_array( $payment_method_type, $types_retrieved_from_stripe, true ) ) {
 
 				$payment_methods_for_type   = $customer->get_payment_methods( $payment_method_type );
+				$stripe_payment_methods     = array_merge( $stripe_payment_methods, $payment_methods_for_type );
 				$stripe_payment_methods_ids = array_merge( $stripe_payment_methods_ids, wp_list_pluck( $payment_methods_for_type, 'id' ) );
 
 				$types_retrieved_from_stripe[] = $payment_method_type;
@@ -303,11 +309,33 @@ class WC_Stripe_Payment_Tokens {
 			// Delete the local payment method if it doesn't exist in Stripe.
 			if ( ! in_array( $token->get_token(), $stripe_payment_methods_ids, true ) ) {
 				unset( $tokens[ $token->get_id() ] );
+
+				// Prevent unnecessary recursion when deleting tokens.
+				remove_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
+
 				$token->delete();
+
+				add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
+			} else {
+				$locally_stored_payment_methods_ids[] = $token->get_token();
 			}
 		}
 
-		// TODO: Create a local payment method if it exists in Stripe but not locally.
+		// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
+		remove_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
+
+		// Create a local payment method if it exists in Stripe but not locally.
+		foreach ( $stripe_payment_methods as $stripe_payment_method ) {
+
+			// Create a new token for the payment method and add it to the list.
+			if ( ! in_array( $stripe_payment_method->id, $locally_stored_payment_methods_ids, true ) ) {
+				$token = $payment_method_instance->create_payment_token_for_user( $user_id, $stripe_payment_method );
+
+				$tokens[ $token->get_id() ] = $token;
+			}
+		}
+
+		add_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 
 		return $tokens;
 	}
