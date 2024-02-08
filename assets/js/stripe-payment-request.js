@@ -139,6 +139,38 @@ jQuery( function( $ ) {
 				data.shipping_postcode   = shipping.postalCode;
 			}
 
+			data = wc_stripe_payment_request.getRequiredFieldDataFromCheckoutForm( data );
+
+			return data;
+		},
+
+		/**
+		 * Get required field values from the checkout form if they are filled and add to the order data.
+		 *
+		 * @param {Object} data Order data.
+		 *
+		 * @return {Object}
+		 */
+		getRequiredFieldDataFromCheckoutForm: function( data ) {
+			const requiredfields = $( 'form.checkout' ).find( '.validate-required' );
+
+			if ( requiredfields.length ) {
+				requiredfields.each( function() {
+					const field = $( this ).find( ':input' );
+					const value = field.val();
+					const name = field.attr( 'name' );
+					if ( value && ! data[ name ] ) {
+						data[ name ] = value;
+					}
+					// if shipping same as billing is selected, copy the billing field to shipping field.
+					const shipToDiffAddress = $( '#ship-to-different-address' ).find( 'input' ).is( ':checked' );
+					if ( value === '' && name.indexOf( 'shipping_', 0 ) !== -1 && ! shipToDiffAddress ) {
+						var billingFieldName = name.replace( 'shipping_', 'billing_' );
+						data[ name ] = data[ billingFieldName ];
+					}
+				});
+			}
+
 			return data;
 		},
 
