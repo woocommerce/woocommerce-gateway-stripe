@@ -280,9 +280,9 @@ class WC_Stripe_Payment_Tokens {
 							continue;
 						}
 						// Create new token for new payment method and add to list.
-						$upe_payment_method         = $gateway->payment_methods[ $payment_method_type ];
-						$token                      = $upe_payment_method->create_payment_token_for_user( $user_id, $payment_method );
-						$tokens[ $token->get_id() ] = $token;
+						// $upe_payment_method         = $gateway->payment_methods[ $payment_method_type ];
+						// $token                      = $upe_payment_method->create_payment_token_for_user( $user_id, $payment_method );
+						// $tokens[ $token->get_id() ] = $token;
 					} else {
 						// Count that existing token for payment method is still present on Stripe.
 						// Remaining IDs in $remaining_tokens no longer exist with Stripe and will be eliminated.
