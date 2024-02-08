@@ -1691,9 +1691,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				'phone'   => $order->get_billing_phone(),
 			];
 
-			$billing_details['address'] = array_filter( $billing_details['address'] );
-			$billing_details            = array_filter( $billing_details );
-
+			$billing_details = array_filter( $billing_details );
 			if ( empty( $billing_details ) ) {
 				return;
 			}
