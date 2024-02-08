@@ -75,7 +75,6 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 		$currency             = strtolower( $initial_order->get_currency() );
 		$customer             = 'cus_123abc';
 		$source               = 'src_123abc';
-		$statement_descriptor = WC_Stripe_Helper::clean_statement_descriptor( $this->statement_descriptor );
 		$intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
 		$urls_used            = [];
 
@@ -112,7 +111,6 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 			$customer,
 			$source,
 			$intents_api_endpoint,
-			$statement_descriptor,
 			$order_id,
 			&$urls_used
 		) {
@@ -154,7 +152,6 @@ class WC_Stripe_Subscription_Initial_Test extends WP_UnitTestCase {
 				'source'               => $source,
 				'amount'               => $stripe_amount,
 				'currency'             => $currency,
-				'statement_descriptor' => $statement_descriptor,
 				'customer'             => $customer,
 				'setup_future_usage'   => 'off_session',
 				'payment_method_types' => [ 'card' ],
