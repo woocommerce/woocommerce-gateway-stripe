@@ -562,7 +562,7 @@ class WC_Stripe_Intent_Controller {
 				throw new WC_Stripe_Exception( 'order_not_found', __( "We're not able to process this payment. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
-			$intent_id          = $order->get_meta( '_stripe_intent_id' );
+			$intent_id          = WC_Stripe_Helper::get_intent_id_from_order( $order );
 			$intent_id_received = isset( $_POST['intent_id'] ) ? wc_clean( wp_unslash( $_POST['intent_id'] ) ) : null;
 			if ( empty( $intent_id_received ) || $intent_id_received !== $intent_id ) {
 				$note = sprintf(
@@ -732,6 +732,10 @@ class WC_Stripe_Intent_Controller {
 			]
 		);
 
+		if ( $this->request_needs_redirection( $payment_method_types ) ) {
+			$request['return_url'] = $payment_information['return_url'];
+		}
+
 		// For voucher payment methods type like Boleto & Oxxo, we shouldn't confirm the intent immediately as this is done on the front-end when displaying the voucher to the customer.
 		// When the intent is confirmed, Stripe sends a webhook to the store which puts the order on-hold, which we only want to happen after successfully displaying the voucher.
 		if ( $this->is_delayed_confirmation_required( $payment_method_types ) ) {
@@ -759,6 +763,27 @@ class WC_Stripe_Intent_Controller {
 		}
 
 		return $payment_intent;
+	}
+
+	/**
+	 * Adds mandate data to the request.
+	 *
+	 * @param array $request The request to add mandate data to.
+	 *
+	 * @return array The request with mandate data added.
+	*/
+	private function add_mandate_data( $request ) {
+		$request['mandate_data'] = [
+			'customer_acceptance' => [
+				'type'   => 'online',
+				'online' => [
+					'ip_address' => WC_Geolocation::get_ip_address(),
+					'user_agent' => 'WooCommerce Stripe Gateway' . WC_STRIPE_VERSION . '; ' . get_bloginfo( 'url' ),
+				],
+			],
+		];
+
+		return $request;
 	}
 
 	/**
@@ -882,15 +907,7 @@ class WC_Stripe_Intent_Controller {
 
 		// For Stripe Link & SEPA with deferred intent UPE, we must create mandate to acknowledge that terms have been shown to customer.
 		if ( $this->is_mandate_data_required( $selected_payment_type ) ) {
-			$request['mandate_data'] = [
-				'customer_acceptance' => [
-					'type'   => 'online',
-					'online' => [
-						'ip_address' => WC_Geolocation::get_ip_address(),
-						'user_agent' => 'WooCommerce Stripe Gateway' . WC_STRIPE_VERSION . '; ' . get_bloginfo( 'url' ),
-					],
-				],
-			];
+			$request = $this->add_mandate_data( $request );
 		}
 
 		if ( $this->request_needs_redirection( $payment_method_types ) ) {
@@ -911,7 +928,7 @@ class WC_Stripe_Intent_Controller {
 	 * This applies to SEPA and Link payment methods.
 	 * https://stripe.com/docs/payments/finalize-payments-on-the-server
 	 *
-	 * @param $selected_payment_type The name of the selected UPE payment type.
+	 * @param string $selected_payment_type The name of the selected UPE payment type.
 	 *
 	 * @return bool True if a mandate must be shown and acknowledged by customer before deferred intent UPE payment can be processed, false otherwise.
 	 */
@@ -927,26 +944,26 @@ class WC_Stripe_Intent_Controller {
 	/**
 	 * Creates and confirm a setup intent with the given payment method ID.
 	 *
-	 * @param string $payment_method The payment method ID (pm_).
+	 * @param array $payment_information The payment information to be used for the setup intent.
 	 *
 	 * @throws WC_Stripe_Exception If the create intent call returns with an error.
 	 *
 	 * @return array
 	 */
-	public function create_and_confirm_setup_intent( $payment_method ) {
-		// Determine the customer managing the payment methods, create one if we don't have one already.
-		$user        = wp_get_current_user();
-		$customer    = new WC_Stripe_Customer( $user->ID );
-		$customer_id = $customer->update_or_create_customer();
+	public function create_and_confirm_setup_intent( $payment_information ) {
+		$request  = [
+			'payment_method'       => $payment_information['payment_method'],
+			'payment_method_types' => [ $payment_information['selected_payment_type'] ],
+			'customer'             => $payment_information['customer'],
+			'confirm'              => 'true',
+		];
 
-		$setup_intent = WC_Stripe_API::request(
-			[
-				'customer'       => $customer_id,
-				'confirm'        => 'true',
-				'payment_method' => $payment_method,
-			],
-			'setup_intents'
-		);
+		// SEPA setup intents require mandate data.
+		if ( $this->is_mandate_data_required( $payment_information['selected_payment_type'] ) ) {
+			$request = $this->add_mandate_data( $request );
+		}
+
+		$setup_intent = WC_Stripe_API::request( $request, 'setup_intents' );
 
 		if ( ! empty( $setup_intent->error ) ) {
 			throw new WC_Stripe_Exception( print_r( $setup_intent->error, true ), $setup_intent->error->message );
@@ -971,12 +988,24 @@ class WC_Stripe_Intent_Controller {
 			}
 
 			$payment_method = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) );
+			$payment_type   = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-type'] ?? 'card' ) );
 
 			if ( ! $payment_method ) {
 				throw new WC_Stripe_Exception( 'Payment method missing from request.', __( "We're not able to add this payment method. Please refresh the page and try again.", 'woocommerce-gateway-stripe' ) );
 			}
 
-			$setup_intent = $this->create_and_confirm_setup_intent( $payment_method );
+			// Determine the customer managing the payment methods, create one if we don't have one already.
+			$user     = wp_get_current_user();
+			$customer = new WC_Stripe_Customer( $user->ID );
+
+			// Manually create the payment information array to create & confirm the setup intent.
+			$payment_information = [
+				'payment_method'        => $payment_method,
+				'customer'              => $customer->update_or_create_customer(),
+				'selected_payment_type' => $payment_type,
+			];
+
+			$setup_intent = $this->create_and_confirm_setup_intent( $payment_information );
 
 			if ( empty( $setup_intent->status ) || ! in_array( $setup_intent->status, [ 'succeeded', 'processing', 'requires_action' ], true ) ) {
 				throw new WC_Stripe_Exception( 'Response from Stripe: ' . print_r( $setup_intent, true ), __( 'There was an error adding this payment method. Please refresh the page and try again', 'woocommerce-gateway-stripe' ) );

@@ -706,31 +706,30 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 				// Create a payment intent, or update an existing one associated with the order.
 				$payment_intent = $this->process_payment_intent_for_order( $order, $payment_information );
-
-				// Handle saving the payment method in the store.
-				// It's already attached to the Stripe customer at this point.
-				if ( $payment_information['save_payment_method_to_store'] ) {
-					$this->handle_saving_payment_method(
-						$order,
-						$payment_information['payment_method'],
-						$selected_payment_type
-					);
-				}
-
-				// Use the last charge within the intent to proceed.
-				$charge = end( $payment_intent->charges->data );
-
-				// Only process the response if it contains a charge object. Intents with no charge require further action like 3DS and will be processed later.
-				if ( $charge ) {
-					$this->process_response( $charge, $order );
-				}
-
-				// Set the selected UPE payment method type title in the WC order.
-				$this->set_payment_method_title_for_order( $order, $selected_payment_type );
 			} else {
-				// It's a setup intent. To be handled.
-				return [ 'result' => 'failure' ];
+				$payment_intent = $this->process_setup_intent_for_order( $order, $payment_information );
 			}
+
+			// Handle saving the payment method in the store.
+			// It's already attached to the Stripe customer at this point.
+			if ( $payment_information['save_payment_method_to_store'] ) {
+				$this->handle_saving_payment_method(
+					$order,
+					$payment_information['payment_method'],
+					$selected_payment_type
+				);
+			} elseif ( $payment_information['is_using_saved_payment_method'] ) {
+				$this->maybe_update_source_on_subscription_order(
+					$order,
+					(object) [
+						'payment_method' => $payment_information['payment_method'],
+						'customer'       => $payment_information['customer'],
+					]
+				);
+			}
+
+			// Set the selected UPE payment method type title in the WC order.
+			$this->set_payment_method_title_for_order( $order, $selected_payment_type );
 
 			$redirect = $this->get_return_url( $order );
 
@@ -762,6 +761,31 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
 					);
 				}
+			}
+
+			if ( $payment_needed ) {
+				// Use the last charge within the intent to proceed.
+				$charge = end( $payment_intent->charges->data );
+
+				// Only process the response if it contains a charge object. Intents with no charge require further action like 3DS and will be processed later.
+				if ( $charge ) {
+					$this->process_response( $charge, $order );
+				}
+			} elseif ( $this->is_changing_payment_method_for_subscription() ) {
+				// Trigger wc_stripe_change_subs_payment_method_success action hook to preserve backwards compatibility, see process_change_subscription_payment_method().
+				do_action(
+					'wc_stripe_change_subs_payment_method_success',
+					$payment_information['payment_method'],
+					(object) [
+						'token_id'       => false !== $payment_information['token'] ? $payment_information['token']->get_id() : false,
+						'customer'       => $payment_information['customer'],
+						'source'         => null,
+						'source_object'  => $payment_method,
+						'payment_method' => $payment_information['payment_method'],
+					]
+				);
+			} elseif ( in_array( $payment_intent->status, self::SUCCESSFUL_INTENT_STATUS, true ) ) {
+				$order->payment_complete();
 			}
 
 			return [
@@ -1717,6 +1741,41 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	}
 
 	/**
+	 * Create a setup intent for the order.
+	 *
+	 * @param WC_Order $order               The WC Order for which we're handling a setup intent.
+	 * @param array    $payment_information The payment information to be used for the setup intent.
+	 *
+	 * @throws WC_Stripe_Exception When there's an error creating the setup intent.
+	 *
+	 * @return stdClass
+	 */
+	private function process_setup_intent_for_order( WC_Order $order, array $payment_information ) {
+		$setup_intent = $this->intent_controller->create_and_confirm_setup_intent( $payment_information );
+
+		if ( ! empty( $setup_intent->error ) ) {
+
+			// Add the setup intent information to the order meta, if one was created despite the error.
+			if ( ! empty( $setup_intent->error->payment_intent ) ) {
+				$this->save_intent_to_order( $order, $setup_intent->error->payment_intent );
+			}
+
+			$this->maybe_remove_non_existent_customer( $setup_intent->error, $order );
+
+			throw new WC_Stripe_Exception(
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
+				print_r( $setup_intent, true ),
+				__( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' )
+			);
+		}
+
+		// Add the payment intent information to the order meta.
+		$this->save_intent_to_order( $order, $setup_intent );
+
+		return $setup_intent;
+	}
+
+	/**
 	 * Collects the payment information needed for processing a payment intent.
 	 *
 	 * @param WC_Order $order The WC Order to be paid for.
@@ -1729,6 +1788,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$currency              = strtolower( $order->get_currency() );
 		$amount                = WC_Stripe_Helper::get_stripe_amount( $order->get_total(), $currency );
 		$shipping_details      = null;
+		$token                 = false;
 
 		$save_payment_method_to_store  = $this->should_save_payment_method_from_request( $order->get_id(), $selected_payment_type );
 		$is_using_saved_payment_method = $this->is_using_saved_payment_method();
@@ -1774,6 +1834,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'payment_method_types'          => $payment_method_types,
 			'shipping'                      => $shipping_details,
 			'statement_descriptor'          => $this->get_statement_descriptor( $order, $selected_payment_type ),
+			'token'                         => $token,
 			'return_url'                    => $this->get_return_url_for_redirect( $order, $save_payment_method_to_store ),
 		];
 	}

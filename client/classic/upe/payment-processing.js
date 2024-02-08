@@ -269,7 +269,7 @@ export const createAndConfirmSetupIntent = (
 	api
 ) => {
 	return api
-		.setupIntent( paymentMethod.id )
+		.setupIntent( paymentMethod )
 		.then( function ( confirmedSetupIntent ) {
 			appendSetupIntentToForm( jQueryForm, confirmedSetupIntent );
 			return confirmedSetupIntent;

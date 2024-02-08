@@ -166,16 +166,19 @@ export default class WCStripeAPI {
 	/**
 	 * Creates and confirms a setup intent.
 	 *
-	 * @param {string} paymentMethodId The id of the payment method.
+	 * @param {Object} paymentMethod      Payment method data.
+	 * @param {string} paymentMethod.id   The ID of the payment method.
+	 * @param {string} paymentMethod.type The type of the payment method.
 	 *
 	 * @return {Promise} Promise containing the setup intent.
 	 */
-	setupIntent( paymentMethodId ) {
+	setupIntent( paymentMethod ) {
 		return this.request(
 			this.getAjaxUrl( 'create_and_confirm_setup_intent' ),
 			{
 				action: 'create_and_confirm_setup_intent',
-				'wc-stripe-payment-method': paymentMethodId,
+				'wc-stripe-payment-method': paymentMethod.id,
+				'wc-stripe-payment-type': paymentMethod.type,
 				_ajax_nonce: this.options?.createAndConfirmSetupIntentNonce,
 			}
 		).then( ( response ) => {

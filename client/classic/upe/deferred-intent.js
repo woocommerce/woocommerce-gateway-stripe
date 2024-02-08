@@ -63,11 +63,14 @@ jQuery( function ( $ ) {
 
 	// Pay for Order page submit.
 	$( '#order_review' ).on( 'submit', () => {
-		return processPayment(
-			api,
-			$( '#order_review' ),
-			getSelectedUPEGatewayPaymentMethod()
-		);
+		const paymentMethodType = getSelectedUPEGatewayPaymentMethod();
+		if ( ! isUsingSavedPaymentMethod( paymentMethodType ) ) {
+			return processPayment(
+				api,
+				$( '#order_review' ),
+				paymentMethodType
+			);
+		}
 	} );
 
 	// If the card element selector doesn't exist, then do nothing.
