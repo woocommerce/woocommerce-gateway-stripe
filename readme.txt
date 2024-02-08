@@ -1,10 +1,10 @@
 === WooCommerce Stripe Payment Gateway ===
 Contributors: woocommerce, automattic, royho, akeda, mattyza, bor0, woothemes
-Tags: credit card, stripe, apple pay, payment request, google pay, sepa, sofort, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
-Requires at least: 5.7
-Tested up to: 6.0
-Requires PHP: 7.0
-Stable tag: 6.6.0
+Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancontact, alipay, giropay, ideal, p24, woocommerce, automattic
+Requires at least: 6.1
+Tested up to: 6.4.2
+Requires PHP: 7.4
+Stable tag: 7.9.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -13,7 +13,7 @@ Take credit card payments on your store using Stripe.
 
 == Description ==
 
-Accept Visa, MasterCard, American Express, Discover, JCB, Diners Club, SEPA, Sofort, iDEAL, giropay, Alipay, and more directly on your store with the Stripe payment gateway for WooCommerce, including Apple Pay, Google Pay, and Microsoft Pay for mobile and desktop.
+Accept Visa, MasterCard, American Express, Discover, JCB, Diners Club, SEPA, iDEAL, giropay, Alipay, and more directly on your store with the Stripe payment gateway for WooCommerce, including Apple Pay, Google Pay, and Microsoft Pay for mobile and desktop.
 
 = Take Credit card payments easily and directly on your store =
 
@@ -128,8 +128,13 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 6.7.0 - 2022-xx-xx =
-* Fix - Check payment method before updating payment method title.
-* Fix - Use the eslint config at the root of the repo.
+= 8.0.0 - 2024-xx-xx =
+* Fix - When toggling on the Stripe gateway from the payment methods list, don't incorrectly redirect the merchant to Stripe settings when test mode is enabled.
+* Fix - Hiding the expandable menu for UPE entirely when the feature is disabled.
+* Fix - Critical error when deactivating the extension after deactivating WooCommerce.
+* Fix - Add missing fee and payout information to the order details page in admin.
+* Fix - Hiding "Early Access" label and "Refresh payment methods" button when UPE is disabled.
+* Tweak - Orders with `trash` status are not retrieving anymore when calling `get_order_by_intent_id` function.
+* Add   - Update the interface for customizing Stripe payment methods.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

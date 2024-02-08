@@ -1,4 +1,4 @@
-/* global wc_stripe_params */
+/* global wc_stripe_params, Stripe */
 
 jQuery( function( $ ) {
 	'use strict';
@@ -543,8 +543,12 @@ jQuery( function( $ ) {
 				return stripe.createSource( iban, extra_details ).then( wc_stripe_form.sourceResponse );
 			}
 
-			// Handle card payments.
-			return stripe.createSource( stripe_card, extra_details )
+			// This part is exclusive to card payments so we create a payment method, not a source.
+			return stripe.createPaymentMethod( {
+				type: 'card',
+				card: stripe_card,
+				billing_details: extra_details.owner,
+			} )
 				.then( wc_stripe_form.sourceResponse );
 		},
 
@@ -561,11 +565,15 @@ jQuery( function( $ ) {
 
 			wc_stripe_form.reset();
 
+			// TODO: This can be restored to the optional chaining and nullish coalescing operators version, when we move
+			// this file to the building pipeline: response?.paymentMethod?.id ?? response?.source?.id
+			var payment_method_id = response.paymentMethod && response.paymentMethod.id ? response.paymentMethod.id : response.source && response.source.id ? response.source.id : undefined;
+
 			wc_stripe_form.form.append(
 				$( '<input type="hidden" />' )
 					.addClass( 'stripe-source' )
 					.attr( 'name', 'stripe_source' )
-					.val( response.source.id )
+					.val( payment_method_id )
 			);
 
 			if ( $( 'form#add_payment_method' ).length || $( '#wc-stripe-change-payment-method' ).length ) {
@@ -588,11 +596,15 @@ jQuery( function( $ ) {
 				}
 			};
 
+			// TODO: This can be restored to the optional chaining and nullish coalescing operators version, when we move
+			// this file to the building pipeline: response?.paymentMethod?.id ?? response?.source?.id
+			var payment_method_id = response.paymentMethod && response.paymentMethod.id ? response.paymentMethod.id : response.source && response.source.id ? response.source.id : undefined;
+
 			$.post( {
 				url: wc_stripe_form.getAjaxURL( 'create_setup_intent'),
 				dataType: 'json',
 				data: {
-					stripe_source_id: response.source.id,
+					stripe_source_id: payment_method_id,
 					nonce: wc_stripe_params.add_card_nonce,
 				},
 				error: function() {
@@ -610,7 +622,7 @@ jQuery( function( $ ) {
 					return;
 				}
 
-				stripe.confirmCardSetup( serverResponse.client_secret, { payment_method: response.source.id } )
+				stripe.confirmCardSetup( serverResponse.client_secret, { payment_method: payment_method_id } )
 					.then( function( result ) {
 						if ( result.error ) {
 							$( document.body ).trigger( 'stripeError', result );
@@ -707,6 +719,7 @@ jQuery( function( $ ) {
 			if( wc_stripe_form.form.attr('id') === 'order_review' ) {
 				formFields._ajax_nonce = wc_stripe_params.updatePaymentIntentNonce;
 				formFields.order_id = wc_stripe_params.orderId;
+				formFields.stripe_order_key = wc_stripe_params.stripe_order_key;
 
 				$.ajax( {
 					url: wc_stripe_form.getAjaxURL( payment_method + '_update_payment_intent' ),
@@ -817,7 +830,7 @@ jQuery( function( $ ) {
 		 */
 		onError: function( e, result ) {
 			var message = result.error.message;
-			var selectedMethodElement = wc_stripe_form.getSelectedPaymentElement().closest( 'li' );
+			var selectedMethodElement = wc_stripe_form.getSelectedPaymentElement().closest( '.wc_payment_method' );
 			var savedTokens = selectedMethodElement.find( '.woocommerce-SavedPaymentMethods-tokenInput' );
 			var errorContainer;
 

@@ -14,7 +14,9 @@ const SaveSettingsSection = ( { onSettingsSave } ) => {
 
 	const onClickHandler = async () => {
 		await saveSettings();
-		onSettingsSave();
+		if ( onSettingsSave ) {
+			onSettingsSave();
+		}
 	};
 
 	return (

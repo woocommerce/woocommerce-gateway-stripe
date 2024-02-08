@@ -1,4 +1,8 @@
 module.exports = {
+	testEnvironment: 'jsdom',
+	testEnvironmentOptions: {
+		browsers: [ 'chrome', 'firefox', 'safari' ],
+	},
 	preset: '@wordpress/jest-preset-default',
 	rootDir: '../../',
 	verbose: true,

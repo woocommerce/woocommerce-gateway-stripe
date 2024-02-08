@@ -11,6 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 4.1.0
  */
 class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
+
+	const ID = 'stripe_multibanco';
+
 	/**
 	 * Notices (array)
 	 *
@@ -57,7 +60,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 	 * Constructor
 	 */
 	public function __construct() {
-		$this->id                 = 'stripe_multibanco';
+		$this->id                 = self::ID;
 		$this->method_title       = __( 'Stripe Multibanco', 'woocommerce-gateway-stripe' );
 		$this->method_description = sprintf(
 		/* translators: 1) HTML anchor open tag 2) HTML anchor closing tag */
@@ -151,7 +154,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 	 * Outputs scripts used for stripe payment
 	 */
 	public function payment_scripts() {
-		if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) && ! is_add_payment_method_page() ) {
+		if ( ! is_cart() && ! is_checkout() && ! parent::is_valid_pay_for_order_endpoint() && ! is_add_payment_method_page() ) {
 			return;
 		}
 
@@ -176,7 +179,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 		$description = $this->get_description();
 
 		// If paying from order, we need to get total from order not cart.
-		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) {
+		if ( parent::is_valid_pay_for_order_endpoint() ) {
 			$order = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) );
 			$total = $order->get_total();
 		}
@@ -194,7 +197,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 			data-currency="' . esc_attr( strtolower( get_woocommerce_currency() ) ) . '">';
 
 		if ( $description ) {
-			echo apply_filters( 'wc_stripe_description', wpautop( wp_kses_post( $description ) ), $this->id );
+			echo wpautop( esc_html( apply_filters( 'wc_stripe_description', $description, $this->id ) ) );
 		}
 
 		echo '</div>';
@@ -226,7 +229,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 		if ( ! $sent_to_admin && 'stripe_multibanco' === $payment_method && $order->has_status( 'on-hold' ) ) {
 			WC_Stripe_Logger::log( 'Sending multibanco email for order #' . $order_id );
 
-			$this->get_instructions( $order_id, $plain_text );
+			$this->get_instructions( $order, $plain_text );
 		}
 	}
 
@@ -235,37 +238,41 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 	 *
 	 * @since 4.1.0
 	 * @version 4.1.0
-	 * @param int $order_id
+	 * @param int|WC_Order $order
 	 */
-	public function get_instructions( $order_id, $plain_text = false ) {
-		$data = get_post_meta( $order_id, '_stripe_multibanco', true );
+	public function get_instructions( $order, $plain_text = false ) {
+		if ( true === is_int( $order ) ) {
+			$order = wc_get_order( $order );
+		}
+
+		$data = $order->get_meta( '_stripe_multibanco' );
 
 		if ( $plain_text ) {
 			esc_html_e( 'MULTIBANCO INFORMAÇÕES DE ENCOMENDA:', 'woocommerce-gateway-stripe' ) . "\n\n";
 			echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n";
 			esc_html_e( 'Montante:', 'woocommerce-gateway-stripe' ) . "\n\n";
-			echo $data['amount'] . "\n\n";
+			echo wp_kses_post( $data['amount'] ) . "\n\n";
 			echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n";
 			esc_html_e( 'Entidade:', 'woocommerce-gateway-stripe' ) . "\n\n";
-			echo $data['entity'] . "\n\n";
+			echo esc_html( $data['entity'] ) . "\n\n";
 			echo "=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n\n";
 			esc_html_e( 'Referencia:', 'woocommerce-gateway-stripe' ) . "\n\n";
-			echo $data['reference'] . "\n\n";
+			echo esc_html( $data['reference'] ) . "\n\n";
 		} else {
 			?>
 			<h3><?php esc_html_e( 'MULTIBANCO INFORMAÇÕES DE ENCOMENDA:', 'woocommerce-gateway-stripe' ); ?></h3>
 			<ul class="woocommerce-order-overview woocommerce-thankyou-order-details order_details">
 			<li class="woocommerce-order-overview__order order">
 				<?php esc_html_e( 'Montante:', 'woocommerce-gateway-stripe' ); ?>
-				<strong><?php echo $data['amount']; ?></strong>
+				<strong><?php echo wp_kses_post( $data['amount'] ); ?></strong>
 			</li>
 			<li class="woocommerce-order-overview__order order">
 				<?php esc_html_e( 'Entidade:', 'woocommerce-gateway-stripe' ); ?>
-				<strong><?php echo $data['entity']; ?></strong>
+				<strong><?php echo esc_html( $data['entity'] ); ?></strong>
 			</li>
 			<li class="woocommerce-order-overview__order order">
 				<?php esc_html_e( 'Referencia:', 'woocommerce-gateway-stripe' ); ?>
-				<strong><?php echo $data['reference']; ?></strong>
+				<strong><?php echo esc_html( $data['reference'] ); ?></strong>
 			</li>
 			</ul>
 			<?php
@@ -289,7 +296,7 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 
 		$order_id = $order->get_id();
 
-		update_post_meta( $order_id, '_stripe_multibanco', $data );
+		$order->update_meta_data( '_stripe_multibanco', $data );
 	}
 
 	/**

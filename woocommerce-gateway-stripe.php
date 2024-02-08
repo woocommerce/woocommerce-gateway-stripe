@@ -5,11 +5,11 @@
  * Description: Take credit card payments on your store using Stripe.
  * Author: WooCommerce
  * Author URI: https://woocommerce.com/
- * Version: 6.6.0
- * Requires at least: 5.7
- * Tested up to: 6.0
- * WC requires at least: 6.2
- * WC tested up to: 6.7
+ * Version: 7.9.2
+ * Requires at least: 6.1
+ * Tested up to: 6.4.2
+ * WC requires at least: 8.2
+ * WC tested up to: 8.5.1
  * Text Domain: woocommerce-gateway-stripe
  * Domain Path: /languages
  */
@@ -21,10 +21,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Required minimums and constants
  */
-define( 'WC_STRIPE_VERSION', '6.6.0' ); // WRCS: DEFINED_VERSION.
-define( 'WC_STRIPE_MIN_PHP_VER', '7.0.0' );
-define( 'WC_STRIPE_MIN_WC_VER', '6.2' );
-define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '6.3' );
+define( 'WC_STRIPE_VERSION', '7.9.2' ); // WRCS: DEFINED_VERSION.
+define( 'WC_STRIPE_MIN_PHP_VER', '7.3.0' );
+define( 'WC_STRIPE_MIN_WC_VER', '7.4' );
+define( 'WC_STRIPE_FUTURE_MIN_WC_VER', '7.5' );
 define( 'WC_STRIPE_MAIN_FILE', __FILE__ );
 define( 'WC_STRIPE_ABSPATH', __DIR__ . '/' );
 define( 'WC_STRIPE_PLUGIN_URL', untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) );
@@ -49,7 +49,7 @@ function woocommerce_stripe_missing_wc_notice() {
  */
 function woocommerce_stripe_wc_not_supported() {
 	/* translators: $1. Minimum WooCommerce version. $2. Current WooCommerce version. */
-	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce %1$s or greater to be installed and active. WooCommerce %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), WC_STRIPE_MIN_WC_VER, WC_VERSION ) . '</strong></p></div>';
+	echo '<div class="error"><p><strong>' . sprintf( esc_html__( 'Stripe requires WooCommerce %1$s or greater to be installed and active. WooCommerce %2$s is no longer supported.', 'woocommerce-gateway-stripe' ), esc_html( WC_STRIPE_MIN_WC_VER ), esc_html( WC_VERSION ) ) . '</strong></p></div>';
 }
 
 function woocommerce_gateway_stripe() {
@@ -63,14 +63,14 @@ function woocommerce_gateway_stripe() {
 			/**
 			 * The *Singleton* instance of this class
 			 *
-			 * @var Singleton
+			 * @var WC_Stripe
 			 */
 			private static $instance;
 
 			/**
 			 * Returns the *Singleton* instance of this class.
 			 *
-			 * @return Singleton The *Singleton* instance.
+			 * @return WC_Stripe The *Singleton* instance.
 			 */
 			public static function get_instance() {
 				if ( null === self::$instance ) {
@@ -167,6 +167,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-state.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-webhook-handler.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-sepa-payment-token.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-link-payment-token.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-apple-pay-registration.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-gateway-stripe.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
@@ -370,7 +371,7 @@ function woocommerce_gateway_stripe() {
 			}
 
 			/**
-			 * Add the gateways to WooCommerce.
+			 * Add the main Stripe gateway to WooCommerce.
 			 *
 			 * @since 1.0.0
 			 * @version 5.6.0
@@ -378,22 +379,11 @@ function woocommerce_gateway_stripe() {
 			public function add_gateways( $methods ) {
 				$methods[] = $this->get_main_stripe_gateway();
 
-				if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() || ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-					// These payment gateways will be hidden when UPE is enabled:
-					$methods[] = WC_Gateway_Stripe_Sepa::class;
-					$methods[] = WC_Gateway_Stripe_Giropay::class;
-					$methods[] = WC_Gateway_Stripe_Ideal::class;
-					$methods[] = WC_Gateway_Stripe_Bancontact::class;
-					$methods[] = WC_Gateway_Stripe_Eps::class;
-					$methods[] = WC_Gateway_Stripe_Sofort::class;
-					$methods[] = WC_Gateway_Stripe_P24::class;
-					$methods[] = WC_Gateway_Stripe_Boleto::class;
-					$methods[] = WC_Gateway_Stripe_Oxxo::class;
+				// These payment gateways will be visible in the main settings page, if UPE enabled.
+				if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+					$methods[] = WC_Gateway_Stripe_Alipay::class;
+					$methods[] = WC_Gateway_Stripe_Multibanco::class;
 				}
-
-				// These payment gateways will always be visible, regardless if UPE is enabled or disabled:
-				$methods[] = WC_Gateway_Stripe_Alipay::class;
-				$methods[] = WC_Gateway_Stripe_Multibanco::class;
 
 				return $methods;
 			}
@@ -489,33 +479,36 @@ function woocommerce_gateway_stripe() {
 
 			protected function enable_upe( $settings ) {
 				$settings['upe_checkout_experience_accepted_payments'] = [];
-				$payment_gateways                                      = WC()->payment_gateways->payment_gateways();
+
+				$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
 				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
 					if ( ! defined( "$method_class::LPM_GATEWAY_CLASS" ) ) {
 						continue;
 					}
 
 					$lpm_gateway_id = constant( $method_class::LPM_GATEWAY_CLASS . '::ID' );
-					if ( isset( $payment_gateways[ $lpm_gateway_id ] ) && 'yes' === $payment_gateways[ $lpm_gateway_id ]->enabled ) {
+					if ( isset( $payment_gateways[ $lpm_gateway_id ] ) && $payment_gateways[ $lpm_gateway_id ]->is_enabled() ) {
 						// DISABLE LPM
-						if ( 'stripe' !== $lpm_gateway_id ) {
-							/**
-							 * TODO: This can be replaced with:
-							 *
-							 *   $payment_gateways[ $lpm_gateway_id ]->update_option( 'enabled', 'no' );
-							 *   $payment_gateways[ $lpm_gateway_id ]->enabled = 'no';
-							 *
-							 * ...once the minimum WC version is 3.4.0.
-							 */
-							$payment_gateways[ $lpm_gateway_id ]->settings['enabled'] = 'no';
-							update_option(
-								$payment_gateways[ $lpm_gateway_id ]->get_option_key(),
-								apply_filters( 'woocommerce_settings_api_sanitized_fields_' . $payment_gateways[ $lpm_gateway_id ]::ID, $payment_gateways[ $lpm_gateway_id ]->settings ),
-								'yes'
-							);
-						}
+						/**
+						 * TODO: This can be replaced with:
+						 *
+						 *   $payment_gateways[ $lpm_gateway_id ]->update_option( 'enabled', 'no' );
+						 *   $payment_gateways[ $lpm_gateway_id ]->enabled = 'no';
+						 *
+						 * ...once the minimum WC version is 3.4.0.
+						 */
+						$payment_gateways[ $lpm_gateway_id ]->settings['enabled'] = 'no';
+						update_option(
+							$payment_gateways[ $lpm_gateway_id ]->get_option_key(),
+							apply_filters( 'woocommerce_settings_api_sanitized_fields_' . $payment_gateways[ $lpm_gateway_id ]::ID, $payment_gateways[ $lpm_gateway_id ]->settings ),
+							'yes'
+						);
 						// ENABLE UPE METHOD
 						$settings['upe_checkout_experience_accepted_payments'][] = $method_class::STRIPE_ID;
+					}
+
+					if ( 'stripe' === $lpm_gateway_id && isset( $this->stripe_gateway ) && $this->stripe_gateway->is_enabled() ) {
+						$settings['upe_checkout_experience_accepted_payments'][] = 'card';
 					}
 				}
 				if ( empty( $settings['upe_checkout_experience_accepted_payments'] ) ) {
@@ -720,11 +713,14 @@ register_activation_hook( __FILE__, 'add_woocommerce_inbox_variant' );
 function wcstripe_deactivated() {
 	// admin notes are not supported on older versions of WooCommerce.
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-upe-compatibility.php';
-	if ( WC_Stripe_UPE_Compatibility::are_inbox_notes_supported() ) {
+	if ( class_exists( 'WC_Stripe_Inbox_Notes' ) && WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
 		// requirements for the note
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';
 		WC_Stripe_UPE_Availability_Note::possibly_delete_note();
+
+		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-stripelink-note.php';
+		WC_Stripe_UPE_StripeLink_Note::possibly_delete_note();
 	}
 }
 register_deactivation_hook( __FILE__, 'wcstripe_deactivated' );
@@ -768,3 +764,12 @@ function woocommerce_gateway_stripe_woocommerce_block_support() {
 		);
 	}
 }
+
+add_action(
+	'before_woocommerce_init',
+	function() {
+		if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
+			\Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+		}
+	}
+);

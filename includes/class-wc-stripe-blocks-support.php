@@ -185,6 +185,11 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		// TODO: Remove the `function_exists()` check once the minimum WP version has been bumped
 		//       to version 5.0.
 		if ( function_exists( 'has_block' ) ) {
+			// Don't show if PRBs are turned off entirely.
+			if ( ! $this->payment_request_configuration->is_at_least_one_payment_request_button_enabled() ) {
+				return false;
+			}
+
 			// Don't show if PRBs are supposed to be hidden on the cart page.
 			if (
 				has_block( 'woocommerce/cart' )
@@ -300,7 +305,7 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		if ( 'USD' === get_woocommerce_currency() ) {
 			$icons_src['discover'] = [
 				'src' => WC_STRIPE_PLUGIN_URL . '/assets/images/discover.svg',
-				'alt' => __( 'Discover', 'woocommerce-gateway-stripe' ),
+				'alt' => _x( 'Discover', 'Name of credit card', 'woocommerce-gateway-stripe' ),
 			];
 			$icons_src['jcb']      = [
 				'src' => WC_STRIPE_PLUGIN_URL . '/assets/images/jcb.svg',

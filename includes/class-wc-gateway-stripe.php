@@ -111,12 +111,22 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		WC_Stripe_API::set_secret_key( $this->secret_key );
 
+		// Title shows the count of enabled payment methods in settings page only.
+		if ( isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] ) {
+			$enabled_payment_methods_count = count( WC_Stripe_Helper::get_legacy_enabled_payment_method_ids() );
+			$this->title                   = $enabled_payment_methods_count ?
+				/* translators: $1. Count of enabled payment methods. */
+				sprintf( _n( '%d payment method', '%d payment methods', $enabled_payment_methods_count, 'woocommerce-gateway-stripe' ), $enabled_payment_methods_count )
+				: $this->method_title;
+		}
+
 		// Hooks.
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_fee' ] );
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_payout' ], 20 );
 		add_action( 'woocommerce_customer_save_address', [ $this, 'show_update_card_notice' ], 10, 2 );
+		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'get_available_payment_gateways' ] );
 		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'prepare_order_pay_page' ] );
 		add_action( 'woocommerce_account_view-order_endpoint', [ $this, 'check_intent_status_on_order_page' ], 1 );
 		add_filter( 'woocommerce_payment_successful_result', [ $this, 'modify_successful_payment_result' ], 99999, 2 );
@@ -150,7 +160,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @param string $load_address The address to load.
 	 */
 	public function show_update_card_notice( $user_id, $load_address ) {
-		if ( ! $this->saved_cards || ! WC_Stripe_Payment_Tokens::customer_has_saved_methods( $user_id ) || 'billing' !== $load_address ) {
+		if (
+			is_admin() ||
+			! $this->saved_cards ||
+			! WC_Stripe_Payment_Tokens::customer_has_saved_methods( $user_id ) ||
+			'billing' !== $load_address
+		) {
 			return;
 		}
 
@@ -184,17 +199,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		global $wp;
 		$user                 = wp_get_current_user();
 		$display_tokenization = $this->supports( 'tokenization' ) && is_checkout() && $this->saved_cards;
-		$total                = WC()->cart->total;
 		$user_email           = '';
 		$description          = $this->get_description();
 		$description          = ! empty( $description ) ? $description : '';
 		$firstname            = '';
 		$lastname             = '';
 
-		// If paying from order, we need to get total from order not cart.
-		if ( isset( $_GET['pay_for_order'] ) && ! empty( $_GET['key'] ) ) { // wpcs: csrf ok.
-			$order      = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) ); // wpcs: csrf ok, sanitization ok.
-			$total      = $order->get_total();
+		// If paying for order, we need to get email from the order not the user account.
+		if ( parent::is_valid_pay_for_order_endpoint() ) {
+			$order      = wc_get_order( wc_clean( $wp->query_vars['order-pay'] ) );
 			$user_email = $order->get_billing_email();
 		} else {
 			if ( $user->ID ) {
@@ -393,14 +406,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				$prepared_source = $this->prepare_source( get_current_user_id(), $force_save_source, $stripe_customer_id );
 			}
 
-			// If we are using a saved payment method that is PaymentMethod (pm_) and not a Source (src_) we need to use
-			// the process_payment() from the UPE gateway which uses the PaymentMethods API instead of Sources API.
-			// This happens when using a saved payment method that was added with the UPE gateway.
-			if ( $this->is_using_saved_payment_method() && ! empty( $prepared_source->source ) && substr( $prepared_source->source, 0, 3 ) === 'pm_' ) {
-				$upe_gateway = new WC_Stripe_UPE_Payment_Gateway();
-				return $upe_gateway->process_payment_with_saved_payment_method( $order_id );
-			}
-
 			$this->maybe_disallow_prepaid_card( $prepared_source->source_object );
 			$this->check_source( $prepared_source );
 			$this->save_source_to_order( $order, $prepared_source );
@@ -457,7 +462,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 						return [
 							'result'   => 'success',
-							'redirect' => $redirect_url,
+							'redirect' => wp_sanitize_redirect( esc_url_raw( $redirect_url ) ),
 						];
 					} else {
 						/**
@@ -506,28 +511,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 				'result'   => 'fail',
 				'redirect' => '',
 			];
-		}
-	}
-
-	/**
-	 * Saves payment method
-	 *
-	 * @param object $source_object
-	 * @throws WC_Stripe_Exception
-	 */
-	public function save_payment_method( $source_object ) {
-		$user_id  = get_current_user_id();
-		$customer = new WC_Stripe_Customer( $user_id );
-
-		if ( ( $user_id && 'reusable' === $source_object->usage ) ) {
-			$response = $customer->add_source( $source_object->id );
-
-			if ( ! empty( $response->error ) ) {
-				throw new WC_Stripe_Exception( print_r( $response, true ), $this->get_localized_error_message_from_response( $response ) );
-			}
-			if ( is_wp_error( $response ) ) {
-				throw new WC_Stripe_Exception( $response->get_error_message(), $response->get_error_message() );
-			}
 		}
 	}
 
@@ -666,6 +649,58 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
+	 * Include the available legacy payment methods in the list of payment methods.
+	 * As we are not registering the other Stripe payment methods to show in the settings page,
+	 * we need to include them here so that they are available in the checkout, pay for order, add payment method etc. pages.
+	 *
+	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways on the payments settings page.
+	 * @return WC_Payment_Gateway[]          The same list if UPE is disabled or a list including the available legacy payment methods.
+	 */
+	public function get_available_payment_gateways( $gateways ) {
+		// We need to include the payment methods when UPE is disabled, return the same list when UPE is enabled.
+		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+			return $gateways;
+		}
+
+		$legacy_enabled_gateways           = WC_Stripe_Helper::get_legacy_enabled_payment_methods();
+		$stripe_ordered_payment_method_ids = WC_Stripe_Helper::get_legacy_available_payment_method_ids();
+
+		// Map the IDs of the Stripe payment methods to match the ones expected in the $gateways array.
+		$stripe_ordered_payment_method_ids = array_map(
+			function( $id ) {
+				return 'card' === $id ? 'stripe' : 'stripe_' . $id;
+			},
+			$stripe_ordered_payment_method_ids
+		);
+
+		// If Stripe is not found in the $gateways array, but other legacy methods are enabled,
+		// they will be placed on the top in their saved order, followed by other gateways.
+		$stripe_index           = array_search( 'stripe', array_keys( $gateways ), true );
+		$gateways_before_stripe = array_slice( $gateways, 0, $stripe_index );
+		$gateways_after_stripe  = array_slice( $gateways, $stripe_index + 1 );
+		$stripe_gateways        = [];
+
+		foreach ( $stripe_ordered_payment_method_ids as $id ) {
+			$gateway = null;
+			if ( 'stripe' === $id ) {
+				$gateway = $this;
+			} elseif ( isset( $legacy_enabled_gateways[ $id ] ) ) {
+				$gateway = $legacy_enabled_gateways[ $id ];
+			}
+
+			if ( $gateway && $gateway->is_available() ) {
+				if ( ! is_add_payment_method_page() ) {
+					$stripe_gateways[ $id ] = $gateway;
+				} elseif ( $gateway->supports( 'add_payment_method' ) || $gateway->supports( 'tokenization' ) ) {
+					$stripe_gateways[ $id ] = $gateway;
+				}
+			}
+		}
+
+		return array_merge( $gateways_before_stripe, $stripe_gateways, $gateways_after_stripe );
+	}
+
+	/**
 	 * Changes the text of the "No available methods" message to one that indicates
 	 * the need for a PaymentIntent to be confirmed.
 	 *
@@ -702,7 +737,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		if ( 'requires_payment_method' === $intent->status && isset( $intent->last_payment_error )
-			 && 'authentication_required' === $intent->last_payment_error->code ) {
+			&& 'authentication_required' === $intent->last_payment_error->code ) {
 			$level3_data = $this->get_level3_data_from_order( $order );
 			$intent      = WC_Stripe_API::request_with_level3_data(
 				[
@@ -819,14 +854,22 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		$verification_url = add_query_arg( $query_params, WC_AJAX::get_endpoint( 'wc_stripe_verify_intent' ) );
 
 		if ( isset( $result['payment_intent_secret'] ) ) {
-			$redirect = sprintf( '#confirm-pi-%s:%s', $result['payment_intent_secret'], rawurlencode( $verification_url ) );
+			$redirect_signature = sprintf(
+				'#confirm-pi-%s:%s',
+				$result['payment_intent_secret'],
+				rawurlencode( wp_sanitize_redirect( esc_url_raw( $verification_url ) ) )
+			);
 		} elseif ( isset( $result['setup_intent_secret'] ) ) {
-			$redirect = sprintf( '#confirm-si-%s:%s', $result['setup_intent_secret'], rawurlencode( $verification_url ) );
+			$redirect_signature = sprintf(
+				'#confirm-si-%s:%s',
+				$result['setup_intent_secret'],
+				rawurlencode( wp_sanitize_redirect( esc_url_raw( $verification_url ) ) )
+			);
 		}
 
 		return [
 			'result'   => 'success',
-			'redirect' => $redirect,
+			'redirect' => $redirect_signature, // This signature will be used by JS to redirect to the proper URL.
 		];
 	}
 
@@ -952,7 +995,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		if ( isset( $_GET['wc-stripe-confirmation'] ) && isset( $wp->query_vars['order-pay'] ) && $wp->query_vars['order-pay'] == $order->get_id() ) {
 			$pay_url = add_query_arg( 'wc-stripe-confirmation', 1, $pay_url );
 		}
-		return $pay_url;
+		return esc_url_raw( $pay_url );
 	}
 
 	/**
@@ -1038,50 +1081,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	}
 
 	/**
-	 * This is overloading the title type so the oauth url is only fetched if we are on the settings page.
-	 *
-	 * @param string $key Field key.
-	 * @param array  $data Field data.
-	 * @return string
-	 */
-	public function generate_stripe_account_keys_html( $key, $data ) {
-		if ( woocommerce_gateway_stripe()->connect->is_connected() ) {
-			$reset_link = add_query_arg(
-				[
-					'_wpnonce'                     => wp_create_nonce( 'reset_stripe_api_credentials' ),
-					'reset_stripe_api_credentials' => true,
-				],
-				admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' )
-			);
-
-			$api_credentials_text = sprintf(
-			/* translators: %1, %2, %3, and %4 are all HTML markup tags */
-				__( '%1$sClear all Stripe account keys.%2$s %3$sThis will disable any connection to Stripe.%4$s', 'woocommerce-gateway-stripe' ),
-				'<a id="wc_stripe_connect_button" href="' . $reset_link . '" class="button button-secondary">',
-				'</a>',
-				'<span style="color:red;">',
-				'</span>'
-			);
-		} else {
-			$oauth_url = woocommerce_gateway_stripe()->connect->get_oauth_url();
-
-			if ( ! is_wp_error( $oauth_url ) ) {
-				$api_credentials_text = sprintf(
-				/* translators: %1, %2 and %3 are all HTML markup tags */
-					__( '%1$sSet up or link an existing Stripe account.%2$s By clicking this button you agree to the %3$sTerms of Service%2$s. Or, manually enter Stripe account keys below.', 'woocommerce-gateway-stripe' ),
-					'<a id="wc_stripe_connect_button" href="' . $oauth_url . '" class="button button-primary">',
-					'</a>',
-					'<a href="https://wordpress.com/tos">'
-				);
-			} else {
-				$api_credentials_text = __( 'Manually enter Stripe keys below.', 'woocommerce-gateway-stripe' );
-			}
-		}
-		$data['description'] = $api_credentials_text;
-		return $this->generate_title_html( $key, $data );
-	}
-
-	/**
 	 * Checks whether the gateway is enabled.
 	 *
 	 * @return bool The result.
@@ -1134,31 +1133,53 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 */
 	public function validate_account_statement_descriptor_field( $param, $value, $max_length ) {
 		// Since the value is escaped, and we are saving in a place that does not require escaping, apply stripslashes.
-		$value = trim( stripslashes( $value ) );
-		$field = __( 'customer bank statement', 'woocommerce-gateway-stripe' );
+		$value          = trim( stripslashes( $value ) );
+		$error_messages = [];
 
-		if ( 'short_statement_descriptor' === $param ) {
-			$field = __( 'shortened customer bank statement', 'woocommerce-gateway-stripe' );
+		// Has a valid length.
+		if ( ! preg_match( '/^.{5,' . $max_length . '}$/', $value ) ) {
+			$error_messages[] = sprintf(
+				/* translators: Number of the maximum characters allowed */
+				__( '- Has between 5 and %s characters', 'woocommerce-gateway-stripe' ),
+				$max_length
+			);
 		}
 
-		// Validation can be done with a single regex but splitting into multiple for better readability.
-		$valid_length   = '/^.{5,' . $max_length . '}$/';
-		$has_one_letter = '/^.*[a-zA-Z]+/';
-		$no_specials    = '/^[^*"\'<>]*$/';
+		// Contains at least one letter.
+		if ( ! preg_match( '/^.*[a-zA-Z]+/', $value ) ) {
+			$error_messages[] = __( '- Contains at least one letter', 'woocommerce-gateway-stripe' );
+		}
 
-		if (
-			! preg_match( $valid_length, $value ) ||
-			! preg_match( $has_one_letter, $value ) ||
-			! preg_match( $no_specials, $value )
-		) {
-			throw new InvalidArgumentException(
-				sprintf(
-					/* translators: %1 field name, %2 Number of the maximum characters allowed */
-					__( 'The %1$s is invalid. The bank statement must contain only Latin characters, be between 5 and %2$u characters, contain at least one letter, and not contain any of the special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' ),
-					$field,
-					$max_length
-				)
+		// Doesn't contain any of the specified special characters.
+		if ( ! preg_match( '/^[^*"\'<>]*$/', $value ) ) {
+			$error_messages[] = __( '- Does not contain any of the following special characters: \' " * &lt; &gt;', 'woocommerce-gateway-stripe' );
+		}
+
+		/*
+		 * Doesn't contain a non-Latin character.
+		 * We're not matching accentuated Latin characters, numbers, whitespace, or special characters.
+		 */
+		if ( preg_match( '/[^a-zA-Z0-9\s\x{00C0}-\x{00FF}\p{P}]/u', $value, $matches ) ) {
+			$error_messages[] = __( '- Contains only Latin characters', 'woocommerce-gateway-stripe' );
+		}
+
+		// Display the validation errors if any was found.
+		if ( ! empty( $error_messages ) ) {
+			$field = __( 'customer bank statement', 'woocommerce-gateway-stripe' );
+
+			if ( 'short_statement_descriptor' === $param ) {
+				$field = __( 'shortened customer bank statement', 'woocommerce-gateway-stripe' );
+			}
+
+			$error_message = sprintf(
+				/* translators: %1 The field name, %2 <br> tag, %3 Validation error messages */
+				__( 'The %1$s is invalid. Please make sure it: %2$s%3$s', 'woocommerce-gateway-stripe' ),
+				$field,
+				'<br>',
+				implode( '<br>', $error_messages )
 			);
+
+			throw new InvalidArgumentException( $error_message );
 		}
 
 		return $value;
@@ -1207,6 +1228,9 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return bool
 	 */
 	public function needs_setup() {
+		if ( $this->testmode ) {
+			return ! $this->get_option( 'test_publishable_key' ) || ! $this->get_option( 'test_secret_key' );
+		}
 		return ! $this->get_option( 'publishable_key' ) || ! $this->get_option( 'secret_key' );
 	}
 
@@ -1290,7 +1314,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		if ( empty( $this->form_fields ) ) {
 			$this->init_form_fields();
 		}
-		if ( key_exists( $field_key, $this->form_fields ) ) {
+		if ( array_key_exists( $field_key, $this->form_fields ) ) {
 			$field_type = $this->form_fields[ $field_key ]['type'];
 
 			if ( is_callable( [ $this, 'validate_' . $field_type . '_field' ] ) ) {

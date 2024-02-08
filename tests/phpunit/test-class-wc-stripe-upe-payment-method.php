@@ -27,6 +27,17 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	];
 
 	/**
+	 * Base template for Stripe link payment method.
+	 */
+	const MOCK_LINK_PAYMENT_METHOD_TEMPLATE = [
+		'id'   => 'pm_mock_payment_method_id',
+		'type' => 'link',
+		'link' => [
+			'email' => 'test@test.com',
+		],
+	];
+
+	/**
 	 * Base template for Stripe SEPA payment method.
 	 */
 	const MOCK_SEPA_PAYMENT_METHOD_TEMPLATE = [
@@ -331,7 +342,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			}
 
 			$mock_capabilities_response = self::MOCK_INACTIVE_CAPABILITIES_RESPONSE;
-			$currency = 'link' === $id ? 'USD' : 'EUR';
+			$currency                   = 'link' === $id ? 'USD' : 'EUR';
 
 			$this->set_mock_payment_method_return_value( 'get_capabilities_response', $mock_capabilities_response, true );
 			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', $currency );
@@ -387,8 +398,12 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 
 		foreach ( $this->mock_payment_methods as $payment_method_id => $payment_method ) {
-			$currency = 'link' === $payment_method_id ? 'USD' : 'EUR';
-			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', $currency );
+			$payment_method
+				->expects( $this->any() )
+				->method( 'get_woocommerce_currency' )
+				->will(
+					$this->returnValue( WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID === $payment_method_id ? 'USD' : 'EUR' )
+				);
 
 			if ( $payment_method->is_reusable() ) {
 				$this->assertTrue( $payment_method->is_enabled_at_checkout() );
@@ -409,18 +424,27 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 				continue;
 			}
 
-			if ( 'card' === $payment_method_id ) {
-				$card_payment_method_mock = $this->array_to_object( self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE );
-				$token                    = $payment_method->create_payment_token_for_user( $user_id, $card_payment_method_mock );
-				$this->assertTrue( 'WC_Payment_Token_CC' === get_class( $token ) );
-				$this->assertEquals( $token->get_last4(), $card_payment_method_mock->card->last4 );
-				$this->assertEquals( $token->get_token(), $card_payment_method_mock->id );
-			} else {
-				$sepa_payment_method_mock = $this->array_to_object( self::MOCK_SEPA_PAYMENT_METHOD_TEMPLATE );
-				$token                    = $payment_method->create_payment_token_for_user( $user_id, $sepa_payment_method_mock );
-				$this->assertTrue( 'WC_Payment_Token_SEPA' === get_class( $token ) );
-				$this->assertEquals( $token->get_last4(), $sepa_payment_method_mock->sepa_debit->last4 );
-				$this->assertEquals( $token->get_token(), $sepa_payment_method_mock->id );
+			switch ( $payment_method_id ) {
+				case WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID:
+					$card_payment_method_mock = $this->array_to_object( self::MOCK_CARD_PAYMENT_METHOD_TEMPLATE );
+					$token                    = $payment_method->create_payment_token_for_user( $user_id, $card_payment_method_mock );
+					$this->assertTrue( 'WC_Payment_Token_CC' === get_class( $token ) );
+					$this->assertSame( $token->get_last4(), $card_payment_method_mock->card->last4 );
+					$this->assertSame( $token->get_token(), $card_payment_method_mock->id );
+					break;
+				case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
+					$link_payment_method_mock = $this->array_to_object( self::MOCK_LINK_PAYMENT_METHOD_TEMPLATE );
+					$token                    = $payment_method->create_payment_token_for_user( $user_id, $link_payment_method_mock );
+					$this->assertTrue( 'WC_Payment_Token_Link' === get_class( $token ) );
+					$this->assertSame( $token->get_email(), $link_payment_method_mock->link->email );
+					break;
+				default:
+					$sepa_payment_method_mock = $this->array_to_object( self::MOCK_SEPA_PAYMENT_METHOD_TEMPLATE );
+					$token                    = $payment_method->create_payment_token_for_user( $user_id, $sepa_payment_method_mock );
+					$this->assertTrue( 'WC_Payment_Token_SEPA' === get_class( $token ) );
+					$this->assertSame( $token->get_last4(), $sepa_payment_method_mock->sepa_debit->last4 );
+					$this->assertSame( $token->get_token(), $sepa_payment_method_mock->id );
+
 			}
 		}
 	}

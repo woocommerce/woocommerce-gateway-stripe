@@ -6,6 +6,7 @@ import { Button, Card } from '@wordpress/components';
 import CardBody from '../card-body';
 import { AccountKeysModal } from '../payment-settings/account-keys-modal';
 import StripeBanner from 'wcstripe/components/stripe-banner';
+import { recordEvent } from 'wcstripe/tracking';
 
 const CardWrapper = styled( Card )`
 	max-width: 560px;
@@ -53,6 +54,16 @@ const ConnectStripeAccount = ( { oauthUrl } ) => {
 		setModalType( '' );
 	};
 
+	const handleCreateOrConnectAccount = () => {
+		recordEvent( 'wcstripe_create_or_connect_account_click', {} );
+		window.location.assign( oauthUrl );
+	};
+
+	const handleEnterAccountKeys = () => {
+		recordEvent( 'wcstripe_enter_account_keys_click', {} );
+		setModalType( 'live' );
+	};
+
 	return (
 		<>
 			{ modalType && (
@@ -73,7 +84,7 @@ const ConnectStripeAccount = ( { oauthUrl } ) => {
 					</h2>
 					<InformationText>
 						{ __(
-							'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDEAL, SEPA, Sofort, and more international payment methods.',
+							'Connect or create a Stripe account to accept payments directly onsite, including Payment Request buttons (such as Apple Pay and Google Pay), iDEAL, SEPA, and more international payment methods.',
 							'woocommerce-gateway-stripe'
 						) }
 					</InformationText>
@@ -100,7 +111,10 @@ const ConnectStripeAccount = ( { oauthUrl } ) => {
 					) }
 					<ButtonWrapper>
 						{ oauthUrl && (
-							<Button isPrimary href={ oauthUrl }>
+							<Button
+								isPrimary
+								onClick={ handleCreateOrConnectAccount }
+							>
 								{ __(
 									'Create or connect an account',
 									'woocommerce-gateway-stripe'
@@ -111,7 +125,7 @@ const ConnectStripeAccount = ( { oauthUrl } ) => {
 							isPrimary={ ! oauthUrl }
 							isSecondary={ !! oauthUrl }
 							// eslint-disable-next-line no-alert, no-undef
-							onClick={ () => setModalType( 'live' ) }
+							onClick={ handleEnterAccountKeys }
 						>
 							{ oauthUrl
 								? __(

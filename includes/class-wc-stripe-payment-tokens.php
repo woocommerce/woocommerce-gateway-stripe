@@ -143,72 +143,77 @@ class WC_Stripe_Payment_Tokens {
 		if ( is_user_logged_in() && class_exists( 'WC_Payment_Token_CC' ) ) {
 			$stored_tokens = [];
 
-			foreach ( $tokens as $token ) {
-				$stored_tokens[ $token->get_token() ] = $token;
-			}
+			try {
+				foreach ( $tokens as $token ) {
+					$stored_tokens[ $token->get_token() ] = $token;
+				}
 
-			if ( 'stripe' === $gateway_id ) {
-				$stripe_customer = new WC_Stripe_Customer( $customer_id );
-				$stripe_sources  = $stripe_customer->get_sources();
+				if ( 'stripe' === $gateway_id ) {
+					$stripe_customer = new WC_Stripe_Customer( $customer_id );
+					$stripe_sources  = $stripe_customer->get_sources();
 
-				foreach ( $stripe_sources as $source ) {
-					if ( isset( $source->type ) && 'card' === $source->type ) {
-						if ( ! isset( $stored_tokens[ $source->id ] ) ) {
-							$token = new WC_Payment_Token_CC();
-							$token->set_token( $source->id );
-							$token->set_gateway_id( 'stripe' );
+					foreach ( $stripe_sources as $source ) {
+						if ( isset( $source->type ) && 'card' === $source->type ) {
+							if ( ! isset( $stored_tokens[ $source->id ] ) ) {
+								$token = new WC_Payment_Token_CC();
+								$token->set_token( $source->id );
+								$token->set_gateway_id( 'stripe' );
 
-							if ( 'source' === $source->object && 'card' === $source->type ) {
-								$token->set_card_type( strtolower( $source->card->brand ) );
-								$token->set_last4( $source->card->last4 );
-								$token->set_expiry_month( $source->card->exp_month );
-								$token->set_expiry_year( $source->card->exp_year );
+								if ( WC_Stripe_Helper::is_card_payment_method( $source ) ) {
+									$token->set_card_type( strtolower( $source->card->brand ) );
+									$token->set_last4( $source->card->last4 );
+									$token->set_expiry_month( $source->card->exp_month );
+									$token->set_expiry_year( $source->card->exp_year );
+								}
+
+								$token->set_user_id( $customer_id );
+								$token->save();
+								$tokens[ $token->get_id() ] = $token;
+							} else {
+								unset( $stored_tokens[ $source->id ] );
 							}
-
-							$token->set_user_id( $customer_id );
-							$token->save();
-							$tokens[ $token->get_id() ] = $token;
 						} else {
-							unset( $stored_tokens[ $source->id ] );
-						}
-					} else {
-						if ( ! isset( $stored_tokens[ $source->id ] ) && 'card' === $source->object ) {
-							$token = new WC_Payment_Token_CC();
-							$token->set_token( $source->id );
-							$token->set_gateway_id( 'stripe' );
-							$token->set_card_type( strtolower( $source->brand ) );
-							$token->set_last4( $source->last4 );
-							$token->set_expiry_month( $source->exp_month );
-							$token->set_expiry_year( $source->exp_year );
-							$token->set_user_id( $customer_id );
-							$token->save();
-							$tokens[ $token->get_id() ] = $token;
-						} else {
-							unset( $stored_tokens[ $source->id ] );
+							if ( ! isset( $stored_tokens[ $source->id ] ) && 'card' === $source->object ) {
+								$token = new WC_Payment_Token_CC();
+								$token->set_token( $source->id );
+								$token->set_gateway_id( 'stripe' );
+								$token->set_card_type( strtolower( $source->brand ) );
+								$token->set_last4( $source->last4 );
+								$token->set_expiry_month( $source->exp_month );
+								$token->set_expiry_year( $source->exp_year );
+								$token->set_user_id( $customer_id );
+								$token->save();
+								$tokens[ $token->get_id() ] = $token;
+							} else {
+								unset( $stored_tokens[ $source->id ] );
+							}
 						}
 					}
 				}
-			}
 
-			if ( 'stripe_sepa' === $gateway_id ) {
-				$stripe_customer = new WC_Stripe_Customer( $customer_id );
-				$stripe_sources  = $stripe_customer->get_sources();
+				if ( 'stripe_sepa' === $gateway_id ) {
+					$stripe_customer = new WC_Stripe_Customer( $customer_id );
+					$stripe_sources  = $stripe_customer->get_sources();
 
-				foreach ( $stripe_sources as $source ) {
-					if ( isset( $source->type ) && 'sepa_debit' === $source->type ) {
-						if ( ! isset( $stored_tokens[ $source->id ] ) ) {
-							$token = new WC_Payment_Token_SEPA();
-							$token->set_token( $source->id );
-							$token->set_gateway_id( 'stripe_sepa' );
-							$token->set_last4( $source->sepa_debit->last4 );
-							$token->set_user_id( $customer_id );
-							$token->save();
-							$tokens[ $token->get_id() ] = $token;
-						} else {
-							unset( $stored_tokens[ $source->id ] );
+					foreach ( $stripe_sources as $source ) {
+						if ( isset( $source->type ) && 'sepa_debit' === $source->type ) {
+							if ( ! isset( $stored_tokens[ $source->id ] ) ) {
+								$token = new WC_Payment_Token_SEPA();
+								$token->set_token( $source->id );
+								$token->set_gateway_id( 'stripe_sepa' );
+								$token->set_last4( $source->sepa_debit->last4 );
+								$token->set_user_id( $customer_id );
+								$token->save();
+								$tokens[ $token->get_id() ] = $token;
+							} else {
+								unset( $stored_tokens[ $source->id ] );
+							}
 						}
 					}
 				}
+			} catch ( WC_Stripe_Exception $e ) {
+				wc_add_notice( $e->getLocalizedMessage(), 'error' );
+				WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 			}
 		}
 
@@ -262,38 +267,44 @@ class WC_Stripe_Payment_Tokens {
 			}
 		}
 
-		foreach ( $retrievable_payment_method_types as $payment_method_id ) {
-			$payment_methods = $customer->get_payment_methods( $payment_method_id );
+		try {
+			foreach ( $retrievable_payment_method_types as $payment_method_id ) {
+				$payment_methods = $customer->get_payment_methods( $payment_method_id );
 
-			// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
-			remove_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
-			foreach ( $payment_methods as $payment_method ) {
-				if ( ! isset( $remaining_tokens[ $payment_method->id ] ) ) {
-					$payment_method_type = $this->get_original_payment_method_type( $payment_method );
-					if ( ! in_array( $payment_method_type, $reusable_payment_methods, true ) ) {
-						continue;
+				// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
+				remove_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
+				foreach ( $payment_methods as $payment_method ) {
+					if ( ! isset( $remaining_tokens[ $payment_method->id ] ) ) {
+						$payment_method_type = $this->get_original_payment_method_type( $payment_method );
+						if ( ! in_array( $payment_method_type, $reusable_payment_methods, true ) ) {
+							continue;
+						}
+						// Create new token for new payment method and add to list.
+						$upe_payment_method         = $gateway->payment_methods[ $payment_method_type ];
+						$token                      = $upe_payment_method->create_payment_token_for_user( $user_id, $payment_method );
+						$tokens[ $token->get_id() ] = $token;
+					} else {
+						// Count that existing token for payment method is still present on Stripe.
+						// Remaining IDs in $remaining_tokens no longer exist with Stripe and will be eliminated.
+						unset( $remaining_tokens[ $payment_method->id ] );
 					}
-					// Create new token for new payment method and add to list.
-					$upe_payment_method         = $gateway->payment_methods[ $payment_method_type ];
-					$token                      = $upe_payment_method->create_payment_token_for_user( $user_id, $payment_method );
-					$tokens[ $token->get_id() ] = $token;
-				} else {
-					// Count that existing token for payment method is still present on Stripe.
-					// Remaining IDs in $remaining_tokens no longer exist with Stripe and will be eliminated.
-					unset( $remaining_tokens[ $payment_method->id ] );
 				}
+				add_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 			}
-			add_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
-		}
 
-		// Eliminate remaining payment methods no longer known by Stripe.
-		// Prevent unnecessary recursion, when deleting tokens.
-		remove_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
-		foreach ( $remaining_tokens as $token ) {
-			unset( $tokens[ $token->get_id() ] );
-			$token->delete();
+			// Eliminate remaining payment methods no longer known by Stripe.
+			// Prevent unnecessary recursion, when deleting tokens.
+			remove_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
+			foreach ( $remaining_tokens as $token ) {
+				unset( $tokens[ $token->get_id() ] );
+				$token->delete();
+			}
+			add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
+
+		} catch ( WC_Stripe_Exception $e ) {
+			wc_add_notice( $e->getLocalizedMessage(), 'error' );
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 		}
-		add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
 
 		return $tokens;
 	}
@@ -364,11 +375,19 @@ class WC_Stripe_Payment_Tokens {
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
 			if ( WC_Stripe_UPE_Payment_Gateway::ID === $token->get_gateway_id() ) {
-				$stripe_customer->detach_payment_method( $token->get_token() );
+				try {
+					$stripe_customer->detach_payment_method( $token->get_token() );
+				} catch ( WC_Stripe_Exception $e ) {
+					WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+				}
 			}
 		} else {
 			if ( 'stripe' === $token->get_gateway_id() || 'stripe_sepa' === $token->get_gateway_id() ) {
-				$stripe_customer->delete_source( $token->get_token() );
+				try {
+					$stripe_customer->delete_source( $token->get_token() );
+				} catch ( WC_Stripe_Exception $e ) {
+					WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
+				}
 			}
 		}
 	}
@@ -383,14 +402,18 @@ class WC_Stripe_Payment_Tokens {
 		$token           = WC_Payment_Tokens::get( $token_id );
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
 
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			if ( WC_Stripe_UPE_Payment_Gateway::ID === $token->get_gateway_id() ) {
-				$stripe_customer->set_default_payment_method( $token->get_token() );
+		try {
+			if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+				if ( WC_Stripe_UPE_Payment_Gateway::ID === $token->get_gateway_id() ) {
+					$stripe_customer->set_default_payment_method( $token->get_token() );
+				}
+			} else {
+				if ( 'stripe' === $token->get_gateway_id() || 'stripe_sepa' === $token->get_gateway_id() ) {
+					$stripe_customer->set_default_source( $token->get_token() );
+				}
 			}
-		} else {
-			if ( 'stripe' === $token->get_gateway_id() || 'stripe_sepa' === $token->get_gateway_id() ) {
-				$stripe_customer->set_default_source( $token->get_token() );
-			}
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 		}
 	}
 }

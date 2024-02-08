@@ -26,19 +26,30 @@ describe( 'AdvancedSettings', () => {
 		useSettings.mockReturnValue( { isLoading: false } );
 	} );
 
-	it( 'toggles the advanced settings section', () => {
+	it( 'renders the advanced settings section', () => {
 		render( <AdvancedSettings /> );
-
-		expect( screen.queryByText( 'Debug mode' ) ).not.toBeInTheDocument();
-		expect(
-			screen.queryByText( 'Experimental features' )
-		).not.toBeInTheDocument();
-
-		userEvent.click( screen.getByText( 'Advanced settings' ) );
 
 		expect( screen.queryByText( 'Debug mode' ) ).toBeInTheDocument();
 		expect(
-			screen.queryByText( 'Experimental features' )
+			screen.queryByText( 'New checkout experience' )
 		).toBeInTheDocument();
+	} );
+
+	it( 'should enable debug mode when checkbox is clicked', () => {
+		const setIsLoggingCheckedMock = jest.fn();
+		useDebugLog.mockReturnValue( [ false, setIsLoggingCheckedMock ] );
+
+		render( <AdvancedSettings /> );
+
+		const debugModeCheckbox = screen.getByLabelText( 'Log error messages' );
+
+		expect( screen.getByText( 'Debug mode' ) ).toBeInTheDocument();
+		expect(
+			screen.getByLabelText( 'Log error messages' )
+		).not.toBeChecked();
+
+		userEvent.click( debugModeCheckbox );
+
+		expect( setIsLoggingCheckedMock ).toHaveBeenCalledWith( true );
 	} );
 } );

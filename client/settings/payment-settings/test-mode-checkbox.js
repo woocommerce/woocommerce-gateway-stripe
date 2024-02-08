@@ -13,6 +13,7 @@ const TestModeCheckbox = () => {
 
 	return (
 		<>
+			<h4>{ __( 'Test mode', 'woocommerce-gateway-stripe' ) }</h4>
 			<CheckboxControl
 				checked={ isTestModeEnabled }
 				onChange={ handleCheckboxChange }

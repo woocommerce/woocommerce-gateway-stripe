@@ -1,6 +1,12 @@
 import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
-import { getStripeServerData, getUPETerms } from '../../stripe-utils';
+import {
+	getStorageWithExpiration,
+	getStripeServerData,
+	getUPETerms,
+	setStorageWithExpiration,
+	storageKeys,
+} from '../../stripe-utils';
 import { getFontRulesFromPage, getAppearance } from '../../styles/upe';
 import enableStripeLinkPaymentMethod from '../../stripe-link';
 import { legacyHashchangeHandler } from './legacy-support';
@@ -30,77 +36,7 @@ jQuery( function ( $ ) {
 		}
 	);
 
-	// Object to add hidden elements to compute focus and invalid states for UPE.
-	const hiddenElementsForUPE = {
-		getHiddenContainer() {
-			const hiddenDiv = document.createElement( 'div' );
-			hiddenDiv.setAttribute( 'id', 'wc-stripe-hidden-div' );
-			hiddenDiv.style.border = 0;
-			hiddenDiv.style.clip = 'rect(0 0 0 0)';
-			hiddenDiv.style.height = '1px';
-			hiddenDiv.style.margin = '-1px';
-			hiddenDiv.style.overflow = 'hidden';
-			hiddenDiv.style.padding = '0';
-			hiddenDiv.style.position = 'absolute';
-			hiddenDiv.style.width = '1px';
-			return hiddenDiv;
-		},
-		getHiddenInvalidRow() {
-			const hiddenInvalidRow = document.createElement( 'p' );
-			hiddenInvalidRow.classList.add(
-				'form-row',
-				'woocommerce-invalid',
-				'woocommerce-invalid-required-field'
-			);
-			return hiddenInvalidRow;
-		},
-		appendHiddenClone( container, idToClone, hiddenCloneId ) {
-			const hiddenInput = jQuery( idToClone )
-				.clone()
-				.prop( 'id', hiddenCloneId );
-			container.appendChild( hiddenInput.get( 0 ) );
-			return hiddenInput;
-		},
-		init() {
-			if ( ! $( ' #billing_first_name' ).length ) {
-				return;
-			}
-			const hiddenDiv = this.getHiddenContainer();
-
-			// // Hidden focusable element.
-			$( hiddenDiv ).insertAfter( '#billing_first_name' );
-			this.appendHiddenClone(
-				hiddenDiv,
-				'#billing_first_name',
-				'wc-stripe-hidden-input'
-			);
-			$( '#wc-stripe-hidden-input' ).trigger( 'focus' );
-
-			// Hidden invalid element.
-			const hiddenInvalidRow = this.getHiddenInvalidRow();
-			this.appendHiddenClone(
-				hiddenInvalidRow,
-				'#billing_first_name',
-				'wc-stripe-hidden-invalid-input'
-			);
-			hiddenDiv.appendChild( hiddenInvalidRow );
-
-			// Remove transitions.
-			$( '#wc-stripe-hidden-input' ).css( 'transition', 'none' );
-		},
-		cleanup() {
-			$( '#wc-stripe-hidden-div' ).remove();
-		},
-	};
-
-	const elements = api.getStripe().elements( {
-		fonts: getFontRulesFromPage(),
-	} );
-
-	const sepaElementsOptions =
-		getStripeServerData()?.sepaElementsOptions ?? {};
-	const iban = elements.create( 'iban', sepaElementsOptions );
-
+	let elements = null;
 	let upeElement = null;
 	let paymentIntentId = null;
 	let isUPEComplete = false;
@@ -161,18 +97,6 @@ jQuery( function ( $ ) {
 	 */
 	const unblockUI = ( $form ) => {
 		$form.removeClass( 'processing' ).unblock();
-	};
-
-	/**
-	 * Checks whether SEPA IBAN element is present in the DOM and needs to be mounted
-	 *
-	 * @return {boolean} Whether IBAN needs to be mounted
-	 */
-	const doesIbanNeedToBeMounted = () => {
-		return (
-			$( '#stripe-iban-element' ).length &&
-			! $( '#stripe-iban-element' ).children().length
-		);
 	};
 
 	/**
@@ -304,25 +228,37 @@ jQuery( function ( $ ) {
 				const { client_secret: clientSecret, id: id } = response;
 				paymentIntentId = id;
 
-				let appearance = getStripeServerData()?.upeAppeareance;
+				const themeName = getStripeServerData()?.theme_name;
+				const storageKey = `${ storageKeys.UPE_APPEARANCE }_${ themeName }`;
+				let appearance = getStorageWithExpiration( storageKey );
 
 				if ( ! appearance ) {
-					hiddenElementsForUPE.init();
 					appearance = getAppearance();
-					hiddenElementsForUPE.cleanup();
-					api.saveUPEAppearance( appearance );
+					const oneDayDuration = 24 * 60 * 60 * 1000;
+					setStorageWithExpiration(
+						storageKey,
+						appearance,
+						oneDayDuration
+					);
 				}
 				const businessName = getStripeServerData()?.accountDescriptor;
 				const upeSettings = {
-					clientSecret,
-					appearance,
 					business: { name: businessName },
+					wallets: {
+						applePay: 'never',
+						googlePay: 'never',
+					},
 				};
 				if ( isCheckout && ! isOrderPay ) {
 					upeSettings.fields = {
 						billingDetails: hiddenBillingFields,
 					};
 				}
+				elements = api.getStripe().elements( {
+					clientSecret,
+					appearance,
+					fonts: getFontRulesFromPage(),
+				} );
 
 				if ( isStripeLinkEnabled ) {
 					enableStripeLinkPaymentMethod( {
@@ -349,6 +285,8 @@ jQuery( function ( $ ) {
 							state: 'shipping_state',
 							postal_code: 'shipping_postcode',
 							country: 'shipping_country',
+							first_name: 'shipping_first_name',
+							last_name: 'shipping_last_name',
 						},
 						billing_fields: {
 							line1: 'billing_address_1',
@@ -357,6 +295,8 @@ jQuery( function ( $ ) {
 							state: 'billing_state',
 							postal_code: 'billing_postcode',
 							country: 'billing_country',
+							first_name: 'billing_first_name',
+							last_name: 'billing_last_name',
 						},
 					} );
 				}
@@ -415,10 +355,6 @@ jQuery( function ( $ ) {
 			);
 			mountUPEElement( isSetupIntent );
 		}
-
-		if ( doesIbanNeedToBeMounted() ) {
-			iban.mount( '#stripe-iban-element' );
-		}
 	} );
 
 	if (
@@ -447,10 +383,6 @@ jQuery( function ( $ ) {
 			}
 			mountUPEElement( isSetupIntent );
 		}
-
-		if ( doesIbanNeedToBeMounted() ) {
-			iban.mount( '#stripe-iban-element' );
-		}
 	}
 
 	/**
@@ -467,7 +399,7 @@ jQuery( function ( $ ) {
 		if ( ! isUPEComplete ) {
 			// If UPE fields are not filled, confirm payment to trigger validation errors
 			const { error } = await api.getStripe().confirmPayment( {
-				element: upeElement,
+				elements,
 				confirmParams: {
 					return_url: '#',
 				},
@@ -481,7 +413,7 @@ jQuery( function ( $ ) {
 
 	/**
 	 * Submits the confirmation of the intent to Stripe on Pay for Order page.
-	 * Stripe redirects to Order Thank you page on sucess.
+	 * Stripe redirects to Order Thank you page on success.
 	 *
 	 * @param {Object} $form The jQuery object for the form.
 	 * @return {boolean} A flag for the event handler.
@@ -514,7 +446,7 @@ jQuery( function ( $ ) {
 			);
 
 			const { error } = await api.getStripe().confirmPayment( {
-				element: upeElement,
+				elements,
 				confirmParams: {
 					return_url: returnUrl,
 				},
@@ -556,7 +488,7 @@ jQuery( function ( $ ) {
 			const returnUrl = getStripeServerData()?.addPaymentReturnURL;
 
 			const { error } = await api.getStripe().confirmSetup( {
-				element: upeElement,
+				elements,
 				confirmParams: {
 					return_url: returnUrl,
 				},
@@ -596,7 +528,7 @@ jQuery( function ( $ ) {
 			);
 			const redirectUrl = response.redirect_url;
 			const upeConfig = {
-				element: upeElement,
+				elements,
 				confirmParams: {
 					return_url: redirectUrl,
 					payment_method_data: {

@@ -122,8 +122,16 @@ class WC_Stripe_Customer {
 	 * @return array
 	 */
 	protected function generate_customer_request( $args = [] ) {
-		$billing_email = isset( $_POST['billing_email'] ) ? filter_var( wp_unslash( $_POST['billing_email'] ), FILTER_SANITIZE_EMAIL ) : '';
-		$user          = $this->get_user();
+		$billing_email  = isset( $_POST['billing_email'] ) ? filter_var( wp_unslash( $_POST['billing_email'] ), FILTER_SANITIZE_EMAIL ) : '';
+		$user           = $this->get_user();
+		$address_fields = [
+			'line1'       => 'billing_address_1',
+			'line2'       => 'billing_address_2',
+			'postal_code' => 'billing_postcode',
+			'city'        => 'billing_city',
+			'state'       => 'billing_state',
+			'country'     => 'billing_country',
+		];
 
 		if ( $user ) {
 			$billing_first_name = get_user_meta( $user->ID, 'billing_first_name', true );
@@ -172,6 +180,15 @@ class WC_Stripe_Customer {
 		$metadata                      = [];
 		$defaults['metadata']          = apply_filters( 'wc_stripe_customer_metadata', $metadata, $user );
 		$defaults['preferred_locales'] = $this->get_customer_preferred_locale( $user );
+
+		// Add customer address default values.
+		foreach ( $address_fields as $key => $field ) {
+			if ( $user ) {
+				$defaults['address'][ $key ] = get_user_meta( $user->ID, $field, true );
+			} else {
+				$defaults['address'][ $key ] = isset( $_POST[ $field ] ) ? filter_var( wp_unslash( $_POST[ $field ] ), FILTER_SANITIZE_STRING ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+			}
+		}
 
 		return wp_parse_args( $args, $defaults );
 	}
@@ -297,7 +314,7 @@ class WC_Stripe_Customer {
 	 * @return WP_Error|int
 	 */
 	public function add_source( $source_id ) {
-		$response = WC_Stripe_API::retrieve( 'sources/' . $source_id );
+		$response = WC_Stripe_API::get_payment_method( $source_id );
 
 		if ( ! empty( $response->error ) || is_wp_error( $response ) ) {
 			return $response;
@@ -318,7 +335,7 @@ class WC_Stripe_Customer {
 						$wc_token->set_last4( $response->sepa_debit->last4 );
 						break;
 					default:
-						if ( 'source' === $response->object && 'card' === $response->type ) {
+						if ( WC_Stripe_Helper::is_card_payment_method( $response ) ) {
 							$wc_token = new WC_Payment_Token_CC();
 							$wc_token->set_token( $response->id );
 							$wc_token->set_gateway_id( 'stripe' );
@@ -362,12 +379,7 @@ class WC_Stripe_Customer {
 			$this->set_id( $this->create_customer() );
 		}
 
-		$response = WC_Stripe_API::request(
-			[
-				'source' => $source_id,
-			],
-			'customers/' . $this->get_id() . '/sources'
-		);
+		$response = WC_Stripe_API::attach_payment_method_to_customer( $this->get_id(), $source_id );
 
 		if ( ! empty( $response->error ) ) {
 			// It is possible the WC user once was linked to a customer on Stripe
@@ -377,7 +389,7 @@ class WC_Stripe_Customer {
 				$this->recreate_customer();
 				return $this->attach_source( $source_id );
 			} elseif ( $this->is_source_already_attached_error( $response->error ) ) {
-				return WC_Stripe_API::request( [], 'sources/' . $source_id, 'GET' );
+				return WC_Stripe_API::get_payment_method( $source_id );
 			} else {
 				return $response;
 			}
@@ -406,7 +418,7 @@ class WC_Stripe_Customer {
 				[
 					'limit' => 100,
 				],
-				'customers/' . $this->get_id() . '/sources',
+				'customers/' . $this->get_id() . '/payment_methods',
 				'GET'
 			);
 
@@ -474,7 +486,7 @@ class WC_Stripe_Customer {
 			return false;
 		}
 
-		$response = WC_Stripe_API::request( [], 'customers/' . $this->get_id() . '/sources/' . sanitize_text_field( $source_id ), 'DELETE' );
+		$response = WC_Stripe_API::detach_payment_method_from_customer( $this->get_id(), $source_id );
 
 		$this->clear_cache();
 
@@ -622,31 +634,34 @@ class WC_Stripe_Customer {
 		// Options based on Stripe locales.
 		// https://support.stripe.com/questions/language-options-for-customer-emails
 		$stripe_locales = [
-			'ar'    => 'ar-AR',
-			'da_DK' => 'da-DK',
-			'de_DE' => 'de-DE',
-			'en'    => 'en-US',
-			'es_ES' => 'es-ES',
-			'es_CL' => 'es-419',
-			'es_AR' => 'es-419',
-			'es_CO' => 'es-419',
-			'es_PE' => 'es-419',
-			'es_UY' => 'es-419',
-			'es_PR' => 'es-419',
-			'es_GT' => 'es-419',
-			'es_EC' => 'es-419',
-			'es_MX' => 'es-419',
-			'es_VE' => 'es-419',
-			'es_CR' => 'es-419',
-			'fi'    => 'fi-FI',
-			'fr_FR' => 'fr-FR',
-			'he_IL' => 'he-IL',
-			'it_IT' => 'it-IT',
-			'ja'    => 'ja-JP',
-			'nl_NL' => 'nl-NL',
-			'nn_NO' => 'no-NO',
-			'pt_BR' => 'pt-BR',
-			'sv_SE' => 'sv-SE',
+			'ar'             => 'ar-AR',
+			'da_DK'          => 'da-DK',
+			'de_CH'          => 'de-DE',
+			'de_CH_informal' => 'de-DE',
+			'de_DE'          => 'de-DE',
+			'de_DE_formal'   => 'de-DE',
+			'en'             => 'en-US',
+			'es_ES'          => 'es-ES',
+			'es_CL'          => 'es-419',
+			'es_AR'          => 'es-419',
+			'es_CO'          => 'es-419',
+			'es_PE'          => 'es-419',
+			'es_UY'          => 'es-419',
+			'es_PR'          => 'es-419',
+			'es_GT'          => 'es-419',
+			'es_EC'          => 'es-419',
+			'es_MX'          => 'es-419',
+			'es_VE'          => 'es-419',
+			'es_CR'          => 'es-419',
+			'fi'             => 'fi-FI',
+			'fr_FR'          => 'fr-FR',
+			'he_IL'          => 'he-IL',
+			'it_IT'          => 'it-IT',
+			'ja'             => 'ja-JP',
+			'nl_NL'          => 'nl-NL',
+			'nn_NO'          => 'no-NO',
+			'pt_BR'          => 'pt-BR',
+			'sv_SE'          => 'sv-SE',
 		];
 
 		$preferred = isset( $stripe_locales[ $locale ] ) ? $stripe_locales[ $locale ] : 'en-US';

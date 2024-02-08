@@ -1,6 +1,137 @@
 *** Changelog ***
 
-= 6.7.0 - 2022-xx-xx
+= 8.0.0 - 2024-xx-xx =
+* Fix - When toggling on the Stripe gateway from the payment methods list, don't incorrectly redirect the merchant to Stripe settings when test mode is enabled.
+* Fix - Hiding the expandable menu for UPE entirely when the feature is disabled.
+* Fix - Critical error when deactivating the extension after deactivating WooCommerce.
+* Fix - Add missing fee and payout information to the order details page in admin.
+* Fix - Hiding "Early Access" label and "Refresh payment methods" button when UPE is disabled.
+* Tweak - Orders with `trash` status are not retrieving anymore when calling `get_order_by_intent_id` function.
+* Add   - Update the interface for customizing Stripe payment methods.
+
+= 7.9.2 - 2024-02-07 =
+* Fix - Resolved an issue that could cause card payments to fail when providing a Bank statement description with the `statement_descriptor` parameter.
+* Tweak - The Bank statement description settings in the Stripe plugin settings are no longer editable. The description is now automatically pulled from the Stripe account settings.
+
+= 7.9.1 - 2024-01-16 =
+* Fix - PHP fatal error when updating a user with saved tokens from the WP Dashboard.
+
+= 7.9.0 - 2024-01-11 =
+* Tweak - Updated supported/tested versions of WordPress and WooCommerce.
+
+= 7.8.1 - 2023-12-28 =
+* Fix - Check if a valid order of tye WC_Order is returned before calling `get_meta` function.
+
+= 7.8.0 - 2023-12-21 =
+* Fix - Resolved an issue with Stripe errors not being displayed on the checkout page for stores using custom payment method elements.
+* Fix - Resolved a PHP fatal error occurring on stores that removed `WC_Email_Failed_Order` from the list of WC email classes while attempting to send the failed order email.
+* Fix - Prevent incorrect totals displayed in Google Pay and Apple Pay when purchasing a virtual sychronised subscription from the product page.
+* Fix - Hide the Google Pay and Apple Pay buttons on variable product pages, if the selected variation is not supported by Payment Request buttons.
+* Fix - Don't require shipping when purchasing a virtual variable subscription product using Google Pay and Apple Pay.
+* Fix - When using Payment Request buttons, fix $0 total for stores using a customized product page that adds the variation product ID directly into the cart.
+* Fix - MultiBanco: HTML tags to print as expected on the Order Confirmation page, and "Thank you for your order" email.
+* Tweak - Improve compatibility with PHP 8+.
+* Tweak - Adjusted default height of express payment button from 40px to 48px. Existing stores retain their current button height settings.
+* Tweak - Removed '- OR -' separator and updated placement of Express payment buttons (eg Apple Pay and Google Pay) on cart and product pages to align with WooCommerce Express payment button standards.
+
+= 7.7.0 - 2023-11-09 =
+* Add - Prevent saving the bank statement descriptor if it contains non-Latin characters.
+* Fix - Display the Payment Request Buttons' error message in the classic checkout page.
+* Fix - Prevent escaping the anchor tag under the Apple Pay domain registration failure notice.
+* Fix - Use the card's payer name for Payment Request Buttons when the billing name isn't available.
+* Fix - Display the Payment Request Buttons according to the selected settings.
+* Tweak - Record Track events during the onboarding process.
+* Tweak - Prevent Google Pay and Apple Pay from showing up in the UPE card Element.
+* Tweak - Use admin theme color in selectors.
+* Tweak - Refactor `is_valid_pay_for_order_endpoint` for better performance.
+* Fix - Catch request failure errors.
+* Tweak - Add test mode notice.
+* Fix - Remove ugx from the zero decimal currency list as a special case in Stripe.
+* Fix - Deleting customer on staging site detaches tokens from customer in Stripe.
+* Fix - Resolved an issue preventing changing a subscriptions payment method when UPE is enabled.
+* Fix - Send customer billing and address details to Stripe when changing a subscriptions payment method.
+* Add - Attach billing details to customers created in Stripe to support Indian merchants in processing international transactions.
+* Fix - Prevent "Invalid recurring shipping method" errors when attempting to purchase a synchronised subscription with payment request buttons.
+* Fix - When using Payment Request buttons on variable product pages, ensure shipping is properly calculated after the customer closes the window and changes variations.
+* Fix - Purchasing a virtual variable product using Apple Pay and Google Pay on the product page will no longer require shipping details.
+
+= 7.6.2 - 2023-10-31 =
+* Deprecate - Remove Sofort support for new accounts.
+* Fix - Add Order Key Validation.
+
+= 7.6.1 - 2023-10-17 =
+* Fix - Add nonce check to OAuth flow.
+
+= 7.6.0 - 2023-09-14 =
+* Fix - PHP fatal error when saving a non-UPE payment method and the Stripe request to retrieve it fails.
+* Fix - Missing mapping for formal German (de_DE_formal), Swiss German (de_CH), and informal Swiss German (de_CH_informal) locales for Stripe emails.
+* Fix - Set failed order as pre order
+* Tweak - Include check during the connect redirect flow.
+* Tweak - Skip Apple Pay registration for accounts from India.
+* Tweak - Refactor post_meta calls for HPOS compatibility.
+
+= 7.5.0 - 2023-08-10 =
+* Fix - Unable to process 0 amount subscription.
+* Fix - Resolved an issue that prevented customers using saved `card_` prefixed payment methods on checkout.
+
+= 7.4.2 - 2023-07-31 =
+* Fix - Add order key validation for UPE.
+* Fix - Enhance query parameters validation in redirected requests.
+* Fix - Resolved an issue with orders getting stuck on Pending Payment status when UPE is enabled and customer creates account during checkout.
+* Fix - Stripe source and customer tokens not being saved on subscriptions when UPE is enabled and subscription is purchased by guest customer.
+* Fix - Make the gateway unavailable when using it in live mode without SSL.
+* Fix - Remove Stripe Link PRB when disabled from settings.
+* Fix - Lookup existing refunds by refund ID when processing webhooks.
+* Fix - Exclude Link from disable UPE confirmation modal in settings.
+* Fix - Fix JS (ES5) compatibility on older browsers for the shortcode checkout.
+
+= 7.4.1 - 2023-05-30 =
+* Fix - Add Order Key Validation.
+* Fix - Add sanitization and escaping some outputs.
+
+= 7.4.0 - 2023-05-03 =
+* Fix - Issue processing renewals for subscriptions without parent orders.
+
+= 7.3.0 - 2023-04-12 =
+* Fix - The payment requests are updated when product add-ons are changed (Product Add-ons extension).
+* Add - Support eMandates for recurring payments made in INR
+
+= 7.2.0 - 2023-03-09 =
+* Fix - Hide PRB box in checkout block when PRBs disabled.
+* Fix - Fix semi-hidden modal inline notices.
+
+= 7.1.0 - 2023-02-08 =
+* Fix - Replace some post meta methods with equivalent methods compatible with HPOS.
+* Fix - Rare cases of payment processing failing when webhooks arrive before customer is redirected when UPE is enabled will no longer occur.
+* Tweak - Update minimum supported versions for WordPress, WooCommerce, and PHP.
+* Update – Declare this plugin compatible with High-Performance Order Storage (HPOS).
+
+= 7.0.2 - 2023-01-11 =
+* Fix - Expand charges object from incoming webhooks using Stripe API version 2022-11-15.
+* Fix - Expand refunds on charge object from incoming webhooks using Stripe API version 2022-11-15.
+* Fix - Fix critical error on PHP 8+ when php_uname() is disabled
+
+= 7.0.1 - 2022-11-11 =
+* Fix - Issue where subscription renewal payments were being charged twice no longer present.
+
+= 7.0.0 - 2022-11-10 =
+* Add - Update Express Checkout section UI.
+* Add - Auto-complete first and last name on checkout form when using Link payment method.
+* Add - Allow subscription orders to be paid with Link payment method.
+* Add - Add inbox notification for Link payment method.
+* Tweak - Adjust texts and links in WC admin advanced settings.
+* Add - Restrict the Link payment method only for US merchants.
+
+= 6.9.0 - 2022-10-19 =
+* Tweak - Remove remaining traces of old Stripe settings.
+* Add - Add Boleto expiration setting.
+* Add - Declare incompatibility with HPOS.
+
+= 6.8.0 - 2022-09-28 =
+* Fix - Minor adjustments for Custom Order Tables compatibility.
+* Fix - Upgrade from Payment Element beta.
+
+= 6.7.0 - 2022-09-06 =
 * Fix - Check payment method before updating payment method title.
 * Fix - Use the eslint config at the root of the repo.
 

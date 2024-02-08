@@ -1,0 +1,249 @@
+{
+	"users": {
+		"admin": {
+			"username": "admin",
+			"password": "admin",
+			"email": "admin@e2etestsuite.com"
+		},
+		"customer": {
+			"username": "customer",
+			"password": "password",
+			"email": "customer@e2etestsuite.com"
+		},
+		"guest": {
+			"email": "guest@e2etestsuite.com"
+		}
+	},
+	"products": {
+		"simple": {
+			"name": "Beanie",
+			"type": "simple"
+		},
+		"subscription": {
+			"name": "Subscription Product",
+			"type": "subscription"
+		}
+	},
+	"addresses": {
+		"admin": {
+			"store": {
+				"first_name": "Admin",
+				"last_name": "Adminson",
+				"company": "Automattic",
+				"country": "US",
+				"address_1": "60 29th Street #343",
+				"address_2": "store",
+				"city": "San Francisco",
+				"state": "CA",
+				"postcode": "94110",
+				"email": "e2e-admin@woocommerce.com"
+			}
+		},
+		"customer": {
+			"billing": {
+				"first_name": "Customer",
+				"last_name": "Customerson",
+				"company": "",
+				"country": "United States (US)",
+				"country_iso": "US",
+				"address_1": "60 29th Street #343",
+				"address_2": "billing",
+				"city": "San Francisco",
+				"state": "California",
+				"state_iso": "CA",
+				"postcode": "94110",
+				"phone": "2025550104",
+				"email": "e2e-customer-billing@woocommerce.com"
+			},
+			"shipping": {
+				"first_name": "Recipient",
+				"last_name": "Recipientson",
+				"company": "",
+				"country": "United States (US)",
+				"country_iso": "US",
+				"address_1": "166 Crosby Street",
+				"address_2": "shipping",
+				"city": "New York",
+				"state": "New York",
+				"state_iso": "NY",
+				"postcode": "10012"
+			}
+		}
+	},
+	"cards": {
+		"basic": {
+			"number": "4242424242424242",
+			"expires": {
+				"month": "02",
+				"year": "24"
+			},
+			"cvc": "424",
+			"label": "Visa •••• 4242 (02/2024)"
+		},
+		"basic2": {
+			"number": "4111111111111111",
+			"expires": {
+				"month": "11",
+				"year": "25"
+			},
+			"cvc": "123",
+			"label": "Visa •••• 1111 (11/2025)"
+		},
+		"basic3": {
+			"number": "378282246310005",
+			"expires": {
+				"month": "11",
+				"year": "30"
+			},
+			"cvc": "1234",
+			"label": "Amex •••• 0005 (11/2030)"
+		},
+		"3ds": {
+			"number": "4000002760003184",
+			"expires": {
+				"month": "03",
+				"year": "25"
+			},
+			"cvc": "525",
+			"label": "Visa •••• 3184 (03/2025)"
+		},
+		"3dsOTP": {
+			"number": "4000002500003155",
+			"expires": {
+				"month": "04",
+				"year": "36"
+			},
+			"cvc": "626",
+			"label": "Visa ending in 3155"
+		},
+		"3ds2": {
+			"number": "4000000000003220",
+			"expires": {
+				"month": "04",
+				"year": "36"
+			},
+			"cvc": "626",
+			"label": "Visa ending in 3220"
+		},
+		"disputed-fraudulent": {
+			"number": "4000000000000259",
+			"expires": {
+				"month": "05",
+				"year": "25"
+			},
+			"cvc": "525",
+			"label": "Visa ending in 0259"
+		},
+		"disputed-unreceived": {
+			"number": "4000000000002685",
+			"expires": {
+				"month": "06",
+				"year": "25"
+			},
+			"cvc": "626",
+			"label": "Visa ending in 2685"
+		},
+		"declined": {
+			"number": "4000000000000002",
+			"expires": {
+				"month": "06",
+				"year": "25"
+			},
+			"cvc": "626",
+			"label": "Visa ending in 0002",
+			"error": [
+				"The card was declined.",
+				"Your card has been declined."
+			]
+		},
+		"declined-funds": {
+			"number": "4000000000009995",
+			"expires": {
+				"month": "06",
+				"year": "25"
+			},
+			"cvc": "626",
+			"label": "Visa ending in 9995",
+			"error": [
+				"The card was declined.",
+				"Your card has insufficient funds."
+			]
+		},
+		"declined-incorrect": {
+			"number": "4242424242424241",
+			"expires": {
+				"month": "06",
+				"year": "25"
+			},
+			"cvc": "626",
+			"label": "Visa ending in 4241",
+			"error": [
+				"The card number is not a valid credit card number.",
+				"Your card number is invalid."
+			]
+		},
+		"declined-expired": {
+			"number": "4000000000000069",
+			"expires": {
+				"month": "06",
+				"year": "25"
+			},
+			"cvc": "626",
+			"label": "Visa ending in 0069",
+			"error": [ "The card has expired.", "Your card has expired." ]
+		},
+		"declined-cvc": {
+			"number": "4000000000000127",
+			"expires": {
+				"month": "06",
+				"year": "25"
+			},
+			"cvc": "626",
+			"label": "Visa ending in 0127",
+			"error": [
+				"The card's security code is incorrect.",
+				"Your card's security code is incorrect."
+			]
+		},
+		"declined-processing": {
+			"number": "4000000000000119",
+			"expires": {
+				"month": "06",
+				"year": "25"
+			},
+			"cvc": "626",
+			"label": "Visa ending in 0119",
+			"error": [
+				"An error occurred while processing the card.",
+				"An error occurred while processing your card. Try again in a little bit."
+			]
+		},
+		"declined-3ds": {
+			"number": "4000008400001629",
+			"expires": {
+				"month": "06",
+				"year": "25"
+			},
+			"cvc": "626",
+			"label": "Visa ending in 1629"
+		},
+		"invalid-exp-date": {
+			"number": "4242424242424242",
+			"expires": {
+				"month": "11",
+				"year": "12"
+			},
+			"cvc": "123",
+			"label": "Visa ending in 4242"
+		},
+		"invalid-cvv-number": {
+			"number": "4242424242424242",
+			"expires": {
+				"month": "06",
+				"year": "24"
+			},
+			"cvc": "11",
+			"label": "Visa ending in 4242"
+		}
+	}
+}

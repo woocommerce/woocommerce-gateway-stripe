@@ -3,6 +3,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use Automattic\WooCommerce\Utilities\OrderUtil;
+
 /**
  * Provides static methods as helpers.
  *
@@ -14,6 +16,13 @@ class WC_Stripe_Helper {
 	const META_NAME_FEE             = '_stripe_fee';
 	const META_NAME_NET             = '_stripe_net';
 	const META_NAME_STRIPE_CURRENCY = '_stripe_currency';
+
+	/**
+	 * List of legacy Stripe gateways.
+	 *
+	 * @var array
+	 */
+	public static $stripe_legacy_gateways = [];
 
 	/**
 	 * Gets the Stripe currency for order.
@@ -98,10 +107,8 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$order_id = $order->get_id();
-
-		delete_post_meta( $order_id, self::META_NAME_FEE );
-		delete_post_meta( $order_id, self::LEGACY_META_NAME_FEE );
+		$order->delete_meta_data( self::META_NAME_FEE );
+		$order->delete_meta_data( self::LEGACY_META_NAME_FEE );
 	}
 
 	/**
@@ -157,10 +164,8 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$order_id = $order->get_id();
-
-		delete_post_meta( $order_id, self::META_NAME_NET );
-		delete_post_meta( $order_id, self::LEGACY_META_NAME_NET );
+		$order->delete_meta_data( self::META_NAME_NET );
+		$order->delete_meta_data( self::LEGACY_META_NAME_NET );
 	}
 
 	/**
@@ -226,6 +231,7 @@ class WC_Stripe_Helper {
 	/**
 	 * List of currencies supported by Stripe that has no decimals
 	 * https://stripe.com/docs/currencies#zero-decimal from https://stripe.com/docs/currencies#presentment-currencies
+	 * ugx is an exception and not in this list for being a special cases in Stripe https://stripe.com/docs/currencies#special-cases
 	 *
 	 * @return array $currencies
 	 */
@@ -241,7 +247,6 @@ class WC_Stripe_Helper {
 			'mga', // Malagasy Ariary
 			'pyg', // Paraguayan Guaraní
 			'rwf', // Rwandan Franc
-			'ugx', // Ugandan Shilling
 			'vnd', // Vietnamese Đồng
 			'vuv', // Vanuatu Vatu
 			'xaf', // Central African Cfa Franc
@@ -340,6 +345,207 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * List of legacy payment method classes.
+	 *
+	 * @return array
+	 */
+	public static function get_legacy_payment_method_classes() {
+		$payment_method_classes = [
+			WC_Gateway_Stripe_Alipay::class,
+			WC_Gateway_Stripe_Bancontact::class,
+			WC_Gateway_Stripe_Boleto::class,
+			WC_Gateway_Stripe_EPS::class,
+			WC_Gateway_Stripe_Giropay::class,
+			WC_Gateway_Stripe_Ideal::class,
+			WC_Gateway_Stripe_Multibanco::class,
+			WC_Gateway_Stripe_Oxxo::class,
+			WC_Gateway_Stripe_p24::class,
+			WC_Gateway_Stripe_Sepa::class,
+		];
+
+		/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
+		 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
+		 */
+		$sofort_settings = get_option( 'woocommerce_stripe_sofort_settings', [] );
+		if ( isset( $sofort_settings['enabled'] ) && 'yes' === $sofort_settings['enabled'] ) {
+			$payment_method_classes[] = WC_Gateway_Stripe_Sofort::class;
+		}
+
+		return $payment_method_classes;
+	}
+
+	/**
+	 * List of legacy payment methods.
+	 *
+	 * @return array
+	 */
+	public static function get_legacy_payment_methods() {
+		if ( ! empty( self::$stripe_legacy_gateways ) ) {
+			return self::$stripe_legacy_gateways;
+		}
+
+		$payment_method_classes = self::get_legacy_payment_method_classes();
+
+		foreach ( $payment_method_classes as $payment_method_class ) {
+			$payment_method = new $payment_method_class();
+
+			self::$stripe_legacy_gateways[ $payment_method->id ] = $payment_method;
+		}
+
+		return self::$stripe_legacy_gateways;
+	}
+
+	/**
+	 * Get legacy payment method by id.
+	 *
+	 * @return object|null
+	 */
+	public static function get_legacy_payment_method( $id ) {
+		$payment_methods = self::get_legacy_payment_methods();
+
+		if ( ! isset( $payment_methods[ $id ] ) ) {
+			return null;
+		}
+
+		return $payment_methods[ $id ];
+	}
+
+	/**
+	 * List of available legacy payment method ids.
+	 * It returns the order saved in the `stripe_legacy_method_order` option in Stripe settings.
+	 * If the `stripe_legacy_method_order` option is not set, it returns the default order.
+	 *
+	 * The ids are mapped to the corresponding equivalent UPE method ids for rendeing on the frontend.
+	 *
+	 * @return array
+	 */
+	public static function get_legacy_available_payment_method_ids() {
+		$stripe_settings            = get_option( 'woocommerce_stripe_settings', [] );
+		$payment_method_classes     = self::get_legacy_payment_method_classes();
+		$ordered_payment_method_ids = isset( $stripe_settings['stripe_legacy_method_order'] ) ? $stripe_settings['stripe_legacy_method_order'] : [];
+
+		// If the legacy method order is not set, return the default order.
+		if ( ! empty( $ordered_payment_method_ids ) ) {
+			$payment_method_ids = array_map(
+				function( $payment_method_id ) {
+					if ( 'stripe' === $payment_method_id ) {
+						return 'card';
+					} else {
+						return str_replace( 'stripe_', '', $payment_method_id );
+					}
+				},
+				$ordered_payment_method_ids
+			);
+
+			// Cover the edge case when new Stripe payment methods are added to the plugin which do not exist in
+			// the `stripe_legacy_method_order` option.
+			if ( count( $payment_method_ids ) - 1 !== count( $payment_method_classes ) ) {
+				foreach ( $payment_method_classes as $payment_method_class ) {
+					$id = str_replace( 'stripe_', '', $payment_method_class::ID );
+					if ( ! in_array( $id, $payment_method_ids, true ) ) {
+						$payment_method_ids[] = $id;
+					}
+				}
+
+				// Update the `stripe_legacy_method_order` option with the new order including missing payment methods from the option.
+				$stripe_settings['stripe_legacy_method_order'] = $payment_method_ids;
+				update_option( 'woocommerce_stripe_settings', $stripe_settings );
+			}
+		} else {
+			$payment_method_ids = array_map(
+				function( $payment_method_class ) {
+					return str_replace( 'stripe_', '', $payment_method_class::ID );
+				},
+				$payment_method_classes
+			);
+			$payment_method_ids = array_merge( [ 'card' ], $payment_method_ids );
+		}
+
+		return $payment_method_ids;
+	}
+
+	/**
+	 * List of enabled legacy payment methods.
+	 *
+	 * @return array
+	 */
+	public static function get_legacy_enabled_payment_methods() {
+		$payment_methods = self::get_legacy_payment_methods();
+
+		$enabled_payment_methods = [];
+
+		foreach ( $payment_methods as $payment_method ) {
+			if ( ! $payment_method->is_enabled() ) {
+				continue;
+			}
+			$enabled_payment_methods[ $payment_method->id ] = $payment_method;
+		}
+
+		return $enabled_payment_methods;
+	}
+
+	/**
+	 * List of enabled legacy payment method ids.
+	 *
+	 * @return array
+	 */
+	public static function get_legacy_enabled_payment_method_ids() {
+		$is_stripe_enabled = self::get_settings( null, 'enabled' );
+
+		// In legacy mode (when UPE is disabled), Stripe refers to card as payment method.
+		$enabled_payment_method_ids = 'yes' === $is_stripe_enabled ? [ 'card' ] : [];
+
+		$payment_methods                   = self::get_legacy_payment_methods();
+		$mapped_enabled_payment_method_ids = [];
+
+		foreach ( $payment_methods as $payment_method ) {
+			if ( ! $payment_method->is_enabled() ) {
+				continue;
+			}
+			$payment_method_id = str_replace( 'stripe_', '', $payment_method->id );
+
+			$mapped_enabled_payment_method_ids[] = $payment_method_id;
+		}
+
+		return array_merge( $enabled_payment_method_ids, $mapped_enabled_payment_method_ids );
+	}
+
+	/**
+	 * Get settings of individual payment methods.
+	 *
+	 * @return array
+	 */
+	public static function get_legacy_individual_payment_method_settings() {
+		$stripe_settings = get_option( 'woocommerce_stripe_settings', [] );
+		$payment_methods = self::get_legacy_payment_methods();
+
+		$payment_method_settings = [
+			'card' => [
+				'name'        => isset( $stripe_settings['title'] ) ? $stripe_settings['title'] : '',
+				'description' => isset( $stripe_settings['description'] ) ? $stripe_settings['description'] : '',
+			],
+		];
+
+		foreach ( $payment_methods as $payment_method ) {
+			$settings = [
+				'name'        => $payment_method->get_option( 'title' ),
+				'description' => $payment_method->get_option( 'description' ),
+			];
+
+			$unique_settings = $payment_method->get_unique_settings();
+			if ( isset( $unique_settings[ $payment_method->id . '_expiration' ] ) ) {
+				$settings['expiration'] = $unique_settings[ $payment_method->id . '_expiration' ];
+			}
+
+			$payment_method_id = str_replace( 'stripe_', '', $payment_method->id );
+
+			$payment_method_settings[ $payment_method_id ] = $settings;
+		}
+
+		return $payment_method_settings;
+	}
+
+	/**
 	 * Checks if WC version is less than passed in version.
 	 *
 	 * @since 4.1.11
@@ -360,7 +566,11 @@ class WC_Stripe_Helper {
 	 * @return string
 	 */
 	public static function get_webhook_url() {
-		return add_query_arg( 'wc-api', 'wc_stripe', trailingslashit( get_home_url() ) );
+		return wp_sanitize_redirect(
+			esc_url_raw(
+				add_query_arg( 'wc-api', 'wc_stripe', trailingslashit( get_home_url() ) )
+			)
+		);
 	}
 
 	/**
@@ -373,7 +583,22 @@ class WC_Stripe_Helper {
 	public static function get_order_by_source_id( $source_id ) {
 		global $wpdb;
 
-		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $source_id, '_stripe_source_id' ) );
+		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+			$orders   = wc_get_orders(
+				[
+					'limit'      => 1,
+					'meta_query' => [
+						[
+							'key'   => '_stripe_source_id',
+							'value' => $source_id,
+						],
+					],
+				]
+			);
+			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
+		} else {
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $source_id, '_stripe_source_id' ) );
+		}
 
 		if ( ! empty( $order_id ) ) {
 			return wc_get_order( $order_id );
@@ -396,7 +621,50 @@ class WC_Stripe_Helper {
 			return false;
 		}
 
-		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $charge_id, '_transaction_id' ) );
+		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+			$orders   = wc_get_orders(
+				[
+					'transaction_id' => $charge_id,
+					'limit'          => 1,
+				]
+			);
+			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
+		} else {
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $charge_id, '_transaction_id' ) );
+		}
+
+		if ( ! empty( $order_id ) ) {
+			return wc_get_order( $order_id );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Gets the order by Stripe refund ID.
+	 *
+	 * @since 7.5.0
+	 * @param string $refund_id
+	 */
+	public static function get_order_by_refund_id( $refund_id ) {
+		global $wpdb;
+
+		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+			$orders   = wc_get_orders(
+				[
+					'limit'          => 1,
+					'meta_query' => [
+						[
+							'key'   => '_stripe_refund_id',
+							'value' => $refund_id,
+						],
+					],
+				]
+			);
+			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
+		} else {
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $refund_id, '_stripe_refund_id' ) );
+		}
 
 		if ( ! empty( $order_id ) ) {
 			return wc_get_order( $order_id );
@@ -415,10 +683,29 @@ class WC_Stripe_Helper {
 	public static function get_order_by_intent_id( $intent_id ) {
 		global $wpdb;
 
-		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $intent_id, '_stripe_intent_id' ) );
+		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+			$orders   = wc_get_orders(
+				[
+					'limit'      => 1,
+					'meta_query' => [
+						[
+							'key'   => '_stripe_intent_id',
+							'value' => $intent_id,
+						],
+					],
+				]
+			);
+			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
+		} else {
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $intent_id, '_stripe_intent_id' ) );
+		}
 
 		if ( ! empty( $order_id ) ) {
-			return wc_get_order( $order_id );
+			$order = wc_get_order( $order_id );
+		}
+
+		if ( ! empty( $order ) && $order->get_status() !== 'trash' ) {
+			return $order;
 		}
 
 		return false;
@@ -434,7 +721,22 @@ class WC_Stripe_Helper {
 	public static function get_order_by_setup_intent_id( $intent_id ) {
 		global $wpdb;
 
-		$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $intent_id, '_stripe_setup_intent' ) );
+		if ( class_exists( 'Automattic\WooCommerce\Utilities\OrderUtil' ) && OrderUtil::custom_orders_table_usage_is_enabled() ) {
+			$orders   = wc_get_orders(
+				[
+					'limit'      => 1,
+					'meta_query' => [
+						[
+							'key'   => '_stripe_setup_intent',
+							'value' => $intent_id,
+						],
+					],
+				]
+			);
+			$order_id = current( $orders ) ? current( $orders )->get_id() : false;
+		} else {
+			$order_id = $wpdb->get_var( $wpdb->prepare( "SELECT DISTINCT ID FROM $wpdb->posts as posts LEFT JOIN $wpdb->postmeta as meta ON posts.ID = meta.post_id WHERE meta.meta_value = %s AND meta.meta_key = %s", $intent_id, '_stripe_setup_intent' ) );
+		}
 
 		if ( ! empty( $order_id ) ) {
 			return wc_get_order( $order_id );
@@ -471,6 +773,31 @@ class WC_Stripe_Helper {
 	}
 
 	/**
+	 * Gets the dynamic bank statement descriptor suffix.
+	 *
+	 * Stripe will automatically append this suffix to the merchant account's bank statement prefix.
+	 *
+	 * @param WC_Order $order The order to generate the suffix for.
+	 * @return string The statement descriptor suffix ("#{order-number}").
+	 */
+	public static function get_dynamic_statement_descriptor_suffix( $order ) {
+		$prefix = WC_Stripe::get_instance()->account->get_card_statement_prefix();
+		$suffix = '';
+
+		if ( method_exists( $order, 'get_order_number' ) && ! empty( $order->get_order_number() ) ) {
+			$suffix = '#' . $order->get_order_number();
+
+			// Stripe requires at least 1 latin (alphabet) character in the suffix so we add the first character of the prefix before the order number.
+			if ( 0 === preg_match( '/[a-zA-Z]/', $suffix ) ) {
+				$suffix = substr( $prefix, 0, 1 ) . ' ' . $suffix;
+			}
+		}
+
+		// Make sure that the prefix + suffix is limited at 22 characters.
+		return self::clean_statement_descriptor( substr( trim( $suffix ), 0, 22 - strlen( $prefix . '* ' ) ) );
+	}
+
+	/**
 	 * Sanitize statement descriptor text.
 	 *
 	 * Stripe requires max of 22 characters and no special characters.
@@ -491,6 +818,9 @@ class WC_Stripe_Helper {
 
 		// Next, remove any remaining disallowed characters.
 		$statement_descriptor = str_replace( $disallowed_characters, '', $statement_descriptor );
+
+		// Remove non-Latin characters, excluding numbers, whitespaces and especial characters.
+		$statement_descriptor = preg_replace( '/[^a-zA-Z0-9\s\x{00C0}-\x{00FF}\p{P}]/u', '', $statement_descriptor );
 
 		// Trim any whitespace at the ends and limit to 22 characters.
 		$statement_descriptor = substr( trim( $statement_descriptor ), 0, 22 );
@@ -694,5 +1024,93 @@ class WC_Stripe_Helper {
 
 		$order->update_meta_data( '_stripe_intent_id', $payment_intent_id );
 		$order->save();
+	}
+
+	/**
+	 * Adds a source or payment method argument to the request array depending on what sort of
+	 * payment method ID is provided. If ID is neither a source or a payment method ID then nothing
+	 * is added.
+	 *
+	 * @param string $payment_method_id  The payment method ID that should be added to the request array.
+	 * @param array $request             The request representing the arguments that will be sent in the request.
+	 *
+	 * @return array  The updated request array.
+	 */
+	public static function add_payment_method_to_request_array( string $payment_method_id, array $request ): array {
+		// Extract the payment method prefix using the first '_' character
+		$payment_method_type = substr( $payment_method_id, 0, strpos( $payment_method_id, '_' ) );
+
+		switch ( $payment_method_type ) {
+			case 'src':
+				$request['source'] = $payment_method_id;
+				break;
+			case 'pm':
+			case 'card':
+				$request['payment_method'] = $payment_method_id;
+				break;
+		}
+
+		return $request;
+	}
+
+	/**
+	 * Evaluates whether the object passed to this function is a Stripe Payment Method.
+	 *
+	 * @param stdClass $object  The object that should be evaluated.
+	 * @return bool             Returns true if the object is a Payment Method; false otherwise.
+	 */
+	public static function is_payment_method_object( stdClass $payment_method ): bool {
+		return isset( $payment_method->object ) && 'payment_method' === $payment_method->object;
+	}
+
+	/**
+	 * Evaluates whether a given Stripe Source (or Stripe Payment Method) is reusable.
+	 * Payment Methods are always reusable; Sources are only reusable when the appropriate
+	 * usage metadata is provided.
+	 *
+	 * @param stdClass $payment_method  The source or payment method to be evaluated.
+
+	 * @return bool  Returns true if the source is reusable; false otherwise.
+	 */
+	public static function is_reusable_payment_method( stdClass $payment_method ): bool {
+		return self::is_payment_method_object( $payment_method ) || ( isset( $payment_method->usage ) && 'reusable' === $payment_method->usage );
+	}
+
+	/**
+	 * Returns true if the provided payment method is a card, false otherwise.
+	 *
+	 * @param stdClass $payment_method  The provided payment method object. Can be a Source or a Payment Method.
+	 *
+	 * @return bool  True if payment method is a card, false otherwise.
+	 */
+	public static function is_card_payment_method( stdClass $payment_method ): bool {
+		if ( ! isset( $payment_method->object ) || ! isset( $payment_method->type ) ) {
+			return false;
+		}
+
+		if ( 'payment_method' !== $payment_method->object && 'source' !== $payment_method->object ) {
+			return false;
+		}
+
+		return 'card' === $payment_method->type;
+	}
+
+	/**
+	 * Returns a source or payment method from a given intent object.
+	 *
+	 * @param stdClass|object $intent  The intent that contains the payment method.
+	 *
+	 * @return stdClass|string|null  The payment method if found, null otherwise.
+	 */
+	public static function get_payment_method_from_intent( $intent ) {
+		if ( ! empty( $intent->source ) ) {
+			return $intent->source;
+		}
+
+		if ( ! empty( $intent->payment_method ) ) {
+			return $intent->payment_method;
+		}
+
+		return null;
 	}
 }

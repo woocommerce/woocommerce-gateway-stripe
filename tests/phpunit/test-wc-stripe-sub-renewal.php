@@ -84,7 +84,6 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 		$currency                      = strtolower( $renewal_order->get_currency() );
 		$customer                      = 'cus_123abc';
 		$source                        = 'src_123abc';
-		$statement_descriptor          = WC_Stripe_Helper::clean_statement_descriptor( $this->statement_descriptor );
 		$should_retry                  = false;
 		$previous_error                = false;
 		$payments_intents_api_endpoint = 'https://api.stripe.com/v1/payment_intents';
@@ -118,7 +117,6 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 			$currency,
 			$customer,
 			$source,
-			$statement_descriptor,
 			$payments_intents_api_endpoint,
 			&$urls_used
 		) {
@@ -147,7 +145,6 @@ class WC_Stripe_Subscription_Renewal_Test extends WP_UnitTestCase {
 				'off_session'          => 'true',
 				'confirm'              => 'true',
 				'confirmation_method'  => 'automatic',
-				'statement_descriptor' => $statement_descriptor,
 			];
 			foreach ( $expected_request_body_values as $key => $value ) {
 				$this->assertArrayHasKey( $key, $request_args['body'] );

@@ -9,7 +9,8 @@ import IdealIcon from './payment-method-icons/ideal';
 import P24Icon from './payment-method-icons/p24';
 import BoletoIcon from './payment-method-icons/boleto';
 import OxxoIcon from './payment-method-icons/oxxo';
-import LinkIcon from './payment-method-icons/link';
+import AlipayIcon from './payment-method-icons/alipay';
+import MultibancoIcon from './payment-method-icons/multibanco';
 
 export default {
 	card: {
@@ -22,19 +23,6 @@ export default {
 		Icon: CreditCardIcon,
 		currencies: [],
 		capability: 'card_payments',
-		allows_manual_capture: true,
-	},
-	link: {
-		id: 'link',
-		label: __( 'Stripe Link', 'woocommerce-gateway-stripe' ),
-		description: __(
-			'Link is a payment method that allows customers to save payment information ' +
-				'and use the payment details for further payments.',
-			'woocommerce-gateway-stripe'
-		),
-		Icon: LinkIcon,
-		currencies: [ 'USD' ],
-		capability: 'link_payments',
 		allows_manual_capture: true,
 	},
 	giropay: {
@@ -50,6 +38,17 @@ export default {
 	},
 	sepa_debit: {
 		id: 'sepa_debit',
+		label: __( 'Direct debit payment', 'woocommerce-gateway-stripe' ),
+		description: __(
+			'Reach 500 million customers and over 20 million businesses across the European Union.',
+			'woocommerce-gateway-stripe'
+		),
+		Icon: SepaIcon,
+		currencies: [ 'EUR' ],
+		capability: 'sepa_debit_payments',
+	},
+	sepa: {
+		id: 'sepa',
 		label: __( 'Direct debit payment', 'woocommerce-gateway-stripe' ),
 		description: __(
 			'Reach 500 million customers and over 20 million businesses across the European Union.',
@@ -143,7 +142,7 @@ export default {
 			'Alipay is a popular wallet in China, operated by Ant Financial Services Group, a financial services provider affiliated with Alibaba.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: () => null,
+		Icon: AlipayIcon,
 		currencies: [
 			'AUD',
 			'CAD',
@@ -165,7 +164,7 @@ export default {
 			'Multibanco is an interbank network that links the ATMs of all major banks in Portugal, allowing customers to pay through either their ATM or online banking environment.',
 			'woocommerce-gateway-stripe'
 		),
-		Icon: () => null,
+		Icon: MultibancoIcon,
 		currencies: [ 'EUR' ],
 		capability: undefined,
 	},
