@@ -375,7 +375,7 @@ function woocommerce_gateway_stripe() {
 			}
 
 			/**
-			 * Add the gateways to WooCommerce.
+			 * Add the main Stripe gateway to WooCommerce.
 			 *
 			 * @since 1.0.0
 			 * @version 5.6.0
@@ -384,35 +384,17 @@ function woocommerce_gateway_stripe() {
 				$main_gateway = $this->get_main_stripe_gateway();
 				$methods[]    = $main_gateway;
 
-				if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() || ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-					// These payment gateways will be hidden when UPE is enabled:
-					$methods[] = WC_Gateway_Stripe_Sepa::class;
-					$methods[] = WC_Gateway_Stripe_Giropay::class;
-					$methods[] = WC_Gateway_Stripe_Ideal::class;
-					$methods[] = WC_Gateway_Stripe_Bancontact::class;
-					$methods[] = WC_Gateway_Stripe_Eps::class;
-					$methods[] = WC_Gateway_Stripe_P24::class;
-					$methods[] = WC_Gateway_Stripe_Boleto::class;
-					$methods[] = WC_Gateway_Stripe_Oxxo::class;
+				// These payment gateways will be visible in the main settings page, if UPE enabled.
+				if ( is_a( $main_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+					$methods[] = WC_Gateway_Stripe_Alipay::class;
+					$methods[] = WC_Gateway_Stripe_Multibanco::class;
 
-					/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
-					 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
-					 */
-					$sofort_settings = get_option( 'woocommerce_stripe_sofort_settings', [] );
-					if ( isset( $sofort_settings['enabled'] ) && 'yes' === $sofort_settings['enabled'] ) {
-						$methods[] = WC_Gateway_Stripe_Sofort::class;
-					}
-				} elseif ( is_a( $main_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
-					// the $main_gateway represents the card gateway so we don't want to include it in the list of UPE gateways.
+					// The $main_gateway represents the card gateway so we don't want to include it in the list of UPE gateways.
 					$upe_payment_methods = $main_gateway->payment_methods;
 					unset( $upe_payment_methods['card'] );
 
 					$methods = array_merge( $methods, $upe_payment_methods );
 				}
-
-				// These payment gateways will always be visible, regardless if UPE is enabled or disabled:
-				$methods[] = WC_Gateway_Stripe_Alipay::class;
-				$methods[] = WC_Gateway_Stripe_Multibanco::class;
 
 				return $methods;
 			}
@@ -508,33 +490,36 @@ function woocommerce_gateway_stripe() {
 
 			protected function enable_upe( $settings ) {
 				$settings['upe_checkout_experience_accepted_payments'] = [];
-				$payment_gateways                                      = WC()->payment_gateways->payment_gateways();
+
+				$payment_gateways = WC_Stripe_Helper::get_legacy_payment_methods();
 				foreach ( WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS as $method_class ) {
 					if ( ! defined( "$method_class::LPM_GATEWAY_CLASS" ) ) {
 						continue;
 					}
 
 					$lpm_gateway_id = constant( $method_class::LPM_GATEWAY_CLASS . '::ID' );
-					if ( isset( $payment_gateways[ $lpm_gateway_id ] ) && 'yes' === $payment_gateways[ $lpm_gateway_id ]->enabled ) {
+					if ( isset( $payment_gateways[ $lpm_gateway_id ] ) && $payment_gateways[ $lpm_gateway_id ]->is_enabled() ) {
 						// DISABLE LPM
-						if ( 'stripe' !== $lpm_gateway_id ) {
-							/**
-							 * TODO: This can be replaced with:
-							 *
-							 *   $payment_gateways[ $lpm_gateway_id ]->update_option( 'enabled', 'no' );
-							 *   $payment_gateways[ $lpm_gateway_id ]->enabled = 'no';
-							 *
-							 * ...once the minimum WC version is 3.4.0.
-							 */
-							$payment_gateways[ $lpm_gateway_id ]->settings['enabled'] = 'no';
-							update_option(
-								$payment_gateways[ $lpm_gateway_id ]->get_option_key(),
-								apply_filters( 'woocommerce_settings_api_sanitized_fields_' . $payment_gateways[ $lpm_gateway_id ]::ID, $payment_gateways[ $lpm_gateway_id ]->settings ),
-								'yes'
-							);
-						}
+						/**
+						 * TODO: This can be replaced with:
+						 *
+						 *   $payment_gateways[ $lpm_gateway_id ]->update_option( 'enabled', 'no' );
+						 *   $payment_gateways[ $lpm_gateway_id ]->enabled = 'no';
+						 *
+						 * ...once the minimum WC version is 3.4.0.
+						 */
+						$payment_gateways[ $lpm_gateway_id ]->settings['enabled'] = 'no';
+						update_option(
+							$payment_gateways[ $lpm_gateway_id ]->get_option_key(),
+							apply_filters( 'woocommerce_settings_api_sanitized_fields_' . $payment_gateways[ $lpm_gateway_id ]::ID, $payment_gateways[ $lpm_gateway_id ]->settings ),
+							'yes'
+						);
 						// ENABLE UPE METHOD
 						$settings['upe_checkout_experience_accepted_payments'][] = $method_class::STRIPE_ID;
+					}
+
+					if ( 'stripe' === $lpm_gateway_id && isset( $this->stripe_gateway ) && $this->stripe_gateway->is_enabled() ) {
+						$settings['upe_checkout_experience_accepted_payments'][] = 'card';
 					}
 				}
 				if ( empty( $settings['upe_checkout_experience_accepted_payments'] ) ) {
@@ -739,7 +724,7 @@ register_activation_hook( __FILE__, 'add_woocommerce_inbox_variant' );
 function wcstripe_deactivated() {
 	// admin notes are not supported on older versions of WooCommerce.
 	require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-upe-compatibility.php';
-	if ( WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
+	if ( class_exists( 'WC_Stripe_Inbox_Notes' ) && WC_Stripe_Inbox_Notes::are_inbox_notes_supported() ) {
 		// requirements for the note
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/class-wc-stripe-feature-flags.php';
 		require_once WC_STRIPE_PLUGIN_PATH . '/includes/notes/class-wc-stripe-upe-availability-note.php';

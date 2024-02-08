@@ -1,16 +1,14 @@
 import { __ } from '@wordpress/i18n';
-import React, { useContext } from 'react';
+import React from 'react';
 import { ExternalLink } from '@wordpress/components';
 import SettingsSection from '../settings-section';
 import PaymentRequestSection from '../payment-request-section';
 import GeneralSettingsSection from '../general-settings-section';
 import LoadableSettingsSection from '../loadable-settings-section';
-import UpeToggleContext from '../upe-toggle/context';
 import CustomizationOptionsNotice from '../customization-options-notice';
+import DisplayOrderCustomizationNotice from '../display-order-customization-notice';
 
 const PaymentMethodsDescription = () => {
-	const { isUpeEnabled } = useContext( UpeToggleContext );
-
 	return (
 		<>
 			<h2>
@@ -20,16 +18,14 @@ const PaymentMethodsDescription = () => {
 				) }
 			</h2>
 
-			{ isUpeEnabled && (
-				<p>
-					{ __(
-						'Select payments available to customers at checkout. ' +
-							'Based on their device type, location, and purchase history, ' +
-							'your customers will only see the most relevant payment methods.',
-						'woocommerce-gateway-stripe'
-					) }
-				</p>
-			) }
+			<p>
+				{ __(
+					'Select payments available to customers at checkout. ' +
+						'Based on their device type, location, and purchase history, ' +
+						'your customers will only see the most relevant payment methods.',
+					'woocommerce-gateway-stripe'
+				) }
+			</p>
 		</>
 	);
 };
@@ -49,11 +45,12 @@ const PaymentRequestDescription = () => (
 	</>
 );
 
-const PaymentMethodsPanel = () => {
+const PaymentMethodsPanel = ( { onSaveChanges } ) => {
 	return (
 		<>
 			<SettingsSection Description={ PaymentMethodsDescription }>
-				<GeneralSettingsSection />
+				<DisplayOrderCustomizationNotice />
+				<GeneralSettingsSection onSaveChanges={ onSaveChanges } />
 				<CustomizationOptionsNotice />
 			</SettingsSection>
 			<SettingsSection Description={ PaymentRequestDescription }>

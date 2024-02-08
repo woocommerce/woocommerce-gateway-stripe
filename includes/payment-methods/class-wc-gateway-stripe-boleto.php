@@ -76,7 +76,7 @@ class WC_Gateway_Stripe_Boleto extends WC_Stripe_Payment_Gateway_Voucher {
 	 * @param array $settings Settings array.
 	 * @return array
 	 */
-	public function get_unique_settings( $settings ) {
+	public function get_unique_settings( $settings = [] ) {
 		$settings[ $this->id . '_expiration' ] = $this->get_option( 'expiration' );
 		return $settings;
 	}
