@@ -18,12 +18,20 @@ class WC_Stripe_Settings_Controller {
 	private $account;
 
 	/**
+	 * The Stripe gateway instance.
+	 *
+	 * @var WC_Stripe_Payment_Gateway
+	 */
+	private $gateway;
+
+	/**
 	 * Constructor
 	 *
 	 * @param WC_Stripe_Account $account Stripe account
 	 */
-	public function __construct( WC_Stripe_Account $account ) {
+	public function __construct( WC_Stripe_Account $account, WC_Stripe_Payment_Gateway $gateway ) {
 		$this->account = $account;
+		$this->gateway = $gateway;
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wc_stripe_gateway_admin_options_wrapper', [ $this, 'admin_options' ] );
 		add_action( 'woocommerce_order_item_add_action_buttons', [ $this, 'hide_refund_button_for_uncaptured_orders' ] );
@@ -38,7 +46,7 @@ class WC_Stripe_Settings_Controller {
 	* @param WC_Order $order The order that is being viewed.
 	*/
 	public function hide_refund_button_for_uncaptured_orders( $order ) {
-		$intent = WC_Stripe_Order_Handler::get_instance()->get_intent_from_order( $order );
+		$intent = $this->gateway->get_intent_from_order( $order );
 
 		if ( $intent && 'requires_capture' === $intent->status ) {
 			$no_refunds_button  = __( 'Refunding unavailable', 'woocommerce-gateway-stripe' );
