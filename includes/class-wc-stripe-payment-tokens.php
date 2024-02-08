@@ -268,6 +268,7 @@ class WC_Stripe_Payment_Tokens {
 			// 2. If local payment methods are not found on Stripe's side, delete them.
 			// 3. If payment methods are found on Stripe's side but not locally, create them.
 			foreach ( $tokens as $token ) {
+				$payment_method_type = $this->get_payment_method_type_from_token( $token );
 
 				// The payment method type doesn't belong to us. Nothing to do here.
 				if ( ! isset( $gateway->payment_methods[ $payment_method_type ] ) ) {
@@ -295,16 +296,16 @@ class WC_Stripe_Payment_Tokens {
 				}
 
 				// Get the slug for the payment method type expected by the Stripe API.
-				$payment_method_type = $payment_method_instance->get_retrievable_type();
+				$payment_method_retrievable_type = $payment_method_instance->get_retrievable_type();
 
 				// Avoid redundancy by only processing the payment methods for each type once.
-				if ( ! in_array( $payment_method_type, $types_retrieved_from_stripe, true ) ) {
+				if ( ! in_array( $payment_method_retrievable_type, $types_retrieved_from_stripe, true ) ) {
 
-					$payment_methods_for_type   = $customer->get_payment_methods( $payment_method_type );
+					$payment_methods_for_type   = $customer->get_payment_methods( $payment_method_retrievable_type );
 					$stripe_payment_methods     = array_merge( $stripe_payment_methods, $payment_methods_for_type );
 					$stripe_payment_methods_ids = array_merge( $stripe_payment_methods_ids, wp_list_pluck( $payment_methods_for_type, 'id' ) );
 
-					$types_retrieved_from_stripe[] = $payment_method_type;
+					$types_retrieved_from_stripe[] = $payment_method_retrievable_type;
 				}
 
 				// Delete the local payment method if it doesn't exist in Stripe.
