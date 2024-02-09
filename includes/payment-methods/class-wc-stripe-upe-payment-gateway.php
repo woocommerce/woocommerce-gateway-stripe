@@ -1693,7 +1693,16 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return stdClass
 	 */
 	private function process_payment_intent_for_order( WC_Order $order, array $payment_information, $retry = true ) {
-		$payment_intent = $this->intent_controller->create_and_confirm_payment_intent( $payment_information );
+		$payment_intent = $this->get_existing_compatible_payment_intent( $order, $payment_information['payment_method_types'] );
+
+		// If the payment intent is not compatible, we need to create a new one. Throws an exception on error.
+		if ( $payment_intent ) {
+			// Update the existing payment intent if one exists.
+			$payment_intent = $this->intent_controller->update_and_confirm_payment_intent( $payment_intent, $payment_information );
+		} else {
+			// Create (and confirm) a new payment intent if one doesn't exist.
+			$payment_intent = $this->intent_controller->create_and_confirm_payment_intent( $payment_information );
+		}
 
 		// Handle an error in the payment intent.
 		if ( ! empty( $payment_intent->error ) ) {
@@ -1771,6 +1780,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 *
 	 * @param WC_Order $order The WC Order to be paid for.
 	 * @return array An array containing the payment information for processing a payment intent.
+	 * @throws WC_Stripe_Exception When there's an error retrieving the payment information.
 	 */
 	private function prepare_payment_information_from_request( WC_Order $order ) {
 		$selected_payment_type = $this->get_selected_payment_method_type_from_request();
@@ -1788,7 +1798,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$shipping_details = $this->get_address_data_for_payment_request( $order );
 		}
 
-		$payment_method_id = '';
 		if ( $is_using_saved_payment_method ) {
 			// Use the saved payment method.
 			$token = WC_Stripe_Payment_Tokens::get_token_from_request( $_POST );
@@ -1806,7 +1815,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method_id = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
 
-		$payment_information = [
+		$payment_method_types = $this->get_payment_method_types_for_intent_creation( $selected_payment_type, $order->get_id() );
+
+		return [
 			'amount'                        => $amount,
 			'currency'                      => $currency,
 			'customer'                      => $this->get_customer_id_for_order( $order ),
@@ -1820,13 +1831,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'payment_type'                  => 'single', // single | recurring.
 			'save_payment_method_to_store'  => $save_payment_method_to_store,
 			'selected_payment_type'         => $selected_payment_type,
+			'payment_method_types'          => $payment_method_types,
 			'shipping'                      => $shipping_details,
 			'statement_descriptor'          => $this->get_statement_descriptor( $order, $selected_payment_type ),
 			'token'                         => $token,
 			'return_url'                    => $this->get_return_url_for_redirect( $order, $save_payment_method_to_store ),
 		];
-
-		return $payment_information;
 	}
 
 	/**
@@ -2131,5 +2141,67 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				)
 			)
 		);
+	}
+
+	/**
+	 * Retrieves the (possible) existing payment intent for an order and payment method types.
+	 *
+	 * @param WC_Order $order The order.
+	 * @param array $payment_method_types The payment method types.
+	 * @return object|null
+	 * @throws WC_Stripe_Exception
+	 */
+	private function get_existing_compatible_payment_intent( $order, $payment_method_types ) {
+		// Reload the order to make sure we have the latest data.
+		$order  = wc_get_order( $order->get_id() );
+		$intent = $this->get_intent_from_order( $order );
+		if ( ! $intent ) {
+			return null;
+		}
+
+		// If the payment method types match, we can reuse the payment intent.
+		if ( count( array_intersect( $intent->payment_method_types, $payment_method_types ) ) !== count( $payment_method_types ) ) {
+			return null;
+		}
+
+		// Check if the status of the intent still allows update.
+		if ( in_array( $intent->status, [ 'canceled', 'succeeded' ], true ) ) {
+			return null;
+		}
+
+		return $intent;
+	}
+
+	/**
+	 * Returns the payment method types for the intent creation request, given the selected payment type.
+	 *
+	 * @param string $selected_payment_type The payment type the shopper selected, if any.
+	 * @param int    $order_id              ID of the WC order we're handling.
+	 *
+	 * @return array
+	 */
+	private function get_payment_method_types_for_intent_creation( string $selected_payment_type, int $order_id ): array {
+		// If the shopper didn't select a payment type, return all the enabled ones.
+		if ( '' === $selected_payment_type ) {
+			return $this->get_upe_enabled_at_checkout_payment_method_ids( $order_id );
+		}
+
+		// If the "card" type was selected and Link is enabled, include Link in the types.
+		if (
+			WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID === $selected_payment_type &&
+			in_array(
+				WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+				$this->get_upe_enabled_payment_method_ids(),
+				true
+			)
+		) {
+			return [
+				WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID,
+				WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID,
+			];
+		}
+
+		// Otherwise, return the selected payment method type.
+		return [ $selected_payment_type ];
 	}
 }

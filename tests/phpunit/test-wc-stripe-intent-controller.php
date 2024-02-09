@@ -114,4 +114,96 @@ class WC_Stripe_Intent_Controller_Test extends WP_UnitTestCase {
 
 		$this->mock_controller->create_payment_intent( $this->order->get_id() );
 	}
+
+	/**
+	 * Test for `update_and_confirm_payment_intent` method.
+	 *
+	 * @param array $payment_information Payment information.
+	 * @param object $payment_intent Payment intent.
+	 * @param string|null $expected Expected result.
+	 * @param string|null $expected_exception Expected exception.
+	 * @return void
+	 * @dataProvider provide_test_update_and_confirm_payment_intent
+	 * @throws WC_Stripe_Exception If invalid payment method type is passed.
+	 */
+	public function test_update_and_confirm_payment_intent( $payment_information, $payment_intent, $expected = null, $expected_exception = null ) {
+		$payment_information = array_merge( $payment_information, [ 'order' => $this->order ] );
+
+		if ( $expected_exception ) {
+			$this->expectException( $expected_exception );
+		}
+
+		$test_request = function () use ( $payment_intent ) {
+			return [
+				'response' => 200,
+				'headers'  => [ 'Content-Type' => 'application/json' ],
+				'body'     => json_encode( $payment_intent ),
+			];
+		};
+
+		add_filter( 'pre_http_request', $test_request, 10, 3 );
+
+		$actual = $this->mock_controller->update_and_confirm_payment_intent( $payment_intent, $payment_information );
+		$this->assertEquals( $expected, $actual );
+	}
+
+	/**
+	 * Provider for `test_update_and_confirm_payment_intent` method.
+	 *
+	 * @return array
+	 */
+	public function provide_test_update_and_confirm_payment_intent() {
+		$payment_information_missing_params = [
+			'capture_method'               => 'automatic',
+			'shipping'                     => [],
+			'selected_payment_type'        => 'card',
+			'payment_method_types'         => [ 'card' ],
+			'level3'                       => [
+				'line_items' => [
+					[
+						'product_code'        => '123',
+						'product_description' => 'test',
+						'unit_cost'           => 100,
+						'quantity'            => 1,
+					],
+				],
+			],
+			'save_payment_method_to_store' => true,
+		];
+
+		$payment_information_regular = array_merge(
+			$payment_information_missing_params,
+			[
+				'payment_method' => 'pm_123',
+			]
+		);
+
+		$payment_intent_regular = [ 'id' => 'pi_123' ];
+		$payment_intent_error   = (object) array_merge(
+			$payment_intent_regular,
+			[
+				'error' => (object) [
+					'message' => 'error',
+				],
+			]
+		);
+		return [
+			'missing params'       => [
+				'payment information' => $payment_information_missing_params,
+				'payment intent'      => (object) $payment_intent_regular,
+				'expected'            => null,
+				'expected exception'  => WC_Stripe_Exception::class,
+			],
+			'payment intent error' => [
+				'payment information' => $payment_information_regular,
+				'payment intent'      => $payment_intent_error,
+				'expected'            => $payment_intent_error,
+			],
+			'success'              => [
+				'payment information' => $payment_information_regular,
+				'payment intent'      => (object) $payment_intent_regular,
+				'expected'            => (object) $payment_intent_regular,
+			],
+		];
+	}
 }
