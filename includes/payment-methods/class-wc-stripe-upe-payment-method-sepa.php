@@ -7,6 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * SEPA Payment Method class extending UPE base class
  */
 class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
+	use WC_Stripe_Subscriptions_Trait;
 
 	const STRIPE_ID = 'sepa_debit';
 
@@ -30,6 +31,9 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 			'Reach 500 million customers and over 20 million businesses across the European Union.',
 			'woocommerce-gateway-stripe'
 		);
+
+		// SEPA Direct Debit is the tokenization method for this method as well as Bancontact and iDEAL. Init subscription so it can process subscription payments.
+		$this->maybe_init_subscriptions();
 	}
 
 	/**
