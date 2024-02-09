@@ -1932,7 +1932,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Add the payment method information to the order.
 		$prepared_payment_method_object = $this->prepare_payment_method( $payment_method_object );
-		$this->maybe_update_source_on_subscription_order( $order, $prepared_payment_method_object );
+		$this->maybe_update_source_on_subscription_order( $order, $prepared_payment_method_object, $this->id );
 
 		// Create a payment token for the user in the store.
 		$payment_method_instance = $this->payment_methods[ $payment_method_type ];
