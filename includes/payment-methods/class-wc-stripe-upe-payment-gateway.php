@@ -424,7 +424,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	public function get_upe_enabled_at_checkout_payment_method_ids( $order_id = null ) {
 		$is_automatic_capture_enabled = $this->is_automatic_capture_enabled();
 		$available_method_ids         = [];
-		WC_Stripe_Logger::log( 'get_upe_enabled_at_checkout_payment_method_ids---' );
 		foreach ( $this->get_upe_enabled_payment_method_ids() as $payment_method_id ) {
 			if ( ! isset( $this->payment_methods[ $payment_method_id ] ) ) {
 				continue;
@@ -442,7 +441,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$available_method_ids[] = $payment_method_id;
 		}
 
-		WC_Stripe_Logger::log( 'get_upe_enabled_at_checkout_payment_method_id ret---' . wp_json_encode( $available_method_ids ) );
 		return $available_method_ids;
 	}
 
@@ -1240,7 +1238,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return bool
 	 */
 	public function is_enabled_at_checkout( $payment_method_id ) {
-		WC_Stripe_Logger::log( 'is_enabled_at_checkout' );
 		if ( ! isset( $this->payment_methods[ $payment_method_id ] ) ) {
 			return false;
 		}
