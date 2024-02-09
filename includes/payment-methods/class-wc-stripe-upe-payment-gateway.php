@@ -727,7 +727,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						'payment_method' => $payment_information['payment_method'],
 						'customer'       => $payment_information['customer'],
 					],
-					$this->payment_methods[ $upe_payment_method->get_retrievable_type() ]->id
+					$this->get_upe_gateway_id_for_subscription_order( $upe_payment_method )
 				);
 			}
 
@@ -1941,7 +1941,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Add the payment method information to the order.
 		$prepared_payment_method_object = $this->prepare_payment_method( $payment_method_object );
-		$this->maybe_update_source_on_subscription_order( $order, $prepared_payment_method_object, $this->payment_methods[ $payment_method_instance->get_retrievable_type() ]->id );
+		$this->maybe_update_source_on_subscription_order( $order, $prepared_payment_method_object, $this->get_upe_gateway_id_for_subscription_order( $payment_method_instance ) );
 
 		do_action( 'woocommerce_stripe_add_payment_method', $user->ID, $payment_method_object );
 	}
@@ -2158,5 +2158,24 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Determines the gateway ID to set as the subscription order's payment method.
+	 *
+	 * Some UPE payment methods use different gateway IDs to process their payments. eg Bancontact uses SEPA tokens, cards use 'stripe' etc.
+	 * This function will return the correct gateway ID which should be recorded on the subscription so that the correct payment method is used to process future payments.
+	 *
+	 * @param WC_Stripe_UPE_Payment_Method $payment_method The UPE payment method instance.
+	 * @return string The gateway ID to set on the subscription/order.
+	 */
+	private function get_upe_gateway_id_for_subscription_order( $payment_method ) {
+		$token_gateway_type = $payment_method->get_retrievable_type();
+
+		if ( 'card' !== $token_gateway_type ) {
+			return $this->payment_methods[ $token_gateway_type ]->id;
+		}
+
+		return $this->id;
 	}
 }
