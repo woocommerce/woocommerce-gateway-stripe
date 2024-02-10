@@ -28,6 +28,10 @@ class WC_Stripe_UPE_Payment_Method_Sepa extends WC_Stripe_UPE_Payment_Method {
 			'Reach 500 million customers and over 20 million businesses across the European Union.',
 			'woocommerce-gateway-stripe'
 		);
+		$this->supports             = [
+			'products',
+			'tokenization',
+		];
 	}
 
 	/**
