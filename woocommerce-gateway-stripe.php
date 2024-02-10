@@ -198,6 +198,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-woo-compat-utils.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect-api.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-action-scheduler-service.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-order-handler.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-tokens.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php';
