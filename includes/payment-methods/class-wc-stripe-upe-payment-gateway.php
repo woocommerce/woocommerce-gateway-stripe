@@ -551,7 +551,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function process_payment( $order_id, $retry = true, $force_save_source = false, $previous_error = false, $use_order_source = false ) {
 		// Flag for using a deferred intent. To be removed.
-		if ( ! empty( $_POST['wc-stripe-is-deferred-intent'] ) ) {
+		if ( ! empty( $_POST['wc-stripe-is-deferred-intent'] ) || ! empty( $_POST['issavedtoken'] ) ) {
 			return $this->process_payment_with_deferred_intent( $order_id );
 		}
 
