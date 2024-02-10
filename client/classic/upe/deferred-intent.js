@@ -2,6 +2,7 @@ import jQuery from 'jquery';
 import WCStripeAPI from '../../api';
 import {
 	generateCheckoutEventNames,
+	generateCheckoutSavePaymentMethodInputId,
 	getSelectedUPEGatewayPaymentMethod,
 	getStripeServerData,
 	isUsingSavedPaymentMethod,
@@ -44,18 +45,11 @@ jQuery( function ( $ ) {
 		}
 	}
 
+	const savePaymentMethodInputIds = generateCheckoutSavePaymentMethodInputId();
 	$( document ).on( 'change', function ( event ) {
-		// TODO: get a static array with the IDs instead of retrieving the selected one.
-		const selectedPaymentMethod = getSelectedUPEGatewayPaymentMethod();
-		const newPaymentMethodInputId =
-			selectedPaymentMethod === 'card'
-				? ''
-				: `_${ selectedPaymentMethod }`;
-
 		if (
 			event.target &&
-			event.target.id ===
-				`wc-stripe${ newPaymentMethodInputId }-new-payment-method`
+			savePaymentMethodInputIds.includes( event.target.id )
 		) {
 			renderTerms( event );
 		}

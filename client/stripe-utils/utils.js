@@ -287,6 +287,17 @@ export const generateCheckoutEventNames = () => {
 		.join( ' ' );
 };
 
+/**
+ * Returns an array with the ID of the inputs to save a new Payment Method.
+ *
+ * @return {Array} Array of input IDs.
+ */
+export const generateCheckoutSavePaymentMethodInputId = () => {
+	return Object.values( getPaymentMethodsConstants() ).map(
+		( method ) => `wc-${ method }-new-payment-method`
+	);
+};
+
 export const appendPaymentMethodIdToForm = ( form, paymentMethodId ) => {
 	form.append(
 		`<input type="hidden" id="wc-stripe-payment-method" name="wc-stripe-payment-method" value="${ paymentMethodId }" />`
