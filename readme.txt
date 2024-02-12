@@ -128,7 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.9.3 - xxxx-xx-xx =
+= 7.9.3 - 2024-02-12 =
 * Fix - Resolved failing payments when statement descriptor only contains the order number.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
