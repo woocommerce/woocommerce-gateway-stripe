@@ -72,7 +72,7 @@ const PaymentRequestExpressComponent = ( {
 
 	const paymentRequestButtonStyle = {
 		paymentRequestButton: {
-			type: buttonAttributes.label ? 'buy' : 'default',
+			type: buttonAttributes.label,
 			theme: buttonAttributes.theme,
 			height: `${ buttonAttributes.height }`,
 		},
