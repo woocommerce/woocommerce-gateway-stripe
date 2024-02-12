@@ -50,7 +50,7 @@ const testCard = async ( page, cardKey ) => {
 		) {
 			// If the version is smaller than 10.0.0, change the selector.
 			errorSelector =
-				'.wc-block-checkout__payment-method .woocommerce-error';
+				'.wc-block-checkout__payment-method .wc-block-components-notice-banner.is-error';
 		}
 
 		expected = await page.innerText(

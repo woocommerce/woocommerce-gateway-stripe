@@ -24,8 +24,8 @@ export async function emptyCart( page ) {
 		await page.click( '.woocommerce-remove-coupon' );
 	}
 
-	await page.waitForSelector( '.cart-empty.woocommerce-info' );
-	await expect( page.locator( '.cart-empty.woocommerce-info' ) ).toHaveText(
+	await page.waitForSelector( '.wc-empty-cart-message' );
+	await expect( page.locator( '.wc-empty-cart-message' ) ).toHaveText(
 		'Your cart is currently empty.'
 	);
 }
