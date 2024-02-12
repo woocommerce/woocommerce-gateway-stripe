@@ -44,6 +44,7 @@ const PaymentRequestExpressComponent = ( {
 	onClick,
 	onClose,
 	setExpressPaymentError,
+	buttonAttributes,
 } ) => {
 	const stripe = useStripe();
 	const { needsShipping } = shippingData;
@@ -69,19 +70,11 @@ const PaymentRequestExpressComponent = ( {
 	);
 	useCancelHandler( paymentRequest, onClose );
 
-	// locale is not a valid value for the paymentRequestButton style.
-	// Make sure `theme` defaults to 'dark' if it's not found in the server provided configuration.
-	const {
-		type = 'default',
-		theme = 'dark',
-		height = '48',
-	} = getBlocksConfiguration()?.button;
-
 	const paymentRequestButtonStyle = {
 		paymentRequestButton: {
-			type,
-			theme,
-			height: `${ height }px`,
+			type: buttonAttributes.label ? 'buy' : 'default',
+			theme: buttonAttributes.theme,
+			height: `${ buttonAttributes.height }`,
 		},
 	};
 
@@ -138,7 +131,6 @@ const PaymentRequestExpressComponent = ( {
 		paymentRequestButtonStyle.paymentRequestButton.type =
 			brandedType === 'long' ? 'buy' : 'default';
 	}
-
 	return (
 		<LoadingMask
 			isLoading={ isUpdatingPaymentRequest }
