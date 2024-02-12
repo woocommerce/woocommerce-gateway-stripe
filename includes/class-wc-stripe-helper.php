@@ -577,7 +577,7 @@ class WC_Stripe_Helper {
 
 			// Stripe requires at least 1 latin (alphabet) character in the suffix so we add the first character of the prefix before the order number.
 			if ( 0 === preg_match( '/[a-zA-Z]/', $suffix ) ) {
-				$suffix = substr( $prefix, 0, 1 ) . ' ' . $suffix;
+				$suffix = ! empty( $prefix ) ? substr( $prefix, 0, 1 ) . ' ' . $suffix : 'O ' . $suffix;
 			}
 		}
 
