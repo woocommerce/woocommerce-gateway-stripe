@@ -1,5 +1,8 @@
 *** Changelog ***
 
+= 7.9.3 - 2024-02-12 =
+* Fix - Resolved failing payments when statement descriptor only contains the order number.
+
 = 7.9.2 - 2024-02-07 =
 * Fix - Resolved an issue that could cause card payments to fail when providing a Bank statement description with the `statement_descriptor` parameter.
 * Tweak - The Bank statement description settings in the Stripe plugin settings are no longer editable. The description is now automatically pulled from the Stripe account settings.

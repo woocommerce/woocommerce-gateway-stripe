@@ -4,7 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.1
 Tested up to: 6.4.2
 Requires PHP: 7.4
-Stable tag: 7.9.2
+Stable tag: 7.9.3
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,8 +128,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.9.2 - 2024-02-07 =
-* Fix - Resolved an issue that could cause card payments to fail when providing a Bank statement description with the `statement_descriptor` parameter.
-* Tweak - The Bank statement description settings in the Stripe plugin settings are no longer editable. The description is now automatically pulled from the Stripe account settings.
+= 7.9.3 - 2024-02-12 =
+* Fix - Resolved failing payments when statement descriptor only contains the order number.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).
