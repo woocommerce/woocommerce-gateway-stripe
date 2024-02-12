@@ -6,7 +6,7 @@ jQuery( function( $ ) {
 		locale: wc_stripe_payment_request_params.stripe.locale
 	} ),
 		paymentRequestType,
-		showButtonsOnInit = wc_stripe_payment_request_params.product.validVariationSelected ?? true;
+		showButtonsOnInit = ( wc_stripe_payment_request_params.product.validVariationSelected ?? true ) && ! wc_stripe_payment_request_params.hide_button;
 
 	/**
 	 * Object to handle Stripe payment forms.
@@ -39,7 +39,8 @@ jQuery( function( $ ) {
 				data:    data,
 				url:     wc_stripe_payment_request.getAjaxURL( 'get_cart_details' ),
 				success: function( response ) {
-					wc_stripe_payment_request.startPaymentRequest( response );
+					const hideButtonOnCartPage = wc_stripe_payment_request_params.is_cart_page && wc_stripe_payment_request_params.hide_button
+					wc_stripe_payment_request.startPaymentRequest( response, ! hideButtonOnCartPage );
 				}
 			} );
 		},

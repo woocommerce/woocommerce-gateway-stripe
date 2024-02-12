@@ -763,7 +763,9 @@ class WC_Stripe_Payment_Request {
 	 * @return array  The settings used for the payment request button in JavaScript.
 	 */
 	public function javascript_params() {
-		$needs_shipping = 'no';
+		$is_product_page = $this->is_product();
+		$is_cart_page    = is_cart();
+		$needs_shipping  = 'no';
 		if ( ! is_null( WC()->cart ) && WC()->cart->needs_shipping() ) {
 			$needs_shipping = 'yes';
 		}
@@ -802,9 +804,59 @@ class WC_Stripe_Payment_Request {
 			],
 			'button'             => $this->get_button_settings(),
 			'login_confirmation' => $this->get_login_confirmation_settings(),
-			'is_product_page'    => $this->is_product(),
+			'is_product_page'    => $is_product_page,
+			'is_cart_page'       => $is_cart_page,
 			'product'            => $this->get_product_data(),
+			'hide_button'        => ( $is_cart_page || $is_product_page ) ? $this->has_required_checkout_fields() : false,
 		];
+	}
+
+	/**
+	 * Returns true if the checkout has any required fields other than the default ones, false otherwise.
+	 * to not be empty.
+	 *
+	 * @since 4.3.1
+	 *
+	 * @return boolean
+	 */
+	public function has_required_checkout_fields() {
+		// Default WooCommerce Core required fields for billing and shipping.
+		$default_required_fields = [
+			'billing_first_name',
+			'billing_last_name',
+			'billing_country',
+			'billing_address_1',
+			'billing_city',
+			'billing_state',
+			'billing_postcode',
+			'billing_phone',
+			'billing_email',
+			'shipping_first_name',
+			'shipping_last_name',
+			'shipping_country',
+			'shipping_address_1',
+			'shipping_city',
+			'shipping_state',
+			'shipping_postcode',
+		];
+
+		$fields = WC()->checkout()->get_checkout_fields();
+		$fields = array_merge(
+			$fields['billing'] ?? [],
+			$fields['shipping'] ?? [],
+			$fields['order'] ?? [],
+			$fields['account'] ?? []
+		);
+
+		foreach ( $fields as $field_key => $field_data ) {
+			if ( false === array_search( $field_key, $default_required_fields, true ) ) {
+				if ( isset( $field_data['required'] ) && true === $field_data['required'] ) {
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 	/**
