@@ -95,6 +95,31 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	}
 
 	/**
+	 * Magic method to call methods from the main UPE Stripe gateway.
+	 *
+	 * Calling methods on the UPE method instance should forward the call to the main UPE Stripe gateway.
+	 * Because the UPE methods are not actual gateways, they don't have the methods to handle payments, so we need to forward the calls to
+	 * the main UPE Stripe gateway.
+	 *
+	 * That would suggest we should use a class inheritance structure, however, we don't want to extend the UPE Stripe gateway class
+	 * because we don't want the UPE method instance of the gateway to process those calls, we want the actual main instance of the
+	 * gateway to process them.
+	 *
+	 * @param string $method    The method name.
+	 * @param array  $arguments The method arguments.
+	 */
+	public function __call( $method, $arguments ) {
+		$upe_gateway_instance = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+		if ( in_array( $name, get_class_methods( $upe_gateway_instance ) ) ) {
+			return call_user_func_array( [ $upe_gateway_instance, $method ], $arguments );
+		} else {
+			$message = method_exists( $upe_gateway_instance, $method ) ? 'Call to private method ' : 'Call to undefined method ';
+			throw new \Error( $message . get_class( $this ) . '::' . $method );
+		}
+	}
+
+	/**
 	 * Returns payment method ID
 	 *
 	 * @return string
@@ -363,18 +388,6 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 */
 	public function get_testing_instructions() {
 		return '';
-	}
-
-	/**
-	 * Processes an order payment.
-	 *
-	 * UPE Payment methods use the WC_Stripe_UPE_Payment_Gateway::process_payment() function.
-	 *
-	 * @param int $order_id The order ID to process.
-	 * @return array The payment result.
-	 */
-	public function process_payment( $order_id ) {
-		return WC_Stripe::get_instance()->get_main_stripe_gateway()->process_payment( $order_id );
 	}
 
 	/**
