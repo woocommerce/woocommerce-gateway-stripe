@@ -727,7 +727,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						'payment_method' => $payment_information['payment_method'],
 						'customer'       => $payment_information['customer'],
 					],
-					$this->get_upe_gateway_id_for_subscription_order( $upe_payment_method )
+					$this->get_upe_gateway_id_for_order( $upe_payment_method )
 				);
 			}
 
@@ -1453,10 +1453,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( ! isset( $this->payment_methods[ $payment_method_type ] ) ) {
 			return;
 		}
+		$payment_method       = $this->payment_methods[ $payment_method_type ];
+		$payment_method_title = $payment_method->get_label();
 
-		$payment_method_title = $this->payment_methods[ $payment_method_type ]->get_label();
-
-		$order->set_payment_method( self::ID );
+		$order->set_payment_method( $this->get_upe_gateway_id_for_order( $payment_method ) );
 		$order->set_payment_method_title( $payment_method_title );
 		$order->save();
 	}
@@ -1941,7 +1941,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Add the payment method information to the order.
 		$prepared_payment_method_object = $this->prepare_payment_method( $payment_method_object );
-		$this->maybe_update_source_on_subscription_order( $order, $prepared_payment_method_object, $this->get_upe_gateway_id_for_subscription_order( $payment_method_instance ) );
+		$this->maybe_update_source_on_subscription_order( $order, $prepared_payment_method_object, $this->get_upe_gateway_id_for_order( $payment_method_instance ) );
 
 		do_action( 'woocommerce_stripe_add_payment_method', $user->ID, $payment_method_object );
 	}
@@ -2169,7 +2169,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @param WC_Stripe_UPE_Payment_Method $payment_method The UPE payment method instance.
 	 * @return string The gateway ID to set on the subscription/order.
 	 */
-	private function get_upe_gateway_id_for_subscription_order( $payment_method ) {
+	private function get_upe_gateway_id_for_order( $payment_method ) {
 		$token_gateway_type = $payment_method->get_retrievable_type();
 
 		if ( 'card' !== $token_gateway_type ) {
