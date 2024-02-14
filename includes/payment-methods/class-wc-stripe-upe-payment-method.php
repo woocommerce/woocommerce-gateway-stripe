@@ -403,6 +403,25 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	}
 
 	/**
+	 * Process a refund.
+	 *
+	 * UPE Payment methods use the WC_Stripe_UPE_Payment_Gateway::process_payment() function.
+	 *
+	 * @param int        $order_id Order ID.
+	 * @param float|null $amount Refund amount.
+	 * @param string     $reason Refund reason.
+	 *
+	 * @return bool|\WP_Error True or false based on success, or a WP_Error object.
+	 */
+	public function process_refund( $order_id, $amount = null, $reason = '' ) {
+		if ( ! $this->can_refund_via_stripe() ) {
+			return false;
+		}
+
+		return WC_Stripe::get_instance()->get_main_stripe_gateway()->process_refund( $order_id, $amount, $reason );
+	}
+
+	/**
 	 * Determines if the Stripe Account country supports this UPE method.
 	 *
 	 * @return bool
