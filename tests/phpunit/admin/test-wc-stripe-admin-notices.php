@@ -113,14 +113,12 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 		$notices->admin_notices();
 		ob_end_clean();
 		if ( WC_Stripe_Helper::is_wc_lt( WC_STRIPE_FUTURE_MIN_WC_VER ) ) {
-			$this->assertCount( 4, $notices->notices );
+			$this->assertCount( 2, $notices->notices );
 			$this->assertArrayHasKey( 'wcver', $notices->notices );
 		} else {
-			$this->assertCount( 3, $notices->notices );
+			$this->assertCount( 1, $notices->notices );
 		}
-		$this->assertArrayHasKey( 'giropay_upe', $notices->notices );
-		$this->assertArrayHasKey( 'bancontact_upe', $notices->notices );
-		$this->assertArrayHasKey( 'eps_upe', $notices->notices );
+		$this->assertArrayHasKey( 'upe_payment_methods', $notices->notices );
 	}
 
 	public function test_invalid_keys_notice_is_shown_when_account_data_is_not_valid() {
@@ -507,7 +505,7 @@ class WC_Stripe_Admin_Notices_Test extends WP_UnitTestCase {
 					],
 				],
 				[
-					'giropay',
+					'payment_methods',
 				],
 			],
 		];

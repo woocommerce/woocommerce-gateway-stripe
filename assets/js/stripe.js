@@ -719,6 +719,7 @@ jQuery( function( $ ) {
 			if( wc_stripe_form.form.attr('id') === 'order_review' ) {
 				formFields._ajax_nonce = wc_stripe_params.updatePaymentIntentNonce;
 				formFields.order_id = wc_stripe_params.orderId;
+				formFields.stripe_order_key = wc_stripe_params.stripe_order_key;
 
 				$.ajax( {
 					url: wc_stripe_form.getAjaxURL( payment_method + '_update_payment_intent' ),
@@ -829,7 +830,7 @@ jQuery( function( $ ) {
 		 */
 		onError: function( e, result ) {
 			var message = result.error.message;
-			var selectedMethodElement = wc_stripe_form.getSelectedPaymentElement().closest( 'li' );
+			var selectedMethodElement = wc_stripe_form.getSelectedPaymentElement().closest( '.wc_payment_method' );
 			var savedTokens = selectedMethodElement.find( '.woocommerce-SavedPaymentMethods-tokenInput' );
 			var errorContainer;
 

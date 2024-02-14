@@ -44,8 +44,8 @@ const BrowserHelpText = () => {
 };
 
 const buttonSizeToPxMap = {
-	default: 40,
-	medium: 48,
+	small: 40,
+	default: 48,
 	large: 56,
 };
 

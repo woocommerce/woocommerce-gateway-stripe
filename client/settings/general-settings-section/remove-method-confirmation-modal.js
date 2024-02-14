@@ -10,7 +10,7 @@ const RemoveMethodConfirmationModal = ( { method, onClose, onConfirm } ) => {
 	const { label } = PaymentMethodsMap[ method ];
 
 	const confirmMethodRemovalString = sprintf(
-		/* translators: %1: payment method name (e.g.: giropay, EPS, Sofort, etc). */
+		/* translators: %1: payment method name (e.g.: giropay, EPS, etc). */
 		__(
 			'Are you sure you want to remove <strong>%1$s</strong>? Your customers will no longer be able to pay using <strong>%1$s</strong>.',
 			'woocommerce-gateway-stripe'
@@ -23,7 +23,7 @@ const RemoveMethodConfirmationModal = ( { method, onClose, onConfirm } ) => {
 			title={
 				<AlertTitle
 					title={ sprintf(
-						/* translators: %s: payment method name (e.g.: giropay, EPS, Sofort, etc). */
+						/* translators: %s: payment method name (e.g.: giropay, EPS, etc). */
 						__(
 							'Remove %s from checkout',
 							'woocommerce-gateway-stripe'
@@ -50,10 +50,11 @@ const RemoveMethodConfirmationModal = ( { method, onClose, onConfirm } ) => {
 				} ) }
 			</p>
 			<p>
-				{ __(
-					'You can add it again at any time in Stripe settings.',
-					'woocommerce-gateway-stripe'
-				) }
+				{ label !== 'Sofort' &&
+					__(
+						'You can add it again at any time in Stripe settings.',
+						'woocommerce-gateway-stripe'
+					) }
 			</p>
 		</ConfirmationModal>
 	);

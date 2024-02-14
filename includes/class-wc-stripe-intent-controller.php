@@ -103,6 +103,7 @@ class WC_Stripe_Intent_Controller {
 	public function verify_intent() {
 		global $woocommerce;
 
+		$order = false;
 		$gateway = $this->get_gateway();
 
 		try {
@@ -502,12 +503,13 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function init_setup_intent() {
 		// Determine the customer managing the payment methods, create one if we don't have one already.
-		$user        = wp_get_current_user();
-		$customer    = new WC_Stripe_Customer( $user->ID );
-		$customer_id = $customer->get_id();
-		if ( empty( $customer_id ) ) {
-			$customer_data = WC_Stripe_Customer::map_customer_data( null, new WC_Customer( $user->ID ) );
-			$customer_id   = $customer->create_customer( $customer_data );
+		$user     = wp_get_current_user();
+		$customer = new WC_Stripe_Customer( $user->ID );
+
+		if ( ! $customer->get_id() ) {
+			$customer_id = $customer->create_customer();
+		} else {
+			$customer_id = $customer->update_customer();
 		}
 
 		$gateway              = $this->get_upe_gateway();
@@ -545,6 +547,7 @@ class WC_Stripe_Intent_Controller {
 	 * @throws WC_Stripe_Exception
 	 */
 	public function update_order_status_ajax() {
+		$order = false;
 		try {
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_order_status_nonce', false, false );
 			if ( ! $is_nonce_valid ) {
@@ -605,6 +608,7 @@ class WC_Stripe_Intent_Controller {
 	 * @throws WC_Stripe_Exception
 	 */
 	public function update_failed_order_ajax() {
+		$order = false;
 		try {
 			$is_nonce_valid = check_ajax_referer( 'wc_stripe_update_failed_order_nonce', false, false );
 			if ( ! $is_nonce_valid ) {
@@ -652,8 +656,9 @@ class WC_Stripe_Intent_Controller {
 
 			do_action( 'wc_gateway_stripe_process_payment_error', $e, $order );
 
-			/* translators: error message */
-			$order->update_status( 'failed' );
+			if ( $order ) {
+				$order->update_status( 'failed' );
+			}
 		}
 
 		wp_send_json_success();
