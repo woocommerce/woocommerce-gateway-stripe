@@ -127,8 +127,19 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			'add_payment_method',
 		];
 
+		$enabled_payment_methods = $this->get_upe_enabled_payment_method_ids();
+		$is_sofort_enabled       = in_array( 'sofort', $enabled_payment_methods, true );
+
 		$this->payment_methods = [];
 		foreach ( self::UPE_AVAILABLE_METHODS as $payment_method_class ) {
+
+			/** Show Sofort if it's already enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
+			 * Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
+			 */
+			if ( WC_Stripe_UPE_Payment_Method_Sofort::class === $payment_method_class && ! $is_sofort_enabled ) {
+				continue;
+			}
+
 			$payment_method                                     = new $payment_method_class();
 			$this->payment_methods[ $payment_method->get_id() ] = $payment_method;
 		}
@@ -160,7 +171,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// When feature flags are enabled, title shows the count of enabled payment methods in settings page only.
 		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() && WC_Stripe_Feature_Flags::is_upe_preview_enabled() && isset( $_GET['page'] ) && 'wc-settings' === $_GET['page'] ) {
-			$enabled_payment_methods_count = count( $this->get_upe_enabled_payment_method_ids() );
+			$enabled_payment_methods_count = count( $enabled_payment_methods );
 			$this->title                   = $enabled_payment_methods_count ?
 				/* translators: $1. Count of enabled payment methods. */
 				sprintf( _n( '%d payment method', '%d payment methods', $enabled_payment_methods_count, 'woocommerce-gateway-stripe' ), $enabled_payment_methods_count )

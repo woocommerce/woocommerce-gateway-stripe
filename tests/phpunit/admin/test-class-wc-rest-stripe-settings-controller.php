@@ -290,13 +290,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		);
 		$response = $this->rest_get_settings();
 
-		$expected_method_ids = WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS;
-		$expected_method_ids = array_map(
-			function ( $method_class ) {
-				return $method_class::STRIPE_ID;
-			},
-			$expected_method_ids
-		);
+		$expected_method_ids = array_keys( $this->get_gateway()->payment_methods );
 
 		$available_method_ids = $response->get_data()['available_payment_method_ids'];
 
@@ -323,19 +317,11 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		);
 		$response = $this->rest_get_settings();
 
-		$expected_method_ids = WC_Stripe_UPE_Payment_Gateway::UPE_AVAILABLE_METHODS;
-		$expected_method_ids = array_map(
-			function ( $method_class ) {
-				return $method_class::STRIPE_ID;
-			},
-			$expected_method_ids
-		);
-		$expected_method_ids = array_filter(
-			$expected_method_ids,
-			function ( $method_id ) {
-				return 'link' !== $method_id;
-			}
-		);
+		$expected_methods = $this->get_gateway()->payment_methods;
+
+		unset( $expected_methods['link'] );
+
+		$expected_method_ids = array_keys( $expected_methods );
 
 		$ordered_method_ids = $response->get_data()['ordered_payment_method_ids'];
 
