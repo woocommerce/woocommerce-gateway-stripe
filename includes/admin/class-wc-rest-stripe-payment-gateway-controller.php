@@ -91,9 +91,7 @@ class WC_REST_Stripe_Payment_Gateway_Controller extends WC_Stripe_REST_Base_Cont
 				$id . '_name'            => $this->gateway->get_option( 'title' ),
 				$id . '_description'     => $this->gateway->get_option( 'description' ),
 			];
-			if ( method_exists( $this->gateway, 'get_unique_settings' ) ) {
-				$settings = $this->gateway->get_unique_settings( $settings );
-			}
+			$settings = $this->gateway->get_unique_settings( $settings );
 			return new WP_REST_Response( $settings );
 		} catch ( Exception $exception ) {
 			return new WP_REST_Response( [ 'result' => 'bad_request' ], 400 );

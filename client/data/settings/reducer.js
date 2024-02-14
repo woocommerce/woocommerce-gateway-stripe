@@ -3,6 +3,8 @@ import ACTION_TYPES from './action-types';
 const defaultState = {
 	isSaving: false,
 	savingError: null,
+	isSavingOrderedPaymentMethodIds: false,
+	isCustomizingPaymentMethod: false,
 	data: {},
 };
 
@@ -32,6 +34,17 @@ export const receiveSettings = (
 				...state,
 				isSaving: action.isSaving,
 				savingError: action.error,
+			};
+		case ACTION_TYPES.SET_IS_SAVING_ORDERED_PAYMENT_METHOD_IDS:
+			return {
+				...state,
+				isSavingOrderedPaymentMethodIds:
+					action.isSavingOrderedPaymentMethodIds,
+			};
+		case ACTION_TYPES.SET_IS_CUSTOMIZING_PAYMENT_METHOD:
+			return {
+				...state,
+				isCustomizingPaymentMethod: action.isCustomizingPaymentMethod,
 			};
 	}
 

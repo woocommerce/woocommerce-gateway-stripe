@@ -4,7 +4,11 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.1
 Tested up to: 6.4.2
 Requires PHP: 7.4
-Stable tag: 7.9.1
+<<<<<<< HEAD
+Stable tag: 8.0.0
+=======
+Stable tag: 7.9.3
+>>>>>>> trunk
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
@@ -128,8 +132,13 @@ If you get stuck, you can ask for help in the Plugin Forum.
 
 == Changelog ==
 
-= 7.9.2 - 2024-xx-xx =
-* Fix - Resolved an issue that could cause card payments to fail when providing a Bank statement description with the `statement_descriptor` parameter.
-* Tweak - The Bank statement description settings in the Stripe plugin settings are no longer editable. The description is now automatically pulled from the Stripe account settings.
+= 8.0.0 - 2024-xx-xx =
+* Fix - When toggling on the Stripe gateway from the payment methods list, don't incorrectly redirect the merchant to Stripe settings when test mode is enabled.
+* Fix - Hiding the expandable menu for UPE entirely when the feature is disabled.
+* Fix - Critical error when deactivating the extension after deactivating WooCommerce.
+* Fix - Add missing fee and payout information to the order details page in admin.
+* Fix - Hiding "Early Access" label and "Refresh payment methods" button when UPE is disabled.
+* Tweak - Orders with `trash` status are not retrieving anymore when calling `get_order_by_intent_id` function.
+* Add   - Update the interface for customizing Stripe payment methods.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

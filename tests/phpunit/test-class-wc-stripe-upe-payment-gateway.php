@@ -108,6 +108,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					'prepare_order_source',
 					'stripe_request',
 					'get_stripe_customer_from_order',
+					'display_order_fee',
+					'display_order_payout',
 				]
 			)
 			->getMock();
@@ -1471,6 +1473,24 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->assertTrue( (bool) $final_order->get_meta( '_stripe_upe_redirect_processed', true ) );
 	}
 
+	/**
+	 * Test if `display_order_fee` and `display_order_payout` are called when viewing an order on the admin panel.
+	 *
+	 * @return void
+	 */
+	public function test_fees_actions_are_called_on_order_admin_page() {
+		$order = WC_Helper_Order::create_order();
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'display_order_fee' )
+			->with( $order->get_id() );
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'display_order_payout' )
+			->with( $order->get_id() );
+
+		do_action( 'woocommerce_admin_order_totals_after_total', $order->get_id() );
+	}
 
 	/**
 	 * @param array $account_data
