@@ -1310,7 +1310,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Fetch the payment method ID from the payment method object.
 		if ( isset( $this->payment_methods[ $payment_method->payment_method_object->type ] ) ) {
-			$payment_method_id = $this->payment_methods[ $payment_method->payment_method_object->type ]->id;
+			$payment_method_id = $this->get_upe_gateway_id_for_order( $this->payment_methods[ $payment_method->payment_method_object->type ] );
 		}
 
 		$this->maybe_update_source_on_subscription_order( $order, $payment_method, $payment_method_id ?? $this->id );
