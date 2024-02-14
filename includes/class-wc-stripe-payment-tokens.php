@@ -13,9 +13,12 @@ class WC_Stripe_Payment_Tokens {
 	private static $_this;
 
 	const UPE_REUSABLE_GATEWAYS = [
+		// Link payment methods are saved under the main Stripe gateway.
 		WC_Stripe_UPE_Payment_Gateway::ID,
+		WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
 		WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
-		// TODO: Also add other UPE payment methods here.
+		WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID,
 	];
 
 	/**
