@@ -24,6 +24,7 @@ class WC_Stripe_UPE_Payment_Method_Bancontact extends WC_Stripe_UPE_Payment_Meth
 		$this->label                = __( 'Bancontact', 'woocommerce-gateway-stripe' );
 		$this->supports[]           = 'subscriptions';
 		$this->supports[]           = 'tokenization';
+		$this->supports[]           = 'multiple_subscriptions';
 		$this->description          = __(
 			'Bancontact is the most popular online payment method in Belgium, with over 15 million cards in circulation.',
 			'woocommerce-gateway-stripe'
