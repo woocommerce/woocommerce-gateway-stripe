@@ -11,6 +11,15 @@ trait WC_Stripe_Subscriptions_Trait {
 	use WC_Stripe_Subscriptions_Utilities_Trait;
 
 	/**
+	 * Stores a flag to indicate if the subscription integration hooks have been attached.
+	 *
+	 * The callbacks attached as part of maybe_init_subscriptions() only need to be attached once to avoid duplication.
+	 *
+	 * @var bool False by default, true once the callbacks have been attached.
+	 */
+	private static $has_attached_integration_hooks = false;
+
+	/**
 	 * Initialize subscription support and hooks.
 	 *
 	 * @since 5.6.0
@@ -38,18 +47,33 @@ trait WC_Stripe_Subscriptions_Trait {
 
 		add_action( 'woocommerce_scheduled_subscription_payment_' . $this->id, [ $this, 'scheduled_subscription_payment' ], 10, 2 );
 		add_action( 'woocommerce_subscription_failing_payment_method_updated_' . $this->id, [ $this, 'update_failing_payment_method' ], 10, 2 );
-		add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
-		add_action( 'wcs_renewal_order_created', [ $this, 'delete_renewal_meta' ], 10 );
+
 		add_action( 'wc_stripe_payment_fields_' . $this->id, [ $this, 'display_update_subs_payment_checkout' ] );
 		add_action( 'wc_stripe_add_payment_method_' . $this->id . '_success', [ $this, 'handle_add_payment_method_success' ], 10, 2 );
-		add_action( 'woocommerce_subscriptions_change_payment_before_submit', [ $this, 'differentiate_change_payment_method_form' ] );
 
 		// Display the payment method used for a subscription in the "My Subscriptions" table.
 		add_filter( 'woocommerce_my_subscriptions_payment_method', [ $this, 'maybe_render_subscription_payment_method' ], 10, 2 );
 
 		// Allow store managers to manually set Stripe as the payment method on a subscription.
 		add_filter( 'woocommerce_subscription_payment_meta', [ $this, 'add_subscription_payment_meta' ], 10, 2 );
+
+		// Validate the payment method meta data set on a subscription.
 		add_filter( 'woocommerce_subscription_validate_payment_meta', [ $this, 'validate_subscription_payment_meta' ], 10, 2 );
+
+		/**
+		 * The callbacks attached below only need to be attached once. We don't need each gateway instance to have its own callback.
+		 * Therefore we only attach them once on the main `stripe` gateway and store a flag to indicate that they have been attached.
+		 */
+		if ( self::$has_attached_integration_hooks || WC_Gateway_Stripe::ID !== $this->id ) {
+			return;
+		}
+
+		self::$has_attached_integration_hooks = true;
+
+		add_action( 'woocommerce_subscriptions_change_payment_before_submit', [ $this, 'differentiate_change_payment_method_form' ] );
+		add_action( 'wcs_resubscribe_order_created', [ $this, 'delete_resubscribe_meta' ], 10 );
+		add_action( 'wcs_renewal_order_created', [ $this, 'delete_renewal_meta' ], 10 );
+
 		add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'display_save_payment_method_checkbox' ] );
 
 		// Add the necessary information to create a mandate to the payment intent.
@@ -386,8 +410,12 @@ trait WC_Stripe_Subscriptions_Trait {
 	 * Updates other subscription sources.
 	 *
 	 * @since 5.6.0
+	 *
+	 * @param WC_Order $order              The order object.
+	 * @param string   $source_id          The source ID.
+	 * @param string   $payment_gateway_id The payment method ID. eg 'stripe.
 	 */
-	public function maybe_update_source_on_subscription_order( $order, $source ) {
+	public function maybe_update_source_on_subscription_order( $order, $source, $payment_gateway_id = '' ) {
 		if ( ! $this->is_subscriptions_enabled() ) {
 			return;
 		}
@@ -404,13 +432,17 @@ trait WC_Stripe_Subscriptions_Trait {
 		}
 
 		foreach ( $subscriptions as $subscription ) {
-			$subscription_id = $subscription->get_id();
 			$subscription->update_meta_data( '_stripe_customer_id', $source->customer );
 
 			if ( ! empty( $source->payment_method ) ) {
 				$subscription->update_meta_data( '_stripe_source_id', $source->payment_method );
 			} else {
 				$subscription->update_meta_data( '_stripe_source_id', $source->source );
+			}
+
+			// Update the payment method.
+			if ( ! empty( $payment_gateway_id ) ) {
+				$subscription->set_payment_method( $payment_gateway_id );
 			}
 
 			$subscription->save();

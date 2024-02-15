@@ -22,6 +22,9 @@ class WC_Stripe_UPE_Payment_Method_Sofort extends WC_Stripe_UPE_Payment_Method {
 		$this->is_reusable          = true;
 		$this->supported_currencies = [ 'EUR' ];
 		$this->label                = __( 'Sofort', 'woocommerce-gateway-stripe' );
+		$this->supports[]           = 'subscriptions';
+		$this->supports[]           = 'tokenization';
+		$this->supports[]           = 'multiple_subscriptions';
 		$this->description          = __(
 			'Accept secure bank transfers from Austria, Belgium, Germany, Italy, Netherlands, and Spain.',
 			'woocommerce-gateway-stripe'

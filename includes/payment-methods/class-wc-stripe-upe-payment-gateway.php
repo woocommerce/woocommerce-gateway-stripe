@@ -360,6 +360,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$stripe_params['accountDescriptor']                = $this->statement_descriptor;
 		$stripe_params['addPaymentReturnURL']              = wc_get_account_endpoint_url( 'payment-methods' );
 		$stripe_params['enabledBillingFields']             = $enabled_billing_fields;
+		$stripe_params['cartContainsSubscription']         = $this->is_subscription_item_in_cart();
 
 		$cart_total = ( WC()->cart ? WC()->cart->get_total( '' ) : 0 );
 		$currency   = get_woocommerce_currency();
@@ -422,7 +423,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				'isReusable'          => $this->payment_methods[ $payment_method ]->is_reusable(),
 				'title'               => $this->payment_methods[ $payment_method ]->get_title(),
 				'testingInstructions' => $this->payment_methods[ $payment_method ]->get_testing_instructions(),
-				'showSaveOption'      => $this->payment_methods[ $payment_method ]->should_show_save_option(),
+				'showSaveOption'      => $this->should_upe_payment_method_show_save_option( $this->payment_methods[ $payment_method ] ),
 			];
 		}
 
@@ -714,6 +715,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_needed        = $this->is_payment_needed( $order->get_id() );
 			$payment_method_id     = $payment_information['payment_method'];
 			$selected_payment_type = $payment_information['selected_payment_type'];
+			$upe_payment_method    = $this->payment_methods[ $selected_payment_type ] ?? null;
 
 			// Update saved payment method async to include billing details.
 			if ( $payment_information['is_using_saved_payment_method'] ) {
@@ -754,7 +756,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 			// Handle saving the payment method in the store.
 			// It's already attached to the Stripe customer at this point.
-			if ( $payment_information['save_payment_method_to_store'] ) {
+			if ( $payment_information['save_payment_method_to_store'] && $upe_payment_method && $upe_payment_method->get_id() === $upe_payment_method->get_retrievable_type() ) {
 				$this->handle_saving_payment_method(
 					$order,
 					$payment_information['payment_method'],
@@ -766,7 +768,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					(object) [
 						'payment_method' => $payment_information['payment_method'],
 						'customer'       => $payment_information['customer'],
-					]
+					],
+					$this->get_upe_gateway_id_for_order( $upe_payment_method )
 				);
 			}
 
@@ -1305,7 +1308,12 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$order->save();
 		}
 
-		$this->maybe_update_source_on_subscription_order( $order, $payment_method );
+		// Fetch the payment method ID from the payment method object.
+		if ( isset( $this->payment_methods[ $payment_method->payment_method_object->type ] ) ) {
+			$payment_method_id = $this->get_upe_gateway_id_for_order( $this->payment_methods[ $payment_method->payment_method_object->type ] );
+		}
+
+		$this->maybe_update_source_on_subscription_order( $order, $payment_method, $payment_method_id ?? $this->id );
 	}
 
 	/**
@@ -1487,10 +1495,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( ! isset( $this->payment_methods[ $payment_method_type ] ) ) {
 			return;
 		}
+		$payment_method       = $this->payment_methods[ $payment_method_type ];
+		$payment_method_title = $payment_method->get_label();
 
-		$payment_method_title = $this->payment_methods[ $payment_method_type ]->get_label();
-
-		$order->set_payment_method( self::ID );
+		$order->set_payment_method( $this->get_upe_gateway_id_for_order( $payment_method ) );
 		$order->set_payment_method_title( $payment_method_title );
 		$order->save();
 	}
@@ -1897,6 +1905,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			}
 
 			$payment_method_id = $token->get_token();
+
+			if ( is_a( $token, 'WC_Payment_Token_SEPA' ) ) {
+				$selected_payment_type = WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID;
+			}
 		} else {
 			$payment_method_id = sanitize_text_field( wp_unslash( $_POST['wc-stripe-payment-method'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		}
@@ -2019,13 +2031,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$customer = new WC_Stripe_Customer( $user->ID );
 		$customer->clear_cache();
 
-		// Add the payment method information to the ordeer.
-		$prepared_payment_method_object = $this->prepare_payment_method( $payment_method_object );
-		$this->maybe_update_source_on_subscription_order( $order, $prepared_payment_method_object );
-
 		// Create a payment token for the user in the store.
 		$payment_method_instance = $this->payment_methods[ $payment_method_type ];
 		$payment_method_instance->create_payment_token_for_user( $user->ID, $payment_method_object );
+
+		// Add the payment method information to the order.
+		$prepared_payment_method_object = $this->prepare_payment_method( $payment_method_object );
+		$this->maybe_update_source_on_subscription_order( $order, $prepared_payment_method_object, $this->get_upe_gateway_id_for_order( $payment_method_instance ) );
 
 		do_action( 'woocommerce_stripe_add_payment_method', $user->ID, $payment_method_object );
 	}
@@ -2229,8 +2241,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		);
 	}
 
-	/**
-	 * Retrieves the (possible) existing payment intent for an order and payment method types.
+	/* Retrieves the (possible) existing payment intent for an order and payment method types.
 	 *
 	 * @param WC_Order $order The order.
 	 * @param array $payment_method_types The payment method types.
@@ -2289,5 +2300,39 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Otherwise, return the selected payment method type.
 		return [ $selected_payment_type ];
+	}
+
+	/**
+	 * Checks if the save option for a payment method should be displayed or not.
+	 *
+	 * @param WC_Stripe_UPE_Payment_Method $payment_method UPE Payment Method instance.
+	 * @return bool - True if the payment method is reusable and the saved cards feature is enabled for the gateway and there is no subscription item in the cart, false otherwise.
+	 */
+	private function should_upe_payment_method_show_save_option( $payment_method ) {
+		if ( $payment_method->is_reusable() ) {
+			// If a subscription in the cart, it will be saved by default so no need to show the option.
+			return $this->is_saved_cards_enabled() && ! $this->is_subscription_item_in_cart();
+		}
+
+		return false;
+	}
+
+	/**
+	 * Determines the gateway ID to set as the subscription order's payment method.
+	 *
+	 * Some UPE payment methods use different gateway IDs to process their payments. eg Bancontact uses SEPA tokens, cards use 'stripe' etc.
+	 * This function will return the correct gateway ID which should be recorded on the subscription so that the correct payment method is used to process future payments.
+	 *
+	 * @param WC_Stripe_UPE_Payment_Method $payment_method The UPE payment method instance.
+	 * @return string The gateway ID to set on the subscription/order.
+	 */
+	private function get_upe_gateway_id_for_order( $payment_method ) {
+		$token_gateway_type = $payment_method->get_retrievable_type();
+
+		if ( 'card' !== $token_gateway_type ) {
+			return $this->payment_methods[ $token_gateway_type ]->id;
+		}
+
+		return $this->id;
 	}
 }

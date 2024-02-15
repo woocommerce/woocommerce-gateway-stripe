@@ -91,6 +91,32 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 		$this->enabled  = $is_stripe_enabled && in_array( static::STRIPE_ID, $this->get_option( 'upe_checkout_experience_accepted_payments', [ 'card' ] ), true ) ? 'yes' : 'no';
 		$this->id       = WC_Gateway_Stripe::ID . '_' . static::STRIPE_ID;
 		$this->testmode = ! empty( $main_settings['testmode'] ) && 'yes' === $main_settings['testmode'];
+		$this->supports = [ 'products', 'refunds' ];
+	}
+
+	/**
+	 * Magic method to call methods from the main UPE Stripe gateway.
+	 *
+	 * Calling methods on the UPE method instance should forward the call to the main UPE Stripe gateway.
+	 * Because the UPE methods are not actual gateways, they don't have the methods to handle payments, so we need to forward the calls to
+	 * the main UPE Stripe gateway.
+	 *
+	 * That would suggest we should use a class inheritance structure, however, we don't want to extend the UPE Stripe gateway class
+	 * because we don't want the UPE method instance of the gateway to process those calls, we want the actual main instance of the
+	 * gateway to process them.
+	 *
+	 * @param string $method    The method name.
+	 * @param array  $arguments The method arguments.
+	 */
+	public function __call( $method, $arguments ) {
+		$upe_gateway_instance = WC_Stripe::get_instance()->get_main_stripe_gateway();
+
+		if ( in_array( $method, get_class_methods( $upe_gateway_instance ) ) ) {
+			return call_user_func_array( [ $upe_gateway_instance, $method ], $arguments );
+		} else {
+			$message = method_exists( $upe_gateway_instance, $method ) ? 'Call to private method ' : 'Call to undefined method ';
+			throw new \Error( $message . get_class( $this ) . '::' . $method );
+		}
 	}
 
 	/**
@@ -277,7 +303,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	public function create_payment_token_for_user( $user_id, $payment_method ) {
 		$token = new WC_Payment_Token_SEPA();
 		$token->set_last4( $payment_method->sepa_debit->last4 );
-		$token->set_gateway_id( WC_Stripe_UPE_Payment_Gateway::ID );
+		$token->set_gateway_id( $this->id );
 		$token->set_token( $payment_method->id );
 		$token->set_payment_method_type( $this->get_id() );
 		$token->set_user_id( $user_id );
@@ -377,6 +403,25 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	}
 
 	/**
+	 * Process a refund.
+	 *
+	 * UPE Payment methods use the WC_Stripe_UPE_Payment_Gateway::process_payment() function.
+	 *
+	 * @param int        $order_id Order ID.
+	 * @param float|null $amount Refund amount.
+	 * @param string     $reason Refund reason.
+	 *
+	 * @return bool|\WP_Error True or false based on success, or a WP_Error object.
+	 */
+	public function process_refund( $order_id, $amount = null, $reason = '' ) {
+		if ( ! $this->can_refund_via_stripe() ) {
+			return false;
+		}
+
+		return WC_Stripe::get_instance()->get_main_stripe_gateway()->process_refund( $order_id, $amount, $reason );
+	}
+
+	/**
 	 * Determines if the Stripe Account country supports this UPE method.
 	 *
 	 * @return bool
@@ -417,6 +462,10 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 				if ( is_user_logged_in() ) {
 					$this->save_payment_method_checkbox( $force_save_payment );
 				}
+			}
+			if ( $display_tokenization ) {
+				$this->tokenization_script();
+				$this->saved_payment_methods();
 			}
 		} catch ( Exception $e ) {
 			// Output the error message.
