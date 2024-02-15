@@ -268,19 +268,24 @@ class WC_Stripe_Payment_Tokens {
 			// 2. If local payment methods are not found on Stripe's side, delete them.
 			// 3. If payment methods are found on Stripe's side but not locally, create them.
 			foreach ( $tokens as $token ) {
+				$token_gateway_id = $token->get_gateway_id();
+
+				// The gateway ID of the token doesn't belong to our gateways.
+				if ( ! in_array( $token_gateway_id, self::UPE_REUSABLE_GATEWAYS, true ) ) {
+					continue;
+				}
+
 				$payment_method_type = $this->get_payment_method_type_from_token( $token );
 
-				// The payment method type doesn't belong to us. Nothing to do here.
+				// The payment method type doesn't match the ones we use. Nothing to do here.
 				if ( ! isset( $gateway->payment_methods[ $payment_method_type ] ) ) {
 					continue;
 				}
 
-				$payment_method_instance = $gateway->payment_methods[ $payment_method_type ];
-
-				$token_gateway_id           = $token->get_gateway_id();
+				$payment_method_instance    = $gateway->payment_methods[ $payment_method_type ];
 				$payment_method_instance_id = $payment_method_instance->id;
 
-				// The gateway ID of the token doesn't belong to our gateways.
+				// Card tokens are the only ones expected to have a mismatch between the token's gateway ID and the payment method instance ID.
 				if (
 					'stripe_card' === $token_gateway_id &&
 					'card' !== $payment_method_instance_id &&
