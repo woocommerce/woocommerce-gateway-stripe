@@ -934,7 +934,7 @@ class WC_Stripe_Intent_Controller {
 	 */
 	public function is_mandate_data_required( $selected_payment_type ) {
 
-		if ( in_array( $selected_payment_type, [ 'sepa_debit', 'bancontact', 'ideal' ], true ) ) {
+		if ( in_array( $selected_payment_type, [ 'sepa_debit', 'bancontact', 'ideal', 'sofort' ], true ) ) {
 			return true;
 		}
 
