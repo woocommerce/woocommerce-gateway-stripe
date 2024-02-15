@@ -354,39 +354,38 @@ final class WC_Stripe_Blocks_Support extends AbstractPaymentMethodType {
 		}
 
 		$is_stripe_payment_method = $this->name === $context->payment_method;
+		$main_gateway             = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$is_upe                   = $main_gateway instanceof WC_Stripe_UPE_Payment_Gateway;
 
 		// Check if the payment method is a UPE payment method. UPE methods start with `stripe_`.
-		if ( ! $is_stripe_payment_method && 0 === strpos( $context->payment_method, "{$this->name}_" ) ) {
-			$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		if ( $is_upe && ! $is_stripe_payment_method && 0 === strpos( $context->payment_method, "{$this->name}_" ) ) {
+			// Strip "Stripe_" from the payment method name to get the payment method type.
+			$payment_method_type      = substr( $context->payment_method, strlen( $this->name ) + 1 );
+			$is_stripe_payment_method = isset( $main_gateway->payment_methods[ $payment_method_type ] );
+		}
 
-			// If the main gateway is not a UPE gateway, then we don't need to do anything.
-			if ( $main_gateway instanceof WC_Stripe_UPE_Payment_Gateway ) {
-				// Strip "Stripe_" from the payment method name to get the payment method type.
-				$payment_method_type      = substr( $context->payment_method, strlen( $this->name ) + 1 );
-				$is_stripe_payment_method = isset( $main_gateway->payment_methods[ $payment_method_type ] );
+		if ( ! $is_stripe_payment_method ) {
+			return;
+		}
 
-				/**
-				 * When using the block checkout and a saved token is being used, we need to set a flag
-				 * to indicate that deferred intent should be used.
-				 */
-				if ( $is_stripe_payment_method && isset( $data['issavedtoken'] ) && $data['issavedtoken'] ) {
-					$context->set_payment_data( array_merge( $data, [ 'wc-stripe-is-deferred-intent' => true ] ) );
-				}
-			}
+		/**
+		 * When using UPE on the block checkout and a saved token is being used, we need to set a flag
+		 * to indicate that deferred intent should be used.
+		 */
+		if ( $is_upe && isset( $data['issavedtoken'] ) && $data['issavedtoken'] ) {
+			$context->set_payment_data( array_merge( $data, [ 'wc-stripe-is-deferred-intent' => true ] ) );
 		}
 
 		// Hook into Stripe error processing so that we can capture the error to payment details.
 		// This error would have been registered via wc_add_notice() and thus is not helpful for block checkout processing.
-		if ( $is_stripe_payment_method ) {
-			add_action(
-				'wc_gateway_stripe_process_payment_error',
-				function( $error ) use ( &$result ) {
-					$payment_details                 = $result->payment_details;
-					$payment_details['errorMessage'] = wp_strip_all_tags( $error->getLocalizedMessage() );
-					$result->set_payment_details( $payment_details );
-				}
-			);
-		}
+		add_action(
+			'wc_gateway_stripe_process_payment_error',
+			function( $error ) use ( &$result ) {
+				$payment_details                 = $result->payment_details;
+				$payment_details['errorMessage'] = wp_strip_all_tags( $error->getLocalizedMessage() );
+				$result->set_payment_details( $payment_details );
+			}
+		);
 	}
 
 	/**
