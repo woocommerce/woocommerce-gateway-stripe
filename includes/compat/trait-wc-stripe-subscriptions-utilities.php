@@ -115,4 +115,16 @@ trait WC_Stripe_Subscriptions_Utilities_Trait {
 		return wcs_cart_contains_renewal();
 	}
 
+	/**
+	 * Checks if the given object is a WC_Subscription.
+	 *
+	 * Slightly more performant than has_subscription() which checks wcs_order_contains_subscription() first.
+	 *
+	 * @param  mixed $subscription
+	 *
+	 * @return boolean
+	 */
+	public function is_subscription( $subscription ) {
+		return function_exists( 'wcs_is_subscription' ) && wcs_is_subscription( $subscription );
+	}
 }
