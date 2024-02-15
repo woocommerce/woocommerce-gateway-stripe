@@ -12,6 +12,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 class WC_Stripe_Payment_Tokens {
 	private static $_this;
 
+	const UPE_REUSABLE_GATEWAYS = [
+		// Link payment methods are saved under the main Stripe gateway.
+		WC_Stripe_UPE_Payment_Gateway::ID,
+		WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID,
+	];
+
 	/**
 	 * Constructor.
 	 *
@@ -373,22 +382,18 @@ class WC_Stripe_Payment_Tokens {
 	 */
 	public function woocommerce_payment_token_deleted( $token_id, $token ) {
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			if ( WC_Stripe_UPE_Payment_Gateway::ID === $token->get_gateway_id() ) {
-				try {
+		try {
+			if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+				if ( in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS, true ) ) {
 					$stripe_customer->detach_payment_method( $token->get_token() );
-				} catch ( WC_Stripe_Exception $e ) {
-					WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 				}
-			}
-		} else {
-			if ( 'stripe' === $token->get_gateway_id() || 'stripe_sepa' === $token->get_gateway_id() ) {
-				try {
+			} else {
+				if ( 'stripe' === $token->get_gateway_id() || 'stripe_sepa' === $token->get_gateway_id() ) {
 					$stripe_customer->delete_source( $token->get_token() );
-				} catch ( WC_Stripe_Exception $e ) {
-					WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 				}
 			}
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 		}
 	}
 
