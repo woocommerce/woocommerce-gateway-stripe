@@ -999,18 +999,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 		$payment_method = $this->payment_methods[ $payment_method_type ];
 
+		$is_pre_order = false;
 		if ( $this->maybe_process_pre_orders( $order->get_id() ) ) {
 			// If this is a pre-order, simply mark the order as pre-ordered and allow
 			// the subsequent logic to save the payment method and proceed to complete the order.
 			$this->mark_order_as_pre_ordered( $order->get_id() );
 			$save_payment_method = true;
-		} else {
-			if ( $payment_needed ) {
-				// Use the last charge within the intent to proceed.
-				$this->process_response( end( $intent->charges->data ), $order );
-			} else {
-				$order->payment_complete();
-			}
+			$is_pre_order        = true;
 		}
 
 		if ( $save_payment_method && $payment_method->is_reusable() ) {
@@ -1028,6 +1023,15 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$customer->clear_cache();
 			$this->save_payment_method_to_order( $order, $prepared_payment_method );
 			do_action( 'woocommerce_stripe_add_payment_method', $customer->get_user_id(), $payment_method_object );
+		}
+
+		if ( ! $is_pre_order ) {
+			if ( $payment_needed ) {
+				// Use the last charge within the intent to proceed.
+				$this->process_response( end( $intent->charges->data ), $order );
+			} else {
+				$order->payment_complete();
+			}
 		}
 
 		$this->save_intent_to_order( $order, $intent );
