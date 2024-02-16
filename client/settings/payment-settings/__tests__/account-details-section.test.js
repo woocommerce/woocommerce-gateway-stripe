@@ -1,8 +1,6 @@
 import React from 'react';
 import { screen, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import apiFetch from '@wordpress/api-fetch';
-import { loadStripe } from '@stripe/stripe-js';
 import AccountDetailsSection from '../account-details-section';
 import { AccountKeysModal } from 'wcstripe/settings/payment-settings/account-keys-modal';
 import { useTestMode } from 'wcstripe/data';
@@ -56,6 +54,10 @@ describe( 'AccountDetailsSection', () => {
 		useAccountKeysTestPublishableKey.mockReturnValue( [ '', jest.fn() ] );
 		useAccountKeysTestSecretKey.mockReturnValue( [ '', jest.fn() ] );
 		useAccountKeysTestWebhookSecret.mockReturnValue( [ '', jest.fn() ] );
+	} );
+
+	afterEach( () => {
+		jest.restoreAllMocks();
 	} );
 
 	it( 'should open live account keys modal when edit account keys clicked in live mode', () => {
@@ -120,62 +122,72 @@ describe( 'AccountDetailsSection', () => {
 		expect( setModalTypeMock ).toHaveBeenCalledWith( 'test' );
 	} );
 
-	it( 'should test the account keys when test connection clicked', () => {
-		return new Promise( ( resolve ) => {
-			const updateIsTestingAccountKeysExpectations = ( function* () {
-				// Because updateIsTestingAccountKeys is called asynchronously and
-				// from within a finally-block, a generator function in combination
-				// with the resolve() call are necessary to properly test things.
-				yield true;
-				return false;
-			} )();
-			const updateIsTestingAccountKeys = jest.fn( ( val ) => {
-				const expected = updateIsTestingAccountKeysExpectations.next();
-				expect( val ).toBe( expected.value );
-				// Note, ultimately, the test ends here.
-				if ( expected.done ) {
-					resolve();
-				}
-			} );
-			const updateIsValidAccountKeysExpectations = ( function* () {
-				yield null;
-				return true;
-			} )();
-			const updateIsValidAccountKeys = jest.fn( ( val ) => {
-				expect( val ).toBe(
-					updateIsValidAccountKeysExpectations.next().value
-				);
-			} );
-			useAccount.mockReturnValue( {
-				data: { webhook_url: 'example.com' },
-			} );
-			useAccountKeys.mockReturnValue( {
-				isValid: null,
-				updateIsTestingAccountKeys,
-				updateIsValidAccountKeys,
-			} );
-
-			apiFetch.mockReturnValue( { id: 'random_token_id' } );
-			loadStripe.mockReturnValue( {
-				createToken: jest.fn( () => ( {
-					token: { id: 'random_token_id' },
-				} ) ),
-			} );
-			useAccountKeysWebhookSecret.mockReturnValue( [ '', jest.fn() ] );
-			useAccountKeysSecretKey.mockReturnValue( [
-				'sk_live_',
-				jest.fn(),
-			] );
-			useAccountKeysPublishableKey.mockReturnValue( [
-				'pk_live_',
-				jest.fn(),
-			] );
-
-			render( <AccountKeysModal /> );
-
-			const testConnectionLink = screen.getByText( /Test connection/i );
-			expect( testConnectionLink ).toBeInTheDocument();
-			userEvent.click( testConnectionLink );
+	it( 'should call `testAccountKeys` when the link is clicked', () => {
+		const testAccountKeysMock = jest.fn();
+		useAccountKeys.mockReturnValue( {
+			isValid: null,
+			updateIsValidAccountKeys: jest.fn(),
+			testAccountKeys: testAccountKeysMock,
 		} );
+
+		render( <AccountKeysModal /> );
+
+		const testConnectionLink = screen.getByText( /Test connection/i );
+		expect( testConnectionLink ).toBeInTheDocument();
+
+		expect( testAccountKeysMock ).not.toHaveBeenCalled();
+
+		userEvent.click( testConnectionLink );
+
+		expect( testAccountKeysMock ).toHaveBeenCalled();
+	} );
+
+	it( 'should test the account keys when test connection clicked', () => {
+		const updateIsValidAccountKeys = jest.fn( ( val ) => {
+			expect( val ).toBe( true );
+		} );
+
+		const testAccountKeys = jest.fn( ( val ) => {
+			expect( val ).toStrictEqual( {
+				live: true,
+				publishable: 'pk_live_dummy_publishable_key',
+				secret: 'sk_live_dummy_secret',
+			} );
+			return true;
+		} );
+
+		useAccountKeys.mockReturnValue( {
+			isValid: null,
+			isTesting: null,
+			updateIsValidAccountKeys,
+			testAccountKeys,
+		} );
+
+		useAccountKeysSecretKey.mockReturnValue( [
+			'sk_live_dummy_secret',
+			jest.fn(),
+		] );
+		useAccountKeysPublishableKey.mockReturnValue( [
+			'pk_live_dummy_publishable_key',
+			jest.fn(),
+		] );
+
+		render( <AccountKeysModal /> );
+
+		const testConnectionLink = screen.getByText( /Test connection/i );
+		expect( testConnectionLink ).toBeInTheDocument();
+		userEvent.click( testConnectionLink );
+
+		useAccountKeys.mockReturnValue( {
+			isValid: true,
+			isTesting: false,
+		} );
+
+		render( <AccountKeysModal /> );
+
+		const connectionSuccessfulMessage = screen.getByText(
+			/Connection successful/i
+		);
+		expect( connectionSuccessfulMessage ).toBeInTheDocument();
 	} );
 } );
