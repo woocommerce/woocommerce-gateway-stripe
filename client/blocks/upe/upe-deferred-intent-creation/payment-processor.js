@@ -108,6 +108,10 @@ const PaymentProcessor = ( {
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 	const gatewayConfig = getPaymentMethods()[ upeMethods[ paymentMethodId ] ];
 
+	// Set shouldSavePayment to true if the cart contains a subscription or the payment method supports saving.
+	shouldSavePayment =
+		shouldSavePayment || getBlocksConfiguration()?.cartContainsSubscription;
+
 	useEffect(
 		() =>
 			onPaymentSetup( () => {
