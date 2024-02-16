@@ -483,8 +483,6 @@ class WC_Stripe_Payment_Request {
 			if ( 'Chrome Payment Request (Stripe)' === $method_title ) {
 				return 'Payment Request (Stripe)';
 			}
-
-			return $method_title;
 		}
 
 		return $title;
