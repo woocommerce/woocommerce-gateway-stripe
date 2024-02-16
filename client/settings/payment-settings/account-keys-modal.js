@@ -28,24 +28,11 @@ const StyledTextControl = styled( TextControl )`
 const PublishableKey = () => {
 	const [ publishableKey ] = useAccountKeysPublishableKey();
 	const { isSaving } = useAccountKeys();
-	const [ value, setValue ] = useState();
+	const [ value, setValue ] = useState( publishableKey );
 
 	return (
 		<StyledTextControl
-			label={ interpolateComponents( {
-				mixedString: __(
-					'Live publishable key{{value/}}',
-					'woocommerce-gateway-stripe'
-				),
-				components: {
-					value: (
-						<>
-							<br />
-							<div>{ publishableKey }</div>
-						</>
-					),
-				},
-			} ) }
+			label={ __( 'Live publishable key', 'woocommerce-gateway-stripe' ) }
 			help={ __(
 				'Only values starting with "pk_live_" will be saved.',
 				'woocommerce-gateway-stripe'
@@ -62,24 +49,11 @@ const PublishableKey = () => {
 const TestPublishableKey = () => {
 	const [ testPublishableKey ] = useAccountKeysTestPublishableKey();
 	const { isSaving } = useAccountKeys();
-	const [ value, setValue ] = useState();
+	const [ value, setValue ] = useState( testPublishableKey );
 
 	return (
 		<StyledTextControl
-			label={ interpolateComponents( {
-				mixedString: __(
-					'Test publishable key{{value/}}',
-					'woocommerce-gateway-stripe'
-				),
-				components: {
-					value: (
-						<>
-							<br />
-							<div>{ testPublishableKey }</div>
-						</>
-					),
-				},
-			} ) }
+			label={ __( 'Test publishable key', 'woocommerce-gateway-stripe' ) }
 			help={ __(
 				'Only values starting with "pk_test_" will be saved.',
 				'woocommerce-gateway-stripe'
@@ -96,23 +70,10 @@ const TestPublishableKey = () => {
 const SecretKey = () => {
 	const [ secretKey ] = useAccountKeysSecretKey();
 	const { isSaving } = useAccountKeys();
-	const [ value, setValue ] = useState();
+	const [ value, setValue ] = useState( secretKey );
 	return (
 		<StyledTextControl
-			label={ interpolateComponents( {
-				mixedString: __(
-					'Live secret key{{value/}}',
-					'woocommerce-gateway-stripe'
-				),
-				components: {
-					value: (
-						<>
-							<br />
-							<div>{ secretKey }</div>
-						</>
-					),
-				},
-			} ) }
+			label={ __( 'Live secret key', 'woocommerce-gateway-stripe' ) }
 			help={ __(
 				'Only values starting with "sk_live_" or "rk_live_" will be saved.',
 				'woocommerce-gateway-stripe'
@@ -129,23 +90,10 @@ const SecretKey = () => {
 const TestSecretKey = () => {
 	const [ testSecretKey ] = useAccountKeysTestSecretKey();
 	const { isSaving } = useAccountKeys();
-	const [ value, setValue ] = useState();
+	const [ value, setValue ] = useState( testSecretKey );
 	return (
 		<StyledTextControl
-			label={ interpolateComponents( {
-				mixedString: __(
-					'Test secret key{{value/}}',
-					'woocommerce-gateway-stripe'
-				),
-				components: {
-					value: (
-						<>
-							<br />
-							<div>{ testSecretKey }</div>
-						</>
-					),
-				},
-			} ) }
+			label={ __( 'Test secret key', 'woocommerce-gateway-stripe' ) }
 			help={ __(
 				'Only values starting with "sk_test_" or "rk_test_" will be saved.',
 				'woocommerce-gateway-stripe'
@@ -162,23 +110,10 @@ const TestSecretKey = () => {
 const WebhookSecret = () => {
 	const [ webhookSecret ] = useAccountKeysWebhookSecret();
 	const { isSaving } = useAccountKeys();
-	const [ value, setValue ] = useState();
+	const [ value, setValue ] = useState( webhookSecret );
 	return (
 		<StyledTextControl
-			label={ interpolateComponents( {
-				mixedString: __(
-					'Webhook secret{{value/}}',
-					'woocommerce-gateway-stripe'
-				),
-				components: {
-					value: (
-						<>
-							<br />
-							<div>{ webhookSecret }</div>
-						</>
-					),
-				},
-			} ) }
+			label={ __( 'Webhook secret', 'woocommerce-gateway-stripe' ) }
 			help={ __(
 				'Get your webhook signing secret from the webhooks section in your Stripe account.',
 				'woocommerce-gateway-stripe'
@@ -195,23 +130,10 @@ const WebhookSecret = () => {
 const TestWebhookSecret = () => {
 	const [ testWebhookSecret ] = useAccountKeysTestWebhookSecret();
 	const { isSaving } = useAccountKeys();
-	const [ value, setValue ] = useState();
+	const [ value, setValue ] = useState( testWebhookSecret );
 	return (
 		<StyledTextControl
-			label={ interpolateComponents( {
-				mixedString: __(
-					'Test Webhook secret{{value/}}',
-					'woocommerce-gateway-stripe'
-				),
-				components: {
-					value: (
-						<>
-							<br />
-							<div>{ testWebhookSecret }</div>
-						</>
-					),
-				},
-			} ) }
+			label={ __( 'Test Webhook secret', 'woocommerce-gateway-stripe' ) }
 			help={ __(
 				'Get your webhook signing secret from the webhooks section in your Stripe account.',
 				'woocommerce-gateway-stripe'
@@ -264,16 +186,10 @@ const StyledConfirmationModal = styled( ConfirmationModal )`
 	}
 `;
 
-export const AccountKeysModal = ( {
-	type,
-	onClose,
-	setKeepModalContent,
-	redirectOnSave,
-} ) => {
+export const AccountKeysModal = ( { type, onClose, setKeepModalContent } ) => {
 	const [ openTab, setOpenTab ] = useState( type );
 	const {
 		isSaving,
-		accountKeys,
 		saveAccountKeys,
 		updateIsValidAccountKeys,
 	} = useAccountKeys();
@@ -298,36 +214,15 @@ export const AccountKeysModal = ( {
 			return { ...acc, [ name ]: value };
 		}, {} );
 
-		// If we are deleting keys for this mode and there are no other keys set, we need to reload to render the connect page.
-		const savingEmptyKeys =
-			! keysToSave.publishable_key &&
-			! keysToSave.secret_key &&
-			! keysToSave.test_publishable_key &&
-			! keysToSave.test_secret_key;
-		const noLiveKeysSaved =
-			! accountKeys.publishable_key && ! accountKeys.secret_key;
-		const noTestKeysSaved =
-			! accountKeys.test_publishable_key && ! accountKeys.test_secret_key;
-		if (
-			savingEmptyKeys &&
-			( ( testMode && noLiveKeysSaved ) ||
-				( ! testMode && noTestKeysSaved ) )
-		) {
-			redirectOnSave = window.location.href;
-		}
-
 		const saveSuccess = await saveAccountKeys( keysToSave );
 		if ( ! saveSuccess ) {
 			setDisabled( false );
-		} else if ( redirectOnSave ) {
-			// When forcing a redirect, we keep the modal open and disabled while the page reloads.
+		} else {
+			// After a successful save, we keep the modal open and disabled while the page reloads.
 			if ( setKeepModalContent ) {
 				setKeepModalContent( true );
 			}
-			window.location.href = redirectOnSave;
-		} else {
-			setDisabled( false );
-			onCloseHelper();
+			window.location.reload();
 		}
 	};
 
