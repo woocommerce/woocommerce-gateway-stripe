@@ -17,21 +17,13 @@ import InlineNotice from 'wcstripe/components/inline-notice';
 import { WebhookInformation } from 'wcstripe/components/webhook-information';
 import { AccountKeysConnectionStatus } from 'wcstripe/settings/payment-settings/account-keys-connection-status';
 
-const StyledTextControl = styled( TextControl )`
-	label {
-		div {
-			text-transform: none;
-		}
-	}
-`;
-
 const PublishableKey = () => {
 	const [ publishableKey ] = useAccountKeysPublishableKey();
 	const { isSaving } = useAccountKeys();
 	const [ value, setValue ] = useState( publishableKey );
 
 	return (
-		<StyledTextControl
+		<TextControl
 			label={ __( 'Live publishable key', 'woocommerce-gateway-stripe' ) }
 			help={ __(
 				'Only values starting with "pk_live_" will be saved.',
@@ -52,7 +44,7 @@ const TestPublishableKey = () => {
 	const [ value, setValue ] = useState( testPublishableKey );
 
 	return (
-		<StyledTextControl
+		<TextControl
 			label={ __( 'Test publishable key', 'woocommerce-gateway-stripe' ) }
 			help={ __(
 				'Only values starting with "pk_test_" will be saved.',
@@ -72,7 +64,7 @@ const SecretKey = () => {
 	const { isSaving } = useAccountKeys();
 	const [ value, setValue ] = useState( secretKey );
 	return (
-		<StyledTextControl
+		<TextControl
 			label={ __( 'Live secret key', 'woocommerce-gateway-stripe' ) }
 			help={ __(
 				'Only values starting with "sk_live_" or "rk_live_" will be saved.',
@@ -92,7 +84,7 @@ const TestSecretKey = () => {
 	const { isSaving } = useAccountKeys();
 	const [ value, setValue ] = useState( testSecretKey );
 	return (
-		<StyledTextControl
+		<TextControl
 			label={ __( 'Test secret key', 'woocommerce-gateway-stripe' ) }
 			help={ __(
 				'Only values starting with "sk_test_" or "rk_test_" will be saved.',
@@ -112,7 +104,7 @@ const WebhookSecret = () => {
 	const { isSaving } = useAccountKeys();
 	const [ value, setValue ] = useState( webhookSecret );
 	return (
-		<StyledTextControl
+		<TextControl
 			label={ __( 'Webhook secret', 'woocommerce-gateway-stripe' ) }
 			help={ __(
 				'Get your webhook signing secret from the webhooks section in your Stripe account.',
@@ -132,7 +124,7 @@ const TestWebhookSecret = () => {
 	const { isSaving } = useAccountKeys();
 	const [ value, setValue ] = useState( testWebhookSecret );
 	return (
-		<StyledTextControl
+		<TextControl
 			label={ __( 'Test Webhook secret', 'woocommerce-gateway-stripe' ) }
 			help={ __(
 				'Get your webhook signing secret from the webhooks section in your Stripe account.',
