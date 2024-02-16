@@ -530,10 +530,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$converted_amount = WC_Stripe_Helper::get_stripe_amount( $amount, $currency );
 
 				$request = [
-					'amount'               => $converted_amount,
-					'currency'             => $currency,
+					'amount'      => $converted_amount,
+					'currency'    => $currency,
 					/* translators: 1) blog name 2) order number */
-					'description'          => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
+					'description' => sprintf( __( '%1$s - Order %2$s', 'woocommerce-gateway-stripe' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ), $order->get_order_number() ),
 				];
 
 				// Use the dynamic + short statement descriptor if enabled and it's a card payment.
@@ -944,6 +944,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return;
 		}
 
+		// @todo status is not one of these yet
 		if ( $order->has_status( [ 'processing', 'completed', 'on-hold' ] ) ) {
 			return;
 		}
@@ -999,11 +1000,20 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		}
 		$payment_method = $this->payment_methods[ $payment_method_type ];
 
+		$is_pre_order = false;
 		if ( $this->maybe_process_pre_orders( $order->get_id() ) ) {
 			// If this is a pre-order, simply mark the order as pre-ordered and allow
 			// the subsequent logic to save the payment method and proceed to complete the order.
 			$this->mark_order_as_pre_ordered( $order->get_id() );
 			$save_payment_method = true;
+			$is_pre_order        = true;
+		} else {
+			if ( $payment_needed ) {
+				// Use the last charge within the intent to proceed.
+				$this->process_response( end( $intent->charges->data ), $order );
+			} else {
+				$order->payment_complete();
+			}
 		}
 
 		if ( $save_payment_method && $payment_method->is_reusable() ) {
@@ -1023,12 +1033,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			do_action( 'woocommerce_stripe_add_payment_method', $customer->get_user_id(), $payment_method_object );
 		}
 
-		if ( $payment_needed ) {
-			// Use the last charge within the intent to proceed.
-			$this->process_response( end( $intent->charges->data ), $order );
-		} else {
-			$order->payment_complete();
-		}
 		$this->save_intent_to_order( $order, $intent );
 		$this->set_payment_method_title_for_order( $order, $payment_method_type );
 		$order->update_meta_data( '_stripe_upe_redirect_processed', true );
