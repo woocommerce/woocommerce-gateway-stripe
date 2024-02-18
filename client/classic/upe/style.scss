@@ -17,3 +17,10 @@
 	}
 }
 
+.woocommerce-checkout #payment ul.payment_methods li img.stripe-multibanco-icon {
+	max-height: 30px;
+}
+
+.woocommerce-checkout #payment ul.payment_methods li img.stripe-alipay-icon {
+	max-width: 50px;
+}

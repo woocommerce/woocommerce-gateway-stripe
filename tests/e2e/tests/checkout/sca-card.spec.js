@@ -20,7 +20,7 @@ test( 'customer can checkout with a SCA card @smoke', async ( { page } ) => {
 	// Wait until the SCA frame is available
 	while (
 		! page.frame( {
-			name: 'acsFrame',
+			name: 'stripe-challenge-frame',
 		} )
 	) {
 		await page.waitForTimeout( 1000 );
@@ -28,9 +28,9 @@ test( 'customer can checkout with a SCA card @smoke', async ( { page } ) => {
 
 	await page
 		.frame( {
-			name: 'acsFrame',
+			name: 'stripe-challenge-frame',
 		} )
-		.getByRole( 'button', { name: 'Complete authentication' } )
+		.getByRole( 'button', { name: 'Complete' } )
 		.click();
 
 	await page.waitForNavigation();

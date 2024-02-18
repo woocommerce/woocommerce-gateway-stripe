@@ -381,15 +381,18 @@ const getServerCredentialsFromEnv = () => {
  * @returns The promise for the SSH connection.
  */
 export const setupWoo = async () => {
-	const cartBlockPostContent = fs
+	const shortcodeCartPostContent = fs
 		.readFileSync(
-			path.resolve( E2E_ROOT, './test-data/cart-block-content.html' ),
+			path.resolve( E2E_ROOT, './test-data/cart-shortcode-content.html' ),
 			'utf8'
 		)
 		.replace( '\n', '' );
-	const checkoutBlockPostContent = fs
+	const shortcodeCheckoutPostContent = fs
 		.readFileSync(
-			path.resolve( E2E_ROOT, './test-data/checkout-block-content.html' ),
+			path.resolve(
+				E2E_ROOT,
+				'./test-data/checkout-shortcode-content.html'
+			),
 			'utf8'
 		)
 		.replace( '\n', '' );
@@ -415,8 +418,8 @@ export const setupWoo = async () => {
 		`wp wc shipping_zone_method create 1 --method_id="flat_rate" --user=${ ADMIN_USER }`,
 		`wp wc shipping_zone_method create 1 --method_id="free_shipping" --user=${ ADMIN_USER }`,
 		`wp option update --format=json woocommerce_flat_rate_1_settings '{"title":"Flat rate","tax_status":"taxable","cost":"10"}'`,
-		`wp post create --post_type=page --post_title='Cart Block' --post_name='cart-block' --post_status=publish --page_template='template-fullwidth.php' --post_content='${ cartBlockPostContent }'`,
-		`wp post create --post_type=page --post_title='Checkout Block' --post_name='checkout-block' --post_status=publish --page_template='template-fullwidth.php' --post_content='${ checkoutBlockPostContent }'`,
+		`wp post create --post_type=page --post_title='Cart Shortcode' --post_name='cart-shortcode' --post_status=publish --page_template='template-fullwidth.php' --post_content='${ shortcodeCartPostContent }'`,
+		`wp post create --post_type=page --post_title='Checkout Shortcode' --post_name='checkout-shortcode' --post_status=publish --page_template='template-fullwidth.php' --post_content='${ shortcodeCheckoutPostContent }'`,
 	];
 
 	return sshExecCommands( setupCommands );
