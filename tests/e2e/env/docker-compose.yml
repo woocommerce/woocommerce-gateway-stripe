@@ -1,0 +1,37 @@
+version: "3"
+name: wcstripe-e2e
+
+volumes:
+  # Kludge for not having the ./docker directory bound recursively
+  dockerdirectory:
+    
+services:
+  wordpress:
+    build: .
+    image: wordpress
+    container_name: wcstripe-e2e-wordpress
+    restart: always
+    depends_on:
+      - db
+    links:
+      - db:mysql
+    ports:
+      - "8088:80"
+    env_file:
+      - default.env
+    volumes:
+      - ./docker/wordpress:/var/www/html/
+      - ./docker/logs/apache2/:/var/log/apache2
+      - ${CWD}:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe
+      - dockerdirectory:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/env/docker
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  db:
+    container_name: wcstripe-e2e-mysql
+    image: mariadb:10.5.8
+    ports:
+      - "6789:3306"
+    env_file:
+      - default.env
+    volumes:
+      - ./docker/data:/var/lib/mysql
