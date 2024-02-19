@@ -1055,11 +1055,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					// billing info will be updated when the customer makes a purchase anyway.
 					try {
 						$setup_intent_id = isset( $_GET['setup_intent'] ) ? wc_clean( wp_unslash( $_GET['setup_intent'] ) ) : '';
-						$setup_intent    = $this->stripe_request( 'setup_intents/' . $setup_intent_id, [], null, 'GET' );
+						$token           = $this->create_token_from_setup_intent( $setup_intent_id, wp_get_current_user() );
 
 						$customer_data         = WC_Stripe_Customer::map_customer_data( null, new WC_Customer( $user_id ) );
 						$payment_method_object = $this->stripe_request(
-							'payment_methods/' . $setup_intent->payment_method,
+							'payment_methods/' . $token->get_id(),
 							[
 								'billing_details' => [
 									'name'    => $customer_data['name'],
@@ -1071,6 +1071,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						);
 
 						do_action( 'woocommerce_stripe_add_payment_method', $user_id, $payment_method_object );
+						wp_safe_redirect( wc_get_account_endpoint_url( 'payment-methods' ) );
 					} catch ( Exception $e ) {
 						WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 					}
@@ -1664,15 +1665,26 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 */
 	public function create_token_from_setup_intent( $setup_intent_id, $user ) {
 		try {
-			$setup_intent = $this->stripe_request( 'setup_intents/' . $setup_intent_id );
+			$setup_intent = $this->stripe_request( 'setup_intents/' . $setup_intent_id . '?&expand[]=latest_attempt' );
 			if ( ! empty( $setup_intent->last_payment_error ) ) {
 				throw new WC_Stripe_Exception( __( "We're not able to add this payment method. Please try again later.", 'woocommerce-gateway-stripe' ) );
 			}
 
-			$payment_method_id     = $setup_intent->payment_method;
+			list( $payment_method_type, $payment_method_details ) = $this->get_payment_method_data_from_intent( $setup_intent );
+
+			$payment_method_id = $setup_intent->payment_method;
+
+			if ( isset( $this->payment_methods[ $payment_method_type ] ) ) {
+				$payment_method = $this->payment_methods[ $payment_method_type ];
+
+				if ( $payment_method->get_id() !== $payment_method->get_retrievable_type() ) {
+					$payment_method_id = $payment_method_details[ $payment_method_type ]->generated_sepa_debit;
+				}
+			}
+
 			$payment_method_object = $this->stripe_request( 'payment_methods/' . $payment_method_id );
 
-			$payment_method = $this->payment_methods[ $payment_method_object->type ];
+			$payment_method = $this->payment_methods[ $payment_method_type ];
 
 			$customer = new WC_Stripe_Customer( wp_get_current_user()->ID );
 			$customer->clear_cache();
