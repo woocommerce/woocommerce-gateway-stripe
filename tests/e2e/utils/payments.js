@@ -25,7 +25,7 @@ export async function emptyCart( page ) {
 	}
 
 	await expect(
-		page.locator( '.wc-block-components-notice-banner__content' )
+		page.locator( '.wc-empty-cart-message .cart-empty' )
 	).toHaveText( 'Your cart is currently empty.' );
 }
 
