@@ -957,8 +957,11 @@ class WC_Stripe_Intent_Controller {
 			'customer'             => $payment_information['customer'],
 			'confirm'              => 'true',
 			'return_url'           => $payment_information['return_url'],
-			'use_stripe_sdk'       => 'true',
 		];
+
+		if ( isset( $payment_information['use_stripe_sdk'] ) ) {
+			$request['use_stripe_sdk'] = $payment_information['use_stripe_sdk'];
+		}
 
 		// SEPA setup intents require mandate data.
 		if ( $this->is_mandate_data_required( $payment_information['selected_payment_type'] ) ) {
@@ -1006,6 +1009,7 @@ class WC_Stripe_Intent_Controller {
 				'customer'              => $customer->update_or_create_customer(),
 				'selected_payment_type' => $payment_type,
 				'return_url'            => wc_get_account_endpoint_url( 'payment-methods' ),
+				'use_stripe_sdk'        => 'true',
 			];
 
 			$setup_intent = $this->create_and_confirm_setup_intent( $payment_information );
