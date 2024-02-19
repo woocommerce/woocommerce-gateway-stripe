@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import PaymentsAndTransactionsSection from '..';
 import { useAccount } from 'wcstripe/data/account';
 import {
@@ -34,35 +34,27 @@ describe( 'PaymentsAndTransactionsSection', () => {
 			jest.fn(),
 		] );
 		useSeparateCardForm.mockReturnValue( [ true, jest.fn() ] );
-		useAccountStatementDescriptor.mockReturnValue( [
-			'WOOTESTING, LTD',
-			jest.fn(),
-		] );
-		useShortAccountStatementDescriptor.mockReturnValue( [
-			'WOOTESTING',
-			jest.fn(),
-		] );
+		useAccount.mockReturnValue( {
+			data: {
+				account: {
+					settings: {
+						payments: { statement_descriptor: 'WOOTESTING, LTD' },
+						card_payments: {
+							statement_descriptor_prefix: 'WOOTEST',
+						},
+					},
+				},
+			},
+		} );
+
 		useGetSavingError.mockReturnValue( null );
-		useAccount.mockReturnValue( { data: {} } );
 	} );
 
 	it( 'displays the length of the bank statement input', () => {
-		const updateAccountStatementDescriptor = jest.fn();
-		useAccountStatementDescriptor.mockReturnValue( [
-			'WOOTESTING, LTD',
-			updateAccountStatementDescriptor,
-		] );
 		render( <PaymentsAndTransactionsSection /> );
 
+		// The default bank statement ("WOOTESTING, LTD") is 15 characters long.
 		expect( screen.getByText( '15 / 22' ) ).toBeInTheDocument();
-
-		fireEvent.change( screen.getByLabelText( 'Full bank statement' ), {
-			target: { value: 'New Statement Name' },
-		} );
-
-		expect( updateAccountStatementDescriptor ).toHaveBeenCalledWith(
-			'New Statement Name'
-		);
 	} );
 
 	it( 'shows the shortened bank statement input', () => {
@@ -70,41 +62,33 @@ describe( 'PaymentsAndTransactionsSection', () => {
 			true,
 			jest.fn(),
 		] );
-		const updateShortAccountStatementDescriptor = jest.fn();
-		useShortAccountStatementDescriptor.mockReturnValue( [
-			'WOOTEST',
-			updateShortAccountStatementDescriptor,
-		] );
+
+		useAccount.mockReturnValue( {
+			data: {
+				account: {
+					settings: {
+						card_payments: {
+							statement_descriptor_prefix: 'WOOTEST',
+						},
+					},
+				},
+			},
+		} );
+
 		render( <PaymentsAndTransactionsSection /> );
 
+		// The default short bank statement ("WOOTEST") is 7 characters long.
 		expect( screen.getByText( '7 / 10' ) ).toBeInTheDocument();
-
-		fireEvent.change(
-			screen.getByLabelText( 'Shortened customer bank statement' ),
-			{
-				target: { value: 'WOOTESTING' },
-			}
-		);
-
-		expect( updateShortAccountStatementDescriptor ).toHaveBeenCalledWith(
-			'WOOTESTING'
-		);
 	} );
 
 	it( 'shows the full bank statement preview', () => {
-		const updateAccountStatementDescriptor = jest.fn();
-		const mockValue = 'WOOTESTING, LTD';
-		useAccountStatementDescriptor.mockReturnValue( [
-			mockValue,
-			updateAccountStatementDescriptor,
-		] );
 		render( <PaymentsAndTransactionsSection /> );
 
 		expect(
 			document.querySelector(
 				'.full-bank-statement .transaction-detail.description'
 			)
-		).toHaveTextContent( mockValue );
+		).toHaveTextContent( 'WOOTESTING, LTD' );
 	} );
 
 	it( 'shows the shortened customer bank statement preview when useIsShortAccountStatementEnabled is true', () => {
@@ -112,19 +96,14 @@ describe( 'PaymentsAndTransactionsSection', () => {
 			true,
 			jest.fn(),
 		] );
-		const updateShortAccountStatementDescriptor = jest.fn();
-		const mockValue = 'WOOTEST';
-		useShortAccountStatementDescriptor.mockReturnValue( [
-			mockValue,
-			updateShortAccountStatementDescriptor,
-		] );
+
 		render( <PaymentsAndTransactionsSection /> );
 
 		expect(
 			document.querySelector(
 				'.shortened-bank-statement .transaction-detail.description'
 			)
-		).toHaveTextContent( `${ mockValue }* #123456` );
+		).toHaveTextContent( 'WOOTEST* W #123456' );
 	} );
 
 	it( 'should not show the shortened customer bank statement preview when useIsShortAccountStatementEnabled is false', () => {
@@ -132,12 +111,7 @@ describe( 'PaymentsAndTransactionsSection', () => {
 			false,
 			jest.fn(),
 		] );
-		const updateShortAccountStatementDescriptor = jest.fn();
-		const mockValue = 'WOOTEST';
-		useShortAccountStatementDescriptor.mockReturnValue( [
-			mockValue,
-			updateShortAccountStatementDescriptor,
-		] );
+
 		render( <PaymentsAndTransactionsSection /> );
 
 		expect(
@@ -214,26 +188,5 @@ describe( 'PaymentsAndTransactionsSection', () => {
 				`Customer bank statement is invalid. No special characters: ' " * < >`
 			)
 		).toBeInTheDocument();
-	} );
-
-	it( "shows the account's statement descriptor placeholder", () => {
-		const mockValue = 'WOOTESTING, LTD';
-
-		useAccount.mockReturnValue( {
-			data: {
-				account: {
-					settings: { payments: { statement_descriptor: mockValue } },
-				},
-			},
-		} );
-		useIsShortAccountStatementEnabled.mockReturnValue( [
-			true,
-			jest.fn(),
-		] );
-		render( <PaymentsAndTransactionsSection /> );
-
-		expect(
-			screen.queryByText( 'Full bank statement' ).nextElementSibling
-		).toHaveAttribute( 'placeholder', mockValue );
 	} );
 } );

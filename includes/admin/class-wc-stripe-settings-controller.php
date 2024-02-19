@@ -29,6 +29,8 @@ class WC_Stripe_Settings_Controller {
 
 		// Priority 5 so we can manipulate the registered gateways before they are shown.
 		add_action( 'woocommerce_admin_field_payment_gateways', [ $this, 'hide_gateways_on_settings_page' ], 5 );
+
+		add_action( 'admin_init', [ $this, 'maybe_update_account_data' ] );
 	}
 
 	/**
@@ -145,5 +147,29 @@ class WC_Stripe_Settings_Controller {
 				unset( WC()->payment_gateways->payment_gateways[ $index ] );
 			}
 		}
+	}
+
+	/**
+	 * Updates the Stripe account data on the settings page.
+	 *
+	 * Some plugin settings (eg statement descriptions) require the latest update-to-date data from the Stripe Account to display
+	 * correctly. This function clears the account cache when the settings page is loaded to ensure the latest data is displayed.
+	 */
+	public function maybe_update_account_data() {
+
+		// Exit early if we're not on the payments settings page.
+		if ( ! isset( $_GET['page'], $_GET['tab'] ) || 'wc-settings' !== $_GET['page'] || 'checkout' !== $_GET['tab'] ) {
+			return;
+		}
+
+		if ( ! isset( $_GET['section'] ) || 'stripe' !== $_GET['section'] ) {
+			return;
+		}
+
+		if ( ! WC_Stripe::get_instance()->connect->is_connected() ) {
+			return [];
+		}
+
+		$this->account->clear_cache();
 	}
 }

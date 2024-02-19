@@ -1,12 +1,20 @@
 *** Changelog ***
 
 = 8.0.0 - 2024-xx-xx =
+* Fix - When toggling on the Stripe gateway from the payment methods list, don't incorrectly redirect the merchant to Stripe settings when test mode is enabled.
 * Fix - Hiding the expandable menu for UPE entirely when the feature is disabled.
 * Fix - Critical error when deactivating the extension after deactivating WooCommerce.
 * Fix - Add missing fee and payout information to the order details page in admin.
 * Fix - Hiding "Early Access" label and "Refresh payment methods" button when UPE is disabled.
 * Tweak - Orders with `trash` status are not retrieving anymore when calling `get_order_by_intent_id` function.
 * Add   - Update the interface for customizing Stripe payment methods.
+
+= 7.9.3 - 2024-02-12 =
+* Fix - Resolved failing payments when statement descriptor only contains the order number.
+
+= 7.9.2 - 2024-02-07 =
+* Fix - Resolved an issue that could cause card payments to fail when providing a Bank statement description with the `statement_descriptor` parameter.
+* Tweak - The Bank statement description settings in the Stripe plugin settings are no longer editable. The description is now automatically pulled from the Stripe account settings.
 
 = 7.9.1 - 2024-01-16 =
 * Fix - PHP fatal error when updating a user with saved tokens from the WP Dashboard.
