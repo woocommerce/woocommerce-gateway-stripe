@@ -353,26 +353,6 @@ class WC_Stripe_Payment_Tokens {
 	}
 
 	/**
-	 * Returns original type of payment method from Stripe payment method response,
-	 * after checking whether payment method is SEPA method generated from another type.
-	 *
-	 * @param object $payment_method Stripe payment method JSON object.
-	 *
-	 * @return string Payment method type/ID
-	 */
-	private function get_original_payment_method_type( $payment_method ) {
-		if ( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID === $payment_method->type ) {
-			if ( ! is_null( $payment_method->sepa_debit->generated_from->charge ) ) {
-				return $payment_method->sepa_debit->generated_from->charge->payment_method_details->type;
-			}
-			if ( ! is_null( $payment_method->sepa_debit->generated_from->setup_attempt ) ) {
-				return $payment_method->sepa_debit->generated_from->setup_attempt->payment_method_details->type;
-			}
-		}
-		return $payment_method->type;
-	}
-
-	/**
 	 * Returns original Stripe payment method type from payment token
 	 *
 	 * @param WC_Payment_Token $payment_token WC Payment Token (CC or SEPA)
