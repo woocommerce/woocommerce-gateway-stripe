@@ -191,6 +191,16 @@ export default class WCStripeAPI {
 				return response.data;
 			}
 
+			if (
+				response.data.status === 'requires_action' &&
+				response.data.next_action.type === 'redirect_to_url'
+			) {
+				window.location.href =
+					response.data.next_action.redirect_to_url.url;
+
+				return response.data.next_action.type;
+			}
+
 			return this.getStripe()
 				.confirmCardSetup( response.data.client_secret )
 				.then( ( confirmedSetupIntent ) => {

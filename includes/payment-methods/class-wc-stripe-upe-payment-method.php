@@ -422,6 +422,18 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	}
 
 	/**
+	 * Process the add payment method request.
+	 *
+	 * UPE Payment methods use the WC_Stripe_UPE_Payment_Gateway::process_payment() function.
+	 *
+	 * @return array The add payment method result.
+	 */
+	public function add_payment_method() {
+		$upe_gateway_instance = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		return $upe_gateway_instance->add_payment_method();
+	}
+
+	/**
 	 * Determines if the Stripe Account country supports this UPE method.
 	 *
 	 * @return bool

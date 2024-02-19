@@ -224,6 +224,8 @@ export const processPayment = (
 	( async () => {
 		try {
 			await validateElements( elements );
+			let customerRedirected = false;
+
 			const paymentMethodObject = await createStripePaymentMethod(
 				api,
 				elements,
@@ -237,8 +239,17 @@ export const processPayment = (
 			await additionalActionsHandler(
 				paymentMethodObject.paymentMethod,
 				jQueryForm,
-				api
+				api,
+				() => {
+					// Provide a callback to flag that a redirect has occurred.
+					customerRedirected = true;
+				}
 			);
+
+			if ( customerRedirected ) {
+				return;
+			}
+
 			hasCheckoutCompleted = true;
 			submitForm( jQueryForm );
 		} catch ( err ) {
@@ -260,17 +271,24 @@ export const processPayment = (
  * @param {string} paymentMethod The payment method ID (i.e. pm_1234567890).
  * @param {Object} jQueryForm The jQuery object for the form being submitted.
  * @param {Object} api The API object used to create the Stripe payment method.
+ * @param {Function} setCustomerRedirected The callback function to execute when a redirect is needed.
  *
  * @return {Promise<Object>} A promise that resolves with the confirmed setup intent.
  */
 export const createAndConfirmSetupIntent = (
 	paymentMethod,
 	jQueryForm,
-	api
+	api,
+	setCustomerRedirected
 ) => {
 	return api
 		.setupIntent( paymentMethod )
 		.then( function ( confirmedSetupIntent ) {
+			if ( confirmedSetupIntent === 'redirect_to_url' ) {
+				setCustomerRedirected();
+				return;
+			}
+
 			appendSetupIntentToForm( jQueryForm, confirmedSetupIntent );
 			return confirmedSetupIntent;
 		} );
