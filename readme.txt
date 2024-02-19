@@ -4,11 +4,7 @@ Tags: credit card, stripe, apple pay, payment request, google pay, sepa, bancont
 Requires at least: 6.1
 Tested up to: 6.4.2
 Requires PHP: 7.4
-<<<<<<< HEAD
 Stable tag: 8.0.0
-=======
-Stable tag: 7.9.3
->>>>>>> trunk
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 Attributions: thorsten-stripe
