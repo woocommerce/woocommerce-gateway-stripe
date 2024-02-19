@@ -164,9 +164,11 @@ jQuery( function( $ ) {
 					}
 					// if shipping same as billing is selected, copy the billing field to shipping field.
 					const shipToDiffAddress = $( '#ship-to-different-address' ).find( 'input' ).is( ':checked' );
-					if ( value === '' && name.indexOf( 'shipping_', 0 ) !== -1 && ! shipToDiffAddress ) {
-						var billingFieldName = name.replace( 'shipping_', 'billing_' );
-						data[ name ] = data[ billingFieldName ];
+					if ( ! shipToDiffAddress ) {
+						var shippingFieldName = name.replace( 'billing_', 'shipping_' );
+						if ( ! data[ shippingFieldName ] && data[ name ] ) {
+							data[ shippingFieldName ] = data[ name ];
+						}
 					}
 				});
 			}
