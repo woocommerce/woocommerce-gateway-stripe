@@ -197,6 +197,8 @@ export default class WCStripeAPI {
 			) {
 				window.location.href =
 					response.data.next_action.redirect_to_url.url;
+
+				return response.data.next_action.type;
 			}
 
 			return this.getStripe()
