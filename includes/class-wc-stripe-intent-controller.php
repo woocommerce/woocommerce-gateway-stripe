@@ -1009,7 +1009,7 @@ class WC_Stripe_Intent_Controller {
 				'customer'              => $customer->update_or_create_customer(),
 				'selected_payment_type' => $payment_type,
 				'return_url'            => wc_get_account_endpoint_url( 'payment-methods' ),
-				'use_stripe_sdk'        => 'true',
+				'use_stripe_sdk'        => 'true', // We want the user to complete the next steps via the JS elements. ref https://docs.stripe.com/api/setup_intents/create#create_setup_intent-use_stripe_sdk
 			];
 
 			$setup_intent = $this->create_and_confirm_setup_intent( $payment_information );
