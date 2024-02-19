@@ -957,6 +957,7 @@ class WC_Stripe_Intent_Controller {
 			'customer'             => $payment_information['customer'],
 			'confirm'              => 'true',
 			'return_url'           => $payment_information['return_url'],
+			'use_stripe_sdk'       => 'true',
 		];
 
 		// SEPA setup intents require mandate data.
