@@ -251,7 +251,6 @@ export const processPayment = (
 			}
 
 			hasCheckoutCompleted = true;
-
 			submitForm( jQueryForm );
 		} catch ( err ) {
 			hasCheckoutCompleted = false;
