@@ -251,7 +251,7 @@ class WC_Stripe_Payment_Tokens {
 		}
 
 		try {
-			$gateway  = new WC_Stripe_UPE_Payment_Gateway();
+			$gateway  = WC_Stripe::get_instance()->get_main_stripe_gateway();
 			$customer = new WC_Stripe_Customer( $user_id );
 
 			// Payment methods that exist in Stripe.
