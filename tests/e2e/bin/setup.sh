@@ -139,6 +139,8 @@ redirect_output cli wp option set woocommerce_stripe_settings --format=json "{\"
 step "Installing Woo Subscriptions"
 LATEST_RELEASE_ASSET_ID=$(curl -sH "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/woocommerce/woocommerce-subscriptions/releases/latest | jq -r '.assets[0].id')
 
+echo $LATEST_RELEASE_ASSET_ID
+
 redirect_output curl -sLJ \
 	-H "Authorization: token $GITHUB_TOKEN" \
 	-H "Accept: application/octet-stream" \
