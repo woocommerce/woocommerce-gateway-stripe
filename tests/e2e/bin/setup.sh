@@ -137,8 +137,13 @@ echo " - Updating WooCommerce Gateway Stripe settings"
 redirect_output cli wp option set woocommerce_stripe_settings --format=json "{\"enabled\":\"yes\",\"title\":\"Credit Card (Stripe)\",\"description\":\"Pay with your credit card via Stripe.\",\"api_credentials\":\"\",\"testmode\":\"yes\",\"test_publishable_key\":\"${STRIPE_PUB_KEY}\",\"test_secret_key\":\"${STRIPE_SECRET_KEY}\",\"publishable_key\":\"\",\"secret_key\":\"\",\"webhook\":\"\",\"test_webhook_secret\":\"\",\"webhook_secret\":\"\",\"inline_cc_form\":\"no\",\"statement_descriptor\":\"\",\"short_statement_descriptor\":\"\",\"capture\":\"yes\",\"payment_request\":\"yes\",\"payment_request_button_type\":\"buy\",\"payment_request_button_theme\":\"dark\",\"payment_request_button_locations\":[\"product\",\"cart\",\"checkout\"],\"payment_request_button_size\":\"default\",\"saved_cards\":\"yes\",\"logging\":\"no\",\"upe_checkout_experience_enabled\":\"no\"}"
 
 step "Installing Woo Subscriptions"
-LATEST_RELEASE_ASSET_ID=$(curl -sH "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/woocommerce/woocommerce-subscriptions/releases/latest | jq -r '.assets[0].id')
+LATEST_RELEASE_ASSET_ID=$(curl -sH "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/woocommerce/woocommerce-subscriptions/releases/latest)
 
+step "Debug 1"
+echo $LATEST_RELEASE_ASSET_ID
+
+step "Debug 2"
+LATEST_RELEASE_ASSET_ID=(echo $LATEST_RELEASE_ASSET_ID | jq -r '.assets[0].id'
 echo $LATEST_RELEASE_ASSET_ID
 
 redirect_output curl -sLJ \
