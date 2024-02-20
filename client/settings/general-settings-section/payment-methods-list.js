@@ -16,7 +16,8 @@ import {
 	useGetOrderedPaymentMethodIds,
 	useManualCapture,
 } from 'wcstripe/data';
-import { useGetCapabilities } from 'wcstripe/data/account';
+import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
+import { useAliPayCurrencies } from 'utils/use-alipay-currencies';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 
 const List = styled.ul`
@@ -174,22 +175,26 @@ const GeneralSettingsSection = ( {
 		orderedPaymentMethodIds,
 		setOrderedPaymentMethodIds,
 	} = useGetOrderedPaymentMethodIds();
+	const { data } = useAccount();
+	const isTestModeEnabled = Boolean( data.testmode );
+	const alipayCurrencies = useAliPayCurrencies();
 
 	useEffect( () => {
 		// Hide payment methods that are not part of the account capabilities if UPE is enabled.
-		const availablePaymentMethods = isUpeEnabled
-			? availablePaymentMethodIds
-					.filter( ( method ) =>
-						method === 'sepa'
-							? capabilities.hasOwnProperty(
-									'sepa_debit_payments'
-							  )
-							: capabilities.hasOwnProperty(
-									`${ method }_payments`
-							  )
-					)
-					.filter( ( id ) => id !== 'link' )
-			: availablePaymentMethodIds;
+		const availablePaymentMethods =
+			isUpeEnabled && ! isTestModeEnabled
+				? availablePaymentMethodIds
+						.filter( ( method ) =>
+							method === 'sepa'
+								? capabilities.hasOwnProperty(
+										'sepa_debit_payments'
+								  )
+								: capabilities.hasOwnProperty(
+										`${ method }_payments`
+								  )
+						)
+						.filter( ( id ) => id !== 'link' )
+				: availablePaymentMethodIds;
 
 		// Remove Sofort if it's not enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
 		// Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
@@ -214,20 +219,24 @@ const GeneralSettingsSection = ( {
 		orderedPaymentMethodIds,
 		setOrderedPaymentMethodIds,
 		availablePaymentMethodIds,
+		isTestModeEnabled,
 	] );
 
 	const onReorder = ( newOrderedPaymentMethodIds ) => {
 		setOrderedPaymentMethodIds( newOrderedPaymentMethodIds );
 	};
 
-	const onSaveCustomization = ( method, data = null ) => {
+	const onSaveCustomization = ( method, customizationData = null ) => {
 		setCustomizationStatus( {
 			...customizationStatus,
 			[ method ]: false,
 		} );
 
 		if ( data ) {
-			onSaveChanges( 'individual_payment_method_settings', data );
+			onSaveChanges(
+				'individual_payment_method_settings',
+				customizationData
+			);
 		}
 	};
 
@@ -283,13 +292,10 @@ const GeneralSettingsSection = ( {
 					description,
 					allows_manual_capture: isAllowingManualCapture,
 				} = PaymentMethodsMap[ method ];
-				let paymentMethodCurrencies =
-					PaymentMethodsMap[ method ]?.currencies || [];
-				if ( method === 'alipay' ) {
-					paymentMethodCurrencies = isUpeEnabled
-						? paymentMethodCurrencies.upeCurrencies
-						: paymentMethodCurrencies.nonUpeCurrencies;
-				}
+				const paymentMethodCurrencies =
+					method === 'alipay'
+						? alipayCurrencies
+						: PaymentMethodsMap[ method ]?.currencies || [];
 				const isCurrencySupported =
 					method === 'card' ||
 					paymentMethodCurrencies.includes( storeCurrency );
@@ -349,8 +355,11 @@ const GeneralSettingsSection = ( {
 							customizationStatus[ method ] && (
 								<CustomizePaymentMethod
 									method={ method }
-									onClose={ ( data ) =>
-										onSaveCustomization( method, data )
+									onClose={ ( customizationData ) =>
+										onSaveCustomization(
+											method,
+											customizationData
+										)
 									}
 								/>
 							) }

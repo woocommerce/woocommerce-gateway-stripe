@@ -12,92 +12,6 @@ import OxxoIcon from './payment-method-icons/oxxo';
 import AlipayIcon from './payment-method-icons/alipay';
 import MultibancoIcon from './payment-method-icons/multibanco';
 
-const getAlipayCurrencies = () => {
-	let upeCurrencies = [];
-
-	const nonUpeCurrencies = [
-		'AUD',
-		'CAD',
-		'CNY',
-		'EUR',
-		'GBP',
-		'HKD',
-		'JPY',
-		'MYR',
-		'NZD',
-		'USD',
-	];
-
-	// cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
-	const country = 'US'; //cached_account_data['country'] ?? null;
-
-	switch ( country ) {
-		case 'AUS':
-			upeCurrencies = [ 'AUD', 'CNY' ];
-			break;
-		case 'Canada':
-			upeCurrencies = [ 'CAD', 'CNY' ];
-			break;
-		case 'UK':
-			upeCurrencies = [ 'GBP', 'CNY' ];
-			break;
-		case 'Hongkong':
-			upeCurrencies = [ 'HKD', 'CNY' ];
-			break;
-		case 'Japan':
-			upeCurrencies = [ 'JPY', 'CNY' ];
-			break;
-		case 'Malaysia':
-			upeCurrencies = [ 'MYR', 'CNY' ];
-			break;
-		case 'NZ':
-			upeCurrencies = [ 'NZD', 'CNY' ];
-			break;
-		case 'Singapore':
-			upeCurrencies = [ 'SGD', 'CNY' ];
-			break;
-		case 'US':
-			upeCurrencies = [ 'USD', 'CNY' ];
-			break;
-		default:
-			upeCurrencies = [ 'CNY' ];
-	}
-
-	const EuroSupportedCountries = [
-		'AT',
-		'BE',
-		'BG',
-		'CY',
-		'CZ',
-		'DK',
-		'EE',
-		'FI',
-		'FR',
-		'DE',
-		'GR',
-		'IE',
-		'IT',
-		'LV',
-		'LT',
-		'LU',
-		'MT',
-		'NL',
-		'NO',
-		'PT',
-		'RO',
-		'SK',
-		'SI',
-		'ES',
-		'SE',
-		'CH',
-	];
-	if ( EuroSupportedCountries.includes( country ) ) {
-		upeCurrencies = [ 'EUR', 'CNY' ];
-	}
-
-	return { nonUpeCurrencies, upeCurrencies };
-};
-
 export default {
 	card: {
 		id: 'card',
@@ -229,7 +143,18 @@ export default {
 			'woocommerce-gateway-stripe'
 		),
 		Icon: AlipayIcon,
-		currencies: getAlipayCurrencies(),
+		currencies: [
+			'AUD',
+			'CAD',
+			'CNY',
+			'EUR',
+			'GBP',
+			'HKD',
+			'JPY',
+			'MYR',
+			'NZD',
+			'USD',
+		],
 		capability: 'alipay_payments',
 	},
 	multibanco: {
