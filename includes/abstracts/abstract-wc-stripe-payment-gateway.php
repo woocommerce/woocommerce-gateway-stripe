@@ -708,7 +708,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since 7.0.2
 	 * @param object $intent Stripe API Payment Intent object response.
 	 *
-	 * @return object
+	 * @return string|object
 	 */
 	public function get_latest_charge_from_intent( $intent ) {
 		if ( ! empty( $intent->charges->data ) ) {

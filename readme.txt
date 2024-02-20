@@ -129,6 +129,7 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.0.0 - 2024-xx-xx =
+* Fix - Wrong status when purchasing a pre-order product with a new payment method.
 * Fix - When toggling on the Stripe gateway from the payment methods list, don't incorrectly redirect the merchant to Stripe settings when test mode is enabled.
 * Fix - Hiding the expandable menu for UPE entirely when the feature is disabled.
 * Fix - Critical error when deactivating the extension after deactivating WooCommerce.
