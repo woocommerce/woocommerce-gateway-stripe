@@ -218,6 +218,11 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 			return $this->is_reusable();
 		}
 
+		// Note: this $this->is_automatic_capture_enabled() call will fall through to the UPE gateway class.
+		if ( $this->requires_automatic_capture() && ! $this->is_automatic_capture_enabled() ) {
+			return false;
+		}
+
 		return true;
 	}
 
