@@ -713,6 +713,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			$payment_method_id     = $payment_information['payment_method'];
 			$selected_payment_type = $payment_information['selected_payment_type'];
 			$upe_payment_method    = $this->payment_methods[ $selected_payment_type ] ?? null;
+			$response_args         = [];
 
 			// Update saved payment method async to include billing details.
 			if ( $payment_information['is_using_saved_payment_method'] ) {
@@ -802,6 +803,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						$payment_intent->client_secret,
 						wp_create_nonce( 'wc_stripe_update_order_status_nonce' )
 					);
+
+					// Return the payment method used to process the payment so the block checkout can save the payment method.
+					$response_args['payment_method'] = $payment_information['payment_method'];
 				}
 			}
 
@@ -830,10 +834,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				$order->payment_complete();
 			}
 
-			return [
-				'result'   => 'success',
-				'redirect' => $redirect,
-			];
+			return array_merge(
+				[
+					'result'   => 'success',
+					'redirect' => $redirect,
+				],
+				$response_args
+			);
 		} catch ( WC_Stripe_Exception $e ) {
 			$shopper_error_message = sprintf(
 				/* translators: localized exception message */

@@ -108,6 +108,12 @@ const PaymentProcessor = ( {
 	const paymentMethodsConfig = getBlocksConfiguration()?.paymentMethodsConfig;
 	const gatewayConfig = getPaymentMethods()[ upeMethods[ paymentMethodId ] ];
 
+	// Make sure shouldSavePayment is set to true if the cart contains a subscription.
+	// shouldSavePayment might be set to false because the cart contains a subscription and so the save checkbox isn't shown.
+	// If thats the case, we need to force it to true.
+	shouldSavePayment =
+		shouldSavePayment || getBlocksConfiguration()?.cartContainsSubscription;
+
 	useEffect(
 		() =>
 			onPaymentSetup( () => {
