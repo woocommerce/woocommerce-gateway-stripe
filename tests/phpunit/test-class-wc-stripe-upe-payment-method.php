@@ -349,6 +349,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		// Disable testmode.
 		$stripe_settings             = get_option( 'woocommerce_stripe_settings' );
 		$stripe_settings['testmode'] = 'no';
+		$stripe_settings['capture']  = 'yes';
 		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 
 		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
@@ -363,7 +364,6 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 			$this->set_mock_payment_method_return_value( 'get_capabilities_response', $mock_capabilities_response, true );
 			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', $currency );
 			$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
-			$this->set_mock_payment_method_return_value( 'is_automatic_capture_enabled', true );
 
 			$payment_method = $this->mock_payment_methods[ $id ];
 			$this->assertFalse( $payment_method->is_enabled_at_checkout() );
@@ -384,12 +384,14 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 	 * Payment method is only enabled when its supported currency is present or method supports all currencies.
 	 */
 	public function test_payment_methods_are_only_enabled_when_currency_is_supported() {
+		$stripe_settings             = get_option( 'woocommerce_stripe_settings' );
+		$stripe_settings['capture']  = 'yes';
+		update_option( 'woocommerce_stripe_settings', $stripe_settings );
 		$payment_method_ids = array_map( [ $this, 'get_id' ], $this->mock_payment_methods );
 		foreach ( $payment_method_ids as $id ) {
 			$this->set_mock_payment_method_return_value( 'get_woocommerce_currency', 'CASHMONEY', true );
 			$this->set_mock_payment_method_return_value( 'get_capabilities_response', self::MOCK_ACTIVE_CAPABILITIES_RESPONSE );
 			$this->set_mock_payment_method_return_value( 'is_subscription_item_in_cart', false );
-			$this->set_mock_payment_method_return_value( 'is_automatic_capture_enabled', true );
 
 			$payment_method       = $this->mock_payment_methods[ $id ];
 			$supported_currencies = $payment_method->get_supported_currencies();
