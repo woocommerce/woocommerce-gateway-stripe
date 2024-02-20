@@ -6,8 +6,12 @@
 * Fix - Critical error when deactivating the extension after deactivating WooCommerce.
 * Fix - Add missing fee and payout information to the order details page in admin.
 * Fix - Hiding "Early Access" label and "Refresh payment methods" button when UPE is disabled.
+* Fix - Prevent undefined $latest_charge property warnings when signing up to subscriptions with no initial payment (eg free trials).
 * Tweak - Orders with `trash` status are not retrieving anymore when calling `get_order_by_intent_id` function.
 * Add   - Update the interface for customizing Stripe payment methods.
+
+= 7.9.3 - 2024-02-12 =
+* Fix - Resolved failing payments when statement descriptor only contains the order number.
 
 = 7.9.2 - 2024-02-07 =
 * Fix - Resolved an issue that could cause card payments to fail when providing a Bank statement description with the `statement_descriptor` parameter.
