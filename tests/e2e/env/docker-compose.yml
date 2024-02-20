@@ -1,5 +1,4 @@
 version: "3"
-name: wcstripe-e2e
 
 volumes:
   # Kludge for not having the ./docker directory bound recursively
