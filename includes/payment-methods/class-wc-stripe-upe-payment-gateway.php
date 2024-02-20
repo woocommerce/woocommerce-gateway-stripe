@@ -1988,7 +1988,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			return false;
 		}
 
-		$save_payment_method_request_arg = 'wc-' . self::ID . '-new-payment-method';
+		// For card/stripe, the request arg is `wc-stripe-new-payment-method` and for our reusable APMs (i.e. bancontact) it's `wc-stripe_bancontact-new-payment-method`.
+		$save_payment_method_request_arg = sprintf( 'wc-stripe%s-new-payment-method', 'card' !== $payment_method_type ? '_' . $payment_method_type : '' );
 
 		// Don't save it if we don't have the data from the checkout checkbox for saving a payment method.
 		if ( ! isset( $_POST[ $save_payment_method_request_arg ] ) ) {
