@@ -336,7 +336,15 @@ class WC_Stripe_Payment_Tokens {
 
 				// Create a new token for the payment method and add it to the list.
 				if ( ! in_array( $stripe_payment_method->id, $locally_stored_payment_methods_ids, true ) ) {
-					$token = $payment_method_instance->create_payment_token_for_user( $user_id, $stripe_payment_method );
+					$payment_method_type = $stripe_payment_method->type;
+
+					// The payment method type doesn't match the ones we use. Nothing to do here.
+					if ( ! isset( $gateway->payment_methods[ $payment_method_type ] ) ) {
+						continue;
+					}
+
+					$payment_method_instance = $gateway->payment_methods[ $payment_method_type ];
+					$token                   = $payment_method_instance->create_payment_token_for_user( $user_id, $stripe_payment_method );
 
 					$tokens[ $token->get_id() ] = $token;
 				}
