@@ -710,11 +710,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @return object
 	 */
 	public function get_latest_charge_from_intent( $intent ) {
+		$latest_charge = null;
+
 		if ( ! empty( $intent->charges->data ) ) {
-			return end( $intent->charges->data );
-		} else {
-			return $this->get_charge_object( $intent->latest_charge );
+			$latest_charge = end( $intent->charges->data );
+		} elseif ( ! empty( $intent->latest_charge ) ) {
+			$latest_charge = $this->get_charge_object( $intent->latest_charge );
 		}
+
+		return $latest_charge;
 	}
 
 	/**
@@ -1538,15 +1542,15 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function save_intent_to_order( $order, $intent ) {
 		if ( 'payment_intent' === $intent->object ) {
 			WC_Stripe_Helper::add_payment_intent_to_order( $intent->id, $order );
+
+			// Add the mandate id necessary for renewal payments with Indian cards if it's present.
+			$charge = $this->get_latest_charge_from_intent( $intent );
+
+			if ( isset( $charge->payment_method_details->card->mandate ) ) {
+				$order->update_meta_data( '_stripe_mandate_id', $charge->payment_method_details->card->mandate );
+			}
 		} elseif ( 'setup_intent' === $intent->object ) {
 			$order->update_meta_data( '_stripe_setup_intent', $intent->id );
-		}
-
-		// Add the mandate id necessary for renewal payments with Indian cards if it's present.
-		$charge = $this->get_latest_charge_from_intent( $intent );
-
-		if ( isset( $charge->payment_method_details->card->mandate ) ) {
-			$order->update_meta_data( '_stripe_mandate_id', $charge->payment_method_details->card->mandate );
 		}
 
 		if ( is_callable( [ $order, 'save' ] ) ) {
