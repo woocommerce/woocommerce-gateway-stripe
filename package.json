@@ -149,7 +149,7 @@
     "test:e2e-setup": "./tests/e2e/bin/setup.sh",
     "test:e2e-up": "./tests/e2e/bin/up.sh",
     "test:e2e-down": "./tests/e2e/bin/down.sh",
-    "test:e2e-cleanup": "npm run test2:e2e-down && ./tests/e2e/bin/cleanup.sh",
+    "test:e2e-cleanup": "npm run test:e2e-down && ./tests/e2e/bin/cleanup.sh",
     "test:e2e": "./tests/e2e/bin/run-tests.sh",
     "test:e2e-debug": "npm run test:e2e -- --debug"
   },
