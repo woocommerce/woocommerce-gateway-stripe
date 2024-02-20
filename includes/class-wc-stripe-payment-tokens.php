@@ -287,8 +287,8 @@ class WC_Stripe_Payment_Tokens {
 
 				// Card tokens are the only ones expected to have a mismatch between the token's gateway ID and the payment method instance ID.
 				if (
-					'stripe_card' === $token_gateway_id &&
-					'card' !== $payment_method_instance_id &&
+					'stripe' === $token_gateway_id &&
+					'stripe_card' !== $payment_method_instance_id &&
 					$token_gateway_id !== $payment_method_instance_id
 				) {
 					continue;
