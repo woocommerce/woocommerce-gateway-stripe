@@ -1,5 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState } from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
 import { Button } from '@wordpress/components';
@@ -179,47 +179,31 @@ const GeneralSettingsSection = ( {
 	const isTestModeEnabled = Boolean( data.testmode );
 	const alipayCurrencies = useAliPayCurrencies();
 
-	useEffect( () => {
-		// Exclude Link from the list.
-		let availablePaymentMethods = availablePaymentMethodIds.filter(
-			( id ) => id !== 'link'
+	// Hide payment methods that are not part of the account capabilities if UPE is enabled in live mode.
+	// Show all methods in test mode.
+	// Show Multibanco in both test mode and live mode as it is currently using the Sources API and do not need capability check.
+	const availablePaymentMethods = isUpeEnabled
+		? availablePaymentMethodIds
+				.filter(
+					( method ) =>
+						isTestModeEnabled ||
+						method === 'multibanco' ||
+						capabilities.hasOwnProperty( `${ method }_payments` )
+				)
+				.filter( ( id ) => id !== 'link' )
+		: orderedPaymentMethodIds;
+
+	// Remove Sofort if it's not enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
+	// Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
+	if (
+		! enabledPaymentMethodIds.includes( 'sofort' ) &&
+		availablePaymentMethods.includes( 'sofort' )
+	) {
+		availablePaymentMethods.splice(
+			availablePaymentMethods.indexOf( 'sofort' ),
+			1
 		);
-		// Hide payment methods that are not part of the account capabilities if UPE is enabled in live mode.
-		if ( isUpeEnabled && isTestModeEnabled ) {
-			availablePaymentMethods = availablePaymentMethods.filter(
-				( method ) =>
-					method === 'sepa'
-						? capabilities.hasOwnProperty( 'sepa_debit_payments' )
-						: capabilities.hasOwnProperty( `${ method }_payments` )
-			);
-		}
-
-		// Remove Sofort if it's not enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
-		// Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
-		if (
-			! enabledPaymentMethodIds.includes( 'sofort' ) &&
-			availablePaymentMethods.includes( 'sofort' )
-		) {
-			availablePaymentMethods.splice(
-				availablePaymentMethods.indexOf( 'sofort' ),
-				1
-			);
-		}
-
-		if (
-			orderedPaymentMethodIds.length !== availablePaymentMethods.length
-		) {
-			setOrderedPaymentMethodIds( availablePaymentMethods );
-		}
-	}, [
-		capabilities,
-		enabledPaymentMethodIds,
-		isUpeEnabled,
-		orderedPaymentMethodIds,
-		setOrderedPaymentMethodIds,
-		availablePaymentMethodIds,
-		isTestModeEnabled,
-	] );
+	}
 
 	const onReorder = ( newOrderedPaymentMethodIds ) => {
 		setOrderedPaymentMethodIds( newOrderedPaymentMethodIds );
@@ -242,10 +226,10 @@ const GeneralSettingsSection = ( {
 	return isChangingDisplayOrder ? (
 		<DraggableList
 			axis="y"
-			values={ orderedPaymentMethodIds }
+			values={ availablePaymentMethods }
 			onReorder={ onReorder }
 		>
-			{ orderedPaymentMethodIds.map( ( method ) => {
+			{ availablePaymentMethods.map( ( method ) => {
 				const {
 					Icon,
 					label,
@@ -284,7 +268,7 @@ const GeneralSettingsSection = ( {
 		</DraggableList>
 	) : (
 		<List>
-			{ orderedPaymentMethodIds.map( ( method ) => {
+			{ availablePaymentMethods.map( ( method ) => {
 				const {
 					Icon,
 					label,
