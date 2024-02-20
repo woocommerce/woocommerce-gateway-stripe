@@ -712,10 +712,9 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	public function get_latest_charge_from_intent( $intent ) {
 		if ( ! empty( $intent->charges->data ) ) {
 			return end( $intent->charges->data );
-		} elseif ( ! empty( $intent->latest_charge ) ) {
+		} else {
 			return $this->get_charge_object( $intent->latest_charge );
 		}
-		return '';
 	}
 
 	/**
