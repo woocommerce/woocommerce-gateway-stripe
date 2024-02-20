@@ -291,6 +291,9 @@ class WC_Stripe_Payment_Tokens {
 					'stripe_card' !== $payment_method_instance_id &&
 					$token_gateway_id !== $payment_method_instance_id
 				) {
+					// Prevent these from being displayed in the list.
+					// SEPA tokens created before 8.0.0 match this case.
+					unset( $tokens[ $token->get_id() ] );
 					continue;
 				}
 
