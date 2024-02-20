@@ -180,21 +180,19 @@ const GeneralSettingsSection = ( {
 	const alipayCurrencies = useAliPayCurrencies();
 
 	useEffect( () => {
-		// Hide payment methods that are not part of the account capabilities if UPE is enabled.
-		const availablePaymentMethods =
-			isUpeEnabled && ! isTestModeEnabled
-				? availablePaymentMethodIds
-						.filter( ( method ) =>
-							method === 'sepa'
-								? capabilities.hasOwnProperty(
-										'sepa_debit_payments'
-								  )
-								: capabilities.hasOwnProperty(
-										`${ method }_payments`
-								  )
-						)
-						.filter( ( id ) => id !== 'link' )
-				: availablePaymentMethodIds;
+		// Exclude Link from the list.
+		let availablePaymentMethods = availablePaymentMethodIds.filter(
+			( id ) => id !== 'link'
+		);
+		// Hide payment methods that are not part of the account capabilities if UPE is enabled in live mode.
+		if ( isUpeEnabled && isTestModeEnabled ) {
+			availablePaymentMethods = availablePaymentMethods.filter(
+				( method ) =>
+					method === 'sepa'
+						? capabilities.hasOwnProperty( 'sepa_debit_payments' )
+						: capabilities.hasOwnProperty( `${ method }_payments` )
+			);
+		}
 
 		// Remove Sofort if it's not enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
 		// Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
@@ -203,7 +201,8 @@ const GeneralSettingsSection = ( {
 			availablePaymentMethods.includes( 'sofort' )
 		) {
 			availablePaymentMethods.splice(
-				availablePaymentMethods.indexOf( 'sofort' )
+				availablePaymentMethods.indexOf( 'sofort' ),
+				1
 			);
 		}
 
