@@ -15,7 +15,7 @@ fi
 
 # If no --base_url received, setup the docker test environment.
 
-DEBUG=true
+DEBUG=false
 
 # Override custom user/password from local.env, if any.
 ADMIN_USER=admin
@@ -146,7 +146,7 @@ redirect_output curl -sLJ \
 	--output $E2E_ROOT/woocommerce-subscriptions.zip \
 	https://api.github.com/repos/woocommerce/woocommerce-subscriptions/releases/assets/"$LATEST_RELEASE_ASSET_ID"
 
-redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/woocommerce-subscriptions.zip
+redirect_output cli wp plugin install /var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/woocommerce-subscriptions.zip --force
 rm -rf $E2E_ROOT/woocommerce-subscriptions.zip
 
 redirect_output cli wp plugin activate woocommerce-subscriptions

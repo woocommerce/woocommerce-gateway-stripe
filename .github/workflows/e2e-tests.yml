@@ -69,11 +69,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.E2E_GH_TOKEN }}
           STRIPE_PUB_KEY: ${{ secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.E2E_STRIPE_SECRET_KEY }}
-        run: |
-          npm run test:e2e-setup
+        run: npm run test:e2e-setup
 
       - name: Run E2E tests
         shell: bash
+        env:
+          STRIPE_PUB_KEY: ${{ secrets.E2E_STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.E2E_STRIPE_SECRET_KEY }}
         run: npm run test:e2e
       
       - name: Upload E2E test results
@@ -81,8 +83,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: WP_latest-WC_latest-results
-          path: |
-            tests/e2e/report
-            tests/e2e/e2e-setup.log
+          path: tests/e2e/report
           if-no-files-found: ignore
           retention-days: 14
