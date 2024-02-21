@@ -1249,6 +1249,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			if ( $payment_method->get_id() !== $payment_method->get_retrievable_type() ) {
 				$generated_payment_method_id = $payment_method_details[ $payment_method_type ]->generated_sepa_debit;
 				$payment_method_object       = $this->stripe_request( "payment_methods/$generated_payment_method_id", [], null, 'GET' );
+
+				// This is our first opportunity to save the payment method for payment methods that have a different retrievable type. Save it now.
+				$payment_method->create_payment_token_for_user( $order->get_customer_id(), $payment_method_object );
 			} else {
 				$payment_method_object = $intent->payment_method;
 			}
