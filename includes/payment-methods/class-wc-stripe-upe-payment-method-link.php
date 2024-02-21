@@ -96,7 +96,7 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Returns whether the payment method requires automatic capture.
 	 * By default all the UPE payment methods require automatic capture, except for "card" and "link".
-	  *
+	 *
 	 * @return bool
 	 */
 	public function requires_automatic_capture() {
