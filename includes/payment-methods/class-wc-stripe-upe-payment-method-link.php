@@ -92,4 +92,19 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	public function is_available() {
 		return $this->is_available_for_account_country() && parent::is_available();
 	}
+
+	/**
+	 * Returns whether the payment method is enabled at checkout.
+	 *
+	 * Link isn't like a traditional UPE payment method as it is not shown as a standard payment method at checkout.
+	 * Customers use the Stripe Link button and the existing credit card fields to enter their payment details. The payment is then treated as a card.
+	 *
+	 * We return false here so the payment method isn't rendered as a payment method at checkout.
+	 *
+	 * @param int|null $order_id
+	 * @return bool
+	 */
+	public function is_enabled_at_checkout( $order_id = null ) {
+		return false;
+	}
 }
