@@ -92,4 +92,14 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	public function is_available() {
 		return $this->is_available_for_account_country() && parent::is_available();
 	}
+
+	/**
+	 * Returns whether the payment method requires automatic capture.
+	 * By default all the UPE payment methods require automatic capture, except for "card" and "link".
+	 *
+	 * @return bool
+	 */
+	public function requires_automatic_capture() {
+		return false;
+	}
 }
