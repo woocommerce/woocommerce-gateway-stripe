@@ -47,7 +47,9 @@ jobs:
         id: node-cache
         uses: actions/cache@v4
         with:
-          path: ./node_modules
+          path: |
+            ./node_modules
+            ~/.cache/ms-playwright
           key: ${{ runner.os }}-node_modules-${{ hashFiles('package-lock.json') }}
 
       - name: Install node dependencies
