@@ -148,11 +148,13 @@ redirect_output curl -sLJ \
 
 #redirect_output ls -al "$E2E_ROOT"/env/docker/wordpress/wp-content
 #
-#if [[ -n $CI ]]; then
-#	echo " - Setting folder permissions"
-#	redirect_output sudo chown www-data:www-data -R "$E2E_ROOT"/env/docker/wordpress/wp-content
-#	redirect_output ls -al "$E2E_ROOT"/env/docker/wordpress/wp-content
-#fi
+if [[ -n $CI ]]; then
+	echo " - Setting folder permissions"
+	redirect_output sudo chown www-data:www-data -R $E2E_ROOT/env/docker/wordpress/wp-content
+	redirect_output sudo chown www-data:www-data -R $E2E_ROOT/env/deps/woocommerce-subscriptions
+	redirect_output ls -al $E2E_ROOT/env/docker/wordpress/wp-content
+	redirect_output ls -al $E2E_ROOT/env/deps/woocommerce-subscriptions
+fi
 
 echo " - Extracting package"
 rm -rf $E2E_ROOT/env/deps/woocommerce-subscriptions/*
