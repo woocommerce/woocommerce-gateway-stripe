@@ -34,7 +34,7 @@ if ! docker info > /dev/null 2>&1; then
 fi
 
 step "Starting E2E docker containers"
-CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker-compose -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d wordpress
+CWD="$CWD" E2E_ROOT="$E2E_ROOT" redirect_output docker-compose -p wcstripe-e2e -f "$E2E_ROOT"/env/docker-compose.yml up --build --force-recreate -d wordpress
 
 step "Configuring Wordpress"
 # Wait for containers to be started up before setup.
@@ -146,15 +146,17 @@ redirect_output curl -sLJ \
 	--output $E2E_ROOT/woocommerce-subscriptions.zip \
 	https://api.github.com/repos/woocommerce/woocommerce-subscriptions/releases/assets/"$LATEST_RELEASE_ASSET_ID"
 
-if [[ -n $CI ]]; then
-	echo " - Setting folder permissions"
-	redirect_output sudo chown www-data:www-data -R "$E2E_ROOT"/env/docker/wordpress/wp-content
-	redirect_output ls -al "$E2E_ROOT"/env/docker/wordpress
-fi
+#redirect_output ls -al "$E2E_ROOT"/env/docker/wordpress/wp-content
+#
+#if [[ -n $CI ]]; then
+#	echo " - Setting folder permissions"
+#	redirect_output sudo chown www-data:www-data -R "$E2E_ROOT"/env/docker/wordpress/wp-content
+#	redirect_output ls -al "$E2E_ROOT"/env/docker/wordpress/wp-content
+#fi
 
 echo " - Extracting package"
-rm -rf $E2E_ROOT/env/docker/wordpress/wp-content/plugins/woocommerce-subscriptions
-redirect_output unzip $E2E_ROOT/woocommerce-subscriptions.zip -d $E2E_ROOT/env/docker/wordpress/wp-content/plugins
+rm -rf $E2E_ROOT/env/deps/woocommerce-subscriptions/*
+redirect_output unzip -o $E2E_ROOT/woocommerce-subscriptions.zip -d $E2E_ROOT/env/deps
 rm -rf $E2E_ROOT/woocommerce-subscriptions.zip
 
 redirect_output cli wp plugin activate woocommerce-subscriptions

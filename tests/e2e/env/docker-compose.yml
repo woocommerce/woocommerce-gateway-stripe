@@ -22,6 +22,7 @@ services:
       - ./docker/wordpress:/var/www/html/
       - ./docker/logs/apache2/:/var/log/apache2
       - ${CWD}:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe
+      - ./deps/woocommerce-subscriptions:/var/www/html/wp-content/plugins/woocommerce-subscriptions
       - dockerdirectory:/var/www/html/wp-content/plugins/woocommerce-gateway-stripe/tests/e2e/env/docker
     extra_hosts:
       - "host.docker.internal:host-gateway"
