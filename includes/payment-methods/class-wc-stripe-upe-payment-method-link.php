@@ -87,6 +87,11 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	/**
 	 * Returns true if the UPE method is available.
 	 *
+	 * Link isn't like a traditional UPE payment method as it is not shown as a standard payment method at checkout.
+	 * Customers use the Stripe Link button and the existing credit card fields to enter their payment details. The payment is then treated as a card.
+	 *
+	 * We return false here so the payment method isn't considered available by WooCommerce and rendered as a payment method at checkout.
+	 *
 	 * @return bool
 	 */
 	public function is_available() {
