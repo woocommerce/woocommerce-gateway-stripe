@@ -1829,7 +1829,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				throw new WC_Stripe_Exception(
 					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
 					print_r( $payment_intent, true ),
-					__( 'Sorry, we are unable to process your payment at this time. Please retry later.', 'woocommerce-gateway-stripe' )
+					$payment_intent->error->message
 				);
 			}
 
