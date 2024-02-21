@@ -93,9 +93,6 @@ else
 	redirect_output cli wp plugin install woocommerce --activate
 fi
 
-#echo "Installing basic auth plugin for interfacing with the API"
-#redirect_output cli wp plugin install https://github.com/WP-API/Basic-Auth/archive/master.zip --activate --force
-
 step "Configuring WooCommerce"
 redirect_output cli wp option set woocommerce_store_address "60 29th Street"
 redirect_output cli wp option set woocommerce_store_address_2 "#343"
@@ -105,7 +102,6 @@ redirect_output cli wp option set woocommerce_store_postcode "94110"
 redirect_output cli wp option set woocommerce_currency "USD"
 redirect_output cli wp option set woocommerce_product_type "both"
 redirect_output cli wp option set woocommerce_allow_tracking "no"
-#redirect_output cli wp option set woocommerce_enable_signup_and_login_from_checkout "yes"
 
 echo " - Installing Storefront theme"
 redirect_output cli wp theme install storefront --activate
