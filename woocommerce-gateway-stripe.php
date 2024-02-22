@@ -173,6 +173,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-alipay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-giropay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php';
@@ -378,12 +379,6 @@ function woocommerce_gateway_stripe() {
 			 */
 			public function add_gateways( $methods ) {
 				$methods[] = $this->get_main_stripe_gateway();
-
-				// These payment gateways will be visible in the main settings page, if UPE enabled.
-				if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-					$methods[] = WC_Gateway_Stripe_Alipay::class;
-					$methods[] = WC_Gateway_Stripe_Multibanco::class;
-				}
 
 				return $methods;
 			}
@@ -609,7 +604,6 @@ function woocommerce_gateway_stripe() {
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
-					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-payment-gateway-controller.php';
 
 					$upe_flag_toggle_controller = new WC_Stripe_REST_UPE_Flag_Toggle_Controller();
 					$upe_flag_toggle_controller->register_routes();
@@ -619,9 +613,6 @@ function woocommerce_gateway_stripe() {
 
 					$stripe_account_keys_controller = new WC_REST_Stripe_Account_Keys_Controller( $this->account );
 					$stripe_account_keys_controller->register_routes();
-
-					$settings_controller = new WC_REST_Stripe_Payment_Gateway_Controller();
-					$settings_controller->register_routes();
 				}
 			}
 
