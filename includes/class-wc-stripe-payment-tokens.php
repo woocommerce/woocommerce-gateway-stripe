@@ -21,12 +21,12 @@ class WC_Stripe_Payment_Tokens {
 	 * The values are the related gateway ID we use for them in the extension.
 	 */
 	const UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD = [
-		'card'       => WC_Stripe_UPE_Payment_Gateway::ID,
-		'link'       => WC_Stripe_UPE_Payment_Gateway::ID,
-		'bancontact' => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
-		'ideal'      => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
-		'sepa_debit' => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
-		'sofort'     => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID,
+		WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID,
+		WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID      => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID     => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID,
 	];
 
 	/**
@@ -439,7 +439,7 @@ class WC_Stripe_Payment_Tokens {
 		$gateway_id          = self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method_type ];
 
 		switch ( $payment_method_type ) {
-			case 'card':
+			case WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID:
 				$token = new WC_Payment_Token_CC();
 				$token->set_expiry_month( $payment_method->card->exp_month );
 				$token->set_expiry_year( $payment_method->card->exp_year );
@@ -447,7 +447,7 @@ class WC_Stripe_Payment_Tokens {
 				$token->set_last4( $payment_method->card->last4 );
 				break;
 
-			case 'link':
+			case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
 				$token = new WC_Payment_Token_Link();
 				$token->set_email( $payment_method->link->email );
 				$token->set_payment_method_type( $payment_method_type );
