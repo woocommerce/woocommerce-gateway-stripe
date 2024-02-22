@@ -13,6 +13,7 @@ import {
 	useGetOrderedPaymentMethodIds,
 } from 'wcstripe/data';
 import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
+import { useAliPayCurrencies } from 'utils/use-alipay-currencies';
 
 jest.mock( 'wcstripe/data', () => ( {
 	useIsStripeEnabled: jest.fn(),
@@ -40,6 +41,9 @@ jest.mock(
 jest.mock( '../../loadable-settings-section', () => ( { children } ) =>
 	children
 );
+jest.mock( 'utils/use-alipay-currencies', () => ( {
+	useAliPayCurrencies: jest.fn(),
+} ) );
 
 describe( 'GeneralSettingsSection', () => {
 	const globalValues = global.wcSettings;
@@ -56,13 +60,17 @@ describe( 'GeneralSettingsSection', () => {
 			[ 'card', 'link' ],
 			jest.fn(),
 		] );
-		useAccount.mockReturnValue( { isRefreshing: false } );
+		useAccount.mockReturnValue( {
+			isRefreshing: false,
+			data: { testmode: false },
+		} );
 		useIsStripeEnabled.mockReturnValue( [ false, jest.fn() ] );
 		useGetOrderedPaymentMethodIds.mockReturnValue( {
 			orderedPaymentMethodIds: [ 'card', 'eps' ],
 			setOrderedPaymentMethodIds: jest.fn(),
 			saveOrderedPaymentMethodIds: jest.fn(),
 		} );
+		useAliPayCurrencies.mockReturnValue( [ 'EUR', 'CNY' ] );
 	} );
 
 	afterEach( () => {
@@ -74,6 +82,7 @@ describe( 'GeneralSettingsSection', () => {
 		useAccount.mockReturnValue( {
 			isRefreshing: true,
 			refreshAccount: refreshAccountMock,
+			data: { testmode: false },
 		} );
 		render(
 			<UpeToggleContext.Provider value={ { isUpeEnabled: true } }>
