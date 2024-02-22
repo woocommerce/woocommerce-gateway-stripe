@@ -188,7 +188,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$gateway_to_add     = [];
 		if ( $multibanco_gateway && $multibanco_gateway->is_available() ) {
 			if ( ! is_add_payment_method_page() ) {
-				$gateway_to_add[ $multibanco_gateway->id ] = $multibanco_gateway;
+				if ( ! $this->is_subscription_item_in_cart() && ! $this->is_pre_order_item_in_cart() ) {
+					$gateway_to_add[ $multibanco_gateway->id ] = $multibanco_gateway;
+				}
 			} elseif ( $gateway->supports( 'add_payment_method' ) || $gateway->supports( 'tokenization' ) ) {
 				$gateway_to_add[ $multibanco_gateway->id ] = $multibanco_gateway;
 			}
