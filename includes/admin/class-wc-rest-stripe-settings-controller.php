@@ -664,7 +664,7 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 		$this->gateway->update_option( 'upe_checkout_experience_accepted_payments', $upe_checkout_experience_accepted_payments );
 
 		// handle Multibanco separately as it is a non UPE method but it is part of the same settings page.
-		$multibanco            = new WC_Gateway_Stripe_Multibanco();
+		$multibanco            = WC_Stripe_Helper::get_legacy_payment_method( 'stripe_multibanco' );
 		$is_multibanco_enabled = $multibanco->is_enabled();
 		if ( in_array( 'multibanco', $payment_method_ids_to_enable, true ) && ! $is_multibanco_enabled ) {
 			$multibanco->update_option( 'enabled', 'yes' );

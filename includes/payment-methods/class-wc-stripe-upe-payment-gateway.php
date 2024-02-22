@@ -184,7 +184,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$gateways_upto_stripe  = array_slice( $gateways, 0, $stripe_index + 1 );
 		$gateways_after_stripe = array_slice( $gateways, $stripe_index + 1 );
 
-		$multibanco_gateway = new WC_Gateway_Stripe_Multibanco();
+		$multibanco_gateway = WC_Stripe_Helper::get_legacy_payment_method( 'stripe_multibanco' );
 		$gateway_to_add     = [];
 		if ( $multibanco_gateway && $multibanco_gateway->is_available() ) {
 			if ( ! is_add_payment_method_page() ) {

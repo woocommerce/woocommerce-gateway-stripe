@@ -572,7 +572,7 @@ class WC_Stripe_Helper {
 
 		// Multibanco is a non UPE method that uses Stripe sources. Adding to the list if it's enabled
 		// to show it in the Stripe settings page.
-		$multibanco = new WC_Gateway_Stripe_Multibanco();
+		$multibanco = self::get_legacy_payment_method( 'stripe_multibanco' );
 		if ( $multibanco->is_enabled() ) {
 			$enabled_gateways[] = 'multibanco';
 		}
