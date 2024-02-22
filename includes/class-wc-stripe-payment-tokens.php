@@ -274,7 +274,7 @@ class WC_Stripe_Payment_Tokens {
 
 			// Retrieve the payment methods for the enabled reusable gateways.
 			$payment_methods = [];
-			foreach ( self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD as $payment_method_type => $gateway_id ) {
+			foreach ( self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD as $payment_method_type => $reausable_gateway_id ) {
 
 				// The payment method type doesn't match the ones we use. Nothing to do here.
 				if ( ! isset( $gateway->payment_methods[ $payment_method_type ] ) ) {
@@ -297,9 +297,12 @@ class WC_Stripe_Payment_Tokens {
 					continue;
 				}
 
+				// Retrieve the real APM behind SEPA PaymentMethods.
+				$payment_method_type = $this->get_original_payment_method_type( $payment_method );
+
 				if (
 					! isset( $stored_tokens[ $payment_method->id ] ) &&
-					( $this->is_valid_payment_method_type_for_gateway( $payment_method->type, $gateway_id ) || empty( $gateway_id ) )
+					( $this->is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) || empty( $gateway_id ) )
 				) {
 					$token                      = $this->add_token_to_user( $payment_method, $customer );
 					$tokens[ $token->get_id() ] = $token;
@@ -417,6 +420,7 @@ class WC_Stripe_Payment_Tokens {
 	 * @return bool                       True, if payment method type matches gateway, false if otherwise.
 	 */
 	private function is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) {
+		$reusable_gateway = self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method_type ];
 		return self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method_type ] === $gateway_id;
 	}
 
@@ -431,10 +435,10 @@ class WC_Stripe_Payment_Tokens {
 		// Clear cached payment methods.
 		$customer->clear_cache();
 
-		$gateway_id = self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method->type ];
+		$payment_method_type = $this->get_original_payment_method_type( $payment_method );
+		$gateway_id          = self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method_type ];
 
-		// TODO: add sofort, ideal, bancontact.
-		switch ( $payment_method->type ) {
+		switch ( $payment_method_type ) {
 			case 'card':
 				$token = new WC_Payment_Token_CC();
 				$token->set_expiry_month( $payment_method->card->exp_month );
@@ -446,13 +450,13 @@ class WC_Stripe_Payment_Tokens {
 			case 'link':
 				$token = new WC_Payment_Token_Link();
 				$token->set_email( $payment_method->link->email );
-				$token->set_payment_method_type( $payment_method->type );
+				$token->set_payment_method_type( $payment_method_type );
 				break;
 
 			default:
 				$token = new WC_Payment_Token_SEPA();
 				$token->set_last4( $payment_method->sepa_debit->last4 );
-				$token->set_payment_method_type( $payment_method->type );
+				$token->set_payment_method_type( $payment_method_type );
 		}
 
 		$token->set_gateway_id( $gateway_id );
@@ -461,6 +465,29 @@ class WC_Stripe_Payment_Tokens {
 		$token->save();
 
 		return $token;
+	}
+
+	/**
+	 * Returns the original type of payment method from Stripe's PaymentMethod object.
+	 *
+	 * APMs like iDEAL, Bancontact, and Sofort get their PaymentMethod object type set to SEPA.
+	 * This method checks the extra data within the PaymentMethod object to determine the
+	 * original APM type that was used to create the PaymentMethod.
+	 *
+	 * @param object $payment_method Stripe payment method JSON object.
+	 *
+	 * @return string Payment method type/ID
+	 */
+	private function get_original_payment_method_type( $payment_method ) {
+		if ( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID === $payment_method->type ) {
+			if ( ! is_null( $payment_method->sepa_debit->generated_from->charge ) ) {
+				return $payment_method->sepa_debit->generated_from->charge->payment_method_details->type;
+			}
+			if ( ! is_null( $payment_method->sepa_debit->generated_from->setup_attempt ) ) {
+				return $payment_method->sepa_debit->generated_from->setup_attempt->payment_method_details->type;
+			}
+		}
+		return $payment_method->type;
 	}
 }
 
