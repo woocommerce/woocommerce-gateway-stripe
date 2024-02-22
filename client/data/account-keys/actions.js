@@ -89,3 +89,25 @@ export function* saveAccountKeys( accountKeys ) {
 
 	return error === null;
 }
+
+export function* testAccountKeys( { live, publishable, secret } ) {
+	let error = null;
+	try {
+		yield updateIsTestingAccountKeys( true );
+		yield apiFetch( {
+			path: `${ NAMESPACE }/account_keys/test`,
+			method: 'POST',
+			data: {
+				live_mode: live,
+				publishable,
+				secret,
+			},
+		} );
+	} catch ( e ) {
+		error = e;
+	} finally {
+		yield updateIsTestingAccountKeys( false );
+	}
+
+	return error === null;
+}

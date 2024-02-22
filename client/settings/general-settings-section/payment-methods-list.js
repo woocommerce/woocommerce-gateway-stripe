@@ -1,5 +1,5 @@
 import { __ } from '@wordpress/i18n';
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState } from 'react';
 import styled from '@emotion/styled';
 import classnames from 'classnames';
 import { Button } from '@wordpress/components';
@@ -16,7 +16,8 @@ import {
 	useGetOrderedPaymentMethodIds,
 	useManualCapture,
 } from 'wcstripe/data';
-import { useGetCapabilities } from 'wcstripe/data/account';
+import { useAccount, useGetCapabilities } from 'wcstripe/data/account';
+import { useAliPayCurrencies } from 'utils/use-alipay-currencies';
 import PaymentMethodFeesPill from 'wcstripe/components/payment-method-fees-pill';
 
 const List = styled.ul`
@@ -174,70 +175,61 @@ const GeneralSettingsSection = ( {
 		orderedPaymentMethodIds,
 		setOrderedPaymentMethodIds,
 	} = useGetOrderedPaymentMethodIds();
+	const { data } = useAccount();
+	const isTestModeEnabled = Boolean( data.testmode );
+	const alipayCurrencies = useAliPayCurrencies();
 
-	useEffect( () => {
-		// Hide payment methods that are not part of the account capabilities if UPE is enabled.
-		const availablePaymentMethods = isUpeEnabled
-			? availablePaymentMethodIds
-					.filter( ( method ) =>
-						method === 'sepa'
-							? capabilities.hasOwnProperty(
-									'sepa_debit_payments'
-							  )
-							: capabilities.hasOwnProperty(
-									`${ method }_payments`
-							  )
-					)
-					.filter( ( id ) => id !== 'link' )
-			: availablePaymentMethodIds;
+	// Hide payment methods that are not part of the account capabilities if UPE is enabled in live mode.
+	// Show all methods in test mode.
+	// Show Multibanco in both test mode and live mode as it is currently using the Sources API and do not need capability check.
+	const availablePaymentMethods = isUpeEnabled
+		? availablePaymentMethodIds
+				.filter(
+					( method ) =>
+						isTestModeEnabled ||
+						method === 'multibanco' ||
+						capabilities.hasOwnProperty( `${ method }_payments` )
+				)
+				.filter( ( id ) => id !== 'link' )
+		: orderedPaymentMethodIds;
 
-		// Remove Sofort if it's not enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
-		// Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
-		if (
-			! enabledPaymentMethodIds.includes( 'sofort' ) &&
-			availablePaymentMethods.includes( 'sofort' )
-		) {
-			availablePaymentMethods.splice(
-				availablePaymentMethods.indexOf( 'sofort' )
-			);
-		}
-
-		if (
-			orderedPaymentMethodIds.length !== availablePaymentMethods.length
-		) {
-			setOrderedPaymentMethodIds( availablePaymentMethods );
-		}
-	}, [
-		capabilities,
-		enabledPaymentMethodIds,
-		isUpeEnabled,
-		orderedPaymentMethodIds,
-		setOrderedPaymentMethodIds,
-		availablePaymentMethodIds,
-	] );
+	// Remove Sofort if it's not enabled. Hide from the new merchants and keep it for the old ones who are already using this gateway, until we remove it completely.
+	// Stripe is deprecating Sofort https://support.stripe.com/questions/sofort-is-being-deprecated-as-a-standalone-payment-method.
+	if (
+		! enabledPaymentMethodIds.includes( 'sofort' ) &&
+		availablePaymentMethods.includes( 'sofort' )
+	) {
+		availablePaymentMethods.splice(
+			availablePaymentMethods.indexOf( 'sofort' ),
+			1
+		);
+	}
 
 	const onReorder = ( newOrderedPaymentMethodIds ) => {
 		setOrderedPaymentMethodIds( newOrderedPaymentMethodIds );
 	};
 
-	const onSaveCustomization = ( method, data = null ) => {
+	const onSaveCustomization = ( method, customizationData = null ) => {
 		setCustomizationStatus( {
 			...customizationStatus,
 			[ method ]: false,
 		} );
 
 		if ( data ) {
-			onSaveChanges( 'individual_payment_method_settings', data );
+			onSaveChanges(
+				'individual_payment_method_settings',
+				customizationData
+			);
 		}
 	};
 
 	return isChangingDisplayOrder ? (
 		<DraggableList
 			axis="y"
-			values={ orderedPaymentMethodIds }
+			values={ availablePaymentMethods }
 			onReorder={ onReorder }
 		>
-			{ orderedPaymentMethodIds.map( ( method ) => {
+			{ availablePaymentMethods.map( ( method ) => {
 				const {
 					Icon,
 					label,
@@ -276,7 +268,7 @@ const GeneralSettingsSection = ( {
 		</DraggableList>
 	) : (
 		<List>
-			{ orderedPaymentMethodIds.map( ( method ) => {
+			{ availablePaymentMethods.map( ( method ) => {
 				const {
 					Icon,
 					label,
@@ -284,7 +276,9 @@ const GeneralSettingsSection = ( {
 					allows_manual_capture: isAllowingManualCapture,
 				} = PaymentMethodsMap[ method ];
 				const paymentMethodCurrencies =
-					PaymentMethodsMap[ method ]?.currencies || [];
+					method === 'alipay'
+						? alipayCurrencies
+						: PaymentMethodsMap[ method ]?.currencies || [];
 				const isCurrencySupported =
 					method === 'card' ||
 					paymentMethodCurrencies.includes( storeCurrency );
@@ -344,8 +338,11 @@ const GeneralSettingsSection = ( {
 							customizationStatus[ method ] && (
 								<CustomizePaymentMethod
 									method={ method }
-									onClose={ ( data ) =>
-										onSaveCustomization( method, data )
+									onClose={ ( customizationData ) =>
+										onSaveCustomization(
+											method,
+											customizationData
+										)
 									}
 								/>
 							) }
