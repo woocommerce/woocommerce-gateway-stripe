@@ -667,9 +667,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return WC_Payment_Gateway[]          The same list if UPE is disabled or a list including the available legacy payment methods.
 	 */
 	public function get_available_payment_gateways( $gateways ) {
-		// We need to include the payment methods when UPE is disabled, return the same list when UPE is enabled.
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			return $gateways;
+		// Unset the stripe methods from the array first, then place it in the correct position below
+		// as set in `stripe_ordered_payment_method_ids`.
+		foreach ( $gateways as $key => $gateway ) {
+			if ( 0 === strpos( $key, 'stripe_' ) ) {
+				unset( $gateways[ $key ] );
+			}
 		}
 
 		$legacy_enabled_gateways           = WC_Stripe_Helper::get_legacy_enabled_payment_methods();

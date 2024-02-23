@@ -181,6 +181,9 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	 * @return WC_Payment_Gateway[]          The same list if Multibanco is disabled or a list including the Multibanco method.
 	 */
 	public function get_available_payment_gateways( $gateways ) {
+		// Unset from the array first, then place it in the correct position below.
+		unset( $gateways['stripe_multibanco'] );
+
 		$stripe_index          = array_search( 'stripe', array_keys( $gateways ), true );
 		$gateways_upto_stripe  = array_slice( $gateways, 0, $stripe_index + 1 );
 		$gateways_after_stripe = array_slice( $gateways, $stripe_index + 1 );
