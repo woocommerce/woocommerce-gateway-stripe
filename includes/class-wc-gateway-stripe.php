@@ -144,8 +144,8 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * Load admin scripts.
 	 */
 	public function admin_scripts() {
-		wp_register_style( 'payment-methods-style', plugins_url( 'assets/css/payment-methods-style.css', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );
-		wp_enqueue_style( 'payment-methods-style' );
+		wp_register_style( 'payment-methods-styles', plugins_url( 'assets/css/payment-methods-styles.css', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );
+		wp_enqueue_style( 'payment-methods-styles' );
 
 	}
 
