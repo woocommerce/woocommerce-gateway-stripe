@@ -1714,7 +1714,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		// Mock order has pre-order product.
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'has_pre_order' )
-			->with( wc_get_order( $order_id ) )
+			->with( $order_id )
 			->will( $this->returnValue( true ) );
 
 		$this->mock_gateway->expects( $this->once() )
@@ -1740,7 +1740,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'mark_order_as_pre_ordered' );
 
-		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, true );
+		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
 
 		$final_order = wc_get_order( $order_id );
 
