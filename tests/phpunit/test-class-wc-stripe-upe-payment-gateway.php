@@ -1712,9 +1712,17 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$payment_intent_mock['charges']['data'][0]['payment_method_details'] = $payment_method_mock;
 
 		// Mock order has pre-order product.
-		$this->mock_gateway->expects( $this->once() )
+		$this->mock_gateway->expects( $this->any() )
 			->method( 'has_pre_order' )
 			->with( $order_id )
+			->will( $this->returnValue( true ) );
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'is_pre_order_item_in_cart' )
+			->will( $this->returnValue( true ) );
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'is_pre_order_product_charged_upfront' )
 			->will( $this->returnValue( true ) );
 
 		$this->mock_gateway->expects( $this->once() )
