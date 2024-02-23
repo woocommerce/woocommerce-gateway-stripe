@@ -263,8 +263,17 @@ class WC_Stripe_Payment_Tokens {
 		try {
 			$stored_tokens = [];
 
+			$deprecated_tokens = [];
+
 			foreach ( $tokens as $token ) {
 				if ( in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
+
+					// APM tokens from before Split PE was in place that will get removed.
+					if ( 'stripe' === $token->get_gateway_id() && 'sepa' === $token->get_type() ) {
+						$deprecated_tokens[ $token->get_token() ] = $token;
+						continue;
+					}
+
 					$stored_tokens[ $token->get_token() ] = $token;
 				}
 			}
@@ -312,12 +321,20 @@ class WC_Stripe_Payment_Tokens {
 			}
 			add_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 
-			// Remove the payment methods that no longer exist in Stripe's side.
 			remove_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
+
+			// Remove the payment methods that no longer exist in Stripe's side.
 			foreach ( $stored_tokens as $token ) {
 				unset( $tokens[ $token->get_id() ] );
 				$token->delete();
 			}
+
+			// Remove the APM tokens from before Split PE was in place.
+			foreach ( $deprecated_tokens as $token ) {
+				unset( $tokens[ $token->get_id() ] );
+				$token->delete();
+			}
+
 			add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
 
 		} catch ( WC_Stripe_Exception $e ) {
