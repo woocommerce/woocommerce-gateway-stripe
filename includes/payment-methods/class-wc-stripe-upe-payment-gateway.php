@@ -831,7 +831,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					]
 				);
 			} elseif ( in_array( $payment_intent->status, self::SUCCESSFUL_INTENT_STATUS, true ) ) {
-				$order->payment_complete();
+				if ( ! $this->has_pre_order( $order ) ) {
+					$order->payment_complete();
+				} elseif ( $this->maybe_process_pre_orders( $order ) ) {
+					$this->mark_order_as_pre_ordered( $order );
+				}
 			}
 
 			return array_merge(
