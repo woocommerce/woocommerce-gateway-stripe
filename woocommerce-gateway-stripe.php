@@ -173,6 +173,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-gateway.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-cc.php';
+				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-alipay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-giropay.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-ideal.php';
 				require_once dirname( __FILE__ ) . '/includes/payment-methods/class-wc-stripe-upe-payment-method-bancontact.php';
@@ -386,9 +387,6 @@ function woocommerce_gateway_stripe() {
 
 				// These payment gateways will be visible in the main settings page, if UPE enabled.
 				if ( is_a( $main_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
-					$methods[] = WC_Gateway_Stripe_Alipay::class;
-					$methods[] = WC_Gateway_Stripe_Multibanco::class;
-
 					// The $main_gateway represents the card gateway so we don't want to include it in the list of UPE gateways.
 					$upe_payment_methods = $main_gateway->payment_methods;
 					unset( $upe_payment_methods['card'] );
@@ -620,7 +618,6 @@ function woocommerce_gateway_stripe() {
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-settings-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-stripe-rest-upe-flag-toggle-controller.php';
 					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-account-keys-controller.php';
-					require_once WC_STRIPE_PLUGIN_PATH . '/includes/admin/class-wc-rest-stripe-payment-gateway-controller.php';
 
 					$upe_flag_toggle_controller = new WC_Stripe_REST_UPE_Flag_Toggle_Controller();
 					$upe_flag_toggle_controller->register_routes();
@@ -630,9 +627,6 @@ function woocommerce_gateway_stripe() {
 
 					$stripe_account_keys_controller = new WC_REST_Stripe_Account_Keys_Controller( $this->account );
 					$stripe_account_keys_controller->register_routes();
-
-					$settings_controller = new WC_REST_Stripe_Payment_Gateway_Controller();
-					$settings_controller->register_routes();
 				}
 			}
 

@@ -291,6 +291,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		$response = $this->rest_get_settings();
 
 		$expected_method_ids = array_keys( $this->get_gateway()->payment_methods );
+		$expected_method_ids[] = 'multibanco';
 
 		$available_method_ids = $response->get_data()['available_payment_method_ids'];
 
@@ -322,6 +323,7 @@ class WC_REST_Stripe_Settings_Controller_Test extends WP_UnitTestCase {
 		unset( $expected_methods['link'] );
 
 		$expected_method_ids = array_keys( $expected_methods );
+		$expected_method_ids[] = 'multibanco';
 
 		$ordered_method_ids = $response->get_data()['ordered_payment_method_ids'];
 
