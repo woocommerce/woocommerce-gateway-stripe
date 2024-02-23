@@ -1714,6 +1714,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		// Mock order has pre-order product.
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'has_pre_order' )
+			->with( wc_get_order( $order_id ) )
 			->will( $this->returnValue( true ) );
 
 		$this->mock_gateway->expects( $this->once() )
