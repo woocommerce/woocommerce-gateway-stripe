@@ -1243,10 +1243,10 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		if ( $this->has_pre_order( $order->get_id() ) ) {
 			// If this is a pre-order, simply mark the order as pre-ordered and allow
 			// the subsequent logic to save the payment method and proceed to complete the order.
-			if ( $this->maybe_process_pre_orders( $order->get_id() ) ) {
-				$this->mark_order_as_pre_ordered( $order->get_id() );
-			}
-			$save_payment_method = true;
+			$this->mark_order_as_pre_ordered( $order->get_id() );
+
+			// We require to save the payment method if the pre-order is charged upon release.
+			$save_payment_method = $save_payment_method || $this->has_pre_order_charged_upon_release( $order );
 			$is_pre_order        = true;
 		}
 

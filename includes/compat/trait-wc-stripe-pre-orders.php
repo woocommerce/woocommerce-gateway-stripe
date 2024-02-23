@@ -297,6 +297,16 @@ trait WC_Stripe_Pre_Orders_Trait {
 	}
 
 	/**
+	 * Determines if an order contains a pre-order and if it is charged upon release.
+	 *
+	 * @return bool
+	 */
+	public function has_pre_order_charged_upon_release( $order ) {
+		$pre_order_product = $this->get_pre_order_product_from_order( $order );
+		return $pre_order_product && $this->is_pre_order_product_charged_upon_release( $pre_order_product );
+	}
+
+	/**
 	 * Hides the save payment method checkbox when the cart contains a pre-order that is charged upon release.
 	 *
 	 * @param bool $display_save_option The default value of whether the save payment method checkbox should be displayed.
