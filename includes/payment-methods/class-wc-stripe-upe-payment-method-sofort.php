@@ -29,5 +29,8 @@ class WC_Stripe_UPE_Payment_Method_Sofort extends WC_Stripe_UPE_Payment_Method {
 			'Accept secure bank transfers from Austria, Belgium, Germany, Italy, Netherlands, and Spain.',
 			'woocommerce-gateway-stripe'
 		);
+
+		// Add support for pre-orders.
+		$this->maybe_init_pre_orders();
 	}
 }
