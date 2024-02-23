@@ -15,7 +15,7 @@ trait WC_Stripe_Pre_Orders_Trait {
 	 *
 	 * @var bool False by default, true once the callbacks have been attached.
 	 */
-	private static $has_attached_integration_hooks = false;
+	private static $has_attached_pre_order_integration_hooks = false;
 
 	/**
 	 * Initialize pre-orders hook.
@@ -35,11 +35,11 @@ trait WC_Stripe_Pre_Orders_Trait {
 		 * The callbacks attached below only need to be attached once. We don't need each gateway instance to have its own callback.
 		 * Therefore we only attach them once on the main `stripe` gateway and store a flag to indicate that they have been attached.
 		 */
-		if ( self::$has_attached_integration_hooks || WC_Gateway_Stripe::ID !== $this->id ) {
+		if ( self::$has_attached_pre_order_integration_hooks || WC_Gateway_Stripe::ID !== $this->id ) {
 			return;
 		}
 
-		self::$has_attached_integration_hooks = true;
+		self::$has_attached_pre_order_integration_hooks = true;
 
 		add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'hide_save_payment_for_pre_orders_charged_upon_release' ] );
 	}
