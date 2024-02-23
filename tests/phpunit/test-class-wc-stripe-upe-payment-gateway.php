@@ -1729,10 +1729,15 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 				$this->returnValue( $this->mock_stripe_customer )
 			);
 
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'has_pre_order_charged_upon_release' )
+			->with( wc_get_order( $order_id ) )
+			->will( true );
+
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'mark_order_as_pre_ordered' );
 
-		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, false );
+		$this->mock_gateway->process_upe_redirect_payment( $order_id, $payment_intent_id, true );
 
 		$final_order = wc_get_order( $order_id );
 
