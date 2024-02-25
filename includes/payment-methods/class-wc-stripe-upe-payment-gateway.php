@@ -202,34 +202,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Update the current request logged_in cookie after a guest user is created to avoid nonce inconsistencies.
 		add_action( 'set_logged_in_cookie', [ $this, 'set_cookie_on_current_request' ] );
-
-		add_filter( 'woocommerce_available_payment_gateways', [ $this, 'get_available_payment_gateways' ] );
-	}
-
-	/**
-	 * Include Multibanco in the list of payment methods when available.
-	 * As we are not registering Multibanco to show in the payment settings page and Multibanco is not a UPE payment method,
-	 * we need to include it here separately so that it's available in the checkout, pay for order, add payment method etc. pages.
-	 *
-	 * @param WC_Payment_Gateway[] $gateways A list of all available gateways on the payments settings page.
-	 * @return WC_Payment_Gateway[]          The same list if Multibanco is disabled or a list including the Multibanco method.
-	 */
-	public function get_available_payment_gateways( $gateways ) {
-		$multibanco_gateway_entry = $this->maybe_get_multibanco_gateway_entry();
-
-		// Return the original list if Multibanco isn't available.
-		if ( empty( $multibanco_gateway_entry ) ) {
-			return $gateways;
-		}
-
-		// Unset from the array first, then place it in the correct position below.
-		unset( $gateways['stripe_multibanco'] );
-
-		$stripe_index          = array_search( 'stripe', array_keys( $gateways ), true );
-		$gateways_upto_stripe  = array_slice( $gateways, 0, $stripe_index + 1 );
-		$gateways_after_stripe = array_slice( $gateways, $stripe_index + 1 );
-
-		return array_merge( $gateways_upto_stripe, $multibanco_gateway_entry, $gateways_after_stripe );
 	}
 
 	/**
@@ -1827,32 +1799,6 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 				'state'       => $order->get_shipping_state(),
 			],
 		];
-	}
-
-	/**
-	 * When available for the current page, return an array entry with Multibanco to be added to the list of payment methods.
-	 *
-	 * @return WC_Payment_Gateway[] Contains Multibanco when available. It's empty otherwise.
-	 */
-	private function maybe_get_multibanco_gateway_entry() {
-		$multibanco_gateway = WC_Stripe_Helper::get_legacy_payment_method( 'stripe_multibanco' );
-
-		// No need to include Multibanco if it's not available.
-		if ( empty( $multibanco_gateway ) || ! $multibanco_gateway->is_available() ) {
-			return [];
-		}
-
-		// Include Multibanco in the list of payment methods
-		// if it's not the add payment method page or if it supports tokenization.
-		if (
-			! is_add_payment_method_page() ||
-			$multibanco_gateway->supports( 'add_payment_method' ) ||
-			$multibanco_gateway->supports( 'tokenization' )
-		) {
-			return [ $multibanco_gateway->id => $multibanco_gateway ];
-		}
-
-		return [];
 	}
 
 	/**
