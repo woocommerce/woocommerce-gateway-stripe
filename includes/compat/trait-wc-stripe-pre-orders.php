@@ -39,9 +39,9 @@ trait WC_Stripe_Pre_Orders_Trait {
 			return;
 		}
 
-		self::$has_attached_pre_order_integration_hooks = true;
-
 		add_filter( 'wc_stripe_display_save_payment_method_checkbox', [ $this, 'hide_save_payment_for_pre_orders_charged_upon_release' ] );
+
+		self::$has_attached_pre_order_integration_hooks = true;
 	}
 
 	/**
