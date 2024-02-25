@@ -129,13 +129,16 @@ If you get stuck, you can ask for help in the Plugin Forum.
 == Changelog ==
 
 = 8.0.0 - xxxx-xx-xx =
+* Add - Implement deferred payment intents for the Payment Element (or UPE), used on the updated checkout experience.
+* Add - Implement split Payment Elements (or split UPE), splitting the payment method types under the updated checkout experience into different gateways.
+* Add - Update the interface for customizing Stripe payment methods.
 * Fix - When toggling on the Stripe gateway from the payment methods list, don't incorrectly redirect the merchant to Stripe settings when test mode is enabled.
 * Fix - Hiding the expandable menu for UPE entirely when the feature is disabled.
 * Fix - Critical error when deactivating the extension after deactivating WooCommerce.
 * Fix - Add missing fee and payout information to the order details page in admin.
 * Fix - Hiding "Early Access" label and "Refresh payment methods" button when UPE is disabled.
+* Fix - Wrong status when purchasing a pre-order product with a new payment method.
 * Tweak - Orders with `trash` status are not retrieving anymore when calling `get_order_by_intent_id` function.
-* Add   - Update the interface for customizing Stripe payment methods.
 * Tweak - Hide Stripe secret keys in the UI.
 
 [See changelog for all versions](https://raw.githubusercontent.com/woocommerce/woocommerce-gateway-stripe/trunk/changelog.txt).

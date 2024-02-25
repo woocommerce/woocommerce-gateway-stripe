@@ -349,6 +349,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 				'sepa'       => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/sepa.svg" class="stripe-sepa-icon stripe-icon" alt="SEPA" />',
 				'boleto'     => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/boleto.svg" class="stripe-boleto-icon stripe-icon" alt="Boleto" />',
 				'oxxo'       => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/oxxo.svg" class="stripe-oxxo-icon stripe-icon" alt="OXXO" />',
+				'cards'      => '<img src="' . WC_STRIPE_PLUGIN_URL . '/assets/images/cards.svg" class="stripe-cards-icon stripe-icon" alt="credit / debit card" />',
 			]
 		);
 	}
@@ -707,7 +708,7 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @since 7.0.2
 	 * @param object $intent Stripe API Payment Intent object response.
 	 *
-	 * @return object
+	 * @return string|object
 	 */
 	public function get_latest_charge_from_intent( $intent ) {
 		$latest_charge = null;
@@ -1540,6 +1541,11 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 	 * @param stdClass $intent Payment intent information.
 	 */
 	public function save_intent_to_order( $order, $intent ) {
+		// Don't save any intent information on a subscription.
+		if ( $this->is_subscription( $order ) ) {
+			return;
+		}
+
 		if ( 'payment_intent' === $intent->object ) {
 			WC_Stripe_Helper::add_payment_intent_to_order( $intent->id, $order );
 
@@ -1701,9 +1707,8 @@ abstract class WC_Stripe_Payment_Gateway extends WC_Payment_Gateway_CC {
 		$full_request = $this->generate_payment_request( $order, $prepared_source );
 
 		$payment_method_types = [ 'card' ];
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			$payment_method_types = $this->get_upe_enabled_at_checkout_payment_method_ids();
-		} elseif ( isset( $prepared_source->source_object->type ) ) {
+
+		if ( isset( $prepared_source->source_object->type ) ) {
 			$payment_method_types = [ $prepared_source->source_object->type ];
 		}
 

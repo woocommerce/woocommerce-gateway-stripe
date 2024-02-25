@@ -957,7 +957,7 @@ class WC_Stripe_Helper {
 	 * @return boolean
 	 */
 	public static function has_cart_or_checkout_on_current_page() {
-		return is_cart() || is_checkout();
+		return is_cart() || is_checkout() || has_block( 'woocommerce/cart' ) || has_block( 'woocommerce/checkout' );
 	}
 
 	/**
@@ -1147,5 +1147,40 @@ class WC_Stripe_Helper {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Returns the payment intent or setup intent ID from a given order object.
+	 *
+	 * @param WC_Order $order The order to fetch the Stripe intent from.
+	 *
+	 * @return string|bool  The intent ID if found, false otherwise.
+	 */
+	public static function get_intent_id_from_order( $order ) {
+		$intent_id = $order->get_meta( '_stripe_intent_id' );
+
+		if ( ! $intent_id ) {
+			$intent_id = $order->get_meta( '_stripe_setup_intent' );
+		}
+
+		return $intent_id ?? false;
+	}
+
+	/**
+	 * Fetches a list of all Stripe gateway IDs.
+	 *
+	 * @return array An array of all Stripe gateway IDs.
+	 */
+	public static function get_stripe_gateway_ids() {
+		$main_gateway = WC_Stripe::get_instance()->get_main_stripe_gateway();
+		$gateway_ids  = [ 'stripe' => $main_gateway->id ];
+
+		if ( is_a( $main_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+			$gateways = $main_gateway->payment_methods;
+		} else {
+			$gateways = self::get_legacy_payment_methods();
+		}
+
+		return array_merge( $gateway_ids, wp_list_pluck( $gateways, 'id', 'id' ) );
 	}
 }

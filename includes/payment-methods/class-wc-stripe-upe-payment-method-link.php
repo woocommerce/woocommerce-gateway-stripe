@@ -16,7 +16,7 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	public function __construct() {
 		parent::__construct();
 		$this->stripe_id            = self::STRIPE_ID;
-		$this->title                = __( 'Pay with Link', 'woocommerce-gateway-stripe' );
+		$this->title                = __( 'Link', 'woocommerce-gateway-stripe' );
 		$this->is_reusable          = true;
 		$this->supported_currencies = [ 'USD' ];
 		$this->label                = __( 'Stripe Link', 'woocommerce-gateway-stripe' );
@@ -72,15 +72,39 @@ class WC_Stripe_UPE_Payment_Method_Link extends WC_Stripe_UPE_Payment_Method {
 	}
 
 	/**
+	 * Determines if the Stripe Account country this UPE method supports.
+	 *
+	 * @return bool
+	 */
+	public function is_available_for_account_country() {
+		// If merchant is outside US, Link payment method should not be available.
+		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
+		$account_country     = $cached_account_data['country'] ?? null;
+
+		return 'US' === $account_country;
+	}
+
+	/**
 	 * Returns true if the UPE method is available.
+	 *
+	 * Link isn't like a traditional UPE payment method as it is not shown as a standard payment method at checkout.
+	 * Customers use the Stripe Link button and the existing credit card fields to enter their payment details. The payment is then treated as a card.
+	 *
+	 * We return false here so the payment method isn't considered available by WooCommerce and rendered as a payment method at checkout.
 	 *
 	 * @return bool
 	 */
 	public function is_available() {
-		//if merchant is outside US, Link payment method should not be available
-		$cached_account_data = WC_Stripe::get_instance()->account->get_cached_account_data();
-		$account_country     = $cached_account_data['country'] ?? null;
+		return false;
+	}
 
-		return 'US' === $account_country && parent::is_available();
+	/**
+	 * Returns whether the payment method requires automatic capture.
+	 * By default all the UPE payment methods require automatic capture, except for "card" and "link".
+	 *
+	 * @return bool
+	 */
+	public function requires_automatic_capture() {
+		return false;
 	}
 }

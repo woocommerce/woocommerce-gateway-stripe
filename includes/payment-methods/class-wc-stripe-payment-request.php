@@ -459,14 +459,18 @@ class WC_Stripe_Payment_Request {
 	 * Filters the gateway title to reflect Payment Request type
 	 */
 	public function filter_gateway_title( $title, $id ) {
-		global $post;
+		global $theorder;
 
-		if ( ! is_object( $post ) ) {
+		// If $theorder is empty (i.e. non-HPOS), fallback to using the global post object.
+		if ( empty( $theorder ) && ! empty( $GLOBALS['post']->ID ) ) {
+			$theorder = wc_get_order( $GLOBALS['post']->ID );
+		}
+
+		if ( ! is_object( $theorder ) ) {
 			return $title;
 		}
 
-		$order        = wc_get_order( $post->ID );
-		$method_title = is_object( $order ) ? $order->get_payment_method_title() : '';
+		$method_title = $theorder->get_payment_method_title();
 
 		if ( 'stripe' === $id && ! empty( $method_title ) ) {
 			if ( 'Apple Pay (Stripe)' === $method_title
@@ -483,8 +487,6 @@ class WC_Stripe_Payment_Request {
 			if ( 'Chrome Payment Request (Stripe)' === $method_title ) {
 				return 'Payment Request (Stripe)';
 			}
-
-			return $method_title;
 		}
 
 		return $title;

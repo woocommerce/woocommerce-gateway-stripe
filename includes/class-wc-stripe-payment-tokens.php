@@ -13,6 +13,23 @@ class WC_Stripe_Payment_Tokens {
 	private static $_this;
 
 	/**
+	 * List of reusable payment gateways by payment method.
+	 *
+	 * The keys are the possible values for the type of the PaymentMethod object in Stripe.
+	 * https://docs.stripe.com/api/payment_methods/object#payment_method_object-type
+	 *
+	 * The values are the related gateway ID we use for them in the extension.
+	 */
+	const UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD = [
+		WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID         => WC_Stripe_UPE_Payment_Gateway::ID,
+		WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID,
+		WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Bancontact::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID      => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Ideal::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID       => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID,
+		WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID     => WC_Stripe_UPE_Payment_Gateway::ID . '_' . WC_Stripe_UPE_Payment_Method_Sofort::STRIPE_ID,
+	];
+
+	/**
 	 * Constructor.
 	 *
 	 * @since 4.0.0
@@ -230,7 +247,10 @@ class WC_Stripe_Payment_Tokens {
 	 * @return array
 	 */
 	public function woocommerce_get_customer_upe_payment_tokens( $tokens, $user_id, $gateway_id ) {
-		if ( ( ! empty( $gateway_id ) && WC_Stripe_UPE_Payment_Gateway::ID !== $gateway_id ) || ! is_user_logged_in() ) {
+		if (
+			! is_user_logged_in() ||
+			( ! empty( $gateway_id ) && ! in_array( $gateway_id, self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) )
+		) {
 			return $tokens;
 		}
 
@@ -240,65 +260,81 @@ class WC_Stripe_Payment_Tokens {
 			return $tokens;
 		}
 
-		$gateway                  = new WC_Stripe_UPE_Payment_Gateway();
-		$reusable_payment_methods = array_filter( $gateway->get_upe_enabled_payment_method_ids(), [ $gateway, 'is_enabled_for_saved_payments' ] );
-		$customer                 = new WC_Stripe_Customer( $user_id );
-		$remaining_tokens         = [];
-
-		foreach ( $tokens as $token ) {
-			if ( WC_Stripe_UPE_Payment_Gateway::ID === $token->get_gateway_id() ) {
-				$payment_method_type = $this->get_payment_method_type_from_token( $token );
-				if ( ! in_array( $payment_method_type, $reusable_payment_methods, true ) ) {
-					// Remove saved token from list, if payment method is not enabled.
-					unset( $tokens[ $token->get_id() ] );
-				} else {
-					// Store relevant existing tokens here.
-					// We will use this list to check whether these methods still exist on Stripe's side.
-					$remaining_tokens[ $token->get_token() ] = $token;
-				}
-			}
-		}
-
-		$retrievable_payment_method_types = [];
-		foreach ( $reusable_payment_methods as $payment_method_id ) {
-			$upe_payment_method = $gateway->payment_methods[ $payment_method_id ];
-			if ( ! in_array( $upe_payment_method->get_retrievable_type(), $retrievable_payment_method_types, true ) ) {
-				$retrievable_payment_method_types[] = $upe_payment_method->get_retrievable_type();
-			}
-		}
-
 		try {
-			foreach ( $retrievable_payment_method_types as $payment_method_id ) {
-				$payment_methods = $customer->get_payment_methods( $payment_method_id );
+			$stored_tokens = [];
 
-				// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
-				remove_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
-				foreach ( $payment_methods as $payment_method ) {
-					if ( ! isset( $remaining_tokens[ $payment_method->id ] ) ) {
-						$payment_method_type = $this->get_original_payment_method_type( $payment_method );
-						if ( ! in_array( $payment_method_type, $reusable_payment_methods, true ) ) {
-							continue;
-						}
-						// Create new token for new payment method and add to list.
-						$upe_payment_method         = $gateway->payment_methods[ $payment_method_type ];
-						$token                      = $upe_payment_method->create_payment_token_for_user( $user_id, $payment_method );
-						$tokens[ $token->get_id() ] = $token;
-					} else {
-						// Count that existing token for payment method is still present on Stripe.
-						// Remaining IDs in $remaining_tokens no longer exist with Stripe and will be eliminated.
-						unset( $remaining_tokens[ $payment_method->id ] );
+			$deprecated_tokens = [];
+
+			foreach ( $tokens as $token ) {
+				if ( in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
+
+					// APM tokens from before Split PE was in place that will get removed.
+					if ( 'stripe' === $token->get_gateway_id() && 'sepa' === $token->get_type() ) {
+						$deprecated_tokens[ $token->get_token() ] = $token;
+						continue;
 					}
+
+					$stored_tokens[ $token->get_token() ] = $token;
 				}
-				add_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
 			}
 
-			// Eliminate remaining payment methods no longer known by Stripe.
-			// Prevent unnecessary recursion, when deleting tokens.
+			$gateway  = WC_Stripe::get_instance()->get_main_stripe_gateway();
+			$customer = new WC_Stripe_Customer( $user_id );
+
+			// Retrieve the payment methods for the enabled reusable gateways.
+			$payment_methods = [];
+			foreach ( self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD as $payment_method_type => $reausable_gateway_id ) {
+
+				// The payment method type doesn't match the ones we use. Nothing to do here.
+				if ( ! isset( $gateway->payment_methods[ $payment_method_type ] ) ) {
+					continue;
+				}
+
+				$payment_method_instance = $gateway->payment_methods[ $payment_method_type ];
+				if ( $payment_method_instance->is_enabled() ) {
+					$payment_methods[] = $customer->get_payment_methods( $payment_method_type );
+				}
+			}
+
+			$payment_methods = array_merge( ...$payment_methods );
+
+			// Prevent unnecessary recursion, WC_Payment_Token::save() ends up calling 'woocommerce_get_customer_payment_tokens' in some cases.
+			remove_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
+
+			foreach ( $payment_methods as $payment_method ) {
+				if ( ! isset( $payment_method->type ) ) {
+					continue;
+				}
+
+				// Retrieve the real APM behind SEPA PaymentMethods.
+				$payment_method_type = $this->get_original_payment_method_type( $payment_method );
+
+				if (
+					! isset( $stored_tokens[ $payment_method->id ] ) &&
+					( $this->is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) || empty( $gateway_id ) )
+				) {
+					$token                      = $this->add_token_to_user( $payment_method, $customer );
+					$tokens[ $token->get_id() ] = $token;
+				} else {
+					unset( $stored_tokens[ $payment_method->id ] );
+				}
+			}
+			add_action( 'woocommerce_get_customer_payment_tokens', [ $this, 'woocommerce_get_customer_payment_tokens' ], 10, 3 );
+
 			remove_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
-			foreach ( $remaining_tokens as $token ) {
+
+			// Remove the payment methods that no longer exist in Stripe's side.
+			foreach ( $stored_tokens as $token ) {
 				unset( $tokens[ $token->get_id() ] );
 				$token->delete();
 			}
+
+			// Remove the APM tokens from before Split PE was in place.
+			foreach ( $deprecated_tokens as $token ) {
+				unset( $tokens[ $token->get_id() ] );
+				$token->delete();
+			}
+
 			add_action( 'woocommerce_payment_token_deleted', [ $this, 'woocommerce_payment_token_deleted' ], 10, 2 );
 
 		} catch ( WC_Stripe_Exception $e ) {
@@ -307,26 +343,6 @@ class WC_Stripe_Payment_Tokens {
 		}
 
 		return $tokens;
-	}
-
-	/**
-	 * Returns original type of payment method from Stripe payment method response,
-	 * after checking whether payment method is SEPA method generated from another type.
-	 *
-	 * @param object $payment_method Stripe payment method JSON object.
-	 *
-	 * @return string Payment method type/ID
-	 */
-	private function get_original_payment_method_type( $payment_method ) {
-		if ( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID === $payment_method->type ) {
-			if ( ! is_null( $payment_method->sepa_debit->generated_from->charge ) ) {
-				return $payment_method->sepa_debit->generated_from->charge->payment_method_details->type;
-			}
-			if ( ! is_null( $payment_method->sepa_debit->generated_from->setup_attempt ) ) {
-				return $payment_method->sepa_debit->generated_from->setup_attempt->payment_method_details->type;
-			}
-		}
-		return $payment_method->type;
 	}
 
 	/**
@@ -373,22 +389,18 @@ class WC_Stripe_Payment_Tokens {
 	 */
 	public function woocommerce_payment_token_deleted( $token_id, $token ) {
 		$stripe_customer = new WC_Stripe_Customer( get_current_user_id() );
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			if ( WC_Stripe_UPE_Payment_Gateway::ID === $token->get_gateway_id() ) {
-				try {
+		try {
+			if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+				if ( in_array( $token->get_gateway_id(), self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD, true ) ) {
 					$stripe_customer->detach_payment_method( $token->get_token() );
-				} catch ( WC_Stripe_Exception $e ) {
-					WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 				}
-			}
-		} else {
-			if ( 'stripe' === $token->get_gateway_id() || 'stripe_sepa' === $token->get_gateway_id() ) {
-				try {
+			} else {
+				if ( 'stripe' === $token->get_gateway_id() || 'stripe_sepa' === $token->get_gateway_id() ) {
 					$stripe_customer->delete_source( $token->get_token() );
-				} catch ( WC_Stripe_Exception $e ) {
-					WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 				}
 			}
+		} catch ( WC_Stripe_Exception $e ) {
+			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 		}
 	}
 
@@ -415,6 +427,84 @@ class WC_Stripe_Payment_Tokens {
 		} catch ( WC_Stripe_Exception $e ) {
 			WC_Stripe_Logger::log( 'Error: ' . $e->getMessage() );
 		}
+	}
+
+	/**
+	 * Returns boolean value if payment method type matches relevant payment gateway.
+	 *
+	 * @param string $payment_method_type Stripe payment method type ID.
+	 * @param string $gateway_id          WC Stripe gateway ID.
+	 * @return bool                       True, if payment method type matches gateway, false if otherwise.
+	 */
+	private function is_valid_payment_method_type_for_gateway( $payment_method_type, $gateway_id ) {
+		$reusable_gateway = self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method_type ];
+		return self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method_type ] === $gateway_id;
+	}
+
+	/**
+	 * Creates and add a token to an user, based on the PaymentMethod object.
+	 *
+	 * @param   array              $payment_method                              Payment method to be added.
+	 * @param   WC_Stripe_Customer $user                                        WC_Stripe_Customer we're processing the tokens for.
+	 * @return  WC_Payment_Token_CC|WC_Payment_Token_Link|WC_Payment_Token_SEPA The WC object for the payment token.
+	 */
+	private function add_token_to_user( $payment_method, WC_Stripe_Customer $customer ) {
+		// Clear cached payment methods.
+		$customer->clear_cache();
+
+		$payment_method_type = $this->get_original_payment_method_type( $payment_method );
+		$gateway_id          = self::UPE_REUSABLE_GATEWAYS_BY_PAYMENT_METHOD[ $payment_method_type ];
+
+		switch ( $payment_method_type ) {
+			case WC_Stripe_UPE_Payment_Method_CC::STRIPE_ID:
+				$token = new WC_Payment_Token_CC();
+				$token->set_expiry_month( $payment_method->card->exp_month );
+				$token->set_expiry_year( $payment_method->card->exp_year );
+				$token->set_card_type( strtolower( $payment_method->card->brand ) );
+				$token->set_last4( $payment_method->card->last4 );
+				break;
+
+			case WC_Stripe_UPE_Payment_Method_Link::STRIPE_ID:
+				$token = new WC_Payment_Token_Link();
+				$token->set_email( $payment_method->link->email );
+				$token->set_payment_method_type( $payment_method_type );
+				break;
+
+			default:
+				$token = new WC_Payment_Token_SEPA();
+				$token->set_last4( $payment_method->sepa_debit->last4 );
+				$token->set_payment_method_type( $payment_method_type );
+		}
+
+		$token->set_gateway_id( $gateway_id );
+		$token->set_token( $payment_method->id );
+		$token->set_user_id( $customer->get_user_id() );
+		$token->save();
+
+		return $token;
+	}
+
+	/**
+	 * Returns the original type of payment method from Stripe's PaymentMethod object.
+	 *
+	 * APMs like iDEAL, Bancontact, and Sofort get their PaymentMethod object type set to SEPA.
+	 * This method checks the extra data within the PaymentMethod object to determine the
+	 * original APM type that was used to create the PaymentMethod.
+	 *
+	 * @param object $payment_method Stripe payment method JSON object.
+	 *
+	 * @return string Payment method type/ID
+	 */
+	private function get_original_payment_method_type( $payment_method ) {
+		if ( WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID === $payment_method->type ) {
+			if ( ! is_null( $payment_method->sepa_debit->generated_from->charge ) ) {
+				return $payment_method->sepa_debit->generated_from->charge->payment_method_details->type;
+			}
+			if ( ! is_null( $payment_method->sepa_debit->generated_from->setup_attempt ) ) {
+				return $payment_method->sepa_debit->generated_from->setup_attempt->payment_method_details->type;
+			}
+		}
+		return $payment_method->type;
 	}
 }
 

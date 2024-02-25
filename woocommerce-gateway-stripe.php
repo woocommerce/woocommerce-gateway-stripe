@@ -199,6 +199,7 @@ function woocommerce_gateway_stripe() {
 				require_once dirname( __FILE__ ) . '/includes/compat/class-wc-stripe-woo-compat-utils.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect.php';
 				require_once dirname( __FILE__ ) . '/includes/connect/class-wc-stripe-connect-api.php';
+				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-action-scheduler-service.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-order-handler.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-payment-tokens.php';
 				require_once dirname( __FILE__ ) . '/includes/class-wc-stripe-customer.php';
@@ -213,6 +214,9 @@ function woocommerce_gateway_stripe() {
 				$this->connect                       = new WC_Stripe_Connect( $this->api );
 				$this->payment_request_configuration = new WC_Stripe_Payment_Request();
 				$this->account                       = new WC_Stripe_Account( $this->connect, 'WC_Stripe_API' );
+
+				$intent_controller = new WC_Stripe_Intent_Controller();
+				$intent_controller->init_hooks();
 
 				if ( is_admin() ) {
 					require_once dirname( __FILE__ ) . '/includes/admin/class-wc-stripe-admin-notices.php';
@@ -378,9 +382,17 @@ function woocommerce_gateway_stripe() {
 			 * @version 5.6.0
 			 */
 			public function add_gateways( $methods ) {
-				$methods[] = $this->get_main_stripe_gateway();
+				$main_gateway = $this->get_main_stripe_gateway();
+				$methods[]    = $main_gateway;
 
-				if ( ! WC_Stripe_Feature_Flags::is_upe_preview_enabled() || ! WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
+				// These payment gateways will be visible in the main settings page, if UPE enabled.
+				if ( is_a( $main_gateway, 'WC_Stripe_UPE_Payment_Gateway' ) ) {
+					// The $main_gateway represents the card gateway so we don't want to include it in the list of UPE gateways.
+					$upe_payment_methods = $main_gateway->payment_methods;
+					unset( $upe_payment_methods['card'] );
+
+					$methods = array_merge( $methods, $upe_payment_methods );
+				} else {
 					// These payment gateways will not be included in the gateway list when UPE is enabled:
 					$methods[] = WC_Gateway_Stripe_Alipay::class;
 					$methods[] = WC_Gateway_Stripe_Sepa::class;
