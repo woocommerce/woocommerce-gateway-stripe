@@ -1,0 +1,15 @@
+table.wc_gateways {
+	tr[data-gateway_id="stripe_alipay"],
+	tr[data-gateway_id="stripe_bancontact"],
+	tr[data-gateway_id="stripe_boleto"],
+	tr[data-gateway_id="stripe_eps"],
+	tr[data-gateway_id="stripe_giropay"],
+	tr[data-gateway_id="stripe_ideal"],
+	tr[data-gateway_id="stripe_multibanco"],
+	tr[data-gateway_id="stripe_oxxo"],
+	tr[data-gateway_id="stripe_p24"],
+	tr[data-gateway_id="stripe_sofort"],
+	tr[data-gateway_id="stripe_sepa"]	{
+		display: none;
+	}
+}

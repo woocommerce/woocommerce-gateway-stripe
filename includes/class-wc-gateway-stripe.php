@@ -121,6 +121,7 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Hooks.
+		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_fee' ] );
@@ -137,6 +138,15 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// Note: display error is in the parent class.
 		add_action( 'admin_notices', [ $this, 'display_errors' ], 9999 );
+	}
+
+	/**
+	 * Load admin scripts.
+	 */
+	public function admin_scripts() {
+		wp_register_style( 'payment-methods-styles', plugins_url( 'assets/css/payment-methods-styles.css', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );
+		wp_enqueue_style( 'payment-methods-styles' );
+
 	}
 
 	/**
@@ -657,9 +667,12 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	 * @return WC_Payment_Gateway[]          The same list if UPE is disabled or a list including the available legacy payment methods.
 	 */
 	public function get_available_payment_gateways( $gateways ) {
-		// We need to include the payment methods when UPE is disabled, return the same list when UPE is enabled.
-		if ( WC_Stripe_Feature_Flags::is_upe_checkout_enabled() ) {
-			return $gateways;
+		// Unset the stripe methods from the array first, then place it in the correct position below
+		// as set in `stripe_ordered_payment_method_ids`.
+		foreach ( $gateways as $key => $gateway ) {
+			if ( 0 === strpos( $key, 'stripe_' ) ) {
+				unset( $gateways[ $key ] );
+			}
 		}
 
 		$legacy_enabled_gateways           = WC_Stripe_Helper::get_legacy_enabled_payment_methods();

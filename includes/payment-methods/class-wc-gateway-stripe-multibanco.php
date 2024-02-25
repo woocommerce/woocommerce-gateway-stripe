@@ -130,11 +130,6 @@ class WC_Gateway_Stripe_Multibanco extends WC_Stripe_Payment_Gateway {
 			return false;
 		}
 
-		// If cart contains a subscription or pre-order item, don't show Multibanco on checkout.
-		if ( $this->is_subscription_item_in_cart() || $this->is_pre_order_item_in_cart() ) {
-			return false;
-		}
-
 		return parent::is_available();
 	}
 
