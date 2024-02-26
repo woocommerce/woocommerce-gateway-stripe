@@ -146,10 +146,12 @@
     "jt:setup": "npm run up && ./bin/jurassic-tube-setup.sh",
     "jt:start": "./docker/bin/jt/tunnel.sh",
     "jt:stop": "./docker/bin/jt/tunnel.sh break",
-    "test:e2e": "./tests/e2e/env/e2e.sh",
-    "test:e2e-smoke": "./tests/e2e/env/e2e.sh --grep @smoke",
-    "test:e2e-setup": "./tests/e2e/env/e2e.sh --with_woo_setup --with_stripe_setup",
-    "test:e2e-debug": "./tests/e2e/env/e2e.sh --debug"
+    "test:e2e-setup": "./tests/e2e/bin/setup.sh",
+    "test:e2e-up": "./tests/e2e/bin/up.sh",
+    "test:e2e-down": "./tests/e2e/bin/down.sh",
+    "test:e2e-cleanup": "npm run test:e2e-down && ./tests/e2e/bin/cleanup.sh",
+    "test:e2e": "./tests/e2e/bin/run-tests.sh",
+    "test:e2e-debug": "npm run test:e2e -- --debug"
   },
   "engines": {
     "node": ">=16.17.0",
