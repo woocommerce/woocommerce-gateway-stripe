@@ -121,7 +121,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 		}
 
 		// Hooks.
-		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'wp_enqueue_scripts', [ $this, 'payment_scripts' ] );
 		add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, [ $this, 'process_admin_options' ] );
 		add_action( 'woocommerce_admin_order_totals_after_total', [ $this, 'display_order_fee' ] );
@@ -138,15 +137,6 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 
 		// Note: display error is in the parent class.
 		add_action( 'admin_notices', [ $this, 'display_errors' ], 9999 );
-	}
-
-	/**
-	 * Load admin scripts.
-	 */
-	public function admin_scripts() {
-		wp_register_style( 'payment-methods-styles', plugins_url( 'assets/css/payment-methods-styles.css', WC_STRIPE_MAIN_FILE ), [], WC_STRIPE_VERSION );
-		wp_enqueue_style( 'payment-methods-styles' );
-
 	}
 
 	/**

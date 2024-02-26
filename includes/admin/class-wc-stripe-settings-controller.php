@@ -142,9 +142,29 @@ class WC_Stripe_Settings_Controller {
 	 * to display the payment gateways on the WooCommerce Settings page.
 	 */
 	public static function hide_gateways_on_settings_page() {
+		$gateways_to_hide = [
+			// Hide all UPE payment methods.
+			WC_Stripe_UPE_Payment_Method::class,
+			// Hide all legacy payment methods.
+			WC_Gateway_Stripe_Alipay::class,
+			WC_Gateway_Stripe_Sepa::class,
+			WC_Gateway_Stripe_Giropay::class,
+			WC_Gateway_Stripe_Ideal::class,
+			WC_Gateway_Stripe_Bancontact::class,
+			WC_Gateway_Stripe_Eps::class,
+			WC_Gateway_Stripe_P24::class,
+			WC_Gateway_Stripe_Boleto::class,
+			WC_Gateway_Stripe_Oxxo::class,
+			WC_Gateway_Stripe_Sofort::class,
+			WC_Gateway_Stripe_Multibanco::class,
+		];
+
 		foreach ( WC()->payment_gateways->payment_gateways as $index => $payment_gateway ) {
-			if ( $payment_gateway instanceof WC_Stripe_UPE_Payment_Method ) {
-				unset( WC()->payment_gateways->payment_gateways[ $index ] );
+			foreach ( $gateways_to_hide as $gateway_to_hide ) {
+				if ( $payment_gateway instanceof $gateway_to_hide ) {
+					unset( WC()->payment_gateways->payment_gateways[ $index ] );
+					break; // Break the inner loop as we've already found a match and removed the gateway
+				}
 			}
 		}
 	}
