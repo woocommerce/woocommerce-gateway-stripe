@@ -244,6 +244,9 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 
 		if ( $is_deleting_account ) {
 			$settings['enabled'] = 'no';
+			$this->record_manual_account_disconnect_track_event( 'yes' === $settings['testmode'] );
+		} else {
+			$this->record_manual_account_key_update_track_event( 'yes' === $settings['testmode'] );
 		}
 
 		update_option( self::STRIPE_GATEWAY_SETTINGS_OPTION_NAME, $settings );
@@ -310,15 +313,28 @@ class WC_REST_Stripe_Account_Keys_Controller extends WC_Stripe_REST_Base_Control
 	}
 
 	/**
-	 * Records a track event when the keys of an account are manually added and no keys were previously stored.
+	 * Records a track event when the keys of an account are manually removed (account disconnected).
 	 *
 	 * @param bool $is_test_mode Whether the keys are test ones.
 	 */
-	private function record_manual_account_connect_track_event( bool $is_test_mode ) {
+	private function record_manual_account_disconnect_track_event( bool $is_test_mode ) {
 		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
 			return;
 		}
 
-		wc_admin_record_tracks_event( 'wcstripe_stripe_connected', [ 'is_test_mode' => $is_test_mode ] );
+		wc_admin_record_tracks_event( 'wcstripe_stripe_disconnected', [ 'is_test_mode' => $is_test_mode ] );
+	}
+
+	/**
+	 * Records a track event when the keys of an account are manually updated.
+	 *
+	 * @param bool $is_test_mode Whether the keys are test ones.
+	 */
+	private function record_manual_account_key_update_track_event( bool $is_test_mode ) {
+		if ( ! function_exists( 'wc_admin_record_tracks_event' ) ) {
+			return;
+		}
+
+		wc_admin_record_tracks_event( 'wcstripe_stripe_keys_updated', [ 'is_test_mode' => $is_test_mode ] );
 	}
 }
