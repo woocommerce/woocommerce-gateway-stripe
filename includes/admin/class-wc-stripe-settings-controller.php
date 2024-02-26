@@ -160,7 +160,7 @@ class WC_Stripe_Settings_Controller {
 		];
 
 		foreach ( WC()->payment_gateways->payment_gateways as $index => $payment_gateway ) {
-			foreach( $gateways_to_hide as $gateway_to_hide ) {
+			foreach ( $gateways_to_hide as $gateway_to_hide ) {
 				if ( $payment_gateway instanceof $gateway_to_hide ) {
 					unset( WC()->payment_gateways->payment_gateways[ $index ] );
 					break; // Break the inner loop as we've already found a match and removed the gateway
