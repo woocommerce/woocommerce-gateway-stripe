@@ -28,11 +28,9 @@ languages/woocommerce-gateway-stripe.pot
 deploy-to-wp-org.sh
 
 # Test configs
-tests/e2e/storage
-tests/e2e/output
+tests/e2e/env/docker
 tests/e2e/report
-tests/e2e/tmp
-tests/e2e/allure-results
+tests/e2e/e2e-setup.log
 
 # Volumes mounted by Docker containers
 docker/bin/jt
