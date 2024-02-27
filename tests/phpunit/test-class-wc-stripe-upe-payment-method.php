@@ -306,7 +306,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Boleto', $boleto_method->get_title() );
 		$this->assertEquals( 'Boleto', $boleto_method->get_title( $mock_boleto_details ) );
 		$this->assertFalse( $boleto_method->is_reusable() );
-		$this->assertEquals( null, $boleto_method->get_retrievable_type() );
+		$this->assertEquals( 'boleto', $boleto_method->get_retrievable_type() );
 		$this->assertEquals( '', $boleto_method->get_testing_instructions() );
 
 		$this->assertEquals( 'oxxo', $oxxo_method->get_id() );
@@ -314,7 +314,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'OXXO', $oxxo_method->get_title() );
 		$this->assertEquals( 'OXXO', $oxxo_method->get_title( $mock_oxxo_details ) );
 		$this->assertFalse( $oxxo_method->is_reusable() );
-		$this->assertEquals( null, $oxxo_method->get_retrievable_type() );
+		$this->assertEquals( 'oxxo', $oxxo_method->get_retrievable_type() );
 		$this->assertEquals( '', $oxxo_method->get_testing_instructions() );
 	}
 
