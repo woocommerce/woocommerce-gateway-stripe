@@ -77,7 +77,7 @@ const DisconnectStripeConfirmationModal = ( {
 				</strong>
 				<p>
 					{ __(
-						'All settings will be cleared and your customers will no longer be able to pay using cards and other payment methods offered by Stripe.',
+						'All settings will be cleared and your customers will no longer be able to pay using cards and other payment methods offered by Stripe. Due to this change, you might be required to create a new Stripe account should you want to reactivate.',
 						'woocommerce-gateway-stripe'
 					) }
 				</p>
