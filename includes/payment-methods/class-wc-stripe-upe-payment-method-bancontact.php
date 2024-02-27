@@ -29,5 +29,8 @@ class WC_Stripe_UPE_Payment_Method_Bancontact extends WC_Stripe_UPE_Payment_Meth
 			'Bancontact is the most popular online payment method in Belgium, with over 15 million cards in circulation.',
 			'woocommerce-gateway-stripe'
 		);
+
+		// Add support for pre-orders.
+		$this->maybe_init_pre_orders();
 	}
 }

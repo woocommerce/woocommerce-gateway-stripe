@@ -832,7 +832,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 					]
 				);
 			} elseif ( in_array( $payment_intent->status, self::SUCCESSFUL_INTENT_STATUS, true ) ) {
-				$order->payment_complete();
+				if ( ! $this->has_pre_order( $order ) ) {
+					$order->payment_complete();
+				} elseif ( $this->maybe_process_pre_orders( $order ) ) {
+					$this->mark_order_as_pre_ordered( $order );
+				}
 			}
 
 			return array_merge(
@@ -1237,11 +1241,13 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		$payment_method = $this->payment_methods[ $payment_method_type ];
 
 		$is_pre_order = false;
-		if ( $this->maybe_process_pre_orders( $order->get_id() ) ) {
+		if ( $this->has_pre_order( $order->get_id() ) ) {
 			// If this is a pre-order, simply mark the order as pre-ordered and allow
 			// the subsequent logic to save the payment method and proceed to complete the order.
 			$this->mark_order_as_pre_ordered( $order->get_id() );
-			$save_payment_method = true;
+
+			// We require to save the payment method if the pre-order is charged upon release.
+			$save_payment_method = $save_payment_method || $this->has_pre_order_charged_upon_release( $order );
 			$is_pre_order        = true;
 		}
 
@@ -2337,7 +2343,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 	private function should_upe_payment_method_show_save_option( $payment_method ) {
 		if ( $payment_method->is_reusable() ) {
 			// If a subscription in the cart, it will be saved by default so no need to show the option.
-			return $this->is_saved_cards_enabled() && ! $this->is_subscription_item_in_cart();
+			return $this->is_saved_cards_enabled() && ! $this->is_subscription_item_in_cart() && ! $this->is_pre_order_charged_upon_release_in_cart();
 		}
 
 		return false;

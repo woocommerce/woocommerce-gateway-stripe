@@ -29,5 +29,8 @@ class WC_Stripe_UPE_Payment_Method_Ideal extends WC_Stripe_UPE_Payment_Method {
 			'iDEAL is a Netherlands-based payment method that allows customers to complete transactions online using their bank credentials.',
 			'woocommerce-gateway-stripe'
 		);
+
+		// Add support for pre-orders.
+		$this->maybe_init_pre_orders();
 	}
 }

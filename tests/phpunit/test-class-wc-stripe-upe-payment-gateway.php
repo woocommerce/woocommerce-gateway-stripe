@@ -113,6 +113,8 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 					'display_order_fee',
 					'display_order_payout',
 					'get_intent_from_order',
+					'has_pre_order_charged_upon_release',
+					'has_pre_order',
 				]
 			)
 			->getMock();
@@ -1712,8 +1714,17 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 		$payment_intent_mock['charges']['data'][0]['payment_method_details'] = $payment_method_mock;
 
 		// Mock order has pre-order product.
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'has_pre_order' )
+			->with( $order_id )
+			->will( $this->returnValue( true ) );
+
 		$this->mock_gateway->expects( $this->once() )
-			->method( 'maybe_process_pre_orders' )
+			->method( 'is_pre_order_item_in_cart' )
+			->will( $this->returnValue( true ) );
+
+		$this->mock_gateway->expects( $this->once() )
+			->method( 'is_pre_order_product_charged_upfront' )
 			->will( $this->returnValue( true ) );
 
 		$this->mock_gateway->expects( $this->once() )
@@ -1730,6 +1741,11 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 			->will(
 				$this->returnValue( $this->mock_stripe_customer )
 			);
+
+		$this->mock_gateway->expects( $this->any() )
+			->method( 'has_pre_order_charged_upon_release' )
+			->with( wc_get_order( $order_id ) )
+			->will( $this->returnValue( true ) );
 
 		$this->mock_gateway->expects( $this->once() )
 			->method( 'mark_order_as_pre_ordered' );
@@ -1778,7 +1794,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		// Mock order has pre-order product.
 		$this->mock_gateway->expects( $this->once() )
-			->method( 'maybe_process_pre_orders' )
+			->method( 'has_pre_order' )
 			->will( $this->returnValue( true ) );
 
 		$this->mock_gateway->expects( $this->once() )
