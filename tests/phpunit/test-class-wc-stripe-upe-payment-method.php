@@ -237,8 +237,8 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 
 		$this->assertEquals( 'alipay', $alipay_method->get_id() );
 		$this->assertEquals( 'Alipay', $alipay_method->get_label() );
-		$this->assertEquals( 'Pay with Alipay', $alipay_method->get_title() );
-		$this->assertEquals( 'Pay with Alipay', $alipay_method->get_title( $mock_alipay_details ) );
+		$this->assertEquals( 'Alipay', $alipay_method->get_title() );
+		$this->assertEquals( 'Alipay', $alipay_method->get_title( $mock_alipay_details ) );
 		$this->assertFalse( $alipay_method->is_reusable() );
 		$this->assertEquals( null, $alipay_method->get_retrievable_type() );
 
