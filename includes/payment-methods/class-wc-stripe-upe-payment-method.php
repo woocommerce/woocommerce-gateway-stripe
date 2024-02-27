@@ -294,7 +294,7 @@ abstract class WC_Stripe_UPE_Payment_Method extends WC_Payment_Gateway {
 	 * to query to retrieve saved payment methods from Stripe.
 	 */
 	public function get_retrievable_type() {
-		return $this->is_reusable() ? WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID : null;
+		return $this->is_reusable() ? WC_Stripe_UPE_Payment_Method_Sepa::STRIPE_ID : static::STRIPE_ID;
 	}
 
 	/**
