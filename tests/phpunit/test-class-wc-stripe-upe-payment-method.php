@@ -240,14 +240,14 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Alipay', $alipay_method->get_title() );
 		$this->assertEquals( 'Alipay', $alipay_method->get_title( $mock_alipay_details ) );
 		$this->assertFalse( $alipay_method->is_reusable() );
-		$this->assertEquals( null, $alipay_method->get_retrievable_type() );
+		$this->assertEquals( 'alipay', $alipay_method->get_retrievable_type() );
 
 		$this->assertEquals( 'giropay', $giropay_method->get_id() );
 		$this->assertEquals( 'giropay', $giropay_method->get_label() );
 		$this->assertEquals( 'giropay', $giropay_method->get_title() );
 		$this->assertEquals( 'giropay', $giropay_method->get_title( $mock_giropay_details ) );
 		$this->assertFalse( $giropay_method->is_reusable() );
-		$this->assertEquals( null, $giropay_method->get_retrievable_type() );
+		$this->assertEquals( 'giropay', $giropay_method->get_retrievable_type() );
 		$this->assertEquals( '', $giropay_method->get_testing_instructions() );
 
 		$this->assertEquals( 'p24', $p24_method->get_id() );
@@ -255,7 +255,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'Przelewy24', $p24_method->get_title() );
 		$this->assertEquals( 'Przelewy24', $p24_method->get_title( $mock_p24_details ) );
 		$this->assertFalse( $p24_method->is_reusable() );
-		$this->assertEquals( null, $p24_method->get_retrievable_type() );
+		$this->assertEquals( 'p24', $p24_method->get_retrievable_type() );
 		$this->assertEquals( '', $p24_method->get_testing_instructions() );
 
 		$this->assertEquals( 'eps', $eps_method->get_id() );
@@ -263,7 +263,7 @@ class WC_Stripe_UPE_Payment_Method_Test extends WP_UnitTestCase {
 		$this->assertEquals( 'EPS', $eps_method->get_title() );
 		$this->assertEquals( 'EPS', $eps_method->get_title( $mock_eps_details ) );
 		$this->assertFalse( $eps_method->is_reusable() );
-		$this->assertEquals( null, $eps_method->get_retrievable_type() );
+		$this->assertEquals( 'eps', $eps_method->get_retrievable_type() );
 		$this->assertEquals( '', $eps_method->get_testing_instructions() );
 
 		$this->assertEquals( 'sepa_debit', $sepa_method->get_id() );
