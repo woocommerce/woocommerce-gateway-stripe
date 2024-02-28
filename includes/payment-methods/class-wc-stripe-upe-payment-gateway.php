@@ -781,7 +781,7 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 			 * Depending on the payment method used to process the payment, we may need to redirect the user to a URL for further processing.
 			 *
 			 * - Voucher payments (Boleto or Oxxo) respond with a hash URL so the client JS code can recognize the response, pull out the necessary args and handle the displaying of the voucher.
-			 * - Other payment methods like Giropay, iDEAL etc require a redirect to a URL provided by Stripe.
+			 * - Other payment methods like Giropay, iDEAL, Alipay etc require a redirect to a URL provided by Stripe.
 			 * - 3DS Card payments return a hash URL so the client JS code can recognize the response, pull out the necessary PI args and display the 3DS confirmation modal.
 			 */
 			if ( in_array( $payment_intent->status, [ 'requires_confirmation', 'requires_action' ], true ) ) {
@@ -794,8 +794,8 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 						$payment_intent->client_secret,
 						rawurlencode( $redirect )
 					);
-				} elseif ( isset( $payment_intent->next_action->type ) && 'redirect_to_url' === $payment_intent->next_action->type && ! empty( $payment_intent->next_action->redirect_to_url->url ) ) {
-					$redirect = $payment_intent->next_action->redirect_to_url->url;
+				} elseif ( isset( $payment_intent->next_action->type ) && in_array( $payment_intent->next_action->type, [ 'redirect_to_url', 'alipay_handle_redirect' ], true ) && ! empty( $payment_intent->next_action->{$payment_intent->next_action->type}->url ) ) {
+					$redirect = $payment_intent->next_action->{$payment_intent->next_action->type}->url;
 				} else {
 					$redirect = sprintf(
 						'#wc-stripe-confirm-%s:%s:%s:%s',

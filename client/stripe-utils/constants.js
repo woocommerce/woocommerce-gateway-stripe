@@ -8,6 +8,7 @@ export const PAYMENT_METHOD_NAME_SOFORT = 'stripe_sofort';
 export const PAYMENT_METHOD_NAME_BOLETO = 'stripe_boleto';
 export const PAYMENT_METHOD_NAME_OXXO = 'stripe_oxxo';
 export const PAYMENT_METHOD_NAME_BANCONTACT = 'stripe_bancontact';
+export const PAYMENT_METHOD_NAME_ALIPAY = 'stripe_alipay';
 
 export function getPaymentMethodsConstants() {
 	return {
@@ -21,6 +22,7 @@ export function getPaymentMethodsConstants() {
 		boleto: PAYMENT_METHOD_NAME_BOLETO,
 		oxxo: PAYMENT_METHOD_NAME_OXXO,
 		bancontact: PAYMENT_METHOD_NAME_BANCONTACT,
+		alipay: PAYMENT_METHOD_NAME_ALIPAY,
 	};
 }
 
