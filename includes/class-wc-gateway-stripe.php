@@ -142,9 +142,16 @@ class WC_Gateway_Stripe extends WC_Stripe_Payment_Gateway {
 	/**
 	 * Checks if gateway should be available to use.
 	 *
+	 * Note: This method checks if the "card" method is available because the main gateway is responsible for cards specifically.
+	 *
 	 * @since 4.0.2
 	 */
 	public function is_available() {
+
+		if ( 'no' === $this->get_option( 'cards_enabled' ) ) {
+			return false;
+		}
+
 		if ( is_add_payment_method_page() && ! $this->saved_cards ) {
 			return false;
 		}

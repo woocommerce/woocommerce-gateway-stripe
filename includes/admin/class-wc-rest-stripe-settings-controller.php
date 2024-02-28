@@ -646,6 +646,13 @@ class WC_REST_Stripe_Settings_Controller extends WC_Stripe_REST_Base_Controller 
 				}
 			}
 
+			// Cards are handled by the main gateway so we store a separate option rather than updating the global gateway's enabled setting directly.
+			if ( in_array( 'card', $payment_method_ids_to_enable, true ) ) {
+				$this->gateway->update_option( 'cards_enabled', 'yes' );
+			} else {
+				$this->gateway->update_option( 'cards_enabled', 'no' );
+			}
+
 			return;
 		}
 
