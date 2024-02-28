@@ -1883,7 +1883,7 @@ class WC_Stripe_UPE_Payment_Gateway_Test extends WP_UnitTestCase {
 
 		$this->mock_gateway->intent_controller
 			->expects( $this->once() )
-			->method( 'update_and_confirm_payment_intent' )
+			->method( 'create_and_confirm_payment_intent' )
 			->willReturn( $mock_intent );
 
 		$this->mock_gateway

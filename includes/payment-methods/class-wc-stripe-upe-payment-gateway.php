@@ -2274,11 +2274,14 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 		);
 	}
 
-	/* Retrieves the (possible) existing payment intent for an order and payment method types.
+	/**
+	 * Retrieves the (possible) existing payment intent for an order and payment method types.
 	 *
 	 * @param WC_Order $order The order.
-	 * @param array $payment_method_types The payment method types.
+	 * @param array    $payment_method_types The payment method types.
+	 *
 	 * @return object|null
+	 *
 	 * @throws WC_Stripe_Exception
 	 */
 	private function get_existing_compatible_payment_intent( $order, $payment_method_types ) {
@@ -2296,6 +2299,11 @@ class WC_Stripe_UPE_Payment_Gateway extends WC_Gateway_Stripe {
 
 		// Check if the status of the intent still allows update.
 		if ( in_array( $intent->status, [ 'canceled', 'succeeded' ], true ) ) {
+			return null;
+		}
+
+		// If the intent requires confirmation to show voucher on checkout (i.e. Boleto or oxxo ) or requires action (i.e. need to show a 3DS confirmation card or handle the UPE redirect), don't reuse the intent
+		if ( in_array( $intent->status, [ 'requires_confirmation', 'requires_action' ], true ) ) {
 			return null;
 		}
 
